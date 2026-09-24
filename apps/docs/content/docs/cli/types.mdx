@@ -202,7 +202,7 @@ verbatra types
   arguments not determined (1):
     legal.notice  invalid-message-syntax
   excluded by the adapter (1): meta.version
-  wrote /app/verbatra-types.d.ts
+  wrote verbatra-types.d.ts
 ```
 
 Run it again without changing the catalog and it rewrites nothing:
@@ -210,7 +210,7 @@ Run it again without changing the catalog and it rewrites nothing:
 ```text
 verbatra types
   214 keys declared, 63 of them taking arguments, from locales/en.json
-  unchanged /app/verbatra-types.d.ts
+  unchanged verbatra-types.d.ts
 ```
 
 And in check mode, once the catalog has moved on:
@@ -219,7 +219,7 @@ And in check mode, once the catalog has moved on:
 $ verbatra types --check
 verbatra types
   215 keys declared, 63 of them taking arguments, from locales/en.json
-  /app/verbatra-types.d.ts is out of date, re-run verbatra types
+  verbatra-types.d.ts is out of date, re-run verbatra types
 ```
 
 ## Exit codes

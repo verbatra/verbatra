@@ -16,13 +16,13 @@ verbatra translate --dry-run
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-Lors d'un dry run, le décompte `translated` est le nombre de clés qui **seraient** envoyées au fournisseur : les clés absentes du fichier cible, plus les clés dont le texte source a changé depuis la référence du fichier de verrouillage, moins celles ignorées pour cause d'ICU invalide. Ce décompte est l'entrée de tout ce qui suit.
+Lors d'un dry run, le décompte `would translate` (avec `--json`, la liste `translated`) est le nombre de clés qui **seraient** envoyées au fournisseur : les clés absentes du fichier cible, plus les clés dont le texte source a changé depuis la référence du fichier de verrouillage, moins celles ignorées pour cause d'ICU invalide. Ce décompte est l'entrée de tout ce qui suit.
 
 Traite-le comme une **borne supérieure**, pour deux raisons. Un dry run ne lit jamais [le cache](/docs/the-cache) : les clés qu'une exécution réelle servirait depuis la mémoire de traduction sont donc comptées ici. Et un dry run ne déduplique pas : lors d'une exécution réelle, les clés dont le texte source est identique sont regroupées et un seul représentant est envoyé, si bien qu'un fichier contenant des chaînes répétées est facturé sur moins de clés que ce que montre le dry run.
 
@@ -86,9 +86,9 @@ verbatra translate --estimate
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
   estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests
