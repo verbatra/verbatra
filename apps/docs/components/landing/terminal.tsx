@@ -132,7 +132,7 @@ const HIGHLIGHT_STYLE = {
 function LineRow({ line, highlighted = false }: { line: Line; highlighted?: boolean }): ReactNode {
   if (line.kind === "command") {
     return (
-      <div className="whitespace-pre-wrap">
+      <div className="whitespace-pre">
         <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
@@ -140,13 +140,13 @@ function LineRow({ line, highlighted = false }: { line: Line; highlighted?: bool
   }
   if (highlighted) {
     return (
-      <div className="-mx-4 whitespace-pre-wrap ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
+      <div className="-mx-4 whitespace-pre ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
     );
   }
   return (
-    <div className="whitespace-pre-wrap">
+    <div className="whitespace-pre">
       <HighlightedText text={line.text} base="var(--text-muted)" />
     </div>
   );
@@ -265,21 +265,20 @@ export function Terminal({
         ref={scrollRef}
         aria-hidden="true"
         className={cn(
-          "px-4 py-4 font-mono leading-relaxed",
+          "vk-terminal-scroll px-4 py-4 font-mono leading-relaxed",
           fitContent ? "grid flex-1 content-start" : "h-80 overflow-y-auto",
-          bare ? "text-[12px] sm:text-[13px] md:px-5 md:py-5" : "text-[13px]",
+          bare ? "text-xs sm:text-sm md:px-5 md:py-5" : "text-sm",
         )}
-        style={{ background: "var(--v-void)" }}
       >
         {fitContent ? (
-          <div className="invisible col-start-1 row-start-1">
+          <div className="invisible col-start-1 row-start-1 min-w-max">
             <LineList lines={buildSettled(commands, outputs)} highlight={highlight} />
           </div>
         ) : null}
-        <div className={cn(fitContent && "col-start-1 row-start-1")}>
+        <div className={cn("min-w-max", fitContent && "col-start-1 row-start-1")}>
           <LineList lines={history} highlight={highlight} />
           {typing !== null ? (
-            <div className="whitespace-pre-wrap">
+            <div className="whitespace-pre">
               <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
               <HighlightedText text={typing} base="var(--text-strong)" />
               <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>

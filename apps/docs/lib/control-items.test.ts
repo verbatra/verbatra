@@ -59,4 +59,12 @@ describe("control section links", () => {
     expect(controlHref("en", review)).toBe("/docs/the-lock-file#review-decisions");
     expect(controlHref("de", review)).toBe("/de/docs/the-lock-file#review-entscheidungen");
   });
+
+  it("gives every column the same number of items, so the rows line up", () => {
+    expect(CONTROL_GROUPS.map((group) => group.items.length)).toEqual([3, 3, 3]);
+  });
+
+  it("leaves the glossary to the gains section instead of repeating it", () => {
+    expect(ITEMS.map((item) => item.key)).not.toContain("glossary");
+  });
 });

@@ -77,7 +77,7 @@ export async function Loop(): Promise<ReactNode> {
   const docs = (path: string) => localizedPath(locale, path);
   const codeTags = {
     code: (chunks: ReactNode) => (
-      <code className="font-mono text-[14px] text-fd-foreground">{chunks}</code>
+      <code className="font-mono text-sm text-fd-foreground">{chunks}</code>
     ),
   };
 
@@ -98,7 +98,7 @@ export async function Loop(): Promise<ReactNode> {
               {box("verbatra export")}
               {box("verbatra import translations.xlsx")}
             </div>
-            <table className="w-full border-t border-fd-border font-mono text-[13px]">
+            <table className="w-full border-t border-fd-border font-mono text-sm">
               <thead>
                 <tr style={{ background: "var(--surface-card)" }}>
                   {(["key", "source", "target"] as const).map((column) => (
@@ -149,7 +149,7 @@ export async function Loop(): Promise<ReactNode> {
           <Frame>
             <div className="p-5">{box("verbatra check --json")}</div>
             <pre
-              className="overflow-x-auto border-t border-fd-border px-5 py-4 font-mono text-[13px] leading-relaxed text-fd-muted-foreground"
+              className="overflow-x-auto border-t border-fd-border px-5 py-4 font-mono text-sm leading-relaxed text-fd-muted-foreground"
               style={{ background: "var(--v-void)" }}
             >
               <code>{CHECK_JSON_EXCERPT.join("\n")}</code>

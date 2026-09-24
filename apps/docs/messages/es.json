@@ -40,7 +40,7 @@
       "pnpmNote": "pnpm instala correctamente, pero termina con código 1 y ERR_PNPM_IGNORED_BUILDS porque bloquea los scripts de instalación de una dependencia. Ejecuta pnpm approve-builds una vez, o consulta la página de",
       "pnpmNoteLink": "Solución de problemas",
       "copyPromptAria": "Copiar el prompt de configuración para el agente de IA",
-      "aiTabLabel": "IA",
+      "aiSwitch": "Prompt para IA",
       "aiCaption": "Esta es una vista previa recortada. El prompt completo y los pasos de configuración están en",
       "aiCaptionLink": "la guía de configuración",
       "copyCommand": "Copiar {command}"
@@ -248,10 +248,6 @@
             "review": {
               "title": "Aprueba o rechaza lo que marcó una ejecución",
               "body": "Las decisiones se guardan junto al archivo de bloqueo, así que la cola de revisión solo muestra lo que nadie ha mirado todavía."
-            },
-            "glossary": {
-              "title": "Un glosario con una traducción por locale",
-              "body": "Términos por locale, traducciones prohibidas y nombres que no se traducen, comprobados en cada resultado."
             }
           }
         },
@@ -278,6 +274,10 @@
             "policy": {
               "title": "Una política de red que verbatra hace cumplir",
               "body": "Solo local o una lista de permitidos: un host que no permitiste se rechaza antes de que ninguna petición salga de la máquina."
+            },
+            "preview": {
+              "title": "Mira primero qué enviaría una ejecución",
+              "body": "Una ejecución de prueba no necesita clave de API ni escribe nada: muestra exactamente qué claves enviaría una ejecución real."
             },
             "private": {
               "title": "Sin telemetría, y los modelos locales son bienvenidos",
@@ -489,7 +489,7 @@
     },
     "availableFrom": {
       "title": "Disponible a partir de {version}",
-      "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con verbatra --version y actualiza si es más antigua.",
+      "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con <code>verbatra --version</code> y actualiza si es más antigua.",
       "packageTitle": "Disponible a partir de {version}",
       "packageText": "Esto requiere {version} o posterior. Las versiones anteriores no lo tienen: actualiza ese paquete si el tuyo es más antiguo."
     },

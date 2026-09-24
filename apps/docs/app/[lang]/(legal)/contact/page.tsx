@@ -33,10 +33,10 @@ export default async function ContactPage(props: { params: Promise<{ lang: strin
   });
 
   return (
-    <main className="container mx-auto max-w-3xl px-6 py-16 prose">
+    <article className="container mx-auto max-w-3xl px-6 py-16 prose">
       <h1>{t("title")}</h1>
       <p>{t("intro")}</p>
       <ContactForm privacyNotice={privacyNotice} />
-    </main>
+    </article>
   );
 }

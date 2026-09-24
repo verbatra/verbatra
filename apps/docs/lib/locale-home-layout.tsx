@@ -1,6 +1,7 @@
 import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { HomeContainer } from "@/components/home-container";
 import { HomeSiteHeader } from "@/components/site-header";
 import { toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
@@ -10,9 +11,11 @@ export const MAIN_CONTENT_ID = "main-content";
 export async function LocaleHomeLayout({
   params,
   children,
+  footer,
 }: {
   params: Promise<{ lang: string }>;
   children: ReactNode;
+  footer?: ReactNode;
 }) {
   const { lang } = await params;
   const locale = toLocale(lang);
@@ -25,12 +28,13 @@ export async function LocaleHomeLayout({
       </a>
       <HomeLayout
         {...options}
-        slots={{ ...options.slots, header: HomeSiteHeader }}
+        slots={{ ...options.slots, header: HomeSiteHeader, container: HomeContainer }}
         className="[--fd-layout-width:var(--width-layout)]"
       >
-        <div id={MAIN_CONTENT_ID} tabIndex={-1} className="flex flex-1 flex-col">
+        <main id={MAIN_CONTENT_ID} tabIndex={-1} className="flex flex-1 flex-col">
           {children}
-        </div>
+        </main>
+        {footer}
       </HomeLayout>
     </>
   );

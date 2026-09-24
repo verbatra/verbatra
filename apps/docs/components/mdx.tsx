@@ -19,30 +19,48 @@ import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
 import Tabs from "@/components/ui/tabs";
+import { duplicatesFooter } from "@/lib/docs-neighbours";
 import { type Locale, localizeHref } from "@/lib/i18n";
+import { isShortInlineCode } from "@/lib/inline-code";
 import { cn } from "@/lib/utils";
 
 export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
 export const CODE_TABS_CLASS = "vk-code-tabs";
+export const SHORT_CODE_CLASS = "vk-code-short";
 
-export function getMDXComponents(locale: Locale, components?: MDXComponents): MDXComponents {
+const NO_NEIGHBOURS: ReadonlySet<string> = new Set();
+
+export function getMDXComponents(
+  locale: Locale,
+  components?: MDXComponents,
+  footerNeighbours: ReadonlySet<string> = NO_NEIGHBOURS,
+): MDXComponents {
   const DefaultAnchor = defaultMdxComponents.a ?? "a";
   return {
     ...defaultMdxComponents,
     a: ({ href, ...rest }: ComponentProps<"a">) => (
       <DefaultAnchor href={localizeHref(locale, href)} {...rest} />
     ),
+    code: ({ className, children, ...rest }: ComponentProps<"code">) => (
+      <code className={cn(isShortInlineCode(children) && SHORT_CODE_CLASS, className)} {...rest}>
+        {children}
+      </code>
+    ),
     Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
       <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />
     ),
-    Card: ({ className, href, ...rest }: ComponentProps<typeof Card>) => (
-      <Card
-        className={cn(LINK_CARD_CLASS, className)}
-        {...(href === undefined ? {} : { href: localizeHref(locale, href) })}
-        {...rest}
-      />
-    ),
+    Card: ({ className, href, ...rest }: ComponentProps<typeof Card>) => {
+      const localized = localizeHref(locale, href);
+      if (duplicatesFooter(localized, footerNeighbours)) return null;
+      return (
+        <Card
+          className={cn(LINK_CARD_CLASS, className)}
+          {...(localized === undefined ? {} : { href: localized })}
+          {...rest}
+        />
+      );
+    },
     CodeBlockTabs: ({ className, ...rest }: ComponentProps<typeof CodeBlockTabs>) => (
       <CodeBlockTabs className={cn(CODE_TABS_CLASS, className)} {...rest} />
     ),

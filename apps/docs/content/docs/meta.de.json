@@ -3,12 +3,12 @@
   "pages": [
     "index",
     "(get-started)",
-    "(agents)",
     "(concepts)",
     "(configure)",
     "(guides)",
     "cli",
     "(sdk)",
+    "(agents)",
     "(help)"
   ]
 }

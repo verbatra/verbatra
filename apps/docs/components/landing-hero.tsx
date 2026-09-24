@@ -14,16 +14,21 @@ const RISE_STEP_MS = 90;
 
 function Rise({
   order,
+  visibleAtFirstPaint = false,
   className,
   children,
 }: {
   order: number;
+  visibleAtFirstPaint?: boolean;
   className?: string;
   children: ReactNode;
 }): ReactNode {
   const style: CSSProperties = { animationDelay: `${order * RISE_STEP_MS}ms` };
   return (
-    <div className={cn("vk-rise", className)} style={style}>
+    <div
+      className={cn(visibleAtFirstPaint ? "vk-rise-settle" : "vk-rise", className)}
+      style={style}
+    >
       {children}
     </div>
   );
@@ -41,10 +46,10 @@ export async function LandingHero(): Promise<ReactNode> {
       >
         <div className="relative grid grid-cols-[minmax(0,1fr)] gap-12 px-4 pt-[72px] pb-10 md:px-10 md:pt-24 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-14 xl:px-14">
           <div className="min-w-0">
-            <Rise order={0}>
+            <Rise order={0} visibleAtFirstPaint>
               <h1 className="vk-display max-w-[11ch]">{t("headline")}</h1>
             </Rise>
-            <Rise order={1}>
+            <Rise order={1} visibleAtFirstPaint>
               <p className="vk-lead mt-6 max-w-[46ch]">{t("lead")}</p>
             </Rise>
             <Rise order={2} className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-3">

@@ -45,6 +45,7 @@ function landingKeys(locale: string): ReadonlyArray<string> {
 }
 
 const EM_DASH = String.fromCharCode(0x2014);
+const NON_BREAKING_HYPHEN = String.fromCharCode(0x2011);
 
 describe("landing message parity", () => {
   const source = landingKeys(i18n.defaultLanguage);
@@ -73,6 +74,19 @@ describe("landing message parity", () => {
     for (const locale of i18n.languages) {
       const path = fileURLToPath(new URL(`../messages/${locale}.json`, import.meta.url));
       expect(readFileSync(path, "utf8")).not.toContain(EM_DASH);
+    }
+  });
+
+  it("keeps hyphenated words in the closing heading on one line", () => {
+    for (const locale of i18n.languages) {
+      const finalClose = load(locale).landing;
+      const heading =
+        typeof finalClose === "object" && typeof finalClose.finalClose === "object"
+          ? finalClose.finalClose.heading
+          : undefined;
+      expect(typeof heading, locale).toBe("string");
+      expect(heading, locale).not.toContain("-");
+      if (locale === i18n.defaultLanguage) expect(heading).toContain(NON_BREAKING_HYPHEN);
     }
   });
 });

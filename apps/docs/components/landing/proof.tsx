@@ -16,7 +16,7 @@ import { Section } from "./section";
 import { SectionHead } from "./section-head";
 import { Terminal } from "./terminal";
 
-const MONO = "font-mono text-[13.5px] leading-[1.75]";
+const MONO = "font-mono text-sm leading-relaxed";
 
 const HIGHLIGHT_STYLE = {
   background: "color-mix(in srgb, var(--v-purple) 22%, transparent)",
@@ -27,28 +27,17 @@ const GATE_OUTPUTS = { 0: GATE_RUN_LINES } as const;
 
 const STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
-function Panel({
-  order,
+function Region({
   title,
   body,
-  className,
   children,
 }: {
-  order: number;
   title: string;
   body: string;
-  className?: string;
   children: ReactNode;
 }): ReactNode {
   return (
-    <Reveal
-      order={order}
-      className={cn(
-        "flex min-w-0 flex-col overflow-hidden rounded-xl border border-fd-border",
-        className,
-      )}
-      style={{ background: "var(--surface-bg)" }}
-    >
+    <div className="flex min-w-0 flex-col" style={{ background: "var(--surface-bg)" }}>
       <div className="px-6 pt-[22px] pb-[18px]">
         <h3 className="vk-h4">{title}</h3>
         <p className="mt-1.5 max-w-[48ch] text-sm text-fd-muted-foreground">{body}</p>
@@ -62,7 +51,7 @@ function Panel({
       >
         {children}
       </div>
-    </Reveal>
+    </div>
   );
 }
 
@@ -85,7 +74,7 @@ function WrittenLine({
       <code className="min-w-0 flex-1">{line.text}</code>
       {line.annotation ? (
         <span
-          className="shrink-0 font-sans text-[13px]"
+          className="shrink-0 font-sans text-sm"
           style={{ color: isNew ? "var(--accent)" : "var(--text-faint)" }}
         >
           {labels[line.annotation]}
@@ -116,8 +105,12 @@ export async function Proof(): Promise<ReactNode> {
       <Reveal>
         <SectionHead title={tHow("heading")} />
       </Reveal>
-      <div className="mt-[52px] grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-12">
-        <Reveal order={0} className="min-w-0 lg:col-span-8">
+      <Reveal
+        order={1}
+        className="mt-[52px] grid grid-cols-[minmax(0,1fr)] gap-px overflow-hidden rounded-xl border border-fd-border lg:grid-cols-3"
+        style={{ background: "var(--border-default)" }}
+      >
+        <div className="min-w-0 lg:col-span-3">
           <Terminal
             commands={[GATE_CLI_COMMAND]}
             outputs={GATE_OUTPUTS}
@@ -128,7 +121,7 @@ export async function Proof(): Promise<ReactNode> {
             initialDelay={350}
             highlight={GATE_RUN_LINES[2]}
             fitContent
-            className="h-full"
+            className="h-full rounded-none border-0"
             headerAction={
               <CopyButton
                 text={GATE_CLI_COMMAND}
@@ -136,33 +129,15 @@ export async function Proof(): Promise<ReactNode> {
               />
             }
           />
-        </Reveal>
-        <Panel order={1} title={t("lock.title")} body={t("lock.body")} className="lg:col-span-4">
-          <div className="text-[color:var(--text-faint)]">{GATE_LOCK_FILE}</div>
-          <pre className="whitespace-pre">
-            {GATE_LOCK_LINES.map((line) => (
-              <div key={line}>{line}</div>
-            ))}
-          </pre>
-        </Panel>
-        <Panel
-          order={2}
-          title={t("written.title")}
-          body={t("written.body")}
-          className="lg:col-span-7"
-        >
+        </div>
+        <Region title={t("written.title")} body={t("written.body")}>
           <div className="min-w-max">
             {GATE_TARGET_LINES.map((line) => (
               <WrittenLine key={line.text} line={line} labels={annotations} />
             ))}
           </div>
-        </Panel>
-        <Panel
-          order={3}
-          title={t("refused.title")}
-          body={t("refused.body")}
-          className="lg:col-span-5"
-        >
+        </Region>
+        <Region title={t("refused.title")} body={t("refused.body")}>
           <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3">
             {refusalRows.map(([label, value]) => (
               <div key={label} className="contents">
@@ -178,9 +153,17 @@ export async function Proof(): Promise<ReactNode> {
               </div>
             ))}
           </dl>
-        </Panel>
-      </div>
-      <Reveal order={4}>
+        </Region>
+        <Region title={t("lock.title")} body={t("lock.body")}>
+          <div className="text-[color:var(--text-faint)]">{GATE_LOCK_FILE}</div>
+          <pre className="whitespace-pre">
+            {GATE_LOCK_LINES.map((line) => (
+              <div key={line}>{line}</div>
+            ))}
+          </pre>
+        </Region>
+      </Reveal>
+      <Reveal order={2}>
         <ol className="mt-5 grid list-none gap-4 md:grid-cols-4">
           {STEP_KEYS.map((key, index) => (
             <li key={key} className="border-t border-fd-border pt-[18px]">
