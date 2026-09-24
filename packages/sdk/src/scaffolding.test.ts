@@ -1,10 +1,32 @@
 import { describe, expect, it } from "vitest";
+import { CONFIG_SEARCH_PLACES } from "./config/load-config.js";
 import type { ProviderId } from "./config/provider-config.js";
 import { providerConfigSchema } from "./config/provider-config.js";
 import type { ScaffoldableProviderId } from "./scaffolding.js";
 import { scaffoldingMetadata } from "./scaffolding.js";
 
 describe("scaffoldingMetadata", () => {
+  it("is frozen at every level, so a caller cannot rewrite what the SDK reads", () => {
+    expect(Object.isFrozen(scaffoldingMetadata)).toBe(true);
+    for (const table of Object.values(scaffoldingMetadata)) {
+      if (typeof table === "object") {
+        expect(Object.isFrozen(table)).toBe(true);
+      }
+    }
+    expect(() => {
+      (scaffoldingMetadata.providerEnv as Record<string, string>).anthropic = "STOLEN";
+    }).toThrow(TypeError);
+    expect(() => {
+      (scaffoldingMetadata.configSearchPlaces as string[]).push("evil.config.js");
+    }).toThrow(TypeError);
+    expect(scaffoldingMetadata.providerEnv.anthropic).toBe("ANTHROPIC_API_KEY");
+  });
+
+  it("freezes its own copies rather than the tables the SDK loads configs with", () => {
+    expect(Object.isFrozen(CONFIG_SEARCH_PLACES)).toBe(false);
+    expect(scaffoldingMetadata.configSearchPlaces).toEqual(CONFIG_SEARCH_PLACES);
+  });
+
   it("exposes the pass-through tables, the human-only provider id, and the config file names", () => {
     expect(Object.keys(scaffoldingMetadata).sort()).toEqual([
       "configSearchPlaces",
