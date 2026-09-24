@@ -46,6 +46,26 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
   - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben ihre Ausgabe aus und beenden sich mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag beendet sich mit `2`.
 
+## Terminalausgabe
+
+<AvailableFrom version="0.12.0" />
+
+Ergebnisse gehen auf stdout. Fortschritt, Hinweise, Tipps, Warnungen und Fehler gehen auf stderr, und verbatra passt sie daran an, wohin stderr geht:
+
+- In einem interaktiven Terminal sind feste Labels wie `error`, `[ok]` und `next:` eingefärbt, und ein Schritt, der länger als 300 ms dauert, zeigt einen ASCII-Spinner (`| / - \`).
+- Wenn stderr umgeleitet oder in eine Pipe geschrieben wird, `CI` gesetzt ist oder `TERM` den Wert `dumb` hat, besteht die Ausgabe aus schlichten, nur angehängten Zeilen ohne Farbe und ohne Animation.
+- `--json` fügt nie Farbe, Animation oder neue Zeilen hinzu: stdout und stderr bleiben genau so, wie unter [JSON-Ausgabe](/docs/ci-and-exit-codes#json-ausgabe) beschrieben.
+
+| Flag oder Variable | Wirkung |
+| --- | --- |
+| `-q`, `--quiet` | gibt nur Ergebnisse, Warnungen und Fehler aus: keine Fortschrittszeilen, Hinweise oder `next:`-Tipps. Es wirkt vor oder nach dem Befehlsnamen |
+| `--no-color` | färbt die Ausgabe nie ein |
+| `NO_COLOR`, `VERBATRA_NO_COLOR` | jeder nicht leere Wert schaltet die Farbe ab; `VERBATRA_NO_COLOR` übersteuert auch `FORCE_COLOR` |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` oder ein leerer Wert schaltet die Farbe ein, auch wenn stderr kein Terminal ist, und `0` schaltet sie ab; `--no-color` und `VERBATRA_NO_COLOR` haben trotzdem Vorrang |
+| `VERBATRA_NO_SPINNER` | jeder nicht leere Wert ersetzt den Spinner durch statische Zeilen `label... done (1.2s)`, für Screenreader und Terminalaufzeichnungen |
+
+Statuswörter sind reines ASCII (`[ok]`, `[warn]`, `[fail]`, `[skip]`), damit die Ausgabe in jedem Terminal und Log gleich lesbar ist. Jede Zeile durchläuft dieselbe Schlüsselschwärzung wie die übrige Ausgabe, und eingefärbt werden nur die festen Labels, nie ein Schlüssel, ein Pfad oder eine Meldung.
+
 ## Umgebungsdateien
 
 `translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
