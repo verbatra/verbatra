@@ -8,7 +8,13 @@ import {
 } from "../cache/translation-memory.js";
 import { errorMessage, SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
-import { type LocaleWriteLockOptions, withLockFileGuard } from "../lock/locale-write-lock.js";
+import type { LivenessContext } from "../lock/holder-liveness.js";
+import {
+  isLockHeld,
+  type LocaleWriteLockOptions,
+  lockFileGuardPath,
+  withLockFileGuard,
+} from "../lock/locale-write-lock.js";
 import {
   LOCK_FILE_NAME,
   lockFilePath,
@@ -250,12 +256,30 @@ async function planLockAndProvenance(
   cwd: string,
   fs: SdkFs,
   targetLocales: readonly string[],
+  liveness: LivenessContext | undefined,
 ): Promise<readonly [FileCarry, FileCarry]> {
   const lock = await readLockFile(lockFilePath(cwd), fs);
+  const lockMoves = planLocaleMoves(targetLocales, lockLocalesWithState(lock));
+  const provenanceMoves = await planProvenanceLeniently(cwd, fs, targetLocales);
+  const guard = lockFileGuardPath(cwd);
+  if (
+    (lockMoves.size === 0 && provenanceMoves.size === 0) ||
+    !(await isLockHeld(guard, fs, liveness))
+  ) {
+    return [
+      { file: LOCK_FILE_NAME, moved: lockMoves },
+      { file: PROVENANCE_FILE_NAME, moved: provenanceMoves },
+    ];
+  }
+  const reason = `another process holds the lock-file guard at ${guard}`;
   return [
-    { file: LOCK_FILE_NAME, moved: planLocaleMoves(targetLocales, lockLocalesWithState(lock)) },
-    { file: PROVENANCE_FILE_NAME, moved: await planProvenanceLeniently(cwd, fs, targetLocales) },
+    skippedCarry(LOCK_FILE_NAME, lockMoves, reason),
+    skippedCarry(PROVENANCE_FILE_NAME, provenanceMoves, reason),
   ];
+}
+
+function withheldTargets(carries: readonly FileCarry[]): ReadonlySet<string> {
+  return new Set(carries.flatMap(({ failed }) => [...(failed?.moves.values() ?? [])]));
 }
 
 async function carryMemory(
@@ -290,10 +314,16 @@ export async function carryOverRespelledLocales(
   options: LocaleCarryOverOptions,
 ): Promise<LocaleCarryOverPlan> {
   const [lock, provenance] = options.dryRun
-    ? await planLockAndProvenance(cwd, fs, targetLocales)
+    ? await planLockAndProvenance(cwd, fs, targetLocales, options.lock?.liveness)
     : await carryLockAndProvenance(cwd, fs, targetLocales, options.lock ?? {});
+  const withheld = withheldTargets([lock, provenance]);
   const memory: FileCarry = options.memory
-    ? await carryMemory(cwd, fs, targetLocales, !options.dryRun)
+    ? await carryMemory(
+        cwd,
+        fs,
+        targetLocales.filter((target) => !withheld.has(target)),
+        !options.dryRun,
+      )
     : { file: CACHE_FILE_NAME, moved: NO_MOVES };
   const carries = [lock, memory, provenance];
   return {
@@ -322,14 +352,49 @@ function asSentence(text: string): string {
   return text.endsWith(".") ? text : `${text}.`;
 }
 
-function carryOverSkippedNotice(skip: LocaleCarryOverSkip): SdkNotice {
+function withholdsLocale(skip: LocaleCarryOverSkip): boolean {
+  return skip.files.some((file) => file !== CACHE_FILE_NAME);
+}
+
+function skipOutcome(skip: LocaleCarryOverSkip, dryRun: boolean): string {
+  if (!withholdsLocale(skip)) {
+    return (
+      "The translation memory is only a cache, so the locale ran without those cached " +
+      "translations, and the locale-state check of doctor lists what stays behind."
+    );
+  }
+  return dryRun
+    ? "A live run would not run the locale while that holds."
+    : "The locale did not run, and the next run tries the move again.";
+}
+
+function carryOverSkippedNotice(skip: LocaleCarryOverSkip, dryRun: boolean): SdkNotice {
   return {
     code: "LOCALE_STATE_CARRY_OVER_SKIPPED",
     message:
       `The state recorded under "${skip.from}" in ${skip.files.join(", ")} was not moved to ` +
-      `"${skip.to}": ${asSentence(skip.reason)} This run went on without it, and the locale-state check of ` +
-      "doctor lists what stays behind.",
+      `"${skip.to}": ${asSentence(skip.reason)} ${skipOutcome(skip, dryRun)}`,
   };
+}
+
+export function carryOverRefusal(
+  plan: Pick<LocaleCarryOverPlan, "skipped">,
+  locale: string,
+  dryRun: boolean,
+): SdkError | undefined {
+  const skip = plan.skipped.find((entry) => entry.to === locale && withholdsLocale(entry));
+  if (skip === undefined) {
+    return undefined;
+  }
+  const outcome = dryRun
+    ? "A live run would not run it while that holds"
+    : "It did not run, and the next run tries the move again";
+  return new SdkError(
+    "LOCALE_STATE_NOT_CARRIED_OVER",
+    `The state recorded under "${skip.from}" in ${skip.files.join(", ")} could not be moved to ` +
+      `"${locale}": ${asSentence(skip.reason)} ${outcome}, because recording its results under ` +
+      `"${locale}" would leave the protection and rejection records under "${skip.from}" unapplied.`,
+  );
 }
 
 export function withCarryOverNotices(
@@ -342,7 +407,9 @@ export function withCarryOverNotices(
       ...plan.carried
         .filter((carry) => carry.to === summary.locale)
         .map((carry) => carryOverNotice(carry, dryRun)),
-      ...plan.skipped.filter((skip) => skip.to === summary.locale).map(carryOverSkippedNotice),
+      ...plan.skipped
+        .filter((skip) => skip.to === summary.locale)
+        .map((skip) => carryOverSkippedNotice(skip, dryRun)),
     ];
     return notices.length === 0
       ? summary

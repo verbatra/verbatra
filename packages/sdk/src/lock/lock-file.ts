@@ -3,7 +3,7 @@ import { z } from "zod";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { ownValue, renameRecordKeys, sortRecordKeys } from "../record-utils.js";
-import { withLockFileGuard } from "./locale-write-lock.js";
+import { type LocaleWriteLockOptions, withLockFileGuard } from "./locale-write-lock.js";
 import {
   type ProvenancePatch,
   type ProvenanceWriteOutcome,
@@ -185,8 +185,12 @@ export async function updateLockFileLocale(
   locale: string,
   patch: LockLocalePatch,
   provenance: ProvenancePatch,
+  lockOptions: LocaleWriteLockOptions = {},
 ): Promise<LockLocaleUpdate> {
-  return withLockFileGuard(cwd, fs, () =>
-    updateLockFileLocaleUnguarded(cwd, fs, locale, patch, provenance),
+  return withLockFileGuard(
+    cwd,
+    fs,
+    () => updateLockFileLocaleUnguarded(cwd, fs, locale, patch, provenance),
+    lockOptions,
   );
 }

@@ -82,8 +82,9 @@ export interface WatchInput {
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
   /**
-   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
-   * `LOCK_CONTENDED` on the run's summary. Defaults to ten minutes.
+   * How long, in milliseconds, to wait for a locale's write lock, or for the lock-file guard it
+   * takes to record its result, before that locale fails with `LOCK_CONTENDED` on the run's
+   * summary. Defaults to ten minutes.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**

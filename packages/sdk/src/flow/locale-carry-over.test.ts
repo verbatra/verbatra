@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -6,6 +6,7 @@ import { type LockWaitEvent, lockFileGuardPath } from "../lock/locale-write-lock
 import { renameRecordKeys } from "../record-utils.js";
 import { makeTempDir, readJsonFile, writeJsonFile } from "../test-support.js";
 import {
+  carryOverRefusal,
   carryOverRespelledLocales,
   movedFrom,
   planLocaleMoves,
@@ -312,8 +313,134 @@ describe("withCarryOverNotices: the locale it belongs to", () => {
       code: "LOCALE_STATE_CARRY_OVER_SKIPPED",
       message:
         'The state recorded under "pt_BR" in verbatra.lock.json was not moved to "pt-BR": a. ' +
-        "This run went on without it, and the locale-state check of doctor lists what stays " +
-        "behind.",
+        "The locale did not run, and the next run tries the move again.",
     });
+  });
+});
+
+describe("withCarryOverNotices: what a skip costs the locale", () => {
+  const summary = { locale: "pt-BR", notices: [] } as unknown as Parameters<
+    typeof withCarryOverNotices
+  >[0][number];
+
+  it.each([
+    [["verbatra.cache.json"], false, "The translation memory is only a cache"],
+    [["verbatra.provenance.json"], false, "The locale did not run"],
+    [["verbatra.lock.json"], true, "A live run would not run the locale while that holds."],
+  ] as const)("describes a skip of %j (dry run %s)", (files, dryRun, expected) => {
+    const [notice] =
+      withCarryOverNotices(
+        [summary],
+        { carried: [], skipped: [{ from: "pt_BR", to: "pt-BR", files, reason: "r" }] },
+        dryRun,
+      )[0]?.notices ?? [];
+
+    expect(notice?.message).toContain(expected);
+  });
+});
+
+describe("carryOverRefusal: withholding a locale whose state stayed behind", () => {
+  const skip = (files: readonly ("verbatra.lock.json" | "verbatra.cache.json")[]) => ({
+    skipped: [{ from: "pt_BR", to: "pt-BR", files, reason: "EROFS." }],
+  });
+
+  it("refuses the locale when the lock file or the provenance file stayed behind", () => {
+    const refusal = carryOverRefusal(skip(["verbatra.lock.json"]), "pt-BR", false);
+
+    expect(refusal).toMatchObject({ code: "LOCALE_STATE_NOT_CARRIED_OVER" });
+    expect(refusal?.message).toBe(
+      'The state recorded under "pt_BR" in verbatra.lock.json could not be moved to "pt-BR": ' +
+        "EROFS. It did not run, and the next run tries the move again, because recording its " +
+        'results under "pt-BR" would leave the protection and rejection records under "pt_BR" ' +
+        "unapplied.",
+    );
+  });
+
+  it("says what a live run would do on a dry run", () => {
+    expect(carryOverRefusal(skip(["verbatra.lock.json"]), "pt-BR", true)?.message).toContain(
+      "EROFS. A live run would not run it while that holds",
+    );
+  });
+
+  it("lets the locale run when only the translation memory stayed behind", () => {
+    expect(carryOverRefusal(skip(["verbatra.cache.json"]), "pt-BR", false)).toBeUndefined();
+  });
+
+  it("lets every other locale run", () => {
+    expect(carryOverRefusal(skip(["verbatra.lock.json"]), "de", false)).toBeUndefined();
+  });
+});
+
+describe("carryOverRespelledLocales: a locale whose lock-file state stays behind", () => {
+  async function withMemory(dir: string): Promise<void> {
+    await writeJsonFile(join(dir, "verbatra.cache.json"), {
+      version: 2,
+      entries: { fp: { pt_BR: { h: "x" } } },
+      sources: {},
+    });
+  }
+
+  it("leaves its translation memory where it is too, so nothing lands under the new code", async () => {
+    const dir = await respelledStateFiles();
+    await withMemory(dir);
+
+    const plan = await carryOverRespelledLocales(
+      dir,
+      failingWrites(join(dir, "verbatra.lock.json")),
+      ["pt-BR"],
+      { dryRun: false, memory: true },
+    );
+
+    expect(plan.memory).toEqual(new Map());
+    expect(await readJsonFile(join(dir, "verbatra.cache.json"))).toMatchObject({
+      entries: { fp: { pt_BR: { h: "x" } } },
+    });
+  });
+
+  it("plans the skip on a dry run while another process holds the lock-file guard", async () => {
+    const dir = await respelledStateFiles();
+    await withMemory(dir);
+    const guard = lockFileGuardPath(dir);
+    await mkdir(dirname(guard), { recursive: true });
+    await writeFile(guard, JSON.stringify({ pid: 9999, hostname: "elsewhere" }), "utf8");
+
+    const plan = await carryOverRespelledLocales(dir, defaultFs, ["pt-BR"], {
+      dryRun: true,
+      memory: true,
+    });
+
+    expect(plan).toMatchObject({ carried: [], lock: new Map(), memory: new Map() });
+    expect(plan.skipped).toEqual([
+      {
+        from: "pt_BR",
+        to: "pt-BR",
+        files: ["verbatra.lock.json", "verbatra.provenance.json"],
+        reason: `another process holds the lock-file guard at ${guard}`,
+      },
+    ]);
+    expect(await readFile(guard, "utf8")).toContain("9999");
+  });
+
+  it("plans the move on a dry run when the guard was left by a process that exited", async () => {
+    const dir = await respelledStateFiles();
+    const guard = lockFileGuardPath(dir);
+    await mkdir(dirname(guard), { recursive: true });
+    await writeFile(guard, JSON.stringify({ pid: 1, hostname: "gone-host" }), "utf8");
+
+    const plan = await carryOverRespelledLocales(dir, defaultFs, ["pt-BR"], {
+      dryRun: true,
+      memory: false,
+      lock: {
+        liveness: {
+          host: "gone-host",
+          probe: () => {
+            throw Object.assign(new Error("gone"), { code: "ESRCH" });
+          },
+        },
+      },
+    });
+
+    expect(plan.skipped).toEqual([]);
+    expect(plan.lock).toEqual(new Map([["pt_BR", "pt-BR"]]));
   });
 });

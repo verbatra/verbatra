@@ -56,6 +56,7 @@ import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import {
+  carryOverRefusal,
   carryOverRespelledLocales,
   type LocaleCarryOverPlan,
   type LocaleMoves,
@@ -136,9 +137,11 @@ export interface TranslateInput {
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
   /**
-   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
-   * `LOCK_CONTENDED`, and for the lock-file guard before a respelled locale's state is left where
-   * it is for this run. Defaults to ten minutes. Not used on a dry run, which takes no lock.
+   * How long, in milliseconds, to wait for a locale's write lock, or for the lock-file guard each
+   * locale takes to record its result, before that locale fails with `LOCK_CONTENDED`, and for the
+   * lock-file guard before a locale whose respelled state could not be moved fails with
+   * `LOCALE_STATE_NOT_CARRIED_OVER`. Defaults to ten minutes. Not used on a dry run, which takes no
+   * lock.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
@@ -374,6 +377,7 @@ async function runLiveLocale(
         targetLocale,
         { mode: "replace", entries: result.lockEntries },
         result.provenance,
+        context.lockOptions,
       );
       if (context.cache !== undefined && result.cacheAdditions.length > 0) {
         context.cache.additions.set(targetLocale, additionsToRecord(result.cacheAdditions));
@@ -461,6 +465,20 @@ async function runLocalesWithProgress(
   return results.filter((summary): summary is LocaleSummary => summary !== undefined);
 }
 
+function unlessWithheld(
+  carryOver: LocaleCarryOverPlan,
+  dryRun: boolean,
+  run: (targetLocale: string) => Promise<LocaleSummary>,
+): (targetLocale: string) => Promise<LocaleSummary> {
+  return async (targetLocale) => {
+    const refusal = carryOverRefusal(carryOver, targetLocale, dryRun);
+    if (refusal !== undefined) {
+      throw refusal;
+    }
+    return run(targetLocale);
+  };
+}
+
 async function runAllLocalesDry(
   context: LocaleRunContext,
   targetLocales: readonly string[],
@@ -474,7 +492,7 @@ async function runAllLocalesDry(
   return runLocalesWithProgress(
     context,
     targetLocales,
-    (targetLocale) => runDryLocale(context, targetLocale, lock),
+    unlessWithheld(carryOver, true, (targetLocale) => runDryLocale(context, targetLocale, lock)),
     concurrency,
   );
 }
@@ -483,11 +501,12 @@ async function runAllLocalesLive(
   context: LocaleRunContext,
   targetLocales: readonly string[],
   concurrency: number,
+  carryOver: LocaleCarryOverPlan,
 ): Promise<LocaleSummary[]> {
   return runLocalesWithProgress(
     context,
     targetLocales,
-    (targetLocale) => runLiveLocale(context, targetLocale),
+    unlessWithheld(carryOver, false, (targetLocale) => runLiveLocale(context, targetLocale)),
     concurrency,
   );
 }
@@ -620,9 +639,14 @@ function estimateFields(
  * already has is never overwritten, and two candidate spellings move nothing; {@link doctor} lists
  * what is left behind. The lock-file guard is taken only when there is something to move, with the
  * same `lockAcquireTimeoutMs` and `onLockWait` as the locale write locks. When the guard stays
- * contended or a file cannot be written, the state stays where it is, the locale reports
- * `LOCALE_STATE_CARRY_OVER_SKIPPED`, and the run goes on: neither throws. A dry run plans with the
- * moved lock-file, provenance, and memory state and reports it, but writes nothing.
+ * contended or the lock file or the provenance file cannot be written, the state stays where it
+ * is and the locale does not run: it fails with `LOCALE_STATE_NOT_CARRIED_OVER` and reports
+ * `LOCALE_STATE_CARRY_OVER_SKIPPED`, nothing is recorded under its code, and the next run tries
+ * the move again. The other locales run as usual, and neither case throws. A translation memory
+ * that cannot be written only costs the locale those cached translations; it still runs. A dry run
+ * plans with the moved lock-file, provenance, and memory state and reports it, but writes nothing,
+ * and reports the locale as failed in the same way when another process holds the lock-file guard
+ * at the time.
  *
  * A stale key whose current value a person wrote is protected by default: its origin in the
  * provenance file is `human` or `import`, or its value changed outside verbatra since it was
@@ -759,7 +783,7 @@ export async function translate(
 
   const summaries = dryRun
     ? await runAllLocalesDry(context, targetLocales, concurrency, carryOver)
-    : await runAllLocalesLive(context, targetLocales, concurrency);
+    : await runAllLocalesLive(context, targetLocales, concurrency, carryOver);
   input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
 
   const locales = withCarryOverNotices(

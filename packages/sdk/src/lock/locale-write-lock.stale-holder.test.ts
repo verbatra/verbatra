@@ -5,7 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { makeFakeFs, makeTempDir } from "../test-support.js";
 import { currentHostLiveness, type LivenessContext } from "./holder-liveness.js";
-import { localeLockPath, releaseHeldLocks, withLocaleWriteLock } from "./locale-write-lock.js";
+import {
+  isLockHeld,
+  localeLockPath,
+  releaseHeldLocks,
+  withLocaleWriteLock,
+} from "./locale-write-lock.js";
 
 const DEAD_PID = 999_001;
 const SECOND_DEAD_PID = 999_002;
@@ -535,5 +540,31 @@ describe("releaseHeldLocks", () => {
 
   it("does nothing when no lock is held", async () => {
     await expect(releaseHeldLocks()).resolves.toBeUndefined();
+  });
+});
+
+describe("isLockHeld: probing a lock without taking it", () => {
+  it.each([
+    ["no lock file", undefined, false],
+    ["a live holder on this machine", JSON.stringify(holder(LIVE_PID)), true],
+    ["a holder on another machine", JSON.stringify(holder(DEAD_PID, "elsewhere")), true],
+    ["an unreadable payload", "{", true],
+    ["a holder that exited on this machine", JSON.stringify(holder(DEAD_PID)), false],
+  ])("reports %s as %s", async (_, content, held) => {
+    const files = new Map<string, string>(content === undefined ? [] : [[LOCK, content]]);
+
+    expect(await isLockHeld(LOCK, memoryFs(files), liveness)).toBe(held);
+  });
+
+  it("reports a lock file too large to read as held", async () => {
+    const fs = makeFakeFs({ readFileBounded: async () => ({ kind: "too-large" }) });
+
+    expect(await isLockHeld(LOCK, fs, liveness)).toBe(true);
+  });
+
+  it("probes with the current machine's liveness by default", async () => {
+    const files = new Map([[LOCK, JSON.stringify(holder(LIVE_PID, "elsewhere"))]]);
+
+    expect(await isLockHeld(LOCK, memoryFs(files))).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -238,36 +238,6 @@ describe("translate: carrying state over from a respelled locale code", () => {
     expect(dry.locales[0]?.translated).toEqual(live.locales[0]?.translated);
   });
 
-  it("goes on without the move when the lock-file guard stays contended", async () => {
-    const dir = await respelledProject();
-    const guard = lockFileGuardPath(dir);
-    let refusals = 2;
-    const fs: SdkFs = {
-      ...defaultFs,
-      createExclusive: async (path, data) => {
-        if (path === guard && refusals > 0) {
-          refusals -= 1;
-          return false;
-        }
-        return defaultFs.createExclusive(path, data);
-      },
-    };
-    const { provider } = makeStubProvider();
-    const waits: LockWaitEvent[] = [];
-
-    const summary = await translate(
-      { config: cfg(), cwd: dir, lockAcquireTimeoutMs: 20, onLockWait: (e) => waits.push(e) },
-      { createProvider: () => provider, fs },
-    );
-
-    expect(summary.locales[0]?.status).toBe("succeeded");
-    expect(summary.locales[0]?.notices.map((notice) => notice.code)).toContain(
-      "LOCALE_STATE_CARRY_OVER_SKIPPED",
-    );
-    expect(waits[0]?.lockPath).toBe(guard);
-    expect(await localesOf(provenancePath(dir))).toContain("pt_BR");
-  });
-
   it("plans with the moved memory on a human-only dry run", async () => {
     const dir = await respelledProject();
     await writeJsonFile(join(dir, "locales", "pt_BR.json"), {});
@@ -305,5 +275,198 @@ describe("translate: carrying state over from a respelled locale code", () => {
 
     expect(await localesOf(lockPath(dir))).toEqual(["de", "pt_BR"]);
     expect(carryNotices(summary.locales[0])).toEqual([]);
+  });
+});
+
+function refusedGuard(dir: string, refusals: number): SdkFs {
+  const guard = lockFileGuardPath(dir);
+  let left = refusals;
+  return {
+    ...defaultFs,
+    createExclusive: async (path, data) => {
+      if (path === guard && left > 0) {
+        left -= 1;
+        return false;
+      }
+      return defaultFs.createExclusive(path, data);
+    },
+  };
+}
+
+function failingFirstWrite(path: string): SdkFs {
+  let failed = false;
+  return {
+    ...defaultFs,
+    writeFile: async (target, content) => {
+      if (target === path && !failed) {
+        failed = true;
+        throw new Error("EROFS: read-only file system");
+      }
+      await defaultFs.writeFile(target, content);
+    },
+  };
+}
+
+async function holdGuard(dir: string): Promise<string> {
+  const guard = lockFileGuardPath(dir);
+  await mkdir(dirname(guard), { recursive: true });
+  await writeFile(guard, JSON.stringify({ pid: 9999, hostname: "elsewhere" }), "utf8");
+  return guard;
+}
+
+function skipNotices(summary: LocaleSummary | undefined): string[] {
+  return (summary?.notices ?? [])
+    .filter((notice) => notice.code === "LOCALE_STATE_CARRY_OVER_SKIPPED")
+    .map((notice) => notice.message);
+}
+
+function sentKeys(calls: ReturnType<typeof makeStubProvider>["calls"]): string[] {
+  return calls.flatMap((call) => call.request.entries.map((entry) => entry.key));
+}
+
+describe("translate: a locale whose respelled state could not be moved", () => {
+  it("does not run the locale while the lock-file guard stays contended, and moves it next run", async () => {
+    const dir = await respelledProject(["de", "pt-BR"]);
+    await changeSource(dir);
+    const localeFile = join(dir, "locales", "pt_BR.json");
+    const before = await readFile(localeFile, "utf8");
+    const { provider, calls } = makeStubProvider();
+    const waits: LockWaitEvent[] = [];
+
+    const summary = await translate(
+      {
+        config: cfg(["de", "pt-BR"]),
+        cwd: dir,
+        lockAcquireTimeoutMs: 20,
+        onLockWait: (event) => waits.push(event),
+      },
+      { createProvider: () => provider, fs: refusedGuard(dir, 2) },
+    );
+
+    const ptBr = summary.locales.find((entry) => entry.locale === "pt-BR");
+    expect(summary.succeeded).toEqual(["de"]);
+    expect(summary.failed).toEqual(["pt-BR"]);
+    expect(ptBr?.error?.code).toBe("LOCALE_STATE_NOT_CARRIED_OVER");
+    expect(ptBr?.error?.message).toContain("the next run tries the move again");
+    expect(skipNotices(ptBr)[0]).toContain(
+      "The locale did not run, and the next run tries the move again.",
+    );
+    expect(waits[0]?.lockPath).toBe(lockFileGuardPath(dir));
+    expect(sentKeys(calls)).toEqual(["greeting"]);
+    expect(calls.every((call) => call.request.targetLocale === "de")).toBe(true);
+    expect(await readFile(localeFile, "utf8")).toBe(before);
+    expect(await localesOf(lockPath(dir))).toEqual(["de", "pt_BR"]);
+    expect(await localesOf(provenancePath(dir))).toEqual(["de", "pt_BR"]);
+    expect((await memoryLocalesOf(dir)).sort()).toEqual(["de", "pt_BR"]);
+
+    const next = await translate(
+      { config: cfg(["de", "pt-BR"]), cwd: dir },
+      { createProvider: () => provider },
+    );
+
+    const retried = next.locales.find((entry) => entry.locale === "pt-BR");
+    expect(retried?.status).toBe("succeeded");
+    expect(retried?.translated).toEqual(["greeting"]);
+    expect(carryNotices(retried)).toHaveLength(1);
+    expect(await localesOf(lockPath(dir))).toEqual(["de", "pt-BR"]);
+    expect(await localesOf(provenancePath(dir))).toEqual(["de", "pt-BR"]);
+  });
+
+  it("does not run the locale when the lock file cannot be written, and moves it next run", async () => {
+    const dir = await respelledProject();
+    await changeSource(dir);
+    const { provider, calls } = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => provider, fs: failingFirstWrite(lockPath(dir)) },
+    );
+
+    expect(summary.locales[0]?.error).toMatchObject({
+      code: "LOCALE_STATE_NOT_CARRIED_OVER",
+      message: expect.stringContaining("EROFS: read-only file system."),
+    });
+    expect(calls).toHaveLength(0);
+    expect(await localesOf(lockPath(dir))).toEqual(["pt_BR"]);
+
+    const next = await translate({ config: cfg(), cwd: dir }, { createProvider: () => provider });
+
+    expect(next.locales[0]?.translated).toEqual(["greeting"]);
+    expect(await localesOf(lockPath(dir))).toEqual(["pt-BR"]);
+  });
+
+  it("keeps a person's edit recorded under the old code when the provenance file cannot be written", async () => {
+    const dir = await respelledProject();
+    const provenance = (await readJsonFile(provenancePath(dir))) as LockDocument;
+    await writeJsonFile(provenancePath(dir), {
+      ...provenance,
+      locales: {
+        pt_BR: {
+          ...(provenance.locales.pt_BR as LocaleBlocks),
+          greeting: { origin: "human", valueHash: valueHash("[pt-BR] Hello") },
+        },
+      },
+    });
+    await changeSource(dir);
+    const { provider, calls } = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => provider, fs: failingFirstWrite(provenancePath(dir)) },
+    );
+
+    expect(summary.locales[0]?.error?.code).toBe("LOCALE_STATE_NOT_CARRIED_OVER");
+    expect(calls).toHaveLength(0);
+    expect(await localesOf(provenancePath(dir))).toEqual(["pt_BR"]);
+
+    const next = await translate({ config: cfg(), cwd: dir }, { createProvider: () => provider });
+
+    expect(next.locales[0]?.protected).toEqual([{ key: "greeting", reason: "human" }]);
+    expect(sentKeys(calls)).toEqual([]);
+    expect(await readJsonFile(join(dir, "locales", "pt_BR.json"))).toMatchObject({
+      greeting: "[pt-BR] Hello",
+    });
+    expect(await localesOf(provenancePath(dir))).toEqual(["pt-BR"]);
+  });
+
+  it("still runs the locale when only the translation memory cannot be written", async () => {
+    const dir = await respelledProject();
+    await changeSource(dir);
+    const { provider } = makeStubProvider();
+
+    const summary = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => provider, fs: failingFirstWrite(cachePath(dir)) },
+    );
+
+    expect(summary.locales[0]?.status).toBe("succeeded");
+    expect(summary.locales[0]?.translated).toEqual(["greeting"]);
+    expect(skipNotices(summary.locales[0])[0]).toContain("The translation memory is only a cache");
+    expect(await localesOf(lockPath(dir))).toEqual(["pt-BR"]);
+  });
+
+  it("reports the locale as not planned on a dry run while another process holds the guard", async () => {
+    const dir = await respelledProject(["de", "pt-BR"]);
+    await changeSource(dir);
+    const guard = await holdGuard(dir);
+
+    const summary = await translate({ config: cfg(["de", "pt-BR"]), cwd: dir, dryRun: true });
+
+    const ptBr = summary.locales.find((entry) => entry.locale === "pt-BR");
+    expect(summary.failed).toEqual(["pt-BR"]);
+    expect(ptBr?.error?.code).toBe("LOCALE_STATE_NOT_CARRIED_OVER");
+    expect(ptBr?.error?.message).toContain(guard);
+    expect(skipNotices(ptBr)[0]).toContain("A live run would not run the locale while that holds.");
+    expect(summary.locales.find((entry) => entry.locale === "de")?.translated).toEqual([
+      "greeting",
+    ]);
+
+    await rm(guard);
+    const free = await translate({ config: cfg(["de", "pt-BR"]), cwd: dir, dryRun: true });
+
+    expect(free.failed).toEqual([]);
+    expect(free.locales.find((entry) => entry.locale === "pt-BR")?.translated).toEqual([
+      "greeting",
+    ]);
   });
 });
