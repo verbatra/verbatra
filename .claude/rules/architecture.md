@@ -106,8 +106,9 @@ package.
 explicit format or by `canHandle` detection, returning a structured `resolved` / `no-match` /
 `ambiguous` result rather than throwing.
 
-Third-party formats do not join `SupportedFormat`, which stays a closed set. The decision record
-is `docs/decisions/0001-third-party-format-adapters.md`. An outside adapter names itself with a
+Third-party formats do not join `SupportedFormat`, which stays a closed set: an outside package
+ships its adapter against the sdk's re-exported construction surface instead of waiting for a core
+release, and verbatra never sandboxes or loads it by name. An outside adapter names itself with a
 `custom:` identifier (`CustomFormatId`, `FormatId`, `formatIdSchema` in
 `packages/core/src/model/format-id.ts`). The construction surface (`createTreeFileAdapter`,
 `createFlatFileAdapter`, `createDefaultRegistry`, `AdapterRegistry`, `AdapterFs`,

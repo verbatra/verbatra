@@ -276,8 +276,8 @@ This section is about adding a format *to this repository*, so that it ships
 with verbatra under its own built-in name. If you only need verbatra to handle a
 format in your own project, you do not need a pull request at all: build the
 adapter in your own package, name it with a `custom:` identifier, and hand
-verbatra a registry holding it. See `docs/decisions/0001-third-party-format-adapters.md`
-for why that path exists and what it deliberately does not promise, and
+verbatra a registry holding it. That path exists so a format can ship without a core
+release; the adapter is trusted code, is never sandboxed, and is never loaded by name. See
 `apps/docs/content/docs/(guides)/custom-format-adapters.mdx` for how to use it.
 
 Work outward from `packages/core`, then `packages/format-adapters`. Replace
