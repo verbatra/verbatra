@@ -86,30 +86,33 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 
 `command` es `null` solo cuando el fallo ocurrió antes de resolver un subcomando. `candidates` aparece solo en un error que te pide elegir, como `FORMAT_AMBIGUOUS` de `init`, y lista los valores entre los que elegir. `missing` aparece en un error de uso de `init` que deja flags sin responder y nombra cada flag que aún tienes que pasar.
 
-Un error de uso lleva uno de estos códigos:
+<AvailableFrom version="0.12.0" />
+
+La CLI lanza estos códigos por sí misma. La misma lista se publica como `CLI_ERROR_CODES` (con el tipo `CliErrorCode`) desde `@verbatra/cli`, así que un script puede comprobar un código contra ella en lugar de copiar esta tabla. Cualquier otro código viene del SDK, de un proveedor o de un adaptador de formato.
 
 | Código | Se produce cuando |
 | --- | --- |
-| `USAGE_ERROR` | el analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar |
+| `CLI_ERROR` | un fallo no traía código propio (el código de reserva) |
+| `CONFIG_EXISTS` | `init` sobrescribiría un `verbatra.config.ts` distinto sin `--force`, u otro archivo de configuración de verbatra del directorio se leería antes |
+| `CONFIG_INVALID` | `init` no pudo generar una configuración válida con las respuestas que recibió (el SDK lanza el mismo código para una configuración que no se puede cargar) |
+| `FORMAT_AMBIGUOUS` | `init` encontró varios formatos que leen los archivos de locale; `candidates` los lista |
+| `INVALID_CONCURRENCY` | `--concurrency` no es un número entero de 1 a 100 |
+| `INVALID_DEBOUNCE` | `watch --debounce` no es un número entero de milisegundos de 1 a 60000 |
+| `INVALID_DIRECTION` | `tmx` recibió una dirección distinta de `import` o `export`, o `tmx export` recibió un flag exclusivo de la importación (`--dry-run`, `--overwrite`) |
+| `INVALID_FORMAT` | `--format` en `export` o `import` no nombra ningún formato de entrega admitido, o `--format` en `init` no nombra ningún formato de archivo de locale admitido |
+| `INVALID_LOCALE` | `pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones |
 | `INVALID_LOCALES` | se dio `--locales` pero no lista ningún locale |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` no es un número entero de segundos de 1 a 3600 |
+| `INVALID_MAX_TOKENS` | `translate --max-tokens` no es un número entero de al menos 1 |
+| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, o `--base-url` incluye credenciales, una query string o un fragmento |
+| `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
+| `INVALID_PORT` | `studio --port` no es un entero de 1 a 65535 |
+| `INVALID_PROVIDER` | `init --provider` no nombra ningún proveedor conocido |
 | `INVALID_QA_OPTION` | `check` recibió `--severity` o `--strict` sin `--qa`, o `--strict` junto con `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` no es ni `error` ni `warning` |
-| `INVALID_LOCALE` | `pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones |
-| `INVALID_FORMAT` | `--format` en `export` o `import` no nombra ningún formato de entrega admitido, o `--format` en `init` no nombra ningún formato de archivo de locale admitido |
-| `MISSING_OPTIONS` | `init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta |
-| `INVALID_PROVIDER` | `init --provider` no nombra ningún proveedor conocido |
-| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, o `--base-url` incluye credenciales, una query string o un fragmento |
-| `FORMAT_AMBIGUOUS` | `init` encontró varios formatos que leen los archivos de locale; `candidates` los lista |
 | `LAYOUT_AMBIGUOUS` | `init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista |
-| `CONFIG_EXISTS` | `init` sobrescribiría un `verbatra.config.ts` distinto sin `--force`, u otro archivo de configuración de verbatra del directorio se leería antes |
-| `INVALID_DIRECTION` | `tmx` recibió una dirección distinta de `import` o `export`, o `tmx export` recibió un flag exclusivo de la importación (`--dry-run`, `--overwrite`) |
-| `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
-| `INVALID_DEBOUNCE` | `watch --debounce` no es un número entero de milisegundos de 1 a 60000 |
-| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` no es un número entero de segundos de 1 a 3600 |
-| `INVALID_CONCURRENCY` | `--concurrency` no es un número entero de 1 a 100 |
-| `INVALID_PORT` | `studio --port` no es un entero de 1 a 65535 |
-
-`CLI_ERROR` es el código de reserva para un fallo que no traía código propio.
+| `MISSING_OPTIONS` | `init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta |
+| `USAGE_ERROR` | el analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar |
 
 Los errores de un comando ya resuelto van a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos, sin cambios, así que un script que lee el código de salida y stderr no necesita ninguna actualización. Una clase de fallo no sigue esa gramática, porque ocurre antes de que exista una ejecución que pueda llevar un código: un error al analizar los argumentos imprime el propio `error: unknown option '--nope'` de commander, sin prefijo y sin código, y sale con `2`. Comprueba primero el código de salida y trata el código de error como opcional, o un analizador escrito solo contra la gramática estructurada lo pasará por alto en silencio. `init` sigue la gramática estructurada desde 0.12.0; antes, un proveedor ausente imprimía `verbatra: --provider is required (...)` sin código. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
 

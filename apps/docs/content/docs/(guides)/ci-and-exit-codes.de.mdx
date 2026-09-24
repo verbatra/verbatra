@@ -86,30 +86,33 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 
 `command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war. `candidates` erscheint nur bei einem Fehler, der dich wählen lässt, etwa `FORMAT_AMBIGUOUS` von `init`, und listet die Werte auf, aus denen du wählst. `missing` erscheint bei einem Verwendungsfehler von `init`, der Flags unbeantwortet lässt, und nennt jedes Flag, das du noch übergeben musst.
 
-Ein Verwendungsfehler trägt einen dieser Codes:
+<AvailableFrom version="0.12.0" />
+
+Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` (mit dem Typ `CliErrorCode`) von `@verbatra/cli` ausgeliefert, sodass ein Skript einen Code dagegen prüfen kann, statt diese Tabelle abzuschreiben. Jeder andere Code kommt vom SDK, einem Provider oder einem Format-Adapter.
 
 | Code | Ausgelöst, wenn |
 | --- | --- |
-| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann |
+| `CLI_ERROR` | ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code) |
+| `CONFIG_EXISTS` | `init` ohne `--force` eine abweichende `verbatra.config.ts` überschreiben würde oder eine andere verbatra-Konfigurationsdatei im Verzeichnis zuerst gelesen würde |
+| `CONFIG_INVALID` | `init` aus den erhaltenen Antworten keine gültige Konfiguration erzeugen konnte (das SDK löst denselben Code für eine Konfiguration aus, die sich nicht laden lässt) |
+| `FORMAT_AMBIGUOUS` | `init` mehrere Formate gefunden hat, die die Locale-Dateien lesen; `candidates` listet sie auf |
+| `INVALID_CONCURRENCY` | `--concurrency` keine ganze Zahl zwischen 1 und 100 ist |
+| `INVALID_DEBOUNCE` | `watch --debounce` keine ganze Zahl von Millisekunden zwischen 1 und 60000 ist |
+| `INVALID_DIRECTION` | `tmx` eine andere Richtung als `import` oder `export` bekommen hat oder `tmx export` ein Flag nur für den Import (`--dry-run`, `--overwrite`) |
+| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt oder `--format` bei `init` kein unterstütztes Format für Locale-Dateien |
+| `INVALID_LOCALE` | `pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist |
 | `INVALID_LOCALES` | `--locales` angegeben wurde, aber kein Locale auflistet |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` keine ganze Zahl von Sekunden zwischen 1 und 3600 ist |
+| `INVALID_MAX_TOKENS` | `translate --max-tokens` keine ganze Zahl von mindestens 1 ist |
+| `INVALID_OPTION` | ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist oder `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält |
+| `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
+| `INVALID_PORT` | `studio --port` keine ganze Zahl zwischen 1 und 65535 ist |
+| `INVALID_PROVIDER` | `init --provider` keinen bekannten Provider nennt |
 | `INVALID_QA_OPTION` | `check` `--severity` oder `--strict` ohne `--qa` bekommen hat, oder `--strict` zusammen mit `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` weder `error` noch `warning` ist |
-| `INVALID_LOCALE` | `pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist |
-| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt oder `--format` bei `init` kein unterstütztes Format für Locale-Dateien |
-| `MISSING_OPTIONS` | `init` nicht fragen konnte (kein Terminal oder `--json`) und ein Wert weder übergeben noch erkannt noch durch `--yes` mit einem Default gefüllt wurde; die Meldung nennt jedes fehlende Flag |
-| `INVALID_PROVIDER` | `init --provider` keinen bekannten Provider nennt |
-| `INVALID_OPTION` | ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist oder `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält |
-| `FORMAT_AMBIGUOUS` | `init` mehrere Formate gefunden hat, die die Locale-Dateien lesen; `candidates` listet sie auf |
 | `LAYOUT_AMBIGUOUS` | `init` mehrere Dateimuster gefunden hat, die gleich gut passen; `candidates` listet sie auf |
-| `CONFIG_EXISTS` | `init` ohne `--force` eine abweichende `verbatra.config.ts` überschreiben würde oder eine andere verbatra-Konfigurationsdatei im Verzeichnis zuerst gelesen würde |
-| `INVALID_DIRECTION` | `tmx` eine andere Richtung als `import` oder `export` bekommen hat oder `tmx export` ein Flag nur für den Import (`--dry-run`, `--overwrite`) |
-| `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
-| `INVALID_DEBOUNCE` | `watch --debounce` keine ganze Zahl von Millisekunden zwischen 1 und 60000 ist |
-| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` keine ganze Zahl von Sekunden zwischen 1 und 3600 ist |
-| `INVALID_CONCURRENCY` | `--concurrency` keine ganze Zahl zwischen 1 und 100 ist |
-| `INVALID_PORT` | `studio --port` keine ganze Zahl zwischen 1 und 65535 ist |
-
-`CLI_ERROR` ist der Ausweich-Code für einen Fehlschlag, der keinen eigenen Code mitbrachte.
+| `MISSING_OPTIONS` | `init` nicht fragen konnte (kein Terminal oder `--json`) und ein Wert weder übergeben noch erkannt noch durch `--yes` mit einem Default gefüllt wurde; die Meldung nennt jedes fehlende Flag |
+| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann |
 
 Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Eine Klasse von Fehlern folgt dieser Grammatik nicht, weil sie auftritt, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und endet mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst übersieht ein Parser, der allein auf die strukturierte Grammatik setzt, diesen Fall stillschweigend. `init` folgt der strukturierten Grammatik seit 0.12.0; davor gab ein fehlender Provider `verbatra: --provider is required (...)` ohne Code aus. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
 

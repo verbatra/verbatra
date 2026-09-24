@@ -86,30 +86,33 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 
 `command` is `null` only when the failure happened before a subcommand was resolved. `candidates` appears only on an error that asks you to choose, such as `init`'s `FORMAT_AMBIGUOUS`, and lists the values to choose from. `missing` appears on an `init` usage error that leaves flags unanswered and names each flag still to pass.
 
-A usage error carries one of these codes:
+<AvailableFrom version="0.12.0" />
+
+The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (with the type `CliErrorCode`) from `@verbatra/cli`, so a script can check a code against it instead of copying this table. Any other code comes from the SDK, a provider, or a format adapter.
 
 | Code | Raised when |
 | --- | --- |
-| `USAGE_ERROR` | the argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept |
+| `CLI_ERROR` | a failure carried no code of its own (the fallback) |
+| `CONFIG_EXISTS` | `init` would overwrite a different `verbatra.config.ts` without `--force`, or another verbatra config file in the directory would be read first |
+| `CONFIG_INVALID` | `init` could not scaffold a valid config from the answers it was given (the SDK raises the same code for a config that fails to load) |
+| `FORMAT_AMBIGUOUS` | `init` found several formats that read the locale files; `candidates` lists them |
+| `INVALID_CONCURRENCY` | `--concurrency` is not a whole number from 1 to 100 |
+| `INVALID_DEBOUNCE` | `watch --debounce` is not a whole number of milliseconds from 1 to 60000 |
+| `INVALID_DIRECTION` | `tmx` got a direction other than `import` or `export`, or `tmx export` got an import-only flag (`--dry-run`, `--overwrite`) |
+| `INVALID_FORMAT` | `--format` on `export` or `import` names no supported handoff format, or `--format` on `init` names no supported locale file format |
+| `INVALID_LOCALE` | `pseudo --locale` is not a language tag made of letters, digits, and hyphens |
 | `INVALID_LOCALES` | `--locales` was given but lists no locale |
+| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
+| `INVALID_MAX_TOKENS` | `translate --max-tokens` is not a whole number of at least 1 |
+| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, or `--base-url` carries credentials, a query string, or a fragment |
+| `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
+| `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
+| `INVALID_PROVIDER` | `init --provider` names no known provider |
 | `INVALID_QA_OPTION` | `check` got `--severity` or `--strict` without `--qa`, or `--strict` together with `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` is neither `error` nor `warning` |
-| `INVALID_LOCALE` | `pseudo --locale` is not a language tag made of letters, digits, and hyphens |
-| `INVALID_FORMAT` | `--format` on `export` or `import` names no supported handoff format, or `--format` on `init` names no supported locale file format |
-| `MISSING_OPTIONS` | `init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag |
-| `INVALID_PROVIDER` | `init --provider` names no known provider |
-| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, or `--base-url` carries credentials, a query string, or a fragment |
-| `FORMAT_AMBIGUOUS` | `init` found several formats that read the locale files; `candidates` lists them |
 | `LAYOUT_AMBIGUOUS` | `init` found several file patterns that fit equally well; `candidates` lists them |
-| `CONFIG_EXISTS` | `init` would overwrite a different `verbatra.config.ts` without `--force`, or another verbatra config file in the directory would be read first |
-| `INVALID_DIRECTION` | `tmx` got a direction other than `import` or `export`, or `tmx export` got an import-only flag (`--dry-run`, `--overwrite`) |
-| `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
-| `INVALID_DEBOUNCE` | `watch --debounce` is not a whole number of milliseconds from 1 to 60000 |
-| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
-| `INVALID_CONCURRENCY` | `--concurrency` is not a whole number from 1 to 100 |
-| `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
-
-`CLI_ERROR` is the fallback code for a failure that carried no code of its own.
+| `MISSING_OPTIONS` | `init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag |
+| `USAGE_ERROR` | the argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept |
 
 Errors from a resolved command go to stderr as one structured line (`verbatra: error [CODE] message`) in both modes, unchanged, so a script that reads the exit code and stderr needs no update. One class of failure does not follow that grammar, because it happens before a run exists to carry a code: an argument-parsing error prints commander's own `error: unknown option '--nope'` with no prefix and no code, and exits `2`. Match on the exit code first and treat the code as optional, or a parser written to the structured grammar alone will silently miss it. `init` follows the structured grammar since 0.12.0; before that, a missing provider printed `verbatra: --provider is required (...)` with no code. Without `--json`, a failing run still writes nothing at all to stdout. Progress and lock-wait records always go to stderr, so stdout carries nothing but envelopes.
 
