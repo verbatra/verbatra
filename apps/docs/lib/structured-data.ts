@@ -122,6 +122,7 @@ export function softwareApplicationLd(args: {
       `i18n formats: ${SUPPORTED_FORMATS.join(", ")}`,
       `Frameworks: ${SUPPORTED_FRAMEWORKS.join(", ")}`,
       "Placeholder, ICU, and inline markup integrity checked after every translation",
+      "Human-only mode: the none provider turns machine translation off and hands every key to a translator",
     ],
     softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
     sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL, NPM_MCP_URL],
