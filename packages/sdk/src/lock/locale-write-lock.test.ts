@@ -266,13 +266,92 @@ describe("withLocaleWriteLock: wait progress", () => {
   it.each<[string, BoundedFileRead]>([
     ["a malformed payload", { kind: "ok", content: "{ not valid json" }],
     ["valid JSON that is not an object", { kind: "ok", content: "42" }],
-    ["a lock file that cannot be read", { kind: "missing" }],
-  ])("still invokes onWait, without holder fields, for %s", async (_, read) => {
-    const events = await waitEventsFor(PAST_GRACE_FAILURES, async () => read);
+    ["an empty lock file", { kind: "ok", content: "" }],
+    ["a lock file too large to read", { kind: "too-large" }],
+  ])(
+    "still invokes onWait, without holder fields, for %s seen on consecutive polls",
+    async (_, read) => {
+      const events = await waitEventsFor(PAST_GRACE_FAILURES, async () => read);
 
-    expect(events).toHaveLength(1);
-    expect(events[0]?.holder).toBeUndefined();
-    expect(events[0]?.lockPath).toBe(localeLockPath("/proj", "de"));
+      expect(events).toHaveLength(1);
+      expect(events[0]?.holder).toBeUndefined();
+      expect(events[0]?.lockPath).toBe(localeLockPath("/proj", "de"));
+    },
+  );
+
+  it("never invokes onWait while the lock file is missing", async () => {
+    const missing = async (): Promise<BoundedFileRead> => ({ kind: "missing" });
+
+    expect(await waitEventsFor(PAST_GRACE_FAILURES, missing)).toHaveLength(0);
+  });
+
+  it("does not report a released lock whose next holder has not written its payload yet", async () => {
+    let reads = 0;
+    const releasedThenEmpty = async (): Promise<BoundedFileRead> => {
+      reads += 1;
+      if (reads === 1) {
+        return { kind: "missing" };
+      }
+      return reads === 2 ? { kind: "ok", content: "" } : { kind: "missing" };
+    };
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const events: LockWaitEvent[] = [];
+    let attempts = 0;
+    const fs = makeFakeFs({
+      createExclusive: async (): Promise<boolean> => {
+        attempts += 1;
+        if (attempts === 1) {
+          vi.setSystemTime(1_500);
+        }
+        return attempts > 2;
+      },
+      readFileBounded: releasedThenEmpty,
+    });
+
+    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      pollIntervalMs: 50,
+      onWait: (event) => events.push(event),
+    });
+    await vi.advanceTimersByTimeAsync(500);
+
+    await expect(promise).resolves.toBeUndefined();
+    expect(reads).toBe(2);
+    expect(events).toEqual([]);
+  });
+
+  it("reports an unreadable payload only once the same state is seen on two consecutive polls", async () => {
+    const states: BoundedFileRead[] = [
+      { kind: "ok", content: "" },
+      { kind: "ok", content: "{" },
+      { kind: "missing" },
+      { kind: "ok", content: "{" },
+      { kind: "ok", content: "{" },
+    ];
+    let reads = 0;
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const readsAtEvent: number[] = [];
+    const fs = makeFakeFs({
+      createExclusive: async (): Promise<boolean> => {
+        vi.setSystemTime(1_500);
+        return reads >= states.length;
+      },
+      readFileBounded: async (): Promise<BoundedFileRead> => {
+        const state = states[reads] ?? { kind: "missing" };
+        reads += 1;
+        return state;
+      },
+    });
+
+    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      pollIntervalMs: 50,
+      onWait: () => readsAtEvent.push(reads),
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    await expect(promise).resolves.toBeUndefined();
+    expect(readsAtEvent).toEqual([5]);
   });
 
   it("carries only the fields present in a partial payload (pid without acquiredAt)", async () => {
@@ -313,7 +392,10 @@ describe("withLocaleWriteLock: wait progress", () => {
   it("invokes onWait periodically while waiting, with a non-decreasing elapsed time", async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, "random").mockReturnValue(0);
-    const fs = makeFakeFs({ createExclusive: async (): Promise<boolean> => false });
+    const fs = makeFakeFs({
+      createExclusive: async (): Promise<boolean> => false,
+      readFileBounded: foreignHolder,
+    });
     const events: LockWaitEvent[] = [];
 
     const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {

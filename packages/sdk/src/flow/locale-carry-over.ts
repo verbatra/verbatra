@@ -10,9 +10,9 @@ import { errorMessage, SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import type { LivenessContext } from "../lock/holder-liveness.js";
 import {
-  isLockHeld,
   type LocaleWriteLockOptions,
   lockFileGuardPath,
+  probeLock,
   withLockFileGuard,
 } from "../lock/locale-write-lock.js";
 import {
@@ -262,16 +262,20 @@ async function planLockAndProvenance(
   const lockMoves = planLocaleMoves(targetLocales, lockLocalesWithState(lock));
   const provenanceMoves = await planProvenanceLeniently(cwd, fs, targetLocales);
   const guard = lockFileGuardPath(cwd);
-  if (
-    (lockMoves.size === 0 && provenanceMoves.size === 0) ||
-    !(await isLockHeld(guard, fs, liveness))
-  ) {
+  const probe =
+    lockMoves.size === 0 && provenanceMoves.size === 0
+      ? "free"
+      : await probeLock(guard, fs, liveness);
+  if (probe === "free") {
     return [
       { file: LOCK_FILE_NAME, moved: lockMoves },
       { file: PROVENANCE_FILE_NAME, moved: provenanceMoves },
     ];
   }
-  const reason = `another process holds the lock-file guard at ${guard}`;
+  const reason =
+    probe === "held"
+      ? `another process holds the lock-file guard at ${guard}`
+      : `the lock-file guard at ${guard} could not be read`;
   return [
     skippedCarry(LOCK_FILE_NAME, lockMoves, reason),
     skippedCarry(PROVENANCE_FILE_NAME, provenanceMoves, reason),

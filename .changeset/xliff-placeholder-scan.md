@@ -2,7 +2,7 @@
 "@verbatra/sdk": patch
 ---
 
-Find XLIFF placeholders in linear time, and ignore block comments quoted inside Apple `.strings` line comments.
+Find XLIFF placeholders in a single forward scan, and fix Apple `.strings` descriptions.
 
 Previously the XLIFF placeholder pattern rescanned to the end of the value from every unclosed
 inline tag, so a long value such as `<x<x<x...` took quadratic time. An Apple `.strings` block
