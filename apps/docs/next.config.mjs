@@ -13,6 +13,7 @@ const config = {
   },
   experimental: {
     optimizePackageImports: ["@icons-pack/react-simple-icons", "motion"],
+    optimisticRouting: false,
   },
   async redirects() {
     return [
