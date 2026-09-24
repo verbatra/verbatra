@@ -567,6 +567,36 @@ Both calls check the provenance file before anything is written and never report
 could not save: a file from a newer verbatra, or one the decision would grow past the size verbatra
 reads back, throws `PROVENANCE_FILE_UNWRITABLE`.
 
+## Batch review and retranslation
+
+<AvailableFrom version="0.12.0" />
+
+Each of these runs the matching single-key call once per entry, in the order given, and returns
+`{ results }` with one outcome per entry in that order. An entry that fails does not stop the
+batch: its outcome is `{ locale, key, ok: false, code, message }`, carrying the code of the
+`SdkError`, adapter error, or `ProviderError` that stopped it and a redacted message, and the next
+entry runs. Any other error is thrown, and the entries after it do not run. An empty `entries` list
+returns an empty `results`.
+
+### approveEntries
+
+Input: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Runs `approveEntry`
+per entry with the same checks; `reviewer` applies to every entry. A successful outcome is
+`{ ok: true, locale, key, provenance }`.
+
+### rejectEntries
+
+Input: the same as `approveEntries`. Runs `rejectEntry` per entry, removing each rejected value. A
+successful outcome is `{ ok: true, locale, key, provenance }`.
+
+### retranslateEntries
+
+Input: `{ config, cwd?, entries: [{ locale, key }], includeHuman? }`. Runs `retranslateEntry` per
+entry, so it makes up to one provider call per entry. A completed outcome is
+`{ ok: true, locale, key, result }`, where `result` is what `retranslateEntry` returned, including a
+value the integrity gate refused. A value a person wrote fails with `KEY_PROTECTED` unless
+`includeHuman: true` is passed.
+
 ## Bulk content reads
 
 <AvailableFrom version="0.10.0" />
