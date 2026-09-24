@@ -109,7 +109,7 @@ function ReviewKeyCell({
         <TranslationValue
           value={value}
           locale={row.locale}
-          className="block w-fit max-w-md truncate text-xs text-muted-foreground"
+          className="block w-fit max-w-[240px] truncate text-xs text-muted-foreground sm:max-w-md"
           title={value}
           data-row-value=""
         />

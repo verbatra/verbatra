@@ -7,8 +7,9 @@ import { rpcClient } from "./api.js";
 import { Button } from "./Button.js";
 import { TextArea } from "./Input.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
+import { cn } from "./lib/cn.js";
 import { TranslationValue, valueDirection } from "./TranslationValue.js";
-import { DrawerShell, Section } from "./ui.js";
+import { DrawerShell, microLabelClassName, Section } from "./ui.js";
 import { useDialogA11y } from "./use-dialog-a11y.js";
 
 type SubmitState =
@@ -71,6 +72,29 @@ function clearRemediationHint(state: SubmitState): string | undefined {
   );
 }
 
+function RtlValuePreview({
+  locale,
+  value,
+}: {
+  readonly locale: string;
+  readonly value: string;
+}): ReactNode {
+  return (
+    <figure
+      className="mt-2 rounded-md border border-border bg-muted px-3 py-2"
+      data-edit-preview=""
+    >
+      <figcaption className={cn("mb-1", microLabelClassName)}>Preview</figcaption>
+      <TranslationValue
+        as="p"
+        value={value}
+        locale={locale}
+        className="m-0 min-h-5 whitespace-pre-wrap break-words text-sm text-muted-foreground"
+      />
+    </figure>
+  );
+}
+
 function EditorFields({
   locale,
   context,
@@ -108,6 +132,9 @@ function EditorFields({
           disabled={disabled}
           rows={5}
         />
+        {valueDirection(locale) === "rtl" ? (
+          <RtlValuePreview locale={locale} value={value} />
+        ) : null}
       </Section>
     </>
   );
