@@ -13,6 +13,9 @@ export function valueDirection(locale: string | undefined): ValueDirection {
   return isRtlLocale(locale) ? "rtl" : "ltr";
 }
 
+const SCROLLABLE_CLASSES =
+  "overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+
 function renderSegments(value: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   let offset = 0;
@@ -48,7 +51,7 @@ export function TranslationValue({
 }): ReactNode {
   return (
     <Element
-      className={cn("text-start", Element === "p" && "overflow-x-auto", className)}
+      className={cn("text-start", Element === "p" && SCROLLABLE_CLASSES, className)}
       dir={valueDirection(locale)}
       title={title}
       {...dataAttributes}
