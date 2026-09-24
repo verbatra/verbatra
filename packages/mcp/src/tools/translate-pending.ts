@@ -55,7 +55,10 @@ export const translatePendingTool = defineTool({
     "listed under protected in each locale, unless project.snapshot reports humanEdits: " +
     "overwrite, in which case they are retranslated like any other key; under humanEdits: " +
     "suggest they are also sent to the provider for a suggestion that is reported but never " +
-    "written. Check failed and partial before treating the run as clean, then read " +
+    "written. Each locale's integrityRefusals names every key the integrity gate refused, " +
+    "with the reason (placeholder, markup, icu, degenerate, or empty) and, when one part is at " +
+    "fault, details such as the dropped placeholder or the ICU arm that does not fit the " +
+    "target language. Check failed and partial before treating the run as clean, then read " +
     "review.queue for what needs a person. Cost: calls a translation provider and bills your " +
     "API usage, within the config's token budget and the maxTokens parameter when either is " +
     "set. Only listed when the server was started with spending allowed and a translation " +

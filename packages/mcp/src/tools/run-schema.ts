@@ -1,5 +1,6 @@
 import { REVIEW_REASON_CODES } from "@verbatra/sdk";
 import { z } from "zod";
+import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
 
 export const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
@@ -36,6 +37,12 @@ export const fuzzyCacheHitSchema = z.object({
 
 const keyListSchema = z.array(z.string()).readonly();
 
+export const integrityRefusalSchema = z.object({
+  key: z.string(),
+  reason: integrityGateReasonSchema,
+  details: z.array(z.string()).readonly().optional(),
+});
+
 const protectedKeySchema = z.object({
   key: z.string(),
   reason: z.enum(["human", "import", "external", "pinned"]),
@@ -56,6 +63,7 @@ const localeSummarySchema = z.object({
   cacheHits: keyListSchema,
   fuzzyHits: z.array(fuzzyCacheHitSchema).readonly(),
   integrityMismatches: keyListSchema,
+  integrityRefusals: z.array(integrityRefusalSchema).readonly().optional(),
   providerFailures: keyListSchema,
   generated: keyListSchema,
   budgetWithheld: keyListSchema,
