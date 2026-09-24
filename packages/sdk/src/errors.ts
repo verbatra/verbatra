@@ -114,8 +114,12 @@
  *   after the timeout. It is also thrown when a lock the operation holds was taken over by another
  *   process: each lock records a random ownership token, and the holder checks it before every
  *   write the lock protects, so the operation stops without writing once the token is gone. A
- *   token found gone on release, after the writes, is reported the same way, since another process
- *   may have changed the same files since. The message names the lock file's path. Thrown by
+ *   lock file found replaced or missing on release, after an operation that succeeded, is reported
+ *   the same way, since another process may have changed the same files since; when the operation
+ *   itself failed, its own error is thrown instead. The check and the write are two steps, so a
+ *   holder paused between them for longer than the heartbeat staleness threshold (30 seconds by
+ *   default) can still write once after another process took the lock over. The message names the
+ *   lock file's path. Thrown by
  *   {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry},
  *   which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary
  *   lock. {@link translate} and {@link importWorkbook} do not throw it: they record it on the
@@ -150,6 +154,10 @@
  *   exempt, since it never consults the budget.
  * - `MAX_TOKENS_INVALID`: the per-run `maxTokens` input is not a whole number of at least 1. Thrown
  *   by {@link translate} before anything is read, written, or spent.
+ * - `LOCK_TIMEOUT_INVALID`: the `lockAcquireTimeoutMs` input is not a whole number of
+ *   milliseconds of at least 0. Thrown by {@link translate}, {@link importWorkbook},
+ *   {@link retranslateEntry}, and {@link retranslateEntries} before anything is read or locked, and
+ *   by {@link watch} once at startup, before any watching begins.
  * - `TARGET_UNWRITABLE`: a target locale file could not be written, because its directory is not
  *   writable, does not exist, is read-only, or is out of space. The message names the target file
  *   relative to `cwd` and the underlying file-system code, never the internal temporary file the
@@ -246,6 +254,7 @@ export type SdkErrorCode =
   | "CONCURRENCY_INVALID"
   | "CONCURRENCY_BUDGET_CONFLICT"
   | "MAX_TOKENS_INVALID"
+  | "LOCK_TIMEOUT_INVALID"
   | "TARGET_UNWRITABLE"
   | "PSEUDO_OUTPUT_CONFLICT"
   | "SOURCE_UNWRITABLE"

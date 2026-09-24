@@ -1,6 +1,7 @@
 import { redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
+import { entryIdentity, uniqueByIdentity } from "../shared/rpc/entry-identity.js";
 import type { InFlightEntryRef, RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
 import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
@@ -38,20 +39,13 @@ const entryDedupeParamsSchema = z.object({ locale: z.string(), key: z.string() }
 
 function entryDedupeKey(params: unknown): string | undefined {
   const parsed = entryDedupeParamsSchema.safeParse(params);
-  return parsed.success ? JSON.stringify([parsed.data.locale, parsed.data.key]) : undefined;
+  return parsed.success ? entryIdentity(parsed.data) : undefined;
 }
 
 const batchEntryRefsSchema = z.object({ entries: z.array(entryDedupeParamsSchema) });
 
 function uniqueEntryRefs(entries: readonly InFlightEntryRef[]): readonly InFlightEntryRef[] {
-  const byKey = new Map<string, InFlightEntryRef>();
-  for (const entry of entries) {
-    const id = JSON.stringify([entry.locale, entry.key]);
-    if (!byKey.has(id)) {
-      byKey.set(id, { locale: entry.locale, key: entry.key });
-    }
-  }
-  return [...byKey.values()];
+  return uniqueByIdentity(entries).map((entry) => ({ locale: entry.locale, key: entry.key }));
 }
 
 function batchEntryRefs(params: unknown): readonly InFlightEntryRef[] | undefined {

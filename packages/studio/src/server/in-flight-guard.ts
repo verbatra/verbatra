@@ -1,7 +1,6 @@
-export interface InFlightEntryRef {
-  readonly locale: string;
-  readonly key: string;
-}
+import { type EntryRef, entryIdentity } from "../shared/rpc/entry-identity.js";
+
+export type InFlightEntryRef = EntryRef;
 
 export interface InFlightEntry extends InFlightEntryRef {
   readonly method: string;
@@ -24,10 +23,6 @@ function lockKeyFor(method: string, key: string | undefined): string {
   return key === undefined ? method : `${method}:${key}`;
 }
 
-function entryKeyOf(entry: InFlightEntryRef): string {
-  return JSON.stringify([entry.locale, entry.key]);
-}
-
 export function createRpcInFlightGuard(
   guardedMethods: ReadonlySet<string>,
   now: () => number = Date.now,
@@ -39,11 +34,11 @@ export function createRpcInFlightGuard(
     if (!entryExclusiveMethods.has(method)) {
       return false;
     }
-    const wanted = new Set(entries.map(entryKeyOf));
+    const wanted = new Set(entries.map(entryIdentity));
     return [...inFlight.values()].some(
       (call) =>
         entryExclusiveMethods.has(call.method) &&
-        call.entries.some((entry) => wanted.has(entryKeyOf(entry))),
+        call.entries.some((entry) => wanted.has(entryIdentity(entry))),
     );
   }
 

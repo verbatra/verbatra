@@ -133,9 +133,17 @@ détenir le même verrou, donc chaque verrou enregistre aussi un jeton de propri
 chaque écriture que le verrou protège (le fichier de la locale, le fichier de verrouillage, le
 fichier de provenance, le glossaire), le détenteur vérifie que le fichier de verrou porte toujours
 son jeton, et s'arrête avec `LOCK_CONTENDED` sans rien écrire sinon. La vérification et l'écriture
-sont deux étapes : une exécution qui passe la vérification à l'instant précis où une autre reprend
-le verrou peut donc encore écrire une fois. Cette fenêtre ne dure que quelques millisecondes et
-suppose qu'une reprise coïncide avec une nouvelle acquisition.
+sont deux étapes, et rien ne borne le temps qui les sépare. Une exécution mise en pause juste après
+la vérification (sa machine se met en veille, le processus est arrêté ou retenu dans un débogueur,
+l'horloge saute, ou sa boucle d'événements reste bloquée longtemps) cesse de rafraîchir son verrou :
+une fois le verrou vieux de 30 secondes, une autre exécution sur la même machine le traite comme
+abandonné et le reprend. Quand l'exécution en pause reprend, elle peut encore écrire une fois. La
+fenêtre dure aussi longtemps que cette pause.
+
+Si le fichier de verrou a disparu ou porte le jeton d'une autre exécution au moment où une exécution
+réussie le libère, celle-ci échoue aussi avec `LOCK_CONTENDED` : ses écritures ont été vérifiées,
+mais l'autre exécution a pu modifier les mêmes fichiers depuis, alors relance-la pour confirmer le
+résultat. Une exécution qui a échoué d'elle-même signale plutôt sa propre erreur.
 
 Un détenteur rafraîchit la date de modification de son fichier de verrou toutes les 10 secondes. Un
 verrou sur cette machine dont le processus tourne encore mais dont le fichier n'a pas été rafraîchi
@@ -149,7 +157,8 @@ processus.
 Un processus qui plante alors qu'il a mis un verrou de côté peut laisser un fichier
 `<lock>.<pid>.<tag>.<uuid>.stale` dans `.verbatra-local/locks/`. Tu peux supprimer ces fichiers sans
 risque ; l'exécution suivante les supprime dès que le processus qui les a déplacés n'existe plus ou
-qu'ils ont plus de 30 secondes.
+30 secondes après leur mise de côté. Une garde de reprise n'enregistre aucun battement, donc une
+garde abandonnée n'est supprimée qu'une fois son processus disparu.
 
 Une autre limite demeure. Hors de Linux, le nom d'hôte est la seule identité de machine que verbatra
 enregistre, donc deux conteneurs ou machines virtuelles qui partagent un nom d'hôte et le même

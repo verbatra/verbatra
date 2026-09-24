@@ -7,7 +7,7 @@ import type { RunSummary } from "../flow/summary.js";
 import { resolveRunConcurrency, type TranslateInput } from "../flow/translate-project.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import type { LockWaitListener } from "../lock/locale-write-lock.js";
+import { assertLockAcquireTimeout, type LockWaitListener } from "../lock/locale-write-lock.js";
 import type { ProgressListener } from "../progress/types.js";
 import type { CreateProvider } from "../selection/select-provider.js";
 import { defaultCreateWatcher, defaultRunTranslate } from "./wiring.js";
@@ -147,6 +147,8 @@ export interface WatchController {
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locales` names a locale that is not a configured
  * target. Thrown once at startup, before any watching begins.
  * @throws {@link SdkError} `CONCURRENCY_INVALID`: `concurrency` is not an integer of at least 1.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0.
  * @throws {@link SdkError} `CONCURRENCY_BUDGET_CONFLICT`: `concurrency` above 1 was combined with a
  * configured token budget.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -189,6 +191,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
 
   selectLocales(input.config, input.locales);
   resolveRunConcurrency(input.concurrency, false, input.config.maxTokens, false);
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   assertProviderNetworkPermitted(input.config);
 
   const resolver = createLocalePathResolver(cwd, input.config);

@@ -86,6 +86,15 @@ export interface RunLockInput {
   readonly lockAcquireTimeoutMs?: number;
 }
 
+export function assertLockAcquireTimeout(value: number | undefined): void {
+  if (value !== undefined && !(Number.isSafeInteger(value) && value >= 0)) {
+    throw new SdkError(
+      "LOCK_TIMEOUT_INVALID",
+      `The lockAcquireTimeoutMs option must be a whole number of milliseconds of at least 0, got ${value}.`,
+    );
+  }
+}
+
 export function writeLockOptions(input: RunLockInput): LocaleWriteLockOptions {
   return {
     ...(input.onLockWait !== undefined ? { onWait: input.onLockWait } : {}),
@@ -139,16 +148,27 @@ interface PayloadSettings {
   readonly heartbeatIntervalMs: number;
 }
 
-function lockPayload(fs: SdkFs, settings: PayloadSettings): string {
+function payload(liveness: LivenessContext, heartbeatMs: number | undefined): string {
   return JSON.stringify({
     pid: process.pid,
-    hostname: settings.liveness.host,
-    bootId: settings.liveness.bootId,
-    pidNamespace: settings.liveness.pidNamespace,
+    hostname: liveness.host,
+    bootId: liveness.bootId,
+    pidNamespace: liveness.pidNamespace,
     acquiredAt: new Date().toISOString(),
     nonce: randomUUID(),
-    ...(fs.touch !== undefined ? { heartbeatMs: settings.heartbeatIntervalMs } : {}),
+    ...(heartbeatMs !== undefined ? { heartbeatMs } : {}),
   });
+}
+
+function lockPayload(fs: SdkFs, settings: PayloadSettings): string {
+  return payload(
+    settings.liveness,
+    fs.touch !== undefined ? settings.heartbeatIntervalMs : undefined,
+  );
+}
+
+function guardPayload(settings: PayloadSettings): string {
+  return payload(settings.liveness, undefined);
 }
 
 interface ObservedLock {
@@ -161,8 +181,21 @@ interface ObservedLock {
 
 const unreadableLockErrors = new WeakSet<SdkError>();
 
+const unacquiredLockPaths = new WeakMap<SdkError, string>();
+
 export function isUnreadableLockError(error: unknown): boolean {
   return error instanceof SdkError && unreadableLockErrors.has(error);
+}
+
+export function unacquiredLockPath(error: unknown): string | undefined {
+  return error instanceof SdkError ? unacquiredLockPaths.get(error) : undefined;
+}
+
+function markUnacquired(path: string, error: unknown): unknown {
+  if (error instanceof SdkError && error.code === "LOCK_CONTENDED") {
+    unacquiredLockPaths.set(error, path);
+  }
+  return error;
 }
 
 function tooLargeLockError(path: string): SdkError {
@@ -305,7 +338,7 @@ async function clearAbandonedGuard(
   settings: ReclaimSettings,
   state: AcquireState,
 ): Promise<void> {
-  const observed = await observeLock(guard, fs);
+  const { heartbeatMs: _unbeaten, ...observed } = await observeLock(guard, fs);
   const abandonment = await abandonmentOf(guard, fs, observed, settings.liveness);
   if (abandonment.kind === "held") {
     state.sighting = undefined;
@@ -342,7 +375,7 @@ async function reclaimAbandonedLock(
     return false;
   }
   const guard = `${path}.reclaim`;
-  const guardContent = lockPayload(fs, settings);
+  const guardContent = guardPayload(settings);
   if (!(await fs.createExclusive(guard, guardContent))) {
     await clearAbandonedGuard(guard, fs, settings, state);
     return false;
@@ -476,6 +509,7 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
   for (;;) {
     const content = lockPayload(fs, settings);
     if (await fs.createExclusive(path, content)) {
+      await fs.touch?.(path).catch(() => undefined);
       return content;
     }
     const observed = await observeLock(path, fs);
@@ -521,6 +555,8 @@ async function withFileLock<T>(
     ...(options.onWait !== undefined
       ? { notify: makeWaitNotifier(path, options.onWait, start, liveness) }
       : {}),
+  }).catch((error: unknown) => {
+    throw markUnacquired(path, error);
   });
   const owned: OwnedLock = { path, fs, content };
   heldLocks.add(owned);
@@ -533,7 +569,7 @@ async function withFileLock<T>(
   if (!outcome.ok) {
     throw outcome.error;
   }
-  if (released === "foreign") {
+  if (released !== "released") {
     throw takenOverAtReleaseError(path);
   }
   return outcome.value;

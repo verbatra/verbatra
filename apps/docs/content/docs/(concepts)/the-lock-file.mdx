@@ -118,9 +118,16 @@ Those steps still leave rare interleavings in which two runs both believe they h
 moment, so every lock also records a random ownership token. Before each write the lock protects
 (the locale file, the lock file, the provenance file, the glossary), the holder checks that the lock
 file still carries its token, and stops with `LOCK_CONTENDED` without writing when it does not. The
-check and the write are two steps, so a run that passes the check in the very instant another run
-takes the lock over can still write once. That window is a few milliseconds wide and needs a
-reclaim to race a fresh acquisition.
+check and the write are two steps, and nothing bounds the time between them. A run that is paused
+right after the check (its machine sleeps, the process is stopped or held in a debugger, the clock
+jumps, or its event loop is blocked for a long time) stops refreshing its lock, so once the lock is
+30 seconds old another run on the same machine treats it as abandoned and takes it over. When the
+paused run resumes, it can still write once. The window is as long as that pause.
+
+If the lock file is gone or holds another run's token when a run that succeeded releases it, the
+run fails with `LOCK_CONTENDED` as well: its writes were checked, but the other run may have
+changed the same files since, so run it again to confirm the result. A run that failed on its own
+reports its own error instead.
 
 A holder refreshes its lock file's modification time every 10 seconds. A lock on this machine whose
 recorded process is still running but whose file has not been refreshed for 30 seconds (three of
@@ -131,8 +138,9 @@ custom file system that cannot touch files, is judged by its process alone.
 
 A process that crashes while it has a lock moved aside can leave a
 `<lock>.<pid>.<tag>.<uuid>.stale` file in `.verbatra-local/locks/`. Those files are safe to delete;
-the next run deletes them once the process that moved them is gone or they are older than 30
-seconds.
+the next run deletes them once the process that moved them is gone or 30 seconds after they were
+moved aside. A reclaim guard records no heartbeat, so an abandoned guard is cleared only once its
+process is gone.
 
 One more limit applies. Outside Linux, the host name is the only machine identity verbatra records, so
 two containers or virtual machines that share a host name and the same `.verbatra-local/`

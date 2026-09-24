@@ -33,9 +33,9 @@ function takenOverError(path: string, cause?: unknown): SdkError {
 export function takenOverAtReleaseError(path: string): SdkError {
   return new SdkError(
     "LOCK_CONTENDED",
-    `The write lock at ${path} was taken over by another process before this operation released ` +
-      "it. Every write it made was checked against the lock first, but the other process may " +
-      "have changed the same files since. Run it again to confirm the result.",
+    `The write lock at ${path} was taken over or removed by another process before this ` +
+      "operation released it. Every write it made was checked against the lock first, but the " +
+      "other process may have changed the same files since. Run it again to confirm the result.",
   );
 }
 
@@ -81,12 +81,12 @@ export function startHeartbeat(owned: OwnedLock, intervalMs: number): () => void
   };
 }
 
-export type ReleaseOutcome = "released" | "foreign";
+export type ReleaseOutcome = "released" | "foreign" | "missing";
 
 async function ownershipOf(owned: OwnedLock): Promise<ReleaseOutcome | "own"> {
   const read = await owned.fs.readFileBounded(owned.path, MAX_LOCK_PAYLOAD_BYTES);
   if (read.kind === "missing") {
-    return "released";
+    return "missing";
   }
   return read.kind === "ok" && read.content === owned.content ? "own" : "foreign";
 }
@@ -110,10 +110,16 @@ async function moveAsideIfOwn(
   const moved = await moveAsideIfUnchanged(owned.path, owned.fs, owned.content, liveness).catch(
     (error: unknown) => ({ kind: "busy", error }) as const,
   );
-  if (moved.kind === "busy") {
-    return undefined;
+  switch (moved.kind) {
+    case "busy":
+      return undefined;
+    case "removed":
+      return "released";
+    case "missing":
+      return "missing";
+    default:
+      return "foreign";
   }
-  return moved.kind === "displaced" ? "foreign" : "released";
 }
 
 async function releaseOnce(owned: OwnedLock, liveness: LivenessContext): Promise<ReleaseOutcome> {

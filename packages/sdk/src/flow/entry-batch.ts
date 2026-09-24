@@ -2,7 +2,13 @@ import { ProviderError } from "@verbatra/ai-providers";
 import { AdapterError } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
-import type { LockWaitListener } from "../lock/locale-write-lock.js";
+import {
+  assertLockAcquireTimeout,
+  type LockWaitListener,
+  localeLockPath,
+  unacquiredLockPath,
+  writeLockKeyFor,
+} from "../lock/locale-write-lock.js";
 import { redact } from "../redact.js";
 import {
   type RetranslateEntryDeps,
@@ -46,14 +52,16 @@ export interface BatchEntryFailure extends BatchEntry {
 
 /**
  * An entry of {@link retranslateEntries} that was not attempted, because an earlier entry failed
- * with an error that would fail every entry, such as a missing API key.
+ * with an error that would fail this one too: an error that would fail every entry, such as a
+ * missing API key, or a write lock the earlier entry could not acquire before its timeout and this
+ * entry needs as well.
  */
 export interface BatchEntrySkipped extends BatchEntry {
   /** Always `false`: the entry was not carried out. */
   readonly ok: false;
   /** Always `true`: the entry was skipped rather than tried. */
   readonly skipped: true;
-  /** The code of the earlier error that stopped the batch. */
+  /** The code of the earlier error that stopped this entry. */
   readonly code: string;
   /** A human-readable description naming that error, with any secret redacted. */
   readonly message: string;
@@ -207,15 +215,67 @@ function skippedAfter(
   }));
 }
 
-type SkipRest<E, S> = (rest: readonly E[], cause: Error & { readonly code: string }) => S[];
+function lockedOut(entry: BatchEntry, lockPath: string): BatchEntrySkipped {
+  return {
+    locale: entry.locale,
+    key: entry.key,
+    ok: false,
+    skipped: true,
+    code: "LOCK_CONTENDED",
+    message:
+      `Not attempted: an earlier entry could not acquire the write lock at ${lockPath}, ` +
+      "which this one needs too.",
+  };
+}
 
-async function runEntries<E extends BatchEntry, R, S = never>(
+type EntryError = Error & { readonly code: string };
+
+interface SkipPolicy<E> {
+  readonly blockedBy: (entry: E) => BatchEntrySkipped | undefined;
+  readonly afterFailure: (
+    entry: E,
+    error: EntryError,
+    rest: readonly E[],
+  ) => readonly BatchEntrySkipped[] | undefined;
+}
+
+const NEVER_SKIP: SkipPolicy<BatchEntry> = {
+  blockedBy: () => undefined,
+  afterFailure: () => undefined,
+};
+
+function retranslationSkips<E extends BatchEntry>(lockPathOf: (entry: E) => string): SkipPolicy<E> {
+  const unreachable = new Set<string>();
+  return {
+    blockedBy: (entry) => {
+      const own = lockPathOf(entry);
+      return unreachable.has(own) ? lockedOut(entry, own) : undefined;
+    },
+    afterFailure: (entry, error, rest) => {
+      if (isBatchWide(error)) {
+        return skippedAfter(rest, error);
+      }
+      const path = unacquiredLockPath(error);
+      if (path !== undefined && path === lockPathOf(entry)) {
+        unreachable.add(path);
+      }
+      return undefined;
+    },
+  };
+}
+
+async function runEntries<E extends BatchEntry, R>(
   entries: readonly E[],
   run: (entry: E) => Promise<R>,
-  skipRest?: SkipRest<E, S>,
-): Promise<readonly (R | BatchEntryFailure | S)[]> {
-  const outcomes: (R | BatchEntryFailure | S)[] = [];
+  policy: SkipPolicy<E> = NEVER_SKIP,
+): Promise<readonly (R | BatchEntryFailure | BatchEntrySkipped)[]> {
+  const outcomes: (R | BatchEntryFailure | BatchEntrySkipped)[] = [];
   for (const [index, entry] of entries.entries()) {
+    const blocked = policy.blockedBy(entry);
+    if (blocked !== undefined) {
+      outcomes.push(blocked);
+      continue;
+    }
     try {
       outcomes.push(await run(entry));
     } catch (error) {
@@ -223,8 +283,9 @@ async function runEntries<E extends BatchEntry, R, S = never>(
         throw new BatchInterruptedError(outcomes, entry, error);
       }
       outcomes.push(failureOf(entry, error));
-      if (skipRest !== undefined && isBatchWide(error)) {
-        outcomes.push(...skipRest(entries.slice(index + 1), error));
+      const skipped = policy.afterFailure(entry, error, entries.slice(index + 1));
+      if (skipped !== undefined) {
+        outcomes.push(...skipped);
         break;
       }
     }
@@ -325,20 +386,28 @@ export async function rejectEntries(
  * network policy that forbids the provider (`NETWORK_POLICY_VIOLATION`), an invalid network policy
  * setting (`CONFIG_INVALID`), or `provider: { id: "none" }` (`MACHINE_TRANSLATION_DISABLED`). The
  * entry that hit it is reported as failed and every entry after it as a {@link BatchEntrySkipped}
- * naming that code, without another provider call. An error that is not an {@link SdkError}, an
- * adapter error, or a provider error stops the batch with a {@link BatchInterruptedError} carrying
- * the outcomes of the entries already retranslated.
+ * naming that code, without another provider call. An entry that fails with `LOCK_CONTENDED`
+ * because its locale's write lock could not be acquired before `lockAcquireTimeoutMs` is reported
+ * as failed too, and every later entry that needs the same lock (the same locale, or every locale
+ * of a format that keeps all locales in one file) as a {@link BatchEntrySkipped} with that code,
+ * without waiting again; entries of other locales still run. An error that is not an
+ * {@link SdkError}, an adapter error, or a provider error stops the batch with a
+ * {@link BatchInterruptedError} carrying the outcomes of the entries already retranslated.
  *
  * @param input - The config, the entries, whether values a person wrote may be replaced, and how
  * long each entry may wait for its locale's write lock.
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
  * @returns One outcome per entry, in the order the entries were given.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before any entry runs.
  * @throws {@link BatchInterruptedError}: an unexpected error stopped the batch part way.
  */
 export async function retranslateEntries(
   input: RetranslateEntriesInput,
   deps: RetranslateEntryDeps = {},
 ): Promise<RetranslateEntriesResult> {
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
+  const cwd = input.cwd ?? process.cwd();
   const results = await runEntries(
     input.entries,
     async (entry) => {
@@ -358,7 +427,9 @@ export async function retranslateEntries(
       );
       return { locale: entry.locale, key: entry.key, ok: true as const, result };
     },
-    skippedAfter,
+    retranslationSkips((entry) =>
+      localeLockPath(cwd, writeLockKeyFor(input.config.format, entry.locale)),
+    ),
   );
   return { results };
 }

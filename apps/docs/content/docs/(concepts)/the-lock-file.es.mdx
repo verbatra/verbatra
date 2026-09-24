@@ -130,9 +130,18 @@ tienen el mismo bloqueo, así que cada bloqueo registra además un token de prop
 de cada escritura que protege el bloqueo (el archivo del locale, el archivo de bloqueo, el archivo
 de procedencia, el glosario), quien lo tiene comprueba que el archivo de bloqueo sigue llevando su
 token, y se detiene con `LOCK_CONTENDED` sin escribir si no es así. La comprobación y la escritura
-son dos pasos, así que una ejecución que pasa la comprobación justo en el instante en que otra toma
-el bloqueo todavía puede escribir una vez. Esa ventana dura unos pocos milisegundos y exige que una
-recuperación coincida con una adquisición nueva.
+son dos pasos, y nada limita el tiempo entre ellos. Una ejecución que se pausa justo después de la
+comprobación (su máquina se suspende, el proceso se detiene o queda parado en un depurador, el reloj
+salta o su bucle de eventos se bloquea mucho tiempo) deja de refrescar su bloqueo, así que cuando el
+bloqueo tiene 30 segundos otra ejecución en la misma máquina lo trata como abandonado y lo toma.
+Cuando la ejecución pausada continúa, todavía puede escribir una vez. La ventana dura lo que dure
+esa pausa.
+
+Si el archivo de bloqueo ya no existe o lleva el token de otra ejecución cuando una ejecución que
+terminó bien lo libera, esa ejecución también falla con `LOCK_CONTENDED`: sus escrituras se
+comprobaron, pero la otra ejecución puede haber cambiado los mismos archivos desde entonces, así que
+vuelve a ejecutarla para confirmar el resultado. Una ejecución que falló por sí misma informa de su
+propio error.
 
 Quien tiene un bloqueo refresca la fecha de modificación de su archivo cada 10 segundos. Un bloqueo
 en esta máquina cuyo proceso sigue en marcha pero cuyo archivo lleva 30 segundos sin refrescarse
@@ -144,8 +153,9 @@ tocar archivos, se juzga solo por su proceso.
 
 Un proceso que se cae mientras tiene un bloqueo apartado puede dejar un archivo
 `<lock>.<pid>.<tag>.<uuid>.stale` en `.verbatra-local/locks/`. Puedes borrar esos archivos sin
-riesgo; la siguiente ejecución los borra cuando el proceso que los movió ya no existe o tienen más
-de 30 segundos.
+riesgo; la siguiente ejecución los borra cuando el proceso que los movió ya no existe o 30 segundos
+después de que se apartaran. Una guarda de recuperación no registra latido, así que una guarda
+abandonada solo se elimina cuando su proceso ya no existe.
 
 Queda otro límite. Fuera de Linux, el nombre de host es la única identidad de máquina que verbatra
 registra, así que dos contenedores o máquinas virtuales que comparten nombre de host y el mismo

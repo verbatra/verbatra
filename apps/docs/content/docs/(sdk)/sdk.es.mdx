@@ -73,7 +73,8 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   sub-lote del proveedor), y `onLockWait` se dispara mientras el bloqueo de escritura de un locale
   está en disputa. Ambos son callbacks de notificación; el SDK no escribe nada por sí mismo.
   `lockAcquireTimeoutMs` anula cuánto tiempo reintenta un bloqueo de escritura en disputa antes de
-  fallar con `LOCK_CONTENDED`. Solo limita el bloqueo de escritura del locale tomado antes de
+  fallar con `LOCK_CONTENDED`; un valor que no sea un número entero de milisegundos de al menos 0
+  lanza `LOCK_TIMEOUT_INVALID` antes de leer nada. Solo limita el bloqueo de escritura del locale tomado antes de
   cualquier llamada al proveedor; el guard del archivo de bloqueo que registra un locale cuyo
   archivo ya está escrito siempre espera hasta el valor por defecto de diez minutos, para que un
   archivo escrito nunca quede sin registrar. `onLockWait` se dispara cuando una espera ya dura un
@@ -694,6 +695,12 @@ Un error que haría fallar igual a todas las entradas detiene las llamadas al pr
 posterior recibe `{ locale, key, ok: false, skipped: true, code, message }` con ese código, sin
 otra llamada al proveedor.
 
+Una entrada cuyo bloqueo de escritura del locale sigue ocupado pasado `lockAcquireTimeoutMs` falla
+con `LOCK_CONTENDED`, y cada entrada posterior que necesita el mismo bloqueo se omite del mismo modo
+con ese código en lugar de volver a esperar: las entradas de ese locale, o de todos los locales en
+un formato que guarda todos los locales en un solo archivo. Las entradas de otros locales siguen
+ejecutándose.
+
 ### BatchInterruptedError
 
 <AvailableFrom version="0.12.0" />
@@ -1278,7 +1285,12 @@ un proceso que ya no existe, y para liberar su propio bloqueo: el archivo se apa
 bloqueo. Cualquier otra cosa, como un bloqueo que otro proceso tomó entretanto, se devuelve a su
 sitio con `createExclusive`. Un renombrado que falla con `EPERM`, `EBUSY` o `EACCES`, como informa
 Windows de un archivo que otro proceso tiene abierto, cuenta como "no recuperado en este sondeo", y
-el bloqueo sigue sondeando hasta su tiempo límite. Sin `rename`, el bloqueo lee el archivo y lo
+el bloqueo sigue sondeando hasta su tiempo límite. Cuando el renombrado que libera un bloqueo falla
+por cualquier motivo, la liberación recurre a leer el archivo de bloqueo y borrarlo mientras siga
+llevando el token de quien lo tiene, y reintenta unas cuantas veces, con un sondeo de separación, un
+fallo con `EPERM`, `EBUSY` o `EACCES`. Un registro que debería devolverse a su sitio pero no puede,
+porque un tercer proceso tomó la ruta entretanto, se borra, ya que la comprobación del token de
+quien lo tenía falla a partir de ese momento. Sin `rename`, el bloqueo lee el archivo y lo
 borra si no ha cambiado, lo que deja una ventana más amplia en la que se borra un bloqueo que otro
 proceso acaba de tomar.
 
@@ -1287,10 +1299,14 @@ pueden creer durante un momento que tienen el mismo bloqueo. Por eso cada bloque
 de propiedad aleatorio, y antes de cada escritura que protege el bloqueo (el archivo del locale, el
 archivo de bloqueo, el archivo de procedencia, el glosario) quien lo tiene comprueba que el archivo
 de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no
-escribe nada. Un token que falta al liberar se informa igual. La comprobación y la escritura siguen
-siendo dos pasos, así que quien pasa la comprobación justo en el instante en que otro proceso toma
-el bloqueo puede escribir una vez más; esa ventana residual dura unos pocos milisegundos. La
-comprobación del token da por hecho que `createExclusive` crea un archivo que `readFileBounded` lee
+escribe nada. Un archivo de bloqueo que falta o lleva otro token al liberar se informa igual cuando
+la operación terminó bien, porque el otro proceso puede haber cambiado los mismos archivos desde
+entonces; una operación que falló lanza su propio error. La comprobación y la escritura siguen
+siendo dos pasos, y nada limita el tiempo entre ellos: quien tiene el bloqueo y se pausa justo
+después de la comprobación (una máquina suspendida, un proceso detenido, un depurador, un salto del
+reloj o un bucle de eventos bloqueado mucho tiempo) deja de latir, así que cuando su bloqueo tiene
+tres intervalos (30 segundos por defecto) otro proceso de la misma máquina lo toma, y quien estaba
+pausado todavía puede escribir una vez al continuar. La comprobación del token da por hecho que `createExclusive` crea un archivo que `readFileBounded` lee
 de vuelta, así que una implementación propia tiene que cumplirlo.
 
 `touch` y `mtimeMs` también son opcionales.
@@ -1300,19 +1316,22 @@ de vuelta, así que una implementación propia tiene que cumplirlo.
 `touch(path)` pone la fecha de modificación de un archivo existente en el momento actual, y
 `mtimeMs(path)` la devuelve en milisegundos, o `undefined` si falta el archivo. Con `touch`, quien
 tiene un bloqueo registra en él un intervalo de latido de 10 segundos y refresca la fecha de
-modificación del archivo a ese ritmo mientras lo tiene. Con `mtimeMs`, un proceso en espera trata
+modificación del archivo a ese ritmo mientras lo tiene. También la refresca justo después de
+crearlo, para que la antigüedad del archivo se mida con el reloj de este proceso y no con el del
+servidor de archivos. Con `mtimeMs`, un proceso en espera trata
 como abandonado un bloqueo de su propia máquina cuyo proceso sigue en marcha pero cuyo archivo no
 se ha refrescado durante tres de los intervalos registrados (30 segundos por defecto). Eso cubre un
 registro de bloqueo que sobrevivió a su uso, por ejemplo uno devuelto a su sitio para un proceso de
 Studio, `watch` o del servidor MCP de larga duración que ya lo había liberado. Una guarda de
-recuperación se quita cuando se ha visto sin cambios en dos sondeos, o al instante si su latido
-muestra que está caducada. Sin estos miembros, un bloqueo solo se considera abandonado cuando su
+recuperación no registra latido: se quita cuando su proceso ya no existe de forma demostrable y se
+ha visto sin cambios en dos sondeos. Sin estos miembros, un bloqueo solo se considera abandonado cuando su
 proceso ya no existe de forma demostrable.
 
 Un proceso que se cae mientras tiene un bloqueo apartado puede dejar un archivo `.stale` en
 `.verbatra-local/locks/`. Puedes borrar esos archivos a mano sin riesgo, y la siguiente adquisición
-de un bloqueo los borra cuando el proceso que los movió ya no existe o superan el umbral de
-caducidad.
+de un bloqueo los borra cuando el proceso que los movió ya no existe o, si `touch` está
+implementado, cuando superan el umbral de caducidad, contado desde que se apartaron. Un sistema de
+archivos sin `touch` los conserva hasta que su proceso ya no existe.
 
 `deps.fs` no alcanza un `deps.adapterRegistry` suministrado por quien llama. Esos
 adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya
@@ -1469,6 +1488,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |
 | `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
 | `MAX_TOKENS_INVALID` | el `maxTokens` por ejecución de `translate` se fijó pero no es un número entero de al menos 1; se lanza antes de leer o gastar nada |
+| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`); se lanza antes de leer o bloquear nada |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
 | `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado o fuera de `cwd`, también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada |
 | `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |

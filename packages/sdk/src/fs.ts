@@ -141,22 +141,30 @@ export interface SdkFs {
    * release its own lock: it moves the file aside under a unique
    * `<name>.<pid>.<host tag>.<uuid>.stale` name and deletes it only when what it moved is the record
    * it expected. Anything else, such as a lock another process took in the meantime, is put back
-   * with {@link SdkFs.createExclusive}. An abandoned reclaim guard is cleared only after it is seen
-   * unchanged across two polls, unless its heartbeat shows it is stale.
+   * with {@link SdkFs.createExclusive}; a record that cannot be put back because a third process
+   * took the path in the meantime is deleted, since its holder's ownership check fails from then on.
+   * An abandoned reclaim guard is cleared only after it is seen unchanged across two polls, and only
+   * when its recorded process is gone: a guard records no heartbeat.
    *
-   * A rename that fails with `EPERM`, `EBUSY`, or `EACCES`, as Windows reports for a file another
-   * process has open, is treated as "not reclaimed this poll" and retried until the lock timeout.
+   * A reclaim rename that fails with `EPERM`, `EBUSY`, or `EACCES`, as Windows reports for a file
+   * another process has open, is treated as "not reclaimed this poll" and retried until the lock
+   * timeout. A release rename that fails for any reason falls back to reading the lock file and
+   * deleting it when it still holds this holder's token, and that fallback retries a failure with
+   * one of those three codes a few times, a poll apart, before it gives up.
    *
    * Each lock records a random ownership token, and before every write it protects the holder checks
    * that the lock file still holds its token, failing with `LOCK_CONTENDED` and writing nothing when
-   * it does not. That check and the write are two steps, so the lock narrows but cannot close the
-   * window in which a holder that just passed the check races a process that took the lock over in
-   * the same instant. Without `rename`, the lock reads the file and deletes it when unchanged, a
-   * second such window.
+   * it does not. That check and the write are two steps, and nothing bounds the time between them:
+   * a holder paused after the check (a sleeping machine, a stopped process, a debugger, a clock
+   * step, or a long block of its event loop) can have its lock judged abandoned once its heartbeat
+   * is three intervals old (30 seconds by default), and still write once when it resumes, after
+   * another process took the lock over. Without `rename`, the lock reads the file and deletes it
+   * when unchanged, a second such window.
    *
    * A `.stale` file left in `.verbatra-local/locks` by a process that crashed mid-move is safe to
-   * delete by hand; the next lock acquisition deletes it once the process that moved it is gone or
-   * it is older than the stale threshold.
+   * delete by hand; the next lock acquisition deletes it once the process that moved it is gone, or,
+   * on a file system that implements {@link SdkFs.touch}, once it is older than the stale threshold,
+   * measured from the move.
    *
    * @param from - The file to move.
    * @param to - Its new path, in the same directory.
@@ -165,10 +173,12 @@ export interface SdkFs {
    */
   rename?(from: string, to: string): Promise<void>;
   /**
-   * Sets the modification time of an existing file to now. Optional. Together with
-   * {@link SdkFs.mtimeMs} it is the write lock's heartbeat: a holder whose file system implements
-   * `touch` records a heartbeat interval (10 seconds) in its lock and refreshes the lock file's
-   * modification time at that interval while it holds the lock.
+   * Sets the modification time of an existing file to the current time of this process's clock,
+   * not the file server's. Optional. Together with {@link SdkFs.mtimeMs} it is the write lock's
+   * heartbeat: a holder whose file system implements `touch` records a heartbeat interval (10
+   * seconds) in its lock, touches the lock file right after creating it, and refreshes its
+   * modification time at that interval while it holds the lock. A file moved aside is touched too,
+   * so its age counts from the move.
    *
    * @param path - The file to touch.
    * @returns Resolves once the modification time is updated. Rejects when no file exists at the

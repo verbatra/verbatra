@@ -291,6 +291,7 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     rpcDeps: {
       ...buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
       inFlightEntries: () => inFlightGuard.entries(),
+      log: output,
     },
     handlers,
     rateLimiter,
