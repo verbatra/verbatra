@@ -199,3 +199,22 @@ describe("segmentValue", () => {
     ]);
   });
 });
+
+describe("segmentValue: printf parity with the core placeholder pattern", () => {
+  it.each([
+    ["positional printf", "Hello, %1$s! You have %2$d messages.", ["%1$s", "%2$d"]],
+    ["apple printf", "Welcome back, %@", ["%@"]],
+    ["a char-length integer", "x %hhd y", ["%hhd"]],
+    ["a short integer", "x %hd y", ["%hd"]],
+    ["a size_t integer", "x %zu y", ["%zu"]],
+    ["an intmax_t integer", "x %jd y", ["%jd"]],
+    ["a ptrdiff_t integer", "x %td y", ["%td"]],
+    ["a quad integer", "x %qd y", ["%qd"]],
+    ["a long double", "x %Lf y", ["%Lf"]],
+    ["a long long integer", "x %lld y", ["%lld"]],
+    ["a pointer", "x %p y", ["%p"]],
+    ["a positional zero-padded float", "x %1$08.3f y", ["%1$08.3f"]],
+  ])("isolates %s exactly as core protects it", (_label, value, expected) => {
+    expect(tokens(value)).toEqual(expected);
+  });
+});
