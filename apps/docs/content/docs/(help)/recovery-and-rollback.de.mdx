@@ -124,8 +124,12 @@ Provider-Fehlschlag, eine ungültige ICU-Quelle oder ein gestopptes Token-Budget
 vorherigen Hash, statt als erledigt festgehalten zu werden, sodass der nächste Lauf sie erneut
 versucht. Was diese Fälle jeweils bedeuten, steht unter [Fehlerbehebung](/docs/troubleshooting).
 
-Wurde der abgebrochene Prozess hart abgeschossen, kann er unter `.verbatra-local/` eine Sperrdatei
-hinterlassen haben. Der nächste Lauf meldet `LOCK_CONTENDED` und gibt den zu löschenden Pfad aus.
+Ein unterbrochener Lauf gibt seine Schreibsperren frei, bevor er endet. Ein hart abgeschossener
+Prozess (`kill -9`, ein Absturz) kann trotzdem eine unter `.verbatra-local/` zurücklassen; der
+nächste Lauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr existiert, und
+übernimmt die Sperre selbst. Nur eine Sperre, die er nicht prüfen kann (auf einer anderen Maschine
+oder von einer Version vor 0.12.0 geschrieben), lässt den Lauf warten und dann `LOCK_CONTENDED` mit
+dem zu löschenden Pfad melden.
 
 ## Vor einem Lauf, den du nicht leicht rückgängig machen kannst
 

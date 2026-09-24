@@ -72,6 +72,20 @@ Entrée : `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, o
 
 Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Trois problèmes sont refusés au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur : un `concurrency` qui n'est pas un entier d'au moins 1 lève `CONCURRENCY_INVALID`, un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève `CONCURRENCY_BUDGET_CONFLICT` (il n'existe pas de watch en dry run, donc le conflit de budget s'applique toujours), et un fichier source manquant lève `SOURCE_UNREADABLE`. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
+### releaseHeldLocks
+
+<AvailableFrom version="0.12.0" />
+
+Supprime tous les verrous d'écriture que détient le processus courant, pour un processus sur le
+point de se terminer sans laisser finir ses exécutions en cours : la CLI l'appelle quand une
+interruption arrête `translate` ou `import`, et quand une seconde interruption force l'arrêt de
+`watch`. Les exécutions qui ont pris ces verrous perdent leur protection, appelle-le donc seulement
+juste avant la fin du processus. Il ne prend aucun argument et ne rejette jamais.
+
+Un verrou resté en place malgré tout, parce qu'un processus a été tué net, n'en a pas besoin : une
+exécution en attente sur la même machine voit que le processus enregistré n'existe plus et reprend
+le verrou elle-même. Voir [le verrou d'écriture](/docs/the-lock-file#le-verrou-décriture).
+
 ## Pseudo-localisation
 
 ### pseudolocalize

@@ -27,13 +27,13 @@ Avec `--json`, chaque exécution émet un enregistrement [enveloppe](/docs/ci-an
 
 `--locales de,fr` restreint chaque cycle de la session à un sous-ensemble des cibles configurées, ce qui garde une boucle de développement peu coûteuse quand une seule langue t'intéresse. Le sous-ensemble est validé une fois au démarrage plutôt qu'à chaque exécution.
 
-`--lock-timeout` s'applique à chaque cycle : il règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que cette locale n'échoue avec `LOCK_CONTENDED` dans le résumé de cette exécution, pendant que les autres locales continuent. La surveillance continue dans tous les cas.
+`--lock-timeout` s'applique à chaque cycle : il règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file) disputé avant que cette locale n'échoue avec `LOCK_CONTENDED` dans le résumé de cette exécution, pendant que les autres locales continuent. La surveillance continue dans tous les cas. Un verrou laissé par un processus verbatra qui ne tourne plus sur cette machine est repris tout de suite au lieu d'être attendu.
 
 `--concurrency` s'applique à l'exécution de chaque cycle. Chaque exécution reçoit un nouveau budget de tokens, et un `--concurrency` supérieur à `1` reste refusé quand la config fixe un budget `maxTokens`, car quelle locale perd son travail restant dépendrait de l'ordre dans lequel les locales s'entrelacent : `watch` refuse cette combinaison au démarrage et sort avec le code `2` avant l'exécution initiale, au lieu de démarrer une session qui échoue à chaque cycle. `--no-cache` contourne le [cache de mémoire de traduction](/docs/the-cache) à chaque cycle.
 
 ## Arrêt
 
-La première interruption (Ctrl-C ou SIGTERM) laisse l'exécution en cours se terminer, arrête proprement la surveillance et sort avec `0`. Une seconde interruption pendant que cet arrêt est encore en cours force l'arrêt avec le code `130`.
+La première interruption (Ctrl-C ou SIGTERM) laisse l'exécution en cours se terminer, arrête proprement la surveillance et sort avec `0`. Une seconde interruption pendant que cet arrêt est encore en cours force l'arrêt avec le code `130`. L'arrêt forcé libère les verrous d'écriture de la session avant la fin du processus, donc l'exécution suivante n'a pas à les attendre.
 
 ## Exemples
 

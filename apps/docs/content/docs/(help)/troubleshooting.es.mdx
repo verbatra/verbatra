@@ -188,16 +188,18 @@ anteriores, así que no queda nada escrito a medias.
 
 ## Otro proceso tiene el bloqueo de escritura (LOCK_CONTENDED)
 
-**Síntoma**: `Could not acquire the write lock at <path>: another process may be holding it. If no
-verbatra process is currently running, this lock file was likely left behind by one that was
-killed; delete it and retry.`
+**Síntoma**: `Could not acquire the write lock at <path>: another process is holding it. A lock left
+behind by a process that is no longer running on this machine is reclaimed automatically, so this
+one belongs to a live process, a process on another machine, or an older verbatra version. If no
+verbatra process is running anywhere, delete it and retry.`
 
 **Causa**: las escrituras a un locale se serializan a través de un archivo de bloqueo por locale.
-Un `translate`, `watch`, `import` o una escritura de Studio concurrentes lo tienen, o un proceso
-terminado a la fuerza dejó atrás el archivo de bloqueo.
+Un `translate`, `watch`, `import` o una escritura de Studio concurrentes lo tienen. Un bloqueo que
+dejó un proceso terminado en esta máquina se recupera automáticamente, así que uno que persiste se
+registró en otra máquina o con una versión de verbatra anterior a 0.12.0.
 
-**Solución**: exactamente lo que dice el mensaje: espera a que termine la otra ejecución o, si no
-hay ninguna en marcha, borra el archivo de bloqueo en la ruta impresa y reintenta. Para cambiar
+**Solución**: espera a que termine la otra ejecución o, si no hay ningún proceso de verbatra en
+marcha en ninguna parte, borra el archivo de bloqueo en la ruta impresa y reintenta. Para cambiar
 cuánto espera una ejecución antes de rendirse, pasa `--lock-timeout <seconds>` a
 [`translate`](/docs/cli/translate) o [`watch`](/docs/cli/watch); por defecto son `600` segundos.
 

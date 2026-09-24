@@ -100,9 +100,21 @@ attend la fin de celles qui tournent déjà, donc chaque verrou pris par l'exéc
 que la commande ne se termine. Aucune locale n'est démarrée après que l'exécution a déjà échoué, et
 aucun verrou n'est rendu orphelin par l'échec lui-même.
 
+Chaque fichier de verrouillage enregistre l'identifiant et le nom d'hôte du processus qui le
+détient. Un processus tué brutalement peut quand même en laisser un derrière lui, donc une
+exécution en attente vérifie le processus enregistré : s'il tournait sur cette machine et n'existe
+plus, l'exécution reprend le verrou tout de suite au lieu d'attendre la fin de `--lock-timeout`. La
+reprise est sérialisée, donc deux exécutions en attente ne reprennent jamais toutes les deux le même
+verrou abandonné. Un verrou enregistré sur une autre machine (un lecteur réseau partagé) ou par une
+version de verbatra antérieure à 0.12.0 ne contient rien de vérifiable sans risque, il n'est donc
+jamais repris.
+
+Une interruption libère les verrous d'une exécution avant la fin du processus : Ctrl-C ou SIGTERM
+pendant `translate` ou `import`, et la seconde interruption qui force l'arrêt de `watch`.
+
 Si un verrou ne peut pas être acquis, l'exécution échoue avec `LOCK_CONTENDED` et nomme le chemin
 du fichier de verrouillage (sous le répertoire `.verbatra-local/`, ignoré par git). Si aucun processus
-verbatra ne tourne, ce fichier a été laissé par un processus tué : supprime-le et réessaie.
+verbatra ne tourne nulle part, supprime ce fichier et réessaie.
 
 ## Absent ou corrompu
 
