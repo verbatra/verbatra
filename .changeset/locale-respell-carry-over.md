@@ -23,8 +23,9 @@ file cannot be written, the state stays where it is, the locale reports the new
 `LOCALE_STATE_CARRY_OVER_SKIPPED` notice and does not run: it fails with the new
 `LOCALE_STATE_NOT_CARRIED_OVER` code, nothing is written under the new code, and the next run tries
 the move again. The other locales run as usual. A dry run reports the locale the same way while
-another process holds the lock-file guard. When only the translation memory cannot be written, the
-locale still runs, since the memory is only a cache.
+another process holds the lock-file guard, and treats a guard it cannot read as held, naming the
+unreadable guard as the reason rather than failing. When only the translation memory cannot be
+written, the locale still runs, since the memory is only a cache.
 
 `doctor` gains an informational `locale-state` check that names every locale the lock file,
 translation memory or provenance file holds state for that the config does not list, says whether

@@ -455,6 +455,34 @@ describe("carryOverRespelledLocales: a locale whose lock-file state stays behind
     expect(await readFile(guard, "utf8")).toContain("9999");
   });
 
+  it("names an unreadable guard, not another process, when a dry run cannot read it", async () => {
+    const dir = await respelledStateFiles();
+    const guard = lockFileGuardPath(dir);
+    const fs: SdkFs = {
+      ...defaultFs,
+      readFileBounded: async (path, maxBytes) => {
+        if (path === guard) {
+          throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        }
+        return defaultFs.readFileBounded(path, maxBytes);
+      },
+    };
+
+    const plan = await carryOverRespelledLocales(dir, fs, ["pt-BR"], {
+      dryRun: true,
+      memory: false,
+    });
+
+    expect(plan.skipped).toEqual([
+      {
+        from: "pt_BR",
+        to: "pt-BR",
+        files: ["verbatra.lock.json", "verbatra.provenance.json"],
+        reason: `the lock-file guard at ${guard} could not be read`,
+      },
+    ]);
+  });
+
   it("plans the move on a dry run when the guard was left by a process that exited", async () => {
     const dir = await respelledStateFiles();
     const guard = lockFileGuardPath(dir);

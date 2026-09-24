@@ -6,8 +6,8 @@ import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { makeFakeFs, makeTempDir } from "../test-support.js";
 import { currentHostLiveness, type LivenessContext } from "./holder-liveness.js";
 import {
-  isLockHeld,
   localeLockPath,
+  probeLock,
   releaseHeldLocks,
   withLocaleWriteLock,
 } from "./locale-write-lock.js";
@@ -543,27 +543,27 @@ describe("releaseHeldLocks", () => {
   });
 });
 
-describe("isLockHeld: probing a lock without taking it", () => {
+describe("probeLock: probing a lock without taking it", () => {
   it.each([
-    ["no lock file", undefined, false],
-    ["a live holder on this machine", JSON.stringify(holder(LIVE_PID)), true],
-    ["a holder on another machine", JSON.stringify(holder(DEAD_PID, "elsewhere")), true],
-    ["an unreadable payload", "{", true],
-    ["a holder that exited on this machine", JSON.stringify(holder(DEAD_PID)), false],
+    ["no lock file", undefined, "free"],
+    ["a live holder on this machine", JSON.stringify(holder(LIVE_PID)), "held"],
+    ["a holder on another machine", JSON.stringify(holder(DEAD_PID, "elsewhere")), "held"],
+    ["an unparsable payload", "{", "held"],
+    ["a holder that exited on this machine", JSON.stringify(holder(DEAD_PID)), "free"],
   ])("reports %s as %s", async (_, content, held) => {
     const files = new Map<string, string>(content === undefined ? [] : [[LOCK, content]]);
 
-    expect(await isLockHeld(LOCK, memoryFs(files), liveness)).toBe(held);
+    expect(await probeLock(LOCK, memoryFs(files), liveness)).toBe(held);
   });
 
   it("reports a lock file too large to read as held", async () => {
     const fs = makeFakeFs({ readFileBounded: async () => ({ kind: "too-large" }) });
 
-    expect(await isLockHeld(LOCK, fs, liveness)).toBe(true);
+    expect(await probeLock(LOCK, fs, liveness)).toBe("held");
   });
 
   it.each(["EACCES", "EISDIR"])(
-    "reports a lock whose read rejects with %s as held",
+    "reports a lock whose read rejects with %s as unreadable",
     async (code) => {
       const fs = makeFakeFs({
         readFileBounded: async () => {
@@ -571,13 +571,13 @@ describe("isLockHeld: probing a lock without taking it", () => {
         },
       });
 
-      await expect(isLockHeld(LOCK, fs, liveness)).resolves.toBe(true);
+      await expect(probeLock(LOCK, fs, liveness)).resolves.toBe("unreadable");
     },
   );
 
   it("probes with the current machine's liveness by default", async () => {
     const files = new Map([[LOCK, JSON.stringify(holder(LIVE_PID, "elsewhere"))]]);
 
-    expect(await isLockHeld(LOCK, memoryFs(files))).toBe(true);
+    expect(await probeLock(LOCK, memoryFs(files))).toBe("held");
   });
 });

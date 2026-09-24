@@ -384,18 +384,20 @@ export async function releaseHeldLocks(): Promise<void> {
   await Promise.allSettled(locks.map((lock) => lock.fs.deleteFile(lock.path)));
 }
 
-export async function isLockHeld(
+export type LockProbe = "free" | "held" | "unreadable";
+
+export async function probeLock(
   path: string,
   fs: SdkFs,
   liveness: LivenessContext = currentHostLiveness(),
-): Promise<boolean> {
+): Promise<LockProbe> {
   let read: BoundedFileRead;
   try {
     read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
   } catch {
-    return true;
+    return "unreadable";
   }
-  return read.kind !== "missing" && !isAbandoned(observedFrom(read), liveness);
+  return read.kind === "missing" || isAbandoned(observedFrom(read), liveness) ? "free" : "held";
 }
 
 export async function withLocaleWriteLock<T>(
