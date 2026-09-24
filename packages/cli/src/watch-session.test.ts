@@ -1,7 +1,14 @@
 import type { LockWaitEvent, WatchController } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
-import { captureStreams, flush, makeConfig, parseEnvelope, recordingDeps } from "./test-support.js";
+import {
+  captureStreams,
+  flush,
+  makeConfig,
+  parseEnvelope,
+  plainUi,
+  recordingDeps,
+} from "./test-support.js";
 import type { WatchOptions } from "./watch-session.js";
 import { runWatch } from "./watch-session.js";
 
@@ -30,7 +37,7 @@ describe("runWatch: stop handling", () => {
       watch: async () => ({ stop: async () => {} }) satisfies WatchController,
     });
 
-    const session = runWatch(options(), deps, streams);
+    const session = runWatch(options(), deps, plainUi(streams));
     await flush();
     session.requestStop();
     const code = await session.done;
@@ -51,7 +58,7 @@ describe("runWatch: stop handling", () => {
         }) satisfies WatchController,
     });
 
-    const session = runWatch(options(), deps, streams);
+    const session = runWatch(options(), deps, plainUi(streams));
     await flush();
     session.requestStop();
     const code = await session.done;
@@ -74,7 +81,7 @@ describe("runWatch: stop handling", () => {
         }),
     });
 
-    const session = runWatch(options(), deps, streams);
+    const session = runWatch(options(), deps, plainUi(streams));
     session.requestStop();
     resolveWatch({
       stop: async () => {
@@ -95,7 +102,7 @@ describe("runWatch: stop handling", () => {
       watch: async () => ({ stop: () => new Promise<void>(() => {}) }) satisfies WatchController,
     });
 
-    const session = runWatch(options(), deps, streams);
+    const session = runWatch(options(), deps, plainUi(streams));
     await flush();
     session.requestStop();
     session.requestStop();
@@ -117,7 +124,7 @@ describe("runWatch: lock-wait progress and timeout threading", () => {
     const { streams } = captureStreams();
     const { deps, calls } = recordingDeps({ watch: idleController });
 
-    runWatch({ ...options(), lockAcquireTimeoutMs: 5_000 }, deps, streams);
+    runWatch({ ...options(), lockAcquireTimeoutMs: 5_000 }, deps, plainUi(streams));
     await flush();
 
     expect(calls.watch[0]?.lockAcquireTimeoutMs).toBe(5_000);
@@ -127,7 +134,7 @@ describe("runWatch: lock-wait progress and timeout threading", () => {
     const { streams, err } = captureStreams();
     const { deps, calls } = recordingDeps({ watch: idleController });
 
-    runWatch(options(), deps, streams);
+    runWatch(options(), deps, plainUi(streams));
     await flush();
     calls.watch[0]?.onLockWait?.(waitEvent);
 
@@ -139,7 +146,7 @@ describe("runWatch: lock-wait progress and timeout threading", () => {
     const { streams, err } = captureStreams();
     const { deps, calls } = recordingDeps({ watch: idleController });
 
-    runWatch({ ...options(), json: true }, deps, streams);
+    runWatch({ ...options(), json: true }, deps, plainUi(streams, true));
     await flush();
     calls.watch[0]?.onLockWait?.(waitEvent);
 
@@ -152,7 +159,7 @@ describe("runWatch: lock-wait progress and timeout threading", () => {
     const { streams, err } = captureStreams();
     const { deps, calls } = recordingDeps({ watch: idleController });
 
-    runWatch(options(), deps, streams);
+    runWatch(options(), deps, plainUi(streams));
     await flush();
     calls.watch[0]?.onProgress?.({
       type: "locale-started",
@@ -168,7 +175,7 @@ describe("runWatch: lock-wait progress and timeout threading", () => {
     const { streams, err } = captureStreams();
     const { deps, calls } = recordingDeps({ watch: idleController });
 
-    runWatch({ ...options(), json: true }, deps, streams);
+    runWatch({ ...options(), json: true }, deps, plainUi(streams, true));
     await flush();
     calls.watch[0]?.onProgress?.({ type: "run-finished", localesCompleted: 2 });
 
@@ -190,7 +197,7 @@ describe("runWatch: the --json error envelope for a session failure", () => {
       },
     });
 
-    const session = runWatch(jsonOptions(), deps, streams);
+    const session = runWatch(jsonOptions(), deps, plainUi(streams, true));
     const code = await session.done;
 
     expect(code).toBe(2);
@@ -215,7 +222,7 @@ describe("runWatch: the --json error envelope for a session failure", () => {
         }) satisfies WatchController,
     });
 
-    const session = runWatch(jsonOptions(), deps, streams);
+    const session = runWatch(jsonOptions(), deps, plainUi(streams, true));
     await flush();
     session.requestStop();
     const code = await session.done;
@@ -236,7 +243,7 @@ describe("runWatch: the --json error envelope for a session failure", () => {
       },
     });
 
-    const code = await runWatch(options(), deps, streams).done;
+    const code = await runWatch(options(), deps, plainUi(streams)).done;
 
     expect(code).toBe(2);
     expect(out()).toBe("");
