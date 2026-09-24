@@ -82,4 +82,30 @@ describe("TranslationValue", () => {
     expect(element.hasAttribute("data-row-value")).toBe(true);
     expect(element.className).toContain("truncate");
   });
+
+  it("keeps each syntax token on one line so a brace never starts a line on its own", () => {
+    const view = render(
+      <TranslationValue value="{n, plural, zero {لا} few {#} other {#}}" locale="ar" />,
+    );
+    const tokens = view.all("bdi");
+
+    expect(tokens.map((node) => node.textContent)).toContain("} few {");
+    expect(tokens.every((node) => node.className.split(" ").includes("whitespace-nowrap"))).toBe(
+      true,
+    );
+  });
+
+  it("lets a paragraph value scroll sideways so a token longer than its container stays inside it", () => {
+    const longToken = `#{${"x".repeat(200)}}`;
+    const view = render(<TranslationValue as="p" value={`طلب ${longToken}`} locale="ar" />);
+
+    expect(view.get("p").className.split(" ")).toContain("overflow-x-auto");
+    expect(view.get("bdi").textContent).toBe(longToken);
+  });
+
+  it("leaves an inline value's overflow to its caller", () => {
+    const view = render(<TranslationValue value="{name}" className="truncate" />);
+
+    expect(view.get("span").className).not.toContain("overflow-x-auto");
+  });
 });
