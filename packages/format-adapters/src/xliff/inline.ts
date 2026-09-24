@@ -1,7 +1,8 @@
 import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import { MAX_DEPTH } from "../json/limits.js";
-import { isElement, onFatal, TEXT_NODE, type XliffVersion } from "./document.js";
+import { isElement, onFatal, TEXT_NODE } from "../xml/document.js";
+import type { XliffVersion } from "./document.js";
 
 const CDATA_SECTION_NODE = 4;
 
