@@ -46,6 +46,26 @@ Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm
   - `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
 - `--help` and `--version` print and exit `0`. An unknown command or flag exits `2`.
 
+## Terminal output
+
+<AvailableFrom version="0.12.0" />
+
+Results go to stdout. Progress, notices, hints, warnings and errors go to stderr, and verbatra adapts them to where stderr is going:
+
+- On an interactive terminal, fixed labels such as `error`, `[ok]` and `next:` are colored, and a step that takes longer than 300 ms shows an ASCII spinner (`| / - \`).
+- When stderr is piped or redirected, `CI` is set, or `TERM` is `dumb`, the output is plain, append-only lines with no color and no animation.
+- `--json` never adds color, animation or new lines: stdout and stderr stay exactly as described in [JSON output](/docs/ci-and-exit-codes#json-output).
+
+| Flag or variable | Effect |
+| --- | --- |
+| `-q`, `--quiet` | print only results, warnings and errors: no progress lines, notices or `next:` hints. It works before or after the command name |
+| `--no-color` | never color the output |
+| `NO_COLOR`, `VERBATRA_NO_COLOR` | any non-empty value turns color off; `VERBATRA_NO_COLOR` also overrides `FORCE_COLOR` |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` or an empty value turns color on even when stderr is not a terminal, and `0` turns it off; `--no-color` and `VERBATRA_NO_COLOR` still win |
+| `VERBATRA_NO_SPINNER` | any non-empty value replaces the spinner with static `label... done (1.2s)` lines, for screen readers and terminal recordings |
+
+Status words are plain ASCII (`[ok]`, `[warn]`, `[fail]`, `[skip]`), so the output reads the same in every terminal and log. Every line passes through the same key redaction as the rest of the output, and only the fixed labels are ever colored, never a key, path or message.
+
 ## Environment files
 
 `translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`), the handoff commands (`export`, `import`), `extract`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.

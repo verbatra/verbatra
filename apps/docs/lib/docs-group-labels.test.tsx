@@ -13,6 +13,11 @@ const tree: PageTree.Root = {
   children: [
     { type: "page", name: "Introduction", url: "/docs" },
     { type: "folder", name: "Get started", children: [child] },
+    {
+      type: "folder",
+      name: "Guides",
+      children: [{ type: "separator", name: "Automate" }, child],
+    },
     { type: "separator", name: "For AI agents" },
   ],
 };
@@ -36,6 +41,13 @@ describe("withGroupLabels", () => {
     expect(folder?.type).toBe("folder");
     if (folder?.type !== "folder") return;
     expect(folder.children[0]).toBe(child);
+  });
+
+  it("marks a separator inside a group as a subgroup label", () => {
+    const folder = withGroupLabels(tree).children[2];
+    if (folder?.type !== "folder") throw new Error("expected a folder");
+    expect(markup(folder.children[0]?.name)).toBe('<span class="vk-sidebar-group">Automate</span>');
+    expect(folder.children[1]).toBe(child);
   });
 
   it("does not mutate the source tree", () => {

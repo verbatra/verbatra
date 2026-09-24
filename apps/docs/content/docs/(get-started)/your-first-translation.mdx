@@ -8,11 +8,11 @@ Five steps take you from an empty project to a translated locale file. All you n
 
 verbatra is a dev dependency:
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm and yarn work too: `pnpm add -D @verbatra/cli` then `pnpm verbatra ...`, or `yarn add -D @verbatra/cli` then `yarn verbatra ...`. The code blocks below use `npx`, matching the `npm install` above.
+The code blocks below use `npx`. With pnpm, yarn, or bun, run `pnpm verbatra ...`, `yarn verbatra ...`, or `bun run verbatra ...` instead.
 
 pnpm takes one extra step. `pnpm add -D @verbatra/cli` installs correctly but exits `1` with `ERR_PNPM_IGNORED_BUILDS`, and leaves an unanswered `pnpm-workspace.yaml` behind that makes every later pnpm command in the project fail the same way. Run `pnpm approve-builds` once and approve neither entry, or see [Troubleshooting](/docs/troubleshooting) for the non-interactive fix.
 
@@ -153,7 +153,9 @@ Commit `verbatra.lock.json` and `verbatra.provenance.json` alongside your locale
 
 ## Next
 
-- [Set up verbatra with an AI agent](/docs/start-with-ai): the same walkthrough, packaged as a copy-pasteable prompt for an AI coding agent.
-- [Add a language](/docs/add-a-language): drop a new target locale into this setup.
-- [How it works](/docs/how-it-works): the full pipeline behind a run.
-- [Configuration](/docs/config-file): everything `verbatra.config.ts` can hold.
+<Cards>
+  <Card title="Set up verbatra with an AI agent" href="/docs/start-with-ai" description="The same walkthrough, packaged as a copy-pasteable prompt for an AI coding agent." />
+  <Card title="Add a language" href="/docs/add-a-language" description="Drop a new target locale into this setup." />
+  <Card title="How it works" href="/docs/how-it-works" description="The full pipeline behind a run." />
+  <Card title="Configuration" href="/docs/config-file" description="Everything verbatra.config.ts can hold." />
+</Cards>

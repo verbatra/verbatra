@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type TabItem = { id: string; label: string };
@@ -13,7 +13,34 @@ export type TabListProps = {
   className?: string;
   tabClassName?: string;
   variant?: "underline" | "pill";
+  idPrefix?: string;
 };
+
+const STEP_BY_KEY: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 };
+
+export function tabId(prefix: string, id: string): string {
+  return `${prefix}-tab-${id}`;
+}
+
+export function tabPanelId(prefix: string, id: string): string {
+  return `${prefix}-panel-${id}`;
+}
+
+function focusSibling(
+  event: KeyboardEvent<HTMLDivElement>,
+  tabs: ReadonlyArray<TabItem>,
+  active: string,
+): string | undefined {
+  const step = STEP_BY_KEY[event.key];
+  if (step === undefined) return undefined;
+  const index = tabs.findIndex((tab) => tab.id === active);
+  const next = tabs[(index + step + tabs.length) % tabs.length];
+  if (!next) return undefined;
+  event.preventDefault();
+  const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+  buttons[tabs.indexOf(next)]?.focus();
+  return next.id;
+}
 
 export function TabList({
   tabs,
@@ -23,9 +50,15 @@ export function TabList({
   className,
   tabClassName,
   variant = "underline",
+  idPrefix,
 }: TabListProps): ReactNode {
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const next = focusSibling(event, tabs, active);
+    if (next !== undefined) onSelect(next);
+  }
+
   return (
-    <div role="tablist" aria-label={ariaLabel} className={className}>
+    <div role="tablist" aria-label={ariaLabel} className={className} onKeyDown={onKeyDown}>
       {tabs.map((tab) => {
         const selected = tab.id === active;
         return (
@@ -34,6 +67,10 @@ export function TabList({
             type="button"
             role="tab"
             aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            {...(idPrefix
+              ? { id: tabId(idPrefix, tab.id), "aria-controls": tabPanelId(idPrefix, tab.id) }
+              : {})}
             onClick={() => onSelect(tab.id)}
             className={cn(
               tabClassName,

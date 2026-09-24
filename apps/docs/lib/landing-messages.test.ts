@@ -17,6 +17,7 @@ const LANDING_NAMESPACES = [
   "providers",
   "loop",
   "gains",
+  "control",
 ] as const;
 
 type MessageTree = { [key: string]: string | MessageTree };
@@ -58,6 +59,8 @@ describe("landing message parity", () => {
     expect(source).toContain("landing.marquee.frameworks.react");
     expect(source).toContain("landing.providers.kinds.gemini");
     expect(source).toContain("landing.gains.items.gate.title");
+    expect(source).toContain("landing.control.groups.people.items.protect.title");
+    expect(source).toContain("landing.hero.demo.caption");
   });
 
   for (const locale of i18n.languages.filter((lang) => lang !== i18n.defaultLanguage)) {
