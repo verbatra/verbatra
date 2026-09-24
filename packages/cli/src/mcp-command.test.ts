@@ -511,7 +511,10 @@ describe("run mcp: stop and client disconnect racing", () => {
 
     expect(code).toBe(0);
     expect(close).not.toHaveBeenCalled();
-    expect(cap.err()).toBe("");
+    expect(cap.err()).toBe(
+      "verbatra MCP server running on stdio (project ., spend tools off)\n" +
+        "verbatra MCP server stopped (client closed stdin)\n",
+    );
   });
 });
 

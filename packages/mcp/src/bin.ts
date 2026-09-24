@@ -1,6 +1,7 @@
 import process from "node:process";
 import { redact, SdkError } from "@verbatra/sdk";
-import { startMcpServer } from "./index.js";
+import { resolveServerCwd, startMcpServer } from "./index.js";
+import { projectLabel, readyLines, type StopCause, stoppedLine } from "./session-banner.js";
 
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_MCP_ALLOW_SPEND";
 
@@ -63,7 +64,15 @@ async function main(): Promise<void> {
     onLog: logToStderr,
   });
 
+  const project = projectLabel(resolveServerCwd(options.cwd), process.cwd());
+  for (const line of readyLines(project, options.allowSpend, process.stdin.isTTY === true)) {
+    logToStderr(line);
+  }
+
+  let cause: StopCause = "stdin-closed";
+  void handle.closed.then(() => logToStderr(stoppedLine(cause)));
   const shutdown = (): void => {
+    cause = "signal";
     void handle.close();
   };
   process.on("SIGINT", shutdown);
