@@ -36,7 +36,7 @@ Clients unterscheiden sich darin, in welchem Verzeichnis sie einen Server starte
 
 | Client | Arbeitsverzeichnis | Was zu tun ist |
 | --- | --- | --- |
-| Claude Code | das Verzeichnis, in dem du `claude` gestartet hast, mit `CLAUDE_PROJECT_DIR` auf den Projektstamm gesetzt | nichts: ohne `--cwd` nimmt der Server `CLAUDE_PROJECT_DIR` |
+| Claude Code | nicht dokumentiert, aber `CLAUDE_PROJECT_DIR` ist auf den Projektstamm gesetzt | nichts: ohne `--cwd` nimmt der Server `CLAUDE_PROJECT_DIR` |
 | Cursor | nicht dokumentiert | `--cwd ${workspaceFolder}` übergeben |
 | VS Code | der Workspace-Ordner | nichts, oder `cwd` setzen |
 | Windsurf | nicht dokumentiert | `--cwd` mit absolutem Pfad übergeben |
@@ -91,7 +91,7 @@ Alles nach `--` ist die eigene Befehlszeile des Servers und wird unverändert du
 
 Claude Code bittet jede Person, einen Server mit Projekt-Scope aus `.mcp.json` vor der ersten Nutzung in einer interaktiven Sitzung freizugeben.
 
-Claude Code startet den Server in dem Verzeichnis, in dem du `claude` gestartet hast, und gibt ihm die Umgebung mit, mit der du `claude` gestartet hast. Die committete Datei enthält also weder Key noch Spend-Schalter: Wer im Team die Spend-Tools will, schaltet sie für eine Sitzung zu, mit dem Key bereits in der eigenen Shell exportiert:
+Claude Code gibt dem Server die Umgebung mit, mit der du `claude` gestartet hast, dazu `CLAUDE_PROJECT_DIR` mit dem Projektstamm. Die committete Datei enthält also weder Key noch Spend-Schalter: Wer im Team die Spend-Tools will, schaltet sie für eine Sitzung zu, mit dem Key bereits in der eigenen Shell exportiert:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
