@@ -296,6 +296,20 @@ describe("redactKeys: exact key values", () => {
     expect(JSON.parse(out)).toEqual({ message: "rejected [REDACTED]", path: "/p/[REDACTED]" });
   });
 
+  it("follows a key value that changes between calls", () => {
+    process.env.ANTHROPIC_API_KEY = "fake-first-value";
+    expect(redactKeys("a fake-first-value")).toBe("a [REDACTED]");
+    expect(redactKeys("b fake-first-value")).toBe("b [REDACTED]");
+
+    process.env.ANTHROPIC_API_KEY = "fake-second-value";
+
+    expect(redactKeys("a fake-first-value fake-second-value")).toBe(
+      "a fake-first-value [REDACTED]",
+    );
+    delete process.env.ANTHROPIC_API_KEY;
+    expect(redactKeys("a fake-second-value")).toBe("a fake-second-value");
+  });
+
   it("treats regular-expression metacharacters in a value literally", () => {
     process.env.ANTHROPIC_API_KEY = "fake.key+(value)";
     expect(redactKeys("x fake.key+(value) fakeXkeyy(value)")).toBe("x [REDACTED] fakeXkeyy(value)");

@@ -59,12 +59,26 @@ function configuredKeyValues(): string[] {
   return [...values].sort((a, b) => b.length - a.length);
 }
 
-function scrubValues(text: string): string {
+let cachedValuePattern: { readonly snapshot: string; readonly pattern: RegExp } | undefined;
+
+function configuredValuePattern(): RegExp | undefined {
   const values = configuredKeyValues();
   if (values.length === 0) {
-    return text;
+    return undefined;
   }
-  return text.replace(new RegExp(values.map(escapeForRegExp).join("|"), "g"), REDACTED);
+  const snapshot = values.join("\0");
+  if (cachedValuePattern?.snapshot !== snapshot) {
+    cachedValuePattern = {
+      snapshot,
+      pattern: new RegExp(values.map(escapeForRegExp).join("|"), "g"),
+    };
+  }
+  return cachedValuePattern.pattern;
+}
+
+function scrubValues(text: string): string {
+  const pattern = configuredValuePattern();
+  return pattern === undefined ? text : text.replace(pattern, REDACTED);
 }
 
 function scrubPatterns(text: string): string {
