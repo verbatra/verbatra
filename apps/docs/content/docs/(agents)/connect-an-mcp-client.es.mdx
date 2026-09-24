@@ -18,7 +18,7 @@ Dos comandos inician el mismo servidor:
 
 `npx -y @verbatra/mcp` es el predeterminado en todos los ejemplos de abajo, porque funciona en cualquier proyecto. Cambia a `npx verbatra mcp` cuando el proyecto ya tenga ambos paquetes como dependencias de desarrollo y su clave de proveedor ya esté en `.env.local`:
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli @verbatra/mcp
 ```
 
@@ -255,7 +255,9 @@ Pídele al agente que llame a `project.snapshot`. Lee la configuración, no llam
 
 ## Siguiente
 
-- [`verbatra mcp`](/docs/cli/mcp): cada herramienta, sus entradas y resultados, y los códigos de salida.
-- [Recetas para agentes y scripts](/docs/agent-recipes#el-paquete-de-skills): la skill `verbatra-mcp-tools`, que le enseña a un agente a trabajar con estas herramientas.
-- [Configura verbatra con un agente de IA](/docs/start-with-ai): un prompt que añade verbatra a un proyecto antes de conectarle un cliente.
-- [Proveedores](/docs/providers): de qué variable de entorno lee cada proveedor su clave.
+<Cards>
+  <Card title={<code>verbatra mcp</code>} href="/docs/cli/mcp" description="Cada herramienta, sus entradas y resultados, y los códigos de salida." />
+  <Card title="Recetas para agentes y scripts" href="/docs/agent-recipes#el-paquete-de-skills" description="La skill verbatra-mcp-tools, que le enseña a un agente a trabajar con estas herramientas." />
+  <Card title="Configura verbatra con un agente de IA" href="/docs/start-with-ai" description="Un prompt que añade verbatra a un proyecto antes de conectarle un cliente." />
+  <Card title="Proveedores" href="/docs/providers" description="De qué variable de entorno lee cada proveedor su clave." />
+</Cards>

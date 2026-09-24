@@ -101,23 +101,37 @@ Three families, loaded in `app/[lang]/layout.tsx` through `next/font/google`:
 `h1` through `h6` are globally bound to `--font-display`. You do not set a heading font
 per component. Adding a fourth family needs a reason that survives review.
 
+The type scale is a major third (1.25) held in `app/global.css`: `--text-display`, `--text-h2`,
+`--text-h3`, `--text-h4`, `--text-lead`, with `--leading-*` and `--tracking-*` companions. Landing
+headings take the `.vk-display`, `.vk-h2`, `.vk-h3`, `.vk-h4` and `.vk-lead` classes (declared in
+`@layer components`, so a Tailwind utility still overrides them) rather than inline `fontSize` /
+`letterSpacing` styles. The docs page title, description and prose `h2` to `h4` sit on the same
+scale through the `#nd-page` rules.
+
 Headlines are solid `--text-strong` on both surfaces. `--gradient-headline` exists for the
 footer's oversized watermark only; do not clip it onto a heading.
 
 ## Reuse before you build
 
-- **Primitives:** `components/ui/` holds `badge`, `button`, `card`, `command-line`, `tabs`.
+- **Primitives:** `components/ui/` holds `badge`, `button`, `command-line`, `copy-button`, `tabs`.
+  `TabList` takes an `idPrefix` to wire `id` / `aria-controls` to `tabPanelId` panels and handles
+  arrow-key focus.
   `Button` takes `variant: "primary" | "secondary" | "ghost"` and `size: "sm" | "md" | "lg"`.
   Extend the variant union rather than passing ad hoc `className` overrides.
 - **Landing:** `components/landing/` holds the landing sections (`proof.tsx`, `loop.tsx`,
-  `providers.tsx`, `gains.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`, `marquee.tsx`)
-  plus the shared building blocks: `section.tsx` and `section-head.tsx` for structure,
-  `terminal.tsx`, `package-install.tsx`, `command-box.tsx`, `reveal.tsx`, `hero-facts.tsx`
-  (the release / formats / providers / license row), and an `fx/` folder
+  `providers.tsx`, `control.tsx`, `gains.tsx`, `faq.tsx`, `final-cta.tsx`, `footer.tsx`,
+  `marquee.tsx`) plus the shared building blocks: `section.tsx` and `section-head.tsx` for
+  structure, `terminal.tsx` (with a `bare` variant), `hero-demo.tsx` (the hero's Terminal /
+  Studio tabs), `evidence.tsx` (the mono evidence chip), `package-install.tsx`,
+  `command-box.tsx`, `reveal.tsx`, `hero-facts.tsx` (the release / formats / providers /
+  license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
   heading rhythm. Check `ls apps/docs/components/landing` before quoting a file name from
-  this list.
+  this list. Every CLI transcript on the landing (`lib/hero-demo.ts`, `lib/gate-demo.ts`) is
+  real CLI output, English on every locale, and its test pins each line to
+  `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
+  recaptured.
 - **Docs-facing:** `components/available-from.tsx` renders the version callout. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
@@ -181,6 +195,14 @@ comes from:
   from `--color-fd-<type>`. The override block in `global.css` pins `--color-fd-info` and
   `--color-fd-success` to the glow and `--color-fd-warning` to the purple, so an info and a
   warn callout stay distinguishable without a third hue.
+- **Cards**: MDX `<Cards>` / `<Card>` are Fumadocs' own, mapped in `components/mdx.tsx` to add
+  `.vk-link-card` (flat panel, glow border on hover, no prose underline) and to localize `href`.
+  "Next" sections end in a `<Cards>` block.
+- **Package-manager tabs**: a fenced block with the `npm` language becomes npm / pnpm / yarn / bun
+  tabs through Fumadocs' remark-npm (persisted as `package-manager` in `source.config.ts`);
+  `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
+- **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
+  `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
   Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
   a visible frame at phone width. Inline code in cells never wraps.

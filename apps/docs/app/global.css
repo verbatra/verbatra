@@ -411,13 +411,41 @@ h6 {
 }
 
 #nd-page h1 {
-  font-size: clamp(2rem, 4vw, 2.6rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.1rem, 1.6rem + 1.6vw, 2.75rem);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
+  text-wrap: balance;
+}
+
+#nd-page h1 + p {
+  max-width: 68ch;
+  font-size: var(--text-lead);
+  line-height: var(--leading-normal);
+  text-wrap: pretty;
 }
 
 #nd-page .prose :where(h2):not(:where(.not-prose, .not-prose *)) {
-  letter-spacing: -0.02em;
+  font-size: 1.5625rem;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-tight);
+}
+
+#nd-page .prose :where(h3):not(:where(.not-prose, .not-prose *)) {
+  font-size: 1.25rem;
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-snug);
+}
+
+#nd-page .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
+  font-size: 1.0625rem;
+  line-height: var(--leading-snug);
+}
+
+.vk-sidebar-group {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
 }
 
 #nd-page .prose :where(thead th):not(:where(.not-prose, .not-prose *)) {
@@ -477,6 +505,71 @@ figure.shiki {
   border-radius: var(--radius-lg);
   background: var(--v-void);
   box-shadow: none;
+}
+
+.vk-code-tabs {
+  border-color: var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--v-void);
+  overflow: hidden;
+}
+
+.vk-code-tabs [role="tablist"] {
+  border-block-end: 1px solid var(--border-default);
+  font-family: var(--font-mono);
+}
+
+.vk-code-tabs [role="tab"] {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.vk-code-tabs [role="tab"][data-state="active"] {
+  color: var(--text-strong);
+}
+
+.vk-code-tabs figure.shiki {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+:where(.prose) :has(> .vk-link-card) {
+  margin-block: 1.5rem 2rem;
+}
+
+.vk-link-card {
+  color: var(--text-strong);
+  font-weight: 400;
+  text-decoration-line: none;
+  border-color: var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-bg);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.vk-link-card:hover {
+  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  background: var(--surface-bg);
+}
+
+.vk-link-card p {
+  color: var(--text-muted);
+}
+
+.vk-link-card h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vk-link-card {
+    transition: none;
+  }
 }
 
 figure.shiki > pre {

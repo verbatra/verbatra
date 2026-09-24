@@ -18,7 +18,7 @@ Zwei Befehle starten denselben Server:
 
 `npx -y @verbatra/mcp` ist in allen Beispielen unten der Standard, weil es in jedem Projekt funktioniert. Wechsle zu `npx verbatra mcp`, wenn das Projekt beide Pakete schon als Dev-Dependencies hat und sein Provider-Key bereits in `.env.local` liegt:
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli @verbatra/mcp
 ```
 
@@ -255,7 +255,9 @@ Bitte den Agenten, `project.snapshot` aufzurufen. Das Tool liest die Konfigurati
 
 ## Weiter
 
-- [`verbatra mcp`](/docs/cli/mcp): jedes Tool, seine Eingaben und Ergebnisse sowie die Exit-Codes.
-- [Rezepte für Agenten und Skripte](/docs/agent-recipes#das-skills-paket): der Skill `verbatra-mcp-tools`, der einem Agenten beibringt, mit diesen Tools zu arbeiten.
-- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): ein Prompt, der verbatra zu einem Projekt hinzufügt, bevor du einen Client damit verbindest.
-- [Provider](/docs/providers): aus welcher Umgebungsvariable jeder Provider seinen Key liest.
+<Cards>
+  <Card title={<code>verbatra mcp</code>} href="/docs/cli/mcp" description="Jedes Tool, seine Eingaben und Ergebnisse sowie die Exit-Codes." />
+  <Card title="Rezepte für Agenten und Skripte" href="/docs/agent-recipes#das-skills-paket" description="Der Skill verbatra-mcp-tools, der einem Agenten beibringt, mit diesen Tools zu arbeiten." />
+  <Card title="verbatra mit einem KI-Agenten einrichten" href="/docs/start-with-ai" description="Ein Prompt, der verbatra zu einem Projekt hinzufügt, bevor du einen Client damit verbindest." />
+  <Card title="Provider" href="/docs/providers" description="Aus welcher Umgebungsvariable jeder Provider seinen Key liest." />
+</Cards>
