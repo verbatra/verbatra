@@ -45,7 +45,7 @@ Ein fehlgeschlagenes Binden wird auf stderr als `verbatra: error [<code>] <messa
 `@verbatra/studio` ist ein eigenes Paket, das über einen dynamischen Import erreicht wird, damit der Rest der CLI auch ohne es funktioniert. Ist es nicht installiert, endet `verbatra studio` mit `2` und gibt aus:
 
 ```
-Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
 ```
 
 Dieser pnpm-Befehl installiert korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS` und hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der spätere pnpm-Befehle genauso scheitern; die einmalige Lösung steht in der [Fehlerbehebung](/docs/troubleshooting). npm und yarn installieren das Paket ohne dieses Problem.

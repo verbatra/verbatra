@@ -45,7 +45,7 @@ Une liaison échouée est signalée sur stderr sous la forme `verbatra: error [<
 `@verbatra/studio` est un paquet à part, atteint via un import dynamique pour que le reste de la CLI fonctionne sans lui. S'il n'est pas installé, `verbatra studio` sort avec le code `2` en affichant :
 
 ```
-Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
 ```
 
 Cette commande pnpm installe correctement mais sort avec le code `1` et `ERR_PNPM_IGNORED_BUILDS`, et laisse derrière elle un `pnpm-workspace.yaml` resté sans réponse qui fait échouer de la même façon les commandes pnpm suivantes ; la correction, à faire une seule fois, est dans le [Dépannage](/docs/troubleshooting). npm et yarn installent le paquet sans ce problème.
