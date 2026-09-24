@@ -14,8 +14,7 @@ const config: KnipConfig = {
   // and this boolean is the only granularity there is.
   ignoreExportsUsedInFile: true,
 
-  // `printf` in the check:no-em-dash script is a shell builtin, not an installable binary.
-  ignoreBinaries: ["printf", "jq"],
+  ignoreBinaries: ["jq"],
 
   workspaces: {
     ".": {
