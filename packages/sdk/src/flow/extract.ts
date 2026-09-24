@@ -98,6 +98,7 @@ async function readExistingResource(
     throw new SdkError(
       "SOURCE_INVALID",
       `The source locale file at ${sourcePath} could not be read: ${errorMessage(error)}`,
+      { cause: error },
     );
   }
 }

@@ -14,6 +14,7 @@ import {
   type ProviderConfig,
 } from "../config/provider-config.js";
 import { errorMessage, SdkError } from "../errors.js";
+import { redact } from "../redact.js";
 
 /**
  * What the SDK hands a {@link CreateProvider} besides the `provider` block. It is passed only when
@@ -60,10 +61,10 @@ function construct(
   try {
     return context === undefined ? createProvider(config) : createProvider(config, context);
   } catch (error) {
-    const detail = errorMessage(error);
     throw new SdkError(
       "PROVIDER_CONSTRUCTION_FAILED",
-      `Failed to construct provider "${config.id}": ${detail}`,
+      `Failed to construct provider "${config.id}": ${redact(errorMessage(error))}`,
+      { cause: error },
     );
   }
 }

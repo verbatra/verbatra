@@ -743,9 +743,14 @@ describe("importWorkbook", () => {
     const dir = await project({ a: "A" }, { de: undefined });
     const path = join(dir, "bad.xlsx");
     await writeFile(path, new Uint8Array([1, 2, 3]));
-    await expect(
-      importWorkbook({ config: cfg({ targetLocales: ["de"] }), workbook: path, cwd: dir }),
-    ).rejects.toMatchObject({ code: "SOURCE_INVALID" });
+    const failure = await importWorkbook({
+      config: cfg({ targetLocales: ["de"] }),
+      workbook: path,
+      cwd: dir,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).cause).toBeInstanceOf(Error);
   });
 
   it("rejects an over-cap workbook (on-disk gate) as a structured SOURCE_INVALID", async () => {

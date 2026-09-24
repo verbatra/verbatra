@@ -282,9 +282,13 @@ describe("translate: error shapes and orphaned keys", () => {
     await mkdir(join(dir, "locales"));
     await writeFile(join(dir, "locales", "en.json"), "{ not valid json", "utf8");
     const stub = makeStubProvider();
-    await expect(
-      translate({ config: cfg(), cwd: dir }, { createProvider: () => stub.provider }),
-    ).rejects.toMatchObject({ code: "SOURCE_INVALID" });
+    const failure = await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => stub.provider },
+    ).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).cause).toMatchObject({ name: "AdapterError" });
   });
 
   it("withholds the keys of a throwing sub-batch as a failed locale with a notice, not a throw", async () => {
