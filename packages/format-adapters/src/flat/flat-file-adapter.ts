@@ -47,15 +47,17 @@ export interface FlatFileAdapterOptions {
    */
   readonly sniff?: Sniff;
   /**
-   * Parse one file's text into entries keyed by entry key, in document order. Throw an
-   * `AdapterError` for content this format cannot represent; anything else thrown is reported as a
-   * structural failure.
+   * Parse one file's text into entries keyed by entry key, in document order. Also receives the
+   * locale the file is read as, for a format whose one file carries both source and target text
+   * and has to know which side to read. Throw an `AdapterError` for content this format cannot
+   * represent; anything else thrown is reported as a structural failure.
    */
   readonly parseEntries: (
     content: string,
     namespace: string,
     filePath: string,
     fs: AdapterFs,
+    locale: string,
   ) => FlatParseOutcome | Promise<FlatParseOutcome>;
   /**
    * Render entries back to the format's text, preserving key order. Receives the destination path
@@ -90,15 +92,21 @@ function normalizeParseOutcome(outcome: FlatParseOutcome): Required<FlatParseRes
   return { entries: outcome.entries, excludedLeafPaths: outcome.excludedLeafPaths ?? [] };
 }
 
+interface ParseRequest {
+  readonly content: string;
+  readonly namespace: string;
+  readonly filePath: string;
+  readonly locale: string;
+}
+
 async function toEntries(
-  content: string,
-  namespace: string,
-  filePath: string,
+  request: ParseRequest,
   fs: AdapterFs,
   parseEntries: FlatFileAdapterOptions["parseEntries"],
 ): Promise<Required<FlatParseResult>> {
+  const { content, namespace, filePath, locale } = request;
   try {
-    return normalizeParseOutcome(await parseEntries(content, namespace, filePath, fs));
+    return normalizeParseOutcome(await parseEntries(content, namespace, filePath, fs, locale));
   } catch (error) {
     rethrowStructured(error, "The file could not be parsed.");
   }
@@ -155,9 +163,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
       const content = await readFileContent(fs, filePath);
       const namespace = namespaceOf(filePath);
       const { entries, excludedLeafPaths } = await toEntries(
-        content,
-        namespace,
-        filePath,
+        { content, namespace, filePath, locale },
         fs,
         parseEntries,
       );
