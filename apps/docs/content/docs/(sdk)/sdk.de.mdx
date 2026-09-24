@@ -1269,6 +1269,15 @@ geworfen.
 | `EXPORT_UNWRITABLE` | die von `exportWorkbook` erzeugte Übergabe konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, ein Verzeichnis oder eine Datei liegt im Weg, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code, und der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 
+Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
+`SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
+Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
+Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` (der
+Dateisystemfehler) und `REVIEW_RESTORE_FAILED` (der Fehler, der die Entscheidung unterbrochen hat).
+`CONFIG_NOT_FOUND` und `CONFIG_INVALID` tragen bewusst keinen, weil der Fehler eines Config-Parsers
+den Inhalt der Datei zitieren kann und ein in die Config geschriebener Key nicht mit dem Fehler
+mitreisen darf.
+
 Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen
 `ProviderError` des Providers weiter, wenn der einzelne Aufruf fehlschlägt, und `runStatus` wirft
 überhaupt nie. Wie diese Codes auf CLI-Exit-Codes abbilden, steht in

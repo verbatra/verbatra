@@ -1175,6 +1175,14 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `EXPORT_UNWRITABLE` | the handoff `exportWorkbook` produces could not be written (its directory is not writable, a directory or file is in the way, or the disk is out of space); the message names the file and the file-system code, and the file-system error is the `cause` |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
+A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a
+parser or adapter failed (not when a file is refused for its size), `PROVIDER_CONSTRUCTION_FAILED`
+(the provider factory's own error, whose message is also redacted into the `SdkError` message),
+`EXPORT_UNWRITABLE` (the file-system error), and `REVIEW_RESTORE_FAILED` (the failure that
+interrupted the decision). `CONFIG_NOT_FOUND` and `CONFIG_INVALID` deliberately carry none, because
+a config parser's error can quote the file's content, and a key written into the config must not
+travel with the error.
+
 Two exceptions to the one-error-class rule: `retranslateEntry` re-throws the provider's own
 `ProviderError` when the single call fails, and `runStatus` never throws at all. For how these
 codes map to CLI exit codes, see [CI and exit codes](/docs/ci-and-exit-codes); for symptom-first

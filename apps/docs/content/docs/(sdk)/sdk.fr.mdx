@@ -830,6 +830,14 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `EXPORT_UNWRITABLE` | le livrable que produit `exportWorkbook` n'a pas pu être écrit (son répertoire n'est pas inscriptible, un répertoire ou un fichier gêne, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers, et l'erreur du système de fichiers est la `cause` |
 | `LOCALE_FAILED` | jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée |
 
+Quelques codes portent aussi l'erreur qu'ils enveloppent comme `cause` standard : `SOURCE_INVALID`
+quand un analyseur ou un adaptateur a échoué (pas quand un fichier est refusé pour sa taille),
+`PROVIDER_CONSTRUCTION_FAILED` (l'erreur propre de la fabrique du fournisseur, dont le message est
+aussi repris, expurgé, dans le message de la `SdkError`), `EXPORT_UNWRITABLE` (l'erreur du système
+de fichiers) et `REVIEW_RESTORE_FAILED` (l'échec qui a interrompu la décision). `CONFIG_NOT_FOUND`
+et `CONFIG_INVALID` n'en portent volontairement aucune, car l'erreur d'un analyseur de config peut
+citer le contenu du fichier, et une clé écrite dans la config ne doit pas voyager avec l'erreur.
+
 Deux exceptions à la règle de la classe d'erreur unique : `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue, et `runStatus` ne lève jamais. Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [CI et codes de sortie](/docs/ci-and-exit-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).
 
 <AvailableFrom version="0.12.0" />
