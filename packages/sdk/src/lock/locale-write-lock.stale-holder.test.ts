@@ -268,9 +268,19 @@ describe("withLocaleWriteLock: abandoned lock reclaim", () => {
   it("leaves the lock alone when its content changed between the liveness check and the reclaim", async () => {
     const deleted: string[] = [];
     let reads = 0;
+    let guard = "";
     const fs: SdkFs = makeFakeFs({
-      createExclusive: async (path) => path.endsWith(".reclaim"),
-      readFileBounded: async () => {
+      createExclusive: async (path, data) => {
+        if (!path.endsWith(".reclaim")) {
+          return false;
+        }
+        guard = data;
+        return true;
+      },
+      readFileBounded: async (path) => {
+        if (path.endsWith(".reclaim")) {
+          return { kind: "ok", content: guard };
+        }
         reads += 1;
         const pid = reads === 1 ? DEAD_PID : SECOND_DEAD_PID;
         return { kind: "ok", content: JSON.stringify(holder(pid)) };

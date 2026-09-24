@@ -1175,13 +1175,43 @@ replace a link there rather than writing through it, as the default atomic write
 
 It moves a file to a new name in the same directory in one atomic step, replacing any file already
 there, and rejects with an error whose `code` is `ENOENT` when the source is missing. The write lock
-uses it to remove a lock or reclaim guard left by a process that is gone: the file is moved aside
-under a unique name and deleted only when it is still the abandoned record the lock observed.
-Anything else, such as a lock another process took in the meantime, is put back with
-`createExclusive`, and when a third process has taken the path in between, it is left aside rather
-than deleted. Without `rename`, the lock reads the file and deletes it when unchanged, and clears an
-abandoned reclaim guard only after seeing it unchanged across two polls, which narrows but cannot
-close the window in which a lock another process just took is deleted.
+uses it to remove a lock or reclaim guard left by a process that is gone, and to release its own
+lock: the file is moved aside under a unique `<name>.<pid>.<tag>.<uuid>.stale` name and deleted only
+when it is still the record the lock expected. Anything else, such as a lock another process took in
+the meantime, is put back with `createExclusive`. A rename that fails with `EPERM`, `EBUSY`, or
+`EACCES`, as Windows reports for a file another process has open, counts as "not reclaimed this
+poll", and the lock keeps polling until its timeout. Without `rename`, the lock reads the file and
+deletes it when unchanged, which leaves a wider window in which a lock another process just took is
+deleted.
+
+Moving a file aside and putting it back is two steps, so in rare interleavings two processes can
+briefly both believe they hold the same lock. Every lock therefore records a random ownership
+token, and before each write the lock protects (the locale file, the lock file, the provenance
+file, the glossary) the holder checks that the lock file still carries its token. When it does not,
+the operation stops with `LOCK_CONTENDED` and writes nothing. A token found gone on release is
+reported the same way. The check and the write are still two steps, so a holder that passes the
+check in the very instant another process takes the lock over can write once more; that residual
+window is a few milliseconds wide. The token check relies on `createExclusive` creating a file that
+`readFileBounded` reads back, so a custom implementation must keep that promise.
+
+`touch` and `mtimeMs` are optional too.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` sets an existing file's modification time to now, and `mtimeMs(path)` returns it in
+milliseconds, or `undefined` when the file is missing. With `touch`, a lock holder records a
+heartbeat interval of 10 seconds in its lock and refreshes the file's modification time at that
+interval while it holds the lock. With `mtimeMs`, a waiting process treats a lock on its own
+machine whose recorded process is still running but whose file has not been refreshed for three of
+the recorded intervals (30 seconds by default) as abandoned. That covers a lock record that outlived
+its hold, for example one put back for a long-lived Studio, `watch`, or MCP server process that had
+already released it. A reclaim guard is cleared once it has been seen unchanged across two polls,
+or at once when its heartbeat shows it is stale. Without these members, a lock is judged abandoned
+only when its recorded process is provably gone.
+
+A process that crashes while it has a lock moved aside can leave a `.stale` file in
+`.verbatra-local/locks/`. Such files are safe to delete by hand, and the next lock acquisition
+deletes them once the process that moved them is gone or they are older than the stale threshold.
 
 `deps.fs` cannot reach a caller-supplied `deps.adapterRegistry`. Those adapters
 were constructed by the caller, so their file access is whatever the caller wired into them.
@@ -1326,7 +1356,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF does, or the locale file is too large to keep a copy to restore, so `rejectEntry` left the file as it was |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` failed after it rewrote the locale file, and restoring the locale file or the provenance file failed too; the message names the original failure (also the `cause`) and the files to restore from version control |
 | `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
-| `LOCK_CONTENDED` | a locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout; the message names the lock file's path |
+| `LOCK_CONTENDED` | a locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, in which case nothing was written; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | the glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project, or released after a saved edit (`updateGlossaryTerm`); the file-system error is the `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` and `files.localeStyle` cannot be combined, or the style has no valid path spelling for a configured locale |

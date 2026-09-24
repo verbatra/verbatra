@@ -139,6 +139,9 @@ describe("updateGlossaryTerm: a glossary lock that cannot be released", () => {
     const cause = releaseFailure();
     const fs: SdkFs = {
       ...defaultFs,
+      rename: async () => {
+        throw cause;
+      },
       deleteFile: async () => {
         throw cause;
       },

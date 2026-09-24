@@ -329,11 +329,12 @@ describe("updateGlossaryTerm", () => {
     let inside = 0;
     let peak = 0;
     const store = new Map<string, string>([["/tmp/glossary.json", '{"brand":"Verbatra"}']]);
-    const locks = new Set<string>();
+    const locks = new Map<string, string>();
     const fs: SdkFs = makeFakeFs({
       readFileBounded: async (path: string) => {
         if (path.endsWith(".lock")) {
-          return { kind: "missing" };
+          const lock = locks.get(path);
+          return lock === undefined ? { kind: "missing" } : { kind: "ok", content: lock };
         }
         inside += 1;
         peak = Math.max(peak, inside);
@@ -345,11 +346,11 @@ describe("updateGlossaryTerm", () => {
         store.set(path, data);
         inside -= 1;
       },
-      createExclusive: async (path: string) => {
+      createExclusive: async (path: string, data: string) => {
         if (locks.has(path)) {
           return false;
         }
-        locks.add(path);
+        locks.set(path, data);
         return true;
       },
       deleteFile: async (path: string) => {

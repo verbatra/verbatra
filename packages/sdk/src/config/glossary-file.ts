@@ -3,6 +3,7 @@ import { selectLocales } from "../flow/select-locales.js";
 import { unwritableFileMessage } from "../flow/write-target.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { glossaryGuardPath, withGlossaryGuard } from "../lock/locale-write-lock.js";
+import { assertLocksHeld } from "../lock/lock-ownership.js";
 import {
   describeGlossaryIssues,
   type Glossary,
@@ -175,6 +176,7 @@ function serializeGlossary(
 }
 
 async function writeGlossary(path: string, serialized: string, fs: SdkFs): Promise<void> {
+  await assertLocksHeld();
   try {
     await fs.writeFile(path, serialized);
   } catch (error) {

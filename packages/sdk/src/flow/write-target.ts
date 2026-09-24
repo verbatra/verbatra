@@ -2,6 +2,7 @@ import { isAbsolute, relative, sep } from "node:path";
 import type { LocaleResource } from "@verbatra/core";
 import { AdapterError, type FormatAdapter, type WriteContext } from "@verbatra/format-adapters";
 import { SdkError } from "../errors.js";
+import { assertLocksHeld } from "../lock/lock-ownership.js";
 
 const REMEDY_BY_CODE: Readonly<Record<string, string>> = {
   EACCES: "Check the write permissions on the containing directory, then run again.",
@@ -57,6 +58,7 @@ export async function writeTargetResource(
   cwd: string,
   context: WriteContext,
 ): Promise<void> {
+  await assertLocksHeld();
   try {
     await adapter.write(resource, targetPath, context);
   } catch (error) {

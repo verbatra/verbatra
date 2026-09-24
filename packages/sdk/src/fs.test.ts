@@ -1,4 +1,4 @@
-import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs, tempFileName } from "./fs.js";
@@ -115,6 +115,45 @@ describe("defaultFs.rename", () => {
     await expect(defaultFs.rename?.(join(dir, "gone"), join(dir, "b"))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
+});
+
+describe("defaultFs.touch and defaultFs.mtimeMs", () => {
+  it("reports a file's modification time and moves it to now on touch", async () => {
+    const dir = await makeTempDir();
+    const path = join(dir, "de.lock");
+    await writeFile(path, "held", "utf8");
+    const old = new Date(Date.now() - 60_000);
+    await utimes(path, old, old);
+
+    expect(await defaultFs.mtimeMs?.(path)).toBe((await stat(path)).mtimeMs);
+    const before = Date.now();
+    await defaultFs.touch?.(path);
+
+    expect(await defaultFs.mtimeMs?.(path)).toBeGreaterThanOrEqual(before - 1_000);
+    expect(await readFile(path, "utf8")).toBe("held");
+  });
+
+  it("reports no modification time for a missing file", async () => {
+    const dir = await makeTempDir();
+
+    expect(await defaultFs.mtimeMs?.(join(dir, "gone"))).toBeUndefined();
+  });
+
+  it("rejects a stat failure that is not a missing file", async () => {
+    const dir = await makeTempDir();
+    const file = join(dir, "file");
+    await writeFile(file, "", "utf8");
+
+    await expect(defaultFs.mtimeMs?.(join(file, "child"))).rejects.toMatchObject({
+      code: "ENOTDIR",
+    });
+  });
+
+  it("rejects touching a missing file", async () => {
+    const dir = await makeTempDir();
+
+    await expect(defaultFs.touch?.(join(dir, "gone"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 });
 

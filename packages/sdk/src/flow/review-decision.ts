@@ -19,6 +19,7 @@ import {
   readLockFile,
   updateLockFileLocaleUnguarded,
 } from "../lock/lock-file.js";
+import { assertLocksHeld } from "../lock/lock-ownership.js";
 import {
   MAX_PROVENANCE_FILE_BYTES,
   type ProvenanceRecord,
@@ -282,6 +283,7 @@ function displayPath(context: ReviewContext, path: string): string {
 
 async function restoreProvenance(context: ReviewContext, before: BoundedFileRead): Promise<void> {
   const provenancePath = provenanceFilePath(context.cwd);
+  await assertLocksHeld();
   if (before.kind === "ok") {
     await context.fs.writeFile(provenancePath, before.content);
     return;
@@ -332,6 +334,7 @@ async function restoreLocaleFile(
     return true;
   }
   try {
+    await assertLocksHeld();
     await context.fs.writeBytes(path, snapshot);
     return true;
   } catch {
@@ -494,6 +497,7 @@ export async function approveEntry(
         ...reviewerOf(input),
       });
       if (plan.kind === "write") {
+        await assertLocksHeld();
         await context.fs.writeFile(plan.path, plan.content);
       }
       return {

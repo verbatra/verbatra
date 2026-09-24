@@ -1247,13 +1247,46 @@ de él, como hace la escritura atómica por defecto.
 Mueve un archivo a un nombre nuevo en el mismo directorio en un solo paso atómico, reemplazando
 cualquier archivo que ya esté allí, y rechaza con un error cuyo `code` es `ENOENT` cuando falta el
 origen. El bloqueo de escritura lo usa para quitar un bloqueo o una guarda de recuperación que dejó
-un proceso que ya no existe: el archivo se aparta con un nombre único y solo se borra si sigue
-siendo el registro abandonado que observó el bloqueo. Cualquier otra cosa, como un bloqueo que otro
-proceso tomó entretanto, se devuelve a su sitio con `createExclusive`, y si un tercer proceso ocupó
-la ruta mientras tanto, se deja apartado en lugar de borrarse. Sin `rename`, el bloqueo lee el
-archivo y lo borra si no ha cambiado, y solo quita una guarda de recuperación abandonada después de
-verla sin cambios en dos sondeos, lo que estrecha pero no puede cerrar la ventana en la que se borra
-un bloqueo que otro proceso acaba de tomar.
+un proceso que ya no existe, y para liberar su propio bloqueo: el archivo se aparta con un nombre
+único `<name>.<pid>.<tag>.<uuid>.stale` y solo se borra si sigue siendo el registro que esperaba el
+bloqueo. Cualquier otra cosa, como un bloqueo que otro proceso tomó entretanto, se devuelve a su
+sitio con `createExclusive`. Un renombrado que falla con `EPERM`, `EBUSY` o `EACCES`, como informa
+Windows de un archivo que otro proceso tiene abierto, cuenta como "no recuperado en este sondeo", y
+el bloqueo sigue sondeando hasta su tiempo límite. Sin `rename`, el bloqueo lee el archivo y lo
+borra si no ha cambiado, lo que deja una ventana más amplia en la que se borra un bloqueo que otro
+proceso acaba de tomar.
+
+Apartar un archivo y devolverlo son dos pasos, así que en intercalados poco frecuentes dos procesos
+pueden creer durante un momento que tienen el mismo bloqueo. Por eso cada bloqueo registra un token
+de propiedad aleatorio, y antes de cada escritura que protege el bloqueo (el archivo del locale, el
+archivo de bloqueo, el archivo de procedencia, el glosario) quien lo tiene comprueba que el archivo
+de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no
+escribe nada. Un token que falta al liberar se informa igual. La comprobación y la escritura siguen
+siendo dos pasos, así que quien pasa la comprobación justo en el instante en que otro proceso toma
+el bloqueo puede escribir una vez más; esa ventana residual dura unos pocos milisegundos. La
+comprobación del token da por hecho que `createExclusive` crea un archivo que `readFileBounded` lee
+de vuelta, así que una implementación propia tiene que cumplirlo.
+
+`touch` y `mtimeMs` también son opcionales.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` pone la fecha de modificación de un archivo existente en el momento actual, y
+`mtimeMs(path)` la devuelve en milisegundos, o `undefined` si falta el archivo. Con `touch`, quien
+tiene un bloqueo registra en él un intervalo de latido de 10 segundos y refresca la fecha de
+modificación del archivo a ese ritmo mientras lo tiene. Con `mtimeMs`, un proceso en espera trata
+como abandonado un bloqueo de su propia máquina cuyo proceso sigue en marcha pero cuyo archivo no
+se ha refrescado durante tres de los intervalos registrados (30 segundos por defecto). Eso cubre un
+registro de bloqueo que sobrevivió a su uso, por ejemplo uno devuelto a su sitio para un proceso de
+Studio, `watch` o del servidor MCP de larga duración que ya lo había liberado. Una guarda de
+recuperación se quita cuando se ha visto sin cambios en dos sondeos, o al instante si su latido
+muestra que está caducada. Sin estos miembros, un bloqueo solo se considera abandonado cuando su
+proceso ya no existe de forma demostrable.
+
+Un proceso que se cae mientras tiene un bloqueo apartado puede dejar un archivo `.stale` en
+`.verbatra-local/locks/`. Puedes borrar esos archivos a mano sin riesgo, y la siguiente adquisición
+de un bloqueo los borra cuando el proceso que los movió ya no existe o superan el umbral de
+caducidad.
 
 `deps.fs` no alcanza un `deps.adapterRegistry` suministrado por quien llama. Esos
 adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya
@@ -1402,7 +1435,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `REVIEW_REJECT_UNSUPPORTED` | el formato conserva el valor de una clave cuando el archivo se escribe sin ella, como XLIFF, o el archivo del locale es demasiado grande para guardar una copia que restaurar, así que `rejectEntry` dejó el archivo como estaba |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` falló después de reescribir el archivo de locale, y también falló la restauración del archivo de locale o del archivo de procedencia; el mensaje nombra el fallo original (también la `cause`) y los archivos que tienes que recuperar del control de versiones |
 | `REVIEWER_INVALID` | `reviewer` está vacío, tiene más de 64 caracteres o contiene un carácter de control (`approveEntry`, `rejectEntry`) |
-| `LOCK_CONTENDED` | el bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite; el mensaje nombra la ruta del archivo de bloqueo |
+| `LOCK_CONTENDED` | el bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, y no se escribió nada; el mensaje nombra la ruta del archivo de bloqueo |
 | `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de escritura del glosario, por ejemplo en un proyecto de solo lectura, o liberarlo tras una edición guardada (`updateGlossaryTerm`); el error del sistema de archivos es la `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado |

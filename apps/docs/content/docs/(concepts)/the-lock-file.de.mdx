@@ -116,8 +116,8 @@ Prozess kann trotzdem eine zurücklassen, deshalb prüft ein wartender Lauf den 
 Prozess: Stimmt jedes Identitätsfeld der Sperre mit dem des wartenden Laufs überein (lief der
 Prozess also auf dieser Maschine, in derselben Prozesstabelle) und existiert dieser Prozess nicht
 mehr, übernimmt der Lauf die
-Sperre sofort, statt `--lock-timeout` abzuwarten. Das Übernehmen ist serialisiert, sodass nie zwei
-wartende Läufe dieselbe verwaiste Sperre gleichzeitig übernehmen. Die verwaiste Datei wird in einem
+Sperre sofort, statt `--lock-timeout` abzuwarten. Das Übernehmen läuft über einen kurzlebigen
+Übernahme-Guard, und die verwaiste Datei wird in einem
 atomaren Schritt unter einem eindeutigen Namen beiseitegelegt und nur gelöscht, wenn sie noch der
 Eintrag ist, den der Lauf geprüft hat. Eine Sperre, die ein anderer Lauf inzwischen genommen hat,
 wird also zurückgelegt statt gelöscht. Eine Sperre, die auf einer anderen
@@ -126,7 +126,29 @@ wurde, enthält nichts, was sich sicher prüfen lässt, und wird deshalb nie üb
 für eine Sperre, die ein Identitätsfeld festhält, das der wartende Lauf nicht lesen kann, oder der
 eines fehlt, das er lesen kann: Sie gilt als von einem lebenden Prozess gehalten.
 
-Eine Grenze bleibt. Außerhalb von Linux ist der Hostname die einzige Maschinenidentität, die
+Diese Schritte lassen trotzdem seltene Abläufe zu, in denen zwei Läufe kurz beide glauben, dieselbe
+Sperre zu halten. Deshalb hält jede Sperre zusätzlich ein zufälliges Besitz-Token fest. Vor jedem
+Schreibvorgang, den die Sperre schützt (die Locale-Datei, die Lock-Datei, die Provenance-Datei, das
+Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält, und bricht mit
+`LOCK_CONTENDED` ab, ohne zu schreiben, wenn nicht. Prüfung und Schreiben sind zwei Schritte: Ein
+Lauf, der die Prüfung genau in dem Moment besteht, in dem ein anderer Lauf die Sperre übernimmt,
+kann also noch einmal schreiben. Dieses Fenster ist wenige Millisekunden breit und setzt voraus,
+dass eine Übernahme mit einem frischen Erwerb zusammenfällt.
+
+Ein Halter frischt die Änderungszeit seiner Sperrdatei alle 10 Sekunden auf. Eine Sperre auf dieser
+Maschine, deren Prozess noch läuft, deren Datei aber seit 30 Sekunden (drei der Intervalle, die der
+Halter festgehalten hat) nicht aufgefrischt wurde, gilt als verwaist. Ein Sperreintrag, der seinen
+Halter überlebt hat, etwa in einem lange laufenden Studio-, `watch`- oder MCP-Server-Prozess,
+blockiert andere Läufe also nicht mehr, bis dieser Prozess endet. Eine Sperre ohne Heartbeat,
+geschrieben von einer älteren Version oder über ein eigenes Dateisystem, das Dateien nicht
+anfassen kann, wird nur nach ihrem Prozess beurteilt.
+
+Ein Prozess, der abstürzt, während er eine Sperre beiseitegelegt hat, kann eine Datei
+`<lock>.<pid>.<tag>.<uuid>.stale` in `.verbatra-local/locks/` hinterlassen. Solche Dateien kannst
+du gefahrlos löschen; der nächste Lauf löscht sie, sobald der Prozess, der sie verschoben hat, nicht
+mehr existiert oder sie älter als 30 Sekunden sind.
+
+Eine weitere Grenze gilt. Außerhalb von Linux ist der Hostname die einzige Maschinenidentität, die
 verbatra festhält. Zwei Container oder virtuelle Maschinen, die sich einen Hostnamen und dasselbe
 Verzeichnis `.verbatra-local/` (ein geteiltes Volume) teilen, aber keine Prozesstabelle, können
 deshalb die lebende Sperre des anderen für verwaist halten. Gib jedem von ihnen einen eigenen

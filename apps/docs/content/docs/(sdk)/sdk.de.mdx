@@ -1276,14 +1276,47 @@ einen Link dort ersetzen, statt durch ihn hindurch zu schreiben, so wie es der a
 Es verschiebt eine Datei in einem atomaren Schritt unter einen neuen Namen im selben Verzeichnis,
 ersetzt dabei eine dort schon liegende Datei und scheitert mit einem Fehler, dessen `code` `ENOENT`
 ist, wenn die Quelle fehlt. Die Schreibsperre nutzt es, um eine Sperre oder einen Übernahme-Guard
-eines beendeten Prozesses zu entfernen: Die Datei wird unter einem eindeutigen Namen beiseitegelegt
-und nur gelöscht, wenn sie noch der verwaiste Eintrag ist, den die Sperre gesehen hat. Alles andere,
-etwa eine Sperre, die ein anderer Prozess inzwischen genommen hat, wird mit `createExclusive`
-zurückgelegt, und hat ein dritter Prozess den Pfad in der Zwischenzeit belegt, bleibt es beiseite
-liegen, statt gelöscht zu werden. Ohne `rename` liest die Sperre die Datei und löscht sie, wenn sie
-unverändert ist, und räumt einen verwaisten Übernahme-Guard erst ab, nachdem sie ihn über zwei
-Abfragen unverändert gesehen hat. Das verkleinert das Zeitfenster, in dem eine gerade genommene
-Sperre eines anderen Prozesses gelöscht wird, schließt es aber nicht.
+eines beendeten Prozesses zu entfernen und um ihre eigene Sperre freizugeben: Die Datei wird unter
+einem eindeutigen Namen `<name>.<pid>.<tag>.<uuid>.stale` beiseitegelegt und nur gelöscht, wenn sie
+noch der Eintrag ist, den die Sperre erwartet. Alles andere, etwa eine Sperre, die ein anderer
+Prozess inzwischen genommen hat, wird mit `createExclusive` zurückgelegt. Scheitert das Umbenennen
+mit `EPERM`, `EBUSY` oder `EACCES`, wie Windows es für eine Datei meldet, die ein anderer Prozess
+offen hat, gilt das als "in dieser Abfrage nicht übernommen", und die Sperre fragt bis zu ihrem
+Timeout weiter ab. Ohne `rename` liest die Sperre die Datei und löscht sie, wenn sie unverändert
+ist. Das lässt ein breiteres Zeitfenster offen, in dem eine gerade genommene Sperre eines anderen
+Prozesses gelöscht wird.
+
+Beiseitelegen und Zurücklegen sind zwei Schritte, daher können in seltenen Abläufen zwei Prozesse
+kurz beide glauben, dieselbe Sperre zu halten. Jede Sperre hält deshalb ein zufälliges Besitz-Token
+fest, und vor jedem Schreibvorgang, den die Sperre schützt (die Locale-Datei, die Lock-Datei, die
+Provenance-Datei, das Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält. Ist das
+nicht so, bricht die Operation mit `LOCK_CONTENDED` ab und schreibt nichts. Ein Token, das beim
+Freigeben fehlt, wird genauso gemeldet. Prüfung und Schreiben bleiben zwei Schritte: Ein Halter,
+der die Prüfung genau in dem Moment besteht, in dem ein anderer Prozess die Sperre übernimmt, kann
+noch einmal schreiben. Dieses Restfenster ist wenige Millisekunden breit. Die Token-Prüfung setzt
+voraus, dass `createExclusive` eine Datei anlegt, die `readFileBounded` zurückliest; eine eigene
+Implementierung muss das einhalten.
+
+`touch` und `mtimeMs` sind ebenfalls optional.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` setzt die Änderungszeit einer vorhandenen Datei auf jetzt, und `mtimeMs(path)` gibt
+sie in Millisekunden zurück, oder `undefined`, wenn die Datei fehlt. Mit `touch` hält ein
+Sperr-Halter ein Heartbeat-Intervall von 10 Sekunden in seiner Sperre fest und frischt die
+Änderungszeit der Datei in diesem Takt auf, solange er die Sperre hält. Mit `mtimeMs` behandelt ein
+wartender Prozess eine Sperre auf seiner eigenen Maschine als verwaist, deren Prozess noch läuft,
+deren Datei aber seit drei der festgehaltenen Intervalle (standardmäßig 30 Sekunden) nicht
+aufgefrischt wurde. Das deckt einen Sperreintrag ab, der seinen Halter überlebt hat, etwa einen, der
+für einen lange laufenden Studio-, `watch`- oder MCP-Server-Prozess zurückgelegt wurde, der ihn
+schon freigegeben hatte. Ein Übernahme-Guard wird abgeräumt, sobald er über zwei Abfragen
+unverändert gesehen wurde, oder sofort, wenn sein Heartbeat zeigt, dass er veraltet ist. Ohne diese
+Member gilt eine Sperre nur dann als verwaist, wenn ihr Prozess nachweislich nicht mehr existiert.
+
+Ein Prozess, der abstürzt, während er eine Sperre beiseitegelegt hat, kann eine `.stale`-Datei in
+`.verbatra-local/locks/` hinterlassen. Solche Dateien kannst du gefahrlos von Hand löschen, und der
+nächste Erwerb einer Sperre löscht sie, sobald der Prozess, der sie verschoben hat, nicht mehr
+existiert oder sie älter als die Veraltungsschwelle sind.
 
 `deps.fs` erreicht keine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
@@ -1434,7 +1467,7 @@ geworfen.
 | `REVIEW_REJECT_UNSUPPORTED` | das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird, wie XLIFF, oder die Locale-Datei ist zu groß, um eine Kopie zum Wiederherstellen aufzuheben, also hat `rejectEntry` die Datei gelassen, wie sie war |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` ist nach dem Umschreiben der Locale-Datei gescheitert, und auch das Wiederherstellen der Locale-Datei oder der Herkunftsdatei schlug fehl; die Message nennt den ursprünglichen Fehler (auch die `cause`) und die Dateien, die du aus der Versionskontrolle wiederherstellst |
 | `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`) |
-| `LOCK_CONTENDED` | die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` nimmt, konnte nicht vor ihrem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
+| `LOCK_CONTENDED` | die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` nimmt, konnte nicht vor ihrem Timeout erworben werden, oder ein anderer Prozess hat sie vor einem Schreibvorgang übernommen, den sie schützt, und es wurde nichts geschrieben; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht angelegt werden, etwa in einem schreibgeschützten Projekt, oder nach einer gespeicherten Änderung nicht freigegeben werden (`updateGlossaryTerm`); der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` und `files.localeStyle` lassen sich nicht kombinieren, oder der Style hat keine gültige Pfadschreibweise für eine konfigurierte Locale |

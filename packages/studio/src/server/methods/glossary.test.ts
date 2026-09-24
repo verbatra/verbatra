@@ -22,7 +22,6 @@ function fileBacked(entries: Readonly<Record<string, string>>): LoadedConfig {
 }
 
 function fakeGlossaryFs(store: Map<string, string>): SdkFs {
-  const locks = new Set<string>();
   return {
     fileExists: async (path: string): Promise<boolean> => store.has(path),
     readFileBounded: async (path: string) => {
@@ -36,15 +35,15 @@ function fakeGlossaryFs(store: Map<string, string>): SdkFs {
       store.set(path, data);
     },
     writeBytes: async (): Promise<void> => {},
-    createExclusive: async (path: string): Promise<boolean> => {
-      if (locks.has(path)) {
+    createExclusive: async (path: string, data: string): Promise<boolean> => {
+      if (store.has(path)) {
         return false;
       }
-      locks.add(path);
+      store.set(path, data);
       return true;
     },
     deleteFile: async (path: string): Promise<void> => {
-      locks.delete(path);
+      store.delete(path);
     },
   };
 }

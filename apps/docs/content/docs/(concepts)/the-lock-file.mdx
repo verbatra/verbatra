@@ -107,15 +107,34 @@ also the kernel's boot ID and the process's PID namespace. A process killed hard
 one behind, so a waiting run checks the recorded process: when every identity field the lock
 records matches the waiting run's own (so the recorded process ran on this machine, in the same
 process table) and that process no longer exists, the run reclaims the lock at once instead of waiting out
-`--lock-timeout`. Reclaiming is serialized, so two waiting runs never both take over the same
-abandoned lock. The abandoned file is moved aside under a unique name in one atomic step and deleted
-only when it is still the record the run checked, so a lock another run took in the meantime is put
-back rather than deleted. A lock recorded on another machine (a shared network drive) or by a verbatra
+`--lock-timeout`. Reclaiming goes through a short-lived reclaim guard, and the abandoned file is
+moved aside under a unique name in one atomic step and deleted only when it is still the record the
+run checked, so a lock another run took in the meantime is put back rather than deleted. A lock recorded on another machine (a shared network drive) or by a verbatra
 version older than 0.12.0 carries nothing that can be checked safely, so it is never reclaimed. The
 same goes for a lock that records an identity field the waiting run cannot read, or lacks one it
 can: it is treated as held by a live process.
 
-One limit remains. Outside Linux, the host name is the only machine identity verbatra records, so
+Those steps still leave rare interleavings in which two runs both believe they hold a lock for a
+moment, so every lock also records a random ownership token. Before each write the lock protects
+(the locale file, the lock file, the provenance file, the glossary), the holder checks that the lock
+file still carries its token, and stops with `LOCK_CONTENDED` without writing when it does not. The
+check and the write are two steps, so a run that passes the check in the very instant another run
+takes the lock over can still write once. That window is a few milliseconds wide and needs a
+reclaim to race a fresh acquisition.
+
+A holder refreshes its lock file's modification time every 10 seconds. A lock on this machine whose
+recorded process is still running but whose file has not been refreshed for 30 seconds (three of
+the intervals the holder recorded) is treated as abandoned, so a lock record that outlived its hold,
+for example in a long-running Studio, `watch`, or MCP server process, no longer blocks other runs
+until that process exits. A lock without a heartbeat, written by an older version or through a
+custom file system that cannot touch files, is judged by its process alone.
+
+A process that crashes while it has a lock moved aside can leave a
+`<lock>.<pid>.<tag>.<uuid>.stale` file in `.verbatra-local/locks/`. Those files are safe to delete;
+the next run deletes them once the process that moved them is gone or they are older than 30
+seconds.
+
+One more limit applies. Outside Linux, the host name is the only machine identity verbatra records, so
 two containers or virtual machines that share a host name and the same `.verbatra-local/`
 directory (a shared volume) but not a process table can mistake each other's live lock for an
 abandoned one. Give each of them its own host name, or its own working copy.

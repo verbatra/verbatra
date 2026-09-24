@@ -111,7 +111,11 @@
  *   by an older version (a same-machine holder that is gone is reclaimed automatically), or
  *   because such an abandoned lock could not be deleted, with the file-system error as its
  *   `cause`. A lock file too large to be a lock cannot be read, so it fails at once rather than
- *   after the timeout. The message names the lock file's path. Thrown by {@link editEntry},
+ *   after the timeout. It is also thrown when a lock the operation holds was taken over by another
+ *   process: each lock records a random ownership token, and the holder checks it before every
+ *   write the lock protects, so the operation stops without writing once the token is gone. A
+ *   token found gone on release, after the writes, is reported the same way, since another process
+ *   may have changed the same files since. The message names the lock file's path. Thrown by {@link editEntry},
  *   {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry}, which act on one
  *   locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
  *   {@link translate} and {@link importWorkbook} do not throw it: they record it
