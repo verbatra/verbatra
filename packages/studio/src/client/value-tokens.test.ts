@@ -13,33 +13,38 @@ function corePositionalPrintfSource(): string {
   return JSON.parse((literals[0] ?? "").trim().replace(/,$/, "")) as string;
 }
 
-const LINEAR_BASE_SIZE = 20_000;
-const LINEAR_SCALE = 4;
-const LINEAR_MAX_RATIO = 10;
+const LINEAR_BASE_SIZE = 25_000;
+const LINEAR_SCALE = 8;
+const LINEAR_MAX_RATIO = 24;
 const LINEAR_RUNS = 7;
-const TIMER_FLOOR_MS = 0.05;
+const MIN_SAMPLE_MS = 5;
 
-function elapsedMs(value: string): number {
-  const started = performance.now();
-  segmentValue(value);
-  return Math.max(performance.now() - started, TIMER_FLOOR_MS);
+function elapsedMs(value: string, repetitions: number): number {
+  const started = process.cpuUsage();
+  for (let repetition = 0; repetition < repetitions; repetition += 1) {
+    segmentValue(value);
+  }
+  const used = process.cpuUsage(started);
+  return (used.user + used.system) / 1_000;
 }
 
-function median(samples: readonly number[]): number {
-  const sorted = [...samples].sort((left, right) => left - right);
-  return sorted[Math.floor(sorted.length / 2)] ?? 0;
+function repetitionsFor(value: string): number {
+  let repetitions = 1;
+  while (elapsedMs(value, repetitions) < MIN_SAMPLE_MS) {
+    repetitions *= 2;
+  }
+  return repetitions;
 }
 
 function scalingRatio(small: string, large: string): number {
-  segmentValue(small);
-  segmentValue(large);
-  const smallRuns: number[] = [];
-  const largeRuns: number[] = [];
+  const repetitions = repetitionsFor(small);
+  let fastestSmall = Number.POSITIVE_INFINITY;
+  let fastestLarge = Number.POSITIVE_INFINITY;
   for (let run = 0; run < LINEAR_RUNS; run += 1) {
-    smallRuns.push(elapsedMs(small));
-    largeRuns.push(elapsedMs(large));
+    fastestSmall = Math.min(fastestSmall, elapsedMs(small, repetitions));
+    fastestLarge = Math.min(fastestLarge, elapsedMs(large, repetitions));
   }
-  return median(largeRuns) / median(smallRuns);
+  return fastestLarge / fastestSmall;
 }
 
 function tokens(value: string): readonly string[] {
