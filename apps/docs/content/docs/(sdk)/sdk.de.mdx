@@ -262,8 +262,8 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 <AvailableFrom version="0.9.0" />
 
 Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, stellt keine
-Netzwerkanfrage und liest nie einen API-Key-Wert. Fünf Prüfungen laufen, jede mit ihrem eigenen
-Urteil `pass`, `fail` oder `skipped`: Die Konfiguration lädt und validiert, das konfigurierte
+Netzwerkanfrage und liest nie einen API-Key-Wert. Neun Prüfungen laufen, jede mit ihrem eigenen
+Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert, das konfigurierte
 Format löst zu einem Adapter auf, die konfigurierte Provider-ID löst zu einer Factory auf, die
 Umgebungsvariable, aus der dieser Provider seinen Key liest, ist gesetzt, und die Quell-Locale-Datei
 lässt sich lesen. Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Aufruf
@@ -273,7 +273,7 @@ an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt werden also alle hier 
 
 <AvailableFrom version="0.12.0" />
 
-Eine sechste Prüfung, `network-policy`, besteht, wenn die wirksame
+Die Prüfung `network-policy` besteht, wenn die wirksame
 [Netzwerkrichtlinie](/docs/network-policy) aus dem `network`-Block der Konfiguration und der
 Umgebungsvariable `VERBATRA_NETWORK_POLICY` den Host erlaubt, zu dem sich der konfigurierte Provider
 verbindet, und jeden Proxy, den er nutzen würde. Ihr Detail nennt die Richtlinie, ihre beiden
@@ -281,16 +281,16 @@ Quellen und den Host. Sie schlägt fehl, wenn dieser Host abgewiesen wird oder e
 Netzwerk-Umgebungsvariable einen ungültigen Wert hat, besteht für den Provider `none` und löst
 keinen Hostnamen auf.
 
-Eine siebte Prüfung, `plural-rules`, ist rein informativ und besteht immer: Ihr Detail nennt die
+Die Prüfung `plural-rules` ist rein informativ und besteht immer: Ihr Detail nennt die
 ICU- und CLDR-Versionen, aus denen die Laufzeit die Pluralkategorien jeder Zielsprache ableitet,
 und jede Ziel-Locale, für die ICU keine Pluralregeln hat.
 
-Eine achte Prüfung, `locale-codes`, ist ebenfalls rein informativ und besteht immer: Ihr Detail
+Die Prüfung `locale-codes` ist ebenfalls rein informativ und besteht immer: Ihr Detail
 nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, etwa
 `zh-hant-tw` oder das veraltete `iw`, mit der kanonischen Form, die `Intl.getCanonicalLocales`
 vorschlägt. Umbenannt wird nichts.
 
-Eine neunte Prüfung, `locale-state`, ist ebenfalls rein informativ und besteht immer: Ihr Detail
+Die Prüfung `locale-state` ist ebenfalls rein informativ und besteht immer: Ihr Detail
 nennt jede Locale, für die Lock-Datei, Translation Memory oder Provenance-Datei Zustand halten, die
 die Konfiguration aber nicht aufführt, etwa `pt_BR` nach einer Umschreibung zu `pt-BR`, und sagt,
 ob der nächste Lauf von `translate` sie übernimmt. Eine Datei, die sie nicht lesen kann, nennt das

@@ -254,8 +254,8 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 <AvailableFrom version="0.9.0" />
 
 Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, no hace
-ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan cinco comprobaciones,
-cada una con su propio veredicto `pass`, `fail` o `skipped`: la configuración se carga y se valida,
+ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan nueve comprobaciones,
+cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida,
 el formato configurado resuelve a un adaptador, el ID de proveedor configurado resuelve a una
 fábrica, la variable de entorno de la que ese proveedor lee su clave está definida, y el archivo
 del locale de origen se puede leer. Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
@@ -265,23 +265,23 @@ que un directorio en su lugar, un archivo vacío y contenido malformado se infor
 
 <AvailableFrom version="0.12.0" />
 
-Una sexta comprobación, `network-policy`, pasa cuando la [política de red](/docs/network-policy)
+La comprobación `network-policy` pasa cuando la [política de red](/docs/network-policy)
 efectiva, que sale del bloque `network` de la configuración y de la variable de entorno
 `VERBATRA_NETWORK_POLICY`, permite el host al que se conecta el proveedor configurado y cualquier
 proxy que usaría. Su detalle nombra la política, sus dos fuentes y el host. Falla cuando ese host
 se rechaza o una variable de entorno de red tiene un valor no válido, pasa para el proveedor `none`
 y no resuelve ningún nombre de host.
 
-Una séptima comprobación, `plural-rules`, es informativa y siempre pasa: su detalle nombra las
+La comprobación `plural-rules` es informativa y siempre pasa: su detalle nombra las
 versiones de ICU y CLDR de las que el runtime deriva las categorías de plural de cada idioma de
 destino, y cualquier locale de destino para el que ICU no tiene reglas de plural.
 
-Una octava comprobación, `locale-codes`, también es informativa y siempre pasa: su detalle nombra
+La comprobación `locale-codes` también es informativa y siempre pasa: su detalle nombra
 cada código de locale configurado que es válido pero no está en forma BCP 47 canónica, como
 `zh-hant-tw` o el obsoleto `iw`, con la forma canónica que sugiere `Intl.getCanonicalLocales`. No
 se renombra nada.
 
-Una novena comprobación, `locale-state`, también es informativa y siempre pasa: su detalle nombra
+La comprobación `locale-state` también es informativa y siempre pasa: su detalle nombra
 cada locale para el que el archivo de bloqueo, la memoria de traducción o el archivo de procedencia
 guardan estado y que la configuración no incluye, como `pt_BR` tras reescribirlo como `pt-BR`, y
 dice si la siguiente ejecución de `translate` lo traslada. Un archivo que no puede leer se nombra en

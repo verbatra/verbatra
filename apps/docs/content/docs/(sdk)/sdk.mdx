@@ -239,8 +239,8 @@ None of these call a provider, write a file, or mutate the lock.
 <AvailableFrom version="0.9.0" />
 
 Validates the project setup and spends nothing: it constructs no provider, makes no network
-request, and never reads an API key value. Five checks run, each with its own `pass`, `fail`, or
-`skipped` verdict: the config loads and validates, the configured format resolves to an adapter,
+request, and never reads an API key value. Nine checks run, each with its own `pass`, `fail`, or
+`skipped` verdict. Five cover the basics: the config loads and validates, the configured format resolves to an adapter,
 the configured provider ID resolves to a factory, the environment variable that provider reads its
 key from is set, and the source locale file can be read. Every check runs even when an earlier one
 failed, so one call reports every independent problem. The API key is checked by name only. The
@@ -249,22 +249,22 @@ place, an empty file, and malformed content are all reported here.
 
 <AvailableFrom version="0.12.0" />
 
-A sixth check, `network-policy`, passes when the effective [network policy](/docs/network-policy),
+The `network-policy` check passes when the effective [network policy](/docs/network-policy),
 from the config's `network` block and the `VERBATRA_NETWORK_POLICY` environment variable, permits
 the host the configured provider connects to and any proxy it would use. Its detail names the
 policy, both of its sources, and the host. It fails when that host is refused or a network
 environment variable holds an invalid value, passes for the `none` provider, and resolves no host
 name.
 
-A seventh check, `plural-rules`, is informational and always passes: its detail names the ICU and
+The `plural-rules` check is informational and always passes: its detail names the ICU and
 CLDR versions the runtime derives each target language's plural categories from, and any target
 locale ICU has no plural rules for.
 
-An eighth check, `locale-codes`, is informational too and always passes: its detail names every
+The `locale-codes` check is informational too and always passes: its detail names every
 configured locale code that is valid but not in canonical BCP 47 form, such as `zh-hant-tw` or the
 deprecated `iw`, with the canonical form `Intl.getCanonicalLocales` suggests. Nothing is renamed.
 
-A ninth check, `locale-state`, is informational too and always passes: its detail names every
+The `locale-state` check is informational too and always passes: its detail names every
 locale the lock file, the translation memory, or the provenance file holds state for that the config
 does not list, such as `pt_BR` left behind after a respelling to `pt-BR`, and says whether the next
 `translate` run carries it over. A file it cannot read is named in the detail.
