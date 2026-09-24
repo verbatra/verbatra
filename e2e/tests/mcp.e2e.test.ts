@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -32,6 +33,11 @@ async function scaffoldProject(dir: string): Promise<void> {
   });
 }
 
+async function lockFilesUnder(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { recursive: true });
+  return entries.filter((name) => name.endsWith(".lock"));
+}
+
 async function initializeThenCloseStdin(server: Subprocess): Promise<Awaited<Subprocess>> {
   let stdout = "";
   server.stdout?.on("data", (chunk: Buffer | string) => {
@@ -62,6 +68,7 @@ describe("mcp (no key)", () => {
     expect(result.signal).toBeUndefined();
     expect(result.exitCode).toBe(0);
     expect(result.stderr).not.toMatch(/unsettled top-level await/i);
+    expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 
   it("verbatra-mcp exits 0 when the client closes stdin", async () => {
@@ -74,5 +81,6 @@ describe("mcp (no key)", () => {
     expect(result.signal).toBeUndefined();
     expect(result.exitCode).toBe(0);
     expect(result.stderr).not.toMatch(/unsettled top-level await/i);
+    expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 });
