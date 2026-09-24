@@ -225,6 +225,18 @@ describe("xliff write: a value it cannot place is refused, never dropped", () =>
     },
   );
 
+  it("carries the parser's error as the cause of an unparseable source file", async () => {
+    const error = await writeError(
+      { "de.xlf": TARGET_12, "en.xlf": "<xliff" },
+      [entry("c", "Gamma")],
+      {
+        sourcePath: "en.xlf",
+      },
+    );
+    expect(error.cause).toBeInstanceOf(Error);
+    expect(error.message).toContain((error.cause as Error).message);
+  });
+
   it("refuses a key the source document does not carry either", async () => {
     const error = await writeError(
       { "en.xlf": SOURCE_12, "de.xlf": TARGET_12 },

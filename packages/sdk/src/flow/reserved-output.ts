@@ -71,7 +71,7 @@ export function reservedProjectPaths(input: ReservedPathsInput): Map<string, Res
   return reserved;
 }
 
-export function reservedPathAt(
+function reservedPathAt(
   reserved: ReadonlyMap<string, ReservedPath>,
   path: string,
 ): ReservedPath | undefined {
@@ -102,11 +102,11 @@ async function canonicalPath(
   }
 }
 
-export type WorkingDirectoryConflict = "working-directory" | "outside-working-directory";
+type WorkingDirectoryConflict = "working-directory" | "outside-working-directory";
 
-export const WORKING_DIRECTORY_REASON = "names the working directory itself.";
+const WORKING_DIRECTORY_REASON = "names the working directory itself.";
 
-export function workingDirectoryConflict(
+function workingDirectoryConflict(
   root: string,
   target: string,
 ): WorkingDirectoryConflict | undefined {
@@ -131,7 +131,7 @@ interface CanonicalProject {
   readonly reserved: ReadonlyMap<string, ReservedPath>;
 }
 
-function asWrittenRefusal(
+export function asWrittenRefusal(
   cwd: string,
   outputPath: string,
   reserved: ReadonlyMap<string, ReservedPath>,
