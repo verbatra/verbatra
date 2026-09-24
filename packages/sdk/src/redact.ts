@@ -5,12 +5,13 @@ import { redactKeys } from "@verbatra/ai-providers";
  * out of a string, replacing each match with `[REDACTED]`.
  *
  * Two independent passes run: a set of shape patterns for the major providers (an `sk-` token
- * that does not directly follow a letter or digit, where a JSON escape such as `\n` or `\u0007` in
- * serialized text counts as a boundary, and that either starts with a known OpenAI or Anthropic key
- * prefix, `sk-ant-`, `sk-proj-`, `sk-svcacct-`, or `sk-admin-`, followed by at least 20 letters and
- * digits, or holds at least 32 letters and digits across its `-` and `_` segments, so a Slovak
- * `sk-SK` locale path or a short key such as `sk-banner_headline` or `sk-admin-panel_title` stays
- * readable while a long camelCase key such as `sk-onboardingWelcomeScreenPrimaryButton` is redacted;
+ * followed by at least 32 letters and digits, counted across its `-` and `_` segments, whatever
+ * its prefix, when no letter or digit directly precedes it: a JSON escape such as `\n` or
+ * `\u0007`, a percent-encoded character such as `%3D`, an ANSI CSI sequence such as `\x1b[31m`,
+ * `\x1b[2K` or `\x1b[?25h`, an ANSI charset designation such as `\x1b(B`, or either ANSI form
+ * JSON-escaped as `\u001b`, counts as a boundary, so `sk-SK` or `sk-banner_headline` stays
+ * readable while a long Slovak-like key such as `sk-SK_settings_notifications_email_digest` or a
+ * long camelCase key such as `sk-onboardingWelcomeScreenPrimaryButton` is redacted;
  * Gemini-style `AIza` keys; a DeepL free key's hex UUID with its `:fx`
  * suffix anywhere; and a bare hex UUID only in a key context, a `DeepL-Auth-Key` header or an
  * `auth_key`, `authKey`, `auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`, or `DEEPL_AUTH_KEY`

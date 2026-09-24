@@ -112,6 +112,7 @@ function lockPayload(liveness: LivenessContext): string {
 }
 
 interface ObservedLock {
+  readonly kind: BoundedFileRead["kind"];
   readonly content?: string;
   readonly holder?: LockHolder;
   readonly recorded?: RecordedHolder;
@@ -129,6 +130,7 @@ async function observeLock(path: string, fs: SdkFs): Promise<ObservedLock> {
 function observedFrom(read: BoundedFileRead): ObservedLock {
   const record = parseRecord(read);
   return {
+    kind: read.kind,
     ...(read.kind === "ok" ? { content: read.content } : {}),
     ...(record !== undefined
       ? { holder: holderOf(record), recorded: recordedHolderOf(record) }
@@ -266,6 +268,13 @@ function recordedHolderOf(record: Readonly<Record<string, unknown>>): RecordedHo
   };
 }
 
+function unidentifiedStateOf(observed: ObservedLock): string | undefined {
+  if (observed.holder !== undefined) {
+    return undefined;
+  }
+  return observed.content !== undefined ? `ok:${observed.content}` : observed.kind;
+}
+
 function makeWaitNotifier(
   path: string,
   onWait: LockWaitListener,
@@ -273,8 +282,22 @@ function makeWaitNotifier(
   liveness: LivenessContext,
 ): (observed: ObservedLock) => void {
   let lastEmit = 0;
+  let previousUnidentified: string | undefined;
+  const isConfirmedHeld = (observed: ObservedLock): boolean => {
+    const unidentified = unidentifiedStateOf(observed);
+    const confirmed = unidentified === undefined || unidentified === previousUnidentified;
+    previousUnidentified = unidentified;
+    return confirmed;
+  };
   return (observed: ObservedLock): void => {
+    if (observed.kind === "missing") {
+      previousUnidentified = undefined;
+      return;
+    }
     if (observed.recorded !== undefined && isHeldByThisProcess(observed.recorded, liveness)) {
+      return;
+    }
+    if (!isConfirmedHeld(observed)) {
       return;
     }
     const elapsedMs = Date.now() - start;
@@ -361,18 +384,20 @@ export async function releaseHeldLocks(): Promise<void> {
   await Promise.allSettled(locks.map((lock) => lock.fs.deleteFile(lock.path)));
 }
 
-export async function isLockHeld(
+export type LockProbe = "free" | "held" | "unreadable";
+
+export async function probeLock(
   path: string,
   fs: SdkFs,
   liveness: LivenessContext = currentHostLiveness(),
-): Promise<boolean> {
+): Promise<LockProbe> {
   let read: BoundedFileRead;
   try {
     read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
   } catch {
-    return true;
+    return "unreadable";
   }
-  return read.kind !== "missing" && !isAbandoned(observedFrom(read), liveness);
+  return read.kind === "missing" || isAbandoned(observedFrom(read), liveness) ? "free" : "held";
 }
 
 export async function withLocaleWriteLock<T>(

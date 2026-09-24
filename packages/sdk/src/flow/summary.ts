@@ -38,7 +38,7 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   files and the reason. When the lock file or the provenance file is among them, the locale does
  *   not run: it fails with `LOCALE_STATE_NOT_CARRIED_OVER`, nothing is recorded under its code,
  *   and the next run tries the move again. A dry run reports this when another process holds the
- *   lock-file guard at the time. When only the translation memory stayed behind, the locale runs
+ *   lock-file guard at the time, or when the guard cannot be read. When only the translation memory stayed behind, the locale runs
  *   without those cached translations, since the memory is only a cache.
  */
 export type SdkNoticeCode =

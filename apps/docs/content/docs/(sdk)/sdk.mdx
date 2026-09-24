@@ -1004,12 +1004,16 @@ followed by `:`, `=`, a URL-encoded `%3D`, or a space, quoted or not, also insid
 serialized into a string. Any other UUID, such as one in a file path or a request id, stays
 readable. A Pro key held in `DEEPL_API_KEY` is still scrubbed wherever it appears, by its value.
 
-A token starting with a known OpenAI or Anthropic key prefix (`sk-ant-`, `sk-proj-`,
-`sk-svcacct-`, `sk-admin-`) is always redacted. Any other `sk-` token is redacted once it holds at
-least 32 letters and digits in total, counted across its `-` and `_` segments, which covers legacy
-OpenAI keys. A Slovak locale path or key such as `locales/sk-SK.json` or `sk-banner_headline` stays
-readable, but a long camelCase key such as `sk-onboardingWelcomeScreenPrimaryButton` reaches the
-threshold and is redacted too.
+An `sk-` token is redacted once at least 32 letters and digits follow `sk-`, counted across its `-`
+and `_` segments, whatever its prefix. That one rule covers every OpenAI and Anthropic key shape;
+a known prefix such as `sk-proj-` or `sk-ant-` does not redact a shorter token on its own. The token
+counts only when no letter or digit directly precedes it: a JSON escape such as `\n` or `\u0007`, a
+percent-encoded character such as `%3D`, an ANSI CSI sequence such as `\x1b[31m`, `\x1b[2K` or
+`\x1b[?25h`, an ANSI charset designation such as `\x1b(B`, or either ANSI form JSON-escaped as
+`\u001b` is a boundary too. A Slovak locale path or key such as `locales/sk-SK.json` or
+`sk-banner_headline` stays readable. A long Slovak-like key reaches the threshold and is redacted,
+though: `sk-SK_settings_notifications_email_digest` holds 34 letters and digits after `sk-`, just
+like a long camelCase key such as `sk-onboardingWelcomeScreenPrimaryButton`.
 
 ### declareProviderKeyEnvVar
 
@@ -1124,7 +1128,7 @@ The parts worth knowing:
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
   `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
-  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
+  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
   grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.

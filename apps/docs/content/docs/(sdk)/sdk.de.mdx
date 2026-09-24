@@ -1092,12 +1092,17 @@ oder ohne Anführungszeichen, auch in JSON, das in einen String serialisiert wur
 etwa in einem Dateipfad oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird
 weiterhin überall über seinen Wert geschwärzt.
 
-Ein Token mit einem bekannten Key-Präfix von OpenAI oder Anthropic (`sk-ant-`, `sk-proj-`,
-`sk-svcacct-`, `sk-admin-`) wird immer geschwärzt. Jedes andere `sk-`-Token wird geschwärzt, sobald
-es insgesamt mindestens 32 Buchstaben und Ziffern enthält, gezählt über alle `-`- und `_`-Abschnitte,
-was ältere OpenAI-Keys abdeckt. Ein slowakischer Locale-Pfad oder Key wie `locales/sk-SK.json` oder
-`sk-banner_headline` bleibt lesbar, ein langer camelCase-Key wie
-`sk-onboardingWelcomeScreenPrimaryButton` erreicht die Schwelle aber und wird ebenfalls geschwärzt.
+Ein `sk-`-Token wird geschwärzt, sobald nach `sk-` mindestens 32 Buchstaben und Ziffern folgen,
+gezählt über alle `-`- und `_`-Abschnitte, egal mit welchem Präfix. Diese eine Regel deckt jede
+Key-Form von OpenAI und Anthropic ab; ein bekanntes Präfix wie `sk-proj-` oder `sk-ant-` schwärzt ein
+kürzeres Token nicht von selbst. Das Token zählt nur, wenn direkt davor kein Buchstabe und keine
+Ziffer steht: Ein JSON-Escape wie `\n` oder `\u0007`, ein prozentkodiertes Zeichen wie `%3D`, eine
+ANSI-CSI-Sequenz wie `\x1b[31m`, `\x1b[2K` oder `\x1b[?25h`, eine ANSI-Zeichensatzwahl wie
+`\x1b(B` oder beide ANSI-Formen als `\u001b` JSON-escaped gelten ebenfalls als Grenze. Ein
+slowakischer Locale-Pfad oder Key wie `locales/sk-SK.json` oder `sk-banner_headline` bleibt lesbar.
+Ein langer slowakisch aussehender Key erreicht die Schwelle aber und wird geschwärzt:
+`sk-SK_settings_notifications_email_digest` enthält nach `sk-` 34 Buchstaben und Ziffern, genau wie
+ein langer camelCase-Key wie `sk-onboardingWelcomeScreenPrimaryButton`.
 
 ### declareProviderKeyEnvVar
 
@@ -1218,7 +1223,7 @@ Die Teile, die du kennen solltest:
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
   DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (Zustand unter einer Unterstrich-Schreibweise wie `pt_BR` wurde zum konfigurierten `pt-BR` verschoben; siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (dieses Verschieben bleibt dem nächsten Lauf überlassen, weil der Guard der Lock-Datei belegt blieb oder eine Datei nicht geschrieben werden konnte; blieb nicht nur das Translation Memory zurück, lief die Locale nicht und scheiterte mit `LOCALE_STATE_NOT_CARRIED_OVER`) und `PROVENANCE_FILE_TOO_LARGE`
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (Zustand unter einer Unterstrich-Schreibweise wie `pt_BR` wurde zum konfigurierten `pt-BR` verschoben; siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (dieses Verschieben bleibt dem nächsten Lauf überlassen, weil der Guard der Lock-Datei belegt oder unlesbar blieb oder eine Datei nicht geschrieben werden konnte; blieb nicht nur das Translation Memory zurück, lief die Locale nicht und scheiterte mit `LOCALE_STATE_NOT_CARRIED_OVER`) und `PROVENANCE_FILE_TOO_LARGE`
   ab (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
   die verbatra zurückliest, daher blieb die Datei, wie sie war). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
   sich alle Locales teilen) und wird deshalb an jede Locale des Laufs gehängt.

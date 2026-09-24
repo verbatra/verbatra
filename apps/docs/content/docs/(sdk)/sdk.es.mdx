@@ -1064,12 +1064,17 @@ o sin comillas, también dentro de JSON serializado en una cadena. Cualquier otr
 una ruta de archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY`
 se sigue eliminando por su valor dondequiera que aparezca.
 
-Un token que empieza con un prefijo de clave conocido de OpenAI o Anthropic (`sk-ant-`, `sk-proj-`,
-`sk-svcacct-`, `sk-admin-`) se redacta siempre. Cualquier otro token `sk-` se redacta en cuanto
-contiene al menos 32 letras y dígitos en total, contados en todos sus segmentos `-` y `_`, lo que
-cubre las claves antiguas de OpenAI. Una ruta o clave de locale eslovaco como `locales/sk-SK.json`
-o `sk-banner_headline` sigue legible, pero una clave camelCase larga como
-`sk-onboardingWelcomeScreenPrimaryButton` alcanza el umbral y también se redacta.
+Un token `sk-` se redacta en cuanto le siguen al menos 32 letras y dígitos tras `sk-`, contados en
+todos sus segmentos `-` y `_`, sea cual sea su prefijo. Esa única regla cubre todas las formas de
+clave de OpenAI y Anthropic; un prefijo conocido como `sk-proj-` o `sk-ant-` no redacta por sí solo
+un token más corto. El token solo cuenta cuando no le precede directamente una letra ni un dígito:
+un escape JSON como `\n` o `\u0007`, un carácter codificado en porcentaje como `%3D`, una secuencia
+ANSI CSI como `\x1b[31m`, `\x1b[2K` o `\x1b[?25h`, una selección de juego de caracteres ANSI como
+`\x1b(B`, o cualquiera de las dos formas ANSI escapada en JSON como `\u001b` también es un límite.
+Una ruta o clave de locale eslovaco como `locales/sk-SK.json` o `sk-banner_headline` sigue legible.
+Pero una clave larga con aspecto eslovaco alcanza el umbral y se redacta:
+`sk-SK_settings_notifications_email_digest` tiene 34 letras y dígitos tras `sk-`, igual que una
+clave camelCase larga como `sk-onboardingWelcomeScreenPrimaryButton`.
 
 ### declareProviderKeyEnvVar
 
@@ -1191,7 +1196,7 @@ Las partes que conviene conocer:
 - **notices** vive por locale, nunca en el nivel superior. Cubre avisos del proveedor (por ejemplo, una
   degradación de DeepL) y avisos del SDK con los códigos `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (el estado guardado bajo una grafía con guion bajo como `pt_BR` se trasladó al `pt-BR` configurado; consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (ese traslado queda para la siguiente ejecución porque el guard del archivo de bloqueo siguió ocupado o no se pudo escribir un archivo; salvo que solo quedara atrás la memoria de traducción, el locale no se ejecutó y falló con `LOCALE_STATE_NOT_CARRIED_OVER`) y `PROVENANCE_FILE_TOO_LARGE`
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (el estado guardado bajo una grafía con guion bajo como `pt_BR` se trasladó al `pt-BR` configurado; consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (ese traslado queda para la siguiente ejecución porque el guard del archivo de bloqueo siguió ocupado o no se pudo leer, o no se pudo escribir un archivo; salvo que solo quedara atrás la memoria de traducción, el locale no se ejecutó y falló con `LOCALE_STATE_NOT_CARRIED_OVER`) y `PROVENANCE_FILE_TOO_LARGE`
   (registrar un locale habría hecho crecer `verbatra.provenance.json` por encima de lo que verbatra
   vuelve a leer, así que el archivo se dejó como estaba). El aviso de caché es de toda la ejecución (un solo archivo, compartido
   por cada locale), así que se adjunta a cada locale de la ejecución.

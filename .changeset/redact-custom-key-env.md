@@ -12,4 +12,6 @@ it happened to match a known key shape, and could reach Studio, the MCP tools, o
 Now loading a config that names `apiKeyEnvVar`, or building that provider, declares the variable
 process-wide, shared by every copy of the SDK in the process, and its value is scrubbed everywhere
 the built-in ones are. Values shorter than eight characters are no longer scrubbed by value, so a
-short variable can never wipe unrelated text, and all values are replaced in a single pass.
+short variable can never wipe unrelated text, and all values are replaced in a single pass. That
+pass is built once per set of values instead of on every call, rebuilt only when a key variable
+changes, and dropped once every key variable is unset.

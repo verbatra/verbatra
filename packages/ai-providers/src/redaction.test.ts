@@ -153,6 +153,10 @@ describe("redactKeys: key shapes", () => {
     ["a percent-encoded quote", "%22"],
     ["a percent-encoded key assignment", "key%3D"],
     ["an ANSI color sequence", "\x1b[31m"],
+    ["an ANSI erase-line sequence", "\x1b[2K"],
+    ["an ANSI cursor sequence", "\x1b[1G"],
+    ["an ANSI private-mode sequence", "\x1b[?25h"],
+    ["an ANSI charset designation", "\x1b(B"],
   ])("redacts a key right after %s", (_what, before) => {
     for (const key of [
       "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h",
@@ -308,6 +312,28 @@ describe("redactKeys: exact key values", () => {
     );
     delete process.env.ANTHROPIC_API_KEY;
     expect(redactKeys("a fake-second-value")).toBe("a fake-second-value");
+  });
+
+  it("drops the cached value pattern once every key variable is unset", () => {
+    const NativeRegExp = RegExp;
+    let constructed = 0;
+    globalThis.RegExp = new Proxy(NativeRegExp, {
+      construct(target, args: [string, string]) {
+        constructed += 1;
+        return Reflect.construct(target, args);
+      },
+    });
+    try {
+      process.env.ANTHROPIC_API_KEY = "fake-cached-value";
+      redactKeys("a fake-cached-value");
+      delete process.env.ANTHROPIC_API_KEY;
+      redactKeys("b");
+      process.env.ANTHROPIC_API_KEY = "fake-cached-value";
+      expect(redactKeys("c fake-cached-value")).toBe("c [REDACTED]");
+    } finally {
+      globalThis.RegExp = NativeRegExp;
+    }
+    expect(constructed).toBe(2);
   });
 
   it("treats regular-expression metacharacters in a value literally", () => {
