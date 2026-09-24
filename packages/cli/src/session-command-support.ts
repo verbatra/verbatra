@@ -1,5 +1,5 @@
 import { renderError, toRenderableError } from "./render.js";
-import { stoppableSession } from "./stoppable-session.js";
+import { type StopCause, stoppableSession } from "./stoppable-session.js";
 import type { Session, Streams } from "./types.js";
 
 const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -45,8 +45,13 @@ export interface StoppableServer {
   readonly closed?: Promise<void>;
 }
 
-export function watchForStop(server: StoppableServer, streams: Streams): Session {
+export function watchForStop(
+  server: StoppableServer,
+  streams: Streams,
+  onStopped?: (cause: StopCause) => void,
+): Session {
   return stoppableSession({
+    ...(onStopped !== undefined ? { onStopped } : {}),
     getController: () =>
       Promise.resolve({
         stop: () => server.close(),

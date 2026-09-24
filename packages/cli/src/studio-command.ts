@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
+import { PRESS_CTRL_C, studioAgentToolsLine, studioSpendLine } from "./session-banners.js";
 import {
   failedSession,
   isModuleMissing,
@@ -10,7 +11,13 @@ import {
   step,
   watchForStop,
 } from "./session-command-support.js";
+import {
+  DEFAULT_TERMINAL_SETTINGS,
+  resolveTerminalMode,
+  type TerminalSettings,
+} from "./terminal-mode.js";
 import type { CliDeps, Session, Streams } from "./types.js";
+import { createUi } from "./ui.js";
 
 const TOKEN_BYTES = 32;
 
@@ -25,6 +32,7 @@ const studioOptsSchema = z.object({
   port: z.coerce.number().int().min(1).max(65535).optional(),
   allowSpend: z.boolean().optional(),
   exposeAgentTools: z.boolean().optional(),
+  verbose: z.boolean().optional(),
 });
 
 type StudioOpts = z.infer<typeof studioOptsSchema>;
@@ -47,7 +55,16 @@ export async function runStudio(
   rawOpts: unknown,
   deps: CliDeps,
   streams: Streams,
+  settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
 ): Promise<Session> {
+  const ui = createUi(
+    streams,
+    resolveTerminalMode(settings.facts, {
+      json: false,
+      quiet: settings.quiet,
+      color: settings.color,
+    }),
+  );
   let opts: StudioOpts;
   try {
     opts = parseStudioOpts(rawOpts);
@@ -95,7 +112,7 @@ export async function runStudio(
         loader: () => Promise.resolve(config),
         token,
         cwd,
-        output: () => {},
+        output: opts.verbose === true ? (line: string) => ui.line(line) : () => {},
         spend,
         exposeAgentTools,
         ...(opts.port !== undefined ? { port: opts.port } : {}),
@@ -108,6 +125,11 @@ export async function runStudio(
   }
 
   streams.out(`Verbatra Studio running at ${server.url}?token=${token}\n`);
+  ui.info(studioSpendLine(spend));
+  ui.info(studioAgentToolsLine(exposeAgentTools));
+  if (ui.terminal.stdinIsTty) {
+    ui.info(PRESS_CTRL_C);
+  }
 
-  return watchForStop(server, streams);
+  return watchForStop(server, streams, () => ui.info("Studio stopped"));
 }

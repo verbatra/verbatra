@@ -672,8 +672,9 @@ async function runStudioCommand(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks,
+  settings: TerminalSettings,
 ): Promise<number> {
-  const session = await runStudio(rawOpts, deps, streams);
+  const session = await runStudio(rawOpts, deps, streams, settings);
   hooks.onStudioSession?.(session);
   return session.done;
 }
@@ -683,8 +684,9 @@ async function runMcpCommand(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks,
+  settings: TerminalSettings,
 ): Promise<number> {
-  const session = await runMcp(rawOpts, deps, streams);
+  const session = await runMcp(rawOpts, deps, streams, settings);
   hooks.onMcpSession?.(session);
   return session.done;
 }
@@ -1455,8 +1457,9 @@ function registerStudioCommand(program: Command, ctx: ProgramContext): void {
       "--expose-agent-tools",
       "register Studio's RPC methods as WebMCP agent tools in the browser (also: VERBATRA_STUDIO_AGENT_TOOLS)",
     )
+    .option("--verbose", "also print Studio's own startup banner and one stderr line per request")
     .action(async (opts: unknown) => {
-      ctx.setCode(await runStudioCommand(opts, ctx.deps, ctx.streams, ctx.hooks));
+      ctx.setCode(await runStudioCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     })
     .addHelpText(
       "after",
@@ -1482,7 +1485,7 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
       "advertise the tools that call a translation provider (also: VERBATRA_MCP_ALLOW_SPEND)",
     )
     .action(async (opts: unknown) => {
-      ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks));
+      ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     })
     .addHelpText(
       "after",
