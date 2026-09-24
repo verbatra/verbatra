@@ -79,7 +79,11 @@ Eingabe: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
   Provider-Sub-Batch), und `onLockWait` feuert, während die Schreibsperre einer Locale umkämpft
   ist. Beides sind Benachrichtigungs-Callbacks; das SDK gibt selbst nichts aus. `lockAcquireTimeoutMs`
   übersteuert, wie lange eine umkämpfte Schreibsperre erneut versucht, bevor sie mit `LOCK_CONTENDED`
-  fehlschlägt.
+  fehlschlägt. Es begrenzt nur die Schreibsperre der Locale vor jedem Provider-Aufruf; der Guard der
+  Lock-Datei, der das Ergebnis einer schon geschriebenen Datei festhält, wartet immer bis zum
+  Standard von zehn Minuten, damit eine geschriebene Datei nie unerfasst bleibt. `onLockWait` feuert
+  erst, wenn ein Warten eine Sekunde gedauert hat, und nie für eine Sperre, die derselbe Prozess
+  hält, etwa den Guard einer Geschwister-Locale bei `concurrency` über 1.
 - `maxTokens` (ab 0.12.0) setzt eine Token-Obergrenze nur für diesen Lauf (das `--max-tokens` der
   CLI). Es wirkt immer wie `budgetBehavior: "stop"`, und setzt die Konfiguration ebenfalls
   `maxTokens`, gilt der niedrigere der beiden Werte; es kann das konfigurierte Budget also

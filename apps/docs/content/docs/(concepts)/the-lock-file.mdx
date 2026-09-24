@@ -85,6 +85,14 @@ to that one locale; a second writer for the same locale waits, then re-reads the
 and diffs against a baseline that already includes the first writer's result. Different locales do
 not block each other.
 
+Recording a locale's result in the lock file and the provenance file also takes a short
+project-wide guard. `--lock-timeout` (`lockAcquireTimeoutMs` in the SDK) bounds only the wait for
+the per-locale write lock, which happens before any provider call, so a locale that times out there
+has spent nothing and written nothing. Once a locale's file is written, recording it waits for the
+guard with the ten-minute default whatever `--lock-timeout` says, so a written file is never left
+unrecorded. The waiting message appears once a wait has lasted a second, and never for a lock the
+same run holds, such as the guard a sibling locale holds while you run with `--concurrency` above 1.
+
 When a run translates several locales at once and hits a whole-run error (in practice a corrupt
 lock file), it stops claiming new locales and waits for the ones already running to finish, so
 every lock the run took is released before the command exits. No locale is started after the run
