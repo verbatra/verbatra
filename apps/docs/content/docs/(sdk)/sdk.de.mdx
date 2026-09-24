@@ -864,7 +864,7 @@ einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die ke
 `doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
 Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
 die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
-fehlgeschlagener Schreibvorgang ist `GLOSSARY_UNWRITABLE`. Eine Änderung, die das Glossar so lässt,
+fehlgeschlagener Schreibvorgang, auch eine Glossar-Schreibsperre, die sich in einem schreibgeschützten Projekt nicht anlegen lässt, ist `GLOSSARY_UNWRITABLE`, mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
 wie es schon ist, gelingt und schreibt nichts.
 
 ### glossaryForLocale
@@ -1256,7 +1256,7 @@ geworfen.
 | `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | das Schreibsperre einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
 | `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
-| `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben werden (`updateGlossaryTerm`) |
+| `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht angelegt werden, etwa in einem schreibgeschützten Projekt (`updateGlossaryTerm`); der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_LAYOUT_INVALID` | `files.pattern` und `files.localeStyle` lassen sich nicht kombinieren, oder der Style hat keine gültige Pfadschreibweise für eine konfigurierte Locale |
 | `LOCALE_PATH_COLLISION` | zwei konfigurierte Locales lösen auf denselben absoluten Dateipfad auf |
 | `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor eine Locale läuft |
