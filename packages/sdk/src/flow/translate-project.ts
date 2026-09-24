@@ -58,6 +58,8 @@ import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import {
   carryOverRespelledLocales,
   type LocaleCarryOverPlan,
+  type LocaleMoves,
+  movedFrom,
   withCarryOverNotices,
 } from "./locale-carry-over.js";
 import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
@@ -135,7 +137,8 @@ export interface TranslateInput {
   readonly onProgress?: ProgressListener;
   /**
    * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
-   * `LOCK_CONTENDED`. Defaults to ten minutes. Not used on a dry run, which takes no lock.
+   * `LOCK_CONTENDED`, and for the lock-file guard before a respelled locale's state is left where
+   * it is for this run. Defaults to ten minutes. Not used on a dry run, which takes no lock.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
@@ -273,9 +276,9 @@ interface LocaleRunContext {
   readonly cache: RunCacheState | undefined;
   readonly machine: ReturnType<typeof machineAttribution>;
   readonly protection: ProtectionPolicy;
-  readonly onLockWait?: LockWaitListener;
+  readonly provenanceMoves: LocaleMoves;
+  readonly lockOptions: LocaleWriteLockOptions;
   readonly onProgress?: ProgressListener;
-  readonly lockAcquireTimeoutMs?: number;
 }
 
 async function buildLocaleRunParams(
@@ -283,11 +286,12 @@ async function buildLocaleRunParams(
   targetLocale: string,
   baseline: ReadonlyMap<string, string>,
 ): Promise<LocaleRunParams> {
+  const provenanceLocale = movedFrom(context.provenanceMoves, targetLocale);
   const provenance = await readProvenanceView(
     context.protection,
     context.cwd,
     context.fs,
-    targetLocale,
+    provenanceLocale,
   );
   return {
     source: context.source.resource,
@@ -315,7 +319,7 @@ async function buildLocaleRunParams(
       provenance,
       context.cwd,
       context.fs,
-      targetLocale,
+      provenanceLocale,
     ),
     ...(context.cache !== undefined
       ? {
@@ -339,16 +343,19 @@ async function runDryLocale(
   return (await runLocale(params)).summary;
 }
 
+function writeLockOptions(input: TranslateInput): LocaleWriteLockOptions {
+  return {
+    ...(input.onLockWait !== undefined ? { onWait: input.onLockWait } : {}),
+    ...(input.lockAcquireTimeoutMs !== undefined
+      ? { acquireTimeoutMs: input.lockAcquireTimeoutMs }
+      : {}),
+  };
+}
+
 async function runLiveLocale(
   context: LocaleRunContext,
   targetLocale: string,
 ): Promise<LocaleSummary> {
-  const lockOptions: LocaleWriteLockOptions = {
-    ...(context.onLockWait !== undefined ? { onWait: context.onLockWait } : {}),
-    ...(context.lockAcquireTimeoutMs !== undefined
-      ? { acquireTimeoutMs: context.lockAcquireTimeoutMs }
-      : {}),
-  };
   return withLocaleWriteLock(
     context.cwd,
     writeLockKeyFor(context.config.format, targetLocale),
@@ -373,7 +380,7 @@ async function runLiveLocale(
       }
       return withProvenanceWriteNotice(result.summary, update.provenance);
     },
-    lockOptions,
+    context.lockOptions,
   );
 }
 
@@ -611,7 +618,11 @@ function estimateFields(
  * (compared case-insensitively), a live run moves that state to the configured code once, before
  * any locale runs, and reports `LOCALE_STATE_CARRIED_OVER` on the locale. State the configured code
  * already has is never overwritten, and two candidate spellings move nothing; {@link doctor} lists
- * what is left behind. A dry run plans with the moved state and reports it, but writes nothing.
+ * what is left behind. The lock-file guard is taken only when there is something to move, with the
+ * same `lockAcquireTimeoutMs` and `onLockWait` as the locale write locks. When the guard stays
+ * contended or a file cannot be written, the state stays where it is, the locale reports
+ * `LOCALE_STATE_CARRY_OVER_SKIPPED`, and the run goes on: neither throws. A dry run plans with the
+ * moved lock-file, provenance, and memory state and reports it, but writes nothing.
  *
  * A stale key whose current value a person wrote is protected by default: its origin in the
  * provenance file is `human` or `import`, or its value changed outside verbatra since it was
@@ -715,9 +726,11 @@ export async function translate(
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const usesMemory = usesTranslationMemory(input, config, dryRun);
+  const lockOptions = writeLockOptions(input);
   const carryOver = await carryOverRespelledLocales(cwd, fs, targetLocales, {
     dryRun,
     memory: usesMemory,
+    lock: lockOptions,
   });
   const cache = usesMemory ? await createRunCacheState(config, cwd, fs, carryOver) : undefined;
   const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
@@ -739,11 +752,9 @@ export async function translate(
       mode.kind === "translate" ? mode.provider.id : undefined,
     ),
     protection: protectionPolicy(config, input.humanEdits),
-    ...(input.onLockWait !== undefined ? { onLockWait: input.onLockWait } : {}),
+    provenanceMoves: dryRun ? carryOver.provenance : new Map(),
+    lockOptions,
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
-    ...(input.lockAcquireTimeoutMs !== undefined
-      ? { lockAcquireTimeoutMs: input.lockAcquireTimeoutMs }
-      : {}),
   };
 
   const summaries = dryRun
@@ -753,7 +764,7 @@ export async function translate(
 
   const locales = withCarryOverNotices(
     withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance),
-    carryOver.carried,
+    carryOver,
     dryRun,
   );
   const { succeeded, partial, failed } = partition(locales);

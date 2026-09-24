@@ -32,6 +32,10 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   {@link watch} move that state to the configured code once, before the locale runs, and never
  *   overwrite state the configured code already has. A dry run reports what a live run would move
  *   and moves nothing.
+ * - `LOCALE_STATE_CARRY_OVER_SKIPPED`: state that `LOCALE_STATE_CARRIED_OVER` would have moved onto
+ *   this locale stayed where it was, because another process held the lock-file guard past the
+ *   run's `lockAcquireTimeoutMs`, or because the file could not be written. The message names the
+ *   files and the reason. The locale still runs, without that state, and the run is not failed.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
@@ -41,7 +45,8 @@ export type SdkNoticeCode =
   | "CACHE_VERSION_UNRECOGNIZED"
   | "PROVENANCE_VERSION_UNRECOGNIZED"
   | "PROVENANCE_FILE_TOO_LARGE"
-  | "LOCALE_STATE_CARRIED_OVER";
+  | "LOCALE_STATE_CARRIED_OVER"
+  | "LOCALE_STATE_CARRY_OVER_SKIPPED";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is

@@ -6,8 +6,9 @@ import {
   withMemoryLocalesMoved,
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
+import { errorMessage, SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
-import { withLockFileGuard } from "../lock/locale-write-lock.js";
+import { type LocaleWriteLockOptions, withLockFileGuard } from "../lock/locale-write-lock.js";
 import {
   LOCK_FILE_NAME,
   lockFilePath,
@@ -18,12 +19,14 @@ import {
 } from "../lock/lock-file.js";
 import {
   PROVENANCE_FILE_NAME,
+  type ProvenanceRead,
   provenanceFilePath,
   provenanceLocalesWithState,
   readProvenanceFile,
   serializeProvenanceFile,
   withProvenanceLocalesMoved,
 } from "../lock/provenance-file.js";
+import type { LockFile } from "../lock/types.js";
 import type { LocaleSummary, SdkNotice } from "./summary.js";
 
 export type LocaleStateFile =
@@ -67,18 +70,32 @@ export interface LocaleCarryOver {
   readonly files: readonly LocaleStateFile[];
 }
 
+export interface LocaleCarryOverSkip extends LocaleCarryOver {
+  readonly reason: string;
+}
+
 export interface LocaleCarryOverPlan {
   readonly lock: LocaleMoves;
   readonly memory: LocaleMoves;
+  readonly provenance: LocaleMoves;
   readonly carried: readonly LocaleCarryOver[];
+  readonly skipped: readonly LocaleCarryOverSkip[];
 }
 
-function collectCarried(
-  byFile: ReadonlyArray<readonly [LocaleStateFile, LocaleMoves]>,
-): LocaleCarryOver[] {
+interface FileCarry {
+  readonly file: LocaleStateFile;
+  readonly moved: LocaleMoves;
+  readonly failed?: { readonly moves: LocaleMoves; readonly reason: string };
+}
+
+export function movedFrom(moves: LocaleMoves, locale: string): string {
+  return [...moves].find(([, to]) => to === locale)?.[0] ?? locale;
+}
+
+function collectCarried(carries: readonly FileCarry[]): LocaleCarryOver[] {
   const carried = new Map<string, { from: string; to: string; files: LocaleStateFile[] }>();
-  for (const [file, moves] of byFile) {
-    for (const [from, to] of moves) {
+  for (const { file, moved } of carries) {
+    for (const [from, to] of moved) {
       const entry = carried.get(from) ?? { from, to, files: [] };
       entry.files.push(file);
       carried.set(from, entry);
@@ -87,40 +104,158 @@ function collectCarried(
   return [...carried.values()];
 }
 
+function collectSkipped(carries: readonly FileCarry[]): LocaleCarryOverSkip[] {
+  const skipped = new Map<string, LocaleCarryOverSkip & { files: LocaleStateFile[] }>();
+  for (const { file, failed } of carries) {
+    if (failed === undefined) {
+      continue;
+    }
+    for (const [from, to] of failed.moves) {
+      const id = JSON.stringify([from, failed.reason]);
+      const entry = skipped.get(id) ?? { from, to, files: [], reason: failed.reason };
+      entry.files.push(file);
+      skipped.set(id, entry);
+    }
+  }
+  return [...skipped.values()];
+}
+
+function skippedCarry(file: LocaleStateFile, moves: LocaleMoves, error: unknown): FileCarry {
+  return moves.size === 0
+    ? { file, moved: NO_MOVES }
+    : { file, moved: NO_MOVES, failed: { moves, reason: errorMessage(error) } };
+}
+
+async function attemptWrite(
+  file: LocaleStateFile,
+  moves: LocaleMoves,
+  write: () => Promise<void>,
+): Promise<FileCarry> {
+  if (moves.size === 0) {
+    return { file, moved: NO_MOVES };
+  }
+  try {
+    await write();
+    return { file, moved: moves };
+  } catch (error) {
+    return skippedCarry(file, moves, error);
+  }
+}
+
+interface StateFiles {
+  readonly lock: LockFile;
+  readonly provenance: ProvenanceRead;
+  readonly lockMoves: LocaleMoves;
+  readonly provenanceMoves: LocaleMoves;
+}
+
+async function readStateFiles(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<StateFiles> {
+  const lock = await readLockFile(lockFilePath(cwd), fs);
+  const provenance = await readProvenanceFile(provenanceFilePath(cwd), fs);
+  return {
+    lock,
+    provenance,
+    lockMoves: planLocaleMoves(targetLocales, lockLocalesWithState(lock)),
+    provenanceMoves: provenance.writable
+      ? planLocaleMoves(targetLocales, provenanceLocalesWithState(provenance.file))
+      : NO_MOVES,
+  };
+}
+
+async function writeStateFiles(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<readonly [FileCarry, FileCarry]> {
+  const current = await readStateFiles(cwd, fs, targetLocales);
+  const provenance = await attemptWrite(PROVENANCE_FILE_NAME, current.provenanceMoves, () =>
+    fs.writeFile(
+      provenanceFilePath(cwd),
+      serializeProvenanceFile(
+        withProvenanceLocalesMoved(current.provenance.file, current.provenanceMoves),
+      ),
+    ),
+  );
+  const lock = await attemptWrite(LOCK_FILE_NAME, current.lockMoves, () =>
+    writeLockFile(lockFilePath(cwd), withLockLocalesMoved(current.lock, current.lockMoves), fs),
+  );
+  return [lock, provenance];
+}
+
+function isStateFileInvalid(error: unknown): boolean {
+  return (
+    error instanceof SdkError &&
+    (error.code === "LOCK_FILE_INVALID" || error.code === "PROVENANCE_FILE_INVALID")
+  );
+}
+
 async function carryLockAndProvenance(
   cwd: string,
   fs: SdkFs,
   targetLocales: readonly string[],
-): Promise<readonly [LocaleMoves, LocaleMoves]> {
-  return withLockFileGuard(cwd, fs, async () => {
-    const lockPath = lockFilePath(cwd);
-    const lock = await readLockFile(lockPath, fs);
-    const provenancePath = provenanceFilePath(cwd);
-    const provenance = await readProvenanceFile(provenancePath, fs);
-    const provenanceMoves = provenance.writable
-      ? planLocaleMoves(targetLocales, provenanceLocalesWithState(provenance.file))
-      : NO_MOVES;
-    if (provenanceMoves.size > 0) {
-      await fs.writeFile(
-        provenancePath,
-        serializeProvenanceFile(withProvenanceLocalesMoved(provenance.file, provenanceMoves)),
-      );
+  lockOptions: LocaleWriteLockOptions,
+): Promise<readonly [FileCarry, FileCarry]> {
+  const planned = await readStateFiles(cwd, fs, targetLocales);
+  if (planned.lockMoves.size === 0 && planned.provenanceMoves.size === 0) {
+    return [
+      { file: LOCK_FILE_NAME, moved: NO_MOVES },
+      { file: PROVENANCE_FILE_NAME, moved: NO_MOVES },
+    ];
+  }
+  const outcome: { written?: readonly [FileCarry, FileCarry] } = {};
+  try {
+    return await withLockFileGuard(
+      cwd,
+      fs,
+      async () => {
+        outcome.written = await writeStateFiles(cwd, fs, targetLocales);
+        return outcome.written;
+      },
+      lockOptions,
+    );
+  } catch (error) {
+    if (isStateFileInvalid(error)) {
+      throw error;
     }
-    const lockMoves = planLocaleMoves(targetLocales, lockLocalesWithState(lock));
-    if (lockMoves.size > 0) {
-      await writeLockFile(lockPath, withLockLocalesMoved(lock, lockMoves), fs);
-    }
-    return [lockMoves, provenanceMoves] as const;
-  });
+    return (
+      outcome.written ?? [
+        skippedCarry(LOCK_FILE_NAME, planned.lockMoves, error),
+        skippedCarry(PROVENANCE_FILE_NAME, planned.provenanceMoves, error),
+      ]
+    );
+  }
 }
 
-async function planLockOnly(
+async function planProvenanceLeniently(
   cwd: string,
   fs: SdkFs,
   targetLocales: readonly string[],
-): Promise<readonly [LocaleMoves, LocaleMoves]> {
+): Promise<LocaleMoves> {
+  try {
+    const { file, writable } = await readProvenanceFile(provenanceFilePath(cwd), fs);
+    return writable ? planLocaleMoves(targetLocales, provenanceLocalesWithState(file)) : NO_MOVES;
+  } catch (error) {
+    if (error instanceof SdkError && error.code === "PROVENANCE_FILE_INVALID") {
+      return NO_MOVES;
+    }
+    throw error;
+  }
+}
+
+async function planLockAndProvenance(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<readonly [FileCarry, FileCarry]> {
   const lock = await readLockFile(lockFilePath(cwd), fs);
-  return [planLocaleMoves(targetLocales, lockLocalesWithState(lock)), NO_MOVES] as const;
+  return [
+    { file: LOCK_FILE_NAME, moved: planLocaleMoves(targetLocales, lockLocalesWithState(lock)) },
+    { file: PROVENANCE_FILE_NAME, moved: await planProvenanceLeniently(cwd, fs, targetLocales) },
+  ];
 }
 
 async function carryMemory(
@@ -128,25 +263,24 @@ async function carryMemory(
   fs: SdkFs,
   targetLocales: readonly string[],
   write: boolean,
-): Promise<LocaleMoves> {
-  try {
-    const path = cacheFilePath(cwd);
-    const { memory, writable } = await readTranslationMemory(path, fs);
-    const moves = writable
-      ? planLocaleMoves(targetLocales, memoryLocalesWithState(memory))
-      : NO_MOVES;
-    if (write && moves.size > 0) {
-      await writeTranslationMemory(path, withMemoryLocalesMoved(memory, moves), fs);
-    }
-    return moves;
-  } catch {
-    return NO_MOVES;
+): Promise<FileCarry> {
+  const path = cacheFilePath(cwd);
+  const { memory, writable } = await readTranslationMemory(path, fs);
+  const moves = writable
+    ? planLocaleMoves(targetLocales, memoryLocalesWithState(memory))
+    : NO_MOVES;
+  if (!write) {
+    return { file: CACHE_FILE_NAME, moved: moves };
   }
+  return attemptWrite(CACHE_FILE_NAME, moves, () =>
+    writeTranslationMemory(path, withMemoryLocalesMoved(memory, moves), fs),
+  );
 }
 
 export interface LocaleCarryOverOptions {
   readonly dryRun: boolean;
   readonly memory: boolean;
+  readonly lock?: LocaleWriteLockOptions;
 }
 
 export async function carryOverRespelledLocales(
@@ -156,19 +290,18 @@ export async function carryOverRespelledLocales(
   options: LocaleCarryOverOptions,
 ): Promise<LocaleCarryOverPlan> {
   const [lock, provenance] = options.dryRun
-    ? await planLockOnly(cwd, fs, targetLocales)
-    : await carryLockAndProvenance(cwd, fs, targetLocales);
-  const memory = options.memory
+    ? await planLockAndProvenance(cwd, fs, targetLocales)
+    : await carryLockAndProvenance(cwd, fs, targetLocales, options.lock ?? {});
+  const memory: FileCarry = options.memory
     ? await carryMemory(cwd, fs, targetLocales, !options.dryRun)
-    : NO_MOVES;
+    : { file: CACHE_FILE_NAME, moved: NO_MOVES };
+  const carries = [lock, memory, provenance];
   return {
-    lock,
-    memory,
-    carried: collectCarried([
-      [LOCK_FILE_NAME, lock],
-      [CACHE_FILE_NAME, memory],
-      [PROVENANCE_FILE_NAME, provenance],
-    ]),
+    lock: lock.moved,
+    memory: memory.moved,
+    provenance: provenance.moved,
+    carried: collectCarried(carries),
+    skipped: collectSkipped(carries),
   };
 }
 
@@ -185,15 +318,32 @@ function carryOverNotice(carry: LocaleCarryOver, dryRun: boolean): SdkNotice {
   };
 }
 
+function asSentence(text: string): string {
+  return text.endsWith(".") ? text : `${text}.`;
+}
+
+function carryOverSkippedNotice(skip: LocaleCarryOverSkip): SdkNotice {
+  return {
+    code: "LOCALE_STATE_CARRY_OVER_SKIPPED",
+    message:
+      `The state recorded under "${skip.from}" in ${skip.files.join(", ")} was not moved to ` +
+      `"${skip.to}": ${asSentence(skip.reason)} This run went on without it, and the locale-state check of ` +
+      "doctor lists what stays behind.",
+  };
+}
+
 export function withCarryOverNotices(
   summaries: readonly LocaleSummary[],
-  carried: readonly LocaleCarryOver[],
+  plan: Pick<LocaleCarryOverPlan, "carried" | "skipped">,
   dryRun: boolean,
 ): LocaleSummary[] {
   return summaries.map((summary) => {
-    const notices = carried
-      .filter((carry) => carry.to === summary.locale)
-      .map((carry) => carryOverNotice(carry, dryRun));
+    const notices = [
+      ...plan.carried
+        .filter((carry) => carry.to === summary.locale)
+        .map((carry) => carryOverNotice(carry, dryRun)),
+      ...plan.skipped.filter((skip) => skip.to === summary.locale).map(carryOverSkippedNotice),
+    ];
     return notices.length === 0
       ? summary
       : { ...summary, notices: [...summary.notices, ...notices] };

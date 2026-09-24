@@ -1099,7 +1099,7 @@ The parts worth knowing:
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
   `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
-  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
+  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for later because the lock-file guard stayed contended or a file could not be written; the locale still ran), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
   grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.
