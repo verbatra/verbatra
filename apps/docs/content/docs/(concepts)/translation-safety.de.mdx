@@ -95,6 +95,13 @@ erneut.
   `[[CLEAR]]`-Sentinel der Arbeitsmappe ist der Weg dafür; siehe
   [Manuelle Übersetzung](/docs/manual-translation).
 
+Ein Kandidat, der mehr als eine Regel verletzt, wird mit einem einzigen Grund abgelehnt, dem
+ersten, der in dieser Reihenfolge zutrifft: `empty`, dann `icu` für eine Nachricht, die sich nicht
+parsen lässt (auch ein `plural` ohne seinen `other`-Zweig), dann `placeholder`, `markup`, `icu` für
+Zweige, die nicht zur Zielsprache passen, und `degenerate`. Ein leerer Wert wird deshalb als `empty`
+gemeldet, auch wenn seine Quelle Platzhalter oder Tags trägt, und eine kaputte ICU-Nachricht als
+`icu` statt als die Platzhalter, die ein Parser darin nicht mehr findet.
+
 Ein abgelehnter Kandidat wird als Daten zurückgehalten, nie geschrieben: Er erscheint in der
 Lauf-Zusammenfassung als Integritätsabweichung, behält seinen vorherigen Hash in
 [der Lock-Datei](/docs/the-lock-file) und wird beim nächsten Lauf erneut versucht. Zurückgehalten

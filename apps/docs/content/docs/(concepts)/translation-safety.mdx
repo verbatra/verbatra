@@ -86,6 +86,13 @@ keys can match without being byte-identical. That is exactly why the gate is re-
   Clearing a translation is a separate, deliberate act, and the workbook's `[[CLEAR]]` sentinel is
   the way to do it; see [Manual translation](/docs/manual-translation).
 
+A candidate that breaks more than one rule is refused with a single reason, the first that
+applies in this order: `empty`, then `icu` for a message that does not parse (a `plural` without
+its `other` arm included), then `placeholder`, `markup`, `icu` for arms that do not fit the target
+language, and `degenerate`. An empty value is therefore reported as `empty` even when its source
+carries placeholders or tags, and a broken ICU message as `icu` rather than as the placeholders a
+parser could no longer find in it.
+
 A rejected candidate is withheld as data, never written: it appears on the run summary as an
 integrity mismatch, keeps its prior hash in [the lock file](/docs/the-lock-file), and is retried
 next run. Withheld is also kept distinct from failed: a key nothing was translated for (the

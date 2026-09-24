@@ -85,6 +85,11 @@ import type { IntegrityRefusal } from "./summary.js";
  *   reason instead, which flags rather than refuses.
  * - `empty`: the source has text but the candidate is blank, which would silently erase a string.
  *
+ * A candidate that breaks several rules is refused with one reason, the first that applies in
+ * this order: `empty`, `icu` for a message that does not parse (a `plural` without `other`
+ * included), `placeholder`, `markup`, `icu` for arms that do not fit the target language, and
+ * `degenerate`.
+ *
  * This tuple is the single source of truth for the set. {@link IntegrityGateReason} is derived from
  * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
  * members; a hand-copied list silently falls behind the next addition.
@@ -156,6 +161,12 @@ export function gateCandidateValue(
   adapter: FormatAdapter,
   targetLocale: string | undefined,
 ): IntegrityGateResult {
+  if (sourceEntry.value.trim() !== "" && candidateValue.trim() === "") {
+    return { accepted: false, reason: "empty" };
+  }
+  if (!adapter.validateMessage(candidateValue)) {
+    return { accepted: false, reason: "icu" };
+  }
   const placeholderResult =
     adapter.comparePlaceholders?.(sourceEntry.value, candidateValue) ??
     checkPlaceholders(sourceEntry.placeholders, adapter.extractPlaceholders(candidateValue));
@@ -171,18 +182,12 @@ export function gateCandidateValue(
       ? { accepted: false, reason: "markup", details: markup.details }
       : { accepted: false, reason: "markup" };
   }
-  if (!adapter.validateMessage(candidateValue)) {
-    return { accepted: false, reason: "icu" };
-  }
   const armProblems = branchArmProblems(sourceEntry, candidateValue, adapter, targetLocale);
   if (armProblems.length > 0) {
     return { accepted: false, reason: "icu", details: armProblems };
   }
   if (assessValueDegeneracy(sourceEntry.value, candidateValue).degenerate) {
     return { accepted: false, reason: "degenerate" };
-  }
-  if (sourceEntry.value.trim() !== "" && candidateValue.trim() === "") {
-    return { accepted: false, reason: "empty" };
   }
   return { accepted: true, integrity: placeholderResult };
 }
