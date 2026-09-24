@@ -28,7 +28,7 @@ npx verbatra init --provider gemini
 - das Format der Locale-Dateien, Default `i18next-json` (`--format`)
 - die Quell-Locale, Default `en` (`--source`)
 - die Ziel-Locales, kommagetrennt, Default `de` (`--targets`)
-- das Muster der Locale-Dateien, Default `locales/{locale}.json` (`--path`)
+- das Muster der Locale-Dateien, Default das übliche Layout des gewählten Formats, `locales/{locale}.json` für `i18next-json` (`--path`)
 
 Übergib `--yes`, um die Abfragen zu überspringen und die erkannten Werte oder die Defaults zu nehmen. Ohne Terminal (zum Beispiel in CI) fragt `init` nie nach: Ein Wert, den es unter `--yes` weder erkennen noch mit einem Default füllen kann, lässt es mit `2` und `MISSING_OPTIONS` enden, und die Meldung nennt die Flags, die du übergeben musst.
 
@@ -38,7 +38,7 @@ npx verbatra init --provider gemini
 - `.env.example`: nennt die Umgebungsvariable für den API-Schlüssel des Providers, nie dessen Wert
 - `.gitignore`-Einträge für `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json`, angelegt oder ergänzt, damit ein echter API-Schlüssel, lokaler Zustand oder der regenerierbare Cache nie in einem Commit landet
 
-Ein erneutes `init` mit denselben Antworten ändert nichts. Eine `verbatra.config.ts` mit anderem Inhalt wird abgelehnt, außer du übergibst `--force`, und an eine bestehende `.env.example` wird nur die Key-Variable angehängt, wenn sie fehlt. Hat das Projekt noch keine Locale-Datei, kommt `format` aus deinen Dependencies (i18next, vue-i18n, next-intl oder `@ngx-translate/core` wählen das passende JSON-Format), sonst fällt es auf `i18next-json` mit einem TODO-Kommentar zum Ändern zurück. Die Details stehen unter [verbatra init](/docs/cli/init#erkennung). Für Gemini in einem leeren Projekt sieht das Gerüst so aus:
+Ein erneutes `init` mit denselben Antworten ändert nichts. Eine `verbatra.config.ts` mit anderem Inhalt wird abgelehnt, außer du übergibst `--force`, und an eine bestehende `.env.example` wird nur die Key-Variable angehängt, wenn sie fehlt. Hat das Projekt noch keine Locale-Datei, kommt `format` aus deinen Dependencies (i18next, vue-i18n, next-intl oder `@ngx-translate/core` wählen das passende JSON-Format), sonst fällt es auf `i18next-json` zurück. Unter `--yes` trägt dieser Default einen TODO-Kommentar zum Ändern; ein Format, das du in der Abfrage übernimmst, nicht. Die Details stehen unter [verbatra init](/docs/cli/init#erkennung). Für Gemini in einem leeren Projekt sieht das Gerüst so aus:
 
 ```ts
 import { defineConfig } from "@verbatra/cli";

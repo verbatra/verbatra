@@ -19,7 +19,7 @@ verbatra init [flags]
 | `--format` | `<id>` | détecté, sinon `i18next-json` | le format des fichiers de locale, l'un des ids de [Formats](/docs/formats) |
 | `--source` | `<locale>` | détectée, sinon `en` | la locale source dans laquelle tes chaînes sont écrites |
 | `--targets` | `<locales>` | détectées, sinon `de` | locales cibles vers lesquelles traduire, séparées par des virgules |
-| `--path` | `<pattern>` | détecté, sinon `locales/{locale}.json` | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
+| `--path` | `<pattern>` | détecté, sinon la structure habituelle du format (voir [Détection](#détection)) | motif des fichiers de locale ; doit contenir le jeton `{locale}` |
 | `--model` | `<name>` | le défaut de l'échafaudage | le modèle ; requis pour `openai-compatible`, optionnel pour `anthropic`, `openai` et `gemini` |
 | `--base-url` | `<url>` | aucun | l'URL du serveur ; `openai-compatible` uniquement, et requis dans ce cas |
 | `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable d'environnement dans laquelle `openai-compatible` lit sa clé ; `openai-compatible` uniquement |
@@ -27,7 +27,7 @@ verbatra init [flags]
 | `--force` | aucun | désactivé | écrase un `verbatra.config.ts` existant dont le contenu diffère |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) décrivant ce qui a été écrit ; ne pose jamais de question |
 
-Une option l'emporte toujours. Tout ce que tu omets est détecté depuis le projet, puis demandé quand stdin est un terminal et que ni `--yes` ni `--json` ne sont donnés, et sinon pris depuis son défaut, uniquement sous `--yes`.
+Une option l'emporte toujours. Tout ce que tu omets est détecté depuis le projet, puis demandé quand stdin est un terminal et que ni `--yes` ni `--json` ne sont donnés, et sinon pris depuis son défaut, uniquement sous `--yes`. Dans un terminal, appuyer sur Entrée accepte la valeur proposée, et cela compte comme ta réponse. Une option donnée avec une valeur vide, comme `--targets ''`, est une erreur d'utilisation (`INVALID_OPTION`), jamais une demande de la valeur par défaut.
 
 <AvailableFrom version="0.12.0" />
 
@@ -42,7 +42,26 @@ Une option l'emporte toujours. Tout ce que tu omets est détecté depuis le proj
 
 Un fichier à côté des fichiers de locale qui contient des chaînes sous aucun nom de locale, comme `messages.properties` à côté de `messages_de.properties`, `Strings.resx` à côté de `Strings.de.resx`, ou un `app.pot` gettext, est signalé comme `unqualifiedSourceFile`. verbatra lit la source depuis le fichier que son motif nomme pour la locale source et ne peut pas pointer vers un tel fichier, donc dans ce cas `init` ne devine pas la locale source : passe `--source`, même avec `--yes`, et les étapes suivantes t'indiquent vers quel fichier renommer ou copier le fichier de base.
 
-Sans aucun fichier de locale, ce sont les dépendances seules qui décident du format. `--format`, `--path` et `--source` restreignent la détection au lieu d'être écrasés par elle : `--format yaml` ne regarde donc que les fichiers YAML.
+Sans aucun fichier de locale, ce sont les dépendances seules qui décident du format, et `files.pattern` et `files.localeStyle` prennent la structure habituelle du format choisi :
+
+| Format | `files.pattern` | `files.localeStyle` |
+| --- | --- | --- |
+| `i18next-json` | `locales/{locale}.json` | aucun (`literal`) |
+| `vue-i18n-json` | `src/locales/{locale}.json` | aucun (`literal`) |
+| `next-intl-json` | `messages/{locale}.json` | aucun (`literal`) |
+| `ngx-translate-json` | `src/assets/i18n/{locale}.json` | aucun (`literal`) |
+| `xliff` | `locales/{locale}.xlf` | aucun (`literal`) |
+| `yaml` | `locales/{locale}.yml` | aucun (`literal`) |
+| `arb` | `lib/l10n/app_{locale}.arb` | `posix` |
+| `properties` | `src/main/resources/messages_{locale}.properties` | `posix` |
+| `apple-strings` | `{locale}.lproj/Localizable.strings` | aucun (`literal`) |
+| `apple-xcstrings` | `{locale}Localizable.xcstrings` | aucun (`literal`) |
+| `android-xml` | `app/src/main/res/{locale}/strings.xml` | `android` |
+| `gettext-po` | `locales/{locale}/LC_MESSAGES/messages.po` | `posix` |
+| `ini` | `locales/{locale}.ini` | aucun (`literal`) |
+| `resx` | `Resources/Strings.{locale}.resx` | aucun (`literal`) |
+
+Un catalogue `apple-xcstrings` est un seul fichier partagé par toutes les locales, et verbatra ne le crée jamais : crée-le d'abord dans Xcode. `--format`, `--path` et `--source` restreignent la détection au lieu d'être écrasés par elle : `--format yaml` ne regarde donc que les fichiers YAML.
 
 `init` ne choisit jamais au hasard entre des égaux. Quand plusieurs formats lisent les fichiers (du JSON brut sans dépendance i18n, par exemple), il sort avec `2` et `FORMAT_AMBIGUOUS`, et quand plusieurs motifs de fichiers sont à égalité (un fichier par namespace, comme `locales/{locale}/common.json` et `locales/{locale}/auth.json`), il sort avec `2` et `LAYOUT_AMBIGUOUS`. Les deux listent les candidats ; passe `--format` ou `--path` pour en choisir un. Dans un terminal, il te pose la question à la place, en proposant le premier candidat.
 
@@ -93,7 +112,7 @@ interface InitResult {
 }
 ```
 
-`confidence` vaut `high` quand les fichiers seuls ont tout décidé, `medium` quand une convention ou une dépendance a comblé un manque (par exemple prendre `en` comme source), `low` quand aucun fichier de locale n'appuyait le format, et `none` quand rien n'a été détecté. Un `default` dans `sources` est la valeur à revérifier. `nextSteps` se termine par les commandes exactes à lancer ensuite, comme `npx verbatra doctor`.
+`confidence` vaut `high` quand les fichiers seuls ont tout décidé, `medium` quand une convention ou une dépendance a comblé un manque (par exemple prendre `en` comme source) ou qu'un manque est resté ouvert (par exemple la locale source du répertoire `values` non qualifié d'Android, qui n'en nomme aucune), `low` quand aucun fichier de locale n'appuyait le format, et `none` quand rien n'a été détecté. Un `default` dans `sources` est la valeur à revérifier. `nextSteps` se termine par les commandes exactes à lancer ensuite, comme `npx verbatra doctor`.
 
 Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` ou `INVALID_FORMAT` porte aussi un tableau `candidates` avec les valeurs parmi lesquelles choisir. Toute erreur d'utilisation qui laisse des options sans réponse porte aussi un tableau `missing` qui les nomme, comme `"--source <locale>"`.
 
@@ -107,7 +126,7 @@ Une enveloppe d'erreur pour `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 
 Relancer `init` avec les mêmes réponses ne change rien et réussit : tu peux donc le répéter sans risque. Un `verbatra.config.ts` au contenu différent est refusé avec `CONFIG_EXISTS` sauf si tu passes `--force`. Une autre config verbatra dans le même répertoire (un `.verbatrarc.json`, par exemple, ou une propriété `verbatra` dans `package.json`) est refusée avec `CONFIG_EXISTS` même sous `--force`, parce qu'elle serait lue avant `verbatra.config.ts`. Rien n'est écrit quand `init` refuse.
 
-Un `.env.example` existant est gardé tel quel ; quand il ne nomme pas encore la variable de clé, cette seule ligne y est ajoutée. `.gitignore` ne reçoit que les entrées qui lui manquent.
+Un `.env.example` existant est gardé tel quel ; quand il ne nomme pas encore la variable de clé, cette seule ligne y est ajoutée. Sous `--force`, une ligne d'en-tête écrite par `init` lui-même est réécrite pour le nouveau fournisseur, tandis qu'un en-tête que tu as écrit est gardé. `.gitignore` ne reçoit que les entrées qui lui manquent.
 
 ## Exemples
 
