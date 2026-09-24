@@ -1,7 +1,6 @@
 import type { ReviewReasonCode } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isRtlLocale } from "../../client/locale-direction.js";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import {
   deriveReviewDecisionOutcome,
@@ -36,6 +35,7 @@ import {
   TableRow,
 } from "../Table.js";
 import { FilterBar } from "../Toolbar.js";
+import { TranslationValue } from "../TranslationValue.js";
 import { EmptyState } from "../ui.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
@@ -106,14 +106,13 @@ function ReviewKeyCell({
           Loading the current translation…
         </span>
       ) : (
-        <span
-          className="block max-w-md truncate text-xs text-muted-foreground"
-          dir={isRtlLocale(row.locale) ? "rtl" : undefined}
+        <TranslationValue
+          value={value}
+          locale={row.locale}
+          className="block w-fit max-w-md truncate text-xs text-muted-foreground"
           title={value}
           data-row-value=""
-        >
-          {value}
-        </span>
+        />
       )}
     </TableCell>
   );

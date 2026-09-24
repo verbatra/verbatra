@@ -10,7 +10,6 @@ import {
 import type { DiffLocale } from "../../client/diff-view.js";
 import { driftKeys, isFullyInSync } from "../../client/diff-view.js";
 import { filterAndCapKeys, type KeyValuePair, MAX_RENDERED_KEYS } from "../../client/filter.js";
-import { isRtlLocale } from "../../client/locale-direction.js";
 import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values.js";
 import { provenanceSummaryParts } from "../../client/provenance-view.js";
@@ -357,7 +356,6 @@ function LocaleSection({
   return (
     <AccordionItem
       defaultOpen={locale.hasPendingChanges}
-      dir={isRtlLocale(locale.locale) ? "rtl" : undefined}
       summary={
         <span className="inline-flex flex-wrap items-center gap-2">
           {locale.locale}

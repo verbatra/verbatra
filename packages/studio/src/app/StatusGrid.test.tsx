@@ -377,7 +377,7 @@ describe("StatusGrid", () => {
     expect(view.text()).not.toContain("Switch to the List view to filter.");
   });
 
-  it("renders a right-to-left locale's header and cells in its own direction", async () => {
+  it("keeps a right-to-left locale's header and cells in the page direction, since they hold only UI text", async () => {
     stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
 
     const view = await renderAsync(
@@ -388,9 +388,6 @@ describe("StatusGrid", () => {
       />,
     );
 
-    expect(view.get("thead th:nth-child(2)").getAttribute("dir")).toBe("rtl");
-    expect(view.get("thead th:nth-child(3)").getAttribute("dir")).toBeNull();
-    expect(view.get("tbody td:nth-child(2)").getAttribute("dir")).toBe("rtl");
-    expect(view.get("tbody td:nth-child(3)").getAttribute("dir")).toBeNull();
+    expect(view.all("[dir]")).toEqual([]);
   });
 });
