@@ -61,7 +61,8 @@ El formato `xliff` cubre archivos `.xlf` y `.xliff`, XLIFF 1.2 (`file/body/trans
 - **Claves.** Cada entrada se identifica por el `id` de su trans-unit, con `resname` como reserva. Una unidad sin ninguno de los dos recurre a una clave posicional, que se desplaza cuando se añaden o quitan unidades anteriores, así que dale a cada unidad un `id` estable. Dos unidades que resuelven a la misma clave (normalmente un `id` duplicado) hacen fallar la lectura con `INVALID_STRUCTURE` en lugar de quedarse con una en silencio.
 - **Valores.** El valor viene de `<target>` cuando está presente, y de `<source>` en caso contrario.
 - **Las escrituras actualizan los targets en su sitio.** verbatra escribe cada valor en su `<target>` y deja intactos `<source>`, los atributos y los elementos `<note>`, así que el documento hace el viaje de ida y vuelta. Como un mapa plano de clave/valor no puede reconstruir un documento XLIFF, el archivo de destino debe existir ya: verbatra actualiza los targets en un archivo de destino ya preparado (el flujo XLIFF estándar) y no crea uno ausente; un destino ausente falla con `INVALID_STRUCTURE`.
-- **Marcado en línea.** Los elementos de placeholder en línea (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`) y la interpolación de llave simple `{name}` se extraen como placeholders y se protegen a través de la traducción. Al escribir, solo esos elementos de la lista permitida (con sus propios atributos mínimos y no ejecutables) sobreviven como marcado vivo en `<target>`; cualquier otra cosa en un valor traducido, incluido un elemento inesperado o una discordancia de namespace, se escribe como texto plano.
+- **Marcado en línea.** Los elementos de placeholder en línea (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`, más `bpt` y `ept` en XLIFF 1.2 y `pc`, `sc`, `ec`, `sm`, `em`, `cp` en XLIFF 2.0) y la interpolación de llave simple `{name}` se extraen como placeholders y se protegen a través de la traducción. Al escribir, solo esos elementos de la lista permitida (con sus propios atributos mínimos y no ejecutables) sobreviven como marcado vivo en `<target>`; cualquier otra cosa en un valor traducido, incluido un elemento inesperado o una discordancia de namespace, se escribe como texto plano.
+- **El texto se escapa exactamente una vez.** verbatra lee el texto como texto: `A &amp; B` en el archivo es `A & B` en verbatra, en Studio y en un libro exportado, y el proveedor lo ve igual. Al escribir, el texto alrededor de los elementos en línea se escapa una sola vez, así que `&`, `<`, `>`, las comillas y un `&amp;` literal se leen de vuelta exactamente como se escribieron, por muchas veces que se reescriba el archivo. Un `<b>` que no es uno de los elementos en línea de arriba también es texto: llega al archivo como `&lt;b&gt;`.
 - **Las notas como contexto.** El `<note>` de una trans-unit (en 2.0, el `<notes><note>` de la unidad, compartido por todos los segmentos de la unidad) se lee como contexto de desarrollador: llega al proveedor como contexto de desambiguación y aparece en la [columna `Context`](/docs/manual-translation) de un libro exportado. Es de solo lectura y nunca se escribe de vuelta.
 
 ## YAML
@@ -232,8 +233,8 @@ Se aplica a todos los formatos y se retira etiqueta por etiqueta en lugar de val
 etiqueta que el adaptador ya declara como placeholder queda para la comprobación de placeholders,
 mientras que cualquier otra etiqueta del mismo valor sí se compara.
 
-- `xliff` extrae por su cuenta sus elementos de placeholder en línea (`x`, `g`, `bx`, `ex`, `ph`,
-  `it`, `mrk`), así que los cubre la comprobación de placeholders y nunca se cuentan dos veces. El
+- `xliff` extrae por su cuenta sus elementos de placeholder en línea (`x`, `g`, `bx`, `ex`, `bpt`,
+  `ept`, `ph`, `it`, `mrk`, `pc`, `sc`, `ec`, `sm`, `em`, `cp`), así que los cubre la comprobación de placeholders y nunca se cuentan dos veces. El
   HTML simple que XLIFF no tokeniza, como un par `<b>`, sí se compara como marcado, incluso cuando
   está en el mismo valor que un elemento en línea.
 - `next-intl-json` y `arb` analizan las etiquetas de texto enriquecido de ICU, así que un

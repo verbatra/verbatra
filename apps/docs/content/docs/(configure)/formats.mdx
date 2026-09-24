@@ -61,7 +61,8 @@ The `xliff` format covers `.xlf` and `.xliff` files, XLIFF 1.2 (`file/body/trans
 - **Keys.** Each entry is keyed by its trans-unit `id`, falling back to `resname`. A unit with neither falls back to a positional key, which shifts when earlier units are added or removed, so give every unit a stable `id`. Two units resolving to the same key (typically a duplicate `id`) fail the read with `INVALID_STRUCTURE` rather than silently keeping one.
 - **Values.** The value comes from `<target>` when present, otherwise `<source>`.
 - **Writes update targets in place.** verbatra writes each value into its `<target>` and leaves `<source>`, attributes, and `<note>` elements untouched, so the document round-trips. Because a flat key/value map cannot reconstruct an XLIFF document, the destination file must already exist: verbatra updates targets in a pre-seeded target file (the standard XLIFF workflow) and does not create a missing one; a missing destination fails with `INVALID_STRUCTURE`.
-- **Inline markup.** Inline placeholder elements (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`) and single-brace `{name}` interpolation are extracted as placeholders and guarded across translation. On write, only those allow-listed elements (with their own minimal, non-executable attributes) survive as live markup in `<target>`; anything else in a translated value, including an unexpected element or a namespace mismatch, is written as plain text instead.
+- **Inline markup.** Inline placeholder elements (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`, plus `bpt` and `ept` in XLIFF 1.2 and `pc`, `sc`, `ec`, `sm`, `em`, `cp` in XLIFF 2.0) and single-brace `{name}` interpolation are extracted as placeholders and guarded across translation. On write, only those allow-listed elements (with their own minimal, non-executable attributes) survive as live markup in `<target>`; anything else in a translated value, including an unexpected element or a namespace mismatch, is written as plain text instead.
+- **Text is escaped exactly once.** verbatra reads text as text: `A &amp; B` in the file is `A & B` in verbatra, in Studio and in an exported workbook, and the provider sees it the same way. On write, the text around the inline elements is escaped once, so `&`, `<`, `>`, quotes and a literal `&amp;` all read back exactly as they were written, however often the file is rewritten. A `<b>` that is not one of the inline elements above is text too: it lands in the file as `&lt;b&gt;`.
 - **Notes as context.** A trans-unit's `<note>` (in 2.0, the unit's `<notes><note>`, shared by every segment in the unit) is read as developer context: it reaches the provider as disambiguation context and appears in the [`Context` column](/docs/manual-translation) of an exported workbook. It is read-only and never written back.
 
 ## YAML
@@ -231,8 +232,8 @@ It applies to every format, and it stands down per tag rather than per value: a 
 already reports as a placeholder is left to the placeholder check, while every other tag in the
 same value is still compared.
 
-- `xliff` extracts its inline placeholder elements (`x`, `g`, `bx`, `ex`, `ph`, `it`, `mrk`)
-  itself, so those are guarded by the placeholder check and never counted twice. Plain HTML that
+- `xliff` extracts its inline placeholder elements (`x`, `g`, `bx`, `ex`, `bpt`, `ept`, `ph`,
+  `it`, `mrk`, `pc`, `sc`, `ec`, `sm`, `em`, `cp`) itself, so those are guarded by the placeholder check and never counted twice. Plain HTML that
   XLIFF does not tokenise, such as a `<b>` pair, is still compared as markup, including when it
   sits in the same value as an inline element.
 - `next-intl-json` and `arb` parse ICU rich-text tags, so a paired `<b>...</b>` is already a
