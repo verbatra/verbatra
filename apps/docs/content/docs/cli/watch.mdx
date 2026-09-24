@@ -35,6 +35,10 @@ With `--json`, each run emits one [envelope](/docs/ci-and-exit-codes#json-output
 
 The first interrupt (Ctrl-C, or SIGTERM) lets the current run finish, stops the watcher cleanly, and exits `0`. A second interrupt while that shutdown is still in flight force-stops with exit `130`. The force-stop releases the session's write locks before the process exits, so the next run does not have to wait for them.
 
+<AvailableFrom version="0.12.0" />
+
+Without `--json`, `watch` tells you where it is on stderr: after every run it prints `verbatra: waiting for changes...`, on an interactive terminal it follows the startup line with `verbatra: press Ctrl-C to stop`, and once the shutdown has finished it prints `verbatra: stopped`. With `--json` none of these lines are added, so stderr stays exactly as before.
+
 ## Examples
 
 ```bash

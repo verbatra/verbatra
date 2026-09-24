@@ -7,6 +7,7 @@ import {
   renderProgressJson,
   toRenderableError,
 } from "./render.js";
+import { PRESS_CTRL_C } from "./session-banners.js";
 import { stoppableSession } from "./stoppable-session.js";
 import type { CliDeps, Session } from "./types.js";
 import type { Ui } from "./ui.js";
@@ -22,6 +23,8 @@ export interface WatchOptions {
   readonly json: boolean;
 }
 
+export const WAITING_FOR_CHANGES = "waiting for changes...";
+
 export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session {
   const streams = ui.streams;
   const onRun = (result: WatchRunResult): void => {
@@ -32,6 +35,7 @@ export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session 
     } else {
       ui.error(result.error);
     }
+    ui.info(WAITING_FOR_CHANGES);
   };
 
   const watchInput: WatchInput = {
@@ -63,11 +67,15 @@ export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session 
       streams.err(
         `verbatra: watching ${options.config.sourceLocale} (${options.config.files.pattern}); running initial translation\n`,
       );
+      if (ui.terminal.stdinIsTty) {
+        ui.info(PRESS_CTRL_C);
+      }
       return controller;
     },
     onStopRequested: () => {
       streams.err("verbatra: stopping, finishing current run...\n");
     },
+    onStopped: () => ui.info("stopped"),
     onFailure: (error) => {
       const renderable = toRenderableError(error);
       ui.error(renderable);

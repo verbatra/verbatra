@@ -74,6 +74,14 @@ describe("studio (no key)", () => {
 
     expect(stopResult.signal).toBeUndefined();
     expect(stopResult.exitCode).toBe(0);
+    expect(stopResult.stderr).toContain(
+      "verbatra: spend tools off (pass --allow-spend to retranslate from Studio)\n",
+    );
+    expect(stopResult.stderr).toContain(
+      "verbatra: agent tools off (pass --expose-agent-tools to register them)\n",
+    );
+    expect(stopResult.stderr).toContain("verbatra: Studio stopped");
+    expect(stopResult.stdout).not.toContain("spend tools");
   }, 120_000);
 
   it("exits 2 with a structured INVALID_PORT error before importing studio or loading config", async () => {
