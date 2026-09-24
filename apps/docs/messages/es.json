@@ -155,7 +155,8 @@
           "aiTxt": "ai.txt (política de uso)"
         }
       },
-      "legalLine": "Código abierto bajo la licencia MIT · © 2026 Mario Kreitz",
+      "legalLicense": "Código abierto bajo la licencia MIT",
+      "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra en GitHub",
       "npmAria": "verbatra en npm",
       "contributorsTitle": "Colaboradores",
@@ -498,6 +499,9 @@
       "tablistLabel": "Tema de la captura",
       "dark": "Oscuro",
       "light": "Claro"
+    },
+    "statusBadges": {
+      "new": "nuevo"
     }
   }
 }

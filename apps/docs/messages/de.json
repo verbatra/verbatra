@@ -155,7 +155,8 @@
           "aiTxt": "ai.txt (Nutzungsrichtlinie)"
         }
       },
-      "legalLine": "Open Source unter der MIT-Lizenz · © 2026 Mario Kreitz",
+      "legalLicense": "Open Source unter der MIT-Lizenz",
+      "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra auf GitHub",
       "npmAria": "verbatra auf npm",
       "contributorsTitle": "Mitwirkende",
@@ -498,6 +499,9 @@
       "tablistLabel": "Screenshot-Theme",
       "dark": "Dunkel",
       "light": "Hell"
+    },
+    "statusBadges": {
+      "new": "neu"
     }
   }
 }
