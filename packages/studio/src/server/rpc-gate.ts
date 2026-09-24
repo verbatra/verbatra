@@ -39,6 +39,13 @@ function entryDedupeKey(params: unknown): string | undefined {
   return parsed.success ? JSON.stringify([parsed.data.locale, parsed.data.key]) : undefined;
 }
 
+const batchEntriesSchema = z.object({ entries: z.array(z.unknown()) });
+
+function requestEntryCount(params: unknown): number {
+  const parsed = batchEntriesSchema.safeParse(params);
+  return parsed.success ? parsed.data.entries.length : 1;
+}
+
 function parseRequestShape(body: Buffer): RawRequestShape | undefined {
   let parsed: unknown;
   try {
@@ -129,7 +136,7 @@ async function invokeHandler(
   if (handler === undefined) {
     return errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
-  if (rateLimiter?.tryAcquire(method) === false) {
+  if (rateLimiter?.tryAcquire(method, requestEntryCount(parsedParams.data)) === false) {
     return errorEnvelope(429, "METHOD_RATE_LIMITED", METHOD_RATE_LIMITED_MESSAGE);
   }
   const dedupeKey = entryDedupeKey(parsedParams.data);

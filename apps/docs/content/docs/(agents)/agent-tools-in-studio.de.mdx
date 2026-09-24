@@ -70,6 +70,10 @@ Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_v
 
 Die Buttons **Approve** und **Reject** im Dashboard haben kein Agent-Tool, mit oder ohne Spend: Eine Review-Entscheidung trifft eine Person. `verbatra_review_queue` lässt jeden seit dem Lauf entschiedenen Eintrag weg, behält aber einen, den ein Agent bearbeitet hat, weil diese Bearbeitung noch einen Blick von einer Person braucht.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Auch die Sammelaktionen der Review-Seite, **Approve selected**, **Reject selected** und **Retranslate selected**, haben kein Agent-Tool. Eine Sammelentscheidung trifft weiterhin eine Person, und eine Sammel-Neuübersetzung würde einen einzigen Agent-Aufruf für bis zu 20 Einträge auf einmal Geld ausgeben lassen, also übersetzt ein Agent einen Eintrag pro Aufruf von `verbatra_translation_retranslateEntry` neu. Eine Sammel-Neuübersetzung aus dem Dashboard zieht aus demselben Budget wie einzelne Neuübersetzungen, ein Platz pro Eintrag, sodass beide zusammen nie über 20 neu übersetzte Einträge pro gleitender Minute kommen.
+
 ### Schreib-Tools (zwei)
 
 `verbatra_translation_editEntry` bearbeitet den Wert einer Locale an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf, ungebremst ist es aber nicht: Es ist auf 20 Bearbeitungen pro gleitender Minute begrenzt, und ein zweiter Aufruf für dieselbe Locale und denselben Key, während einer noch läuft, wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt statt eingereiht, damit zwei Aufrufer nicht in einen Wettlauf um einen Eintrag geraten.

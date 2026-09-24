@@ -22,20 +22,26 @@ const ALWAYS_ON_WRITE_METHODS = [
   "glossary.write",
   "review.approve",
   "review.reject",
+  "review.approveMany",
+  "review.rejectMany",
 ] as const;
-const SPEND_METHODS = ["translation.retranslateEntry", "translation.translatePending"];
+const SPEND_METHODS = [
+  "translation.retranslateEntry",
+  "translation.translatePending",
+  "translation.retranslateEntries",
+];
 
 describe("the shared contract's method list", () => {
-  it("is exactly the eighteen agreed methods, including the schema-only write methods", () => {
+  it("is exactly the twenty-one agreed methods, including the schema-only write methods", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(
       new Set([...READ_ONLY_METHODS, ...SPEND_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
     );
-    expect(RPC_METHOD_NAMES).toHaveLength(18);
+    expect(RPC_METHOD_NAMES).toHaveLength(21);
   });
 });
 
 describe("createRpcHandlers: capability gating", () => {
-  it("registers the eleven read handlers plus the five unpriced write handlers by default, without spend", () => {
+  it("registers the eleven read handlers plus the seven unpriced write handlers by default, without spend", () => {
     const handlers = createRpcHandlers({ spend: false, writeToDisk: true });
     expect(new Set(Object.keys(handlers))).toEqual(
       new Set([...READ_ONLY_METHODS, ...ALWAYS_ON_WRITE_METHODS]),
@@ -45,6 +51,7 @@ describe("createRpcHandlers: capability gating", () => {
   it("omits translation.retranslateEntry and translation.translatePending without spend", () => {
     const handlers = createRpcHandlers({ spend: false, writeToDisk: true });
     expect(handlers["translation.retranslateEntry"]).toBeUndefined();
+    expect(handlers["translation.retranslateEntries"]).toBeUndefined();
     expect(handlers["translation.translatePending"]).toBeUndefined();
     expect(handlers["translation.editEntry"]).toBeDefined();
     expect(handlers["key.value"]).toBeDefined();

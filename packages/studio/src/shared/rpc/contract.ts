@@ -25,10 +25,21 @@ import {
 } from "./locale-values.js";
 import { LOCK_STATE_METHOD, type LockStateResult, lockStateParamsSchema } from "./lock.js";
 import {
+  RETRANSLATE_ENTRIES_METHOD,
+  type RetranslateEntriesResult,
+  retranslateEntriesParamsSchema,
+} from "./retranslate-entries.js";
+import {
   RETRANSLATE_ENTRY_METHOD,
   type RetranslateEntryResult,
   retranslateEntryParamsSchema,
 } from "./retranslate-entry.js";
+import {
+  REVIEW_APPROVE_MANY_METHOD,
+  REVIEW_REJECT_MANY_METHOD,
+  type ReviewBatchResult,
+  reviewBatchParamsSchema,
+} from "./review-batch.js";
 import {
   REVIEW_APPROVE_METHOD,
   REVIEW_REJECT_METHOD,
@@ -69,6 +80,9 @@ export const rpcParamsSchemas = {
   [REVIEW_QUEUE_METHOD]: reviewQueueParamsSchema,
   [REVIEW_APPROVE_METHOD]: reviewDecisionParamsSchema,
   [REVIEW_REJECT_METHOD]: reviewDecisionParamsSchema,
+  [REVIEW_APPROVE_MANY_METHOD]: reviewBatchParamsSchema,
+  [REVIEW_REJECT_MANY_METHOD]: reviewBatchParamsSchema,
+  [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
@@ -94,6 +108,9 @@ export interface RpcResultMap {
   readonly [REVIEW_QUEUE_METHOD]: ReviewQueueResult;
   readonly [REVIEW_APPROVE_METHOD]: ReviewDecisionResult;
   readonly [REVIEW_REJECT_METHOD]: ReviewDecisionResult;
+  readonly [REVIEW_APPROVE_MANY_METHOD]: ReviewBatchResult;
+  readonly [REVIEW_REJECT_MANY_METHOD]: ReviewBatchResult;
+  readonly [RETRANSLATE_ENTRIES_METHOD]: RetranslateEntriesResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;

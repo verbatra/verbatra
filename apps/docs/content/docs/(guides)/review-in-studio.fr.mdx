@@ -105,11 +105,20 @@ Tu peux traiter la file de révision sans la souris. Appuie sur `j` ou sur la fl
 | `r` | la rejeter (la confirmation s'ouvre quand même) |
 | `e` ou Entrée | l'ouvrir dans l'éditeur |
 | `t` | la retraduire (seulement avec `--allow-spend`) |
+| `x` | la sélectionner ou la désélectionner pour une action groupée |
 | `?` | afficher ou masquer la liste des raccourcis |
 
 **Keyboard shortcuts** dans la barre de filtres ouvre la même liste. Un raccourci n'agit que sur l'entrée mise en évidence. Les raccourcis sont en pause pendant que tu tapes dans le filtre, tant qu'une boîte de dialogue est ouverte et tant que tu maintiens Ctrl, Cmd ou Alt, pour que les raccourcis du navigateur continuent de fonctionner ; Échap ferme la boîte de dialogue ouverte. La ligne mise en évidence est aussi celle qui porte le focus clavier, donc Tab passe à ses boutons, et un clic sur une ligne la met en évidence. Après une approbation ou un rejet, l'entrée qui prend sa place est mise en évidence, et un nouvel appui sur `a` te fait descendre dans la file.
 
 Avec `--allow-spend`, chaque ligne porte aussi un bouton **Retranslate**. Il fait un seul appel au fournisseur pour cette locale et cette clé, passe le résultat par la même barrière d'intégrité et rapporte le résultat sur la ligne au-dessus du tableau. La nouvelle valeur reste dans la file jusqu'à ce que tu l'approuves ou la rejettes. Une valeur écrite par une personne n'est pas remplacée d'ici : ouvre la clé dans Translations et choisis **Replace anyway** là-bas.
+
+### Agir sur plusieurs entrées à la fois
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Chaque ligne commence par une case à cocher, et celle de l'en-tête du tableau sélectionne ou désélectionne toutes les entrées que le filtre affiche. Dès que quelque chose est sélectionné, une barre au-dessus du tableau compte la sélection et propose **Approve selected**, **Reject selected**, **Retranslate selected** (seulement avec `--allow-spend`) et **Clear selection**. Une action groupée ne couvre que les entrées sélectionnées que le filtre affiche encore.
+
+Chaque entrée d'un lot est tranchée exactement comme elle le serait seule : sur la valeur affichée, avec les mêmes vérifications, et enregistrée dans `verbatra.provenance.json`. **Reject selected** liste les entrées et demande d'abord une confirmation. Une entrée qui ne peut pas être tranchée, par exemple parce que sa valeur a changé depuis le chargement de la page, n'arrête pas les autres ; la ligne au-dessus du tableau nomme chaque entrée en échec et la raison. Un lot contient au plus 100 entrées à approuver ou rejeter, ou 20 à retraduire. Une retraduction groupée compte chaque entrée dans la même limite qu'une retraduction unitaire, 20 par minute glissante par défaut.
 
 ## Retraduire une clé signalée
 
