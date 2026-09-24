@@ -15,6 +15,7 @@ import {
   flush,
   makeCheckSummary,
   makeConfig,
+  makeLoadedConfig,
   makeLocale,
   makeSummary,
   parseEnvelope,
@@ -721,6 +722,40 @@ describe("run: usage errors, help, version", () => {
 
     expect(await run(["check", "--nope"], deps, cap.streams)).toBe(2);
     expect(cap.out()).toBe("");
+  });
+
+  it("a bare invocation without a config suggests verbatra init on stderr after the help", async () => {
+    const { deps } = recordingDeps({
+      loadConfigWithMeta: () =>
+        Promise.reject(new SdkError("CONFIG_NOT_FOUND", "No verbatra config found.")),
+    });
+    const cap = captureStreams();
+
+    expect(await run([], deps, cap.streams)).toBe(2);
+    expect(cap.err()).toContain("Usage: verbatra");
+    expect(cap.err()).toMatch(/Run verbatra init to set up this project\.\n$/);
+    expect(cap.out()).toBe("");
+  });
+
+  it.each([
+    ["a config is found", () => Promise.resolve(makeLoadedConfig())],
+    [
+      "the config is invalid",
+      () => Promise.reject(new SdkError("CONFIG_INVALID", "The config is invalid.")),
+    ],
+  ])("a bare invocation adds no init hint when %s", async (_label, loadConfigWithMeta) => {
+    const { deps } = recordingDeps({ loadConfigWithMeta });
+    const cap = captureStreams();
+
+    expect(await run([], deps, cap.streams)).toBe(2);
+    expect(cap.err()).not.toContain("verbatra init");
+  });
+
+  it("an unknown command never looks for a config", async () => {
+    const { deps, calls } = recordingDeps();
+
+    expect(await run(["bogus"], deps, captureStreams().streams)).toBe(2);
+    expect(calls.loadConfigWithMeta).toHaveLength(0);
   });
 
   it("--help and --version exit 0, and --version reports the package version", async () => {

@@ -16,13 +16,13 @@ verbatra translate --dry-run
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-Bei einem Dry Run ist die Zahl hinter `translated` die Anzahl der Keys, die an den Provider gesendet **würden**: die in der Zieldatei fehlenden Keys plus die Keys, deren Quelltext sich seit der Lock-Baseline geändert hat, abzüglich derjenigen, die wegen ungültigem ICU übersprungen werden. Diese Zahl ist die Eingabe für alles Weitere.
+Bei einem Dry Run ist die Zahl vor `would translate` (mit `--json` die Liste `translated`) die Anzahl der Keys, die an den Provider gesendet **würden**: die in der Zieldatei fehlenden Keys plus die Keys, deren Quelltext sich seit der Lock-Baseline geändert hat, abzüglich derjenigen, die wegen ungültigem ICU übersprungen werden. Diese Zahl ist die Eingabe für alles Weitere.
 
 Behandle sie als **Obergrenze**, aus zwei Gründen. Ein Dry Run liest [den Cache](/docs/the-cache) nie; Keys, die ein echter Lauf aus dem Übersetzungsspeicher bedienen würde, werden hier also mitgezählt. Und ein Dry Run dedupliziert nicht: Bei einem echten Lauf werden Keys mit identischem Quelltext gruppiert, und nur einer davon wird stellvertretend gesendet. Eine Datei mit wiederholten Strings wird also für weniger Keys abgerechnet, als der Dry Run zeigt.
 
@@ -86,9 +86,9 @@ verbatra translate --estimate
 
 ```
 verbatra translate (dry run)
-  de: 400 translated, 0 unchanged
-  es: 400 translated, 0 unchanged
-  fr: 400 translated, 0 unchanged
+  de: 400 would translate, 0 unchanged
+  es: 400 would translate, 0 unchanged
+  fr: 400 would translate, 0 unchanged
   estimate: 1200 keys in 24 requests, ~40944 input + ~30720 output tokens
   estimated spend: no rate on file for gemini/gemini-2.5-flash; add rates.table["gemini/gemini-2.5-flash"] to your config to see a currency figure
   estimate excludes: cache hits, duplicate source strings, provider-side retries, translation length, tokenizer differences, repair requests

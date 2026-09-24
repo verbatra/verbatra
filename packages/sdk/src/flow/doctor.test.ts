@@ -613,6 +613,19 @@ describe("doctor: it reports every independent problem and spends nothing", () =
   });
 });
 
+describe("doctor: check titles and details", () => {
+  it("never repeats a check's title at the start of its detail", async () => {
+    await writeConfig(validConfig());
+    await writeSourceFile();
+
+    const result = await doctor({ cwd: projectDir });
+
+    for (const entry of result.checks) {
+      expect(entry.detail.startsWith(`${entry.title}:`)).toBe(false);
+    }
+  });
+});
+
 describe("doctor: the locale-codes check", () => {
   it("reports that every locale code is canonical when none needs a change", async () => {
     await writeConfig(validConfig({ targetLocales: ["de", "zh-Hant-TW", "es-419"] }));
