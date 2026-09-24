@@ -318,7 +318,10 @@ function inferSourceLocale(
   findings: Findings,
 ): string | undefined {
   if (hasUnspelledSource) {
-    findings.note("The unqualified values directory holds the source locale but names none.");
+    findings.doubt(
+      "medium",
+      "The unqualified values directory holds the source locale but names none.",
+    );
     return undefined;
   }
   const english = locales.includes("en") ? ["en"] : locales.filter(isEnglish);

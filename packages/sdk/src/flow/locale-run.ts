@@ -42,7 +42,7 @@ import {
   reserveBudget,
 } from "./budget.js";
 import { type PayloadContext, payloadContextOf } from "./estimate.js";
-import { gateCandidateValue } from "./integrity-gate.js";
+import { gateCandidateValue, refusalOf } from "./integrity-gate.js";
 import { deriveLocaleStatus } from "./locale-failure.js";
 import { readNotices } from "./notices.js";
 import {
@@ -62,6 +62,7 @@ import { type ProtectionPolicy, type ProvenanceView, protectedKeys } from "./pro
 import { readTargetResource } from "./read-target.js";
 import type {
   FuzzyCacheHit,
+  IntegrityRefusal,
   LocaleNotice,
   LocaleSummary,
   NeedsReviewEntry,
@@ -319,6 +320,7 @@ const BATCH_LEVEL_REASON = "PROVIDER_DEGRADED" as const;
 interface TranslationOutcome {
   readonly accepted: Map<string, Accepted>;
   readonly integrityMismatches: string[];
+  readonly integrityRefusals: Map<string, IntegrityRefusal>;
   readonly providerFailures: string[];
   readonly budgetWithheld: string[];
   readonly reviewFlags: Map<string, ReviewFlag>;
@@ -347,6 +349,12 @@ function applyGroupOutcome(
     return;
   }
   withheldBucketFor(group.representative, outcome).push(...group.duplicates);
+  const refusal = outcome.integrityRefusals.get(group.representative);
+  if (refusal !== undefined) {
+    for (const key of group.duplicates) {
+      outcome.integrityRefusals.set(key, { ...refusal, key });
+    }
+  }
 }
 
 function duplicateReviewFlag(
@@ -387,6 +395,7 @@ function fanOutAccepted(
     );
     if (!gate.accepted) {
       outcome.integrityMismatches.push(key);
+      outcome.integrityRefusals.set(key, refusalOf(key, gate));
       continue;
     }
     outcome.accepted.set(key, { value: acceptedRepresentative.value, source });
@@ -478,6 +487,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         fuzzyHits: [],
         generated: planned,
         integrityMismatches: [],
+        integrityRefusals: [],
         providerFailures: [],
         budgetWithheld: [],
         pruned,
@@ -501,6 +511,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const startedStopped = params.budget.stopped;
   const accepted = new Map<string, Accepted>(partition.hits);
   const integrityMismatches: string[] = [];
+  const integrityRefusals = new Map<string, IntegrityRefusal>();
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
   const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
@@ -509,6 +520,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const translation = await translateMisses(provider, params, missGroups, entries, {
     accepted,
     integrityMismatches,
+    integrityRefusals,
     providerFailures,
     budgetWithheld,
     reviewFlags,
@@ -601,6 +613,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       ),
       generated: generation.accepted.map((form) => form.targetKey).sort(),
       integrityMismatches: [...integrityMismatches, ...generation.withheld].sort(),
+      integrityRefusals: refusalsFor(integrityMismatches, integrityRefusals, generation.refusals),
       providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
       budgetWithheld: [...budgetWithheld, ...generation.budgetWithheld].sort(),
       pruned,
@@ -786,6 +799,7 @@ function protectedEntries(
 const NO_GENERATION_RESULT: PluralGenerationResult = {
   accepted: [],
   withheld: [],
+  refusals: [],
   providerFailures: [],
   budgetWithheld: [],
   notices: [],
@@ -894,6 +908,7 @@ interface SummaryParts {
   readonly fuzzyHits: readonly FuzzyCacheHit[];
   readonly generated: readonly string[];
   readonly integrityMismatches: readonly string[];
+  readonly integrityRefusals: readonly IntegrityRefusal[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
   readonly pruned: readonly string[];
@@ -916,6 +931,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     cacheHits: parts.cacheHits,
     fuzzyHits: parts.fuzzyHits,
     integrityMismatches: parts.integrityMismatches,
+    integrityRefusals: parts.integrityRefusals,
     providerFailures: parts.providerFailures,
     budgetWithheld: parts.budgetWithheld,
     generated: parts.generated,
@@ -973,16 +989,7 @@ async function translateMisses(
   if (provider === undefined) {
     return NO_TRANSLATION;
   }
-  const translation = await translateAndCheck(
-    provider,
-    params,
-    entries,
-    outcome.accepted,
-    outcome.integrityMismatches,
-    outcome.providerFailures,
-    outcome.budgetWithheld,
-    outcome.reviewFlags,
-  );
+  const translation = await translateAndCheck(provider, params, entries, outcome);
   fanOutContentDuplicates(params, missGroups, outcome);
   return translation;
 }
@@ -991,24 +998,13 @@ async function translateAndCheck(
   provider: TranslationProvider,
   params: LocaleRunParams,
   entries: readonly TranslationEntry[],
-  accepted: Map<string, Accepted>,
-  integrityMismatches: string[],
-  providerFailures: string[],
-  budgetWithheld: string[],
-  reviewFlags: Map<string, ReviewFlag>,
+  outcome: TranslationOutcome,
 ): Promise<TranslateAndCheckResult> {
   const notices: LocaleNotice[] = [];
   const usage = createUsageAccumulator();
   let withheld = false;
   let refusedProjection: number | undefined;
   let counted = false;
-  const outcome: TranslationOutcome = {
-    accepted,
-    integrityMismatches,
-    providerFailures,
-    budgetWithheld,
-    reviewFlags,
-  };
   const batches = chunk(entries, params.maxBatchSize);
   const payload = payloadContextOf(params);
   let batchIndex = 0;
@@ -1074,15 +1070,7 @@ async function runSubBatch(
   reconcileBudget(params.budget, decision.reservation, result.usage);
   const tripped = checkBudgetTrip(params.budget);
   for (const entry of batch) {
-    foldEntryResult(
-      entry,
-      result,
-      params.adapter,
-      params.targetLocale,
-      outcome.accepted,
-      outcome.integrityMismatches,
-      outcome.providerFailures,
-    );
+    foldEntryResult(entry, result, params, outcome);
   }
   if (result.reviewFlags !== undefined) {
     for (const [key, flag] of result.reviewFlags) {
@@ -1151,22 +1139,32 @@ async function retryTruncatedSplit(
 function foldEntryResult(
   entry: TranslationEntry,
   result: TranslateResult,
-  adapter: FormatAdapter,
-  targetLocale: string,
-  accepted: Map<string, Accepted>,
-  integrityMismatches: string[],
-  providerFailures: string[],
+  params: LocaleRunParams,
+  outcome: TranslationOutcome,
 ): void {
   const value = result.values.get(entry.key);
   if (value === undefined) {
-    providerFailures.push(entry.key);
+    outcome.providerFailures.push(entry.key);
     return;
   }
-  if (gateCandidateValue(entry, value, adapter, targetLocale).accepted) {
-    accepted.set(entry.key, { value, source: entry });
+  const gate = gateCandidateValue(entry, value, params.adapter, params.targetLocale);
+  if (gate.accepted) {
+    outcome.accepted.set(entry.key, { value, source: entry });
   } else {
-    integrityMismatches.push(entry.key);
+    outcome.integrityMismatches.push(entry.key);
+    outcome.integrityRefusals.set(entry.key, refusalOf(entry.key, gate));
   }
+}
+
+function refusalsFor(
+  keys: readonly string[],
+  refusals: ReadonlyMap<string, IntegrityRefusal>,
+  generated: readonly IntegrityRefusal[],
+): readonly IntegrityRefusal[] {
+  const listed = keys
+    .map((key) => refusals.get(key))
+    .filter((refusal): refusal is IntegrityRefusal => refusal !== undefined);
+  return [...listed, ...generated].sort((left, right) => (left.key < right.key ? -1 : 1));
 }
 
 function computeLockEntries(

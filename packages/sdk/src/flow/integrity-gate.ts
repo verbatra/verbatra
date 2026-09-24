@@ -7,6 +7,7 @@ import {
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { judgeEntryMarkup } from "./markup-verdict.js";
 import { pluralCategoryLookupFor } from "./plural-rules.js";
+import type { IntegrityRefusal } from "./summary.js";
 
 /**
  * Every reason a candidate translation can be refused before it is written. The same gate guards
@@ -117,6 +118,14 @@ export type IntegrityGateResult =
       readonly reason: IntegrityGateReason;
       readonly details?: readonly string[];
     };
+
+export type IntegrityGateRejection = Extract<IntegrityGateResult, { readonly accepted: false }>;
+
+export function refusalOf(key: string, rejection: IntegrityGateRejection): IntegrityRefusal {
+  return rejection.details === undefined
+    ? { key, reason: rejection.reason }
+    : { key, reason: rejection.reason, details: rejection.details };
+}
 
 function branchArmProblems(
   sourceEntry: TranslationEntry,

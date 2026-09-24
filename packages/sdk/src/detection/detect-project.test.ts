@@ -152,6 +152,7 @@ describe("detectProject: locale styles", () => {
     expect(detection.reasons).toContain(
       "The unqualified values directory holds the source locale but names none.",
     );
+    expect(detection.confidence).toBe("medium");
   });
 
   it("leaves the android source open even when a regional English folder exists", async () => {
@@ -173,7 +174,9 @@ describe("detectProject: locale styles", () => {
       "res/values/strings.xml": xml,
       "res/values-de/strings.xml": xml,
     });
-    expect((await detectProject({ cwd, sourceLocale: "en" })).layout?.sourceLocale).toBe("en");
+    const detection = await detectProject({ cwd, sourceLocale: "en" });
+    expect(detection.layout?.sourceLocale).toBe("en");
+    expect(detection.confidence).toBe("high");
   });
 
   it("drops a layout that mixes underscore and hyphen spellings", async () => {

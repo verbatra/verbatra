@@ -113,3 +113,35 @@ describe("assertProviderNetworkPermitted", () => {
     expect(() => assertProviderNetworkPermitted({ provider: local })).not.toThrow();
   });
 });
+
+describe("assertEndpointPermitted: the allowlist the hint names", () => {
+  it("names VERBATRA_NETWORK_ALLOWED_HOSTS when the environment's rule refused", () => {
+    const env = { VERBATRA_NETWORK_POLICY: "local-only" };
+    const error = thrown(() =>
+      assertEndpointPermitted(anthropic, resolveNetworkPolicy({ policy: "any" }, env), env),
+    );
+    expect(error.message).toContain("add its host to VERBATRA_NETWORK_ALLOWED_HOSTS.");
+    expect(error.message).not.toContain("network.allowedHosts");
+  });
+
+  it("names network.allowedHosts when the config's rule refused", () => {
+    const error = thrown(() =>
+      assertEndpointPermitted(anthropic, resolveNetworkPolicy({ policy: "local-only" }, {}), {}),
+    );
+    expect(error.message).toContain("add its host to network.allowedHosts.");
+  });
+
+  it("names every allowlist in force when no single rule refused", () => {
+    const env = {
+      VERBATRA_NETWORK_POLICY: "local-only",
+      NODE_USE_ENV_PROXY: "1",
+      HTTPS_PROXY: "proxy.corp:3128",
+    };
+    const error = thrown(() =>
+      assertEndpointPermitted(local, resolveNetworkPolicy({ policy: "local-only" }, env), env),
+    );
+    expect(error.message).toContain(
+      "add its host to network.allowedHosts and VERBATRA_NETWORK_ALLOWED_HOSTS.",
+    );
+  });
+});

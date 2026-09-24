@@ -223,11 +223,17 @@ export function budgetWithheldNotice(tracker: BudgetTracker, projected: number):
   };
 }
 
+function stoppedStanding(tracker: BudgetTracker): string {
+  return tracker.maxTokens !== undefined && tracker.tokensUsed < tracker.maxTokens
+    ? "stopped short of"
+    : "reached";
+}
+
 export function budgetAlreadyStoppedNotice(tracker: BudgetTracker): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run had already reached ${tracker.source === "run" ? "its own budget" : "its configured budget"} of ${tracker.maxTokens} tokens ` +
+      `The run had already ${stoppedStanding(tracker)} ${budgetLabel(tracker)} of ${tracker.maxTokens} tokens ` +
       `(${tracker.tokensUsed} counted, behavior: ${tracker.behavior}), ` +
       "so this locale's keys were withheld rather than sent.",
   };

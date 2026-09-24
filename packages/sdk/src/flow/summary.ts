@@ -1,5 +1,6 @@
 import type { ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
 import type { ProviderId } from "../config/provider-config.js";
+import type { IntegrityGateReason } from "./integrity-gate.js";
 
 /**
  * Conditions the SDK itself reports on a locale, as opposed to the {@link ProviderNotice} codes a
@@ -426,6 +427,24 @@ export interface FuzzyCacheHit {
   readonly similarity: number;
 }
 
+/**
+ * Why the integrity gate refused one key's candidate translation during a {@link translate} or
+ * {@link watch} run. The previous translation, if any, was left untouched.
+ */
+export interface IntegrityRefusal {
+  /** The refused key, also listed in {@link LocaleSummary.integrityMismatches}. */
+  readonly key: string;
+  /** The gate check the candidate failed, one of {@link INTEGRITY_GATE_REASONS}. */
+  readonly reason: IntegrityGateReason;
+  /**
+   * What is wrong, when the check can name it: for `placeholder`, each placeholder the candidate
+   * dropped prefixed with `-` and each one it added prefixed with `+`; for `markup`, the offending
+   * tags in the same notation; for `icu`, each wrong plural, ordinal, or select arm. Absent when no
+   * single part is at fault.
+   */
+  readonly details?: readonly string[];
+}
+
 /** A row of an imported handoff that could not be read. Reported rather than aborting the import. */
 export interface MalformedRowReport {
   /** The row's 1-based index within its sheet or file. */
@@ -506,6 +525,13 @@ export interface LocaleSummary {
    * placeholder. The previous translation, if any, is left untouched.
    */
   readonly integrityMismatches: readonly string[];
+  /**
+   * The reason behind each key in {@link integrityMismatches}, sorted by key. Present on every
+   * {@link translate} and {@link watch} run, empty on a dry run. Absent for {@link importWorkbook},
+   * whose {@link integrityMismatches} also counts rows withheld for source drift, and for a locale
+   * that failed by throwing.
+   */
+  readonly integrityRefusals?: readonly IntegrityRefusal[];
   /** Keys the provider failed to translate, for instance because their sub-batch errored. */
   readonly providerFailures: readonly string[];
   /**

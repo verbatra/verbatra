@@ -5,7 +5,13 @@ import {
   resolveProviderEndpoint,
 } from "./endpoints.js";
 import type { EnvironmentSource } from "./environment-rule.js";
-import { describeRule, isRestrictive, judgeHost, type NetworkPolicy } from "./policy.js";
+import {
+  describeRule,
+  isRestrictive,
+  judgeHost,
+  type NetworkPolicy,
+  type NetworkRuleSource,
+} from "./policy.js";
 
 export type EndpointJudgement =
   | {
@@ -19,6 +25,7 @@ export type EndpointJudgement =
       readonly endpoint: ProviderEndpoint;
       readonly host: string;
       readonly reason: string;
+      readonly refusedBy?: NetworkRuleSource;
     };
 
 export const UNPARSEABLE_HOST = "(unparseable URL)";
@@ -32,7 +39,12 @@ function hostOf(url: string): string | undefined {
   }
 }
 
-type HostCheck = { readonly refused?: string; readonly deferred: boolean };
+interface Refusal {
+  readonly reason: string;
+  readonly refusedBy?: NetworkRuleSource;
+}
+
+type HostCheck = { readonly refused?: Refusal; readonly deferred: boolean };
 
 function checkHost(
   policy: NetworkPolicy,
@@ -43,7 +55,10 @@ function checkHost(
   const judgement = judgeHost(policy, host, knownPublic);
   if (judgement.refusedBy !== undefined) {
     return {
-      refused: `${label} is not permitted by ${describeRule(judgement.refusedBy)}`,
+      refused: {
+        reason: `${label} is not permitted by ${describeRule(judgement.refusedBy)}`,
+        refusedBy: judgement.refusedBy.source,
+      },
       deferred: false,
     };
   }
@@ -54,17 +69,20 @@ function checkProxies(
   policy: NetworkPolicy,
   endpoint: ProviderEndpoint,
   env: EnvironmentSource,
-): string | undefined {
+): Refusal | undefined {
   for (const proxy of proxiesInEffect(endpoint.transport, env)) {
     if (proxy.host === undefined) {
-      return `the proxy in ${proxy.variable} could not be parsed, so its host cannot be checked`;
+      return {
+        reason: `the proxy in ${proxy.variable} could not be parsed, so its host cannot be checked`,
+      };
     }
     const label = `the proxy host ${proxy.host} from ${proxy.variable}`;
     const check = checkHost(policy, proxy.host, false, label);
     if (check.refused !== undefined || check.deferred) {
       return (
-        check.refused ??
-        `${label} must be an address or a host name listed in allowedHosts, because a proxy host is not resolved and checked per request`
+        check.refused ?? {
+          reason: `${label} must be an address or a host name listed in allowedHosts, because a proxy host is not resolved and checked per request`,
+        }
       );
     }
   }
@@ -95,7 +113,10 @@ export function judgeProviderEndpoint(
   }
   const check = checkHost(policy, host, endpoint.knownPublic, `the endpoint host ${host}`);
   const refused = check.refused ?? checkProxies(policy, endpoint, env);
-  return refused === undefined
-    ? { kind: "permitted", endpoint, host, deferred: check.deferred }
-    : { kind: "refused", endpoint, host, reason: refused };
+  if (refused === undefined) {
+    return { kind: "permitted", endpoint, host, deferred: check.deferred };
+  }
+  return refused.refusedBy === undefined
+    ? { kind: "refused", endpoint, host, reason: refused.reason }
+    : { kind: "refused", endpoint, host, reason: refused.reason, refusedBy: refused.refusedBy };
 }
