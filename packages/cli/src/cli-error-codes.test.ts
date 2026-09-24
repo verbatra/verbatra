@@ -12,6 +12,8 @@ const UPPER_SNAKE_LITERAL = /["'`]([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)["'`]/g;
 
 const NOT_AN_ERROR_CODE = /^(?:VERBATRA_|ERR_)/;
 
+const SDK_CODES_THE_CLI_ONLY_READS: ReadonlySet<string> = new Set(["CONFIG_NOT_FOUND"]);
+
 function productionSources(): string[] {
   return readdirSync(SRC_ROOT)
     .filter((entry) => entry.endsWith(".ts") && !entry.includes(".test."))
@@ -25,7 +27,11 @@ function emittedCodes(): ReadonlySet<string> {
     const source = readFileSync(`${SRC_ROOT}${file}`, "utf8");
     for (const match of source.matchAll(UPPER_SNAKE_LITERAL)) {
       const literal = match[1];
-      if (literal !== undefined && !NOT_AN_ERROR_CODE.test(literal)) {
+      if (
+        literal !== undefined &&
+        !NOT_AN_ERROR_CODE.test(literal) &&
+        !SDK_CODES_THE_CLI_ONLY_READS.has(literal)
+      ) {
         codes.add(literal);
       }
     }

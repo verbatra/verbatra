@@ -2,9 +2,9 @@ import type { VerbatraConfig, WatchController, WatchInput, WatchRunResult } from
 import { renderErrorEnvelope, renderRunResultEnvelope } from "./json-envelope.js";
 import {
   renderError,
+  renderHuman,
   renderLockWait,
   renderProgress,
-  renderRunResultHuman,
   toRenderableError,
 } from "./render.js";
 import { stoppableSession } from "./stoppable-session.js";
@@ -23,9 +23,13 @@ export interface WatchOptions {
 
 export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams): Session {
   const onRun = (result: WatchRunResult): void => {
-    streams.out(
-      options.json ? `${renderRunResultEnvelope(result)}\n` : `${renderRunResultHuman(result)}\n`,
-    );
+    if (options.json) {
+      streams.out(`${renderRunResultEnvelope(result)}\n`);
+    } else if (result.status === "succeeded") {
+      streams.out(`${renderHuman(result.summary)}\n`);
+    } else {
+      streams.err(`${renderError(result.error)}\n`);
+    }
   };
 
   const watchInput: WatchInput = {

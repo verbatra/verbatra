@@ -1,3 +1,4 @@
+import { isAbsolute, relative, sep } from "node:path";
 import {
   type BudgetStanding,
   budgetStanding,
@@ -37,7 +38,6 @@ import {
   type UnusedKeysSite,
   type UnusedKeysUnreliability,
   type UsageSummary,
-  type WatchRunResult,
 } from "@verbatra/sdk";
 import type { CliErrorCode } from "./cli-error-codes.js";
 
@@ -58,6 +58,16 @@ function stringListOf(
   return Array.isArray(list) && list.every((entry) => typeof entry === "string") ? list : undefined;
 }
 
+export function displayPath(path: string, base: string | undefined): string {
+  if (base === undefined || !isAbsolute(path)) {
+    return path;
+  }
+  const inside = relative(base, path);
+  const outside =
+    inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
+  return outside ? path : inside;
+}
+
 export function toRenderableError(error: unknown): RenderableError {
   if (error instanceof Error) {
     const code = (error as { code?: unknown }).code;
@@ -75,7 +85,8 @@ export function toRenderableError(error: unknown): RenderableError {
 
 export function renderHuman(summary: RunSummary, command = "translate"): string {
   const header = summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
-  const localeLines = summary.locales.flatMap(renderLocaleLine);
+  const labels = runCountLabels(summary.dryRun, command);
+  const localeLines = summary.locales.flatMap((locale) => renderLocaleLine(locale, labels));
   const aggregate = `${summary.succeeded.length} succeeded, ${summary.partial.length} partial, ${summary.failed.length} failed${
     summary.dryRun ? " (dry run: nothing written)" : ""
   }`;
@@ -274,19 +285,36 @@ function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
   return [...renderIntegrityWithheld(locale), ...groups];
 }
 
-function renderLocaleLine(locale: LocaleSummary): readonly string[] {
+interface RunCountLabels {
+  readonly translated: string;
+  readonly pruned: string;
+}
+
+const DRY_RUN_TRANSLATED_LABELS: Readonly<Record<string, string>> = { import: "would import" };
+
+function runCountLabels(dryRun: boolean, command: string): RunCountLabels {
+  if (!dryRun) {
+    return { translated: "translated", pruned: "pruned" };
+  }
+  return {
+    translated: DRY_RUN_TRANSLATED_LABELS[command] ?? "would translate",
+    pruned: "would prune",
+  };
+}
+
+function renderLocaleLine(locale: LocaleSummary, labels: RunCountLabels): readonly string[] {
   if (locale.status === "failed" && locale.error !== undefined) {
     const suffix = ` [${locale.error.code}] ${locale.error.message}`;
     return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale)];
   }
   const counts: ReadonlyArray<readonly [number, string, boolean, string?]> = [
-    [locale.translated.length, "translated", true],
+    [locale.translated.length, labels.translated, true],
     [locale.cacheHits.length, "from cache", false],
     [locale.fuzzyHits.length, "fuzzy-reused", false],
     [locale.unchanged.length, "unchanged", true],
     [locale.generated.length, "generated", false],
     [locale.orphaned.length, "orphaned", false],
-    [locale.pruned.length, "pruned", false],
+    [locale.pruned.length, labels.pruned, false],
     [locale.invalidIcuSource.length, "invalid-ICU skipped", false],
     [locale.integrityMismatches.length, "integrity-withheld", false],
     [locale.providerFailures.length, "provider-failed", false],
@@ -309,15 +337,11 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
   ];
 }
 
-export function renderRunResultHuman(result: WatchRunResult): string {
-  return result.status === "succeeded" ? renderHuman(result.summary) : renderError(result.error);
-}
-
-export function renderExportHuman(result: ExportWorkbookResult): string {
+export function renderExportHuman(result: ExportWorkbookResult, base?: string): string {
   const localeLines = result.locales.map((l) => `  ${l.locale}: ${plural(l.rows, "row")}`);
   const total = result.locales.reduce((sum, l) => sum + l.rows, 0);
   return [
-    `verbatra export -> ${result.path}`,
+    `verbatra export -> ${displayPath(result.path, base)}`,
     ...localeLines,
     `${plural(total, "row")} across ${plural(result.locales.length, "locale")}`,
   ].join("\n");
@@ -649,7 +673,7 @@ export function renderError(error: RenderableError): string {
   return `verbatra: error [${error.code}] ${error.message}`;
 }
 
-export function renderPseudoHuman(result: PseudolocalizeResult): string {
+export function renderPseudoHuman(result: PseudolocalizeResult, base?: string): string {
   const lines = [
     "verbatra pseudo",
     `  ${result.locale}: ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
@@ -657,7 +681,7 @@ export function renderPseudoHuman(result: PseudolocalizeResult): string {
   if (result.copied.length > 0) {
     lines.push(`    copied verbatim: ${result.copied.join(", ")}`);
   }
-  lines.push(`  ${result.written ? "wrote" : "unchanged"} ${result.path}`);
+  lines.push(`  ${result.written ? "wrote" : "unchanged"} ${displayPath(result.path, base)}`);
   return lines.join("\n");
 }
 
@@ -715,20 +739,21 @@ export function renderExtractHuman(result: ExtractResult): string {
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
 }
 
-function renderTypesOutcome(result: GenerateTypesResult): string {
+function renderTypesOutcome(result: GenerateTypesResult, base: string | undefined): string {
+  const path = displayPath(result.path, base);
   if (result.check) {
     return result.stale
-      ? `  ${result.path} is out of date, re-run verbatra types`
-      : `  ${result.path} is up to date`;
+      ? `  ${path} is out of date, re-run verbatra types`
+      : `  ${path} is up to date`;
   }
-  return result.written ? `  wrote ${result.path}` : `  unchanged ${result.path}`;
+  return result.written ? `  wrote ${path}` : `  unchanged ${path}`;
 }
 
 function renderTypesKeyList(label: string, keys: readonly string[]): readonly string[] {
   return keys.length === 0 ? [] : [`  ${label} (${keys.length}): ${keys.join(", ")}`];
 }
 
-export function renderTypesHuman(result: GenerateTypesResult): string {
+export function renderTypesHuman(result: GenerateTypesResult, base?: string): string {
   const unresolved =
     result.unresolved.length === 0
       ? []
@@ -742,7 +767,7 @@ export function renderTypesHuman(result: GenerateTypesResult): string {
     ...unresolved,
     ...renderTypesKeyList("excluded by the adapter", result.excluded),
     ...renderTypesKeyList("plural keys", result.plural),
-    renderTypesOutcome(result),
+    renderTypesOutcome(result, base),
   ].join("\n");
 }
 
@@ -863,20 +888,20 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   return notes;
 }
 
-export function renderTmxImportHuman(result: ImportTmxResult): string {
+export function renderTmxImportHuman(result: ImportTmxResult, base?: string): string {
   const language =
     result.sourceLanguage === undefined
       ? "no source language declared"
       : `source language ${preview(result.sourceLanguage, LANGUAGE_TAG_PREVIEW)}`;
   return [
-    `verbatra tmx import <- ${result.file}`,
+    `verbatra tmx import <- ${displayPath(result.file, base)}`,
     `  ${plural(result.units, "unit")} read (${language})`,
     ...result.locales.flatMap(renderTmxLocale),
     ...renderTmxNotes(result),
   ].join("\n");
 }
 
-export function renderTmxExportHuman(result: ExportTmxResult): string {
+export function renderTmxExportHuman(result: ExportTmxResult, base?: string): string {
   const localeLines = result.locales.map(
     (locale) => `  ${locale.locale}: ${plural(locale.units, "unit")}`,
   );
@@ -897,7 +922,7 @@ export function renderTmxExportHuman(result: ExportTmxResult): string {
         ]
       : [];
   return [
-    `verbatra tmx export -> ${result.path}`,
+    `verbatra tmx export -> ${displayPath(result.path, base)}`,
     ...localeLines,
     `${plural(result.units, "unit")} across ${plural(result.locales.length, "locale")}`,
     ...withoutSource,
