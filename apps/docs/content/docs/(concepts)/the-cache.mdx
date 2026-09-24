@@ -13,7 +13,7 @@ On a run, before a key goes to the provider, verbatra looks it up in the cache b
 
 A reused value is not trusted blindly. It still passes the same [integrity checks](/docs/translation-safety) against the current source before it is written, so a cached value that no longer fits its key is discarded and the key is translated fresh. Cache hits are reported per locale in the run summary, separate from the keys translated this run.
 
-A value a reviewer [rejected](/docs/review-in-studio) is never reused for that key either. The rejection keeps a hash of the refused text in `verbatra.provenance.json`, and a run skips any exact or fuzzy hit whose text matches it, so a teammate's cache cannot put the text back. The key goes to the provider instead, or, with the provider `none`, stays unfilled until someone writes a value.
+A value a reviewer [rejected](/docs/review-in-studio) is never reused for that key either. The rejection keeps a hash of the refused text in `verbatra.provenance.json`, and a run skips any exact or fuzzy hit whose text matches it, so a teammate's cache cannot put the text back. The key goes to the provider instead, or, with the provider `none`, stays unfilled until someone writes a value. The one exception is a provenance file the run cannot read: one written by a newer verbatra, or a corrupt one under `humanEdits: "overwrite"`, which does not fail the run. The run then knows no rejection, so a rejected text can come back.
 
 ## Fuzzy reuse
 

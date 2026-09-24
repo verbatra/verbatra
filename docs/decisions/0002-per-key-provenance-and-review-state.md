@@ -441,7 +441,10 @@ Delivered next:
 
 - The `rejected` handling in a run: `translate` and `watch` skip an exact or fuzzy memory hit
   whose `valueHash` equals the key's `rejected` record, under every `humanEdits` setting, and send
-  the key to the provider instead; in human-only mode the key stays unfilled. `retranslateEntry`
+  the key to the provider instead; in human-only mode the key stays unfilled. The exception is a
+  provenance file the run cannot read: one written by a newer schema version under any setting, or
+  a corrupt one under `overwrite`, which reads it leniently rather than failing the run. The run
+  then knows no rejection and may reuse a rejected hit. `retranslateEntry`
   and plural generation never read the memory, so the rule has nothing to guard there (Decision 5).
 
 Specified here, delivered later:
