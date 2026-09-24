@@ -196,9 +196,12 @@ function acceptFuzzyFromCache(
     cache.fingerprint,
     params.targetLocale,
     source.value,
-    { threshold: fuzzy.threshold },
+    {
+      threshold: fuzzy.threshold,
+      excludeValue: (value) => isRejectedValue(params.rejected, source.key, value),
+    },
   );
-  if (match === undefined || isRejectedValue(params.rejected, source.key, match.value)) {
+  if (match === undefined) {
     return undefined;
   }
   const gate = gateCandidateValue(source, match.value, params.adapter, params.targetLocale);

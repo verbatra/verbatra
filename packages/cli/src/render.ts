@@ -223,12 +223,14 @@ function renderPosition(at: { readonly row: number; readonly line?: number }): s
 
 const REFUSAL_DETAIL_PREVIEW = 120;
 
+function renderRefusalDetails(details: readonly string[] | undefined): string {
+  return details === undefined
+    ? ""
+    : ` (${details.map((detail) => preview(detail, REFUSAL_DETAIL_PREVIEW)).join(", ")})`;
+}
+
 function renderRefusal(refusal: IntegrityRefusal): string {
-  const details =
-    refusal.details === undefined
-      ? ""
-      : ` (${refusal.details.map((detail) => preview(detail, REFUSAL_DETAIL_PREVIEW)).join(", ")})`;
-  return `      ${neutralizeControlCharacters(refusal.key)}: ${refusal.reason}${details}`;
+  return `      ${neutralizeControlCharacters(refusal.key)}: ${refusal.reason}${renderRefusalDetails(refusal.details)}`;
 }
 
 function renderIntegrityWithheld(locale: LocaleSummary): readonly string[] {
@@ -757,21 +759,15 @@ const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
   sourceBlank: "blank source segment",
 };
 
-function renderTmxRefusal(refusal: TmxUnitRefusal): readonly string[] {
-  if (refusal.details === undefined) {
-    return [];
-  }
-  const details = refusal.details
-    .map((detail) => preview(detail, REFUSAL_DETAIL_PREVIEW))
-    .join(", ");
-  return [`        unit ${refusal.unit}: ${refusal.reason} (${details})`];
+function renderTmxRefusal(refusal: TmxUnitRefusal): string {
+  return `        unit ${refusal.unit}: ${refusal.reason}${renderRefusalDetails(refusal.details)}`;
 }
 
 function renderTmxRejections(result: ImportTmxResult["locales"][number]): readonly string[] {
   const counts = TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
     (reason) => `      ${result.rejected[reason]} ${TMX_REJECTION_LABELS[reason]}`,
   );
-  return [...counts, ...result.refusals.flatMap(renderTmxRefusal)];
+  return [...counts, ...result.refusals.map(renderTmxRefusal)];
 }
 
 function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly string[] {

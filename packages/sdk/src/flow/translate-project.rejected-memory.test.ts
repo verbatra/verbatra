@@ -106,6 +106,38 @@ describe("translate: memory never brings back a rejected value", () => {
     expect((await targetValues(dir)).greeting).not.toBe(rejected);
   });
 
+  it("passes over a fuzzy candidate carrying the rejected text and takes the next-best one", async () => {
+    const dir = await project({
+      greeting: "Hello there, dear friend",
+      twin: "Hello there, dear friends",
+      other: "Hello there, my dear friend",
+    });
+    const values: Record<string, string> = {
+      "Hello there, dear friend": "Hallo Freund",
+      "Hello there, dear friends": "Hallo Freund",
+      "Hello there, my dear friend": "Servus",
+    };
+    const first = makeStubProvider({ translate: (value) => values[value] ?? value });
+    await translate({ config: cfg(), cwd: dir }, { createProvider: () => first.provider });
+    const teammateMemory = await readFile(cacheFilePath(dir), "utf8");
+    await rejectEntry({
+      config: cfg(),
+      cwd: dir,
+      locale: "de",
+      key: "greeting",
+      expectedValue: "Hallo Freund",
+    });
+    await writeFile(cacheFilePath(dir), teammateMemory, "utf8");
+    const next = fresh("[new]");
+    const config = cfg({ fuzzyCache: { enabled: true, threshold: 0.5 } });
+
+    const summary = await translate({ config, cwd: dir }, { createProvider: () => next.provider });
+
+    expect(next.calls).toHaveLength(0);
+    expect(summary.locales[0]?.fuzzyHits.map((hit) => hit.key)).toEqual(["greeting"]);
+    expect((await targetValues(dir)).greeting).toBe("Servus");
+  });
+
   it("still reuses a memory hit whose value differs from the rejected one", async () => {
     const dir = await project({ greeting: "Hello" });
     const first = fresh("[old]");

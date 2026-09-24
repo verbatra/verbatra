@@ -98,13 +98,13 @@ describe("deriveIntegrityPillView", () => {
     ];
     expect(
       deriveIntegrityPillView([entry({ icuArmsMatch: false, icuArmDetails: details })], "de"),
-    ).toEqual({ tone: "danger", label: "Plural arms mismatch", detail: details.join("; ") });
+    ).toEqual({ tone: "danger", label: "ICU arms mismatch", detail: details.join("; ") });
   });
 
   it("renders the arms mismatch without detail when no single arm is named", () => {
     expect(deriveIntegrityPillView([entry({ icuArmsMatch: false })], "de")).toEqual({
       tone: "danger",
-      label: "Plural arms mismatch",
+      label: "ICU arms mismatch",
       detail: null,
     });
   });
@@ -112,7 +112,7 @@ describe("deriveIntegrityPillView", () => {
   it("renders danger for wrong arms even on a key whose source has no placeholders", () => {
     expect(
       deriveIntegrityPillView([entry({ hasPlaceholders: false, icuArmsMatch: false })], "de"),
-    ).toMatchObject({ tone: "danger", label: "Plural arms mismatch" });
+    ).toMatchObject({ tone: "danger", label: "ICU arms mismatch" });
   });
 
   it("renders danger, not neutral, when a placeholder-free source received an ICU-invalid target", () => {

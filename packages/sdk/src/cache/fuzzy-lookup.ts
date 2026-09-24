@@ -15,6 +15,7 @@ export interface FuzzyCacheMatch {
 export interface FuzzyLookupOptions {
   readonly threshold: number;
   readonly score?: (left: string, right: string, threshold: number) => number | undefined;
+  readonly excludeValue?: (value: string) => boolean;
 }
 
 interface Candidate {
@@ -69,11 +70,14 @@ function collectCandidates(
   memory: TranslationMemory,
   bucket: Readonly<Record<string, string>>,
   query: string,
-  threshold: number,
+  options: FuzzyLookupOptions,
 ): readonly Candidate[] {
   const candidates: Candidate[] = [];
   for (const [contentHash, value] of Object.entries(bucket)) {
-    const candidate = usableCandidate(memory, contentHash, value, query, threshold);
+    if (options.excludeValue?.(value) === true) {
+      continue;
+    }
+    const candidate = usableCandidate(memory, contentHash, value, query, options.threshold);
     if (candidate !== undefined) {
       candidates.push(candidate);
     }
@@ -120,5 +124,5 @@ export function findFuzzyMatch(
     return undefined;
   }
   const query = normalizeText(sourceText);
-  return bestOf(collectCandidates(memory, bucket, query, options.threshold), query, options);
+  return bestOf(collectCandidates(memory, bucket, query, options), query, options);
 }
