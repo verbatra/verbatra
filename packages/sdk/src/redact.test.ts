@@ -13,6 +13,18 @@ describe("redact", () => {
     );
   });
 
+  it("redacts a key after a newline in serialized JSON and keeps the JSON valid", () => {
+    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+
+    const out = redact(JSON.stringify({ error: `line\n${key}` }));
+
+    expect(JSON.parse(out)).toEqual({ error: "line\n[REDACTED]" });
+  });
+
+  it("leaves a known prefix with no key after it readable", () => {
+    expect(redact("sk-admin-panel_title")).toBe("sk-admin-panel_title");
+  });
+
   it("does not redact a hyphenated word that merely starts with sk-", () => {
     expect(redact("this is a risk-averse plan")).toBe("this is a risk-averse plan");
   });

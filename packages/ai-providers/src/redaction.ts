@@ -11,11 +11,13 @@ const KEY_PATTERNS: readonly RegExp[] = [
   new RegExp(`${UUID}:fx\\b`, "g"),
 ];
 
-const SK_TOKEN = /\bsk-[A-Za-z0-9_-]+/g;
+const SK_TOKEN = /(?:(?<![A-Za-z0-9])|(?<=\\[bfnrt])|(?<=\\u[0-9A-Fa-f]{4}))sk-[A-Za-z0-9_-]+/g;
 
 const KNOWN_SK_PREFIX = /^sk-(?:ant|proj|svcacct|admin)-/;
 
 const MIN_SK_ALPHANUMERICS = 32;
+
+const MIN_KNOWN_PREFIX_TAIL_ALPHANUMERICS = 20;
 
 const QUOTE = `(?:\\\\*["'])?`;
 
@@ -32,8 +34,16 @@ function alphanumericCount(text: string): number {
   return text.replace(/[^A-Za-z0-9]/g, "").length;
 }
 
+function hasKnownPrefixAndTail(token: string): boolean {
+  const prefix = KNOWN_SK_PREFIX.exec(token)?.[0];
+  return (
+    prefix !== undefined &&
+    alphanumericCount(token.slice(prefix.length)) >= MIN_KNOWN_PREFIX_TAIL_ALPHANUMERICS
+  );
+}
+
 function redactSkToken(token: string): string {
-  if (KNOWN_SK_PREFIX.test(token) || alphanumericCount(token.slice(3)) >= MIN_SK_ALPHANUMERICS) {
+  if (hasKnownPrefixAndTail(token) || alphanumericCount(token.slice(3)) >= MIN_SK_ALPHANUMERICS) {
     return REDACTED;
   }
   return token;
