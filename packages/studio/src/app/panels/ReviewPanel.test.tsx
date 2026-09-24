@@ -585,6 +585,8 @@ describe("ReviewPanel", () => {
     expect(shown.getAttribute("dir")).toBe("rtl");
     expect(shown.className).toContain("w-fit");
     expect(shown.className).toContain("text-start");
+    expect(shown.className).toContain("max-w-[240px]");
+    expect(shown.className).toContain("sm:max-w-md");
     expect(
       Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
     ).toEqual(["#{orderId}", "{count, plural,", "one {", "#", "} other {", "#", "}", "}"]);
