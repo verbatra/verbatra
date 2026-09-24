@@ -196,6 +196,14 @@
  *   its directory is not writable, a directory or file already sits in the way, or the disk is out
  *   of space. The message names the file relative to `cwd` and the underlying file-system code, and
  *   the file-system error is the `cause`.
+ * - `LOCALE_STATE_NOT_CARRIED_OVER`: never thrown. It is recorded on the failed
+ *   {@link LocaleSummary} of a locale {@link translate} or {@link watch} did not run because the
+ *   state recorded under a respelled code of it, such as `pt_BR` for `pt-BR`, could not be moved
+ *   to it in the lock file or the provenance file: another process held the lock-file guard past
+ *   `lockAcquireTimeoutMs`, or a file could not be written. Running the locale anyway would record
+ *   its results under the new code and leave the protection and rejection records under the old
+ *   one unapplied, so the next run tries the move again. A dry run records it when another process
+ *   holds the lock-file guard at the time.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -239,6 +247,7 @@ export type SdkErrorCode =
   | "TMX_UNWRITABLE"
   | "EXPORT_OUTPUT_CONFLICT"
   | "EXPORT_UNWRITABLE"
+  | "LOCALE_STATE_NOT_CARRIED_OVER"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

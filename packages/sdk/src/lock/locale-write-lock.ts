@@ -121,7 +121,10 @@ interface AbandonedLock {
 }
 
 async function observeLock(path: string, fs: SdkFs): Promise<ObservedLock> {
-  const read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  return observedFrom(await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES));
+}
+
+function observedFrom(read: BoundedFileRead): ObservedLock {
   const record = parseRecord(read);
   return {
     ...(read.kind === "ok" ? { content: read.content } : {}),
@@ -348,6 +351,15 @@ export async function releaseHeldLocks(): Promise<void> {
   const locks = [...heldLocks];
   heldLocks.clear();
   await Promise.allSettled(locks.map((lock) => lock.fs.deleteFile(lock.path)));
+}
+
+export async function isLockHeld(
+  path: string,
+  fs: SdkFs,
+  liveness: LivenessContext = currentHostLiveness(),
+): Promise<boolean> {
+  const read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  return read.kind !== "missing" && !isAbandoned(observedFrom(read), liveness);
 }
 
 export async function withLocaleWriteLock<T>(
