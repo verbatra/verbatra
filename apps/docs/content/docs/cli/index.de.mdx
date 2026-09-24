@@ -59,6 +59,7 @@ Der Exit-Code ist der Vertrag, auf den ein CI-Schritt oder Skript verzweigt:
 | `0` | Erfolg (auch `--help` und `--version`) |
 | `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben unvollständig, `check` fand ein Locale, das nicht synchron ist, `diff` fand ausstehende Änderungen (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand ein Einrichtungsproblem oder mit `--literals` ein unübersetztes Literal, oder `types --check` fand die committete Deklaration veraltet |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Provider, Lock) oder ein Verwendungsfehler |
-| `130` | `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
+| `130` | `translate` oder `import` wurde mit Ctrl-C (SIGINT) abgebrochen, nachdem die Schreibsperren freigegeben waren, oder `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
+| `143` | `translate` oder `import` wurde mit SIGTERM beendet, nachdem die Schreibsperren freigegeben waren |
 
 Jede Befehlsseite erklärt, wie diese Codes auf den jeweiligen Befehl zutreffen. Wie du sie in eine Pipeline einbaust, steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
