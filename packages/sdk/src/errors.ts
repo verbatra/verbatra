@@ -14,7 +14,7 @@
  *   file could not be resolved or parsed, including one that declares an unsupported version.
  *   Thrown by {@link loadConfig} and {@link loadConfigWithMeta}, by {@link readGlossaryFile}, and
  *   by {@link updateGlossaryTerm}, which additionally throws it for an edit with a blank field, an
- *   edit that changes nothing or combines fields that cannot go together, an edit that would leave
+ *   edit that sets no field or combines fields that cannot go together, an edit that would leave
  *   an invalid glossary, and an edit whose result would exceed the glossary file size limit.
  *   {@link importTmx} and {@link exportTmx} throw it when the source locale and a target locale are
  *   the same language tag once case and separators are normalized, since a TMX segment could not be

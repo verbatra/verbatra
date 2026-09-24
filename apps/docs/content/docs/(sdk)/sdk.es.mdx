@@ -156,7 +156,7 @@ configurado se expande dentro, así que el archivo conserva la disposición que 
 Un pseudolocale que nombre un locale configurado, o que aterrizaría sobre un archivo de locale
 configurado, se rechaza con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada, así que no
 puede sobrescribir una traducción real ni hacerse pasar por una; lo mismo ocurre con un `out`
-absoluto o que se salga de `cwd`. Como el archivo vive fuera de
+absoluto, que se salga de `cwd` o que nombre el propio `cwd`, como `.`. Como el archivo vive fuera de
 `files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca informan de él como
 desfasado.
 
@@ -209,7 +209,8 @@ por su cuenta, y los que el adaptador marcó como plurales se listan.
 Entrada: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` toma por defecto
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Antes de leer o escribir nada, `TYPES_OUTPUT_CONFLICT`
 rechaza un `out` que no nombra ningún archivo (también uno que termina en un separador de ruta), es
-absoluto, se sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y uno que nombra un
+absoluto, se sale de `cwd` con `..`, nombra el propio `cwd` (`.`) o no termina en `.ts`, `.mts` o
+`.cts`, y uno que nombra un
 archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo
 donde verbatra busca su configuración, `configPath`, el archivo de configuración desde el que se
 cargó `config`, o `glossaryPath`, el archivo de glosario al que apunta; los nombres se comparan sin
@@ -512,8 +513,8 @@ integridad. Al aceptarse escribe el archivo de locale y la entrada del bloqueo s
 Entrada: `{ config, cwd?, locale, key, includeHuman? }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
 códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
-diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError` de
-`@verbatra/ai-providers` con un código estable como `RATE_LIMITED` o `AUTH_FAILED`. Con `provider: { id: "none" }` lanza primero `MACHINE_TRANSLATION_DISABLED`, antes de leer o bloquear nada.
+diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
+`@verbatra/sdk`, con un `code` estable como `RATE_LIMITED` o `AUTH_FAILED`. Con `provider: { id: "none" }` lanza primero `MACHINE_TRANSLATION_DISABLED`, antes de leer o bloquear nada.
 
 El nuevo valor queda registrado en `verbatra.provenance.json` como `machine`, con el proveedor y el
 modelo configurados. Un archivo de procedencia corrupto lanza `PROVENANCE_FILE_INVALID` antes de
@@ -805,10 +806,11 @@ se elimina cuando ya no le queda ninguna traducción ni traducción prohibida, l
 la versión 1 ocurre de inmediato.
 
 Un glosario en línea se rechaza con `GLOSSARY_NOT_FILE_BACKED` en lugar de convertirse: vive dentro
-de un módulo de configuración ejecutable. Un campo vacío, una edición que no cambia nada o que mezcla
+de un módulo de configuración ejecutable. Un campo vacío, una edición que no fija ningún campo o que mezcla
 `doNotTranslate` con los campos del término, traducciones prohibidas sin locale, un locale no válido,
 una edición que dejaría un glosario no válido y una edición cuyo resultado superaría el límite de
 1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida es `GLOSSARY_UNWRITABLE`.
+Una edición que deja el glosario tal como ya está tiene éxito y no escribe nada.
 
 ### glossaryForLocale
 
@@ -1005,7 +1007,7 @@ comparten todas las copias del SDK cargadas en él.
 
 `deps.fs` sustituye el puerto de sistema de archivos por el que viaja la propia I/O del SDK, con el
 tipo `SdkFs`. El punto de inyección es completo: el archivo de estado de la ejecución, el archivo
-de bloqueo, el glosario de la configuración, la I/O de libros e intercambio y los propios archivos
+de bloqueo, las herramientas del archivo de glosario, la I/O de libros e intercambio y los propios archivos
 de locale pasan todos por él, porque los adaptadores de formato leen y escriben a través de un
 puerto construido con ese mismo objeto. Así una ejecución entera se puede mantener en memoria, que
 es como las pruebas del propio SDK evitan tocar el disco y como una aplicación anfitriona puede
@@ -1040,9 +1042,16 @@ tal como están escritas. Un enlace en la ruta de salida cuyo destino no existe 
 así que las guardas dan por hecho que `writeFile` reemplaza ese enlace en lugar de escribir a través
 de él, como hace la escritura atómica por defecto.
 
-Lo único que `deps.fs` no alcanza es un `deps.adapterRegistry` suministrado por quien llama. Esos
+`deps.fs` no alcanza un `deps.adapterRegistry` suministrado por quien llama. Esos
 adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya
 cableado en ellos. Suministrar ambos significa que quien llama es dueño de ese cableado.
+
+La carga de la configuración también queda fuera del punto de inyección. `loadConfig` y
+`loadConfigWithMeta` no reciben `deps`: leen el propio archivo de configuración del disco real, y un
+archivo de glosario que nombre la configuración a través de su propia opción `fs`, así que el
+`deps.fs` que recibe un flujo posterior no alcanza ninguna de las dos lecturas. Para mantener un
+proyecto entero en memoria, pasa el mismo `SdkFs` como `loadConfig({ fs })` y entrega la
+configuración como `configOverride` en lugar de como archivo.
 
 ## La anatomía de RunSummary
 
@@ -1081,7 +1090,7 @@ interface LocaleSummary {
   notices: LocaleNotice[];       // provider notices and SDK notices for this locale
   needsReview: { key: string; reasons: string[] }[]; // accepted keys flagged for a second look
   usage?: UsageSummary;          // this locale's summed tokens; absent if nothing reported usage
-  error?: { code: string; message: string }; // present only when status is "failed"
+  error?: { code: string; message: string }; // only on a "failed" locale, and not on every one
 }
 ```
 
@@ -1122,7 +1131,12 @@ Las partes que conviene conocer:
   más. El presupuesto acota una llamada a `translate`: `watch` arranca uno nuevo por ejecución, y
   `retranslateEntry` no queda cubierto en absoluto.
 - **error.code** en un locale fallido es una cadena preservada (el código subyacente del proveedor o del
-  adaptador, con `LOCALE_FAILED` solo como reserva), así que no lo trates como un conjunto cerrado.
+  adaptador, con `LOCALE_FAILED` solo como reserva), así que no lo trates como un conjunto cerrado. Un
+  locale `failed` no siempre lleva `error`: uno cuyas claves se retuvieron todas, y por eso aparecen
+  en `integrityMismatches`, `providerFailures` o `budgetWithheld`, falla sin que se lance nada. El
+  motivo está en esas listas y en sus `notices`, como `SUB_BATCH_FAILED` para un lote del proveedor
+  que falló o `BUDGET_TOKENS_EXCEEDED` para el presupuesto de tokens. Comprueba `status`, nunca si
+  `error` está presente.
 - **cacheHits** lista las claves servidas desde la [caché de memoria de traducción](/docs/the-cache)
   en lugar del proveedor. **fuzzyHits** lista las claves que reutilizaron una traducción para
   una cadena de origen que había cambiado, cada una con `key`, `similarity` y el `previousSource` con
@@ -1187,7 +1201,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
 | `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
-| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta), es absoluta, sale de `cwd` con `..` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta), es absoluta, sale de `cwd` con `..` o nombra el propio `cwd` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
 | `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
 | `TMX_OUTPUT_CONFLICT` | `exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria |
 | `TMX_UNWRITABLE` | el archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es escribible, ya hay un directorio en esa ruta, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
@@ -1198,3 +1212,10 @@ propio del proveedor cuando la llamada única falla, y `runStatus` no lanza nunc
 códigos se corresponden con los códigos de salida de la CLI, consulta
 [CI y códigos de salida](/docs/ci-and-exit-codes); para ayuda a partir del síntoma, consulta
 [Solución de problemas](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` y su tipo `ProviderErrorCode` se exportan desde `@verbatra/sdk`, así que comprueba
+un fallo de `retranslateEntry` con `error instanceof ProviderError` y ramifica según `error.code`; la
+[página de proveedores](/docs/providers) lista todos los códigos. En una versión anterior, que no
+exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.

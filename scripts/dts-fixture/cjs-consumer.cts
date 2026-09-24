@@ -9,3 +9,7 @@ export const config = sdk.defineConfig({
 });
 
 export const isSdkError = (error: unknown): boolean => error instanceof sdk.SdkError;
+
+export function providerErrorCode(error: unknown): sdk.ProviderErrorCode | undefined {
+  return error instanceof sdk.ProviderError ? error.code : undefined;
+}

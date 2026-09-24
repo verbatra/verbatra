@@ -62,7 +62,7 @@ function assertEditShape(edit: GlossaryEdit): void {
     edit.caseSensitive === undefined
   ) {
     throw invalid(
-      `The glossary edit for "${edit.term}" changes nothing. Pass a translation, forbidden renderings, a note, a part of speech, case sensitivity, or doNotTranslate.`,
+      `The glossary edit for "${edit.term}" sets no field. Pass a translation, forbidden renderings, a note, a part of speech, case sensitivity, or doNotTranslate.`,
     );
   }
   if (edit.forbidden !== undefined && edit.locale === undefined) {

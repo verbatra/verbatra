@@ -5,6 +5,7 @@ import { contentHash, type TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
+import { ProviderError as ExportedProviderError } from "../index.js";
 import {
   baseConfig,
   localeGlossaryOf,
@@ -277,6 +278,19 @@ describe("retranslateEntry: provider errors", () => {
 
     expect(error).toBeInstanceOf(ProviderError);
     expect((error as ProviderError).code).toBe("INVALID_RESPONSE");
+  });
+
+  it("throws the ProviderError class the SDK exports, so a caller can test for it", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({ missingValues: new Set(["greeting"]) });
+
+    const error = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExportedProviderError);
+    expect(error).toMatchObject({ name: "ProviderError", code: "INVALID_RESPONSE" });
   });
 });
 
