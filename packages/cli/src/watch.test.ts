@@ -315,6 +315,21 @@ describe("run watch: shutdown and exit codes", () => {
     expect(() => session.requestStop()).not.toThrow();
   });
 
+  it("refuses a budget conflict without first announcing an initial translation", async () => {
+    const { deps } = recordingDeps({
+      watch: () =>
+        Promise.reject(
+          new SdkError("CONCURRENCY_BUDGET_CONFLICT", "Set concurrency to 1 or remove maxTokens."),
+        ),
+    });
+    const cap = captureStreams();
+    const { done } = await startWatch(["watch", "--concurrency", "2"], deps, cap.streams);
+
+    expect(await done).toBe(2);
+    expect(cap.err()).toContain("[CONCURRENCY_BUDGET_CONFLICT]");
+    expect(cap.err()).not.toContain("running initial translation");
+  });
+
   it("a loadConfig failure before watching exits 2 with the structured error", async () => {
     const { deps } = recordingDeps({
       loadConfig: () => Promise.reject(new SdkError("CONFIG_INVALID", "bad config")),

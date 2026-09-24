@@ -28,10 +28,6 @@ export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams)
     );
   };
 
-  streams.err(
-    `verbatra: watching ${options.config.sourceLocale} (${options.config.files.pattern}); running initial translation\n`,
-  );
-
   const watchInput: WatchInput = {
     config: options.config,
     onRun,
@@ -52,7 +48,13 @@ export function runWatch(options: WatchOptions, deps: CliDeps, streams: Streams)
   };
 
   return stoppableSession<WatchController>({
-    getController: () => deps.watch(watchInput),
+    getController: async () => {
+      const controller = await deps.watch(watchInput);
+      streams.err(
+        `verbatra: watching ${options.config.sourceLocale} (${options.config.files.pattern}); running initial translation\n`,
+      );
+      return controller;
+    },
     onStopRequested: () => {
       streams.err("verbatra: stopping, finishing current run...\n");
     },

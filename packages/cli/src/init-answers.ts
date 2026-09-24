@@ -11,6 +11,8 @@ import { CliUsageError } from "./cli-usage-error.js";
 import {
   buildProviderOptions,
   type ConfigDraft,
+  DEFAULT_LAYOUTS,
+  type DefaultLayout,
   type FormatOrigin,
   INIT_PROVIDER_IDS,
   type InitProviderId,
@@ -88,10 +90,9 @@ interface PickSpec {
   readonly missingReason?: string | undefined;
 }
 
-const DEFAULT_FORMAT = "i18next-json";
+const DEFAULT_FORMAT: SupportedFormat = "i18next-json";
 const DEFAULT_SOURCE = "en";
 const DEFAULT_TARGETS = "de";
-const DEFAULT_PATTERN = "locales/{locale}.json";
 const ENV_VAR_NAME = /^[A-Z_][A-Z0-9_]*$/;
 const PROVIDER_FLAG = `--provider <${INIT_PROVIDER_IDS.join("|")}>`;
 
@@ -114,21 +115,34 @@ function fallbackAnswer(spec: PickSpec, session: Session): Resolved | undefined 
   return undefined;
 }
 
+function emptyFlagError(flag: string): CliUsageError {
+  return invalidOption(`${flag} was given an empty value. Pass a value, or leave the flag out.`);
+}
+
+async function askFor(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
+  const suggestion = spec.detected ?? spec.fallback;
+  const question = suggestion === undefined ? `${spec.label}: ` : `${spec.label} [${suggestion}]: `;
+  const answer = (await session.ask(question)).trim();
+  if (answer !== "") {
+    return { value: answer, source: "prompt" };
+  }
+  if (spec.detected === undefined && spec.fallback !== undefined) {
+    return { value: spec.fallback, source: "prompt" };
+  }
+  return undefined;
+}
+
 async function pick(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
   const flagged = trimmed(spec.value);
   if (flagged !== "") {
     return { value: flagged, source: "flag" };
   }
-  if (session.interactive) {
-    const suggestion = spec.detected ?? spec.fallback;
-    const question =
-      suggestion === undefined ? `${spec.label}: ` : `${spec.label} [${suggestion}]: `;
-    const answer = (await session.ask(question)).trim();
-    if (answer !== "") {
-      return { value: answer, source: "prompt" };
-    }
+  if (spec.value !== undefined) {
+    session.problems.push(emptyFlagError(spec.flag));
+    return undefined;
   }
-  return fallbackAnswer(spec, session);
+  const answered = session.interactive ? await askFor(session, spec) : undefined;
+  return answered ?? fallbackAnswer(spec, session);
 }
 
 async function attempt<T>(session: Session, body: () => Promise<T> | T): Promise<T | undefined> {
@@ -179,7 +193,7 @@ function assertProviderFlags(opts: InitOptions, provider: InitProviderId): void 
     const given = openAiCompatibleOnly.filter(([, value]) => value !== undefined);
     if (given.length > 0) {
       throw invalidOption(
-        `${given.map(([flag]) => flag).join(" and ")} apply to --provider ${OPENAI_COMPATIBLE_PROVIDER} only.`,
+        `${given.map(([flag]) => flag).join(" and ")} ${given.length === 1 ? "applies" : "apply"} to --provider ${OPENAI_COMPATIBLE_PROVIDER} only.`,
       );
     }
   }
@@ -298,7 +312,7 @@ function formatOrigin(source: ValueSource, detection: ProjectDetection): FormatO
 }
 
 interface FormatAnswer {
-  readonly value: string;
+  readonly value: SupportedFormat;
   readonly origin: FormatOrigin;
 }
 
@@ -324,8 +338,7 @@ async function resolveFormat(
   if (picked === undefined) {
     return undefined;
   }
-  parseFormat(picked.value);
-  return { value: picked.value, origin: formatOrigin(picked.source, detection) };
+  return { value: parseFormat(picked.value), origin: formatOrigin(picked.source, detection) };
 }
 
 function splitLocales(raw: string): string[] {
@@ -353,6 +366,7 @@ async function resolvePattern(
   opts: InitOptions,
   detection: ProjectDetection,
   session: Session,
+  defaultLayout: DefaultLayout,
 ): Promise<Resolved | undefined> {
   const patterns = ambiguousCandidates(detection, "layout");
   if (trimmed(opts.path) === "" && patterns !== undefined && !session.interactive) {
@@ -366,7 +380,7 @@ async function resolvePattern(
     value: opts.path,
     label: "Locale file pattern",
     detected: detection.layout?.pattern,
-    fallback: patterns?.[0] ?? DEFAULT_PATTERN,
+    fallback: patterns?.[0] ?? defaultLayout.pattern,
   });
 }
 
@@ -374,10 +388,17 @@ function unqualifiedSourceReason(file: string): string {
   return `${file} holds strings under no locale name, so init cannot tell which locale it is written in`;
 }
 
+function noTargetsError(): CliUsageError {
+  return invalidOption(
+    "--targets names no locale. Pass one or more comma-separated locales, such as de,fr.",
+  );
+}
+
 async function resolveLayout(
   opts: InitOptions,
   detection: ProjectDetection,
   session: Session,
+  defaultLayout: DefaultLayout,
 ): Promise<LayoutAnswers | undefined> {
   const layout = detection.layout;
   const unqualified = layout?.unqualifiedSourceFile;
@@ -397,17 +418,24 @@ async function resolveLayout(
       sourceLocale === undefined ? undefined : detectedTargets(detection, sourceLocale.value),
     fallback: DEFAULT_TARGETS,
   });
-  const pattern = await resolvePattern(opts, detection, session);
+  if (targetLocales !== undefined && splitLocales(targetLocales.value).length === 0) {
+    session.problems.push(noTargetsError());
+  }
+  const pattern = await resolvePattern(opts, detection, session, defaultLayout);
   if (sourceLocale === undefined || targetLocales === undefined || pattern === undefined) {
     return undefined;
   }
   return { sourceLocale, targetLocales, pattern };
 }
 
-function localeStyleFor(detection: ProjectDetection, pattern: Resolved): LocaleStyle | undefined {
+function localeStyleFor(
+  detection: ProjectDetection,
+  pattern: Resolved,
+  defaultLayout: DefaultLayout,
+): LocaleStyle | undefined {
   const layout = detection.layout;
   if (layout === undefined) {
-    return undefined;
+    return pattern.value === defaultLayout.pattern ? defaultLayout.localeStyle : undefined;
   }
   const fitsLayout =
     pattern.source === "detected" || pattern.source === "flag" || pattern.value === layout.pattern;
@@ -447,8 +475,20 @@ function missingOptionsError(session: Session): CliUsageError {
   );
 }
 
+function distinctProblems(problems: readonly CliUsageError[]): readonly CliUsageError[] {
+  const seen = new Set<string>();
+  return problems.filter((problem) => {
+    const identity = `${problem.code}\u0000${problem.message}`;
+    if (seen.has(identity)) {
+      return false;
+    }
+    seen.add(identity);
+    return true;
+  });
+}
+
 function combinedError(session: Session): CliUsageError | undefined {
-  const [first, ...rest] = session.problems;
+  const [first, ...rest] = distinctProblems(session.problems);
   if (first === undefined) {
     return session.missing.length === 0 ? undefined : missingOptionsError(session);
   }
@@ -481,7 +521,7 @@ function candidateConfig(draft: ConfigDraft): Record<string, unknown> {
 function assertValid(candidate: Record<string, unknown>): void {
   const validated = verbatraConfigSchema.safeParse(candidate);
   if (!validated.success) {
-    const detail = validated.error.issues.map((issue) => issue.message).join("; ");
+    const detail = [...new Set(validated.error.issues.map((issue) => issue.message))].join("; ");
     throw new CliUsageError("CONFIG_INVALID", `Could not scaffold a valid config: ${detail}`);
   }
 }
@@ -509,7 +549,8 @@ export async function planInit(
   const provider = await attempt(session, () => resolveProvider(opts, session));
   const detection = await detect(detectionInput(opts, cwd, givenFormat));
   const format = await attempt(session, () => resolveFormat(opts, detection, session));
-  const answers = await resolveLayout(opts, detection, session);
+  const defaultLayout = DEFAULT_LAYOUTS[format?.value ?? DEFAULT_FORMAT];
+  const answers = await resolveLayout(opts, detection, session, defaultLayout);
   const failure = combinedError(session);
   if (failure !== undefined || provider === undefined || format === undefined || !answers) {
     throw failure ?? missingOptionsError(session);
@@ -521,7 +562,7 @@ export async function planInit(
     format: format.value,
     formatOrigin: format.origin,
     pattern: answers.pattern.value,
-    localeStyle: localeStyleFor(detection, answers.pattern),
+    localeStyle: localeStyleFor(detection, answers.pattern, defaultLayout),
     provider: provider.choice,
   };
   const candidate = candidateConfig(draft);
