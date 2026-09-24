@@ -81,6 +81,7 @@ El formato `yaml` cubre archivos `.yml` y `.yaml`: un árbol anidado en sintaxis
 El formato `arb` cubre los archivos `.arb` de Flutter: JSON con un objeto plano de claves de mensaje junto a metadatos con prefijo `@` (metadatos por mensaje `@key` y globales con prefijo `@@` como `@@locale`).
 
 - **Los metadatos se preservan, nunca se traducen.** Las claves con prefijo `@` se apartan antes de la traducción y se fusionan de vuelta al escribir, en su posición del documento. Un archivo de destino que existe pero está corrupto hace fallar la escritura en lugar de borrar sus metadatos en silencio.
+- **Una escritura contiene exactamente los mensajes que recibe.** Un mensaje que queda fuera de la escritura, porque `translate --prune` eliminó una clave huérfana o alguien rechazó el valor en la revisión, se elimina del archivo junto con su bloque `@key`. Los globales con prefijo `@@` como `@@locale`, `@@last_modified` y `@@context` se conservan siempre.
 - **Los mensajes son ICU.** Los placeholders, el manejo de plurales y la validación ICU funcionan exactamente igual que para `next-intl-json`.
 - **Las descripciones se vuelven contexto.** Cada `@key.description` se lee como contexto de desarrollador para ese mensaje: llega al proveedor como contexto de desambiguación (nunca como texto a traducir) y aparece en la [columna `Context`](/docs/manual-translation) de un libro exportado. Es de solo lectura y nunca se escribe de vuelta.
 

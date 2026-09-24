@@ -198,8 +198,7 @@ cambia nada.
   llamada informa `REVIEW_RESTORE_FAILED` y nombra los archivos que tienes que recuperar del control
   de versiones. Un proceso que se detiene a mitad de la escritura no se puede deshacer así. Un formato que no puede eliminar una sola
   traducción rechaza el rechazo con `REVIEW_REJECT_UNSUPPORTED` y deja el archivo como estaba: XLIFF,
-  cuyo escritor solo actualiza los destinos que recibe y conserva todos los demás, y Flutter ARB, cuyo escritor conserva
-  todos los mensajes existentes.
+  cuyo escritor solo actualiza los destinos que recibe y conserva todos los demás.
 
 Cualquier escritura posterior que cambie el valor empieza un registro nuevo, sin revisar, así que
 editar un valor aprobado lo devuelve a revisión. El nombre en `reviewer` se guarda en un archivo con

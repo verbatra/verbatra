@@ -181,8 +181,7 @@ verbatra, or one the decision would grow past the size verbatra reads back, fail
   reports `REVIEW_RESTORE_FAILED` and names the files to restore from version control. A process
   killed in the middle of the write cannot be undone this way. A format that cannot drop one
   translation refuses the rejection with `REVIEW_REJECT_UNSUPPORTED` and leaves the file as it was:
-  XLIFF, whose writer only updates the targets it is given and keeps every other one, and Flutter ARB,
-  whose writer keeps every existing message.
+  XLIFF, whose writer only updates the targets it is given and keeps every other one.
 
 Any later write that changes the value starts a fresh, unreviewed record, so editing an approved
 value sends it back for review. The `reviewer` name is stored in a committed file, so it is public;

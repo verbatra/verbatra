@@ -585,7 +585,7 @@ keinen Provider auf.
 
 Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, geprüft wie bei `approveEntry`,
 nur dass eine veraltete Quelle eine Ablehnung nicht verhindert. Gibt `{ locale, key, provenance }`
-zurück. Ein Format, das einen Key behält, den es nicht übergeben bekommt, XLIFF oder Flutter ARB, wirft
+zurück. Ein Format, das einen Key behält, den es nicht übergeben bekommt, XLIFF, wirft
 `REVIEW_REJECT_UNSUPPORTED`, nachdem es die Datei wiederhergestellt hat.
 
 Beide Aufrufe prüfen die Herkunftsdatei, bevor etwas geschrieben wird, und melden nie eine
@@ -1257,7 +1257,7 @@ geworfen.
 | `PROVENANCE_FILE_UNWRITABLE` | eine Review-Entscheidung ließ sich nicht speichern, weil die Herkunftsdatei von einem neueren verbatra stammt oder über die Größe wachsen würde, die verbatra wieder einliest (`approveEntry`, `rejectEntry`); nichts wird geschrieben |
 | `REVIEW_VALUE_CHANGED` | der Key hat keinen Wert, oder sein Wert ist nicht der `expectedValue`, den die prüfende Person gesehen hat (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | die Quelle hat sich geändert, seit der Wert geschrieben wurde, also lässt er sich so nicht freigeben (`approveEntry`) |
-| `REVIEW_REJECT_UNSUPPORTED` | das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird, wie XLIFF und Flutter ARB, also hat `rejectEntry` die Datei stattdessen wiederhergestellt |
+| `REVIEW_REJECT_UNSUPPORTED` | das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird, wie XLIFF, also hat `rejectEntry` die Datei stattdessen wiederhergestellt |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` ist nach dem Umschreiben der Locale-Datei gescheitert, und auch das Wiederherstellen der Locale-Datei oder der Herkunftsdatei schlug fehl; die Message nennt den ursprünglichen Fehler (auch die `cause`) und die Dateien, die du aus der Versionskontrolle wiederherstellst |
 | `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`) |
 | `LOCK_CONTENDED` | das Schreibsperre einer Locale konnte nicht vor seinem Timeout erworben werden; die Message nennt den Pfad der Lock-Datei |
