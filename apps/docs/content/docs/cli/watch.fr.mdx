@@ -52,6 +52,23 @@ verbatra watch --debounce 1000 --json
 verbatra watch --locales de
 ```
 
+## Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+Sans `--json`, `watch` nomme le fichier source quand une modification s'est stabilisée, puis s'exécute exactement comme `translate`, avec le même spinner dans un terminal interactif :
+
+```text
+verbatra: change detected: locales/en.json
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de done, 1 translated
+verbatra: run finished, 1 locale processed
+verbatra: waiting for changes...
+```
+
+Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
+
 ## Codes de sortie
 
 | Code | Signification |

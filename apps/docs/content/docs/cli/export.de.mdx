@@ -51,6 +51,19 @@ Die Übergabe wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor ir
 
 Ein Pfad, der diese Prüfungen besteht, kann beim Schreiben trotzdem scheitern: Ist das Verzeichnis nicht schreibbar, liegt ein Verzeichnis oder eine Datei im Weg oder ist die Platte voll, bricht der Lauf mit `EXPORT_UNWRITABLE` ab, nennt die Datei und den Dateisystem-Code und endet mit `2`.
 
+## Rückmeldung im Terminal
+
+<AvailableFrom version="0.12.0" />
+
+`export` zeigt eine Zeile, während es die Übergabe schreibt, und wenn es etwas zu übergeben gab, nennt es den Import, der die ausgefüllte Datei zurückholt:
+
+```text
+verbatra: exporting to xlsx... done (0.3s)
+next: verbatra import verbatra-translations.xlsx  (once your translators have filled it in)
+```
+
+Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
+
 ## Exit-Codes
 
 | Code | Bedeutung |

@@ -125,6 +125,19 @@ verbatra extract
     src/routes/product.tsx:88
 ```
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`extract` muestra una línea mientras escanea, con un recuento de archivos en curso en un terminal interactivo. Si añadió claves sugiere `verbatra translate`, y tras `--dry-run` sugiere el mismo extract sin el flag:
+
+```text
+verbatra: scanning the source... done (0.6s)
+next: verbatra translate  (translate the new keys)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

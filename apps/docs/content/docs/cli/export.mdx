@@ -51,6 +51,19 @@ The handoff is only written inside the working directory. Before anything is rea
 
 A path that passes those checks can still fail at the moment of writing: when the directory is not writable, a directory or file is in the way, or the disk is full, the run stops with `EXPORT_UNWRITABLE`, naming the file and the file-system code, and exits `2`.
 
+## Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`export` shows one line while it writes the handoff, and when there was anything to hand off it names the import that brings the filled file back:
+
+```text
+verbatra: exporting to xlsx... done (0.3s)
+next: verbatra import verbatra-translations.xlsx  (once your translators have filled it in)
+```
+
+These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
+
 ## Exit codes
 
 | Code | Meaning |

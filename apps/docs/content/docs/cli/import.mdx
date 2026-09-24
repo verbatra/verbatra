@@ -44,6 +44,19 @@ A file left over from an earlier export with a wider `--locales` selection is ne
 
 `--lock-timeout` tunes how long a locale waits for a contended [write lock](/docs/the-lock-file#the-write-lock) before that locale fails with `LOCK_CONTENDED`, exactly as on [`verbatra translate`](/docs/cli/translate). The wait happens before the locale's file is written, so a locale that times out is left untouched while the other locales still import, and the command exits `1`. Once a locale's file is written, recording it in the lock file waits up to the ten-minute default whatever `--lock-timeout` says. While a wait lasts longer than a second, a line on stderr names the lock file and its holder, or a `lock-wait` JSON record under `--json`. `--dry-run` takes no lock, so it never waits.
 
+## Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`import` shows one line while it reads and applies the file. After a clean import it suggests `verbatra check`, and after `--dry-run` it suggests the same import without the flag:
+
+```text
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check  (confirm every locale is in sync)
+```
+
+These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
+
 ## Exit codes
 
 | Code | Meaning |

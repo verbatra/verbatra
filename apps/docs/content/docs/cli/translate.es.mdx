@@ -71,6 +71,27 @@ verbatra translate --max-tokens 50000
 verbatra translate --include-human
 ```
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+Antes de la ejecución, `translate` nombra los locales y el proveedor que va a usar (o indica que es un dry run o una estimación), y tras el resumen imprime el tiempo transcurrido, los tokens usados y el siguiente comando. En un terminal interactivo, el progreso por locale se convierte en una línea con spinner que muestra el locale, el lote, un reintento del proveedor, una ronda de reparación y la escritura del archivo mientras ocurren, y solo queda la línea `done` de cada locale. Si stderr se redirige, las líneas de progreso se imprimen exactamente como antes:
+
+```text
+verbatra: translating 2 locales with gemini/gemini-2.5-flash
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de done, 12 translated
+verbatra: translating fr
+verbatra: fr batch 1/1
+verbatra: fr done, 12 translated
+verbatra: run finished, 2 locales processed
+[ok] done in 4.2s, 1830 tokens
+next: verbatra check  (confirm every locale is in sync)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

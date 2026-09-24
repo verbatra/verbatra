@@ -119,6 +119,18 @@ type QaFinding =
 
 Ein paar Dinge lässt die Prüfung aus: einen Key, den nur das Ziel hat (er ist verwaist, und [`verbatra diff`](/docs/cli/diff) listet ihn), einen fehlenden Key (es gibt keinen Wert zu prüfen) und einen Key, dessen Quelle kein gültiges ICU ist, weil sich daran keine Übersetzung messen lässt; solche Keys stehen einmal unter `invalidSourceKeys`. [Geschützte](/docs/protecting-human-translations) und gepinnte Keys werden wie alle anderen geprüft, denn ihre Werte werden genauso ausgeliefert, und das gilt auch für Werte, die jemand im Review abgelehnt hat. `--consistency` bleibt ein eigenes Flag, das nur berichtet; kombiniere beide, um beide Berichte zu bekommen.
 
+## Rückmeldung im Terminal
+
+<AvailableFrom version="0.12.0" />
+
+`check` zeigt eine Zeile, während es die Locales liest und vergleicht; sein eigener Hinweis `run verbatra translate to update` bleibt wie bisher auf stdout:
+
+```text
+verbatra: checking the locales... done (0.1s)
+```
+
+Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
+
 ## Exit-Codes
 
 | Code | Bedeutung |

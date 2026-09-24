@@ -119,6 +119,18 @@ type QaFinding =
 
 Hay cosas que la comprobación deja fuera: una clave que solo tiene el destino (está huérfana, y [`verbatra diff`](/docs/cli/diff) la lista), una clave faltante (no hay valor que comprobar) y una clave cuyo origen no es ICU válido, porque ninguna traducción puede medirse contra él; esas se listan una vez en `invalidSourceKeys`. Las claves [protegidas](/docs/protecting-human-translations) y fijadas se comprueban como cualquier otra, porque sus valores se publican igual, y lo mismo vale para los valores que alguien rechazó en la revisión. `--consistency` sigue siendo un flag aparte que solo informa; combina los dos para obtener ambos informes.
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`check` muestra una línea mientras lee y compara los locales; su propia sugerencia `run verbatra translate to update` sigue en stdout como antes:
+
+```text
+verbatra: checking the locales... done (0.1s)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

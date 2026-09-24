@@ -97,6 +97,19 @@ verbatra pseudo
   unchanged .verbatra-local/pseudo/locales/en-XA.json
 ```
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`pseudo` muestra una línea mientras escribe el pseudolocale y luego te dice qué archivo cargar en tu servidor de desarrollo:
+
+```text
+verbatra: pseudolocalizing the source... done (0.1s)
+next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

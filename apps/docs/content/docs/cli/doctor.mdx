@@ -126,6 +126,18 @@ verbatra doctor
 2 problems found (run verbatra doctor again after fixing them)
 ```
 
+## Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`doctor` shows one line while it runs its checks, or `scanning the source for literals` with a running file count on an interactive terminal under `--literals`. Its report and its own hint stay on stdout:
+
+```text
+verbatra: checking the setup... done (0.2s)
+```
+
+These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
+
 ## Exit codes
 
 | Code | Meaning |

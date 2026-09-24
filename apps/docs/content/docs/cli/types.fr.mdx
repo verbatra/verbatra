@@ -222,6 +222,19 @@ verbatra types
   verbatra-types.d.ts is out of date, re-run verbatra types
 ```
 
+## Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+`types` affiche une ligne pendant qu'il génère la déclaration et, après l'écriture, te demande de committer le fichier ; `--check` ne suggère rien :
+
+```text
+verbatra: generating the declarations... done (0.2s)
+next: commit verbatra-types.d.ts  (verbatra types --check compares against it in CI)
+```
+
+Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
+
 ## Codes de sortie
 
 | Code | Signification |
