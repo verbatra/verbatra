@@ -1164,6 +1164,22 @@ Guards die Pfade so, wie sie geschrieben sind. Ein Link am Ausgabepfad, dessen Z
 lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` und `writeBytes`
 einen Link dort ersetzen, statt durch ihn hindurch zu schreiben, so wie es der atomare Standard-Schreibvorgang tut.
 
+`rename` ist ebenfalls optional.
+
+<AvailableFrom version="0.12.0" />
+
+Es verschiebt eine Datei in einem atomaren Schritt unter einen neuen Namen im selben Verzeichnis,
+ersetzt dabei eine dort schon liegende Datei und scheitert mit einem Fehler, dessen `code` `ENOENT`
+ist, wenn die Quelle fehlt. Die Schreibsperre nutzt es, um eine Sperre oder einen Übernahme-Guard
+eines beendeten Prozesses zu entfernen: Die Datei wird unter einem eindeutigen Namen beiseitegelegt
+und nur gelöscht, wenn sie noch der verwaiste Eintrag ist, den die Sperre gesehen hat. Alles andere,
+etwa eine Sperre, die ein anderer Prozess inzwischen genommen hat, wird mit `createExclusive`
+zurückgelegt, und hat ein dritter Prozess den Pfad in der Zwischenzeit belegt, bleibt es beiseite
+liegen, statt gelöscht zu werden. Ohne `rename` liest die Sperre die Datei und löscht sie, wenn sie
+unverändert ist, und räumt einen verwaisten Übernahme-Guard erst ab, nachdem sie ihn über zwei
+Abfragen unverändert gesehen hat. Das verkleinert das Zeitfenster, in dem eine gerade genommene
+Sperre eines anderen Prozesses gelöscht wird, schließt es aber nicht.
+
 `deps.fs` erreicht keine vom Aufrufer übergebene `deps.adapterRegistry`.
 Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
 darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.

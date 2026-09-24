@@ -1136,6 +1136,21 @@ tal como están escritas. Un enlace en la ruta de salida cuyo destino no existe 
 así que las guardas dan por hecho que `writeFile` y `writeBytes` reemplazan ese enlace en lugar de escribir a través
 de él, como hace la escritura atómica por defecto.
 
+`rename` también es opcional.
+
+<AvailableFrom version="0.12.0" />
+
+Mueve un archivo a un nombre nuevo en el mismo directorio en un solo paso atómico, reemplazando
+cualquier archivo que ya esté allí, y rechaza con un error cuyo `code` es `ENOENT` cuando falta el
+origen. El bloqueo de escritura lo usa para quitar un bloqueo o una guarda de recuperación que dejó
+un proceso que ya no existe: el archivo se aparta con un nombre único y solo se borra si sigue
+siendo el registro abandonado que observó el bloqueo. Cualquier otra cosa, como un bloqueo que otro
+proceso tomó entretanto, se devuelve a su sitio con `createExclusive`, y si un tercer proceso ocupó
+la ruta mientras tanto, se deja apartado en lugar de borrarse. Sin `rename`, el bloqueo lee el
+archivo y lo borra si no ha cambiado, y solo quita una guarda de recuperación abandonada después de
+verla sin cambios en dos sondeos, lo que estrecha pero no puede cerrar la ventana en la que se borra
+un bloqueo que otro proceso acaba de tomar.
+
 `deps.fs` no alcanza un `deps.adapterRegistry` suministrado por quien llama. Esos
 adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya
 cableado en ellos. Suministrar ambos significa que quien llama es dueño de ese cableado.
