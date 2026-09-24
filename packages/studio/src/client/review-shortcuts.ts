@@ -5,6 +5,7 @@ export type ReviewShortcutAction =
   | "reject"
   | "edit"
   | "retranslate"
+  | "select"
   | "help";
 
 export interface ReviewShortcut {
@@ -21,6 +22,7 @@ const SHORTCUT_KEYS: Readonly<Record<ReviewShortcutAction, readonly string[]>> =
   reject: ["r"],
   edit: ["e", "Enter"],
   retranslate: ["t"],
+  select: ["x"],
   help: ["?"],
 };
 
@@ -31,6 +33,7 @@ const SHORTCUT_LABELS: Readonly<Record<ReviewShortcutAction, string>> = {
   reject: "Reject the entry",
   edit: "Edit the entry",
   retranslate: "Retranslate the entry",
+  select: "Select or unselect the entry for a bulk action",
   help: "Show or hide these shortcuts",
 };
 

@@ -9,12 +9,8 @@ agrupada por la tarea que hace cada punto de entrada. Para ejemplos de principio
 
 ## Instalación
 
-```bash
+```npm
 npm install --save-dev @verbatra/sdk
-# pnpm
-pnpm add -D @verbatra/sdk
-# yarn
-yarn add -D @verbatra/sdk
 ```
 
 Requiere Node.js `>=22.14.0`.
@@ -600,6 +596,36 @@ Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, comprobada c
 Ambas llamadas comprueban el archivo de procedencia antes de escribir nada y nunca informan de una
 decisión que no pudieron guardar: un archivo de un verbatra más nuevo, o uno que la decisión haría
 crecer por encima del tamaño que verbatra vuelve a leer, lanza `PROVENANCE_FILE_UNWRITABLE`.
+
+## Revisión y retraducción por lotes
+
+<AvailableFrom version="0.12.0" />
+
+Cada una de estas llamadas ejecuta la llamada de una sola clave correspondiente una vez por
+entrada, en el orden dado, y devuelve `{ results }` con un resultado por entrada en ese orden. Una
+entrada que falla no detiene el lote: su resultado es `{ locale, key, ok: false, code, message }`,
+con el código del `SdkError`, del error de adaptador o del `ProviderError` que la detuvo y un
+mensaje censurado, y se ejecuta la siguiente entrada. Cualquier otro error se lanza, y las entradas
+posteriores no se ejecutan. Una lista `entries` vacía devuelve `results` vacío.
+
+### approveEntries
+
+Entrada: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Ejecuta
+`approveEntry` por entrada con las mismas comprobaciones; `reviewer` se aplica a todas las
+entradas. Un resultado correcto es `{ ok: true, locale, key, provenance }`.
+
+### rejectEntries
+
+Entrada: la misma que `approveEntries`. Ejecuta `rejectEntry` por entrada y elimina cada valor
+rechazado. Un resultado correcto es `{ ok: true, locale, key, provenance }`.
+
+### retranslateEntries
+
+Entrada: `{ config, cwd?, entries: [{ locale, key }], includeHuman? }`. Ejecuta `retranslateEntry`
+por entrada, así que hace hasta una llamada al proveedor por entrada. Un resultado completado es
+`{ ok: true, locale, key, result }`, donde `result` es lo que devolvió `retranslateEntry`, incluido
+un valor que la puerta de integridad rechazó. Un valor que escribió una persona falla con
+`KEY_PROTECTED` salvo que pases `includeHuman: true`.
 
 ## Lecturas de contenido en bloque
 

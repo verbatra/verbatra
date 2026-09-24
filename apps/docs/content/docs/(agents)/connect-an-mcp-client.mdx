@@ -18,7 +18,7 @@ Two commands start the same server:
 
 `npx -y @verbatra/mcp` is the default in every example below, because it works in any project. Switch to `npx verbatra mcp` when the project already has both packages as dev dependencies and its provider key already lives in `.env.local`:
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli @verbatra/mcp
 ```
 
@@ -255,7 +255,9 @@ Ask the agent to call `project.snapshot`. It reads the config, calls no provider
 
 ## Next
 
-- [`verbatra mcp`](/docs/cli/mcp): every tool, its inputs and results, and the exit codes.
-- [Recipes for agents and scripts](/docs/agent-recipes#the-skills-pack): the `verbatra-mcp-tools` skill, which teaches an agent how to work with these tools.
-- [Set up verbatra with an AI agent](/docs/start-with-ai): a prompt that adds verbatra to a project before you connect a client to it.
-- [Providers](/docs/providers): which environment variable each provider reads its key from.
+<Cards>
+  <Card title={<code>verbatra mcp</code>} href="/docs/cli/mcp" description="Every tool, its inputs and results, and the exit codes." />
+  <Card title="Recipes for agents and scripts" href="/docs/agent-recipes#the-skills-pack" description="The verbatra-mcp-tools skill, which teaches an agent how to work with these tools." />
+  <Card title="Set up verbatra with an AI agent" href="/docs/start-with-ai" description="A prompt that adds verbatra to a project before you connect a client to it." />
+  <Card title="Providers" href="/docs/providers" description="Which environment variable each provider reads its key from." />
+</Cards>

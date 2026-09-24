@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 import { declareProviderKeyEnvVar, type LoadedConfig } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
+import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import {
+  REVIEW_APPROVE_MANY_METHOD,
+  REVIEW_REJECT_MANY_METHOD,
+} from "../shared/rpc/review-batch.js";
 import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
@@ -38,11 +43,23 @@ const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
+function retranslateLimit(options: StudioServerOptions): {
+  readonly windowMs: number;
+  readonly maxCalls: number;
+} {
+  return {
+    windowMs: options.retranslateRateLimitWindowMs ?? DEFAULT_RETRANSLATE_RATE_LIMIT_WINDOW_MS,
+    maxCalls: options.retranslateRateLimitMax ?? DEFAULT_RETRANSLATE_RATE_LIMIT_MAX,
+  };
+}
+
 function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
   return createRpcRateLimiter({
-    [RETRANSLATE_ENTRY_METHOD]: {
-      windowMs: options.retranslateRateLimitWindowMs ?? DEFAULT_RETRANSLATE_RATE_LIMIT_WINDOW_MS,
-      maxCalls: options.retranslateRateLimitMax ?? DEFAULT_RETRANSLATE_RATE_LIMIT_MAX,
+    [RETRANSLATE_ENTRY_METHOD]: retranslateLimit(options),
+    [RETRANSLATE_ENTRIES_METHOD]: {
+      ...retranslateLimit(options),
+      bucket: RETRANSLATE_ENTRY_METHOD,
+      perEntry: true,
     },
     [EDIT_ENTRY_METHOD]: {
       windowMs: options.editEntryRateLimitWindowMs ?? DEFAULT_EDIT_ENTRY_RATE_LIMIT_WINDOW_MS,
@@ -60,6 +77,8 @@ function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
     },
     [REVIEW_APPROVE_METHOD]: reviewDecisionLimit(options),
     [REVIEW_REJECT_METHOD]: reviewDecisionLimit(options),
+    [REVIEW_APPROVE_MANY_METHOD]: reviewDecisionLimit(options),
+    [REVIEW_REJECT_MANY_METHOD]: reviewDecisionLimit(options),
   });
 }
 
@@ -82,6 +101,9 @@ function buildInFlightGuard(): RpcInFlightGuard {
       EDIT_ENTRY_METHOD,
       REVIEW_APPROVE_METHOD,
       REVIEW_REJECT_METHOD,
+      REVIEW_APPROVE_MANY_METHOD,
+      REVIEW_REJECT_MANY_METHOD,
+      RETRANSLATE_ENTRIES_METHOD,
     ]),
   );
 }

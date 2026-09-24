@@ -257,7 +257,7 @@ describe("ReviewPanel", () => {
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
     expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle", "cart.badge"]);
-    expect(view.all("tbody tr")[2]?.querySelectorAll("td")[0]?.textContent).toBe("fr");
+    expect(view.all("tbody tr")[2]?.querySelectorAll("td")[1]?.textContent).toBe("fr");
   });
 
   it("labels every reason code rather than rendering the raw code", async () => {
@@ -292,11 +292,15 @@ describe("ReviewPanel", () => {
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
     expect(view.all("thead th").map((cell) => cell.textContent)).toEqual([
+      "",
       "Locale",
       "Key",
       "Reasons",
       "Actions",
     ]);
+    expect(view.get('thead input[type="checkbox"]').getAttribute("aria-label")).toBe(
+      "Select every shown entry",
+    );
     expect(rowAction(view, "cart.badge", "Approve")).toBeTruthy();
   });
 
@@ -1144,4 +1148,276 @@ describe("ReviewPanel: keyboard queue", () => {
       expect((rowAction(view, "checkout.title", "Edit") as HTMLButtonElement).disabled).toBe(false);
     },
   );
+});
+
+function rowCheckbox(view: RenderResult, key: string): HTMLInputElement {
+  const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === key);
+  const box = row?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+  if (box === null || box === undefined) {
+    throw new Error(`no checkbox in the row for ${JSON.stringify(key)}`);
+  }
+  return box;
+}
+
+function selectAll(view: RenderResult): HTMLInputElement {
+  return view.get('thead input[type="checkbox"]') as HTMLInputElement;
+}
+
+function bulkBar(view: RenderResult): HTMLElement | null {
+  return view.query('[aria-label="Bulk actions"]');
+}
+
+function bulkButton(view: RenderResult, name: string): HTMLButtonElement {
+  const bar = bulkBar(view);
+  const button = [...(bar?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find(
+    (candidate) => candidate.textContent === name,
+  );
+  if (button === undefined) {
+    throw new Error(`no bulk ${name} button`);
+  }
+  return button;
+}
+
+describe("ReviewPanel: bulk actions", () => {
+  it("shows the bulk bar only once something is selected, and counts the selection", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(bulkBar(view)).toBeNull();
+    await clickAsync(rowCheckbox(view, "checkout.title"));
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    expect(bulkBar(view)?.textContent).toContain("2 selected");
+    expect(selectAll(view).indeterminate).toBe(true);
+    expect(selectAll(view).getAttribute("aria-checked")).toBe("mixed");
+  });
+
+  it("selects and clears every shown entry from the header checkbox", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    await clickAsync(selectAll(view));
+    expect(bulkBar(view)?.textContent).toContain("3 selected");
+    expect(selectAll(view).checked).toBe(true);
+
+    await clickAsync(selectAll(view));
+    expect(bulkBar(view)).toBeNull();
+  });
+
+  it("counts and acts on only the selected entries the filter still shows", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(selectAll(view));
+
+    selectOption(localeFilter(view), "fr");
+    await flush();
+
+    expect(bulkBar(view)?.textContent).toContain("1 selected");
+    expect(selectAll(view).checked).toBe(true);
+  });
+
+  it("toggles the highlighted row's selection with x", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    pressKey("j");
+    pressKey("x");
+    expect(rowCheckbox(view, "checkout.title").checked).toBe(true);
+    pressKey("x");
+    expect(rowCheckbox(view, "checkout.title").checked).toBe(false);
+  });
+
+  it("clears the selection on request", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(selectAll(view));
+
+    await clickAsync(bulkButton(view, "Clear selection"));
+
+    expect(bulkBar(view)).toBeNull();
+  });
+
+  it("approves the selection in one call against the values on screen", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "review.approveMany": {
+        ok: true,
+        result: {
+          results: [
+            { ok: true, ...decided("de", "checkout.title", "approved") },
+            { ok: true, ...decided("fr", "cart.badge", "approved") },
+          ],
+        },
+      },
+      "review.queue": queueAnswer(without("checkout.title")),
+    });
+    await clickAsync(rowCheckbox(view, "checkout.title"));
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+
+    expect(rpcCalls.find((call) => call.method === "review.approveMany")?.params).toEqual({
+      entries: [
+        { locale: "de", key: "checkout.title", expectedValue: "Kasse" },
+        { locale: "fr", key: "cart.badge", expectedValue: "Panier" },
+      ],
+    });
+    expect(view.get('[role="status"]').textContent).toBe(
+      "Approved 2 entries. The decisions are saved in verbatra.provenance.json.",
+    );
+    expect(bulkBar(view)).toBeNull();
+  });
+
+  it("marks the selected rows busy while the batch runs", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approveMany": () => new Promise(() => {}) });
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Approve selected"));
+
+    expect(rowAction(view, "cart.badge", "Approving…")).toBeDefined();
+    expect((rowAction(view, "checkout.title", "Approve") as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it("names every entry the batch could not decide, as an alert", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "review.approveMany": {
+        ok: true,
+        result: {
+          results: [
+            { ok: true, ...decided("de", "checkout.title", "approved") },
+            {
+              ok: false,
+              locale: "fr",
+              key: "cart.badge",
+              code: "REVIEW_SOURCE_CHANGED",
+              message: "raw",
+            },
+          ],
+        },
+      },
+    });
+    await clickAsync(selectAll(view));
+
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+
+    expect(view.get('[role="alert"]').textContent).toContain(
+      "Could not approve 1 entry: cart.badge (fr): The source text changed",
+    );
+  });
+
+  it("frees the rows and reports a batch the server refused outright", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approveMany": rpcError("METHOD_RATE_LIMITED") });
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+
+    expect(view.get('[role="alert"]').textContent).toContain(
+      "Could not approve the selected entries: Studio is limiting how often",
+    );
+    expect((rowAction(view, "cart.badge", "Approve") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("holds approve and reject until the selected values have loaded", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": () => new Promise(() => {}),
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    expect(bulkButton(view, "Approve selected").disabled).toBe(true);
+    expect(bulkButton(view, "Reject selected…").disabled).toBe(true);
+    expect(bulkBar(view)?.textContent).toContain(
+      "Wait for the current translations to load before approving or rejecting.",
+    );
+  });
+
+  it("confirms a bulk rejection first, and cancelling calls nothing", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(selectAll(view));
+    const before = rpcCalls.length;
+
+    await clickAsync(bulkButton(view, "Reject selected…"));
+    expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Reject 3 entries");
+    pressKey("a");
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls).toHaveLength(before);
+    expect(bulkBar(view)?.textContent).toContain("3 selected");
+  });
+
+  it("rejects the confirmed selection in one call and clears the selection", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({
+      "review.rejectMany": {
+        ok: true,
+        result: { results: [{ ok: true, ...decided("fr", "cart.badge", "rejected") }] },
+      },
+      "review.queue": queueAnswer(without("cart.badge")),
+    });
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Reject selected…"));
+    await clickAsync(view.getByText("button", "Reject and remove 1 entry"));
+    await flush();
+
+    expect(rpcCalls.find((call) => call.method === "review.rejectMany")?.params).toEqual({
+      entries: [{ locale: "fr", key: "cart.badge", expectedValue: "Panier" }],
+    });
+    expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle"]);
+    expect(bulkBar(view)).toBeNull();
+  });
+
+  it("offers bulk retranslation only with spend, through one batch call", async () => {
+    stubKeyboardReady();
+    const withoutSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(withoutSpend, "cart.badge"));
+    expect(bulkBar(withoutSpend)?.textContent).not.toContain("Retranslate selected");
+    withoutSpend.unmount();
+
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    stubRpc({
+      "translation.retranslateEntries": {
+        ok: true,
+        result: {
+          results: [
+            {
+              ok: true,
+              locale: "fr",
+              key: "cart.badge",
+              result: { accepted: true, value: "Chariot", reviewReasons: [] },
+            },
+          ],
+        },
+      },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Retranslate selected"));
+    await flush();
+
+    expect(
+      rpcCalls.find((call) => call.method === "translation.retranslateEntries")?.params,
+    ).toEqual({ entries: [{ locale: "fr", key: "cart.badge" }] });
+    expect(view.get('[role="status"]').textContent).toBe(
+      "Retranslated 1 entry. Review the new values, then approve or reject them.",
+    );
+  });
 });

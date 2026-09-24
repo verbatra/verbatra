@@ -8,11 +8,11 @@ Cinco pasos te llevan de un proyecto vacío a un archivo de locale traducido. So
 
 verbatra es una dependencia de desarrollo:
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm y yarn también funcionan: `pnpm add -D @verbatra/cli` y luego `pnpm verbatra ...`, o `yarn add -D @verbatra/cli` y luego `yarn verbatra ...`. Los bloques de código de abajo usan `npx`, en línea con el `npm install` de arriba.
+Los bloques de código de abajo usan `npx`. Con pnpm, yarn o bun, ejecuta en su lugar `pnpm verbatra ...`, `yarn verbatra ...` o `bun run verbatra ...`.
 
 pnpm requiere un paso más. `pnpm add -D @verbatra/cli` instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`, y deja atrás un `pnpm-workspace.yaml` sin resolver que hace fallar igual a cualquier comando pnpm posterior del proyecto. Ejecuta `pnpm approve-builds` una vez y no apruebes ninguna de las dos entradas, o consulta la [Solución de problemas](/docs/troubleshooting) para la solución no interactiva.
 
@@ -153,7 +153,9 @@ Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos 
 
 ## Siguiente
 
-- [Configura verbatra con un agente de IA](/docs/start-with-ai): el mismo recorrido, empaquetado como un prompt listo para copiar y pegar para un agente de IA.
-- [Añade un idioma](/docs/add-a-language): suma un nuevo locale de destino a esta configuración.
-- [Cómo funciona](/docs/how-it-works): la canalización completa detrás de una ejecución.
-- [Archivo de configuración](/docs/config-file): todo lo que puede contener `verbatra.config.ts`.
+<Cards>
+  <Card title="Configura verbatra con un agente de IA" href="/docs/start-with-ai" description="El mismo recorrido, empaquetado como un prompt listo para copiar y pegar para un agente de IA." />
+  <Card title="Añade un idioma" href="/docs/add-a-language" description="Suma un nuevo locale de destino a esta configuración." />
+  <Card title="Cómo funciona" href="/docs/how-it-works" description="La canalización completa detrás de una ejecución." />
+  <Card title="Archivo de configuración" href="/docs/config-file" description="Todo lo que puede contener verbatra.config.ts." />
+</Cards>
