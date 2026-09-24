@@ -45,12 +45,18 @@ A delimited file is diffable and opens anywhere, but it carries no cell protecti
 
 Each delimited export also writes a hidden manifest into the directory, `.verbatra-export-csv.json` or `.verbatra-export-tsv.json`, naming the locales it just wrote. It is what lets a re-export with a narrower `--locales` selection retire the locales it dropped: their files stay on disk, and [`verbatra import`](/docs/cli/import) refuses them as leftovers rather than applying an outdated translation. The export deletes nothing from the output directory, so a file you put there yourself is never at risk.
 
+## Where the handoff is written
+
+The handoff is only written inside the working directory. Before anything is read, an `--out` that climbs out of the working directory is refused with `EXPORT_OUTPUT_CONFLICT`, and so is one that, or a file the export would write into it, names a file the project depends on: a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file your config points `glossary` at. For `xlsx`, a path that names no file (including one ending in a path separator, such as `out/`) or names the working directory itself is refused too; a `csv` or `tsv` directory may be the working directory. Names are compared case-insensitively, and the same checks run again on where the path really lands once symbolic links are resolved, so a linked directory or file cannot carry the handoff outside the working directory or onto a protected file, and nothing is written.
+
+A path that passes those checks can still fail at the moment of writing: when the directory is not writable, a directory or file is in the way, or the disk is full, the run stops with `EXPORT_UNWRITABLE`, naming the file and the file-system code, and exits `2`.
+
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | the handoff was written |
-| `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value) |
+| `2` | could not run: a whole-run error, a refused output path (`EXPORT_OUTPUT_CONFLICT`), a handoff that could not be written (`EXPORT_UNWRITABLE`), or a usage error (including an empty or unknown `--locales` value) |
 
 `export` has no per-locale failure mode, so it never exits `1`.
 

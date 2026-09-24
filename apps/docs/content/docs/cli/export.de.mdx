@@ -45,12 +45,18 @@ Eine Datei mit Trennzeichen lässt sich diffen und überall öffnen, hat aber ke
 
 Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest in das Verzeichnis, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die soeben geschriebenen Locales benennt. Nur dadurch kann ein erneuter Export mit einer engeren `--locales`-Auswahl die weggefallenen Locales stilllegen: deren Dateien bleiben auf der Platte, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück, statt eine veraltete Übersetzung anzuwenden. Der Export löscht nichts aus dem Ausgabeverzeichnis, eine eigene Datei darin ist also nie in Gefahr.
 
+## Wohin die Übergabe geschrieben wird
+
+Die Übergabe wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor irgendetwas gelesen wird, weist verbatra ein `--out`, das aus dem Arbeitsverzeichnis hinausführt, mit `EXPORT_OUTPUT_CONFLICT` zurück, ebenso eines, das selbst oder über eine Datei, die der Export hineinschreiben würde, eine Datei benennt, von der das Projekt abhängt: eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die Konfigurationsdatei des Laufs oder die Glossardatei, auf die `glossary` in deiner Konfiguration zeigt. Bei `xlsx` wird außerdem ein Pfad abgelehnt, der keine Datei benennt (auch einer, der auf ein Pfadtrennzeichen endet, etwa `out/`) oder das Arbeitsverzeichnis selbst benennt; ein `csv`- oder `tsv`-Verzeichnis darf das Arbeitsverzeichnis sein. Namen werden ohne Beachtung der Groß- und Kleinschreibung verglichen, und dieselben Prüfungen laufen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links wirklich landet, sodass ein verlinktes Verzeichnis oder eine verlinkte Datei die Übergabe weder aus dem Arbeitsverzeichnis hinaus noch auf eine geschützte Datei tragen kann, und es wird nichts geschrieben.
+
+Ein Pfad, der diese Prüfungen besteht, kann beim Schreiben trotzdem scheitern: Ist das Verzeichnis nicht schreibbar, liegt ein Verzeichnis oder eine Datei im Weg oder ist die Platte voll, bricht der Lauf mit `EXPORT_UNWRITABLE` ab, nennt die Datei und den Dateisystem-Code und endet mit `2`.
+
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
 | `0` | die Übergabe wurde geschrieben |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts) |
+| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs, ein abgelehnter Ausgabepfad (`EXPORT_OUTPUT_CONFLICT`), eine Übergabe, die nicht geschrieben werden konnte (`EXPORT_UNWRITABLE`), oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts) |
 
 `export` hat keinen Fehlermodus pro Locale und endet deshalb nie mit `1`.
 
