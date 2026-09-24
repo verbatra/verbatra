@@ -145,7 +145,7 @@ function blankRowBaselineNotice(count: number): SdkNotice {
   return {
     code: "BLANK_ROW_BASELINE_RETAINED",
     message:
-      `${count} row(s) were left blank for a key whose source changed since the row's baseline ` +
+      `${count === 1 ? "1 row was" : `${count} rows were`} left blank for a key whose source changed since the row's baseline ` +
       "was recorded; the prior baseline was kept so the drift keeps being reported.",
   };
 }
