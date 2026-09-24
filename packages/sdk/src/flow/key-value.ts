@@ -32,6 +32,12 @@ export interface KeyValueDeps {
 export interface KeyValueResult {
   /** The key's text in the source locale. Always present, since a missing key is an error. */
   readonly source: string;
+  /**
+   * The context the source locale file gives for the key, for translators: an ARB
+   * `@key.description`, an XLIFF note, a gettext comment, an Apple `.strings` comment, or a .NET
+   * `.resx` comment. Absent when the format or the file carries none.
+   */
+  readonly description?: string;
   /** The key's text in the requested target locale, or absent when it has not been translated yet. */
   readonly target?: string;
   /**
@@ -92,14 +98,18 @@ export async function keyValue(
     );
   }
 
+  const context = {
+    source: sourceEntry.value,
+    ...(sourceEntry.description !== undefined ? { description: sourceEntry.description } : {}),
+  };
   const target = await readTarget(cwd, config, adapter, fs, locale);
   const targetEntry = target.entries.get(input.key);
   if (targetEntry === undefined) {
-    return { source: sourceEntry.value };
+    return context;
   }
   const records = (await readLocaleProvenance(cwd, fs))?.(locale);
   return {
-    source: sourceEntry.value,
+    ...context,
     target: targetEntry.value,
     ...(records !== undefined
       ? { provenance: keyProvenance(records.get(input.key), targetEntry.value) }

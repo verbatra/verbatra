@@ -476,6 +476,12 @@ when the key does not yet exist in that locale.
 When `target` is present the result also carries `provenance`, the key's interpreted
 `KeyProvenance`: `{ origin, provider?, model?, reviewState, reviewer? }`.
 
+<AvailableFrom version="0.12.0" />
+
+The result also carries `description` when the source locale file gives one for the key: an ARB
+`@key.description`, an XLIFF note, a gettext comment, an Apple `.strings` comment, or a .NET
+`.resx` comment.
+
 ### editEntry
 
 Writes one human-typed correction for one key and locale. The candidate value passes the same
@@ -868,6 +874,17 @@ renderings, `caseSensitive`, and its `note` and `partOfSpeech`, or `undefined` w
 glossary applies there. This is exactly what a translation request into that locale carries as
 `TranslateRequest.glossary`, and what the review checks and the cache fingerprint of that locale
 see.
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits(glossary, locale, sourceLocale, text)` returns the glossary entries that apply to one
+source text in one target locale, as `{ terms, doNotTranslate }` in the shape `glossaryForLocale`
+returns: every term whose source occurs in `text` as a whole term, with the translation and
+forbidden renderings that locale is held to, and every term to keep untranslated that occurs in it.
+A term matches with or without case as it says, with case folded for `sourceLocale`. It uses the
+same matching a translate run applies when it flags a missed glossary term, and reads nothing.
 
 ### normalizeGlossary
 

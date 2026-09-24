@@ -97,6 +97,7 @@ export {
   type UpdateGlossaryTermInput,
   updateGlossaryTerm,
 } from "./config/glossary-file.js";
+export { glossaryHits } from "./config/glossary-hits.js";
 export type { HumanEditsPolicy } from "./config/human-edits.js";
 export {
   type ConfigSource,

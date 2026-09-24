@@ -319,6 +319,10 @@ Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ source, target? }` ; `targ
 
 Quand `target` est présent, le résultat porte aussi `provenance`, la `KeyProvenance` interprétée de la clé : `{ origin, provider?, model?, reviewState, reviewer? }`.
 
+<AvailableFrom version="0.12.0" />
+
+Le résultat porte aussi `description` quand le fichier de la locale source en donne une pour la clé : une `@key.description` ARB, une note XLIFF, un commentaire gettext, un commentaire `.strings` d'Apple ou un commentaire `.resx` .NET.
+
 ### editEntry
 
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
@@ -599,6 +603,12 @@ Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que conv
 <AvailableFrom version="0.12.0" />
 
 Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme `TranslateRequest.glossary`, et ce que voient les contrôles de révision et l'empreinte de cache de cette locale.
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits(glossary, locale, sourceLocale, text)` renvoie les entrées du glossaire qui s'appliquent à un texte source dans une locale cible, sous la forme `{ terms, doNotTranslate }` que renvoie `glossaryForLocale` : chaque terme dont la source apparaît dans `text` comme terme entier, avec la traduction et les rendus interdits auxquels cette locale est tenue, et chaque terme à garder non traduit qui y apparaît. Un terme correspond avec ou sans casse selon ce qu'il indique, la casse étant repliée pour `sourceLocale`. Il utilise la même correspondance qu'une exécution de traduction pour signaler un terme de glossaire manqué, et ne lit rien.
 
 ### normalizeGlossary
 
