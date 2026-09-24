@@ -74,11 +74,8 @@ function collectCandidates(
 ): readonly Candidate[] {
   const candidates: Candidate[] = [];
   for (const [contentHash, value] of Object.entries(bucket)) {
-    if (options.excludeValue?.(value) === true) {
-      continue;
-    }
     const candidate = usableCandidate(memory, contentHash, value, query, options.threshold);
-    if (candidate !== undefined) {
+    if (candidate !== undefined && options.excludeValue?.(value) !== true) {
       candidates.push(candidate);
     }
   }
