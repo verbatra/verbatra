@@ -73,6 +73,17 @@ describe("findFuzzyMatch", () => {
     expect(findFuzzyMatch(memory, "fp1", "de", NEARLY, { threshold: 0.7 })?.value).toBe("Nah");
   });
 
+  it("passes over an excluded value and returns the best remaining candidate", () => {
+    const rival = NEARLY.replace("automatically", "auTOmaticalLX");
+    const memory = memoryOf(
+      { fp1: { de: { aRival: "Weit", zNear: "Nah" } } },
+      { aRival: rival, zNear: EDITED },
+    );
+    const input = { threshold: 0.7, excludeValue: (value: string) => value === "Nah" };
+
+    expect(findFuzzyMatch(memory, "fp1", "de", NEARLY, input)?.value).toBe("Weit");
+  });
+
   it("clears the bar for the rival too, so that choice is a real one", () => {
     const rival = NEARLY.replace("automatically", "auTOmaticalLX");
     const memory = memoryOf({ fp1: { de: { aRival: "Weit" } } }, { aRival: rival });

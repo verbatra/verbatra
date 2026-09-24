@@ -116,7 +116,7 @@ describe("render: tmx import summary", () => {
     expect(text).toContain("6 inline markup does not match the source");
   });
 
-  it("names the wrong ICU arms of each refused unit and skips a refusal with no details", () => {
+  it("names the wrong ICU arms of each refused unit and lists a refusal with no details by ordinal", () => {
     const text = renderTmxImportHuman(
       makeImportTmxResult({
         locales: [
@@ -152,7 +152,7 @@ describe("render: tmx import summary", () => {
     expect(text).toContain(
       '        unit 3: icu ({count} plural: missing arm "few" required by the target language)',
     );
-    expect(text).not.toContain("unit 5");
+    expect(text).toMatch(/^ {8}unit 5: icu$/m);
   });
 
   it.each(INTEGRITY_GATE_REASONS)("prints a line for a %s rejection", (reason) => {
