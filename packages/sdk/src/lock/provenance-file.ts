@@ -45,9 +45,12 @@ export type ProvenanceReviewState = "approved" | "rejected";
 export interface ProvenanceRecord {
   /** The write path that produced the value. Normally a {@link ProvenanceOrigin}. */
   readonly origin: string;
-  /** The configured provider id, for a `machine` value. */
+  /** The `id` of the provider that answered, for a `machine` value. */
   readonly provider?: string;
-  /** The configured model, for a `machine` value from a provider that has one. */
+  /**
+   * The configured model, for a `machine` value from the configured provider when it has one.
+   * Absent when a custom `createProvider` answered under a different `id`.
+   */
   readonly model?: string;
   /** A hash of the target value the record describes, used to detect a later outside edit. */
   readonly valueHash: string;

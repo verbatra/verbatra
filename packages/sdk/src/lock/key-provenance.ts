@@ -28,9 +28,12 @@ export type KeyReviewState = "unreviewed" | "approved" | "rejected";
 export interface KeyProvenance {
   /** Which write path produced the current value, or why that is not known. */
   readonly origin: KeyOrigin;
-  /** The configured provider id, for a `machine` value. */
+  /** The `id` of the provider that answered, for a `machine` value. */
   readonly provider?: string;
-  /** The configured model, for a `machine` value from a provider that has one. */
+  /**
+   * The configured model, for a `machine` value from the configured provider when it has one.
+   * Absent when a custom `createProvider` answered under a different `id`.
+   */
   readonly model?: string;
   /** Whether the current value was reviewed. Always `unreviewed` for `unrecorded` and `external`. */
   readonly reviewState: KeyReviewState;

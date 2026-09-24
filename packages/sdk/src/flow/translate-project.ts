@@ -689,7 +689,10 @@ export async function translate(
     fs,
     budget,
     cache,
-    machine: machineAttribution(config.provider),
+    machine: machineAttribution(
+      config.provider,
+      mode.kind === "translate" ? mode.provider.id : undefined,
+    ),
     protection: protectionPolicy(config, input.humanEdits),
     ...(input.onLockWait !== undefined ? { onLockWait: input.onLockWait } : {}),
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
