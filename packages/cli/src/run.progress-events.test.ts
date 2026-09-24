@@ -67,8 +67,8 @@ describe("run translate: the finer-grained SDK events leave existing output byte
   });
 });
 
-describe("run watch: watch events stay out of --json and plain stderr", () => {
-  it("writes the same stderr whether or not change-detected and idle fire", async () => {
+describe("run watch: watch events stay out of --json, and plain stderr only gains the change line", () => {
+  it("adds nothing to --json and one change line to plain stderr", async () => {
     async function watchWith(extra: readonly ProgressEvent[], argv: readonly string[]) {
       let session: Session | undefined;
       const { deps } = recordingDeps({
@@ -98,6 +98,10 @@ describe("run watch: watch events stay out of --json and plain stderr", () => {
     expect(await watchWith(extra, ["watch", "--json"])).toBe(
       await watchWith([], ["watch", "--json"]),
     );
-    expect(await watchWith(extra, ["watch"])).toBe(await watchWith([], ["watch"]));
+    const human = await watchWith(extra, ["watch"]);
+    expect(human).toContain("verbatra: change detected: /p/locales/en.json\n");
+    expect(human.replace("verbatra: change detected: /p/locales/en.json\n", "")).toBe(
+      await watchWith([], ["watch"]),
+    );
   });
 });

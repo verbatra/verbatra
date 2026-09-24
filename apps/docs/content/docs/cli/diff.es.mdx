@@ -100,6 +100,19 @@ verbatra diff --unused
 
 Las claves ausentes y cambiadas que una ejecución de `translate` dejaría para una persona, porque una persona escribió, importó o cambió su valor fuera de verbatra o porque coinciden con `pinnedKeys`, se listan además bajo `protected` (consulta [Proteger traducciones humanas](/docs/protecting-human-translations)). También siguen en `re-translate` y `add`, porque siguen pendientes. `--json` las lleva como un array `protected` en cada locale; si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, solo se listan las claves fijadas.
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`diff` muestra una línea mientras trabaja, con un recuento de archivos en curso en un terminal interactivo cuando `--unused` escanea el código, y sugiere `verbatra translate` cuando hay claves pendientes:
+
+```text
+verbatra: diffing and scanning the source... done (0.8s)
+next: verbatra translate  (send the pending keys to your provider)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

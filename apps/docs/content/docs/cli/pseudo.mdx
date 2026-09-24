@@ -97,6 +97,19 @@ verbatra pseudo
   unchanged .verbatra-local/pseudo/locales/en-XA.json
 ```
 
+## Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`pseudo` shows one line while it writes the pseudolocale, then tells you which file to load in your dev server:
+
+```text
+verbatra: pseudolocalizing the source... done (0.1s)
+next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
+```
+
+These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
+
 ## Exit codes
 
 | Code | Meaning |

@@ -164,7 +164,7 @@ describe("run: color", () => {
     await run(["translate"], eventfulDeps().deps, cap.streams, {}, COLOR_TTY);
 
     expect(cap.out()).not.toContain(ESC);
-    expect(stripVTControlCharacters(cap.err())).toContain("verbatra: translating de");
+    expect(stripVTControlCharacters(cap.err())).toContain("verbatra: de done, 1 translated");
   });
 });
 

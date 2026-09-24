@@ -44,6 +44,19 @@ Un archivo que quedó de una exportación anterior con una selección `--locales
 
 `--lock-timeout` ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura) ocupado antes de fallar con `LOCK_CONTENDED`, exactamente como en [`verbatra translate`](/docs/cli/translate). La espera ocurre antes de escribir el archivo del locale, así que un locale que agota el tiempo queda intacto mientras los demás locales se importan igualmente, y el comando sale con `1`. Una vez escrito el archivo de un locale, registrarlo en el archivo de bloqueo espera hasta el valor predeterminado de diez minutos, diga lo que diga `--lock-timeout`. Mientras una espera dura más de un segundo, una línea en stderr nombra el archivo de bloqueo y quién lo tiene, o un registro JSON `lock-wait` con `--json`. `--dry-run` no toma ningún bloqueo, así que nunca espera.
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`import` muestra una línea mientras lee y aplica el archivo. Tras una importación limpia sugiere `verbatra check`, y tras `--dry-run` sugiere la misma importación sin el flag:
+
+```text
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check  (confirm every locale is in sync)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

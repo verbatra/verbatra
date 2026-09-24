@@ -119,6 +119,18 @@ type QaFinding =
 
 Quelques cas restent hors du contrôle : une clé que seule la cible possède (elle est orpheline, et [`verbatra diff`](/docs/cli/diff) la liste), une clé manquante (il n'y a pas de valeur à vérifier) et une clé dont la source n'est pas un ICU valide, contre laquelle aucune traduction ne peut être jugée ; ces clés sont listées une fois sous `invalidSourceKeys`. Les clés [protégées](/docs/protecting-human-translations) et épinglées sont vérifiées comme les autres, puisque leurs valeurs sont livrées tout pareil, et c'est aussi le cas des valeurs rejetées en révision. `--consistency` reste une option séparée qui ne fait que signaler ; combine les deux pour obtenir les deux rapports.
 
+## Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+`check` affiche une ligne pendant qu'il lit et compare les locales ; son propre conseil `run verbatra translate to update` reste sur stdout comme avant :
+
+```text
+verbatra: checking the locales... done (0.1s)
+```
+
+Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
+
 ## Codes de sortie
 
 | Code | Signification |

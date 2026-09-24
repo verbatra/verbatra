@@ -176,6 +176,47 @@ describe("createUi: static tasks (plain mode or VERBATRA_NO_SPINNER)", () => {
   });
 });
 
+describe("createUi: stopping a task without a status line", () => {
+  it("closes an open static line and writes nothing more, even when finished later", () => {
+    const cap = captureStreams();
+    const ui = createUi(cap.streams, terminal("plain"), { now: steppedNow(0, 100) });
+
+    const task = ui.task("translating");
+    task.stop();
+    task.stop();
+    task.succeed();
+
+    expect(cap.err()).toBe("verbatra: translating...\n");
+  });
+
+  it("clears an animated spinner and stops it ticking", () => {
+    const cap = captureStreams();
+    const clock = fakeClock();
+    const ui = createUi(cap.streams, terminal("tty", { animate: true }), { clock });
+
+    const task = ui.task("translating");
+    clock.fireDelay();
+    task.stop();
+    clock.tick();
+    task.succeed();
+
+    expect(cap.err()).toBe(`${CLEAR_LINE}| translating...${CLEAR_LINE}`);
+  });
+
+  it("stops a running spinner before an error line so it never redraws over it", () => {
+    const cap = captureStreams();
+    const clock = fakeClock();
+    const ui = createUi(cap.streams, terminal("tty", { animate: true }), { clock });
+
+    ui.task("translating");
+    clock.fireDelay();
+    ui.error({ code: "X", message: "boom" });
+    clock.tick();
+
+    expect(cap.err()).toBe(`${CLEAR_LINE}| translating...${CLEAR_LINE}verbatra: error [X] boom\n`);
+  });
+});
+
 describe("createUi: animated tasks", () => {
   function animated(color = false) {
     const cap = captureStreams();

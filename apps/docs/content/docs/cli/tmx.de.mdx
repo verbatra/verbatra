@@ -121,6 +121,19 @@ Die Datei wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor der Ü
 
 Ein Eintrag, zu dem der Übersetzungsspeicher keinen Quelltext hat, lässt sich nicht schreiben, denn TMX kennt keine Einheit ohne Quellsegment. Das passiert nur bei Einträgen, die aus einem Cache übernommen wurden, der noch vor dem Speichern des Quelltexts geschrieben wurde; sie werden ausgelassen und gezählt und füllen sich auf, sobald spätere Läufe diese Strings wieder anfassen.
 
+## Rückmeldung im Terminal
+
+<AvailableFrom version="0.12.0" />
+
+Beide Richtungen zeigen eine Zeile, während sie arbeiten. `tmx import` schlägt danach `verbatra translate` vor, das das importierte Memory wiederverwendet, oder nach einem Dry Run denselben Import ohne `--dry-run`; `tmx export` schlägt nichts vor:
+
+```text
+verbatra: importing legacy.tmx into the memory... done (0.2s)
+next: verbatra translate  (reuses the imported memory before calling a provider)
+```
+
+Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
+
 ## Exit-Codes
 
 | Code | Bedeutung |

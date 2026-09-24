@@ -19,6 +19,7 @@ export interface Task {
   update(text: string): void;
   succeed(summary?: string): void;
   fail(summary?: string): void;
+  stop(): void;
 }
 
 export interface Ui {
@@ -51,7 +52,7 @@ export function formatElapsed(ms: number): string {
   return `${Math.floor(whole / SECONDS_PER_MINUTE)}m ${whole % SECONDS_PER_MINUTE}s`;
 }
 
-const SILENT_TASK: Task = { update: () => {}, succeed: () => {}, fail: () => {} };
+const SILENT_TASK: Task = { update: () => {}, succeed: () => {}, fail: () => {}, stop: () => {} };
 
 interface Writer {
   readonly streams: Streams;
@@ -151,6 +152,12 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       update: () => {},
       succeed: () => finish("done"),
       fail: () => finish(label("red", "failed")),
+      stop: () => {
+        if (!finished) {
+          finished = true;
+          writer.settle();
+        }
+      },
     };
   };
 
@@ -185,6 +192,11 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       },
       succeed: (summary) => finish("ok", summary),
       fail: (summary) => finish("fail", summary),
+      stop: () => {
+        finished = true;
+        spinner.stop();
+        writer.detachSpinner(spinner);
+      },
     };
   };
 
@@ -206,6 +218,8 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       writer.streams.err(`verbatra: ${text}\n`);
     },
     error: (error) => {
+      active?.stop();
+      active = undefined;
       writer.streams.err(`verbatra: ${label("red", "error")} [${error.code}] ${error.message}\n`);
     },
     status,

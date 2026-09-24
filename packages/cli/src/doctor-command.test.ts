@@ -277,7 +277,9 @@ describe("run doctor --literals", () => {
     const code = await run(["doctor", "--literals", "--cwd", "/proj"], deps, cap.streams);
 
     expect(code).toBe(1);
-    expect(calls.doctor).toEqual([{ cwd: "/proj", literals: true }]);
+    expect(calls.doctor).toEqual([
+      { cwd: "/proj", literals: true, onProgress: expect.any(Function) },
+    ]);
     expect(cap.out()).toContain("[fail] Untranslated literals: Scanned 2 source files");
     expect(cap.out()).toContain('    src/app.tsx:12:7  "Welcome back"');
     expect(cap.out()).toContain('    suppressed (ignore-list) src/app.tsx:14:9  "Acme Inc."');

@@ -1,12 +1,7 @@
 import type { VerbatraConfig, WatchController, WatchInput, WatchRunResult } from "@verbatra/sdk";
 import { renderErrorEnvelope, renderRunResultEnvelope } from "./json-envelope.js";
-import {
-  renderHuman,
-  renderLockWait,
-  renderProgressHuman,
-  renderProgressJson,
-  toRenderableError,
-} from "./render.js";
+import { createProgressPresenter } from "./progress-presenter.js";
+import { renderHuman, renderLockWait, toRenderableError } from "./render.js";
 import { PRESS_CTRL_C } from "./session-banners.js";
 import { stoppableSession } from "./stoppable-session.js";
 import type { CliDeps, Session } from "./types.js";
@@ -45,17 +40,7 @@ export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session 
     onLockWait: (event) => {
       streams.err(`${renderLockWait(event, options.json)}\n`);
     },
-    onProgress: (event) => {
-      const line = options.json ? renderProgressJson(event) : renderProgressHuman(event);
-      if (line === undefined) {
-        return;
-      }
-      if (options.json) {
-        streams.err(`${line}\n`);
-      } else {
-        ui.line(line);
-      }
-    },
+    onProgress: createProgressPresenter(ui, { json: options.json, base: process.cwd() }),
     ...(options.locales !== undefined ? { locales: options.locales } : {}),
     ...(options.debounceMs !== undefined ? { debounceMs: options.debounceMs } : {}),
     ...(options.lockAcquireTimeoutMs !== undefined

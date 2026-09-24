@@ -121,6 +121,19 @@ El archivo solo se escribe dentro del directorio de trabajo. Antes de leer la me
 
 Una entrada de la que la memoria no tiene texto de origen no se puede escribir, porque TMX no admite una unidad sin segmento de origen. Eso solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen; se dejan fuera y se cuentan, y se van rellenando a medida que ejecuciones posteriores vuelven a tocar esas cadenas.
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+Ambas direcciones muestran una línea mientras trabajan. Después, `tmx import` sugiere `verbatra translate`, que reutiliza la memoria importada, o la misma importación sin `--dry-run` tras un dry run; `tmx export` no sugiere nada:
+
+```text
+verbatra: importing legacy.tmx into the memory... done (0.2s)
+next: verbatra translate  (reuses the imported memory before calling a provider)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |
