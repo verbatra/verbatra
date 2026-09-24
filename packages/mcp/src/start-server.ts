@@ -1,6 +1,6 @@
 import type { Readable } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { type CreateProvider, loadConfigWithMeta } from "@verbatra/sdk";
+import { type CreateProvider, loadConfigWithMeta, redact } from "@verbatra/sdk";
 import { connectMcpServer } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
 import type { McpToolContext } from "./types.js";
@@ -57,7 +57,8 @@ export interface McpServerHandle {
   close(): Promise<void>;
   /**
    * Settles once the server has closed, whether through `close()` or because the client closed
-   * stdin. Never rejects.
+   * stdin. Also settles when closing the server after stdin ended fails; that failure is reported
+   * through `onLog`. Never rejects.
    */
   readonly closed: Promise<void>;
 }
@@ -98,7 +99,8 @@ export async function startMcpServer(
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
   });
 
-  const transport = new StdioServerTransport();
+  const input = process.stdin;
+  const transport = new StdioServerTransport(input, process.stdout);
   const server = await connectMcpServer(
     {
       config: loaded,
@@ -114,7 +116,7 @@ export async function startMcpServer(
     transport,
   );
 
-  const closed = closeOnInputEnd(process.stdin, server);
+  const closed = closeOnInputEnd(input, server, options.onLog);
   return {
     close: () => server.close(),
     closed,
@@ -126,15 +128,30 @@ interface ClosableServer {
   onclose?: (() => void) | undefined;
 }
 
-export function closeOnInputEnd(input: Readable, server: ClosableServer): Promise<void> {
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export function closeOnInputEnd(
+  input: Readable,
+  server: ClosableServer,
+  onLog?: (line: string) => void,
+): Promise<void> {
   return new Promise<void>((resolve) => {
+    const detach = (): void => {
+      input.off("end", closeServer);
+      input.off("close", closeServer);
+    };
     const closeServer = (): void => {
-      void server.close();
+      detach();
+      server.close().catch((error: unknown) => {
+        onLog?.(redact(`Closing the server after stdin ended failed: ${describeError(error)}`));
+        resolve();
+      });
     };
     const previousOnClose = server.onclose;
     server.onclose = () => {
-      input.off("end", closeServer);
-      input.off("close", closeServer);
+      detach();
       previousOnClose?.();
       resolve();
     };

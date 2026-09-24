@@ -1,6 +1,11 @@
-// @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
-import { isRtlLocale } from "./locale-direction.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+let isRtlLocale: (tag: string) => boolean;
+
+beforeEach(async () => {
+  vi.resetModules();
+  ({ isRtlLocale } = await import("./locale-direction.js"));
+});
 
 const RTL_TAGS = [
   "ar",
@@ -35,7 +40,7 @@ const localePrototype = Intl.Locale.prototype as object;
 const originals = new Map<string, TextInfoOverride>();
 
 function override(
-  name: "getTextInfo" | "textInfo",
+  name: "getTextInfo" | "textInfo" | "maximize",
   descriptor: PropertyDescriptor | undefined,
 ): void {
   if (!originals.has(name)) {
@@ -111,13 +116,34 @@ describe("isRtlLocale: invalid input", () => {
     expect(isRtlLocale(tag)).toBe(false);
   });
 
-  it("treats a locale as left to right when reading its direction throws", () => {
+  it("falls back to the script when reading its direction throws", () => {
     override("getTextInfo", {
       value: () => {
         throw new RangeError("unsupported");
       },
     });
 
+    expect(isRtlLocale("ar")).toBe(true);
+    expect(isRtlLocale("en")).toBe(false);
+  });
+
+  it("treats a locale as left to right when neither text info nor its script can be read", () => {
+    const unsupported = (): never => {
+      throw new RangeError("unsupported");
+    };
+    override("getTextInfo", { value: unsupported });
+    override("maximize", { value: unsupported });
+
     expect(isRtlLocale("ar")).toBe(false);
+  });
+});
+
+describe("isRtlLocale: caching", () => {
+  it("answers a tag it has already resolved without asking the engine again", () => {
+    expect(isRtlLocale("ar")).toBe(true);
+    override("getTextInfo", { value: () => ({ direction: "ltr" }) });
+
+    expect(isRtlLocale("ar")).toBe(true);
+    expect(isRtlLocale("ar-EG")).toBe(false);
   });
 });

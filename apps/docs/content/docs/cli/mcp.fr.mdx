@@ -34,7 +34,7 @@ Les deux formes prennent les trois mêmes options et démarrent le même serveur
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--allow-spend` | aucun | désactivé | expose les deux outils qui appellent un fournisseur de traduction |
 
-Sans `--cwd`, si la variable d'environnement `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur prend ce répertoire comme racine du projet au lieu de celui dans lequel il a été lancé. Claude Code définit `CLAUDE_PROJECT_DIR` sur la racine du projet pour chaque serveur stdio qu'il lance, donc une session démarrée depuis un sous-répertoire trouve quand même la config du projet. Un `--cwd` explicite l'emporte toujours, et `verbatra-mcp` et `verbatra mcp` appliquent la même règle. Avec `verbatra mcp`, les fichiers `.env.local` et `.env` sont aussi lus depuis ce répertoire.
+Sans `--cwd`, si la variable d'environnement `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur prend ce répertoire comme racine du projet au lieu de celui dans lequel il a été lancé. Claude Code définit `CLAUDE_PROJECT_DIR` sur la racine du projet pour chaque serveur stdio qu'il lance, donc une session démarrée depuis un sous-répertoire trouve quand même la config du projet. Un `--cwd` explicite l'emporte toujours, et `verbatra-mcp` et `verbatra mcp` appliquent la même règle. Avec `verbatra mcp`, les fichiers `.env.local` et `.env` sont aussi lus depuis ce répertoire. Un `CLAUDE_PROJECT_DIR` défini uniquement dans `.env` ou `.env.local` est ignoré, car la racine du projet est résolue avant la lecture de ces fichiers.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 

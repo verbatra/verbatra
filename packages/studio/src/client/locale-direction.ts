@@ -59,28 +59,44 @@ function parseLocale(tag: string): Intl.Locale | undefined {
   }
 }
 
+const directionCache = new Map<string, boolean>();
+
 function textInfoDirection(locale: Intl.Locale & LocaleTextInfo): string | undefined {
-  const info = typeof locale.getTextInfo === "function" ? locale.getTextInfo() : locale.textInfo;
-  return info?.direction;
+  try {
+    const info = typeof locale.getTextInfo === "function" ? locale.getTextInfo() : locale.textInfo;
+    return info?.direction;
+  } catch {
+    return undefined;
+  }
 }
 
 function scriptDirectionIsRtl(locale: Intl.Locale): boolean {
-  const script = locale.maximize().script;
-  return script !== undefined && RTL_SCRIPTS.has(script);
+  try {
+    const script = locale.maximize().script;
+    return script !== undefined && RTL_SCRIPTS.has(script);
+  } catch {
+    return false;
+  }
 }
 
-export function isRtlLocale(tag: string): boolean {
+function resolveIsRtl(tag: string): boolean {
   const locale = parseLocale(tag);
   if (locale === undefined) {
     return false;
   }
-  try {
-    const direction = textInfoDirection(locale);
-    if (direction === "rtl" || direction === "ltr") {
-      return direction === "rtl";
-    }
-    return scriptDirectionIsRtl(locale);
-  } catch {
-    return false;
+  const direction = textInfoDirection(locale);
+  if (direction === "rtl" || direction === "ltr") {
+    return direction === "rtl";
   }
+  return scriptDirectionIsRtl(locale);
+}
+
+export function isRtlLocale(tag: string): boolean {
+  const cached = directionCache.get(tag);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const rtl = resolveIsRtl(tag);
+  directionCache.set(tag, rtl);
+  return rtl;
 }

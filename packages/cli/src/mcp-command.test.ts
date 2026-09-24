@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { resolveServerCwd } from "@verbatra/mcp";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
@@ -179,6 +180,54 @@ describe("run mcp: project directory resolution", () => {
 
     expect(withFlag.startCwds).toEqual(["/explicit"]);
     expect(withoutFlag.startCwds).toEqual([process.cwd()]);
+  });
+});
+
+describe("run mcp: CLAUDE_PROJECT_DIR from .env", () => {
+  let project: string;
+  let elsewhere: string;
+  let previous: string | undefined;
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), "verbatra-mcp-project-"));
+    elsewhere = mkdtempSync(join(tmpdir(), "verbatra-mcp-elsewhere-"));
+    previous = process.env.CLAUDE_PROJECT_DIR;
+    delete process.env.CLAUDE_PROJECT_DIR;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (previous === undefined) {
+      delete process.env.CLAUDE_PROJECT_DIR;
+    } else {
+      process.env.CLAUDE_PROJECT_DIR = previous;
+    }
+    rmSync(project, { recursive: true, force: true });
+    rmSync(elsewhere, { recursive: true, force: true });
+  });
+
+  it("ignores a CLAUDE_PROJECT_DIR set only in .env, resolving the root before .env is read", async () => {
+    writeFileSync(join(project, ".env"), `CLAUDE_PROJECT_DIR=${elsewhere}\n`);
+    vi.spyOn(process, "cwd").mockReturnValue(project);
+    const startCwds: string[] = [];
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          resolveServerCwd,
+          startMcpServer: async (options) => {
+            startCwds.push(options.cwd ?? "");
+            return makeMcpHandle();
+          },
+        }),
+    });
+    const captured = captureMcpSession();
+
+    const donePromise = run(["mcp"], deps, captureStreams().streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(startCwds).toEqual([project]);
   });
 });
 
@@ -368,6 +417,101 @@ describe("run mcp: success path and shutdown", () => {
 
     expect(code).toBe(1);
     expect(cap.err()).toContain("CLOSE_FAILED");
+  });
+});
+
+describe("run mcp: stop and client disconnect racing", () => {
+  function deferred(): {
+    promise: Promise<void>;
+    resolve: () => void;
+    reject: (e: unknown) => void;
+  } {
+    let resolve!: () => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function startWithHandle(close: () => Promise<void>, closed: Promise<void>) {
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({ startMcpServer: async () => makeMcpHandle({ close, closed }) }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+    const donePromise = run(["mcp"], deps, cap.streams, captured.hooks);
+    return { cap, captured, donePromise };
+  }
+
+  const closeFailure = (): Error =>
+    Object.assign(new Error("close failed"), { code: "CLOSE_FAILED" });
+
+  it("exits 1 when the stop close fails after closed has already settled", async () => {
+    const closeCall = deferred();
+    const closed = deferred();
+    const { cap, captured, donePromise } = startWithHandle(() => closeCall.promise, closed.promise);
+    await flush();
+
+    captured.session()?.requestStop();
+    closed.resolve();
+    await flush();
+    closeCall.reject(closeFailure());
+    const code = await donePromise;
+
+    expect(code).toBe(1);
+    expect(cap.err()).toContain("CLOSE_FAILED");
+  });
+
+  it("exits 1 when the stop close fails before closed settles", async () => {
+    const closeCall = deferred();
+    const closed = deferred();
+    const { cap, captured, donePromise } = startWithHandle(() => closeCall.promise, closed.promise);
+    await flush();
+
+    captured.session()?.requestStop();
+    closeCall.reject(closeFailure());
+    await flush();
+    closed.resolve();
+    const code = await donePromise;
+
+    expect(code).toBe(1);
+    expect(cap.err()).toContain("CLOSE_FAILED");
+  });
+
+  it("keeps the forced exit 130 of a second requestStop even when closed settles in between", async () => {
+    const closed = deferred();
+    const { captured, donePromise } = startWithHandle(() => new Promise(() => {}), closed.promise);
+    await flush();
+
+    const session = captured.session();
+    session?.requestStop();
+    closed.resolve();
+    await flush();
+    session?.requestStop();
+    const code = await donePromise;
+
+    expect(code).toBe(130);
+  });
+
+  it("a requestStop after closed settled keeps the clean exit 0 and never closes again", async () => {
+    const close = vi.fn(async () => {});
+    const closed = deferred();
+    const { cap, captured, donePromise } = startWithHandle(close, closed.promise);
+    await flush();
+
+    closed.resolve();
+    await flush();
+    const session = captured.session();
+    session?.requestStop();
+    session?.requestStop();
+    const code = await donePromise;
+
+    expect(code).toBe(0);
+    expect(close).not.toHaveBeenCalled();
+    expect(cap.err()).toBe("");
   });
 });
 

@@ -25,6 +25,7 @@ export function stoppableSession<C extends StoppableController>(
   let controller: C | undefined;
   let stopping = false;
   let startupFailed = false;
+  let endedCleanly = false;
 
   const stopController = (c: C): void => {
     void c
@@ -37,7 +38,13 @@ export function stoppableSession<C extends StoppableController>(
     .getController()
     .then((c) => {
       controller = c;
-      void c.ended?.then(() => resolveDone(0));
+      void c.ended?.then(() => {
+        if (stopping) {
+          return;
+        }
+        endedCleanly = true;
+        resolveDone(0);
+      });
       if (stopping) {
         stopController(c);
       }
@@ -48,7 +55,7 @@ export function stoppableSession<C extends StoppableController>(
     });
 
   const requestStop = (): void => {
-    if (startupFailed) {
+    if (startupFailed || endedCleanly) {
       return;
     }
     if (!stopping) {
