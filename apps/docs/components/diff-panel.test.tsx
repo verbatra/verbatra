@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 
+import { NextIntlClientProvider } from "next-intl";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
+import type { Locale } from "@/lib/i18n";
+import de from "@/messages/de.json";
+import en from "@/messages/en.json";
+import es from "@/messages/es.json";
+import fr from "@/messages/fr.json";
 import { DiffPanel } from "./diff-panel";
+
+const MESSAGES = { en, de, es, fr } as const;
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -25,13 +33,17 @@ function stubBrowserApis(reducedMotion: boolean): void {
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-function render(reducedMotion: boolean): HTMLDivElement {
+function render(reducedMotion: boolean, locale: Locale = "en"): HTMLDivElement {
   stubBrowserApis(reducedMotion);
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
   act(() => {
-    root.render(<DiffPanel />);
+    root.render(
+      <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]}>
+        <DiffPanel />
+      </NextIntlClientProvider>,
+    );
   });
   mounted = { container, root };
   return container;
@@ -69,4 +81,17 @@ describe("DiffPanel", () => {
 
     expect(changedCellText(container)).toContain('"Zur Kasse"');
   });
+
+  it.each(Object.keys(MESSAGES) as Locale[])(
+    "labels and captions the panel in the %s page locale",
+    (locale) => {
+      const container = render(true, locale);
+      const figure = container.querySelector("figure");
+
+      expect(figure?.getAttribute("aria-label")).toBe(MESSAGES[locale].docs.diffPanel.label);
+      expect(figure?.querySelector("figcaption")?.textContent).toBe(
+        MESSAGES[locale].docs.diffPanel.caption,
+      );
+    },
+  );
 });

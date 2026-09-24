@@ -26,6 +26,10 @@
       "dark": "Dark",
       "light": "Light"
     },
+    "diffPanel": {
+      "label": "A diff showing only the changed translation key being re-translated",
+      "caption": "Only the changed key is sent to the provider. Current keys are left untouched."
+    },
     "statusBadges": {
       "new": "new"
     }
