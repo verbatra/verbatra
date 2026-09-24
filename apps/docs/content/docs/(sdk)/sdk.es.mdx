@@ -68,7 +68,7 @@ Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?
 - `cache` está activado por defecto y reutiliza la [caché de memoria de traducción](/docs/the-cache)
   local (`verbatra.cache.json`, exportada también como `CACHE_FILE_NAME`); ponlo en false para omitir
   la caché en la ejecución (el `--no-cache` de la CLI).
-- `humanEdits` sobrescribe el `humanEdits` de la configuración para esta ejecución: `"overwrite"` retraduce también las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra (el `--include-human` de la CLI). Por defecto esas claves se conservan y se listan en `LocaleSummary.protected`; las claves que coinciden con `pinnedKeys` siguen protegidas diga lo que diga esto. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations). Un dry run ahora también lee `verbatra.provenance.json`, salvo que `humanEdits` resulte en `"overwrite"`.
+- `humanEdits` (desde 0.12.0) sobrescribe el `humanEdits` de la configuración para esta ejecución: `"overwrite"` retraduce también las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra (el `--include-human` de la CLI). Por defecto esas claves se conservan y se listan en `LocaleSummary.protected`; las claves que coinciden con `pinnedKeys` siguen protegidas diga lo que diga esto. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations). Un dry run ahora también lee `verbatra.provenance.json`, salvo que `humanEdits` resulte en `"overwrite"`.
 - `onProgress` se llama a medida que avanza la ejecución (por inicio y fin de cada locale, y por
   sub-lote del proveedor), y `onLockWait` se dispara mientras el bloqueo de escritura de un locale
   está en disputa. Ambos son callbacks de notificación; el SDK no escribe nada por sí mismo.
@@ -284,10 +284,10 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 
 Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, no hace
 ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan nueve comprobaciones,
-cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida,
-el formato configurado resuelve a un adaptador, el ID de proveedor configurado resuelve a una
-fábrica, la variable de entorno de la que ese proveedor lee su clave está definida, y el archivo
-del locale de origen se puede leer. Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
+cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida
+(`config`), el formato configurado resuelve a un adaptador (`format-adapter`), el ID de proveedor
+configurado resuelve a una fábrica (`provider`), la variable de entorno de la que ese proveedor lee
+su clave está definida (`api-key`), y el archivo del locale de origen se puede leer (`source-file`). Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
 sola llamada informa de cada problema independiente. La clave de API se comprueba solo por nombre.
 La comprobación del archivo de origen lo lee y lo parsea en lugar de solo sondear su existencia, así
 que un directorio en su lugar, un archivo vacío y contenido malformado se informan todos aquí.
@@ -620,7 +620,7 @@ proveedor. La aprobación también guarda el hash de origen de la clave en el ar
 que vuelve a contar como sin revisar en cuanto cambia el origen; cualquier escritura posterior que
 cambie el valor empieza un registro nuevo, sin revisar.
 
-Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer? }`. `expectedValue` es el texto que
+Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` es el texto que
 vio quien revisa: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
 otro, y `REVIEW_SOURCE_CHANGED` cuando el origen cambió desde que se escribió el valor. `reviewer` es
 texto libre opcional de 64 caracteres como máximo y sin caracteres de control (si no,
@@ -642,7 +642,7 @@ posterior omite cualquier acierto exacto o difuso de la memoria para la clave cu
 con ese hash, así que la memoria de otra máquina tampoco puede devolver el texto. No llama a ningún
 proveedor.
 
-Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer? }`, comprobada como en
+Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, comprobada como en
 `approveEntry`, salvo que un origen desactualizado no impide un rechazo. Devuelve
 `{ locale, key, provenance }`. Un formato que conserva una clave que no recibió, XLIFF, lanza
 `REVIEW_REJECT_UNSUPPORTED` después de restaurar el archivo.
@@ -935,7 +935,7 @@ caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los
 ### loadConfig
 
 Encuentra, carga y valida la configuración del proyecto, devolviendo una `VerbatraConfig`. Opciones:
-`{ cwd?, configPath?, configOverride? }`, con precedencia de `configOverride` (validar un objeto en
+`{ cwd?, configPath?, configOverride?, fs? }`, con precedencia de `configOverride` (validar un objeto en
 memoria) sobre `configPath` (cargar un archivo explícito) sobre la búsqueda. La búsqueda empieza en
 `cwd` y cubre `verbatra.config.ts` (también `.js`/`.cjs`), la familia `.verbatrarc` (`.json`, `.yaml`,
 `.yml`, `.js`, `.cjs`, `.ts`) y una propiedad `"verbatra"` en `package.json`. Un `glossary` dado como
@@ -944,6 +944,8 @@ un mapa de versión 1 de término de origen a traducción, o una definición de 
 
 Lanza `CONFIG_NOT_FOUND` cuando no se encuentra nada, `CONFIG_INVALID` cuando se encuentra una
 configuración pero es inválida. Consulta el [Archivo de configuración](/docs/config-file) para ver el esquema.
+`fs` es el puerto del sistema de archivos a través del cual se lee un archivo de glosario, como se
+describe en [El punto de inyección de dependencias](#el-punto-de-inyección-de-dependencias).
 
 ### loadConfigWithMeta
 
@@ -1172,11 +1174,11 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. `parseEntries` recibe además el locale con el que se lee el archivo, para un formato cuyo único archivo contiene a la vez el texto de origen y el de destino, y `serializeEntries` recibe el contexto de escritura de quien llama, cuyo `sourcePath` opcional nombra el archivo del locale de origen. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir.
+Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. `parseEntries` recibe además el locale con el que se lee el archivo, para un formato cuyo único archivo contiene a la vez el texto de origen y el de destino, y `serializeEntries` recibe el contexto de escritura de quien llama, cuyo `sourcePath` opcional nombra el archivo del locale de origen. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir. Los hooks opcionales son `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` y, desde 0.12.0, `compareBranchArms`; `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
 
 ### createTreeFileAdapter
 
-Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los placeholders de cada hoja y de si es una forma plural, y se encarga por su cuenta de aplanar y volver a anidar. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `comparePlaceholders`, `compareBranchArms`, `deriveDescriptions` y `keyMode`.
+Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los placeholders de cada hoja y de si es una forma plural, además de `extractPlaceholders` para un solo valor, y se encarga por su cuenta de aplanar y volver a anidar. Igual que la fábrica plana, toma `format`, `extensions` y un `sniff` opcional. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (desde 0.12.0), `deriveDescriptions`, `buildWriteTree` y `keyMode`, y `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
 
 ### nodeAdapterFs
 
