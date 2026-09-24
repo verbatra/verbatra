@@ -1,8 +1,8 @@
 # @verbatra/e2e
 
-End-to-end tests that install the published `@verbatra/cli` and `@verbatra/sdk`
-tarballs into a throwaway project and drive the real `verbatra` binary, the way a
-user would. This catches packaging, bundling, and bin regressions that the per-package
+End-to-end tests that install the packed `@verbatra/sdk`, `@verbatra/cli`,
+`@verbatra/studio`, and `@verbatra/mcp` tarballs into a throwaway project and drive
+the real `verbatra` binary, the way a user would. This catches packaging, bundling, and bin regressions that the per-package
 unit tests cannot see.
 
 This directory is deliberately outside the pnpm workspace so the consumer install
@@ -13,7 +13,8 @@ resolves the real tarballs instead of workspace symlinks.
 `src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`, and
 `@verbatra/mcp` once (or reuses the paths in `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` /
 `VERBATRA_STUDIO_TARBALL` / `VERBATRA_MCP_TARBALL`).
-Each test builds a temp project, `npm install`s the tarballs, and runs the binary via
+Each test builds a temp project, `npm install`s the sdk and cli tarballs, plus the studio or mcp
+tarball when it asks for one (`makeConsumer({ withStudio, withMcp })`), and runs the binary via
 `src/harness.ts`.
 
 ## Tiers
@@ -59,7 +60,16 @@ deterministic test joins the required gate automatically.
   the written value, lands it in the locale file and leaves no `*.lock` file behind once stdin
   closes, and `verbatra mcp --allow-spend` exits 0 and leaves no `*.lock` file behind when stdin
   closes while a `translation.translatePending` call is held mid-request by the same kind of
-  never-answering loopback endpoint, spending nothing). It calls no hosted provider and makes no
+  never-answering loopback endpoint, spending nothing). It also covers `check --qa` and `--strict` on committed translations
+  (`tests/check-qa.e2e.test.ts`), `extract` (`tests/extract.e2e.test.ts`), per-language CLDR plural
+  arms (`tests/icu-plural-arms.e2e.test.ts`), inline markup parity on import
+  (`tests/markup-parity.e2e.test.ts`), the network policy and `VERBATRA_NETWORK_POLICY` under a live
+  network guard (`tests/network-policy.e2e.test.ts`), the provenance file
+  (`tests/provenance.e2e.test.ts`), `pseudo` (`tests/pseudo.e2e.test.ts`), the Studio server served
+  from the installed package, its `INVALID_PORT` error, and its missing-package hint
+  (`tests/studio.e2e.test.ts`), a format adapter built outside verbatra
+  (`tests/third-party-adapter.e2e.test.ts`), TMX interchange (`tests/tmx-round-trip.e2e.test.ts`),
+  and `types` including `--check` and `--out` (`tests/types.e2e.test.ts`). It calls no hosted provider and makes no
   network request outside 127.0.0.1: only the interrupt test and the `--allow-spend` MCP test point
   an `openai-compatible` provider at a never-answering loopback endpoint the test serves, so the
   tier is deterministic and free.

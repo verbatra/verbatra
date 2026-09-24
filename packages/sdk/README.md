@@ -144,12 +144,23 @@ The remaining exports are the building blocks Verbatra Studio, the MCP server, a
 | Export | What it does |
 | --- | --- |
 | `editEntry`, `retranslateEntry` | Save a manual translation for one key, or re-run the provider for one key. Both run the candidate through the same integrity gate as a full run and hold the same per-locale write lock; a rejection names an `IntegrityGateReason` and writes nothing |
+| `retranslateEntries` | Re-run the provider for a batch of keys, one outcome per entry, holding each locale's write lock once |
+| `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries` | Record a human review decision for one key or a batch; a rejection removes the translation so the key reads as missing and the next run fills it again |
+| `BatchInterruptedError` | Thrown by the batch calls when an unexpected error stops them, carrying the outcomes of the entries already decided |
+| `reviewQueue`, `loadProvenance`, `PROVENANCE_FILE_NAME` | Read the keys waiting for human review, and the provenance file that records who wrote each translation and its review state |
 | `keyValue`, `localeValues` | Read one key's current source and target values, or a whole locale's key/value pairs |
 | `keyIntegrity` | Report, per changed key, whether its placeholders, inline markup, and ICU still match the locked baseline |
+| `localeIntegrity` | Report, per locale, only the keys whose current translation fails the placeholder, inline markup, or ICU check |
 | `lockState`, `loadLockFile` | Read the lock file's existence, version, and per-locale drift, or the lock file itself |
 | `runStatus`, `budgetStanding` | Read the review-flag and token-usage snapshot the last non-dry run left behind, and turn a `RunBudget` into a standing |
 | `readLocaleFileSnapshot`, `diffLocaleSnapshots` | Snapshot one locale file as per-key content hashes and compare two snapshots: the primitives behind live-refresh watching |
 | `loadConfigWithMeta`, `readGlossaryFile`, `updateGlossaryTerm` | `loadConfig` plus config-source and glossary provenance, and the file-backed glossary read and single-term write that take that provenance rather than a path |
+| `normalizeGlossary`, `glossaryForLocale`, `sharedGlossaryTranslations`, `redactGlossary`, `readCurrentGlossary`, `editConfiguredGlossaryTerm` | Normalize a glossary, project it onto one target locale or onto the translations every locale shares, redact it, and read or edit the configured glossary as it is on disk now |
+| `glossaryHits`, `glossaryDraftCheck` | List the glossary terms a source text is held to, and check a draft translation against them before it is written |
+| `isMachineTranslationEnabled`, `assertMachineTranslationEnabled` | Tell whether the config names a translation provider or `provider: { id: "none" }`, and refuse a provider-calling action in that human-only mode |
+| `detectProject` | Infer a project's locale file format and layout from its files and dependencies, the way `verbatra init` does, writing nothing |
+| `declareProviderKeyEnvVar`, `releaseHeldLocks` | Mark a custom key variable as secret so `redact` scrubs it, and delete the write locks this process holds before a forced exit |
+| `INTEGRITY_GATE_REASONS`, `REVIEW_REASON_CODES`, `QA_SEVERITIES` | The closed sets of integrity-gate reasons, review-flag reasons, and quality-check severities, as runtime tuples to validate against |
 | `createLocalePathResolver` | Build the two-way locale-to-path mapping from a config, so a watcher can decide whether a changed file concerns verbatra at all |
 | `createDefaultRegistry`, `createTreeFileAdapter`, `createFlatFileAdapter`, `AdapterRegistry`, `nodeAdapterFs` | The format-adapter construction surface: build an adapter for a format verbatra does not ship and hand the registry to a flow as `deps.adapterRegistry` |
 | `verbatraConfigSchema`, `scaffoldingMetadata` | The zod schema `loadConfig` validates against (also published as `@verbatra/sdk/config-schema.json`), and the facts a project generator needs to write a first config |

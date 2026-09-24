@@ -43,14 +43,14 @@ npx verbatra studio
 # Verbatra Studio running at http://127.0.0.1:5849/?token=...
 ```
 
-Open the printed URL; the token is required.
+Open the printed URL; the token is required. Add `--verbose` to also print one stderr line per request, with the token masked.
 
 <img src="https://raw.githubusercontent.com/verbatra/verbatra/main/apps/docs/public/screenshots/studio-translations-dark.webp" alt="The Translations page of Verbatra Studio in its dark theme, listing per-locale translation status beside a per-key detail view" width="100%" />
 
 ## What it serves
 
-- **Translations**: per-locale status, the diff, and lock drift, down to a per-key detail view with the source value and every target's current translation.
-- **Review**: the needs-review queue of flagged translations, with in-place editing.
+- **Translations**: per-locale status, the diff, and lock drift, filterable by state, locale, review queue entries, and integrity problems, down to a per-key detail view with the source value, its source file description, every target's current translation, and who wrote it.
+- **Review**: the needs-review queue of flagged translations, worked from the keyboard or in bulk: approve, reject, or edit an entry side by side with its source, context, glossary terms, and integrity check. Approve and Reject decisions are saved to `verbatra.provenance.json`.
 - **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
 - **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here, with the new state shown as soon as the write lands.
 
@@ -58,9 +58,9 @@ Every page refreshes live over a server-sent event stream as your locale files c
 
 ## Editing and provider spend
 
-Local editing is always on: an edit from the Review queue runs through the same integrity gate a translate run applies to every candidate value, then writes the locale file and the lock. Editing the glossary from Settings is local editing too, since changing a term calls no provider and spends nothing; the server derives the target file from the loaded config alone and never accepts a path for it, and a glossary written inline in the config module keeps the panel read-only.
+Local editing is always on: an edit, approval, or rejection from the Review queue runs through the same integrity gate a translate run applies to every candidate value, then writes the locale file and the lock. Editing the glossary from Settings is local editing too, since changing a term calls no provider and spends nothing; the server derives the target file from the loaded config alone and never accepts a path for it, and a glossary written inline in the config module keeps the panel read-only.
 
-Actions that spend provider budget, retranslating a key and translating every pending change, exist only when Studio is started with `--allow-spend` or with `VERBATRA_STUDIO_ALLOW_SPEND` set. Without that flag those methods are not registered on the server at all, so Studio never calls a provider.
+Actions that spend provider budget, retranslating one key or a selection and translating every pending change, exist only when Studio is started with `--allow-spend` or with `VERBATRA_STUDIO_ALLOW_SPEND` set. Without that flag those methods are not registered on the server at all, so Studio never calls a provider.
 
 `--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS`) additionally registers Studio's RPC methods as WebMCP tools on the browser's `document.modelContext`, so a browser agent can drive the same surface. It is off by default, and each tool is a 1:1 wrapper over the same authenticated call the dashboard makes, travelling the same validation and the same capability gate, so it confers no authority the open, authenticated tab does not already hold.
 
