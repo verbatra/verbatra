@@ -20,7 +20,7 @@ const AI_PANEL_ID = `${INSTALL_ID}-ai-prompt`;
 const TAB_CLASS = "rounded-md px-2.5 py-1.5 font-mono text-xs transition-colors";
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 const ROW_CLASS = "flex items-center gap-3 px-3.5 py-3 font-mono text-sm";
-const CODE_CLASS = "vk-scroll min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-fd-foreground";
+const CODE_CLASS = "vk-terminal-scroll min-w-0 flex-1 whitespace-nowrap text-fd-foreground";
 
 const HINT_LINK_CLASS =
   "inline-flex min-h-6 items-center underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]";

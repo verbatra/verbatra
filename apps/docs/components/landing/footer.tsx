@@ -124,10 +124,12 @@ const LINK_CLASS =
 function FooterLinkItem({
   link,
   label,
+  newLabel,
   locale,
 }: {
   link: FooterLink;
   label: string;
+  newLabel: string;
   locale: Locale;
 }): ReactNode {
   if (link.external) {
@@ -141,7 +143,7 @@ function FooterLinkItem({
         data-umami-event-target={link.trackingTarget}
       >
         {label}
-        {link.isNew ? <NewBadge>new</NewBadge> : null}
+        {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
       </a>
     );
   }
@@ -149,7 +151,7 @@ function FooterLinkItem({
   return (
     <a href={href} className={LINK_CLASS}>
       {label}
-      {link.isNew ? <NewBadge>new</NewBadge> : null}
+      {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
     </a>
   );
 }
@@ -198,6 +200,7 @@ function ContributorsRow({
 
 export async function FullFooter(): Promise<ReactNode> {
   const t = await getTranslations("landing.footer");
+  const tStatus = await getTranslations("docs.statusBadges");
   const locale = (await getLocale()) as Locale;
   return (
     <footer
@@ -310,6 +313,7 @@ export async function FullFooter(): Promise<ReactNode> {
                       <FooterLinkItem
                         link={link}
                         label={link.literal ?? t(link.labelKey ?? "")}
+                        newLabel={tStatus("new")}
                         locale={locale}
                       />
                     </li>
@@ -325,12 +329,13 @@ export async function FullFooter(): Promise<ReactNode> {
           ariaFor={(login) => t("contributorAria", { name: login })}
         />
         <div
-          className="mt-14 flex flex-wrap items-center gap-x-4 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
+          className="mt-14 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
           style={{
             borderTop: "1px solid color-mix(in srgb, var(--border-default) 80%, transparent)",
           }}
         >
-          <span>{t("legalLine")}</span>
+          <span>{t("legalLicense")}</span>
+          <span>{t("legalCopyright")}</span>
         </div>
       </div>
     </footer>

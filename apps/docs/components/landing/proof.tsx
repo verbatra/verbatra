@@ -45,9 +45,8 @@ function Region({
       <div
         className={cn(
           MONO,
-          "mt-auto overflow-x-auto border-t border-fd-border px-5 py-[18px] text-fd-muted-foreground",
+          "vk-terminal-scroll mt-auto border-t border-fd-border px-5 py-[18px] text-fd-muted-foreground",
         )}
-        style={{ background: "var(--v-void)" }}
       >
         {children}
       </div>

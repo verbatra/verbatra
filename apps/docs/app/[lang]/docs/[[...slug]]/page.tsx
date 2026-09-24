@@ -121,7 +121,6 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
     <DocsPage
       toc={isHome ? [] : page.data.toc}
       full={isHome}
-      role="main"
       breadcrumb={{ enabled: !isHome, includePage: true }}
       footer={{ enabled: !isHome, className: "vk-docs-footer" }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}

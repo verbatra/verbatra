@@ -30,9 +30,11 @@ Node.js `>=22.14.0`.
 ```bash
 npm install --save-dev @verbatra/cli
 # pnpm
-pnpm add -D @verbatra/cli
+pnpm add --save-dev @verbatra/cli
 # yarn
-yarn add -D @verbatra/cli
+yarn add --dev @verbatra/cli
+# bun
+bun add --dev @verbatra/cli
 ```
 
 A dev-dependency install puts the `verbatra` binary in `node_modules/.bin`, not on your PATH, so invoke it with `npx verbatra ...`, which runs the locally installed binary whichever package manager put it there. To try a command before installing, use the scoped name: `npx @verbatra/cli --help`.

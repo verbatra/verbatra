@@ -71,6 +71,14 @@ h6 {
   font-family: var(--font-display);
 }
 
+@layer base {
+  :where(h1, h2, h3, h4, h5, h6, .vk-display, .vk-h2, .vk-h3, .vk-h4) {
+    hyphens: auto;
+    hyphenate-limit-chars: 10 4 4;
+    overflow-wrap: anywhere;
+  }
+}
+
 code,
 pre,
 kbd,
