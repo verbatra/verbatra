@@ -21,14 +21,21 @@ function formatMismatchDetail(missing: readonly string[], extra: readonly string
   return parts.join("; ");
 }
 
+export type IntegrityVerdict = Omit<KeyIntegrityLocaleEntry, "locale">;
+
 export function deriveIntegrityPillView(
   locales: readonly KeyIntegrityLocaleEntry[],
   locale: string,
 ): IntegrityPillView | null {
   const entry = locales.find((candidate) => candidate.locale === locale);
-  if (entry === undefined) {
-    return null;
-  }
+  return entry === undefined ? null : integrityVerdictView(entry);
+}
+
+export function hasIntegrityProblem(entry: IntegrityVerdict): boolean {
+  return integrityVerdictView(entry).tone === "danger";
+}
+
+export function integrityVerdictView(entry: IntegrityVerdict): IntegrityPillView {
   if (!entry.matches) {
     return {
       tone: "danger",
