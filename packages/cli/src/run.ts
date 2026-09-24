@@ -1,4 +1,5 @@
 import {
+  type CheckInput,
   type CheckSummary,
   DEFAULT_EXCHANGE_FORMAT,
   DEFAULT_TMX_PATH,
@@ -6,6 +7,8 @@ import {
   type DiffSummary,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
+  type ExportWorkbookInput,
+  type ExportWorkbookResult,
   type GenerateTypesInput,
   isMachineTranslationEnabled,
   type LoadedConfig,
@@ -17,6 +20,7 @@ import {
   resolveDryRun,
   type SdkErrorCode,
   type TranslateInput,
+  type VerbatraConfig,
 } from "@verbatra/sdk";
 import { Command, CommanderError } from "commander";
 import { z } from "zod";
@@ -29,8 +33,10 @@ import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
 import { runMcp } from "./mcp-command.js";
 import { readPackageManifest } from "./package-manifest.js";
 import { parsePositiveIntegerOption } from "./positive-integer-option.js";
+import { createProgressPresenter, scanProgressReporter } from "./progress-presenter.js";
 import { redactingStreams } from "./redacting-streams.js";
 import {
+  displayPath,
   renderCheckHuman,
   renderDiffHuman,
   renderDoctorHuman,
@@ -38,8 +44,6 @@ import {
   renderExtractHuman,
   renderHuman,
   renderLockWait,
-  renderProgressHuman,
-  renderProgressJson,
   renderPseudoHuman,
   renderTmxExportHuman,
   renderTmxImportHuman,
@@ -54,7 +58,7 @@ import {
   type TerminalSettings,
 } from "./terminal-mode.js";
 import type { CliDeps, InitOpts, RunHooks, Streams } from "./types.js";
-import { createUi, type Ui } from "./ui.js";
+import { createUi, formatElapsed, type Task, type Ui } from "./ui.js";
 import { runWatch } from "./watch-session.js";
 
 const CLI_VERSION = readPackageManifest().version;
@@ -536,17 +540,72 @@ function lockWaitReporter(context: CommandContext): (event: LockWaitEvent) => vo
 }
 
 function progressReporter(context: CommandContext): (event: ProgressEvent) => void {
-  return (event) => {
-    const line = context.json ? renderProgressJson(event) : renderProgressHuman(event);
-    if (line === undefined) {
-      return;
-    }
-    if (context.json) {
-      context.streams.err(`${line}\n`);
-      return;
-    }
-    context.ui.line(line);
-  };
+  return createProgressPresenter(context.ui, { json: context.json, base: process.cwd() });
+}
+
+async function withTask<T>(
+  context: CommandContext,
+  label: string,
+  work: (task: Task) => Promise<T>,
+): Promise<T> {
+  const task = context.ui.task(label);
+  try {
+    const result = await work(task);
+    task.succeed();
+    return result;
+  } catch (error) {
+    task.fail();
+    throw error;
+  }
+}
+
+function localesPhrase(count: number): string {
+  return `${count} ${count === 1 ? "locale" : "locales"}`;
+}
+
+function providerLabel(provider: VerbatraConfig["provider"]): string {
+  const options: Readonly<Record<string, unknown>> = provider.options;
+  const model = options.model;
+  return typeof model === "string" ? `${provider.id}/${model}` : provider.id;
+}
+
+function translateStartLine(opts: ParsedTranslateOpts, config: VerbatraConfig): string {
+  const locales = localesPhrase(opts.locales?.length ?? config.targetLocales.length);
+  if (opts.estimate === true) {
+    return `estimating ${locales}, no provider call`;
+  }
+  if (opts.dryRun === true) {
+    return `dry run over ${locales}, no provider call`;
+  }
+  if (!isMachineTranslationEnabled(config)) {
+    return `filling ${locales} from the translation memory (provider none)`;
+  }
+  return `translating ${locales} with ${providerLabel(config.provider)}`;
+}
+
+function usagePhrase(summary: RunSummary): string {
+  const usage = summary.usage;
+  return usage === undefined ? "" : `, ${usage.inputTokens + usage.outputTokens} tokens`;
+}
+
+function reportTranslateOutcome(
+  context: CommandContext,
+  summary: RunSummary,
+  exitCode: number,
+  startedAt: number,
+): void {
+  const elapsed = formatElapsed(Date.now() - startedAt);
+  if (summary.dryRun) {
+    context.ui.status("ok", `dry run done in ${elapsed}, nothing written`);
+    context.ui.hint("verbatra translate", "run it for real");
+    return;
+  }
+  if (exitCode === 0) {
+    context.ui.status("ok", `done in ${elapsed}${usagePhrase(summary)}`);
+    context.ui.hint("verbatra check", "confirm every locale is in sync");
+    return;
+  }
+  context.ui.status("warn", `finished in ${elapsed}${usagePhrase(summary)}, see the summary above`);
 }
 
 function buildTranslateInput(
@@ -592,6 +651,8 @@ export async function runTranslate(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
+          const startedAt = Date.now();
+          context.ui.info(translateStartLine(opts, config));
           const summary = await deps.translate(buildTranslateInput(opts, config, cwd, context));
           context.streams.out(
             context.json
@@ -599,7 +660,9 @@ export async function runTranslate(
               : `${renderHuman(summary)}\n`,
           );
           renderNeedsHumanHint(config, summary, opts.includeHuman === true, context.ui);
-          return translateExitCode(config, summary);
+          const exitCode = translateExitCode(config, summary);
+          reportTranslateOutcome(context, summary, exitCode, startedAt);
+          return exitCode;
         },
         () => loadEnvFiles(cwd),
       );
@@ -695,6 +758,31 @@ async function runMcpCommand(
   return session.done;
 }
 
+function exportInput(
+  loaded: LoadedConfig,
+  cwd: string,
+  opts: z.infer<typeof exportOptsSchema> & { readonly format: ExchangeFormat | undefined },
+): ExportWorkbookInput {
+  return {
+    config: loaded.config,
+    cwd,
+    ...configFilePaths(loaded),
+    ...(opts.out !== undefined ? { out: opts.out } : {}),
+    ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+    ...(opts.includeUnchanged === true ? { includeUnchanged: true } : {}),
+    ...(opts.format !== undefined ? { format: opts.format } : {}),
+  };
+}
+
+function hintImportOfExport(context: CommandContext, result: ExportWorkbookResult): void {
+  if (result.locales.some((locale) => locale.rows > 0)) {
+    context.ui.hint(
+      `verbatra import ${displayPath(result.path, process.cwd())}`,
+      "once your translators have filled it in",
+    );
+  }
+}
+
 async function runExport(
   rawOpts: unknown,
   deps: CliDeps,
@@ -717,20 +805,17 @@ async function runExport(
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
           ),
         async (loaded) => {
-          const result = await deps.exportWorkbook({
-            config: loaded.config,
-            cwd,
-            ...configFilePaths(loaded),
-            ...(opts.out !== undefined ? { out: opts.out } : {}),
-            ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
-            ...(opts.includeUnchanged === true ? { includeUnchanged: true } : {}),
-            ...(opts.format !== undefined ? { format: opts.format } : {}),
-          });
+          const result = await withTask(
+            context,
+            `exporting to ${opts.format ?? DEFAULT_EXCHANGE_FORMAT}`,
+            () => deps.exportWorkbook(exportInput(loaded, cwd, opts)),
+          );
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("export", result)}\n`
               : `${renderExportHuman(result, process.cwd())}\n`,
           );
+          hintImportOfExport(context, result);
           return 0;
         },
       );
@@ -764,23 +849,31 @@ export async function runImport(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
-          const summary = await deps.importWorkbook({
-            config,
-            workbook,
-            cwd,
-            onLockWait: lockWaitReporter(context),
-            ...(opts.dryRun === true ? { dryRun: true } : {}),
-            ...(opts.format !== undefined ? { format: opts.format } : {}),
-            ...(opts.lockAcquireTimeoutMs !== undefined
-              ? { lockAcquireTimeoutMs: opts.lockAcquireTimeoutMs }
-              : {}),
-          });
+          const summary = await withTask(context, `importing ${workbook}`, () =>
+            deps.importWorkbook({
+              config,
+              workbook,
+              cwd,
+              onLockWait: lockWaitReporter(context),
+              ...(opts.dryRun === true ? { dryRun: true } : {}),
+              ...(opts.format !== undefined ? { format: opts.format } : {}),
+              ...(opts.lockAcquireTimeoutMs !== undefined
+                ? { lockAcquireTimeoutMs: opts.lockAcquireTimeoutMs }
+                : {}),
+            }),
+          );
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("import", summary)}\n`
               : `${renderHuman(summary, "import")}\n`,
           );
-          return runExitCode(summary);
+          const exitCode = runExitCode(summary);
+          if (summary.dryRun) {
+            context.ui.hint(`verbatra import ${workbook}`, "without --dry-run to write the files");
+          } else if (exitCode === 0) {
+            context.ui.hint("verbatra check", "confirm every locale is in sync");
+          }
+          return exitCode;
         },
       );
     },
@@ -799,19 +892,30 @@ async function runTmxImport(
     context,
     loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
     async (config) => {
-      const result = await deps.importTmx({
-        config,
-        cwd,
-        file: file ?? DEFAULT_TMX_PATH,
-        ...(opts.dryRun === true ? { dryRun: true } : {}),
-        ...(opts.overwrite === true ? { overwrite: true } : {}),
-        ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
-      });
+      const source = file ?? DEFAULT_TMX_PATH;
+      const result = await withTask(context, `importing ${source} into the memory`, () =>
+        deps.importTmx({
+          config,
+          cwd,
+          file: source,
+          ...(opts.dryRun === true ? { dryRun: true } : {}),
+          ...(opts.overwrite === true ? { overwrite: true } : {}),
+          ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+        }),
+      );
       context.streams.out(
         context.json
           ? `${renderSuccessEnvelope("tmx", result)}\n`
           : `${renderTmxImportHuman(result, process.cwd())}\n`,
       );
+      if (result.dryRun) {
+        context.ui.hint(`verbatra tmx import ${source}`, "without --dry-run to store it");
+      } else {
+        context.ui.hint(
+          "verbatra translate",
+          "reuses the imported memory before calling a provider",
+        );
+      }
       return 0;
     },
   );
@@ -831,14 +935,16 @@ async function runTmxExport(
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
       ),
     async (loaded) => {
-      const result = await deps.exportTmx({
-        config: loaded.config,
-        cwd,
-        ...configFilePaths(loaded),
-        toolVersion: CLI_VERSION,
-        ...(file !== undefined ? { out: file } : {}),
-        ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
-      });
+      const result = await withTask(context, "exporting the memory as TMX", () =>
+        deps.exportTmx({
+          config: loaded.config,
+          cwd,
+          ...configFilePaths(loaded),
+          toolVersion: CLI_VERSION,
+          ...(file !== undefined ? { out: file } : {}),
+          ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+        }),
+      );
       context.streams.out(
         context.json
           ? `${renderSuccessEnvelope("tmx", result)}\n`
@@ -879,6 +985,21 @@ export async function runTmx(
   );
 }
 
+function checkInput(
+  config: VerbatraConfig,
+  cwd: string,
+  opts: CheckOpts & { readonly qaSeverity?: QaSeverity },
+): CheckInput {
+  return {
+    config,
+    cwd,
+    ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+    ...(opts.consistency === true ? { consistency: true } : {}),
+    ...(opts.qa === true ? { qa: true } : {}),
+    ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
+  };
+}
+
 async function runCheck(
   rawOpts: unknown,
   deps: CliDeps,
@@ -896,14 +1017,9 @@ async function runCheck(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
-          const summary = await deps.check({
-            config,
-            cwd,
-            ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
-            ...(opts.consistency === true ? { consistency: true } : {}),
-            ...(opts.qa === true ? { qa: true } : {}),
-            ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
-          });
+          const summary = await withTask(context, "checking the locales", () =>
+            deps.check(checkInput(config, cwd, opts)),
+          );
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("check", summary)}\n`
@@ -934,17 +1050,25 @@ async function runDiff(
       context,
       loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
       async (config) => {
-        const summary = await deps.diff({
-          config,
-          cwd,
-          ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
-          ...(opts.unused === true ? { unused: true } : {}),
-        });
+        const label =
+          opts.unused === true ? "diffing and scanning the source" : "diffing the locales";
+        const summary = await withTask(context, label, (task) =>
+          deps.diff({
+            config,
+            cwd,
+            ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+            ...(opts.unused === true ? { unused: true } : {}),
+            onProgress: scanProgressReporter(task),
+          }),
+        );
         context.streams.out(
           context.json
             ? `${renderSuccessEnvelope("diff", summary)}\n`
             : `${renderDiffHuman(summary)}\n`,
         );
+        if (summary.hasPendingChanges) {
+          context.ui.hint("verbatra translate", "send the pending keys to your provider");
+        }
         return summary.hasPendingChanges || hasConfirmedUnusedKeys(summary) ? 1 : 0;
       },
     );
@@ -969,16 +1093,21 @@ async function runPseudo(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
-          const result = await deps.pseudolocalize({
-            config,
-            cwd,
-            ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
-            ...(opts.out !== undefined ? { out: opts.out } : {}),
-          });
+          const result = await withTask(context, "pseudolocalizing the source", () =>
+            deps.pseudolocalize({
+              config,
+              cwd,
+              ...(opts.locale !== undefined ? { locale: opts.locale } : {}),
+              ...(opts.out !== undefined ? { out: opts.out } : {}),
+            }),
+          );
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("pseudo", result)}\n`
               : `${renderPseudoHuman(result, process.cwd())}\n`,
+          );
+          context.ui.hint(
+            `load ${displayPath(result.path, process.cwd())} as the ${result.locale} locale in your dev server`,
           );
           return 0;
         },
@@ -1030,12 +1159,20 @@ async function runTypes(
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
           ),
         async (loaded) => {
-          const result = await deps.generateTypes(typesInput(loaded, cwd, opts));
+          const result = await withTask(context, "generating the declarations", () =>
+            deps.generateTypes(typesInput(loaded, cwd, opts)),
+          );
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("types", result)}\n`
               : `${renderTypesHuman(result, process.cwd())}\n`,
           );
+          if (result.written) {
+            context.ui.hint(
+              `commit ${displayPath(result.path, process.cwd())}`,
+              "verbatra types --check compares against it in CI",
+            );
+          }
           return result.check && result.stale ? 1 : 0;
         },
       );
@@ -1064,11 +1201,14 @@ async function runDoctor(
         if (!literals) {
           loadEnvFiles(cwd);
         }
-        const result = await deps.doctor({
-          cwd,
-          ...(opts.config !== undefined ? { configPath: opts.config } : {}),
-          ...(literals ? { literals: true } : {}),
-        });
+        const label = literals ? "scanning the source for literals" : "checking the setup";
+        const result = await withTask(context, label, (task) =>
+          deps.doctor({
+            cwd,
+            ...(opts.config !== undefined ? { configPath: opts.config } : {}),
+            ...(literals ? { literals: true, onProgress: scanProgressReporter(task) } : {}),
+          }),
+        );
         context.streams.out(
           context.json
             ? `${renderSuccessEnvelope("doctor", result)}\n`
@@ -1578,16 +1718,26 @@ async function runExtract(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
-          const result = await deps.extract({
-            config,
-            cwd,
-            ...(opts.dryRun === true ? { dryRun: true } : {}),
-          });
-          streams.out(
+          const result = await withTask(context, "scanning the source", (task) =>
+            deps.extract({
+              config,
+              cwd,
+              ...(opts.dryRun === true ? { dryRun: true } : {}),
+              onProgress: scanProgressReporter(task),
+            }),
+          );
+          context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("extract", result)}\n`
               : `${renderExtractHuman(result)}\n`,
           );
+          if (result.added.length > 0) {
+            if (result.dryRun) {
+              context.ui.hint("verbatra extract", "without --dry-run to write the new keys");
+            } else {
+              context.ui.hint("verbatra translate", "translate the new keys");
+            }
+          }
           return 0;
         },
       );

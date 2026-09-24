@@ -197,6 +197,10 @@ describe("export then import round-trip (no provider)", () => {
     const workbookPath = join(dir, "verbatra-translations.xlsx");
     const exported = await runVerbatra(consumer, ["export", "--out", workbookPath, "--cwd", dir]);
     expect(exported.exitCode).toBe(0);
+    expect(exported.stderr).toMatch(/^verbatra: exporting to xlsx\.\.\. done \(\d+\.\ds\)\n/);
+    expect(exported.stderr).toMatch(
+      /next: verbatra import \S*verbatra-translations\.xlsx {2}\(once your translators have filled it in\)$/,
+    );
 
     await fillWorkbook(workbookPath, () => "Auf Wiedersehen", {
       onDataSheetHeaders: (headers) => {
@@ -207,6 +211,7 @@ describe("export then import round-trip (no provider)", () => {
 
     const imported = await runVerbatra(consumer, ["import", workbookPath, "--cwd", dir]);
     expect(imported.exitCode).toBe(0);
+    expect(imported.stderr).toMatch(/next: verbatra check {2}\(confirm every locale is in sync\)$/);
 
     const de = await readJsonIn<Record<string, string>>(dir, "locales/de.json");
     expect(de.farewell).toBe("Auf Wiedersehen");

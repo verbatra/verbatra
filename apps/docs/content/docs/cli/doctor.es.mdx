@@ -126,6 +126,18 @@ verbatra doctor
 2 problems found (run verbatra doctor again after fixing them)
 ```
 
+## Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`doctor` muestra una línea mientras ejecuta sus comprobaciones, o `scanning the source for literals` con `--literals`, con un recuento de archivos en curso en un terminal interactivo. Su informe y su propia sugerencia siguen en stdout:
+
+```text
+verbatra: checking the setup... done (0.2s)
+```
+
+Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
+
 ## Códigos de salida
 
 | Código | Significado |

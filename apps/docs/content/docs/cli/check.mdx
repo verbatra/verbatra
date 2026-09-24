@@ -119,6 +119,18 @@ type QaFinding =
 
 A few things the check leaves alone: a key only the target has (it is orphaned, and [`verbatra diff`](/docs/cli/diff) lists it), a missing key (there is no value to check), and a key whose source is not valid ICU, which no translation can be judged against; those are listed once under `invalidSourceKeys`. [Protected](/docs/protecting-human-translations) and pinned keys are checked like any other, since their values ship all the same, and so are values a reviewer rejected. `--consistency` stays a separate, report-only flag; combine the two to get both reports.
 
+## Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`check` shows one line while it reads and compares the locales; its own `run verbatra translate to update` hint stays on stdout as before:
+
+```text
+verbatra: checking the locales... done (0.1s)
+```
+
+These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
+
 ## Exit codes
 
 | Code | Meaning |

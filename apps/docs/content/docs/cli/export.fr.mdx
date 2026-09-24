@@ -51,6 +51,19 @@ La remise n'est écrite qu'à l'intérieur du répertoire de travail. Avant tout
 
 Un chemin qui passe ces contrôles peut encore échouer au moment de l'écriture : quand le répertoire n'est pas inscriptible, qu'un répertoire ou un fichier gêne, ou que le disque est plein, l'exécution s'arrête avec `EXPORT_UNWRITABLE`, nomme le fichier et le code du système de fichiers, et sort avec `2`.
 
+## Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+`export` affiche une ligne pendant qu'il écrit le fichier de remise et, s'il y avait quelque chose à remettre, nomme l'import qui ramène le fichier rempli :
+
+```text
+verbatra: exporting to xlsx... done (0.3s)
+next: verbatra import verbatra-translations.xlsx  (once your translators have filled it in)
+```
+
+Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
+
 ## Codes de sortie
 
 | Code | Signification |

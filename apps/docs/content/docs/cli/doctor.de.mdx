@@ -126,6 +126,18 @@ verbatra doctor
 2 problems found (run verbatra doctor again after fixing them)
 ```
 
+## Rückmeldung im Terminal
+
+<AvailableFrom version="0.12.0" />
+
+`doctor` zeigt eine Zeile, während es seine Prüfungen ausführt, oder mit `--literals` die Zeile `scanning the source for literals`, in einem interaktiven Terminal mit laufender Dateianzahl. Sein Bericht und sein eigener Hinweis bleiben auf stdout:
+
+```text
+verbatra: checking the setup... done (0.2s)
+```
+
+Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
+
 ## Exit-Codes
 
 | Code | Bedeutung |

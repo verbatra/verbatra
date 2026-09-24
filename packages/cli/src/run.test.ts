@@ -44,7 +44,8 @@ describe("run translate: SDK delegation and rendering", () => {
     expect(typeof calls.translate[0]?.onLockWait).toBe("function");
     expect(calls.translate[0]).not.toHaveProperty("lockAcquireTimeoutMs");
     expect(cap.out()).toContain("de: 1 translated");
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("verbatra: error");
+    expect(cap.err()).toMatch(/^verbatra: translating 1 locale with anthropic\//);
   });
 
   it("--config passes configPath to loadConfig and --cwd feeds both loadConfig and translate", async () => {
@@ -661,7 +662,7 @@ describe("run: shared whole-run error helper (withWholeRunErrors)", () => {
 
     expect(code).toBe(0);
     expect(cap.out()).not.toBe("");
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("verbatra: error");
   });
 
   it("passes a data-driven 1 from a non-throwing body through without turning it into 2", async () => {
@@ -671,7 +672,7 @@ describe("run: shared whole-run error helper (withWholeRunErrors)", () => {
     const code = await run(["check"], deps, cap.streams);
 
     expect(code).toBe(1);
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("verbatra: error");
   });
 
   it("maps a whole-run SdkError thrown by loadConfigWithMeta to 2 with clean stdout (export)", async () => {

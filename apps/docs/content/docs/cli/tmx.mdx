@@ -121,6 +121,19 @@ The file is only written inside the working directory. Before the memory is read
 
 An entry the memory holds no source text for cannot be written, because TMX has no unit without a source segment. That happens only for entries carried forward from a cache written before the memory stored source text; they are left out and counted, and they fill in as later runs touch those strings again.
 
+## Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+Both directions show one line while they work. `tmx import` then suggests `verbatra translate`, which reuses the imported memory, or the same import without `--dry-run` after a dry run; `tmx export` suggests nothing:
+
+```text
+verbatra: importing legacy.tmx into the memory... done (0.2s)
+next: verbatra translate  (reuses the imported memory before calling a provider)
+```
+
+These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
+
 ## Exit codes
 
 | Code | Meaning |
