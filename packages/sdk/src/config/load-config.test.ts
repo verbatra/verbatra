@@ -72,6 +72,13 @@ describe("loadConfig", () => {
     expect((error as SdkError).code).toBe("CONFIG_INVALID");
   });
 
+  it("names an issue the schema raises twice for the same value only once", async () => {
+    const bad = { ...baseConfig(), network: { policy: "allowlist", allowedHosts: ["*.com"] } };
+    const caught = (await loadConfig({ configOverride: bad }).catch((e) => e)) as SdkError;
+    expect(caught.code).toBe("CONFIG_INVALID");
+    expect(caught.message.split("network.allowedHosts.0:")).toHaveLength(2);
+  });
+
   it("rejects a stray top-level key (no key field allowed in config)", async () => {
     const withKey = { ...baseConfig(), apiKey: "should-not-be-here" };
     await expect(loadConfig({ configOverride: withKey })).rejects.toMatchObject({

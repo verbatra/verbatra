@@ -3,9 +3,11 @@ import {
   type EndpointTarget,
   type EnvironmentSource,
   judgeProviderEndpoint,
+  NETWORK_ALLOWED_HOSTS_ENV_VAR,
   type NetworkConfig,
   type NetworkPolicy,
   type NetworkRule,
+  type NetworkRuleSource,
   processEnvironment,
   readEnvironmentRule,
 } from "@verbatra/ai-providers";
@@ -51,6 +53,19 @@ export function judgeConfiguredEndpoint(
   return judgeProviderEndpoint(policy, endpointTargetOf(provider), env);
 }
 
+const ALLOWLIST_BY_SOURCE: Readonly<Record<NetworkRuleSource, string>> = {
+  config: "network.allowedHosts",
+  environment: NETWORK_ALLOWED_HOSTS_ENV_VAR,
+};
+
+function allowlistsToExtend(
+  refusedBy: NetworkRuleSource | undefined,
+  policy: NetworkPolicy,
+): readonly string[] {
+  const sources = refusedBy === undefined ? policy.rules.map((rule) => rule.source) : [refusedBy];
+  return [...new Set(sources)].map((source) => ALLOWLIST_BY_SOURCE[source]);
+}
+
 export function assertEndpointPermitted(
   provider: MachineProviderConfig,
   policy: NetworkPolicy,
@@ -58,10 +73,11 @@ export function assertEndpointPermitted(
 ): void {
   const judgement = judgeConfiguredEndpoint(provider, policy, env);
   if (judgement.kind === "refused") {
+    const allowlists = allowlistsToExtend(judgement.refusedBy, policy);
     throw new SdkError(
       "NETWORK_POLICY_VIOLATION",
       `Provider "${provider.id}" was not constructed: ${judgement.reason}. No request was sent. ` +
-        "Point the provider at a permitted host, or add its host to network.allowedHosts.",
+        `Point the provider at a permitted host, or add its host to ${allowlists.join(" and ")}.`,
     );
   }
 }

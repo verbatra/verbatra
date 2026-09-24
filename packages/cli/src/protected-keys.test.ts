@@ -47,8 +47,30 @@ describe("run translate: protected keys", () => {
     expect(cap.out()).toContain(
       'greeting (human, suggestion "Hallo zusammen"), legal.terms (pinned), promo.banner (import, suggestion provider-failure)',
     );
-    expect(cap.err()).toContain("3 protected keys were left for a person to review");
+    expect(cap.err()).toContain("2 protected keys were left for a person to review");
     expect(cap.err()).toContain("--include-human");
+  });
+
+  it("leaves pinned keys out of the --include-human hint, since that flag never overwrites them", async () => {
+    const pinnedOnly = makeSummary({
+      locales: [makeLocale({ protected: [{ key: "legal.terms", reason: "pinned" }] })],
+      succeeded: ["de"],
+    });
+    const { deps } = recordingDeps({ translate: async () => pinnedOnly });
+    const cap = captureStreams();
+
+    expect(await run(["translate"], deps, cap.streams)).toBe(0);
+    expect(cap.out()).toContain("legal.terms (pinned)");
+    expect(cap.err()).not.toContain("--include-human");
+  });
+
+  it("prints no protection hint when --include-human was passed", async () => {
+    const { deps } = recordingDeps({ translate: async () => protectedSummary });
+    const cap = captureStreams();
+
+    await run(["translate", "--include-human"], deps, cap.streams);
+
+    expect(cap.err()).not.toContain("left for a person to review");
   });
 
   it("prints no protection hint when nothing was protected", async () => {

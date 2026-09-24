@@ -150,3 +150,37 @@ describe("judgeProviderEndpoint: proxies", () => {
     expect(judgement.kind).toBe("refused");
   });
 });
+
+describe("judgeProviderEndpoint: the refusing rule's source", () => {
+  it("names the environment when the environment's rule refuses the host", () => {
+    const policy: NetworkPolicy = {
+      rules: [
+        { source: "config", policy: "any", allowedHosts: [] },
+        { source: "environment", policy: "local-only", allowedHosts: [] },
+      ],
+    };
+    expect(judgeProviderEndpoint(policy, { id: "openai" }, {})).toMatchObject({
+      kind: "refused",
+      refusedBy: "environment",
+    });
+  });
+
+  it("names the config when the config's rule refuses the proxy host", () => {
+    const local = { id: "openai-compatible" as const, baseUrl: "http://127.0.0.1:8080" };
+    const judgement = judgeProviderEndpoint(LOCAL_ONLY, local, {
+      NODE_USE_ENV_PROXY: "1",
+      HTTPS_PROXY: "http://8.8.8.8:3128",
+    });
+    expect(judgement).toMatchObject({ kind: "refused", refusedBy: "config" });
+  });
+
+  it("names no source when no single rule refused", () => {
+    const local = { id: "openai-compatible" as const, baseUrl: "http://127.0.0.1:8080" };
+    const judgement = judgeProviderEndpoint(LOCAL_ONLY, local, {
+      NODE_USE_ENV_PROXY: "1",
+      HTTPS_PROXY: "proxy.corp:3128",
+    });
+    expect(judgement.kind).toBe("refused");
+    expect(judgement).not.toHaveProperty("refusedBy");
+  });
+});

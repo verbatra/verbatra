@@ -499,7 +499,7 @@ describe("runInit for agents", () => {
   it.each([
     [
       { provider: "deepl", baseUrl: "http://x" },
-      "--base-url apply to --provider openai-compatible only",
+      "--base-url applies to --provider openai-compatible only",
     ],
     [
       { provider: "gemini", baseUrl: "http://x", apiKeyEnvVar: "K" },

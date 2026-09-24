@@ -255,6 +255,7 @@ describe("translate: bounded locale-level concurrency", () => {
     const message = (error as { message: string }).message;
     expect(message).toContain("which locale loses its remaining work");
     expect(message).not.toContain("overshoot");
+    expect(message).toContain("or use --dry-run.");
   });
 
   it("allows concurrency greater than 1 with a budget on a dry run", async () => {

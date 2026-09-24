@@ -305,8 +305,17 @@ describe("budgetExceededNotice", () => {
 
     const notice = budgetAlreadyStoppedNotice(tracker);
     expect(notice.code).toBe("BUDGET_TOKENS_EXCEEDED");
-    expect(notice.message).toContain("had already reached");
+    expect(notice.message).toContain("had already stopped short of the configured budget");
     expect(notice.message).not.toContain("projected at");
+  });
+
+  it("says the run reached its budget only once the counted total got there", () => {
+    const tracker = createBudgetTracker(10, "stop");
+    tracker.tokensUsed = 12;
+
+    expect(budgetAlreadyStoppedNotice(tracker).message).toContain(
+      "had already reached the configured budget of 10 tokens (12 counted",
+    );
   });
 
   it("reports the refused projection rather than a ceiling the count never reached", () => {
@@ -346,7 +355,9 @@ describe("budgetExceededNotice", () => {
         "whole budget, so it is refused on every run: lower maxBatchSize or raise the run's " +
         "maxTokens (--max-tokens).",
     );
-    expect(budgetAlreadyStoppedNotice(tracker).message).toContain("reached its own budget of 1");
+    expect(budgetAlreadyStoppedNotice(tracker).message).toContain(
+      "stopped short of the run's own budget of 1",
+    );
     expect(budgetExceededNotice(tracker).message).toContain("the run's own budget of 1");
   });
 

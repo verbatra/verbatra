@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { detectProject, type ProjectDetection, scaffoldingMetadata } from "@verbatra/sdk";
@@ -12,7 +12,9 @@ import {
   planInit,
 } from "./init-answers.js";
 import {
+  envExampleHeader,
   HUMAN_ONLY_PROVIDER,
+  isEnvExampleHeader,
   isOptionalKey,
   keyEnvVarFor,
   namesEnvVar,
@@ -84,18 +86,39 @@ function configAction(cwd: string, content: string, force: boolean): FileAction 
   return "overwritten";
 }
 
-function writeEnvExample(cwd: string, choice: ProviderChoice, envVar: string): FileAction {
+function withRefreshedHeader(content: string, header: string): string {
+  const end = content.search(/\r?\n|$/);
+  const firstLine = content.slice(0, end);
+  if (!isEnvExampleHeader(firstLine) || firstLine === header) {
+    return content;
+  }
+  return `${header}${content.slice(end)}`;
+}
+
+function writeEnvExample(
+  cwd: string,
+  choice: ProviderChoice,
+  envVar: string,
+  force: boolean,
+): FileAction {
   const path = resolve(cwd, ENV_EXAMPLE_FILE);
   if (!existsSync(path)) {
     writeFileSync(path, renderEnvExample(choice, envVar));
     return "created";
   }
-  const content = readFileSync(path, "utf8");
+  const existing = readFileSync(path, "utf8");
+  const content = force
+    ? withRefreshedHeader(existing, envExampleHeader(choice, envVar))
+    : existing;
   if (namesEnvVar(content, envVar)) {
-    return "unchanged";
+    if (content === existing) {
+      return "unchanged";
+    }
+    writeFileSync(path, content);
+    return "updated";
   }
   const separator = content.length === 0 || content.endsWith("\n") ? "" : "\n";
-  appendFileSync(path, `${separator}${envVar}=\n`);
+  writeFileSync(path, `${content}${separator}${envVar}=\n`);
   return "updated";
 }
 
@@ -121,7 +144,7 @@ function writePlan(
   const files: WrittenFile[] = [{ path: CONFIG_FILE, action }];
   const envVar = keyEnvVarFor(plan.draft.provider);
   if (envVar !== undefined) {
-    const envAction = writeEnvExample(cwd, plan.draft.provider, envVar);
+    const envAction = writeEnvExample(cwd, plan.draft.provider, envVar, force);
     streams.out(`${envAction} ${ENV_EXAMPLE_FILE}\n`);
     files.push({ path: ENV_EXAMPLE_FILE, action: envAction });
   }

@@ -135,16 +135,14 @@ function collectSearchChain(startDir: string, stopDir: string): ReadonlySet<stri
 }
 
 function formatIssues(error: z.ZodError): string {
-  const described = error.issues
-    .map((issue) => {
-      const path = issue.path.join(".");
-      const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
-      return issue.code === "unrecognized_keys"
-        ? `${base} (API keys are read from the environment, not the config)`
-        : base;
-    })
-    .join("; ");
-  return redact(described);
+  const described = error.issues.map((issue) => {
+    const path = issue.path.join(".");
+    const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
+    return issue.code === "unrecognized_keys"
+      ? `${base} (API keys are read from the environment, not the config)`
+      : base;
+  });
+  return redact([...new Set(described)].join("; "));
 }
 
 function parseConfig(input: unknown): ParsedVerbatraConfig {

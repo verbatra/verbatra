@@ -2,6 +2,7 @@ import {
   type LocaleStyle,
   type ProviderId,
   type ScaffoldableProviderId,
+  type SupportedFormat,
   scaffoldingMetadata,
 } from "@verbatra/sdk";
 
@@ -23,6 +24,31 @@ export const INIT_PROVIDER_IDS: readonly InitProviderId[] = [
 export const DEFAULT_MODEL = scaffoldingMetadata.scaffoldModels;
 
 export const TOKEN_LIMIT = 4096;
+
+export interface DefaultLayout {
+  readonly pattern: string;
+  readonly localeStyle: LocaleStyle;
+}
+
+export const DEFAULT_LAYOUTS: Readonly<Record<SupportedFormat, DefaultLayout>> = {
+  "i18next-json": { pattern: "locales/{locale}.json", localeStyle: "literal" },
+  "vue-i18n-json": { pattern: "src/locales/{locale}.json", localeStyle: "literal" },
+  "next-intl-json": { pattern: "messages/{locale}.json", localeStyle: "literal" },
+  "ngx-translate-json": { pattern: "src/assets/i18n/{locale}.json", localeStyle: "literal" },
+  xliff: { pattern: "locales/{locale}.xlf", localeStyle: "literal" },
+  yaml: { pattern: "locales/{locale}.yml", localeStyle: "literal" },
+  arb: { pattern: "lib/l10n/app_{locale}.arb", localeStyle: "posix" },
+  properties: {
+    pattern: "src/main/resources/messages_{locale}.properties",
+    localeStyle: "posix",
+  },
+  "apple-strings": { pattern: "{locale}.lproj/Localizable.strings", localeStyle: "literal" },
+  "apple-xcstrings": { pattern: "{locale}Localizable.xcstrings", localeStyle: "literal" },
+  "android-xml": { pattern: "app/src/main/res/{locale}/strings.xml", localeStyle: "android" },
+  "gettext-po": { pattern: "locales/{locale}/LC_MESSAGES/messages.po", localeStyle: "posix" },
+  ini: { pattern: "locales/{locale}.ini", localeStyle: "literal" },
+  resx: { pattern: "Resources/Strings.{locale}.resx", localeStyle: "literal" },
+};
 
 export type FormatOrigin = "files" | "dependencies" | "flag" | "prompt" | "default";
 
@@ -177,11 +203,20 @@ export function renderConfig(draft: ConfigDraft): string {
   ].join("\n");
 }
 
+const ENV_EXAMPLE_HEADER_PREFIX = "# Copy this file to .env";
+
+export function envExampleHeader(choice: ProviderChoice, envVar: string): string {
+  return isOptionalKey(choice)
+    ? `${ENV_EXAMPLE_HEADER_PREFIX}. Set ${envVar} only if your server requires a key. Do not commit your real key.`
+    : `${ENV_EXAMPLE_HEADER_PREFIX} and set your ${choice.id} API key. Do not commit your real key.`;
+}
+
+export function isEnvExampleHeader(line: string): boolean {
+  return line.startsWith(ENV_EXAMPLE_HEADER_PREFIX);
+}
+
 export function renderEnvExample(choice: ProviderChoice, envVar: string): string {
-  const header = isOptionalKey(choice)
-    ? `# Copy this file to .env. Set ${envVar} only if your server requires a key. Do not commit your real key.`
-    : `# Copy this file to .env and set your ${choice.id} API key. Do not commit your real key.`;
-  return [header, `${envVar}=`, ""].join("\n");
+  return [envExampleHeader(choice, envVar), `${envVar}=`, ""].join("\n");
 }
 
 export function namesEnvVar(content: string, envVar: string): boolean {

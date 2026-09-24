@@ -88,7 +88,7 @@ function expectAlreadyStopped(split: Split): void {
   for (const locale of split.later) {
     const messages = budgetMessages(locale);
     expect(messages).toHaveLength(1);
-    expect(messages[0]).toContain("had already reached its configured budget");
+    expect(messages[0]).toContain("had already stopped short of the configured budget");
     expect(messages[0]).toContain("so this locale's keys were withheld rather than sent");
     expect(messages[0]).not.toContain("projected at");
     expect(messages[0]).not.toContain(`${projection} tokens on top of`);

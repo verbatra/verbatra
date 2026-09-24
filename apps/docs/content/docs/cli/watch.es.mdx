@@ -17,9 +17,9 @@ verbatra watch [flags]
 | `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--locales` | `<list>` | todos los locales de destino configurados | vigila y traduce solo este subconjunto separado por comas; un locale no configurado se rechaza al arrancar con `UNKNOWN_LOCALE` antes de empezar a vigilar nada, y una lista vacía es un error de uso, salida `2` |
-| `--debounce` | `<ms>` | `300` | espera estos milisegundos tras el último cambio antes de traducir; debe ser un entero positivo sin sufijo (un valor como `250ms`, `0` o `-1` es un error de uso, salida `2`) |
-| `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos (un valor como `60s`, `0` o `-1` es un error de uso, salida `2`) |
-| `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez por ejecución; debe ser un entero positivo |
+| `--debounce` | `<ms>` | `300` | espera estos milisegundos tras el último cambio antes de traducir; debe ser un entero positivo sin sufijo no mayor que `60000` (un valor como `250ms`, `0`, `-1` o `90000` es un error de uso, salida `2`) |
+| `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos, no mayor que `3600` (un valor como `60s`, `0`, `-1` o `7200` es un error de uso, salida `2`) |
+| `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez por ejecución; debe ser un entero positivo no mayor que `100` |
 | `--no-cache` | ninguno | desactivado (caché activada) | omite la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`) en cada ejecución |
 | `--json` | ninguno | desactivado | imprime cada ejecución como un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout, al estilo NDJSON (un objeto por línea) |
 
@@ -27,7 +27,7 @@ Con `--json`, cada ejecución emite un registro [envoltorio](/docs/ci-and-exit-c
 
 `--locales de,fr` reduce cada ciclo de la sesión a un subconjunto de los destinos configurados, lo que mantiene barato un bucle de desarrollo cuando solo te importa un idioma. El subconjunto se valida una sola vez al arrancar, no en cada ejecución.
 
-`--lock-timeout` se aplica a cada ciclo: ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que esa ejecución falle con `LOCK_CONTENDED`. Una ejecución fallida es solo un registro en el flujo, así que el watcher sigue de todas formas.
+`--lock-timeout` se aplica a cada ciclo: ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que ese locale falle con `LOCK_CONTENDED` en el resumen de esa ejecución, mientras los demás locales siguen. El watcher sigue de todas formas.
 
 `--concurrency` se aplica a la ejecución de cada ciclo. Cada ejecución recibe un presupuesto de tokens nuevo, y un `--concurrency` mayor que `1` se sigue rechazando cuando la configuración fija un presupuesto `maxTokens`, porque qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen: `watch` rechaza esa combinación al arrancar y sale con `2` antes de la ejecución inicial, en lugar de arrancar una sesión que falla en cada ciclo. `--no-cache` omite la [caché de memoria de traducción](/docs/the-cache) en cada ciclo.
 

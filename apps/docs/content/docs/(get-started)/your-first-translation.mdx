@@ -28,7 +28,7 @@ npx verbatra init --provider gemini
 - the locale file format, default `i18next-json` (`--format`)
 - the source locale, default `en` (`--source`)
 - the target locales, comma-separated, default `de` (`--targets`)
-- the locale file pattern, default `locales/{locale}.json` (`--path`)
+- the locale file pattern, default the chosen format's usual layout, `locales/{locale}.json` for `i18next-json` (`--path`)
 
 Pass `--yes` to skip the prompts and take the detected values or the defaults. Without a terminal (in CI, for example) `init` never prompts: a value it could neither detect nor default under `--yes` makes it exit `2` with `MISSING_OPTIONS`, naming the flags to pass.
 
@@ -38,7 +38,7 @@ Pass `--yes` to skip the prompts and take the detected values or the defaults. W
 - `.env.example`: names the provider's key variable, never a key value
 - `.gitignore` entries for `.env`, `.env.local`, `.verbatra-local/`, and `verbatra.cache.json`, created or appended so a real key, local state, or the regenerable cache never lands in a commit
 
-Re-running `init` with the same answers changes nothing. A `verbatra.config.ts` with different content is refused unless you pass `--force`, and an existing `.env.example` only gets the key variable appended when it is missing. When the project has no locale file yet, `format` comes from your dependencies (i18next, vue-i18n, next-intl, or `@ngx-translate/core` pick the matching JSON format), and otherwise defaults to `i18next-json` with a TODO comment to change it. [verbatra init](/docs/cli/init#detection) has the details. For Gemini in an empty project the scaffold looks like this:
+Re-running `init` with the same answers changes nothing. A `verbatra.config.ts` with different content is refused unless you pass `--force`, and an existing `.env.example` only gets the key variable appended when it is missing. When the project has no locale file yet, `format` comes from your dependencies (i18next, vue-i18n, next-intl, or `@ngx-translate/core` pick the matching JSON format), and otherwise defaults to `i18next-json`. Under `--yes` that default carries a TODO comment to change it; a format you accept at the prompt does not. [verbatra init](/docs/cli/init#detection) has the details. For Gemini in an empty project the scaffold looks like this:
 
 ```ts
 import { defineConfig } from "@verbatra/cli";

@@ -1021,7 +1021,8 @@ interface LocaleSummary {
   orphaned: string[];            // target keys with no matching source key (always reported)
   pruned: string[];              // orphaned keys removed this run; empty unless pruning is on
   invalidIcuSource: string[];    // source keys skipped for invalid ICU
-  integrityMismatches: string[]; // translations withheld for a placeholder mismatch
+  integrityMismatches: string[]; // translations the integrity gate withheld
+  integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate and watch only
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
   generated: string[];           // CLDR plural forms synthesized this run

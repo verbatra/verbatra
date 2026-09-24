@@ -201,6 +201,15 @@ describe("watch: startup and wiring", () => {
     expect(w.paths).toEqual([]);
   });
 
+  it("offers no dry run as a way out of the budget conflict, since watch has none", async () => {
+    const rejection = await watch(
+      { config: baseConfig({ maxTokens: 1_000 }), cwd: CWD, concurrency: 2, onRun: () => {} },
+      { fs: okFs, createWatcher: watcherHarness().createWatcher, runTranslate: runHarness().run },
+    ).catch((error: unknown) => error);
+    expect((rejection as SdkError).message).toContain("Set concurrency to 1 or remove maxTokens.");
+    expect((rejection as SdkError).message).not.toContain("--dry-run");
+  });
+
   it("refuses a concurrency that is not an integer of at least 1 at startup", async () => {
     const w = watcherHarness();
     const r = runHarness();

@@ -25,6 +25,6 @@ export function subBatchFailedNotice(count: number, error: unknown): SdkNotice {
   const { code, message } = classifyProviderFailure(error);
   return {
     code: "SUB_BATCH_FAILED",
-    message: `A sub-batch of ${count} entries failed (${code}: ${message}) and was withheld; it will be retried next run.`,
+    message: `A sub-batch of ${count} ${count === 1 ? "entry" : "entries"} failed (${code}: ${message}) and was withheld; it will be retried next run.`,
   };
 }

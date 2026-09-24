@@ -14,6 +14,7 @@ import {
   type ImportTmxResult,
   INTEGRITY_GATE_REASONS,
   type InconsistencyGroup,
+  type IntegrityRefusal,
   type LiteralScan,
   type LocaleCheckSummary,
   type LocaleDiff,
@@ -27,6 +28,7 @@ import {
   type RunBudget,
   type RunEstimate,
   type RunSummary,
+  scaffoldingMetadata,
   type TmxLanguageReport,
   type TmxRejectionReason,
   type UnusedKeysReport,
@@ -130,7 +132,13 @@ function renderEstimateScale(estimate: RunEstimate): string {
 
 function renderEstimateQuantity(estimate: RunEstimate): string {
   const scale = renderEstimateScale(estimate);
-  return `  estimate: ${estimate.keys} keys in ${estimate.requests} requests, ${scale}`;
+  return `  estimate: ${plural(estimate.keys, "key")} in ${plural(estimate.requests, "request")}, ${scale}`;
+}
+
+function renderNotBilled(estimate: RunEstimate): string {
+  return estimate.provider === scaffoldingMetadata.humanOnlyProviderId
+    ? "  estimated spend: none, machine translation is disabled by policy"
+    : `  estimated spend: no API cost, ${estimate.rateKey} is self-hosted`;
 }
 
 function renderEstimateCost(estimate: RunEstimate): string {
@@ -151,7 +159,7 @@ function renderEstimateCost(estimate: RunEstimate): string {
         `${estimate.unit}; correct rates.table["${estimate.rateKey}"] in your config`
       );
     case "not-billed":
-      return `  estimated spend: no API cost, ${estimate.rateKey} is self-hosted`;
+      return renderNotBilled(estimate);
   }
 }
 
@@ -174,7 +182,7 @@ function renderDetailGroup(label: string, values: readonly string[]): string | u
   if (values.length === 0) {
     return undefined;
   }
-  return `    ${`${label}:`.padEnd(DETAIL_GROUP_WIDTH)}${values.join(", ")}`;
+  return `    ${`${label}:`.padEnd(DETAIL_GROUP_WIDTH - 1)} ${values.join(", ")}`;
 }
 
 const FUZZY_SOURCE_PREVIEW = 40;
@@ -212,8 +220,27 @@ function renderPosition(at: { readonly row: number; readonly line?: number }): s
   return at.line === undefined ? `row ${at.row}` : `row ${at.row}, line ${at.line}`;
 }
 
+const REFUSAL_DETAIL_PREVIEW = 120;
+
+function renderRefusal(refusal: IntegrityRefusal): string {
+  const details =
+    refusal.details === undefined
+      ? ""
+      : ` (${refusal.details.map((detail) => preview(detail, REFUSAL_DETAIL_PREVIEW)).join(", ")})`;
+  return `      ${neutralizeControlCharacters(refusal.key)}: ${refusal.reason}${details}`;
+}
+
+function renderIntegrityWithheld(locale: LocaleSummary): readonly string[] {
+  const refusals = locale.integrityRefusals;
+  if (refusals === undefined) {
+    const keys = renderDetailGroup("integrity-withheld", locale.integrityMismatches);
+    return keys === undefined ? [] : [keys];
+  }
+  return refusals.length === 0 ? [] : ["    integrity-withheld:", ...refusals.map(renderRefusal)];
+}
+
 function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
-  return [
+  const groups = [
     renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
     renderDetailGroup(
@@ -231,11 +258,12 @@ function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
       locale.duplicateKeys.map((duplicate) => `${duplicate.key} (${renderPosition(duplicate)})`),
     ),
   ].filter((line): line is string => line !== undefined);
+  return [...renderIntegrityWithheld(locale), ...groups];
 }
 
 function renderLocaleLine(locale: LocaleSummary): readonly string[] {
-  if (locale.status === "failed") {
-    const suffix = locale.error ? ` [${locale.error.code}] ${locale.error.message}` : "";
+  if (locale.status === "failed" && locale.error !== undefined) {
+    const suffix = ` [${locale.error.code}] ${locale.error.message}`;
     return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale)];
   }
   const counts: ReadonlyArray<readonly [number, string, boolean]> = [
@@ -261,7 +289,11 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
     .filter(([count, , always]) => always || count > 0)
     .map(([count, label]) => `${count} ${label}`);
   const tokenSuffix = locale.usage !== undefined ? `, ${renderTokens(locale.usage)}` : "";
-  return [`  ${locale.locale}: ${shown.join(", ")}${tokenSuffix}`, ...renderLocaleDetail(locale)];
+  const status = locale.status === "failed" ? "failed, " : "";
+  return [
+    `  ${locale.locale}: ${status}${shown.join(", ")}${tokenSuffix}`,
+    ...renderLocaleDetail(locale),
+  ];
 }
 
 export function renderRunResultHuman(result: WatchRunResult): string {
@@ -588,7 +620,7 @@ export function renderProgressHuman(event: ProgressEvent): string {
     case "locale-finished":
       return `verbatra: ${event.locale} done, ${event.translated} translated`;
     case "run-finished":
-      return `verbatra: run finished, ${event.localesCompleted} locales processed`;
+      return `verbatra: run finished, ${plural(event.localesCompleted, "locale")} processed`;
   }
 }
 

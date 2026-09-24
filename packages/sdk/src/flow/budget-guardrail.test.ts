@@ -289,7 +289,7 @@ describe("translate: budget crossed, stop behavior", () => {
       ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
 
     expect(deNotice?.message).toContain("projected at");
-    expect(frNotice?.message).toContain("had already reached");
+    expect(frNotice?.message).toContain("had already stopped short of");
     expect(frNotice?.message).not.toContain("projected at");
   });
 
@@ -392,7 +392,7 @@ describe("translate: budget crossed by a failed request", () => {
       .find((l) => l.locale === "fr")
       ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED");
     expect(deNotice?.message).toContain(`reached the configured budget of ${projected} tokens`);
-    expect(frNotice?.message).toContain("had already reached");
+    expect(frNotice?.message).toContain("had already reached the configured budget");
     expect(
       [...(summary.locales.find((l) => l.locale === "fr")?.budgetWithheld ?? [])].sort(),
     ).toEqual(["k0", "k1"]);

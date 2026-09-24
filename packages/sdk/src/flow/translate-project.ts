@@ -475,15 +475,19 @@ export function resolveRunConcurrency(
   value: number | undefined,
   dryRun: boolean,
   maxTokens: number | undefined,
+  dryRunAvailable = true,
 ): number {
   const concurrency = resolveConcurrency(value);
   if (!dryRun && concurrency > 1 && maxTokens !== undefined) {
+    const remedy = dryRunAvailable
+      ? "Set concurrency to 1, remove maxTokens, or use --dry-run."
+      : "Set concurrency to 1 or remove maxTokens.";
     throw new SdkError(
       "CONCURRENCY_BUDGET_CONFLICT",
       "A token budget (maxTokens) and concurrency greater than 1 cannot be combined on a live run: " +
         "the ceiling still holds, but which locale loses its remaining work would depend on the " +
         "order the locales happen to interleave, so the same project would not produce the same " +
-        "run twice. Set concurrency to 1, remove maxTokens, or use --dry-run.",
+        `run twice. ${remedy}`,
     );
   }
   return concurrency;

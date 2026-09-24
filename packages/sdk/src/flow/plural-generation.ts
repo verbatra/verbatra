@@ -14,14 +14,14 @@ import type { FormatAdapter } from "@verbatra/format-adapters";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import { type BudgetTracker, checkBudgetTrip, reconcileBudget, reserveBudget } from "./budget.js";
 import { payloadContextOf } from "./estimate.js";
-import { gateCandidateValue } from "./integrity-gate.js";
+import { gateCandidateValue, refusalOf } from "./integrity-gate.js";
 import { readNotices } from "./notices.js";
 import {
   type PluralGenerationItem,
   planPluralGeneration,
   syntheticEntry,
 } from "./plural-categories.js";
-import type { LocaleNotice, UsageSummary } from "./summary.js";
+import type { IntegrityRefusal, LocaleNotice, UsageSummary } from "./summary.js";
 import { buildTranslateRequest } from "./translate-request.js";
 import { createUsageAccumulator, foldUsage } from "./usage.js";
 
@@ -51,6 +51,7 @@ export interface GeneratedForm {
 export interface PluralGenerationResult {
   readonly accepted: readonly GeneratedForm[];
   readonly withheld: readonly string[];
+  readonly refusals: readonly IntegrityRefusal[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
   readonly notices: readonly LocaleNotice[];
@@ -63,6 +64,7 @@ export interface PluralGenerationResult {
 const EMPTY_RESULT: PluralGenerationResult = {
   accepted: [],
   withheld: [],
+  refusals: [],
   providerFailures: [],
   budgetWithheld: [],
   notices: [],
@@ -132,7 +134,7 @@ export async function generatePluralForms(
   }
 
   const accepted: GeneratedForm[] = [];
-  const withheld: string[] = [];
+  const withheld: IntegrityRefusal[] = [];
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
   const notices: LocaleNotice[] = [];
@@ -169,7 +171,8 @@ export async function generatePluralForms(
   }
   return {
     accepted,
-    withheld,
+    withheld: withheld.map((refusal) => refusal.key),
+    refusals: withheld,
     providerFailures,
     budgetWithheld,
     notices,
@@ -190,7 +193,7 @@ async function runGenerationSubBatch(
   batch: readonly PluralGenerationItem[],
   entries: readonly TranslationEntry[],
   accepted: GeneratedForm[],
-  withheld: string[],
+  withheld: IntegrityRefusal[],
   providerFailures: string[],
 ): Promise<GenerationSubBatchResult> {
   let result: TranslateResult;
@@ -213,7 +216,7 @@ function foldGenerationItem(
   result: TranslateResult,
   context: PluralGenerationContext,
   accepted: GeneratedForm[],
-  withheld: string[],
+  withheld: IntegrityRefusal[],
   providerFailures: string[],
 ): void {
   const value = result.values.get(item.targetKey);
@@ -221,13 +224,14 @@ function foldGenerationItem(
     providerFailures.push(item.targetKey);
     return;
   }
-  if (gateCandidateValue(item.sourceEntry, value, context.adapter, context.targetLocale).accepted) {
+  const gate = gateCandidateValue(item.sourceEntry, value, context.adapter, context.targetLocale);
+  if (gate.accepted) {
     accepted.push({
       targetKey: item.targetKey,
       entry: { ...syntheticEntry(item), value },
       lockHash: generatedLockHash(item.governingEntries, item.category),
     });
   } else {
-    withheld.push(item.targetKey);
+    withheld.push(refusalOf(item.targetKey, gate));
   }
 }

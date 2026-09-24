@@ -271,6 +271,7 @@ export type {
   EstimateIdentity,
   EstimatePricing,
   FuzzyCacheHit,
+  IntegrityRefusal,
   LocaleEstimate,
   LocaleEstimateQuantity,
   LocaleNotice,

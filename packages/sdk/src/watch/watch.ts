@@ -183,7 +183,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   const fs = deps.fs ?? defaultFs;
 
   selectLocales(input.config, input.locales);
-  resolveRunConcurrency(input.concurrency, false, input.config.maxTokens);
+  resolveRunConcurrency(input.concurrency, false, input.config.maxTokens, false);
   assertProviderNetworkPermitted(input.config);
 
   const resolver = createLocalePathResolver(cwd, input.config);

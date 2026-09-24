@@ -266,10 +266,13 @@ function keysPhrase(count: number, singular: string, plural: string): string {
 function renderNeedsHumanHint(
   config: TranslateInput["config"],
   summary: RunSummary,
+  includeHuman: boolean,
   streams: Streams,
 ): void {
   if (isMachineTranslationEnabled(config)) {
-    renderProtectedHint(summary, streams);
+    if (!includeHuman) {
+      renderProtectedHint(summary, streams);
+    }
     return;
   }
   const count = needsHumanKeyCount(config, summary);
@@ -281,8 +284,15 @@ function renderNeedsHumanHint(
   );
 }
 
+function reviewableProtectedKeyCount(summary: RunSummary): number {
+  return summary.locales.reduce(
+    (total, locale) => total + locale.protected.filter((entry) => entry.reason !== "pinned").length,
+    0,
+  );
+}
+
 function renderProtectedHint(summary: RunSummary, streams: Streams): void {
-  const count = protectedKeyCount(summary);
+  const count = reviewableProtectedKeyCount(summary);
   if (count === 0) {
     return;
   }
@@ -551,7 +561,7 @@ export async function runTranslate(
               ? `${renderSuccessEnvelope("translate", summary)}\n`
               : `${renderHuman(summary)}\n`,
           );
-          renderNeedsHumanHint(config, summary, streams);
+          renderNeedsHumanHint(config, summary, opts.includeHuman === true, streams);
           return translateExitCode(config, summary);
         },
         () => loadEnvFiles(cwd),

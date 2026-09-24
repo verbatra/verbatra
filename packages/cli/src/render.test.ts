@@ -576,6 +576,64 @@ describe("render: human run summary", () => {
     expect(text).not.toContain("[");
   });
 
+  it("shows the withheld count and each refused key with its reason and ICU arms", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            locale: "ru",
+            status: "failed",
+            integrityMismatches: ["files", "greeting"],
+            integrityRefusals: [
+              {
+                key: "files",
+                reason: "icu",
+                details: ['{n} plural: missing arm "few" required by the target language'],
+              },
+              { key: "greeting", reason: "empty" },
+            ],
+          }),
+        ],
+        failed: ["ru"],
+      }),
+    );
+
+    expect(text).toContain("ru: failed, 0 translated, 0 unchanged, 2 integrity-withheld");
+    expect(text).toContain("    integrity-withheld:");
+    expect(text).toContain(
+      '      files: icu ({n} plural: missing arm "few" required by the target language)',
+    );
+    expect(text).toContain("      greeting: empty");
+  });
+
+  it("lists withheld keys without reasons when the summary carries none", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ status: "partial", translated: ["a"], integrityMismatches: ["b"] })],
+        partial: ["de"],
+      }),
+    );
+
+    expect(text).toMatch(/integrity-withheld:\s+b/);
+  });
+
+  it("neutralizes control characters in a refused key and its details", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            status: "failed",
+            integrityMismatches: ["a\u001b"],
+            integrityRefusals: [{ key: "a\u001b", reason: "placeholder", details: ["+{x}\u0007"] }],
+          }),
+        ],
+        failed: ["de"],
+      }),
+    );
+
+    expect(text).toContain("      a : placeholder (+{x} )");
+  });
+
   it("names the cause of a locale that failed with withheld keys and no error object", () => {
     const text = renderHuman(
       makeSummary({
@@ -875,6 +933,7 @@ describe("render: progress", () => {
       "de done, 5 translated",
     ],
     [{ type: "run-finished", localesCompleted: 3 }, "run finished, 3 locales processed"],
+    [{ type: "run-finished", localesCompleted: 1 }, "run finished, 1 locale processed"],
   ];
 
   it("renders every event type human-readably, prefixed with verbatra:", () => {
@@ -1000,6 +1059,19 @@ describe("renderHuman: pre-run estimate", () => {
     const line = render(unpriced("rate-unit-mismatch"));
 
     expect(line).toContain("is not priced in tokens");
+  });
+
+  it("counts one key and one request in the singular", () => {
+    expect(render({ ...tokenEstimate, keys: 1, requests: 1 })).toContain(
+      "estimate: 1 key in 1 request,",
+    );
+  });
+
+  it("reports a human-only project as spending nothing, not as a self-hosted endpoint", () => {
+    const line = render({ ...unpriced("not-billed"), provider: "none", rateKey: "none" });
+
+    expect(line).toContain("estimated spend: none, machine translation is disabled by policy");
+    expect(line).not.toContain("self-hosted");
   });
 
   it("reports a self-hosted endpoint as carrying no API cost", () => {

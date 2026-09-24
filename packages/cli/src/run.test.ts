@@ -1141,7 +1141,7 @@ describe("run: translate --estimate", () => {
 
     await run(["translate", "--estimate"], deps, cap.streams);
 
-    expect(cap.out()).toContain("estimate: 4 keys in 1 requests, ~40 source characters");
+    expect(cap.out()).toContain("estimate: 4 keys in 1 request, ~40 source characters");
     expect(cap.out()).toContain("no rate on file for deepl");
   });
 

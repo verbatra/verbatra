@@ -19,8 +19,8 @@ verbatra translate [flags]
 | `--locales` | `<list>` | todos los locales de destino configurados | traduce solo este subconjunto separado por comas; un locale no configurado hace fallar la ejecución con `UNKNOWN_LOCALE` antes de leer ni gastar nada, y una lista vacía es un error de uso, salida `2` |
 | `--dry-run` | ninguno | desactivado | previsualiza los cambios sin llamar a un proveedor ni escribir archivos (sin necesidad de clave de API) |
 | `--prune` | ninguno | la opción `prune` de la configuración, si no, desactivado | elimina del archivo escrito y del bloqueo las claves huérfanas (en un archivo de destino pero ausentes del origen) |
-| `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos (un valor como `60s`, `0` o `-1` es un error de uso, salida `2`) |
-| `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez; debe ser un entero positivo |
+| `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos, no mayor que `3600` (un valor como `60s`, `0`, `-1` o `7200` es un error de uso, salida `2`) |
+| `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez; debe ser un entero positivo no mayor que `100` |
 | `--max-tokens` | `<n>` | el `maxTokens` de la configuración | un techo duro de tokens solo para esta ejecución; cuando la configuración también fija `maxTokens`, se aplica el menor de los dos; debe ser un entero positivo (un valor como `10k` o `0` es un error de uso, salida `2`) |
 | `--no-cache` | ninguno | desactivado (caché activada) | omite la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`) para esta ejecución |
 | `--include-human` | ninguno | desactivado | retraduce también, solo en esta ejecución, las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra (`humanEdits: "overwrite"`); las [claves fijadas](/docs/protecting-human-translations#fijar-claves) no se tocan |
@@ -31,17 +31,17 @@ Por defecto una ejecución no borra nada: las claves huérfanas se informan y se
 
 `--dry-run` no construye ningún proveedor, así que no necesita clave de API y no puede gastar nada: lee los archivos de origen y de destino, los compara con el archivo de bloqueo e informa exactamente de lo que cambiaría una ejecución real. No escribe nada (ni archivo de locale, ni actualización del bloqueo, ni instantánea de estado de la ejecución), no lee ni escribe la caché, y no toma ningún bloqueo de escritura por locale, así que nunca espera a una ejecución ya en curso. La carga de `.env` de arriba sigue ocurriendo en un dry run; simplemente no hay ninguna clave que leer. Eso lo convierte en una forma completa de probar verbatra en un proyecto real antes de crear una cuenta de proveedor.
 
-En un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) un dry run es la única excepción a la regla de la caché: lee la memoria de traducción, sin escribir nada, así que su plan lista las mismas claves `cacheHits` y `unfilled` que una ejecución real, y `--estimate` informa de que no hay nada que enviar ni que facturar.
+En un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) un dry run es la única excepción a la regla de la caché: lee la memoria de traducción, sin escribir nada, así que su plan lista las mismas claves `cacheHits` y `unfilled` que una ejecución real, y `--estimate` informa de que no hay nada que enviar ni que facturar (`estimated spend: none, machine translation is disabled by policy`). Una estimación sale igual que el dry run que es: con `3` cuando quedan claves para una persona, así que un script lee el mismo código de ambos.
 
 <AvailableFrom version="0.12.0" />
 
-`--estimate` añade a ese dry run una estimación de coste previa: cuántas claves se enviarían, en cuántas peticiones al proveedor se repartirían y qué cantidad factura realmente el proveedor configurado (tokens estimados de prompt y de respuesta en un LLM, caracteres de origen estimados en DeepL o Google Cloud Translation, y ningún coste en un endpoint `openai-compatible` autoalojado). Implica `--dry-run`, así que no gasta nada y no escribe nada. Una cifra en moneda solo aparece cuando la configuración lleva un bloque `rates` que cubre el proveedor y el modelo configurados; sin él se informa igualmente de la cantidad y se nombra la clave de tarifa que falta, en lugar de inventar un coste de `0.00`. Toda cifra se imprime junto a la fecha en que se leyeron esas tarifas y junto a una línea que nombra lo que la estimación deja fuera. Consulta [Estimar el coste](/docs/estimating-cost).
+`--estimate` añade a ese dry run una estimación de coste previa: cuántas claves se enviarían, en cuántas peticiones al proveedor se repartirían y qué cantidad factura realmente el proveedor configurado (tokens estimados de prompt y de respuesta en un LLM, caracteres de origen estimados en DeepL o Google Cloud Translation, ningún coste en un endpoint `openai-compatible` autoalojado y nada en un proyecto solo humano). Implica `--dry-run`, así que no gasta nada y no escribe nada. Una cifra en moneda solo aparece cuando la configuración lleva un bloque `rates` que cubre el proveedor y el modelo configurados; sin él se informa igualmente de la cantidad y se nombra la clave de tarifa que falta, en lugar de inventar un coste de `0.00`. Toda cifra se imprime junto a la fecha en que se leyeron esas tarifas y junto a una línea que nombra lo que la estimación deja fuera. Consulta [Estimar el coste](/docs/estimating-cost).
 
 <AvailableFrom version="0.11.0" />
 
 `--locales de,fr` reduce la ejecución a un subconjunto de los destinos configurados. Los locales que quedan fuera no se tocan: sus archivos, sus entradas del bloqueo y sus entradas de caché se quedan como estaban. Es el flag al que recurrir en un nivel gratuito con límite de tasa, donde traducir un locale cada vez es la única forma de avanzar, y también es la manera más rápida de volver a ejecutar un solo locale que quedó parcial. La instantánea de estado de la ejecución describe siempre solo la ejecución más reciente, así que una ejecución sobre un subconjunto la reduce a ese subconjunto.
 
-`--lock-timeout` ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que la ejecución falle con `LOCK_CONTENDED`: súbelo cuando otra ejecución retiene el bloqueo legítimamente un rato, bájalo para fallar rápido en CI.
+`--lock-timeout` ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que ese locale falle con `LOCK_CONTENDED`. Los demás locales se ejecutan igualmente, y el comando sale con `1` con el código en el resumen de ese locale, como cualquier otro locale fallido. Súbelo cuando otra ejecución retiene el bloqueo legítimamente un rato, bájalo para fallar rápido en CI.
 
 <AvailableFrom version="0.12.0" />
 
@@ -77,18 +77,22 @@ verbatra translate --include-human
 | --- | --- |
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor o bloqueo) o un error de uso |
+| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor o un archivo de bloqueo corrupto) o un error de uso |
 | `3` | proyecto solo humano (`provider: { id: "none" }`): la ejecución terminó sin errores, pero quedan claves para una traducción humana |
 
 <AvailableFrom version="0.9.0" />
 
-Que falle un locale no es fatal: la ejecución termina, sale con `1` y el detalle por locale queda en el resumen. Un locale **parcial** sale con `1` también. Ese es un locale cuyo archivo se escribió pero todavía tiene claves faltantes, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción, y darlo por bueno dejaría un archivo a medio traducir en tu repositorio sin que nadie lo note.
+Que falle un locale no es fatal: la ejecución termina, sale con `1` y el detalle por locale queda en el resumen. Un locale **parcial** sale con `1` también. Ese es un locale cuyo archivo se escribió pero todavía tiene claves faltantes, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción, y darlo por bueno dejaría un archivo a medio traducir en tu repositorio sin que nadie lo note. Un locale cuyo bloqueo de escritura siguió disputado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` y sale con `1` de la misma forma.
+
+La salida legible lista cada clave que la [puerta de integridad](/docs/translation-safety) rechazó bajo `integrity-withheld`, una por línea, con el motivo (`placeholder`, `markup`, `icu`, `degenerate` o `empty`) y, donde la comprobación puede nombrarlos, los placeholders, las etiquetas o las ramas de plural ICU culpables. Un locale cuyas claves se rechazaron todas muestra `failed` seguido de los mismos contadores que cualquier otro locale. Con `--json`, cada locale lleva los mismos motivos en `integrityRefusals`.
+
+<AvailableFrom version="0.12.0" />
 
 La salida `3` solo ocurre en un proyecto [solo humano](/docs/human-only-workflow). Ahí no se llama a ningún proveedor: las claves que cubre la memoria de traducción se escriben, y cualquier otra clave ausente o cambiada se lista como `unfilled` y no se toca. Un locale fallido o parcial sigue teniendo prioridad y sale con `1`. Pasa las claves `unfilled` a una persona con [`verbatra export`](/docs/cli/export).
 
 <AvailableFrom version="0.12.0" />
 
-Las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra se conservan por defecto: se listan como `protected`, no se envían al proveedor y siguen obsoletas para `verbatra check`. Una línea en stderr dice cuántas quedaron. No cambian el código de salida, salvo en un proyecto solo humano, donde cuentan para la salida `3` como las claves `unfilled`. `--include-human` las retraduce para una ejecución. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+Las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra se conservan por defecto: se listan como `protected`, no se envían al proveedor y siguen obsoletas para `verbatra check`. Una línea en stderr dice cuántas quedaron y remite a `--include-human`. Deja fuera las [claves fijadas](/docs/protecting-human-translations#fijar-claves), que `--include-human` nunca sobrescribe, y no aparece cuando se pasó `--include-human`. No cambian el código de salida, salvo en un proyecto solo humano, donde cuentan para la salida `3` como las claves `unfilled`. `--include-human` las retraduce para una ejecución. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
 
 <AvailableFrom version="0.12.0" />
 
