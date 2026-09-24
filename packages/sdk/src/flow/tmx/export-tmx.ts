@@ -14,8 +14,8 @@ import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
 import {
+  createOutputPathGuard,
   namesNoFile,
-  outputPathRefusal,
   outputRefusalReason,
   type ReservedPath,
   reservedProjectPaths,
@@ -169,7 +169,7 @@ async function resolveOutputPath(
     refuseOutput(requested, "names no file.");
   }
   const outputPath = resolve(cwd, requested);
-  const refusal = await outputPathRefusal(fs, cwd, outputPath, reserved);
+  const refusal = await createOutputPathGuard(fs, cwd, reserved).refusal(outputPath);
   if (refusal !== undefined) {
     refuseOutput(requested, outputRefusalReason(refusal));
   }

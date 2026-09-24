@@ -299,7 +299,8 @@ export async function readGlossaryFile(
  * before the timeout elapsed.
  * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written, or the
  * project's glossary write lock could not be created, for instance because the project directory
- * is read-only. The file-system error is the `cause`.
+ * is read-only, or could not be released after a successful edit, in which case the edit is saved.
+ * The file-system error is the `cause`.
  *
  * @example
  * ```ts
@@ -327,26 +328,56 @@ export async function updateGlossaryTerm(
   const cwd = inputCwd ?? process.cwd();
 
   let locked = false;
+  let editFailure: { readonly error: unknown } | undefined;
   try {
     return await withGlossaryGuard(cwd, fs, async () => {
       locked = true;
-      const document = await readGlossaryDocument(path, fs);
-      const content = editedContent(document.content, edit);
-      if (JSON.stringify(inputOf(content)) !== JSON.stringify(inputOf(document.content))) {
-        await writeGlossary(path, serializeGlossary(content, document, path), fs);
+      try {
+        return await applyGlossaryEdit(path, edit, fs);
+      } catch (error) {
+        editFailure = { error };
+        throw error;
       }
-      return normalizeGlossary(inputOf(content));
     });
   } catch (error) {
-    if (locked || error instanceof SdkError) {
-      throw error;
-    }
-    throw new SdkError(
-      "GLOSSARY_UNWRITABLE",
-      unwritableFileMessage("the glossary write lock", glossaryGuardPath(cwd), cwd, error),
-      { cause: error },
-    );
+    throw glossaryGuardFailure(error, editFailure, locked, cwd);
   }
+}
+
+async function applyGlossaryEdit(path: string, edit: GlossaryEdit, fs: SdkFs): Promise<Glossary> {
+  const document = await readGlossaryDocument(path, fs);
+  const content = editedContent(document.content, edit);
+  if (JSON.stringify(inputOf(content)) !== JSON.stringify(inputOf(document.content))) {
+    await writeGlossary(path, serializeGlossary(content, document, path), fs);
+  }
+  return normalizeGlossary(inputOf(content));
+}
+
+function glossaryGuardFailure(
+  error: unknown,
+  editFailure: { readonly error: unknown } | undefined,
+  locked: boolean,
+  cwd: string,
+): unknown {
+  if (editFailure !== undefined) {
+    return editFailure.error;
+  }
+  if (error instanceof SdkError) {
+    return error;
+  }
+  const message = unwritableFileMessage(
+    "the glossary write lock",
+    glossaryGuardPath(cwd),
+    cwd,
+    error,
+  );
+  return new SdkError(
+    "GLOSSARY_UNWRITABLE",
+    locked
+      ? `${message} The glossary edit was saved, but the lock could not be released and stays in place until this process exits.`
+      : message,
+    { cause: error },
+  );
 }
 
 /** The loaded config a glossary tool works on: the resolved config and its glossary provenance. */

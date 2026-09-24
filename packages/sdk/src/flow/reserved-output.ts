@@ -117,55 +117,74 @@ export function workingDirectoryConflict(
   return escapesWorkingDirectory(inside) ? "outside-working-directory" : undefined;
 }
 
-export type CanonicalOutputConflict =
-  | { readonly kind: WorkingDirectoryConflict }
-  | { readonly kind: "reserved"; readonly reserved: ReservedPath };
-
-export async function canonicalOutputConflict(
-  fs: SdkFs,
-  cwd: string,
-  outputPath: string,
-  reserved: ReadonlyMap<string, ReservedPath>,
-): Promise<CanonicalOutputConflict | undefined> {
-  const realpath = fs.realpath?.bind(fs);
-  if (realpath === undefined) {
-    return undefined;
-  }
-  const root = await canonicalPath(realpath, cwd);
-  const target = await canonicalPath(realpath, outputPath);
-  const place = workingDirectoryConflict(root, target);
-  if (place !== undefined) {
-    return { kind: place };
-  }
-  const key = target.toLowerCase();
-  for (const entry of reserved.values()) {
-    if ((await canonicalPath(realpath, entry.path)).toLowerCase() === key) {
-      return { kind: "reserved", reserved: entry };
-    }
-  }
-  return undefined;
-}
-
 export type OutputPathRefusal =
   | { readonly kind: WorkingDirectoryConflict; readonly linked: boolean }
   | { readonly kind: "reserved"; readonly reserved: ReservedPath; readonly linked: boolean };
 
-export async function outputPathRefusal(
-  fs: SdkFs,
+export interface OutputPathGuard {
+  readonly canonical: (path: string) => Promise<string>;
+  readonly refusal: (outputPath: string) => Promise<OutputPathRefusal | undefined>;
+}
+
+interface CanonicalProject {
+  readonly root: string;
+  readonly reserved: ReadonlyMap<string, ReservedPath>;
+}
+
+function asWrittenRefusal(
   cwd: string,
   outputPath: string,
   reserved: ReadonlyMap<string, ReservedPath>,
-): Promise<OutputPathRefusal | undefined> {
+): OutputPathRefusal | undefined {
   const place = workingDirectoryConflict(cwd, outputPath);
   if (place !== undefined) {
     return { kind: place, linked: false };
   }
   const claimed = reservedPathAt(reserved, outputPath);
-  if (claimed !== undefined) {
-    return { kind: "reserved", reserved: claimed, linked: false };
-  }
-  const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
-  return conflict === undefined ? undefined : { ...conflict, linked: true };
+  return claimed === undefined ? undefined : { kind: "reserved", reserved: claimed, linked: false };
+}
+
+export function createOutputPathGuard(
+  fs: SdkFs,
+  cwd: string,
+  reserved: ReadonlyMap<string, ReservedPath>,
+): OutputPathGuard {
+  const realpath = fs.realpath?.bind(fs);
+  const canonical = async (path: string): Promise<string> =>
+    realpath === undefined ? path : canonicalPath(realpath, path);
+  let project: Promise<CanonicalProject> | undefined;
+  const canonicalProject = async (): Promise<CanonicalProject> => {
+    const root = await canonical(cwd);
+    const byCanonicalPath = new Map<string, ReservedPath>();
+    for (const entry of reserved.values()) {
+      const key = (await canonical(entry.path)).toLowerCase();
+      if (!byCanonicalPath.has(key)) {
+        byCanonicalPath.set(key, entry);
+      }
+    }
+    return { root, reserved: byCanonicalPath };
+  };
+  const linkedRefusal = async (outputPath: string): Promise<OutputPathRefusal | undefined> => {
+    if (realpath === undefined) {
+      return undefined;
+    }
+    project ??= canonicalProject();
+    const { root, reserved: canonicalReserved } = await project;
+    const target = await canonical(outputPath);
+    const place = workingDirectoryConflict(root, target);
+    if (place !== undefined) {
+      return { kind: place, linked: true };
+    }
+    const claimed = canonicalReserved.get(target.toLowerCase());
+    return claimed === undefined
+      ? undefined
+      : { kind: "reserved", reserved: claimed, linked: true };
+  };
+  return {
+    canonical,
+    refusal: async (outputPath) =>
+      asWrittenRefusal(cwd, outputPath, reserved) ?? (await linkedRefusal(outputPath)),
+  };
 }
 
 export function outputRefusalReason(refusal: OutputPathRefusal): string {

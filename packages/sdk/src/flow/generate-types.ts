@@ -13,8 +13,9 @@ import {
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
 import {
-  canonicalOutputConflict,
+  createOutputPathGuard,
   namesNoFile,
+  outputRefusalReason,
   type ReservedPath,
   reservedPathAt,
   reservedProjectPaths,
@@ -208,22 +209,12 @@ async function refuseLinkedOutput(
   reserved: ReadonlyMap<string, ReservedPath>,
   requested: string,
 ): Promise<void> {
-  const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
-  if (conflict?.kind === "working-directory") {
-    refuseOutput(requested, "outside-working-directory", WORKING_DIRECTORY_REASON);
-  }
-  if (conflict?.kind === "outside-working-directory") {
+  const refusal = await createOutputPathGuard(fs, cwd, reserved).refusal(outputPath);
+  if (refusal !== undefined) {
     refuseOutput(
       requested,
-      "outside-working-directory",
-      "resolves outside the working directory through a symbolic link.",
-    );
-  }
-  if (conflict?.kind === "reserved") {
-    refuseOutput(
-      requested,
-      conflict.reserved.kind,
-      `resolves to ${conflict.reserved.what} through a symbolic link.`,
+      refusal.kind === "reserved" ? refusal.reserved.kind : "outside-working-directory",
+      outputRefusalReason(refusal),
     );
   }
 }

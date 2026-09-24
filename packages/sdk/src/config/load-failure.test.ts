@@ -52,7 +52,9 @@ describe("configLoadFailure", () => {
   });
 
   it("redacts a key shape in the remaining line", () => {
-    const failure = configLoadFailure(new Error("bad value sk-proj-abcdefghijklmnopqrstuvwxyz"));
+    const failure = configLoadFailure(
+      new Error("bad value sk-proj-abcdefghijklmnopqrstuvwxyz0123"),
+    );
 
     expect(failure.message).toBe(
       "Failed to load the verbatra configuration: bad value [REDACTED].",
