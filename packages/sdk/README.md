@@ -30,9 +30,11 @@ Node.js `>=22.14.0`.
 ```bash
 npm install --save-dev @verbatra/sdk
 # pnpm
-pnpm add -D @verbatra/sdk
+pnpm add --save-dev @verbatra/sdk
 # yarn
-yarn add -D @verbatra/sdk
+yarn add --dev @verbatra/sdk
+# bun
+bun add --dev @verbatra/sdk
 ```
 
 ## Quick start

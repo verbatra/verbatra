@@ -31,9 +31,11 @@ Node.js `>=22.14.0`.
 ```bash
 npm install --save-dev @verbatra/mcp
 # pnpm
-pnpm add -D @verbatra/mcp
+pnpm add --save-dev @verbatra/mcp
 # yarn
-yarn add -D @verbatra/mcp
+yarn add --dev @verbatra/mcp
+# bun
+bun add --dev @verbatra/mcp
 ```
 
 Most MCP clients spawn the server for you and need no local install at all: point the client at `npx -y @verbatra/mcp` and npx fetches it on demand. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.

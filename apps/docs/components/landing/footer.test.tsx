@@ -7,8 +7,8 @@ import { CONTRIBUTORS } from "@/lib/contributors";
 const localeState = vi.hoisted(() => ({ current: "en" }));
 
 vi.mock("next-intl/server", () => ({
-  getTranslations: async () => (key: string, values?: Record<string, string>) =>
-    values?.name ?? key,
+  getTranslations: async (namespace?: string) => (key: string, values?: Record<string, string>) =>
+    namespace === "docs.statusBadges" ? `badge:${key}` : (values?.name ?? key),
   getLocale: async () => localeState.current,
 }));
 
@@ -81,6 +81,28 @@ describe("FullFooter", () => {
     } finally {
       localeState.current = "en";
     }
+  });
+
+  it("labels the new badges through the translated status string", async () => {
+    const doc = await renderFooter();
+    const badges = Array.from(doc.querySelectorAll("nav a > span")).map((span) => span.textContent);
+
+    expect(badges.length).toBeGreaterThan(0);
+    expect(new Set(badges)).toEqual(new Set(["badge:new"]));
+  });
+
+  it("sets the license and the copyright apart without a separator glyph", async () => {
+    const doc = await renderFooter();
+    const license = Array.from(doc.querySelectorAll("span")).find(
+      (span) => span.textContent === "legalLicense",
+    );
+    const line = license?.parentElement;
+
+    expect(Array.from(line?.children ?? []).map((span) => span.textContent)).toEqual([
+      "legalLicense",
+      "legalCopyright",
+    ]);
+    expect(line?.textContent).not.toContain("\u00b7");
   });
 
   it("never points an image at a third-party host", async () => {
