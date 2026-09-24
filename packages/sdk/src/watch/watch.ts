@@ -77,14 +77,15 @@ export interface WatchInput {
    * {@link watch} itself resolves as soon as watching starts.
    */
   readonly onRun: (result: WatchRunResult) => void;
-  /** Called while waiting on another process's write lock. */
+  /** Called while waiting on another process's write lock, never for one this process holds. */
   readonly onLockWait?: LockWaitListener;
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
   /**
-   * How long, in milliseconds, to wait for a locale's write lock, or for the lock-file guard it
-   * takes to record its result, before that locale fails with `LOCK_CONTENDED` on the run's
-   * summary. Defaults to ten minutes.
+   * How long, in milliseconds, to wait for a locale's write lock, before any provider call, before
+   * that locale fails with `LOCK_CONTENDED` on the run's summary. Defaults to ten minutes. The
+   * lock-file guard a locale takes to record its result after writing its target file always
+   * allows the ten-minute default instead.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
