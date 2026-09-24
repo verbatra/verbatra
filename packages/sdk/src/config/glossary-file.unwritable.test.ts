@@ -129,3 +129,53 @@ describe("updateGlossaryTerm: a project where the glossary lock cannot be create
     },
   );
 });
+
+describe("updateGlossaryTerm: a glossary lock that cannot be released", () => {
+  const releaseFailure = (): NodeJS.ErrnoException =>
+    Object.assign(new Error("EPERM: operation not permitted, unlink"), { code: "EPERM" });
+
+  it("maps a failed release after a saved edit to GLOSSARY_UNWRITABLE with the cause", async () => {
+    const { cwd, path } = await seed();
+    const cause = releaseFailure();
+    const fs: SdkFs = {
+      ...defaultFs,
+      deleteFile: async () => {
+        throw cause;
+      },
+    };
+
+    const error = await rejection(edit(cwd, path, fs));
+
+    expect(error).toBeInstanceOf(SdkError);
+    expect(error).toMatchObject({
+      code: "GLOSSARY_UNWRITABLE",
+      message: expect.stringMatching(
+        /^Could not write the glossary write lock \.verbatra-local\/.+ \(EPERM\)\..* The glossary edit was saved, but the lock could not be released/,
+      ),
+      cause,
+    });
+    expect(JSON.parse(await readTextFile(path))).toEqual({ brand: "Verbatra", cli: "CLI" });
+  });
+
+  it("reports the edit's own failure when the release fails after it", async () => {
+    const { cwd, path } = await seed();
+    const writeFailure = Object.assign(new Error("EROFS: read-only file system"), {
+      code: "EROFS",
+    });
+    const fs: SdkFs = {
+      ...defaultFs,
+      writeFile: async () => {
+        throw writeFailure;
+      },
+      deleteFile: async () => {
+        throw releaseFailure();
+      },
+    };
+
+    expect(await rejection(edit(cwd, path, fs))).toMatchObject({
+      code: "GLOSSARY_UNWRITABLE",
+      cause: writeFailure,
+    });
+    expect(await readTextFile(path)).toBe(ORIGINAL);
+  });
+});
