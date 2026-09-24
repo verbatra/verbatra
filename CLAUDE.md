@@ -94,8 +94,9 @@ extending any test.
 - zod validates at boundaries only (config, CLI args, provider responses), not in
   hot paths.
 - API keys come only from environment variables (`ANTHROPIC_API_KEY`,
-  `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`),
-  read through `packages/ai-providers/src/env.ts`. Never from config files, CLI args,
+  `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, and
+  `OPENAI_COMPATIBLE_API_KEY` or the variable an `openai-compatible` config names in
+  `apiKeyEnvVar`), read through `packages/ai-providers/src/env.ts`. Never from config files, CLI args,
   or function arguments. Never log or commit a key; error messages name the variable
   but never include a key value.
 - Provider errors are structured `ProviderError`s, never raw SDK errors.

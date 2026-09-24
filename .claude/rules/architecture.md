@@ -35,10 +35,15 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
 - `@verbatra/cli` depends on `@verbatra/sdk` only, plus `commander` and `zod`
   (`packages/cli/package.json`). It carries `@verbatra/studio` as a `devDependency` only, reached
   through a dynamic import at runtime (`packages/cli/src/studio-command.ts`), never a static
-  import, so a missing or broken studio build never breaks the rest of the CLI.
+  import, so a missing or broken studio build never breaks the rest of the CLI. `@verbatra/mcp` is
+  carried the same way: a `devDependency` reached through `importMcp: () => import("@verbatra/mcp")`
+  (`packages/cli/src/index.ts`), with only type-only imports elsewhere
+  (`packages/cli/src/mcp-command.ts`, `packages/cli/src/types.ts`).
 - `@verbatra/mcp` depends on `@verbatra/sdk` (`packages/mcp/package.json`), the same way `cli`
   does: a thin, sdk-backed surface, here a stdio MCP server rather than a CLI binary. It versions
-  independently, like `studio`, not in the `sdk`/`cli` fixed group.
+  independently, like `studio`, not in the `sdk`/`cli` fixed group. Its `devDependencies` also list
+  `@verbatra/core`, `@verbatra/ai-providers`, and `@verbatra/format-adapters`, used only by tests and
+  `packages/mcp/src/test-support.ts`, never by runtime source.
 - `@verbatra/studio` depends on `@verbatra/sdk` at runtime (`packages/studio/package.json`
   `dependencies`), not on cli. It also lists `@verbatra/format-adapters` as a `devDependency`
   (`packages/studio/package.json` `devDependencies`); the only source usage is
@@ -138,9 +143,12 @@ descriptive only, nothing branches on it), `supportsGlossary`, and `translateBat
 
 Resolution is a factory table, not the exported `ProviderRegistry`:
 `packages/sdk/src/config/provider-config.ts` defines `providerFactories`, a `ProviderFactories`
-mapped type over `ProviderId` (`"anthropic" | "openai" | "gemini" | "deepl" |
+mapped type over `MachineProviderId` (`"anthropic" | "openai" | "gemini" | "deepl" |
 "google-translate" | "openai-compatible"`), so a provider present in the config union but missing
-from the factory table fails to compile. `buildProvider(config)` reads this table; `selectProvider`
+from the factory table fails to compile. `ProviderId` additionally holds `"none"`, the human-only
+variant that disables machine translation by policy: it has no factory, no provider is ever
+constructed for it, and `isMachineTranslationEnabled` / `assertMachineTranslationEnabled` in the
+same file are how a flow honours it. `buildProvider(config)` reads this table; `selectProvider`
 (`packages/sdk/src/selection/select-provider.ts`) wraps it. `ProviderRegistry`
 (`packages/ai-providers/src/registry.ts`) is exported from the package but is not on this path:
 nothing outside its own tests resolves a provider through it. Registering a new provider there and

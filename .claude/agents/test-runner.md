@@ -61,10 +61,12 @@ behavior) and hand it back rather than patching the source yourself.
 2. **CLI e2e - Vitest-driven against packed tarballs, not Playwright.** The `e2e/`
    directory is a separate npm-managed project (its own `package-lock.json`,
    deliberately outside the pnpm workspace so installs resolve real tarballs instead
-   of workspace symlinks). It packs `@verbatra/sdk` and `@verbatra/cli`, installs them
-   into a throwaway project, and drives the real `verbatra` binary, including CLI-level
-   Studio coverage in `e2e/tests/studio.e2e.test.ts` (the `studio` command's own
-   surface, not a browser). Two tiers, split by filename: the no-key tier (`npm run
+   of workspace symlinks). It packs `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`,
+   and `@verbatra/mcp`, installs the sdk and cli tarballs (plus studio or mcp when a test
+   asks for one) into a throwaway project, and drives the real `verbatra` binary,
+   including CLI-level Studio coverage in `e2e/tests/studio.e2e.test.ts` (the `studio`
+   command's own surface over HTTP, not a browser) and the stdio MCP server in
+   `e2e/tests/mcp.e2e.test.ts`. Two tiers, split by filename: the no-key tier (`npm run
    test:nokey`, everything except `tests/*.live.e2e.test.ts`) calls no hosted provider
    and makes no network request outside 127.0.0.1 (two tests, the interrupt and the
    MCP held-lock test, point an `openai-compatible` provider at a never-answering
@@ -76,7 +78,8 @@ behavior) and hand it back rather than patching the source yourself.
    (`.github/workflows/e2e-live.yml`), never gating a publish. Run it from inside
    `e2e/` with `npm ci` then `npm run test:nokey` (or `npm run typecheck` first to
    catch harness drift); see `e2e/README.md` for the full tarball-pinning story if
-   `VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` need to be set explicitly.
+   `VERBATRA_SDK_TARBALL`, `VERBATRA_CLI_TARBALL`, `VERBATRA_STUDIO_TARBALL`, and
+   `VERBATRA_MCP_TARBALL` need to be set explicitly (all four or none).
 3. **Studio browser e2e - does not exist yet.** `e2e/tests/studio.e2e.test.ts` only
    exercises the `studio` CLI command (does it start, serve, respond); there is
    currently no `playwright.config.ts` anywhere in this repo and no browser-level test

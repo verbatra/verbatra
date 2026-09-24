@@ -13,7 +13,7 @@ body:
     attributes:
       label: verbatra version
       description: The `@verbatra/sdk` / `@verbatra/cli` version (and the `@verbatra/studio` or `@verbatra/mcp` version if relevant). Run `verbatra --version`.
-      placeholder: "@verbatra/cli 0.11.1"
+      placeholder: "@verbatra/cli 0.12.0"
     validations:
       required: true
 

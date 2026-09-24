@@ -20,8 +20,8 @@ structured formats (JSON, XLIFF, YAML, ARB, properties), not Markdown/MDX.
   following the rule below.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
   translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
-  by the `(concepts)`, `(configure)`, `(get-started)`, `(guides)` route groups, each with a
-  `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are hand-translated;
+  by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
+  route groups and the `cli` folder, each with a `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are hand-translated;
   verbatra's `next-intl-json` adapter only covers `messages/*.json`, not MDX.
 
 ## Source of truth: what's actually shipped
@@ -51,6 +51,10 @@ re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-o
 leave the other three locales to catch up later. `docs-i18n-check.yml` only backstops the
 `messages/*.json` half of this (see above); a stale or missing `.de.mdx`/`.es.mdx`/`.fr.mdx` is
 not caught by CI, so treat this as an authoring discipline, not a check you can rely on to fail.
+The one exception is the reference tables `scripts/verify-docs-reference-parity.test.mjs`
+(`pnpm test:scripts`) asserts in all four locales against the code: one `sdk*.mdx` section per SDK
+entry point, the `ProviderErrorCode` table in `providers*.mdx`, the CLI error codes in
+`ci-and-exit-codes*.mdx`, and the `generateTypes` refusals in `cli/types*.mdx`.
 
 ## The `<AvailableFrom />` callout
 
@@ -61,7 +65,7 @@ any other UI string, not hand-duplicated per locale MDX file.
 - Usage: `<AvailableFrom version="X.Y.Z" />` for a CLI/SDK feature, or
   `<AvailableFrom version="X.Y.Z" pkg="@verbatra/studio" />` when the feature belongs to a
   specific package (see the real usage in
-  `apps/docs/content/docs/(guides)/agent-tools-in-studio.mdx`).
+  `apps/docs/content/docs/(agents)/agent-tools-in-studio.mdx`).
 - Use it on any documented feature that shipped after the package's initial release, so a reader on
   an older version knows to upgrade instead of filing a "this doesn't work" report.
 - To get the correct version, do not guess or copy the current `package.json` version by hand:
