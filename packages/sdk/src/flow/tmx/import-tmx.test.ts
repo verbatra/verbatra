@@ -750,6 +750,7 @@ describe("importTmx holds an imported unit to the same gate a provider's output 
     });
 
     expect(result.locales[0]?.rejected.icu).toBe(1);
+    expect(result.locales[0]?.refusals).toEqual([{ unit: 1, reason: "icu" }]);
   });
 
   it("refuses a Russian plural that keeps the English arms and accepts one with the Russian arms", async () => {
@@ -774,6 +775,16 @@ describe("importTmx holds an imported unit to the same gate a provider's output 
     expect(result.locales[0]?.rejected.icu).toBe(1);
     expect(result.locales[0]?.rejected.placeholder).toBe(0);
     expect(result.locales[0]?.added).toBe(1);
+    expect(result.locales[0]?.refusals).toEqual([
+      {
+        unit: 1,
+        reason: "icu",
+        details: [
+          '{n} plural: missing arm "few" required by the target language',
+          '{n} plural: missing arm "many" required by the target language',
+        ],
+      },
+    ]);
   });
 
   it("refuses a blank translation of a source that has text", async () => {

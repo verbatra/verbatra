@@ -416,6 +416,14 @@ gemeldet wird, macht Abweichungen sichtbar, die älter sind als das Gate beim Sc
 Pfad kam, der das Gate nie passiert hat, wird hier nach derselben Regel beurteilt. Das ist der
 Integritätsbericht pro Key, den Studio anzeigt.
 
+<AvailableFrom version="0.12.0" />
+
+Jeder Eintrag trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`,
+`selectordinal` und `select` des Werts zur Zielsprache passen, genau so beurteilt wie beim Gate beim
+Schreiben, und ein kurzes Problem pro fehlendem oder überzähligem Zweig, etwa `{count} plural:
+missing arm "few" required by the target language`. `icuArmsMatch` ist immer true für ein Format,
+das keine Zweige prüft (jedes mitgelieferte Format außer next-intl und ARB).
+
 Eingabe: `{ config, cwd?, locales?, keys? }`. `keys` engt die Prüfung ein; geprüft werden immer
 nur Keys, die für eine Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale
 zurück.
@@ -707,6 +715,14 @@ dem Dateinamen. Gibt dieselbe `RunSummary`-Form zurück wie
 Locale, die kein konfiguriertes Ziel ist, lässt diese Locale mit `CONFIG_INVALID` als Daten auf der
 Zusammenfassung fehlschlagen, statt zu werfen.
 
+<AvailableFrom version="0.12.0" />
+
+`integrityRefusals` jeder Locale nennt die Zeilen, die das Integritäts-Gate abgelehnt hat, mit dem
+Grund und seinen `details`, etwa jedem ICU-Zweig, der nicht zur Zielsprache passt. Eine Zeile, die
+zurückgehalten wurde, weil sich ihre Quelle seit dem Export geändert hat, steht nur in
+`integrityMismatches`. `exportWorkbook` markiert eine aktuelle Übersetzung mit falschen Zweigen in den
+Review-Spalten als `icu-arms`.
+
 ## Das TMX-Paar
 
 <AvailableFrom version="0.11.0" />
@@ -761,6 +777,13 @@ Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wu
 geschrieben wurde; sie bleibt dann unangetastet. Die Zählungen pro Locale werden trotzdem gemeldet,
 wie bei einem Probelauf, sodass `added` und `overwritten` beschreiben, was gelandet wäre; bei
 `memoryWritable` false ist nichts gelandet.
+
+<AvailableFrom version="0.12.0" />
+
+Jede Locale listet außerdem ihre `refusals`, ein `TmxUnitRefusal` pro Einheit, die unter einem
+Gate-Grund gezählt wurde: `{ unit, reason, details? }`, wobei `unit` die 1-basierte Position der
+Einheit in der Datei ist und `details` nennt, was falsch ist, etwa jeden ICU-Zweig, der nicht zur
+Zielsprache passt.
 
 ### tmxErrorLocation
 

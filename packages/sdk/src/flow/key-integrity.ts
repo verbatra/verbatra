@@ -10,12 +10,16 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { branchArmProblems } from "./integrity-gate.js";
 import { judgeEntryMarkup } from "./markup-verdict.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
 
-/** One key's placeholder, ICU, and inline-markup verdict in a {@link LocaleKeyIntegrity} report. */
+/**
+ * One key's placeholder, ICU, ICU-arm, and inline-markup verdict in a {@link LocaleKeyIntegrity}
+ * report.
+ */
 export interface KeyIntegrityEntry {
   /** The key this verdict describes. */
   readonly key: string;
@@ -29,6 +33,20 @@ export interface KeyIntegrityEntry {
   readonly extra: readonly string[];
   /** True when the translation parses as a valid ICU message under the configured format. */
   readonly icuValid: boolean;
+  /**
+   * True when the translation's ICU branch arms fit the target language, judged exactly as the
+   * write-time gate judges them: every `plural` carries the language's CLDR cardinal categories and
+   * every `selectordinal` its ordinal categories, the source's `=N` arms and `offset` survive, and
+   * every `select` keeps the source's arms. Always true for a format that does not check branch
+   * arms (every shipped format except next-intl and ARB) and for a value that does not parse.
+   */
+  readonly icuArmsMatch: boolean;
+  /**
+   * One readable problem per wrong arm behind an `icuArmsMatch: false` verdict, naming the missing
+   * or extra category, for example `{count} plural: missing arm "few" required by the target
+   * language`. Empty when the arms fit.
+   */
+  readonly icuArmDetails: readonly string[];
   /**
    * True when the translation carries the source's inline HTML or XML tags, well formed. Compared
    * exactly as the write-time gate compares them, so a value already on disk is judged by the same
@@ -79,6 +97,7 @@ export interface KeyIntegrityDeps {
 
 function checkEntryIntegrity(
   adapter: FormatAdapter,
+  locale: string,
   sourceEntry: TranslationEntry,
   targetEntry: TranslationEntry,
 ): KeyIntegrityEntry {
@@ -86,6 +105,7 @@ function checkEntryIntegrity(
     adapter.comparePlaceholders?.(sourceEntry.value, targetEntry.value) ??
     checkPlaceholders(sourceEntry.placeholders, targetEntry.placeholders);
   const markup = judgeEntryMarkup(sourceEntry, targetEntry.value);
+  const armProblems = branchArmProblems(sourceEntry.value, targetEntry.value, adapter, locale);
   return {
     key: sourceEntry.key,
     hasPlaceholders: sourceEntry.placeholders.length > 0,
@@ -93,6 +113,8 @@ function checkEntryIntegrity(
     missing: result.missing,
     extra: result.extra,
     icuValid: adapter.validateMessage(targetEntry.value),
+    icuArmsMatch: armProblems.length === 0,
+    icuArmDetails: armProblems,
     markupMatches: markup.matches,
     markupDetails: markup.details,
   };
@@ -110,6 +132,7 @@ function selectChangedKeys(
 }
 
 function integrityEntriesFor(
+  locale: string,
   source: LocaleResource,
   target: LocaleResource,
   adapter: FormatAdapter,
@@ -124,22 +147,22 @@ function integrityEntriesFor(
     if (sourceEntry === undefined || targetEntry === undefined) {
       continue;
     }
-    entries.push(checkEntryIntegrity(adapter, sourceEntry, targetEntry));
+    entries.push(checkEntryIntegrity(adapter, locale, sourceEntry, targetEntry));
   }
   return entries;
 }
 
 /**
  * Reports, per changed key, whether the existing translation still carries the source's
- * placeholders and inline markup and still parses as valid ICU. It writes nothing and calls no
- * provider.
+ * placeholders and inline markup, still parses as valid ICU, and still carries ICU branch arms that
+ * fit the target language. It writes nothing and calls no provider.
  *
  * The scope is deliberately the changed keys rather than every key: a key whose source text has not
  * moved was already gated when it was written, so re-reporting it would bury the keys that a source
  * edit may have just invalidated. Only keys present in both the source and the target are judged,
  * since a missing translation has no placeholders to compare.
  *
- * This is the read-only counterpart to the placeholder, ICU and inline-markup checks of the
+ * This is the read-only counterpart to the placeholder, ICU, ICU-arm, and inline-markup checks of the
  * write-time integrity gate that {@link translate}, {@link editEntry}, {@link retranslateEntry},
  * and the workbook and TMX imports enforce, and the data behind a
  * review dashboard's per-key integrity indicator. Reporting markup here is what makes drift that
@@ -193,7 +216,7 @@ export async function keyIntegrity(
         baseline: baselineFor(lock, locale),
       });
       const changedKeys = selectChangedKeys(diffResult.changed, input.keys);
-      const entries = integrityEntriesFor(source.resource, target, adapter, changedKeys);
+      const entries = integrityEntriesFor(locale, source.resource, target, adapter, changedKeys);
       return { locale, entries };
     }),
   );

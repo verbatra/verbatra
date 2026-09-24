@@ -313,6 +313,7 @@ export {
   type TmxLanguageReport,
   type TmxRejectionCounts,
   type TmxRejectionReason,
+  type TmxUnitRefusal,
   tmxErrorLocation,
 } from "./flow/tmx/import-tmx.js";
 export {

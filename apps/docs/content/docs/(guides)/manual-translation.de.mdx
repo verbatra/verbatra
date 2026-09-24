@@ -132,6 +132,7 @@ Greife zu `--include-unchanged`, wenn eine Übersetzerin den vollen Kontext eine
 - `glossary-term-missed`: Die Übersetzung eines Glossarbegriffs für diese Locale oder ein Begriff aus `doNotTranslate` hat es nicht in die Übersetzung geschafft.
 - `glossary-forbidden-term`: Die Übersetzung verwendet eine Wiedergabe, die das Glossar für diese Locale verbietet.
 - `integrity-reordered`: Die Platzhalter stimmen, landeten aber in anderer Reihenfolge als in der Quelle.
+- `icu-arms`: Die ICU-Zweige für `plural`, `selectordinal` oder `select` der Übersetzung passen nicht zur Zielsprache, gefolgt von jedem fehlenden oder überzähligen Zweig. Anders als die übrigen ist das ein Wert, den das Integritäts-Gate ablehnen würde, also korrigiere ihn, bevor die Zeile zurückkommt (ab 0.12.0).
 
 Zwei weitere Gründe vervollständigen die Menge von acht, und beide existieren nur zur Übersetzungszeit: `provider-degraded` (ein Hinweis auf herabgestufte Formalität oder ein ignoriertes Glossar auf dem Batch, aus dem ein Key kam) und `fuzzy-cache-reuse` (der Wert wurde aus dem Übersetzungsspeicher für eine frühere, fast identische Quelle wiederverwendet, die seitdem bearbeitet wurde). Der Export berechnet die Spalten allein aus Quell- und Zielwerten, also erscheint keiner von beiden je auf einer exportierten Zeile. Eine Zeile ohne bisherige Übersetzung exportiert immer `ok`; es gibt nichts zu prüfen. In [Übersetzungssicherheit](/docs/translation-safety) steht, wie diese Flags mit den harten Integritätsprüfungen zusammenhängen.
 

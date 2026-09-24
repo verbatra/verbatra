@@ -48,6 +48,8 @@ function integrityEntry(
     missing: [],
     extra: [],
     icuValid: true,
+    icuArmsMatch: true,
+    icuArmDetails: [],
     markupMatches: true,
     markupDetails: [],
     ...overrides,

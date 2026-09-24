@@ -133,6 +133,30 @@ describe("run check --qa: rendering", () => {
     expect(cap.out()).toContain("    title: warning EQUALS_SOURCE, LENGTH_RATIO_OUTLIER");
   });
 
+  it("names each wrong ICU arm of an error finding", async () => {
+    const summary = qaSummary({
+      checked: 1,
+      errors: 1,
+      warnings: 0,
+      findings: [
+        {
+          key: "files",
+          severity: "error",
+          reason: "icu",
+          details: ['{n} plural: missing arm "few" required by the target language'],
+        },
+      ],
+    });
+    const { deps } = recordingDeps({ check: async () => summary });
+    const cap = captureStreams();
+
+    await run(["check", "--qa"], deps, cap.streams);
+
+    expect(cap.out()).toContain(
+      '    files: error icu ({n} plural: missing arm "few" required by the target language)',
+    );
+  });
+
   it("reports a clean locale and the skipped invalid source keys", async () => {
     const summary = qaSummary(
       { checked: 1, errors: 0, warnings: 0, findings: [] },

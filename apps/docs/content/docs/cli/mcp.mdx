@@ -90,7 +90,7 @@ The text is the same for every project and every start of the server, so it hold
 | `glossary.get` | every glossary term with its per-locale translations, forbidden renderings and context, the terms kept untranslated, and optionally what one locale is held to, secret-redacted | yes | no |
 | `glossary.write` | change one glossary term: a translation, per-locale data, context, or whether it stays untranslated | no | no |
 | `lock.state` | the lock file's version and, per target locale, its recorded key count plus missing, stale, and up-to-date counts | yes | no |
-| `key.integrity` | one key's placeholder, inline markup, and ICU drift against the lock baseline, per locale (only checks keys whose source changed since the baseline; an empty `entries` array means checked and unchanged) | yes | no |
+| `key.integrity` | one key's placeholder, inline markup, ICU syntax, and ICU arm drift against the lock baseline, per locale (only checks keys whose source changed since the baseline; an empty `entries` array means checked and unchanged) | yes | no |
 | `key.value` | one key's current source and target text | yes | no |
 | `translation.editEntry` | write a manual translation for one key in one locale, gated by placeholder, inline markup, and ICU integrity | no | no |
 | `translation.estimate` | what `translation.translatePending` would send and cost, the same result as `translate --estimate --json`, optionally for a subset of `locales` | yes | no |
@@ -131,6 +131,10 @@ The inline markup checks in `key.integrity` (`markupMatches`, `markupDetails`) a
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `key.value` also returns `provenance` whenever `target` is present: `origin`, `provider` and `model` for machine output, `reviewState`, and `reviewer` when one was recorded. Each `lock.state` and `status.check` locale carries `provenance` counts (`byOrigin`, `byReviewState`), and each `status.diff` locale carries `changedOrigins`, the origin of every changed key's current value. All of them are left out when `verbatra.provenance.json` is corrupt or was written by a newer verbatra; see [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value) for what each origin means.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Each `key.integrity` entry also carries `icuArmsMatch` and `icuArmDetails`: whether the value's ICU `plural`, `selectordinal`, and `select` arms fit the target language, judged by the same rule that makes `translation.editEntry` refuse a value with the `icu` reason, and one short problem per missing or extra arm.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 

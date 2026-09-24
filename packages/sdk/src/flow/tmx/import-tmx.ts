@@ -20,7 +20,11 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { errorMessage, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
-import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
+import {
+  gateCandidateValue,
+  type IntegrityGateReason,
+  type IntegrityGateRejection,
+} from "../integrity-gate.js";
 import { selectLocales } from "../select-locales.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
@@ -69,6 +73,23 @@ export function tmxErrorLocation(error: unknown): TmxErrorLocation | undefined {
 /** How many units were refused, by reason. See {@link TmxRejectionReason}. */
 export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;
 
+/**
+ * One translation unit the integrity gate refused for a locale, in an {@link ImportTmxLocaleResult}.
+ */
+export interface TmxUnitRefusal {
+  /** The 1-based ordinal of the unit in the file's first `body`, counting every `tu`. */
+  readonly unit: number;
+  /** The gate check the unit's translation failed, one of {@link INTEGRITY_GATE_REASONS}. */
+  readonly reason: IntegrityGateReason;
+  /**
+   * What is wrong, when the check can name it: for `placeholder`, each placeholder the translation
+   * dropped prefixed with `-` and each one it added prefixed with `+`; for `markup`, the offending
+   * tags in the same notation; for `icu`, each plural, ordinal, or select arm that does not fit the
+   * target language. Absent when no single part is at fault.
+   */
+  readonly details?: readonly string[];
+}
+
 /** What an import did to the memory for one target locale. */
 export interface ImportTmxLocaleResult {
   /** The configured target locale, spelled as the config spells it. */
@@ -99,6 +120,11 @@ export interface ImportTmxLocaleResult {
   readonly conflicting: number;
   /** Units refused before they could be stored, by reason. */
   readonly rejected: TmxRejectionCounts;
+  /**
+   * Every unit counted under an integrity gate reason in {@link ImportTmxLocaleResult.rejected},
+   * in file order, with what is wrong. Units refused as `sourceBlank` are counted only.
+   */
+  readonly refusals: readonly TmxUnitRefusal[];
 }
 
 /** A language tag in the file that no configured locale could be resolved to. */
@@ -213,6 +239,7 @@ interface LocaleTally {
   duplicates: number;
   conflicting: number;
   rejected: Record<TmxRejectionReason, number>;
+  refusals: TmxUnitRefusal[];
   additions: Record<string, CacheAddition>;
   seenHashes: Set<string>;
 }
@@ -226,6 +253,7 @@ function emptyTally(): LocaleTally {
     duplicates: 0,
     conflicting: 0,
     rejected: { ...NO_REJECTIONS },
+    refusals: [],
     additions: {},
     seenHashes: new Set<string>(),
   };
@@ -364,9 +392,16 @@ interface ApplyContext {
 
 const STAGED: ReadonlySet<Decision> = new Set<Decision>(["added", "overwritten"]);
 
+function unitRefusal(unit: number, rejection: IntegrityGateRejection): TmxUnitRefusal {
+  return rejection.details === undefined
+    ? { unit, reason: rejection.reason }
+    : { unit, reason: rejection.reason, details: rejection.details };
+}
+
 function applyTranslation(
   ctx: ApplyContext,
   tally: LocaleTally,
+  unit: number,
   locale: string,
   sourceEntry: TranslationEntry,
   candidate: string,
@@ -374,6 +409,7 @@ function applyTranslation(
   const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
   if (!gate.accepted) {
     tally.rejected[gate.reason] += 1;
+    tally.refusals.push(unitRefusal(unit, gate));
     return;
   }
   const hash = contentHash(sourceEntry);
@@ -394,6 +430,7 @@ interface ScanTotals {
 
 function importUnit(
   ctx: ApplyContext,
+  unit: number,
   plan: UnitPlan,
   tallies: ReadonlyMap<string, LocaleTally>,
   census: LanguageCensus,
@@ -414,7 +451,7 @@ function importUnit(
     } else if (!refused && pick.conflicted) {
       tally.conflicting += 1;
     } else if (sourceEntry !== undefined) {
-      applyTranslation(ctx, tally, locale, sourceEntry, pick.text);
+      applyTranslation(ctx, tally, unit, locale, sourceEntry, pick.text);
     }
   }
   return plan.kind;
@@ -432,7 +469,7 @@ function scanUnits(
   let conflictingSourceUnits = 0;
   let markupStrippedUnits = 0;
   let subflowDroppedUnits = 0;
-  for (const unit of units) {
+  for (const [index, unit] of units.entries()) {
     if (unit.markupStripped) {
       markupStrippedUnits += 1;
     }
@@ -441,6 +478,7 @@ function scanUnits(
     }
     const outcome = importUnit(
       ctx,
+      index + 1,
       planUnit(unit, sourceLocale, configuredTargets, census),
       tallies,
       census,
@@ -484,6 +522,7 @@ function toLocaleResult(locale: string, tally: LocaleTally): ImportTmxLocaleResu
     duplicates: tally.duplicates,
     conflicting: tally.conflicting,
     rejected: { ...tally.rejected },
+    refusals: [...tally.refusals],
   };
 }
 

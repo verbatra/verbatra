@@ -382,6 +382,14 @@ predates the write-time gate visible: a translation written before the check exi
 verbatra, or produced by a path that never crossed the gate is judged here by the same rule. This is
 the per-key integrity report Studio surfaces.
 
+<AvailableFrom version="0.12.0" />
+
+Each entry also carries `icuArmsMatch` and `icuArmDetails`: whether the value's ICU `plural`,
+`selectordinal`, and `select` arms fit the target language, judged exactly as the write-time gate
+judges them, and one short problem per missing or extra arm, such as `{count} plural: missing arm
+"few" required by the target language`. `icuArmsMatch` is always true for a format that does not
+check arms (every shipped format except next-intl and ARB).
+
 Input: `{ config, cwd?, locales?, keys? }`. `keys` narrows the check; only keys that are "changed"
 for a locale are ever checked. Returns one `LocaleKeyIntegrity` per checked locale.
 
@@ -647,6 +655,13 @@ name. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
 a configured target fails that locale with `CONFIG_INVALID` as data on the summary, not a throw.
 
+<AvailableFrom version="0.12.0" />
+
+Each locale's `integrityRefusals` names the rows the integrity gate refused, with the reason and
+its `details`, such as each ICU arm that does not fit the target language. A row withheld because
+its source changed since the export is listed in `integrityMismatches` only. `exportWorkbook` flags
+a current translation with the wrong arms as `icu-arms` in its review columns.
+
 ## The TMX pair
 
 <AvailableFrom version="0.11.0" />
@@ -694,6 +709,12 @@ by reason, plus the units that were skipped, carried no source segment, lost inl
 ambiguously. `memoryWritable` is false when the memory file was written by a newer verbatra, in
 which case it is left untouched. The per-locale counts are still reported then, as on a dry run, so
 `added` and `overwritten` describe what would have landed; with `memoryWritable` false, nothing did.
+
+<AvailableFrom version="0.12.0" />
+
+Each locale also lists its `refusals`, one `TmxUnitRefusal` per unit counted under a gate reason:
+`{ unit, reason, details? }`, where `unit` is the unit's 1-based ordinal in the file and `details`
+names what is wrong, such as each ICU arm that does not fit the target language.
 
 ### tmxErrorLocation
 

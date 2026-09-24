@@ -14,6 +14,8 @@ const MATCHING: KeyIntegrityLocaleEntry = {
   missing: [],
   extra: [],
   icuValid: true,
+  icuArmsMatch: true,
+  icuArmDetails: [],
   markupMatches: true,
   markupDetails: [],
 };
@@ -25,6 +27,8 @@ const MISMATCHED: KeyIntegrityLocaleEntry = {
   missing: ["{{name}}"],
   extra: ["{{nom}}"],
   icuValid: true,
+  icuArmsMatch: true,
+  icuArmDetails: [],
   markupMatches: true,
   markupDetails: [],
 };

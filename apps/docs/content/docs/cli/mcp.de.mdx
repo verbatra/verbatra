@@ -90,7 +90,7 @@ Der Text ist für jedes Projekt und jeden Start des Servers derselbe, er enthäl
 | `glossary.get` | jeder Glossar-Begriff mit seinen Übersetzungen pro Locale, verbotenen Wiedergaben und Kontext, die unübersetzten Begriffe und optional, woran eine Locale gebunden ist, mit geschwärzten Secrets | ja | nein |
 | `glossary.write` | einen Glossar-Begriff ändern: eine Übersetzung, Daten pro Locale, Kontext oder ob er unübersetzt bleibt | nein | nein |
 | `lock.state` | Version der Lock-Datei und, pro Ziel-Locale, die Anzahl verzeichneter Keys sowie die Zahlen für fehlend, veraltet und aktuell | ja | nein |
-| `key.integrity` | Platzhalter-, Inline-Markup- und ICU-Drift eines Keys gegenüber der Lock-Baseline, pro Locale (prüft nur Keys, deren Quelltext sich seit der Baseline geändert hat; ein leeres `entries`-Array bedeutet: geprüft und unverändert) | ja | nein |
+| `key.integrity` | Platzhalter-, Inline-Markup-, ICU-Syntax- und ICU-Zweig-Drift eines Keys gegenüber der Lock-Baseline, pro Locale (prüft nur Keys, deren Quelltext sich seit der Baseline geändert hat; ein leeres `entries`-Array bedeutet: geprüft und unverändert) | ja | nein |
 | `key.value` | aktueller Quell- und Zieltext eines Keys | ja | nein |
 | `translation.editEntry` | eine manuelle Übersetzung für einen Key in einer Locale schreiben, abgesichert durch das Integritäts-Gate für Platzhalter, Inline-Markup und ICU | nein | nein |
 | `translation.estimate` | was `translation.translatePending` senden und kosten würde, dasselbe Ergebnis wie `translate --estimate --json`, optional für eine Teilmenge der `locales` | ja | nein |
@@ -131,6 +131,10 @@ Die Inline-Markup-Prüfungen in `key.integrity` (`markupMatches`, `markupDetails
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `key.value` liefert außerdem `provenance`, sobald `target` vorhanden ist: `origin`, `provider` und `model` bei Maschinenübersetzung, `reviewState` und `reviewer`, falls einer festgehalten wurde. Jede Locale von `lock.state` und `status.check` trägt `provenance`-Zähler (`byOrigin`, `byReviewState`), und jede Locale von `status.diff` trägt `changedOrigins`, die Herkunft des aktuellen Werts jedes geänderten Keys. Alle fehlen, wenn `verbatra.provenance.json` beschädigt ist oder von einem neueren verbatra stammt; was jede Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Jeder Eintrag von `key.integrity` trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`, `selectordinal` und `select` des Werts zur Zielsprache passen, beurteilt nach derselben Regel, nach der `translation.editEntry` einen Wert mit dem Grund `icu` ablehnt, und ein kurzes Problem pro fehlendem oder überzähligem Zweig.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
