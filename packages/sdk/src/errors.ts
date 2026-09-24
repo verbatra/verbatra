@@ -43,8 +43,8 @@
  * - `KEY_PINNED`: the key matches the config's `pinnedKeys`, so a machine write was refused. Thrown
  *   by {@link retranslateEntry}, and by {@link editEntry} for an `agent` actor.
  * - `PROVIDER_CONSTRUCTION_FAILED`: the provider factory threw. Wraps the provider's own error,
- *   including a missing `*_API_KEY` environment variable. Thrown by a non-dry-run
- *   {@link translate} and by {@link retranslateEntry}.
+ *   including a missing `*_API_KEY` environment variable, as the `cause`, with its message redacted
+ *   into this one. Thrown by a non-dry-run {@link translate} and by {@link retranslateEntry}.
  * - `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`, so machine
  *   translation is disabled by policy and a provider-spending action was refused before any
  *   provider was constructed or any API key read. Thrown by {@link retranslateEntry} and by
@@ -63,9 +63,9 @@
  *   {@link importWorkbook} and {@link importTmx} additionally throw it when the handoff or TMX file
  *   itself is missing.
  * - `SOURCE_INVALID`: the source locale file, or an interchange file, could not be parsed. Wraps
- *   the adapter or reader error. {@link pseudolocalize} also throws it when, for a format whose
- *   writer only patches an existing document, the source file could not be copied to seed the
- *   output.
+ *   the adapter or reader error as the `cause`. A file refused for exceeding its size limit carries
+ *   no `cause`, and neither does the case where {@link pseudolocalize}, for a format whose writer
+ *   only patches an existing document, could not copy the source file to seed the output.
  * - `LOCK_FILE_INVALID`: the lock-file exists but is corrupt, oversized, or at an unsupported
  *   version. Thrown wherever the lock-file is read or updated: {@link translate}, {@link check},
  *   {@link diff}, {@link keyIntegrity}, {@link lockState}, {@link loadLockFile},
@@ -271,7 +271,10 @@ export class SdkError extends Error {
    * @param message - A human-readable description of the failure. Never contains a secret.
    * @param options - `cause` carries the error this one wraps, such as the interchange reader's
    * error for a `SOURCE_INVALID` TMX file. Read that file's line, column and unit with
-   * `tmxErrorLocation` rather than from the cause directly.
+   * `tmxErrorLocation` rather than from the cause directly. Only `SOURCE_INVALID`,
+   * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE` and `REVIEW_RESTORE_FAILED` carry one;
+   * `CONFIG_NOT_FOUND` and `CONFIG_INVALID` never do, because a config parser's error can quote
+   * the file's content.
    */
   constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown }) {
     super(message, options);

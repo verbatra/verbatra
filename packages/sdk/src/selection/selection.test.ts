@@ -104,11 +104,12 @@ describe("selectProvider", () => {
     expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
   });
 
-  it("wraps a construction failure as PROVIDER_CONSTRUCTION_FAILED, secret-free", () => {
+  it("wraps a construction failure as PROVIDER_CONSTRUCTION_FAILED, keeping it as the cause", () => {
+    const thrown = new Error("missing key");
     const error = (() => {
       try {
         selectProvider({ id: "anthropic", options: { model: "m", maxTokens: 1 } }, () => {
-          throw new Error("missing key");
+          throw thrown;
         });
         return undefined;
       } catch (e) {
@@ -117,6 +118,43 @@ describe("selectProvider", () => {
     })();
     expect(error).toBeInstanceOf(SdkError);
     expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+    expect((error as SdkError).cause).toBe(thrown);
+  });
+
+  it("redacts a key shape the construction failure's message carries", () => {
+    const error = (() => {
+      try {
+        selectProvider({ id: "anthropic", options: { model: "m", maxTokens: 1 } }, () => {
+          throw new Error("rejected sk-ant-abcdEFGH12345678abcd");
+        });
+        return undefined;
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect((error as SdkError).message).not.toContain("abcdEFGH12345678");
+    expect((error as SdkError).message).toContain("[REDACTED]");
+  });
+
+  it("carries the real ProviderError of a missing API key as the cause", () => {
+    const saved = process.env.DEEPL_API_KEY;
+    delete process.env.DEEPL_API_KEY;
+    try {
+      const error = (() => {
+        try {
+          selectProvider({ id: "deepl", options: {} });
+          return undefined;
+        } catch (e) {
+          return e;
+        }
+      })();
+      expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+      expect((error as SdkError).cause).toMatchObject({ code: "MISSING_API_KEY" });
+    } finally {
+      if (saved !== undefined) {
+        process.env.DEEPL_API_KEY = saved;
+      }
+    }
   });
 });
 

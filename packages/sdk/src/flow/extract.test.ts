@@ -297,9 +297,10 @@ describe("extract failure modes", () => {
   it("reports an unparseable existing source catalog as SOURCE_INVALID", async () => {
     const cwd = await project({ "src/nav.ts": 't("nav.home");', "locales/en.json": "{ not json" });
 
-    await expect(extract({ config: config(), cwd })).rejects.toMatchObject({
-      code: "SOURCE_INVALID",
-    });
+    const failure = await extract({ config: config(), cwd }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).cause).toBeInstanceOf(Error);
   });
 });
 
