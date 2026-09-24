@@ -1,6 +1,7 @@
 import type { LocaleResource } from "@verbatra/core";
 import type { FormatAdapter, WriteContext } from "./adapter.js";
 import { AdapterError } from "./errors.js";
+import { ForeignThrowError } from "./shell.js";
 
 const ERRNO_CODE = /^E[A-Z0-9]+$/;
 
@@ -21,12 +22,14 @@ function detailOf(error: unknown): string {
 }
 
 function attribute(format: string, method: string, error: unknown): never {
-  if (error instanceof AdapterError || carriesErrnoCode(error)) {
-    throw error;
+  const original = error instanceof ForeignThrowError ? error.cause : error;
+  if (original instanceof AdapterError || carriesErrnoCode(original)) {
+    throw original;
   }
   throw new AdapterError(
     "ADAPTER_FAILED",
-    `The "${format}" adapter failed in ${method}(): ${detailOf(error)}.`,
+    `The "${format}" adapter failed in ${method}(): ${detailOf(original)}.`,
+    { cause: original },
   );
 }
 

@@ -343,4 +343,31 @@ describe("translate runs end to end through a third-party adapter", () => {
     expect(String((failure as Error).message)).toContain("custom:kv");
     expect(String((failure as Error).message)).toContain("read()");
   });
+  it("attributes a throw from the plugin's own parser to the plugin, keeping the cause chain", async () => {
+    const dir = await projectDir();
+    const stub = makeStubProvider();
+    const original = new TypeError("plugin parser defect");
+    const adapterRegistry = createDefaultRegistry().register(
+      createFlatFileAdapter({
+        format: "custom:kv",
+        extensions: [".kv"],
+        parseEntries: () => {
+          throw original;
+        },
+        serializeEntries: () => "",
+        extractPlaceholders: () => [],
+      }),
+    );
+
+    const failure = await translate(
+      { config: config(), cwd: dir },
+      { createProvider: () => stub.provider, adapterRegistry },
+    ).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).message).toContain('"custom:kv" adapter failed in read()');
+    const adapterFailure = (failure as Error).cause;
+    expect(adapterFailure).toMatchObject({ name: "AdapterError", code: "ADAPTER_FAILED" });
+    expect((adapterFailure as Error).cause).toBe(original);
+  });
 });

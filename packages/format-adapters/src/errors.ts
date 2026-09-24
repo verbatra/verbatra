@@ -50,9 +50,11 @@ export class AdapterError extends Error {
   /**
    * @param code - The stable code for this failure.
    * @param message - A human-readable description. Never include a secret or a file's contents.
+   * @param options - `cause` carries the error this one wraps. An `ADAPTER_FAILED` error raised for
+   * a `custom:` adapter carries the adapter's original throw here.
    */
-  constructor(code: AdapterErrorCode, message: string) {
-    super(message);
+  constructor(code: AdapterErrorCode, message: string, options?: { readonly cause?: unknown }) {
+    super(message, options);
     this.name = "AdapterError";
     this.code = code;
   }
