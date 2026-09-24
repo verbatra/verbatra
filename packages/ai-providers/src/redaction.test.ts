@@ -30,11 +30,37 @@ describe("redactKeys: key shapes", () => {
     expect(out).toContain("[REDACTED]");
   });
 
-  it("removes DeepL UUID key tokens", () => {
+  it.each([
+    [
+      "an Authorization header",
+      "Authorization: DeepL-Auth-Key {key}",
+      "Authorization: DeepL-Auth-Key [REDACTED]",
+    ],
+    [
+      "a form parameter",
+      "POST /v2/translate auth_key={key}&text=hi",
+      "POST /v2/translate auth_key=[REDACTED]&text=hi",
+    ],
+    ["an env assignment", "DEEPL_API_KEY={key}", "DEEPL_API_KEY=[REDACTED]"],
+    ["a quoted JSON field", '{"auth_key": "{key}"}', '{"auth_key": "[REDACTED]"}'],
+    ["a YAML-style field", "deepl_api_key: {key}", "deepl_api_key: [REDACTED]"],
+  ])("removes a DeepL Pro key (a bare UUID) that sits in %s", (_where, template, expected) => {
     const key = "12345678-1234-1234-1234-123456789012";
-    const out = redactKeys(`auth ${key} end`);
-    expect(out).not.toContain(key);
-    expect(out).toContain("[REDACTED]");
+    expect(redactKeys(template.replace("{key}", key))).toBe(expected);
+  });
+
+  it("removes a free key with its :fx suffix in a key context, leaving no suffix behind", () => {
+    const key = "abcdef12-3456-7890-abcd-ef1234567890:fx";
+    expect(redactKeys(`DeepL-Auth-Key ${key}`)).toBe("DeepL-Auth-Key [REDACTED]");
+  });
+
+  it.each([
+    "/tmp/3f2a1c9e-8b7d-4e6f-9a0b-1c2d3e4f5a6b/locales/de.json",
+    "request 123e4567-e89b-12d3-a456-426614174000 failed",
+    "auth 12345678-1234-1234-1234-123456789012 end",
+    "C:\\work\\3F2A1C9E-8B7D-4E6F-9A0B-1C2D3E4F5A6B\\de.json",
+  ])("leaves an unrelated bare UUID alone: %s", (text) => {
+    expect(redactKeys(text)).toBe(text);
   });
 
   it("removes DeepL UUID key tokens with the :fx free-tier suffix", () => {

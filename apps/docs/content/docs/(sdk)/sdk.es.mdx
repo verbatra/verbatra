@@ -985,7 +985,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. `parseEntries` recibe además el locale con el que se lee el archivo, para un formato cuyo único archivo contiene a la vez el texto de origen y el de destino. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir.
+Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. `parseEntries` recibe además el locale con el que se lee el archivo, para un formato cuyo único archivo contiene a la vez el texto de origen y el de destino, y `serializeEntries` recibe el contexto de escritura de quien llama, cuyo `sourcePath` opcional nombra el archivo del locale de origen. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir.
 
 ### createTreeFileAdapter
 
@@ -1019,6 +1019,12 @@ cuando `loadConfig` carga una config que la nombra o cuando se construye ese pro
 momento su valor se elimina igual que el de las variables integradas. Las declaraciones nunca se
 retiran. Un valor de menos de ocho caracteres no se elimina por su valor, así que una variable corta
 nunca puede borrar texto ajeno.
+
+Una clave de DeepL se reconoce solo por su forma únicamente cuando lleva el sufijo `:fx` de una
+clave gratuita, o cuando un UUID suelto está en un contexto de clave: tras `DeepL-Auth-Key`, como
+parámetro `auth_key` o asignado a `DEEPL_API_KEY`. Cualquier otro UUID, como uno en una ruta de
+archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY` se sigue
+eliminando por su valor dondequiera que aparezca.
 
 ### declareProviderKeyEnvVar
 

@@ -1012,7 +1012,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. `parseEntries` bekommt außerdem die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
+Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. `parseEntries` bekommt außerdem die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält, und `serializeEntries` bekommt den Schreibkontext des Aufrufers, dessen optionales `sourcePath` die Datei der Quell-Locale nennt. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen.
 
 ### createTreeFileAdapter
 
@@ -1046,6 +1046,12 @@ Sie wird deklariert, wenn `loadConfig` eine Config lädt, die sie nennt, oder we
 gebaut wird, und ab dann wird ihr Wert genauso geschwärzt wie der der eingebauten Variablen.
 Deklarationen werden nie entfernt. Ein Wert mit weniger als acht Zeichen wird nicht über seinen
 Wert geschwärzt, sodass eine kurze Variable niemals fremden Text löschen kann.
+
+Einen DeepL-Key erkennt es allein an seiner Form nur, wenn er das `:fx`-Suffix eines Free-Keys
+trägt oder eine nackte UUID in einem Key-Kontext steht: nach `DeepL-Auth-Key`, als
+`auth_key`-Parameter oder als Wert von `DEEPL_API_KEY`. Jede andere UUID, etwa in einem Dateipfad
+oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird weiterhin überall über
+seinen Wert geschwärzt.
 
 ### declareProviderKeyEnvVar
 

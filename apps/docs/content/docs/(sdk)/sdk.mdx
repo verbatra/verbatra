@@ -930,7 +930,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Builds a `FormatAdapter` for a flat key/value format, one where every entry is addressed by a single key with no nesting. You supply the format's own `parseEntries`, `serializeEntries` and `extractPlaceholders`; the factory supplies the size-bounded read, the atomic write, extension detection and the structured error handling. `parseEntries` also receives the locale the file is read as, for a format whose one file holds both source and target text. Give it a `sniff` whenever your extension is a generic one, or your adapter claims every file that shares it and detection reports an ambiguity instead of choosing.
+Builds a `FormatAdapter` for a flat key/value format, one where every entry is addressed by a single key with no nesting. You supply the format's own `parseEntries`, `serializeEntries` and `extractPlaceholders`; the factory supplies the size-bounded read, the atomic write, extension detection and the structured error handling. `parseEntries` also receives the locale the file is read as, for a format whose one file holds both source and target text, and `serializeEntries` receives the caller's write context, whose optional `sourcePath` names the source-locale file. Give it a `sniff` whenever your extension is a generic one, or your adapter claims every file that shares it and detection reports an ambiguity instead of choosing.
 
 ### createTreeFileAdapter
 
@@ -963,6 +963,11 @@ declared when `loadConfig` loads a config naming it or when that provider is bui
 its value is scrubbed exactly like the built-in ones. Declarations are never removed. A value
 shorter than eight characters is not scrubbed by value, so a short variable can never wipe
 unrelated text.
+
+A DeepL key is recognized by its shape alone only when it carries the `:fx` suffix of a free key,
+or when a bare UUID sits in a key context: after `DeepL-Auth-Key`, as an `auth_key` parameter, or
+assigned to `DEEPL_API_KEY`. Any other UUID, such as one in a file path or a request id, stays
+readable. A Pro key held in `DEEPL_API_KEY` is still scrubbed wherever it appears, by its value.
 
 ### declareProviderKeyEnvVar
 

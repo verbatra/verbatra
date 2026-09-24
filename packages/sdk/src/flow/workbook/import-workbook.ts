@@ -413,6 +413,7 @@ async function runSheet(
       },
       path,
       ctx.cwd,
+      { sourcePath: ctx.resolver.pathFor(ctx.config.sourceLocale) },
     );
     written = await readTargetResource({
       resolver: ctx.resolver,

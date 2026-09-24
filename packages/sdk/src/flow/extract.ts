@@ -135,7 +135,7 @@ async function writeResource(
   adapter: FormatAdapter,
 ): Promise<void> {
   try {
-    await adapter.write(resource, sourcePath);
+    await adapter.write(resource, sourcePath, { sourcePath });
   } catch (error) {
     throw new SdkError(
       "SOURCE_UNWRITABLE",

@@ -258,12 +258,13 @@ export async function retranslateEntry(
 
     const merged = new Map(target.entries);
     merged.set(input.key, { ...sourceEntry, value, namespace: target.namespace });
-    const path = createLocalePathResolver(cwd, config).pathFor(locale);
+    const resolver = createLocalePathResolver(cwd, config);
     await writeTargetResource(
       adapter,
       { locale, namespace: target.namespace, format: config.format, entries: merged },
-      path,
+      resolver.pathFor(locale),
       cwd,
+      { sourcePath: resolver.pathFor(config.sourceLocale) },
     );
 
     await updateLockFileLocale(

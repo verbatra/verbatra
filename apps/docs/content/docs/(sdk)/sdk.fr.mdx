@@ -651,7 +651,7 @@ const summary = await translate({ config }, { adapterRegistry });
 
 ### createFlatFileAdapter
 
-Construit un `FormatAdapter` pour un format plat clé/valeur, où chaque entrée est adressée par une seule clé sans imbrication. Tu fournis les `parseEntries`, `serializeEntries` et `extractPlaceholders` propres à ton format ; la fabrique fournit la lecture bornée en taille, l'écriture atomique, la détection par extension et la gestion structurée des erreurs. `parseEntries` reçoit aussi la locale sous laquelle le fichier est lu, pour un format dont l'unique fichier contient à la fois le texte source et le texte cible. Donne-lui un `sniff` dès que ton extension est générique, sinon ton adaptateur revendique tous les fichiers qui la partagent et la détection signale une ambiguïté au lieu de choisir.
+Construit un `FormatAdapter` pour un format plat clé/valeur, où chaque entrée est adressée par une seule clé sans imbrication. Tu fournis les `parseEntries`, `serializeEntries` et `extractPlaceholders` propres à ton format ; la fabrique fournit la lecture bornée en taille, l'écriture atomique, la détection par extension et la gestion structurée des erreurs. `parseEntries` reçoit aussi la locale sous laquelle le fichier est lu, pour un format dont l'unique fichier contient à la fois le texte source et le texte cible, et `serializeEntries` reçoit le contexte d'écriture de l'appelant, dont le `sourcePath` optionnel nomme le fichier de la locale source. Donne-lui un `sniff` dès que ton extension est générique, sinon ton adaptateur revendique tous les fichiers qui la partagent et la détection signale une ambiguïté au lieu de choisir.
 
 ### createTreeFileAdapter
 
@@ -685,6 +685,12 @@ déclarée quand `loadConfig` charge une config qui la nomme ou quand ce fournis
 dès lors sa valeur est retirée exactement comme celle des variables intégrées. Les déclarations ne
 sont jamais supprimées. Une valeur de moins de huit caractères n'est pas retirée par sa valeur, afin
 qu'une variable courte ne puisse jamais effacer du texte sans rapport.
+
+Une clé DeepL n'est reconnue à sa seule forme que lorsqu'elle porte le suffixe `:fx` d'une clé
+gratuite, ou quand un UUID nu se trouve dans un contexte de clé : après `DeepL-Auth-Key`, comme
+paramètre `auth_key` ou affecté à `DEEPL_API_KEY`. Tout autre UUID, par exemple dans un chemin de
+fichier ou un identifiant de requête, reste lisible. Une clé Pro placée dans `DEEPL_API_KEY` est
+toujours retirée par sa valeur, où qu'elle apparaisse.
 
 ### declareProviderKeyEnvVar
 
