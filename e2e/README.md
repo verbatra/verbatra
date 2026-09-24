@@ -54,12 +54,13 @@ deterministic test joins the required gate automatically.
   (`tests/interrupt-releases-locks.e2e.test.ts`: a `translate` run held mid-request by a loopback
   endpoint the test serves, which never answers, exits 130 on SIGINT and 143 on SIGTERM and leaves
   no `*.lock` file behind), and the MCP server's disconnect path (`tests/mcp.e2e.test.ts`: both
-  `verbatra mcp` and `verbatra-mcp` answer `initialize` over stdio and exit 0 without an
-  unsettled top-level await warning once the client closes stdin, and `verbatra mcp --allow-spend`
-  exits 0 and leaves no `*.lock` file behind when stdin closes while a
-  `translation.translatePending` call is held mid-request by the same kind of never-answering
-  loopback endpoint). It makes no provider call and no network request beyond those loopback
-  endpoints, so it is deterministic and free.
+  `verbatra mcp` and `verbatra-mcp` answer `initialize` over stdio and exit 0 without an unsettled
+  top-level await warning once the client closes stdin, and `verbatra mcp --allow-spend` exits 0 and leaves no `*.lock` file behind when stdin
+  closes while a `translation.translatePending` call is held mid-request by the same kind of
+  never-answering loopback endpoint, spending nothing). It calls no hosted provider and makes no
+  network request outside 127.0.0.1: only the interrupt test and the `--allow-spend` MCP test point
+  an `openai-compatible` provider at a never-answering loopback endpoint the test serves, so the
+  tier is deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in
   `.github/workflows/ci.yml`, feeds the `Build and test gate` job, and `release.yml` publishes only

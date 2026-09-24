@@ -44,9 +44,12 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   across formats, `translate --dry-run`, export-then-import round-trips, the keyless flag surface,
   structured exit-2 boundary errors, and the full `watch` lifecycle including SIGINT handling
   (`e2e/tests/watch-lifecycle.e2e.test.ts` keeps this keyless by giving the run nothing to
-  translate). Makes no provider call, no network request. **This is the required release gate**:
-  it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes when the
-  CI workflow's conclusion is success.
+  translate). Calls no hosted provider and makes no network request outside 127.0.0.1: two tests
+  (`e2e/tests/interrupt-releases-locks.e2e.test.ts` and the held-lock test in
+  `e2e/tests/mcp.e2e.test.ts`) point an `openai-compatible` provider at a never-answering loopback
+  endpoint (the MCP one through `--allow-spend`, spending nothing). **This is the required release
+  gate**: it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes
+  when the CI workflow's conclusion is success.
 - **Live tier**: `tests/translate.live.e2e.test.ts` and `tests/watch.live.e2e.test.ts`, run with
   `npm test` (which runs both tiers). Drives real `translate`/`watch` against a live provider
   (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var). Runs nightly,

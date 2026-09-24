@@ -65,8 +65,11 @@ behavior) and hand it back rather than patching the source yourself.
    into a throwaway project, and drives the real `verbatra` binary, including CLI-level
    Studio coverage in `e2e/tests/studio.e2e.test.ts` (the `studio` command's own
    surface, not a browser). Two tiers, split by filename: the no-key tier (`npm run
-   test:nokey`, everything except `tests/*.live.e2e.test.ts`) makes no provider call,
-   is deterministic, and is the tier CI's `e2e` job runs, gating every release. The
+   test:nokey`, everything except `tests/*.live.e2e.test.ts`) calls no hosted provider
+   and makes no network request outside 127.0.0.1 (two tests, the interrupt and the
+   MCP held-lock test, point an `openai-compatible` provider at a never-answering
+   loopback endpoint, the MCP one through `--allow-spend`, spending nothing), is
+   deterministic, and is the tier CI's `e2e` job runs, gating every release. The
    live tier (`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`, run
    via `npm test`) hits a real provider (`E2E_PROVIDER`, default `gemini`), needs the
    matching API key, skips otherwise, and is advisory only
