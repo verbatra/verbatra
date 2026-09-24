@@ -1,13 +1,8 @@
+import type { McpStopCause } from "@verbatra/mcp";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
-import {
-  MCP_TERMINAL_HINT,
-  mcpReadyLine,
-  mcpStoppedLine,
-  projectLabel,
-} from "./session-banners.js";
 import {
   failedSession,
   isModuleMissing,
@@ -15,13 +10,14 @@ import {
   step,
   watchForStop,
 } from "./session-command-support.js";
+import type { StopCause } from "./stoppable-session.js";
 import {
   DEFAULT_TERMINAL_SETTINGS,
   resolveTerminalMode,
   type TerminalSettings,
 } from "./terminal-mode.js";
-import type { CliDeps, Session, Streams } from "./types.js";
-import { createUi } from "./ui.js";
+import type { CliDeps, McpModule, Session, Streams } from "./types.js";
+import { createUi, type Ui } from "./ui.js";
 
 const NOT_INSTALLED_HINT =
   "Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp";
@@ -37,6 +33,36 @@ const mcpOptsSchema = z.object({
 type McpOpts = z.infer<typeof mcpOptsSchema>;
 
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_MCP_ALLOW_SPEND";
+
+const CLI_LAUNCH_ARGS = ["verbatra", "mcp"] as const;
+
+const FALLBACK_READY_LINE = "verbatra MCP server running on stdio";
+
+const MCP_STOP_CAUSES = {
+  ended: "stdin-closed",
+  requested: "signal",
+} as const satisfies Record<StopCause, McpStopCause>;
+
+function announceReady(ui: Ui, mcpModule: McpModule, cwd: string, allowSpend: boolean): void {
+  const { projectLabel, mcpReadyLine, mcpTerminalHint } = mcpModule;
+  if (projectLabel === undefined || mcpReadyLine === undefined) {
+    ui.line(FALLBACK_READY_LINE);
+    return;
+  }
+  ui.line(mcpReadyLine(projectLabel(cwd, process.cwd()), allowSpend));
+  if (ui.terminal.stdinIsTty && mcpTerminalHint !== undefined) {
+    for (const line of mcpTerminalHint(CLI_LAUNCH_ARGS)) {
+      ui.line(line);
+    }
+  }
+}
+
+function stoppedReporter(ui: Ui, mcpModule: McpModule): ((cause: StopCause) => void) | undefined {
+  const { mcpStoppedLine } = mcpModule;
+  return mcpStoppedLine === undefined
+    ? undefined
+    : (cause) => ui.line(mcpStoppedLine(MCP_STOP_CAUSES[cause]));
+}
 
 function parseMcpOpts(rawOpts: unknown): McpOpts {
   const result = mcpOptsSchema.safeParse(rawOpts);
@@ -101,11 +127,6 @@ export async function runMcp(
     return failedSession(2);
   }
 
-  ui.line(mcpReadyLine(projectLabel(cwd, process.cwd()), allowSpend));
-  if (ui.terminal.stdinIsTty) {
-    for (const line of MCP_TERMINAL_HINT) {
-      ui.line(line);
-    }
-  }
-  return watchForStop(server, streams, (cause) => ui.line(mcpStoppedLine(cause)));
+  announceReady(ui, mcpModule, cwd, allowSpend);
+  return watchForStop(server, streams, stoppedReporter(ui, mcpModule));
 }

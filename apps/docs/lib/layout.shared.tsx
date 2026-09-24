@@ -10,8 +10,9 @@ import { MailIcon } from "@/components/landing/mail-icon";
 import { LocaleAwareLanguageSelect } from "@/components/language-select";
 import { i18n, type Locale, localizedPath } from "@/lib/i18n";
 import { LOCALE_DISPLAY_NAMES } from "@/lib/language-select-copy";
+import { UI_TRANSLATIONS } from "@/lib/ui-translations";
 
-export const translations = i18n.translations().extend(uiTranslations());
+export const translations = i18n.translations().extend(uiTranslations()).add(UI_TRANSLATIONS);
 
 const localeNames = i18n.languages.map((locale) => ({
   locale,

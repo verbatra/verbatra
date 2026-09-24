@@ -9,7 +9,7 @@
       "definition": "verbatra ist eine CLI und ein SDK, die deine i18n-Locale-Dateien synchron halten und über den Provider deiner Wahl (KI oder maschinelle Übersetzung) nur die Keys übersetzen, die sich geändert haben."
     },
     "hero": {
-      "headline": "Übersetze nur, was sich geändert hat.",
+      "headline": "Übersetze nur, was sich ändert.",
       "lead": "verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, schickt nur die neuen und geänderten Keys an den Provider deiner Wahl und lässt jeden anderen Key unberührt.",
       "ctaGithub": "Star auf GitHub",
       "ctaStart": "Loslegen",
@@ -40,7 +40,7 @@
       "pnpmNote": "pnpm installiert korrekt, beendet sich aber mit Exit-Code 1 und ERR_PNPM_IGNORED_BUILDS, weil es die Install-Skripte einer Abhängigkeit blockiert. Führ einmal pnpm approve-builds aus, oder lies die Seite",
       "pnpmNoteLink": "Fehlerbehebung",
       "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
-      "aiTabLabel": "KI",
+      "aiSwitch": "KI-Prompt",
       "aiCaption": "Dies ist eine gekürzte Vorschau. Den vollständigen Prompt und die Einrichtung Schritt für Schritt findest du in",
       "aiCaptionLink": "der Einrichtungsanleitung",
       "copyCommand": "{command} kopieren"
@@ -113,11 +113,11 @@
       }
     },
     "finalClose": {
-      "heading": "Schluss mit dem manuellen Synchronisieren von Locale-Dateien.",
+      "heading": "Schluss mit dem manuellen Synchronisieren von Locale‑Dateien.",
       "docs": "Zur Dokumentation"
     },
     "footer": {
-      "tagline": "Übersetze nur, was sich geändert hat. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
+      "tagline": "Übersetze nur, was sich ändert. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
       "cols": {
         "product": {
           "title": "Produkt",
@@ -248,10 +248,6 @@
             "review": {
               "title": "Freigeben oder ablehnen, was ein Lauf markiert hat",
               "body": "Entscheidungen werden neben der Lock-Datei gespeichert, damit die Review-Warteschlange nur zeigt, was sich noch niemand angesehen hat."
-            },
-            "glossary": {
-              "title": "Ein Glossar mit einer Übersetzung pro Locale",
-              "body": "Begriffe pro Locale, verbotene Wiedergaben und Namen, die nicht übersetzt werden, geprüft gegen jedes Ergebnis."
             }
           }
         },
@@ -278,6 +274,10 @@
             "policy": {
               "title": "Eine Netzwerkrichtlinie, die verbatra durchsetzt",
               "body": "Nur lokal oder per Allowlist: Ein Host, den du nicht erlaubt hast, wird abgelehnt, bevor eine Anfrage den Rechner verlässt."
+            },
+            "preview": {
+              "title": "Erst sehen, was ein Lauf senden würde",
+              "body": "Ein Dry Run braucht keinen API-Key und schreibt nichts: Er zeigt genau, welche Keys ein echter Lauf senden würde."
             },
             "private": {
               "title": "Keine Telemetrie, lokale Modelle willkommen",
@@ -489,7 +489,7 @@
     },
     "availableFrom": {
       "title": "Verfügbar ab {version}",
-      "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit verbatra --version und aktualisiere, falls sie älter ist.",
+      "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit <code>verbatra --version</code> und aktualisiere, falls sie älter ist.",
       "packageTitle": "Verfügbar ab {version}",
       "packageText": "Dafür brauchst du {version} oder neuer. Frühere Releases haben es nicht: Aktualisiere das Paket, falls deines älter ist."
     },

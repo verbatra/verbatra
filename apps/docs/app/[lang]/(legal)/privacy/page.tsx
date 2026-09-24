@@ -96,7 +96,7 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   );
 
   return (
-    <main className="container mx-auto max-w-3xl px-6 py-16 prose">
+    <article className="container mx-auto max-w-3xl px-6 py-16 prose">
       <h1>{t("title")}</h1>
       {lastUpdated}
 
@@ -128,6 +128,6 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
       )}
 
       {lastUpdated}
-    </main>
+    </article>
   );
 }

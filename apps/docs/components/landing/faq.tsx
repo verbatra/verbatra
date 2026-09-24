@@ -69,7 +69,7 @@ function FaqRow({
           aria-expanded={isOpen}
           aria-controls={panelId}
           onClick={onToggle}
-          className={`flex w-full items-center justify-between gap-4 py-5 text-left text-[17px] font-semibold transition-colors hover:text-[color:var(--accent)] ${
+          className={`flex w-full items-center justify-between gap-4 py-5 text-left text-(length:--text-h4) font-semibold transition-colors hover:text-[color:var(--accent)] ${
             isOpen ? "text-[color:var(--accent)]" : "text-fd-foreground"
           }`}
           style={{ fontFamily: "var(--font-display)" }}
@@ -95,7 +95,7 @@ function FaqRow({
         animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
         transition={reduced ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT }}
       >
-        <p className="max-w-[68ch] pb-5 text-[15px] leading-relaxed text-fd-muted-foreground">
+        <p className="max-w-[68ch] pb-5 text-base leading-relaxed text-fd-muted-foreground">
           {t.rich(`items.${item.id}.answer`, answerTags(locale))}
         </p>
       </motion.section>

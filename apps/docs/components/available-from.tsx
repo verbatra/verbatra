@@ -1,7 +1,7 @@
 import { Callout } from "fumadocs-ui/components/callout";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { CALLOUT_CLASS } from "@/components/mdx";
+import { CALLOUT_CLASS, SHORT_CODE_CLASS } from "@/components/mdx";
 import type { Locale } from "@/lib/i18n";
 
 export type AvailableFromProps = {
@@ -18,7 +18,10 @@ export async function AvailableFrom({
   if (pkg === undefined) {
     return (
       <Callout type="info" className={CALLOUT_CLASS} title={t("title", { version })}>
-        {t("text", { version })}
+        {t.rich("text", {
+          version,
+          code: (chunks) => <code className={SHORT_CODE_CLASS}>{chunks}</code>,
+        })}
       </Callout>
     );
   }

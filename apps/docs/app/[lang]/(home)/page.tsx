@@ -4,7 +4,6 @@ import { JsonLd } from "@/components/json-ld";
 import { Control } from "@/components/landing/control";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
-import { FullFooter } from "@/components/landing/footer";
 import { Gains } from "@/components/landing/gains";
 import { Loop } from "@/components/landing/loop";
 import { Marquee } from "@/components/landing/marquee";
@@ -73,7 +72,6 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <Gains />
       <Faq items={faqItems} />
       <FinalCta />
-      <FullFooter />
     </div>
   );
 }

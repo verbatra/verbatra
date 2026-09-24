@@ -16,10 +16,20 @@ export const GATE_TARGET_LINES: ReadonlyArray<GateLine> = [
 
 export const GATE_LOCK_FILE = "verbatra.lock.json";
 
+export const GATE_SOURCE_VALUES = {
+  "inbox.title": "Inbox",
+  "inbox.count": "{count} new messages",
+} as const;
+
+export const GATE_LOCK_HASHES: Readonly<Record<keyof typeof GATE_SOURCE_VALUES, string>> = {
+  "inbox.title": "2c98ff5147e47a0c",
+  "inbox.count": "9e4869d76e202a7a",
+};
+
 export const GATE_LOCK_LINES: ReadonlyArray<string> = [
   '{ "de": {',
-  '    "inbox.title": "a1b2c3d4e5f6a7b8",',
-  '    "inbox.count": "9f8e7d6c5b4a3210"',
+  `    "inbox.title": "${GATE_LOCK_HASHES["inbox.title"]}",`,
+  `    "inbox.count": "${GATE_LOCK_HASHES["inbox.count"]}"`,
   "} }",
 ];
 

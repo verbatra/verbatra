@@ -18,7 +18,6 @@ import {
   type QaSeverity,
   type RunSummary,
   resolveDryRun,
-  type SdkErrorCode,
   type TranslateInput,
   type VerbatraConfig,
 } from "@verbatra/sdk";
@@ -26,6 +25,7 @@ import { Command, CommanderError } from "commander";
 import { z } from "zod";
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { hasConfigFile } from "./config-presence.js";
 import { loadEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
 import { runInit } from "./init.js";
@@ -421,6 +421,28 @@ async function withLocaleOpts<T extends { readonly locales?: readonly string[] |
   return withParsedOpts(() => parseLocaleCommandOpts(schema, rawOpts), context, body);
 }
 
+const SHELL_SAFE_WORD = /^[\w@%+=:,./-]+$/;
+
+function shellQuote(value: string): string {
+  return SHELL_SAFE_WORD.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+interface LocationOpts {
+  readonly cwd?: string | undefined;
+  readonly config?: string | undefined;
+}
+
+function verbatraCommand(args: readonly string[], opts: LocationOpts): string {
+  const words = ["verbatra", ...args];
+  if (opts.cwd !== undefined) {
+    words.push("--cwd", opts.cwd);
+  }
+  if (opts.config !== undefined) {
+    words.push("--config", opts.config);
+  }
+  return words.map(shellQuote).join(" ");
+}
+
 function loadOptions(opts: SharedOpts, cwd: string): { cwd: string; configPath?: string } {
   return {
     cwd,
@@ -590,6 +612,7 @@ function usagePhrase(summary: RunSummary): string {
 
 function reportTranslateOutcome(
   context: CommandContext,
+  opts: LocationOpts,
   summary: RunSummary,
   exitCode: number,
   startedAt: number,
@@ -597,12 +620,12 @@ function reportTranslateOutcome(
   const elapsed = formatElapsed(Date.now() - startedAt);
   if (summary.dryRun) {
     context.ui.status("ok", `dry run done in ${elapsed}, nothing written`);
-    context.ui.hint("verbatra translate", "run it for real");
+    context.ui.hint(verbatraCommand(["translate"], opts), "run it for real");
     return;
   }
   if (exitCode === 0) {
     context.ui.status("ok", `done in ${elapsed}${usagePhrase(summary)}`);
-    context.ui.hint("verbatra check", "confirm every locale is in sync");
+    context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
     return;
   }
   context.ui.status("warn", `finished in ${elapsed}${usagePhrase(summary)}, see the summary above`);
@@ -661,7 +684,7 @@ export async function runTranslate(
           );
           renderNeedsHumanHint(config, summary, opts.includeHuman === true, context.ui);
           const exitCode = translateExitCode(config, summary);
-          reportTranslateOutcome(context, summary, exitCode, startedAt);
+          reportTranslateOutcome(context, opts, summary, exitCode, startedAt);
           return exitCode;
         },
         () => loadEnvFiles(cwd),
@@ -774,10 +797,15 @@ function exportInput(
   };
 }
 
-function hintImportOfExport(context: CommandContext, result: ExportWorkbookResult): void {
+function hintImportOfExport(
+  context: CommandContext,
+  opts: LocationOpts,
+  cwd: string,
+  result: ExportWorkbookResult,
+): void {
   if (result.locales.some((locale) => locale.rows > 0)) {
     context.ui.hint(
-      `verbatra import ${displayPath(result.path, process.cwd())}`,
+      verbatraCommand(["import", displayPath(result.path, cwd)], opts),
       "once your translators have filled it in",
     );
   }
@@ -815,7 +843,7 @@ async function runExport(
               ? `${renderSuccessEnvelope("export", result)}\n`
               : `${renderExportHuman(result, process.cwd())}\n`,
           );
-          hintImportOfExport(context, result);
+          hintImportOfExport(context, opts, cwd, result);
           return 0;
         },
       );
@@ -869,9 +897,12 @@ export async function runImport(
           );
           const exitCode = runExitCode(summary);
           if (summary.dryRun) {
-            context.ui.hint(`verbatra import ${workbook}`, "without --dry-run to write the files");
+            context.ui.hint(
+              verbatraCommand(["import", workbook], opts),
+              "without --dry-run to write the files",
+            );
           } else if (exitCode === 0) {
-            context.ui.hint("verbatra check", "confirm every locale is in sync");
+            context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
           }
           return exitCode;
         },
@@ -909,10 +940,13 @@ async function runTmxImport(
           : `${renderTmxImportHuman(result, process.cwd())}\n`,
       );
       if (result.dryRun) {
-        context.ui.hint(`verbatra tmx import ${source}`, "without --dry-run to store it");
+        context.ui.hint(
+          verbatraCommand(["tmx", "import", source], opts),
+          "without --dry-run to store it",
+        );
       } else {
         context.ui.hint(
-          "verbatra translate",
+          verbatraCommand(["translate"], opts),
           "reuses the imported memory before calling a provider",
         );
       }
@@ -1067,7 +1101,10 @@ async function runDiff(
             : `${renderDiffHuman(summary)}\n`,
         );
         if (summary.hasPendingChanges) {
-          context.ui.hint("verbatra translate", "send the pending keys to your provider");
+          context.ui.hint(
+            verbatraCommand(["translate"], opts),
+            "send the pending keys to your provider",
+          );
         }
         return summary.hasPendingChanges || hasConfirmedUnusedKeys(summary) ? 1 : 0;
       },
@@ -1159,7 +1196,9 @@ async function runTypes(
             loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
           ),
         async (loaded) => {
-          const result = await withTask(context, "generating the declarations", () =>
+          const label =
+            opts.check === true ? "checking the declarations" : "generating the declarations";
+          const result = await withTask(context, label, () =>
             deps.generateTypes(typesInput(loaded, cwd, opts)),
           );
           context.streams.out(
@@ -1733,9 +1772,12 @@ async function runExtract(
           );
           if (result.added.length > 0) {
             if (result.dryRun) {
-              context.ui.hint("verbatra extract", "without --dry-run to write the new keys");
+              context.ui.hint(
+                verbatraCommand(["extract"], opts),
+                "without --dry-run to write the new keys",
+              );
             } else {
-              context.ui.hint("verbatra translate", "translate the new keys");
+              context.ui.hint(verbatraCommand(["translate"], opts), "translate the new keys");
             }
           }
           return 0;
@@ -1827,17 +1869,11 @@ export async function run(
   return runRedacted(argv, deps, redactingStreams(streams), hooks, facts);
 }
 
-const CONFIG_NOT_FOUND_CODE: SdkErrorCode = "CONFIG_NOT_FOUND";
-
-async function suggestInitWithoutConfig(deps: CliDeps, streams: Streams): Promise<void> {
-  try {
-    await deps.loadConfigWithMeta({ cwd: process.cwd() });
-  } catch (error) {
-    if (toRenderableError(error).code === CONFIG_NOT_FOUND_CODE) {
-      streams.err(
-        "\nverbatra: no config found in this directory. Run verbatra init to set up this project.\n",
-      );
-    }
+function suggestInitWithoutConfig(streams: Streams): void {
+  if (!hasConfigFile(process.cwd())) {
+    streams.err(
+      "\nverbatra: no config found in this directory. Run verbatra init to set up this project.\n",
+    );
   }
 }
 
@@ -1866,7 +1902,7 @@ async function runRedacted(
         return 0;
       }
       if (argv.length === 0) {
-        await suggestInitWithoutConfig(deps, streams);
+        suggestInitWithoutConfig(streams);
       }
       return renderUsageFailureExit2(error, program, argv, streams);
     }

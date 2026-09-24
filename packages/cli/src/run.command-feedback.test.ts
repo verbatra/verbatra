@@ -251,7 +251,9 @@ describe("pseudo, types and extract: next steps", () => {
     const checked = await stderrOf(["types", "--check"], {
       generateTypes: async () => makeTypesResult({ check: true, written: false }),
     });
+    expect(checked.err).toMatch(/^verbatra: checking the declarations\.\.\. done/);
     expect(checked.err).not.toContain("next:");
+    expect(written.err).toMatch(/^verbatra: generating the declarations\.\.\. done/);
   });
 
   it("extract points at translate after writing keys, and at itself after a dry run", async () => {

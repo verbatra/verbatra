@@ -15,6 +15,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
 import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
+import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { ogAlternateLocales, ogLocale } from "@/lib/site";
@@ -140,7 +141,13 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       )}
       <DocsBody>
         <LocaleNotice page={page} slug={params.slug} lang={lang} />
-        <MDX components={getMDXComponents(lang)} />
+        <MDX
+          components={getMDXComponents(
+            lang,
+            undefined,
+            isHome ? undefined : footerNeighbourUrls(source.getPageTree(lang), page.url),
+          )}
+        />
         {editHref ? <EditOnGitHub href={editHref} /> : null}
       </DocsBody>
     </DocsPage>

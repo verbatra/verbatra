@@ -2,7 +2,13 @@ import { mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { MCP_DOCS_URL, projectLabel, readyLines, stoppedLine } from "./session-banner.js";
+import {
+  MCP_DOCS_URL,
+  mcpReadyLine,
+  mcpStoppedLine,
+  mcpTerminalHint,
+  projectLabel,
+} from "./session-banner.js";
 
 describe("projectLabel", () => {
   const base = resolve("/work/app");
@@ -31,28 +37,52 @@ describe("projectLabel", () => {
   });
 });
 
-describe("readyLines", () => {
-  it("is one ready line naming the project and spend state when a client launches the server", () => {
-    expect(readyLines("web", false, false)).toEqual([
+describe("mcpReadyLine", () => {
+  it("names the project and the spend state", () => {
+    expect(mcpReadyLine("web", false)).toBe(
       "verbatra MCP server running on stdio (project web, spend tools off)",
-    ]);
-  });
-
-  it("adds how to launch, inspect and stop the server when stdin is a terminal", () => {
-    const lines = readyLines(".", true, true);
-
-    expect(lines[0]).toBe("verbatra MCP server running on stdio (project ., spend tools on)");
-    const hint = lines.slice(1).join("\n");
-    expect(hint).toContain(MCP_DOCS_URL);
-    expect(hint).toContain("npx @modelcontextprotocol/inspector npx -y @verbatra/mcp");
-    expect(hint).toContain("Ctrl-C");
-    expect(lines.join("\n")).toMatch(/^[\x20-\x7e\n]+$/);
+    );
+    expect(mcpReadyLine(".", true)).toBe(
+      "verbatra MCP server running on stdio (project ., spend tools on)",
+    );
   });
 });
 
-describe("stoppedLine", () => {
+describe("mcpTerminalHint", () => {
+  it("shows how to launch, inspect and stop the standalone server", () => {
+    const hint = mcpTerminalHint(["-y", "@verbatra/mcp"]).join("\n");
+
+    expect(hint).toContain(MCP_DOCS_URL);
+    expect(hint).toContain('command "npx", args ["-y", "@verbatra/mcp"]');
+    expect(hint).toContain("npx @modelcontextprotocol/inspector npx -y @verbatra/mcp");
+    expect(hint).toContain("Ctrl-C");
+    expect(hint).toMatch(/^[\x20-\x7e\n]+$/);
+  });
+
+  it("uses the launch arguments it is given, such as the CLI subcommand", () => {
+    const hint = mcpTerminalHint(["verbatra", "mcp"]).join("\n");
+
+    expect(hint).toContain('command "npx", args ["verbatra", "mcp"]');
+    expect(hint).toContain("npx @modelcontextprotocol/inspector npx verbatra mcp");
+  });
+});
+
+describe("mcpStoppedLine", () => {
   it("names why the server stopped", () => {
-    expect(stoppedLine("stdin-closed")).toBe("verbatra MCP server stopped (client closed stdin)");
-    expect(stoppedLine("signal")).toBe("verbatra MCP server stopped (interrupted)");
+    expect(mcpStoppedLine("stdin-closed")).toBe(
+      "verbatra MCP server stopped (client closed stdin)",
+    );
+    expect(mcpStoppedLine("signal")).toBe("verbatra MCP server stopped (interrupted)");
+  });
+});
+
+describe("package exports", () => {
+  it("publishes the banner builders from the package root", async () => {
+    const root = await import("./index.js");
+
+    expect(root.mcpReadyLine).toBe(mcpReadyLine);
+    expect(root.mcpTerminalHint).toBe(mcpTerminalHint);
+    expect(root.mcpStoppedLine).toBe(mcpStoppedLine);
+    expect(root.projectLabel).toBe(projectLabel);
   });
 });

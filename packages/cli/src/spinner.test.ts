@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CLEAR_LINE,
+  createLineSettler,
   createSpinner,
   SPINNER_DELAY_MS,
   SPINNER_FRAMES,
@@ -131,5 +132,42 @@ describe("systemClock", () => {
     expect(fired.cancelled).toBe(0);
     expect(fired.interval).toBeGreaterThan(0);
     expect(fired.interval).toBe(afterClear);
+  });
+});
+
+describe("createLineSettler", () => {
+  it("clears a drawn spinner frame so an exit leaves no fragment behind", () => {
+    const out = recorder();
+    const settler = createLineSettler(out.write);
+
+    settler.write(`${CLEAR_LINE}| translating...`);
+    settler.settle();
+    settler.settle();
+
+    expect(out.text()).toBe(`${CLEAR_LINE}| translating...${CLEAR_LINE}`);
+  });
+
+  it("ends an open plain line with a newline instead of erasing it", () => {
+    const out = recorder();
+    const settler = createLineSettler(out.write);
+
+    settler.write("verbatra: exporting...");
+    settler.settle();
+
+    expect(out.text()).toBe("verbatra: exporting...\n");
+  });
+
+  it.each([
+    ["a finished line", "verbatra: done\n"],
+    ["a spinner that already cleared itself", CLEAR_LINE],
+  ])("writes nothing after %s", (_label, text) => {
+    const out = recorder();
+    const settler = createLineSettler(out.write);
+
+    settler.write(text);
+    settler.write("");
+    settler.settle();
+
+    expect(out.text()).toBe(text);
   });
 });
