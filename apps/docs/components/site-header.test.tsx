@@ -118,4 +118,11 @@ describe("SiteHeaderFrame", () => {
     expect(icon).not.toBeNull();
     expect(icon?.closest("nav")).toBeNull();
   });
+
+  it("keeps each text link on one line, since the squeezed nav wraps them at 1024px otherwise", () => {
+    const container = render();
+    for (const link of container.querySelectorAll("nav a.vk-header-link")) {
+      expect(link.classList.contains("whitespace-nowrap")).toBe(true);
+    }
+  });
 });
