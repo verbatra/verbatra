@@ -27,8 +27,10 @@ import { createLocalePathResolver, type LocalePathResolver } from "../locale-pat
 import {
   type LocaleWriteLockOptions,
   type LockWaitListener,
+  recordLockOptions,
   withLocaleWriteLock,
   writeLockKeyFor,
+  writeLockOptions,
 } from "../lock/locale-write-lock.js";
 import {
   baselineFor,
@@ -347,19 +349,6 @@ async function runDryLocale(
 ): Promise<LocaleSummary> {
   const params = await buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
   return (await runLocale(params)).summary;
-}
-
-function writeLockOptions(input: TranslateInput): LocaleWriteLockOptions {
-  return {
-    ...(input.onLockWait !== undefined ? { onWait: input.onLockWait } : {}),
-    ...(input.lockAcquireTimeoutMs !== undefined
-      ? { acquireTimeoutMs: input.lockAcquireTimeoutMs }
-      : {}),
-  };
-}
-
-function recordLockOptions(input: TranslateInput): LocaleWriteLockOptions {
-  return input.onLockWait !== undefined ? { onWait: input.onLockWait } : {};
 }
 
 async function runLiveLocale(
