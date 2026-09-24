@@ -58,3 +58,46 @@ describe("verbatra tmx import guards the cache it is about to write", () => {
     expect(await gitignoreOf(dir)).toBe("node_modules\n");
   });
 });
+
+describe("commands that top up .gitignore say so on stderr", () => {
+  it.each([
+    [["translate"]],
+    [["import", "wb.xlsx"]],
+    [["tmx", "import", "legacy.tmx"]],
+    [["pseudo"]],
+  ])("verbatra %j names the entries it added", async (args) => {
+    const dir = await projectWithGitignore(".env\n.env.local\n");
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    await run([...args, "--cwd", dir], deps, cap.streams);
+
+    expect(cap.err()).toContain(
+      "verbatra: updated .gitignore (added .verbatra-local/, verbatra.cache.json)\n",
+    );
+    expect(cap.out()).not.toContain(".gitignore");
+  });
+
+  it("stays quiet when nothing was added", async () => {
+    const dir = await projectWithGitignore(
+      ".env\n.env.local\n.verbatra-local/\nverbatra.cache.json\n",
+    );
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["translate", "--cwd", dir], deps, cap.streams);
+
+    expect(cap.err()).not.toContain(".gitignore");
+  });
+
+  it("keeps --json stderr free of the human line while still adding the entries", async () => {
+    const dir = await projectWithGitignore("node_modules\n");
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["translate", "--cwd", dir, "--json"], deps, cap.streams);
+
+    expect(await gitignoreOf(dir)).toContain("verbatra.cache.json");
+    expect(cap.err()).not.toContain(".gitignore");
+  });
+});

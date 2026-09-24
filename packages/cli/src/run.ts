@@ -15,6 +15,7 @@ import {
   type QaSeverity,
   type RunSummary,
   resolveDryRun,
+  type SdkErrorCode,
   type TranslateInput,
 } from "@verbatra/sdk";
 import { Command, CommanderError } from "commander";
@@ -317,6 +318,13 @@ function commandContext(command: string, rawOpts: unknown, streams: Streams): Co
   return { streams, command, json: parsed.success && parsed.data.json === true };
 }
 
+function topUpGitignore(cwd: string, context: CommandContext, dryRun?: boolean): void {
+  const added = appendMissingGitignoreEntries(cwd, dryRun);
+  if (added.length > 0 && !context.json) {
+    context.streams.err(`verbatra: updated .gitignore (added ${added.join(", ")})\n`);
+  }
+}
+
 function renderFailureExit2(error: unknown, context: CommandContext): number {
   const renderable = toRenderableError(error);
   context.streams.err(`${renderError(renderable)}\n`);
@@ -552,7 +560,7 @@ export async function runTranslate(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd, resolveDryRun(opts));
+      topUpGitignore(cwd, context, resolveDryRun(opts));
       return withWholeRunErrors(
         deps,
         context,
@@ -604,7 +612,7 @@ async function runWatchCommand(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd);
+      topUpGitignore(cwd, context);
       let config: Awaited<ReturnType<CliDeps["loadConfig"]>>;
       try {
         loadEnvFiles(cwd);
@@ -687,7 +695,7 @@ async function runExport(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
           streams.out(
             context.json
               ? `${renderSuccessEnvelope("export", result)}\n`
-              : `${renderExportHuman(result)}\n`,
+              : `${renderExportHuman(result, process.cwd())}\n`,
           );
           return 0;
         },
@@ -715,7 +723,7 @@ export async function runImport(
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd, opts.dryRun);
+      topUpGitignore(cwd, context, opts.dryRun);
       return withWholeRunErrors(
         deps,
         context,
@@ -768,7 +776,7 @@ async function runTmxImport(
       streams.out(
         context.json
           ? `${renderSuccessEnvelope("tmx", result)}\n`
-          : `${renderTmxImportHuman(result)}\n`,
+          : `${renderTmxImportHuman(result, process.cwd())}\n`,
       );
       return 0;
     },
@@ -801,7 +809,7 @@ async function runTmxExport(
       streams.out(
         context.json
           ? `${renderSuccessEnvelope("tmx", result)}\n`
-          : `${renderTmxExportHuman(result)}\n`,
+          : `${renderTmxExportHuman(result, process.cwd())}\n`,
       );
       return 0;
     },
@@ -831,7 +839,7 @@ export async function runTmx(
       if (direction === "export") {
         return runTmxExport(file, opts, cwd, deps, streams, context);
       }
-      appendMissingGitignoreEntries(cwd, opts.dryRun);
+      topUpGitignore(cwd, context, opts.dryRun);
       return runTmxImport(file, opts, cwd, deps, streams, context);
     },
   );
@@ -906,7 +914,7 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      appendMissingGitignoreEntries(cwd);
+      topUpGitignore(cwd, context);
       return withWholeRunErrors(
         deps,
         context,
@@ -921,7 +929,7 @@ async function runPseudo(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
           streams.out(
             context.json
               ? `${renderSuccessEnvelope("pseudo", result)}\n`
-              : `${renderPseudoHuman(result)}\n`,
+              : `${renderPseudoHuman(result, process.cwd())}\n`,
           );
           return 0;
         },
@@ -972,7 +980,7 @@ async function runTypes(rawOpts: unknown, deps: CliDeps, streams: Streams): Prom
           streams.out(
             context.json
               ? `${renderSuccessEnvelope("types", result)}\n`
-              : `${renderTypesHuman(result)}\n`,
+              : `${renderTypesHuman(result, process.cwd())}\n`,
           );
           return result.check && result.stale ? 1 : 0;
         },
@@ -1590,6 +1598,20 @@ export async function run(
   return runRedacted(argv, deps, redactingStreams(streams), hooks);
 }
 
+const CONFIG_NOT_FOUND_CODE: SdkErrorCode = "CONFIG_NOT_FOUND";
+
+async function suggestInitWithoutConfig(deps: CliDeps, streams: Streams): Promise<void> {
+  try {
+    await deps.loadConfigWithMeta({ cwd: process.cwd() });
+  } catch (error) {
+    if (toRenderableError(error).code === CONFIG_NOT_FOUND_CODE) {
+      streams.err(
+        "\nverbatra: no config found in this directory. Run verbatra init to set up this project.\n",
+      );
+    }
+  }
+}
+
 async function runRedacted(
   argv: readonly string[],
   deps: CliDeps,
@@ -1604,7 +1626,13 @@ async function runRedacted(
     await program.parseAsync([...argv], { from: "user" });
   } catch (error) {
     if (error instanceof CommanderError) {
-      return error.exitCode === 0 ? 0 : renderUsageFailureExit2(error, program, argv, streams);
+      if (error.exitCode === 0) {
+        return 0;
+      }
+      if (argv.length === 0) {
+        await suggestInitWithoutConfig(deps, streams);
+      }
+      return renderUsageFailureExit2(error, program, argv, streams);
     }
     throw error;
   }

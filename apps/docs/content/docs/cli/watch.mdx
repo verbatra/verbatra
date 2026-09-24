@@ -23,7 +23,7 @@ verbatra watch [flags]
 | `--no-cache` | none | off (cache on) | bypass the local [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) on every run |
 | `--json` | none | off | print each run as one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout, NDJSON style (one object per line) |
 
-With `--json`, each run emits one [envelope](/docs/ci-and-exit-codes#json-output) record with `command: "watch"`: an `ok: true` record carrying that run's [`RunSummary`](/docs/sdk) under `result`, or an `ok: false` record carrying an error code and message. The startup line, the stopping notice, and per-run progress all go to stderr, so the stdout stream stays clean NDJSON. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code.
+With `--json`, each run emits one [envelope](/docs/ci-and-exit-codes#json-output) record with `command: "watch"`: an `ok: true` record carrying that run's [`RunSummary`](/docs/sdk) under `result`, or an `ok: false` record carrying an error code and message. The startup line, the stopping notice, and per-run progress all go to stderr, so the stdout stream stays clean NDJSON. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code. Without `--json`, a successful run's summary goes to stdout and a failed run's `verbatra: error [CODE] message` line goes to stderr, like every other command's errors.
 
 `--locales de,fr` narrows every cycle of the session to a subset of the configured targets, which keeps a development loop cheap when you only care about one language. The subset is validated once at startup rather than on each run.
 
