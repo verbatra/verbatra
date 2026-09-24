@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { type ReactNode, useState } from "react";
 import { TabList, tabId, tabPanelId } from "@/components/ui/tabs";
-import { HERO_DEMO_COMMANDS, HERO_DEMO_HIGHLIGHT, HERO_DEMO_OUTPUTS } from "@/lib/hero-demo";
+import { CHECK_IN_SYNC, HERO_DEMO_COMMANDS, HERO_DEMO_OUTPUTS } from "@/lib/hero-demo";
 import { cn } from "@/lib/utils";
 import { Terminal } from "./terminal";
 
@@ -77,7 +77,7 @@ export function HeroDemo({ labels }: { labels: HeroDemoLabels }): ReactNode {
               commands={HERO_DEMO_COMMANDS}
               outputs={HERO_DEMO_OUTPUTS}
               sessionLabel={labels.session}
-              highlight={HERO_DEMO_HIGHLIGHT}
+              highlight={CHECK_IN_SYNC}
               loop={false}
               typingSpeed={38}
               initialDelay={450}
