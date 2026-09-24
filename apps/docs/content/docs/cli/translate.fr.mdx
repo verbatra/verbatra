@@ -79,6 +79,8 @@ verbatra translate --include-human
 | `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, format, fournisseur ou fichier de verrou corrompu) ou une erreur d'utilisation |
 | `3` | projet 100 % humain (`provider: { id: "none" }`) : l'exécution s'est terminée proprement, mais des clés attendent une traduction humaine |
+| `130` | interrompu avec Ctrl-C (SIGINT) ; les verrous d'écriture de l'exécution sont libérés d'abord |
+| `143` | arrêté avec SIGTERM ; les verrous d'écriture de l'exécution sont libérés d'abord |
 
 <AvailableFrom version="0.9.0" />
 

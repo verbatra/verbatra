@@ -79,6 +79,8 @@ verbatra translate --include-human
 | `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Format, Provider oder eine beschädigte Lock-Datei) oder ein Verwendungsfehler |
 | `3` | rein menschliches Projekt (`provider: { id: "none" }`): der Lauf lief sauber durch, aber Keys warten auf eine menschliche Übersetzung |
+| `130` | mit Ctrl-C (SIGINT) abgebrochen; die Schreibsperren des Laufs werden vorher freigegeben |
+| `143` | mit SIGTERM beendet; die Schreibsperren des Laufs werden vorher freigegeben |
 
 <AvailableFrom version="0.9.0" />
 
