@@ -1,6 +1,7 @@
 import { resolveErrorCopy } from "./error-copy.js";
 import type { RpcCallResult } from "./rpc-client.js";
 import { settledActionStatusLabel } from "./settled-action-status.js";
+import type { StructuredError } from "./state.js";
 
 export type BatchAction = "approve" | "reject" | "retranslate";
 
@@ -30,6 +31,13 @@ type RetranslateBatchOutcome = Extract<
 
 export const LOCALE_BUSY_SKIP_MESSAGE = "Skipped: the locale was busy.";
 
+export const BATCH_LOCK_CONTENDED_MESSAGE =
+  "A locale's write lock was held by another process. Wait a moment and try again.";
+
+function batchErrorCopy(error: StructuredError): string {
+  return error.code === "LOCK_CONTENDED" ? BATCH_LOCK_CONTENDED_MESSAGE : resolveErrorCopy(error);
+}
+
 function failureMessage(outcome: {
   readonly code: string;
   readonly message: string;
@@ -38,7 +46,7 @@ function failureMessage(outcome: {
   if (outcome.skipped === true && outcome.code === "LOCK_CONTENDED") {
     return LOCALE_BUSY_SKIP_MESSAGE;
   }
-  const copy = resolveErrorCopy({ code: outcome.code, message: outcome.message });
+  const copy = batchErrorCopy({ code: outcome.code, message: outcome.message });
   return outcome.skipped === true ? `Not attempted after an earlier failure: ${copy}` : copy;
 }
 
@@ -65,7 +73,7 @@ export function summarizeReviewBatch(
   response: ReviewBatchResponse,
 ): BatchSummary {
   if (!response.ok) {
-    return { kind: "error", action, message: resolveErrorCopy(response.error) };
+    return { kind: "error", action, message: batchErrorCopy(response.error) };
   }
   const failures = response.result.results.flatMap((outcome) =>
     outcome.ok ? [] : [failureOf(outcome)],
@@ -97,7 +105,7 @@ function retranslateFailure(outcome: RetranslateBatchOutcome): BatchFailure | un
 
 export function summarizeRetranslateBatch(response: RetranslateBatchResponse): BatchSummary {
   if (!response.ok) {
-    return { kind: "error", action: "retranslate", message: resolveErrorCopy(response.error) };
+    return { kind: "error", action: "retranslate", message: batchErrorCopy(response.error) };
   }
   const failures = response.result.results.flatMap((outcome) => {
     const failure = retranslateFailure(outcome);

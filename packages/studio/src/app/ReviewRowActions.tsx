@@ -17,9 +17,9 @@ export interface RowBusy {
 const RETRANSLATE_IDLE_CLASSNAME =
   "min-w-0 transition-[min-width] duration-150 ease-out motion-reduce:transition-none";
 
-const RETRANSLATE_BUSY_CLASSNAME = "min-w-40";
+const RETRANSLATE_BUSY_CLASSNAME = "min-w-40 disabled:opacity-100";
 
-export const RETRANSLATE_ACTIONS_COLUMN_CLASSNAME = "w-110";
+const RETRANSLATE_ACTIONS_RESERVED_CLASSNAME = "min-w-106";
 
 function shortcutFor(action: ReviewShortcutAction, active: boolean): string | undefined {
   return active ? shortcutKeysFor(action) : undefined;
@@ -52,9 +52,11 @@ export function ReviewRowActions({
       className={cn(
         "relative inline-flex items-center gap-2 whitespace-nowrap",
         wrap ? "flex-wrap" : "flex-nowrap",
+        !wrap && onRetranslate !== undefined && RETRANSLATE_ACTIONS_RESERVED_CLASSNAME,
       )}
     >
       <Button
+        className="w-12"
         onClick={onEdit}
         disabled={busy !== undefined}
         aria-keyshortcuts={shortcutFor("edit", shortcutsActive)}

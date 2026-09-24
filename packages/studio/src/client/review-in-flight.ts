@@ -63,14 +63,20 @@ export function rowBusyLabel(action: RowBusyAction): string {
 
 export const BUSY_ANNOUNCE_STEP_SECONDS = 15;
 
+export const BUSY_ANNOUNCE_LONG_STEP_SECONDS = 60;
+
+function announcedElapsed(seconds: number): string | undefined {
+  if (seconds < BUSY_ANNOUNCE_LONG_STEP_SECONDS) {
+    const step = Math.floor(seconds / BUSY_ANNOUNCE_STEP_SECONDS) * BUSY_ANNOUNCE_STEP_SECONDS;
+    return step === 0 ? undefined : `${step} seconds`;
+  }
+  const minutes = Math.floor(seconds / BUSY_ANNOUNCE_LONG_STEP_SECONDS);
+  return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+}
+
 export function rowBusyStatus(action: RowBusyAction, seconds: number | undefined): string {
-  const announced =
-    seconds === undefined
-      ? 0
-      : Math.floor(seconds / BUSY_ANNOUNCE_STEP_SECONDS) * BUSY_ANNOUNCE_STEP_SECONDS;
-  return announced === 0
-    ? BUSY_LABELS[action]
-    : `${BUSY_LABELS[action]} ${announced} seconds so far`;
+  const elapsed = seconds === undefined ? undefined : announcedElapsed(seconds);
+  return elapsed === undefined ? BUSY_LABELS[action] : `${BUSY_LABELS[action]} ${elapsed} so far`;
 }
 
 export function compactElapsed(seconds: number): string {

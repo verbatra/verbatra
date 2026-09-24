@@ -6,7 +6,9 @@ import { click, render } from "./test-support.js";
 function props(overrides: Partial<ReviewBulkBarProps> = {}): ReviewBulkBarProps {
   return {
     count: 3,
+    actionable: 3,
     busyAction: undefined,
+    busyNote: null,
     decisionBlocker: null,
     retranslateBlocker: null,
     onApprove: vi.fn(),
@@ -88,13 +90,39 @@ describe("ReviewBulkBar", () => {
   });
 
   it("stays in place with nothing selected, so selecting never shifts the table", () => {
-    const view = render(<ReviewBulkBar {...props({ count: 0 })} />);
+    const view = render(<ReviewBulkBar {...props({ count: 0, actionable: 0 })} />);
 
     expect(view.text()).toContain("None selected");
     expect(view.get("[data-bulk-hint]").textContent).toContain("press x");
     for (const element of view.all("button")) {
       expect((element as HTMLButtonElement).disabled).toBe(true);
     }
+  });
+
+  it("leaves busy entries out, says so, and still lets the selection be cleared", () => {
+    const note = "1 selected entry is busy and is left out of bulk actions.";
+    const view = render(<ReviewBulkBar {...props({ count: 1, actionable: 0, busyNote: note })} />);
+
+    expect(view.all("button").map((element) => element.textContent)).toEqual([
+      "Approve selected",
+      "Reject selected…",
+      "Retranslate selected",
+      "Clear selection",
+    ]);
+    expect(button(view, "Approve selected").disabled).toBe(true);
+    expect(button(view, "Reject selected…").disabled).toBe(true);
+    expect(button(view, "Retranslate selected").disabled).toBe(true);
+    expect(button(view, "Clear selection").disabled).toBe(false);
+    expect(view.get("[data-bulk-hint]").textContent).toBe(note);
+  });
+
+  it("keeps the actions live for the entries that are not busy", () => {
+    const note = "1 selected entry is busy and is left out of bulk actions.";
+    const view = render(<ReviewBulkBar {...props({ count: 3, actionable: 2, busyNote: note })} />);
+
+    expect(button(view, "Approve selected").disabled).toBe(false);
+    expect(button(view, "Retranslate selected").disabled).toBe(false);
+    expect(view.text()).toContain("3 selected");
   });
 
   it("uses the tinted variants and fixed widths rather than one-off classes", () => {

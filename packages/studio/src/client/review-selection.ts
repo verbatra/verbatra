@@ -63,3 +63,12 @@ export function bulkRetranslateBlocker(selectedCount: number, maxEntries: number
     ? `Select at most ${maxEntries} entries to retranslate at once.`
     : null;
 }
+
+export function bulkBusyNote(busyCount: number): string | null {
+  if (busyCount === 0) {
+    return null;
+  }
+  return busyCount === 1
+    ? "1 selected entry is busy and is left out of bulk actions."
+    : `${busyCount} selected entries are busy and are left out of bulk actions.`;
+}

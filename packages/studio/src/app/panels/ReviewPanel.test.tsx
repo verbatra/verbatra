@@ -322,14 +322,17 @@ describe("ReviewPanel", () => {
   it("sizes the actions column for a running retranslation up front, so a busy row never shifts the table", async () => {
     stubReview(QUEUE, SPEND_SNAPSHOT);
     const withSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const actionsOf = (view: RenderResult): string[] =>
+      (rowAction(view, "cart.badge", "Edit").parentElement?.className ?? "").split(" ");
 
-    expect(withSpend.get("th[data-actions-column]").className.split(" ")).toContain("w-110");
+    expect(actionsOf(withSpend)).toContain("min-w-106");
+    expect(withSpend.get("th[data-actions-column]").className).not.toContain("w-110");
     withSpend.unmount();
 
     stubReview();
     const withoutSpend = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    expect(withoutSpend.get("th[data-actions-column]").className).not.toContain("w-110");
+    expect(actionsOf(withoutSpend)).not.toContain("min-w-106");
   });
 
   it("hides the row actions when the server would refuse a write", async () => {
@@ -1593,6 +1596,51 @@ describe("ReviewPanel: review workflow", () => {
     expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
   });
 
+  it("leaves a selected row that is retranslating out of the bulk set, and keeps Clear selection live", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    stubRpc({ "translation.retranslateEntry": () => new Promise(() => {}) });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
+
+    expect(busyRetranslate(view, "cart.badge")).toBeDefined();
+    expect(bulkButton(view, "Retranslate selected").disabled).toBe(true);
+    expect(bulkButton(view, "Approve selected").disabled).toBe(true);
+    expect(bulkButton(view, "Clear selection").disabled).toBe(false);
+    expect(bulkBar(view)?.textContent).not.toContain("Retranslating…");
+    expect(bulkBar(view)?.querySelector("[data-bulk-hint]")?.textContent).toBe(
+      "1 selected entry is busy and is left out of bulk actions.",
+    );
+
+    await clickAsync(bulkButton(view, "Clear selection"));
+    expect(bulkBar(view)?.textContent).toContain("None selected");
+  });
+
+  it("sends a bulk action only for the selected rows that are not busy", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    stubRpc({
+      "translation.retranslateEntry": () => new Promise(() => {}),
+      "review.approveMany": () => new Promise(() => {}),
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
+    await clickAsync(selectAll(view));
+
+    expect(bulkBar(view)?.textContent).toContain("3 selected");
+    await clickAsync(bulkButton(view, "Approve selected"));
+
+    expect(rpcCalls.find((call) => call.method === "review.approveMany")?.params).toEqual({
+      entries: [
+        { locale: "de", key: "checkout.title", expectedValue: "Kasse" },
+        { locale: "de", key: "checkout.subtitle", expectedValue: "Bestellung prüfen" },
+      ],
+    });
+    expect(bulkButton(view, "Approving…").disabled).toBe(true);
+    expect(bulkButton(view, "Retranslate selected").disabled).toBe(true);
+    expect(bulkBar(view)?.querySelector("[data-bulk-hint]")?.textContent).toBe("");
+  });
+
   it("names the keyboard shortcuts on the highlighted row only", async () => {
     stubKeyboardReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
@@ -1667,6 +1715,8 @@ describe("ReviewPanel: review workflow", () => {
       const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
       expect(view.all("thead th").map((cell) => cell.textContent)).toEqual(["", "Locale", "Entry"]);
+      expect(view.get("table").className.split(" ")).toContain("min-w-0");
+      expect(view.get("table").className).not.toContain("480px");
       expect(view.all("[data-row-stacked]")).toHaveLength(3);
       expect(rowAction(view, "cart.badge", "Approve")).toBeDefined();
     } finally {

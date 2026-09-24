@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bulkBusyNote,
   bulkDecisionBlocker,
   bulkRetranslateBlocker,
   selectedAmong,
@@ -69,5 +70,16 @@ describe("bulk blockers", () => {
     expect(bulkRetranslateBlocker(21, 20)).toBe(
       "Select at most 20 entries to retranslate at once.",
     );
+  });
+});
+
+describe("bulkBusyNote", () => {
+  it("says nothing when no selected entry is busy", () => {
+    expect(bulkBusyNote(0)).toBeNull();
+  });
+
+  it("names how many selected entries a bulk action leaves out", () => {
+    expect(bulkBusyNote(1)).toBe("1 selected entry is busy and is left out of bulk actions.");
+    expect(bulkBusyNote(3)).toBe("3 selected entries are busy and are left out of bulk actions.");
   });
 });
