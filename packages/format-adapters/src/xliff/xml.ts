@@ -3,12 +3,11 @@ import { DOMParser, type Document, type Element, type Node, XMLSerializer } from
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
-import { MAX_DEPTH } from "../json/limits.js";
 import { isEnoent } from "../shell.js";
+import { assertNoDoctype, readInlineValue, writeInlineValue, type XliffVersion } from "./inline.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
 
 const ELEMENT_NODE = 1;
-const TEXT_NODE = 3;
 
 interface Unit {
   readonly key: string;
@@ -41,12 +40,6 @@ function unitKey(element: Element, index: number): string {
 function onFatal(level: "warning" | "error" | "fatalError"): void {
   if (level === "fatalError") {
     throw new Error("malformed XML");
-  }
-}
-
-function assertNoDoctype(content: string): void {
-  if (/<!DOCTYPE/i.test(content) || /<!ENTITY/i.test(content)) {
-    throw new AdapterError("INVALID_XML", "XLIFF with a DTD or entity declaration is rejected.");
   }
 }
 
@@ -124,25 +117,22 @@ function walkXliff20(root: Element): Unit[] {
   return units;
 }
 
+function documentVersion(root: Element): XliffVersion {
+  return (root.getAttribute("version") ?? "1.2").startsWith("2") ? "2.0" : "1.2";
+}
+
 function walkUnits(root: Element): Unit[] {
-  const version = root.getAttribute("version") ?? "1.2";
-  return version.startsWith("2") ? walkXliff20(root) : walkXliff12(root);
+  return documentVersion(root) === "2.0" ? walkXliff20(root) : walkXliff12(root);
 }
 
-function innerXml(serializer: XMLSerializer, element: Element): string {
-  return Array.from(element.childNodes)
-    .map((node) => serializer.serializeToString(node))
-    .join("");
-}
-
-function unitValue(serializer: XMLSerializer, unit: Unit): string {
+function unitValue(unit: Unit): string {
   if (unit.target !== null) {
-    const targetXml = innerXml(serializer, unit.target);
-    if (targetXml.trim() !== "") {
-      return targetXml;
+    const targetValue = readInlineValue(unit.target);
+    if (targetValue.trim() !== "") {
+      return targetValue;
     }
   }
-  return innerXml(serializer, unit.source);
+  return readInlineValue(unit.source);
 }
 
 export function parseXliffEntries(
@@ -150,7 +140,6 @@ export function parseXliffEntries(
   namespace: string,
 ): Map<string, TranslationEntry> {
   const { root } = parseXml(content);
-  const serializer = new XMLSerializer();
   const out = new Map<string, TranslationEntry>();
   for (const unit of walkUnits(root)) {
     if (out.has(unit.key)) {
@@ -159,7 +148,7 @@ export function parseXliffEntries(
         "The XLIFF file has two trans-units with the same id.",
       );
     }
-    const value = unitValue(serializer, unit);
+    const value = unitValue(unit);
     out.set(unit.key, {
       key: unit.key,
       namespace,
@@ -190,122 +179,13 @@ async function readDestination(filePath: string, fs: AdapterFs): Promise<string>
   return outcomeToContent(outcome, "The destination path is not a regular file.");
 }
 
-const XLIFF_INLINE_ELEMENTS = new Set(["x", "g", "bx", "ex", "ph", "it", "mrk"]);
-
-const XLIFF_NAMESPACES = new Set([
-  "urn:oasis:names:tc:xliff:document:1.2",
-  "urn:oasis:names:tc:xliff:document:2.0",
-]);
-
-const INLINE_ELEMENT_ATTRIBUTES: Readonly<Record<string, readonly string[]>> = {
-  x: ["id", "ctype"],
-  ph: ["id", "ctype"],
-  g: ["id", "ctype"],
-  bx: ["id", "rid", "ctype"],
-  ex: ["id", "rid"],
-  it: ["id", "pos", "ctype"],
-  mrk: ["id", "mtype"],
-};
-
-function isAllowedInlineElement(element: Element): boolean {
-  const namespace = element.namespaceURI;
-  const hasAllowedNamespace = namespace === null || XLIFF_NAMESPACES.has(namespace);
-  return hasAllowedNamespace && XLIFF_INLINE_ELEMENTS.has(element.localName ?? "");
-}
-
-function isAllowedFragmentNode(node: Node): boolean {
-  if (node.nodeType === TEXT_NODE) {
-    return true;
-  }
-  return isElement(node) && isAllowedInlineElement(node);
-}
-
-function allDescendantNodes(node: Node): Node[] {
-  const result: Node[] = [];
-  const stack: Array<{ node: Node; depth: number }> = [{ node, depth: 1 }];
-  while (stack.length > 0) {
-    const top = stack.pop();
-    if (top === undefined) {
-      break;
-    }
-    if (top.depth > MAX_DEPTH) {
-      throw new AdapterError(
-        "MAX_DEPTH_EXCEEDED",
-        "The translated value nests inline elements too deeply.",
-      );
-    }
-    for (const child of Array.from(top.node.childNodes)) {
-      result.push(child);
-      stack.push({ node: child, depth: top.depth + 1 });
-    }
-  }
-  return result;
-}
-
-function hasDisallowedNode(root: Element): boolean {
-  return allDescendantNodes(root).some((node) => !isAllowedFragmentNode(node));
-}
-
-function attributeNames(element: Element): string[] {
-  const names: string[] = [];
-  for (let i = 0; i < element.attributes.length; i += 1) {
-    const attr = element.attributes.item(i);
-    if (attr !== null) {
-      names.push(attr.name);
-    }
-  }
-  return names;
-}
-
-function sanitizeInlineAttributes(root: Element): void {
-  for (const el of collectByTag(root, "*")) {
-    const allowed = INLINE_ELEMENT_ATTRIBUTES[el.localName ?? ""] ?? [];
-    for (const name of attributeNames(el)) {
-      if (!allowed.includes(name)) {
-        el.removeAttribute(name);
-      }
-    }
-  }
-}
-
-function fragmentNodes(parser: DOMParser, value: string): Node[] | null {
-  assertNoDoctype(value);
-  try {
-    const root = parser.parseFromString(`<wrapper>${value}</wrapper>`, "text/xml").documentElement;
-    if (root === null || hasDisallowedNode(root)) {
-      return null;
-    }
-    sanitizeInlineAttributes(root);
-    return Array.from(root.childNodes);
-  } catch (error) {
-    if (error instanceof AdapterError) {
-      throw error;
-    }
-    return null;
-  }
-}
-
-function setTargetValue(doc: Document, parser: DOMParser, element: Element, value: string): void {
-  while (element.firstChild !== null) {
-    element.removeChild(element.firstChild);
-  }
-  const nodes = fragmentNodes(parser, value);
-  if (nodes === null) {
-    element.textContent = value;
-    return;
-  }
-  for (const node of nodes) {
-    element.appendChild(doc.importNode(node, true));
-  }
-}
-
 export async function serializeXliffEntries(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
 ): Promise<string> {
   const { doc, root } = parseXml(await readDestination(filePath, fs));
-  const parser = new DOMParser({ onError: onFatal });
+  const version = documentVersion(root);
   for (const unit of walkUnits(root)) {
     const entry = entries.get(unit.key);
     if (entry !== undefined) {
@@ -313,7 +193,7 @@ export async function serializeXliffEntries(
       if (unit.target === null) {
         unit.container.appendChild(target);
       }
-      setTargetValue(doc, parser, target, entry.value);
+      writeInlineValue(doc, target, entry.value, version);
     }
   }
   return new XMLSerializer().serializeToString(doc);

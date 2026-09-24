@@ -352,7 +352,7 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     expect(written).toContain('<target>Bonjour <g id="1">{name}</g></target>');
   });
 
-  it("degrades a value mixing an allow-listed and a disallowed element entirely to text", async () => {
+  it("keeps the allow-listed element live and escapes a disallowed element beside it as text", async () => {
     const path = await tempFile("m.xliff", XLIFF_20);
     const { resource } = await adapter.read(path, "fr");
     const entries = new Map(resource.entries);
@@ -363,7 +363,7 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     await adapter.write({ ...resource, entries }, path);
     const written = await readFile(path, "utf8");
     expect(written).not.toContain("<b>");
-    expect(written).toContain(`&lt;x id="1"/&gt;&lt;b&gt;bold&lt;/b&gt;`);
+    expect(written).toContain('<target><x id="1"/>&lt;b&gt;bold&lt;/b&gt;</target>');
   });
 
   it("degrades an allow-listed local name carrying an attacker-chosen namespace to text", async () => {
@@ -433,13 +433,10 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
   it("keeps an inline allow-listed element live when the source document declares the XLIFF namespace", async () => {
     const path = await tempFile("ns.xlf", XLIFF_12_NAMESPACED);
     const { resource } = await adapter.read(path, "de");
-    expect(resource.entries.get("g1")?.value).toBe(
-      'Hi <g id="1" xmlns="urn:oasis:names:tc:xliff:document:1.2">there</g>',
-    );
+    expect(resource.entries.get("g1")?.value).toBe('Hi <g id="1">there</g>');
     await adapter.write(resource, path);
     const reread = await adapter.read(path, "de");
-    expect(reread.resource.entries.get("g1")?.value).toContain("<g");
-    expect(reread.resource.entries.get("g1")?.value).not.toContain("&lt;g");
+    expect(reread.resource.entries.get("g1")?.value).toBe('Hi <g id="1">there</g>');
   });
 
   it("falls back to a text node when a translated value has unbalanced inline markup", async () => {
