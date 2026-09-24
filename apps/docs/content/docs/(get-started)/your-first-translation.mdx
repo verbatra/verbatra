@@ -68,7 +68,7 @@ Start with [`verbatra doctor`](/docs/cli/doctor), the preflight for exactly this
 npx verbatra doctor
 ```
 
-It runs five checks: the config loads and validates, the format resolves to a file adapter, the provider ID resolves to a provider, the environment variable that provider reads its key from is set, and the source locale file exists and parses. Every check runs even when an earlier one failed, so one run reports every problem rather than stopping at the first. It constructs no provider, makes no network request, writes nothing, and never reads a key value. It is also the only check that works before the source file exists, so run it now and again after step 4.
+It runs nine checks. Six can fail: the config loads and validates, the format resolves to a file adapter, the provider ID resolves to a provider, the environment variable that provider reads its key from is set, the network policy permits the provider's host, and the source locale file exists and parses. Three only report: the plural rules in use, locale codes that are not in canonical form, and leftover state for a locale you no longer configure. Every check runs even when an earlier one failed, so one run reports every problem rather than stopping at the first. It constructs no provider, makes no network request, writes nothing, and never reads a key value. It is also the only check that works before the source file exists, so run it now and again after step 4.
 
 If you do not have a source file yet, create one at the configured pattern, for example `locales/en.json`:
 

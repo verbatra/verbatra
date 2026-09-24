@@ -383,6 +383,10 @@ Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-
 `MAX_LENGTH_EXCEEDED` und `FUZZY_CACHE_REUSE` sind die beiden neuesten Gründe; ein Lauf auf einem
 früheren Release trägt sie nie.
 
+<AvailableFrom version="0.12.0" />
+
+`GLOSSARY_FORBIDDEN_TERM` ist noch neuer; ein Lauf auf einem Release vor 0.12.0 trägt ihn nie.
+
 Ein aus [dem Cache](/docs/the-cache) wiederverwendeter Wert und ein Wert, der an einen Key mit
 gleichem Quelltext weitergereicht wurde, durchlaufen dieselben Review-Heuristiken wie ein frisch
 übersetzter String.
@@ -390,8 +394,10 @@ gleichem Quelltext weitergereicht wurde, durchlaufen dieselben Review-Heuristike
 Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung und speisen die
 Review-Warteschlange: Die CLI gibt die Anzahl aus, die Excel-Arbeitsmappe trägt dasselbe Signal in
 ihren Review-Spalten, und Studios Review-Seite listet die markierten Keys zum Abarbeiten; siehe
-[Review in Studio](/docs/review-in-studio). Ein Flag verschwindet nur, indem du die zugrunde
-liegende Übersetzung korrigierst.
+[Review in Studio](/docs/review-in-studio). Ein markierter Key verlässt die Warteschlange, sobald
+ein Mensch seinen aktuellen Wert freigibt oder ablehnt (auf Studios Review-Seite oder mit
+`approveEntry` und `rejectEntry` aus dem SDK) oder ihn neu schreibt; siehe
+[Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
 
 ## Das Token-Budget
 

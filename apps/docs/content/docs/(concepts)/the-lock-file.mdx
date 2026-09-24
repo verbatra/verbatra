@@ -24,6 +24,10 @@ retranslated; a match means it is unchanged and never sent to the provider. That
 run with no source edits calls the provider for nothing, and why stale translations cannot hide
 behind a key that merely exists. The full pipeline is on [How it works](/docs/how-it-works).
 
+<AvailableFrom version="0.12.0" />
+
+The exception is a changed key whose current value a person wrote or imported: by default it is protected and stays stale instead of being retranslated. See [Protecting human translations](/docs/protecting-human-translations).
+
 ## Adopting an existing project
 
 Pointing verbatra at a repository whose locale files already hold reviewed translations does not

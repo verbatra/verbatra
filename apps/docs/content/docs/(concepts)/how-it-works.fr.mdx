@@ -40,6 +40,10 @@ inchangées sont laissées telles quelles. Les clés orphelines sont signalées 
 laissées en place ; avec `--prune` (ou `prune: true` dans la configuration), ce sont exactement
 ces clés qui sont supprimées du fichier cible et du fichier de verrouillage, et rien d'autre.
 
+<AvailableFrom version="0.12.0" />
+
+Deux sortes de candidates sont retenues. Une clé modifiée dont une personne a écrit ou importé la valeur actuelle est protégée par défaut (`humanEdits`), et une clé qui correspond à `pinnedKeys` n'est jamais traduite automatiquement ; les deux restent obsolètes jusqu'à ce qu'une personne les règle. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+
 ## Envoyer par lots au fournisseur
 
 Avant tout envoi, chaque candidate est recherchée dans le cache local de mémoire de traduction
