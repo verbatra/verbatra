@@ -28,5 +28,3 @@ export const HERO_DEMO_OUTPUTS: Readonly<Record<number, ReadonlyArray<string>>> 
     CHECK_IN_SYNC,
   ],
 };
-
-export const HERO_DEMO_HIGHLIGHT = CHECK_IN_SYNC;

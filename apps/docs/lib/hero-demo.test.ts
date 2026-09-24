@@ -5,7 +5,6 @@ import {
   CHECK_IN_SYNC,
   CHECK_OUT_OF_SYNC,
   HERO_DEMO_COMMANDS,
-  HERO_DEMO_HIGHLIGHT,
   HERO_DEMO_OUTPUTS,
 } from "@/lib/hero-demo";
 
@@ -36,7 +35,6 @@ describe("the hero demo quotes the cli", () => {
     expect(HERO_DEMO_COMMANDS).toEqual(["verbatra check", "verbatra translate", "verbatra check"]);
     expect(HERO_DEMO_OUTPUTS[0]?.at(-1)).toBe(CHECK_OUT_OF_SYNC);
     expect(HERO_DEMO_OUTPUTS[2]?.at(-1)).toBe(CHECK_IN_SYNC);
-    expect(HERO_DEMO_OUTPUTS[2]).toContain(HERO_DEMO_HIGHLIGHT);
   });
 
   it("keeps every check line in the cli's shape and its counts consistent", () => {
