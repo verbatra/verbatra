@@ -40,7 +40,7 @@
       "pnpmNote": "pnpm instala correctamente, pero termina con código 1 y ERR_PNPM_IGNORED_BUILDS porque bloquea los scripts de instalación de una dependencia. Ejecuta pnpm approve-builds una vez, o consulta la página de",
       "pnpmNoteLink": "Solución de problemas",
       "copyPromptAria": "Copiar el prompt de configuración para el agente de IA",
-      "aiSwitch": "Prompt para IA",
+      "aiSwitch": "Prompt IA",
       "aiCaption": "Esta es una vista previa recortada. El prompt completo y los pasos de configuración están en",
       "aiCaptionLink": "la guía de configuración",
       "copyCommand": "Copiar {command}"
