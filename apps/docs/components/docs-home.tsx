@@ -164,7 +164,7 @@ export function DocsHomePaths({
             className="vk-label"
             style={
               card.primary
-                ? { color: "color-mix(in srgb, var(--accent-fill-fg) 78%, transparent)" }
+                ? { color: "color-mix(in srgb, var(--accent-fill-fg) 90%, transparent)" }
                 : undefined
             }
           >
