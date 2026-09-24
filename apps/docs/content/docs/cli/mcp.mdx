@@ -30,9 +30,13 @@ Both forms take the same three flags and start the same server, but the wrappers
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
+| `--cwd` | `<path>` | `CLAUDE_PROJECT_DIR`, else the current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--allow-spend` | none | off | advertise the two tools that call a translation provider |
+
+When `--cwd` is absent and the `CLAUDE_PROJECT_DIR` environment variable names an existing directory, the server uses that directory as the project root instead of the one it was started in. Claude Code sets `CLAUDE_PROJECT_DIR` to the project root for every stdio server it spawns, so a session started from a subdirectory still finds the project config. An explicit `--cwd` always wins, and `verbatra-mcp` and `verbatra mcp` apply the same rule. With `verbatra mcp`, the `.env.local` and `.env` files are read from that directory too.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 When `--allow-spend` is absent, the server reads the `VERBATRA_MCP_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, `translation.retranslateEntry` and `translation.translatePending` are not advertised at all: an MCP client that lists tools never sees them, and calling either by name fails as an unknown tool. This is a per-process guarantee, not a per-call check, so a spend-gated tool is structurally uncallable rather than merely refused at call time. A config with `provider: { id: "none" }` disables machine translation by policy, and then the two tools are never advertised, even with `--allow-spend`.
 
@@ -170,7 +174,7 @@ The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra
 `@verbatra/mcp` is its own package, reached through a dynamic import so the rest of the CLI works without it. If it is not installed, `verbatra mcp` exits `2` with:
 
 ```
-Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
 ```
 
 Running `verbatra-mcp` directly needs no CLI at all: install `@verbatra/mcp` on its own, or let `npx` fetch it on demand as shown above.

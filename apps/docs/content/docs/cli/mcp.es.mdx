@@ -30,9 +30,13 @@ Ambas formas aceptan los mismos tres flags y arrancan el mismo servidor, pero lo
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
+| `--cwd` | `<path>` | `CLAUDE_PROJECT_DIR`, si no el directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
 | `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--allow-spend` | ninguno | desactivado | expone las dos herramientas que llaman a un proveedor de traducción |
+
+Si falta `--cwd` y la variable de entorno `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor usa ese directorio como raíz del proyecto en lugar del directorio en el que se inició. Claude Code fija `CLAUDE_PROJECT_DIR` a la raíz del proyecto para cada servidor stdio que lanza, así que una sesión iniciada desde un subdirectorio sigue encontrando la configuración del proyecto. Un `--cwd` explícito siempre tiene prioridad, y `verbatra-mcp` y `verbatra mcp` aplican la misma regla. Con `verbatra mcp`, los archivos `.env.local` y `.env` también se leen desde ese directorio.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Cuando falta `--allow-spend`, el servidor lee en su lugar la variable de entorno `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` u `on` (sin distinguir mayúsculas) cuenta como activado. El flag de la CLI siempre gana sobre la variable de entorno. Sin ninguno de los dos, `translation.retranslateEntry` y `translation.translatePending` no se exponen en absoluto: un cliente MCP que liste las herramientas nunca las ve, y llamarlas por nombre falla como herramienta desconocida. Esta es una garantía por proceso, no una comprobación por llamada, así que una herramienta bloqueada por gasto es estructuralmente imposible de llamar, no simplemente rechazada en el momento de la llamada. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, y entonces las dos herramientas nunca se exponen, ni siquiera con `--allow-spend`.
 
@@ -170,7 +174,7 @@ El transporte stdio de MCP usa stdout exclusivamente para mensajes de protocolo.
 `@verbatra/mcp` es un paquete aparte, al que se llega mediante un import dinámico para que el resto de la CLI funcione sin él. Si no está instalado, `verbatra mcp` sale con `2` y este mensaje:
 
 ```
-Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
 ```
 
 Ejecutar `verbatra-mcp` directamente no necesita la CLI en absoluto: instala `@verbatra/mcp` por separado, o deja que `npx` lo obtenga bajo demanda como se muestra arriba.

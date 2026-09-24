@@ -12,7 +12,7 @@ import {
 import type { CliDeps, Session, Streams } from "./types.js";
 
 const NOT_INSTALLED_HINT =
-  "Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp";
+  "Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp";
 
 const MCP_SPECIFIER_PATTERN = /['"]@verbatra\/mcp['"]/;
 
@@ -43,15 +43,6 @@ export async function runMcp(rawOpts: unknown, deps: CliDeps, streams: Streams):
     return failedSession(2);
   }
 
-  const cwd = opts.cwd ?? process.cwd();
-  try {
-    loadEnvFiles(cwd);
-  } catch (error) {
-    streams.err(`${renderError(toRenderableError(error))}\n`);
-    return failedSession(2);
-  }
-  const allowSpend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
-
   const mcpModule = await step(
     () => deps.importMcp(),
     streams,
@@ -60,6 +51,15 @@ export async function runMcp(rawOpts: unknown, deps: CliDeps, streams: Streams):
   if (mcpModule === undefined) {
     return failedSession(2);
   }
+
+  const cwd = mcpModule.resolveServerCwd?.(opts.cwd) ?? opts.cwd ?? process.cwd();
+  try {
+    loadEnvFiles(cwd);
+  } catch (error) {
+    streams.err(`${renderError(toRenderableError(error))}\n`);
+    return failedSession(2);
+  }
+  const allowSpend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
 
   const server = await step(
     () =>

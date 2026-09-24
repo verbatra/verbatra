@@ -45,7 +45,7 @@ Un enlace fallido se notifica en stderr como `verbatra: error [<code>] <message>
 `@verbatra/studio` es un paquete aparte, al que se llega mediante un import dinámico para que el resto de la CLI funcione sin él. Si no está instalado, `verbatra studio` sale con `2` con:
 
 ```
-Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio
+Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio
 ```
 
 Ese comando de pnpm instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`, y deja atrás un `pnpm-workspace.yaml` sin resolver que hace que los comandos pnpm posteriores fallen igual; la solución de una sola vez está en la [Solución de problemas](/docs/troubleshooting). npm y yarn instalan el paquete sin ese problema.

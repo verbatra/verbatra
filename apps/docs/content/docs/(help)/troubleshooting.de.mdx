@@ -305,14 +305,16 @@ Studio nutzt standardmäßig 5849 auf 127.0.0.1.
 
 ## Studio: @verbatra/studio ist nicht installiert
 
-**Symptom**: `Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D
-@verbatra/studio`
+**Symptom**: `Verbatra Studio requires @verbatra/studio.`, gefolgt von
+`npm install --save-dev @verbatra/studio` und `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`
 
 **Ursache**: `@verbatra/studio` ist ein separates Paket, das der `studio`-Befehl dynamisch lädt;
 der Rest der CLI funktioniert also ohne es.
 
-**Lösung**: Installiere es, wie der Hinweis sagt, und führe `verbatra studio` erneut aus. Der
-Hinweis nennt den pnpm-Befehl, also lies bei einer Installation mit pnpm zuerst
+**Lösung**: Installiere es neben der CLI (`npm install --save-dev @verbatra/studio` oder den
+passenden Befehl deines Paketmanagers) und führe `verbatra studio` erneut aus. Für einen einmaligen
+Lauf ohne Installation holt `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio` beide
+Pakete zusammen. Installierst du mit pnpm, lies zuerst
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 
 ## Studio: Retranslate- und Translate-Aktionen fehlen
@@ -332,14 +334,16 @@ method; wait before retrying.`; das löst sich von selbst. Siehe
 
 ## MCP: @verbatra/mcp ist nicht installiert
 
-**Symptom**: `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
-@verbatra/mcp`
+**Symptom**: `Verbatra's MCP server requires @verbatra/mcp.`, gefolgt von `npx -y @verbatra/mcp`
+und `npm install --save-dev @verbatra/mcp`
 
 **Ursache**: `@verbatra/mcp` ist ein separates Paket, das der `mcp`-Befehl dynamisch lädt; der
 Rest der CLI funktioniert also ohne es.
 
-**Lösung**: Installiere es, wie der Hinweis sagt, und führe `verbatra mcp` erneut aus, oder führe
-das `verbatra-mcp`-Binary aus, das `@verbatra/mcp` direkt mitliefert. Installierst du mit pnpm,
+**Lösung**: Starte den Server ohne CLI mit `npx -y @verbatra/mcp`, das das Paket holt und sein
+`verbatra-mcp`-Binary startet, oder installiere `@verbatra/mcp` neben der CLI
+(`npm install --save-dev @verbatra/mcp`) und führe `verbatra mcp` erneut aus.
+`npx -y @verbatra/cli mcp` allein funktioniert nie, weil es nur die CLI installiert. Installierst du mit pnpm,
 lies zuerst
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 

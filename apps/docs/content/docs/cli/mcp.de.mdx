@@ -30,9 +30,13 @@ Beide Formen nehmen dieselben drei Flags und starten denselben Server, aber die 
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
+| `--cwd` | `<path>` | `CLAUDE_PROJECT_DIR`, sonst das aktuelle Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--allow-spend` | keins | aus | die beiden Tools bereitstellen, die einen Übersetzungs-Provider aufrufen |
+
+Fehlt `--cwd` und nennt die Umgebungsvariable `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server dieses Verzeichnis als Projektwurzel statt des Verzeichnisses, in dem er gestartet wurde. Claude Code setzt `CLAUDE_PROJECT_DIR` für jeden stdio-Server, den es startet, auf die Projektwurzel, sodass eine Sitzung, die in einem Unterverzeichnis gestartet wurde, trotzdem die Projektkonfiguration findet. Ein explizites `--cwd` gewinnt immer, und `verbatra-mcp` und `verbatra mcp` wenden dieselbe Regel an. Bei `verbatra mcp` werden auch `.env.local` und `.env` aus diesem Verzeichnis gelesen.
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Fehlt `--allow-spend`, liest der Server stattdessen die Umgebungsvariable `VERBATRA_MCP_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß-/Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer gegenüber der Umgebungsvariable. Ohne beides werden `translation.retranslateEntry` und `translation.translatePending` überhaupt nicht bereitgestellt: Ein MCP-Client, der die Tools auflistet, sieht sie nie, und der Aufruf eines der beiden Namen schlägt als unbekanntes Tool fehl. Das ist eine Garantie pro Prozess, keine Prüfung pro Aufruf: Ein Tool hinter dem Spend-Gate ist strukturell nicht aufrufbar, statt beim Aufruf nur abgelehnt zu werden. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, und dann werden die beiden Tools nie bereitgestellt, auch nicht mit `--allow-spend`.
 
@@ -170,7 +174,7 @@ Der stdio-Transport von MCP nutzt stdout ausschließlich für Protokollnachricht
 `@verbatra/mcp` ist ein eigenes Paket, das über einen dynamischen Import erreicht wird, damit der Rest der CLI auch ohne es funktioniert. Ist es nicht installiert, beendet sich `verbatra mcp` mit `2` und gibt aus:
 
 ```
-Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp
+Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
 ```
 
 `verbatra-mcp` direkt aufzurufen, braucht überhaupt keine CLI: Installiere `@verbatra/mcp` allein, oder lass `npx` es wie oben gezeigt bei Bedarf holen.

@@ -147,9 +147,9 @@ describe("run studio: @verbatra/studio not installed", () => {
     const code = await run(["studio"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).toContain(
-      "Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio",
-    );
+    expect(cap.err()).toContain("Verbatra Studio requires @verbatra/studio.");
+    expect(cap.err()).toContain("npm install --save-dev @verbatra/studio");
+    expect(cap.err()).toContain("npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio");
   });
 
   it("never masks a resolution failure inside @verbatra/studio's own dependency graph as not-installed", async () => {
@@ -165,7 +165,7 @@ describe("run studio: @verbatra/studio not installed", () => {
 
     expect(code).toBe(2);
     expect(cap.err()).toContain(importedFrom);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/studio");
+    expect(cap.err()).not.toContain("npm install --save-dev @verbatra/studio");
     expect(cap.err()).toContain("ERR_MODULE_NOT_FOUND");
     expect(cap.err()).toContain("chokidar");
   });
@@ -181,7 +181,7 @@ describe("run studio: @verbatra/studio not installed", () => {
     const code = await run(["studio"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/studio");
+    expect(cap.err()).not.toContain("npm install --save-dev @verbatra/studio");
     expect(cap.err()).toContain("unexpected dynamic import failure");
   });
 });

@@ -30,13 +30,13 @@ Jedes Release von `@verbatra/mcp` veröffentlicht den Server direkt nach dem npm
 
 ## Welches Verzeichnis das Projekt ist
 
-Der Server lädt die Konfiguration und löst jede Locale-Datei aus seinem Arbeitsverzeichnis auf, oder aus dem Verzeichnis, das `--cwd` nennt. Ohne `--config` sucht er von dort aus aufwärts nach einer Konfigurationsdatei und hält am nächsten `.git`-Verzeichnis an, aber die Tools lösen Pfade weiterhin vom Arbeitsverzeichnis selbst aus auf. Richte den Server auf das Verzeichnis aus, in dem `verbatra.config.ts` liegt.
+Der Server lädt die Konfiguration und löst jede Locale-Datei aus seinem Arbeitsverzeichnis auf, oder aus dem Verzeichnis, das `--cwd` nennt. Ohne `--cwd` tritt eine Umgebungsvariable `CLAUDE_PROJECT_DIR`, die ein vorhandenes Verzeichnis nennt, an die Stelle des Arbeitsverzeichnisses. Ohne `--config` sucht er von dort aus aufwärts nach einer Konfigurationsdatei und hält am nächsten `.git`-Verzeichnis an, aber die Tools lösen Pfade weiterhin vom Arbeitsverzeichnis selbst aus auf. Richte den Server auf das Verzeichnis aus, in dem `verbatra.config.ts` liegt.
 
 Clients unterscheiden sich darin, in welchem Verzeichnis sie einen Server starten:
 
 | Client | Arbeitsverzeichnis | Was zu tun ist |
 | --- | --- | --- |
-| Claude Code | das Verzeichnis, in dem du `claude` gestartet hast | `claude` im Projektstamm starten |
+| Claude Code | das Verzeichnis, in dem du `claude` gestartet hast, mit `CLAUDE_PROJECT_DIR` auf den Projektstamm gesetzt | nichts: ohne `--cwd` nimmt der Server `CLAUDE_PROJECT_DIR` |
 | Cursor | nicht dokumentiert | `--cwd ${workspaceFolder}` übergeben |
 | VS Code | der Workspace-Ordner | nichts, oder `cwd` setzen |
 | Windsurf | nicht dokumentiert | `--cwd` mit absolutem Pfad übergeben |
