@@ -21,7 +21,7 @@ verbatra studio [flags]
 | `--port` | `<n>` | `5849` | auf diesem Port lauschen; muss eine Ganzzahl von 1 bis 65535 sein |
 | `--allow-spend` | keins | aus | Studio erlauben, einen Übersetzungs-Provider aufzurufen (einen Key neu übersetzen, ausstehende Änderungen übersetzen) |
 | `--expose-agent-tools` | keins | aus | die Review-Aktionen von Studio als WebMCP-Tools registrieren, damit ein KI-Agent im Browser sie bedienen kann |
-| `--verbose` | keins | aus | gibt zusätzlich eine stderr-Zeile pro Anfrage aus, mit maskiertem Sitzungstoken |
+| `--verbose` | keins | aus | gibt zusätzlich eine stderr-Zeile pro Anfrage aus, mit maskiertem Sitzungstoken; die eigene Startzeile von Studio wird nie weitergereicht |
 
 Wenn das Flag `--allow-spend` fehlt, liest Studio stattdessen die Umgebungsvariable `VERBATRA_STUDIO_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer über die Umgebungsvariable. Ohne beides kontaktiert Studio nie einen Provider; lokales Bearbeiten braucht kein Flag. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, und dann hält Studio Provider-Ausgaben auch mit `--allow-spend` zurück: Die Settings-Seite sagt das, statt auf das Flag zu verweisen.
 

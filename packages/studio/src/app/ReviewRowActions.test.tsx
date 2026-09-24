@@ -131,7 +131,7 @@ describe("ReviewRowActions", () => {
     );
 
     const button = view.getByText("button", "Retranslating… 12:34");
-    expect(button.className).toContain("w-40");
+    expect(button.className).toContain("min-w-40");
     expect(button.contains(view.get("[data-busy-elapsed]"))).toBe(true);
   });
 
@@ -171,8 +171,30 @@ describe("ReviewRowActions", () => {
 
     expect(view.getByText("button", "Approve").className).toContain("w-24");
     expect(view.getByText("button", "Reject…").className).toContain("w-24");
-    expect(view.getByText("button", "Retranslate").className).toContain("w-40");
     expect(view.get('[role="status"]').textContent).toBe("");
+  });
+
+  it("lets an idle Retranslate button hug its label and widens it only while it runs", () => {
+    const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
+    const idle = view.getByText("button", "Retranslate").className.split(" ");
+
+    expect(idle).toContain("min-w-0");
+    expect(idle).not.toContain("min-w-40");
+    expect(idle).not.toContain("w-40");
+    expect(idle).toContain("transition-[min-width]");
+    expect(idle).toContain("motion-reduce:transition-none");
+
+    view.rerender(
+      <ReviewRowActions
+        {...handlers()}
+        onRetranslate={vi.fn()}
+        busy={{ action: "retranslate", elapsedSeconds: 5 }}
+      />,
+    );
+    const busy = view.getByText("button", "Retranslating… 5s").className.split(" ");
+
+    expect(busy).toContain("min-w-40");
+    expect(busy).not.toContain("min-w-0");
   });
 
   it("anchors the visually hidden status inside its own wrapper, so it never widens the page", () => {

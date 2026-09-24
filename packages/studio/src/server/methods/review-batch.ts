@@ -77,7 +77,12 @@ export const reviewApproveManyHandler: RpcHandler<"review.approveMany"> = async 
   const entries = uniqueByIdentity(params.entries);
   return surfacingInterruption<ReviewBatchOutcome>(REVIEW_APPROVE_MANY_METHOD, entries, deps, () =>
     approveEntries(
-      { config: deps.config.config, cwd: deps.projectRoot, entries },
+      {
+        config: deps.config.config,
+        cwd: deps.projectRoot,
+        entries,
+        lockAcquireTimeoutMs: STUDIO_BATCH_LOCK_TIMEOUT_MS,
+      },
       reviewDeps(deps),
     ),
   );
@@ -86,7 +91,15 @@ export const reviewApproveManyHandler: RpcHandler<"review.approveMany"> = async 
 export const reviewRejectManyHandler: RpcHandler<"review.rejectMany"> = async (params, deps) => {
   const entries = uniqueByIdentity(params.entries);
   return surfacingInterruption<ReviewBatchOutcome>(REVIEW_REJECT_MANY_METHOD, entries, deps, () =>
-    rejectEntries({ config: deps.config.config, cwd: deps.projectRoot, entries }, reviewDeps(deps)),
+    rejectEntries(
+      {
+        config: deps.config.config,
+        cwd: deps.projectRoot,
+        entries,
+        lockAcquireTimeoutMs: STUDIO_BATCH_LOCK_TIMEOUT_MS,
+      },
+      reviewDeps(deps),
+    ),
   );
 };
 

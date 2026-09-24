@@ -1,3 +1,4 @@
+import { budgetTracking, createRateBudget, type RateBudget } from "../client/rate-budget.js";
 import type {
   ConnectionStatus,
   EventSourceLike,
@@ -19,10 +20,12 @@ const browserFetch: FetchLike = (url, init) => fetch(url, init);
 
 export const sessionStore: SessionStore = createSessionStore();
 
-export const rpcClient: RpcClient = createRpcClient({
-  fetchImpl: browserFetch,
-  session: sessionStore,
-});
+export const rateBudget: RateBudget = createRateBudget();
+
+export const rpcClient: RpcClient = budgetTracking(
+  createRpcClient({ fetchImpl: browserFetch, session: sessionStore }),
+  rateBudget,
+);
 
 export const reviewOverlayStore: ReviewOverlayStore = createReviewOverlayStore();
 

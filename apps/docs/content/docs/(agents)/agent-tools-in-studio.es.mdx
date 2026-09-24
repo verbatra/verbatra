@@ -122,6 +122,10 @@ Cada herramienta devuelve como JSON el propio envoltorio RPC del panel, así que
 - `PARAMS_INVALID`: los parámetros no superaron la validación; el error lleva una lista `issues` que nombra cada campo que falla.
 - `SESSION_EXPIRED`: el servidor ya no acepta la cookie de sesión de la pestaña, normalmente porque Studio se reinició con un token nuevo. La pestaña deja de llamar al servidor y muestra la pantalla Session expired; abre la URL que imprimió el Studio en ejecución para empezar una sesión nueva.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Un rechazo `METHOD_RATE_LIMITED` también lleva `retryAfterSeconds` en `error`, con el mismo número en la cabecera `Retry-After` de la respuesta: los segundos hasta que la llamada cabría. Un rechazo `BATCH_TOO_LARGE`, para un lote con más entradas de las que permite una ventana, también lleva ambos, contando los segundos hasta que toda la ventana quede libre; un lote de ese tamaño sigue sin caber entonces, así que envía menos entradas. `verbatra_project_snapshot` informa de los límites de retraducción y de decisiones de revisión en `capabilities.limits`, cada uno como `{ windowMs, max }`, para que un agente pueda espaciar sus llamadas en lugar de toparse con ellos.
+
 ## El aviso de modo degradado
 
 El registro tiene tres desenlaces posibles, y solo uno de ellos es un problema.

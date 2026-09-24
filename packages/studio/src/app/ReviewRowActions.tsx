@@ -14,6 +14,13 @@ export interface RowBusy {
   readonly elapsedSeconds?: number | undefined;
 }
 
+const RETRANSLATE_IDLE_CLASSNAME =
+  "min-w-0 transition-[min-width] duration-150 ease-out motion-reduce:transition-none";
+
+const RETRANSLATE_BUSY_CLASSNAME = "min-w-40";
+
+export const RETRANSLATE_ACTIONS_COLUMN_CLASSNAME = "w-110";
+
 function shortcutFor(action: ReviewShortcutAction, active: boolean): string | undefined {
   return active ? shortcutKeysFor(action) : undefined;
 }
@@ -74,7 +81,10 @@ export function ReviewRowActions({
       </Button>
       {onRetranslate !== undefined ? (
         <Button
-          className="w-40"
+          className={cn(
+            RETRANSLATE_IDLE_CLASSNAME,
+            running === "retranslate" && RETRANSLATE_BUSY_CLASSNAME,
+          )}
           onClick={onRetranslate}
           disabled={busy !== undefined}
           aria-keyshortcuts={shortcutFor("retranslate", shortcutsActive)}

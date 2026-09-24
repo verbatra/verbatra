@@ -11,6 +11,7 @@ import { baseStudioConfig } from "../test-support.js";
 const calls = vi.hoisted(() => ({
   retranslate: [] as unknown[],
   approve: [] as unknown[],
+  reject: [] as unknown[],
   failure: undefined as unknown,
 }));
 
@@ -28,7 +29,10 @@ vi.mock("@verbatra/sdk", async (importOriginal) => {
       calls.approve.push(input);
       return settle({ results: [] });
     },
-    rejectEntries: async () => settle({ results: [] }),
+    rejectEntries: async (input: ReviewEntriesInput) => {
+      calls.reject.push(input);
+      return settle({ results: [] });
+    },
   };
 });
 
@@ -51,6 +55,7 @@ function deps(log?: (line: string) => void): RpcHandlerDeps {
 beforeEach(() => {
   calls.retranslate = [];
   calls.approve = [];
+  calls.reject = [];
   calls.failure = undefined;
 });
 
@@ -76,6 +81,19 @@ describe("batch handlers: what reaches the sdk", () => {
         lockAcquireTimeoutMs: STUDIO_BATCH_LOCK_TIMEOUT_MS,
       }),
     ]);
+  });
+
+  it("bounds the lock wait of an approval and a rejection batch", async () => {
+    const params = { entries: [{ locale: "de", key: "a", expectedValue: "A" }] };
+
+    await reviewApproveManyHandler(params, deps());
+    await reviewRejectManyHandler(params, deps());
+
+    for (const recorded of [calls.approve, calls.reject]) {
+      expect(recorded).toEqual([
+        expect.objectContaining({ lockAcquireTimeoutMs: STUDIO_BATCH_LOCK_TIMEOUT_MS }),
+      ]);
+    }
   });
 
   it("drops a repeated review entry, keeping the first value the reviewer saw", async () => {

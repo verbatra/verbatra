@@ -122,6 +122,10 @@ Every tool returns the dashboard's own RPC envelope as JSON, so a failed call re
 - `PARAMS_INVALID`: the parameters failed validation; the error carries an `issues` list naming each failing field.
 - `SESSION_EXPIRED`: the server no longer accepts the tab's session cookie, usually because Studio was restarted with a new token. The tab stops calling the server and shows the Session expired screen; open the URL the running Studio printed to start a new session.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+A `METHOD_RATE_LIMITED` refusal also carries `retryAfterSeconds` in `error`, with the same number in the response's `Retry-After` header: the seconds until the call would fit. A `BATCH_TOO_LARGE` refusal, for a batch with more entries than one window allows, carries both too, counting the seconds until the whole window is free; a batch that size still does not fit then, so send fewer entries. `verbatra_project_snapshot` reports the retranslate and review decision limits under `capabilities.limits`, each as `{ windowMs, max }`, so an agent can pace its calls instead of running into them.
+
 ## The degraded-mode notice
 
 Registration has three possible outcomes, and only one of them is a problem.

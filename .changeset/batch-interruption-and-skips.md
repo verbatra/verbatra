@@ -19,6 +19,9 @@ completed before it, `entry`, the entry that was running, and the original error
 `onLockWait` and `lockAcquireTimeoutMs`, which bound the wait for the locale's write lock before
 the provider is called. Once an entry's locale lock times out, `retranslateEntries` skips the later
 entries needing that lock with `LOCK_CONTENDED` instead of waiting again, and runs the other
-locales. `translate`, `watch`, `importWorkbook`, `retranslateEntry`, and `retranslateEntries` throw
-the new `LOCK_TIMEOUT_INVALID` for a `lockAcquireTimeoutMs` that is not a whole number of
-milliseconds of at least 0.
+locales. `approveEntry`, `rejectEntry`, `approveEntries`, and `rejectEntries` accept the same two
+options, and a review batch skips the later entries of a locale whose lock timed out the same way,
+so `ReviewBatchOutcome` gains `BatchEntrySkipped`. `translate`, `watch`, `importWorkbook`,
+`retranslateEntry`, `retranslateEntries`, and the four review calls throw the new
+`LOCK_TIMEOUT_INVALID` for a `lockAcquireTimeoutMs` that is not a whole number of milliseconds of
+at least 0.

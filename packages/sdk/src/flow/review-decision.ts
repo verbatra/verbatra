@@ -9,9 +9,14 @@ import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import {
+  assertLockAcquireTimeout,
+  type LocaleWriteLockOptions,
+  type LockWaitListener,
+  recordLockOptions,
   withLocaleWriteLock,
   withLockFileGuard,
   writeLockKeyFor,
+  writeLockOptions,
 } from "../lock/locale-write-lock.js";
 import {
   baselineFor,
@@ -55,6 +60,17 @@ export interface ReviewDecisionInput {
    * in the committed provenance file, so it is public; nothing is recorded when it is left out.
    */
   readonly reviewer?: string;
+  /**
+   * Called while waiting on another process's write lock for the locale, so a caller can explain a
+   * stall instead of appearing to hang. Never called for a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, to wait for the locale's write lock before failing with
+   * `LOCK_CONTENDED`. Defaults to ten minutes. It does not bound the lock-file guard taken to
+   * record the decision, which always allows the ten-minute default.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
 
 /** Injectable dependencies for {@link approveEntry} and {@link rejectEntry}. */
@@ -90,6 +106,8 @@ interface ReviewContext {
   readonly locale: string;
   readonly key: string;
   readonly sourceEntry: TranslationEntry;
+  readonly writeLock: LocaleWriteLockOptions;
+  readonly recordLock: LocaleWriteLockOptions;
 }
 
 interface ReviewedValue {
@@ -124,6 +142,7 @@ async function reviewContext(
   deps: ReviewDecisionDeps,
 ): Promise<ReviewContext> {
   assertReviewer(input.reviewer);
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
@@ -141,7 +160,17 @@ async function reviewContext(
       `The key "${input.key}" was not found in the source resource.`,
     );
   }
-  return { config, cwd, fs, adapter, locale, key: input.key, sourceEntry };
+  return {
+    config,
+    cwd,
+    fs,
+    adapter,
+    locale,
+    key: input.key,
+    sourceEntry,
+    writeLock: writeLockOptions(input),
+    recordLock: recordLockOptions(input),
+  };
 }
 
 async function reviewedValue(context: ReviewContext, expected: string): Promise<ReviewedValue> {
@@ -392,31 +421,36 @@ async function rejectUnderGuard(
 ): Promise<ProvenanceRecord> {
   const path = targetPath(context);
   const snapshot = await targetSnapshot(context, path);
-  return withLockFileGuard(context.cwd, context.fs, async () => {
-    await assertLockReadable(context);
-    const plan = await planDecision(context, reviewed.value, decision);
-    const provenanceBefore = await context.fs.readFileBounded(
-      provenanceFilePath(context.cwd),
-      MAX_PROVENANCE_FILE_BYTES,
-    );
-    try {
-      await removeValue(context, reviewed.target, path);
-      await updateLockFileLocaleUnguarded(
-        context.cwd,
-        context.fs,
-        context.locale,
-        { mode: "remove", keys: [context.key] },
-        {
-          records: new Map([[context.key, plan.record]]),
-          replace: new Set([context.key]),
-        },
-        { requireProvenance: true },
+  return withLockFileGuard(
+    context.cwd,
+    context.fs,
+    async () => {
+      await assertLockReadable(context);
+      const plan = await planDecision(context, reviewed.value, decision);
+      const provenanceBefore = await context.fs.readFileBounded(
+        provenanceFilePath(context.cwd),
+        MAX_PROVENANCE_FILE_BYTES,
       );
-    } catch (error) {
-      return restoreAfterFailedReject(context, path, snapshot, provenanceBefore, error);
-    }
-    return plan.record;
-  });
+      try {
+        await removeValue(context, reviewed.target, path);
+        await updateLockFileLocaleUnguarded(
+          context.cwd,
+          context.fs,
+          context.locale,
+          { mode: "remove", keys: [context.key] },
+          {
+            records: new Map([[context.key, plan.record]]),
+            replace: new Set([context.key]),
+          },
+          { requireProvenance: true },
+        );
+      } catch (error) {
+        return restoreAfterFailedReject(context, path, snapshot, provenanceBefore, error);
+      }
+      return plan.record;
+    },
+    context.recordLock,
+  );
 }
 
 function withLocaleLock<T>(context: ReviewContext, fn: () => Promise<T>): Promise<T> {
@@ -425,6 +459,7 @@ function withLocaleLock<T>(context: ReviewContext, fn: () => Promise<T>): Promis
     writeLockKeyFor(context.config.format, context.locale),
     context.fs,
     fn,
+    context.writeLock,
   );
 }
 
@@ -453,6 +488,8 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
  *
  * @throws {@link SdkError} `REVIEWER_INVALID`: the reviewer is empty, longer than 64 characters, or
  * contains a control character.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -483,29 +520,34 @@ export async function approveEntry(
   const context = await reviewContext(input, deps);
   return withLocaleLock(context, async () => {
     const { value } = await reviewedValue(context, input.expectedValue);
-    return withLockFileGuard(context.cwd, context.fs, async () => {
-      const sourceHash = await lockSourceHash(context);
-      if (sourceHash !== contentHash(context.sourceEntry)) {
-        throw new SdkError(
-          "REVIEW_SOURCE_CHANGED",
-          `The source text of "${context.key}" changed since its ${context.locale} translation was written, so the translation cannot be approved as it stands. Edit or retranslate it first.`,
-        );
-      }
-      const plan = await planDecision(context, value, {
-        reviewState: "approved",
-        reviewedSourceHash: sourceHash,
-        ...reviewerOf(input),
-      });
-      if (plan.kind === "write") {
-        await assertLocksHeld();
-        await context.fs.writeFile(plan.path, plan.content);
-      }
-      return {
-        locale: context.locale,
-        key: context.key,
-        provenance: keyProvenance(plan.record, value, sourceHash),
-      };
-    });
+    return withLockFileGuard(
+      context.cwd,
+      context.fs,
+      async () => {
+        const sourceHash = await lockSourceHash(context);
+        if (sourceHash !== contentHash(context.sourceEntry)) {
+          throw new SdkError(
+            "REVIEW_SOURCE_CHANGED",
+            `The source text of "${context.key}" changed since its ${context.locale} translation was written, so the translation cannot be approved as it stands. Edit or retranslate it first.`,
+          );
+        }
+        const plan = await planDecision(context, value, {
+          reviewState: "approved",
+          reviewedSourceHash: sourceHash,
+          ...reviewerOf(input),
+        });
+        if (plan.kind === "write") {
+          await assertLocksHeld();
+          await context.fs.writeFile(plan.path, plan.content);
+        }
+        return {
+          locale: context.locale,
+          key: context.key,
+          provenance: keyProvenance(plan.record, value, sourceHash),
+        };
+      },
+      context.recordLock,
+    );
   });
 }
 
@@ -541,6 +583,8 @@ export async function approveEntry(
  *
  * @throws {@link SdkError} `REVIEWER_INVALID`: the reviewer is empty, longer than 64 characters, or
  * contains a control character.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`

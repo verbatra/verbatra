@@ -9,6 +9,7 @@ import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
 export interface RpcResult {
   readonly statusCode: number;
   readonly body: string;
+  readonly retryAfterSeconds?: number;
 }
 
 const REQUEST_INVALID_MESSAGE = "The request body must be JSON shaped as { method, params }.";
@@ -74,11 +75,27 @@ function rateLimitRefusal(
     return undefined;
   }
   if (rateLimiter.exceedsWindow(method, weight)) {
-    return errorEnvelope(429, "BATCH_TOO_LARGE", BATCH_TOO_LARGE_MESSAGE);
+    return rateLimitEnvelope(
+      "BATCH_TOO_LARGE",
+      BATCH_TOO_LARGE_MESSAGE,
+      rateLimiter.retryAfterMs(method, weight),
+    );
   }
   return rateLimiter.tryAcquire(method, weight)
     ? undefined
-    : errorEnvelope(429, "METHOD_RATE_LIMITED", METHOD_RATE_LIMITED_MESSAGE);
+    : rateLimitEnvelope(
+        "METHOD_RATE_LIMITED",
+        METHOD_RATE_LIMITED_MESSAGE,
+        rateLimiter.retryAfterMs(method, weight),
+      );
+}
+
+function rateLimitEnvelope(code: string, message: string, retryAfterMs: number): RpcResult {
+  const retryAfterSeconds = Math.max(0, Math.ceil(retryAfterMs / 1000));
+  return {
+    ...jsonEnvelope(429, { ok: false, error: { code, message, retryAfterSeconds } }),
+    retryAfterSeconds,
+  };
 }
 
 function parseRequestShape(body: Buffer): RawRequestShape | undefined {

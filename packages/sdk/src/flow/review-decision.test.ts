@@ -298,6 +298,23 @@ describe("approveEntry and rejectEntry: boundary checks", () => {
     await expect(rejectEntry(input)).rejects.toMatchObject({ code: "REVIEWER_INVALID" });
   });
 
+  it.each([[-1], [1.5], [Number.NaN]])(
+    "refuses a lockAcquireTimeoutMs of %s with LOCK_TIMEOUT_INVALID before anything is read",
+    async (lockAcquireTimeoutMs) => {
+      const input = {
+        config: cfg(),
+        cwd: "/nonexistent",
+        locale: "de",
+        key: "greeting",
+        expectedValue: "x",
+        lockAcquireTimeoutMs,
+      };
+
+      await expect(approveEntry(input)).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+      await expect(rejectEntry(input)).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+    },
+  );
+
   it("accepts a 64-character reviewer with non-ASCII letters", async () => {
     const dir = await translated({ greeting: "Hello" });
     const reviewer = `Zoë ${"a".repeat(60)}`;

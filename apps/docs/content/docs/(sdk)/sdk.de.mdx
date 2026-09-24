@@ -680,14 +680,22 @@ der schon ausgeführten Einträge trägt, deren Schreibvorgänge bereits auf der
 
 ### approveEntries
 
-Eingabe: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Führt
-`approveEntry` pro Eintrag mit denselben Prüfungen aus; `reviewer` gilt für jeden Eintrag. Ein
-erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`.
+Eingabe: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Führt `approveEntry` pro Eintrag mit denselben Prüfungen aus; `reviewer` gilt für jeden Eintrag. Ein
+erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` begrenzt
+das Warten jedes Eintrags auf die Schreibsperre seiner Locale, und `onLockWait` meldet dieses
+Warten. Ein Eintrag, dessen Sperre über das Timeout hinaus belegt bleibt, scheitert mit
+`LOCK_CONTENDED`, und jeder spätere Eintrag, der dieselbe Sperre braucht, bekommt
+`{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }`, statt erneut zu
+warten; Einträge anderer Locales werden weiter entschieden. Die Einzelaufrufe `approveEntry` und
+`rejectEntry` nehmen dieselben beiden Optionen.
 
 ### rejectEntries
 
 Eingabe: wie bei `approveEntries`. Führt `rejectEntry` pro Eintrag aus und entfernt jeden
-abgelehnten Wert. Ein erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`.
+abgelehnten Wert. Ein erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. Ein
+Sperr-Timeout überspringt die späteren Einträge, die diese Sperre brauchen, wie bei
+`approveEntries`.
 
 ### retranslateEntries
 

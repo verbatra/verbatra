@@ -219,6 +219,7 @@ describe("dispatchRpc envelope", () => {
     const limiter: RpcRateLimiter = {
       tryAcquire: () => false,
       exceedsWindow: () => false,
+      retryAfterMs: () => 41_200,
     };
 
     const result = await dispatchRpc(
@@ -240,8 +241,10 @@ describe("dispatchRpc envelope", () => {
       error: {
         code: "METHOD_RATE_LIMITED",
         message: "Too many calls to this method; wait before retrying.",
+        retryAfterSeconds: 42,
       },
     });
+    expect(result.retryAfterSeconds).toBe(42);
     expect(calls).toBe(0);
   });
 
@@ -250,6 +253,7 @@ describe("dispatchRpc envelope", () => {
     const limiter: RpcRateLimiter = {
       tryAcquire: () => false,
       exceedsWindow: () => false,
+      retryAfterMs: () => 0,
     };
 
     const result = await dispatchRpc(
@@ -308,6 +312,7 @@ describe("dispatchRpc envelope", () => {
         return false;
       },
       exceedsWindow: () => false,
+      retryAfterMs: () => 0,
     };
 
     const result = await dispatchRpc(
@@ -633,6 +638,7 @@ describe("dispatchRpc: batch entry counts reach the rate limiter", () => {
         return true;
       },
       exceedsWindow: () => false,
+      retryAfterMs: () => 0,
     };
     const handlers: HandlersRegistry = {
       "translation.retranslateEntries": async () => ({ results: [] }),
@@ -715,8 +721,10 @@ describe("dispatchRpc: batch entry counts reach the rate limiter", () => {
         code: "BATCH_TOO_LARGE",
         message:
           "This batch has more entries than this method allows in one rate-limit window; send fewer entries.",
+        retryAfterSeconds: 0,
       },
     });
+    expect(result.retryAfterSeconds).toBe(0);
     expect(calls).toBe(0);
   });
 });
@@ -730,6 +738,7 @@ describe("dispatchRpc: the order of the in-flight guard and the rate limiter", (
         return true;
       },
       exceedsWindow: () => false,
+      retryAfterMs: () => 0,
     };
     const guard: RpcInFlightGuard = { tryEnter: () => false, leave: () => {}, entries: () => [] };
 
@@ -754,7 +763,11 @@ describe("dispatchRpc: the order of the in-flight guard and the rate limiter", (
   it("frees the in-flight slot of a call the rate limiter refuses", async () => {
     const guard = createRpcInFlightGuard(new Set(["translation.retranslateEntry"]));
     let allow = false;
-    const limiter: RpcRateLimiter = { tryAcquire: () => allow, exceedsWindow: () => false };
+    const limiter: RpcRateLimiter = {
+      tryAcquire: () => allow,
+      exceedsWindow: () => false,
+      retryAfterMs: () => 0,
+    };
     const handlers: HandlersRegistry = {
       "translation.retranslateEntry": async () => ({
         accepted: true,
@@ -784,6 +797,7 @@ describe("dispatchRpc: the order of the in-flight guard and the rate limiter", (
         return true;
       },
       exceedsWindow: () => false,
+      retryAfterMs: () => 0,
     };
 
     await dispatchRpc(

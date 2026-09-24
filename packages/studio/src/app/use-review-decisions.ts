@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { budgetRefusal } from "../client/rate-budget.js";
 import {
   deriveRetranslateOutcome,
   isProtectedRefusal,
   type RetranslateOutcome,
 } from "../client/retranslate-outcome.js";
 import {
+  type BatchAction,
   type BatchSummary,
   failedBatchEntryIds,
   summarizeRetranslateBatch,
@@ -20,7 +22,8 @@ import {
   type RowBusyAction,
 } from "../client/review-in-flight.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
-import { rpcClient } from "./api.js";
+import type { StudioRateLimits } from "../shared/rpc/snapshot.js";
+import { rateBudget, rpcClient } from "./api.js";
 import type { DecisionNotice } from "./ReviewDecisionStatus.js";
 
 export interface EntryRef {
@@ -132,7 +135,11 @@ function useServerInFlight(
 
 export function useReviewDecisions(
   onDecided: () => void,
-  options: { readonly trackServer: boolean; readonly refreshToken: number },
+  options: {
+    readonly trackServer: boolean;
+    readonly refreshToken: number;
+    readonly limits?: StudioRateLimits | undefined;
+  },
 ): ReviewDecisions {
   const [pending, setPendingState] = useState<ReadonlyMap<string, PendingRow>>(new Map());
   const pendingRef = useRef(pending);
@@ -185,19 +192,35 @@ export function useReviewDecisions(
     reloadThenSettle(rows);
   }
 
+  function refusedByBudget(
+    method: string,
+    params: unknown,
+    action: BatchAction,
+    rows: readonly EntryRef[],
+    onSettled: BatchSettled,
+  ): boolean {
+    const refusal = budgetRefusal(rateBudget.check(method, params, options.limits, Date.now()));
+    if (refusal === undefined) {
+      return false;
+    }
+    settleBatch(rows, { kind: "error", action, message: refusal }, onSettled);
+    return true;
+  }
+
   async function decideMany(
     action: "approve" | "reject",
     targets: readonly ValuedEntry[],
     onSettled: BatchSettled,
   ): Promise<void> {
-    setRowsPending(targets, action);
+    const method = action === "approve" ? "review.approveMany" : "review.rejectMany";
     const params = {
       entries: targets.map(({ locale, key, value }) => ({ locale, key, expectedValue: value })),
     };
-    const response =
-      action === "approve"
-        ? await rpcClient.call("review.approveMany", params)
-        : await rpcClient.call("review.rejectMany", params);
+    if (refusedByBudget(method, params, action, targets, onSettled)) {
+      return;
+    }
+    setRowsPending(targets, action);
+    const response = await rpcClient.call(method, params);
     settleBatch(targets, summarizeReviewBatch(action, response), onSettled);
   }
 
@@ -205,10 +228,13 @@ export function useReviewDecisions(
     rows: readonly EntryRef[],
     onSettled: BatchSettled,
   ): Promise<void> {
+    const method = "translation.retranslateEntries";
+    const params = { entries: rows.map(({ locale, key }) => ({ locale, key })) };
+    if (refusedByBudget(method, params, "retranslate", rows, onSettled)) {
+      return;
+    }
     setRowsPending(rows, "retranslate");
-    const response = await rpcClient.call("translation.retranslateEntries", {
-      entries: rows.map(({ locale, key }) => ({ locale, key })),
-    });
+    const response = await rpcClient.call(method, params);
     settleBatch(rows, summarizeRetranslateBatch(response), onSettled);
   }
 

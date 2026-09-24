@@ -665,14 +665,21 @@ están en disco. Una lista `entries` vacía devuelve `results` vacío.
 
 ### approveEntries
 
-Entrada: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Ejecuta
-`approveEntry` por entrada con las mismas comprobaciones; `reviewer` se aplica a todas las
-entradas. Un resultado correcto es `{ ok: true, locale, key, provenance }`.
+Entrada: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Ejecuta `approveEntry` por entrada con las mismas comprobaciones; `reviewer` se aplica a todas las
+entradas. Un resultado correcto es `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs`
+limita la espera de cada entrada por el bloqueo de escritura de su locale, y `onLockWait` informa
+de esa espera. Una entrada cuyo bloqueo sigue ocupado pasado el tiempo límite falla con
+`LOCK_CONTENDED`, y cada entrada posterior que necesita el mismo bloqueo recibe
+`{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` en lugar de volver a
+esperar; las entradas de otros locales se siguen decidiendo. Las llamadas de una sola entrada
+`approveEntry` y `rejectEntry` aceptan las mismas dos opciones.
 
 ### rejectEntries
 
 Entrada: la misma que `approveEntries`. Ejecuta `rejectEntry` por entrada y elimina cada valor
-rechazado. Un resultado correcto es `{ ok: true, locale, key, provenance }`.
+rechazado. Un resultado correcto es `{ ok: true, locale, key, provenance }`. Un tiempo límite de
+bloqueo omite las entradas posteriores que necesitan ese bloqueo, como en `approveEntries`.
 
 ### retranslateEntries
 

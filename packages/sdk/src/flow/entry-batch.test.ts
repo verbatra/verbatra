@@ -547,6 +547,115 @@ describe("retranslateEntries: a locale whose write lock stays out of reach", () 
   });
 });
 
+describe("approveEntries and rejectEntries: a locale whose write lock stays out of reach", () => {
+  async function twoLocaleProject(): Promise<string> {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), { greeting: "Hello", farewell: "Bye" });
+    await translate(
+      { config: cfg({ targetLocales: ["de", "fr"] }), cwd: dir },
+      { createProvider: stubCreate },
+    );
+    return dir;
+  }
+
+  async function holdLock(dir: string, locale: string): Promise<string> {
+    const lock = localeLockPath(dir, locale);
+    await mkdir(dirname(lock), { recursive: true });
+    await writeFile(lock, JSON.stringify({ pid: 1, hostname: "another-machine" }), "utf8");
+    return lock;
+  }
+
+  const entries = [
+    { locale: "de", key: "greeting", expectedValue: "[de] Hello" },
+    { locale: "fr", key: "greeting", expectedValue: "[fr] Hello" },
+    { locale: "de", key: "farewell", expectedValue: "[de] Bye" },
+    { locale: "fr", key: "farewell", expectedValue: "[fr] Bye" },
+  ];
+
+  it.each([
+    ["approveEntries", approveEntries],
+    ["rejectEntries", rejectEntries],
+  ])(
+    "%s skips the rest of that locale after a lock timeout and decides the others",
+    async (_name, decide) => {
+      const dir = await twoLocaleProject();
+      const lock = await holdLock(dir, "de");
+
+      const { results } = await decide({
+        config: cfg({ targetLocales: ["de", "fr"] }),
+        cwd: dir,
+        entries,
+        lockAcquireTimeoutMs: 0,
+      });
+
+      expect(results.map((outcome) => [outcome.locale, outcome.key, outcome.ok])).toEqual([
+        ["de", "greeting", false],
+        ["fr", "greeting", true],
+        ["de", "farewell", false],
+        ["fr", "farewell", true],
+      ]);
+      expect(results[0]).toMatchObject({ code: "LOCK_CONTENDED" });
+      expect(results[0]).not.toHaveProperty("skipped");
+      expect(results[2]).toEqual({
+        locale: "de",
+        key: "farewell",
+        ok: false,
+        skipped: true,
+        code: "LOCK_CONTENDED",
+        message: `Not attempted: an earlier entry could not acquire the write lock at ${lock}, which this one needs too.`,
+      });
+    },
+  );
+
+  it("bounds the wait for the lock and reports it to onLockWait", async () => {
+    const dir = await twoLocaleProject();
+    const lock = await holdLock(dir, "de");
+    const waits: string[] = [];
+
+    const { results } = await approveEntries({
+      config: cfg({ targetLocales: ["de", "fr"] }),
+      cwd: dir,
+      entries: [{ locale: "de", key: "greeting", expectedValue: "[de] Hello" }],
+      lockAcquireTimeoutMs: 1_200,
+      onLockWait: (event) => waits.push(event.lockPath),
+    });
+
+    expect(results[0]).toMatchObject({ ok: false, code: "LOCK_CONTENDED" });
+    expect(waits).toEqual([lock]);
+  });
+
+  it("still decides the next entry of a locale after a failure that was not a lock timeout", async () => {
+    const dir = await twoLocaleProject();
+
+    const { results } = await rejectEntries({
+      config: cfg({ targetLocales: ["de", "fr"] }),
+      cwd: dir,
+      entries: [
+        { locale: "de", key: "greeting", expectedValue: "stale" },
+        { locale: "de", key: "farewell", expectedValue: "[de] Bye" },
+      ],
+      lockAcquireTimeoutMs: 0,
+    });
+
+    expect(results.map((outcome) => outcome.ok)).toEqual([false, true]);
+  });
+
+  it.each([
+    ["approveEntries", approveEntries],
+    ["rejectEntries", rejectEntries],
+  ])("%s refuses an invalid lockAcquireTimeoutMs before any entry runs", async (_name, decide) => {
+    await expect(
+      decide({
+        config: cfg(),
+        cwd: "/nonexistent",
+        entries: [{ locale: "de", key: "greeting", expectedValue: "x" }],
+        lockAcquireTimeoutMs: -1,
+      }),
+    ).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+  });
+});
+
 describe("retranslateEntries and retranslateEntry: validating the lock timeout", () => {
   it.each([[-1], [1.5], [Number.NaN], [Number.POSITIVE_INFINITY]])(
     "refuses a lockAcquireTimeoutMs of %s before any entry runs",

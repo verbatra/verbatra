@@ -629,14 +629,20 @@ returns an empty `results`.
 
 ### approveEntries
 
-Input: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Runs `approveEntry`
-per entry with the same checks; `reviewer` applies to every entry. A successful outcome is
-`{ ok: true, locale, key, provenance }`.
+Input: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Runs `approveEntry` per entry with the same checks; `reviewer` applies to every entry. A successful
+outcome is `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` bounds each entry's
+wait for its locale's write lock, and `onLockWait` reports that wait. An entry whose lock stays
+taken past the timeout fails with `LOCK_CONTENDED`, and every later entry that needs the same lock
+gets `{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` instead of
+waiting again; entries of other locales are still decided. The single-entry `approveEntry` and
+`rejectEntry` take the same two options.
 
 ### rejectEntries
 
 Input: the same as `approveEntries`. Runs `rejectEntry` per entry, removing each rejected value. A
-successful outcome is `{ ok: true, locale, key, provenance }`.
+successful outcome is `{ ok: true, locale, key, provenance }`. A lock timeout skips the later entries
+needing that lock, as in `approveEntries`.
 
 ### retranslateEntries
 

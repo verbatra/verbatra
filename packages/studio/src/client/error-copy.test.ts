@@ -132,3 +132,20 @@ describe("resolveErrorCopy", () => {
     );
   });
 });
+
+describe("resolveErrorCopy: a rate limit with a retry time", () => {
+  it("names the seconds to wait instead of a moment", () => {
+    expect(
+      resolveErrorCopy({ code: "METHOD_RATE_LIMITED", message: "raw", retryAfterSeconds: 30 }),
+    ).toBe("Studio is limiting how often this action can run. Try again in 30 seconds.");
+    expect(
+      resolveErrorCopy({ code: "METHOD_RATE_LIMITED", message: "raw", retryAfterSeconds: 1 }),
+    ).toBe("Studio is limiting how often this action can run. Try again in 1 second.");
+  });
+
+  it("keeps the copy of another code that carries a retry time", () => {
+    expect(
+      resolveErrorCopy({ code: "BATCH_TOO_LARGE", message: "raw", retryAfterSeconds: 30 }),
+    ).toBe(ERROR_CODE_COPY.BATCH_TOO_LARGE);
+  });
+});

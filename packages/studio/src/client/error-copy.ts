@@ -74,6 +74,15 @@ export function copyForErrorCode(code: string): string | undefined {
   return Object.hasOwn(ERROR_CODE_COPY, code) ? ERROR_CODE_COPY[code] : undefined;
 }
 
+const RATE_LIMITED_LEAD = "Studio is limiting how often this action can run.";
+
+function retryIn(seconds: number): string {
+  return `Try again in ${seconds} ${seconds === 1 ? "second" : "seconds"}.`;
+}
+
 export function resolveErrorCopy(error: StructuredError): string {
+  if (error.code === "METHOD_RATE_LIMITED" && error.retryAfterSeconds !== undefined) {
+    return `${RATE_LIMITED_LEAD} ${retryIn(error.retryAfterSeconds)}`;
+  }
   return copyForErrorCode(error.code) ?? error.message;
 }

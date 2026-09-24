@@ -4,6 +4,7 @@ import {
   batchSummaryHeadline,
   failedBatchEntryIds,
   groupBatchFailures,
+  LOCALE_BUSY_SKIP_MESSAGE,
   summarizeRetranslateBatch,
   summarizeReviewBatch,
 } from "./review-batch-outcome.js";
@@ -206,6 +207,48 @@ describe("summarizeRetranslateBatch: entries skipped after a batch-wide failure"
           message:
             "Not attempted after an earlier failure: The translation provider rejected the configured API key.",
         },
+      ],
+    });
+  });
+});
+
+describe("summarizeReviewBatch: entries skipped after a locale lock timeout", () => {
+  it("groups the entries of a busy locale under their own skipped wording", () => {
+    const summary = summarizeReviewBatch("approve", {
+      ok: true,
+      result: {
+        results: [
+          { ok: false, locale: "de", key: "a", code: "LOCK_CONTENDED", message: "held" },
+          APPROVED,
+          {
+            ok: false,
+            skipped: true,
+            locale: "de",
+            key: "b",
+            code: "LOCK_CONTENDED",
+            message: "Not attempted",
+          },
+          {
+            ok: false,
+            skipped: true,
+            locale: "de",
+            key: "c",
+            code: "LOCK_CONTENDED",
+            message: "Not attempted",
+          },
+        ],
+      },
+    });
+
+    expect(summary).toMatchObject({ kind: "done", succeeded: 1 });
+    const groups = groupBatchFailures(summary.kind === "done" ? summary.failures : []);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.message).not.toBe(LOCALE_BUSY_SKIP_MESSAGE);
+    expect(groups[1]).toEqual({
+      message: "Skipped: the locale was busy.",
+      entries: [
+        { locale: "de", key: "b" },
+        { locale: "de", key: "c" },
       ],
     });
   });
