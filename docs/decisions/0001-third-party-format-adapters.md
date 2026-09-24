@@ -252,6 +252,9 @@ Promised now, and semver-stable from the version that ships it:
   type annotation for their own `parse` or `deriveEntry` without naming these, and the recursive
   tree shapes cannot be spelled at all without redeclaring the recursion. The same criterion this
   record applies to core's representation types applies to the factories' own.
+  `BuildWriteTree` receives the locale being written as its fourth argument, so a format that
+  records its locale inside the file, as Flutter ARB does with `@@locale`, can write it without
+  deriving it from the path.
 
 Deferred, with the reason:
 
