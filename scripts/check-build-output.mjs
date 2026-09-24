@@ -9,6 +9,10 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const PUBLISHED_PACKAGES = new Set(["@verbatra/sdk", "@verbatra/studio"]);
 
+const PUBLISHED_PACKAGE_DIRS = ["sdk", "cli", "studio", "mcp"];
+
+const JAVASCRIPT_TARGET = /\.[cm]?js$/;
+
 const DECLARATION_SPECIFIER = /(?:from|import)\s*\(?\s*['"](@verbatra\/[a-z-]+)['"]/g;
 
 const DYNAMIC_IMPORT_ONLY_PACKAGES = ["@verbatra/studio", "@verbatra/mcp"];
@@ -51,6 +55,73 @@ function findForbiddenSpecifiers(relativePath) {
   );
 }
 
+function moduleFormat(path, packageType) {
+  if (path.endsWith(".d.cts") || path.endsWith(".cjs")) {
+    return "cjs";
+  }
+  if (path.endsWith(".d.mts") || path.endsWith(".mjs")) {
+    return "esm";
+  }
+  return packageType === "module" ? "esm" : "cjs";
+}
+
+function collectExportTypeMismatches(node, inheritedTypes, packageType, trail, mismatches) {
+  if (typeof node === "string") {
+    if (JAVASCRIPT_TARGET.test(node) && inheritedTypes !== undefined) {
+      const jsFormat = moduleFormat(node, packageType);
+      const typesFormat = moduleFormat(inheritedTypes, packageType);
+      if (jsFormat !== typesFormat) {
+        mismatches.push(
+          `${trail}: ${node} (${jsFormat}) is typed by ${inheritedTypes} (${typesFormat})`,
+        );
+      }
+    }
+    return;
+  }
+  if (node === null || typeof node !== "object") {
+    return;
+  }
+  const types = typeof node.types === "string" ? node.types : inheritedTypes;
+  for (const [key, value] of Object.entries(node)) {
+    if (key !== "types") {
+      collectExportTypeMismatches(value, types, packageType, `${trail} > ${key}`, mismatches);
+    }
+  }
+}
+
+function findExportTypeMismatches(manifest) {
+  const mismatches = [];
+  collectExportTypeMismatches(manifest.exports, undefined, manifest.type, "exports", mismatches);
+  return mismatches;
+}
+
+function checkExportTypes() {
+  const hits = PUBLISHED_PACKAGE_DIRS.flatMap((dir) => {
+    const relativePath = `packages/${dir}/package.json`;
+    const manifest = JSON.parse(readFileSync(resolve(REPO_ROOT, relativePath), "utf8"));
+    return findExportTypeMismatches(manifest).map((hit) => `${relativePath} ${hit}`);
+  });
+  if (hits.length > 0) {
+    throw new Error(
+      "an exports condition pairs a JavaScript file with declarations of the other module " +
+        `format; give each condition its own types:\n  ${hits.join("\n  ")}`,
+    );
+  }
+}
+
+function runTsc(tsconfig) {
+  execFileSync(
+    process.execPath,
+    [
+      resolve(REPO_ROOT, "node_modules/typescript/bin/tsc"),
+      "--noEmit",
+      "-p",
+      resolve(REPO_ROOT, tsconfig),
+    ],
+    { cwd: REPO_ROOT, stdio: "inherit" },
+  );
+}
+
 function checkDts() {
   const declarations = [
     "packages/sdk/dist/index.d.ts",
@@ -66,17 +137,13 @@ function checkDts() {
     );
   }
 
-  execFileSync(
-    process.execPath,
-    [
-      resolve(REPO_ROOT, "node_modules/typescript/bin/tsc"),
-      "--noEmit",
-      "-p",
-      resolve(REPO_ROOT, "scripts/dts-fixture/tsconfig.json"),
-    ],
-    { cwd: REPO_ROOT, stdio: "inherit" },
+  checkExportTypes();
+  runTsc("scripts/dts-fixture/tsconfig.json");
+  runTsc("scripts/dts-fixture/tsconfig.cjs.json");
+  return (
+    "declarations reference no unpublished package, every exports condition pairs matching " +
+    "module formats, and the ESM and CommonJS consumer fixtures typecheck."
   );
-  return "declarations reference no unpublished package, and the consumer fixture typechecks.";
 }
 
 function checkStudioBundle() {
@@ -154,6 +221,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 export {
   DECLARATION_SPECIFIER,
   dynamicImportPattern,
+  findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
   staticImportPattern,

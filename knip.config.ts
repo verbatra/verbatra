@@ -21,7 +21,7 @@ const config: KnipConfig = {
     ".": {
       // scripts/ holds the root guards that pnpm verify runs. The dts-fixture consumers are never
       // imported: check:dts compiles them against the built declarations as standalone consumers.
-      entry: ["scripts/*.mjs", "scripts/dts-fixture/*consumer.ts"],
+      entry: ["scripts/*.mjs", "scripts/dts-fixture/*consumer.{ts,cts}"],
       project: ["scripts/**/*.{mjs,ts}"],
     },
 
