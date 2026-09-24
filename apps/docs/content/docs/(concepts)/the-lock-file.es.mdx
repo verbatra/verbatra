@@ -116,9 +116,8 @@ terminado a la fuerza puede dejar uno atrás igualmente, así que una ejecución
 proceso registrado: si cada campo de identidad del bloqueo coincide con el de la ejecución en
 espera (así que el proceso se ejecutaba en esta máquina, en la misma tabla de procesos) y ese
 proceso ya no existe, la ejecución
-recupera el bloqueo al instante en lugar de agotar `--lock-timeout`. La recuperación está
-serializada, así que dos ejecuciones en espera nunca se quedan a la vez con el mismo bloqueo
-abandonado. El archivo abandonado se aparta con un nombre único en un solo paso atómico y solo se
+recupera el bloqueo al instante en lugar de agotar `--lock-timeout`. La recuperación pasa
+por una guarda de recuperación de vida corta, y el archivo abandonado se aparta con un nombre único en un solo paso atómico y solo se
 borra si sigue siendo el registro que comprobó la ejecución, así que un bloqueo que otra ejecución
 tomó entretanto se devuelve a su sitio en lugar de borrarse. Un bloqueo registrado en otra máquina (una unidad de red compartida) o por una versión
 de verbatra anterior a 0.12.0 no contiene nada que se pueda comprobar con seguridad, así que nunca
@@ -126,7 +125,29 @@ se recupera. Lo mismo vale para un bloqueo que registra un campo de identidad qu
 espera no puede leer, o al que le falta uno que sí puede: se trata como si lo tuviera un proceso
 vivo.
 
-Queda un límite. Fuera de Linux, el nombre de host es la única identidad de máquina que verbatra
+Aun así quedan intercalados poco frecuentes en los que dos ejecuciones creen durante un momento que
+tienen el mismo bloqueo, así que cada bloqueo registra además un token de propiedad aleatorio. Antes
+de cada escritura que protege el bloqueo (el archivo del locale, el archivo de bloqueo, el archivo
+de procedencia, el glosario), quien lo tiene comprueba que el archivo de bloqueo sigue llevando su
+token, y se detiene con `LOCK_CONTENDED` sin escribir si no es así. La comprobación y la escritura
+son dos pasos, así que una ejecución que pasa la comprobación justo en el instante en que otra toma
+el bloqueo todavía puede escribir una vez. Esa ventana dura unos pocos milisegundos y exige que una
+recuperación coincida con una adquisición nueva.
+
+Quien tiene un bloqueo refresca la fecha de modificación de su archivo cada 10 segundos. Un bloqueo
+en esta máquina cuyo proceso sigue en marcha pero cuyo archivo lleva 30 segundos sin refrescarse
+(tres de los intervalos que registró quien lo tiene) se trata como abandonado, así que un registro
+de bloqueo que sobrevivió a su uso, por ejemplo en un proceso de Studio, `watch` o del servidor MCP
+de larga duración, ya no bloquea otras ejecuciones hasta que ese proceso termine. Un bloqueo sin
+latido, escrito por una versión anterior o mediante un sistema de archivos propio que no puede
+tocar archivos, se juzga solo por su proceso.
+
+Un proceso que se cae mientras tiene un bloqueo apartado puede dejar un archivo
+`<lock>.<pid>.<tag>.<uuid>.stale` en `.verbatra-local/locks/`. Puedes borrar esos archivos sin
+riesgo; la siguiente ejecución los borra cuando el proceso que los movió ya no existe o tienen más
+de 30 segundos.
+
+Queda otro límite. Fuera de Linux, el nombre de host es la única identidad de máquina que verbatra
 registra, así que dos contenedores o máquinas virtuales que comparten nombre de host y el mismo
 directorio `.verbatra-local/` (un volumen compartido), pero no una tabla de procesos, pueden tomar
 el bloqueo vivo del otro por abandonado. Dale a cada uno su propio nombre de host o su propia copia

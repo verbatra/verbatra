@@ -120,8 +120,7 @@ processus. Un processus tué brutalement peut quand même en laisser un derrièr
 exécution en attente vérifie le processus enregistré : si chaque champ d'identité du verrou
 correspond à celui de l'exécution en attente (le processus tournait donc sur cette machine, dans la
 même table des processus) et que ce processus n'existe plus, l'exécution reprend le verrou tout de suite au lieu d'attendre la fin de `--lock-timeout`. La
-reprise est sérialisée, donc deux exécutions en attente ne reprennent jamais toutes les deux le même
-verrou abandonné. Le fichier abandonné est mis de côté sous un nom unique en une seule étape
+reprise passe par une garde de reprise de courte durée, et le fichier abandonné est mis de côté sous un nom unique en une seule étape
 atomique et supprimé seulement s'il est encore l'enregistrement que l'exécution a vérifié : un
 verrou qu'une autre exécution a pris entre-temps est remis en place au lieu d'être supprimé. Un verrou enregistré sur une autre machine (un lecteur réseau partagé) ou par une
 version de verbatra antérieure à 0.12.0 ne contient rien de vérifiable sans risque, il n'est donc
@@ -129,7 +128,30 @@ jamais repris. Il en va de même pour un verrou qui enregistre un champ d'identi
 en attente ne peut pas lire, ou auquel il en manque un qu'elle peut lire : il est traité comme
 détenu par un processus vivant.
 
-Une limite demeure. Hors de Linux, le nom d'hôte est la seule identité de machine que verbatra
+Ces étapes laissent malgré tout de rares entrelacements où deux exécutions croient un instant
+détenir le même verrou, donc chaque verrou enregistre aussi un jeton de propriété aléatoire. Avant
+chaque écriture que le verrou protège (le fichier de la locale, le fichier de verrouillage, le
+fichier de provenance, le glossaire), le détenteur vérifie que le fichier de verrou porte toujours
+son jeton, et s'arrête avec `LOCK_CONTENDED` sans rien écrire sinon. La vérification et l'écriture
+sont deux étapes : une exécution qui passe la vérification à l'instant précis où une autre reprend
+le verrou peut donc encore écrire une fois. Cette fenêtre ne dure que quelques millisecondes et
+suppose qu'une reprise coïncide avec une nouvelle acquisition.
+
+Un détenteur rafraîchit la date de modification de son fichier de verrou toutes les 10 secondes. Un
+verrou sur cette machine dont le processus tourne encore mais dont le fichier n'a pas été rafraîchi
+depuis 30 secondes (trois des intervalles que le détenteur a enregistrés) est traité comme
+abandonné : un enregistrement de verrou qui a survécu à sa détention, par exemple dans un processus
+Studio, `watch` ou serveur MCP de longue durée, ne bloque donc plus les autres exécutions jusqu'à la
+fin de ce processus. Un verrou sans battement, écrit par une version plus ancienne ou via un
+système de fichiers personnalisé qui ne sait pas toucher les fichiers, est jugé sur son seul
+processus.
+
+Un processus qui plante alors qu'il a mis un verrou de côté peut laisser un fichier
+`<lock>.<pid>.<tag>.<uuid>.stale` dans `.verbatra-local/locks/`. Tu peux supprimer ces fichiers sans
+risque ; l'exécution suivante les supprime dès que le processus qui les a déplacés n'existe plus ou
+qu'ils ont plus de 30 secondes.
+
+Une autre limite demeure. Hors de Linux, le nom d'hôte est la seule identité de machine que verbatra
 enregistre, donc deux conteneurs ou machines virtuelles qui partagent un nom d'hôte et le même
 répertoire `.verbatra-local/` (un volume partagé), mais pas une table des processus, peuvent prendre
 le verrou vivant de l'autre pour un verrou abandonné. Donne à chacun son propre nom d'hôte, ou sa
