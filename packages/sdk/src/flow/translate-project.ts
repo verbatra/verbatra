@@ -131,17 +131,19 @@ export interface TranslateInput {
   readonly generatePlurals?: boolean;
   /**
    * Called while waiting on another process's write lock, so a CLI can explain a stall instead of
-   * appearing to hang.
+   * appearing to hang. Never called for a lock this process holds itself, such as the lock-file
+   * guard a sibling locale holds on a concurrent run.
    */
   readonly onLockWait?: LockWaitListener;
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
   /**
-   * How long, in milliseconds, to wait for a locale's write lock, or for the lock-file guard each
-   * locale takes to record its result, before that locale fails with `LOCK_CONTENDED`, and for the
-   * lock-file guard before a locale whose respelled state could not be moved fails with
-   * `LOCALE_STATE_NOT_CARRIED_OVER`. Defaults to ten minutes. Not used on a dry run, which takes no
-   * lock.
+   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
+   * `LOCK_CONTENDED`, and for the lock-file guard before a locale whose respelled state could not be
+   * moved fails with `LOCALE_STATE_NOT_CARRIED_OVER`. Both waits happen before any provider call.
+   * Defaults to ten minutes. It does not bound the lock-file guard a locale takes to record its
+   * result once its target file is written: that wait always allows the ten-minute default, so a
+   * written file is not left unrecorded. Not used on a dry run, which takes no lock.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
@@ -281,6 +283,7 @@ interface LocaleRunContext {
   readonly protection: ProtectionPolicy;
   readonly provenanceMoves: LocaleMoves;
   readonly lockOptions: LocaleWriteLockOptions;
+  readonly recordLockOptions: LocaleWriteLockOptions;
   readonly onProgress?: ProgressListener;
 }
 
@@ -355,6 +358,10 @@ function writeLockOptions(input: TranslateInput): LocaleWriteLockOptions {
   };
 }
 
+function recordLockOptions(input: TranslateInput): LocaleWriteLockOptions {
+  return input.onLockWait !== undefined ? { onWait: input.onLockWait } : {};
+}
+
 async function runLiveLocale(
   context: LocaleRunContext,
   targetLocale: string,
@@ -377,7 +384,7 @@ async function runLiveLocale(
         targetLocale,
         { mode: "replace", entries: result.lockEntries },
         result.provenance,
-        context.lockOptions,
+        context.recordLockOptions,
       );
       if (context.cache !== undefined && result.cacheAdditions.length > 0) {
         context.cache.additions.set(targetLocale, additionsToRecord(result.cacheAdditions));
@@ -778,6 +785,7 @@ export async function translate(
     protection: protectionPolicy(config, input.humanEdits),
     provenanceMoves: dryRun ? carryOver.provenance : new Map(),
     lockOptions,
+    recordLockOptions: recordLockOptions(input),
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
   };
 

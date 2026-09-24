@@ -351,7 +351,7 @@ describe("translate: a locale whose respelled state could not be moved", () => {
     expect(skipNotices(ptBr)[0]).toContain(
       "The locale did not run, and the next run tries the move again.",
     );
-    expect(waits[0]?.lockPath).toBe(lockFileGuardPath(dir));
+    expect(waits).toEqual([]);
     expect(sentKeys(calls)).toEqual(["greeting"]);
     expect(calls.every((call) => call.request.targetLocale === "de")).toBe(true);
     expect(await readFile(localeFile, "utf8")).toBe(before);

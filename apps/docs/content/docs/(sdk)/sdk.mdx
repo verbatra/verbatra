@@ -72,7 +72,11 @@ Input: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, 
 - `onProgress` is called as the run advances (per locale start and finish, and per provider
   sub-batch), and `onLockWait` fires while a locale's write lock is contended. Both are
   notification callbacks; the SDK writes no output itself. `lockAcquireTimeoutMs` overrides how long
-  a contended write lock retries before failing with `LOCK_CONTENDED`.
+  a contended write lock retries before failing with `LOCK_CONTENDED`. It bounds only the per-locale
+  write lock taken before any provider call; the lock-file guard taken to record a locale whose file
+  is already written always allows the ten-minute default, so a written file is never left
+  unrecorded. `onLockWait` fires first once a wait has lasted a second, and never for a lock the
+  same process holds, such as the guard a sibling locale holds with `concurrency` above 1.
 - `maxTokens` (from 0.12.0) sets a token ceiling for this run alone (the CLI's `--max-tokens`). It
   always acts as `budgetBehavior: "stop"`, and when the config also sets `maxTokens` the lower of the
   two applies, so it can tighten the configured budget but never loosen it. A value that is not a

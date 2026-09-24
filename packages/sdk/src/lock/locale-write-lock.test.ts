@@ -1,9 +1,11 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
-import type { SdkFs } from "../fs.js";
+import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { makeFakeFs } from "../test-support.js";
+import type { LivenessContext } from "./holder-liveness.js";
 import {
+  type LocaleWriteLockOptions,
   type LockWaitEvent,
   localeLockPath,
   lockFileGuardPath,
@@ -199,11 +201,44 @@ describe("withLocaleWriteLock: wait progress", () => {
     });
   }
 
-  it("reports the wait even when the acquire budget has already elapsed", async () => {
-    const fs = makeContendedFs(Number.POSITIVE_INFINITY, async () => ({
-      kind: "ok",
-      content: JSON.stringify({ pid: 9876, acquiredAt: "2026-08-05T00:00:00.000Z" }),
-    }));
+  const PAST_GRACE_FAILURES = 25;
+
+  async function waitEventsFor(
+    failures: number,
+    payload: SdkFs["readFileBounded"],
+    options: Omit<LocaleWriteLockOptions, "onWait"> = {},
+  ): Promise<LockWaitEvent[]> {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const events: LockWaitEvent[] = [];
+    const promise = withLocaleWriteLock(
+      "/proj",
+      "de",
+      makeContendedFs(failures, payload),
+      async () => {},
+      {
+        pollIntervalMs: 50,
+        acquireTimeoutMs: 5_000,
+        ...options,
+        onWait: (event) => events.push(event),
+      },
+    );
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(promise).resolves.toBeUndefined();
+    return events;
+  }
+
+  const foreignHolder = async (): Promise<BoundedFileRead> => ({
+    kind: "ok",
+    content: JSON.stringify({ pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" }),
+  });
+
+  it("does not report a wait that ends within the first second", async () => {
+    expect(await waitEventsFor(1, foreignHolder)).toHaveLength(0);
+  });
+
+  it("does not report a wait whose acquire budget elapses within the first second", async () => {
+    const fs = makeContendedFs(Number.POSITIVE_INFINITY, foreignHolder);
     const events: LockWaitEvent[] = [];
 
     await expect(
@@ -214,111 +249,65 @@ describe("withLocaleWriteLock: wait progress", () => {
       }),
     ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
 
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      lockPath: localeLockPath("/proj", "de"),
-      holder: { pid: 9876 },
-    });
+    expect(events).toHaveLength(0);
   });
 
-  it("invokes onWait once after the first failed acquire, carrying the holder pid and acquiredAt", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({
-      kind: "ok",
-      content: JSON.stringify({ pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" }),
-    }));
-    const events: LockWaitEvent[] = [];
-    let ran = false;
+  it("invokes onWait once the wait passes a second, carrying the holder pid and acquiredAt", async () => {
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, foreignHolder);
 
-    const promise = withLocaleWriteLock(
-      "/proj",
-      "de",
-      fs,
-      async () => {
-        ran = true;
-      },
-      { pollIntervalMs: 50, acquireTimeoutMs: 5_000, onWait: (event) => events.push(event) },
-    );
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
-
-    expect(ran).toBe(true);
     expect(events).toHaveLength(1);
+    expect(events[0]?.elapsedMs).toBeGreaterThanOrEqual(1_000);
     expect(events[0]).toMatchObject({
       lockPath: localeLockPath("/proj", "de"),
       holder: { pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" },
     });
   });
 
-  it("still invokes onWait, without holder fields, when the lock payload is malformed and never throws", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({ kind: "ok", content: "{ not valid json" }));
-    const events: LockWaitEvent[] = [];
-
-    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
-      pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
-    });
-    await vi.advanceTimersByTimeAsync(100);
-    await expect(promise).resolves.toBeUndefined();
+  it.each<[string, BoundedFileRead]>([
+    ["a malformed payload", { kind: "ok", content: "{ not valid json" }],
+    ["valid JSON that is not an object", { kind: "ok", content: "42" }],
+    ["a lock file that cannot be read", { kind: "missing" }],
+  ])("still invokes onWait, without holder fields, for %s", async (_, read) => {
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, async () => read);
 
     expect(events).toHaveLength(1);
     expect(events[0]?.holder).toBeUndefined();
     expect(events[0]?.lockPath).toBe(localeLockPath("/proj", "de"));
   });
 
-  it("still invokes onWait, without holder fields, when the payload is valid JSON but not an object", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({ kind: "ok", content: "42" }));
-    const events: LockWaitEvent[] = [];
-
-    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
-      pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
-    });
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
-
-    expect(events).toHaveLength(1);
-    expect(events[0]?.holder).toBeUndefined();
-  });
-
-  it("still invokes onWait, without holder fields, when the lock file cannot be read", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({ kind: "missing" }));
-    const events: LockWaitEvent[] = [];
-
-    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
-      pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
-    });
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
-
-    expect(events).toHaveLength(1);
-    expect(events[0]?.holder).toBeUndefined();
-  });
-
   it("carries only the fields present in a partial payload (pid without acquiredAt)", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, async () => ({
       kind: "ok",
       content: JSON.stringify({ pid: 5 }),
     }));
-    const events: LockWaitEvent[] = [];
-
-    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
-      pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
-    });
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
 
     expect(events[0]?.holder).toEqual({ pid: 5 });
+  });
+
+  it("never invokes onWait for a lock this process holds on this machine", async () => {
+    const liveness: LivenessContext = { host: "this-host", probe: () => undefined };
+    const selfHeld = async (): Promise<BoundedFileRead> => ({
+      kind: "ok",
+      content: JSON.stringify({ pid: process.pid, hostname: "this-host" }),
+    });
+
+    expect(await waitEventsFor(PAST_GRACE_FAILURES, selfHeld, { liveness })).toHaveLength(0);
+  });
+
+  it.each([
+    ["another pid on this machine", { pid: process.pid + 1, hostname: "this-host" }],
+    ["this pid on another machine", { pid: process.pid, hostname: "other-host" }],
+  ])("still invokes onWait for a lock held by %s", async (_, recorded) => {
+    const liveness: LivenessContext = { host: "this-host", probe: () => undefined };
+    const read = async (): Promise<BoundedFileRead> => ({
+      kind: "ok",
+      content: JSON.stringify(recorded),
+    });
+
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, read, { liveness });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.holder).toEqual(recorded);
   });
 
   it("invokes onWait periodically while waiting, with a non-decreasing elapsed time", async () => {
@@ -339,6 +328,7 @@ describe("withLocaleWriteLock: wait progress", () => {
     expect((error as SdkError).code).toBe("LOCK_CONTENDED");
     const elapsed = events.map((event) => event.elapsedMs);
     expect(new Set(elapsed).size).toBeGreaterThanOrEqual(3);
+    expect(elapsed[0]).toBeGreaterThanOrEqual(1_000);
     expect(elapsed).toEqual([...elapsed].sort((a, b) => a - b));
     expect(events.length).toBeLessThanOrEqual(5);
     const gaps = elapsed.slice(1).map((ms, index) => ms - (elapsed[index] ?? 0));
