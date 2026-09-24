@@ -56,17 +56,7 @@ function Row({
   return (
     <Reveal className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16">
       <div className={cn("min-w-0", flip && "lg:order-2")}>
-        <h3
-          className="max-w-[18ch] font-semibold text-fd-foreground"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(1.5rem, 2.6vw, 2rem)",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.15,
-          }}
-        >
-          {title}
-        </h3>
+        <h3 className="vk-h3 max-w-[18ch]">{title}</h3>
         <p className="mt-3.5 max-w-[44ch] text-base text-fd-muted-foreground">{body}</p>
         <a href={href} className={cn(LINK_CLASS, "mt-4")}>
           {cta}

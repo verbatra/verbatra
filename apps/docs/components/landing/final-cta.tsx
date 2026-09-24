@@ -25,18 +25,7 @@ export async function FinalCta(): Promise<ReactNode> {
         className="relative grid justify-items-center overflow-hidden rounded-xl border px-6 py-[92px] text-center md:px-10"
         style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}
       >
-        <h2
-          className="max-w-[15ch] font-semibold text-fd-foreground"
-          style={{
-            fontFamily: "var(--font-display)",
-            letterSpacing: "-0.03em",
-            fontSize: "var(--text-h2)",
-            lineHeight: 1,
-            textWrap: "balance",
-          }}
-        >
-          {t("heading")}
-        </h2>
+        <h2 className="vk-h2 max-w-[15ch]">{t("heading")}</h2>
         <div className="mt-8 flex w-full justify-center">
           <div className="w-full max-w-[28rem]">
             <CommandBox
