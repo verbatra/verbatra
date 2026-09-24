@@ -9,7 +9,8 @@ every rewrite could grow the escaping, and translators, the provider and the int
 entities instead of text. A value mixing inline markup with a bare `&` or `<` lost its markup.
 
 Now text is decoded on read and escaped once on write, inline elements stay live around it, and
-`&`, `<`, `>`, quotes and existing entities read back exactly as written. `bpt` and `ept` in
-XLIFF 1.2 and `pc`, `sc`, `ec`, `sm`, `em` and `cp` in XLIFF 2.0 join the inline allow-list and
-count as placeholders. An XLIFF value that contained an entity is read as plain text once, so
+`&`, `<`, `>`, quotes and existing entities read back as written. Text that exactly matches an
+allow-listed inline element, such as an escaped `&lt;x id="1"/&gt;`, reads the same as that
+element and is written back as it. `bpt` and `ept` in XLIFF 1.2 and `pc`, `sc`, `ec`, `sm`, `em`
+and `cp` in XLIFF 2.0 join the inline allow-list and count as placeholders. An XLIFF value that contained an entity is read as plain text once, so
 its key may show as changed on the first run after upgrading.

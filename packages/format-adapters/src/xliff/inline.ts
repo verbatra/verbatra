@@ -1,11 +1,8 @@
 import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
 import { MAX_DEPTH } from "../json/limits.js";
+import { isElement, onFatal, TEXT_NODE, type XliffVersion } from "./document.js";
 
-export type XliffVersion = "1.2" | "2.0";
-
-const ELEMENT_NODE = 1;
-const TEXT_NODE = 3;
 const CDATA_SECTION_NODE = 4;
 
 const XLIFF_NAMESPACES = new Set([
@@ -13,68 +10,86 @@ const XLIFF_NAMESPACES = new Set([
   "urn:oasis:names:tc:xliff:document:2.0",
 ]);
 
-const SHARED_INLINE_ELEMENTS = ["x", "g", "bx", "ex", "ph", "it", "mrk"] as const;
+type AttributeTable = Readonly<Record<string, readonly string[]>>;
 
-const INLINE_ELEMENTS: Readonly<Record<XliffVersion, ReadonlySet<string>>> = {
-  "1.2": new Set([...SHARED_INLINE_ELEMENTS, "bpt", "ept"]),
-  "2.0": new Set([...SHARED_INLINE_ELEMENTS, "pc", "sc", "ec", "sm", "em", "cp"]),
-};
+const XLIFF_12_GENERIC_ATTRIBUTES = ["id", "ctype", "ts", "clone", "xid", "equiv-text"] as const;
 
 const XLIFF_20_CODE_ATTRIBUTES = [
   "id",
-  "equiv",
-  "disp",
-  "dataRef",
-  "subType",
-  "type",
   "canCopy",
   "canDelete",
   "canReorder",
-  "canOverlap",
   "copyOf",
+  "dataRef",
+  "disp",
+  "equiv",
+  "subFlows",
+  "subType",
+  "type",
+] as const;
+
+const XLIFF_20_SPAN_CODE_ATTRIBUTES = [
+  ...XLIFF_20_CODE_ATTRIBUTES,
+  "canOverlap",
   "dir",
   "isolated",
 ] as const;
 
-const INLINE_ELEMENT_ATTRIBUTES: Readonly<Record<string, readonly string[]>> = {
-  x: ["id", "ctype", "equiv-text"],
-  g: ["id", "ctype", "equiv-text"],
-  bx: ["id", "rid", "ctype", "equiv-text"],
-  ex: ["id", "rid", "equiv-text"],
-  bpt: ["id", "rid", "ctype", "equiv-text"],
-  ept: ["id", "rid", "equiv-text"],
-  it: ["id", "pos", "ctype", "equiv-text"],
-  ph: ["ctype", "equiv-text", ...XLIFF_20_CODE_ATTRIBUTES],
-  mrk: ["id", "mtype", "translate", "type", "value"],
-  pc: [
-    "id",
-    "equivStart",
-    "equivEnd",
-    "dispStart",
-    "dispEnd",
-    "dataRefStart",
-    "dataRefEnd",
-    "subType",
-    "type",
-    "canCopy",
-    "canDelete",
-    "canReorder",
-    "canOverlap",
-    "copyOf",
-    "dir",
-  ],
-  sc: XLIFF_20_CODE_ATTRIBUTES,
-  ec: ["startRef", ...XLIFF_20_CODE_ATTRIBUTES],
-  sm: ["id", "translate", "type", "value"],
-  em: ["startRef"],
-  cp: ["hex"],
+const XLIFF_20_MARKER_ATTRIBUTES = ["id", "translate", "type", "ref", "value"] as const;
+
+const INLINE_ELEMENT_ATTRIBUTES: Readonly<Record<XliffVersion, AttributeTable>> = {
+  "1.2": {
+    g: XLIFF_12_GENERIC_ATTRIBUTES,
+    x: XLIFF_12_GENERIC_ATTRIBUTES,
+    bx: ["id", "rid", "ctype", "ts", "clone", "xid", "equiv-text"],
+    ex: ["id", "rid", "ts", "xid", "equiv-text"],
+    bpt: ["id", "rid", "ctype", "ts", "crc", "xid", "equiv-text"],
+    ept: ["id", "rid", "ts", "crc", "xid", "equiv-text"],
+    ph: ["id", "ctype", "ts", "crc", "assoc", "xid", "equiv-text"],
+    it: ["id", "pos", "rid", "ctype", "ts", "crc", "xid", "equiv-text"],
+    mrk: ["mtype", "mid", "ts", "comment"],
+  },
+  "2.0": {
+    ph: XLIFF_20_CODE_ATTRIBUTES,
+    pc: [
+      "id",
+      "canCopy",
+      "canDelete",
+      "canOverlap",
+      "canReorder",
+      "copyOf",
+      "dataRefEnd",
+      "dataRefStart",
+      "dir",
+      "dispEnd",
+      "dispStart",
+      "equivEnd",
+      "equivStart",
+      "subFlowsEnd",
+      "subFlowsStart",
+      "subType",
+      "type",
+    ],
+    sc: XLIFF_20_SPAN_CODE_ATTRIBUTES,
+    ec: [...XLIFF_20_SPAN_CODE_ATTRIBUTES, "startRef"],
+    mrk: XLIFF_20_MARKER_ATTRIBUTES,
+    sm: XLIFF_20_MARKER_ATTRIBUTES,
+    em: ["startRef"],
+    cp: ["hex"],
+  },
 };
 
-const INLINE_TAG = /<\/?([A-Za-z][\w.-]*)(?:\s[^<>]*)?\/?>/g;
+export const INLINE_ELEMENT_NAMES: Readonly<Record<XliffVersion, ReadonlySet<string>>> = {
+  "1.2": new Set(Object.keys(INLINE_ELEMENT_ATTRIBUTES["1.2"])),
+  "2.0": new Set(Object.keys(INLINE_ELEMENT_ATTRIBUTES["2.0"])),
+};
 
-function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
-}
+const SUB_FLOW = "sub";
+const SUB_FLOW_ATTRIBUTES = ["datatype", "ctype", "xid"] as const;
+const SUB_FLOW_PARENTS = new Set(["bpt", "ept", "ph", "it"]);
+const XLIFF_12_NAMES_WITH_SUB_FLOWS = new Set([...INLINE_ELEMENT_NAMES["1.2"], SUB_FLOW]);
+
+const INLINE_TAG = /<\/?([A-Za-z][\w.-]*)(?:\s[^<>]*)?\/?>/g;
 
 function escapeText(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -135,43 +150,56 @@ export function readInlineValue(element: Element): string {
   return childrenValue(element, 0);
 }
 
-function isAllowedInlineElement(element: Element, version: XliffVersion): boolean {
+function localNameOf(element: Element): string {
+  return element.localName ?? "";
+}
+
+function hasXliffNamespace(element: Element): boolean {
   const namespace = element.namespaceURI;
-  const hasAllowedNamespace = namespace === null || XLIFF_NAMESPACES.has(namespace);
-  return hasAllowedNamespace && INLINE_ELEMENTS[version].has(element.localName ?? "");
+  return namespace === null || XLIFF_NAMESPACES.has(namespace);
+}
+
+function isSubFlow(element: Element, version: XliffVersion): boolean {
+  const parent = element.parentNode;
+  return (
+    version === "1.2" &&
+    localNameOf(element) === SUB_FLOW &&
+    parent !== null &&
+    isElement(parent) &&
+    SUB_FLOW_PARENTS.has(localNameOf(parent))
+  );
+}
+
+function allowedAttributes(element: Element, version: XliffVersion): readonly string[] {
+  return INLINE_ELEMENT_ATTRIBUTES[version][localNameOf(element)] ?? SUB_FLOW_ATTRIBUTES;
 }
 
 function isAllowedFragmentNode(node: Node, version: XliffVersion): boolean {
   if (node.nodeType === TEXT_NODE) {
     return true;
   }
-  return isElement(node) && isAllowedInlineElement(node, version);
+  if (!isElement(node) || !hasXliffNamespace(node)) {
+    return false;
+  }
+  return INLINE_ELEMENT_NAMES[version].has(localNameOf(node)) || isSubFlow(node, version);
 }
 
-function allDescendantNodes(node: Node): Node[] {
+function subtree(node: Node): Node[] {
   const result: Node[] = [];
-  const stack: Array<{ node: Node; depth: number }> = [{ node, depth: 1 }];
-  while (stack.length > 0) {
-    const top = stack.pop();
-    if (top === undefined) {
-      break;
-    }
+  const stack: Array<{ node: Node; depth: number }> = [{ node, depth: 2 }];
+  for (let top = stack.pop(); top !== undefined; top = stack.pop()) {
     if (top.depth > MAX_DEPTH) {
       throw new AdapterError(
         "MAX_DEPTH_EXCEEDED",
         "The translated value nests inline elements too deeply.",
       );
     }
+    result.push(top.node);
     for (const child of Array.from(top.node.childNodes)) {
-      result.push(child);
       stack.push({ node: child, depth: top.depth + 1 });
     }
   }
   return result;
-}
-
-function hasDisallowedNode(root: Element, version: XliffVersion): boolean {
-  return allDescendantNodes(root).some((node) => !isAllowedFragmentNode(node, version));
 }
 
 function attributeNames(element: Element): string[] {
@@ -185,29 +213,20 @@ function attributeNames(element: Element): string[] {
   return names;
 }
 
-function sanitizeInlineAttributes(root: Element): void {
-  for (const el of Array.from(root.getElementsByTagName("*"))) {
-    const allowed = INLINE_ELEMENT_ATTRIBUTES[el.localName ?? ""] ?? [];
-    for (const name of attributeNames(el)) {
-      if (!allowed.includes(name)) {
-        el.removeAttribute(name);
-      }
+function sanitizeInlineAttributes(element: Element, version: XliffVersion): void {
+  const allowed = allowedAttributes(element, version);
+  for (const name of attributeNames(element)) {
+    if (!allowed.includes(name)) {
+      element.removeAttribute(name);
     }
   }
 }
 
-export function assertNoDoctype(content: string): void {
-  if (/<!DOCTYPE/i.test(content) || /<!ENTITY/i.test(content)) {
-    throw new AdapterError("INVALID_XML", "XLIFF with a DTD or entity declaration is rejected.");
-  }
-}
-
-function fragmentMarkup(value: string, version: XliffVersion): string {
+function fragmentMarkup(value: string, liveNames: ReadonlySet<string>): string {
   let markup = "";
   let last = 0;
   for (const match of value.matchAll(INLINE_TAG)) {
-    const name = match[1] ?? "";
-    if (INLINE_ELEMENTS[version].has(name)) {
+    if (liveNames.has(match[1] ?? "")) {
       markup += escapeText(value.slice(last, match.index)) + match[0];
       last = match.index + match[0].length;
     }
@@ -215,33 +234,50 @@ function fragmentMarkup(value: string, version: XliffVersion): string {
   return markup + escapeText(value.slice(last));
 }
 
-function onFatal(level: "warning" | "error" | "fatalError"): void {
-  if (level === "fatalError") {
-    throw new Error("malformed XML");
-  }
-}
-
 function namespaceDeclaration(namespace: string | null): string {
   return namespace === null ? "" : ` xmlns="${escapeAttribute(namespace)}"`;
 }
 
-function fragmentNodes(value: string, namespace: string | null, version: XliffVersion): Node[] {
-  const parser = new DOMParser({ onError: onFatal });
-  const markup = fragmentMarkup(value, version);
-  let root: Element | null;
+function parseFragment(
+  value: string,
+  namespace: string | null,
+  version: XliffVersion,
+  liveNames: ReadonlySet<string>,
+): Node[] | null {
+  let doc: Document;
   try {
-    root = parser.parseFromString(
-      `<wrapper${namespaceDeclaration(namespace)}>${markup}</wrapper>`,
+    doc = new DOMParser({ onError: onFatal }).parseFromString(
+      `<wrapper${namespaceDeclaration(namespace)}>${fragmentMarkup(value, liveNames)}</wrapper>`,
       "text/xml",
-    ).documentElement;
+    );
   } catch {
-    return [];
+    return null;
   }
-  if (root === null || hasDisallowedNode(root, version)) {
-    return [];
+  const nodes = Array.from(doc.childNodes).flatMap((wrapper) => Array.from(wrapper.childNodes));
+  const all = nodes.flatMap(subtree);
+  if (!all.every((node) => isAllowedFragmentNode(node, version))) {
+    return null;
   }
-  sanitizeInlineAttributes(root);
-  return Array.from(root.childNodes);
+  for (const element of all.filter(isElement)) {
+    sanitizeInlineAttributes(element, version);
+  }
+  return nodes;
+}
+
+function liveNameAttempts(version: XliffVersion): readonly ReadonlySet<string>[] {
+  return version === "1.2"
+    ? [XLIFF_12_NAMES_WITH_SUB_FLOWS, INLINE_ELEMENT_NAMES["1.2"]]
+    : [INLINE_ELEMENT_NAMES["2.0"]];
+}
+
+function fragmentNodes(value: string, namespace: string | null, version: XliffVersion): Node[] {
+  for (const liveNames of liveNameAttempts(version)) {
+    const nodes = parseFragment(value, namespace, version, liveNames);
+    if (nodes !== null) {
+      return nodes;
+    }
+  }
+  return [];
 }
 
 export function writeInlineValue(
@@ -250,7 +286,6 @@ export function writeInlineValue(
   value: string,
   version: XliffVersion,
 ): void {
-  assertNoDoctype(value);
   while (element.firstChild !== null) {
     element.removeChild(element.firstChild);
   }

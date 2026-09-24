@@ -148,19 +148,82 @@ describe("xliff write: a unit the destination lacks is added from the source", (
   });
 });
 
+describe("xliff write: what a copied unit keeps", () => {
+  it("drops only the unit's own targets and alt-trans, keeping targets nested elsewhere", async () => {
+    const source = `<xliff version="1.2"><file source-language="en" original="messages"><body><trans-unit id="c"><source>Gamma</source><target>old</target><alt-trans><source>Gamma</source><target>memory</target></alt-trans><note>n</note></trans-unit></body></file></xliff>`;
+    const { file } = await writeAndRead({ "en.xlf": source, "de.xlf": TARGET_12 }, [
+      entry("c", "Gamma de"),
+    ]);
+    expect(file).toContain(
+      '<trans-unit id="c"><source>Gamma</source><target>Gamma de</target><note>n</note></trans-unit>',
+    );
+    expect(file).not.toContain("alt-trans");
+    expect(file).not.toContain("old");
+  });
+
+  it("keeps a target inside an XLIFF 2.0 module element while dropping segment and ignorable targets", async () => {
+    const source = `<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" xmlns:mtc="urn:oasis:names:tc:xliff:matches:2.0" version="2.0" srcLang="en"><file id="f1"><unit id="k"><mtc:matches><mtc:match ref="#k"><source>Hi</source><target>Salut</target></mtc:match></mtc:matches><segment><source>Hi</source><target>stale</target></segment><ignorable><source> </source><target> </target></ignorable></unit></file></xliff>`;
+    const { file, values } = await writeAndRead({ "en.xlf": source, "de.xlf": TARGET_20 }, [
+      entry("k", "Hallo"),
+    ]);
+    expect(file).toContain("<target>Salut</target></mtc:match>");
+    expect(file).toContain("<segment><source>Hi</source><target>Hallo</target></segment>");
+    expect(file).toContain("<ignorable><source> </source></ignorable>");
+    expect(file).not.toContain("stale");
+    expect(values.k).toBe("Hallo");
+  });
+
+  it("marks a copied XLIFF 2.0 segment in state initial as translated", async () => {
+    const source = SOURCE_20.replace(
+      "<segment><source>Two.</source>",
+      '<segment state="initial" subState="x:pending"><source>Two.</source>',
+    );
+    const { file } = await writeAndRead({ "en.xlf": source, "de.xlf": TARGET_20 }, [
+      entry("m#1", "Zwei."),
+    ]);
+    expect(file).toContain(
+      '<segment state="translated"><source>Two.</source><target>Zwei.</target></segment>',
+    );
+  });
+});
+
 describe("xliff write: a value it cannot place is refused, never dropped", () => {
-  it.each([
-    ["no source path is known", {}],
-    ["the source file cannot be read", { sourcePath: "missing.xlf" }],
-  ])("refuses a key missing from the destination when %s", async (_label, context) => {
+  it("refuses a key missing from the destination when no source path is known", async () => {
     const error = await writeError(
       { "en.xlf": SOURCE_12, "de.xlf": TARGET_12 },
       [entry("c", "Gamma")],
-      context,
+      {},
     );
     expect(error.code).toBe("INVALID_STRUCTURE");
     expect(error.message).toContain('"c"');
+    expect(error.message).toContain("none to copy");
   });
+
+  it.each([
+    ["cannot be read", "missing.xlf", {}, /source XLIFF file could not be read/],
+    [
+      "is not valid XML",
+      "en.xlf",
+      { "en.xlf": "<xliff" },
+      /source XLIFF file is not a valid XLIFF/,
+    ],
+    [
+      "is not an XLIFF document",
+      "en.xlf",
+      { "en.xlf": "<root/>" },
+      /source XLIFF file is not a valid XLIFF/,
+    ],
+  ])(
+    "reports a source file that %s on its own, not as having no unit to copy",
+    async (_label, sourcePath, files, message) => {
+      const error = await writeError({ "de.xlf": TARGET_12, ...files }, [entry("c", "Gamma")], {
+        sourcePath,
+      });
+      expect(error.code).toBe("INVALID_STRUCTURE");
+      expect(error.message).toMatch(message);
+      expect(error.message).not.toContain("none to copy");
+    },
+  );
 
   it("refuses a key the source document does not carry either", async () => {
     const error = await writeError(
@@ -244,5 +307,23 @@ describe("xliff write: writing the source document itself", () => {
     );
     expect(file).toContain('<unit id="e"><segment><source>Echo</source></segment></unit>');
     expect(values).toMatchObject({ d: "Delta", e: "Echo" });
+  });
+
+  it.each(["z#0", "has space", "#lead"])(
+    "refuses to append the key %j as a source-only XLIFF 2.0 unit id",
+    async (key) => {
+      const { adapter } = setup({ "en.xlf": SOURCE_20 });
+      const error = await adapter
+        .write(resource([entry(key, "Value")], "en"), "en.xlf", { sourcePath: "en.xlf" })
+        .catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(AdapterError);
+      expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
+      expect((error as AdapterError).message).toContain(`"${key}"`);
+    },
+  );
+
+  it("appends a key with any characters as a source-only XLIFF 1.2 unit", async () => {
+    const { values } = await writeSource([entry("m#0 x", "Value")]);
+    expect(values["m#0 x"]).toBe("Value");
   });
 });
