@@ -1,10 +1,12 @@
+import type { CliErrorCode } from "./cli-error-codes.js";
+
 export class CliUsageError extends Error {
-  readonly code: string;
+  readonly code: CliErrorCode;
   readonly candidates: readonly string[] | undefined;
   readonly missing: readonly string[] | undefined;
 
   constructor(
-    code: string,
+    code: CliErrorCode,
     message: string,
     candidates?: readonly string[],
     missing?: readonly string[],

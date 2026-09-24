@@ -19,6 +19,7 @@ import {
 } from "@verbatra/sdk";
 import { Command, CommanderError } from "commander";
 import { z } from "zod";
+import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
@@ -325,7 +326,7 @@ function renderFailureExit2(error: unknown, context: CommandContext): number {
   return 2;
 }
 
-const USAGE_ERROR_CODE = "USAGE_ERROR";
+const USAGE_ERROR_CODE: CliErrorCode = "USAGE_ERROR";
 
 function argvRequestsJson(argv: readonly string[]): boolean {
   return argv.includes("--json");

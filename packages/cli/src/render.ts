@@ -39,6 +39,9 @@ import {
   type UsageSummary,
   type WatchRunResult,
 } from "@verbatra/sdk";
+import type { CliErrorCode } from "./cli-error-codes.js";
+
+const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 
 export interface RenderableError {
   readonly code: string;
@@ -61,13 +64,13 @@ export function toRenderableError(error: unknown): RenderableError {
     const candidates = stringListOf(error, "candidates");
     const missing = stringListOf(error, "missing");
     return {
-      code: typeof code === "string" ? code : "CLI_ERROR",
+      code: typeof code === "string" ? code : FALLBACK_ERROR_CODE,
       message: error.message,
       ...(candidates === undefined ? {} : { candidates }),
       ...(missing === undefined ? {} : { missing }),
     };
   }
-  return { code: "CLI_ERROR", message: String(error) };
+  return { code: FALLBACK_ERROR_CODE, message: String(error) };
 }
 
 export function renderHuman(summary: RunSummary, command = "translate"): string {
