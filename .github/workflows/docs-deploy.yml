@@ -14,7 +14,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  PROJECT_DIR: ~/verbatra
+  PROJECT_DIR: $HOME/verbatra
 
 jobs:
   build-push-deploy:
@@ -80,7 +80,7 @@ jobs:
           envs: ARCJET_KEY,CONTACT_SMTP_HOST,CONTACT_SMTP_PORT,CONTACT_SMTP_USER,CONTACT_SMTP_PASSWORD,CONTACT_SMTP_FROM
           script: |
             set -e
-            cd ${{ env.PROJECT_DIR }}
+            cd "${{ env.PROJECT_DIR }}"
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -af
