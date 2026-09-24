@@ -41,9 +41,9 @@ Then open the printed loopback URL in your WebMCP-capable browser. The agent on 
 
 ## The tool catalog
 
-With the opt-in on, Studio registers seventeen tools. Without `--allow-spend` it registers fifteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
+With the opt-in on, Studio registers eighteen tools. Without `--allow-spend` it registers sixteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
 
-### Read tools (thirteen)
+### Read tools (fourteen)
 
 Inspect project state without changing anything. These are marked read-only.
 
@@ -61,6 +61,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_key_value` | the source and target values for one key and locale |
 | `verbatra_locale_values` | the source and target values for every key across every target locale |
 | `verbatra_locale_integrity` | placeholder, inline markup, ICU, and ICU arm integrity for every changed key, per target locale |
+| `verbatra_key_context` | one key's source and target values, its description, and the glossary entries its source uses |
 | `verbatra_translation_estimate` | what `verbatra_translation_translatePending` would send and cost, optionally for a subset of `locales`, without calling a provider |
 
 `verbatra_key_integrity` is shaped differently from the stdio MCP server's `key.integrity`. Its `result` is `{ locales: [...] }`, and each row carries `locale` next to the verdict fields themselves (`hasPlaceholders`, `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `icuArmDetails`, `markupMatches`, `markupDetails`), with no `entries` array. A locale appears only when the key's source changed there since the baseline: a locale where the key has no baseline entry yet, is unchanged, or is missing has no row at all, so an empty `locales` list means nothing needed checking, not that the key passed. [`key.integrity`](/docs/cli/mcp#inputs-and-results) instead returns a row for every locale in scope and nests the same fields in an `entries` array that is empty in those cases.
@@ -72,6 +73,10 @@ Since `@verbatra/studio` 0.6.0, `verbatra_key_value` and `verbatra_locale_values
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 `verbatra_locale_integrity` runs the same checks as `verbatra_key_integrity` over every changed key at once, and backs the **Integrity problems** filter on the Translations page. Its `result` is `{ locales: [{ locale, entries }] }`, each entry carrying `key` and the verdict fields. Every changed key is listed, whether or not it passed, so check the fields rather than reading presence as a failure; a missing, orphaned, or in-sync key never appears. The optional `locales` parameter narrows it to the named target locales.
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+`verbatra_key_context` returns what the dashboard's editor shows for one key and locale: `source`, `target` and its `provenance` when a value exists, `description` when the source file gives one, and `glossary`, the terms whose source occurs in the source text as `{ terms, doNotTranslate }` with the translation and forbidden renderings that locale is held to. Glossary values pass through the same redaction as `verbatra_glossary_get`.
 
 The dashboard's **Approve** and **Reject** buttons have no agent tool, with or without spend: a review decision is a person's call. `verbatra_review_queue` leaves out every entry decided since the run, but keeps one an agent edited, since that edit still needs a person's look.
 
@@ -123,7 +128,7 @@ Registration has three possible outcomes, and only one of them is a problem.
 
 **Nothing attempted, nothing reported.** When `document.modelContext` is absent (a browser without WebMCP, or Chrome without the flag) or when you did not opt in, Studio attempts no registration at all. The dashboard is unchanged and the console stays quiet. That is the designed no-op, not a failure.
 
-**Fifteen tools and no notice.** Without `--allow-spend`, Studio attempts fifteen registrations rather than seventeen: the two spend tools are skipped before they are ever attempted. Fifteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
+**Sixteen tools and no notice.** Without `--allow-spend`, Studio attempts sixteen registrations rather than eighteen: the two spend tools are skipped before they are ever attempted. Sixteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
 
 **The notice.** If Studio attempted a registration and the browser rejected it, the dashboard renders a warning at the top of the content area, on every view:
 
@@ -140,10 +145,10 @@ A failing tool never cancels the ones after it, so every tool that did register 
 Studio writes one aggregate line at error level, not one line per tool, because a shared cause fails every tool identically:
 
 ```text
-Verbatra agent tools: 2 of 17 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 18 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-The first sentence gives how many of the attempted registrations failed, and out of how many attempts: seventeen here, because this session was started with `--allow-spend`, and fifteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
+The first sentence gives how many of the attempted registrations failed, and out of how many attempts: eighteen here, because this session was started with `--allow-spend`, and sixteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
 
 A pass that never reached the per-tool loop reports a different line and does not raise the notice:
 

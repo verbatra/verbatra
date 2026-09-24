@@ -16,13 +16,21 @@ export function valueDirection(locale: string | undefined): ValueDirection {
 const SCROLLABLE_CLASSES =
   "overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
 
-function renderSegments(value: string): ReactNode[] {
+const HIGHLIGHTED_TOKEN_CLASSES =
+  "rounded-sm bg-accent px-0.5 font-mono text-[0.92em] text-accent-foreground";
+
+function renderSegments(value: string, highlightTokens: boolean): ReactNode[] {
   const nodes: ReactNode[] = [];
   let offset = 0;
   for (const segment of segmentValue(value)) {
     nodes.push(
       segment.kind === "token" ? (
-        <bdi key={offset} dir="ltr" className="whitespace-nowrap" data-value-token="">
+        <bdi
+          key={offset}
+          dir="ltr"
+          className={cn("whitespace-nowrap", highlightTokens && HIGHLIGHTED_TOKEN_CLASSES)}
+          data-value-token=""
+        >
           {segment.text}
         </bdi>
       ) : (
@@ -40,9 +48,11 @@ export function TranslationValue({
   as: Element = "span",
   className,
   title,
+  highlightTokens = false,
   ...dataAttributes
 }: {
   readonly value: string;
+  readonly highlightTokens?: boolean;
   readonly locale?: string | undefined;
   readonly as?: "span" | "p";
   readonly className?: string;
@@ -56,7 +66,7 @@ export function TranslationValue({
       title={title}
       {...dataAttributes}
     >
-      {renderSegments(value)}
+      {renderSegments(value, highlightTokens)}
     </Element>
   );
 }

@@ -517,6 +517,12 @@ dann, wenn der Key in dieser Locale noch nicht existiert.
 Ist `target` vorhanden, trägt das Ergebnis außerdem `provenance`, die ausgewertete
 `KeyProvenance` des Keys: `{ origin, provider?, model?, reviewState, reviewer? }`.
 
+<AvailableFrom version="0.12.0" />
+
+Das Ergebnis trägt außerdem `description`, wenn die Quell-Locale-Datei eine für den Key angibt:
+eine ARB-`@key.description`, eine XLIFF-Notiz, einen gettext-Kommentar, einen Kommentar in Apples
+`.strings` oder einen Kommentar in .NET-`.resx`.
+
 ### editEntry
 
 Schreibt eine von Hand getippte Korrektur für einen Key und eine Locale. Der Kandidatenwert
@@ -951,6 +957,18 @@ seinen `forbidden`-Wiedergaben, `caseSensitive` sowie `note` und `partOfSpeech`,
 wenn nichts im Glossar dort gilt. Genau das trägt eine Übersetzungsanfrage in diese Locale als
 `TranslateRequest.glossary`, und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
 dieser Locale.
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits(glossary, locale, sourceLocale, text)` gibt die Glossareinträge zurück, die für einen
+Quelltext in einer Ziel-Locale gelten, als `{ terms, doNotTranslate }` in der Form, die
+`glossaryForLocale` liefert: jeden Begriff, dessen Quelle als ganzer Begriff in `text` vorkommt, mit
+der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden ist, und jeden
+unübersetzt zu lassenden Begriff, der darin vorkommt. Ein Begriff passt mit oder ohne
+Groß-/Kleinschreibung, wie er es angibt, wobei für `sourceLocale` gefaltet wird. Er nutzt dieselbe
+Zuordnung, mit der ein Übersetzungslauf einen verpassten Glossarbegriff markiert, und liest nichts.
 
 ### normalizeGlossary
 

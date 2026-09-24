@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { KeyValueResult } from "../../shared/rpc/key-value.js";
+import type { KeyContextResult } from "../../shared/rpc/key-context.js";
 import type { LocaleValuesResult } from "../../shared/rpc/locale-values.js";
 import type { ReviewDecisionResult } from "../../shared/rpc/review-decision.js";
 import type { ReviewQueueResult } from "../../shared/rpc/review-queue.js";
@@ -58,7 +58,11 @@ const SNAPSHOT: ProjectSnapshotResult = {
   exposeAgentTools: false,
 };
 
-const KEY_VALUE: KeyValueResult = { source: "Checkout", target: "Kasse" };
+const KEY_VALUE: KeyContextResult = {
+  source: "Checkout",
+  target: "Kasse",
+  glossary: { terms: [], doNotTranslate: [] },
+};
 
 const LOCALE_VALUES: LocaleValuesResult = [
   {
@@ -130,7 +134,7 @@ function rowAction(view: RenderResult, key: string, name: string): HTMLElement {
 }
 
 async function openEditor(view: RenderResult, key: string): Promise<void> {
-  stubRpc({ "key.value": { ok: true, result: KEY_VALUE } });
+  stubRpc({ "key.context": { ok: true, result: KEY_VALUE } });
   await clickAsync(rowAction(view, key, "Edit"));
 }
 
@@ -741,8 +745,8 @@ describe("ReviewPanel", () => {
     await openEditor(view, "cart.badge");
 
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Edit cart.badge in fr");
-    expect(rpcCalls.at(-1)).toEqual({
-      method: "key.value",
+    expect(rpcCalls.find((call) => call.method === "key.context")).toEqual({
+      method: "key.context",
       params: { locale: "fr", key: "cart.badge" },
     });
   });
@@ -969,7 +973,7 @@ describe("ReviewPanel: keyboard queue", () => {
   it.each(["e", "Enter"])("opens the editor for the highlighted row with %s", async (key) => {
     stubKeyboardReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    stubRpc({ "key.value": { ok: true, result: KEY_VALUE } });
+    stubRpc({ "key.context": { ok: true, result: KEY_VALUE } });
 
     pressKey("j");
     pressOn(view.get("tbody tr[data-active]"), key);
@@ -1013,7 +1017,7 @@ describe("ReviewPanel: keyboard queue", () => {
   it("pauses the queue shortcuts while a dialog is open", async () => {
     stubKeyboardReady();
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    stubRpc({ "key.value": { ok: true, result: KEY_VALUE } });
+    stubRpc({ "key.context": { ok: true, result: KEY_VALUE } });
 
     pressKey("j");
     pressKey("e");

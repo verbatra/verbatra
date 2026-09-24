@@ -63,6 +63,10 @@ Der Editor zeigt den Quellstring und ein Textfeld, vorbefüllt mit der aktuellen
 
 Bearbeiten braucht kein Flag. Es berührt nur deine lokalen Dateien und ruft nie einen Provider auf.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Der Editor öffnet sich breit, mit Quelle und Übersetzung nebeneinander. Die Quellspalte zeigt den Quelltext mit hervorgehobenen Platzhaltern, ICU-Syntax und Inline-Markup, die Beschreibung des Keys, wenn die Quelldatei eine angibt (ARB, XLIFF, gettext, Apples `.strings` und .NET-`.resx` können eine tragen), und die Glossarbegriffe, die die Quelle verwendet: die Übersetzung, die diese Locale verwenden muss, die Wiedergaben, die sie nie verwenden darf, die Notiz zum Begriff und die Begriffe, die unverändert bleiben. Die Übersetzungsspalte zeigt, wer den aktuellen Wert geschrieben hat, und seine Integritätsanzeige, das Textfeld, die Länge deines Entwurfs im Vergleich zur Quelle und eine Vorschau mit derselben Hervorhebung, die deinem Tippen folgt. Drück im Textfeld Strg oder Cmd zusammen mit Enter, um zu speichern.
+
 ## Arbeite die Review-Warteschlange ab
 
 Die Seite Review listet jeden Eintrag, den die Review-Heuristiken im letzten `translate`- oder `watch`-Lauf markiert haben: eine Zeile pro Locale und Key, mit einer Anzeige pro Grund (Übersetzung deutlich kürzer oder länger als die Quelle, länger als das für den Key konfigurierte Längenbudget, identisch mit der Quelle, ein verpasster Glossarbegriff, umgeordnete Platzhalter, ein degradierter Provider-Batch oder ein aus dem Cache wiederverwendeter Wert, dessen Quelle seitdem bearbeitet wurde). Solange kein Lauf aufgezeichnet wurde, sagt die Seite das und bleibt leer; führe `verbatra translate` oder `verbatra watch` aus, um sie zu füllen.

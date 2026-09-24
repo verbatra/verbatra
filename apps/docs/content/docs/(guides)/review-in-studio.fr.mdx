@@ -63,6 +63,10 @@ L'éditeur montre la chaîne source et une zone de texte préremplie avec la tra
 
 Modifier n'exige aucune option. Cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+L'éditeur s'ouvre en large, avec la source et la traduction côte à côte. La colonne source montre le texte source avec ses placeholders, sa syntaxe ICU et son balisage en ligne mis en évidence, la description de la clé quand le fichier source en donne une (ARB, XLIFF, gettext, `.strings` d'Apple et `.resx` .NET peuvent en porter une), et les termes du glossaire que la source utilise : la traduction que cette locale doit employer, les rendus qu'elle ne doit jamais employer, la note du terme et les termes à garder tels quels. La colonne traduction montre qui a écrit la valeur actuelle et son indicateur d'intégrité, la zone de texte, la longueur de ton brouillon par rapport à celle de la source, et un aperçu avec la même mise en évidence qui suit ta saisie. Appuie sur Ctrl ou Cmd avec Entrée dans la zone de texte pour enregistrer.
+
 ## Traiter la file de révision
 
 La page Review liste chaque entrée que les heuristiques de révision ont signalée lors de la dernière exécution `translate` ou `watch` : une ligne par locale et clé, avec un indicateur par raison (traduction bien plus courte ou plus longue que la source, plus longue que le budget de longueur configuré pour la clé, identique à la source, terme de glossaire manqué, placeholders réordonnés, lot dégradé chez le fournisseur, ou valeur réutilisée depuis le cache après modification de sa source). Tant qu'aucune exécution n'a été enregistrée, la page le dit et reste vide ; lance `verbatra translate` ou `verbatra watch` pour la remplir.

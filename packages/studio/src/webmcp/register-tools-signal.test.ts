@@ -24,7 +24,7 @@ const SNAPSHOT_RESULT: ProjectSnapshotResult = {
 
 const SNAPSHOT_ON: RpcCallResult<"project.snapshot"> = { ok: true, result: SNAPSHOT_RESULT };
 
-const TOOLS_WITHOUT_SPEND = 15;
+const TOOLS_WITHOUT_SPEND = 16;
 
 interface FakeHost {
   readonly context: ModelContext;

@@ -506,6 +506,12 @@ exactamente cuando la clave todavía no existe en ese locale.
 Cuando `target` está presente, el resultado lleva además `provenance`, la `KeyProvenance`
 interpretada de la clave: `{ origin, provider?, model?, reviewState, reviewer? }`.
 
+<AvailableFrom version="0.12.0" />
+
+El resultado también lleva `description` cuando el archivo del locale de origen da una para la
+clave: una `@key.description` de ARB, una nota de XLIFF, un comentario de gettext, un comentario de
+`.strings` de Apple o un comentario de `.resx` de .NET.
+
 ### editEntry
 
 Escribe una corrección tecleada por un humano para una clave y un locale. El valor candidato pasa por la
@@ -921,6 +927,18 @@ traducciones `forbidden`, `caseSensitive`, y su `note` y `partOfSpeech`, o `unde
 del glosario se aplica allí. Es exactamente lo que una petición de traducción a ese locale lleva como
 `TranslateRequest.glossary`, y lo que ven las comprobaciones de revisión y la huella de caché de
 ese locale.
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits(glossary, locale, sourceLocale, text)` devuelve las entradas del glosario que se
+aplican a un texto de origen en un locale de destino, como `{ terms, doNotTranslate }` con la forma
+que devuelve `glossaryForLocale`: cada término cuyo origen aparece en `text` como término completo,
+con la traducción y las traducciones prohibidas a las que está sujeto ese locale, y cada término que
+se mantiene sin traducir y aparece en él. Un término coincide con o sin mayúsculas según indique,
+normalizando para `sourceLocale`. Usa la misma coincidencia que aplica una ejecución de traducción
+al marcar un término de glosario omitido, y no lee nada.
 
 ### normalizeGlossary
 

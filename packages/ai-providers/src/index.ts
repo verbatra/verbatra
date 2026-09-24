@@ -33,6 +33,7 @@ export {
   type LocaleGlossary,
   type LocaleGlossaryTerm,
 } from "./glossary.js";
+export { glossaryEntriesInText } from "./glossary-hits.js";
 export {
   type GoogleTranslateConfig,
   googleTranslateConfigSchema,

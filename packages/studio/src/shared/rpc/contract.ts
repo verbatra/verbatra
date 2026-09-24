@@ -13,6 +13,11 @@ import {
 } from "./glossary.js";
 import { HISTORY_LIST_METHOD, type HistoryListResult, historyListParamsSchema } from "./history.js";
 import {
+  KEY_CONTEXT_METHOD,
+  type KeyContextResult,
+  keyContextParamsSchema,
+} from "./key-context.js";
+import {
   KEY_INTEGRITY_METHOD,
   type KeyIntegrityResult,
   keyIntegrityParamsSchema,
@@ -90,6 +95,7 @@ export const rpcParamsSchemas = {
   [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
   [KEY_VALUE_METHOD]: keyValueParamsSchema,
+  [KEY_CONTEXT_METHOD]: keyContextParamsSchema,
   [LOCALE_VALUES_METHOD]: localeValuesParamsSchema,
   [LOCALE_INTEGRITY_METHOD]: localeIntegrityParamsSchema,
   [ESTIMATE_METHOD]: estimateParamsSchema,
@@ -119,6 +125,7 @@ export interface RpcResultMap {
   readonly [RETRANSLATE_ENTRIES_METHOD]: RetranslateEntriesResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;
   readonly [KEY_VALUE_METHOD]: KeyValueResult;
+  readonly [KEY_CONTEXT_METHOD]: KeyContextResult;
   readonly [LOCALE_VALUES_METHOD]: LocaleValuesResult;
   readonly [LOCALE_INTEGRITY_METHOD]: LocaleIntegrityResult;
   readonly [ESTIMATE_METHOD]: EstimateResult;

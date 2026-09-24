@@ -4,12 +4,16 @@ import { DialogCloseButton, microLabelClassName, OverlayBackdrop } from "./ui.js
 
 export type SheetSide = "start" | "end" | "top" | "bottom";
 
+export type SheetSize = "default" | "wide";
+
 const CONTAINER_CLASSNAME: Readonly<Record<SheetSide, string>> = {
   start: "justify-start",
   end: "justify-end",
   top: "items-start",
   bottom: "items-end",
 };
+
+const WIDE_PANEL_CLASSNAME = "w-[min(960px,100%)]";
 
 const PANEL_CLASSNAME: Readonly<Record<SheetSide, string>> = {
   start: "h-full w-[min(480px,100%)] border-e",
@@ -20,6 +24,7 @@ const PANEL_CLASSNAME: Readonly<Record<SheetSide, string>> = {
 
 export interface SheetProps {
   readonly side?: SheetSide;
+  readonly size?: SheetSize;
   readonly kicker?: string;
   readonly title: ReactNode;
   readonly ariaLabel: string;
@@ -31,6 +36,7 @@ export interface SheetProps {
 
 export function Sheet({
   side = "end",
+  size = "default",
   kicker,
   title,
   ariaLabel,
@@ -46,6 +52,7 @@ export function Sheet({
         className={cn(
           "relative z-10 overflow-y-auto border-border bg-card shadow-panel-lg",
           PANEL_CLASSNAME[side],
+          size === "wide" && WIDE_PANEL_CLASSNAME,
         )}
         role="dialog"
         aria-modal="true"
