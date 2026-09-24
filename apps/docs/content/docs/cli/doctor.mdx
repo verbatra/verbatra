@@ -35,6 +35,7 @@ verbatra doctor [flags]
 | Source locale file | the source locale file exists at its resolved path, is a regular file, and parses under the configured format |
 | Plural rules | always (informational): names the ICU and CLDR versions verbatra reads plural categories from, and any target locale ICU has no plural rules for |
 | Locale codes | always (informational): names every configured locale code that is valid but not in canonical BCP 47 form, with the canonical form to use |
+| Locale state | always (informational): names every locale the lock file, the translation memory, or the provenance file holds state for that your config does not list, and says whether the next `translate` run carries it over |
 
 <AvailableFrom version="0.12.0" />
 
@@ -44,7 +45,11 @@ The Plural rules check is informational and never fails: a target locale it name
 
 The Locale codes check is informational and never fails either. A code such as `zh-hant-tw`, `en-us`, or the deprecated `iw`, `in`, or `tl` is valid, so it loads and translates as written, and this check suggests `zh-Hant-TW`, `en-US`, `he`, `id`, or `fil` instead. File names follow the code in your config, so nothing is renamed until you change it yourself. A code that is not valid BCP 47 at all, such as `en_US`, never reaches this check: it fails the Configuration check. See [Locale codes](/docs/config-file#locale-codes).
 
-Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the seven checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
+<AvailableFrom version="0.12.0" />
+
+The Locale state check is informational and never fails either. It reads `verbatra.lock.json`, `verbatra.cache.json`, and `verbatra.provenance.json` and names every locale they hold state for that your config does not list, such as `pt_BR` left behind after you respelled it `pt-BR`. For each one it says whether the next `translate` run carries it over to the configured spelling (see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), whether the configured code already has state of its own, whether two spellings compete for it, or whether it matches no configured locale at all. Remove the state of a locale you no longer translate, or respell the configured locale to match it.
+
+Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the eight checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
 
 Four details are worth knowing:
 
@@ -115,6 +120,7 @@ verbatra doctor
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
   [ok  ] Plural rules: ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.
   [ok  ] Locale codes: Every configured locale code is in canonical BCP 47 form.
+  [ok  ] Locale state: Every locale with state in verbatra.lock.json, verbatra.cache.json, and verbatra.provenance.json is configured.
 2 problems found (run verbatra doctor again after fixing them)
 ```
 

@@ -303,7 +303,7 @@ function fsWithOneCorruptLockRead(dir: string): SdkFs {
     readFileBounded: async (path: string, maxBytes: number): Promise<BoundedFileRead> => {
       if (path === lockPath) {
         lockReads += 1;
-        if (lockReads === 1) {
+        if (lockReads === 2) {
           return { kind: "ok", content: "{ not json" };
         }
       }

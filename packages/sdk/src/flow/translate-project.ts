@@ -6,6 +6,7 @@ import {
   CACHE_FILE_NAME,
   cacheFilePath,
   readTranslationMemory,
+  withMemoryLocalesMoved,
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
@@ -34,6 +35,7 @@ import {
   lockFilePath,
   readLockFile,
   updateLockFileLocale,
+  withLockLocalesMoved,
 } from "../lock/lock-file.js";
 import { machineAttribution } from "../lock/machine-attribution.js";
 import {
@@ -53,6 +55,11 @@ import { type CreateProvider, selectProvider } from "../selection/select-provide
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
+import {
+  carryOverRespelledLocales,
+  type LocaleCarryOverPlan,
+  withCarryOverNotices,
+} from "./locale-carry-over.js";
 import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
 import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
 import {
@@ -194,19 +201,23 @@ interface RunCacheState {
   readonly writable: boolean;
 }
 
-async function createRunCacheState(
+function usesTranslationMemory(
   input: TranslateInput,
   config: VerbatraConfig,
-  cwd: string,
   dryRun: boolean,
+): boolean {
+  return !((dryRun && isMachineProvider(config.provider)) || input.cache === false);
+}
+
+async function createRunCacheState(
+  config: VerbatraConfig,
+  cwd: string,
   fs: SdkFs,
-): Promise<RunCacheState | undefined> {
-  if ((dryRun && isMachineProvider(config.provider)) || input.cache === false) {
-    return undefined;
-  }
+  carryOver: LocaleCarryOverPlan,
+): Promise<RunCacheState> {
   const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
   return {
-    memory,
+    memory: withMemoryLocalesMoved(memory, carryOver.memory),
     writable,
     fingerprintFor: fingerprintsFor(config),
     additions: new Map(),
@@ -447,8 +458,12 @@ async function runAllLocalesDry(
   context: LocaleRunContext,
   targetLocales: readonly string[],
   concurrency: number,
+  carryOver: LocaleCarryOverPlan,
 ): Promise<LocaleSummary[]> {
-  const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
+  const lock = withLockLocalesMoved(
+    await readLockFile(lockFilePath(context.cwd), context.fs),
+    carryOver.lock,
+  );
   return runLocalesWithProgress(
     context,
     targetLocales,
@@ -590,6 +605,14 @@ function estimateFields(
  *
  * Set `dryRun` to compute the whole plan without writing or spending anything.
  *
+ * A locale code respelled in the config, such as `pt_BR` renamed to `pt-BR`, keeps its history.
+ * When a selected target locale has no state of its own in the lock file, the translation memory,
+ * or the provenance file, and that file holds state under exactly one underscore spelling of it
+ * (compared case-insensitively), a live run moves that state to the configured code once, before
+ * any locale runs, and reports `LOCALE_STATE_CARRIED_OVER` on the locale. State the configured code
+ * already has is never overwritten, and two candidate spellings move nothing; {@link doctor} lists
+ * what is left behind. A dry run plans with the moved state and reports it, but writes nothing.
+ *
  * A stale key whose current value a person wrote is protected by default: its origin in the
  * provenance file is `human` or `import`, or its value changed outside verbatra since it was
  * recorded. The key is not translated, keeps its value and its lock-file baseline, so it stays
@@ -691,7 +714,12 @@ export async function translate(
   const mode = selectRunMode(config, dryRun, deps.createProvider);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
+  const usesMemory = usesTranslationMemory(input, config, dryRun);
+  const carryOver = await carryOverRespelledLocales(cwd, fs, targetLocales, {
+    dryRun,
+    memory: usesMemory,
+  });
+  const cache = usesMemory ? await createRunCacheState(config, cwd, fs, carryOver) : undefined;
   const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
   const context: LocaleRunContext = {
     source,
@@ -719,11 +747,15 @@ export async function translate(
   };
 
   const summaries = dryRun
-    ? await runAllLocalesDry(context, targetLocales, concurrency)
+    ? await runAllLocalesDry(context, targetLocales, concurrency, carryOver)
     : await runAllLocalesLive(context, targetLocales, concurrency);
   input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
 
-  const locales = withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance);
+  const locales = withCarryOverNotices(
+    withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance),
+    carryOver.carried,
+    dryRun,
+  );
   const { succeeded, partial, failed } = partition(locales);
   const usage = summaries.reduce<ReturnType<typeof combineUsage>>(
     (total, summary) => combineUsage(total, summary.usage),

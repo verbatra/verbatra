@@ -113,6 +113,14 @@ If a lock cannot be acquired, the run fails with `LOCK_CONTENDED` and names the 
 (under the gitignored `.verbatra-local/` directory). If no verbatra process is running anywhere,
 delete that file and retry.
 
+## A respelled locale code
+
+<AvailableFrom version="0.12.0" />
+
+The lock file, the translation memory, and the provenance file key their state by the locale code in your config. When you respell a code, for example `pt_BR` to `pt-BR` with `files.localeStyle` set to `posix` so the file keeps its name, the next `translate` or `watch` run carries the old state over once. It does so when `pt-BR` has no state of its own in a file and that file holds state under exactly one underscore spelling of it, compared case-insensitively. The state moves to `pt-BR` before the locale runs, and the run reports a `LOCALE_STATE_CARRIED_OVER` notice on that locale. A source change made before the rename is then still retranslated, and cached translations are still reused.
+
+State that `pt-BR` already has is never overwritten, and when two spellings compete, such as `pt_BR` and `pt_br`, nothing moves. A run limited with `--locales` moves state only for the locales it runs, `--dry-run` plans with the moved state but writes nothing, and `--no-cache` leaves the translation memory as it is. The `locale-state` check of [`verbatra doctor`](/docs/cli/doctor) names whatever stays behind, and any other locale your config no longer lists.
+
 ## Missing or corrupt
 
 A missing lock file is not an error: it is a first run, and with no baseline nothing can be

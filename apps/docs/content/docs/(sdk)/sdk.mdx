@@ -264,6 +264,11 @@ An eighth check, `locale-codes`, is informational too and always passes: its det
 configured locale code that is valid but not in canonical BCP 47 form, such as `zh-hant-tw` or the
 deprecated `iw`, with the canonical form `Intl.getCanonicalLocales` suggests. Nothing is renamed.
 
+A ninth check, `locale-state`, is informational too and always passes: its detail names every
+locale the lock file, the translation memory, or the provenance file holds state for that the config
+does not list, such as `pt_BR` left behind after a respelling to `pt-BR`, and says whether the next
+`translate` run carries it over. A file it cannot read is named in the detail.
+
 Input: `{ cwd?, configPath?, literals? }`. With `literals` set, `doctor` runs only the `config`
 check and an `untranslated-literals` check instead, scanning the source roots of the config's
 `extract` block, as [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) does. No
@@ -1091,7 +1096,7 @@ The parts worth knowing:
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
   `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
-  `PROVENANCE_VERSION_UNRECOGNIZED`, and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
+  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
   grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.

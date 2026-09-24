@@ -22,9 +22,9 @@ Compatibility: these configs loaded before and are now rejected.
 
 - An underscore spelling such as `pt_BR`, `zh_Hant_TW` or `es_419`. The error suggests your own
   spelling with hyphens: write `pt-BR` and set `files.localeStyle` to `posix`, and every file keeps
-  its old path. Before renaming, run `translate` until `check` is clean: lock-file and
-  translation-memory entries recorded under the old code are not carried over to the new one.
-  Existing translations in the files are kept and nothing is retranslated.
+  its old path. The next `translate` run carries the lock-file, translation-memory and provenance
+  state recorded under the old code over to the new one. Existing translations in the files are
+  kept.
 - In an `apple-xcstrings` catalogue, translations are keyed by locale code inside the file, so
   switching from `pt_BR` to `pt-BR` adds a new `pt-BR` localization block (the code Xcode uses)
   rather than reusing the `pt_BR` one.
