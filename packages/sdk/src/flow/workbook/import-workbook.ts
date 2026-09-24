@@ -20,6 +20,7 @@ import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../../lock/carry-forward.js";
 import {
+  assertLockAcquireTimeout,
   type LockWaitListener,
   recordLockOptions,
   withLocaleWriteLock,
@@ -485,6 +486,8 @@ async function runSheet(
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns The per-locale account of what was applied.
  *
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the handoff file was not found, or the source
  * locale file does not exist.
@@ -507,6 +510,7 @@ export async function importWorkbook(
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
   const dryRun = input.dryRun ?? false;
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);

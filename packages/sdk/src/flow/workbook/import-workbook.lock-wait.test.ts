@@ -117,6 +117,22 @@ describe("importWorkbook: lockAcquireTimeoutMs bounds the locale write lock take
   });
 });
 
+describe("importWorkbook: validating lockAcquireTimeoutMs", () => {
+  it.each([[-5], [0.25], [Number.NaN]])(
+    "refuses %s before the handoff is read",
+    async (lockAcquireTimeoutMs) => {
+      await expect(
+        importWorkbook({
+          config: config(),
+          cwd: "/nonexistent",
+          workbook: "handoff.xlsx",
+          lockAcquireTimeoutMs,
+        }),
+      ).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+    },
+  );
+});
+
 describe("importWorkbook: the record step after the target is written ignores lockAcquireTimeoutMs", () => {
   it("records the lock and provenance when the lock-file guard is held past the timeout", async () => {
     const dir = await filledHandoff();

@@ -16,7 +16,7 @@ export function hasRename(fs: SdkFs): fs is RenameFs {
 }
 
 export type MoveAsideResult =
-  | { readonly kind: "removed" | "missing" | "displaced" | "changed" }
+  | { readonly kind: "removed" | "missing" | "displaced" | "superseded" | "changed" }
   | { readonly kind: "busy"; readonly error: unknown };
 
 function errorCode(error: unknown): string | undefined {
@@ -32,17 +32,26 @@ export function asideName(path: string, liveness: LivenessContext): string {
   return `${path}.${process.pid}.${identityTag(liveness)}.${randomUUID()}.stale`;
 }
 
+async function discardAside(aside: string, fs: SdkFs): Promise<void> {
+  await fs.deleteFile(aside).catch(() => undefined);
+}
+
 async function restoreDisplaced(
   path: string,
   aside: string,
   moved: BoundedFileRead,
   fs: SdkFs,
-): Promise<void> {
+): Promise<MoveAsideResult> {
   if (moved.kind !== "ok") {
-    return;
+    return { kind: "displaced" };
   }
-  await fs.createExclusive(path, moved.content);
-  await fs.deleteFile(aside).catch(() => undefined);
+  const restored = await fs.createExclusive(path, moved.content);
+  await discardAside(aside, fs);
+  return { kind: restored ? "displaced" : "superseded" };
+}
+
+async function stampMove(aside: string, fs: SdkFs): Promise<void> {
+  await fs.touch?.(aside).catch(() => undefined);
 }
 
 export async function moveAsideIfUnchanged(
@@ -63,13 +72,13 @@ export async function moveAsideIfUnchanged(
     }
     throw error;
   }
+  await stampMove(aside, fs);
   const moved = await fs.readFileBounded(aside, MAX_LOCK_PAYLOAD_BYTES);
   if (moved.kind === "ok" && moved.content === content) {
-    await fs.deleteFile(aside).catch(() => undefined);
+    await discardAside(aside, fs);
     return { kind: "removed" };
   }
-  await restoreDisplaced(path, aside, moved, fs);
-  return { kind: "displaced" };
+  return restoreDisplaced(path, aside, moved, fs);
 }
 
 export async function isOlderThan(path: string, fs: SdkFs, ageMs: number): Promise<boolean> {
@@ -99,7 +108,7 @@ async function isSweepable(
   if (movedByThisMachine && isLocalPidGone(Number(match[1]), settings.liveness)) {
     return true;
   }
-  return isOlderThan(path, fs, settings.staleAfterMs);
+  return fs.touch !== undefined && (await isOlderThan(path, fs, settings.staleAfterMs));
 }
 
 async function listDirectory(

@@ -68,6 +68,7 @@ function renameOf(fs: SdkFs): (from: string, to: string) => Promise<void> {
 
 const FAIL_FAST = { pollIntervalMs: 5, acquireTimeoutMs: 0, liveness };
 const PATIENT = { pollIntervalMs: 5, acquireTimeoutMs: 60_000, liveness };
+const BRIEF = { pollIntervalMs: 5, acquireTimeoutMs: 100, liveness };
 
 afterEach(async () => {
   vi.useRealTimers();
@@ -439,10 +440,10 @@ describe("withLocaleWriteLock: a rename Windows refuses while another process ha
       },
     );
     memory.put(LOCK, L1);
-    memory.put(GUARD, record(LIVE_PID, { heartbeatMs: 1_000 }), Date.now() - 60_000);
+    memory.put(GUARD, G1);
 
     await expect(
-      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, FAIL_FAST),
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, BRIEF),
     ).rejects.toMatchObject({
       code: "LOCK_CONTENDED",
       message: expect.stringContaining(`Moving the abandoned file ${GUARD} aside last failed`),
@@ -506,25 +507,40 @@ describe("withLocaleWriteLock: clearing an abandoned reclaim guard with an atomi
     expect(memory.files.has(GUARD)).toBe(true);
   });
 
-  it("clears a guard whose heartbeat is stale in the poll that first sees it", async () => {
+  it("never judges a guard by a heartbeat, however old a live reclaimer's guard file is", async () => {
     const memory = memoryLockFs();
+    const guard = record(LIVE_PID, { heartbeatMs: 1_000 });
     memory.put(LOCK, L1);
-    memory.put(GUARD, record(LIVE_PID, { heartbeatMs: 1_000 }), Date.now() - 3_000);
-    let ran = false;
+    memory.put(GUARD, guard, Date.now() - 60_000);
 
-    await withLocaleWriteLock(
-      "/proj",
-      "de",
-      memory.fs,
-      async () => {
-        ran = true;
+    await expect(
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, BRIEF),
+    ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
+
+    expect(memory.renames).toEqual([]);
+    expect(memory.content(GUARD)).toBe(guard);
+  });
+
+  it("records no heartbeat interval in the reclaim guard it takes", async () => {
+    const memory = memoryLockFs();
+    const created = new Map<string, string>();
+    const fs: SdkFs = {
+      ...memory.fs,
+      createExclusive: async (path, data) => {
+        created.set(path, data);
+        return memory.fs.createExclusive(path, data);
       },
-      PATIENT,
-    );
+    };
+    memory.put(LOCK, L1);
 
-    expect(ran).toBe(true);
-    expect(memory.renames[0]?.[0]).toBe(GUARD);
-    expect(memory.files.size).toBe(0);
+    await withLocaleWriteLock("/proj", "de", fs, async () => undefined, {
+      ...PATIENT,
+      heartbeatIntervalMs: 1_000,
+    });
+
+    expect(JSON.parse(created.get(GUARD) ?? "{}")).toMatchObject({ nonce: expect.any(String) });
+    expect(JSON.parse(created.get(GUARD) ?? "{}")).not.toHaveProperty("heartbeatMs");
+    expect(JSON.parse(created.get(LOCK) ?? "{}")).toMatchObject({ heartbeatMs: 1_000 });
   });
 
   it("never touches a guard a live process holds while its heartbeat is fresh", async () => {
@@ -553,10 +569,10 @@ describe("withLocaleWriteLock: clearing an abandoned reclaim guard with an atomi
       }),
     });
     memory.put(LOCK, L1);
-    memory.put(GUARD, record(LIVE_PID, { heartbeatMs: 1_000 }), Date.now() - 10_000);
+    memory.put(GUARD, G1);
 
     await expect(
-      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, FAIL_FAST),
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, BRIEF),
     ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
 
     expect(memory.content(GUARD)).toBe(g2);
@@ -575,10 +591,10 @@ describe("withLocaleWriteLock: clearing an abandoned reclaim guard with an atomi
       }),
     });
     memory.put(LOCK, L1);
-    memory.put(GUARD, record(LIVE_PID, { heartbeatMs: 1_000 }), Date.now() - 10_000);
+    memory.put(GUARD, G1);
 
     await expect(
-      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, FAIL_FAST),
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, BRIEF),
     ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
 
     expect(memory.content(GUARD)).toBe(g3);
@@ -593,7 +609,7 @@ describe("withLocaleWriteLock: clearing an abandoned reclaim guard with an atomi
       }),
     });
     memory.put(LOCK, L1);
-    memory.put(GUARD, record(LIVE_PID, { heartbeatMs: 1_000 }), Date.now() - 10_000);
+    memory.put(GUARD, G1);
 
     await withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, PATIENT);
 
@@ -672,6 +688,79 @@ describe("withLocaleWriteLock: sweeping moved-aside files", () => {
     await withLocaleWriteLock("/proj", "fr", withoutMtime, async () => undefined, options);
 
     expect(memory.content(aside)).toBe(L2);
+  });
+
+  it("keeps an old aside, whoever moved it, when the file system cannot touch files", async () => {
+    const memory = memoryLockFs();
+    const { touch: _touch, ...withoutTouch } = memory.fs;
+    const aside = asideOf(GUARD, LIVE_PID, foreignTag);
+    memory.put(aside, L2, 0);
+
+    await withLocaleWriteLock("/proj", "fr", withoutTouch, async () => undefined, options);
+
+    expect(memory.content(aside)).toBe(L2);
+  });
+
+  it("still deletes an aside whose mover is gone when the file system cannot touch files", async () => {
+    const memory = memoryLockFs();
+    const { touch: _touch, ...withoutTouch } = memory.fs;
+    const aside = asideOf(LOCK, DEAD_PID, TAG);
+    memory.put(aside, L2, 0);
+
+    await withLocaleWriteLock("/proj", "fr", withoutTouch, async () => undefined, options);
+
+    expect(memory.files.has(aside)).toBe(false);
+  });
+
+  it("stamps a moved-aside file with the time of the move, not the moved lock's age", async () => {
+    const asideMtimes: (number | undefined)[] = [];
+    const memory = memoryLockFs(
+      {},
+      {
+        deleteFile: async (path) => {
+          if (ASIDE.test(path)) {
+            asideMtimes.push(memory.files.get(path)?.mtime);
+          }
+          memory.files.delete(path);
+        },
+      },
+    );
+    memory.put(LOCK, L1, 0);
+    const before = Date.now();
+
+    await withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, PATIENT);
+
+    expect(memory.renames.map(([from]) => from)).toContain(LOCK);
+    expect(asideMtimes.length).toBeGreaterThan(0);
+    for (const mtime of asideMtimes) {
+      expect(mtime).toBeGreaterThanOrEqual(before);
+    }
+  });
+
+  it("keeps a moved-aside file whose stamp the file system refuses, then still reclaims", async () => {
+    const memory = memoryLockFs(
+      {},
+      {
+        touch: async () => {
+          throw errno("EPERM");
+        },
+      },
+    );
+    memory.put(LOCK, L1, 0);
+    let ran = false;
+
+    await withLocaleWriteLock(
+      "/proj",
+      "de",
+      memory.fs,
+      async () => {
+        ran = true;
+      },
+      PATIENT,
+    );
+
+    expect(ran).toBe(true);
+    expect(memory.files.size).toBe(0);
   });
 
   it("keeps an aside whose modification time cannot be read", async () => {

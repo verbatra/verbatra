@@ -223,6 +223,22 @@ describe("watch: startup and wiring", () => {
     expect(w.paths).toEqual([]);
   });
 
+  it.each([[-1], [0.5], [Number.NaN]])(
+    "refuses a lockAcquireTimeoutMs of %s at startup",
+    async (lockAcquireTimeoutMs) => {
+      const w = watcherHarness();
+      const r = runHarness();
+      await expect(
+        watch(
+          { config: baseConfig(), cwd: CWD, lockAcquireTimeoutMs, onRun: () => {} },
+          { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+        ),
+      ).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+      expect(r.calls).toBe(0);
+      expect(w.paths).toEqual([]);
+    },
+  );
+
   it("passes a locale subset through to every run", async () => {
     const w = watcherHarness();
     const r = runHarness();

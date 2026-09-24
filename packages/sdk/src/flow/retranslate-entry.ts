@@ -3,8 +3,8 @@ import {
   type ReviewReasonCode,
   type TranslationProvider,
 } from "@verbatra/ai-providers";
-import { contentHash } from "@verbatra/core";
-import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
+import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { fingerprintsFor } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
 import { glossaryForLocale } from "../config/glossary.js";
@@ -15,6 +15,8 @@ import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import {
+  assertLockAcquireTimeout,
+  type LocaleWriteLockOptions,
   type LockWaitListener,
   recordLockOptions,
   withLocaleWriteLock,
@@ -32,6 +34,7 @@ import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.j
 import {
   assertNotPinned,
   assertNotProtected,
+  type ProtectionPolicy,
   protectionFor,
   protectionPolicy,
   readProvenanceView,
@@ -133,6 +136,103 @@ function machinePending(
     : { origin: "machine", value, attribution };
 }
 
+interface UnderLockContext {
+  readonly config: VerbatraConfig;
+  readonly cwd: string;
+  readonly fs: SdkFs;
+  readonly adapter: FormatAdapter;
+  readonly locale: string;
+  readonly key: string;
+  readonly sourceEntry: TranslationEntry;
+  readonly policy: ProtectionPolicy;
+  readonly provider: TranslationProvider;
+  readonly recordLock: LocaleWriteLockOptions;
+}
+
+async function translateOne(context: UnderLockContext) {
+  const { config, locale, adapter, sourceEntry } = context;
+  const result = await context.provider.translateBatch(
+    buildTranslateRequest(
+      {
+        sourceLocale: config.sourceLocale,
+        targetLocale: locale,
+        adapter,
+        glossary: glossaryForLocale(config.glossary, locale),
+        maxLength: toMaxLengthMap(config.maxLength),
+        tone: config.tone,
+      },
+      [sourceEntry],
+    ),
+  );
+  const value = result.values.get(context.key);
+  if (value === undefined) {
+    throw new ProviderError(
+      "INVALID_RESPONSE",
+      `The provider returned no translated value for key "${context.key}".`,
+    );
+  }
+  return { value, reviewReasons: result.reviewFlags?.get(context.key)?.reasons ?? [] };
+}
+
+async function saveAccepted(
+  context: UnderLockContext,
+  target: LocaleResource,
+  value: string,
+): Promise<void> {
+  const { config, cwd, fs, adapter, locale, key, sourceEntry } = context;
+  const merged = new Map(target.entries);
+  merged.set(key, { ...sourceEntry, value, namespace: target.namespace });
+  const resolver = createLocalePathResolver(cwd, config);
+  await writeTargetResource(
+    adapter,
+    { locale, namespace: target.namespace, format: config.format, entries: merged },
+    resolver.pathFor(locale),
+    cwd,
+    { sourcePath: resolver.pathFor(config.sourceLocale) },
+  );
+  const hash = contentHash(sourceEntry);
+  await updateLockFileLocale(
+    cwd,
+    fs,
+    locale,
+    { mode: "merge", entries: { [key]: hash } },
+    settleProvenance(
+      new Map([[key, machinePending(value, config, context.provider)]]),
+      await readTarget(cwd, config, adapter, fs, locale),
+    ),
+    context.recordLock,
+  );
+  await feedTranslationMemory(
+    cwd,
+    fs,
+    fingerprintsFor(config),
+    new Map([[locale, { [hash]: { contentHash: hash, value, source: sourceEntry.value } }]]),
+  );
+}
+
+async function retranslateUnderLock(context: UnderLockContext): Promise<RetranslateEntryResult> {
+  const { config, cwd, fs, adapter, locale, key, sourceEntry } = context;
+  const target = await readTarget(cwd, config, adapter, fs, locale);
+  const provenance = await readProvenanceView(context.policy, cwd, fs, locale);
+  assertNotProtected(
+    protectionFor(context.policy, provenance, key, target.entries.get(key)?.value),
+    key,
+    locale,
+  );
+  const { value, reviewReasons } = await translateOne(context);
+  const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
+  if (!gate.accepted) {
+    return {
+      accepted: false,
+      reason: gate.reason,
+      ...(gate.details !== undefined ? { details: gate.details } : {}),
+      value,
+    };
+  }
+  await saveAccepted(context, target, value);
+  return { accepted: true, value, reviewReasons };
+}
+
 /**
  * Re-runs the configured provider for a single key and saves the result. This is the paid
  * counterpart to {@link editEntry}: it calls the provider and therefore spends tokens, which is why
@@ -172,6 +272,8 @@ function machinePending(
  *
  * @throws {@link SdkError} `MACHINE_TRANSLATION_DISABLED`: the config sets `provider: { id: "none" }`.
  * Thrown first, before anything is read, locked, or constructed.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -217,6 +319,7 @@ export async function retranslateEntry(
 ): Promise<RetranslateEntryResult> {
   const config = input.config;
   assertMachineTranslationEnabled(config, "retranslating a key");
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
@@ -247,90 +350,19 @@ export async function retranslateEntry(
     cwd,
     writeLockKeyFor(config.format, locale),
     fs,
-    async () => {
-      const target = await readTarget(cwd, config, adapter, fs, locale);
-      const provenance = await readProvenanceView(policy, cwd, fs, locale);
-      assertNotProtected(
-        protectionFor(policy, provenance, input.key, target.entries.get(input.key)?.value),
-        input.key,
-        locale,
-      );
-
-      const result = await provider.translateBatch(
-        buildTranslateRequest(
-          {
-            sourceLocale: config.sourceLocale,
-            targetLocale: locale,
-            adapter,
-            glossary: glossaryForLocale(config.glossary, locale),
-            maxLength: toMaxLengthMap(config.maxLength),
-            tone: config.tone,
-          },
-          [sourceEntry],
-        ),
-      );
-      const value = result.values.get(input.key);
-      if (value === undefined) {
-        throw new ProviderError(
-          "INVALID_RESPONSE",
-          `The provider returned no translated value for key "${input.key}".`,
-        );
-      }
-
-      const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
-      if (!gate.accepted) {
-        return {
-          accepted: false,
-          reason: gate.reason,
-          ...(gate.details !== undefined ? { details: gate.details } : {}),
-          value,
-        };
-      }
-
-      const merged = new Map(target.entries);
-      merged.set(input.key, { ...sourceEntry, value, namespace: target.namespace });
-      const resolver = createLocalePathResolver(cwd, config);
-      await writeTargetResource(
+    () =>
+      retranslateUnderLock({
+        config,
+        cwd,
+        fs,
         adapter,
-        { locale, namespace: target.namespace, format: config.format, entries: merged },
-        resolver.pathFor(locale),
-        cwd,
-        { sourcePath: resolver.pathFor(config.sourceLocale) },
-      );
-
-      await updateLockFileLocale(
-        cwd,
-        fs,
         locale,
-        { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
-        settleProvenance(
-          new Map([[input.key, machinePending(value, config, provider)]]),
-          await readTarget(cwd, config, adapter, fs, locale),
-        ),
-        recordLockOptions(input),
-      );
-
-      await feedTranslationMemory(
-        cwd,
-        fs,
-        fingerprintsFor(config),
-        new Map([
-          [
-            locale,
-            {
-              [contentHash(sourceEntry)]: {
-                contentHash: contentHash(sourceEntry),
-                value,
-                source: sourceEntry.value,
-              },
-            },
-          ],
-        ]),
-      );
-
-      const reviewReasons = result.reviewFlags?.get(input.key)?.reasons ?? [];
-      return { accepted: true, value, reviewReasons };
-    },
+        key: input.key,
+        sourceEntry,
+        policy,
+        provider,
+        recordLock: recordLockOptions(input),
+      }),
     writeLockOptions(input),
   );
 }

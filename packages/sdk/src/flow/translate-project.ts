@@ -25,6 +25,7 @@ import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import {
+  assertLockAcquireTimeout,
   type LocaleWriteLockOptions,
   type LockWaitListener,
   recordLockOptions,
@@ -696,6 +697,8 @@ function estimateFields(
  * @throws {@link SdkError} `CONCURRENCY_BUDGET_CONFLICT`: a live run combined a `concurrency` above
  * 1 with a token budget, configured or passed as `maxTokens`. A dry run is exempt.
  * @throws {@link SdkError} `MAX_TOKENS_INVALID`: `maxTokens` is not a whole number of at least 1.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
@@ -747,6 +750,7 @@ export async function translate(
   const cwd = input.cwd ?? process.cwd();
   const estimateRequested = input.estimate ?? false;
   const dryRun = resolveDryRun(input);
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const targetLocales = selectLocales(config, input.locales);
   const runBudget = resolveRunBudget(config, DEFAULT_BUDGET_BEHAVIOR, input.maxTokens);
   const concurrency = resolveRunConcurrency(input.concurrency, dryRun, runBudget.maxTokens);

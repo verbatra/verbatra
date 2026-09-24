@@ -130,10 +130,19 @@ Diese Schritte lassen trotzdem seltene Abläufe zu, in denen zwei Läufe kurz be
 Sperre zu halten. Deshalb hält jede Sperre zusätzlich ein zufälliges Besitz-Token fest. Vor jedem
 Schreibvorgang, den die Sperre schützt (die Locale-Datei, die Lock-Datei, die Provenance-Datei, das
 Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält, und bricht mit
-`LOCK_CONTENDED` ab, ohne zu schreiben, wenn nicht. Prüfung und Schreiben sind zwei Schritte: Ein
-Lauf, der die Prüfung genau in dem Moment besteht, in dem ein anderer Lauf die Sperre übernimmt,
-kann also noch einmal schreiben. Dieses Fenster ist wenige Millisekunden breit und setzt voraus,
-dass eine Übernahme mit einem frischen Erwerb zusammenfällt.
+`LOCK_CONTENDED` ab, ohne zu schreiben, wenn nicht. Prüfung und Schreiben sind zwei Schritte, und
+nichts begrenzt die Zeit dazwischen. Ein Lauf, der direkt nach der Prüfung angehalten wird (seine
+Maschine schläft, der Prozess wird gestoppt oder im Debugger festgehalten, die Uhr springt, oder
+seine Event-Loop ist lange blockiert), frischt seine Sperre nicht mehr auf. Sobald die Sperre 30
+Sekunden alt ist, hält ein anderer Lauf auf derselben Maschine sie für verwaist und übernimmt sie.
+Läuft der angehaltene Lauf weiter, kann er noch einmal schreiben. Das Fenster ist so lang wie diese
+Pause.
+
+Fehlt die Sperrdatei oder enthält sie das Token eines anderen Laufs, wenn ein erfolgreicher Lauf sie
+freigibt, bricht er ebenfalls mit `LOCK_CONTENDED` ab: Seine Schreibvorgänge wurden geprüft, aber
+der andere Lauf kann dieselben Dateien seitdem geändert haben. Starte ihn also erneut, um das
+Ergebnis zu bestätigen. Ein Lauf, der selbst gescheitert ist, meldet stattdessen seinen eigenen
+Fehler.
 
 Ein Halter frischt die Änderungszeit seiner Sperrdatei alle 10 Sekunden auf. Eine Sperre auf dieser
 Maschine, deren Prozess noch läuft, deren Datei aber seit 30 Sekunden (drei der Intervalle, die der
@@ -146,7 +155,9 @@ anfassen kann, wird nur nach ihrem Prozess beurteilt.
 Ein Prozess, der abstürzt, während er eine Sperre beiseitegelegt hat, kann eine Datei
 `<lock>.<pid>.<tag>.<uuid>.stale` in `.verbatra-local/locks/` hinterlassen. Solche Dateien kannst
 du gefahrlos löschen; der nächste Lauf löscht sie, sobald der Prozess, der sie verschoben hat, nicht
-mehr existiert oder sie älter als 30 Sekunden sind.
+mehr existiert oder 30 Sekunden nachdem sie beiseitegelegt wurden. Ein Übernahme-Guard hält keinen
+Heartbeat fest, daher wird ein verwaister Übernahme-Guard erst entfernt, wenn sein Prozess nicht
+mehr existiert.
 
 Eine weitere Grenze gilt. Außerhalb von Linux ist der Hostname die einzige Maschinenidentität, die
 verbatra festhält. Zwei Container oder virtuelle Maschinen, die sich einen Hostnamen und dasselbe

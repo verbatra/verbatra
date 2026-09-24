@@ -228,6 +228,7 @@ describe("withLocaleWriteLock: a record put back for a holder that already relea
     const heartbeatIntervalMs = 1_000;
     const holder = gate();
     let holderDone: Promise<void> = Promise.resolve();
+    let holderError: unknown;
     const memory = memoryLockFs({
       beforeRename: once(async (from: string) => {
         if (from !== LOCK) {
@@ -237,7 +238,12 @@ describe("withLocaleWriteLock: a record put back for a holder that already relea
         holderDone = withLocaleWriteLock("/proj", "de", memory.fs, () => holder.wait(), {
           ...FAIL_FAST,
           heartbeatIntervalMs,
-        });
+        }).then(
+          () => undefined,
+          (error: unknown) => {
+            holderError = error;
+          },
+        );
         await holder.entered;
       }),
       afterRename: once(async (from: string) => {
@@ -263,6 +269,7 @@ describe("withLocaleWriteLock: a record put back for a holder that already relea
     await vi.advanceTimersByTimeAsync(0);
     await holderDone;
     const phantom = memory.content(LOCK);
+    expect(holderError).toMatchObject({ code: "LOCK_CONTENDED" });
 
     expect(phantom).toBeDefined();
     expect(JSON.parse(phantom ?? "{}")).toMatchObject({ pid: process.pid, heartbeatMs: 1_000 });
@@ -289,15 +296,16 @@ describe("withLocaleWriteLock: the holder heartbeat", () => {
       heartbeatIntervalMs: 1_000,
     });
     await holder.entered;
+    expect(memory.touched).toEqual([LOCK]);
     await vi.advanceTimersByTimeAsync(3_500);
 
-    expect(memory.touched).toEqual([LOCK, LOCK, LOCK]);
+    expect(memory.touched).toEqual([LOCK, LOCK, LOCK, LOCK]);
     expect(memory.files.get(LOCK)?.mtime).toBe(Date.now() - 500);
 
     holder.open();
     await held;
     await vi.advanceTimersByTimeAsync(3_000);
-    expect(memory.touched).toHaveLength(3);
+    expect(memory.touched.filter((path) => path === LOCK)).toHaveLength(4);
   });
 
   it("keeps a waiter out for as long as the live holder keeps beating", async () => {
@@ -342,7 +350,7 @@ describe("withLocaleWriteLock: the holder heartbeat", () => {
     memory.put(LOCK, FOREIGN);
     await vi.advanceTimersByTimeAsync(2_500);
 
-    expect(memory.touched).toEqual([]);
+    expect(memory.touched).toEqual([LOCK]);
     holder.open();
     expect(await held).toMatchObject({ code: "LOCK_CONTENDED" });
     expect(memory.content(LOCK)).toBe(FOREIGN);
@@ -374,7 +382,32 @@ describe("withLocaleWriteLock: the holder heartbeat", () => {
     holder.open();
 
     await expect(held).resolves.toBeUndefined();
-    expect(memory.touched).toEqual([]);
+    expect(memory.touched.filter((path) => path === LOCK)).toEqual([LOCK]);
+  });
+
+  it("stamps a fresh lock with this process's clock, whatever time the file server gave it", async () => {
+    const memory = memoryLockFs();
+    const skewed: SdkFs = {
+      ...memory.fs,
+      createExclusive: async (path, data) => {
+        const created = await memory.fs.createExclusive(path, data);
+        if (created) {
+          memory.put(path, data, Date.now() - 3_600_000);
+        }
+        return created;
+      },
+    };
+    const holder = gate();
+    const options = { ...FAIL_FAST, heartbeatIntervalMs: 1_000 };
+    const held = withLocaleWriteLock("/proj", "de", skewed, () => holder.wait(), options);
+    await holder.entered;
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", skewed, async () => undefined, options),
+    ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
+
+    holder.open();
+    await expect(held).resolves.toBeUndefined();
   });
 
   it("records a random ownership token and its heartbeat interval in the lock", async () => {
@@ -612,7 +645,7 @@ describe("withLocaleWriteLock: releasing only its own lock", () => {
     expect(memory.content(LOCK)).toBe(FOREIGN);
   });
 
-  it("succeeds when its lock is already gone at release", async () => {
+  it("reports a lock found gone at release as taken over when the operation succeeded", async () => {
     const memory = memoryLockFs();
 
     await expect(
@@ -626,7 +659,77 @@ describe("withLocaleWriteLock: releasing only its own lock", () => {
         },
         FAIL_FAST,
       ),
-    ).resolves.toBe("done");
+    ).rejects.toMatchObject({
+      code: "LOCK_CONTENDED",
+      message: expect.stringContaining(`${LOCK} was taken over or removed`),
+    });
+  });
+
+  it("reports a lock found gone at release as taken over on a file system without rename", async () => {
+    const memory = memoryLockFs();
+    const { rename: _rename, ...withoutRename } = memory.fs;
+
+    await expect(
+      withLocaleWriteLock(
+        "/proj",
+        "de",
+        withoutRename,
+        async () => {
+          memory.files.delete(LOCK);
+        },
+        FAIL_FAST,
+      ),
+    ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
+  });
+
+  it("reports a lock that vanishes between the release check and the move as taken over", async () => {
+    const memory = memoryLockFs({
+      beforeRename: once(() => {
+        memory.files.delete(LOCK);
+      }),
+    });
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, FAIL_FAST),
+    ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
+    expect(memory.files.size).toBe(0);
+  });
+
+  it("reports the operation's own failure when its lock is also gone at release", async () => {
+    const memory = memoryLockFs();
+    const boom = new Error("boom");
+
+    await expect(
+      withLocaleWriteLock(
+        "/proj",
+        "de",
+        memory.fs,
+        async () => {
+          memory.files.delete(LOCK);
+          throw boom;
+        },
+        FAIL_FAST,
+      ),
+    ).rejects.toBe(boom);
+  });
+
+  it("deletes a displaced record it cannot put back because a third process took the path", async () => {
+    const third = record(LIVE_PID, { nonce: "third" });
+    const memory = memoryLockFs({
+      beforeRename: once(() => {
+        memory.put(LOCK, FOREIGN);
+      }),
+      afterRename: once(() => {
+        memory.put(LOCK, third);
+      }),
+    });
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, FAIL_FAST),
+    ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
+
+    expect(memory.content(LOCK)).toBe(third);
+    expect([...memory.files.keys()].filter((path) => ASIDE.test(path))).toEqual([]);
   });
 
   it("puts back a record that replaced its own between the check and the move", async () => {

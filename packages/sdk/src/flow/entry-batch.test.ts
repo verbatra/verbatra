@@ -25,6 +25,7 @@ import {
   rejectEntries,
   retranslateEntries,
 } from "./entry-batch.js";
+import { retranslateEntry } from "./retranslate-entry.js";
 import { translate } from "./translate-project.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
@@ -456,6 +457,143 @@ describe("retranslateEntries", () => {
     expect(results[0]).toMatchObject({ ok: false, code: "LOCK_CONTENDED" });
     expect(waits).toEqual([lock]);
     expect(stub.calls).toHaveLength(0);
+  });
+});
+
+describe("retranslateEntries: a locale whose write lock stays out of reach", () => {
+  async function twoLocaleProject(): Promise<string> {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), { greeting: "Hello", farewell: "Bye" });
+    await translate(
+      { config: cfg({ targetLocales: ["de", "fr"] }), cwd: dir },
+      { createProvider: stubCreate },
+    );
+    return dir;
+  }
+
+  it("skips the rest of that locale after a lock timeout and carries on with the others", async () => {
+    const dir = await twoLocaleProject();
+    const lock = localeLockPath(dir, "de");
+    await mkdir(dirname(lock), { recursive: true });
+    await writeFile(lock, JSON.stringify({ pid: 1, hostname: "another-machine" }), "utf8");
+    const stub = makeStubProvider();
+    const waits: string[] = [];
+
+    const { results } = await retranslateEntries(
+      {
+        config: cfg({ targetLocales: ["de", "fr"] }),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "greeting" },
+          { locale: "fr", key: "greeting" },
+          { locale: "de", key: "farewell" },
+          { locale: "fr", key: "farewell" },
+        ],
+        lockAcquireTimeoutMs: 0,
+        onLockWait: (event) => waits.push(event.lockPath),
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    expect(results.map((outcome) => [outcome.locale, outcome.key, outcome.ok])).toEqual([
+      ["de", "greeting", false],
+      ["fr", "greeting", true],
+      ["de", "farewell", false],
+      ["fr", "farewell", true],
+    ]);
+    expect(results[0]).toMatchObject({ code: "LOCK_CONTENDED" });
+    expect(results[0]).not.toHaveProperty("skipped");
+    expect(results[2]).toEqual({
+      locale: "de",
+      key: "farewell",
+      ok: false,
+      skipped: true,
+      code: "LOCK_CONTENDED",
+      message: `Not attempted: an earlier entry could not acquire the write lock at ${lock}, which this one needs too.`,
+    });
+    expect(stub.calls).toHaveLength(2);
+  });
+
+  it("still tries the next entry of a locale after a LOCK_CONTENDED that was not a lock timeout", async () => {
+    const dir = await twoLocaleProject();
+    const base = makeStubProvider();
+    let calls = 0;
+    const provider = {
+      ...base.provider,
+      translateBatch: async (request: Parameters<typeof base.provider.translateBatch>[0]) => {
+        calls += 1;
+        if (calls === 1) {
+          throw new SdkError("LOCK_CONTENDED", "taken over");
+        }
+        return base.provider.translateBatch(request);
+      },
+    };
+
+    const { results } = await retranslateEntries(
+      {
+        config: cfg({ targetLocales: ["de", "fr"] }),
+        cwd: dir,
+        entries: [
+          { locale: "de", key: "greeting" },
+          { locale: "de", key: "farewell" },
+        ],
+      },
+      { createProvider: () => provider },
+    );
+
+    expect(results.map((outcome) => outcome.ok)).toEqual([false, true]);
+    expect(calls).toBe(2);
+  });
+});
+
+describe("retranslateEntries and retranslateEntry: validating the lock timeout", () => {
+  it.each([[-1], [1.5], [Number.NaN], [Number.POSITIVE_INFINITY]])(
+    "refuses a lockAcquireTimeoutMs of %s before any entry runs",
+    async (lockAcquireTimeoutMs) => {
+      const stub = makeStubProvider();
+
+      await expect(
+        retranslateEntries(
+          {
+            config: cfg(),
+            cwd: "/nonexistent",
+            entries: [{ locale: "de", key: "greeting" }],
+            lockAcquireTimeoutMs,
+          },
+          { createProvider: () => stub.provider },
+        ),
+      ).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+      await expect(
+        retranslateEntry(
+          {
+            config: cfg(),
+            cwd: "/nonexistent",
+            locale: "de",
+            key: "greeting",
+            lockAcquireTimeoutMs,
+          },
+          { createProvider: () => stub.provider },
+        ),
+      ).rejects.toMatchObject({ code: "LOCK_TIMEOUT_INVALID" });
+      expect(stub.calls).toHaveLength(0);
+    },
+  );
+
+  it("accepts a lockAcquireTimeoutMs of 0", async () => {
+    const dir = await translated({ greeting: "Hello" });
+
+    const { results } = await retranslateEntries(
+      {
+        config: cfg(),
+        cwd: dir,
+        entries: [{ locale: "de", key: "greeting" }],
+        lockAcquireTimeoutMs: 0,
+      },
+      { createProvider: stubCreate },
+    );
+
+    expect(results[0]?.ok).toBe(true);
   });
 });
 

@@ -96,6 +96,30 @@ describe("translate: lockAcquireTimeoutMs bounds the locale write lock taken bef
   });
 });
 
+describe("translate: validating lockAcquireTimeoutMs", () => {
+  it.each([[-1], [2.5], [Number.POSITIVE_INFINITY]])(
+    "refuses %s before any file is read or any provider is called",
+    async (lockAcquireTimeoutMs) => {
+      const stub = makeStubProvider();
+
+      await expect(
+        translate(
+          {
+            config: baseConfig({ targetLocales: ["de"] }),
+            cwd: "/nonexistent",
+            lockAcquireTimeoutMs,
+          },
+          { createProvider: () => stub.provider },
+        ),
+      ).rejects.toMatchObject({
+        code: "LOCK_TIMEOUT_INVALID",
+        message: expect.stringContaining(String(lockAcquireTimeoutMs)),
+      });
+      expect(stub.calls).toHaveLength(0);
+    },
+  );
+});
+
 describe("translate: the record step after the target is written ignores lockAcquireTimeoutMs", () => {
   it("records the lock, provenance, and usage when the lock-file guard is held past the timeout", async () => {
     const dir = await projectWithSource();

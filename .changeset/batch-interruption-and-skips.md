@@ -17,4 +17,8 @@ completed before it, `entry`, the entry that was running, and the original error
 `MACHINE_TRANSLATION_DISABLED`, and reports each later entry as a new `BatchEntrySkipped` outcome
 (`ok: false, skipped: true`) naming that code. `retranslateEntry` and `retranslateEntries` accept
 `onLockWait` and `lockAcquireTimeoutMs`, which bound the wait for the locale's write lock before
-the provider is called.
+the provider is called. Once an entry's locale lock times out, `retranslateEntries` skips the later
+entries needing that lock with `LOCK_CONTENDED` instead of waiting again, and runs the other
+locales. `translate`, `watch`, `importWorkbook`, `retranslateEntry`, and `retranslateEntries` throw
+the new `LOCK_TIMEOUT_INVALID` for a `lockAcquireTimeoutMs` that is not a whole number of
+milliseconds of at least 0.
