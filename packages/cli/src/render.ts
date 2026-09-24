@@ -85,7 +85,7 @@ export function renderHuman(summary: RunSummary, command = "translate"): string 
 }
 
 function renderTokens(usage: UsageSummary): string {
-  return `${usage.inputTokens + usage.outputTokens} tokens (${usage.inputTokens} in, ${usage.outputTokens} out)`;
+  return `${plural(usage.inputTokens + usage.outputTokens, "token")} (${usage.inputTokens} in, ${usage.outputTokens} out)`;
 }
 
 const BUDGET_STATUS: Record<BudgetStanding, string> = {
@@ -276,7 +276,7 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
     const suffix = ` [${locale.error.code}] ${locale.error.message}`;
     return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale)];
   }
-  const counts: ReadonlyArray<readonly [number, string, boolean]> = [
+  const counts: ReadonlyArray<readonly [number, string, boolean, string?]> = [
     [locale.translated.length, "translated", true],
     [locale.cacheHits.length, "from cache", false],
     [locale.fuzzyHits.length, "fuzzy-reused", false],
@@ -290,14 +290,14 @@ function renderLocaleLine(locale: LocaleSummary): readonly string[] {
     [locale.budgetWithheld.length, "budget-withheld", false],
     [locale.unfilled.length, "unfilled", false],
     [locale.protected.length, "protected", false],
-    [locale.malformedRows.length, "malformed-rows", false],
-    [locale.duplicateKeys.length, "duplicate-keys", false],
+    [locale.malformedRows.length, "malformed-row", false, "malformed-rows"],
+    [locale.duplicateKeys.length, "duplicate-key", false, "duplicate-keys"],
     [locale.needsReview.length, "needs-review", false],
-    [locale.notices.length, "notices", false],
+    [locale.notices.length, "notice", false, "notices"],
   ];
   const shown = counts
     .filter(([count, , always]) => always || count > 0)
-    .map(([count, label]) => `${count} ${label}`);
+    .map(([count, label, , pluralLabel]) => plural(count, label, pluralLabel ?? label));
   const tokenSuffix = locale.usage !== undefined ? `, ${renderTokens(locale.usage)}` : "";
   const status = locale.status === "failed" ? "failed, " : "";
   return [
@@ -311,12 +311,12 @@ export function renderRunResultHuman(result: WatchRunResult): string {
 }
 
 export function renderExportHuman(result: ExportWorkbookResult): string {
-  const localeLines = result.locales.map((l) => `  ${l.locale}: ${l.rows} rows`);
+  const localeLines = result.locales.map((l) => `  ${l.locale}: ${plural(l.rows, "row")}`);
   const total = result.locales.reduce((sum, l) => sum + l.rows, 0);
   return [
     `verbatra export -> ${result.path}`,
     ...localeLines,
-    `${total} rows across ${result.locales.length} locales`,
+    `${plural(total, "row")} across ${plural(result.locales.length, "locale")}`,
   ].join("\n");
 }
 
@@ -343,8 +343,8 @@ export function renderCheckHuman(summary: CheckSummary): string {
   ].join("\n");
 }
 
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
+  return `${count} ${count === 1 ? noun : pluralNoun}`;
 }
 
 function renderFindingReason(finding: QaFinding): string {
@@ -539,7 +539,7 @@ function renderUnusedScan(report: UnusedKeysScan): readonly string[] {
   const header =
     `  unused source keys: ${report.status}, ${report.unused.length} unused, ` +
     `${report.possiblyDynamic.length} possibly dynamic, ${report.ignored.length} ignored, ` +
-    `${report.scannedFiles} files scanned`;
+    `${plural(report.scannedFiles, "file")} scanned`;
   const verdict =
     report.status === "complete"
       ? []
@@ -649,7 +649,7 @@ export function renderError(error: RenderableError): string {
 export function renderPseudoHuman(result: PseudolocalizeResult): string {
   const lines = [
     "verbatra pseudo",
-    `  ${result.locale}: ${result.transformed} of ${result.entries} entries pseudolocalized`,
+    `  ${result.locale}: ${result.transformed} of ${plural(result.entries, "entry", "entries")} pseudolocalized`,
   ];
   if (result.copied.length > 0) {
     lines.push(`    copied verbatim: ${result.copied.join(", ")}`);
@@ -679,11 +679,11 @@ function renderExtractOutcome(result: ExtractResult): string {
     return `  no new keys found in ${result.sourcePath}`;
   }
   const verb = result.dryRun ? "would add" : "added";
-  return `  ${verb} ${result.added.length} ${result.added.length === 1 ? "key" : "keys"} to ${result.sourcePath}`;
+  return `  ${verb} ${plural(result.added.length, "key")} to ${result.sourcePath}`;
 }
 
 export function renderExtractHuman(result: ExtractResult): string {
-  const header = `  ${result.scannedFiles} files scanned, ${result.existingKeys} keys already present`;
+  const header = `  ${plural(result.scannedFiles, "file")} scanned, ${plural(result.existingKeys, "key")} already present`;
   const lines = [
     header,
     renderExtractOutcome(result),
@@ -735,7 +735,7 @@ export function renderTypesHuman(result: GenerateTypesResult): string {
         ];
   return [
     "verbatra types",
-    `  ${result.keys} keys declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
+    `  ${plural(result.keys, "key")} declared, ${result.withArguments} of them taking arguments, from ${result.sourcePath}`,
     ...unresolved,
     ...renderTypesKeyList("excluded by the adapter", result.excluded),
     ...renderTypesKeyList("plural keys", result.plural),
@@ -781,7 +781,7 @@ function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly s
   const conflicts =
     locale.conflicting > 0
       ? [
-          `      ${locale.conflicting} units carried differing segments for this locale, so none of them was stored`,
+          `      ${plural(locale.conflicting, "unit carried differing segments for this locale, so it was not stored", "units carried differing segments for this locale, so none of them was stored")}`,
         ]
       : [];
   return [`  ${locale.locale}: ${counts}`, ...renderTmxRejections(locale), ...conflicts];
@@ -803,19 +803,27 @@ function renderTmxLanguages(
 function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   const notes: string[] = [];
   if (result.skippedUnits > 0) {
-    notes.push(`  ${result.skippedUnits} units could not be read and were skipped`);
+    notes.push(
+      `  ${plural(result.skippedUnits, "unit could not be read and was skipped", "units could not be read and were skipped")}`,
+    );
   }
   if (result.unmatchedSourceUnits > 0) {
-    notes.push(`  ${result.unmatchedSourceUnits} units carried no segment in the source locale`);
+    notes.push(
+      `  ${plural(result.unmatchedSourceUnits, "unit")} carried no segment in the source locale`,
+    );
   }
   if (result.conflictingSourceUnits > 0) {
     notes.push(
-      `  ${result.conflictingSourceUnits} units carried source-locale segments of equal standing with different values, and were refused`,
+      `  ${plural(
+        result.conflictingSourceUnits,
+        "unit carried source-locale segments of equal standing with different values, and was refused",
+        "units carried source-locale segments of equal standing with different values, and were refused",
+      )}`,
     );
   }
   if (result.unreachableUnits > 0) {
     notes.push(
-      `  ${result.unreachableUnits} units sit outside the file's first body and were not read`,
+      `  ${plural(result.unreachableUnits, "unit sits outside the file's first body and was not read", "units sit outside the file's first body and were not read")}`,
     );
   }
   if (result.sourceLanguageMismatch !== undefined) {
@@ -825,12 +833,12 @@ function renderTmxNotes(result: ImportTmxResult): readonly string[] {
   }
   if (result.markupStrippedUnits > 0) {
     notes.push(
-      `  ${result.markupStrippedUnits} units carried inline markup, which was flattened to its text`,
+      `  ${plural(result.markupStrippedUnits, "unit")} carried inline markup, which was flattened to its text`,
     );
   }
   if (result.subflowDroppedUnits > 0) {
     notes.push(
-      `  ${result.subflowDroppedUnits} units carried sub-flow text inside inline markup, which was left out`,
+      `  ${plural(result.subflowDroppedUnits, "unit")} carried sub-flow text inside inline markup, which was left out`,
     );
   }
   notes.push(
@@ -859,28 +867,36 @@ export function renderTmxImportHuman(result: ImportTmxResult): string {
       : `source language ${preview(result.sourceLanguage, LANGUAGE_TAG_PREVIEW)}`;
   return [
     `verbatra tmx import <- ${result.file}`,
-    `  ${result.units} units read (${language})`,
+    `  ${plural(result.units, "unit")} read (${language})`,
     ...result.locales.flatMap(renderTmxLocale),
     ...renderTmxNotes(result),
   ].join("\n");
 }
 
 export function renderTmxExportHuman(result: ExportTmxResult): string {
-  const localeLines = result.locales.map((locale) => `  ${locale.locale}: ${locale.units} units`);
+  const localeLines = result.locales.map(
+    (locale) => `  ${locale.locale}: ${plural(locale.units, "unit")}`,
+  );
   const withoutSource =
     result.withoutSource > 0
-      ? [`  ${result.withoutSource} entries left out: the memory holds no source text for them`]
+      ? [
+          `  ${plural(
+            result.withoutSource,
+            "entry left out: the memory holds no source text for it",
+            "entries left out: the memory holds no source text for them",
+          )}`,
+        ]
       : [];
   const removed =
     result.illegalCharactersRemoved > 0
       ? [
-          `  ${result.illegalCharactersRemoved} characters XML 1.0 does not allow were removed from segment text`,
+          `  ${plural(result.illegalCharactersRemoved, "character XML 1.0 does not allow was", "characters XML 1.0 does not allow were")} removed from segment text`,
         ]
       : [];
   return [
     `verbatra tmx export -> ${result.path}`,
     ...localeLines,
-    `${result.units} units across ${result.locales.length} locales`,
+    `${plural(result.units, "unit")} across ${plural(result.locales.length, "locale")}`,
     ...withoutSource,
     ...removed,
   ].join("\n");

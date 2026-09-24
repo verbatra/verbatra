@@ -510,7 +510,7 @@ describe("render: human run summary", () => {
       makeSummary({ locales: [makeLocale({ malformedRows: [{ row: 7, column: "Status" }] })] }),
       "import",
     );
-    expect(text).toContain("1 malformed-rows");
+    expect(text).toContain("1 malformed-row");
     expect(text).toContain("malformed:");
     expect(text).toContain("row 7 (Status)");
   });
@@ -530,7 +530,7 @@ describe("render: human run summary", () => {
       makeSummary({ locales: [makeLocale({ duplicateKeys: [{ key: "greeting", row: 9 }] })] }),
       "import",
     );
-    expect(text).toContain("1 duplicate-keys");
+    expect(text).toContain("1 duplicate-key");
     expect(text).toContain("duplicates:");
     expect(text).toContain("greeting (row 9)");
   });
