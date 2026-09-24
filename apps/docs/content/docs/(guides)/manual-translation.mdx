@@ -47,7 +47,7 @@ What a translator needs to know fits in a few lines (and is repeated on the work
 - Fill the `Translation` column, nothing else. The sheet protection enforces this.
 - Do not rename, delete, or reorder the language tabs. verbatra matches each tab to a locale by its exact name, so a renamed or missing tab is reported and that locale is not imported.
 - Sorting and filtering rows is fine: import maps rows by `Key`, never by position. Columns must stay where they are; import reads them by position and verifies the `Key` and `Source hash` headers.
-- An empty `Translation` cell means "not translated yet". Import skips it and never writes an empty string, so a half-filled workbook can come back now and the rest later. A cell holding only spaces counts as empty. To deliberately clear an existing value (set it to empty), type exactly `[[CLEAR]]` in the cell.
+- An empty `Translation` cell means "not translated yet". Import skips it and never writes an empty string, so a half-filled workbook can come back now and the rest later. A cell holding only spaces counts as empty. To deliberately clear an existing value (set it to empty), type exactly `[[CLEAR]]` in the cell. A cleared key is an accepted row: the run summary lists it under `translated`, and never also under `unchanged`.
 
 ## What import accepts
 

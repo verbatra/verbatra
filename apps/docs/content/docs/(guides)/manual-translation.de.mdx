@@ -47,7 +47,7 @@ Was eine Übersetzerin wissen muss, passt in wenige Zeilen (und steht noch einma
 - Fülle die Spalte `Translation`, sonst nichts. Der Blattschutz erzwingt das.
 - Benenne die Sprach-Tabs nicht um, lösche sie nicht und ordne sie nicht um. verbatra ordnet jedes Tab über seinen exakten Namen einem Locale zu, ein umbenanntes oder fehlendes Tab wird also gemeldet und dieses Locale nicht importiert.
 - Zeilen sortieren und filtern ist in Ordnung: Import ordnet Zeilen über `Key` zu, nie über die Position. Die Spalten müssen bleiben, wo sie sind; Import liest sie nach Position und verifiziert die Überschriften `Key` und `Source hash`.
-- Eine leere `Translation`-Zelle heißt "noch nicht übersetzt". Import überspringt sie und schreibt nie einen leeren String; eine halb ausgefüllte Arbeitsmappe kann also jetzt zurückkommen und der Rest später. Eine Zelle, die nur Leerzeichen enthält, zählt als leer. Um einen bestehenden Wert bewusst zu leeren (auf leer zu setzen), tippe genau `[[CLEAR]]` in die Zelle.
+- Eine leere `Translation`-Zelle heißt "noch nicht übersetzt". Import überspringt sie und schreibt nie einen leeren String; eine halb ausgefüllte Arbeitsmappe kann also jetzt zurückkommen und der Rest später. Eine Zelle, die nur Leerzeichen enthält, zählt als leer. Um einen bestehenden Wert bewusst zu leeren (auf leer zu setzen), tippe genau `[[CLEAR]]` in die Zelle. Ein geleerter Key ist eine übernommene Zeile: Die Laufzusammenfassung führt ihn unter `translated` und nie zusätzlich unter `unchanged`.
 
 ## Was der Import akzeptiert
 

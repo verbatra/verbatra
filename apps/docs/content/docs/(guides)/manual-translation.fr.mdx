@@ -47,7 +47,7 @@ Ce qu'un traducteur doit savoir tient en quelques lignes (et se répète sur la 
 - Remplis la colonne `Translation`, rien d'autre. La protection de feuille l'impose.
 - Ne renomme, ne supprime et ne réordonne pas les onglets de langue. verbatra associe chaque onglet à une locale par son nom exact, donc un onglet renommé ou manquant est signalé et cette locale n'est pas importée.
 - Trier et filtrer les lignes ne pose aucun problème : l'import relie les lignes par `Key`, jamais par position. Les colonnes doivent rester à leur place ; l'import les lit par position et vérifie les en-têtes `Key` et `Source hash`.
-- Une cellule `Translation` vide signifie "pas encore traduit". L'import la saute et n'écrit jamais de chaîne vide, donc un classeur à moitié rempli peut revenir maintenant et le reste plus tard. Une cellule ne contenant que des espaces compte comme vide. Pour vider délibérément une valeur existante (la mettre à vide), tape exactement `[[CLEAR]]` dans la cellule.
+- Une cellule `Translation` vide signifie "pas encore traduit". L'import la saute et n'écrit jamais de chaîne vide, donc un classeur à moitié rempli peut revenir maintenant et le reste plus tard. Une cellule ne contenant que des espaces compte comme vide. Pour vider délibérément une valeur existante (la mettre à vide), tape exactement `[[CLEAR]]` dans la cellule. Une clé vidée est une ligne acceptée : le résumé de l'exécution la liste sous `translated`, et jamais aussi sous `unchanged`.
 
 ## Ce que l'import accepte
 
