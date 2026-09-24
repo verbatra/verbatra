@@ -61,6 +61,10 @@ On top of that, a unit whose source segment is blank identifies no string at all
 
 Nothing is dropped quietly. Every refusal is counted by reason, and so is every unit the reader could not use, every unit with no segment in your source locale, every unit whose markup was flattened, and every unit whose `sub` text was left out.
 
+<AvailableFrom version="0.12.0" />
+
+A unit the integrity gate refuses is also listed with its ordinal in the file and what is wrong, so `verbatra tmx import` prints, for example, `unit 12: icu ({count} plural: missing arm "few" required by the target language)` under the locale that refused it.
+
 ## Matching language tags
 
 A TMX file spells its languages however its author's tool spelled them, which is rarely how your config spells them. The rule is explicit, and it never guesses:

@@ -61,6 +61,10 @@ Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui a
 
 Rien ne disparaît en silence. Chaque refus est compté par motif, tout comme chaque unité que le lecteur n'a pas pu exploiter, chaque unité sans segment dans ta locale source, chaque unité dont le balisage a été aplati et chaque unité dont le texte `sub` a été laissé de côté.
 
+<AvailableFrom version="0.12.0" />
+
+Une unité que la barrière d'intégrité refuse est aussi listée avec sa position dans le fichier et ce qui ne va pas, si bien que `verbatra tmx import` affiche par exemple `unit 12: icu ({count} plural: missing arm "few" required by the target language)` sous la locale qui l'a refusée.
+
 ## Faire correspondre les étiquettes de langue
 
 Un fichier TMX écrit ses langues comme les a écrites l'outil qui l'a produit, ce qui correspond rarement à la façon dont ta configuration les écrit. La règle est explicite et ne devine jamais :

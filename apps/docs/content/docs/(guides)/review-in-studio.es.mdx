@@ -43,6 +43,10 @@ Haz clic en cualquier clave para abrir su vista de detalle: el texto de origen, 
 
 El indicador de integridad tiene un estado de defecto más, **Inline markup mismatch**: las etiquetas HTML o XML de la traducción difieren de las del origen, y el indicador nombra las etiquetas responsables, `-` para una que la traducción perdió y `+` para una que añadió.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Un cuarto estado de defecto, **Plural arms mismatch**, muestra una traducción cuyas ramas ICU de `plural`, `selectordinal` o `select` no encajan con el idioma de destino, por ejemplo un valor ruso que conserva solo las ramas inglesas `one` y `other`. Es la misma comprobación que rechaza ese valor al guardarlo, y el indicador nombra cada rama que falta o sobra.
+
 Los valores de un locale de derecha a izquierda (árabe, hebreo, persa, urdu, pastún, yidis y cualquier otro locale escrito en una escritura de derecha a izquierda) se muestran de derecha a izquierda en todo el explorador y en la vista de detalle. Qué hace verbatra con el texto de derecha a izquierda, y qué no, lo tienes en [Soporte de idiomas](/docs/language-support#idiomas-de-derecha-a-izquierda).
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />

@@ -534,9 +534,10 @@ export interface LocaleSummary {
   readonly integrityMismatches: readonly string[];
   /**
    * The reason behind each key in {@link integrityMismatches}, sorted by key. Present on every
-   * {@link translate} and {@link watch} run, empty on a dry run. Absent for {@link importWorkbook},
-   * whose {@link integrityMismatches} also counts rows withheld for source drift, and for a locale
-   * that failed by throwing.
+   * {@link translate} and {@link watch} run, empty on a dry run. Present on {@link importWorkbook}
+   * too, where it lists only the rows the integrity gate refused: its {@link integrityMismatches}
+   * also counts rows withheld for source drift, which have no entry here. Absent for a locale that
+   * failed by throwing.
    */
   readonly integrityRefusals?: readonly IntegrityRefusal[];
   /** Keys the provider failed to translate, for instance because their sub-batch errored. */

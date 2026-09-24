@@ -59,6 +59,8 @@ describe("keyIntegrityHandler", () => {
           missing: [],
           extra: [],
           icuValid: true,
+          icuArmsMatch: true,
+          icuArmDetails: [],
           markupMatches: true,
           markupDetails: [],
         },
@@ -87,6 +89,8 @@ describe("keyIntegrityHandler", () => {
           missing: ["{{name}}"],
           extra: [],
           icuValid: true,
+          icuArmsMatch: true,
+          icuArmDetails: [],
           markupMatches: true,
           markupDetails: [],
         },
@@ -112,6 +116,8 @@ describe("keyIntegrityHandler", () => {
           missing: [],
           extra: ["{{name}}"],
           icuValid: true,
+          icuArmsMatch: true,
+          icuArmDetails: [],
           markupMatches: true,
           markupDetails: [],
         },
@@ -137,6 +143,8 @@ describe("keyIntegrityHandler", () => {
           missing: [],
           extra: [],
           icuValid: true,
+          icuArmsMatch: true,
+          icuArmDetails: [],
           markupMatches: true,
           markupDetails: [],
         },
@@ -180,6 +188,32 @@ describe("keyIntegrityHandler", () => {
 
       expect(result.locales).toHaveLength(1);
       expect(result.locales[0]?.icuValid).toBe(false);
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("reports ICU plural arms that do not fit the target language and names each one", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["ru"], format: "arb" },
+      { count: "{count, plural, one {# item} other {# items}}" },
+    );
+    try {
+      await writeTargetFile(project, "ru", {
+        count: "{count, plural, one {# вещь} other {# вещей}}",
+      });
+      await writeLockFile(project, "ru", { count: "old-hash-forces-changed" });
+
+      const result = await keyIntegrityHandler({ key: "count" }, deps(project));
+
+      expect(result.locales[0]).toMatchObject({
+        icuValid: true,
+        icuArmsMatch: false,
+        icuArmDetails: [
+          '{count} plural: missing arm "few" required by the target language',
+          '{count} plural: missing arm "many" required by the target language',
+        ],
+      });
     } finally {
       await project.cleanup();
     }

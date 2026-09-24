@@ -14,6 +14,8 @@ const keyIntegrityEntrySchema = z.object({
   missing: z.array(z.string()).readonly(),
   extra: z.array(z.string()).readonly(),
   icuValid: z.boolean(),
+  icuArmsMatch: z.boolean(),
+  icuArmDetails: z.array(z.string()).readonly(),
   markupMatches: z.boolean(),
   markupDetails: z.array(z.string()).readonly(),
 });
@@ -36,6 +38,8 @@ function toKeyIntegrityEntry(entry: KeyIntegrityEntry): z.infer<typeof keyIntegr
     missing: entry.missing,
     extra: entry.extra,
     icuValid: entry.icuValid,
+    icuArmsMatch: entry.icuArmsMatch,
+    icuArmDetails: entry.icuArmDetails,
     markupMatches: entry.markupMatches,
     markupDetails: entry.markupDetails,
   };
@@ -71,7 +75,8 @@ async function checkKeyIntegrity(
 export const keyIntegrityTool = defineTool({
   name: "key.integrity",
   description:
-    "Reports one key's placeholder, inline markup, and ICU drift against the lock-file " +
+    "Reports one key's placeholder, inline markup, ICU syntax, and ICU plural, ordinal, and " +
+    "select arm drift against the lock-file " +
     "baseline, per target locale. Use it to decide whether a translation is safe to keep, " +
     "typically before or right after rewriting one with translation.editEntry. Do not read " +
     "it as a general correctness check: it only checks keys whose source text changed since " +
@@ -80,8 +85,9 @@ export const keyIntegrityTool = defineTool({
     "still matches the baseline, which means checked and unchanged, not verified correct. " +
     "The required key parameter is the source key; the optional locales parameter narrows " +
     "the check to the named target locales, and omitting it covers every configured target " +
-    "locale. The result carries only boolean outcomes and the placeholder or markup tokens " +
-    "involved, never a full source or target string. Read-only: it calls no provider and " +
+    "locale. The result carries only boolean outcomes, the placeholder or markup tokens " +
+    "involved, and one short problem per arm that does not fit the target language " +
+    "(icuArmDetails), never a full source or target string. Read-only: it calls no provider and " +
     "writes nothing.",
   paramsSchema,
   outputSchema: keyIntegrityResultSchema,

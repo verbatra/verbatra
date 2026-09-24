@@ -43,6 +43,10 @@ Click any key to open its detail view: the source text, the per-locale values, e
 
 The integrity indicator has one more defect state, **Inline markup mismatch**: the translation's HTML or XML tags differ from the source's, and the indicator names the tags behind it, `-` for one the translation dropped and `+` for one it added.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+A fourth defect state, **Plural arms mismatch**, shows a translation whose ICU `plural`, `selectordinal`, or `select` arms do not fit the target language, for example a Russian value that keeps only the English `one` and `other`. It is the same check that refuses such a value when you save it, and the indicator names each missing or extra arm.
+
 Values in a right-to-left locale (Arabic, Hebrew, Persian, Urdu, Pashto, Yiddish, and any other locale written in a right-to-left script) render right to left throughout the explorer and the detail view. What verbatra does, and does not do, for right-to-left text is on [Language support](/docs/language-support#right-to-left-languages).
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />

@@ -43,6 +43,10 @@ Clique sur n'importe quelle clé pour ouvrir sa vue détaillée : le texte sourc
 
 L'indicateur d'intégrité a un état de défaut de plus, **Inline markup mismatch** : les balises HTML ou XML de la traduction diffèrent de celles de la source, et l'indicateur nomme les balises en cause, `-` pour une balise que la traduction a perdue et `+` pour une qu'elle a ajoutée.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Un quatrième état de défaut, **Plural arms mismatch**, signale une traduction dont les branches ICU `plural`, `selectordinal` ou `select` ne conviennent pas à la langue cible, par exemple une valeur russe qui ne garde que les branches anglaises `one` et `other`. C'est le même contrôle qui refuse une telle valeur à l'enregistrement, et l'indicateur nomme chaque branche manquante ou en trop.
+
 Les valeurs d'une locale qui s'écrit de droite à gauche (arabe, hébreu, persan, ourdou, pachto, yiddish et toute autre locale dans une écriture de droite à gauche) s'affichent de droite à gauche dans tout l'explorateur et dans la vue détaillée. Ce que verbatra fait, et ne fait pas, pour le texte de droite à gauche est décrit dans [Prise en charge des langues](/docs/language-support#langues-de-droite-à-gauche).
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />

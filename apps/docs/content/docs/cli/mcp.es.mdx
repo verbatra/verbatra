@@ -90,7 +90,7 @@ El texto es el mismo para cada proyecto y cada arranque del servidor, así que n
 | `glossary.get` | cada término del glosario con sus traducciones por locale, traducciones prohibidas y contexto, los términos que no se traducen y, opcionalmente, a qué se atiene un locale, con los secretos redactados | sí | no |
 | `glossary.write` | cambia un término del glosario: una traducción, datos por locale, contexto o si se queda sin traducir | no | no |
 | `lock.state` | versión del archivo de bloqueo y, por locale de destino, su recuento de claves registradas más los recuentos de faltantes, obsoletas y al día | sí | no |
-| `key.integrity` | desfase de placeholders, marcado en línea e ICU de una clave respecto a la línea base del archivo de bloqueo, por locale (solo revisa claves cuyo texto de origen cambió desde la línea base; un array `entries` vacío significa revisada y sin cambios) | sí | no |
+| `key.integrity` | desfase de placeholders, marcado en línea, sintaxis ICU y ramas ICU de una clave respecto a la línea base del archivo de bloqueo, por locale (solo revisa claves cuyo texto de origen cambió desde la línea base; un array `entries` vacío significa revisada y sin cambios) | sí | no |
 | `key.value` | texto de origen y destino actual de una clave | sí | no |
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, verificada por la puerta de integridad de placeholders, marcado en línea e ICU | no | no |
 | `translation.estimate` | lo que `translation.translatePending` enviaría y costaría, el mismo resultado que `translate --estimate --json`, opcionalmente para un subconjunto de `locales` | sí | no |
@@ -131,6 +131,10 @@ Las comprobaciones de marcado en línea en `key.integrity` (`markupMatches`, `ma
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `key.value` también devuelve `provenance` siempre que `target` está presente: `origin`, `provider` y `model` para la traducción automática, `reviewState` y `reviewer` cuando se registró uno. Cada locale de `lock.state` y `status.check` lleva contadores `provenance` (`byOrigin`, `byReviewState`), y cada locale de `status.diff` lleva `changedOrigins`, el origen del valor actual de cada clave cambiada. Todos se omiten cuando `verbatra.provenance.json` está corrupto o lo escribió un verbatra más nuevo; qué significa cada origen está en [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Cada entrada de `key.integrity` lleva además `icuArmsMatch` e `icuArmDetails`: si las ramas ICU de `plural`, `selectordinal` y `select` del valor encajan con el idioma de destino, juzgadas con la misma regla por la que `translation.editEntry` rechaza un valor con el motivo `icu`, y un problema breve por cada rama que falta o sobra.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 

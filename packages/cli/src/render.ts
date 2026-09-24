@@ -31,6 +31,7 @@ import {
   scaffoldingMetadata,
   type TmxLanguageReport,
   type TmxRejectionReason,
+  type TmxUnitRefusal,
   type UnusedKeysReport,
   type UnusedKeysScan,
   type UnusedKeysSite,
@@ -236,7 +237,14 @@ function renderIntegrityWithheld(locale: LocaleSummary): readonly string[] {
     const keys = renderDetailGroup("integrity-withheld", locale.integrityMismatches);
     return keys === undefined ? [] : [keys];
   }
-  return refusals.length === 0 ? [] : ["    integrity-withheld:", ...refusals.map(renderRefusal)];
+  const refused = new Set(refusals.map((refusal) => refusal.key));
+  const lines = [
+    ...refusals.map((refusal) => ({ key: refusal.key, line: renderRefusal(refusal) })),
+    ...locale.integrityMismatches
+      .filter((key) => !refused.has(key))
+      .map((key) => ({ key, line: `      ${neutralizeControlCharacters(key)}` })),
+  ].sort((left, right) => (left.key < right.key ? -1 : 1));
+  return lines.length === 0 ? [] : ["    integrity-withheld:", ...lines.map((entry) => entry.line)];
 }
 
 function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
@@ -743,16 +751,27 @@ const TMX_REJECTION_REASONS: readonly TmxRejectionReason[] = [
 const TMX_REJECTION_LABELS: Record<TmxRejectionReason, string> = {
   placeholder: "placeholders do not match the source",
   markup: "inline markup does not match the source",
-  icu: "not a valid ICU message",
+  icu: "not a valid ICU message, or its arms do not fit the target language",
   degenerate: "runaway output rather than a translation",
   empty: "blank translation of a source that has text",
   sourceBlank: "blank source segment",
 };
 
+function renderTmxRefusal(refusal: TmxUnitRefusal): readonly string[] {
+  if (refusal.details === undefined) {
+    return [];
+  }
+  const details = refusal.details
+    .map((detail) => preview(detail, REFUSAL_DETAIL_PREVIEW))
+    .join(", ");
+  return [`        unit ${refusal.unit}: ${refusal.reason} (${details})`];
+}
+
 function renderTmxRejections(result: ImportTmxResult["locales"][number]): readonly string[] {
-  return TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
+  const counts = TMX_REJECTION_REASONS.filter((reason) => result.rejected[reason] > 0).map(
     (reason) => `      ${result.rejected[reason]} ${TMX_REJECTION_LABELS[reason]}`,
   );
+  return [...counts, ...result.refusals.flatMap(renderTmxRefusal)];
 }
 
 function renderTmxLocale(locale: ImportTmxResult["locales"][number]): readonly string[] {
