@@ -1,9 +1,11 @@
 import { DOMParser, type Document, type Element, type Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
-import { assertNoDoctype, type XliffVersion } from "./inline.js";
 import { type DeclaredLanguages, xliff12Languages, xliff20Languages } from "./languages.js";
 
-const ELEMENT_NODE = 1;
+export type XliffVersion = "1.2" | "2.0";
+
+export const ELEMENT_NODE = 1;
+export const TEXT_NODE = 3;
 
 export interface Unit {
   readonly key: string;
@@ -36,9 +38,15 @@ function unitKey(element: Element, index: number): string {
   return element.getAttribute("id") ?? element.getAttribute("resname") ?? `unit-${index}`;
 }
 
-function onFatal(level: "warning" | "error" | "fatalError"): void {
+export function onFatal(level: "warning" | "error" | "fatalError"): void {
   if (level === "fatalError") {
     throw new Error("malformed XML");
+  }
+}
+
+function assertNoDoctype(content: string): void {
+  if (/<!DOCTYPE/i.test(content) || /<!ENTITY/i.test(content)) {
+    throw new AdapterError("INVALID_XML", "XLIFF with a DTD or entity declaration is rejected.");
   }
 }
 

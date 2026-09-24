@@ -121,7 +121,7 @@ export interface FormatAdapter {
    * Optional whole-value placeholder comparison, used by callers instead of independently extracting
    * each side's placeholders with {@link extractPlaceholders} and diffing the flat lists. Both
    * adapter factories accept one, under the `comparePlaceholders` option. Among the shipped
-   * adapters two families define one, for different reasons:
+   * adapters three families define one, for different reasons:
    *
    * - The ICU formats (next-intl and ARB) compare branch by branch, because flattening a
    *   plural/select value loses which branch a placeholder came from.
@@ -130,6 +130,9 @@ export interface FormatAdapter {
    *   in the translated value but absent from the source is reported as `extra`. Single-brace text
    *   is ordinary literal content under these formats' default delimiters, so it is never required
    *   to survive a translation, but inventing one is never a legitimate translation either.
+   * - XLIFF extracts both sides with the same version-independent scan, since a single value does
+   *   not say whether its document is XLIFF 1.2 or 2.0, while a read entry's `placeholders` hold
+   *   only the inline elements its own document's version defines.
    *
    * Absent for the remaining adapters, which are compared via `extractPlaceholders` plus a flat
    * multiset check.

@@ -1,10 +1,20 @@
 import type { TranslationEntry } from "@verbatra/core";
 import type { Document, Element, Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
-import { childByName, collectByTag, elementChildren, isElement, type Unit } from "./document.js";
-import { writeInlineValue, type XliffVersion } from "./inline.js";
+import {
+  childByName,
+  collectByTag,
+  elementChildren,
+  isElement,
+  TEXT_NODE,
+  type Unit,
+  type XliffVersion,
+} from "./document.js";
+import { writeInlineValue } from "./inline.js";
+import { markTranslated } from "./state.js";
 
-const TEXT_NODE = 3;
+const NMTOKEN = /^[\p{L}\p{M}\p{Nd}._:\-\u00B7\u203F\u2040]+$/u;
+const TARGET_HOLDERS = new Set(["segment", "ignorable"]);
 
 export interface AppendRequest {
   readonly doc: Document;
@@ -70,9 +80,29 @@ function insertTargetAfterSource(doc: Document, holder: Element): Element {
   return target;
 }
 
-function removeTargets(element: Element): void {
-  for (const target of collectByTag(element, "target")) {
-    target.parentNode?.removeChild(target);
+function removeChildren(parent: Element, names: ReadonlySet<string>): void {
+  for (const child of elementChildren(parent)) {
+    if (names.has(child.localName ?? "")) {
+      parent.removeChild(child);
+    }
+  }
+}
+
+function removeTargets(unit: Element): void {
+  removeChildren(unit, new Set(["target", "alt-trans"]));
+  for (const holder of elementChildren(unit)) {
+    if (TARGET_HOLDERS.has(holder.localName ?? "")) {
+      removeChildren(holder, new Set(["target"]));
+    }
+  }
+}
+
+function assertUnitId(key: string, version: XliffVersion): void {
+  if (version === "2.0" && !NMTOKEN.test(key)) {
+    throw new AdapterError(
+      "INVALID_STRUCTURE",
+      `The key "${key}" is not a valid XLIFF 2.0 unit id, so a new source unit could not be written for it.`,
+    );
   }
 }
 
@@ -82,6 +112,7 @@ function newSourceOnlyHolder(
   entry: TranslationEntry,
   version: XliffVersion,
 ): Element {
+  assertUnitId(entry.key, version);
   const unit = createIn(doc, container, version === "2.0" ? "unit" : "trans-unit");
   unit.setAttribute("id", entry.key);
   if (entry.description !== undefined) {
@@ -168,6 +199,8 @@ export function appendMissingUnits(request: AppendRequest): void {
     const clone = clones.get(sourceUnit.owner) ?? cloneSourceUnit(request, sourceUnit, entry.key);
     clones.set(sourceUnit.owner, clone);
     const holder = holderIn(clone, sourceUnit, version);
-    writeInlineValue(doc, insertTargetAfterSource(doc, holder), entry.value, version);
+    const target = insertTargetAfterSource(doc, holder);
+    writeInlineValue(doc, target, entry.value, version);
+    markTranslated(target, holder, version);
   }
 }

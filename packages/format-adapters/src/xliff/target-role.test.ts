@@ -82,19 +82,31 @@ describe("xliff read: a missing translation is missing, never the source", () =>
     expect(await readValues(doc, "de")).toEqual({ k: "Hallo" });
   });
 
-  it("reads an XLIFF 2.0 target whatever its segment state, and an empty one as missing", async () => {
-    expect(
-      await readValues(
-        xliff20(
-          'srcLang="en" trgLang="de"',
-          ' state="initial"><source>Hi</source><target>Hallo</target>',
-        ),
-        "de",
-      ),
-    ).toEqual({ k: "Hallo" });
-    expect(
-      await readValues(xliff20('srcLang="en" trgLang="de"', "><source>Hi</source><target/>"), "de"),
-    ).toEqual({});
+  it.each([
+    ["an explicit initial state and a target copied from the source", ' state="initial"', "Hi", {}],
+    [
+      "an explicit initial state and a target that differs",
+      ' state="initial"',
+      "Hallo",
+      { k: "Hallo" },
+    ],
+    ["no state and a target copied from the source", "", "Hi", { k: "Hi" }],
+    [
+      "state translated and a target copied from the source",
+      ' state="translated"',
+      "Hi",
+      { k: "Hi" },
+    ],
+    ["an explicit initial state and an empty target", ' state="initial"', "", {}],
+  ])("reads an XLIFF 2.0 segment with %s", async (_label, state, target, expected) => {
+    const doc = xliff20(
+      'srcLang="en" trgLang="de"',
+      `${state}><source>Hi</source><target>${target}</target>`,
+    );
+    expect(await readValues(doc, "de")).toEqual(expected);
+  });
+
+  it("reads an XLIFF 2.0 segment without a target as missing", async () => {
     expect(await readValues(xliff20('srcLang="en"', "><source>Hi</source>"), "de")).toEqual({});
   });
 
@@ -193,5 +205,37 @@ describe("xliff write: states and placement", () => {
     const written = await writeInto(doc, "Hallo");
     expect(written).toContain("<source>Hello</source><target>Hallo</target>");
     expect(written).not.toContain('xmlns=""');
+  });
+
+  it("marks an XLIFF 2.0 segment in state initial translated and drops its subState", async () => {
+    const doc = xliff20(
+      'srcLang="en" trgLang="de"',
+      ' state="initial" subState="x:new"><source>Hello</source><target>Hello</target>',
+    );
+    const written = await writeInto(doc, "Hallo");
+    expect(written).toContain(
+      '<segment state="translated"><source>Hello</source><target>Hallo</target>',
+    );
+    expect(await readValues(written, "de")).toEqual({ k: "Hallo" });
+  });
+
+  it.each([
+    ["no state", "", "<segment><source>"],
+    ["state reviewed", ' state="reviewed"', '<segment state="reviewed"><source>'],
+  ])("leaves an XLIFF 2.0 segment with %s as it was", async (_label, state, expected) => {
+    const doc = xliff20(
+      'srcLang="en" trgLang="de"',
+      `${state}><source>Hello</source><target>Alt</target>`,
+    );
+    expect(await writeInto(doc, "Hallo")).toContain(
+      `${expected}Hello</source><target>Hallo</target>`,
+    );
+  });
+
+  it("keeps an XLIFF 2.0 segment state when writing the source document itself", async () => {
+    const doc = xliff20('srcLang="de"', ' state="initial"><source>Hallo</source>');
+    const fs = createMemoryAdapterFs({ "m.xlf": doc });
+    await createXliffAdapter(fs).write(resource("Hallo!"), "m.xlf", { sourcePath: "m.xlf" });
+    expect(fs.files.get("m.xlf")).toContain('<segment state="initial"><source>Hallo!</source>');
   });
 });

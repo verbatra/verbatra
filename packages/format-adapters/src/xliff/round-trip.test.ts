@@ -245,3 +245,149 @@ describe("xliff read: nesting limit", () => {
     });
   });
 });
+
+describe("xliff round-trip: every inline element keeps its specified attributes", () => {
+  it.each([
+    ['<g id="1" ctype="bold" ts="t" clone="no" xid="u2" equiv-text="b">word</g>'],
+    ['<x id="1" ctype="image" ts="t" clone="yes" xid="u2" equiv-text="{0}"/>'],
+    ['<bx id="1" rid="r" ctype="bold" ts="t" clone="no" xid="u2" equiv-text="["/>'],
+    ['<ex id="2" rid="r" ts="t" xid="u2" equiv-text="]"/>'],
+    ['<bpt id="1" rid="r" ctype="bold" ts="t" crc="c" xid="u2" equiv-text="["><b></bpt>'],
+    ['<ept id="1" rid="r" ts="t" crc="c" xid="u2" equiv-text="]"></b></ept>'],
+    ['<ph id="1" ctype="image" ts="t" crc="c" assoc="p" xid="u2" equiv-text="img"><img/></ph>'],
+    ['<it id="1" pos="open" rid="r" ctype="bold" ts="t" crc="c" xid="u2" equiv-text="["><b></it>'],
+    ['<mrk mtype="term" mid="m1" ts="t" comment="c">word</mrk>'],
+    ['<ph id="1"><a title="<sub datatype="html" ctype="x-title" xid="u3">Sub flow</sub>"></ph>'],
+  ])("round-trips the XLIFF 1.2 value %j", async (value) => {
+    const { value: read, file } = await writeThenRead(XLIFF_12, value);
+    expect(read).toBe(value);
+    expect(file).toContain(`<target>${value.slice(0, value.indexOf(" "))} `);
+  });
+
+  it.each([
+    [
+      '<ph id="1" canCopy="no" canDelete="no" canReorder="no" copyOf="0" dataRef="d1" disp="{0}" equiv="n" subFlows="u2" subType="xlf:var" type="fmt"/>',
+    ],
+    [
+      '<pc id="1" canCopy="no" canDelete="no" canOverlap="yes" canReorder="no" copyOf="0" dataRefEnd="d2" dataRefStart="d1" dir="rtl" dispEnd="]" dispStart="[" equivEnd="" equivStart="" subFlowsEnd="u3" subFlowsStart="u2" subType="xlf:b" type="fmt">bold</pc>',
+    ],
+    [
+      '<sc id="1" canCopy="no" canDelete="no" canReorder="no" copyOf="0" dataRef="d1" disp="[" equiv="" subFlows="u2" subType="xlf:b" type="fmt" canOverlap="yes" dir="ltr" isolated="yes"/>',
+    ],
+    [
+      '<ec id="2" canCopy="no" canDelete="no" canReorder="no" copyOf="0" dataRef="d2" disp="]" equiv="" subFlows="u2" subType="xlf:b" type="fmt" canOverlap="yes" dir="ltr" isolated="yes" startRef="1"/>',
+    ],
+    ['<mrk id="m1" translate="no" type="term" ref="#t1" value="v">word</mrk>'],
+    ['<sm id="m2" translate="yes" type="comment" ref="#n1" value="v"/>x<em startRef="m2"/>'],
+    ['A<cp hex="0001"/>B'],
+  ])("round-trips the XLIFF 2.0 value %j", async (value) => {
+    expect((await writeThenRead(XLIFF_20, value)).value).toBe(value);
+  });
+
+  it.each([
+    [XLIFF_12, '<mrk mtype="term" id="1" translate="no">w</mrk>', '<mrk mtype="term">w</mrk>'],
+    [XLIFF_12, '<x id="1" equiv="e" subFlows="u2"/>', '<x id="1"/>'],
+    [XLIFF_20, '<ph id="1" dir="rtl" isolated="yes" ctype="x"/>', '<ph id="1"/>'],
+    [XLIFF_20, '<pc id="1" isolated="yes" subFlows="u2">b</pc>', '<pc id="1">b</pc>'],
+    [XLIFF_20, '<mrk id="1" mtype="term">w</mrk>', '<mrk id="1">w</mrk>'],
+  ])(
+    "drops attributes the element's own XLIFF version does not specify",
+    async (doc, value, kept) => {
+      expect((await writeThenRead(doc, value)).value).toBe(kept);
+    },
+  );
+});
+
+describe("xliff write: sub-flows and elements of the other version", () => {
+  it("writes an XLIFF 1.2 sub-flow inside a code element as a live element", async () => {
+    const { file } = await writeThenRead(
+      XLIFF_12,
+      '<ph id="1">&lt;a title="<sub>T</sub>"&gt;</ph>',
+    );
+    expect(file).toContain(
+      '<target><ph id="1">&amp;lt;a title="<sub>T</sub>"&amp;gt;</ph></target>',
+    );
+  });
+
+  it("writes a sub outside a code element as text and keeps the inline element beside it", async () => {
+    const { file, value } = await writeThenRead(XLIFF_12, 'H<sub>2</sub>O <x id="1"/>');
+    expect(file).toContain('<target>H&lt;sub&gt;2&lt;/sub&gt;O <x id="1"/></target>');
+    expect(value).toBe('H<sub>2</sub>O <x id="1"/>');
+  });
+
+  it("keeps a native subscript opened inside a paired code as the code's text", async () => {
+    const value = '<bpt id="1"><sub></bpt>2<ept id="1"></sub></ept>';
+    const { file, value: read } = await writeThenRead(XLIFF_12, value);
+    expect(file).toContain(
+      '<target><bpt id="1">&lt;sub&gt;</bpt>2<ept id="1">&lt;/sub&gt;</ept></target>',
+    );
+    expect(read).toBe(value);
+  });
+
+  it("treats a sub-flow as text in an XLIFF 2.0 document", async () => {
+    const { file } = await writeThenRead(XLIFF_20, '<ph id="1"/><sub>T</sub>');
+    expect(file).toContain('<target><ph id="1"/>&lt;sub&gt;T&lt;/sub&gt;</target>');
+  });
+
+  it.each([
+    '<x id="1"/>',
+    '<g id="1">w</g>',
+    '<bx id="1"/>',
+    '<ex id="1"/>',
+    '<it id="1" pos="open"/>',
+  ])("treats the XLIFF 1.2 element %j as text in an XLIFF 2.0 document", async (value) => {
+    const { file, value: read } = await writeThenRead(XLIFF_20, value);
+    expect(file).toContain(
+      `<target>${value.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</target>`,
+    );
+    expect(read).toBe(value);
+  });
+});
+
+describe("xliff round-trip: escaped text shaped like an inline element", () => {
+  const escaped = `<xliff version="1.2"><file source-language="en" target-language="de"><body><trans-unit id="k"><source>S</source><target>&lt;x id="1"/&gt;</target></trans-unit></body></file></xliff>`;
+  const live = escaped.replace('&lt;x id="1"/&gt;', '<x id="1"/>');
+
+  it("reads escaped text that matches an allow-listed element exactly like the live element", async () => {
+    const adapter = createXliffAdapter(createMemoryAdapterFs({ a: escaped, b: live }));
+    const a = (await adapter.read("a", "de")).resource.entries.get("k")?.value;
+    const b = (await adapter.read("b", "de")).resource.entries.get("k")?.value;
+    expect(a).toBe('<x id="1"/>');
+    expect(b).toBe(a);
+  });
+
+  it("writes such text back as the live element", async () => {
+    const fs = createMemoryAdapterFs({ "m.xlf": escaped });
+    const adapter = createXliffAdapter(fs);
+    const { resource } = await adapter.read("m.xlf", "de");
+    await adapter.write(resource, "m.xlf");
+    expect(fs.files.get("m.xlf")).toContain('<target><x id="1"/></target>');
+  });
+});
+
+describe("xliff read: placeholders follow the document's XLIFF version", () => {
+  it.each([
+    [XLIFF_12, '<target>&lt;em&gt;w&lt;/em&gt; <x id="1"/></target>', ['<x id="1"/>']],
+    [XLIFF_20, '<target><em startRef="1"/> &lt;x id="1"/&gt;</target>', ['<em startRef="1"/>']],
+  ])("extracts only the version's own inline elements", async (document, target, expected) => {
+    const content = document.replace("<target>Ziel</target>", target);
+    const adapter = createXliffAdapter(createMemoryAdapterFs({ "m.xlf": content }));
+    const { resource } = await adapter.read("m.xlf", "de");
+    expect(resource.entries.get("k")?.placeholders).toEqual(expected);
+  });
+});
+
+describe("xliff write: values that cannot stay markup fall back to text", () => {
+  it.each([
+    ["1.2", XLIFF_12, '<ph id="1" xmlns="urn:example:other"/> & <x id="2"/>'],
+    ["2.0", XLIFF_20, '<ph id="1" xmlns="urn:example:other"/> & <pc id="2">b</pc>'],
+    ["1.2", XLIFF_12, '<g id="1">unclosed'],
+    ["2.0", XLIFF_20, '<pc id="1">unclosed'],
+  ])("writes an XLIFF %s value %j entirely as text", async (_label, document, value) => {
+    const { file, value: read } = await writeThenRead(document, value);
+    expect(file).toContain(
+      `<target>${value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</target>`,
+    );
+    expect(read).toBe(value);
+  });
+});

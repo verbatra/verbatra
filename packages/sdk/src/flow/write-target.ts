@@ -55,7 +55,7 @@ export async function writeTargetResource(
   resource: LocaleResource,
   targetPath: string,
   cwd: string,
-  context: WriteContext = {},
+  context: WriteContext,
 ): Promise<void> {
   try {
     await adapter.write(resource, targetPath, context);
