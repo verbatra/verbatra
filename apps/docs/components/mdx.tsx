@@ -1,4 +1,6 @@
 import { Callout } from "fumadocs-ui/components/callout";
+import { Card } from "fumadocs-ui/components/card";
+import { CodeBlockTabs } from "fumadocs-ui/components/codeblock";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
@@ -15,13 +17,14 @@ import {
 import { LaneCards, ReferenceRow, VMark } from "@/components/landing";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
-import Card from "@/components/ui/card";
 import CommandLine from "@/components/ui/command-line";
 import Tabs from "@/components/ui/tabs";
 import { type Locale, localizeHref } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const CALLOUT_CLASS = "vk-callout";
+export const LINK_CARD_CLASS = "vk-link-card";
+export const CODE_TABS_CLASS = "vk-code-tabs";
 
 export function getMDXComponents(locale: Locale, components?: MDXComponents): MDXComponents {
   const DefaultAnchor = defaultMdxComponents.a ?? "a";
@@ -33,12 +36,21 @@ export function getMDXComponents(locale: Locale, components?: MDXComponents): MD
     Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
       <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />
     ),
+    Card: ({ className, href, ...rest }: ComponentProps<typeof Card>) => (
+      <Card
+        className={cn(LINK_CARD_CLASS, className)}
+        {...(href === undefined ? {} : { href: localizeHref(locale, href) })}
+        {...rest}
+      />
+    ),
+    CodeBlockTabs: ({ className, ...rest }: ComponentProps<typeof CodeBlockTabs>) => (
+      <CodeBlockTabs className={cn(CODE_TABS_CLASS, className)} {...rest} />
+    ),
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
     DiffPanel,
     StudioScreenshot,
     CommandLine,
     Badge,
-    Card,
     VTabs: Tabs,
     LaneCards,
     ReferenceRow,

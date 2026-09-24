@@ -1,19 +1,24 @@
 {
-  "title": "R\u00e9f\u00e9rence CLI",
+  "title": "Référence CLI",
   "pages": [
     "index",
+    "---Configurer---",
     "init",
+    "doctor",
+    "---Traduire---",
     "extract",
     "translate",
     "watch",
+    "---Vérifier---",
     "check",
     "diff",
-    "doctor",
     "pseudo",
     "types",
+    "---Transmettre---",
     "export",
     "import",
     "tmx",
+    "---Studio et agents---",
     "studio",
     "mcp"
   ]

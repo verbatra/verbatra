@@ -8,11 +8,11 @@ Fünf Schritte führen dich vom leeren Projekt zur übersetzten Locale-Datei. Al
 
 verbatra ist eine Dev-Dependency:
 
-```bash
+```npm
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm und yarn funktionieren auch: `pnpm add -D @verbatra/cli` und dann `pnpm verbatra ...`, oder `yarn add -D @verbatra/cli` und dann `yarn verbatra ...`. Die Codeblöcke unten verwenden `npx`, passend zum `npm install` oben.
+Die Codeblöcke unten verwenden `npx`. Mit pnpm, yarn oder bun führst du stattdessen `pnpm verbatra ...`, `yarn verbatra ...` oder `bun run verbatra ...` aus.
 
 pnpm braucht einen Schritt mehr. `pnpm add -D @verbatra/cli` installiert korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS` und hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der jeder spätere pnpm-Befehl im Projekt genauso scheitert. Führe einmal `pnpm approve-builds` aus und bestätige keinen der beiden Einträge, oder sieh dir in der [Fehlerbehebung](/docs/troubleshooting) die nicht-interaktive Lösung an.
 
@@ -153,7 +153,9 @@ Committe `verbatra.lock.json` und `verbatra.provenance.json` zusammen mit deinen
 
 ## Nächste Schritte
 
-- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): derselbe Weg, verpackt als Prompt zum Kopieren und Einfügen für einen KI-Coding-Agenten.
-- [Eine Sprache hinzufügen](/docs/add-a-language): nimm eine neue Ziel-Locale in dieses Setup auf.
-- [Wie es funktioniert](/docs/how-it-works): die komplette Pipeline hinter einem Lauf.
-- [Konfigurationsdatei](/docs/config-file): alles, was `verbatra.config.ts` enthalten kann.
+<Cards>
+  <Card title="verbatra mit einem KI-Agenten einrichten" href="/docs/start-with-ai" description="Derselbe Weg, verpackt als Prompt zum Kopieren und Einfügen für einen KI-Coding-Agenten." />
+  <Card title="Eine Sprache hinzufügen" href="/docs/add-a-language" description="Nimm eine neue Ziel-Locale in dieses Setup auf." />
+  <Card title="Wie es funktioniert" href="/docs/how-it-works" description="Die komplette Pipeline hinter einem Lauf." />
+  <Card title="Konfigurationsdatei" href="/docs/config-file" description="Alles, was verbatra.config.ts enthalten kann." />
+</Cards>
