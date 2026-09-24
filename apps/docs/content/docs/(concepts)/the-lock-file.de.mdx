@@ -155,7 +155,7 @@ Jeder Eintrag nennt eine Herkunft:
 
 | Herkunft | Geschrieben von |
 | --- | --- |
-| `machine` | einer Provider-Antwort in `translate` oder `watch` (vom Provider erzeugte Pluralformen eingeschlossen) und einer Neuübersetzung eines einzelnen Keys, mit dem konfigurierten Provider und, falls vorhanden, dem Modell |
+| `machine` | einer Provider-Antwort in `translate` oder `watch` (vom Provider erzeugte Pluralformen eingeschlossen) und einer Neuübersetzung eines einzelnen Keys, mit der `id` des Providers, der geantwortet hat (ein eigenes `createProvider` im SDK wird unter seiner eigenen `id` festgehalten), und, wenn es der konfigurierte Provider ist und er eins hat, dem Modell |
 | `memory` | einem exakten Treffer im Übersetzungsspeicher, einschließlich jedes Werts, den ein reiner Human-Lauf (Provider `none`) füllt |
 | `fuzzy` | einem unscharfen Treffer im Übersetzungsspeicher |
 | `human` | einem Wert, den eine Person über `editEntry` im SDK geschrieben hat, so wie es der Bearbeiten-Dialog in Studio tut |

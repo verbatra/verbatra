@@ -538,8 +538,9 @@ códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
 `@verbatra/sdk`, con un `code` estable como `RATE_LIMITED` o `AUTH_FAILED`. Con `provider: { id: "none" }` lanza primero `MACHINE_TRANSLATION_DISABLED`, antes de leer o bloquear nada.
 
-El nuevo valor queda registrado en `verbatra.provenance.json` como `machine`, con el proveedor y el
-modelo configurados. Un archivo de procedencia corrupto lanza `PROVENANCE_FILE_INVALID` antes de
+El nuevo valor queda registrado en `verbatra.provenance.json` como `machine`, con el `id` del
+proveedor que respondió y el modelo configurado. Un proveedor de tu propio `createProvider` queda
+registrado con su propio `id`, y sin el modelo cuando ese `id` no coincide con el configurado. Un archivo de procedencia corrupto lanza `PROVENANCE_FILE_INVALID` antes de
 llamar al proveedor.
 
 <AvailableFrom version="0.12.0" />

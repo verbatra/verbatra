@@ -337,7 +337,7 @@ Relance le fournisseur pour exactement une clé et une locale : un appel à entr
 
 Entrée : `{ config, cwd?, locale, key, includeHuman? }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
 
-La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec le fournisseur et le modèle configurés. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
+La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec l'`id` du fournisseur qui a répondu et le modèle configuré. Un fournisseur issu de ton propre `createProvider` est enregistré sous son propre `id`, et sans le modèle quand cet `id` diffère de celui configuré. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
 
 <AvailableFrom version="0.12.0" />
 

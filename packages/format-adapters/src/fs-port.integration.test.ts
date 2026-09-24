@@ -155,6 +155,7 @@ describe("the ENOENT contract a port owes the destination re-read", () => {
     await adapter.write(translated(resource, "de"), "/virtual/app_de.arb");
 
     expect(JSON.parse(fs.files.get("/virtual/app_de.arb") ?? "")).toEqual({
+      "@@locale": "de",
       greeting: "[de] Hello {name}",
     });
   });

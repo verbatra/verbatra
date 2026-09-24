@@ -16,3 +16,27 @@ describe("machineAttribution", () => {
     expect(machineAttribution({ id: "none", options: {} })).toBeUndefined();
   });
 });
+
+describe("machineAttribution: resolved provider id", () => {
+  it("keeps the configured model when the resolved provider answers under the configured id", () => {
+    expect(
+      machineAttribution(
+        { id: "openai", options: { model: "gpt-x", maxOutputTokens: 10 } },
+        "openai",
+      ),
+    ).toEqual({ provider: "openai", model: "gpt-x" });
+  });
+
+  it("names the resolved provider alone when it answers under a different id", () => {
+    expect(
+      machineAttribution(
+        { id: "gemini", options: { model: "gemini-x", maxOutputTokens: 10 } },
+        "my-provider",
+      ),
+    ).toEqual({ provider: "my-provider" });
+  });
+
+  it("names nothing in human-only mode whatever id is passed", () => {
+    expect(machineAttribution({ id: "none", options: {} }, "my-provider")).toBeUndefined();
+  });
+});

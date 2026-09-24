@@ -157,7 +157,7 @@ Cada registro nombra un origen:
 
 | Origen | Lo escribe |
 | --- | --- |
-| `machine` | una respuesta del proveedor en `translate` o `watch` (incluidas las formas plurales que genera el proveedor) y una retraducción de una sola clave, con el proveedor configurado y, si lo tiene, el modelo |
+| `machine` | una respuesta del proveedor en `translate` o `watch` (incluidas las formas plurales que genera el proveedor) y una retraducción de una sola clave, con el `id` del proveedor que respondió (un `createProvider` propio en el SDK queda registrado con su propio `id`) y, cuando es el proveedor configurado y lo tiene, el modelo |
 | `memory` | un acierto exacto de la memoria de traducción, incluido cada valor que rellena una ejecución solo humana (proveedor `none`) |
 | `fuzzy` | un acierto aproximado de la memoria de traducción |
 | `human` | un valor que una persona escribió mediante `editEntry` del SDK, como hace el diálogo de edición de Studio |
