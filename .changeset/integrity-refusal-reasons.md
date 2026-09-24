@@ -10,7 +10,4 @@ where the check can name them, the placeholders, tags, or ICU plural arms at fau
 
 A later locale of a budget-stopped run no longer claims the run "reached" a budget it stopped short
 of, a one-key sub-batch failure reads `1 entry`, `watch` no longer suggests `--dry-run` for a budget
-and concurrency conflict, a network refusal by `VERBATRA_NETWORK_POLICY` names
-`VERBATRA_NETWORK_ALLOWED_HOSTS` instead of `network.allowedHosts`, a config issue raised twice is
-reported once, and project detection reports `medium` confidence when an Android layout leaves the
-source locale open.
+and concurrency conflict, and a config issue raised twice is reported once.

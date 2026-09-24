@@ -18,7 +18,8 @@ locale, and each locale's cache fingerprint covers only its own terms, so editin
 translation no longer invalidates the others. An LLM provider receives forbidden renderings,
 terms to keep and notes as data; DeepL and Google Cloud Translation report `GLOSSARY_IGNORED`
 for translations and kept terms they cannot apply. The system rules that carry these instructions
-are longer, so `--estimate` now reserves 550 tokens per request for them instead of 450.
+are longer. Together with the new plural-arm and language-name rules, `--estimate` and the token
+budget now reserve 550 tokens of system rules per LLM request instead of 250.
 
 `GLOSSARY_TERM_MISSED` is now checked against each locale's own translation and also covers a
 dropped do-not-translate term, the new `GLOSSARY_FORBIDDEN_TERM` review reason flags a forbidden

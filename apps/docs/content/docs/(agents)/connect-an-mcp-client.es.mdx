@@ -36,7 +36,7 @@ Los clientes difieren en el directorio en el que inician un servidor:
 
 | Cliente | Directorio de trabajo | Qué hacer |
 | --- | --- | --- |
-| Claude Code | el directorio en el que iniciaste `claude`, con `CLAUDE_PROJECT_DIR` apuntando a la raíz del proyecto | nada: sin `--cwd`, el servidor usa `CLAUDE_PROJECT_DIR` |
+| Claude Code | no documentado, pero `CLAUDE_PROJECT_DIR` apunta a la raíz del proyecto | nada: sin `--cwd`, el servidor usa `CLAUDE_PROJECT_DIR` |
 | Cursor | no documentado | pasa `--cwd ${workspaceFolder}` |
 | VS Code | la carpeta del workspace | nada, o define `cwd` |
 | Windsurf | no documentado | pasa `--cwd` con una ruta absoluta |
@@ -91,7 +91,7 @@ Todo lo que va después de `--` es la línea de comandos del propio servidor y s
 
 Claude Code pide a cada persona que apruebe un servidor con scope de proyecto de `.mcp.json` antes del primer uso en una sesión interactiva.
 
-Claude Code inicia el servidor en el directorio en el que iniciaste `claude` y le pasa el entorno con el que iniciaste `claude`. Así, el archivo del repositorio no contiene ni clave ni interruptor de gasto: quien quiera las herramientas de gasto las activa para una sesión, con la clave ya exportada en su shell:
+Claude Code le pasa al servidor el entorno con el que iniciaste `claude`, más `CLAUDE_PROJECT_DIR` apuntando a la raíz del proyecto. Así, el archivo del repositorio no contiene ni clave ni interruptor de gasto: quien quiera las herramientas de gasto las activa para una sesión, con la clave ya exportada en su shell:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude

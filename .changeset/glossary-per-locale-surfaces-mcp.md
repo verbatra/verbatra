@@ -10,6 +10,8 @@ its translation for all locales, per-locale `targets`, `forbidden` renderings, `
 `note` and `partOfSpeech`) and `doNotTranslate`, and with an optional `locale` also `effective`,
 the terms a translation into that locale is held to. `glossary.write` takes `locale`,
 `forbidden`, `note`, `partOfSpeech`, `caseSensitive` and `doNotTranslate` besides `term` and
-`translation`, which is now optional. A locale that is not a configured target locale fails with
-`UNKNOWN_LOCALE`, naming the configured ones. A glossary term named `__proto__`, `constructor` or
-`prototype` is no longer dropped from the result.
+`translation`, which is now optional; `translation: null` clears only the shared translation and
+keeps a term that still has per-locale translations or forbidden renderings, removing a term with
+nothing else left. A locale that is not a configured target locale fails with `UNKNOWN_LOCALE`,
+naming the configured ones. A glossary term named `__proto__`, `constructor` or `prototype` is no
+longer dropped from the result.

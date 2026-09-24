@@ -277,6 +277,40 @@ describe("carryOverRespelledLocales: the lock-file guard", () => {
       locales: { pt_BR: {} },
     });
   });
+
+  it("plans no provenance move on a dry run when the provenance file is corrupt", async () => {
+    const dir = await respelledStateFiles();
+    await writeFile(join(dir, "verbatra.provenance.json"), "{");
+
+    const plan = await carryOverRespelledLocales(dir, defaultFs, ["pt-BR"], {
+      dryRun: true,
+      memory: false,
+    });
+
+    expect(plan.provenance).toEqual(new Map());
+    expect(plan.carried).toEqual([{ from: "pt_BR", to: "pt-BR", files: ["verbatra.lock.json"] }]);
+  });
+
+  it("fails a dry run on a provenance read error that is not a corrupt file", async () => {
+    const dir = await respelledStateFiles();
+    const provenancePath = join(dir, "verbatra.provenance.json");
+    const fs: SdkFs = {
+      ...defaultFs,
+      readFileBounded: async (path, maxBytes) => {
+        if (path === provenancePath) {
+          throw new Error("EACCES: permission denied");
+        }
+        return defaultFs.readFileBounded(path, maxBytes);
+      },
+    };
+
+    await expect(
+      carryOverRespelledLocales(dir, fs, ["pt-BR"], { dryRun: true, memory: false }),
+    ).rejects.toThrow("EACCES: permission denied");
+    expect(await readJsonFile(join(dir, "verbatra.lock.json"))).toMatchObject({
+      locales: { pt_BR: { a: "h" } },
+    });
+  });
 });
 
 describe("withCarryOverNotices: the locale it belongs to", () => {

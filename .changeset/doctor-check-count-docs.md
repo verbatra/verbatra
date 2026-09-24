@@ -2,10 +2,8 @@
 "@verbatra/sdk": patch
 ---
 
-Describe the `doctor` checks by name and count them as `DoctorResult.checks` lists them.
+Describe every `doctor` check by name in the reference and the published type documentation.
 
-Previously the `doctor` reference said five checks run and numbered the rest from the sixth to the
-eighth, leaving `network-policy` unnumbered, while a setup run reports nine.
-
-Now the reference says nine checks run, six of which can fail, and names the three informational
-ones instead of numbering them.
+The `doctor` reference now says nine checks run, six of which can fail, and names the three
+informational ones. `DoctorResult.checks` and `DoctorInput.literals` list every check id `doctor`
+reports, including the checks a literal run skips.

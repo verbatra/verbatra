@@ -11,13 +11,11 @@ const KEY_PATTERNS: readonly RegExp[] = [
   new RegExp(`${UUID}:fx\\b`, "g"),
 ];
 
-const SK_TOKEN = /(?:(?<![A-Za-z0-9])|(?<=\\[bfnrt])|(?<=\\u[0-9A-Fa-f]{4}))sk-[A-Za-z0-9_-]+/g;
-
-const KNOWN_SK_PREFIX = /^sk-(?:ant|proj|svcacct|admin)-/;
+const SK_TOKEN =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: an ANSI escape is a key boundary
+  /(?:(?<![A-Za-z0-9])|(?<=\\[bfnrt])|(?<=\\u[0-9A-Fa-f]{4})|(?<=%[0-9A-Fa-f]{2})|(?<=\x1b\[[0-9;]*m)|(?<=\\u001[bB]\[[0-9;]*m))sk-[A-Za-z0-9_-]+/g;
 
 const MIN_SK_ALPHANUMERICS = 32;
-
-const MIN_KNOWN_PREFIX_TAIL_ALPHANUMERICS = 20;
 
 const QUOTE = `(?:\\\\*["'])?`;
 
@@ -34,16 +32,8 @@ function alphanumericCount(text: string): number {
   return text.replace(/[^A-Za-z0-9]/g, "").length;
 }
 
-function hasKnownPrefixAndTail(token: string): boolean {
-  const prefix = KNOWN_SK_PREFIX.exec(token)?.[0];
-  return (
-    prefix !== undefined &&
-    alphanumericCount(token.slice(prefix.length)) >= MIN_KNOWN_PREFIX_TAIL_ALPHANUMERICS
-  );
-}
-
 function redactSkToken(token: string): string {
-  if (hasKnownPrefixAndTail(token) || alphanumericCount(token.slice(3)) >= MIN_SK_ALPHANUMERICS) {
+  if (alphanumericCount(token.slice(3)) >= MIN_SK_ALPHANUMERICS) {
     return REDACTED;
   }
   return token;
@@ -69,12 +59,26 @@ function configuredKeyValues(): string[] {
   return [...values].sort((a, b) => b.length - a.length);
 }
 
-function scrubValues(text: string): string {
+let cachedValuePattern: { readonly snapshot: string; readonly pattern: RegExp } | undefined;
+
+function configuredValuePattern(): RegExp | undefined {
   const values = configuredKeyValues();
   if (values.length === 0) {
-    return text;
+    return undefined;
   }
-  return text.replace(new RegExp(values.map(escapeForRegExp).join("|"), "g"), REDACTED);
+  const snapshot = values.join("\0");
+  if (cachedValuePattern?.snapshot !== snapshot) {
+    cachedValuePattern = {
+      snapshot,
+      pattern: new RegExp(values.map(escapeForRegExp).join("|"), "g"),
+    };
+  }
+  return cachedValuePattern.pattern;
+}
+
+function scrubValues(text: string): string {
+  const pattern = configuredValuePattern();
+  return pattern === undefined ? text : text.replace(pattern, REDACTED);
 }
 
 function scrubPatterns(text: string): string {

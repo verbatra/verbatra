@@ -14,7 +14,17 @@ when the configured code has no state of its own in a file and that file holds s
 one underscore spelling of it (compared case-insensitively). The locale reports the new
 `LOCALE_STATE_CARRIED_OVER` notice naming both codes and the files moved. State the configured code
 already has is never overwritten, and two competing spellings move nothing. A dry run plans with
-the moved state and writes nothing; a run with the cache off leaves the translation memory alone.
+the moved state, provenance records included, so protected keys match the live run, and writes
+nothing; a run with the cache off leaves the translation memory alone.
+
+The move takes the lock-file guard only when there is state to move, with the run's
+`lockAcquireTimeoutMs` and `onLockWait`. When the guard stays contended or the lock or provenance
+file cannot be written, the state stays where it is, the locale reports the new
+`LOCALE_STATE_CARRY_OVER_SKIPPED` notice and does not run: it fails with the new
+`LOCALE_STATE_NOT_CARRIED_OVER` code, nothing is written under the new code, and the next run tries
+the move again. The other locales run as usual. A dry run reports the locale the same way while
+another process holds the lock-file guard. When only the translation memory cannot be written, the
+locale still runs, since the memory is only a cache.
 
 `doctor` gains an informational `locale-state` check that names every locale the lock file,
 translation memory or provenance file holds state for that the config does not list, says whether

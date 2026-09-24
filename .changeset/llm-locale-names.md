@@ -13,6 +13,6 @@ Node.js has no name for. A fixed system rule asks the model to write in the name
 regional variant. The names travel only as request data, and the translation memory fingerprint
 is unchanged, so existing memory is still reused.
 
-The estimated fixed overhead per LLM request grows from 350 to 450 tokens of system rules, and
-each request payload counts the names, so `translate --dry-run` estimates and token budget
-reservations rise slightly.
+The estimated fixed overhead of system rules per LLM request grows with the new rule, and each
+request payload counts the names, so `translate --dry-run` estimates and token budget reservations
+rise slightly.

@@ -36,7 +36,7 @@ Les clients diffèrent quant au répertoire dans lequel ils lancent un serveur :
 
 | Client | Répertoire de travail | Que faire |
 | --- | --- | --- |
-| Claude Code | le répertoire depuis lequel tu as lancé `claude`, avec `CLAUDE_PROJECT_DIR` défini sur la racine du projet | rien : sans `--cwd`, le serveur utilise `CLAUDE_PROJECT_DIR` |
+| Claude Code | non documenté, mais `CLAUDE_PROJECT_DIR` est défini sur la racine du projet | rien : sans `--cwd`, le serveur utilise `CLAUDE_PROJECT_DIR` |
 | Cursor | non documenté | passer `--cwd ${workspaceFolder}` |
 | VS Code | le dossier du workspace | rien, ou définir `cwd` |
 | Windsurf | non documenté | passer `--cwd` avec un chemin absolu |
@@ -91,7 +91,7 @@ Tout ce qui suit `--` est la ligne de commande du serveur lui-même, transmise t
 
 Claude Code demande à chaque personne d'approuver un serveur de scope projet issu de `.mcp.json` avant sa première utilisation dans une session interactive.
 
-Claude Code lance le serveur dans le répertoire depuis lequel tu as lancé `claude` et lui transmet l'environnement avec lequel tu as lancé `claude`. Le fichier commité ne contient donc ni clé ni interrupteur de dépense : un membre de l'équipe qui veut les outils de dépense les active pour une session, avec la clé déjà exportée dans son shell :
+Claude Code transmet au serveur l'environnement avec lequel tu as lancé `claude`, plus `CLAUDE_PROJECT_DIR` défini sur la racine du projet. Le fichier commité ne contient donc ni clé ni interrupteur de dépense : un membre de l'équipe qui veut les outils de dépense les active pour une session, avec la clé déjà exportée dans son shell :
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
