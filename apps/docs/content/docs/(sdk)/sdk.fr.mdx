@@ -561,7 +561,7 @@ Fait passer chaque traduction, traduction interdite, note et catégorie grammati
 
 <AvailableFrom version="0.12.0" />
 
-Lit le glossaire que nomme une configuration chargée tel qu'il est maintenant : `readCurrentGlossary({ loaded, locale? })`, où `loaded` est ce que renvoie `loadConfigWithMeta`. Un glossaire stocké dans un fichier est relu depuis le disque, un glossaire inline vient de la config, et dans les deux cas le résultat est le `Glossary` normalisé, ou `undefined` quand la config n'en déclare aucun. Si `locale` est fourni, il doit être une locale cible configurée, sinon l'appel échoue avec `UNKNOWN_LOCALE` en nommant celles qui sont configurées.
+Lit le glossaire que nomme une configuration chargée tel qu'il est maintenant : `readCurrentGlossary({ loaded })`, où `loaded` est ce que renvoie `loadConfigWithMeta`. Un glossaire stocké dans un fichier est relu depuis le disque, un glossaire inline vient de la config, et dans les deux cas le résultat est le `Glossary` normalisé, ou `undefined` quand la config n'en déclare aucun. Pour voir à quoi une locale cible est tenue, passe le résultat à `glossaryForLocale`.
 
 ### editConfiguredGlossaryTerm
 

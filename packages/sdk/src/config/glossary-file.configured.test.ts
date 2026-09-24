@@ -1,11 +1,12 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { baseConfig, makeTempDir } from "../test-support.js";
 import type { GlossaryInput } from "./glossary.js";
 import {
   editConfiguredGlossaryTerm,
   type GlossaryConfig,
+  type ReadCurrentGlossaryInput,
   readCurrentGlossary,
 } from "./glossary-file.js";
 
@@ -48,11 +49,8 @@ describe("readCurrentGlossary", () => {
     expect((await readCurrentGlossary({ loaded }))?.terms[0]?.target).toBe("Sichern");
   });
 
-  it("refuses a locale that is not configured, naming the configured ones", async () => {
-    await expect(readCurrentGlossary({ loaded: inline(), locale: "it" })).rejects.toMatchObject({
-      code: "UNKNOWN_LOCALE",
-      message: expect.stringContaining("Configured targets: de, fr."),
-    });
+  it("takes only the loaded config, leaving the locale view to glossaryForLocale", () => {
+    expectTypeOf<keyof ReadCurrentGlossaryInput>().toEqualTypeOf<"loaded">();
   });
 });
 

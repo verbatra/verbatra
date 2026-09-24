@@ -10,6 +10,7 @@ glossary through `redact` and names the terms that had a value replaced, so a to
 glossary without leaking a secret-shaped value. `glossaryForLocale` and `normalizeGlossary` now
 also take the `Glossary` that `readGlossaryFile` returns.
 
-`readCurrentGlossary` reads the glossary a loaded config names as it is now, and
-`editConfiguredGlossaryTerm` is `updateGlossaryTerm` with its locale checked against the configured
-target locales; both fail with `UNKNOWN_LOCALE` naming the configured ones.
+`readCurrentGlossary` reads the glossary a loaded config names as it is now; pass the result to
+`glossaryForLocale` for one locale's view. `editConfiguredGlossaryTerm` is `updateGlossaryTerm`
+with its locale checked against the configured target locales, failing with `UNKNOWN_LOCALE`
+naming the configured ones.

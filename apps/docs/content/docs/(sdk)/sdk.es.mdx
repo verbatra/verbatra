@@ -856,11 +856,11 @@ en tu propia herramienta.
 <AvailableFrom version="0.12.0" />
 
 Lee el glosario que nombra una configuración cargada tal como está ahora:
-`readCurrentGlossary({ loaded, locale? })`, donde `loaded` es lo que devuelve `loadConfigWithMeta`.
+`readCurrentGlossary({ loaded })`, donde `loaded` es lo que devuelve `loadConfigWithMeta`.
 Un glosario respaldado por archivo se lee directamente del disco, uno en línea sale de la
 configuración, y en ambos casos el resultado es el `Glossary` normalizado, o `undefined` cuando la
-configuración no declara ninguno. Si se pasa `locale`, tiene que ser un locale de destino
-configurado; si no, la llamada falla con `UNKNOWN_LOCALE` y nombra los configurados.
+configuración no declara ninguno. Para ver a qué está sujeto un locale de destino, pasa el resultado
+a `glossaryForLocale`.
 
 ### editConfiguredGlossaryTerm
 

@@ -807,11 +807,11 @@ tool.
 
 <AvailableFrom version="0.12.0" />
 
-Reads the glossary a loaded config names as it is now: `readCurrentGlossary({ loaded, locale? })`,
+Reads the glossary a loaded config names as it is now: `readCurrentGlossary({ loaded })`,
 where `loaded` is what `loadConfigWithMeta` returns. A file-backed glossary is read fresh from disk,
 an inline one comes from the config, and either way the result is the normalized `Glossary`, or
-`undefined` when the config declares none. When `locale` is given it must be a configured target
-locale, or the call fails with `UNKNOWN_LOCALE` naming the configured ones.
+`undefined` when the config declares none. To see what one target locale is held to, pass the result
+to `glossaryForLocale`.
 
 ### editConfiguredGlossaryTerm
 

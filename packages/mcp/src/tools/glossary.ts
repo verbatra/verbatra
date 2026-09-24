@@ -4,6 +4,7 @@ import {
   glossaryForLocale,
   readCurrentGlossary,
   redactGlossary,
+  SdkError,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
@@ -111,14 +112,25 @@ function buildResult(
   };
 }
 
+function assertTargetLocale(context: McpToolContext, locale: string): void {
+  const configured = context.config.config.targetLocales;
+  if (!configured.includes(locale)) {
+    throw new SdkError(
+      "UNKNOWN_LOCALE",
+      `Requested locale not in the configured target locales: ${locale}. ` +
+        `Configured targets: ${configured.join(", ")}.`,
+    );
+  }
+}
+
 async function glossaryGet(
   params: z.infer<typeof glossaryGetParamsSchema>,
   context: McpToolContext,
 ): Promise<GlossaryResult> {
-  const glossary = await readCurrentGlossary(
-    { loaded: context.config, locale: params.locale },
-    fsDeps(context),
-  );
+  if (params.locale !== undefined) {
+    assertTargetLocale(context, params.locale);
+  }
+  const glossary = await readCurrentGlossary({ loaded: context.config }, fsDeps(context));
   return buildResult(context, glossary, params.locale);
 }
 

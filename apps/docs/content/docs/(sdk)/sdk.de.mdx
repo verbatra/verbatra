@@ -883,11 +883,11 @@ deinem eigenen Werkzeug genauso.
 <AvailableFrom version="0.12.0" />
 
 Liest das Glossar, das eine geladene Konfiguration nennt, so wie es jetzt ist:
-`readCurrentGlossary({ loaded, locale? })`, wobei `loaded` das ist, was `loadConfigWithMeta`
+`readCurrentGlossary({ loaded })`, wobei `loaded` das ist, was `loadConfigWithMeta`
 zurückgibt. Ein dateibasiertes Glossar wird frisch von der Festplatte gelesen, ein Inline-Glossar
 kommt aus der Konfiguration, und in beiden Fällen ist das Ergebnis das normalisierte `Glossary` oder
-`undefined`, wenn die Konfiguration keins angibt. Ist `locale` angegeben, muss es eine konfigurierte
-Ziel-Locale sein, sonst scheitert der Aufruf mit `UNKNOWN_LOCALE` und nennt die konfigurierten.
+`undefined`, wenn die Konfiguration keins angibt. Um zu sehen, woran eine Ziel-Locale gebunden ist,
+gib das Ergebnis an `glossaryForLocale` weiter.
 
 ### editConfiguredGlossaryTerm
 
