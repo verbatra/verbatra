@@ -19,7 +19,7 @@ function renderSegments(value: string): ReactNode[] {
   for (const segment of segmentValue(value)) {
     nodes.push(
       segment.kind === "token" ? (
-        <bdi key={offset} dir="ltr" data-value-token="">
+        <bdi key={offset} dir="ltr" className="whitespace-nowrap" data-value-token="">
           {segment.text}
         </bdi>
       ) : (
@@ -48,7 +48,7 @@ export function TranslationValue({
 }): ReactNode {
   return (
     <Element
-      className={cn("text-start", className)}
+      className={cn("text-start", Element === "p" && "overflow-x-auto", className)}
       dir={valueDirection(locale)}
       title={title}
       {...dataAttributes}
