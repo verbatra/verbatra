@@ -587,6 +587,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       },
       path,
       params.cwd,
+      { sourcePath: params.resolver.pathFor(params.sourceLocale) },
     );
     written = await readWrittenTarget(params, pending.size > 0, written);
   }

@@ -33,6 +33,19 @@ export interface ReadResult {
 }
 
 /**
+ * What a caller knows about one write beyond the resource and its destination. Every member is
+ * optional, so an adapter that needs none of it ignores the whole object.
+ */
+export interface WriteContext {
+  /**
+   * The path of the project's source-locale file. A writer that patches an existing document (the
+   * XLIFF one) copies the structure of a unit the destination lacks from this document, and writes
+   * source text rather than translations when it equals the destination path.
+   */
+  readonly sourcePath?: string;
+}
+
+/**
  * The contract every format adapter implements. A new format attaches by implementing this interface
  * and registering it in an {@link AdapterRegistry}.
  *
@@ -79,10 +92,11 @@ export interface FormatAdapter {
    *
    * @param resource - The resource to serialize.
    * @param filePath - The destination file.
+   * @param context - Optional facts about the write, such as the source-locale file's path.
    * @throws `AdapterError` if the resource cannot be represented in the format; rejects with the
    *   underlying filesystem error on a write failure.
    */
-  write(resource: LocaleResource, filePath: string): Promise<void>;
+  write(resource: LocaleResource, filePath: string, context?: WriteContext): Promise<void>;
 
   /**
    * Extract the format's placeholder tokens from a single value, resolving nothing.

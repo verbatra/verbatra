@@ -412,6 +412,8 @@ export async function pseudolocalize(
     format: config.format,
     entries,
   };
-  await writeTargetResource(adapter, resource, outputPath, cwd);
+  await writeTargetResource(adapter, resource, outputPath, cwd, {
+    sourcePath: resolver.pathFor(config.sourceLocale),
+  });
   return { ...summary, written: true };
 }

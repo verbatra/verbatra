@@ -1,4 +1,4 @@
-export type { FormatAdapter, ReadResult } from "./adapter.js";
+export type { FormatAdapter, ReadResult, WriteContext } from "./adapter.js";
 export { createAndroidXmlAdapter } from "./android-xml/android-xml-adapter.js";
 export { androidPluralBaseKey, androidPluralCategoryOf } from "./android-xml/plural.js";
 export { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";

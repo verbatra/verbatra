@@ -1,5 +1,5 @@
 import type { LocaleResource } from "@verbatra/core";
-import type { FormatAdapter } from "./adapter.js";
+import type { FormatAdapter, WriteContext } from "./adapter.js";
 import { AdapterError } from "./errors.js";
 
 const ERRNO_CODE = /^E[A-Z0-9]+$/;
@@ -76,8 +76,11 @@ export function attributeAdapterFailures(adapter: FormatAdapter): FormatAdapter 
     read: guardAsync(format, "read", (filePath: string, locale: string) =>
       adapter.read(filePath, locale),
     ),
-    write: guardAsync(format, "write", (resource: LocaleResource, filePath: string) =>
-      adapter.write(resource, filePath),
+    write: guardAsync(
+      format,
+      "write",
+      (resource: LocaleResource, filePath: string, context?: WriteContext) =>
+        adapter.write(resource, filePath, context),
     ),
     ...(compare === undefined
       ? {}

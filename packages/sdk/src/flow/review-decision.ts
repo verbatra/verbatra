@@ -255,6 +255,11 @@ async function removeValue(
     },
     path,
     context.cwd,
+    {
+      sourcePath: createLocalePathResolver(context.cwd, context.config).pathFor(
+        context.config.sourceLocale,
+      ),
+    },
   );
   const after = await readTarget(
     context.cwd,
