@@ -136,9 +136,10 @@ export interface TranslateInput {
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
   /**
-   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
-   * `LOCK_CONTENDED`, and for the lock-file guard before a respelled locale's state is left where
-   * it is for this run. Defaults to ten minutes. Not used on a dry run, which takes no lock.
+   * How long, in milliseconds, to wait for a locale's write lock, or for the lock-file guard each
+   * locale takes to record its result, before that locale fails with `LOCK_CONTENDED`, and for the
+   * lock-file guard before a respelled locale's state is left where it is for this run. Defaults to
+   * ten minutes. Not used on a dry run, which takes no lock.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
@@ -374,6 +375,7 @@ async function runLiveLocale(
         targetLocale,
         { mode: "replace", entries: result.lockEntries },
         result.provenance,
+        context.lockOptions,
       );
       if (context.cache !== undefined && result.cacheAdditions.length > 0) {
         context.cache.additions.set(targetLocale, additionsToRecord(result.cacheAdditions));
