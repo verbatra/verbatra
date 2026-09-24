@@ -118,4 +118,37 @@ describe("ReviewRowActions", () => {
     expect(view.get("span").className).toContain("relative");
     expect(view.get('[role="status"]').parentElement).toBe(view.get("span"));
   });
+
+  it("adds a Retranslate action last only when a retranslate callback is given", () => {
+    const onRetranslate = vi.fn<() => void>();
+    const view = render(<ReviewRowActions {...handlers()} onRetranslate={onRetranslate} />);
+
+    expect(view.all("button").map((button) => button.textContent)).toEqual([
+      "Edit",
+      "Approve",
+      "Reject…",
+      "Retranslate",
+    ]);
+    click(view.getByText("button", "Retranslate"));
+    expect(onRetranslate).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables Retranslate while a decision is pending", () => {
+    const view = render(
+      <ReviewRowActions {...handlers()} onRetranslate={vi.fn()} pendingLabel="Retranslating…" />,
+    );
+
+    expect((view.getByText("button", "Retranslate") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("names each action's keyboard shortcut for assistive technology", () => {
+    const view = render(<ReviewRowActions {...handlers()} onRetranslate={vi.fn()} />);
+
+    expect(view.all("button").map((button) => button.getAttribute("aria-keyshortcuts"))).toEqual([
+      "e Enter",
+      "a",
+      "r",
+      "t",
+    ]);
+  });
 });

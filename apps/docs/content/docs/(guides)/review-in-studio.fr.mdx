@@ -91,6 +91,26 @@ Reject supprime la traduction du fichier de locale et retire son entrée du [fic
 
 Les signalements de révision sont consultatifs, distincts de la barrière d'intégrité stricte ; voir [Sûreté de la traduction](/docs/translation-safety) pour la signification de chaque raison.
 
+### Traiter la file au clavier
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Tu peux traiter la file de révision sans la souris. Appuie sur `j` ou sur la flèche vers le bas pour mettre en évidence la première entrée, puis :
+
+| Touche | Action |
+| --- | --- |
+| `j` ou flèche vers le bas | entrée suivante |
+| `k` ou flèche vers le haut | entrée précédente |
+| `a` | approuver l'entrée mise en évidence |
+| `r` | la rejeter (la confirmation s'ouvre quand même) |
+| `e` ou Entrée | l'ouvrir dans l'éditeur |
+| `t` | la retraduire (seulement avec `--allow-spend`) |
+| `?` | afficher ou masquer la liste des raccourcis |
+
+**Keyboard shortcuts** dans la barre de filtres ouvre la même liste. Un raccourci n'agit que sur l'entrée mise en évidence. Les raccourcis sont en pause pendant que tu tapes dans le filtre, tant qu'une boîte de dialogue est ouverte et tant que tu maintiens Ctrl, Cmd ou Alt, pour que les raccourcis du navigateur continuent de fonctionner ; Échap ferme la boîte de dialogue ouverte. La ligne mise en évidence est aussi celle qui porte le focus clavier, donc Tab passe à ses boutons, et un clic sur une ligne la met en évidence. Après une approbation ou un rejet, l'entrée qui prend sa place est mise en évidence, et un nouvel appui sur `a` te fait descendre dans la file.
+
+Avec `--allow-spend`, chaque ligne porte aussi un bouton **Retranslate**. Il fait un seul appel au fournisseur pour cette locale et cette clé, passe le résultat par la même barrière d'intégrité et rapporte le résultat sur la ligne au-dessus du tableau. La nouvelle valeur reste dans la file jusqu'à ce que tu l'approuves ou la rejettes. Une valeur écrite par une personne n'est pas remplacée d'ici : ouvre la clé dans Translations et choisis **Replace anyway** là-bas.
+
 ## Retraduire une clé signalée
 
 Démarre Studio avec la dépense autorisée :
