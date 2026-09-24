@@ -209,7 +209,7 @@ async function readImportData(
     if (error instanceof SdkError) {
       throw error;
     }
-    throw new SdkError("SOURCE_INVALID", errorMessage(error));
+    throw new SdkError("SOURCE_INVALID", errorMessage(error), { cause: error });
   }
 }
 
