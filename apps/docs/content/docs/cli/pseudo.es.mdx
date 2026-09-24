@@ -56,7 +56,7 @@ Tres reglas impiden que llegue a hacerse pasar por una traducción real:
 
 - Un pseudolocale que nombre tu locale de origen o uno de tus locales de destino se rechaza con `PSEUDO_OUTPUT_CONFLICT`, antes de leer o escribir nada.
 - Un `--out` que colocaría el archivo encima de un archivo de locale configurado se rechaza igual.
-- Un `--out` absoluto, o que se salga del directorio de trabajo con `..`, también se rechaza, para que un pseudolocale generado nunca aterrice fuera del proyecto del que salió.
+- Un `--out` absoluto, o que se salga del directorio de trabajo con `..`, también se rechaza, para que un pseudolocale generado nunca aterrice fuera del proyecto del que salió. Las mismas comprobaciones se repiten sobre el destino real de `--out` una vez resueltos los enlaces simbólicos: un directorio enlazado que apunta fuera del proyecto o a la raíz del proyecto, o un archivo enlazado que apunta a un archivo de locale, al archivo de bloqueo o a otro archivo del que depende el proyecto, también se rechaza con `PSEUDO_OUTPUT_CONFLICT`, y no se escribe nada.
 
 Como el archivo vive fuera de `files.pattern`, [`verbatra translate`](/docs/cli/translate) nunca lo ve ni gasta en él, y [`verbatra check`](/docs/cli/check) y [`verbatra diff`](/docs/cli/diff) nunca informan de él como ausente u obsoleto. No hay nada que añadir a `targetLocales` ni nada que excluir en CI.
 
