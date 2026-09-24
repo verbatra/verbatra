@@ -99,10 +99,30 @@ function belongsToWrite(key: string, messages: ReadonlyMap<string, string>): boo
   return messageKey !== null && messages.has(messageKey);
 }
 
+const LOCALE_KEY = "@@locale";
+
+function flutterLocale(locale: string): string {
+  return locale.replaceAll("-", "_");
+}
+
+function localeFirst(
+  tree: Map<string, OrderedValue>,
+  pairs: ReadonlyArray<[string, OrderedValue]> | null,
+  locale: string,
+): OrderedRecord {
+  const existing = tree.get(LOCALE_KEY);
+  if (existing === undefined && pairs !== null) {
+    return tree;
+  }
+  tree.delete(LOCALE_KEY);
+  return new Map([[LOCALE_KEY, existing ?? flutterLocale(locale)], ...tree]);
+}
+
 export async function buildArbWriteTree(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
+  locale: string,
 ): Promise<OrderedRecord> {
   const messages = messagesFromEntries(entries);
   const pairs = await readDestinationPairs(filePath, fs);
@@ -124,5 +144,5 @@ export async function buildArbWriteTree(
       out.set(key, value);
     }
   }
-  return out;
+  return localeFirst(out, pairs, locale);
 }
