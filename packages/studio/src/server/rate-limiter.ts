@@ -7,6 +7,11 @@ export interface RateLimitRule {
 
 export interface RpcRateLimiter {
   tryAcquire(method: string, weight?: number): boolean;
+  exceedsWindow(method: string, weight?: number): boolean;
+}
+
+function weightOf(rule: RateLimitRule, entries: number): number {
+  return rule.perEntry === true ? entries : 1;
 }
 
 export function createRpcRateLimiter(
@@ -21,7 +26,7 @@ export function createRpcRateLimiter(
       if (rule === undefined) {
         return true;
       }
-      const weight = rule.perEntry === true ? entries : 1;
+      const weight = weightOf(rule, entries);
       const bucket = rule.bucket ?? method;
       const current = now();
       const windowStart = current - rule.windowMs;
@@ -37,6 +42,10 @@ export function createRpcRateLimiter(
       }
       recentCalls.set(bucket, withinWindow);
       return true;
+    },
+    exceedsWindow(method: string, entries = 1): boolean {
+      const rule = rules[method];
+      return rule !== undefined && weightOf(rule, entries) > rule.maxCalls;
     },
   };
 }

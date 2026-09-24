@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createDefaultRegistry, type LoadedConfig, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
@@ -149,6 +149,56 @@ describe("keyContextHandler", () => {
           deps(project, { source: "none" }, { fs: EMPTY_FS }),
         ),
       ).rejects.toMatchObject({ code: "SOURCE_UNREADABLE" });
+    });
+  });
+});
+
+describe("keyContextHandler: a glossary that cannot be read", () => {
+  it("answers with an empty glossary and a notice, keeping the key's values", async () => {
+    await withProject({ targetLocales: ["de"] }, async (project) => {
+      const glossaryPath = join(project.root, "glossary.json");
+      await writeFile(glossaryPath, "{ not json sk-ant-api03-abcdefghijklmnopqrstuvwxyz", "utf8");
+
+      const result = await keyContextHandler(
+        { locale: "de", key: "greeting", draft: "Leg es in den Korb" },
+        deps(project, { source: "file", path: glossaryPath }),
+      );
+
+      expect(result).toMatchObject({
+        source: "Add it to your cart",
+        target: "Leg es in den Korb",
+        glossary: { terms: [], doNotTranslate: [] },
+        glossaryNotice: { code: expect.any(String), message: expect.any(String) },
+      });
+      expect(JSON.stringify(result)).not.toContain("sk-ant-api03");
+    });
+  });
+
+  it("names a failure without a code generically", async () => {
+    await withProject({ targetLocales: ["de"] }, async (project) => {
+      const glossaryPath = join(project.root, "glossary.json");
+      const fs: SdkFs = {
+        ...EMPTY_FS,
+        fileExists: async () => true,
+        readFileBounded: async (path) => {
+          if (path === glossaryPath) {
+            throw "not an error";
+          }
+          try {
+            return { kind: "ok", content: await readFile(path, "utf8") };
+          } catch {
+            return { kind: "missing" };
+          }
+        },
+      };
+      const result = await keyContextHandler(
+        { locale: "de", key: "title" },
+        deps(project, { source: "file", path: glossaryPath }, { fs }),
+      ).catch((error: unknown) => error);
+
+      expect(result).toMatchObject({
+        glossaryNotice: { code: "GLOSSARY_UNREADABLE", message: "not an error" },
+      });
     });
   });
 });

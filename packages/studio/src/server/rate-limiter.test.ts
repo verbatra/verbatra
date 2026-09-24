@@ -117,3 +117,18 @@ describe("createRpcRateLimiter: weighted calls and shared buckets", () => {
     expect(limiter.tryAcquire("translation.retranslateEntries", 1)).toBe(false);
   });
 });
+
+describe("createRpcRateLimiter: calls that can never fit", () => {
+  it("reports a per-entry call heavier than the whole window budget, and nothing else", () => {
+    const limiter = createRpcRateLimiter({
+      "translation.retranslateEntries": { windowMs: 1000, maxCalls: 3, perEntry: true },
+      "translation.retranslateEntry": { windowMs: 1000, maxCalls: 1 },
+    });
+
+    expect(limiter.exceedsWindow("translation.retranslateEntries", 4)).toBe(true);
+    expect(limiter.exceedsWindow("translation.retranslateEntries", 3)).toBe(false);
+    expect(limiter.exceedsWindow("translation.retranslateEntry", 5)).toBe(false);
+    expect(limiter.exceedsWindow("translation.retranslateEntry")).toBe(false);
+    expect(limiter.exceedsWindow("status.check", 100)).toBe(false);
+  });
+});

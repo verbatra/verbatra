@@ -33,11 +33,13 @@ function failureOf(outcome: {
   readonly key: string;
   readonly code: string;
   readonly message: string;
+  readonly skipped?: true;
 }): BatchFailure {
+  const copy = resolveErrorCopy({ code: outcome.code, message: outcome.message });
   return {
     locale: outcome.locale,
     key: outcome.key,
-    message: resolveErrorCopy({ code: outcome.code, message: outcome.message }),
+    message: outcome.skipped === true ? `Not attempted after an earlier failure: ${copy}` : copy,
   };
 }
 

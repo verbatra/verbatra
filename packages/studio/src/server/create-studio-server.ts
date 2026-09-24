@@ -105,6 +105,8 @@ function buildInFlightGuard(): RpcInFlightGuard {
       REVIEW_REJECT_MANY_METHOD,
       RETRANSLATE_ENTRIES_METHOD,
     ]),
+    Date.now,
+    new Set([RETRANSLATE_ENTRY_METHOD, RETRANSLATE_ENTRIES_METHOD]),
   );
 }
 

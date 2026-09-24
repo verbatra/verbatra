@@ -8,6 +8,10 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
   PARAMS_INVALID: "The request parameters failed validation. Reload the page and try again.",
   METHOD_RATE_LIMITED:
     "Studio is limiting how often this action can run. Wait a moment and try again.",
+  BATCH_TOO_LARGE:
+    "This batch has more entries than Studio allows in one rate-limit window. Select fewer entries and try again.",
+  BATCH_INTERRUPTED:
+    "The batch stopped before this entry because of an unexpected error. Check the terminal running Studio, then try again.",
   INTERNAL: "An unexpected server error occurred. Check the terminal running Studio for details.",
   SESSION_EXPIRED: "The session has expired. Reload the page to start a new one.",
   UNKNOWN_FORMAT:

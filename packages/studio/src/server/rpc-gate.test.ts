@@ -2,7 +2,7 @@ import { AdapterError } from "@verbatra/format-adapters";
 import { SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { createRpcInFlightGuard, type RpcInFlightGuard } from "./in-flight-guard.js";
-import { createRpcRateLimiter } from "./rate-limiter.js";
+import { createRpcRateLimiter, type RpcRateLimiter } from "./rate-limiter.js";
 import { createRpcHandlers, type HandlersRegistry, type RpcHandlerDeps } from "./rpc.js";
 import { dispatchRpc } from "./rpc-gate.js";
 import { baseStudioConfig } from "./test-support.js";
@@ -216,8 +216,9 @@ describe("dispatchRpc envelope", () => {
 
   it("answers 429 METHOD_RATE_LIMITED once the limiter trips, without ever invoking the handler", async () => {
     let calls = 0;
-    const limiter: { tryAcquire: (method: string) => boolean } = {
+    const limiter: RpcRateLimiter = {
       tryAcquire: () => false,
+      exceedsWindow: () => false,
     };
 
     const result = await dispatchRpc(
@@ -246,8 +247,9 @@ describe("dispatchRpc envelope", () => {
 
   it("answers 429 METHOD_RATE_LIMITED for translation.editEntry specifically, without ever invoking its handler or reaching the sdk seam or disk", async () => {
     let calls = 0;
-    const limiter: { tryAcquire: (method: string) => boolean } = {
+    const limiter: RpcRateLimiter = {
       tryAcquire: () => false,
+      exceedsWindow: () => false,
     };
 
     const result = await dispatchRpc(
@@ -300,11 +302,12 @@ describe("dispatchRpc envelope", () => {
 
   it("checks the rate limit only after method resolution, so an unregistered method still answers METHOD_UNKNOWN", async () => {
     let acquireCalls = 0;
-    const limiter = {
+    const limiter: RpcRateLimiter = {
       tryAcquire: (): boolean => {
         acquireCalls += 1;
         return false;
       },
+      exceedsWindow: () => false,
     };
 
     const result = await dispatchRpc(
@@ -624,11 +627,12 @@ describe("dispatchRpc envelope", () => {
 describe("dispatchRpc: batch entry counts reach the rate limiter", () => {
   it("passes a batch's entry count, and 1 for a single-entry call", async () => {
     const seen: [string, number | undefined][] = [];
-    const limiter = {
+    const limiter: RpcRateLimiter = {
       tryAcquire: (method: string, entries?: number): boolean => {
         seen.push([method, entries]);
         return true;
       },
+      exceedsWindow: () => false,
     };
     const handlers: HandlersRegistry = {
       "translation.retranslateEntries": async () => ({ results: [] }),
@@ -705,6 +709,153 @@ describe("dispatchRpc: batch entry counts reach the rate limiter", () => {
     );
 
     expect(result.statusCode).toBe(429);
+    expect(await parseBody(result)).toMatchObject({
+      ok: false,
+      error: {
+        code: "BATCH_TOO_LARGE",
+        message:
+          "This batch has more entries than this method allows in one rate-limit window; send fewer entries.",
+      },
+    });
     expect(calls).toBe(0);
+  });
+});
+
+describe("dispatchRpc: the order of the in-flight guard and the rate limiter", () => {
+  it("does not charge the rate limiter for a call the in-flight guard refuses", async () => {
+    let charged = 0;
+    const limiter: RpcRateLimiter = {
+      tryAcquire: () => {
+        charged += 1;
+        return true;
+      },
+      exceedsWindow: () => false,
+    };
+    const guard: RpcInFlightGuard = { tryEnter: () => false, leave: () => {}, entries: () => [] };
+
+    const result = await dispatchRpc(
+      body({ method: "translation.retranslateEntry", params: { locale: "de", key: "a" } }),
+      deps(),
+      {
+        "translation.retranslateEntry": async () => ({
+          accepted: true,
+          value: "x",
+          reviewReasons: [],
+        }),
+      },
+      limiter,
+      guard,
+    );
+
+    expect(result.statusCode).toBe(409);
+    expect(charged).toBe(0);
+  });
+
+  it("frees the in-flight slot of a call the rate limiter refuses", async () => {
+    const guard = createRpcInFlightGuard(new Set(["translation.retranslateEntry"]));
+    let allow = false;
+    const limiter: RpcRateLimiter = { tryAcquire: () => allow, exceedsWindow: () => false };
+    const handlers: HandlersRegistry = {
+      "translation.retranslateEntry": async () => ({
+        accepted: true,
+        value: "x",
+        reviewReasons: [],
+      }),
+    };
+    const call = () =>
+      dispatchRpc(
+        body({ method: "translation.retranslateEntry", params: { locale: "de", key: "a" } }),
+        deps(),
+        handlers,
+        limiter,
+        guard,
+      );
+
+    expect((await call()).statusCode).toBe(429);
+    allow = true;
+    expect((await call()).statusCode).toBe(200);
+  });
+
+  it("counts a batch entry named twice only once", async () => {
+    const seen: (number | undefined)[] = [];
+    const limiter: RpcRateLimiter = {
+      tryAcquire: (_method, entries) => {
+        seen.push(entries);
+        return true;
+      },
+      exceedsWindow: () => false,
+    };
+
+    await dispatchRpc(
+      body({
+        method: "translation.retranslateEntries",
+        params: {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "a" },
+            { locale: "fr", key: "a" },
+          ],
+        },
+      }),
+      deps(),
+      { "translation.retranslateEntries": async () => ({ results: [] }) },
+      limiter,
+    );
+
+    expect(seen).toEqual([2]);
+  });
+});
+
+describe("dispatchRpc: a single retranslation against a running batch", () => {
+  it("answers 409 for a key the running batch holds, and lets another key through", async () => {
+    const guard = createRpcInFlightGuard(
+      new Set(["translation.retranslateEntry", "translation.retranslateEntries"]),
+      Date.now,
+      new Set(["translation.retranslateEntry", "translation.retranslateEntries"]),
+    );
+    let finishBatch: () => void = () => undefined;
+    const batchRunning = new Promise<void>((res) => {
+      finishBatch = res;
+    });
+    let singles = 0;
+    const handlers: HandlersRegistry = {
+      "translation.retranslateEntries": async () => {
+        await batchRunning;
+        return { results: [] };
+      },
+      "translation.retranslateEntry": async () => {
+        singles += 1;
+        return { accepted: true, value: "x", reviewReasons: [] };
+      },
+    };
+    const single = (key: string) =>
+      dispatchRpc(
+        body({ method: "translation.retranslateEntry", params: { locale: "de", key } }),
+        deps(),
+        handlers,
+        undefined,
+        guard,
+      );
+
+    const batch = dispatchRpc(
+      body({
+        method: "translation.retranslateEntries",
+        params: { entries: [{ locale: "de", key: "a" }] },
+      }),
+      deps(),
+      handlers,
+      undefined,
+      guard,
+    );
+    const clash = await single("a");
+    const other = await single("b");
+    finishBatch();
+    await batch;
+
+    expect(clash.statusCode).toBe(409);
+    expect(await parseBody(clash)).toMatchObject({ error: { code: "ALREADY_IN_PROGRESS" } });
+    expect(other.statusCode).toBe(200);
+    expect(singles).toBe(1);
+    expect((await single("a")).statusCode).toBe(200);
   });
 });
