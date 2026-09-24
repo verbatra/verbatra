@@ -86,7 +86,7 @@ Le texte est le même pour chaque projet et chaque démarrage du serveur, il ne 
 | `glossary.get` | chaque terme du glossaire avec ses traductions par locale, ses traductions interdites et son contexte, les termes à ne pas traduire et, en option, ce à quoi une locale est tenue, expurgé des secrets | oui | non |
 | `glossary.write` | modifie un terme du glossaire : une traduction, des données par locale, un contexte ou le fait qu'il reste non traduit | non | non |
 | `lock.state` | version du fichier de verrouillage et, par locale cible, son nombre de clés enregistrées ainsi que ses décomptes de clés manquantes, obsolètes et à jour | oui | non |
-| `key.integrity` | dérive des placeholders, du balisage en ligne et d'ICU d'une clé par rapport à la référence du fichier de verrouillage, par locale (ne vérifie que les clés dont le texte source a changé depuis la référence ; un tableau `entries` vide signifie vérifiée et inchangée) | oui | non |
+| `key.integrity` | dérive des placeholders, du balisage en ligne, de la syntaxe ICU et des branches ICU d'une clé par rapport à la référence du fichier de verrouillage, par locale (ne vérifie que les clés dont le texte source a changé depuis la référence ; un tableau `entries` vide signifie vérifiée et inchangée) | oui | non |
 | `key.value` | texte source et cible actuel d'une clé | oui | non |
 | `translation.editEntry` | écrit une traduction manuelle pour une clé dans une locale, soumise à la barrière d'intégrité des placeholders, du balisage en ligne et d'ICU | non | non |
 | `translation.estimate` | ce que `translation.translatePending` enverrait et coûterait, le même résultat que `translate --estimate --json`, éventuellement pour un sous-ensemble de `locales` | oui | non |
@@ -127,6 +127,10 @@ Les contrôles de balisage en ligne dans `key.integrity` (`markupMatches`, `mark
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `key.value` renvoie aussi `provenance` dès que `target` est présent : `origin`, `provider` et `model` pour la traduction automatique, `reviewState` et `reviewer` quand un relecteur a été enregistré. Chaque locale de `lock.state` et `status.check` porte des comptes `provenance` (`byOrigin`, `byReviewState`), et chaque locale de `status.diff` porte `changedOrigins`, l'origine de la valeur actuelle de chaque clé modifiée. Tous sont omis quand `verbatra.provenance.json` est corrompu ou écrit par un verbatra plus récent ; ce que signifie chaque origine est expliqué dans [Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur).
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Chaque entrée de `key.integrity` porte aussi `icuArmsMatch` et `icuArmDetails` : si les branches ICU `plural`, `selectordinal` et `select` de la valeur conviennent à la langue cible, jugées selon la même règle qui fait refuser une valeur par `translation.editEntry` avec le motif `icu`, et un problème court par branche manquante ou en trop.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
