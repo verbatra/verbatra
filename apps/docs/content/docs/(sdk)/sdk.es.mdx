@@ -1010,7 +1010,9 @@ variable de entorno de proveedor configurada, reemplazando cada coincidencia por
 `@verbatra/studio` y `@verbatra/mcp` lo aplican los dos a todo valor que devuelven a quien llama y
 que no han generado ellos mismos, como un término del glosario, una ruta de archivo o un mensaje de
 error de un sistema previo, así que una clave ya presente en tu entorno o escrita en un archivo del
-proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log.
+proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log. La CLI
+`verbatra` pasa por él, como último paso, todo lo que escribe en stdout y stderr, incluido el sobre
+`--json`.
 
 Esto incluye la variable que un proveedor `openai-compatible` nombra con `apiKeyEnvVar`. Se declara
 cuando `loadConfig` carga una config que la nombra o cuando se construye ese proveedor, y desde ese

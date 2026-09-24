@@ -677,7 +677,8 @@ variable d'environnement de fournisseur configurée, en remplaçant chaque corre
 n'ont pas eux-mêmes générée et qu'ils renvoient à un appelant, comme un terme de glossaire, un
 chemin de fichier ou un message d'erreur d'un système en amont, afin qu'une clé déjà présente dans
 ton environnement ou écrite dans un fichier du projet ne puisse jamais atteindre un onglet de
-navigateur, un agent ou une ligne de log.
+navigateur, un agent ou une ligne de log. La CLI `verbatra` y fait passer, en dernière étape, tout
+ce qu'elle écrit sur stdout et stderr, enveloppe `--json` comprise.
 
 Cela inclut la variable qu'un fournisseur `openai-compatible` désigne via `apiKeyEnvVar`. Elle est
 déclarée quand `loadConfig` charge une config qui la nomme ou quand ce fournisseur est construit, et
