@@ -2,13 +2,16 @@ import type { Readable } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { type CreateProvider, loadConfigWithMeta } from "@verbatra/sdk";
 import { connectMcpServer } from "./server.js";
+import { resolveServerCwd } from "./server-cwd.js";
 import type { McpToolContext } from "./types.js";
 
 /** Everything {@link startMcpServer} accepts. Every field is optional. */
 export interface StartMcpServerOptions {
   /**
    * The project root: where the config search starts, the base a relative `configPath` resolves
-   * against, and the root every tool resolves project paths from. Defaults to `process.cwd()`.
+   * against, and the root every tool resolves project paths from. Defaults to the
+   * `CLAUDE_PROJECT_DIR` environment variable when it names an existing directory, else
+   * `process.cwd()` (see {@link resolveServerCwd}).
    */
   readonly cwd?: string;
   /**
@@ -88,7 +91,7 @@ export interface McpServerHandle {
 export async function startMcpServer(
   options: StartMcpServerOptions = {},
 ): Promise<McpServerHandle> {
-  const cwd = options.cwd ?? process.cwd();
+  const cwd = resolveServerCwd(options.cwd);
   const loaded = await loadConfigWithMeta({
     cwd,
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),

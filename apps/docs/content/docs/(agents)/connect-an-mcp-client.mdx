@@ -30,13 +30,13 @@ Every `@verbatra/mcp` release also publishes the server to the [official MCP Reg
 
 ## Which directory is the project
 
-The server loads the config and resolves every locale file from its working directory, or from the directory `--cwd` names. Without `--config`, it searches upward from there for a config file, stopping at the nearest `.git` directory, but the tools still resolve paths from the working directory itself. Point the server at the directory that holds `verbatra.config.ts`.
+The server loads the config and resolves every locale file from its working directory, or from the directory `--cwd` names. Without `--cwd`, a `CLAUDE_PROJECT_DIR` environment variable that names an existing directory takes the place of the working directory. Without `--config`, it searches upward from there for a config file, stopping at the nearest `.git` directory, but the tools still resolve paths from the working directory itself. Point the server at the directory that holds `verbatra.config.ts`.
 
 Clients differ in which directory they start a server in:
 
 | Client | Working directory | What to do |
 | --- | --- | --- |
-| Claude Code | the directory you started `claude` in | start `claude` from the project root |
+| Claude Code | the directory you started `claude` in, with `CLAUDE_PROJECT_DIR` set to the project root | nothing: the server uses `CLAUDE_PROJECT_DIR` when there is no `--cwd` |
 | Cursor | not documented | pass `--cwd ${workspaceFolder}` |
 | VS Code | the workspace folder | nothing, or set `cwd` |
 | Windsurf | not documented | pass `--cwd` with an absolute path |

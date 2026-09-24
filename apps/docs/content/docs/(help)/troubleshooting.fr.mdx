@@ -295,14 +295,16 @@ utilise par défaut 5849 sur 127.0.0.1.
 
 ## Studio : @verbatra/studio n'est pas installé
 
-**Symptôme** : `Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D
-@verbatra/studio`
+**Symptôme** : `Verbatra Studio requires @verbatra/studio.`, suivi de
+`npm install --save-dev @verbatra/studio` et `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`
 
 **Cause** : `@verbatra/studio` est un paquet séparé que la commande `studio` charge dynamiquement,
 donc le reste de la CLI fonctionne sans lui.
 
-**Solution** : installe-le comme l'indice le dit, puis relance `verbatra studio`. L'indice donne la
-commande pnpm, donc si tu installes avec pnpm, lis d'abord
+**Solution** : installe-le à côté de la CLI (`npm install --save-dev @verbatra/studio`, ou la
+commande équivalente de ton gestionnaire de paquets), puis relance `verbatra studio`. Pour un
+lancement ponctuel sans rien installer, `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`
+récupère les deux paquets ensemble. Si tu installes avec pnpm, lis d'abord
 [pnpm bloque les scripts d'installation d'une dépendance](#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
 
 ## Studio : les actions de retraduction et de traduction manquent
@@ -322,14 +324,16 @@ this method; wait before retrying.` ; cela se dissipe tout seul. Voir
 
 ## MCP : @verbatra/mcp n'est pas installé
 
-**Symptôme** : `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
-@verbatra/mcp`
+**Symptôme** : `Verbatra's MCP server requires @verbatra/mcp.`, suivi de `npx -y @verbatra/mcp`
+et `npm install --save-dev @verbatra/mcp`
 
 **Cause** : `@verbatra/mcp` est un paquet séparé que la commande `mcp` charge dynamiquement, donc le
 reste de la CLI fonctionne sans lui.
 
-**Solution** : installe-le comme l'indice le dit, puis relance `verbatra mcp`, ou lance directement
-le binaire `verbatra-mcp` que fournit `@verbatra/mcp`. Si tu installes avec pnpm, lis d'abord
+**Solution** : lance le serveur sans la CLI avec `npx -y @verbatra/mcp`, qui récupère le paquet et
+démarre son binaire `verbatra-mcp`, ou installe `@verbatra/mcp` à côté de la CLI
+(`npm install --save-dev @verbatra/mcp`) et relance `verbatra mcp`. `npx -y @verbatra/cli mcp`
+seul ne fonctionne jamais, car il n'installe que la CLI. Si tu installes avec pnpm, lis d'abord
 [pnpm bloque les scripts d'installation d'une dépendance](#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
 
 ## MCP : le tools/list d'un agent ne montre jamais retranslateEntry ni translatePending

@@ -60,6 +60,7 @@ export interface StudioModule {
 
 export interface McpModule {
   startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
+  resolveServerCwd?(cwd?: string): string;
 }
 
 export type Session = StoppableSession;

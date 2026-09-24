@@ -15,7 +15,7 @@ import type { CliDeps, Session, Streams } from "./types.js";
 const TOKEN_BYTES = 32;
 
 const NOT_INSTALLED_HINT =
-  "Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio";
+  "Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio";
 
 const STUDIO_SPECIFIER_PATTERN = /['"]@verbatra\/studio['"]/;
 

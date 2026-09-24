@@ -274,14 +274,16 @@ defaults to 5849 on 127.0.0.1.
 
 ## Studio: @verbatra/studio is not installed
 
-**Symptom**: `Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D
-@verbatra/studio`
+**Symptom**: `Verbatra Studio requires @verbatra/studio.`, followed by
+`npm install --save-dev @verbatra/studio` and `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio`
 
 **Cause**: `@verbatra/studio` is a separate package the `studio` command loads dynamically, so the
 rest of the CLI works without it.
 
-**Fix**: install it as the hint says, then re-run `verbatra studio`. The hint spells out the pnpm
-command, so if you install with pnpm, see
+**Fix**: install it next to the CLI (`npm install --save-dev @verbatra/studio`, or the matching
+command of your package manager), then re-run `verbatra studio`. For a one-off run without
+installing anything, `npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio` fetches both
+packages together. If you install with pnpm, see
 [pnpm blocks a dependency's install scripts](#pnpm-blocks-a-dependencys-install-scripts-err_pnpm_ignored_builds)
 first.
 
@@ -300,14 +302,16 @@ retrying.`; that clears on its own. See [Review in Studio](/docs/review-in-studi
 
 ## MCP: @verbatra/mcp is not installed
 
-**Symptom**: `Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D
-@verbatra/mcp`
+**Symptom**: `Verbatra's MCP server requires @verbatra/mcp.`, followed by `npx -y @verbatra/mcp`
+and `npm install --save-dev @verbatra/mcp`
 
 **Cause**: `@verbatra/mcp` is a separate package the `mcp` command loads dynamically, so the rest of
 the CLI works without it.
 
-**Fix**: install it as the hint says, then re-run `verbatra mcp`, or run the `verbatra-mcp` binary
-`@verbatra/mcp` ships directly. If you install with pnpm, see
+**Fix**: run the server without the CLI with `npx -y @verbatra/mcp`, which fetches the package and
+starts its `verbatra-mcp` binary, or install `@verbatra/mcp` next to the CLI
+(`npm install --save-dev @verbatra/mcp`) and re-run `verbatra mcp`. `npx -y @verbatra/cli mcp` on
+its own never works, because it installs only the CLI. If you install with pnpm, see
 [pnpm blocks a dependency's install scripts](#pnpm-blocks-a-dependencys-install-scripts-err_pnpm_ignored_builds)
 first.
 
