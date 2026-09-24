@@ -123,8 +123,28 @@ interface AbandonedLock {
   readonly recorded: RecordedHolder;
 }
 
+const unreadableLockErrors = new WeakSet<SdkError>();
+
+export function isUnreadableLockError(error: unknown): boolean {
+  return error instanceof SdkError && unreadableLockErrors.has(error);
+}
+
+function tooLargeLockError(path: string): SdkError {
+  const error = new SdkError(
+    "LOCK_CONTENDED",
+    `The lock file at ${path} is too large to be a lock and cannot be read. If no verbatra ` +
+      "process is running anywhere, delete it and retry.",
+  );
+  unreadableLockErrors.add(error);
+  return error;
+}
+
 async function observeLock(path: string, fs: SdkFs): Promise<ObservedLock> {
-  return observedFrom(await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES));
+  const read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
+  if (read.kind === "too-large") {
+    throw tooLargeLockError(path);
+  }
+  return observedFrom(read);
 }
 
 function observedFrom(read: BoundedFileRead): ObservedLock {

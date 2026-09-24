@@ -5,6 +5,7 @@ import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { makeFakeFs } from "../test-support.js";
 import type { LivenessContext } from "./holder-liveness.js";
 import {
+  isUnreadableLockError,
   type LocaleWriteLockOptions,
   type LockWaitEvent,
   localeLockPath,
@@ -184,6 +185,59 @@ describe("withLocaleWriteLock: contention timeout", () => {
   });
 });
 
+describe("withLocaleWriteLock: a lock file too large to be a lock", () => {
+  it.each([
+    [
+      "a locale write lock",
+      (fs: SdkFs, fn: () => Promise<void>) =>
+        withLocaleWriteLock("/proj", "de", fs, fn, { acquireTimeoutMs: 600_000 }),
+      localeLockPath("/proj", "de"),
+    ],
+    [
+      "the lock-file guard",
+      (fs: SdkFs, fn: () => Promise<void>) =>
+        withLockFileGuard("/proj", fs, fn, { acquireTimeoutMs: 600_000 }),
+      lockFileGuardPath("/proj"),
+    ],
+  ] as const)(
+    "fails %s at once with an unreadable LOCK_CONTENDED naming the path, and never runs fn",
+    async (_, acquire, path) => {
+      const fs = makeFakeFs({
+        createExclusive: async (): Promise<boolean> => false,
+        readFileBounded: async (): Promise<BoundedFileRead> => ({ kind: "too-large" }),
+      });
+      let ran = false;
+      const startedAt = Date.now();
+
+      const error = await acquire(fs, async () => {
+        ran = true;
+      }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(SdkError);
+      expect((error as SdkError).code).toBe("LOCK_CONTENDED");
+      expect((error as SdkError).message).toContain(
+        `The lock file at ${path} is too large to be a lock and cannot be read.`,
+      );
+      expect(isUnreadableLockError(error)).toBe(true);
+      expect(Date.now() - startedAt).toBeLessThan(5_000);
+      expect(ran).toBe(false);
+    },
+  );
+
+  it("does not mark a contention timeout or a non-SdkError as unreadable", async () => {
+    const fs = makeFakeFs({ createExclusive: async (): Promise<boolean> => false });
+
+    const timeout = await withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      pollIntervalMs: 5,
+      acquireTimeoutMs: 20,
+    }).catch((e: unknown) => e);
+
+    expect((timeout as SdkError).code).toBe("LOCK_CONTENDED");
+    expect(isUnreadableLockError(timeout)).toBe(false);
+    expect(isUnreadableLockError(new Error("too large"))).toBe(false);
+  });
+});
+
 describe("withLocaleWriteLock: wait progress", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -267,7 +321,6 @@ describe("withLocaleWriteLock: wait progress", () => {
     ["a malformed payload", { kind: "ok", content: "{ not valid json" }],
     ["valid JSON that is not an object", { kind: "ok", content: "42" }],
     ["an empty lock file", { kind: "ok", content: "" }],
-    ["a lock file too large to read", { kind: "too-large" }],
   ])(
     "still invokes onWait, without holder fields, for %s seen on consecutive polls",
     async (_, read) => {

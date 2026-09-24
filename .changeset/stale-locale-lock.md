@@ -15,6 +15,8 @@ so the holder provably shared this process table, and that holder no longer exis
 serialized so two waiting runs never take over the same lock, and an abandoned reclaim guard is
 deleted only after it is seen again at least one poll interval later. A failure to delete an
 abandoned lock or guard is reported as `LOCK_CONTENDED` with the file-system error as its cause.
+A lock file too large to be a lock cannot be read, so it fails with `LOCK_CONTENDED` at once,
+naming the file, instead of after the full lock timeout.
 Locks from another machine, from another container sharing the host name, or from an older version
 are never reclaimed: delete such a lock by hand once no verbatra process is running. The new
 `releaseHeldLocks()` deletes the locks the current process holds, and the CLI calls it when an

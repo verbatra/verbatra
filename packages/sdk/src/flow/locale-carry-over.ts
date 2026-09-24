@@ -10,6 +10,7 @@ import { errorMessage, SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import type { LivenessContext } from "../lock/holder-liveness.js";
 import {
+  isUnreadableLockError,
   type LocaleWriteLockOptions,
   lockFileGuardPath,
   probeLock,
@@ -203,6 +204,17 @@ function unreadableGuardReason(cwd: string): string {
   return `the lock-file guard at ${lockFileGuardPath(cwd)} could not be read`;
 }
 
+function unenterableGuardReason(cwd: string): string {
+  return `the lock-file guard at ${lockFileGuardPath(cwd)} could not be read or created`;
+}
+
+function guardFailureReason(cwd: string, error: unknown, entered: boolean): unknown {
+  if (entered || (error instanceof SdkError && !isUnreadableLockError(error))) {
+    return error;
+  }
+  return unenterableGuardReason(cwd);
+}
+
 async function carryLockAndProvenance(
   cwd: string,
   fs: SdkFs,
@@ -234,8 +246,7 @@ async function carryLockAndProvenance(
     if (isStateFileInvalid(error)) {
       throw error;
     }
-    const reason =
-      outcome.entered || error instanceof SdkError ? error : unreadableGuardReason(cwd);
+    const reason = guardFailureReason(cwd, error, outcome.entered);
     return (
       outcome.written ?? [
         skippedCarry(LOCK_FILE_NAME, planned.lockMoves, reason),

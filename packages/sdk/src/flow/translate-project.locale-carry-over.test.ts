@@ -471,11 +471,12 @@ describe("translate: a locale whose respelled state could not be moved", () => {
   });
 
   it.each([
-    ["reading it", "read"],
-    ["creating it", "create"],
+    ["reading it fails with EACCES", "read", "EACCES"],
+    ["creating it fails with EACCES", "create", "EACCES"],
+    ["it is too large to be a lock", "too-large", "LOCK_CONTENDED"],
   ] as const)(
-    "withholds the locale without rejecting when %s fails with EACCES on a live run",
-    async (_, step) => {
+    "withholds the locale without rejecting when %s on a live run",
+    async (_, step, siblingCode) => {
       const dir = await respelledProject(["de", "pt-BR"]);
       await changeSource(dir);
       const guard = lockFileGuardPath(dir);
@@ -495,13 +496,17 @@ describe("translate: a locale whose respelled state could not be moved", () => {
           return false;
         },
         readFileBounded: async (path, maxBytes) => {
-          if (path === guard) {
-            throw denied();
+          if (path !== guard) {
+            return defaultFs.readFileBounded(path, maxBytes);
           }
-          return defaultFs.readFileBounded(path, maxBytes);
+          if (step === "too-large") {
+            return { kind: "too-large" };
+          }
+          throw denied();
         },
       };
       const { provider, calls } = makeStubProvider();
+      const started = Date.now();
 
       const summary = await translate(
         { config: cfg(["de", "pt-BR"]), cwd: dir },
@@ -509,12 +514,14 @@ describe("translate: a locale whose respelled state could not be moved", () => {
       );
 
       const ptBr = summary.locales.find((entry) => entry.locale === "pt-BR");
-      const reason = `the lock-file guard at ${guard} could not be read.`;
+      const reason = `the lock-file guard at ${guard} could not be read or created.`;
+      expect(Date.now() - started).toBeLessThan(5_000);
       expect(summary.failed).toEqual(["de", "pt-BR"]);
-      expect(summary.locales[0]?.error?.code).toBe("EACCES");
+      expect(summary.locales[0]?.error?.code).toBe(siblingCode);
       expect(ptBr?.error?.code).toBe("LOCALE_STATE_NOT_CARRIED_OVER");
       expect(ptBr?.error?.message).toContain(reason);
       expect(ptBr?.error?.message).not.toContain("EACCES");
+      expect(ptBr?.error?.message).not.toContain("too large");
       expect(skipNotices(ptBr)[0]).toContain(reason);
       expect(calls.every((call) => call.request.targetLocale === "de")).toBe(true);
       expect(await localesOf(lockPath(dir))).toEqual(["de", "pt_BR"]);

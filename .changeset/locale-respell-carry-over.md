@@ -19,8 +19,8 @@ nothing; a run with the cache off leaves the translation memory alone.
 
 The move takes the lock-file guard only when there is state to move, with the run's
 `lockAcquireTimeoutMs` and `onLockWait`. When the guard stays contended, the lock or provenance file
-cannot be written, or its guard cannot be read, the state stays where it is, the locale reports the
-new `LOCALE_STATE_CARRY_OVER_SKIPPED` notice and does not run: it fails with the new
+cannot be written, or its guard cannot be read or created, the state stays where it is, the locale
+reports the new `LOCALE_STATE_CARRY_OVER_SKIPPED` notice and does not run: it fails with the new
 `LOCALE_STATE_NOT_CARRIED_OVER` code, nothing is written under the new code, and the next run tries
 the move again. The other locales run as usual. A dry run reports the locale the same way while
 another process holds the lock-file guard, and treats a guard it cannot read as held, naming the
