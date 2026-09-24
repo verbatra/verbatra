@@ -41,8 +41,10 @@ jobs:
 
       - name: Compute image tag
         id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
         run: |
-          IMAGE_PATH="${{ env.REGISTRY }}/${{ github.repository }}-docs"
+          IMAGE_PATH="${REGISTRY}/${REPOSITORY}-docs"
           echo "tag=$(echo "$IMAGE_PATH" | tr '[:upper:]' '[:lower:]'):latest" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
