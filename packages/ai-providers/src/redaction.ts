@@ -13,7 +13,9 @@ const KEY_PATTERNS: readonly RegExp[] = [
 
 const SK_TOKEN = /\bsk-[A-Za-z0-9_-]+/g;
 
-const MIN_SK_RANDOM_RUN = 20;
+const KNOWN_SK_PREFIX = /^sk-(?:ant|proj|svcacct|admin)-/;
+
+const MIN_SK_ALPHANUMERICS = 32;
 
 const QUOTE = `(?:\\\\*["'])?`;
 
@@ -26,12 +28,15 @@ const DEEPL_KEY_IN_CONTEXT = new RegExp(
   "gi",
 );
 
-function isRandomRun(segment: string): boolean {
-  return segment.length >= MIN_SK_RANDOM_RUN && /[0-9]/.test(segment) && /[A-Za-z]/.test(segment);
+function alphanumericCount(text: string): number {
+  return text.replace(/[^A-Za-z0-9]/g, "").length;
 }
 
 function redactSkToken(token: string): string {
-  return token.slice(3).split(/[_-]/).some(isRandomRun) ? REDACTED : token;
+  if (KNOWN_SK_PREFIX.test(token) || alphanumericCount(token.slice(3)) >= MIN_SK_ALPHANUMERICS) {
+    return REDACTED;
+  }
+  return token;
 }
 
 function escapeForRegExp(value: string): string {

@@ -1055,9 +1055,12 @@ oder ohne Anführungszeichen, auch in JSON, das in einen String serialisiert wur
 etwa in einem Dateipfad oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird
 weiterhin überall über seinen Wert geschwärzt.
 
-Einen `sk-`-Key im Stil von OpenAI oder Anthropic erkennt es, wenn sein zufälliger Teil eine Folge
-von mindestens 20 Buchstaben und Ziffern enthält, wie jeder echte Key. Ein slowakischer Locale-Pfad
-oder Key wie `locales/sk-SK.json` oder `sk-banner_headline` bleibt lesbar.
+Ein Token mit einem bekannten Key-Präfix von OpenAI oder Anthropic (`sk-ant-`, `sk-proj-`,
+`sk-svcacct-`, `sk-admin-`) wird immer geschwärzt. Jedes andere `sk-`-Token wird geschwärzt, sobald
+es insgesamt mindestens 32 Buchstaben und Ziffern enthält, gezählt über alle `-`- und `_`-Abschnitte,
+was ältere OpenAI-Keys abdeckt. Ein slowakischer Locale-Pfad oder Key wie `locales/sk-SK.json` oder
+`sk-banner_headline` bleibt lesbar, ein langer camelCase-Key wie
+`sk-onboardingWelcomeScreenPrimaryButton` erreicht die Schwelle aber und wird ebenfalls geschwärzt.
 
 ### declareProviderKeyEnvVar
 
