@@ -14,23 +14,27 @@ import {
   parseXml,
   type Unit,
   walkUnits,
+  type XliffVersion,
 } from "./document.js";
-import { readInlineValue, writeInlineValue, type XliffVersion } from "./inline.js";
+import { readInlineValue, writeInlineValue } from "./inline.js";
 import { readsTargets } from "./languages.js";
 import { extractXliffPlaceholders } from "./placeholders.js";
+import { isInitialSegment, isUntranslatedTarget, markTranslated } from "./state.js";
 
-const UNTRANSLATED_STATES = new Set(["new", "needs-translation"]);
-
-function isUntranslatedTarget(target: Element): boolean {
-  return UNTRANSLATED_STATES.has(target.getAttribute("state") ?? "");
+function isUntouchedInitialCopy(unit: Unit, value: string, version: XliffVersion): boolean {
+  return isInitialSegment(unit.container, version) && value === readInlineValue(unit.source);
 }
 
-function targetValue(target: Element | null): string | undefined {
+function targetValue(unit: Unit, version: XliffVersion): string | undefined {
+  const { target } = unit;
   if (target === null || isUntranslatedTarget(target)) {
     return undefined;
   }
   const value = readInlineValue(target);
-  return value.trim() === "" ? undefined : value;
+  if (value.trim() === "" || isUntouchedInitialCopy(unit, value, version)) {
+    return undefined;
+  }
+  return value;
 }
 
 function createRoleResolver(locale: string): (unit: Unit) => boolean {
@@ -55,6 +59,7 @@ export function parseXliffEntries(
   locale: string,
 ): Map<string, TranslationEntry> {
   const { root } = parseXml(content);
+  const version = documentVersion(root);
   const readsTargetOf = createRoleResolver(locale);
   const out = new Map<string, TranslationEntry>();
   const seen = new Set<string>();
@@ -66,7 +71,7 @@ export function parseXliffEntries(
       );
     }
     seen.add(unit.key);
-    const value = readsTargetOf(unit) ? targetValue(unit.target) : readInlineValue(unit.source);
+    const value = readsTargetOf(unit) ? targetValue(unit, version) : readInlineValue(unit.source);
     if (value === undefined) {
       continue;
     }
@@ -74,7 +79,7 @@ export function parseXliffEntries(
       key: unit.key,
       namespace,
       value,
-      placeholders: extractXliffPlaceholders(value),
+      placeholders: extractXliffPlaceholders(value, version),
       isPlural: false,
       ...(unit.description !== undefined ? { description: unit.description } : {}),
     });
@@ -86,8 +91,7 @@ function destinationReadErrorMessage(error: unknown): string {
   if (isEnoent(error)) {
     return "The destination XLIFF file does not exist.";
   }
-  const reason = error instanceof Error ? error.message : String(error);
-  return `The destination XLIFF file could not be read: ${reason}`;
+  return `The destination XLIFF file could not be read: ${failureReason(error)}`;
 }
 
 async function readDestination(filePath: string, fs: AdapterFs): Promise<string> {
@@ -107,9 +111,30 @@ function insertTarget(doc: Document, unit: Unit): Element {
   return target;
 }
 
-function markTranslated(target: Element): void {
-  if (isUntranslatedTarget(target)) {
-    target.setAttribute("state", "translated");
+function failureReason(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function readSourceRoot(sourcePath: string, fs: AdapterFs): Promise<Element> {
+  let content: string;
+  try {
+    content = outcomeToContent(
+      await readBoundedFile(fs, sourcePath),
+      "The source path is not a regular file.",
+    );
+  } catch (error) {
+    throw new AdapterError(
+      "INVALID_STRUCTURE",
+      `The source XLIFF file could not be read, so units the destination lacks cannot be copied from it: ${failureReason(error)}`,
+    );
+  }
+  try {
+    return parseXml(content).root;
+  } catch (error) {
+    throw new AdapterError(
+      "INVALID_STRUCTURE",
+      `The source XLIFF file is not a valid XLIFF document, so units the destination lacks cannot be copied from it: ${failureReason(error)}`,
+    );
   }
 }
 
@@ -121,13 +146,7 @@ async function readSourceUnits(
   if (context.sourcePath === undefined) {
     return new Map();
   }
-  let content: string;
-  try {
-    content = outcomeToContent(await readBoundedFile(fs, context.sourcePath), "");
-  } catch {
-    return new Map();
-  }
-  const { root } = parseXml(content);
+  const root = await readSourceRoot(context.sourcePath, fs);
   if (documentVersion(root) !== version) {
     return new Map();
   }
@@ -160,7 +179,9 @@ export async function serializeXliffEntries(
     if (entry !== undefined) {
       const holder = holderElement(doc, unit, writingSource);
       writeInlineValue(doc, holder, entry.value, version);
-      markTranslated(holder);
+      if (!writingSource) {
+        markTranslated(holder, unit.container, version);
+      }
       written.add(unit.key);
     }
   }

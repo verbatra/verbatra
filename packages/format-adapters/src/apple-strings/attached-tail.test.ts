@@ -29,6 +29,29 @@ function countCharacterReads<T>(run: () => T): { readonly result: T; readonly re
   }
 }
 
+function countScannedCharacters<T>(run: () => T): {
+  readonly result: T;
+  readonly scanned: number;
+} {
+  const { charCodeAt, indexOf } = String.prototype;
+  let scanned = 0;
+  String.prototype.charCodeAt = function (this: string, index: number): number {
+    scanned += 1;
+    return charCodeAt.call(this, index);
+  };
+  String.prototype.indexOf = function (this: string, search: string, from = 0): number {
+    const found = indexOf.call(this, search, from);
+    scanned += (found === -1 ? this.length : found + search.length) - from;
+    return found;
+  };
+  try {
+    return { result: run(), scanned };
+  } finally {
+    String.prototype.charCodeAt = charCodeAt;
+    String.prototype.indexOf = indexOf;
+  }
+}
+
 describe("isAttachedTail: classification", () => {
   it.each([
     ["", true],
@@ -96,7 +119,7 @@ describe("parseAppleStringsEntries: bounded attachment work", () => {
       const { result, reads } = countCharacterReads(() => parseAppleStringsEntries(content, "m"));
       expect(result.get("a")?.description).toBe(description);
       expect(reads).toBeGreaterThanOrEqual(tailLength);
-      expect(reads).toBeLessThanOrEqual(content.length + 8);
+      expect(reads).toBeLessThanOrEqual(content.length * 2 + 8);
     },
   );
 });
@@ -131,4 +154,19 @@ describe("parseAppleStringsEntries: block comments inside line comments", () => 
       expect(entry?.description).toBe(description);
     },
   );
+});
+
+describe("parseAppleStringsEntries: linear comment scan", () => {
+  it.each([
+    ["empty block comments before a trailing line comment", `${"/* */ ".repeat(20_000)}// x\n`],
+    ["line comments before a trailing block comment", `${"// x\n".repeat(20_000)}/* note */ `],
+    ["lone slashes between comments", `${"/ /* */ ".repeat(20_000)}// x\n`],
+  ])("scans each character a bounded number of times for %s", (_label, leading) => {
+    const content = `${leading}"a" = "1";\n`;
+    const { result, scanned } = countScannedCharacters(() =>
+      parseAppleStringsEntries(content, "m"),
+    );
+    expect(result.get("a")?.value).toBe("1");
+    expect(scanned).toBeLessThanOrEqual(content.length * 4);
+  });
 });

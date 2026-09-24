@@ -18,21 +18,21 @@ import { z } from "zod";
 import { SdkError } from "../errors.js";
 
 /**
- * The zod schema for the `provider` block, discriminated on `id`. Each variant's options are
- * validated strictly, so an option that belongs to a different provider is reported as an error
- * rather than ignored. It is embedded in {@link verbatraConfigSchema} and produces
+ * The zod schema for the `provider` block, discriminated on `id`. Each variant and its options are
+ * validated strictly, so a key beside `id` and `options`, or an option that belongs to a different
+ * provider, is reported as an error naming the key rather than ignored. It is embedded in {@link verbatraConfigSchema} and produces
  * {@link ProviderConfig}.
  */
 export const providerConfigSchema = z.discriminatedUnion("id", [
-  z.object({ id: z.literal("anthropic"), options: anthropicConfigSchema.strict() }),
-  z.object({ id: z.literal("openai"), options: openAiConfigSchema.strict() }),
-  z.object({ id: z.literal("gemini"), options: geminiConfigSchema.strict() }),
-  z.object({ id: z.literal("deepl"), options: deepLConfigSchema.strict() }),
-  z.object({
+  z.strictObject({ id: z.literal("anthropic"), options: anthropicConfigSchema.strict() }),
+  z.strictObject({ id: z.literal("openai"), options: openAiConfigSchema.strict() }),
+  z.strictObject({ id: z.literal("gemini"), options: geminiConfigSchema.strict() }),
+  z.strictObject({ id: z.literal("deepl"), options: deepLConfigSchema.strict() }),
+  z.strictObject({
     id: z.literal("google-translate"),
     options: googleTranslateConfigSchema.strict(),
   }),
-  z.object({
+  z.strictObject({
     id: z.literal("openai-compatible"),
     options: openAiCompatibleConfigSchema.strict(),
   }),

@@ -300,32 +300,27 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     expect(written).toContain("a &lt; b &amp; c");
   });
 
-  it("rejects a translated value declaring a DOCTYPE as INVALID_XML instead of degrading to text", async () => {
-    const path = await tempFile("m.xliff", XLIFF_20);
-    const { resource } = await adapter.read(path, "fr");
-    const entries = new Map(resource.entries);
-    const u1 = entries.get("u1");
-    if (u1) {
-      entries.set("u1", {
-        ...u1,
-        value: '<!DOCTYPE x [<!ENTITY xxe "pwn">]>&xxe;',
-      });
-    }
-    const error = await readError(adapter.write({ ...resource, entries }, path));
-    expect((error as AdapterError).code).toBe("INVALID_XML");
-  });
-
-  it("rejects a translated value declaring an ENTITY as INVALID_XML instead of degrading to text", async () => {
-    const path = await tempFile("m.xliff", XLIFF_20);
-    const { resource } = await adapter.read(path, "fr");
-    const entries = new Map(resource.entries);
-    const u1 = entries.get("u1");
-    if (u1) {
-      entries.set("u1", { ...u1, value: '<!ENTITY xxe "pwn">&xxe;' });
-    }
-    const error = await readError(adapter.write({ ...resource, entries }, path));
-    expect((error as AdapterError).code).toBe("INVALID_XML");
-  });
+  it.each([
+    ["a DOCTYPE", "Use <!DOCTYPE html> first"],
+    ["an ENTITY declaration", "Declare <!ENTITY x> here"],
+    ["an internal subset", '<!DOCTYPE x [<!ENTITY xxe "pwn">]>&xxe;'],
+  ])(
+    "writes a translated value quoting %s as text and reads it back unchanged",
+    async (_label, value) => {
+      const path = await tempFile("m.xliff", XLIFF_20);
+      const { resource } = await adapter.read(path, "fr");
+      const entries = new Map(resource.entries);
+      const u1 = entries.get("u1");
+      if (u1) {
+        entries.set("u1", { ...u1, value });
+      }
+      await adapter.write({ ...resource, entries }, path);
+      const written = await readFile(path, "utf8");
+      expect(written).not.toMatch(/<!DOCTYPE|<!ENTITY/);
+      const reread = await adapter.read(path, "fr");
+      expect(reread.resource.entries.get("u1")?.value).toBe(value);
+    },
+  );
 
   it("rejects a translated value nesting inline elements past the depth limit as MAX_DEPTH_EXCEEDED", async () => {
     const path = await tempFile("m.xliff", XLIFF_20);
@@ -334,7 +329,7 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     const u1 = entries.get("u1");
     if (u1) {
       const depth = 5000;
-      const value = `${'<g id="1">'.repeat(depth)}text${"</g>".repeat(depth)}`;
+      const value = `${'<pc id="1">'.repeat(depth)}text${"</pc>".repeat(depth)}`;
       entries.set("u1", { ...u1, value });
     }
     const error = await readError(adapter.write({ ...resource, entries }, path));
@@ -349,13 +344,13 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     if (u1) {
       entries.set("u1", {
         ...u1,
-        value: 'Bonjour <g id="1">tout <g id="2">le <x id="3"/> monde</g></g>',
+        value: 'Bonjour <pc id="1">tout <pc id="2">le <ph id="3"/> monde</pc></pc>',
       });
     }
     await adapter.write({ ...resource, entries }, path);
     const written = await readFile(path, "utf8");
     expect(written).toContain(
-      '<target>Bonjour <g id="1">tout <g id="2">le <x id="3"/> monde</g></g></target>',
+      '<target>Bonjour <pc id="1">tout <pc id="2">le <ph id="3"/> monde</pc></pc></target>',
     );
   });
 
@@ -379,11 +374,11 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     const entries = new Map(resource.entries);
     const u1 = entries.get("u1");
     if (u1) {
-      entries.set("u1", { ...u1, value: 'Bonjour <g id="1">{name}</g>' });
+      entries.set("u1", { ...u1, value: 'Bonjour <pc id="1">{name}</pc>' });
     }
     await adapter.write({ ...resource, entries }, path);
     const written = await readFile(path, "utf8");
-    expect(written).toContain('<target>Bonjour <g id="1">{name}</g></target>');
+    expect(written).toContain('<target>Bonjour <pc id="1">{name}</pc></target>');
   });
 
   it("keeps the allow-listed element live and escapes a disallowed element beside it as text", async () => {
@@ -392,12 +387,12 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     const entries = new Map(resource.entries);
     const u1 = entries.get("u1");
     if (u1) {
-      entries.set("u1", { ...u1, value: '<x id="1"/><b>bold</b>' });
+      entries.set("u1", { ...u1, value: '<ph id="1"/><b>bold</b>' });
     }
     await adapter.write({ ...resource, entries }, path);
     const written = await readFile(path, "utf8");
     expect(written).not.toContain("<b>");
-    expect(written).toContain('<target><x id="1"/>&lt;b&gt;bold&lt;/b&gt;</target>');
+    expect(written).toContain('<target><ph id="1"/>&lt;b&gt;bold&lt;/b&gt;</target>');
   });
 
   it("degrades an allow-listed local name carrying an attacker-chosen namespace to text", async () => {
@@ -426,12 +421,12 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
       entries.set("u1", {
         ...u1,
         value:
-          '<x id="1" onclick="alert(1)" xlink:href="javascript:alert(1)" xmlns:xlink="http://www.w3.org/1999/xlink"/>',
+          '<ph id="1" onclick="alert(1)" xlink:href="javascript:alert(1)" xmlns:xlink="http://www.w3.org/1999/xlink"/>',
       });
     }
     await adapter.write({ ...resource, entries }, path);
     const written = await readFile(path, "utf8");
-    expect(written).toContain('<target><x id="1"/></target>');
+    expect(written).toContain('<target><ph id="1"/></target>');
     expect(written).not.toContain("onclick");
     expect(written).not.toContain("xlink:href");
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractXliffPlaceholders } from "./placeholders.js";
+import { compareXliffPlaceholders, extractXliffPlaceholders } from "./placeholders.js";
 
 describe("extractXliffPlaceholders", () => {
   it("extracts single-brace text interpolation", () => {
@@ -93,5 +93,46 @@ describe("extractXliffPlaceholders: bounded work", () => {
     const { reads } = countCharacterReads(() => extractXliffPlaceholders(value));
     expect(reads).toBeGreaterThanOrEqual(value.length);
     expect(reads).toBeLessThanOrEqual(value.length * 4 + 8);
+  });
+});
+
+describe("extractXliffPlaceholders: per XLIFF version", () => {
+  it.each([
+    [
+      "1.2",
+      '<em>word</em> <pc id="1">b</pc> <x id="2"/> <bpt id="3">',
+      ['<x id="2"/>', '<bpt id="3">'],
+    ],
+    [
+      "2.0",
+      '<em startRef="1"/> <pc id="1">b</pc> <x id="2"/> <bpt id="3">',
+      ['<em startRef="1"/>', '<pc id="1">'],
+    ],
+  ] as const)("extracts only the inline elements XLIFF %s defines", (version, value, expected) => {
+    expect(extractXliffPlaceholders(value, version)).toEqual(expected);
+  });
+
+  it("does not treat an XLIFF 1.2 sub-flow as a placeholder", () => {
+    expect(extractXliffPlaceholders('<ph id="1"><sub>T</sub></ph>', "1.2")).toEqual([
+      '<ph id="1">',
+    ]);
+  });
+
+  it("extracts the elements of both versions when no version is known", () => {
+    expect(extractXliffPlaceholders('<em>w</em> <x id="1"/>')).toEqual(["<em>", '<x id="1"/>']);
+  });
+});
+
+describe("compareXliffPlaceholders", () => {
+  it("accepts a translation keeping an element only the other XLIFF version defines", () => {
+    expect(compareXliffPlaceholders("Use <em>", "Nutze <em>").matches).toBe(true);
+  });
+
+  it("reports a dropped inline element as missing", () => {
+    expect(compareXliffPlaceholders('A <x id="1"/> {n}', "A {n}")).toMatchObject({
+      matches: false,
+      missing: ['<x id="1"/>'],
+      extra: [],
+    });
   });
 });
