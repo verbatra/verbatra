@@ -46,19 +46,19 @@
         "formats": "File formats",
         "providers": "Providers",
         "license": "License"
+      },
+      "demo": {
+        "tablistLabel": "Demo",
+        "cli": "Terminal",
+        "studio": "Studio",
+        "studioAlt": "The Verbatra Studio Translations page: a grid of keys against the de, es and fr locales with missing and in-sync badges, and a coverage table per locale.",
+        "sessionLabel": "verbatra check reports one missing and one stale key in each of three locales, verbatra translate sends only those two keys per locale to the provider, and a second check reports every locale in sync.",
+        "caption": "Output of the real CLI on an eight-key project. Nothing on this page calls a provider.",
+        "captionStudio": "Verbatra Studio, the local dashboard: coverage per locale and every key that still needs work."
       }
     },
     "terminal": {
-      "sessionLabel": "An example verbatra command-line session.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 new · 1 changed · 117 unchanged",
-          "l2": "de  3 translated · 117 untouched · 0 withheld",
-          "l3": "es  3 translated · 117 untouched · 0 withheld",
-          "l4": "fr  3 translated · 117 untouched · 0 withheld",
-          "l5": "✓ 9 keys translated in 1.8s · 351 untouched · lock updated"
-        }
-      }
+      "sessionLabel": "An example verbatra command-line session."
     },
     "install": {
       "tablistLabel": "Package manager",
@@ -120,7 +120,7 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
+          "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
         },
         "languages": {
           "question": "Which languages does verbatra support?",
@@ -247,7 +247,7 @@
     },
     "providers": {
       "heading": "Six providers, one interface.",
-      "lead": "Switch by changing one line of config.",
+      "lead": "Switch by changing one line of config, or set it to none and keep every string in human hands.",
       "hint": "Hover or tab through the cards.",
       "kinds": {
         "anthropic": "Claude models",
@@ -256,6 +256,63 @@
         "deepl": "machine translation",
         "googleTranslate": "machine translation",
         "openaiCompatible": "Ollama, vLLM, LM Studio"
+      }
+    },
+    "control": {
+      "heading": "You decide what ships.",
+      "lead": "People keep the last word, every language gets its own rules, and strings go only where you allow.",
+      "groups": {
+        "people": {
+          "title": "People have the last word",
+          "items": {
+            "humanOnly": {
+              "title": "Machine translation off, by policy",
+              "body": "With provider none, no string reaches any service: a run fills keys from your translation memory and lists the rest for a person."
+            },
+            "protect": {
+              "title": "A translator's edit survives a source change",
+              "body": "Values a person wrote or imported are kept by default when the source changes, marked stale, never overwritten."
+            },
+            "review": {
+              "title": "Approve or reject what a run flagged",
+              "body": "Decisions are saved next to the lock file, so the review queue only lists what nobody has looked at yet."
+            },
+            "glossary": {
+              "title": "A glossary with a translation per locale",
+              "body": "Per-locale terms, forbidden renderings and do-not-translate names, checked against every result."
+            }
+          }
+        },
+        "correct": {
+          "title": "Correct in every language",
+          "items": {
+            "plurals": {
+              "title": "Plural forms from CLDR",
+              "body": "Each target gets the plural categories its language needs, and ICU plural arms that do not fit are refused."
+            },
+            "locales": {
+              "title": "Locale codes that are valid",
+              "body": "Every locale must be a valid BCP 47 tag, so a typo fails when the config loads, not in production."
+            },
+            "qa": {
+              "title": "Quality checks on committed files",
+              "body": "The checks a run applies to provider output, run over what is already in your locale files. No key needed."
+            }
+          }
+        },
+        "network": {
+          "title": "Strings go only where you allow",
+          "items": {
+            "policy": {
+              "title": "A network policy verbatra enforces",
+              "body": "Local-only or an allowlist: a host you did not permit is refused before any request leaves the machine."
+            },
+            "private": {
+              "title": "No telemetry, and local models welcome",
+              "body": "Strings go only to the provider you configure, and a self-hosted model keeps them on your own hardware."
+            }
+          }
+        }
       }
     },
     "loop": {
@@ -268,7 +325,7 @@
         },
         "studio": {
           "title": "See every locale's state in Verbatra Studio.",
-          "body": "Coverage, flagged entries, in-place edits. No provider call.",
+          "body": "Coverage, flagged entries, in-place edits, approve or reject. No provider call.",
           "cta": "Review translations in Studio",
           "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
         },

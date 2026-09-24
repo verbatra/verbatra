@@ -40,3 +40,11 @@ export const GATE_WITHHELD_LABEL = "integrity-withheld";
 export const GATE_CLI_COMMAND = "verbatra translate";
 
 export const GATE_CLI_LINE = `de: 1 translated, 0 unchanged, 1 ${GATE_WITHHELD_LABEL}`;
+
+export const GATE_RUN_LINES: ReadonlyArray<string> = [
+  `  ${GATE_CLI_LINE}, 149 tokens (131 in, 18 out)`,
+  `    ${GATE_WITHHELD_LABEL}:`,
+  `      ${GATE_REFUSAL.key}: ${GATE_REASON} (-${GATE_MISSING_PLACEHOLDER})`,
+  "  total: 149 tokens (131 in, 18 out)",
+  "0 succeeded, 1 partial, 0 failed",
+];
