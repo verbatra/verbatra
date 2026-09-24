@@ -17,6 +17,7 @@ import { rpcClient } from "./api.js";
 import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
 import { TextArea } from "./Input.js";
+import { KeyDescription } from "./KeyDescription.js";
 import { actionStatusTextClassName, settledOutcomeTone } from "./lib/action-status-classes.js";
 import { cn } from "./lib/cn.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
@@ -195,13 +196,7 @@ function SourceColumn({
           <ReviewReasonChips reasons={reviewReasons} />
         </Section>
       ) : null}
-      {context.description !== undefined ? (
-        <Section title="Context">
-          <p className="m-0 whitespace-pre-wrap break-words text-sm text-muted-foreground">
-            {context.description}
-          </p>
-        </Section>
-      ) : null}
+      <KeyDescription description={context.description} />
       {hasGlossaryHits(context.glossary) ? (
         <Section title="Glossary">
           <GlossaryHitList glossary={context.glossary} locale={locale} check={check} />

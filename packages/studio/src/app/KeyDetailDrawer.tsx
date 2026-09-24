@@ -16,6 +16,7 @@ import { Badge } from "./Badge.js";
 import { Button } from "./Button.js";
 import { CommitList } from "./CommitList.js";
 import { KeyLocaleStatusBadge } from "./DiffBadge.js";
+import { KeyDescription } from "./KeyDescription.js";
 import { ProvenanceBadge } from "./ProvenanceBadge.js";
 import { RetranslateButton } from "./RetranslateButton.js";
 import { TranslationValue } from "./TranslationValue.js";
@@ -38,6 +39,7 @@ type KeyValuesState =
   | {
       readonly kind: "loaded";
       readonly source: string | undefined;
+      readonly description: string | undefined;
       readonly targets: ReadonlyMap<string, string | undefined>;
       readonly provenance: ReadonlyMap<string, KeyProvenance>;
     };
@@ -60,6 +62,7 @@ function useKeyValues(
         return;
       }
       let source: string | undefined;
+      let description: string | undefined;
       const targets = new Map<string, string | undefined>();
       const provenance = new Map<string, KeyProvenance>();
       responses.forEach((response, index) => {
@@ -68,12 +71,13 @@ function useKeyValues(
           return;
         }
         source ??= response.result.source;
+        description ??= response.result.description;
         targets.set(locale, response.result.target);
         if (response.result.provenance !== undefined) {
           provenance.set(locale, response.result.provenance);
         }
       });
-      setState({ kind: "loaded", source, targets, provenance });
+      setState({ kind: "loaded", source, description, targets, provenance });
     });
     return () => {
       cancelled = true;
@@ -252,6 +256,7 @@ export function KeyDetailDrawer({
           </p>
         )}
       </Section>
+      <KeyDescription description={values.kind === "loaded" ? values.description : undefined} />
       <Section title="Locales">
         <ul className="m-0 list-none p-0">
           {rows.map((row) => (
