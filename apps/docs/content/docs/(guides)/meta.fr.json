@@ -1,13 +1,16 @@
 {
   "title": "Guides",
   "pages": [
+    "---Automatiser---",
     "estimating-cost",
     "ci-and-exit-codes",
     "github-action",
+    "---Travailler avec des traducteurs---",
     "manual-translation",
     "human-only-workflow",
     "protecting-human-translations",
     "review-in-studio",
+    "---Étendre---",
     "custom-format-adapters"
   ]
 }
