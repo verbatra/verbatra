@@ -9,7 +9,7 @@ describe("render: tmx import summary", () => {
   it("names each note only when it has something to report", () => {
     const text = renderTmxImportHuman(makeImportTmxResult({ units: 1 }));
 
-    expect(text).toContain("1 units read (source language en)");
+    expect(text).toContain("1 unit read (source language en)");
     expect(text).not.toContain("could not be read");
     expect(text).not.toContain("inline markup");
     expect(text).not.toContain("dry run");

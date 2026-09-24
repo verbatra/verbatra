@@ -1,5 +1,4 @@
 export const GITHUB_URL = "https://github.com/verbatra/verbatra";
-export const GITHUB_ISSUES_URL = `${GITHUB_URL}/issues`;
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
 export const NPM_CLI = "https://www.npmjs.com/package/@verbatra/cli";
 export const NPM_SDK = "https://www.npmjs.com/package/@verbatra/sdk";
@@ -9,7 +8,3 @@ export const CONTRIBUTING_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 export const CODE_OF_CONDUCT_URL = `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md`;
 export const SECURITY_URL = `${GITHUB_URL}/blob/main/SECURITY.md`;
 export const SKILLS_REPO_URL = "https://github.com/verbatra/skills";
-export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
-export const ENV_SOURCE_URL = `${GITHUB_URL}/blob/main/packages/ai-providers/src/env.ts`;
-export const RELEASE_WORKFLOW_URL = `${GITHUB_URL}/blob/main/.github/workflows/release.yml`;
-export const CODECOV_URL = "https://codecov.io/gh/verbatra/verbatra";
