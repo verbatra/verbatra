@@ -5,7 +5,9 @@ import { redactKeys } from "@verbatra/ai-providers";
  * out of a string, replacing each match with `[REDACTED]`.
  *
  * Two independent passes run: a set of shape patterns for the major providers (OpenAI-style `sk-`
- * keys, Gemini-style `AIza` keys, and hex UUID-shaped keys, with or without a `:fx` suffix), and an
+ * keys, Gemini-style `AIza` keys, a DeepL free key's hex UUID with its `:fx` suffix anywhere, and a
+ * bare hex UUID only in a key context such as a `DeepL-Auth-Key` header, an `auth_key` parameter,
+ * or a `DEEPL_API_KEY` assignment, so an unrelated UUID in a path or an id stays readable), and an
  * exact-value scrub of whatever `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
  * `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` currently holds in
  * the process environment, plus any variable declared as a key source: the one an

@@ -964,6 +964,11 @@ its value is scrubbed exactly like the built-in ones. Declarations are never rem
 shorter than eight characters is not scrubbed by value, so a short variable can never wipe
 unrelated text.
 
+A DeepL key is recognized by its shape alone only when it carries the `:fx` suffix of a free key,
+or when a bare UUID sits in a key context: after `DeepL-Auth-Key`, as an `auth_key` parameter, or
+assigned to `DEEPL_API_KEY`. Any other UUID, such as one in a file path or a request id, stays
+readable. A Pro key held in `DEEPL_API_KEY` is still scrubbed wherever it appears, by its value.
+
 ### declareProviderKeyEnvVar
 
 <AvailableFrom version="0.12.0" />

@@ -1020,6 +1020,12 @@ momento su valor se elimina igual que el de las variables integradas. Las declar
 retiran. Un valor de menos de ocho caracteres no se elimina por su valor, así que una variable corta
 nunca puede borrar texto ajeno.
 
+Una clave de DeepL se reconoce solo por su forma únicamente cuando lleva el sufijo `:fx` de una
+clave gratuita, o cuando un UUID suelto está en un contexto de clave: tras `DeepL-Auth-Key`, como
+parámetro `auth_key` o asignado a `DEEPL_API_KEY`. Cualquier otro UUID, como uno en una ruta de
+archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY` se sigue
+eliminando por su valor dondequiera que aparezca.
+
 ### declareProviderKeyEnvVar
 
 <AvailableFrom version="0.12.0" />

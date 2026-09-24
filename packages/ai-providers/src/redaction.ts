@@ -4,11 +4,18 @@ const REDACTED = "[REDACTED]";
 
 export const MIN_SCRUBBED_VALUE_LENGTH = 8;
 
+const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+
 const KEY_PATTERNS: readonly RegExp[] = [
   /\bsk-[A-Za-z0-9_-]{8,}/g,
   /AIza[0-9A-Za-z_-]{35}/g,
-  /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?::fx)?/g,
+  new RegExp(`${UUID}:fx\\b`, "g"),
 ];
+
+const DEEPL_KEY_IN_CONTEXT = new RegExp(
+  `(DeepL-Auth-Key\\s+|\\b(?:auth_key|DEEPL_API_KEY)["']?\\s*[:=]\\s*["']?)${UUID}(?::fx)?`,
+  "gi",
+);
 
 function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -34,7 +41,7 @@ function scrubValues(text: string): string {
 }
 
 function scrubPatterns(text: string): string {
-  let out = text;
+  let out = text.replace(DEEPL_KEY_IN_CONTEXT, `$1${REDACTED}`);
   for (const pattern of KEY_PATTERNS) {
     out = out.replace(pattern, REDACTED);
   }

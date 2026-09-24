@@ -20,10 +20,15 @@ describe("redact", () => {
     expect(redact(`key: ${key}`)).toBe("key: [REDACTED]");
   });
 
-  it("redacts a hex UUID, with or without the :fx suffix", () => {
+  it("redacts a DeepL free key by its :fx suffix and a Pro key in a key context", () => {
     const uuid = "123e4567-e89b-12d3-a456-426614174000";
-    expect(redact(`id ${uuid}`)).toBe("id [REDACTED]");
     expect(redact(`id ${uuid}:fx`)).toBe("id [REDACTED]");
+    expect(redact(`DeepL-Auth-Key ${uuid}`)).toBe("DeepL-Auth-Key [REDACTED]");
+  });
+
+  it("leaves a UUID in a path or an id readable", () => {
+    const path = "/tmp/3f2a1c9e-8b7d-4e6f-9a0b-1c2d3e4f5a6b/locales/de.json";
+    expect(redact(`Could not write ${path}`)).toBe(`Could not write ${path}`);
   });
 
   describe("exact provider env value scrub", () => {
