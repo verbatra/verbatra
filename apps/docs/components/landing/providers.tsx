@@ -48,21 +48,8 @@ export async function Providers(): Promise<ReactNode> {
     <Section width="wide" rhythm="lg" id="providers">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-center lg:gap-14">
         <Reveal>
-          <h2
-            className="max-w-[13ch] font-semibold text-fd-foreground"
-            style={{
-              fontFamily: "var(--font-display)",
-              letterSpacing: "-0.03em",
-              fontSize: "clamp(2rem, 4.2vw, 3.4rem)",
-              lineHeight: 1,
-              textWrap: "balance",
-            }}
-          >
-            {t("heading")}
-          </h2>
-          <p className="mt-5 max-w-[44ch] text-[17px] leading-relaxed text-fd-muted-foreground">
-            {t("lead")}
-          </p>
+          <h2 className="vk-h2 max-w-[13ch]">{t("heading")}</h2>
+          <p className="vk-lead mt-5 max-w-[44ch]">{t("lead")}</p>
           <p className="mt-3.5 text-sm text-[color:var(--text-faint)]">{t("hint")}</p>
         </Reveal>
         <Reveal order={1} className="vk-deck">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
+import { Control } from "@/components/landing/control";
 import { Faq, type FaqEntry } from "@/components/landing/faq";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FullFooter } from "@/components/landing/footer";
@@ -67,6 +68,7 @@ export default async function HomePage(props: { params: Promise<{ lang: string }
       <Marquee />
       <Proof />
       <Providers />
+      <Control />
       <Loop />
       <Gains />
       <Faq items={faqItems} />

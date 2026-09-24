@@ -18,19 +18,19 @@
         "formats": "Dateiformate",
         "providers": "Provider",
         "license": "Lizenz"
+      },
+      "demo": {
+        "tablistLabel": "Demo",
+        "cli": "Terminal",
+        "studio": "Studio",
+        "studioAlt": "Die Translations-Seite in Verbatra Studio: ein Raster aus Keys gegen die Locales de, es und fr mit Badges für fehlend und synchron sowie eine Abdeckungstabelle pro Locale.",
+        "sessionLabel": "verbatra check meldet in jeder der drei Locales einen fehlenden und einen veralteten Key, verbatra translate schickt pro Locale nur diese zwei Keys an den Provider, und ein zweiter check meldet alle Locales als synchron.",
+        "caption": "Ausgabe der echten CLI in einem Projekt mit acht Keys. Nichts auf dieser Seite ruft einen Provider auf.",
+        "captionStudio": "Verbatra Studio, das lokale Dashboard: Abdeckung pro Locale und jeder Key, der noch Arbeit braucht."
       }
     },
     "terminal": {
-      "sessionLabel": "Eine Beispielsitzung mit verbatra auf der Kommandozeile.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 neu · 1 geändert · 117 unverändert",
-          "l2": "de  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l3": "es  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l4": "fr  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l5": "✓ 9 Keys in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
-        }
-      }
+      "sessionLabel": "Eine Beispielsitzung mit verbatra auf der Kommandozeile."
     },
     "install": {
       "tablistLabel": "Paketmanager",
@@ -88,7 +88,7 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Sechs, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) sowie openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts."
+          "answer": "Sechs, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) sowie openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
         },
         "languages": {
           "question": "Welche Sprachen unterstützt verbatra?",
@@ -230,6 +230,63 @@
       },
       "lead": "Die deutsche, spanische und französische Fassung dieser Seite stammt daraus."
     },
+    "control": {
+      "heading": "Du entscheidest, was live geht.",
+      "lead": "Menschen haben das letzte Wort, jede Sprache bekommt ihre eigenen Regeln, und Strings gehen nur dorthin, wo du es erlaubst.",
+      "groups": {
+        "people": {
+          "title": "Menschen haben das letzte Wort",
+          "items": {
+            "humanOnly": {
+              "title": "Maschinelle Übersetzung aus, per Richtlinie",
+              "body": "Mit Provider none erreicht kein String irgendeinen Dienst: Ein Lauf füllt Keys aus deinem Translation Memory und listet den Rest für einen Menschen auf."
+            },
+            "protect": {
+              "title": "Die Änderung einer Übersetzerin übersteht eine Quelländerung",
+              "body": "Werte, die ein Mensch geschrieben oder importiert hat, bleiben standardmäßig erhalten, wenn sich die Quelle ändert: als veraltet markiert, nie überschrieben."
+            },
+            "review": {
+              "title": "Freigeben oder ablehnen, was ein Lauf markiert hat",
+              "body": "Entscheidungen werden neben der Lock-Datei gespeichert, damit die Review-Warteschlange nur zeigt, was sich noch niemand angesehen hat."
+            },
+            "glossary": {
+              "title": "Ein Glossar mit einer Übersetzung pro Locale",
+              "body": "Begriffe pro Locale, verbotene Wiedergaben und Namen, die nicht übersetzt werden, geprüft gegen jedes Ergebnis."
+            }
+          }
+        },
+        "correct": {
+          "title": "Korrekt in jeder Sprache",
+          "items": {
+            "plurals": {
+              "title": "Pluralformen aus CLDR",
+              "body": "Jedes Ziel bekommt die Pluralkategorien, die seine Sprache braucht, und ICU-Pluralzweige, die nicht passen, werden abgelehnt."
+            },
+            "locales": {
+              "title": "Gültige Locale-Codes",
+              "body": "Jede Locale muss ein gültiges BCP-47-Tag sein, damit ein Tippfehler schon beim Laden der Konfiguration scheitert, nicht in Produktion."
+            },
+            "qa": {
+              "title": "Qualitätsprüfungen für committete Dateien",
+              "body": "Die Prüfungen, die ein Lauf auf Provider-Ausgaben anwendet, laufen über das, was schon in deinen Locale-Dateien steht. Kein Key nötig."
+            }
+          }
+        },
+        "network": {
+          "title": "Strings gehen nur dorthin, wo du es erlaubst",
+          "items": {
+            "policy": {
+              "title": "Eine Netzwerkrichtlinie, die verbatra durchsetzt",
+              "body": "Nur lokal oder per Allowlist: Ein Host, den du nicht erlaubt hast, wird abgelehnt, bevor eine Anfrage den Rechner verlässt."
+            },
+            "private": {
+              "title": "Keine Telemetrie, lokale Modelle willkommen",
+              "body": "Strings gehen nur an den Provider, den du konfigurierst, und ein selbst gehostetes Modell hält sie auf deiner eigenen Hardware."
+            }
+          }
+        }
+      }
+    },
     "loop": {
       "heading": "Der Rest des Übersetzungskreislaufs, im selben Tool.",
       "links": {
@@ -255,7 +312,7 @@
         },
         "studio": {
           "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject.",
-          "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle. Kein Provider-Aufruf.",
+          "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle, Freigeben oder Ablehnen. Kein Provider-Aufruf.",
           "cta": "Übersetzungen in Studio prüfen",
           "title": "Sieh den Stand jeder Locale in Verbatra Studio."
         }
@@ -300,7 +357,7 @@
         "openai": "GPT-Modelle",
         "openaiCompatible": "Ollama, vLLM, LM Studio"
       },
-      "lead": "Wechsle, indem du eine Zeile in der Konfiguration änderst."
+      "lead": "Wechsle, indem du eine Zeile in der Konfiguration änderst, oder setze ihn auf none und lass jeden String in menschlicher Hand."
     }
   },
   "legal": {
