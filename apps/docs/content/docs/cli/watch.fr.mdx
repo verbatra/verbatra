@@ -35,6 +35,10 @@ Avec `--json`, chaque exécution émet un enregistrement [enveloppe](/docs/ci-an
 
 La première interruption (Ctrl-C ou SIGTERM) laisse l'exécution en cours se terminer, arrête proprement la surveillance et sort avec `0`. Une seconde interruption pendant que cet arrêt est encore en cours force l'arrêt avec le code `130`. L'arrêt forcé libère les verrous d'écriture de la session avant la fin du processus, donc l'exécution suivante n'a pas à les attendre.
 
+<AvailableFrom version="0.12.0" />
+
+Sans `--json`, `watch` t'indique sur stderr où il en est : après chaque exécution, il affiche `verbatra: waiting for changes...`, dans un terminal interactif il fait suivre la ligne de démarrage de `verbatra: press Ctrl-C to stop`, et une fois l'arrêt terminé il affiche `verbatra: stopped`. Avec `--json`, aucune de ces lignes n'est ajoutée, donc stderr reste exactement comme avant.
+
 ## Exemples
 
 ```bash

@@ -21,6 +21,7 @@ verbatra studio [flags]
 | `--port` | `<n>` | `5849` | listen on this port; must be an integer from 1 to 65535 |
 | `--allow-spend` | none | off | allow Studio to call a translation provider (retranslate a key, translate pending changes) |
 | `--expose-agent-tools` | none | off | register Studio's review actions as WebMCP tools so a browser AI agent can operate them |
+| `--verbose` | none | off | also print Studio's own startup line and one stderr line per request |
 
 When the `--allow-spend` flag is absent, Studio reads the `VERBATRA_STUDIO_ALLOW_SPEND` environment variable instead: `1`, `true`, `yes`, or `on` (case-insensitive) counts as on. The CLI flag always wins over the environment variable. Without either, Studio never contacts a provider; local editing needs no flag. A config with `provider: { id: "none" }` disables machine translation by policy, and then Studio withholds provider spend even with `--allow-spend`: the Settings page says so instead of pointing at the flag.
 
@@ -39,6 +40,19 @@ Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 Open that exact URL. The token is accepted only as `?token=` on that first page load: the server checks it, sets an HttpOnly session cookie, and redirects to `/`. Every later request is checked against the cookie, and one without a valid cookie is rejected. The token is not single-use: visiting the printed URL again, in another tab or another browser, sets the cookie again, so treat the URL as a secret for as long as Studio runs. Nothing is printed before the port is successfully bound, so a failed startup never leaks a URL or a token.
 
 A failed bind is reported on stderr as `verbatra: error [<code>] <message>` with one of two codes: `PORT_IN_USE` when another process already holds the port (pick another with `--port`), or `BIND_FAILED` when the socket came up on an address other than `127.0.0.1`, which Studio refuses to serve on.
+
+### What it prints on stderr
+
+<AvailableFrom version="0.12.0" />
+
+The URL line stays the only stdout output. After it, stderr says which capabilities are on, and how to turn on the ones that are off:
+
+```text
+verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
+verbatra: agent tools off (pass --expose-agent-tools to register them)
+```
+
+On an interactive terminal it adds `verbatra: press Ctrl-C to stop`, and it prints `verbatra: Studio stopped` once the server has shut down. With `--verbose`, Studio's own startup line and one line per request are forwarded to stderr as well; without it they are dropped. `--quiet` keeps only the URL line.
 
 ## Installation
 

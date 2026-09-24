@@ -21,6 +21,7 @@ verbatra studio [flags]
 | `--port` | `<n>` | `5849` | auf diesem Port lauschen; muss eine Ganzzahl von 1 bis 65535 sein |
 | `--allow-spend` | keins | aus | Studio erlauben, einen Übersetzungs-Provider aufzurufen (einen Key neu übersetzen, ausstehende Änderungen übersetzen) |
 | `--expose-agent-tools` | keins | aus | die Review-Aktionen von Studio als WebMCP-Tools registrieren, damit ein KI-Agent im Browser sie bedienen kann |
+| `--verbose` | keins | aus | gibt zusätzlich die eigene Startzeile von Studio und eine stderr-Zeile pro Anfrage aus |
 
 Wenn das Flag `--allow-spend` fehlt, liest Studio stattdessen die Umgebungsvariable `VERBATRA_STUDIO_ALLOW_SPEND`: `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal) zählt als an. Das CLI-Flag gewinnt immer über die Umgebungsvariable. Ohne beides kontaktiert Studio nie einen Provider; lokales Bearbeiten braucht kein Flag. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, und dann hält Studio Provider-Ausgaben auch mit `--allow-spend` zurück: Die Settings-Seite sagt das, statt auf das Flag zu verweisen.
 
@@ -39,6 +40,19 @@ Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
 Öffne genau diese URL. Das Token wird nur als `?token=` beim ersten Laden der Seite akzeptiert: Der Server prüft es, setzt ein HttpOnly-Sitzungscookie und leitet auf `/` weiter. Jede spätere Anfrage wird gegen das Cookie geprüft, und eine ohne gültiges Cookie wird abgelehnt. Das Token ist nicht einmalig: Rufst du die ausgegebene URL erneut auf, in einem anderen Tab oder einem anderen Browser, wird das Cookie erneut gesetzt; behandle die URL also als Geheimnis, solange Studio läuft. Vor dem erfolgreichen Binden des Ports wird nichts ausgegeben; ein fehlgeschlagener Start gibt also nie eine URL oder ein Token preis.
 
 Ein fehlgeschlagenes Binden wird auf stderr als `verbatra: error [<code>] <message>` mit einem von zwei Codes gemeldet: `PORT_IN_USE`, wenn ein anderer Prozess den Port bereits belegt (wähle mit `--port` einen anderen), oder `BIND_FAILED`, wenn der Socket auf einer anderen Adresse als `127.0.0.1` hochgekommen ist, auf der Studio den Dienst verweigert.
+
+### Was es auf stderr ausgibt
+
+<AvailableFrom version="0.12.0" />
+
+Die URL-Zeile bleibt die einzige Ausgabe auf stdout. Danach sagt stderr, welche Fähigkeiten eingeschaltet sind und wie du die ausgeschalteten einschaltest:
+
+```text
+verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
+verbatra: agent tools off (pass --expose-agent-tools to register them)
+```
+
+In einem interaktiven Terminal kommt `verbatra: press Ctrl-C to stop` dazu, und sobald der Server heruntergefahren ist, erscheint `verbatra: Studio stopped`. Mit `--verbose` werden auch die eigene Startzeile von Studio und eine Zeile pro Anfrage auf stderr weitergereicht; ohne das Flag werden sie verworfen. `--quiet` behält nur die URL-Zeile.
 
 ## Installation
 
