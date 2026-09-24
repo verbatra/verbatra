@@ -145,3 +145,39 @@ export async function canonicalOutputConflict(
   }
   return undefined;
 }
+
+export type OutputPathRefusal =
+  | { readonly kind: WorkingDirectoryConflict; readonly linked: boolean }
+  | { readonly kind: "reserved"; readonly reserved: ReservedPath; readonly linked: boolean };
+
+export async function outputPathRefusal(
+  fs: SdkFs,
+  cwd: string,
+  outputPath: string,
+  reserved: ReadonlyMap<string, ReservedPath>,
+): Promise<OutputPathRefusal | undefined> {
+  const place = workingDirectoryConflict(cwd, outputPath);
+  if (place !== undefined) {
+    return { kind: place, linked: false };
+  }
+  const claimed = reservedPathAt(reserved, outputPath);
+  if (claimed !== undefined) {
+    return { kind: "reserved", reserved: claimed, linked: false };
+  }
+  const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
+  return conflict === undefined ? undefined : { ...conflict, linked: true };
+}
+
+export function outputRefusalReason(refusal: OutputPathRefusal): string {
+  if (refusal.kind === "reserved") {
+    return refusal.linked
+      ? `resolves to ${refusal.reserved.what} through a symbolic link.`
+      : `is ${refusal.reserved.what}.`;
+  }
+  if (refusal.kind === "working-directory") {
+    return WORKING_DIRECTORY_REASON;
+  }
+  return refusal.linked
+    ? "resolves outside the working directory through a symbolic link."
+    : "is not inside the working directory.";
+}

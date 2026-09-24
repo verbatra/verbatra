@@ -7,7 +7,7 @@ const MANIFEST_VERSION = 1;
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 
-function exportManifestFileName(format: DelimitedFormat): string {
+export function exportManifestFileName(format: DelimitedFormat): string {
   return `.verbatra-export-${format}.json`;
 }
 
