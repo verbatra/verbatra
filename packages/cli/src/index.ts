@@ -17,8 +17,14 @@ import {
   watch,
 } from "@verbatra/sdk";
 import { run } from "./run.js";
+import { createLineSettler } from "./spinner.js";
+
+const stderr = createLineSettler((text) => {
+  process.stderr.write(text);
+});
 
 function exitAfterReleasingLocks(code: number): void {
+  stderr.settle();
   void releaseHeldLocks().finally(() => process.exit(code));
 }
 
@@ -46,9 +52,7 @@ const code = await run(
     out: (text) => {
       process.stdout.write(text);
     },
-    err: (text) => {
-      process.stderr.write(text);
-    },
+    err: stderr.write,
   },
   {
     onLockingCommand: () => {
@@ -76,4 +80,5 @@ const code = await run(
 );
 
 await releaseHeldLocks();
+stderr.settle();
 process.exit(code);

@@ -117,7 +117,7 @@
       "docs": "Zur Dokumentation"
     },
     "footer": {
-      "tagline": "Übersetze nur, was sich geändert hat. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
+      "tagline": "Übersetze nur, was sich ändert. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
       "cols": {
         "product": {
           "title": "Produkt",

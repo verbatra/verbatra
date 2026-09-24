@@ -5,6 +5,7 @@ import {
   createProgressPresenter,
   scanProgressReporter,
   spinnerText,
+  staticProgressLine,
 } from "./progress-presenter.js";
 import { CLEAR_LINE } from "./spinner.js";
 import type { OutputMode, TerminalMode } from "./terminal-mode.js";
@@ -54,7 +55,7 @@ describe("spinnerText", () => {
 });
 
 describe("createProgressPresenter: plain mode", () => {
-  it("prints today's four progress lines and nothing for the finer-grained events", () => {
+  it("prints today's four progress lines plus a line for each retry, repair, split and write", () => {
     const cap = captureStreams();
     const present = createProgressPresenter(createUi(cap.streams, terminal("plain")), {
       json: false,
@@ -67,6 +68,10 @@ describe("createProgressPresenter: plain mode", () => {
       [
         "verbatra: translating de",
         "verbatra: de batch 1/2",
+        "verbatra: retrying the provider call (attempt 2, status 429) in 0.5s",
+        "verbatra: de: asking again for 1 missing key",
+        "verbatra: de: output cut off, retrying 4 keys in halves",
+        "verbatra: de: writing",
         "verbatra: de done, 3 translated",
         "verbatra: run finished, 1 locale processed",
         "",
@@ -85,6 +90,25 @@ describe("createProgressPresenter: plain mode", () => {
     present({ type: "idle" });
 
     expect(cap.err()).toBe(`verbatra: change detected: ${join("locales", "en.json")}\n`);
+  });
+});
+
+describe("staticProgressLine", () => {
+  it.each([
+    [{ type: "locale-planned", locale: "de", keys: 3, batches: 1, cacheHits: 0 }],
+    [{ type: "batch-finished", locale: "de", batchIndex: 1, totalBatches: 1, durationMs: 5 }],
+    [{ type: "idle" }],
+  ] as const)("prints nothing for %j, which only the spinner shows", (event) => {
+    expect(staticProgressLine(event as ProgressEvent)).toBeUndefined();
+  });
+
+  it("appends one line per event and never writes an escape sequence", () => {
+    const lines = run
+      .map((event) => staticProgressLine(event))
+      .filter((line) => line !== undefined);
+
+    expect(lines.every((line) => line.startsWith("verbatra: "))).toBe(true);
+    expect(lines.join("\n")).not.toContain("\x1b");
   });
 });
 
@@ -149,6 +173,29 @@ describe("createProgressPresenter: animated terminal", () => {
   });
 });
 
+describe("createProgressPresenter: watch run after an error", () => {
+  it("draws a fresh spinner for the next run once an error stopped the last one", () => {
+    const cap = captureStreams();
+    const clock = fakeClock();
+    const ui = createUi(cap.streams, terminal("tty", true), { clock, now: () => 0 });
+    const present = createProgressPresenter(ui, { json: false, base: BASE });
+
+    present(run[0] as ProgressEvent);
+    clock.fireDelay();
+    ui.error({ code: "PROVIDER_CONSTRUCTION_FAILED", message: "bad" });
+    present(run[0] as ProgressEvent);
+    clock.fireDelay();
+
+    expect(cap.err()).toBe(
+      [
+        `${CLEAR_LINE}| de: starting (1/1)`,
+        `${CLEAR_LINE}verbatra: error [PROVIDER_CONSTRUCTION_FAILED] bad\n`,
+        `${CLEAR_LINE}| de: starting (1/1)`,
+      ].join(""),
+    );
+  });
+});
+
 describe("scanProgressReporter", () => {
   it("updates the task with the running file count", () => {
     const updates: string[] = [];
@@ -157,6 +204,7 @@ describe("scanProgressReporter", () => {
       succeed: () => {},
       fail: () => {},
       stop: () => {},
+      isFinished: () => false,
     });
 
     report({ type: "files-scanned", scanned: 3, total: 10 });

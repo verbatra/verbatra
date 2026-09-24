@@ -1,4 +1,10 @@
-import type { McpServerHandle } from "@verbatra/mcp";
+import {
+  type McpServerHandle,
+  mcpReadyLine,
+  mcpStoppedLine,
+  mcpTerminalHint,
+  projectLabel,
+} from "@verbatra/mcp";
 import type {
   CheckInput,
   CheckSummary,
@@ -210,6 +216,10 @@ export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServ
 export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
   return {
     startMcpServer: async () => makeMcpHandle(),
+    projectLabel,
+    mcpReadyLine,
+    mcpTerminalHint,
+    mcpStoppedLine,
     ...overrides,
   };
 }

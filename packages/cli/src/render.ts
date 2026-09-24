@@ -674,10 +674,6 @@ export function renderProgressJson(event: ProgressEvent): string | undefined {
   return JSON_PROGRESS_TYPES.has(event.type) ? JSON.stringify(event) : undefined;
 }
 
-export function renderProgress(event: ProgressEvent, json: boolean): string | undefined {
-  return json ? renderProgressJson(event) : renderProgressHuman(event);
-}
-
 export function renderError(error: RenderableError): string {
   return `verbatra: error [${error.code}] ${error.message}`;
 }

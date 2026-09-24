@@ -215,6 +215,40 @@ describe("createUi: stopping a task without a status line", () => {
 
     expect(cap.err()).toBe(`${CLEAR_LINE}| translating...${CLEAR_LINE}verbatra: error [X] boom\n`);
   });
+
+  it("marks the task an error stopped as finished, so its owner knows to start a new one", () => {
+    const cap = captureStreams();
+    const clock = fakeClock();
+    const ui = createUi(cap.streams, terminal("tty", { animate: true }), { clock });
+
+    const task = ui.task("translating");
+    expect(task.isFinished()).toBe(false);
+    ui.error({ code: "X", message: "boom" });
+    task.succeed();
+
+    expect(task.isFinished()).toBe(true);
+    expect(cap.err()).toBe("verbatra: error [X] boom\n");
+  });
+
+  it("reports a plain task finished once it succeeds or stops", () => {
+    const ui = createUi(captureStreams().streams, terminal("plain"));
+    const succeeded = ui.task("a");
+    const stopped = ui.task("b");
+
+    succeeded.succeed();
+    stopped.stop();
+
+    expect(succeeded.isFinished()).toBe(true);
+    expect(stopped.isFinished()).toBe(true);
+    expect(ui.task("c").isFinished()).toBe(false);
+  });
+
+  it("never reports a silent task finished", () => {
+    const task = createUi(captureStreams().streams, terminal("quiet")).task("a");
+    task.succeed();
+
+    expect(task.isFinished()).toBe(false);
+  });
 });
 
 describe("createUi: animated tasks", () => {
@@ -272,7 +306,7 @@ describe("createUi: animated tasks", () => {
     );
   });
 
-  it("stops the previous spinner silently when a new task starts, without detaching the new one", () => {
+  it("stops the previous spinner silently when a new task starts, and ignores its late outcome", () => {
     const { cap, clock, ui } = animated();
 
     const first = ui.task("first");
@@ -281,14 +315,14 @@ describe("createUi: animated tasks", () => {
     first.succeed();
     clock.fireDelay();
     ui.line("between");
+    expect(first.isFinished()).toBe(true);
     second.succeed();
 
     expect(cap.err()).toBe(
       [
         `${CLEAR_LINE}| first...${CLEAR_LINE}`,
-        "[ok] first (3.0s)\n",
         `${CLEAR_LINE}| second...${CLEAR_LINE}between\n`,
-        "[ok] second (3.0s)\n",
+        "[ok] second (1.5s)\n",
       ].join(""),
     );
   });

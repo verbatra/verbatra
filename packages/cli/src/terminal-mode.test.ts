@@ -57,7 +57,9 @@ describe("resolveTerminalMode: color", () => {
       false,
     ],
     ["--json even with FORCE_COLOR", tty({ FORCE_COLOR: "1" }), { ...HUMAN, json: true }, false],
-    ["CI on a terminal", tty({ CI: "true" }), HUMAN, true],
+    ["CI on a terminal", tty({ CI: "true" }), HUMAN, false],
+    ["CI=false on a terminal", tty({ CI: "false" }), HUMAN, true],
+    ["FORCE_COLOR=1 in CI", tty({ CI: "true", FORCE_COLOR: "1" }), HUMAN, true],
   ] as const)("decides color for %s", (_label, facts, preferences, color) => {
     expect(resolveTerminalMode(facts, preferences).color).toBe(color);
   });

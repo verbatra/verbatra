@@ -36,22 +36,41 @@ function emitting(events: readonly ProgressEvent[]) {
 }
 
 describe("run translate: the finer-grained SDK events leave existing output byte-identical", () => {
-  it.each([
-    ["--json", ["translate", "--json"]],
-    ["human, piped", ["translate"]],
-  ])(
-    "%s stdout and stderr match a run that emits only the original four types",
-    async (_label, argv) => {
-      const baseline = captureStreams();
-      await run(argv, emitting(baseEvents), baseline.streams);
+  it("--json stdout and stderr match a run that emits only the original four types", async () => {
+    const baseline = captureStreams();
+    await run(["translate", "--json"], emitting(baseEvents), baseline.streams);
 
-      const extended = captureStreams();
-      await run(argv, emitting(everyEvent), extended.streams);
+    const extended = captureStreams();
+    await run(["translate", "--json"], emitting(everyEvent), extended.streams);
 
-      expect(extended.out()).toBe(baseline.out());
-      expect(extended.err()).toBe(baseline.err());
-    },
-  );
+    expect(extended.out()).toBe(baseline.out());
+    expect(extended.err()).toBe(baseline.err());
+  });
+
+  it("human, piped output keeps every existing line and appends one per retry, repair, split and write", async () => {
+    const baseline = captureStreams();
+    await run(["translate"], emitting(baseEvents), baseline.streams);
+
+    const extended = captureStreams();
+    await run(["translate"], emitting(everyEvent), extended.streams);
+
+    expect(extended.out()).toBe(baseline.out());
+    expect(extended.err()).toBe(
+      baseline
+        .err()
+        .replace(
+          "verbatra: de batch 1/1\n",
+          [
+            "verbatra: de batch 1/1",
+            "verbatra: retrying the provider call (attempt 2, status 429) in 0.3s",
+            "verbatra: de: asking again for 1 missing key",
+            "verbatra: de: output cut off, retrying 2 keys in halves",
+            "verbatra: de: writing",
+            "",
+          ].join("\n"),
+        ),
+    );
+  });
 
   it("keeps --json stderr to one record per original event", async () => {
     const cap = captureStreams();
