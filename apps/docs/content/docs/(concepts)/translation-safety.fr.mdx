@@ -96,6 +96,13 @@ pour cela que la barrière est rejouée par clé.
   `[[CLEAR]]` du classeur est le moyen de le faire ; voir
   [Traduction manuelle](/docs/manual-translation).
 
+Une candidate qui enfreint plusieurs règles est refusée avec un seul motif, le premier qui
+s'applique dans cet ordre : `empty`, puis `icu` pour un message qui ne s'analyse pas (y compris un
+`plural` sans sa branche `other`), puis `placeholder`, `markup`, `icu` pour des branches qui ne
+conviennent pas à la langue cible, et `degenerate`. Une valeur vide est donc signalée comme `empty`
+même quand sa source porte des placeholders ou des balises, et un message ICU cassé comme `icu`
+plutôt que comme les placeholders qu'un analyseur n'y trouve plus.
+
 Une candidate rejetée est retenue comme une donnée, jamais écrite : elle apparaît sur le résumé
 d'exécution comme un défaut d'intégrité, garde son hash précédent dans
 [le fichier de verrouillage](/docs/the-lock-file), et est retentée à l'exécution suivante. Retenue
