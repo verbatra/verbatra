@@ -611,6 +611,37 @@ Entscheidung, die sie nicht speichern konnten: Eine Datei aus einem neueren verb
 durch die Entscheidung über die Größe wachsen würde, die verbatra wieder einliest, wirft
 `PROVENANCE_FILE_UNWRITABLE`.
 
+## Review und Neuübersetzung im Stapel
+
+<AvailableFrom version="0.12.0" />
+
+Jeder dieser Aufrufe führt den passenden Einzel-Key-Aufruf einmal pro Eintrag aus, in der
+angegebenen Reihenfolge, und gibt `{ results }` mit einem Ergebnis pro Eintrag in dieser Reihenfolge
+zurück. Ein Eintrag, der scheitert, hält den Stapel nicht an: Sein Ergebnis ist
+`{ locale, key, ok: false, code, message }` mit dem Code des `SdkError`, Adapter-Fehlers oder
+`ProviderError`, der ihn gestoppt hat, und einer geschwärzten Nachricht, und der nächste Eintrag
+läuft. Jeder andere Fehler wird geworfen, und die Einträge danach laufen nicht mehr. Eine leere
+`entries`-Liste ergibt leere `results`.
+
+### approveEntries
+
+Eingabe: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer? }`. Führt
+`approveEntry` pro Eintrag mit denselben Prüfungen aus; `reviewer` gilt für jeden Eintrag. Ein
+erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`.
+
+### rejectEntries
+
+Eingabe: wie bei `approveEntries`. Führt `rejectEntry` pro Eintrag aus und entfernt jeden
+abgelehnten Wert. Ein erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`.
+
+### retranslateEntries
+
+Eingabe: `{ config, cwd?, entries: [{ locale, key }], includeHuman? }`. Führt `retranslateEntry`
+pro Eintrag aus und macht damit bis zu einen Provider-Aufruf pro Eintrag. Ein abgeschlossenes
+Ergebnis ist `{ ok: true, locale, key, result }`, wobei `result` das ist, was `retranslateEntry`
+zurückgegeben hat, auch ein Wert, den das Integritäts-Gate abgelehnt hat. Ein Wert, den ein Mensch
+geschrieben hat, scheitert mit `KEY_PROTECTED`, außer du übergibst `includeHuman: true`.
+
 ## Inhalte in großen Mengen lesen
 
 <AvailableFrom version="0.10.0" />

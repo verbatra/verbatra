@@ -40,6 +40,10 @@ unangetastet. Verwaiste Keys werden gemeldet und standardmäßig belassen; mit `
 `prune: true` in der Konfiguration) werden genau diese Keys aus der Zieldatei und der Lock-Datei
 entfernt, und nichts anderes.
 
+<AvailableFrom version="0.12.0" />
+
+Zwei Arten von Kandidaten werden zurückgehalten. Ein geänderter Key, dessen aktuellen Wert ein Mensch geschrieben oder importiert hat, ist standardmäßig geschützt (`humanEdits`), und ein Key, der zu `pinnedKeys` passt, wird nie maschinell übersetzt; beide bleiben veraltet, bis ein Mensch sie auflöst. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
 ## In Batches an den Provider
 
 Bevor irgendetwas gesendet wird, wird jeder Kandidat im lokalen Übersetzungsspeicher-Cache

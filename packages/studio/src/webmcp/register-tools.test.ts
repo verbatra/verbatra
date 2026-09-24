@@ -442,12 +442,22 @@ async function describedTools(): Promise<ReadonlyMap<RpcMethodName, string>> {
 }
 
 describe("registerAgentTools: review decisions stay with a person", () => {
+  it("registers no batch method, so a batch decision or a batch spend stays with a person", async () => {
+    const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+    const names = tools.map((tool) => tool.name);
+
+    expect(names).not.toContain("verbatra_review_approveMany");
+    expect(names).not.toContain("verbatra_review_rejectMany");
+    expect(names).not.toContain("verbatra_translation_retranslateEntries");
+  });
+
   it("never registers approve or reject, even with every capability granted", async () => {
     const { tools, registration } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
     const names = tools.map((tool) => tool.name);
 
     expect(names).not.toContain("verbatra_review_approve");
     expect(names).not.toContain("verbatra_review_reject");
+    expect(names).toHaveLength(16);
     expect(names).toHaveLength(RPC_METHOD_NAMES.length - HUMAN_ONLY_METHOD_NAMES.length);
     expect(registration.attempted).toBe(names.length);
   });

@@ -70,6 +70,10 @@ Depuis `@verbatra/studio` 0.6.0, `verbatra_key_value` et `verbatra_locale_values
 
 Les boutons **Approve** et **Reject** du tableau de bord n'ont aucun outil d'agent, avec ou sans dépense : une décision de revue revient à une personne. `verbatra_review_queue` omet chaque entrée tranchée depuis l'exécution, mais garde celle qu'un agent a modifiée, car cette modification a encore besoin du regard d'une personne.
 
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Les actions groupées de la page Review, **Approve selected**, **Reject selected** et **Retranslate selected**, n'ont pas non plus d'outil d'agent. Une décision groupée reste l'affaire d'une personne, et une retraduction groupée laisserait un seul appel d'agent dépenser pour jusqu'à 20 entrées d'un coup, donc un agent retraduit une entrée par appel à `verbatra_translation_retranslateEntry`. Une retraduction groupée depuis le tableau de bord puise dans le même budget que les retraductions unitaires, une place par entrée, de sorte qu'ensemble elles ne dépassent jamais 20 entrées retraduites par minute glissante.
+
 ### Outils d'écriture (deux)
 
 `verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par la même barrière d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.

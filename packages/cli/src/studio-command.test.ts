@@ -327,7 +327,7 @@ describe("run studio: success path and shutdown", () => {
     expect(code).toBe(0);
   });
 
-  it("silences the studio server's own output sink so it prints no second banner or log line", async () => {
+  it("silences the studio server's own output sink unless --verbose is passed", async () => {
     const { deps } = recordingDeps({
       importStudio: async () =>
         makeStudioModule({
@@ -348,7 +348,7 @@ describe("run studio: success path and shutdown", () => {
     expect(out).toMatch(
       /^Verbatra Studio running at http:\/\/127\.0\.0\.1:\d+\/\?token=[0-9a-f]{64}\n$/,
     );
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("studio server internal log line");
 
     captured.session()?.requestStop();
     await donePromise;

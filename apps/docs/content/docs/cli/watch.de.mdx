@@ -35,6 +35,10 @@ Mit `--json` erzeugt jeder Lauf einen [Envelope](/docs/ci-and-exit-codes#json-au
 
 Der erste Interrupt (Ctrl-C oder SIGTERM) lässt den aktuellen Lauf zu Ende gehen, stoppt den Watcher sauber und endet mit `0`. Ein zweiter Interrupt, während dieses Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`. Der erzwungene Stopp gibt die Schreibsperren der Sitzung frei, bevor der Prozess endet, sodass der nächste Lauf nicht auf sie warten muss.
 
+<AvailableFrom version="0.12.0" />
+
+Ohne `--json` sagt dir `watch` auf stderr, wo es gerade steht: nach jedem Lauf gibt es `verbatra: waiting for changes...` aus, in einem interaktiven Terminal folgt auf die Startzeile `verbatra: press Ctrl-C to stop`, und sobald das Herunterfahren abgeschlossen ist, erscheint `verbatra: stopped`. Mit `--json` kommt keine dieser Zeilen dazu, stderr bleibt also genau wie bisher.
+
 ## Beispiele
 
 ```bash

@@ -54,7 +54,7 @@ Die Bewertung bleibt innerhalb eines Fingerprint-Bereichs, ein geänderter Provi
 
 ## Der Fingerprint
 
-Jeder gecachte Wert ist auf den Übersetzungskontext eingegrenzt, in dem er entstanden ist: ein kurzer Fingerprint über Provider, Modell, Tonfall, die Glossarbegriffe dieser Locale und, sofern es Einträge hat, das [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes) des Providers. Ändere eines davon, und frühere Einträge passen nicht mehr, ein neuer Tonfall oder ein bearbeitetes Glossar übersetzt also neu, statt ein veraltetes Ergebnis zu liefern. Jede Locale bekommt ihren eigenen Fingerprint aus ihren eigenen Glossarbegriffen: Änderst du nur die deutsche Übersetzung eines Begriffs, passen die französischen Einträge weiterhin. Das Format ist bewusst nicht Teil des Fingerprints; eine Formatänderung fängt stattdessen die Integritätsprüfung bei jedem Treffer ab.
+Jeder gecachte Wert ist auf den Übersetzungskontext eingegrenzt, in dem er entstanden ist: ein kurzer Fingerprint über Provider, Modell, Tonfall, die Glossarbegriffe dieser Locale und, sofern es Einträge hat, das [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes) des Providers. Ändere eines davon, und frühere Einträge passen nicht mehr, ein neuer Tonfall oder ein bearbeitetes Glossar übersetzt also neu, statt ein veraltetes Ergebnis zu liefern. Jede Locale bekommt ihren eigenen Fingerprint aus ihren eigenen Glossarbegriffen: Änderst du nur die deutsche Übersetzung eines Begriffs, passen die französischen Einträge weiterhin. Das Format ist bewusst nicht Teil des Fingerprints; eine Formatänderung fängt stattdessen die Integritätsprüfung bei jedem Treffer ab. Mit Provider `none` landet jeder Eintrag in einem einzigen rein menschlichen Bereich, den Tonfall und Glossar nicht beeinflussen, und ein unscharfer Treffer wird nie angewendet.
 
 ## Die Datei
 
@@ -70,7 +70,7 @@ Der Cache füllt sich nicht nur aus deinen eigenen Läufen: [`verbatra tmx`](/do
 
 ## Den Cache umgehen
 
-Übergib `--no-cache` an [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch), um den Cache für einen Lauf zu überspringen: verbatra macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde, und lässt eine bestehende Cache-Datei unangetastet. Aus dem SDK setzt du `cache: false` auf der `translate`- oder `watch`-Eingabe. Ein Dry Run liest oder schreibt den Cache ohnehin nie. `--no-cache` deckt auch die unscharfe Wiederverwendung ab. Willst du die exakte Wiederverwendung behalten und nur den unscharfen Fallback abschalten, lass `fuzzyCache` aus der Konfiguration weg oder setze `enabled: false`.
+Übergib `--no-cache` an [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch), um den Cache für einen Lauf zu überspringen: verbatra macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde, und lässt eine bestehende Cache-Datei unangetastet. Aus dem SDK setzt du `cache: false` auf der `translate`- oder `watch`-Eingabe. Ein Dry Run schreibt den Cache ohnehin nie; mit einem maschinellen Provider liest er ihn auch nicht, mit Provider `none` liest er ihn dagegen, damit der Plan einem echten Lauf entspricht. `--no-cache` deckt auch die unscharfe Wiederverwendung ab. Willst du die exakte Wiederverwendung behalten und nur den unscharfen Fallback abschalten, lass `fuzzyCache` aus der Konfiguration weg oder setze `enabled: false`.
 
 ## Einschränkung
 

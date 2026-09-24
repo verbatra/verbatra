@@ -381,6 +381,10 @@ révision ne retient jamais une clé et porte un ou plusieurs codes de raison :
 `MAX_LENGTH_EXCEEDED` et `FUZZY_CACHE_REUSE` sont les deux raisons les plus récentes ; une exécution
 sur une version antérieure ne les porte jamais.
 
+<AvailableFrom version="0.12.0" />
+
+`GLOSSARY_FORBIDDEN_TERM` est encore plus récente ; une exécution sur une version antérieure à 0.12.0 ne la porte jamais.
+
 Une valeur réutilisée depuis [le cache](/docs/the-cache), et une valeur propagée vers une clé qui
 partage son texte source, passent par les mêmes heuristiques de révision qu'une valeur fraîchement
 traduite.
@@ -388,8 +392,10 @@ traduite.
 Les clés signalées apparaissent par locale comme `needsReview` sur le résumé d'exécution, et elles
 alimentent la file de révision : la CLI affiche le compte, le classeur Excel porte le même signal
 dans ses colonnes de révision, et la page Révision de Studio liste les clés signalées pour les
-traiter ; voir [Réviser les traductions dans Studio](/docs/review-in-studio). La seule façon
-d'effacer un signalement est de corriger la traduction sous-jacente.
+traiter ; voir [Réviser les traductions dans Studio](/docs/review-in-studio). Une clé signalée
+quitte la file dès qu'une personne approuve ou rejette sa valeur actuelle (sur la page Révision de
+Studio, ou avec `approveEntry` et `rejectEntry` du SDK) ou la réécrit ; voir
+[Décisions de revue](/docs/the-lock-file#décisions-de-revue).
 
 ## Le budget de tokens
 

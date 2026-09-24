@@ -3,13 +3,25 @@ import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
 import {
+  MCP_TERMINAL_HINT,
+  mcpReadyLine,
+  mcpStoppedLine,
+  projectLabel,
+} from "./session-banners.js";
+import {
   failedSession,
   isModuleMissing,
   resolveBooleanFlag,
   step,
   watchForStop,
 } from "./session-command-support.js";
+import {
+  DEFAULT_TERMINAL_SETTINGS,
+  resolveTerminalMode,
+  type TerminalSettings,
+} from "./terminal-mode.js";
 import type { CliDeps, Session, Streams } from "./types.js";
+import { createUi } from "./ui.js";
 
 const NOT_INSTALLED_HINT =
   "Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp";
@@ -34,7 +46,20 @@ function parseMcpOpts(rawOpts: unknown): McpOpts {
   return result.data;
 }
 
-export async function runMcp(rawOpts: unknown, deps: CliDeps, streams: Streams): Promise<Session> {
+export async function runMcp(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
+): Promise<Session> {
+  const ui = createUi(
+    streams,
+    resolveTerminalMode(settings.facts, {
+      json: false,
+      quiet: settings.quiet,
+      color: settings.color,
+    }),
+  );
   let opts: McpOpts;
   try {
     opts = parseMcpOpts(rawOpts);
@@ -76,5 +101,11 @@ export async function runMcp(rawOpts: unknown, deps: CliDeps, streams: Streams):
     return failedSession(2);
   }
 
-  return watchForStop(server, streams);
+  ui.line(mcpReadyLine(projectLabel(cwd, process.cwd()), allowSpend));
+  if (ui.terminal.stdinIsTty) {
+    for (const line of MCP_TERMINAL_HINT) {
+      ui.line(line);
+    }
+  }
+  return watchForStop(server, streams, (cause) => ui.line(mcpStoppedLine(cause)));
 }

@@ -753,3 +753,91 @@ describe("review decisions: the default rate limit", () => {
     );
   });
 });
+
+describe("translation.retranslateEntries across the spend table and the retranslate budget", () => {
+  it("returns METHOD_UNKNOWN on a default server (no spend)", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { status, body } = await postRpc(
+          server.url,
+          cookie,
+          "translation.retranslateEntries",
+          { entries: [{ locale: "de", key: "greeting" }] },
+        );
+        expect(status).toBe(400);
+        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+      },
+      { token: TOKEN, loader: stubLoader() },
+    );
+  });
+
+  it("draws a batch from the same per-entry budget as single retranslations", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const tooLarge = await postRpc(server.url, cookie, "translation.retranslateEntries", {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "b" },
+            { locale: "de", key: "c" },
+          ],
+        });
+        expect(tooLarge.status).toBe(429);
+
+        await postRpc(server.url, cookie, "translation.retranslateEntry", {
+          locale: "de",
+          key: "greeting",
+        });
+        const overBudget = await postRpc(server.url, cookie, "translation.retranslateEntries", {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "b" },
+          ],
+        });
+        expect(overBudget.status).toBe(429);
+        expect(overBudget.body).toMatchObject({
+          ok: false,
+          error: { code: "METHOD_RATE_LIMITED" },
+        });
+      },
+      {
+        token: TOKEN,
+        loader: stubLoader(),
+        spend: true,
+        retranslateRateLimitWindowMs: 60_000,
+        retranslateRateLimitMax: 2,
+      },
+    );
+  });
+});
+
+describe("review batches need no spend and count one call per batch", () => {
+  it("registers review.approveMany without spend and limits it per call", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const params = {
+          entries: [
+            { locale: "de", key: "a", expectedValue: "x" },
+            { locale: "de", key: "b", expectedValue: "y" },
+            { locale: "de", key: "c", expectedValue: "z" },
+          ],
+        };
+        const first = await postRpc(server.url, cookie, "review.approveMany", params);
+        const second = await postRpc(server.url, cookie, "review.approveMany", params);
+        const third = await postRpc(server.url, cookie, "review.approveMany", params);
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(third.status).toBe(429);
+      },
+      {
+        token: TOKEN,
+        loader: stubLoader(),
+        reviewDecisionRateLimitWindowMs: 60_000,
+        reviewDecisionRateLimitMax: 2,
+      },
+    );
+  });
+});

@@ -105,11 +105,20 @@ Puedes trabajar la cola de Review sin el ratón. Pulsa `j` o la flecha hacia aba
 | `r` | rechazarla (la confirmación se abre igualmente) |
 | `e` o Enter | abrirla en el editor |
 | `t` | retraducirla (solo con `--allow-spend`) |
+| `x` | seleccionarla o quitarla de la selección para una acción en bloque |
 | `?` | mostrar u ocultar la lista de atajos |
 
 **Keyboard shortcuts** en la barra de filtros abre la misma lista. Un atajo actúa solo sobre la entrada resaltada. Los atajos se pausan mientras escribes en el filtro, mientras hay un diálogo abierto y mientras mantienes pulsado Ctrl, Cmd o Alt, para que los atajos del navegador sigan funcionando; Escape cierra el diálogo abierto. La fila resaltada es también la que tiene el foco del teclado, así que Tab pasa a sus botones, y un clic en una fila la resalta. Después de una aprobación o un rechazo se resalta la entrada que ocupa su lugar, así que pulsando `a` otra vez avanzas por la cola.
 
 Con `--allow-spend`, cada fila lleva además un botón **Retranslate**. Hace una sola llamada al proveedor para ese locale y esa clave, pasa el resultado por la misma puerta de integridad e informa del resultado en la línea sobre la tabla. El valor nuevo se queda en la cola hasta que lo apruebes o lo rechaces. Un valor que escribió una persona no se reemplaza desde aquí: abre la clave en Translations y elige allí **Replace anyway**.
+
+### Actúa sobre varias entradas a la vez
+
+<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
+
+Cada fila empieza con una casilla, y la de la cabecera de la tabla selecciona o quita todas las entradas que muestra el filtro. En cuanto hay algo seleccionado, una barra sobre la tabla cuenta la selección y ofrece **Approve selected**, **Reject selected**, **Retranslate selected** (solo con `--allow-spend`) y **Clear selection**. Una acción en bloque solo abarca las entradas seleccionadas que el filtro sigue mostrando.
+
+Cada entrada de un lote se decide exactamente como se decidiría sola: contra el valor en pantalla, con las mismas comprobaciones y guardada en `verbatra.provenance.json`. **Reject selected** lista las entradas y pide confirmación antes. Una entrada que no se puede decidir, por ejemplo porque su valor cambió desde que cargó la página, no detiene a las demás; la línea sobre la tabla nombra cada entrada que falló y por qué. Un lote admite como máximo 100 entradas para aprobar o rechazar, o 20 para retraducir. Una retraducción en bloque cuenta cada entrada contra el mismo límite que una retraducción suelta, 20 por minuto móvil por defecto.
 
 ## Retraduce una clave marcada
 

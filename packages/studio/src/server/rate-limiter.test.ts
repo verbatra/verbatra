@@ -62,3 +62,58 @@ describe("createRpcRateLimiter", () => {
     expect(limiter.tryAcquire("translation.editEntry")).toBe(false);
   });
 });
+
+describe("createRpcRateLimiter: weighted calls and shared buckets", () => {
+  it("counts a call as one call, whatever its entry count, unless the rule is per entry", () => {
+    const limiter = createRpcRateLimiter(
+      { "review.approveMany": { windowMs: 1000, maxCalls: 2 } },
+      () => 0,
+    );
+
+    expect(limiter.tryAcquire("review.approveMany", 50)).toBe(true);
+    expect(limiter.tryAcquire("review.approveMany", 50)).toBe(true);
+    expect(limiter.tryAcquire("review.approveMany", 1)).toBe(false);
+  });
+
+  it("counts a per-entry call as one call per entry", () => {
+    const limiter = createRpcRateLimiter(
+      { "translation.retranslateEntries": { windowMs: 1000, maxCalls: 5, perEntry: true } },
+      () => 0,
+    );
+
+    expect(limiter.tryAcquire("translation.retranslateEntries", 3)).toBe(true);
+    expect(limiter.tryAcquire("translation.retranslateEntries", 3)).toBe(false);
+    expect(limiter.tryAcquire("translation.retranslateEntries", 2)).toBe(true);
+    expect(limiter.tryAcquire("translation.retranslateEntries")).toBe(false);
+  });
+
+  it("refuses a per-entry call larger than the whole budget without consuming anything", () => {
+    const limiter = createRpcRateLimiter(
+      { "translation.retranslateEntries": { windowMs: 1000, maxCalls: 2, perEntry: true } },
+      () => 0,
+    );
+
+    expect(limiter.tryAcquire("translation.retranslateEntries", 3)).toBe(false);
+    expect(limiter.tryAcquire("translation.retranslateEntries", 2)).toBe(true);
+  });
+
+  it("draws two methods that name the same bucket from one budget", () => {
+    const limiter = createRpcRateLimiter(
+      {
+        "translation.retranslateEntry": { windowMs: 1000, maxCalls: 3 },
+        "translation.retranslateEntries": {
+          windowMs: 1000,
+          maxCalls: 3,
+          bucket: "translation.retranslateEntry",
+          perEntry: true,
+        },
+      },
+      () => 0,
+    );
+
+    expect(limiter.tryAcquire("translation.retranslateEntries", 2)).toBe(true);
+    expect(limiter.tryAcquire("translation.retranslateEntry")).toBe(true);
+    expect(limiter.tryAcquire("translation.retranslateEntry")).toBe(false);
+    expect(limiter.tryAcquire("translation.retranslateEntries", 1)).toBe(false);
+  });
+});

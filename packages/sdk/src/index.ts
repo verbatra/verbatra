@@ -168,6 +168,20 @@ export {
   editEntry,
 } from "./flow/edit-entry.js";
 export {
+  approveEntries,
+  type BatchEntry,
+  type BatchEntryFailure,
+  type RetranslateBatchOutcome,
+  type RetranslateEntriesInput,
+  type RetranslateEntriesResult,
+  type ReviewBatchEntry,
+  type ReviewBatchOutcome,
+  type ReviewEntriesInput,
+  type ReviewEntriesResult,
+  rejectEntries,
+  retranslateEntries,
+} from "./flow/entry-batch.js";
+export {
   type AddedKey,
   type ExtractDeps,
   type ExtractInput,

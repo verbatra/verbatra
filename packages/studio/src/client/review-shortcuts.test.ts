@@ -26,6 +26,7 @@ describe("resolveReviewShortcut: key map", () => {
     ["e", "edit"],
     ["Enter", "edit"],
     ["t", "retranslate"],
+    ["x", "select"],
     ["?", "help"],
   ] as const)("maps %s to %s", (key, action) => {
     expect(resolveReviewShortcut(keyEvent(key))).toBe(action);
