@@ -1,4 +1,4 @@
-import { EXCHANGE_FORMATS, SdkError } from "@verbatra/sdk";
+import { EXCHANGE_FORMATS, type LockWaitEvent, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run, runImport } from "./run.js";
@@ -382,5 +382,107 @@ describe("run import: SDK delegation and rendering", () => {
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
     expect(calls.loadConfig).toHaveLength(0);
+  });
+});
+
+describe("run import: lock-wait progress and --lock-timeout", () => {
+  const waitEvent: LockWaitEvent = {
+    lockPath: "/proj/.verbatra-local/locks/de.lock",
+    elapsedMs: 2_000,
+    holder: { pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" },
+  };
+
+  it("renders the human waiting line to stderr, naming the path, holder pid, and delete hint", async () => {
+    const { deps } = recordingDeps({
+      importWorkbook: async (input) => {
+        input.onLockWait?.(waitEvent);
+        return makeSummary({ succeeded: ["de"] });
+      },
+    });
+    const cap = captureStreams();
+
+    const code = await run(["import", "wb.xlsx"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.err()).toContain("waiting for the write lock");
+    expect(cap.err()).toContain("/proj/.verbatra-local/locks/de.lock");
+    expect(cap.err()).toContain("pid 4321");
+    expect(cap.err()).toContain("can be deleted");
+    expect(cap.out()).not.toContain("waiting for the write lock");
+  });
+
+  it("under --json, keeps stdout to the one envelope and emits the wait event as JSON on stderr", async () => {
+    const summary = makeSummary({ succeeded: ["de"] });
+    const { deps } = recordingDeps({
+      importWorkbook: async (input) => {
+        input.onLockWait?.(waitEvent);
+        return summary;
+      },
+    });
+    const cap = captureStreams();
+
+    const code = await run(["import", "wb.xlsx", "--json"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(parseEnvelope(cap.out()).result).toEqual(summary);
+    expect(JSON.parse(cap.err().trim())).toMatchObject({
+      type: "lock-wait",
+      lockPath: waitEvent.lockPath,
+      holder: { pid: 4321 },
+    });
+  });
+
+  it("--lock-timeout passes the timeout to the SDK as milliseconds", async () => {
+    const { deps, calls } = recordingDeps();
+
+    const code = await run(
+      ["import", "wb.xlsx", "--lock-timeout", "45"],
+      deps,
+      captureStreams().streams,
+    );
+
+    expect(code).toBe(0);
+    expect(calls.importWorkbook[0]?.lockAcquireTimeoutMs).toBe(45_000);
+  });
+
+  it("omits the timeout when the flag is absent, so the SDK default applies", async () => {
+    const { deps, calls } = recordingDeps();
+
+    await run(["import", "wb.xlsx"], deps, captureStreams().streams);
+
+    expect(calls.importWorkbook[0]).not.toHaveProperty("lockAcquireTimeoutMs");
+  });
+
+  it.each([["abc"], ["0"], ["-5"], ["1.5"], ["3601"]])(
+    "rejects --lock-timeout %s as a usage error: exit 2, clean stdout, no SDK call",
+    async (value) => {
+      const { deps, calls } = recordingDeps();
+      const cap = captureStreams();
+
+      const code = await run(["import", "wb.xlsx", `--lock-timeout=${value}`], deps, cap.streams);
+
+      expect(code).toBe(2);
+      expect(cap.out()).toBe("");
+      expect(cap.err()).toContain("INVALID_LOCK_TIMEOUT");
+      expect(calls.importWorkbook).toHaveLength(0);
+    },
+  );
+
+  it("reports an invalid --lock-timeout in the JSON error envelope under --json", async () => {
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(
+      ["import", "wb.xlsx", "--lock-timeout", "0", "--json"],
+      deps,
+      cap.streams,
+    );
+
+    expect(code).toBe(2);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      command: "import",
+      code: "INVALID_LOCK_TIMEOUT",
+    });
   });
 });
