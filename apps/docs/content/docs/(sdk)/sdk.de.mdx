@@ -176,7 +176,9 @@ erwartet. Eine Pseudo-Locale, die eine konfigurierte Locale benennt oder auf ein
 Locale-Datei landen würde, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas
 gelesen oder geschrieben wird; sie kann also weder eine echte Übersetzung überschreiben noch für
 eine einstehen. Ebenso ein `out`, das absolut ist, aus `cwd` herausklettert oder `cwd` selbst
-benennt, etwa `.`. Weil die Datei
+benennt, etwa `.`, und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung, eines,
+das nach dem Auflösen symbolischer Links so landet oder auf einer anderen Datei, von der das
+Projekt abhängt. Weil die Datei
 außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für sie aus, und `check` und `diff`
 melden sie nie als abgedriftet.
 
@@ -1254,7 +1256,7 @@ geworfen.
 | `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während ein Token-Budget gilt, konfiguriert oder für den Lauf; wird geworfen, bevor irgendein Provider-Aufruf stattfindet (ein Dry-Run ist ausgenommen) |
 | `MAX_TOKENS_INVALID` | das `maxTokens` pro Lauf von `translate` wurde gesetzt, ist aber keine ganze Zahl von mindestens 1; wird geworfen, bevor irgendetwas gelesen oder ausgegeben wird |
 | `TARGET_UNWRITABLE` | eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt |
-| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` wurde nach einer Pseudo-Locale gefragt, die eine konfigurierte Locale benennt, oder nach einem Ausgabepfad, der auf eine konfigurierte Locale-Datei schreiben würde; wird abgelehnt, bevor irgendetwas gelesen oder geschrieben wird |
+| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` wurde nach einer Pseudo-Locale gefragt, die eine konfigurierte Locale benennt, oder nach einem Ausgabepfad, der auf eine konfigurierte Locale-Datei oder außerhalb von `cwd` schreiben würde, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor irgendetwas gelesen oder geschrieben wird |
 | `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
 | `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |

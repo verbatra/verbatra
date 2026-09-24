@@ -170,7 +170,9 @@ configurado se expande dentro, así que el archivo conserva la disposición que 
 Un pseudolocale que nombre un locale configurado, o que aterrizaría sobre un archivo de locale
 configurado, se rechaza con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada, así que no
 puede sobrescribir una traducción real ni hacerse pasar por una; lo mismo ocurre con un `out`
-absoluto, que se salga de `cwd` o que nombre el propio `cwd`, como `.`. Como el archivo vive fuera de
+absoluto, que se salga de `cwd` o que nombre el propio `cwd`, como `.`, y, cuando `deps.fs` implementa `realpath` como el valor por
+defecto, con uno que acaba así, o sobre otro archivo del que depende el proyecto, una vez resueltos
+los enlaces simbólicos. Como el archivo vive fuera de
 `files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca informan de él como
 desfasado.
 
@@ -1224,7 +1226,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
 | `MAX_TOKENS_INVALID` | el `maxTokens` por ejecución de `translate` se fijó pero no es un número entero de al menos 1; se lanza antes de leer o gastar nada |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
-| `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado; se rechaza antes de leer o escribir nada |
+| `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado o fuera de `cwd`, también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada |
 | `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
 | `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |

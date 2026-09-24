@@ -111,7 +111,7 @@ configuré y est développé, le fichier garde donc la disposition qu'attend l'a
 pseudo-locale qui nomme une locale configurée, ou qui se poserait sur un fichier de locale
 configuré, est refusée avec `PSEUDO_OUTPUT_CONFLICT` avant que quoi que ce soit ne soit lu ou
 écrit, elle ne peut donc ni écraser une vraie traduction ni en tenir lieu ; il en va de même d'un
-`out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`. Comme le fichier vit en dehors de `files.pattern`, `translate`
+`out` absolu, qui sort de `cwd` ou qui nomme `cwd` lui-même, comme `.`, et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, d'un `out` qui y aboutit, ou sur un autre fichier dont le projet dépend, une fois les liens symboliques résolus. Comme le fichier vit en dehors de `files.pattern`, `translate`
 ne dépense jamais pour lui et `check` et `diff` ne le signalent jamais comme désynchronisé.
 
 Renvoie un `PseudolocalizeResult` : la `locale`, le `path` absolu, combien d'`entries` ont été
@@ -817,7 +817,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `CONCURRENCY_BUDGET_CONFLICT` | une exécution réelle a défini `concurrency` au-dessus de 1 alors qu'un budget de tokens s'applique, configuré ou propre à l'exécution ; levé avant tout appel au fournisseur (un dry run est exempté) |
 | `MAX_TOKENS_INVALID` | le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nombre entier d'au moins 1 ; levé avant toute lecture ou dépense |
 | `TARGET_UNWRITABLE` | un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, est en lecture seule ou est plein) ; le message nomme le fichier cible et le code du système de fichiers, jamais le fichier temporaire interne qu'utilise l'écriture atomique |
-| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` s'est vu demander une pseudo-locale qui nomme une locale configurée, ou un chemin de sortie qui écrirait sur un fichier de locale configuré ; refusé avant toute lecture et toute écriture |
+| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` s'est vu demander une pseudo-locale qui nomme une locale configurée, ou un chemin de sortie qui écrirait sur un fichier de locale configuré ou hors de `cwd`, y compris une fois les liens symboliques résolus ; refusé avant toute lecture et toute écriture |
 | `SOURCE_UNWRITABLE` | le fichier de la locale source n'a pas pu être écrit (`extract` uniquement) ; `xliff` et `apple-xcstrings` l'atteignent quand aucun catalogue n'existe encore, car ni l'un ni l'autre n'est créé à partir de rien |
 | `EXTRACT_NOT_CONFIGURED` | `extract` a été appelé avec une config qui ne porte aucun bloc `extract` |
 | `EXTRACT_FS_UNSUPPORTED` | `extract` a reçu un `deps.fs` qui n'implémente pas `readDirectory` : aucun fichier source ne peut donc être découvert |
