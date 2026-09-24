@@ -1,6 +1,8 @@
 import type { RpcResultFor } from "../shared/rpc/contract.js";
 import type { DiffLocale } from "./diff-view.js";
+import { keyMatchesQuery } from "./filter.js";
 import { hasIntegrityProblem } from "./integrity-pill.js";
+import { type LocaleValuesData, valuesForLocale } from "./locale-values.js";
 import type { ReviewOverlayEntry } from "./review-overlay.js";
 
 export type KeyStatus = "missing" | "changed" | "orphaned" | "protected" | "review" | "integrity";
@@ -18,7 +20,7 @@ export const KEY_STATUS_LABELS: Readonly<Record<KeyStatus, string>> = {
   missing: "Missing",
   changed: "Changed",
   orphaned: "Orphaned",
-  protected: "Needs review",
+  protected: "Protected",
   review: "Review queue",
   integrity: "Integrity problems",
 };
@@ -39,17 +41,41 @@ export interface KeyStatusSources {
   readonly integrity: LocaleIntegrityData;
 }
 
-export function keyGroupsFor(locale: DiffLocale, sources: KeyStatusSources): KeyGroups {
+export type KeyMatcher = (locale: string, key: string) => boolean;
+
+const MATCH_ALL: KeyMatcher = () => true;
+
+export function queryMatcher(localeValues: LocaleValuesData, query: string): KeyMatcher {
+  if (query.trim() === "") {
+    return MATCH_ALL;
+  }
+  const perLocale = new Map(
+    localeValues.map((entry) => [entry.locale, valuesForLocale(localeValues, entry.locale)]),
+  );
+  return (locale, key) => keyMatchesQuery(key, query, perLocale.get(locale));
+}
+
+export function keyGroupsFor(
+  locale: DiffLocale,
+  sources: KeyStatusSources,
+  matches: KeyMatcher = MATCH_ALL,
+): KeyGroups {
   const integrity = sources.integrity.find((candidate) => candidate.locale === locale.locale);
+  const keep = (keys: readonly string[]): readonly string[] =>
+    keys.filter((key) => matches(locale.locale, key));
   return {
-    missing: locale.missing,
-    changed: locale.changed,
-    orphaned: locale.orphaned,
-    protected: locale.protected ?? [],
-    review: sources.review.filter((row) => row.locale === locale.locale).map((row) => row.key),
-    integrity: (integrity?.entries ?? [])
-      .filter((entry) => hasIntegrityProblem(entry))
-      .map((entry) => entry.key),
+    missing: keep(locale.missing),
+    changed: keep(locale.changed),
+    orphaned: keep(locale.orphaned),
+    protected: keep(locale.protected ?? []),
+    review: keep(
+      sources.review.filter((row) => row.locale === locale.locale).map((row) => row.key),
+    ),
+    integrity: keep(
+      (integrity?.entries ?? [])
+        .filter((entry) => hasIntegrityProblem(entry))
+        .map((entry) => entry.key),
+    ),
   };
 }
 
@@ -57,31 +83,39 @@ export function isKeyFilterActive(filter: KeyStatusFilter): boolean {
   return filter.locale !== null || filter.statuses.size > 0;
 }
 
-export function listedStatuses(groups: KeyGroups, filter: KeyStatusFilter): readonly KeyStatus[] {
+export function listedStatuses(
+  groups: KeyGroups,
+  filter: KeyStatusFilter,
+  searching = false,
+): readonly KeyStatus[] {
   if (filter.statuses.size > 0) {
     return KEY_STATUSES.filter((status) => filter.statuses.has(status));
   }
-  return KEY_STATUSES.filter((status) => ALWAYS_LISTED.has(status) || groups[status].length > 0);
+  return KEY_STATUSES.filter(
+    (status) => (!searching && ALWAYS_LISTED.has(status)) || groups[status].length > 0,
+  );
 }
 
 export function isLocaleListed(
   locale: string,
   groups: KeyGroups,
   filter: KeyStatusFilter,
+  searching = false,
 ): boolean {
   if (filter.locale !== null && filter.locale !== locale) {
     return false;
   }
-  return (
-    filter.statuses.size === 0 ||
-    KEY_STATUSES.some((status) => filter.statuses.has(status) && groups[status].length > 0)
-  );
+  if (filter.statuses.size > 0) {
+    return KEY_STATUSES.some((status) => filter.statuses.has(status) && groups[status].length > 0);
+  }
+  return !searching || KEY_STATUSES.some((status) => groups[status].length > 0);
 }
 
 export function statusCounts(
   locales: readonly DiffLocale[],
   sources: KeyStatusSources,
   locale: string | null,
+  matches: KeyMatcher = MATCH_ALL,
 ): Readonly<Record<KeyStatus, number>> {
   const counts: Record<KeyStatus, number> = {
     missing: 0,
@@ -95,7 +129,7 @@ export function statusCounts(
     if (locale !== null && entry.locale !== locale) {
       continue;
     }
-    const groups = keyGroupsFor(entry, sources);
+    const groups = keyGroupsFor(entry, sources, matches);
     for (const status of KEY_STATUSES) {
       counts[status] += groups[status].length;
     }

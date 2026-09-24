@@ -94,3 +94,35 @@ export function createSpinner(
     },
   };
 }
+
+export interface LineSettler {
+  write(text: string): void;
+  settle(): void;
+}
+
+type OpenLine = "none" | "spinner" | "text";
+
+function openLineAfter(text: string): OpenLine {
+  if (text.endsWith("\n") || text === CLEAR_LINE) {
+    return "none";
+  }
+  return text.startsWith(CLEAR_LINE) ? "spinner" : "text";
+}
+
+export function createLineSettler(write: (text: string) => void): LineSettler {
+  let open: OpenLine = "none";
+  return {
+    write: (text) => {
+      write(text);
+      if (text !== "") {
+        open = openLineAfter(text);
+      }
+    },
+    settle: () => {
+      if (open !== "none") {
+        write(open === "spinner" ? CLEAR_LINE : "\n");
+        open = "none";
+      }
+    },
+  };
+}

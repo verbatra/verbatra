@@ -20,6 +20,7 @@ import {
   keyGroupsFor,
   type LocaleIntegrityData,
   listedStatuses,
+  queryMatcher,
   statusCounts,
   toggleStatus,
 } from "../../client/key-status-filter.js";
@@ -367,7 +368,7 @@ function LocaleSectionCounts({ locale }: { readonly locale: DiffLocale }): React
       {locale.missing.length} missing &middot; {locale.changed.length} changed &middot;{" "}
       {locale.orphaned.length} orphaned
       {locale.protected !== undefined && locale.protected.length > 0 ? (
-        <> &middot; {locale.protected.length} need review</>
+        <> &middot; {locale.protected.length} protected</>
       ) : null}
     </span>
   );
@@ -394,7 +395,7 @@ function LocaleSection({
   );
   return (
     <AccordionItem
-      defaultOpen={locale.hasPendingChanges || filter.statuses.size > 0}
+      defaultOpen={locale.hasPendingChanges || filter.statuses.size > 0 || query.trim() !== ""}
       summary={
         <span className="inline-flex flex-wrap items-center gap-2">
           {locale.locale}
@@ -407,7 +408,7 @@ function LocaleSection({
         </span>
       }
     >
-      {listedStatuses(groups, filter).map((status) => (
+      {listedStatuses(groups, filter, query.trim() !== "").map((status) => (
         <KeyList
           key={status}
           status={status}
@@ -458,15 +459,18 @@ function KeyListView({
 }): ReactNode {
   const [locale, setLocale] = useState("");
   const [statuses, setStatuses] = useState<ReadonlySet<KeyStatus>>(new Set());
+  const searchRef = useRef<HTMLInputElement | null>(null);
   useReviewOverlaySignal();
   const { sources, unavailable } = statusSources(
     useReviewQueue(refreshToken),
     useLocaleIntegrity(refreshToken),
   );
+  const matches = useMemo(() => queryMatcher(localeValues, query), [localeValues, query]);
   const filter: KeyStatusFilter = { locale: locale === "" ? null : locale, statuses };
+  const searching = query.trim() !== "";
   const listed = locales
-    .map((entry) => ({ entry, groups: keyGroupsFor(entry, sources) }))
-    .filter(({ entry, groups }) => isLocaleListed(entry.locale, groups, filter));
+    .map((entry) => ({ entry, groups: keyGroupsFor(entry, sources, matches) }))
+    .filter(({ entry, groups }) => isLocaleListed(entry.locale, groups, filter, searching));
 
   return (
     <>
@@ -474,12 +478,13 @@ function KeyListView({
         locales={locales.map((entry) => entry.locale)}
         locale={locale}
         statuses={statuses}
-        counts={statusCounts(locales, sources, filter.locale)}
+        counts={statusCounts(locales, sources, filter.locale, matches)}
         unavailable={unavailable}
         query={query}
         onLocaleChange={setLocale}
         onToggleStatus={(status) => setStatuses((current) => toggleStatus(current, status))}
         onQueryChange={onQueryChange}
+        searchRef={searchRef}
       />
       {listed.length === 0 ? (
         <EmptyState
@@ -490,13 +495,17 @@ function KeyListView({
               onClick={() => {
                 setLocale("");
                 setStatuses(new Set());
+                onQueryChange("");
+                searchRef.current?.focus();
               }}
             >
               Clear filters
             </Button>
           }
         >
-          No locale has a key in the chosen states.
+          {searching
+            ? "No key, source text, or translation matches the search in the chosen locales and states."
+            : "No locale has a key in the chosen states."}
         </EmptyState>
       ) : (
         <Accordion>

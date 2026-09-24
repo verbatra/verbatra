@@ -33,6 +33,12 @@ describe("ReviewShortcutsDialog", () => {
     expect(next.textContent).toContain("Next entry");
   });
 
+  it("says that the retranslate shortcut calls the provider", () => {
+    const view = render(<ReviewShortcutsDialog spend={true} onClose={vi.fn()} />);
+
+    expect(view.get('[data-shortcut="retranslate"]').textContent).toContain("calls your provider");
+  });
+
   it("leaves retranslate out when spend is not allowed", () => {
     const view = render(<ReviewShortcutsDialog spend={false} onClose={vi.fn()} />);
 

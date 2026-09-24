@@ -13,6 +13,7 @@ export interface DialogA11yOptions {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly shouldRestoreFocus?: () => boolean;
+  readonly initialFocus?: RefObject<HTMLElement | null>;
 }
 
 function focusableElements(container: HTMLElement): HTMLElement[] {
@@ -35,18 +36,36 @@ function trapTabKey(event: KeyboardEvent, container: HTMLElement): void {
   }
 }
 
+function focusInitial(element: HTMLElement): void {
+  element.focus();
+  element.scrollIntoView?.({ block: "nearest" });
+}
+
 export function useDialogA11y<T extends HTMLElement>({
   isOpen,
   onClose,
   shouldRestoreFocus,
+  initialFocus,
 }: DialogA11yOptions): RefObject<T | null> {
   const containerRef = useRef<T | null>(null);
   const onCloseRef = useRef(onClose);
   const shouldRestoreFocusRef = useRef(shouldRestoreFocus);
+  const initialFocusRef = useRef(initialFocus);
+  const initialPending = useRef(false);
 
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
     shouldRestoreFocusRef.current = shouldRestoreFocus;
+    initialFocusRef.current = initialFocus;
+  });
+
+  useEffect(() => {
+    const target = initialFocusRef.current?.current;
+    if (!initialPending.current || target === null || target === undefined) {
+      return;
+    }
+    initialPending.current = false;
+    focusInitial(target);
   });
 
   useEffect(() => {
@@ -56,8 +75,14 @@ export function useDialogA11y<T extends HTMLElement>({
     const previouslyFocused =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const container = containerRef.current;
-    if (container !== null) {
-      focusableElements(container)[0]?.focus();
+    const initial = initialFocusRef.current?.current;
+    if (initial !== null && initial !== undefined) {
+      focusInitial(initial);
+    } else {
+      initialPending.current = initialFocusRef.current !== undefined;
+      if (container !== null) {
+        focusableElements(container)[0]?.focus();
+      }
     }
 
     function onKeyDown(event: KeyboardEvent): void {
@@ -72,6 +97,7 @@ export function useDialogA11y<T extends HTMLElement>({
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      initialPending.current = false;
       document.removeEventListener("keydown", onKeyDown);
       if (shouldRestoreFocusRef.current?.() !== false) {
         previouslyFocused?.focus();

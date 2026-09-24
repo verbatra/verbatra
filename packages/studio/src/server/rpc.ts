@@ -6,6 +6,7 @@ import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { ESTIMATE_METHOD } from "../shared/rpc/estimate.js";
 import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
+import { IN_FLIGHT_METHOD } from "../shared/rpc/in-flight.js";
 import { KEY_CONTEXT_METHOD } from "../shared/rpc/key-context.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
@@ -23,12 +24,14 @@ import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import { PROJECT_SNAPSHOT_METHOD, type StudioCapabilities } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { USAGE_SUMMARY_METHOD } from "../shared/rpc/usage-summary.js";
+import type { InFlightEntry } from "./in-flight-guard.js";
 import { statusCheckHandler } from "./methods/check.js";
 import { statusDiffHandler } from "./methods/diff.js";
 import { editEntryHandler } from "./methods/edit-entry.js";
 import { estimateHandler } from "./methods/estimate.js";
 import { glossaryGetHandler, glossaryWriteHandler } from "./methods/glossary.js";
 import { historyListHandler } from "./methods/history.js";
+import { inFlightHandler } from "./methods/in-flight.js";
 import { keyContextHandler } from "./methods/key-context.js";
 import { keyIntegrityHandler } from "./methods/key-integrity.js";
 import { keyValueHandler } from "./methods/key-value.js";
@@ -54,6 +57,7 @@ export interface RpcHandlerDeps
   extends Omit<StudioServerDeps, "loader" | "token" | "output" | "assetsRoot"> {
   readonly config: LoadedConfig;
   readonly projectRoot: string;
+  readonly inFlightEntries?: () => readonly InFlightEntry[];
 }
 
 export type RpcHandler<M extends RpcMethodName> = (
@@ -93,6 +97,7 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
       ? {
           [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,
           [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesHandler,
+          [IN_FLIGHT_METHOD]: inFlightHandler,
           [TRANSLATE_PENDING_METHOD]: translatePendingHandler,
         }
       : {}),

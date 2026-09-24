@@ -7,7 +7,7 @@ import {
   SdkError,
   type WatchController,
 } from "@verbatra/sdk";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run, runTranslate } from "./run.js";
 import {
@@ -15,7 +15,6 @@ import {
   flush,
   makeCheckSummary,
   makeConfig,
-  makeLoadedConfig,
   makeLocale,
   makeSummary,
   parseEnvelope,
@@ -725,31 +724,50 @@ describe("run: usage errors, help, version", () => {
     expect(cap.out()).toBe("");
   });
 
-  it("a bare invocation without a config suggests verbatra init on stderr after the help", async () => {
-    const { deps } = recordingDeps({
-      loadConfigWithMeta: () =>
-        Promise.reject(new SdkError("CONFIG_NOT_FOUND", "No verbatra config found.")),
+  describe("a bare invocation", () => {
+    let dir: string;
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), "verbatra-bare-"));
+      vi.spyOn(process, "cwd").mockReturnValue(dir);
     });
-    const cap = captureStreams();
 
-    expect(await run([], deps, cap.streams)).toBe(2);
-    expect(cap.err()).toContain("Usage: verbatra");
-    expect(cap.err()).toMatch(/Run verbatra init to set up this project\.\n$/);
-    expect(cap.out()).toBe("");
-  });
+    afterEach(() => {
+      vi.restoreAllMocks();
+      rmSync(dir, { recursive: true, force: true });
+    });
 
-  it.each([
-    ["a config is found", () => Promise.resolve(makeLoadedConfig())],
-    [
-      "the config is invalid",
-      () => Promise.reject(new SdkError("CONFIG_INVALID", "The config is invalid.")),
-    ],
-  ])("a bare invocation adds no init hint when %s", async (_label, loadConfigWithMeta) => {
-    const { deps } = recordingDeps({ loadConfigWithMeta });
-    const cap = captureStreams();
+    it("without a config suggests verbatra init on stderr after the help", async () => {
+      const { deps } = recordingDeps();
+      const cap = captureStreams();
 
-    expect(await run([], deps, cap.streams)).toBe(2);
-    expect(cap.err()).not.toContain("verbatra init");
+      expect(await run([], deps, cap.streams)).toBe(2);
+      expect(cap.err()).toContain("Usage: verbatra");
+      expect(cap.err()).toMatch(/Run verbatra init to set up this project\.\n$/);
+      expect(cap.out()).toBe("");
+    });
+
+    it.each([
+      ["a config file that would throw if it were executed", "verbatra.config.ts", "throw 1;"],
+      ["a .verbatrarc.json", ".verbatrarc.json", "{}"],
+      ["a package.json with a verbatra property", "package.json", '{"verbatra":{}}'],
+    ])("adds no init hint for %s, and never loads it", async (_label, name, content) => {
+      writeFileSync(join(dir, name), content);
+      const { deps, calls } = recordingDeps();
+      const cap = captureStreams();
+
+      expect(await run([], deps, cap.streams)).toBe(2);
+      expect(cap.err()).not.toContain("verbatra init");
+      expect(calls.loadConfigWithMeta).toHaveLength(0);
+    });
+
+    it("still suggests init next to a package.json without a verbatra property", async () => {
+      writeFileSync(join(dir, "package.json"), '{"name":"app"}');
+      const cap = captureStreams();
+
+      expect(await run([], recordingDeps().deps, cap.streams)).toBe(2);
+      expect(cap.err()).toContain("Run verbatra init");
+    });
   });
 
   it("an unknown command never looks for a config", async () => {

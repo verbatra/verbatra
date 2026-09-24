@@ -75,7 +75,12 @@ function resolveColor(facts: TerminalFacts, preferences: TerminalPreferences): b
   if (force !== undefined) {
     return FORCE_COLOR_ON.has(force.trim().toLowerCase());
   }
-  if (isSetNonEmpty(env.NO_COLOR) || isSetNonEmpty(env.NODE_DISABLE_COLORS) || isDumb(env)) {
+  if (
+    isSetNonEmpty(env.NO_COLOR) ||
+    isSetNonEmpty(env.NODE_DISABLE_COLORS) ||
+    isDumb(env) ||
+    isCi(env)
+  ) {
     return false;
   }
   return facts.stderrIsTty;

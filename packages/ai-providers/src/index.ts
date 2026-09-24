@@ -35,6 +35,12 @@ export {
 } from "./glossary.js";
 export { glossaryEntriesInText } from "./glossary-hits.js";
 export {
+  checkGlossaryDraft,
+  type GlossaryDraftCheck,
+  type GlossaryDraftDoNotTranslateCheck,
+  type GlossaryDraftTermCheck,
+} from "./glossary-term-checks.js";
+export {
   type GoogleTranslateConfig,
   googleTranslateConfigSchema,
 } from "./google-translate/config.js";

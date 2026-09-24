@@ -296,6 +296,16 @@ Chaque entrée porte aussi `icuArmsMatch` et `icuArmDetails` : si les branches I
 
 Entrée : `{ config, cwd?, locales?, keys? }`. `keys` restreint la vérification ; seules les clés "modifiées" pour une locale sont vérifiées. Renvoie un `LocaleKeyIntegrity` par locale vérifiée.
 
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+Trouve chaque traduction des locales cibles cassée à cet instant : une traduction qui a perdu ou gagné un placeholder, perdu ou ajouté du balisage en ligne, qui ne s'analyse plus comme ICU, ou qui porte des branches ICU `plural`, `selectordinal` ou `select` qui ne conviennent pas à la langue cible. Contrairement à `keyIntegrity`, il juge chaque clé présente à la fois dans la source et dans une locale cible, quel que soit son état de synchronisation, et trouve donc aussi un défaut dans une traduction que personne n'a touchée depuis son écriture. Chaque clé est jugée selon les mêmes règles que `keyIntegrity` et la barrière appliquée à l'écriture, et seules les clés en échec reviennent : une liste `entries` vide signifie que chaque traduction de cette locale passe.
+
+Le coût est une lecture et une analyse du fichier source et de chaque fichier cible demandé, plus une vérification par clé traduite. Rien n'est mis en cache ; chaque appel relit le disque.
+
+Entrée : `{ config, cwd?, locales? }`. Renvoie un `LocaleKeyIntegrity` par locale vérifiée, qui ne contient que ses entrées en échec.
+
 ### lockState
 
 Rapporte l'existence du fichier de verrouillage, sa version et la dérive par locale (nombre de clés de la ligne de base, plus les comptes de clés manquantes, obsolètes et à jour). `exists` vient d'une sonde explicite, donc "pas encore de fichier de verrouillage" et "un fichier de verrouillage présent mais vide" restent distinguables. Quand le fichier est absent, le résultat est `{ exists: false }` et rien d'autre n'est lu.
@@ -636,6 +646,12 @@ Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryF
 <AvailableFrom version="0.12.0" />
 
 `glossaryHits(glossary, locale, sourceLocale, text)` renvoie les entrées du glossaire qui s'appliquent à un texte source dans une locale cible, sous la forme `{ terms, doNotTranslate }` que renvoie `glossaryForLocale` : chaque terme dont la source apparaît dans `text` comme terme entier, avec la traduction et les rendus interdits auxquels cette locale est tenue, et chaque terme à garder non traduit qui y apparaît. Un terme correspond avec ou sans casse selon ce qu'il indique, la casse étant repliée pour `sourceLocale`. Il utilise la même correspondance qu'une exécution de traduction pour signaler un terme de glossaire manqué, et ne lit rien.
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` vérifie un brouillon de traduction par rapport aux entrées du glossaire que `glossaryHits` trouve dans le texte source, avant que tu l'écrives. Chaque terme revient avec `targetUsed` (si le brouillon contient la traduction imposée ; absent pour un terme qui ne fait qu'interdire des rendus) et `forbiddenUsed` (les rendus interdits que le brouillon utilise et que la source n'utilise pas), et chaque terme à garder non traduit avec `kept`. Ce sont les règles avec lesquelles une exécution de traduction signale `GLOSSARY_TERM_MISSED` et `GLOSSARY_FORBIDDEN_TERM`. Il ne lit rien.
 
 ### normalizeGlossary
 

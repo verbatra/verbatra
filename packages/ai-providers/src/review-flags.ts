@@ -1,7 +1,12 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { type DoNotTranslateTerm, foldGlossaryCase, type LocaleGlossary } from "./glossary.js";
+import {
+  forbiddenRenderingUsed,
+  requiredTermUsed,
+  sourceTermOccurs,
+} from "./glossary-term-checks.js";
 import type { ProviderNotice, ReviewFlag, ReviewReasonCode } from "./provider.js";
-import { occursAsWholeTerm, wholeTermIndices } from "./whole-term.js";
+import { wholeTermIndices } from "./whole-term.js";
 
 const LENGTH_RATIO_MIN = 0.35;
 const LENGTH_RATIO_MAX = 3.0;
@@ -138,35 +143,26 @@ function isGlossaryTermMissed(input: ReviewFlagInput): boolean {
   if (input.glossary === undefined) {
     return false;
   }
-  return expectedTermsOf(input.glossary).some(({ source, target, caseSensitive }) => {
-    const sourceHit = occursAsWholeTerm(
-      foldGlossaryCase(input.sourceValue, input.sourceLocale, caseSensitive),
-      foldGlossaryCase(source, input.sourceLocale, caseSensitive),
-    );
-    return (
-      sourceHit &&
-      !foldGlossaryCase(input.translatedValue, input.targetLocale, caseSensitive).includes(
-        foldGlossaryCase(target, input.targetLocale, caseSensitive),
-      )
-    );
-  });
+  return expectedTermsOf(input.glossary).some(
+    (term) =>
+      sourceTermOccurs(input.sourceValue, term.source, input.sourceLocale, term) &&
+      !requiredTermUsed(input.translatedValue, term.target, input.targetLocale, term),
+  );
 }
 
 function isForbiddenTermUsed(input: ReviewFlagInput): boolean {
   if (input.glossary === undefined) {
     return false;
   }
-  return input.glossary.terms.some(({ forbidden, caseSensitive }) =>
-    forbidden.some(
-      (rendering) =>
-        occursAsWholeTerm(
-          foldGlossaryCase(input.translatedValue, input.targetLocale, caseSensitive),
-          foldGlossaryCase(rendering, input.targetLocale, caseSensitive),
-        ) &&
-        !occursAsWholeTerm(
-          foldGlossaryCase(input.sourceValue, input.targetLocale, caseSensitive),
-          foldGlossaryCase(rendering, input.targetLocale, caseSensitive),
-        ),
+  return input.glossary.terms.some((term) =>
+    term.forbidden.some((rendering) =>
+      forbiddenRenderingUsed(
+        input.translatedValue,
+        input.sourceValue,
+        rendering,
+        input.targetLocale,
+        term,
+      ),
     ),
   );
 }

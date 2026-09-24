@@ -445,6 +445,26 @@ para un formato que no comprueba ramas (todos los formatos incluidos salvo next-
 Entrada: `{ config, cwd?, locales?, keys? }`. `keys` acota la comprobación; solo se comprueban las
 claves que están "modificadas" para un locale. Devuelve un `LocaleKeyIntegrity` por locale comprobado.
 
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+Encuentra cada traducción de los locales de destino que está rota ahora mismo: una que perdió o
+ganó un placeholder, perdió o añadió marcado en línea, ya no se analiza como ICU o lleva ramas ICU
+de `plural`, `selectordinal` o `select` que no encajan con el idioma de destino. A diferencia de
+`keyIntegrity`, juzga cada clave presente tanto en el origen como en un locale de destino, sea cual
+sea su estado de sincronización, así que también encuentra un defecto en una traducción que nadie ha
+tocado desde que se escribió. Cada clave se juzga con las mismas reglas que `keyIntegrity` y la
+puerta del momento de escritura, y solo vuelven las claves que fallan: una lista `entries` vacía
+significa que todas las traducciones de ese locale pasan.
+
+El coste es una lectura y un análisis del archivo de origen y de cada archivo de destino pedido,
+más una comprobación por clave traducida. No se guarda nada en caché; cada llamada lee de nuevo del
+disco.
+
+Entrada: `{ config, cwd?, locales? }`. Devuelve un `LocaleKeyIntegrity` por locale comprobado, con
+solo sus entradas que fallan.
+
 ### lockState
 
 Informa de la existencia del archivo de bloqueo, su versión y el desfase por locale (número de claves de
@@ -966,6 +986,18 @@ con la traducción y las traducciones prohibidas a las que está sujeto ese loca
 se mantiene sin traducir y aparece en él. Un término coincide con o sin mayúsculas según indique,
 normalizando para `sourceLocale`. Usa la misma coincidencia que aplica una ejecución de traducción
 al marcar un término de glosario omitido, y no lee nada.
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` comprueba un borrador de
+traducción contra las entradas del glosario que `glossaryHits` encuentra en el texto de origen,
+antes de que lo escribas. Cada término vuelve con `targetUsed` (si el borrador lleva la traducción
+obligatoria; ausente en un término que solo prohíbe traducciones) y `forbiddenUsed` (las
+traducciones prohibidas que usa el borrador y no el origen), y cada término que se mantiene sin
+traducir con `kept`. Son las reglas con las que una ejecución de traducción marca
+`GLOSSARY_TERM_MISSED` y `GLOSSARY_FORBIDDEN_TERM`. No lee nada.
 
 ### normalizeGlossary
 

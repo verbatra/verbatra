@@ -455,6 +455,26 @@ Eingabe: `{ config, cwd?, locales?, keys? }`. `keys` engt die Prüfung ein; gepr
 nur Keys, die für eine Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale
 zurück.
 
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+Findet jede Übersetzung in den Ziel-Locales, die gerade kaputt ist: eine, die einen Platzhalter
+verloren oder dazubekommen hat, Inline-Markup verloren oder ergänzt hat, sich nicht mehr als ICU
+parsen lässt oder ICU-Zweige für `plural`, `selectordinal` oder `select` trägt, die nicht zur
+Zielsprache passen. Anders als `keyIntegrity` beurteilt es jeden Key, der in der Quelle und in einer
+Ziel-Locale vorkommt, egal wie sein Sync-Zustand ist, also findet es auch einen Fehler in einer
+Übersetzung, die seit dem Schreiben niemand angefasst hat. Jeder Key wird nach denselben Regeln
+beurteilt wie bei `keyIntegrity` und dem Gate beim Schreiben, und zurück kommen nur fehlerhafte Keys:
+Eine leere `entries`-Liste heißt, dass jede Übersetzung dieser Locale besteht.
+
+Die Kosten sind ein Lesen und Parsen der Quelldatei und jeder angefragten Zieldatei plus eine
+Prüfung pro übersetztem Key. Nichts wird zwischengespeichert; jeder Aufruf liest frisch von der
+Platte.
+
+Eingabe: `{ config, cwd?, locales? }`. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale zurück,
+das nur ihre fehlerhaften Einträge enthält.
+
 ### lockState
 
 Meldet für die Lock-Datei Existenz, Version und Drift pro Locale (Baseline-Key-Anzahl plus Zähler
@@ -996,6 +1016,18 @@ der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden is
 unübersetzt zu lassenden Begriff, der darin vorkommt. Ein Begriff passt mit oder ohne
 Groß-/Kleinschreibung, wie er es angibt, wobei für `sourceLocale` gefaltet wird. Er nutzt dieselbe
 Zuordnung, mit der ein Übersetzungslauf einen verpassten Glossarbegriff markiert, und liest nichts.
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` prüft einen Entwurf einer
+Übersetzung gegen die Glossareinträge, die `glossaryHits` im Quelltext findet, bevor du ihn
+schreibst. Jeder Begriff kommt mit `targetUsed` zurück (ob der Entwurf die vorgeschriebene
+Übersetzung enthält; fehlt bei einem Begriff, der nur Wiedergaben verbietet) und mit
+`forbiddenUsed` (die verbotenen Wiedergaben, die der Entwurf nutzt und die Quelle nicht), und jeder
+unübersetzt zu lassende Begriff mit `kept`. Das sind die Regeln, mit denen ein Übersetzungslauf
+`GLOSSARY_TERM_MISSED` und `GLOSSARY_FORBIDDEN_TERM` markiert. Es liest nichts.
 
 ### normalizeGlossary
 

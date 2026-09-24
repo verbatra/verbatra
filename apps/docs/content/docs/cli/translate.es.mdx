@@ -75,15 +75,17 @@ verbatra translate --include-human
 
 <AvailableFrom version="0.12.0" />
 
-Antes de la ejecución, `translate` nombra los locales y el proveedor que va a usar (o indica que es un dry run o una estimación), y tras el resumen imprime el tiempo transcurrido, los tokens usados y el siguiente comando. En un terminal interactivo, el progreso por locale se convierte en una línea con spinner que muestra el locale, el lote, un reintento del proveedor, una ronda de reparación y la escritura del archivo mientras ocurren, y solo queda la línea `done` de cada locale. Si stderr se redirige, las líneas de progreso se imprimen exactamente como antes:
+Antes de la ejecución, `translate` nombra los locales y el proveedor que va a usar (o indica que es un dry run o una estimación), y tras el resumen imprime el tiempo transcurrido, los tokens usados y el siguiente comando. En un terminal interactivo, el progreso por locale se convierte en una línea con spinner que muestra el locale, el lote, un reintento del proveedor, una ronda de reparación y la escritura del archivo mientras ocurren, y solo queda la línea `done` de cada locale. Si stderr se redirige, cada paso se imprime en una línea simple propia, y un reintento del proveedor, una ronda de reparación, un reintento en dos mitades y la escritura del archivo añaden una cada uno:
 
 ```text
 verbatra: translating 2 locales with gemini/gemini-2.5-flash
 verbatra: translating de
 verbatra: de batch 1/1
+verbatra: de: writing
 verbatra: de done, 12 translated
 verbatra: translating fr
 verbatra: fr batch 1/1
+verbatra: fr: writing
 verbatra: fr done, 12 translated
 verbatra: run finished, 2 locales processed
 [ok] done in 4.2s, 1830 tokens

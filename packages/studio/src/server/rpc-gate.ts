@@ -1,7 +1,7 @@
 import { redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
-import type { RpcInFlightGuard } from "./in-flight-guard.js";
+import type { InFlightEntryRef, RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
 import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
 
@@ -40,6 +40,19 @@ function entryDedupeKey(params: unknown): string | undefined {
 }
 
 const batchEntriesSchema = z.object({ entries: z.array(z.unknown()) });
+
+const batchEntryRefsSchema = z.object({ entries: z.array(entryDedupeParamsSchema) });
+
+function requestEntryRefs(params: unknown): readonly InFlightEntryRef[] {
+  const single = entryDedupeParamsSchema.safeParse(params);
+  if (single.success) {
+    return [{ locale: single.data.locale, key: single.data.key }];
+  }
+  const batch = batchEntryRefsSchema.safeParse(params);
+  return batch.success
+    ? batch.data.entries.map((entry) => ({ locale: entry.locale, key: entry.key }))
+    : [];
+}
 
 function requestEntryCount(params: unknown): number {
   const parsed = batchEntriesSchema.safeParse(params);
@@ -140,7 +153,7 @@ async function invokeHandler(
     return errorEnvelope(429, "METHOD_RATE_LIMITED", METHOD_RATE_LIMITED_MESSAGE);
   }
   const dedupeKey = entryDedupeKey(parsedParams.data);
-  if (inFlightGuard?.tryEnter(method, dedupeKey) === false) {
+  if (inFlightGuard?.tryEnter(method, dedupeKey, requestEntryRefs(parsedParams.data)) === false) {
     return errorEnvelope(409, "ALREADY_IN_PROGRESS", ALREADY_IN_PROGRESS_MESSAGE);
   }
   try {

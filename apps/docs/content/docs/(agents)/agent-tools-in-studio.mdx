@@ -60,7 +60,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_usage_summary` | the last run's token usage and budget |
 | `verbatra_key_value` | the source and target values for one key and locale |
 | `verbatra_locale_values` | the source and target values for every key across every target locale |
-| `verbatra_locale_integrity` | placeholder, inline markup, ICU, and ICU arm integrity for every changed key, per target locale |
+| `verbatra_locale_integrity` | every translated key that fails the placeholder, inline markup, ICU, or ICU arm checks, per target locale |
 | `verbatra_key_context` | one key's source and target values, its description, and the glossary entries its source uses |
 | `verbatra_translation_estimate` | what `verbatra_translation_translatePending` would send and cost, optionally for a subset of `locales`, without calling a provider |
 
@@ -72,11 +72,11 @@ Since `@verbatra/studio` 0.6.0, `verbatra_key_value` and `verbatra_locale_values
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_locale_integrity` runs the same checks as `verbatra_key_integrity` over every changed key at once, and backs the **Integrity problems** filter on the Translations page. Its `result` is `{ locales: [{ locale, entries }] }`, each entry carrying `key` and the verdict fields. Every changed key is listed, whether or not it passed, so check the fields rather than reading presence as a failure; a missing, orphaned, or in-sync key never appears. The optional `locales` parameter narrows it to the named target locales.
+`verbatra_locale_integrity` runs the same checks as `verbatra_key_integrity` over every key present in both the source and a target locale, whatever its sync state, and backs the **Integrity problems** filter on the Translations page. Its `result` is `{ locales: [{ locale, entries }] }`, each entry carrying `key` and the verdict fields. Only failing keys are listed, so an empty `entries` means every translation of that locale passes; a missing key has no translation to check and never appears. Each call reads and parses every locale file once. The optional `locales` parameter narrows it to the named target locales.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-`verbatra_key_context` returns what the dashboard's editor shows for one key and locale: `source`, `target` and its `provenance` when a value exists, `description` when the source file gives one, and `glossary`, the terms whose source occurs in the source text as `{ terms, doNotTranslate }` with the translation and forbidden renderings that locale is held to. Glossary values pass through the same redaction as `verbatra_glossary_get`.
+`verbatra_key_context` returns what the dashboard's editor shows for one key and locale: `source`, `target` and its `provenance` when a value exists, `description` when the source file gives one, and `glossary`, the terms whose source occurs in the source text as `{ terms, doNotTranslate }` with the translation and forbidden renderings that locale is held to, and `maxLength` when the config sets a length budget for the key. Pass the value you mean to write as the optional `draft` parameter and the result also carries `draftCheck`: for each applying term, `targetUsed` and `forbiddenUsed`, and for each term to keep untranslated, `kept`, judged by the rules a translate run uses to flag a translation for review. Glossary values pass through the same redaction as `verbatra_glossary_get`.
 
 The dashboard's **Approve** and **Reject** buttons have no agent tool, with or without spend: a review decision is a person's call. `verbatra_review_queue` leaves out every entry decided since the run, but keeps one an agent edited, since that edit still needs a person's look.
 

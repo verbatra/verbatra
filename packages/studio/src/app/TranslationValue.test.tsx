@@ -16,7 +16,26 @@ describe("valueDirection", () => {
   });
 });
 
+describe("valueDirection: per value", () => {
+  it.each([
+    ["ps", "Checkout", "auto"],
+    ["ps", "{count} items", "auto"],
+    ["ar", "الدفع {amount}", "rtl"],
+    ["he", "שלום", "rtl"],
+    ["de", "مرحبا", "ltr"],
+  ] as const)("resolves a %s value %s to %s", (locale, value, expected) => {
+    expect(valueDirection(locale, value)).toBe(expected);
+  });
+});
+
 describe("TranslationValue", () => {
+  it("tags the value with its locale and lets an untranslated echo in an RTL locale read left to right", () => {
+    const view = render(<TranslationValue value="Checkout" locale="ps" />);
+
+    expect(view.get("span").getAttribute("lang")).toBe("ps");
+    expect(view.get("span").getAttribute("dir")).toBe("auto");
+  });
+
   it("sets the value element's direction from its locale", () => {
     const view = render(<TranslationValue value="مرحبا" locale="ar" />);
 

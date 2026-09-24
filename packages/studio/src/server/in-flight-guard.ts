@@ -1,17 +1,37 @@
+export interface InFlightEntryRef {
+  readonly locale: string;
+  readonly key: string;
+}
+
+export interface InFlightEntry extends InFlightEntryRef {
+  readonly method: string;
+  readonly elapsedMs: number;
+}
+
 export interface RpcInFlightGuard {
-  tryEnter(method: string, key?: string): boolean;
+  tryEnter(method: string, key?: string, entries?: readonly InFlightEntryRef[]): boolean;
   leave(method: string, key?: string): void;
+  entries(): readonly InFlightEntry[];
+}
+
+interface InFlightCall {
+  readonly method: string;
+  readonly startedAt: number;
+  readonly entries: readonly InFlightEntryRef[];
 }
 
 function lockKeyFor(method: string, key: string | undefined): string {
   return key === undefined ? method : `${method}:${key}`;
 }
 
-export function createRpcInFlightGuard(guardedMethods: ReadonlySet<string>): RpcInFlightGuard {
-  const inFlight = new Set<string>();
+export function createRpcInFlightGuard(
+  guardedMethods: ReadonlySet<string>,
+  now: () => number = Date.now,
+): RpcInFlightGuard {
+  const inFlight = new Map<string, InFlightCall>();
 
   return {
-    tryEnter(method: string, key?: string): boolean {
+    tryEnter(method: string, key?: string, entries: readonly InFlightEntryRef[] = []): boolean {
       if (!guardedMethods.has(method)) {
         return true;
       }
@@ -19,11 +39,22 @@ export function createRpcInFlightGuard(guardedMethods: ReadonlySet<string>): Rpc
       if (inFlight.has(lockKey)) {
         return false;
       }
-      inFlight.add(lockKey);
+      inFlight.set(lockKey, { method, startedAt: now(), entries });
       return true;
     },
     leave(method: string, key?: string): void {
       inFlight.delete(lockKeyFor(method, key));
+    },
+    entries(): readonly InFlightEntry[] {
+      const at = now();
+      return [...inFlight.values()].flatMap((call) =>
+        call.entries.map((entry) => ({
+          method: call.method,
+          locale: entry.locale,
+          key: entry.key,
+          elapsedMs: Math.max(0, at - call.startedAt),
+        })),
+      );
     },
   };
 }

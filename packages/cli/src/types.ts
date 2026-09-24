@@ -1,4 +1,9 @@
-import type { McpServerHandle, StartMcpServerOptions } from "@verbatra/mcp";
+import type {
+  McpLaunchArgs,
+  McpServerHandle,
+  McpStopCause,
+  StartMcpServerOptions,
+} from "@verbatra/mcp";
 import type {
   CheckInput,
   CheckSummary,
@@ -61,6 +66,10 @@ export interface StudioModule {
 export interface McpModule {
   startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
   resolveServerCwd?(cwd?: string): string;
+  projectLabel?(cwd: string, base: string): string;
+  mcpReadyLine?(project: string, allowSpend: boolean): string;
+  mcpTerminalHint?(launch: McpLaunchArgs): readonly string[];
+  mcpStoppedLine?(cause: McpStopCause): string;
 }
 
 export type Session = StoppableSession;

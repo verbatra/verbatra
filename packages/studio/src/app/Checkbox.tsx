@@ -22,7 +22,6 @@ export function Checkbox({
       }}
       type="checkbox"
       checked={checked}
-      aria-checked={indeterminate ? "mixed" : checked}
       className={cn(
         "size-4 cursor-pointer rounded-sm accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-default",
         className,

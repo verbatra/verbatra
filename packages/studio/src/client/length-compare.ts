@@ -20,13 +20,21 @@ export function compareLength(source: string, translation: string): LengthCompar
   };
 }
 
-function characters(count: number): string {
-  return `${count} ${count === 1 ? "character" : "characters"}`;
+export interface LengthSummary {
+  readonly text: string;
+  readonly overBudget: boolean;
 }
 
-export function lengthComparisonText(comparison: LengthComparison): string {
-  if (comparison.percentOfSource === null) {
-    return `${characters(comparison.translation)}; the source is empty`;
-  }
-  return `${characters(comparison.translation)}, ${comparison.percentOfSource}% of the source's ${comparison.source}`;
+export function lengthSummary(
+  comparison: LengthComparison,
+  maxLength: number | undefined,
+): LengthSummary {
+  const count =
+    maxLength === undefined
+      ? `${comparison.translation} ${comparison.translation === 1 ? "character" : "characters"}`
+      : `${comparison.translation} of ${maxLength} characters`;
+  const ratio =
+    comparison.percentOfSource === null ? "" : `, ${comparison.percentOfSource}% of source`;
+  const overBudget = maxLength !== undefined && comparison.translation > maxLength;
+  return { text: `${count}${ratio}${overBudget ? ", over budget" : ""}`, overBudget };
 }
