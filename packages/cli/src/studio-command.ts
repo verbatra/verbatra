@@ -17,7 +17,7 @@ import {
   type TerminalSettings,
 } from "./terminal-mode.js";
 import type { CliDeps, Session, Streams } from "./types.js";
-import { createUi } from "./ui.js";
+import { createUi, type Ui } from "./ui.js";
 
 const TOKEN_BYTES = 32;
 
@@ -40,6 +40,21 @@ type StudioOpts = z.infer<typeof studioOptsSchema>;
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_STUDIO_ALLOW_SPEND";
 
 const AGENT_TOOLS_ENV_VAR = "VERBATRA_STUDIO_AGENT_TOOLS";
+
+const REQUEST_LOG_LINE = /^[A-Z]+ \S+ \d{3}$/;
+
+const TOKEN_QUERY = /token=[0-9a-fA-F]+/g;
+
+const MASKED_TOKEN = "[REDACTED]";
+
+function requestLogForwarder(ui: Ui, token: string): (line: string) => void {
+  return (line) => {
+    if (!REQUEST_LOG_LINE.test(line)) {
+      return;
+    }
+    ui.line(line.replaceAll(token, MASKED_TOKEN).replace(TOKEN_QUERY, `token=${MASKED_TOKEN}`));
+  };
+}
 
 const INVALID_PORT_MESSAGE = "The --port option must be an integer between 1 and 65535.";
 
@@ -112,7 +127,7 @@ export async function runStudio(
         loader: () => Promise.resolve(config),
         token,
         cwd,
-        output: opts.verbose === true ? (line: string) => ui.line(line) : () => {},
+        output: opts.verbose === true ? requestLogForwarder(ui, token) : () => {},
         spend,
         exposeAgentTools,
         ...(opts.port !== undefined ? { port: opts.port } : {}),

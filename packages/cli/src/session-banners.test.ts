@@ -1,18 +1,9 @@
-import { mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { mcpReadyLine, mcpStoppedLine, mcpTerminalHint } from "@verbatra/mcp";
 import type { WatchController, WatchInput, WatchRunResult } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
-import {
-  MCP_DOCS_URL,
-  MCP_TERMINAL_HINT,
-  mcpReadyLine,
-  mcpStoppedLine,
-  projectLabel,
-  studioAgentToolsLine,
-  studioSpendLine,
-} from "./session-banners.js";
+import { studioAgentToolsLine, studioSpendLine } from "./session-banners.js";
 import type { TerminalFacts } from "./terminal-mode.js";
 import {
   captureStreams,
@@ -52,52 +43,7 @@ function sessionHooks(): { hooks: RunHooks; session: () => Session } {
   };
 }
 
-describe("projectLabel", () => {
-  const base = resolve("/work/app");
-
-  it("sees through a symlinked base, as macOS temp directories are", () => {
-    const real = mkdtempSync(join(tmpdir(), "verbatra-label-"));
-    mkdirSync(join(real, "web"));
-    const link = `${real}-link`;
-    symlinkSync(real, link);
-
-    expect(projectLabel(join(link, "web"), real)).toBe("web");
-    expect(projectLabel(link, real)).toBe(".");
-  });
-
-  it("falls back to the given paths when they do not exist", () => {
-    expect(projectLabel(join(base, "missing"), base)).toBe("missing");
-  });
-
-  it.each([
-    ["the base itself", base, "."],
-    ["a directory inside it", join(base, "packages", "web"), join("packages", "web")],
-    ["a directory outside it", resolve("/elsewhere/app"), resolve("/elsewhere/app")],
-  ])("labels %s", (_label, cwd, expected) => {
-    expect(projectLabel(cwd, base)).toBe(expected);
-  });
-});
-
 describe("banner wording", () => {
-  it("names the project and the spend state in the ready line", () => {
-    expect(mcpReadyLine("apps/web", true)).toBe(
-      "verbatra MCP server running on stdio (project apps/web, spend tools on)",
-    );
-  });
-
-  it("says why the server stopped", () => {
-    expect(mcpStoppedLine("ended")).toBe("verbatra MCP server stopped (client closed stdin)");
-    expect(mcpStoppedLine("requested")).toBe("verbatra MCP server stopped (interrupted)");
-  });
-
-  it("explains how to launch and inspect the server, in ASCII only", () => {
-    const hint = MCP_TERMINAL_HINT.join("\n");
-    expect(hint).toContain(MCP_DOCS_URL);
-    expect(hint).toContain("npx @modelcontextprotocol/inspector npx verbatra mcp");
-    expect(hint).toContain("Ctrl-C");
-    expect(hint).toMatch(/^[\x20-\x7e\n]+$/);
-  });
-
   it("points at the flag that turns each Studio capability on", () => {
     expect(studioSpendLine(false)).toContain("--allow-spend");
     expect(studioSpendLine(true)).toContain("spend tools on");
@@ -127,7 +73,7 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     closed.resolve();
 
     expect(await done).toBe(0);
-    expect(cap.err()).toBe(`${mcpReadyLine(".", false)}\n${mcpStoppedLine("ended")}\n`);
+    expect(cap.err()).toBe(`${mcpReadyLine(".", false)}\n${mcpStoppedLine("stdin-closed")}\n`);
     expect(cap.out()).toBe("");
   });
 
@@ -138,7 +84,12 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
 
     expect(await done).toBe(0);
     expect(cap.err()).toBe(
-      [mcpReadyLine(".", true), ...MCP_TERMINAL_HINT, mcpStoppedLine("requested"), ""].join("\n"),
+      [
+        mcpReadyLine(".", true),
+        ...mcpTerminalHint(["verbatra", "mcp"]),
+        mcpStoppedLine("signal"),
+        "",
+      ].join("\n"),
     );
     expect(cap.out()).toBe("");
   });
@@ -150,6 +101,32 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     await done;
 
     expect(cap.err()).toContain(mcpReadyLine("sub", false));
+  });
+
+  it("tells the client-config and inspector commands for the CLI subcommand", async () => {
+    const { cap, captured, done } = startMcp([], INTERACTIVE);
+    await flush();
+    captured.session().requestStop();
+    await done;
+
+    expect(cap.err()).toContain('command "npx", args ["verbatra", "mcp"]');
+    expect(cap.err()).toContain("npx @modelcontextprotocol/inspector npx verbatra mcp");
+  });
+
+  it("falls back to a plain ready line when an older @verbatra/mcp has no banner builders", async () => {
+    const close = vi.fn(async () => {});
+    const { deps } = recordingDeps({
+      importMcp: async () => ({ startMcpServer: async () => makeMcpHandle({ close }) }),
+    });
+    const cap = captureStreams();
+    const captured = sessionHooks();
+    const done = run(["mcp"], deps, cap.streams, captured.hooks, INTERACTIVE);
+    await flush();
+    captured.session().requestStop();
+
+    expect(await done).toBe(0);
+    expect(cap.err()).toBe("verbatra MCP server running on stdio\n");
+    expect(cap.out()).toBe("");
   });
 
   it("stays silent under --quiet", async () => {
@@ -165,12 +142,17 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
 describe("verbatra studio: capability, Ctrl-C and stopped lines on stderr", () => {
   function startStudio(argv: readonly string[], facts: TerminalFacts) {
     const lines: string[] = [];
+    const tokens: string[] = [];
     const { deps } = recordingDeps({
       importStudio: async () =>
         makeStudioModule({
           startStudioServer: async (options) => {
-            options.output?.("verbatra studio listening at http://127.0.0.1:5849/?token=abc");
+            options.output?.(
+              `verbatra studio listening at http://127.0.0.1:5849/?token=${options.token}`,
+            );
             options.output?.("GET / 200");
+            options.output?.(`GET /?token=${options.token} 303`);
+            tokens.push(options.token ?? "");
             lines.push("started");
             return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
           },
@@ -179,7 +161,7 @@ describe("verbatra studio: capability, Ctrl-C and stopped lines on stderr", () =
     const cap = captureStreams();
     const captured = sessionHooks();
     const done = run(["studio", ...argv], deps, cap.streams, captured.hooks, facts);
-    return { cap, captured, done };
+    return { cap, captured, done, tokens };
   }
 
   it("keeps the stdout URL line and reports both capabilities off with their flags", async () => {
@@ -215,15 +197,28 @@ describe("verbatra studio: capability, Ctrl-C and stopped lines on stderr", () =
     expect(cap.err()).toContain("verbatra: press Ctrl-C to stop\n");
   });
 
-  it("forwards Studio's own output to stderr under --verbose, never to stdout", async () => {
+  it("forwards only Studio's request log to stderr under --verbose, never to stdout", async () => {
     const { cap, captured, done } = startStudio(["--verbose"], PIPED);
     await flush();
     captured.session().requestStop();
     await done;
 
     expect(cap.err()).toContain("GET / 200\n");
-    expect(cap.err()).toContain("verbatra studio listening at");
+    expect(cap.err()).toContain("GET /?token=[REDACTED] 303\n");
+    expect(cap.err()).not.toContain("verbatra studio listening at");
     expect(cap.out()).not.toContain("GET / 200");
+  });
+
+  it("never writes the session token to stderr under --verbose", async () => {
+    const { cap, captured, done, tokens } = startStudio(["--verbose"], INTERACTIVE);
+    await flush();
+    captured.session().requestStop();
+    await done;
+
+    const [token] = tokens;
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
+    expect(cap.out()).toContain(`?token=${token}`);
+    expect(cap.err()).not.toContain(token);
   });
 
   it("keeps only the stdout URL line under --quiet", async () => {

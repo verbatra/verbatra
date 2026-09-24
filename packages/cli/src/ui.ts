@@ -20,6 +20,7 @@ export interface Task {
   succeed(summary?: string): void;
   fail(summary?: string): void;
   stop(): void;
+  isFinished(): boolean;
 }
 
 export interface Ui {
@@ -52,7 +53,13 @@ export function formatElapsed(ms: number): string {
   return `${Math.floor(whole / SECONDS_PER_MINUTE)}m ${whole % SECONDS_PER_MINUTE}s`;
 }
 
-const SILENT_TASK: Task = { update: () => {}, succeed: () => {}, fail: () => {}, stop: () => {} };
+const SILENT_TASK: Task = {
+  update: () => {},
+  succeed: () => {},
+  fail: () => {},
+  stop: () => {},
+  isFinished: () => false,
+};
 
 interface Writer {
   readonly streams: Streams;
@@ -117,7 +124,12 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
   const writer = coordinatedWriter(streams);
   const clock = deps.clock ?? systemClock;
   const now = deps.now ?? Date.now;
-  let active: { readonly stop: () => void } | undefined;
+  let active: { readonly halt: () => void } | undefined;
+
+  const stopSpinner = (): void => {
+    active?.halt();
+    active = undefined;
+  };
 
   const label = (format: LabelFormat, text: string): string =>
     terminal.color ? styleText(format, text, { validateStream: false }) : text;
@@ -158,6 +170,7 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
           writer.settle();
         }
       },
+      isFinished: () => finished,
     };
   };
 
@@ -167,23 +180,24 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
     const spinner = createSpinner(writer.rawErr, `${taskLabel}...`, clock);
     writer.attachSpinner(spinner);
     let finished = false;
-    const finish = (word: StatusWord, summary: string | undefined): void => {
+    const halt = (): void => {
       if (finished) {
         return;
       }
       finished = true;
       spinner.stop();
       writer.detachSpinner(spinner);
+    };
+    const finish = (word: StatusWord, summary: string | undefined): void => {
+      if (finished) {
+        return;
+      }
+      halt();
       writer.rawErr(
         `${label(STATUS_FORMATS[word], `[${word}]`)} ${summary ?? taskLabel} ${elapsedSuffix(startedAt)}\n`,
       );
     };
-    active = {
-      stop: () => {
-        spinner.stop();
-        writer.detachSpinner(spinner);
-      },
-    };
+    active = { halt };
     return {
       update: (text) => {
         if (!finished) {
@@ -192,11 +206,8 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       },
       succeed: (summary) => finish("ok", summary),
       fail: (summary) => finish("fail", summary),
-      stop: () => {
-        finished = true;
-        spinner.stop();
-        writer.detachSpinner(spinner);
-      },
+      stop: halt,
+      isFinished: () => finished,
     };
   };
 
@@ -218,8 +229,7 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       writer.streams.err(`verbatra: ${text}\n`);
     },
     error: (error) => {
-      active?.stop();
-      active = undefined;
+      stopSpinner();
       writer.streams.err(`verbatra: ${label("red", "error")} [${error.code}] ${error.message}\n`);
     },
     status,
@@ -230,8 +240,7 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       }
     },
     task: (taskLabel) => {
-      active?.stop();
-      active = undefined;
+      stopSpinner();
       if (isSilent(terminal)) {
         return SILENT_TASK;
       }

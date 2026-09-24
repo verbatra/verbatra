@@ -37,6 +37,21 @@ export function spinnerText(event: ProgressEvent): string | undefined {
   }
 }
 
+const STATIC_DETAIL_TYPES: ReadonlySet<ProgressEvent["type"]> = new Set([
+  "provider-retry",
+  "repair",
+  "split-retry",
+  "writing",
+]);
+
+export function staticProgressLine(event: ProgressEvent): string | undefined {
+  const legacy = renderProgressHuman(event);
+  if (legacy !== undefined || !STATIC_DETAIL_TYPES.has(event.type)) {
+    return legacy;
+  }
+  return `verbatra: ${spinnerText(event)}`;
+}
+
 function writeJson(ui: Ui, event: ProgressEvent): void {
   const line = renderProgressJson(event);
   if (line !== undefined) {
@@ -68,7 +83,9 @@ export function createProgressPresenter(
     if (text === undefined) {
       return;
     }
-    task ??= ui.task("translating");
+    if (task === undefined || task.isFinished()) {
+      task = ui.task("translating");
+    }
     task.update(text);
   };
 
@@ -86,7 +103,7 @@ export function createProgressPresenter(
       animate(event);
       return;
     }
-    const line = renderProgressHuman(event);
+    const line = staticProgressLine(event);
     if (line !== undefined) {
       ui.line(line);
     }

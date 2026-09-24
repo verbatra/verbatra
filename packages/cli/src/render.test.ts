@@ -18,7 +18,6 @@ import {
   renderLockWait,
   renderLockWaitHuman,
   renderLockWaitJson,
-  renderProgress,
   renderProgressHuman,
   renderProgressJson,
   renderPseudoHuman,
@@ -1068,12 +1067,6 @@ describe("render: progress", () => {
     }
   });
 
-  it("renderProgress dispatches to JSON under json mode and to the human line otherwise", () => {
-    const event: ProgressEvent = { type: "run-finished", localesCompleted: 1 };
-    expect(JSON.parse(renderProgress(event, true) ?? "")).toEqual(event);
-    expect(renderProgress(event, false)).toContain("run finished");
-  });
-
   const laterEvents: readonly ProgressEvent[] = [
     { type: "locale-planned", locale: "de", keys: 3, batches: 1, cacheHits: 0 },
     { type: "batch-finished", locale: "de", batchIndex: 1, totalBatches: 1, durationMs: 5 },
@@ -1090,7 +1083,6 @@ describe("render: progress", () => {
     (event) => {
       expect(renderProgressHuman(event)).toBeUndefined();
       expect(renderProgressJson(event)).toBeUndefined();
-      expect(renderProgress(event, true)).toBeUndefined();
     },
   );
 });
