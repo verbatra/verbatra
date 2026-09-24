@@ -1,4 +1,4 @@
-import { access, readdir } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -26,6 +26,15 @@ const INITIALIZE_REQUEST = jsonRpcLine({
 });
 
 const INITIALIZED_NOTIFICATION = jsonRpcLine({ method: "notifications/initialized" });
+
+const EDIT_ENTRY_REQUEST = jsonRpcLine({
+  id: 2,
+  method: "tools/call",
+  params: {
+    name: "translation.editEntry",
+    arguments: { locale: "de", key: "greeting", value: "Hallo Welt" },
+  },
+});
 
 const TRANSLATE_PENDING_REQUEST = jsonRpcLine({
   id: 2,
@@ -137,6 +146,27 @@ describe("mcp (no key)", () => {
     expect(result.signal).toBeUndefined();
     expect(result.exitCode).toBe(0);
     expect(result.stderr).not.toMatch(/unsettled top-level await/i);
+    expect(await lockFilesUnder(dir)).toEqual([]);
+  }, 120_000);
+
+  it("verbatra mcp writes a keyless editEntry and releases its locale lock once the client closes stdin", async () => {
+    const { result, stdout } = await exchangeThenCloseStdin(
+      spawnVerbatra(consumer, ["mcp", "--cwd", dir]),
+      [
+        [INITIALIZE_REQUEST, 1],
+        [INITIALIZED_NOTIFICATION, undefined],
+        [EDIT_ENTRY_REQUEST, 2],
+      ],
+    );
+
+    expect(responseTo(stdout, 2)).toMatchObject({
+      result: { structuredContent: { accepted: true, value: "Hallo Welt" } },
+    });
+    expect(JSON.parse(await readFile(join(dir, "locales/de.json"), "utf8"))).toEqual({
+      greeting: "Hallo Welt",
+    });
+    expect(result.signal).toBeUndefined();
+    expect(result.exitCode).toBe(0);
     expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 
