@@ -45,7 +45,10 @@ async function translatedProject(config: VerbatraConfig = cfg()): Promise<string
   const dir = await makeTempDir();
   await mkdir(join(dir, "locales"));
   await writeJsonFile(join(dir, "locales", "en.json"), SOURCE);
-  await translate({ config, cwd: dir }, { createProvider: () => makeStubProvider().provider });
+  await translate(
+    { config, cwd: dir },
+    { createProvider: (provider) => makeStubProvider({ id: provider.id }).provider },
+  );
   return dir;
 }
 

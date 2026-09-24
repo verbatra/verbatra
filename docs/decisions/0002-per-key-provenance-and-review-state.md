@@ -110,8 +110,8 @@ One record per key and target locale:
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `origin` | yes | The write path that produced the current value (Decision 3). |
-| `provider` | `machine` only | The configured provider id, for example `anthropic` or `deepl`. |
-| `model` | no | The model the provider config resolves to, when the provider has one. |
+| `provider` | `machine` only | The `id` of the `TranslationProvider` that answered, for example `anthropic` or `deepl`; a custom SDK `createProvider` is recorded under its own `id`. |
+| `model` | no | The model the provider config resolves to, when the provider has one and the answering provider's `id` is the configured one. |
 | `valueHash` | yes | `stableStringHash(normalizeText(value))` of the target value that was written. |
 | `reviewState` | no | `approved` or `rejected`; absent means unreviewed (Decision 5). |
 | `reviewer` | no | Free text, stored only when a caller supplies it (Decision 6). |

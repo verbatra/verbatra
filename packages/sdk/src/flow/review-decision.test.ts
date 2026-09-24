@@ -7,6 +7,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { loadLockFile } from "../lock/load-lock-file.js";
 import { loadProvenance } from "../lock/load-provenance.js";
 import { PROVENANCE_FILE_NAME, type ProvenanceRecord, valueHash } from "../lock/provenance-file.js";
+import type { CreateProvider } from "../selection/select-provider.js";
 import {
   baseConfig,
   makeStubProvider,
@@ -24,7 +25,7 @@ import { translate } from "./translate-project.js";
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
   baseConfig({ targetLocales: ["de"], ...overrides });
 
-const stubCreate = () => makeStubProvider().provider;
+const stubCreate: CreateProvider = (config) => makeStubProvider({ id: config.id }).provider;
 
 async function project(source: Record<string, string>): Promise<string> {
   const dir = await makeTempDir();

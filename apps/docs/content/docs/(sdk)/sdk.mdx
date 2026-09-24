@@ -503,8 +503,9 @@ review reason codes, if any, that apply to the new value) or
 Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
 with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
 
-The new value is recorded in `verbatra.provenance.json` as `machine`, with the configured provider
-and model. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
+The new value is recorded in `verbatra.provenance.json` as `machine`, with the `id` of the provider
+that answered and the configured model. A provider from your own `createProvider` is recorded
+under its own `id`, and without the model when that `id` differs from the configured one. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
 
 <AvailableFrom version="0.12.0" />
 

@@ -1,4 +1,8 @@
-import { ProviderError, type ReviewReasonCode } from "@verbatra/ai-providers";
+import {
+  ProviderError,
+  type ReviewReasonCode,
+  type TranslationProvider,
+} from "@verbatra/ai-providers";
 import { contentHash } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { fingerprintsFor } from "../cache/fingerprint.js";
@@ -100,8 +104,12 @@ export type RetranslateEntryResult =
       readonly value: string;
     };
 
-function machinePending(value: string, config: VerbatraConfig): PendingProvenance {
-  const attribution = machineAttribution(config.provider);
+function machinePending(
+  value: string,
+  config: VerbatraConfig,
+  provider: TranslationProvider,
+): PendingProvenance {
+  const attribution = machineAttribution(config.provider, provider.id);
   return attribution === undefined
     ? { origin: "machine", value }
     : { origin: "machine", value, attribution };
@@ -122,8 +130,9 @@ function machinePending(value: string, config: VerbatraConfig): PendingProvenanc
  * and a concurrent {@link translate} run on that locale waits. The lock is held for a refused
  * translation too, since the gate runs inside it. An accepted value then updates the lock-file
  * baseline and feeds the translation memory, so a later {@link translate} run sees the key as up
- * to date. The provenance file records the value as `machine`, naming the configured provider and
- * model, and any earlier review decision on the key is cleared.
+ * to date. The provenance file records the value as `machine`, naming the `id` of the provider that
+ * answered and, when that is the configured provider, its model, and any earlier review decision
+ * on the key is cleared.
  *
  * Note that the target locale file surfaces the adapter's own error and code rather than a wrapped
  * {@link SdkError}, on the write as well as on the read, because only the source read is wrapped.
@@ -273,7 +282,7 @@ export async function retranslateEntry(
       locale,
       { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
       settleProvenance(
-        new Map([[input.key, machinePending(value, config)]]),
+        new Map([[input.key, machinePending(value, config, provider)]]),
         await readTarget(cwd, config, adapter, fs, locale),
       ),
     );
