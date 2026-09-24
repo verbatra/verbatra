@@ -87,9 +87,36 @@ describe("pseudolocalize: an output directory that reaches through a symbolic li
 
     await expect(pseudolocalize({ config: cfg(), cwd: dir, out: "pseudo" })).rejects.toMatchObject({
       code: "PSEUDO_OUTPUT_CONFLICT",
-      message: expect.stringContaining("resolves to the lock file"),
+      message: expect.stringContaining(
+        "would be written to pseudo/locales/en-XA.json, which resolves to the lock file",
+      ),
     });
     expect(await readFile(join(dir, LOCK_FILE_NAME), "utf8")).toBe(LOCK_CONTENT);
+  });
+
+  it("refuses a directory under the output whose link points at the locale directory", async () => {
+    const dir = await project();
+    await mkdir(join(dir, "pseudo"));
+    await symlink(join(dir, "locales"), join(dir, "pseudo", "locales"), "dir");
+
+    await expect(pseudolocalize({ config: cfg(), cwd: dir, out: "pseudo" })).rejects.toMatchObject({
+      code: "PSEUDO_OUTPUT_CONFLICT",
+      message: expect.stringContaining(
+        'would be written to pseudo/locales/en-XA.json, which resolves through a symbolic link to the directory holding the locale file for "en"',
+      ),
+    });
+    expect(await readdir(join(dir, "locales"))).toEqual(["de.json", "en.json"]);
+  });
+
+  it("refuses a relative link into the locale directory the same way", async () => {
+    const dir = await project();
+    await mkdir(join(dir, "pseudo"));
+    await symlink(join("..", "locales"), join(dir, "pseudo", "locales"), "dir");
+
+    await expect(pseudolocalize({ config: cfg(), cwd: dir, out: "pseudo" })).rejects.toMatchObject({
+      code: "PSEUDO_OUTPUT_CONFLICT",
+    });
+    expect(await readdir(join(dir, "locales"))).toEqual(["de.json", "en.json"]);
   });
 
   it("writes through a linked directory that stays inside the project", async () => {
