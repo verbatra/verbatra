@@ -7,6 +7,7 @@ import {
   currentHostLiveness,
   isHolderProvablyDead,
   type LivenessContext,
+  type RecordedHolder,
 } from "./holder-liveness.js";
 
 const LOCAL_DIR_NAME = ".verbatra-local";
@@ -98,32 +99,46 @@ interface HeldLock {
 
 const heldLocks = new Set<HeldLock>();
 
-function lockPayload(host: string): string {
-  return JSON.stringify({ pid: process.pid, hostname: host, acquiredAt: new Date().toISOString() });
+function lockPayload(liveness: LivenessContext): string {
+  return JSON.stringify({
+    pid: process.pid,
+    hostname: liveness.host,
+    bootId: liveness.bootId,
+    pidNamespace: liveness.pidNamespace,
+    acquiredAt: new Date().toISOString(),
+  });
 }
 
 interface ObservedLock {
   readonly content?: string;
   readonly holder?: LockHolder;
+  readonly recorded?: RecordedHolder;
+}
+
+interface AbandonedLock {
+  readonly content: string;
+  readonly recorded: RecordedHolder;
 }
 
 async function observeLock(path: string, fs: SdkFs): Promise<ObservedLock> {
   const read = await fs.readFileBounded(path, MAX_LOCK_PAYLOAD_BYTES);
-  const holder = parseHolder(read);
+  const record = parseRecord(read);
   return {
     ...(read.kind === "ok" ? { content: read.content } : {}),
-    ...(holder !== undefined ? { holder } : {}),
+    ...(record !== undefined
+      ? { holder: holderOf(record), recorded: recordedHolderOf(record) }
+      : {}),
   };
 }
 
 function isAbandoned(
   observed: ObservedLock,
   liveness: LivenessContext,
-): observed is Required<ObservedLock> {
+): observed is ObservedLock & AbandonedLock {
   return (
     observed.content !== undefined &&
-    observed.holder !== undefined &&
-    isHolderProvablyDead(observed.holder, liveness)
+    observed.recorded !== undefined &&
+    isHolderProvablyDead(observed.recorded, liveness)
   );
 }
 
@@ -136,31 +151,68 @@ async function deleteIfUnchanged(path: string, fs: SdkFs, content: string): Prom
   return true;
 }
 
+interface GuardSighting {
+  readonly content: string;
+  readonly seenAt: number;
+}
+
+interface GuardWatch {
+  sighting: GuardSighting | undefined;
+}
+
+interface ReclaimSettings {
+  readonly pollIntervalMs: number;
+  readonly liveness: LivenessContext;
+}
+
+async function clearAbandonedGuard(
+  guard: string,
+  fs: SdkFs,
+  settings: ReclaimSettings,
+  guardWatch: GuardWatch,
+): Promise<void> {
+  const observed = await observeLock(guard, fs);
+  if (!isAbandoned(observed, settings.liveness)) {
+    guardWatch.sighting = undefined;
+    return;
+  }
+  const now = Date.now();
+  const previous = guardWatch.sighting;
+  if (previous === undefined || previous.content !== observed.content) {
+    guardWatch.sighting = { content: observed.content, seenAt: now };
+    return;
+  }
+  if (now - previous.seenAt < settings.pollIntervalMs) {
+    return;
+  }
+  guardWatch.sighting = undefined;
+  await deleteIfUnchanged(guard, fs, observed.content);
+}
+
 async function reclaimAbandonedLock(
   path: string,
   fs: SdkFs,
   observed: ObservedLock,
-  liveness: LivenessContext,
+  settings: ReclaimSettings,
+  guardWatch: GuardWatch,
 ): Promise<boolean> {
-  if (!isAbandoned(observed, liveness)) {
+  if (!isAbandoned(observed, settings.liveness)) {
     return false;
   }
   const guard = `${path}.reclaim`;
-  if (!(await fs.createExclusive(guard, lockPayload(liveness.host)))) {
-    const guardHolder = await observeLock(guard, fs);
-    if (isAbandoned(guardHolder, liveness)) {
-      await deleteIfUnchanged(guard, fs, guardHolder.content);
-    }
+  if (!(await fs.createExclusive(guard, lockPayload(settings.liveness)))) {
+    await clearAbandonedGuard(guard, fs, settings, guardWatch);
     return false;
   }
+  guardWatch.sighting = undefined;
   try {
     return await deleteIfUnchanged(path, fs, observed.content);
   } finally {
-    await fs.deleteFile(guard);
+    await fs.deleteFile(guard).catch(() => undefined);
   }
 }
 
-function parseHolder(read: BoundedFileRead): LockHolder | undefined {
+function parseRecord(read: BoundedFileRead): Readonly<Record<string, unknown>> | undefined {
   if (read.kind !== "ok") {
     return undefined;
   }
@@ -173,18 +225,32 @@ function parseHolder(read: BoundedFileRead): LockHolder | undefined {
   if (typeof parsed !== "object" || parsed === null) {
     return undefined;
   }
-  const record = parsed as Record<string, unknown>;
-  const holder: { pid?: number; hostname?: string; acquiredAt?: string } = {};
-  if (typeof record.pid === "number") {
-    holder.pid = record.pid;
-  }
-  if (typeof record.hostname === "string") {
-    holder.hostname = record.hostname;
-  }
-  if (typeof record.acquiredAt === "string") {
-    holder.acquiredAt = record.acquiredAt;
-  }
-  return holder;
+  return parsed as Readonly<Record<string, unknown>>;
+}
+
+function stringField(record: Readonly<Record<string, unknown>>, name: string): string | undefined {
+  const value = record[name];
+  return typeof value === "string" ? value : undefined;
+}
+
+function holderOf(record: Readonly<Record<string, unknown>>): LockHolder {
+  const hostname = stringField(record, "hostname");
+  const acquiredAt = stringField(record, "acquiredAt");
+  return {
+    ...(typeof record.pid === "number" ? { pid: record.pid } : {}),
+    ...(hostname !== undefined ? { hostname } : {}),
+    ...(acquiredAt !== undefined ? { acquiredAt } : {}),
+  };
+}
+
+function recordedHolderOf(record: Readonly<Record<string, unknown>>): RecordedHolder {
+  const bootId = stringField(record, "bootId");
+  const pidNamespace = stringField(record, "pidNamespace");
+  return {
+    ...holderOf(record),
+    ...(bootId !== undefined ? { bootId } : {}),
+    ...(pidNamespace !== undefined ? { pidNamespace } : {}),
+  };
 }
 
 function makeWaitNotifier(
@@ -203,23 +269,22 @@ function makeWaitNotifier(
   };
 }
 
-interface AcquireSettings {
-  readonly pollIntervalMs: number;
+interface AcquireSettings extends ReclaimSettings {
   readonly deadline: number;
-  readonly liveness: LivenessContext;
   readonly notify?: (holder: LockHolder | undefined) => void;
 }
 
 async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): Promise<void> {
+  const guardWatch: GuardWatch = { sighting: undefined };
   for (;;) {
-    if (await fs.createExclusive(path, lockPayload(settings.liveness.host))) {
+    if (await fs.createExclusive(path, lockPayload(settings.liveness))) {
       return;
     }
     const observed = await observeLock(path, fs);
-    const reclaimed = await reclaimAbandonedLock(path, fs, observed, settings.liveness);
-    if (!reclaimed) {
-      settings.notify?.(observed.holder);
+    if (await reclaimAbandonedLock(path, fs, observed, settings, guardWatch)) {
+      continue;
     }
+    settings.notify?.(observed.holder);
     if (Date.now() >= settings.deadline) {
       throw new SdkError(
         "LOCK_CONTENDED",
@@ -230,9 +295,7 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
           "and retry.",
       );
     }
-    if (!reclaimed) {
-      await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs);
-    }
+    await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs);
   }
 }
 
@@ -248,7 +311,7 @@ async function withFileLock<T>(
   await acquireLock(path, fs, {
     pollIntervalMs,
     deadline: start + acquireTimeoutMs,
-    liveness: options.liveness ?? currentHostLiveness,
+    liveness: options.liveness ?? currentHostLiveness(),
     ...(options.onWait !== undefined
       ? { notify: makeWaitNotifier(path, options.onWait, start) }
       : {}),
@@ -271,7 +334,7 @@ async function withFileLock<T>(
  * immediately before the process exits. A lock left behind anyway, by a process killed outright,
  * is reclaimed by the next run on the same machine once the holding process is gone.
  *
- * @returns Resolves once every held lock file has been deleted; never rejects.
+ * @returns Resolves once every deletion has been attempted; never rejects.
  */
 export async function releaseHeldLocks(): Promise<void> {
   const locks = [...heldLocks];

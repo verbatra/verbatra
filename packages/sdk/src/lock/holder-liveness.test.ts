@@ -63,11 +63,71 @@ describe("isHolderProvablyDead", () => {
   });
 });
 
+describe("isHolderProvablyDead: kernel identity", () => {
+  const gone: SignalProbe = errnoProbe("ESRCH");
+  const linux: LivenessContext = {
+    host: "build-host",
+    bootId: "boot-a",
+    pidNamespace: "pid:[4026531836]",
+    probe: gone,
+  };
+
+  it("is true when every identity field the holder recorded matches this process", () => {
+    expect(
+      isHolderProvablyDead(
+        { pid: 4242, hostname: "build-host", bootId: "boot-a", pidNamespace: "pid:[4026531836]" },
+        linux,
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    [
+      "another boot of the kernel, as a second machine sharing the host name has",
+      { bootId: "boot-b", pidNamespace: "pid:[4026531836]" },
+    ],
+    [
+      "another PID namespace, as a container sharing the host name and a volume has",
+      { bootId: "boot-a", pidNamespace: "pid:[4026532999]" },
+    ],
+    ["no boot ID, as a lock written without one", { pidNamespace: "pid:[4026531836]" }],
+    ["no PID namespace, as a lock written without one", { bootId: "boot-a" }],
+    ["neither field, as a lock written before they were recorded", {}],
+  ])("treats a holder with %s as alive", (_label, identity) => {
+    expect(isHolderProvablyDead({ pid: 4242, hostname: "build-host", ...identity }, linux)).toBe(
+      false,
+    );
+  });
+
+  it("treats a holder that recorded an identity field this process cannot read as alive", () => {
+    expect(
+      isHolderProvablyDead(
+        { pid: 4242, hostname: "build-host", bootId: "boot-a", pidNamespace: "pid:[4026531836]" },
+        { host: "build-host", probe: gone },
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("currentHostLiveness", () => {
   it("names this machine and reports the running process as alive", () => {
-    expect(currentHostLiveness.host).toBe(hostname());
+    const current = currentHostLiveness();
+
+    expect(current.host).toBe(hostname());
     expect(
-      isHolderProvablyDead({ pid: process.pid, hostname: hostname() }, currentHostLiveness),
+      isHolderProvablyDead(
+        {
+          pid: process.pid,
+          hostname: hostname(),
+          ...(current.bootId !== undefined ? { bootId: current.bootId } : {}),
+          ...(current.pidNamespace !== undefined ? { pidNamespace: current.pidNamespace } : {}),
+        },
+        current,
+      ),
     ).toBe(false);
+  });
+
+  it("reads the machine identity once and reuses it", () => {
+    expect(currentHostLiveness()).toBe(currentHostLiveness());
   });
 });

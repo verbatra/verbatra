@@ -90,12 +90,21 @@ lock file), it stops claiming new locales and waits for the ones already running
 every lock the run took is released before the command exits. No locale is started after the run
 has already failed, and no lock is orphaned by the failure itself.
 
-Each lock file records the process ID and the host name of the process holding it. A process
-killed hard can still leave one behind, so a waiting run checks the recorded process: when it ran
-on this machine and no longer exists, the run reclaims the lock at once instead of waiting out
+Each lock file records the process ID and the host name of the process holding it, and on Linux
+also the kernel's boot ID and the process's PID namespace. A process killed hard can still leave
+one behind, so a waiting run checks the recorded process: when every identity field the lock
+records matches the waiting run's own (so the recorded process ran on this machine, in the same
+process table) and that process no longer exists, the run reclaims the lock at once instead of waiting out
 `--lock-timeout`. Reclaiming is serialized, so two waiting runs never both take over the same
 abandoned lock. A lock recorded on another machine (a shared network drive) or by a verbatra
-version older than 0.12.0 carries nothing that can be checked safely, so it is never reclaimed.
+version older than 0.12.0 carries nothing that can be checked safely, so it is never reclaimed. The
+same goes for a lock that records an identity field the waiting run cannot read, or lacks one it
+can: it is treated as held by a live process.
+
+One limit remains. Outside Linux, the host name is the only machine identity verbatra records, so
+two containers or virtual machines that share a host name and the same `.verbatra-local/`
+directory (a shared volume) but not a process table can mistake each other's live lock for an
+abandoned one. Give each of them its own host name, or its own working copy.
 
 An interrupt releases the locks a run holds before the process exits: Ctrl-C or SIGTERM during
 `translate` or `import`, and the second interrupt that force-stops `watch`.

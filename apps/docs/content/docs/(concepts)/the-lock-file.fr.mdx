@@ -101,13 +101,23 @@ que la commande ne se termine. Aucune locale n'est démarrée après que l'exéc
 aucun verrou n'est rendu orphelin par l'échec lui-même.
 
 Chaque fichier de verrouillage enregistre l'identifiant et le nom d'hôte du processus qui le
-détient. Un processus tué brutalement peut quand même en laisser un derrière lui, donc une
-exécution en attente vérifie le processus enregistré : s'il tournait sur cette machine et n'existe
-plus, l'exécution reprend le verrou tout de suite au lieu d'attendre la fin de `--lock-timeout`. La
+détient, et sous Linux aussi l'identifiant de démarrage du noyau et l'espace de noms PID du
+processus. Un processus tué brutalement peut quand même en laisser un derrière lui, donc une
+exécution en attente vérifie le processus enregistré : si chaque champ d'identité du verrou
+correspond à celui de l'exécution en attente (le processus tournait donc sur cette machine, dans la
+même table des processus) et que ce processus n'existe plus, l'exécution reprend le verrou tout de suite au lieu d'attendre la fin de `--lock-timeout`. La
 reprise est sérialisée, donc deux exécutions en attente ne reprennent jamais toutes les deux le même
 verrou abandonné. Un verrou enregistré sur une autre machine (un lecteur réseau partagé) ou par une
 version de verbatra antérieure à 0.12.0 ne contient rien de vérifiable sans risque, il n'est donc
-jamais repris.
+jamais repris. Il en va de même pour un verrou qui enregistre un champ d'identité que l'exécution
+en attente ne peut pas lire, ou auquel il en manque un qu'elle peut lire : il est traité comme
+détenu par un processus vivant.
+
+Une limite demeure. Hors de Linux, le nom d'hôte est la seule identité de machine que verbatra
+enregistre, donc deux conteneurs ou machines virtuelles qui partagent un nom d'hôte et le même
+répertoire `.verbatra-local/` (un volume partagé), mais pas une table des processus, peuvent prendre
+le verrou vivant de l'autre pour un verrou abandonné. Donne à chacun son propre nom d'hôte, ou sa
+propre copie de travail.
 
 Une interruption libère les verrous d'une exécution avant la fin du processus : Ctrl-C ou SIGTERM
 pendant `translate` ou `import`, et la seconde interruption qui force l'arrêt de `watch`.

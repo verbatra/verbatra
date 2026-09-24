@@ -1256,11 +1256,14 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
 falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
 `PROVIDER_CONSTRUCTION_FAILED` (el propio error de la factoría del proveedor, cuyo mensaje también
-pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` (el error del sistema de archivos) y
+pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` y `GLOSSARY_UNWRITABLE` (el error del sistema de archivos) y
 `REVIEW_RESTORE_FAILED` (el fallo que interrumpió la decisión). `CONFIG_NOT_FOUND` y
 `CONFIG_INVALID` no llevan ninguno a propósito, porque el error de un analizador de configuración
 puede citar el contenido del archivo, y una clave escrita en la configuración no debe viajar con el
-error.
+error. En `PROVIDER_CONSTRUCTION_FAILED` solo se redacta el mensaje: su `cause` es el error original,
+intacto. Las factorías de proveedor integradas lanzan errores sin secretos, y un error lanzado por un
+`createProvider` que pasas tú vuelve exactamente como lo lanzaste, así que mantén los secretos fuera
+de él o redáctalo tú antes de registrar el `cause`.
 
 Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`
 propio del proveedor cuando la llamada única falla, y `runStatus` no lanza nunca. Para cómo estos

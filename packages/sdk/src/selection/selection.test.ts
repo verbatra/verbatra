@@ -1,5 +1,5 @@
 import { AdapterRegistry, type FormatAdapter } from "@verbatra/format-adapters";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildProvider } from "../config/provider-config.js";
 import { SdkError } from "../errors.js";
 import { makeStubProvider } from "../test-support.js";
@@ -62,6 +62,10 @@ describe("selectAdapter", () => {
 });
 
 describe("selectProvider", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("refuses none as MACHINE_TRANSLATION_DISABLED without calling the factory", () => {
     const calls: string[] = [];
     const error = (() => {
@@ -137,24 +141,17 @@ describe("selectProvider", () => {
   });
 
   it("carries the real ProviderError of a missing API key as the cause", () => {
-    const saved = process.env.DEEPL_API_KEY;
-    delete process.env.DEEPL_API_KEY;
-    try {
-      const error = (() => {
-        try {
-          selectProvider({ id: "deepl", options: {} });
-          return undefined;
-        } catch (e) {
-          return e;
-        }
-      })();
-      expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
-      expect((error as SdkError).cause).toMatchObject({ code: "MISSING_API_KEY" });
-    } finally {
-      if (saved !== undefined) {
-        process.env.DEEPL_API_KEY = saved;
+    vi.stubEnv("DEEPL_API_KEY", undefined);
+    const error = (() => {
+      try {
+        selectProvider({ id: "deepl", options: {} });
+        return undefined;
+      } catch (e) {
+        return e;
       }
-    }
+    })();
+    expect((error as SdkError).code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+    expect((error as SdkError).cause).toMatchObject({ code: "MISSING_API_KEY" });
   });
 });
 
