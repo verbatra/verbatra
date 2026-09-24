@@ -3,6 +3,7 @@ import {
   isRestrictive,
   type NetworkConfig,
   type ProviderNetwork,
+  type ProviderRetryListener,
   processEnvironment,
   type TranslationProvider,
 } from "@verbatra/ai-providers";
@@ -14,6 +15,7 @@ import {
   type ProviderConfig,
 } from "../config/provider-config.js";
 import { errorMessage, SdkError } from "../errors.js";
+import type { ProgressEvent } from "../progress/types.js";
 import { redact } from "../redact.js";
 
 /**
@@ -48,19 +50,38 @@ export interface CreateProviderContext {
 export type CreateProvider = (
   config: ProviderConfig,
   context?: CreateProviderContext,
+  hooks?: CreateProviderHooks,
 ) => TranslationProvider;
+
+/**
+ * Listeners the SDK hands a {@link CreateProvider} as its third argument, only when a run reports
+ * progress. A custom factory may ignore them.
+ */
+export interface CreateProviderHooks {
+  /**
+   * Called for each retry the built-in providers make of a request that failed with a retryable
+   * status. {@link translate} and {@link watch} report each call as a `provider-retry`
+   * {@link ProgressEvent}.
+   */
+  readonly onRetry?: ProviderRetryListener;
+}
 
 export interface SelectProviderNetwork {
   readonly network: NetworkConfig | undefined;
   readonly env?: EnvironmentSource;
+  readonly hooks?: CreateProviderHooks;
 }
 
 function construct(
   config: ProviderConfig,
   createProvider: CreateProvider,
   context: CreateProviderContext | undefined,
+  hooks: CreateProviderHooks | undefined,
 ): TranslationProvider {
   try {
+    if (hooks !== undefined) {
+      return createProvider(config, context, hooks);
+    }
     return context === undefined ? createProvider(config) : createProvider(config, context);
   } catch (error) {
     throw new SdkError(
@@ -83,5 +104,5 @@ export function selectProvider(
   const policy = resolveNetworkPolicy(selection.network, env);
   assertEndpointPermitted(config, policy, env);
   const context = isRestrictive(policy) ? { network: { policy, env } } : undefined;
-  return construct(config, createProvider, context);
+  return construct(config, createProvider, context, selection.hooks);
 }

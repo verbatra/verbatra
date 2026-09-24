@@ -6,6 +6,7 @@ import { buildOpenAiRequest, type OpenAiRequest } from "../openai/request.js";
 import { extractOpenAiResult } from "../openai/response.js";
 import type { OpenAiClient, OpenAiCompletion } from "../openai/types.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider } from "../provider.js";
+import type { ProviderRetryListener } from "../provider-retry.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import {
@@ -19,6 +20,7 @@ const PROVIDER_ID = "openai-compatible";
 export interface OpenAiCompatibleDeps {
   readonly client?: OpenAiClient;
   readonly network?: ProviderNetwork;
+  readonly onRetry?: ProviderRetryListener;
 }
 
 export function createOpenAiCompatibleProvider(
@@ -29,7 +31,7 @@ export function createOpenAiCompatibleProvider(
   if (validConfig.apiKeyEnvVar !== undefined) {
     declareKeyEnvVar(validConfig.apiKeyEnvVar);
   }
-  const client = deps.client ?? createDefaultClient(validConfig, deps.network);
+  const client = deps.client ?? createDefaultClient(validConfig, deps.network, deps.onRetry);
   const mechanism = createMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,

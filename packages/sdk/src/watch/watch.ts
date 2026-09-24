@@ -79,7 +79,10 @@ export interface WatchInput {
   readonly onRun: (result: WatchRunResult) => void;
   /** Called while waiting on another process's write lock, never for one this process holds. */
   readonly onLockWait?: LockWaitListener;
-  /** Called as locales and sub-batches start and finish, for progress reporting. */
+  /**
+   * Called as each run plans, sends and writes its locales, and as the watcher detects a change or
+   * goes idle, for progress reporting.
+   */
   readonly onProgress?: ProgressListener;
   /**
    * How long, in milliseconds, to wait for a locale's write lock, before any provider call, before
@@ -244,10 +247,12 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
     }
     state = "idle";
     inFlight = undefined;
+    input.onProgress?.({ type: "idle" });
   }
 
   function onSettledChange(): void {
     debounceTimer = undefined;
+    input.onProgress?.({ type: "change-detected", paths: [sourcePath] });
     if (state === "idle") {
       startRun();
     } else {

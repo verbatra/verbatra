@@ -4,7 +4,8 @@ import { buildLiteralRules } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
-import { EXTRACT_NOT_CONFIGURED_MESSAGE, toSourceFs } from "./source-scan.js";
+import type { ScanProgressListener } from "../progress/types.js";
+import { EXTRACT_NOT_CONFIGURED_MESSAGE, scanProgress, toSourceFs } from "./source-scan.js";
 
 export type LiteralLintOutcome =
   | { readonly kind: "scanned"; readonly scan: LiteralScan }
@@ -33,6 +34,7 @@ export async function lintLiterals(
   config: VerbatraConfig,
   cwd: string,
   fs: SdkFs,
+  onProgress?: ScanProgressListener,
 ): Promise<LiteralLintOutcome> {
   const extraction = config.extract;
   if (extraction === undefined) {
@@ -48,6 +50,7 @@ export async function lintLiterals(
         ...(extraction.literals?.ignore !== undefined
           ? { ignore: extraction.literals.ignore }
           : {}),
+        ...scanProgress(onProgress),
       },
       toSourceFs(fs),
     );

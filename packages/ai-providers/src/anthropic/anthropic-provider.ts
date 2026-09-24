@@ -3,6 +3,7 @@ import { assertNotTruncated } from "../llm/truncation.js";
 import { toUsage as toUsageFromCounts } from "../llm/usage.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider, Usage } from "../provider.js";
+import type { ProviderRetryListener } from "../provider-retry.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import { type AnthropicConfig, anthropicConfigSchema } from "./config.js";
@@ -15,6 +16,7 @@ const PROVIDER_ID = "anthropic";
 export interface AnthropicDeps {
   readonly client?: MessagesClient;
   readonly network?: ProviderNetwork;
+  readonly onRetry?: ProviderRetryListener;
 }
 
 export function createAnthropicProvider(
@@ -22,7 +24,7 @@ export function createAnthropicProvider(
   deps: AnthropicDeps = {},
 ): TranslationProvider {
   const validConfig = anthropicConfigSchema.parse(config);
-  const client = deps.client ?? createDefaultClient(deps.network);
+  const client = deps.client ?? createDefaultClient(deps.network, deps.onRetry);
   const mechanism = createMechanism(client, validConfig);
   return {
     id: PROVIDER_ID,

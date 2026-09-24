@@ -109,6 +109,7 @@ export type {
   Usage,
 } from "./provider.js";
 export { REVIEW_REASON_CODES } from "./provider.js";
+export type { ProviderRetry, ProviderRetryListener } from "./provider-retry.js";
 export { redactKeys } from "./redaction.js";
 export { ProviderRegistry, type ProviderResolution } from "./registry.js";
 export { computeReviewFlags, type ReviewFlagInput } from "./review-flags.js";

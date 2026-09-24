@@ -4,15 +4,18 @@ import { toMutableRequest } from "../llm/mutable.js";
 import { openAiStyleTransport, type ProviderNetwork } from "../network/transport.js";
 import type { OpenAiRequest } from "../openai/request.js";
 import type { OpenAiCallOptions, OpenAiClient, OpenAiCompletion } from "../openai/types.js";
+import type { ProviderRetryListener } from "../provider-retry.js";
 import type { OpenAiCompatibleConfig } from "./config.js";
 
 export function createDefaultClient(
   config: OpenAiCompatibleConfig,
   network?: ProviderNetwork,
+  onRetry?: ProviderRetryListener,
 ): OpenAiClient {
   const transport = openAiStyleTransport(
     { id: "openai-compatible", baseUrl: config.baseUrl },
     network,
+    onRetry,
   );
   const sdk = new OpenAI({
     apiKey: resolveOpenAiCompatibleKey(config.apiKeyEnvVar),

@@ -101,6 +101,12 @@ export interface TranslateRequest {
    * never validated alongside the data fields and never sent to a provider.
    */
   readonly signal?: AbortSignal;
+  /**
+   * Optional listener called with the number of keys an LLM provider re-requests in its bounded
+   * repair round, just before that request, when the first response left keys out. Never called by
+   * a machine-translation provider. Not a plain-data field: it is never validated or sent.
+   */
+  readonly onRepair?: (keys: number) => void;
 }
 
 /**
