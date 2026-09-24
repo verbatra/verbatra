@@ -54,7 +54,7 @@ La notation reste à l'intérieur d'un seul groupe d'empreinte, si bien qu'un fo
 
 ## L'empreinte
 
-Chaque valeur en cache est rattachée au contexte de traduction dans lequel elle a été produite : une courte empreinte sur le fournisseur, le modèle, le ton, les termes du glossaire de cette locale et, si elle a des entrées, la [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur. Change l'un d'eux et les entrées précédentes cessent de correspondre, donc un nouveau ton ou un glossaire modifié retraduit au lieu de servir un résultat périmé. Chaque locale a sa propre empreinte, tirée de ses propres termes de glossaire : modifier seulement la traduction allemande d'un terme laisse les entrées françaises correspondre. Le format est délibérément hors de l'empreinte ; un changement de format est plutôt rattrapé par le contrôle d'intégrité à chaque succès.
+Chaque valeur en cache est rattachée au contexte de traduction dans lequel elle a été produite : une courte empreinte sur le fournisseur, le modèle, le ton, les termes du glossaire de cette locale et, si elle a des entrées, la [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur. Change l'un d'eux et les entrées précédentes cessent de correspondre, donc un nouveau ton ou un glossaire modifié retraduit au lieu de servir un résultat périmé. Chaque locale a sa propre empreinte, tirée de ses propres termes de glossaire : modifier seulement la traduction allemande d'un terme laisse les entrées françaises correspondre. Le format est délibérément hors de l'empreinte ; un changement de format est plutôt rattrapé par le contrôle d'intégrité à chaque succès. Avec le fournisseur `none`, chaque entrée va dans un seul groupe 100 % humain que le ton et le glossaire n'affectent pas, et une correspondance approximative n'est jamais appliquée.
 
 ## Le fichier
 
@@ -70,7 +70,7 @@ Le cache ne se remplit pas uniquement avec tes propres exécutions : [`verbatra 
 
 ## Le contourner
 
-Passe `--no-cache` à [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) pour sauter le cache le temps d'une exécution : verbatra fait exactement les appels au fournisseur qu'il ferait sans cache présent, et laisse intact tout fichier de cache existant. Depuis le SDK, mets `cache: false` sur l'entrée de `translate` ou `watch`. Un dry run ne lit ni n'écrit jamais le cache de toute façon. `--no-cache` couvre aussi la réutilisation approximative. Pour garder la réutilisation exacte et ne désactiver que le repli approximatif, laisse `fuzzyCache` hors de la configuration ou mets `enabled: false`.
+Passe `--no-cache` à [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) pour sauter le cache le temps d'une exécution : verbatra fait exactement les appels au fournisseur qu'il ferait sans cache présent, et laisse intact tout fichier de cache existant. Depuis le SDK, mets `cache: false` sur l'entrée de `translate` ou `watch`. Un dry run n'écrit jamais le cache de toute façon ; avec un fournisseur automatique il ne le lit pas non plus, alors qu'avec le fournisseur `none` il le lit, pour que le plan corresponde à une vraie exécution. `--no-cache` couvre aussi la réutilisation approximative. Pour garder la réutilisation exacte et ne désactiver que le repli approximatif, laisse `fuzzyCache` hors de la configuration ou mets `enabled: false`.
 
 ## Limite
 
