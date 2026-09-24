@@ -50,7 +50,7 @@ The new locale has no target file yet, so verbatra treats it as empty and every 
 verbatra translate
 ```
 
-The run translates every source key into the new locale and writes the file at your `files.pattern` (here `locales/fr.json`). A large source is split into sub-batches of at most 50 keys per provider request (configurable with `maxBatchSize`), so one oversized request cannot sink the whole locale.
+The run translates every source key into the new locale and writes the file at your `files.pattern` (here `locales/fr.json`). A large source is split into sub-batches of at most 50 keys per provider request (configurable with `maxBatchSize`), so one oversized request cannot sink the whole locale. If the run keeps nothing for the new locale, because every key failed the integrity check, its provider requests failed, or the token budget withheld it, no file is created: an empty one would only hide that the locale has no translations yet. The keys stay missing and the next run retries them.
 
 This is the incremental behavior at work: only the new locale triggers provider calls. For each existing locale, verbatra diffs the source against that locale's baseline in `verbatra.lock.json`, finds no missing or changed keys, and sends nothing. Afterwards, `verbatra check` exits `0`: every locale, including the new one, is in sync.
 

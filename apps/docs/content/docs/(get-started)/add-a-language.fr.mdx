@@ -50,7 +50,7 @@ La nouvelle locale n'a pas encore de fichier cible, donc verbatra la traite comm
 verbatra translate
 ```
 
-L'exécution traduit chaque clé source dans la nouvelle locale et écrit le fichier à l'emplacement défini par ton `files.pattern` (ici `locales/fr.json`). Une source volumineuse est découpée en sous-lots d'au plus 50 clés par requête au fournisseur (configurable avec `maxBatchSize`), pour qu'une requête trop grosse ne puisse pas faire échouer toute la locale.
+L'exécution traduit chaque clé source dans la nouvelle locale et écrit le fichier à l'emplacement défini par ton `files.pattern` (ici `locales/fr.json`). Une source volumineuse est découpée en sous-lots d'au plus 50 clés par requête au fournisseur (configurable avec `maxBatchSize`), pour qu'une requête trop grosse ne puisse pas faire échouer toute la locale. Si l'exécution ne garde rien pour la nouvelle locale, parce que chaque clé a échoué au contrôle d'intégrité, que ses requêtes au fournisseur ont échoué ou que le budget de tokens l'a retenue, aucun fichier n'est créé : un fichier vide ne ferait que masquer que la locale n'a pas encore de traductions. Les clés restent manquantes et l'exécution suivante les retente.
 
 C'est le comportement incrémental à l'œuvre : seule la nouvelle locale déclenche des appels au fournisseur. Pour chaque locale existante, verbatra compare la source avec la référence de cette locale dans `verbatra.lock.json`, ne trouve aucune clé manquante ou modifiée, et n'envoie rien. Ensuite, `verbatra check` sort avec le code `0` : chaque locale, y compris la nouvelle, est synchronisée.
 
