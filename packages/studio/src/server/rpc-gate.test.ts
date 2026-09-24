@@ -202,6 +202,59 @@ describe("dispatchRpc envelope", () => {
     expect(result.body).not.toContain("ENOENT");
   });
 
+  it("logs the redacted cause of a 500 INTERNAL as one studio error line", async () => {
+    const key = `sk-${"a".repeat(40)}`;
+    const lines: string[] = [];
+    const result = await dispatchRpc(
+      body({ method: "project.snapshot", params: {} }),
+      { ...deps(), log: (line) => lines.push(line) },
+      {
+        "project.snapshot": async () => {
+          throw new Error(`EIO: read failed\n\u001b[31mforged ${key}\u2028line`);
+        },
+      },
+    );
+
+    expect(result.statusCode).toBe(500);
+    expect(result.body).not.toContain("EIO");
+    expect(lines).toHaveLength(1);
+    const [line] = lines;
+    expect(line).toMatch(/^studio error: project\.snapshot failed: EIO: read failed /);
+    expect(line).not.toContain(key);
+    expect(line).toContain("[REDACTED]");
+    expect(line).not.toMatch(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u);
+  });
+
+  it("logs a thrown non-Error value as text", async () => {
+    const lines: string[] = [];
+    await dispatchRpc(
+      body({ method: "project.snapshot", params: {} }),
+      { ...deps(), log: (line) => lines.push(line) },
+      {
+        "project.snapshot": async () => {
+          throw "plain failure";
+        },
+      },
+    );
+
+    expect(lines).toEqual(["studio error: project.snapshot failed: plain failure"]);
+  });
+
+  it("logs nothing for a domain error, which the envelope already carries", async () => {
+    const lines: string[] = [];
+    await dispatchRpc(
+      body({ method: "project.snapshot", params: {} }),
+      { ...deps(), log: (line) => lines.push(line) },
+      {
+        "project.snapshot": async () => {
+          throw new SdkError("CONFIG_INVALID", "bad config");
+        },
+      },
+    );
+
+    expect(lines).toEqual([]);
+  });
+
   it("dispatches through a real capability-built registry, not only a stubbed one", async () => {
     const result = await dispatchRpc(
       body({ method: "project.snapshot", params: {} }),
@@ -721,10 +774,10 @@ describe("dispatchRpc: batch entry counts reach the rate limiter", () => {
         code: "BATCH_TOO_LARGE",
         message:
           "This batch has more entries than this method allows in one rate-limit window; send fewer entries.",
-        retryAfterSeconds: 0,
       },
     });
-    expect(result.retryAfterSeconds).toBe(0);
+    expect((await parseBody(result)).error).not.toHaveProperty("retryAfterSeconds");
+    expect(result.retryAfterSeconds).toBeUndefined();
     expect(calls).toBe(0);
   });
 });

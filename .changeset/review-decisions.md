@@ -5,8 +5,8 @@
 
 Add `approveEntry`, `rejectEntry` and `reviewQueue` for persisted review decisions.
 
-Previously nothing wrote a review decision: `verbatra.provenance.json` could hold `reviewState`,
-but no write path set it, and the review queue was the last run's flags as recorded.
+Previously the review queue was the last run's flags as recorded, and a review decision could not
+be saved.
 
 `approveEntry` records that a person accepts a key's current value. It writes only the provenance
 file, stores the source hash it was given against, and is refused when the value is not the one
@@ -26,4 +26,4 @@ and keeps the file. Both take an optional
 `reviewer` of at most 64 characters (`REVIEWER_INVALID`) and fail with
 `PROVENANCE_FILE_UNWRITABLE` rather than report a decision they could not save. `reviewQueue`
 returns the last run's flags minus every key approved, rejected, or rewritten by a person since.
-A provenance record gains the optional `reviewedSourceHash` field.
+A provenance record carries the optional `reviewedSourceHash` field.

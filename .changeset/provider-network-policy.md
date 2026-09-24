@@ -13,4 +13,5 @@ provider is refused with `NETWORK_POLICY_VIOLATION` before its key is read or an
 unless its host is allowlisted. The built-in fetch-based providers also check every request,
 resolve `localhost` to loopback only, refuse any redirect to another origin, and fail a refused
 request once with the provider code `NETWORK_POLICY_VIOLATION`, without retries. `doctor` gains a
-`network-policy` check that names the effective policy and the endpoint.
+`network-policy` check that names the effective policy and the endpoint, for example
+`any host (config: unset; VERBATRA_NETWORK_POLICY: unset)`.

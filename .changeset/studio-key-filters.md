@@ -2,11 +2,14 @@
 "@verbatra/studio": minor
 ---
 
-Filter the Translations list by state and locale, including review queue entries and integrity problems.
+Filter the Translations list by state and locale, including review queue entries and integrity
+problems.
 
 Previously the List view could only match a key's name or text. It now also narrows to one
-locale and to any combination of **Missing**, **Changed**, **Orphaned**, **Needs review**,
-**Review queue**, and **Integrity problems**, each toggle showing its count, and lists the review
-queue and failing integrity checks as their own groups. The new read-only `locale.integrity`
-method reports the integrity verdict of every changed key in one call, and is registered as the
-agent tool `verbatra_locale_integrity`.
+locale and to any combination of **Missing**, **Changed**, **Orphaned**, **Protected**,
+**Review queue**, and **Integrity problems**, each toggle showing how many keys the search leaves
+in it, lists the review queue and failing integrity checks as their own groups, and shows an empty
+state when the search matches nothing. **Integrity problems** judges every translated key, changed
+or in sync, so a broken placeholder, markup, or plural arm in a key that is in sync is found. The
+new read-only `locale.integrity` method returns the failing keys of every locale in one call, and
+is registered as the agent tool `verbatra_locale_integrity`.

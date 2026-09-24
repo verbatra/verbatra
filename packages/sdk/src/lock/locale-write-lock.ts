@@ -69,7 +69,7 @@ export interface LockWaitEvent {
 /**
  * Called while waiting for a write lock another process holds: first once the wait has lasted a
  * second, then at most once a second. Never called for a lock this process holds itself. Passed
- * as `onLockWait` to {@link translate}, {@link watch}, and {@link importWorkbook}.
+ * as `onLockWait` to any call that takes it.
  */
 export type LockWaitListener = (event: LockWaitEvent) => void;
 
@@ -191,10 +191,8 @@ export function unacquiredLockPath(error: unknown): string | undefined {
   return error instanceof SdkError ? unacquiredLockPaths.get(error) : undefined;
 }
 
-function markUnacquired(path: string, error: unknown): unknown {
-  if (error instanceof SdkError && error.code === "LOCK_CONTENDED") {
-    unacquiredLockPaths.set(error, path);
-  }
+function markUnacquired(path: string, error: SdkError): SdkError {
+  unacquiredLockPaths.set(error, path);
   return error;
 }
 
@@ -518,7 +516,7 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
     }
     settings.notify?.(observed);
     if (Date.now() >= settings.deadline) {
-      throw contendedError(path, state.refusal);
+      throw markUnacquired(path, contendedError(path, state.refusal));
     }
     await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs);
   }
@@ -555,8 +553,6 @@ async function withFileLock<T>(
     ...(options.onWait !== undefined
       ? { notify: makeWaitNotifier(path, options.onWait, start, liveness) }
       : {}),
-  }).catch((error: unknown) => {
-    throw markUnacquired(path, error);
   });
   const owned: OwnedLock = { path, fs, content };
   heldLocks.add(owned);

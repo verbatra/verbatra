@@ -124,7 +124,7 @@ Chaque outil renvoie en JSON l'enveloppe RPC propre au tableau de bord, donc un 
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Un refus `METHOD_RATE_LIMITED` porte aussi `retryAfterSeconds` dans `error`, avec le même nombre dans l'en-tête `Retry-After` de la réponse : les secondes avant que l'appel passe. Un refus `BATCH_TOO_LARGE`, pour un lot qui compte plus d'entrées qu'une fenêtre n'en permet, porte les deux aussi, en comptant les secondes jusqu'à ce que toute la fenêtre soit libre ; un lot de cette taille ne passe toujours pas à ce moment-là, alors envoie moins d'entrées. `verbatra_project_snapshot` indique les limites de retraduction et de décisions de revue sous `capabilities.limits`, chacune sous la forme `{ windowMs, max }`, pour qu'un agent puisse espacer ses appels au lieu de les atteindre.
+Un refus `METHOD_RATE_LIMITED` porte aussi `retryAfterSeconds` dans `error`, avec le même nombre dans l'en-tête `Retry-After` de la réponse : les secondes avant que l'appel passe. Un refus `BATCH_TOO_LARGE`, pour un lot qui compte plus d'entrées qu'une fenêtre n'en permet, ne porte ni l'un ni l'autre, car un lot de cette taille ne passe jamais : envoie moins d'entrées. `verbatra_project_snapshot` indique les limites de retraduction et de décisions de revue sous `capabilities.limits`, chacune sous la forme `{ windowMs, max }`, pour qu'un agent puisse espacer ses appels au lieu de les atteindre.
 
 ## L'avis de mode dégradé
 

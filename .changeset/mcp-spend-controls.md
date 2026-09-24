@@ -11,7 +11,7 @@ Now `translation.estimate` returns the same result as `translate --estimate --js
 a subset of locales. It is always listed, calls no provider, and makes no network request.
 `translation.translatePending` accepts an optional `locales` list, checked against the configured
 target locales, and an optional `maxTokens` hard ceiling for the call; the lower of it and the
-config's `maxTokens` applies. The server instructions now recommend an estimate before any spend
+config's `maxTokens` applies. The server instructions recommend an estimate before any spend
 call.
 
 `translation.translatePending` is now also guarded as a whole: while one run is in progress, a

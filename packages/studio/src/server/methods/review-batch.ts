@@ -5,7 +5,6 @@ import {
   BatchInterruptedError,
   type RetranslateBatchOutcome,
   type ReviewBatchOutcome,
-  redact,
   rejectEntries,
   retranslateEntries,
 } from "@verbatra/sdk";
@@ -15,6 +14,7 @@ import {
   REVIEW_APPROVE_MANY_METHOD,
   REVIEW_REJECT_MANY_METHOD,
 } from "../../shared/rpc/review-batch.js";
+import { causeText, studioErrorLine } from "../error-line.js";
 import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
 
 export const STUDIO_BATCH_LOCK_TIMEOUT_MS = 30_000;
@@ -29,17 +29,11 @@ function reviewDeps(deps: RpcHandlerDeps) {
 const BATCH_INTERRUPTED_MESSAGE =
   "The batch stopped before this entry because of an unexpected server error.";
 
-const CONTROL_CHARACTERS = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
-
-function causeText(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
-}
-
 export function interruptionLogLine(method: string, error: BatchInterruptedError): string {
-  const line =
-    `studio error: ${method} stopped at ${JSON.stringify(error.entry.key)} in ` +
-    `${error.entry.locale} after ${error.results.length} completed: ${causeText(error.cause)}`;
-  return redact(line).replace(CONTROL_CHARACTERS, " ");
+  return studioErrorLine(
+    `${method} stopped at ${JSON.stringify(error.entry.key)} in ` +
+      `${error.entry.locale} after ${error.results.length} completed: ${causeText(error.cause)}`,
+  );
 }
 
 function interruptedOutcomes(

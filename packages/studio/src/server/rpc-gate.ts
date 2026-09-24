@@ -2,6 +2,7 @@ import { redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { entryIdentity, uniqueByIdentity } from "../shared/rpc/entry-identity.js";
+import { causeText, studioErrorLine } from "./error-line.js";
 import type { InFlightEntryRef, RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
 import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
@@ -75,27 +76,21 @@ function rateLimitRefusal(
     return undefined;
   }
   if (rateLimiter.exceedsWindow(method, weight)) {
-    return rateLimitEnvelope(
-      "BATCH_TOO_LARGE",
-      BATCH_TOO_LARGE_MESSAGE,
-      rateLimiter.retryAfterMs(method, weight),
-    );
+    return errorEnvelope(429, "BATCH_TOO_LARGE", BATCH_TOO_LARGE_MESSAGE);
   }
   return rateLimiter.tryAcquire(method, weight)
     ? undefined
-    : rateLimitEnvelope(
-        "METHOD_RATE_LIMITED",
-        METHOD_RATE_LIMITED_MESSAGE,
-        rateLimiter.retryAfterMs(method, weight),
-      );
+    : rateLimitedEnvelope(rateLimiter.retryAfterMs(method, weight));
 }
 
-function rateLimitEnvelope(code: string, message: string, retryAfterMs: number): RpcResult {
+function rateLimitedEnvelope(retryAfterMs: number): RpcResult {
   const retryAfterSeconds = Math.max(0, Math.ceil(retryAfterMs / 1000));
-  return {
-    ...jsonEnvelope(429, { ok: false, error: { code, message, retryAfterSeconds } }),
+  const error = {
+    code: "METHOD_RATE_LIMITED",
+    message: METHOD_RATE_LIMITED_MESSAGE,
     retryAfterSeconds,
   };
+  return { ...jsonEnvelope(429, { ok: false, error }), retryAfterSeconds };
 }
 
 function parseRequestShape(body: Buffer): RawRequestShape | undefined {
@@ -156,13 +151,14 @@ function isDomainError(error: unknown): error is DomainError {
   );
 }
 
-function mapHandlerError(error: unknown): RpcResult {
+function mapHandlerError(error: unknown, method: RpcMethodName, deps: RpcHandlerDeps): RpcResult {
   if (isDomainError(error)) {
     return jsonEnvelope(200, {
       ok: false,
       error: { code: error.code, message: redact(error.message) },
     });
   }
+  deps.log?.(studioErrorLine(`${method} failed: ${causeText(error)}`));
   return errorEnvelope(500, "INTERNAL", INTERNAL_ERROR_MESSAGE);
 }
 
@@ -201,7 +197,7 @@ async function invokeHandler(
     const result = await handler(parsedParams.data as never, deps);
     return okEnvelope(result);
   } catch (error) {
-    return mapHandlerError(error);
+    return mapHandlerError(error, method, deps);
   } finally {
     inFlightGuard?.leave(method, dedupeKey);
   }

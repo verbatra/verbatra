@@ -5,9 +5,9 @@
 Carry lock-file, translation-memory and provenance state over when a locale code is respelled.
 
 Previously, renaming a target locale such as `pt_BR` to `pt-BR` (with `files.localeStyle: "posix"`
-so the file keeps its name) left the old state behind: the `pt_BR` lock block, memory entries and
-provenance records were orphaned, and the new `pt-BR` lock block started empty, so a source change
-made before the rename was never retranslated.
+so the file keeps its name) left the old state behind: the `pt_BR` lock block and memory entries
+were orphaned, and the new `pt-BR` lock block started empty, so a source change made before the
+rename was never retranslated.
 
 Now `translate` and `watch` move that state to the configured code once, before the locale runs,
 when the configured code has no state of its own in a file and that file holds state under exactly
