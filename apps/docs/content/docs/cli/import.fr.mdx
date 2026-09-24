@@ -46,6 +46,8 @@ Un fichier laissé par un export antérieur avec une sélection `--locales` plus
 | `0` | chaque locale cible est ressortie complète |
 | `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
 | `2` | impossible de s'exécuter : une erreur globale (config, classeur, format ou verrou) ou une erreur d'utilisation |
+| `130` | interrompu avec Ctrl-C (SIGINT) ; les verrous d'écriture de l'exécution sont libérés d'abord |
+| `143` | arrêté avec SIGTERM ; les verrous d'écriture de l'exécution sont libérés d'abord |
 
 Une remise surdimensionnée ou impossible à analyser (par exemple, un fichier qui n'est pas un conteneur xlsx lisible) est une erreur globale `SOURCE_INVALID` dont le message dit ce qui n'allait pas. Une seule ligne illisible, elle, ne l'est pas : elle est rapportée comme une ligne mal formée et le reste de la locale est tout de même importé.
 

@@ -62,6 +62,8 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 | `verbatra_locale_values` | los valores de origen y destino de cada clave en cada locale de destino |
 | `verbatra_translation_estimate` | lo que `verbatra_translation_translatePending` enviaría y costaría, opcionalmente para un subconjunto de `locales`, sin llamar a ningún proveedor |
 
+`verbatra_key_integrity` tiene una forma distinta a la de `key.integrity` del servidor MCP por stdio. Su `result` es `{ locales: [...] }`, y cada fila lleva `locale` junto a los propios campos de verificación (`hasPlaceholders`, `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `icuArmDetails`, `markupMatches`, `markupDetails`), sin array `entries`. Un locale aparece solo cuando el origen de la clave cambió ahí desde la línea base: un locale donde la clave aún no tiene entrada en la línea base, no cambió o falta no tiene ninguna fila, así que una lista `locales` vacía significa que no había nada que comprobar, no que la clave pasara. [`key.integrity`](/docs/cli/mcp#entradas-y-resultados), en cambio, devuelve una fila para cada locale del alcance y anida los mismos campos en un array `entries` que queda vacío en esos casos.
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Desde `@verbatra/studio` 0.6.0, `verbatra_key_value` y `verbatra_locale_values` también informan de quién escribió cada valor presente (su origen, el proveedor y el modelo para la traducción automática, y su estado de revisión), `verbatra_status_check` y `verbatra_lock_state` cuentan los valores de cada locale por origen, y `verbatra_status_diff` nombra el origen del valor actual de cada clave cambiada. Consulta [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).

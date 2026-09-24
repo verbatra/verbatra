@@ -336,7 +336,7 @@ describe("budgetExceededNotice", () => {
     expect(projected).toBeGreaterThan(1);
     expect(budgetWithheldNotice(tracker, projected).message).toBe(
       `The run's next provider request was projected at ${projected} tokens on top of the 0 ` +
-        "already counted, which would have crossed the configured budget of 1 tokens, so it was " +
+        "already counted, which would have crossed the configured budget of 1 token, so it was " +
         "withheld rather than sent (behavior: stop). That request alone is projected above the " +
         "whole budget, so it is refused on every run: lower maxBatchSize or raise maxTokens in " +
         "the config.",
@@ -350,7 +350,7 @@ describe("budgetExceededNotice", () => {
 
     expect(budgetWithheldNotice(tracker, projected).message).toBe(
       `The run's next provider request was projected at ${projected} tokens on top of the 0 ` +
-        "already counted, which would have crossed the run's own budget of 1 tokens, so it was " +
+        "already counted, which would have crossed the run's own budget of 1 token, so it was " +
         "withheld rather than sent (behavior: stop). That request alone is projected above the " +
         "whole budget, so it is refused on every run: lower maxBatchSize or raise the run's " +
         "maxTokens (--max-tokens).",

@@ -46,6 +46,8 @@ A file left over from an earlier export with a wider `--locales` selection is ne
 | `0` | every target locale came out complete |
 | `1` | the run finished but one or more locales failed or came out partial |
 | `2` | could not run: a whole-run error (config, workbook, format, or lock), or a usage error |
+| `130` | interrupted with Ctrl-C (SIGINT); the run's write locks are released first |
+| `143` | stopped with SIGTERM; the run's write locks are released first |
 
 A handoff that is oversized or cannot be parsed at all (for example, a file that is not a readable xlsx container) is a whole-run `SOURCE_INVALID` error whose message says what was wrong with it. A single unreadable row is not: it is reported as a malformed row and the rest of the locale still imports.
 

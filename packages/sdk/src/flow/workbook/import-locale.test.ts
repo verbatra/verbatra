@@ -171,7 +171,39 @@ describe("importLocale", () => {
     expect(result.accepted.size).toBe(0);
     expect(result.withheld.size).toBe(0);
     expect(result.summary.notices).toEqual([
-      { code: "BLANK_ROW_BASELINE_RETAINED", message: expect.any(String) },
+      {
+        code: "BLANK_ROW_BASELINE_RETAINED",
+        message: expect.stringMatching(/^1 row was left blank for a key whose source changed/),
+      },
+    ]);
+  });
+
+  it("counts every drifted blank row in the plural when more than one was left blank", () => {
+    const oldGreet = entry("greet", "Hi");
+    const newGreet = entry("greet", "Hi there");
+    const oldBye = entry("bye", "Bye");
+    const newBye = entry("bye", "Bye now");
+    const sheet: WorkbookSheet = {
+      locale: "de",
+      rows: [row("greet", "", contentHash(newGreet)), row("bye", "", contentHash(newBye))],
+    };
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [newGreet, newBye]),
+        target: resource("de", [entry("greet", "Hallo"), entry("bye", "Tschuess")]),
+        baseline: new Map([
+          ["greet", contentHash(oldGreet)],
+          ["bye", contentHash(oldBye)],
+        ]),
+      }),
+    );
+
+    expect(result.summary.notices).toEqual([
+      {
+        code: "BLANK_ROW_BASELINE_RETAINED",
+        message: expect.stringMatching(/^2 rows were left blank for a key whose source changed/),
+      },
     ]);
   });
 

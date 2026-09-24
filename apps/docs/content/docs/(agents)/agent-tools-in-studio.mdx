@@ -62,6 +62,8 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_locale_values` | the source and target values for every key across every target locale |
 | `verbatra_translation_estimate` | what `verbatra_translation_translatePending` would send and cost, optionally for a subset of `locales`, without calling a provider |
 
+`verbatra_key_integrity` is shaped differently from the stdio MCP server's `key.integrity`. Its `result` is `{ locales: [...] }`, and each row carries `locale` next to the verdict fields themselves (`hasPlaceholders`, `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `icuArmDetails`, `markupMatches`, `markupDetails`), with no `entries` array. A locale appears only when the key's source changed there since the baseline: a locale where the key has no baseline entry yet, is unchanged, or is missing has no row at all, so an empty `locales` list means nothing needed checking, not that the key passed. [`key.integrity`](/docs/cli/mcp#inputs-and-results) instead returns a row for every locale in scope and nests the same fields in an `entries` array that is empty in those cases.
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Since `@verbatra/studio` 0.6.0, `verbatra_key_value` and `verbatra_locale_values` also report who wrote each present value (its origin, the provider and model for machine output, and its review state), `verbatra_status_check` and `verbatra_lock_state` count each locale's values by origin, and `verbatra_status_diff` names the origin of every changed key's current value. See [The lock file](/docs/the-lock-file#provenance-who-wrote-each-value).

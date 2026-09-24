@@ -43,7 +43,7 @@ const TRANSIENT_PROVIDER_CODES: ReadonlySet<string> = new Set([
   "TIMEOUT",
 ]);
 
-const SUB_BATCH_FAILURE_CODE_PATTERN = /^A sub-batch of \d+ entries failed \(([A-Z_]+):/;
+const SUB_BATCH_FAILURE_CODE_PATTERN = /^A sub-batch of \d+ (?:entry|entries) failed \(([A-Z_]+):/;
 
 const WITHHELD_SUB_BATCH_CODE = "SUB_BATCH_FAILED";
 

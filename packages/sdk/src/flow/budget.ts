@@ -186,6 +186,10 @@ export function toBudgetSummary(tracker: BudgetTracker): RunBudget | undefined {
   };
 }
 
+function tokenCount(count: number | undefined): string {
+  return `${count} ${count === 1 ? "token" : "tokens"}`;
+}
+
 function budgetLabel(tracker: BudgetTracker): string {
   return tracker.source === "run" ? "the run's own budget" : "the configured budget";
 }
@@ -201,7 +205,7 @@ export function budgetExceededNotice(tracker: BudgetTracker): SdkNotice {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
       `The run's cumulative token usage (${tracker.tokensUsed}) reached ${budgetLabel(tracker)} of ` +
-      `${tracker.maxTokens} tokens (behavior: ${tracker.behavior}).`,
+      `${tokenCount(tracker.maxTokens)} (behavior: ${tracker.behavior}).`,
   };
 }
 
@@ -216,9 +220,9 @@ export function budgetWithheldNotice(tracker: BudgetTracker, projected: number):
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run's next provider request was projected at ${projected} tokens on top of the ` +
+      `The run's next provider request was projected at ${tokenCount(projected)} on top of the ` +
       `${tracker.tokensUsed} already counted, which would have crossed ${budgetLabel(tracker)} of ` +
-      `${tracker.maxTokens} tokens, so it was withheld rather than sent ` +
+      `${tokenCount(tracker.maxTokens)}, so it was withheld rather than sent ` +
       `(behavior: ${tracker.behavior}).${oversizedRequestHint(tracker, projected)}`,
   };
 }
@@ -233,7 +237,7 @@ export function budgetAlreadyStoppedNotice(tracker: BudgetTracker): SdkNotice {
   return {
     code: "BUDGET_TOKENS_EXCEEDED",
     message:
-      `The run had already ${stoppedStanding(tracker)} ${budgetLabel(tracker)} of ${tracker.maxTokens} tokens ` +
+      `The run had already ${stoppedStanding(tracker)} ${budgetLabel(tracker)} of ${tokenCount(tracker.maxTokens)} ` +
       `(${tracker.tokensUsed} counted, behavior: ${tracker.behavior}), ` +
       "so this locale's keys were withheld rather than sent.",
   };
