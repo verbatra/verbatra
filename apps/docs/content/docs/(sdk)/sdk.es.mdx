@@ -91,6 +91,33 @@ Devuelve un `RunSummary` (consulta [su anatomía más abajo](#la-anatomía-de-ru
 de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y queda como
 `status: "failed"` en la entrada de ese locale mientras la ejecución continúa.
 
+### Eventos de progreso
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` recibe un `ProgressEvent`, una unión discriminada por `type`. Una versión menor puede añadir tipos, así que ignora un `type` que no reconozcas.
+
+| `type` | Cuándo | Campos |
+| --- | --- | --- |
+| `locale-started` | empieza el trabajo de un locale | `locale`, `localeIndex`, `totalLocales` |
+| `locale-planned` | tras consultar la memoria de traducción y antes de enviar el primer lote; solo cuando se llama a un proveedor | `locale`, `keys`, `batches`, `cacheHits` |
+| `sub-batch` | justo antes de intentar cada lote de traducción | `locale`, `batchIndex`, `totalBatches` |
+| `provider-retry` | un proveedor integrado reintenta una petición que falló con un estado reintentable | `attempt`, `delayMs?`, `status?` |
+| `repair` | un proveedor LLM vuelve a pedir las claves que su primera respuesta omitió | `locale`, `keys` |
+| `split-retry` | un lote cuya salida se cortó se reintenta en dos mitades | `locale`, `keys` |
+| `batch-finished` | un lote ha terminado, con éxito o no | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
+| `writing` | justo antes de escribir el archivo de un locale | `locale` |
+| `locale-finished` | termina el trabajo de un locale | `locale`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | todos los locales han terminado | `localesCompleted` |
+| `change-detected` | solo `watch`: un cambio en el archivo de origen se ha asentado | `paths` |
+| `idle` | solo `watch`: una ejecución terminó y no hay otra en cola | ninguno |
+
+`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL y Google Cloud Translation no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
+
+`extract`, `diff` con `unused` y `doctor` con `literals` aceptan su propio `onProgress`. Recibe un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, una vez tras cada archivo de código de la aplicación que lee el escaneo.
+
+Un `CreateProvider` propio recibe un tercer argumento, `CreateProviderHooks`, siempre que una ejecución informa de progreso. Llama a su `onRetry` con `{ attempt, delayMs?, status? }` y los reintentos de tu proveedor aparecerán como eventos `provider-retry`.
+
 ### resolveDryRun
 
 <AvailableFrom version="0.11.0" />
@@ -288,7 +315,7 @@ guardan estado y que la configuración no incluye, como `pt_BR` tras reescribirl
 dice si la siguiente ejecución de `translate` lo traslada. Un archivo que no puede leer se nombra en
 el detalle.
 
-Entrada: `{ cwd?, configPath?, literals? }`. Con `literals` activado, `doctor` solo ejecuta la
+Entrada: `{ cwd?, configPath?, literals?, onProgress? }`. Con `literals` activado, `doctor` solo ejecuta la
 comprobación `config` y, en lugar de las demás, una comprobación `untranslated-literals` que
 recorre las raíces de código del bloque `extract` de la configuración, igual que
 [`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir). No necesita una
@@ -316,7 +343,7 @@ clave no estático en `dynamic`, una clave encontrada con dos valores por defect
 únicamente claves, valores y ubicaciones de archivo y línea, nunca el contenido de un archivo de
 código.
 
-Entrada: `{ config, cwd?, dryRun? }`, donde `config.extract` nombra el framework y las raíces de
+Entrada: `{ config, cwd?, dryRun?, onProgress? }`, donde `config.extract` nombra el framework y las raíces de
 código. Devuelve un `ExtractResult`. El descubrimiento pasa por el miembro opcional `readDirectory`
 de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 
@@ -383,7 +410,7 @@ alcanzar un literal de plantilla con cabecera estática, a `possiblyDynamic`. Su
 `reason` y sin lista de claves). Consulta todos los motivos en [Claves de origen sin
 uso](/docs/cli/diff#claves-de-origen-sin-uso). El informe nunca activa `hasPendingChanges`.
 
-Entrada: `{ config, cwd?, locales?, unused? }`. Devuelve un `DiffSummary`.
+Entrada: `{ config, cwd?, locales?, unused?, onProgress? }`. Devuelve un `DiffSummary`.
 
 <AvailableFrom version="0.12.0" />
 

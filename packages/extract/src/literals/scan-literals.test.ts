@@ -54,6 +54,26 @@ function scan(
   );
 }
 
+describe("scanLiterals: progress", () => {
+  it("counts only the application files it reads, leaving test files out of the total", async () => {
+    const reports: [number, number][] = [];
+    await scanLiterals(
+      {
+        cwd,
+        roots: [root],
+        rules: createI18nextLiteralRules(),
+        onFileScanned: (scanned, total) => reports.push([scanned, total]),
+      },
+      fakeFs({
+        [join(root, "app.tsx")]: "export const A = () => <p>Hi</p>;",
+        [join(root, "app.test.tsx")]: "export const B = () => <p>Test</p>;",
+      }),
+    );
+
+    expect(reports).toEqual([[1, 1]]);
+  });
+});
+
 describe("scanLiterals", () => {
   it("reports a clean project as zero findings", async () => {
     const result = await scan({

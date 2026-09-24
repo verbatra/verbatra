@@ -53,7 +53,11 @@ import {
   writeRunStatusFile,
 } from "../run-status/run-status-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
+import {
+  type CreateProvider,
+  type CreateProviderHooks,
+  selectProvider,
+} from "../selection/select-provider.js";
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
@@ -570,10 +574,19 @@ export function resolveDryRun(input: {
   return input.dryRun === true || input.estimate === true;
 }
 
+function retryHooks(onProgress: ProgressListener | undefined): {
+  readonly hooks?: CreateProviderHooks;
+} {
+  return onProgress === undefined
+    ? {}
+    : { hooks: { onRetry: (retry) => onProgress({ type: "provider-retry", ...retry }) } };
+}
+
 function selectRunMode(
   config: VerbatraConfig,
   dryRun: boolean,
   createProvider: CreateProvider | undefined,
+  onProgress: ProgressListener | undefined,
 ): LocaleRunMode {
   const machineProvider = isMachineProvider(config.provider) ? config.provider : undefined;
   if (machineProvider === undefined) {
@@ -584,7 +597,10 @@ function selectRunMode(
     ? { kind: "plan", providerKind }
     : {
         kind: "translate",
-        provider: selectProvider(machineProvider, createProvider, { network: config.network }),
+        provider: selectProvider(machineProvider, createProvider, {
+          network: config.network,
+          ...retryHooks(onProgress),
+        }),
         providerKind,
       };
 }
@@ -742,7 +758,7 @@ export async function translate(
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
-  const mode = selectRunMode(config, dryRun, deps.createProvider);
+  const mode = selectRunMode(config, dryRun, deps.createProvider, input.onProgress);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const usesMemory = usesTranslationMemory(input, config, dryRun);

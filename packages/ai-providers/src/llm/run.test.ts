@@ -211,6 +211,31 @@ describe("runLlmTranslation: bounded reconcile repair", () => {
     expect(result.integrity.get("b")?.matches).toBe(true);
   });
 
+  it("tells onRepair how many keys the repair round re-requests, and only when one runs", async () => {
+    const repaired: number[] = [];
+    const { mechanism } = sequencedMechanism([
+      { raw: rawResult([{ key: "a", value: "Hallo {{name}}" }]) },
+      { raw: rawResult([{ key: "b", value: "Tschuess {{name}}" }]) },
+    ]);
+    await runLlmTranslation(
+      { ...twoEntryRequest(), onRepair: (keys) => repaired.push(keys) },
+      mechanism,
+    );
+    expect(repaired).toEqual([1]);
+
+    const complete = stubMechanism(
+      rawResult([
+        { key: "a", value: "Hallo {{name}}" },
+        { key: "b", value: "Tschuess {{name}}" },
+      ]),
+    );
+    await runLlmTranslation(
+      { ...twoEntryRequest(), onRepair: (keys) => repaired.push(keys) },
+      complete.mechanism,
+    );
+    expect(repaired).toEqual([1]);
+  });
+
   it("accepts the well-formed remainder and recovers a duplicated key via one repair round", async () => {
     const { mechanism, inputs } = sequencedMechanism([
       {

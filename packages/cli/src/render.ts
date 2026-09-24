@@ -648,7 +648,7 @@ export function renderLockWait(event: LockWaitEvent, json: boolean): string {
   return json ? renderLockWaitJson(event) : renderLockWaitHuman(event);
 }
 
-export function renderProgressHuman(event: ProgressEvent): string {
+export function renderProgressHuman(event: ProgressEvent): string | undefined {
   switch (event.type) {
     case "locale-started":
       return `verbatra: translating ${event.locale}`;
@@ -658,14 +658,23 @@ export function renderProgressHuman(event: ProgressEvent): string {
       return `verbatra: ${event.locale} done, ${event.translated} translated`;
     case "run-finished":
       return `verbatra: run finished, ${plural(event.localesCompleted, "locale")} processed`;
+    default:
+      return undefined;
   }
 }
 
-export function renderProgressJson(event: ProgressEvent): string {
-  return JSON.stringify(event);
+const JSON_PROGRESS_TYPES: ReadonlySet<ProgressEvent["type"]> = new Set([
+  "locale-started",
+  "sub-batch",
+  "locale-finished",
+  "run-finished",
+]);
+
+export function renderProgressJson(event: ProgressEvent): string | undefined {
+  return JSON_PROGRESS_TYPES.has(event.type) ? JSON.stringify(event) : undefined;
 }
 
-export function renderProgress(event: ProgressEvent, json: boolean): string {
+export function renderProgress(event: ProgressEvent, json: boolean): string | undefined {
   return json ? renderProgressJson(event) : renderProgressHuman(event);
 }
 

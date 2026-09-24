@@ -17,6 +17,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { defaultFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
+import type { ProgressEvent } from "../progress/types.js";
 import {
   makeIntegrityProvider,
   makeStubProvider,
@@ -1320,6 +1321,32 @@ describe("runLocale: a truncation split reserves every half it sends", () => {
 
     expect(splitter.calls).toHaveLength(3);
     expect(budget.tokensUsed).toBe(764);
+  });
+
+  it("reports the split before retrying the halves, and one batch-finished for the parent", async () => {
+    const { dir, sourceResource } = await setup(fourKeys);
+    const splitter = splittingProvider(() => ({ inputTokens: 5, outputTokens: 5 }));
+    const events: ProgressEvent[] = [];
+
+    await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: { kind: "translate", provider: splitter.provider, providerKind: "llm" },
+          maxBatchSize: 4,
+          onProgress: (event) => events.push(event),
+        },
+      ),
+    );
+
+    expect(events.map((event) => event.type)).toEqual([
+      "locale-planned",
+      "sub-batch",
+      "split-retry",
+      "batch-finished",
+      "writing",
+    ]);
+    expect(events).toContainEqual({ type: "split-retry", locale: "de", keys: 4 });
   });
 
   it("keeps a failed call's projection charged and marks the count estimated", async () => {

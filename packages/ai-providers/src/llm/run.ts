@@ -45,6 +45,7 @@ export async function runLlmTranslation(
 
   let toRepair = entriesFor(data.entries, first.outcome.missingKeys);
   for (let round = 0; round < MAX_REPAIR_ROUNDS && toRepair.length > 0; round += 1) {
+    request.onRepair?.(toRepair.length);
     const repair = await requestTranslations(mechanism, { ...sent, entries: toRepair }, signal);
     for (const [key, value] of repair.outcome.accepted) {
       values.set(key, value);

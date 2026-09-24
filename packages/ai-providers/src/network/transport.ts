@@ -1,3 +1,4 @@
+import { observeSdkRetries, type ProviderRetryListener } from "../provider-retry.js";
 import { type EndpointTarget, resolveProviderEndpoint } from "./endpoints.js";
 import type { EnvironmentSource } from "./environment-rule.js";
 import { createGuardedFetch, type FetchLike, type GuardedFetchDeps } from "./guarded-fetch.js";
@@ -43,14 +44,23 @@ export function pinnedTransport(
   };
 }
 
+const platformFetch: FetchLike = (input, init) => globalThis.fetch(input, init);
+
 export function openAiStyleTransport(
   target: EndpointTarget,
   network: ProviderNetwork | undefined,
+  onRetry?: ProviderRetryListener,
 ): ClientTransport<{ baseURL?: string; fetch?: FetchLike }> {
   const pinned = pinnedTransport(target, network);
-  return pinned === undefined
-    ? { options: {}, run: unrestricted }
-    : { options: { baseURL: pinned.baseUrl, fetch: pinned.fetch }, run: pinned.run };
+  const base: ClientTransport<{ baseURL?: string; fetch?: FetchLike }> =
+    pinned === undefined
+      ? { options: {}, run: unrestricted }
+      : { options: { baseURL: pinned.baseUrl, fetch: pinned.fetch }, run: pinned.run };
+  if (onRetry === undefined) {
+    return base;
+  }
+  const fetch = observeSdkRetries(pinned?.fetch ?? platformFetch, onRetry);
+  return { options: { ...base.options, fetch }, run: base.run };
 }
 
 export function geminiTransport(

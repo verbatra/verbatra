@@ -12,6 +12,7 @@ import {
   openAiCompatibleConfigSchema,
   openAiConfigSchema,
   type ProviderNetwork,
+  type ProviderRetryListener,
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import { z } from "zod";
@@ -85,26 +86,41 @@ export type MachineProviderConfig = Exclude<ProviderConfig, { readonly id: "none
 
 export type MachineProviderId = MachineProviderConfig["id"];
 
+interface FactoryContext {
+  readonly network: ProviderNetwork | undefined;
+  readonly onRetry: ProviderRetryListener | undefined;
+}
+
 type ProviderFactories = {
   [K in MachineProviderId]: (
     options: Extract<MachineProviderConfig, { id: K }>["options"],
-    network: ProviderNetwork | undefined,
+    context: FactoryContext,
   ) => TranslationProvider;
 };
 
-function networkDeps(network: ProviderNetwork | undefined): { network?: ProviderNetwork } {
-  return network === undefined ? {} : { network };
+function networkDeps(context: FactoryContext): { network?: ProviderNetwork } {
+  return context.network === undefined ? {} : { network: context.network };
+}
+
+function retryingDeps(context: FactoryContext): {
+  network?: ProviderNetwork;
+  onRetry?: ProviderRetryListener;
+} {
+  return {
+    ...networkDeps(context),
+    ...(context.onRetry === undefined ? {} : { onRetry: context.onRetry }),
+  };
 }
 
 const providerFactories: ProviderFactories = {
-  anthropic: (options, network) => createAnthropicProvider(options, networkDeps(network)),
-  openai: (options, network) => createOpenAiProvider(options, networkDeps(network)),
-  gemini: (options, network) => createGeminiProvider(options, networkDeps(network)),
+  anthropic: (options, context) => createAnthropicProvider(options, retryingDeps(context)),
+  openai: (options, context) => createOpenAiProvider(options, retryingDeps(context)),
+  gemini: (options, context) => createGeminiProvider(options, retryingDeps(context)),
   deepl: (options) => createDeepLProvider(options),
-  "google-translate": (options, network) =>
-    createGoogleTranslateProvider(options, networkDeps(network)),
-  "openai-compatible": (options, network) =>
-    createOpenAiCompatibleProvider(options, networkDeps(network)),
+  "google-translate": (options, context) =>
+    createGoogleTranslateProvider(options, networkDeps(context)),
+  "openai-compatible": (options, context) =>
+    createOpenAiCompatibleProvider(options, retryingDeps(context)),
 };
 
 export const PROVIDER_IDS = Object.keys(providerFactories) as readonly MachineProviderId[];
@@ -129,13 +145,14 @@ export function machineTranslationDisabledError(action: string): SdkError {
 export function buildProvider(
   config: ProviderConfig,
   context?: { readonly network: ProviderNetwork },
+  hooks?: { readonly onRetry?: ProviderRetryListener },
 ): TranslationProvider {
   if (!isMachineProvider(config)) {
     throw machineTranslationDisabledError("constructing a translation provider");
   }
   const create = providerFactories[config.id] as (
     options: MachineProviderConfig["options"],
-    network: ProviderNetwork | undefined,
+    context: FactoryContext,
   ) => TranslationProvider;
-  return create(config.options, context?.network);
+  return create(config.options, { network: context?.network, onRetry: hooks?.onRetry });
 }

@@ -22,6 +22,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
 import { describeLocaleState } from "./locale-state-doctor.js";
@@ -129,6 +130,11 @@ export interface DoctorInput {
    * variable is looked at and a run with no key set can pass.
    */
   readonly literals?: boolean;
+  /**
+   * Called once after each application source file the `literals` scan reads, with the running count and the
+   * total, for progress reporting.
+   */
+  readonly onProgress?: ScanProgressListener;
 }
 
 /** Injectable dependencies for {@link doctor}. Every field has a working default. */
@@ -347,7 +353,12 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
   }
   const { config, source } = outcome.loaded;
   const configCheck = verdict("config", true, configDetail(source));
-  const lint = await lintLiterals(config, input.cwd ?? process.cwd(), deps.fs ?? defaultFs);
+  const lint = await lintLiterals(
+    config,
+    input.cwd ?? process.cwd(),
+    deps.fs ?? defaultFs,
+    input.onProgress,
+  );
   if (lint.kind === "not-run") {
     return toResult([configCheck, verdict("untranslated-literals", false, lint.detail)]);
   }

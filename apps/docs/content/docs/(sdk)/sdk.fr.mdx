@@ -41,6 +41,33 @@ Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals
 
 Renvoie un `RunSummary` (voir [son anatomie plus bas](#anatomie-du-runsummary)). Les problèmes globaux lèvent une `SdkError` ; l'échec d'une seule locale ne lève jamais rien et se retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exécution continue.
 
+### Événements de progression
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` reçoit un `ProgressEvent`, une union discriminée par `type`. Une version mineure peut ajouter des types, donc ignore un `type` que tu ne reconnais pas.
+
+| `type` | Quand | Champs |
+| --- | --- | --- |
+| `locale-started` | le travail sur une locale commence | `locale`, `localeIndex`, `totalLocales` |
+| `locale-planned` | après consultation de la mémoire de traduction et avant l'envoi du premier lot ; seulement quand un fournisseur est appelé | `locale`, `keys`, `batches`, `cacheHits` |
+| `sub-batch` | juste avant la tentative de chaque lot de traduction | `locale`, `batchIndex`, `totalBatches` |
+| `provider-retry` | un fournisseur intégré réessaie une requête qui a échoué avec un statut réessayable | `attempt`, `delayMs?`, `status?` |
+| `repair` | un fournisseur LLM redemande les clés que sa première réponse a omises | `locale`, `keys` |
+| `split-retry` | un lot dont la sortie a été coupée est réessayé en deux moitiés | `locale`, `keys` |
+| `batch-finished` | un lot est terminé, qu'il ait réussi ou non | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
+| `writing` | juste avant l'écriture du fichier d'une locale | `locale` |
+| `locale-finished` | le travail sur une locale se termine | `locale`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | toutes les locales sont terminées | `localesCompleted` |
+| `change-detected` | `watch` uniquement : une modification du fichier source s'est stabilisée | `paths` |
+| `idle` | `watch` uniquement : une exécution est terminée et aucune n'attend | aucun |
+
+`provider-retry` ne nomme aucune locale, car un seul fournisseur sert toute l'exécution. Gemini indique le délai et le statut, Anthropic, OpenAI et openai-compatible indiquent la tentative quand leur client la lance, et DeepL et Google Cloud Translation n'indiquent rien. Un dry run et une estimation n'émettent que `locale-started`, `locale-finished` et `run-finished`. Les enregistrements de progression `--json` de la CLI s'en tiennent aux quatre types d'origine : `locale-started`, `sub-batch`, `locale-finished` et `run-finished`.
+
+`extract`, `diff` avec `unused` et `doctor` avec `literals` acceptent leur propre `onProgress`. Il reçoit un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, une fois après chaque fichier source de l'application que l'analyse lit.
+
+Un `CreateProvider` personnalisé reçoit un troisième argument, `CreateProviderHooks`, dès qu'une exécution signale sa progression. Appelle son `onRetry` avec `{ attempt, delayMs?, status? }` et les nouvelles tentatives de ton fournisseur apparaissent comme événements `provider-retry`.
+
 ### resolveDryRun
 
 <AvailableFrom version="0.11.0" />
@@ -200,7 +227,7 @@ La vérification `locale-codes` est elle aussi informative et passe toujours : s
 
 La vérification `locale-state` est elle aussi informative et passe toujours : son détail nomme chaque locale pour laquelle le fichier de verrou, la mémoire de traduction ou le fichier de provenance contiennent de l'état sans que la config la liste, comme `pt_BR` après une réécriture en `pt-BR`, et indique si la prochaine exécution de `translate` la reprend. Un fichier qu'elle ne peut pas lire est nommé dans le détail.
 
-Entrée : `{ cwd?, configPath?, literals? }`. Avec `literals` activé, `doctor` n'exécute que la vérification `config` et, à la place des autres, une vérification `untranslated-literals` qui parcourt les racines de code du bloc `extract` de la config, comme le fait [`verbatra doctor --literals`](/docs/cli/doctor#littéraux-non-traduits). Aucune config déjà chargée n'est nécessaire : `doctor` la charge lui-même, donc un projet sans aucune config obtient quand même un rapport plutôt qu'une erreur levée. Renvoie un `DoctorResult` dont `ok` est vrai exactement quand aucune vérification n'a échoué. Il lève `CONFIG_NOT_FOUND` uniquement pour un `configPath` explicite qui n'existe pas.
+Entrée : `{ cwd?, configPath?, literals?, onProgress? }`. Avec `literals` activé, `doctor` n'exécute que la vérification `config` et, à la place des autres, une vérification `untranslated-literals` qui parcourt les racines de code du bloc `extract` de la config, comme le fait [`verbatra doctor --literals`](/docs/cli/doctor#littéraux-non-traduits). Aucune config déjà chargée n'est nécessaire : `doctor` la charge lui-même, donc un projet sans aucune config obtient quand même un rapport plutôt qu'une erreur levée. Renvoie un `DoctorResult` dont `ok` est vrai exactement quand aucune vérification n'a échoué. Il lève `CONFIG_NOT_FOUND` uniquement pour un `configPath` explicite qui n'existe pas.
 
 ### extract
 
@@ -210,7 +237,7 @@ Analyse le code de ton application à la recherche des sites d'appel de traducti
 
 Seul le fichier de la locale source est écrit, et seules les clés réellement nouvelles sont ajoutées : une clé déjà présente dans le catalogue conserve sa valeur telle quelle, et une clé du catalogue qu'aucun site d'appel ne mentionne reste intacte. Une exécution qui ne trouve rien de nouveau n'écrit rien du tout. Tout ce que l'analyse ne peut pas résoudre revient sous forme de données plutôt que d'être levé : un argument de clé non statique dans `dynamic`, une clé trouvée avec deux valeurs par défaut différentes dans `conflicts` (aucune n'est écrite) et un fichier illisible dans `diagnostics`. Le résultat ne porte que des clés, des valeurs et des emplacements fichier et ligne, jamais le contenu d'un fichier source.
 
-Entrée : `{ config, cwd?, dryRun? }`, où `config.extract` nomme le framework et les racines de sources. Renvoie un `ExtractResult`. La découverte passe par le membre optionnel `readDirectory` de `SdkFs` ; un `deps.fs` qui ne l'implémente pas est signalé comme `EXTRACT_FS_UNSUPPORTED`.
+Entrée : `{ config, cwd?, dryRun?, onProgress? }`, où `config.extract` nomme le framework et les racines de sources. Renvoie un `ExtractResult`. La découverte passe par le membre optionnel `readDirectory` de `SdkFs` ; un `deps.fs` qui ne l'implémente pas est signalé comme `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
 
@@ -249,7 +276,7 @@ Le pendant détaillé de `check` : le même calcul, mais il renvoie les listes d
 
 Avec `unused: true`, il analyse aussi les racines du bloc `extract` de la config et ajoute un rapport `unused`, séparé de chaque liste `orphaned` : les clés de la locale source qu'aucune référence statique ne nomme, dans l'ordre du catalogue. Il est en lecture seule, ne demande aucune clé et modélise le runtime i18next (appels `t` et leurs alias, préfixes statiques `keyPrefix` et `getFixedT`, clés de `Trans`, clés avec namespace et variantes de pluriel et de contexte), en comparant les clés dans l'encodage du format du catalogue. Chaque clé listée porte sa `key` décodée et son `catalogKey`. Les clés qui correspondent à `extract.unused.ignore` vont dans `ignored`, et celles qu'un template literal dont le début est statique pourrait atteindre dans `possiblyDynamic`. Son `status` vaut `complete`, `unreliable` (avec `unreliableBecause` nommant chaque raison et ses emplacements) ou `not-run` (avec une `reason` et sans liste de clés). Toutes les raisons sont dans [Clés source inutilisées](/docs/cli/diff#clés-source-inutilisées). Le rapport ne fait jamais basculer `hasPendingChanges`.
 
-Entrée : `{ config, cwd?, locales?, unused? }`. Renvoie un `DiffSummary`.
+Entrée : `{ config, cwd?, locales?, unused?, onProgress? }`. Renvoie un `DiffSummary`.
 
 <AvailableFrom version="0.12.0" />
 

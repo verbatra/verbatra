@@ -13,6 +13,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { requireExtractionConfig, runScan } from "./source-scan.js";
 
@@ -63,6 +64,11 @@ export interface ExtractInput {
   readonly cwd?: string;
   /** Report what would be added without writing anything. */
   readonly dryRun?: boolean;
+  /**
+   * Called once after each application source file the scan reads, with the running count and the
+   * total, for progress reporting.
+   */
+  readonly onProgress?: ScanProgressListener;
 }
 
 /** Injectable dependencies for {@link extract}. Every field has a working default. */
@@ -198,7 +204,7 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
   const adapter = selectAdapter(input.config.format, deps.adapterRegistry, fs);
   const resolver = createLocalePathResolver(cwd, input.config);
   const sourcePath = resolver.pathFor(input.config.sourceLocale);
-  const scan = await runScan(extraction, cwd, fs, deps.createExtractor);
+  const scan = await runScan(extraction, cwd, fs, deps.createExtractor, input.onProgress);
   const resource = await readExistingResource(sourcePath, input.config, fs, adapter);
   const added = scan.keys.filter((key) => !resource.entries.has(key.key));
   const dryRun = input.dryRun === true;

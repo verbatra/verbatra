@@ -537,11 +537,15 @@ function lockWaitReporter(context: CommandContext): (event: LockWaitEvent) => vo
 
 function progressReporter(context: CommandContext): (event: ProgressEvent) => void {
   return (event) => {
-    if (context.json) {
-      context.streams.err(`${renderProgressJson(event)}\n`);
+    const line = context.json ? renderProgressJson(event) : renderProgressHuman(event);
+    if (line === undefined) {
       return;
     }
-    context.ui.line(renderProgressHuman(event));
+    if (context.json) {
+      context.streams.err(`${line}\n`);
+      return;
+    }
+    context.ui.line(line);
   };
 }
 

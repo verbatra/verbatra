@@ -46,10 +46,14 @@ export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session 
       streams.err(`${renderLockWait(event, options.json)}\n`);
     },
     onProgress: (event) => {
+      const line = options.json ? renderProgressJson(event) : renderProgressHuman(event);
+      if (line === undefined) {
+        return;
+      }
       if (options.json) {
-        streams.err(`${renderProgressJson(event)}\n`);
+        streams.err(`${line}\n`);
       } else {
-        ui.line(renderProgressHuman(event));
+        ui.line(line);
       }
     },
     ...(options.locales !== undefined ? { locales: options.locales } : {}),

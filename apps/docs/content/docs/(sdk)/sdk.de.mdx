@@ -94,6 +94,33 @@ Probleme des gesamten Laufs werfen einen `SdkError`; eine einzelne fehlschlagend
 nie, sondern landet als `status: "failed"` auf dem Eintrag dieser Locale, während der Lauf
 weitergeht.
 
+### Fortschrittsereignisse
+
+<AvailableFrom version="0.12.0" />
+
+`onProgress` erhält ein `ProgressEvent`, eine nach `type` unterschiedene Union. Eine Minor-Version kann Typen ergänzen, ignoriere also einen `type`, den du nicht kennst.
+
+| `type` | Wann | Felder |
+| --- | --- | --- |
+| `locale-started` | die Arbeit an einer Locale beginnt | `locale`, `localeIndex`, `totalLocales` |
+| `locale-planned` | nachdem das Translation Memory befragt wurde und bevor der erste Batch gesendet wird; nur wenn ein Provider aufgerufen wird | `locale`, `keys`, `batches`, `cacheHits` |
+| `sub-batch` | direkt bevor ein Übersetzungs-Batch versucht wird | `locale`, `batchIndex`, `totalBatches` |
+| `provider-retry` | ein eingebauter Provider wiederholt eine Anfrage, die mit einem wiederholbaren Status fehlschlug | `attempt`, `delayMs?`, `status?` |
+| `repair` | ein LLM-Provider fordert die Keys erneut an, die seine erste Antwort ausgelassen hat | `locale`, `keys` |
+| `split-retry` | ein Batch, dessen Ausgabe abgeschnitten wurde, wird in zwei Hälften wiederholt | `locale`, `keys` |
+| `batch-finished` | ein Batch ist fertig, ob erfolgreich oder nicht | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
+| `writing` | direkt bevor die Datei einer Locale geschrieben wird | `locale` |
+| `locale-finished` | die Arbeit an einer Locale endet | `locale`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | alle Locales sind fertig | `localesCompleted` |
+| `change-detected` | nur `watch`: eine Änderung an der Quelldatei hat sich gesetzt | `paths` |
+| `idle` | nur `watch`: ein Lauf ist fertig und keiner steht an | keine |
+
+`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL und Google Cloud Translation melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
+
+`extract`, `diff` mit `unused` und `doctor` mit `literals` nehmen ein eigenes `onProgress`. Es erhält ein `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, einmal nach jeder Quelldatei der Anwendung, die der Scan liest.
+
+Eine eigene `CreateProvider`-Fabrik erhält ein drittes Argument, `CreateProviderHooks`, sobald ein Lauf Fortschritt meldet. Rufe dessen `onRetry` mit `{ attempt, delayMs?, status? }` auf, dann erscheinen die Wiederholungen deines Providers als `provider-retry`-Ereignisse.
+
 ### resolveDryRun
 
 <AvailableFrom version="0.11.0" />
@@ -296,7 +323,7 @@ die Konfiguration aber nicht aufführt, etwa `pt_BR` nach einer Umschreibung zu 
 ob der nächste Lauf von `translate` sie übernimmt. Eine Datei, die sie nicht lesen kann, nennt das
 Detail.
 
-Eingabe: `{ cwd?, configPath?, literals? }`. Mit gesetztem `literals` führt `doctor` nur die
+Eingabe: `{ cwd?, configPath?, literals?, onProgress? }`. Mit gesetztem `literals` führt `doctor` nur die
 Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
 Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
 [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. Keine geladene
@@ -323,7 +350,7 @@ ein nicht statisches Key-Argument in `dynamic`, ein Key mit zwei verschiedenen S
 `conflicts` (kein Wert wird geschrieben) und eine nicht lesbare Datei in `diagnostics`. Das Ergebnis
 trägt nur Keys, Werte sowie Datei- und Zeilenangaben, nie den Inhalt einer Quelldatei.
 
-Eingabe: `{ config, cwd?, dryRun? }`, wobei `config.extract` das Framework und die
+Eingabe: `{ config, cwd?, dryRun?, onProgress? }`, wobei `config.extract` das Framework und die
 Quellverzeichnisse benennt. Gibt ein `ExtractResult` zurück. Die Dateisuche läuft über das
 optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member wird als
 `EXTRACT_FS_UNSUPPORTED` gemeldet.
@@ -392,7 +419,7 @@ Grund mit seinen Fundstellen nennt) oder `not-run` (mit einem `reason` und ohne 
 Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys). Der Bericht
 kippt nie `hasPendingChanges`.
 
-Eingabe: `{ config, cwd?, locales?, unused? }`. Gibt eine `DiffSummary` zurück.
+Eingabe: `{ config, cwd?, locales?, unused?, onProgress? }`. Gibt eine `DiffSummary` zurück.
 
 <AvailableFrom version="0.12.0" />
 

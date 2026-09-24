@@ -4,6 +4,7 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type KeyOrigin, originsOf } from "../lock/key-provenance.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { diffLocalesWithSource } from "./diff-locales.js";
 import { reportedProtectedKeys } from "./protection.js";
 import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
@@ -72,6 +73,11 @@ export interface DiffInput {
    * source-catalog keys nothing references, as {@link DiffSummary.unused}. Off by default.
    */
   readonly unused?: boolean;
+  /**
+   * Called once after each application source file the `unused` scan reads, with the running count and the
+   * total, for progress reporting.
+   */
+  readonly onProgress?: ScanProgressListener;
 }
 
 /** Injectable dependencies for {@link diff}. Every field has a working default. */
@@ -162,7 +168,12 @@ export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffS
     return summary;
   }
   const unused = await findUnusedKeys(
-    { config: input.config, cwd: input.cwd ?? process.cwd(), sourceCatalog: source },
+    {
+      config: input.config,
+      cwd: input.cwd ?? process.cwd(),
+      sourceCatalog: source,
+      ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
+    },
     deps,
   );
   return { ...summary, unused };

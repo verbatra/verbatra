@@ -454,6 +454,24 @@ async function shouldWriteTarget(
   return !(await params.fs.fileExists(path));
 }
 
+function reportPlan(
+  params: LocaleRunParams,
+  provider: TranslationProvider | undefined,
+  keys: number,
+  cacheHits: number,
+): void {
+  if (provider === undefined || keys === 0) {
+    return;
+  }
+  params.onProgress?.({
+    type: "locale-planned",
+    locale: params.targetLocale,
+    keys,
+    batches: Math.ceil(keys / params.maxBatchSize),
+    cacheHits,
+  });
+}
+
 export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResult> {
   const target = await readTargetResource({
     resolver: params.resolver,
@@ -534,6 +552,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const budgetWithheld: string[] = [];
   const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
   const provider = params.mode.kind === "translate" ? params.mode.provider : undefined;
+  reportPlan(params, provider, entries.length, partition.hits.size);
   const unfilled = unfilledKeys(params.mode, partition);
   const translation = await translateMisses(provider, params, missGroups, entries, {
     accepted,
@@ -587,6 +606,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const pending = pendingProvenance(params, accepted, { cacheHitKeys, fuzzyKeys }, generation);
   let written: LocaleResource = { ...target, entries: merged };
   if (writeNeeded) {
+    params.onProgress?.({ type: "writing", locale: params.targetLocale });
     await writeTargetResource(
       params.adapter,
       {
@@ -1042,7 +1062,16 @@ async function translateAndCheck(
       batchIndex,
       totalBatches: batches.length,
     });
+    const startedAt = Date.now();
     const subResult = await runSubBatch(provider, params, payload, batch, outcome);
+    params.onProgress?.({
+      type: "batch-finished",
+      locale: params.targetLocale,
+      batchIndex,
+      totalBatches: batches.length,
+      durationMs: Date.now() - startedAt,
+      ...(subResult.usage !== undefined ? { usage: subResult.usage } : {}),
+    });
     notices.push(...subResult.notices);
     foldUsage(usage, subResult.usage);
     withheld = withheld || subResult.withheld;
@@ -1086,7 +1115,10 @@ async function runSubBatch(
   }
   let result: TranslateResult;
   try {
-    result = await provider.translateBatch(buildTranslateRequest(params, batch));
+    result = await provider.translateBatch({
+      ...buildTranslateRequest(params, batch),
+      ...repairListener(params),
+    });
   } catch (error) {
     reconcileBudget(params.budget, decision.reservation, undefined);
     const tripped = checkBudgetTrip(params.budget);
@@ -1112,6 +1144,13 @@ async function runSubBatch(
   };
 }
 
+function repairListener(params: LocaleRunParams): { onRepair?: (keys: number) => void } {
+  const onProgress = params.onProgress;
+  return onProgress === undefined
+    ? {}
+    : { onRepair: (keys) => onProgress({ type: "repair", locale: params.targetLocale, keys }) };
+}
+
 function isOutputTruncated(error: unknown): boolean {
   return error instanceof ProviderError && error.code === "OUTPUT_TRUNCATED";
 }
@@ -1125,6 +1164,7 @@ async function handleSubBatchFailure(
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
   if (isOutputTruncated(error) && batch.length > 1) {
+    params.onProgress?.({ type: "split-retry", locale: params.targetLocale, keys: batch.length });
     return retryTruncatedSplit(provider, params, payload, batch, outcome);
   }
   for (const entry of batch) {

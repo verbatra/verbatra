@@ -406,17 +406,31 @@ export {
 } from "./lock/provenance-file.js";
 export type { LockFile } from "./lock/types.js";
 export type {
+  BatchFinishedEvent,
+  ChangeDetectedEvent,
+  IdleEvent,
   LocaleFinishedEvent,
+  LocalePlannedEvent,
   LocaleStartedEvent,
   ProgressEvent,
   ProgressListener,
+  ProviderRetryEvent,
+  RepairEvent,
   RunFinishedEvent,
+  ScanProgressEvent,
+  ScanProgressListener,
+  SplitRetryEvent,
   SubBatchProgressEvent,
+  WritingEvent,
 } from "./progress/types.js";
 export { redact } from "./redact.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";
-export type { CreateProvider, CreateProviderContext } from "./selection/select-provider.js";
+export type {
+  CreateProvider,
+  CreateProviderContext,
+  CreateProviderHooks,
+} from "./selection/select-provider.js";
 export {
   type CreateWatcher,
   type RunTranslate,
