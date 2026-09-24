@@ -46,6 +46,8 @@ Eine Datei aus einem früheren Export mit einer breiteren `--locales`-Auswahl wi
 | `0` | jede Ziel-Locale kam vollständig durch |
 | `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Arbeitsmappe, Format oder Lock) oder ein Verwendungsfehler |
+| `130` | mit Ctrl-C (SIGINT) abgebrochen; die Schreibsperren des Laufs werden vorher freigegeben |
+| `143` | mit SIGTERM beendet; die Schreibsperren des Laufs werden vorher freigegeben |
 
 Eine Übergabe, die zu groß ist oder sich überhaupt nicht parsen lässt (zum Beispiel eine Datei, die kein lesbarer xlsx-Container ist), ist ein `SOURCE_INVALID`-Fehler des gesamten Laufs, dessen Meldung sagt, was mit ihr nicht stimmte. Eine einzelne unlesbare Zeile ist das nicht: Sie wird als fehlerhafte Zeile gemeldet, und der Rest der Locale wird trotzdem importiert.
 

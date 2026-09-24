@@ -41,8 +41,23 @@ tasks.
 `pnpm knip` is informational and is not part of `pnpm verify` or of any required
 check. It exits non-zero when it has findings, so read them and decide; the
 `Unused code` workflow runs it with `--no-exit-code` and reports in the step log.
-Every suppression lives in `knip.config.ts` with the structural reason for it, so
-add a new one only when the repository's layout genuinely explains the finding.
+Every suppression lives in `knip.config.ts`; add a new one only when the
+repository's layout genuinely explains the finding, and record that reason here:
+
+- `ignoreExportsUsedInFile`: an export its own module uses is over-exported, not
+  dead, and the no-prose-comments rule rules out knip's per-symbol comment tags.
+- Root `entry`: `scripts/*.mjs` are the guards `pnpm verify` runs, and the
+  `scripts/dts-fixture` consumers are compiled by `check:dts`, never imported.
+- `apps/docs`: `verbatra.config.ts` is loaded at runtime by `verbatra translate`,
+  and `@verbatra/studio` is reached only through the CLI's dynamic import.
+- `packages/sdk` `ignoreDependencies`: every `catalog:bundled` runtime dependency
+  no sdk source imports directly. tsup bundles the internal packages that import
+  them, so they ship to consumers; all are listed so the result is the same with
+  and without built `dist` output.
+- `packages/studio` `entry`: each `src/shared/rpc` module exports its method name,
+  params schema, inferred params type and result type as one wire contract.
+- `e2e`: not a pnpm workspace member, so it is named here to keep its harness,
+  vitest configs and devDependencies from reading as unused.
 
 Run a task for a single package with a filter, for example:
 

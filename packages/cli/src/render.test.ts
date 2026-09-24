@@ -680,7 +680,7 @@ describe("render: human run summary", () => {
               {
                 code: "SUB_BATCH_FAILED",
                 message:
-                  "A sub-batch of 1 entries failed (RATE_LIMITED: rate-limited) and was withheld; it will be retried next run.",
+                  "A sub-batch of 1 entry failed (RATE_LIMITED: rate-limited) and was withheld; it will be retried next run.",
               },
             ],
           }),

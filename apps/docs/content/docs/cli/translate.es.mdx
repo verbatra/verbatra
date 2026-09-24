@@ -79,6 +79,8 @@ verbatra translate --include-human
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor o un archivo de bloqueo corrupto) o un error de uso |
 | `3` | proyecto solo humano (`provider: { id: "none" }`): la ejecución terminó sin errores, pero quedan claves para una traducción humana |
+| `130` | interrumpido con Ctrl-C (SIGINT); antes se liberan los bloqueos de escritura de la ejecución |
+| `143` | detenido con SIGTERM; antes se liberan los bloqueos de escritura de la ejecución |
 
 <AvailableFrom version="0.9.0" />
 
