@@ -545,8 +545,10 @@ Eingabe: `{ config, cwd?, locale, key, includeHuman? }`. Gibt `{ accepted: true,
 Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError`, exportiert aus
 `@verbatra/sdk`, mit einem stabilen `code` wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
 
-Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit dem konfigurierten
-Provider und Modell. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
+Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit der `id` des
+Providers, der geantwortet hat, und dem konfigurierten Modell. Ein Provider aus deinem eigenen
+`createProvider` wird unter seiner eigenen `id` festgehalten, und ohne Modell, wenn diese `id` von der
+konfigurierten abweicht. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
 Provider aufgerufen wird.
 
 <AvailableFrom version="0.12.0" />

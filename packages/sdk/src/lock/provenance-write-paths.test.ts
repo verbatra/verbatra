@@ -13,6 +13,7 @@ import { retranslateEntry } from "../flow/retranslate-entry.js";
 import { translate } from "../flow/translate-project.js";
 import { exportWorkbook } from "../flow/workbook/export-workbook.js";
 import { importWorkbook } from "../flow/workbook/import-workbook.js";
+import type { CreateProvider } from "../selection/select-provider.js";
 import {
   baseConfig,
   makeStubProvider,
@@ -48,7 +49,7 @@ async function targetValues(dir: string): Promise<Record<string, string>> {
   return (await readJsonFile(join(dir, "locales", "de.json"))) as Record<string, string>;
 }
 
-const stubCreate = () => makeStubProvider().provider;
+const stubCreate: CreateProvider = (config) => makeStubProvider({ id: config.id }).provider;
 
 async function fillWorkbook(path: string, fills: Readonly<Record<string, string>>): Promise<void> {
   const data = await readWorkbook(new Uint8Array(await readFile(path)));
