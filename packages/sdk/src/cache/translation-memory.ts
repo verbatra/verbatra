@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { z } from "zod";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { sortRecordKeys } from "../record-utils.js";
+import { renameRecordKeys, sortRecordKeys } from "../record-utils.js";
 import type { FingerprintFor } from "./fingerprint.js";
 import type { CacheAddition, TranslationMemory } from "./types.js";
 
@@ -83,6 +83,29 @@ export function lookupMemory(
   contentHash: string,
 ): string | undefined {
   return memory.entries[fingerprint]?.[locale]?.[contentHash];
+}
+
+export function memoryLocalesWithState(memory: TranslationMemory): ReadonlySet<string> {
+  const locales = new Set<string>();
+  for (const byLocale of Object.values(memory.entries)) {
+    for (const [locale, hashes] of Object.entries(byLocale)) {
+      if (Object.keys(hashes).length > 0) {
+        locales.add(locale);
+      }
+    }
+  }
+  return locales;
+}
+
+export function withMemoryLocalesMoved(
+  memory: TranslationMemory,
+  moves: ReadonlyMap<string, string>,
+): TranslationMemory {
+  const entries: Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>> = {};
+  for (const [fingerprint, byLocale] of Object.entries(memory.entries)) {
+    entries[fingerprint] = renameRecordKeys(byLocale, moves);
+  }
+  return { ...memory, entries };
 }
 
 export function lookupSource(memory: TranslationMemory, contentHash: string): string | undefined {

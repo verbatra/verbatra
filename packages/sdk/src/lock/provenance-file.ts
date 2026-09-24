@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { type LocaleResource, normalizeText, stableStringHash } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { ownValue, sortRecordKeys } from "../record-utils.js";
+import { ownValue, renameRecordKeys, sortRecordKeys } from "../record-utils.js";
 
 /**
  * The file name of the project's provenance record, resolved against the run's working directory.
@@ -288,6 +288,27 @@ export function withLocaleRecords(
     configurable: true,
   });
   return { version: file.version, locales };
+}
+
+export function provenanceLocalesWithState(file: ProvenanceFile): ReadonlySet<string> {
+  return new Set(
+    Object.entries(file.locales)
+      .filter(([, entries]) => Object.keys(entries).length > 0)
+      .map(([locale]) => locale),
+  );
+}
+
+export function withProvenanceLocalesMoved(
+  file: ProvenanceFile,
+  moves: ReadonlyMap<string, string>,
+): ProvenanceFile {
+  return {
+    version: file.version,
+    locales: nullPrototypeCopy(
+      renameRecordKeys(file.locales, moves),
+      (value) => value as Readonly<Record<string, ProvenanceRecord>>,
+    ),
+  };
 }
 
 export function localeRecords(
