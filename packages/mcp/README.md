@@ -71,7 +71,7 @@ Fourteen tools, listed here in the order the server advertises them.
 | `glossary.write` | Change one glossary term (a translation for all locales or one `locale`, `forbidden` renderings, `note`, `partOfSpeech`, `caseSensitive`, or `doNotTranslate`) and return the glossary afterward |
 | `lock.state` | The lock file's version and its per-locale key counts, or `exists: false` before the first run |
 | `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
-| `key.value` | One key's current source text and, if translated, its current text in one target locale |
+| `key.value` | One key's current source text, its source file description, and, if translated, its current text in one target locale with who wrote it |
 | `translation.editEntry` | Write a manual translation for one key in one locale, accepted only if it passes the integrity gate |
 | `translation.estimate` | Estimate what `translation.translatePending` would send and cost, optionally for a subset of locales, without calling a provider |
 | `translation.retranslateEntry` | Ask the configured provider for a fresh translation of one key in one locale |

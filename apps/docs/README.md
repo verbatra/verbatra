@@ -4,7 +4,7 @@
 > [verbatra.kreitz-webdev.de](https://verbatra.kreitz-webdev.de), a Fumadocs site on Next.js.
 
 The docs site dogfoods verbatra for its own interface strings and hand-maintains its MDX content
-translations, because verbatra translates structured formats (JSON, XLIFF, YAML, ARB, properties),
+translations, because verbatra translates structured locale formats (such as JSON, XLIFF, YAML, ARB, and properties),
 not Markdown or MDX.
 
 ## Running it

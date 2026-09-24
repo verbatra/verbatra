@@ -52,7 +52,7 @@ export GEMINI_API_KEY=your-key-here
 npx verbatra translate
 ```
 
-Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ.
+Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, and `none` sets up a human-only project that never calls a provider.
 
 ## Commands
 
@@ -74,6 +74,8 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 | `verbatra mcp` | Start a stdio MCP server exposing verbatra's tools to an MCP client |
 
 `check`, `diff`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `pseudo` and `types` call no provider either.
+
+Two flags apply to every command: `-q, --quiet` prints only results and errors, with no progress, notices, or hints, and `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`).
 
 Every flag, every example, and the exit-code contract live in the [CLI reference](https://verbatra.kreitz-webdev.de/docs/cli). `verbatra <command> --help` prints the same reference at the terminal.
 

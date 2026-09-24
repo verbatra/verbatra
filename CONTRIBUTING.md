@@ -73,6 +73,13 @@ Run a task for a single package with a filter, for example:
 pnpm --filter @verbatra/core test
 ```
 
+Turborepo's local cache lives in `.turbo/cache` inside each checkout (`cacheDir`
+in `turbo.json`), so a linked git worktree never replays another checkout's
+cached output, and the docs build excludes `.next/cache/**` and `.next/dev/**`
+from its cached outputs because Next.js writes absolute checkout paths there.
+`scripts/verify-turbo-cache-isolation.test.mjs` fails if either setting is
+removed.
+
 ## Tests and coverage
 
 Tests use Vitest and live next to the code as `*.test.ts` files. Coverage is
@@ -184,21 +191,22 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    Errors must be structured `ProviderError`s. Never let a raw upstream SDK error
    escape.
 
-3. **`packages/ai-providers/src/env.ts`** - key handling. Add the entry to
-   `PROVIDER_ENV` (around `:3`) and a `require<Name>Key()` helper next to the
-   existing five (around `:19-37`), both delegating to `readRequiredEnv`.
+3. **`packages/ai-providers/src/key-env-vars.ts` and `env.ts`** - key handling.
+   Add the entry to `PROVIDER_ENV` in `key-env-vars.ts` (around `:1-7`), then a
+   `require<Name>Key()` helper in `env.ts` next to the existing five (around
+   `:17-37`), delegating to `readRequiredEnv`.
 
    This is a hard rule, not a convention: **API keys come only from environment
    variables. Never from a config file, never from a CLI argument, never from a
    function argument.** An error message names the variable and never contains a
    key value. If your provider needs a user-selectable variable name, follow
-   `resolveOpenAiCompatibleKey` (around `:38`) rather than inventing a third
+   `resolveOpenAiCompatibleKey` (around `:39`) rather than inventing a third
    pattern, and note that it still only ever reads `process.env`.
 
 4. **`packages/ai-providers/src/scaffold.ts`** - only if `verbatra init` should
    offer the provider. Add a default model to `SCAFFOLD_MODELS` (around `:5`) and
    the name of its output-token-limit option to `SCAFFOLD_TOKEN_LIMIT_KEYS`
-   (around `:11`). The `satisfies` clause (around `:15-19`) constrains each value
+   (around `:11`). The `satisfies` clause (around `:15`) constrains each value
    to `keyof <Name>Config`, so a wrong option name is a compile error rather than
    a config the scaffolder writes and the schema then rejects.
 
@@ -209,18 +217,20 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    schema. The SDK imports both from the package root.
 
 6. **`packages/sdk/src/config/provider-config.ts`** - add the variant to the
-   `providerConfigSchema` discriminated union (around `:22-31`). Call `.strict()`
+   `providerConfigSchema` discriminated union (around `:27-41`). Call `.strict()`
    on the options schema exactly as the others do, so an option belonging to a
    different provider is reported as an error instead of silently ignored.
    Without this variant, config loading rejects the provider outright and nothing
    downstream ever runs.
 
 7. **`packages/sdk/src/config/provider-config.ts`** - add the entry to
-   `providerFactories` (around `:57-63`). **This is the registration step.**
-   `buildProvider` (around `:71`) reads this table, `selectProvider`
-   (`packages/sdk/src/selection/select-provider.ts`, around `:15-18`) wraps it,
-   and the two call sites are `flow/translate-project.ts` (around `:496`) and
-   `flow/retranslate-entry.ts` (around `:138`).
+   `providerFactories` (around `:115-124`). **This is the registration step.**
+   The table is a mapped type over `MachineProviderId`, every `ProviderId` except
+   the human-only `none`, which never builds a provider. `buildProvider` (around
+   `:145`) reads this table, `selectProvider`
+   (`packages/sdk/src/selection/select-provider.ts`, around `:95`) wraps it,
+   and the two call sites are `flow/translate-project.ts` (around `:601`) and
+   `flow/retranslate-entry.ts` (around `:344`).
 
    `ProviderRegistry` in `packages/ai-providers/src/registry.ts` is **not** the
    registration path. It is exported from the package, but nothing outside its
@@ -232,7 +242,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 8. **`packages/sdk/src/config/provider-billing.ts`** - add the entry to
    `PROVIDER_BILLING`: whether the provider bills by `tokens` or by `characters`,
    and whether a hosted API bills for it at all. The table is a mapped type over
-   `ProviderId`, so a missing entry is a compile error, and
+   `ProviderId` (`none` included), so a missing entry is a compile error, and
    `provider-billing.test.ts` fails it a second time by iterating `PROVIDER_IDS`.
    If the provider takes a model, add its case to `modelOf` in the same file so a
    rate can be filed under `provider/model`; the switch is exhaustive and will not
@@ -240,9 +250,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
-   `_envCoversAllProviders` (around `:12`) requires an env entry for every
-   provider except `openai-compatible`, and
-   `_tokenLimitKeysCoverAllModelProviders` (around `:17`) requires a token-limit
+   `_envCoversAllProviders` (around `:20`) requires an env entry for every
+   provider except `openai-compatible` and `none`, and
+   `_tokenLimitKeysCoverAllModelProviders` (around `:25`) requires a token-limit
    key for every one of those except `deepl` and `google-translate`, the two that
    take no model. Both are unused declarations that exist only to fail the
    build.
@@ -321,7 +331,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
 
 3. **`packages/format-adapters/src/default-registry.ts`** - add
    `.register(create<Format>Adapter(fs))` to the chain in `createDefaultRegistry`
-   (calls around `:14-21`). Forward the `fs` parameter; do not let the default
+   (calls around `:35-48`). Forward the `fs` parameter; do not let the default
    apply here.
 
 4. **`packages/format-adapters/src/index.ts`** - export the factory.
@@ -334,7 +344,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
-   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` (around `:12-21`) is
+   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` (around `:36-51`) is
    a total `Record<SupportedFormat, string>` and will not compile until the new
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.

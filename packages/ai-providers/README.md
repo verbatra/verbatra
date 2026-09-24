@@ -39,7 +39,7 @@ branches on which one is configured.
 Resolution is a factory table, not the exported `ProviderRegistry` (`src/registry.ts`), which is
 deliberately not on the path: registering a provider there alone compiles and is never reached.
 `providerFactories` in `packages/sdk/src/config/provider-config.ts` is a mapped type over
-`ProviderId`, so a provider in the config union but missing from the table fails to compile. Adding one means a config schema in
+`MachineProviderId` (every `ProviderId` except the human-only `none`), so a provider in the config union but missing from the table fails to compile. Adding one means a config schema in
 `<provider>/config.ts`, a factory in `<provider>/<provider>-provider.ts`, key handling in
 `src/env.ts`, an export from `src/index.ts`, then the two `provider-config.ts` steps. Ordered steps
 are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md); binding rules in

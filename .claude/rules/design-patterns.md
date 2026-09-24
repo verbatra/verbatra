@@ -11,7 +11,7 @@ an ad hoc structure.
 
 - **Strategy**: `TranslationProvider` (`packages/ai-providers/src/provider.ts`) and
   `FormatAdapter` (`packages/format-adapters/src/adapter.ts`) are both single interfaces with
-  multiple interchangeable implementations (five providers, eight adapters) selected at runtime.
+  multiple interchangeable implementations (six providers, fourteen adapters) selected at runtime.
   A new provider or format adapter is a new strategy implementation, not a branch in existing code.
 
 - **Factory (+ Registry)**: `providerFactories` in `packages/sdk/src/config/provider-config.ts`
