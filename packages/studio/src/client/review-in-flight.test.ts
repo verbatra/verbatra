@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BUSY_ANNOUNCE_LONG_STEP_SECONDS,
   BUSY_ANNOUNCE_STEP_SECONDS,
   compactElapsed,
   elapsedSeconds,
@@ -72,6 +73,19 @@ describe("row busy copy", () => {
 
     expect(BUSY_ANNOUNCE_STEP_SECONDS).toBe(15);
     expect(distinct.size).toBe(5);
+  });
+
+  it("announces a hung retranslation once a minute after its first minute", () => {
+    const distinct = new Set(
+      Array.from({ length: 240 }, (_unused, offset) => rowBusyStatus("retranslate", 60 + offset)),
+    );
+
+    expect(BUSY_ANNOUNCE_LONG_STEP_SECONDS).toBe(60);
+    expect(rowBusyStatus("retranslate", 45)).toBe("Retranslating… 45 seconds so far");
+    expect(rowBusyStatus("retranslate", 60)).toBe("Retranslating… 1 minute so far");
+    expect(rowBusyStatus("retranslate", 119)).toBe("Retranslating… 1 minute so far");
+    expect(rowBusyStatus("retranslate", 120)).toBe("Retranslating… 2 minutes so far");
+    expect(distinct.size).toBe(4);
   });
 
   it("formats the visible elapsed time compactly, switching to minutes at one minute", () => {

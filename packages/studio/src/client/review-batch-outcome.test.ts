@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BATCH_LOCK_CONTENDED_MESSAGE,
   batchSummaryFailed,
   batchSummaryHeadline,
   failedBatchEntryIds,
@@ -251,5 +252,42 @@ describe("summarizeReviewBatch: entries skipped after a locale lock timeout", ()
         { locale: "de", key: "c" },
       ],
     });
+  });
+});
+
+describe("summarizeReviewBatch: a lock held across several locales", () => {
+  it("groups lock failures from different locales under one neutral wording", () => {
+    const summary = summarizeReviewBatch("approve", {
+      ok: true,
+      result: {
+        results: [
+          { ok: false, locale: "de", key: "a", code: "LOCK_CONTENDED", message: "held" },
+          { ok: false, locale: "fr", key: "a", code: "LOCK_CONTENDED", message: "held" },
+        ],
+      },
+    });
+
+    const groups = groupBatchFailures(summary.kind === "done" ? summary.failures : []);
+    expect(groups).toEqual([
+      {
+        message: BATCH_LOCK_CONTENDED_MESSAGE,
+        entries: [
+          { locale: "de", key: "a" },
+          { locale: "fr", key: "a" },
+        ],
+      },
+    ]);
+    expect(BATCH_LOCK_CONTENDED_MESSAGE).toBe(
+      "A locale's write lock was held by another process. Wait a moment and try again.",
+    );
+  });
+
+  it("uses the neutral wording when a whole batch fails on a held lock", () => {
+    expect(
+      summarizeRetranslateBatch({
+        ok: false,
+        error: { code: "LOCK_CONTENDED", message: "held" },
+      }),
+    ).toEqual({ kind: "error", action: "retranslate", message: BATCH_LOCK_CONTENDED_MESSAGE });
   });
 });
