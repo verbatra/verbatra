@@ -46,7 +46,7 @@ export function DocsHomeHero({
         className="relative overflow-hidden rounded-xl border"
         style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
       >
-        <div className="grid justify-items-center px-4 pt-16 pb-9 text-center md:px-10 md:pt-24 md:pb-10">
+        <div className="grid grid-cols-[minmax(0,1fr)] justify-items-center px-4 pt-16 pb-9 text-center md:px-10 md:pt-24 md:pb-10">
           <h1
             className="max-w-[16ch] font-semibold text-[color:var(--text-strong)]"
             style={{
@@ -76,7 +76,7 @@ export function DocsHomeHero({
               {secondary.label}
             </Link>
           </div>
-          <div className="mt-10 flex w-full justify-center text-left">
+          <div className="mt-10 flex w-full min-w-0 justify-center text-left">
             <PackageInstall />
           </div>
           <HeroFacts className="mt-14 w-full" />
