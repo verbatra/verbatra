@@ -170,7 +170,9 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
       budgetWithheld: [],
     }),
     translated,
-    unchanged: diff.unchanged,
+    unchanged: diff.unchanged.filter(
+      (key) => !buckets.accepted.has(key) && !buckets.withheld.has(key),
+    ),
     orphaned: diff.orphaned,
     pruned: [],
     invalidIcuSource,

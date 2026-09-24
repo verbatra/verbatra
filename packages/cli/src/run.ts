@@ -27,6 +27,7 @@ import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
 import { runMcp } from "./mcp-command.js";
 import { readPackageManifest } from "./package-manifest.js";
 import { parsePositiveIntegerOption } from "./positive-integer-option.js";
+import { redactingStreams } from "./redacting-streams.js";
 import {
   renderCheckHuman,
   renderDiffHuman,
@@ -1571,6 +1572,15 @@ export async function run(
   deps: CliDeps,
   streams: Streams,
   hooks: RunHooks = {},
+): Promise<number> {
+  return runRedacted(argv, deps, redactingStreams(streams), hooks);
+}
+
+async function runRedacted(
+  argv: readonly string[],
+  deps: CliDeps,
+  streams: Streams,
+  hooks: RunHooks,
 ): Promise<number> {
   let code = 0;
   const program = buildProgram(deps, streams, hooks, (c) => {

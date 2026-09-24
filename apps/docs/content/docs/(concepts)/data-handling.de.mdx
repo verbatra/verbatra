@@ -156,7 +156,9 @@ Jeder Provider liest eine Umgebungsvariable, aufgelistet unter
 [Provider](/docs/providers#keys-kommen-aus-der-umgebung). Jede Fehlermeldung eines Providers läuft
 durch einen Filter, der den Wert jeder Key-Variable, die verbatra kennt, einschließlich der, die du
 für `openai-compatible` mit `apiKeyEnvVar` benennst, und alles, was wie ein gängiger API-Key
-aussieht, durch `[REDACTED]` ersetzt. Eine Meldung nennt die Variable, nie ihren Wert.
+aussieht, durch `[REDACTED]` ersetzt. Eine Meldung nennt die Variable, nie ihren Wert. Die
+`verbatra`-CLI schickt außerdem alles, was sie ausgibt, als letzten Schritt durch denselben Filter:
+die menschenlesbare Ausgabe, den `--json`-Umschlag und jede Fehlerzeile auf stdout oder stderr.
 
 ## Studio und MCP
 

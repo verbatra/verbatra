@@ -147,7 +147,8 @@ Each provider reads one environment variable, listed on [Providers](/docs/provid
 Every provider error message passes through a filter that replaces the value of each key variable
 verbatra knows, including the one you name with `apiKeyEnvVar` for `openai-compatible`, and
 anything shaped like a common API key, with `[REDACTED]`. A message names the variable, never its
-value.
+value. The `verbatra` CLI also runs everything it prints through the same filter as a last step:
+human output, the `--json` envelope, and every error line on stdout or stderr.
 
 ## Studio and MCP
 

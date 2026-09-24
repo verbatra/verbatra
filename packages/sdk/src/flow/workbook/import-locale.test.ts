@@ -386,6 +386,35 @@ describe("importLocale", () => {
     expect(result.summary.translated).toEqual(["greet"]);
   });
 
+  describe("each imported key lands in exactly one summary bucket", () => {
+    const src = entry("greet", "Hi {{name}}", ["{{name}}"]);
+    const other = entry("bye", "Bye");
+    const upToDate = {
+      source: resource("en", [src, other]),
+      target: resource("de", [
+        entry("greet", "Hallo {{name}}", ["{{name}}"]),
+        entry("bye", "Tschüss"),
+      ]),
+      baseline: new Map([
+        ["greet", contentHash(src)],
+        ["bye", contentHash(other)],
+      ]),
+    };
+
+    it.each([
+      ["a [[CLEAR]] of an up-to-date key", "[[CLEAR]]", "translated"],
+      ["an accepted overwrite of an up-to-date key", "Servus {{name}}", "translated"],
+      ["a refused overwrite of an up-to-date key", "Servus", "integrityMismatches"],
+    ] as const)("reports %s only under %s, never also under unchanged", (_label, cell, bucket) => {
+      const sheet: WorkbookSheet = { locale: "de", rows: [row("greet", cell, contentHash(src))] };
+
+      const { summary } = importLocale(params({ sheet, ...upToDate }));
+
+      expect(summary[bucket]).toEqual(["greet"]);
+      expect(summary.unchanged).toEqual(["bye"]);
+    });
+  });
+
   it("withholds a [[CLEAR]] whose source drifted, reporting it like any drift", () => {
     const sheet: WorkbookSheet = {
       locale: "de",

@@ -1038,7 +1038,8 @@ Provider-Umgebungsvariable aus einem String heraus und ersetzt jeden Treffer dur
 Aufrufer zurückgeben, den sie nicht selbst erzeugt haben, etwa einen Glossar-Begriff, einen
 Dateipfad oder eine Fehlermeldung eines vorgelagerten Systems, sodass ein bereits in deiner Umgebung
 vorhandener oder in eine Projektdatei geschriebener Key niemals einen Browser-Tab, einen Agenten
-oder eine Log-Zeile erreichen kann.
+oder eine Log-Zeile erreichen kann. Die `verbatra`-CLI schickt alles, was sie auf stdout und stderr
+schreibt, den `--json`-Umschlag eingeschlossen, als letzten Schritt hindurch.
 
 Das gilt auch für die Variable, die ein `openai-compatible`-Provider über `apiKeyEnvVar` benennt.
 Sie wird deklariert, wenn `loadConfig` eine Config lädt, die sie nennt, oder wenn dieser Provider

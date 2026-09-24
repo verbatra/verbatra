@@ -135,9 +135,14 @@ describe("gateCandidateValue: an empty candidate for a non-empty source", () => 
     });
   });
 
-  it("keeps reporting placeholder for an empty candidate whose source carries a placeholder", () => {
+  it("reports empty, not placeholder, for an empty candidate whose source carries a placeholder", () => {
     const result = gateCandidateValue(entry("Hello {{name}}", ["{{name}}"]), "", adapter, "de");
-    expect(result).toEqual({ accepted: false, reason: "placeholder", details: ["-{{name}}"] });
+    expect(result).toEqual({ accepted: false, reason: "empty" });
+  });
+
+  it("reports empty, not markup, for an empty candidate whose source carries markup", () => {
+    const result = gateCandidateValue(entry("Click <b>here</b>", []), " ", adapter, "de");
+    expect(result).toEqual({ accepted: false, reason: "empty" });
   });
 });
 
@@ -154,9 +159,29 @@ describe.each([
     });
   });
 
-  it("rejects an empty candidate for a source that carries a placeholder", () => {
+  it("reports empty for an empty candidate whose source carries a placeholder", () => {
     const result = gateCandidateValue(entry("Hello {name}", ["{name}"]), "", adapter, "de");
-    expect(result.accepted).toBe(false);
+    expect(result).toEqual({ accepted: false, reason: "empty" });
+  });
+
+  it("reports icu, not placeholder, for a plural that lacks its other arm", () => {
+    const result = gateCandidateValue(
+      entry("{count, plural, one {# item} other {# items}}", ["{count}"]),
+      "{count, plural, one {# Artikel}}",
+      adapter,
+      "de",
+    );
+    expect(result).toMatchObject({ accepted: false, reason: "icu" });
+  });
+
+  it("reports icu, not placeholder, for a candidate that is not a valid ICU message", () => {
+    const result = gateCandidateValue(
+      entry("Hello {name}", ["{name}"]),
+      "Hallo {name",
+      adapter,
+      "de",
+    );
+    expect(result).toEqual({ accepted: false, reason: "icu" });
   });
 
   it("rejects a whitespace-only candidate for a placeholder-free source", () => {

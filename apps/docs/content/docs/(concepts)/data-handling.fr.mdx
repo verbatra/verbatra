@@ -159,7 +159,8 @@ Chaque fournisseur lit une variable d'environnement, listée sur
 fournisseur passe par un filtre qui remplace par `[REDACTED]` la valeur de chaque variable de clé
 que verbatra connaît, y compris celle que tu nommes avec `apiKeyEnvVar` pour `openai-compatible`,
 ainsi que tout ce qui ressemble à une clé d'API courante. Un message nomme la variable, jamais sa
-valeur.
+valeur. La CLI `verbatra` fait aussi passer tout ce qu'elle affiche par le même filtre en dernière
+étape : la sortie lisible, l'enveloppe `--json` et chaque ligne d'erreur sur stdout ou stderr.
 
 ## Studio et MCP
 

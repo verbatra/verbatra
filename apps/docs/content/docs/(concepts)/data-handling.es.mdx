@@ -153,7 +153,9 @@ Cada proveedor lee una variable de entorno, listada en
 [Proveedores](/docs/providers#las-claves-vienen-del-entorno). Cada mensaje de error de un proveedor
 pasa por un filtro que sustituye por `[REDACTED]` el valor de cada variable de clave que verbatra
 conoce, incluida la que nombras con `apiKeyEnvVar` para `openai-compatible`, y cualquier cosa con
-forma de clave de API habitual. Un mensaje nombra la variable, nunca su valor.
+forma de clave de API habitual. Un mensaje nombra la variable, nunca su valor. La CLI `verbatra`
+también pasa todo lo que imprime por el mismo filtro como último paso: la salida legible, el sobre
+`--json` y cada línea de error en stdout o stderr.
 
 ## Studio y MCP
 

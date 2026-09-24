@@ -47,7 +47,7 @@ Lo que un traductor necesita saber cabe en unas pocas líneas (y se repite en la
 - Rellena la columna `Translation`, nada más. La protección de hoja lo impone.
 - No renombres, borres ni reordenes las pestañas de idioma. verbatra empareja cada pestaña con un locale por su nombre exacto, así que una pestaña renombrada o ausente se informa y ese locale no se importa.
 - Ordenar y filtrar filas está bien: la importación empareja las filas por `Key`, nunca por posición. Las columnas deben quedarse donde están; la importación las lee por posición y verifica los encabezados `Key` y `Source hash`.
-- Una celda `Translation` vacía significa "todavía sin traducir". La importación la omite y nunca escribe una cadena vacía, así que un libro a medio rellenar puede volver ahora y el resto más tarde. Una celda que solo contiene espacios cuenta como vacía. Para vaciar deliberadamente un valor existente (dejarlo vacío), escribe exactamente `[[CLEAR]]` en la celda.
+- Una celda `Translation` vacía significa "todavía sin traducir". La importación la omite y nunca escribe una cadena vacía, así que un libro a medio rellenar puede volver ahora y el resto más tarde. Una celda que solo contiene espacios cuenta como vacía. Para vaciar deliberadamente un valor existente (dejarlo vacío), escribe exactamente `[[CLEAR]]` en la celda. Una clave vaciada es una fila aceptada: el resumen de la ejecución la lista en `translated` y nunca también en `unchanged`.
 
 ## Qué acepta la importación
 

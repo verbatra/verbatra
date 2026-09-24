@@ -955,7 +955,8 @@ variable out of a string, replacing each match with `[REDACTED]`. `@verbatra/stu
 `@verbatra/mcp` both apply it to every value they return to a caller that they did not themselves
 generate, such as a glossary term, a file path, or an upstream error message, so a key already
 present in your environment or written into a project file can never reach a browser tab, an
-agent, or a log line.
+agent, or a log line. The `verbatra` CLI runs everything it writes to stdout and stderr, the
+`--json` envelope included, through it as a last step.
 
 That includes the variable an `openai-compatible` provider names through `apiKeyEnvVar`. It is
 declared when `loadConfig` loads a config naming it or when that provider is built, and from then on
