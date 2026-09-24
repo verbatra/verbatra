@@ -186,7 +186,7 @@ describe("exportWorkbook", () => {
     expect(data.sheets.map((s) => s.locale)).toEqual(["de"]);
   });
 
-  it("lets the file-system error through unwrapped when the handoff itself cannot be written", async () => {
+  it("wraps a failed handoff write in EXPORT_UNWRITABLE carrying the file-system error as its cause", async () => {
     const dir = await project({ a: "A" }, { de: { a: "Aa" } });
     const fakeFs = makeFakeFs({
       fileExists: defaultFs.fileExists,
@@ -205,9 +205,14 @@ describe("exportWorkbook", () => {
       (error: unknown) => error,
     );
 
-    expect(rejection).toBeInstanceOf(Error);
-    expect(rejection).not.toBeInstanceOf(SdkError);
-    expect(rejection).toMatchObject({ code: "ENOSPC" });
+    expect(rejection).toBeInstanceOf(SdkError);
+    expect(rejection).toMatchObject({
+      code: "EXPORT_UNWRITABLE",
+      message: expect.stringMatching(
+        /^Could not write the handoff file verbatra-translations\.xlsx \(ENOSPC\)\./,
+      ),
+      cause: { code: "ENOSPC" },
+    });
   });
 
   it("rejects an unknown requested locale with UNKNOWN_LOCALE instead of silently dropping it", async () => {

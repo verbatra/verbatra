@@ -1,4 +1,4 @@
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { computeReviewFlags, type LocaleGlossary, type ReviewFlag } from "@verbatra/ai-providers";
 import { checkPlaceholders, contentHash, diffResources, type LocaleResource } from "@verbatra/core";
 import {
@@ -15,19 +15,29 @@ import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { glossaryForLocale } from "../../config/glossary.js";
 import { toMaxLengthMap } from "../../config/max-length.js";
 import type { VerbatraConfig } from "../../config/schema.js";
+import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
 import { baselineFor, lockFilePath, readLockFile } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { readTargetResource } from "../read-target.js";
+import {
+  namesNoFile,
+  type OutputPathRefusal,
+  outputPathRefusal,
+  outputRefusalReason,
+  type ReservedPath,
+  reservedProjectPaths,
+} from "../reserved-output.js";
 import { selectLocales } from "../select-locales.js";
 import { readSourceResource } from "../source.js";
+import { unwritableFileMessage } from "../write-target.js";
 import {
   DEFAULT_EXCHANGE_FORMAT,
   type ExchangeFormat,
   isDelimitedFormat,
 } from "./exchange-format.js";
-import { writeExportManifest } from "./export-manifest.js";
+import { exportManifestFileName, writeExportManifest } from "./export-manifest.js";
 
 /** Default output path for an `.xlsx` handoff, used when {@link ExportWorkbookInput.out} is omitted. */
 export const DEFAULT_WORKBOOK_PATH = "verbatra-translations.xlsx";
@@ -47,9 +57,27 @@ export interface ExportWorkbookInput {
   readonly cwd?: string;
   /**
    * Where to write the handoff. Defaults to {@link DEFAULT_WORKBOOK_PATH} for `xlsx` and to
-   * {@link DEFAULT_DELIMITED_PATH} for the delimited formats.
+   * {@link DEFAULT_DELIMITED_PATH} for the delimited formats. Refused with `EXPORT_OUTPUT_CONFLICT`,
+   * before anything is read or written, when it resolves outside `cwd`, or when it or a file the
+   * export would write names a configured locale file, the lock file, the provenance file, the
+   * translation-memory cache, a file verbatra searches for its configuration, the
+   * {@link ExportWorkbookInput.configPath} file, or the {@link ExportWorkbookInput.glossaryPath}
+   * file. For `xlsx` it is also refused when it names no file (including one ending in a path
+   * separator) or names `cwd` itself; a delimited export may write into `cwd`. Names are compared
+   * case-insensitively, and, when the file-system port implements `realpath`, again after symbolic
+   * links are resolved, so a link cannot carry the handoff anywhere a plain path could not.
    */
   readonly out?: string;
+  /**
+   * The configuration file `config` was loaded from, absolute or relative to `cwd`. It is refused
+   * as the output path even when its name is not one verbatra searches for.
+   */
+  readonly configPath?: string;
+  /**
+   * The glossary file the config names, absolute or relative to `cwd`, normally the `path` of a
+   * file-backed {@link LoadedConfig.glossary}. It is refused as the output path.
+   */
+  readonly glossaryPath?: string;
   /** Restrict the export to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
   /**
@@ -175,25 +203,152 @@ function buildRows(
   return [...rows].sort((a, b) => (a.key < b.key ? -1 : 1));
 }
 
+function outputHint(delimited: boolean): string {
+  return delimited
+    ? `Pass a directory inside the working directory, or omit it to use ${DEFAULT_DELIMITED_PATH}.`
+    : `Pass a path naming a file inside the working directory, or omit it to use ${DEFAULT_WORKBOOK_PATH}.`;
+}
+
+function refuseOutput(requested: string, why: string, delimited: boolean): never {
+  throw new SdkError(
+    "EXPORT_OUTPUT_CONFLICT",
+    `The output path "${requested}" ${why} ${outputHint(delimited)}`,
+  );
+}
+
+function displayName(path: string, cwd: string): string {
+  return relative(cwd, path).split(sep).join("/");
+}
+
+interface OutputGuard {
+  readonly fs: SdkFs;
+  readonly cwd: string;
+  readonly reserved: ReadonlyMap<string, ReservedPath>;
+}
+
+async function resolveWorkbookPath(guard: OutputGuard, requested: string): Promise<string> {
+  if (namesNoFile(requested)) {
+    refuseOutput(requested, "names no file.", false);
+  }
+  const outputPath = resolve(guard.cwd, requested);
+  const refusal = await outputPathRefusal(guard.fs, guard.cwd, outputPath, guard.reserved);
+  if (refusal !== undefined) {
+    refuseOutput(requested, outputRefusalReason(refusal), false);
+  }
+  return outputPath;
+}
+
+function directoryRefusal(refusal: OutputPathRefusal | undefined): OutputPathRefusal | undefined {
+  return refusal?.kind === "working-directory" ? undefined : refusal;
+}
+
+async function resolveDelimitedDirectory(
+  guard: OutputGuard,
+  requested: string,
+  fileNames: readonly string[],
+): Promise<string> {
+  if (requested.trim() === "") {
+    refuseOutput(requested, "names no directory.", true);
+  }
+  const directory = resolve(guard.cwd, requested);
+  const refusal = directoryRefusal(
+    await outputPathRefusal(guard.fs, guard.cwd, directory, guard.reserved),
+  );
+  if (refusal !== undefined) {
+    refuseOutput(requested, outputRefusalReason(refusal), true);
+  }
+  for (const fileName of fileNames) {
+    const filePath = join(directory, fileName);
+    const fileRefusal = await outputPathRefusal(guard.fs, guard.cwd, filePath, guard.reserved);
+    if (fileRefusal !== undefined) {
+      refuseOutput(
+        requested,
+        `would write ${displayName(filePath, guard.cwd)}, which ${outputRefusalReason(fileRefusal)}`,
+        true,
+      );
+    }
+  }
+  return directory;
+}
+
+async function writeHandoff(
+  what: string,
+  path: string,
+  cwd: string,
+  write: () => Promise<void>,
+): Promise<void> {
+  try {
+    await write();
+  } catch (error) {
+    throw new SdkError("EXPORT_UNWRITABLE", unwritableFileMessage(what, path, cwd, error), {
+      cause: error,
+    });
+  }
+}
+
 async function writeDelimitedFiles(
   fs: SdkFs,
+  cwd: string,
   directory: string,
   format: DelimitedFormat,
   sheets: readonly WorkbookSheet[],
 ): Promise<void> {
-  await fs.mkdir?.(directory);
+  await writeHandoff("the handoff directory", directory, cwd, async () => {
+    await fs.mkdir?.(directory);
+  });
   for (const sheet of sheets) {
-    await fs.writeFile(
-      join(directory, delimitedFileName(sheet.locale, format)),
-      buildDelimited(sheet, format),
-    );
+    const path = join(directory, delimitedFileName(sheet.locale, format));
+    const content = buildDelimited(sheet, format);
+    await writeHandoff("the handoff file", path, cwd, () => fs.writeFile(path, content));
   }
-  await writeExportManifest(
-    fs,
-    directory,
-    format,
-    sheets.map((sheet) => sheet.locale),
+  const manifestPath = join(directory, exportManifestFileName(format));
+  await writeHandoff("the export manifest", manifestPath, cwd, () =>
+    writeExportManifest(
+      fs,
+      directory,
+      format,
+      sheets.map((sheet) => sheet.locale),
+    ),
   );
+}
+
+async function writeWorkbookFile(
+  fs: SdkFs,
+  cwd: string,
+  path: string,
+  sheets: readonly WorkbookSheet[],
+): Promise<void> {
+  const model: WorkbookModel = { sheets };
+  const bytes = await buildWorkbook(model);
+  await writeHandoff("the handoff file", path, cwd, async () => {
+    await fs.mkdir?.(dirname(path));
+    await fs.writeBytes(path, bytes);
+  });
+}
+
+function reservedFor(input: ExportWorkbookInput, cwd: string): ReadonlyMap<string, ReservedPath> {
+  return reservedProjectPaths({
+    cwd,
+    config: input.config,
+    resolver: createLocalePathResolver(cwd, input.config),
+    ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+    ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
+  });
+}
+
+async function resolveHandoffPath(
+  guard: OutputGuard,
+  input: ExportWorkbookInput,
+  format: ExchangeFormat,
+  locales: readonly string[],
+): Promise<string> {
+  if (!isDelimitedFormat(format)) {
+    return resolveWorkbookPath(guard, input.out ?? DEFAULT_WORKBOOK_PATH);
+  }
+  return resolveDelimitedDirectory(guard, input.out ?? DEFAULT_DELIMITED_PATH, [
+    ...locales.map((locale) => delimitedFileName(locale, format)),
+    exportManifestFileName(format),
+  ]);
 }
 
 /**
@@ -217,11 +372,12 @@ async function writeDelimitedFiles(
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
  * error from a target file.
  *
- * Writing the handoff itself is unwrapped in the same way. It is not a locale file, so a failure to
- * create the output directory or to write the file does not become `TARGET_UNWRITABLE`; the
- * underlying file-system error propagates as it is.
+ * The output path is checked before anything is read or written, and a handoff that could not be
+ * written surfaces as `EXPORT_UNWRITABLE`, never as a raw file-system error. An existing file at
+ * the output path is replaced.
  *
- * @param input - The config, output path, locale filter, and handoff format.
+ * @param input - The config, output path, config and glossary paths to protect, locale filter, and
+ * handoff format.
  * @param deps - Optional adapter registry and file-system overrides.
  * @returns The path written and the per-locale row counts.
  *
@@ -234,11 +390,14 @@ async function writeDelimitedFiles(
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
- * @throws The underlying file-system error, unwrapped, when the handoff could not be written: `out`
- * resolves to a location the process lacks permission to write, or the device is full. A missing
- * output directory is created automatically and is not a cause. Branch on the Node `code`, such as
- * `EACCES` or `ENOSPC`, rather than on the message, which can name the internal temporary file the
- * atomic write uses.
+ * @throws {@link SdkError} `EXPORT_OUTPUT_CONFLICT`: the output path is refused (see
+ * {@link ExportWorkbookInput.out} for the full set), before anything is read or written.
+ * @throws {@link SdkError} `EXPORT_UNWRITABLE`: the output directory could not be created or a
+ * handoff file could not be written, because the directory is not writable, a directory or file
+ * already sits in the way, or the disk is out of space. A missing output directory is created
+ * automatically and is not a cause. The message names the file relative to `cwd` and the
+ * underlying file-system code, never the internal temporary file the atomic write uses, and the
+ * file-system error is the `cause`.
  */
 export async function exportWorkbook(
   input: ExportWorkbookInput,
@@ -250,11 +409,18 @@ export async function exportWorkbook(
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
   const maxLengthBudgets = toMaxLengthMap(config.maxLength);
+  const locales = selectLocales(config, input.locales);
+  const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
+  const path = await resolveHandoffPath(
+    { fs, cwd, reserved: reservedFor(input, cwd) },
+    input,
+    format,
+    locales,
+  );
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readLockFile(lockFilePath(cwd), fs);
 
-  const locales = selectLocales(config, input.locales);
   const sheets = await Promise.all(
     locales.map(async (locale) => {
       const target = await readTargetResource({
@@ -277,17 +443,10 @@ export async function exportWorkbook(
     }),
   );
 
-  const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
-  const path = resolve(
-    cwd,
-    input.out ?? (isDelimitedFormat(format) ? DEFAULT_DELIMITED_PATH : DEFAULT_WORKBOOK_PATH),
-  );
   if (isDelimitedFormat(format)) {
-    await writeDelimitedFiles(fs, path, format, sheets);
+    await writeDelimitedFiles(fs, cwd, path, format, sheets);
   } else {
-    const model: WorkbookModel = { sheets };
-    await fs.mkdir?.(dirname(path));
-    await fs.writeBytes(path, await buildWorkbook(model));
+    await writeWorkbookFile(fs, cwd, path, sheets);
   }
 
   return {

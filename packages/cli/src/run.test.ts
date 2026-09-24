@@ -603,6 +603,9 @@ describe("run translate: exit codes", () => {
         loadConfig: async () => {
           throw new SdkError("CONFIG_NOT_FOUND", "no config");
         },
+        loadConfigWithMeta: async () => {
+          throw new SdkError("CONFIG_NOT_FOUND", "no config");
+        },
       });
     const argvByCommand: ReadonlyArray<readonly [string, readonly string[]]> = [
       ["translate", ["translate", "--json"]],
@@ -670,9 +673,9 @@ describe("run: shared whole-run error helper (withWholeRunErrors)", () => {
     expect(cap.err()).toBe("");
   });
 
-  it("maps a whole-run SdkError thrown by loadConfig to 2 with clean stdout (export)", async () => {
+  it("maps a whole-run SdkError thrown by loadConfigWithMeta to 2 with clean stdout (export)", async () => {
     const { deps } = recordingDeps({
-      loadConfig: async () => {
+      loadConfigWithMeta: async () => {
         throw new SdkError("CONFIG_INVALID", "bad config");
       },
     });

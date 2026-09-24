@@ -5,6 +5,7 @@ import { run, runImport } from "./run.js";
 import {
   captureStreams,
   makeExportResult,
+  makeLoadedConfig,
   makeLocale,
   makeSummary,
   parseEnvelope,
@@ -109,7 +110,7 @@ describe("run export: SDK delegation and rendering", () => {
 
   it("a whole-run error renders to stderr and exits 2", async () => {
     const { deps } = recordingDeps({
-      loadConfig: async () => {
+      loadConfigWithMeta: async () => {
         throw Object.assign(new Error("no config"), { code: "CONFIG_NOT_FOUND" });
       },
     });
@@ -162,6 +163,73 @@ describe("run export: SDK delegation and rendering", () => {
     expect(calls.exportWorkbook[0]).toMatchObject({ locales: ["fr"] });
     expect(cap.err()).toContain("[UNKNOWN_LOCALE]");
     expect(cap.out()).toBe("");
+  });
+});
+
+describe("run export: the output guard", () => {
+  it("hands the SDK the loaded config file, so the output guard refuses it under any name", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ source: { kind: "explicit", filepath: "/proj/custom/settings.ts" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["export", "--cwd", "/proj", "--config", "custom/settings.ts"], deps, cap.streams);
+
+    expect(calls.loadConfigWithMeta[0]).toMatchObject({
+      cwd: "/proj",
+      configPath: "custom/settings.ts",
+    });
+    expect(calls.exportWorkbook[0]).toMatchObject({ configPath: "/proj/custom/settings.ts" });
+  });
+
+  it("hands the SDK a file-backed glossary's path, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ glossary: { source: "file", path: "/proj/glossary.json" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["export", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(calls.exportWorkbook[0]).toMatchObject({ glossaryPath: "/proj/glossary.json" });
+  });
+
+  it("names no config file when the config came from no file", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () => makeLoadedConfig({ source: { kind: "override" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["export", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(calls.exportWorkbook[0]).not.toHaveProperty("configPath");
+  });
+
+  it.each([
+    ["EXPORT_OUTPUT_CONFLICT", 'The output path "locales/de.json" is the locale file for "de".'],
+    ["EXPORT_UNWRITABLE", "Could not write the handoff file handoff.xlsx (EACCES)."],
+  ] as const)("reports %s as a structured failure envelope and exits 2", async (code, message) => {
+    const { deps } = recordingDeps({
+      exportWorkbook: async () => {
+        throw new SdkError(code, message);
+      },
+    });
+    const cap = captureStreams();
+
+    const exit = await run(
+      ["export", "--out", "locales/de.json", "--cwd", "/proj", "--json"],
+      deps,
+      cap.streams,
+    );
+
+    expect(exit).toBe(2);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      command: "export",
+      code,
+      message,
+    });
   });
 });
 

@@ -665,14 +665,17 @@ async function runExport(rawOpts: unknown, deps: CliDeps, streams: Streams): Pro
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
-      return withWholeRunErrors(
-        deps,
+      return withLoadedRunErrors(
         context,
-        loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
-        async (config) => {
+        () =>
+          deps.loadConfigWithMeta(
+            loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+          ),
+        async (loaded) => {
           const result = await deps.exportWorkbook({
-            config,
+            config: loaded.config,
             cwd,
+            ...configFilePaths(loaded),
             ...(opts.out !== undefined ? { out: opts.out } : {}),
             ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
             ...(opts.includeUnchanged === true ? { includeUnchanged: true } : {}),

@@ -142,9 +142,10 @@
  *   {@link rejectEntry}, which act on one locale, and by {@link pseudolocalize} for the pseudolocale file. {@link translate} and {@link importWorkbook} do not throw it: they record it on that
  *   locale's {@link LocaleSummary} and carry on with the other locales.
  * - `PSEUDO_OUTPUT_CONFLICT`: {@link pseudolocalize} was asked to generate a pseudolocale that
- *   names a configured locale, or to write one onto a configured locale file. Refused before
- *   anything is read or written, so a generated pseudolocale can never overwrite a real
- *   translation or stand in for one.
+ *   names a configured locale, or to write one onto a configured locale file or outside the
+ *   working directory, checked again after symbolic links are resolved through a file-system port
+ *   that implements `realpath`. Refused before anything is read or written, so a generated
+ *   pseudolocale can never overwrite a real translation, stand in for one, or leave the project.
  * - `SOURCE_UNWRITABLE`: the source locale file could not be written. Thrown by {@link extract}
  *   alone, since it is the only entry point that writes the source locale. The `xliff` and
  *   `apple-xcstrings` formats reach it when no catalog exists yet, because neither is created from
@@ -177,6 +178,18 @@
  * - `TMX_UNWRITABLE`: the TMX file {@link exportTmx} produces could not be written, because its
  *   directory is not writable, a directory already sits at that path, or the disk is out of space.
  *   The message names the file relative to `cwd` and the underlying file-system code.
+ * - `EXPORT_OUTPUT_CONFLICT`: {@link exportWorkbook} refused its output path. Before anything is
+ *   read or written, it refuses a path that resolves outside the working directory, and one that,
+ *   or a file the export would write into it, names a configured locale file, the lock file, the
+ *   provenance file, the translation-memory cache, a file verbatra searches for its configuration,
+ *   the configuration file the run loaded, or the glossary file the config names, compared
+ *   case-insensitively and, through a file-system port that implements `realpath`, again after
+ *   symbolic links are resolved. An `xlsx` path is also refused when it names no file or names the
+ *   working directory itself.
+ * - `EXPORT_UNWRITABLE`: the handoff {@link exportWorkbook} produces could not be written, because
+ *   its directory is not writable, a directory or file already sits in the way, or the disk is out
+ *   of space. The message names the file relative to `cwd` and the underlying file-system code, and
+ *   the file-system error is the `cause`.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -218,6 +231,8 @@ export type SdkErrorCode =
   | "TYPES_UNWRITABLE"
   | "TMX_OUTPUT_CONFLICT"
   | "TMX_UNWRITABLE"
+  | "EXPORT_OUTPUT_CONFLICT"
+  | "EXPORT_UNWRITABLE"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {
@@ -241,7 +256,7 @@ export function describeError(
 /**
  * The single structured error the SDK throws. Every whole-run failure surfaces as an `SdkError`
  * carrying a stable {@link SdkErrorCode}, except the few a flow's `@throws` names as passed through
- * unwrapped (a failed workbook write, a watcher factory that throws); per-locale failures, provider notices, and integrity
+ * unwrapped (a watcher factory that throws); per-locale failures, provider notices, and integrity
  * findings are reported as data on the {@link RunSummary} instead of being thrown.
  *
  * An `SdkError` never carries a secret in its message.

@@ -120,6 +120,8 @@ verbatra export --out handoff/round-2.xlsx
 
 Reach for `--include-unchanged` when a translator wants the full context of a locale, not just the delta. See [`verbatra export`](/docs/cli/export) for every flag.
 
+`--out` has to stay inside the project: a path outside the working directory, or one that would overwrite a locale file, the lock file, the config, or another file the project depends on, is refused with `EXPORT_OUTPUT_CONFLICT` before anything is written, also when a symbolic link would carry it there. A write that fails stops with `EXPORT_UNWRITABLE`.
+
 ## The review columns
 
 `Review status` and `Review reasons` are a non-gating layer on top of the checks above: verbatra's heuristics for spotting a translation that is structurally fine but worth a second look. They never withhold a row and import never reads them; the only way to clear a flag is to fix the translation. Both columns are computed fresh at export time from the source and current target values:

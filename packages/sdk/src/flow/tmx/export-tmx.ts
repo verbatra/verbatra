@@ -14,13 +14,11 @@ import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
 import {
-  canonicalOutputConflict,
   namesNoFile,
+  outputPathRefusal,
+  outputRefusalReason,
   type ReservedPath,
-  reservedPathAt,
   reservedProjectPaths,
-  WORKING_DIRECTORY_REASON,
-  workingDirectoryConflict,
 } from "../reserved-output.js";
 import { selectLocales } from "../select-locales.js";
 import { unwritableFileMessage } from "../write-target.js";
@@ -171,26 +169,9 @@ async function resolveOutputPath(
     refuseOutput(requested, "names no file.");
   }
   const outputPath = resolve(cwd, requested);
-  const place = workingDirectoryConflict(cwd, outputPath);
-  if (place === "working-directory") {
-    refuseOutput(requested, WORKING_DIRECTORY_REASON);
-  }
-  if (place === "outside-working-directory") {
-    refuseOutput(requested, "is not inside the working directory.");
-  }
-  const claimed = reservedPathAt(reserved, outputPath);
-  if (claimed !== undefined) {
-    refuseOutput(requested, `is ${claimed.what}.`);
-  }
-  const conflict = await canonicalOutputConflict(fs, cwd, outputPath, reserved);
-  if (conflict?.kind === "working-directory") {
-    refuseOutput(requested, WORKING_DIRECTORY_REASON);
-  }
-  if (conflict?.kind === "outside-working-directory") {
-    refuseOutput(requested, "resolves outside the working directory through a symbolic link.");
-  }
-  if (conflict?.kind === "reserved") {
-    refuseOutput(requested, `resolves to ${conflict.reserved.what} through a symbolic link.`);
+  const refusal = await outputPathRefusal(fs, cwd, outputPath, reserved);
+  if (refusal !== undefined) {
+    refuseOutput(requested, outputRefusalReason(refusal));
   }
   return outputPath;
 }
