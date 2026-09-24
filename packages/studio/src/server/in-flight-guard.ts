@@ -24,11 +24,28 @@ function lockKeyFor(method: string, key: string | undefined): string {
   return key === undefined ? method : `${method}:${key}`;
 }
 
+function entryKeyOf(entry: InFlightEntryRef): string {
+  return JSON.stringify([entry.locale, entry.key]);
+}
+
 export function createRpcInFlightGuard(
   guardedMethods: ReadonlySet<string>,
   now: () => number = Date.now,
+  entryExclusiveMethods: ReadonlySet<string> = new Set(),
 ): RpcInFlightGuard {
   const inFlight = new Map<string, InFlightCall>();
+
+  function overlapsInFlight(method: string, entries: readonly InFlightEntryRef[]): boolean {
+    if (!entryExclusiveMethods.has(method)) {
+      return false;
+    }
+    const wanted = new Set(entries.map(entryKeyOf));
+    return [...inFlight.values()].some(
+      (call) =>
+        entryExclusiveMethods.has(call.method) &&
+        call.entries.some((entry) => wanted.has(entryKeyOf(entry))),
+    );
+  }
 
   return {
     tryEnter(method: string, key?: string, entries: readonly InFlightEntryRef[] = []): boolean {
@@ -36,7 +53,7 @@ export function createRpcInFlightGuard(
         return true;
       }
       const lockKey = lockKeyFor(method, key);
-      if (inFlight.has(lockKey)) {
+      if (inFlight.has(lockKey) || overlapsInFlight(method, entries)) {
         return false;
       }
       inFlight.set(lockKey, { method, startedAt: now(), entries });

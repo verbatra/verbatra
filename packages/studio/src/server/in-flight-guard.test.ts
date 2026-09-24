@@ -110,3 +110,46 @@ describe("createRpcInFlightGuard: entries", () => {
     expect(guard.entries()).toEqual([]);
   });
 });
+
+describe("createRpcInFlightGuard: entry-exclusive methods", () => {
+  const SINGLE = "translation.retranslateEntry";
+  const BATCH = "translation.retranslateEntries";
+  const guarded = new Set([SINGLE, BATCH, "review.approve"]);
+
+  function guard() {
+    return createRpcInFlightGuard(guarded, () => 0, new Set([SINGLE, BATCH]));
+  }
+
+  it("refuses a single call for an entry a running batch holds, in either order", () => {
+    const first = guard();
+    first.tryEnter(BATCH, undefined, [{ locale: "de", key: "a" }]);
+    expect(first.tryEnter(SINGLE, "a", [{ locale: "de", key: "a" }])).toBe(false);
+    expect(first.tryEnter(SINGLE, "b", [{ locale: "de", key: "b" }])).toBe(true);
+
+    const second = guard();
+    second.tryEnter(SINGLE, "a", [{ locale: "de", key: "a" }]);
+    expect(second.tryEnter(BATCH, undefined, [{ locale: "de", key: "a" }])).toBe(false);
+  });
+
+  it("does not treat the same key in another locale as a clash", () => {
+    const instance = guard();
+    instance.tryEnter(BATCH, undefined, [{ locale: "de", key: "a" }]);
+
+    expect(instance.tryEnter(SINGLE, "a", [{ locale: "fr", key: "a" }])).toBe(true);
+  });
+
+  it("frees the entries once the batch leaves", () => {
+    const instance = guard();
+    instance.tryEnter(BATCH, undefined, [{ locale: "de", key: "a" }]);
+    instance.leave(BATCH);
+
+    expect(instance.tryEnter(SINGLE, "a", [{ locale: "de", key: "a" }])).toBe(true);
+  });
+
+  it("leaves methods outside the exclusive set unaffected by overlapping entries", () => {
+    const instance = guard();
+    instance.tryEnter(BATCH, undefined, [{ locale: "de", key: "a" }]);
+
+    expect(instance.tryEnter("review.approve", "a", [{ locale: "de", key: "a" }])).toBe(true);
+  });
+});

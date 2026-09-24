@@ -594,7 +594,7 @@ Vuelve a ejecutar el proveedor para exactamente una clave y un locale: una llama
 través de la misma ruta de proveedor que usa `translate`, protegida por las mismas comprobaciones de
 integridad. Al aceptarse escribe el archivo de locale y la entrada del bloqueo solo para esa clave.
 
-Entrada: `{ config, cwd?, locale, key, includeHuman? }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
+Entrada: `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
 códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
 diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
@@ -658,8 +658,9 @@ Cada una de estas llamadas ejecuta la llamada de una sola clave correspondiente 
 entrada, en el orden dado, y devuelve `{ results }` con un resultado por entrada en ese orden. Una
 entrada que falla no detiene el lote: su resultado es `{ locale, key, ok: false, code, message }`,
 con el código del `SdkError`, del error de adaptador o del `ProviderError` que la detuvo y un
-mensaje censurado, y se ejecuta la siguiente entrada. Cualquier otro error se lanza, y las entradas
-posteriores no se ejecutan. Una lista `entries` vacía devuelve `results` vacío.
+mensaje censurado, y se ejecuta la siguiente entrada. Cualquier otro error detiene el lote con un
+`BatchInterruptedError` que lleva los resultados de las entradas ya ejecutadas, cuyas escrituras ya
+están en disco. Una lista `entries` vacía devuelve `results` vacío.
 
 ### approveEntries
 
@@ -674,11 +675,34 @@ rechazado. Un resultado correcto es `{ ok: true, locale, key, provenance }`.
 
 ### retranslateEntries
 
-Entrada: `{ config, cwd?, entries: [{ locale, key }], includeHuman? }`. Ejecuta `retranslateEntry`
-por entrada, así que hace hasta una llamada al proveedor por entrada. Un resultado completado es
+Entrada: `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
+Ejecuta `retranslateEntry` por entrada, así que hace hasta una llamada al proveedor por entrada. No
+es una ejecución de `translate`: `maxTokens` y `budgetBehavior` no se aplican, y el número de
+entradas es el único límite de lo que gasta. Un resultado completado es
 `{ ok: true, locale, key, result }`, donde `result` es lo que devolvió `retranslateEntry`, incluido
 un valor que la puerta de integridad rechazó. Un valor que escribió una persona falla con
-`KEY_PROTECTED` salvo que pases `includeHuman: true`.
+`KEY_PROTECTED` salvo que pases `includeHuman: true`. `lockAcquireTimeoutMs` limita la espera de
+cada entrada por el bloqueo de escritura de su locale, antes de llamar al proveedor, y
+`onLockWait` informa de esa espera.
+
+<AvailableFrom version="0.12.0" />
+
+Un error que haría fallar igual a todas las entradas detiene las llamadas al proveedor:
+`MISSING_API_KEY`, `AUTH_FAILED`, `RATE_LIMITED` (que incluye una cuota agotada),
+`NETWORK_POLICY_VIOLATION`, `PROVIDER_CONSTRUCTION_FAILED`, `CONFIG_INVALID` o
+`MACHINE_TRANSLATION_DISABLED`. La entrada que lo provocó falla como siempre, y cada entrada
+posterior recibe `{ locale, key, ok: false, skipped: true, code, message }` con ese código, sin
+otra llamada al proveedor.
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+Lo lanzan `approveEntries`, `rejectEntries` y `retranslateEntries` cuando un error que no es el
+resultado de una sola entrada, como un fallo inesperado del sistema de archivos, detiene un lote a
+medias. `results` contiene los resultados de las entradas completadas antes, en orden, `entry`
+nombra el `{ locale, key }` que se estaba ejecutando y `cause` es el error original. Las entradas
+posteriores a `entry` no se ejecutaron.
 
 ## Lecturas de contenido en bloque
 
@@ -779,6 +803,8 @@ archivo. Devuelve la misma forma `RunSummary` que `translate`
 (con `needsReview` siempre vacío, ya que no interviene ningún proveedor). Una hoja de un locale que no
 es un destino configurado hace fallar ese locale con `CONFIG_INVALID` como dato en el resumen, no como
 excepción.
+
+<AvailableFrom version="0.12.0" />
 
 `onLockWait` y `lockAcquireTimeoutMs` se comportan exactamente como en `translate`.
 `lockAcquireTimeoutMs` limita la espera por el bloqueo de escritura de un locale, que se toma antes
