@@ -753,6 +753,24 @@ describe("importTmx holds an imported unit to the same gate a provider's output 
     expect(result.locales[0]?.refusals).toEqual([{ unit: 1, reason: "icu" }]);
   });
 
+  it("reports a refusal by its ordinal in the file when a skipped unit precedes it", async () => {
+    const dir = await project([
+      "    <tu></tu>",
+      tu([
+        ["en", "Save the document"],
+        ["de", "Dokument speichern {"],
+      ]),
+    ]);
+
+    const result = await importTmx({
+      config: cfg({ format: "next-intl-json" }),
+      file: "memory.tmx",
+      cwd: dir,
+    });
+
+    expect(result.locales[0]?.refusals).toEqual([{ unit: 2, reason: "icu" }]);
+  });
+
   it("refuses a Russian plural that keeps the English arms and accepts one with the Russian arms", async () => {
     const source = "{n, plural, one {# file} other {# files}}";
     const dir = await project([

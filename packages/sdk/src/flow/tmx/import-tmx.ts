@@ -469,7 +469,7 @@ function scanUnits(
   let conflictingSourceUnits = 0;
   let markupStrippedUnits = 0;
   let subflowDroppedUnits = 0;
-  for (const [index, unit] of units.entries()) {
+  for (const unit of units) {
     if (unit.markupStripped) {
       markupStrippedUnits += 1;
     }
@@ -478,7 +478,7 @@ function scanUnits(
     }
     const outcome = importUnit(
       ctx,
-      index + 1,
+      unit.ordinal,
       planUnit(unit, sourceLocale, configuredTargets, census),
       tallies,
       census,
