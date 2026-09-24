@@ -170,3 +170,43 @@ describe("failedBatchEntryIds", () => {
     expect(failedBatchEntryIds(summary, ["de/a", "de/b"], idOf)).toEqual(new Set(["de/a", "de/b"]));
   });
 });
+
+describe("summarizeRetranslateBatch: entries skipped after a batch-wide failure", () => {
+  it("says a skipped entry was not attempted, with the copy for the code that stopped the batch", () => {
+    const summary = summarizeRetranslateBatch({
+      ok: true,
+      result: {
+        results: [
+          { ok: false, locale: "de", key: "a", code: "AUTH_FAILED", message: "no" },
+          {
+            ok: false,
+            skipped: true,
+            locale: "de",
+            key: "b",
+            code: "AUTH_FAILED",
+            message: "Not attempted",
+          },
+        ],
+      },
+    });
+
+    expect(summary).toEqual({
+      kind: "done",
+      action: "retranslate",
+      succeeded: 0,
+      failures: [
+        {
+          locale: "de",
+          key: "a",
+          message: "The translation provider rejected the configured API key.",
+        },
+        {
+          locale: "de",
+          key: "b",
+          message:
+            "Not attempted after an earlier failure: The translation provider rejected the configured API key.",
+        },
+      ],
+    });
+  });
+});

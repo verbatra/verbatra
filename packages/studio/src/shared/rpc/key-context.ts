@@ -12,6 +12,11 @@ export const keyContextParamsSchema = z.strictObject({
 
 export type KeyContextParams = z.infer<typeof keyContextParamsSchema>;
 
+export interface GlossaryNotice {
+  readonly code: string;
+  readonly message: string;
+}
+
 export interface KeyContextResult {
   readonly source: string;
   readonly target?: string;
@@ -20,4 +25,5 @@ export interface KeyContextResult {
   readonly glossary: LocaleGlossary;
   readonly maxLength?: number;
   readonly draftCheck?: GlossaryDraftCheck;
+  readonly glossaryNotice?: GlossaryNotice;
 }

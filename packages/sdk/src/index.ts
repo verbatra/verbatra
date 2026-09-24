@@ -179,6 +179,8 @@ export {
   approveEntries,
   type BatchEntry,
   type BatchEntryFailure,
+  type BatchEntrySkipped,
+  BatchInterruptedError,
   type RetranslateBatchOutcome,
   type RetranslateEntriesInput,
   type RetranslateEntriesResult,

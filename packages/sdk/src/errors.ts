@@ -115,15 +115,15 @@
  *   process: each lock records a random ownership token, and the holder checks it before every
  *   write the lock protects, so the operation stops without writing once the token is gone. A
  *   token found gone on release, after the writes, is reported the same way, since another process
- *   may have changed the same files since. The message names the lock file's path. Thrown by {@link editEntry},
- *   {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry}, which act on one
- *   locale, and by {@link updateGlossaryTerm}, which takes the project's glossary lock.
- *   {@link translate} and {@link importWorkbook} do not throw it: they record it
- *   on the contended locale's {@link LocaleSummary} and carry on with the other locales. For
+ *   may have changed the same files since. The message names the lock file's path. Thrown by
+ *   {@link editEntry}, {@link retranslateEntry}, {@link approveEntry}, and {@link rejectEntry},
+ *   which act on one locale, and by {@link updateGlossaryTerm}, which takes the project's glossary
+ *   lock. {@link translate} and {@link importWorkbook} do not throw it: they record it on the
+ *   contended locale's {@link LocaleSummary} and carry on with the other locales. For
  *   {@link translate}, {@link watch}, and {@link importWorkbook}, `lockAcquireTimeoutMs` bounds
  *   only the locale write lock taken before any provider call or file write, so a locale that fails
- *   with it after that timeout has called no provider and written no file. The lock-file guard taken to record a written file is not
- *   bounded by it and always allows the ten-minute default.
+ *   with it after that timeout has called no provider and written no file. The lock-file guard
+ *   taken to record a written file is not bounded by it and always allows the ten-minute default.
  * - `GLOSSARY_NOT_FILE_BACKED`: the loaded config's glossary is written inline or absent, so there
  *   is no glossary file to read or rewrite. Thrown by {@link readGlossaryFile} and
  *   {@link updateGlossaryTerm}, which work on a file-backed glossary alone and never rewrite the

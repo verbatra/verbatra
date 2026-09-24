@@ -14,6 +14,8 @@ const REQUEST_INVALID_MESSAGE = "The request body must be JSON shaped as { metho
 const METHOD_UNKNOWN_MESSAGE = "The requested method is not recognized.";
 const PARAMS_INVALID_MESSAGE = "The request parameters failed validation.";
 const METHOD_RATE_LIMITED_MESSAGE = "Too many calls to this method; wait before retrying.";
+const BATCH_TOO_LARGE_MESSAGE =
+  "This batch has more entries than this method allows in one rate-limit window; send fewer entries.";
 const ALREADY_IN_PROGRESS_MESSAGE =
   "A matching call is already in progress; wait for it to finish.";
 const INTERNAL_ERROR_MESSAGE = "An unexpected error occurred.";
@@ -39,24 +41,50 @@ function entryDedupeKey(params: unknown): string | undefined {
   return parsed.success ? JSON.stringify([parsed.data.locale, parsed.data.key]) : undefined;
 }
 
-const batchEntriesSchema = z.object({ entries: z.array(z.unknown()) });
-
 const batchEntryRefsSchema = z.object({ entries: z.array(entryDedupeParamsSchema) });
+
+function uniqueEntryRefs(entries: readonly InFlightEntryRef[]): readonly InFlightEntryRef[] {
+  const byKey = new Map<string, InFlightEntryRef>();
+  for (const entry of entries) {
+    const id = JSON.stringify([entry.locale, entry.key]);
+    if (!byKey.has(id)) {
+      byKey.set(id, { locale: entry.locale, key: entry.key });
+    }
+  }
+  return [...byKey.values()];
+}
+
+function batchEntryRefs(params: unknown): readonly InFlightEntryRef[] | undefined {
+  const batch = batchEntryRefsSchema.safeParse(params);
+  return batch.success ? uniqueEntryRefs(batch.data.entries) : undefined;
+}
 
 function requestEntryRefs(params: unknown): readonly InFlightEntryRef[] {
   const single = entryDedupeParamsSchema.safeParse(params);
   if (single.success) {
     return [{ locale: single.data.locale, key: single.data.key }];
   }
-  const batch = batchEntryRefsSchema.safeParse(params);
-  return batch.success
-    ? batch.data.entries.map((entry) => ({ locale: entry.locale, key: entry.key }))
-    : [];
+  return batchEntryRefs(params) ?? [];
 }
 
-function requestEntryCount(params: unknown): number {
-  const parsed = batchEntriesSchema.safeParse(params);
-  return parsed.success ? parsed.data.entries.length : 1;
+function requestWeight(params: unknown): number {
+  return batchEntryRefs(params)?.length ?? 1;
+}
+
+function rateLimitRefusal(
+  rateLimiter: RpcRateLimiter | undefined,
+  method: string,
+  weight: number,
+): RpcResult | undefined {
+  if (rateLimiter === undefined) {
+    return undefined;
+  }
+  if (rateLimiter.exceedsWindow(method, weight)) {
+    return errorEnvelope(429, "BATCH_TOO_LARGE", BATCH_TOO_LARGE_MESSAGE);
+  }
+  return rateLimiter.tryAcquire(method, weight)
+    ? undefined
+    : errorEnvelope(429, "METHOD_RATE_LIMITED", METHOD_RATE_LIMITED_MESSAGE);
 }
 
 function parseRequestShape(body: Buffer): RawRequestShape | undefined {
@@ -149,12 +177,14 @@ async function invokeHandler(
   if (handler === undefined) {
     return errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
-  if (rateLimiter?.tryAcquire(method, requestEntryCount(parsedParams.data)) === false) {
-    return errorEnvelope(429, "METHOD_RATE_LIMITED", METHOD_RATE_LIMITED_MESSAGE);
-  }
   const dedupeKey = entryDedupeKey(parsedParams.data);
   if (inFlightGuard?.tryEnter(method, dedupeKey, requestEntryRefs(parsedParams.data)) === false) {
     return errorEnvelope(409, "ALREADY_IN_PROGRESS", ALREADY_IN_PROGRESS_MESSAGE);
+  }
+  const refusal = rateLimitRefusal(rateLimiter, method, requestWeight(parsedParams.data));
+  if (refusal !== undefined) {
+    inFlightGuard?.leave(method, dedupeKey);
+    return refusal;
   }
   try {
     const result = await handler(parsedParams.data as never, deps);

@@ -14,7 +14,13 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
+import {
+  type LockWaitListener,
+  recordLockOptions,
+  withLocaleWriteLock,
+  writeLockKeyFor,
+  writeLockOptions,
+} from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
 import { machineAttribution } from "../lock/machine-attribution.js";
 import { type PendingProvenance, settleProvenance } from "../lock/provenance-file.js";
@@ -52,6 +58,18 @@ export interface RetranslateEntryInput {
    * says. Defaults to false.
    */
   readonly includeHuman?: boolean;
+  /**
+   * Called while waiting on another process's write lock for the locale, so a caller can explain a
+   * stall instead of appearing to hang. Never called for a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, to wait for the locale's write lock before failing with
+   * `LOCK_CONTENDED`. The wait happens before the provider is called, so a timed-out call has spent
+   * nothing. Defaults to ten minutes. It does not bound the lock-file guard taken to record the
+   * written value, which always allows the ten-minute default.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
 
 /** Injectable dependencies for {@link retranslateEntry}. Every field has a working default. */
@@ -176,7 +194,7 @@ function machinePending(
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
- * the timeout elapsed.
+ * `lockAcquireTimeoutMs` elapsed.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
@@ -225,87 +243,94 @@ export async function retranslateEntry(
   });
   await assertProvenanceReadable(cwd, fs);
 
-  return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
-    const target = await readTarget(cwd, config, adapter, fs, locale);
-    const provenance = await readProvenanceView(policy, cwd, fs, locale);
-    assertNotProtected(
-      protectionFor(policy, provenance, input.key, target.entries.get(input.key)?.value),
-      input.key,
-      locale,
-    );
-
-    const result = await provider.translateBatch(
-      buildTranslateRequest(
-        {
-          sourceLocale: config.sourceLocale,
-          targetLocale: locale,
-          adapter,
-          glossary: glossaryForLocale(config.glossary, locale),
-          maxLength: toMaxLengthMap(config.maxLength),
-          tone: config.tone,
-        },
-        [sourceEntry],
-      ),
-    );
-    const value = result.values.get(input.key);
-    if (value === undefined) {
-      throw new ProviderError(
-        "INVALID_RESPONSE",
-        `The provider returned no translated value for key "${input.key}".`,
+  return withLocaleWriteLock(
+    cwd,
+    writeLockKeyFor(config.format, locale),
+    fs,
+    async () => {
+      const target = await readTarget(cwd, config, adapter, fs, locale);
+      const provenance = await readProvenanceView(policy, cwd, fs, locale);
+      assertNotProtected(
+        protectionFor(policy, provenance, input.key, target.entries.get(input.key)?.value),
+        input.key,
+        locale,
       );
-    }
 
-    const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
-    if (!gate.accepted) {
-      return {
-        accepted: false,
-        reason: gate.reason,
-        ...(gate.details !== undefined ? { details: gate.details } : {}),
-        value,
-      };
-    }
-
-    const merged = new Map(target.entries);
-    merged.set(input.key, { ...sourceEntry, value, namespace: target.namespace });
-    const resolver = createLocalePathResolver(cwd, config);
-    await writeTargetResource(
-      adapter,
-      { locale, namespace: target.namespace, format: config.format, entries: merged },
-      resolver.pathFor(locale),
-      cwd,
-      { sourcePath: resolver.pathFor(config.sourceLocale) },
-    );
-
-    await updateLockFileLocale(
-      cwd,
-      fs,
-      locale,
-      { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
-      settleProvenance(
-        new Map([[input.key, machinePending(value, config, provider)]]),
-        await readTarget(cwd, config, adapter, fs, locale),
-      ),
-    );
-
-    await feedTranslationMemory(
-      cwd,
-      fs,
-      fingerprintsFor(config),
-      new Map([
-        [
-          locale,
+      const result = await provider.translateBatch(
+        buildTranslateRequest(
           {
-            [contentHash(sourceEntry)]: {
-              contentHash: contentHash(sourceEntry),
-              value,
-              source: sourceEntry.value,
-            },
+            sourceLocale: config.sourceLocale,
+            targetLocale: locale,
+            adapter,
+            glossary: glossaryForLocale(config.glossary, locale),
+            maxLength: toMaxLengthMap(config.maxLength),
+            tone: config.tone,
           },
-        ],
-      ]),
-    );
+          [sourceEntry],
+        ),
+      );
+      const value = result.values.get(input.key);
+      if (value === undefined) {
+        throw new ProviderError(
+          "INVALID_RESPONSE",
+          `The provider returned no translated value for key "${input.key}".`,
+        );
+      }
 
-    const reviewReasons = result.reviewFlags?.get(input.key)?.reasons ?? [];
-    return { accepted: true, value, reviewReasons };
-  });
+      const gate = gateCandidateValue(sourceEntry, value, adapter, locale);
+      if (!gate.accepted) {
+        return {
+          accepted: false,
+          reason: gate.reason,
+          ...(gate.details !== undefined ? { details: gate.details } : {}),
+          value,
+        };
+      }
+
+      const merged = new Map(target.entries);
+      merged.set(input.key, { ...sourceEntry, value, namespace: target.namespace });
+      const resolver = createLocalePathResolver(cwd, config);
+      await writeTargetResource(
+        adapter,
+        { locale, namespace: target.namespace, format: config.format, entries: merged },
+        resolver.pathFor(locale),
+        cwd,
+        { sourcePath: resolver.pathFor(config.sourceLocale) },
+      );
+
+      await updateLockFileLocale(
+        cwd,
+        fs,
+        locale,
+        { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
+        settleProvenance(
+          new Map([[input.key, machinePending(value, config, provider)]]),
+          await readTarget(cwd, config, adapter, fs, locale),
+        ),
+        recordLockOptions(input),
+      );
+
+      await feedTranslationMemory(
+        cwd,
+        fs,
+        fingerprintsFor(config),
+        new Map([
+          [
+            locale,
+            {
+              [contentHash(sourceEntry)]: {
+                contentHash: contentHash(sourceEntry),
+                value,
+                source: sourceEntry.value,
+              },
+            },
+          ],
+        ]),
+      );
+
+      const reviewReasons = result.reviewFlags?.get(input.key)?.reasons ?? [];
+      return { accepted: true, value, reviewReasons };
+    },
+    writeLockOptions(input),
+  );
 }
