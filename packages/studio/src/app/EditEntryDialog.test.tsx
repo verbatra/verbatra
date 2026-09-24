@@ -95,6 +95,25 @@ describe("EditEntryDialog", () => {
     expect(view.text()).toContain("Hello there");
   });
 
+  it("writes the translation in the locale's own direction", async () => {
+    stubRpc({ "key.value": keyValue("Hello {name}", "مرحبا {name}") });
+
+    const arabic = await renderAsync(
+      <EditEntryDialog locale="ar" keyName={KEY} onClose={vi.fn()} onAccepted={vi.fn()} />,
+    );
+
+    expect(editor(arabic).getAttribute("dir")).toBe("rtl");
+  });
+
+  it("writes a left-to-right translation left to right and isolates the source's placeholders", async () => {
+    stubRpc({ "key.value": keyValue("Hello {name}", "Hallo {name}") });
+
+    const view = await renderAsync(dialog());
+
+    expect(editor(view).getAttribute("dir")).toBe("ltr");
+    expect(view.get("bdi[data-value-token]").textContent).toBe("{name}");
+  });
+
   it("starts empty and says so when the locale has no translation yet", async () => {
     stubRpc({ "key.value": keyValue("Hello") });
 

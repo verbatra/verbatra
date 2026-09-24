@@ -133,6 +133,19 @@ describe("KeyDetailDrawer", () => {
     expect(view.getByText("p", "Hello there").getAttribute("dir")).toBe("auto");
   });
 
+  it("isolates placeholders in the source value as left-to-right tokens", async () => {
+    stubBackground();
+    stubRpc({ "key.value": value("Order #{orderId} is <b>ready</b>", "Hallo") });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
+    );
+
+    expect(view.all("bdi[data-value-token]").map((node) => node.textContent)).toContain(
+      "#{orderId}",
+    );
+  });
+
   it("says there is no source value when every locale's read failed", async () => {
     stubBackground();
     stubRpc({ "key.value": rpcError("KEY_UNKNOWN", "no such key") });
@@ -277,7 +290,42 @@ describe("KeyDetailDrawer", () => {
       <KeyDetailDrawer keyName={KEY} locales={[DE_CHANGED]} refreshToken={0} onClose={vi.fn()} />,
     );
 
-    expect(view.text()).toContain("Placeholder mismatch: missing {{name}}; extra {{nom}}");
+    expect(view.getByText("span", "Placeholder mismatch").textContent).toBe("Placeholder mismatch");
+    expect(view.get("[data-integrity-detail]").textContent).toBe("missing {{name}}; extra {{nom}}");
+  });
+
+  it("keeps the integrity detail out of the pill and lets it wrap as muted text below the row", async () => {
+    stubBackground();
+    stubRpc({
+      "key.value": value("{count, plural, one {# item} other {# items}}", "x"),
+      "key.integrity": {
+        ok: true,
+        result: integrityResult([
+          integrityEntry("ar", {
+            icuArmsMatch: false,
+            icuArmDetails: ["count: missing arms zero, two, few, many"],
+          }),
+        ]),
+      },
+    });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer
+        keyName={KEY}
+        locales={[localeDiff("ar", [], [KEY])]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    const pill = view.getByText("span", "ICU arms mismatch");
+    const detail = view.get("[data-integrity-detail]");
+
+    expect(pill.textContent).toBe("ICU arms mismatch");
+    expect(detail.textContent).toBe("count: missing arms zero, two, few, many");
+    expect(detail.tagName).toBe("P");
+    expect(detail.className).toContain("break-words");
+    expect(detail.className).toContain("text-muted-foreground");
+    expect(detail.hasAttribute("dir")).toBe(false);
   });
 
   it("reports invalid message syntax without a detail suffix", async () => {
@@ -586,8 +634,33 @@ describe("KeyDetailDrawer", () => {
       />,
     );
 
-    expect(localeBlocks(view)[0]?.getAttribute("dir")).toBe("rtl");
-    expect(localeBlocks(view)[1]?.getAttribute("dir")).toBeNull();
+    const [arBlock, deBlock] = localeBlocks(view);
+
+    expect(arBlock?.hasAttribute("dir")).toBe(false);
+    expect(deBlock?.hasAttribute("dir")).toBe(false);
+    expect(arBlock?.querySelector("div")?.hasAttribute("dir")).toBe(false);
+    expect(view.getByText("p", "مرحبا").getAttribute("dir")).toBe("rtl");
+    expect(deBlock?.querySelector("p")?.getAttribute("dir")).toBe("ltr");
+  });
+
+  it("isolates placeholders and markup in a right-to-left value as left-to-right tokens", async () => {
+    stubBackground();
+    stubRpc({ "key.value": value("Order #{orderId}", "طلب #{orderId} <b>جاهز</b>") });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer
+        keyName={KEY}
+        locales={[localeDiff("ar", [], [KEY])]}
+        refreshToken={0}
+        onClose={vi.fn()}
+      />,
+    );
+    const valueElement = view.getByText("p", "طلب #{orderId} <b>جاهز</b>");
+    const tokens = Array.from(valueElement.querySelectorAll("bdi"));
+
+    expect(valueElement.getAttribute("dir")).toBe("rtl");
+    expect(tokens.map((node) => node.textContent)).toEqual(["#{orderId}", "<b>", "</b>"]);
+    expect(tokens.every((node) => node.getAttribute("dir") === "ltr")).toBe(true);
   });
 
   it("shows the project's commit history under its own section", async () => {

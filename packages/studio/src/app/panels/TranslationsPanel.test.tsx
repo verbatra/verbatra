@@ -1172,7 +1172,7 @@ describe("TranslationsPanel key explorer", () => {
     );
   }, 15000);
 
-  it("renders a right-to-left locale's section in its own direction", async () => {
+  it("keeps a right-to-left locale's section in the page direction, since it holds only UI text", async () => {
     stubPage({
       "status.diff": diffResult([
         localeDiff("ar-EG", { missing: ["app.title"] }),
@@ -1187,10 +1187,8 @@ describe("TranslationsPanel key explorer", () => {
 
     await switchToList(view);
 
-    expect(view.all("details").map((section) => section.getAttribute("dir"))).toEqual([
-      "rtl",
-      null,
-    ]);
+    expect(view.all("details")).toHaveLength(2);
+    expect(view.all("details[dir], details [dir]")).toEqual([]);
   });
 
   it("summarizes a pending locale's drift on its always-visible row", async () => {

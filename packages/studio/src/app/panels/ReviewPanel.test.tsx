@@ -549,6 +549,48 @@ describe("ReviewPanel", () => {
     expect(shown?.className).toContain("truncate");
   });
 
+  it("gives a right-to-left value its own direction, isolates its tokens, and starts it at the key's edge", async () => {
+    const arQueue: ReviewQueueResult = {
+      available: true,
+      version: 1,
+      generatedAt: "2026-05-04T10:15:00.000Z",
+      locales: [
+        {
+          locale: "ar",
+          status: "succeeded",
+          needsReview: [{ key: "order.ready", reasons: ["EQUALS_SOURCE"] }],
+        },
+      ],
+    };
+    const arValues: LocaleValuesResult = [
+      {
+        locale: "ar",
+        values: {
+          "order.ready": {
+            source: "Order #{orderId}",
+            target: "طلب #{orderId} {count, plural, one {# عنصر} other {# عناصر}}",
+          },
+        },
+      },
+    ];
+    stubRpc({
+      "review.queue": queueAnswer(arQueue),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": { ok: true, result: arValues },
+    });
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const shown = view.get("[data-row-value]");
+
+    expect(shown.getAttribute("dir")).toBe("rtl");
+    expect(shown.className).toContain("w-fit");
+    expect(shown.className).toContain("text-start");
+    expect(
+      Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
+    ).toEqual(["#{orderId}", "{count, plural, one {# عنصر} other {# عناصر}}"]);
+    expect(view.all("[dir]").filter((node) => node !== shown && !shown.contains(node))).toEqual([]);
+  });
+
   it("says the translation is loading until the values arrive", async () => {
     stubRpc({
       "review.queue": queueAnswer(QUEUE),
