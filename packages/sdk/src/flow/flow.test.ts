@@ -126,8 +126,7 @@ describe("translate: integrity withholding", () => {
     );
     expect(run1.locales[0]?.integrityMismatches).toEqual(["a"]);
     expect(run1.locales[0]?.translated).toEqual([]);
-    const de1 = (await readJsonFile(targetPath(dir, "de"))) as Record<string, string>;
-    expect(de1.a).toBeUndefined();
+    await expect(access(targetPath(dir, "de"))).rejects.toMatchObject({ code: "ENOENT" });
     const lock1 = (await readJsonFile(join(dir, "verbatra.lock.json"))) as {
       locales: Record<string, Record<string, string>>;
     };

@@ -425,13 +425,21 @@ function withheldBucketFor(representative: string, outcome: TranslationOutcome):
 async function shouldWriteTarget(
   params: LocaleRunParams,
   path: string,
-  changed: { readonly accepted: number; readonly pruned: number; readonly generated: number },
+  changed: {
+    readonly accepted: number;
+    readonly pruned: number;
+    readonly generated: number;
+    readonly withheld: number;
+  },
 ): Promise<boolean> {
   if (params.mode.kind === "memory-only" && !params.mode.write) {
     return false;
   }
   if (changed.accepted > 0 || changed.pruned > 0 || changed.generated > 0) {
     return true;
+  }
+  if (changed.withheld > 0) {
+    return false;
   }
   return !(await params.fs.fileExists(path));
 }
@@ -558,6 +566,13 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     accepted: accepted.size,
     pruned: pruned.length,
     generated: generation.accepted.length,
+    withheld:
+      integrityMismatches.length +
+      providerFailures.length +
+      budgetWithheld.length +
+      generation.withheld.length +
+      generation.providerFailures.length +
+      generation.budgetWithheld.length,
   });
   const pending = pendingProvenance(params, accepted, { cacheHitKeys, fuzzyKeys }, generation);
   let written: LocaleResource = { ...target, entries: merged };
