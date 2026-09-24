@@ -1,5 +1,5 @@
 import type { BudgetStanding } from "@verbatra/sdk";
-import type { ChangeEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   averageCoverage,
@@ -10,9 +10,23 @@ import {
 import type { DiffLocale } from "../../client/diff-view.js";
 import { driftKeys, isFullyInSync } from "../../client/diff-view.js";
 import { filterAndCapKeys, type KeyValuePair, MAX_RENDERED_KEYS } from "../../client/filter.js";
+import {
+  isLocaleListed,
+  KEY_STATUS_LABELS,
+  type KeyGroups,
+  type KeyStatus,
+  type KeyStatusFilter,
+  type KeyStatusSources,
+  keyGroupsFor,
+  type LocaleIntegrityData,
+  listedStatuses,
+  statusCounts,
+  toggleStatus,
+} from "../../client/key-status-filter.js";
 import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values.js";
 import { provenanceSummaryParts } from "../../client/provenance-view.js";
+import { type ReviewQueueData, visibleReviewQueueRows } from "../../client/review-queue-data.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
@@ -27,8 +41,8 @@ import { DiffBadge } from "../DiffBadge.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { Icon } from "../Icon.js";
-import { SearchInput } from "../Input.js";
 import { KeyDetailDrawer } from "../KeyDetailDrawer.js";
+import { KeyStatusFilterBar } from "../KeyStatusFilterBar.js";
 import { Loading } from "../Loading.js";
 import { MetricCard } from "../MetricCard.js";
 import { PageHeader } from "../PageHeader.js";
@@ -48,8 +62,11 @@ import {
 } from "../Table.js";
 import { Tabs } from "../Tabs.js";
 import { Toolbar } from "../Toolbar.js";
-import { MonoValue, PageSection } from "../ui.js";
+import { EmptyState, MonoValue, PageSection } from "../ui.js";
+import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
+import { useReviewOverlaySignal } from "../use-review-overlay-signal.js";
+import { useReviewQueue } from "../use-review-queue.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
 
@@ -276,14 +293,32 @@ function StatStrip({
   );
 }
 
+const DIFF_STATUSES: ReadonlySet<KeyStatus> = new Set([
+  "missing",
+  "changed",
+  "orphaned",
+  "protected",
+]);
+
+const WITHOUT_PROVENANCE: ReadonlySet<KeyStatus> = new Set(["missing", "orphaned"]);
+
+function KeyStatusBadge({ status }: { readonly status: KeyStatus }): ReactNode {
+  if (DIFF_STATUSES.has(status)) {
+    return <DiffBadge tone={status as DiffTone} />;
+  }
+  return (
+    <Badge tone={status === "integrity" ? "danger" : "warning"}>{KEY_STATUS_LABELS[status]}</Badge>
+  );
+}
+
 function KeyList({
-  tone,
+  status,
   keys,
   query,
   values,
   onSelectKey,
 }: {
-  readonly tone: DiffTone;
+  readonly status: KeyStatus;
   readonly keys: readonly string[];
   readonly query: string;
   readonly values: ReadonlyMap<string, KeyValuePair>;
@@ -293,7 +328,7 @@ function KeyList({
   return (
     <div className="mb-4 last:mb-0">
       <h4 className="mb-2 flex items-center gap-2">
-        <DiffBadge tone={tone} />
+        <KeyStatusBadge status={status} />
         <span className="text-sm text-muted-foreground">({capped.totalMatches})</span>
       </h4>
       <ul className="m-0 list-none p-0 font-mono text-sm">
@@ -306,9 +341,9 @@ function KeyList({
             >
               <span className="flex flex-wrap items-center gap-2">
                 <span className="min-w-0 break-all">{key}</span>
-                {tone === "changed" || tone === "protected" ? (
+                {WITHOUT_PROVENANCE.has(status) ? null : (
                   <ProvenanceBadge provenance={values.get(key)?.provenance} />
-                ) : null}
+                )}
               </span>
             </button>
           </li>
@@ -340,11 +375,15 @@ function LocaleSectionCounts({ locale }: { readonly locale: DiffLocale }): React
 
 function LocaleSection({
   locale,
+  groups,
+  filter,
   query,
   localeValues,
   onSelectKey,
 }: {
   readonly locale: DiffLocale;
+  readonly groups: KeyGroups;
+  readonly filter: KeyStatusFilter;
   readonly query: string;
   readonly localeValues: LocaleValuesData;
   readonly onSelectKey: (key: string) => void;
@@ -355,7 +394,7 @@ function LocaleSection({
   );
   return (
     <AccordionItem
-      defaultOpen={locale.hasPendingChanges}
+      defaultOpen={locale.hasPendingChanges || filter.statuses.size > 0}
       summary={
         <span className="inline-flex flex-wrap items-center gap-2">
           {locale.locale}
@@ -368,37 +407,113 @@ function LocaleSection({
         </span>
       }
     >
-      <KeyList
-        tone="missing"
-        keys={locale.missing}
-        query={query}
-        values={values}
-        onSelectKey={onSelectKey}
-      />
-      <KeyList
-        tone="changed"
-        keys={locale.changed}
-        query={query}
-        values={values}
-        onSelectKey={onSelectKey}
-      />
-      <KeyList
-        tone="orphaned"
-        keys={locale.orphaned}
-        query={query}
-        values={values}
-        onSelectKey={onSelectKey}
-      />
-      {locale.protected !== undefined && locale.protected.length > 0 ? (
+      {listedStatuses(groups, filter).map((status) => (
         <KeyList
-          tone="protected"
-          keys={locale.protected}
+          key={status}
+          status={status}
+          keys={groups[status]}
           query={query}
           values={values}
           onSelectKey={onSelectKey}
         />
-      ) : null}
+      ))}
     </AccordionItem>
+  );
+}
+
+function statusSources(
+  review: RefreshableView<ReviewQueueData>,
+  integrity: RefreshableView<LocaleIntegrityData>,
+): { readonly sources: KeyStatusSources; readonly unavailable: ReadonlySet<KeyStatus> } {
+  const unavailable = new Set<KeyStatus>();
+  if (review.kind !== "data") {
+    unavailable.add("review");
+  }
+  if (integrity.kind !== "data") {
+    unavailable.add("integrity");
+  }
+  return {
+    sources: {
+      review: review.kind === "data" ? visibleReviewQueueRows(review.data, reviewOverlayStore) : [],
+      integrity: integrity.kind === "data" ? integrity.data : [],
+    },
+    unavailable,
+  };
+}
+
+function KeyListView({
+  locales,
+  query,
+  onQueryChange,
+  localeValues,
+  onSelectKey,
+  refreshToken,
+}: {
+  readonly locales: readonly DiffLocale[];
+  readonly query: string;
+  readonly onQueryChange: (query: string) => void;
+  readonly localeValues: LocaleValuesData;
+  readonly onSelectKey: (key: string) => void;
+  readonly refreshToken: number;
+}): ReactNode {
+  const [locale, setLocale] = useState("");
+  const [statuses, setStatuses] = useState<ReadonlySet<KeyStatus>>(new Set());
+  useReviewOverlaySignal();
+  const { sources, unavailable } = statusSources(
+    useReviewQueue(refreshToken),
+    useLocaleIntegrity(refreshToken),
+  );
+  const filter: KeyStatusFilter = { locale: locale === "" ? null : locale, statuses };
+  const listed = locales
+    .map((entry) => ({ entry, groups: keyGroupsFor(entry, sources) }))
+    .filter(({ entry, groups }) => isLocaleListed(entry.locale, groups, filter));
+
+  return (
+    <>
+      <KeyStatusFilterBar
+        locales={locales.map((entry) => entry.locale)}
+        locale={locale}
+        statuses={statuses}
+        counts={statusCounts(locales, sources, filter.locale)}
+        unavailable={unavailable}
+        query={query}
+        onLocaleChange={setLocale}
+        onToggleStatus={(status) => setStatuses((current) => toggleStatus(current, status))}
+        onQueryChange={onQueryChange}
+      />
+      {listed.length === 0 ? (
+        <EmptyState
+          icon="search"
+          title="No matching keys"
+          action={
+            <Button
+              onClick={() => {
+                setLocale("");
+                setStatuses(new Set());
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        >
+          No locale has a key in the chosen states.
+        </EmptyState>
+      ) : (
+        <Accordion>
+          {listed.map(({ entry, groups }) => (
+            <LocaleSection
+              key={entry.locale}
+              locale={entry}
+              groups={groups}
+              filter={filter}
+              query={query}
+              localeValues={localeValues}
+              onSelectKey={onSelectKey}
+            />
+          ))}
+        </Accordion>
+      )}
+    </>
   );
 }
 
@@ -419,7 +534,7 @@ function KeysSection({
 }: {
   readonly locales: readonly DiffLocale[];
   readonly query: string;
-  readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  readonly onQueryChange: (query: string) => void;
   readonly viewMode: DiffViewMode;
   readonly onViewModeChange: (mode: DiffViewMode) => void;
   readonly onSelectKey: (key: string) => void;
@@ -435,29 +550,18 @@ function KeysSection({
           onChange={onViewModeChange}
           label="Keys view"
         />
-        {viewMode === "flat" ? (
-          <SearchInput
-            aria-label="Filter by key or translation text"
-            placeholder="Filter by key or text…"
-            value={query}
-            onChange={onQueryChange}
-          />
-        ) : null}
       </Toolbar>
       {viewMode === "grid" ? (
         <StatusGrid locales={locales} refreshToken={refreshToken} onSelectKey={onSelectKey} />
       ) : (
-        <Accordion>
-          {locales.map((locale) => (
-            <LocaleSection
-              key={locale.locale}
-              locale={locale}
-              query={query}
-              localeValues={localeValues}
-              onSelectKey={onSelectKey}
-            />
-          ))}
-        </Accordion>
+        <KeyListView
+          locales={locales}
+          query={query}
+          onQueryChange={onQueryChange}
+          localeValues={localeValues}
+          onSelectKey={onSelectKey}
+          refreshToken={refreshToken}
+        />
       )}
     </PageSection>
   );
@@ -680,7 +784,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         <KeysSection
           locales={diff.locales}
           query={query}
-          onQueryChange={(event) => setQuery(event.target.value)}
+          onQueryChange={setQuery}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onSelectKey={setSelectedKey}

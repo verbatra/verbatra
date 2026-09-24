@@ -10,6 +10,7 @@ import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossa
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
+import { LOCALE_INTEGRITY_METHOD } from "../shared/rpc/locale-integrity.js";
 import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
 import {
@@ -171,6 +172,18 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
       "The required `key` parameter is the source key to inspect, the optional `locales` parameter narrows the check to the named target locales, and an omitted `locales` covers every configured target locale. " +
       "The result carries only the boolean outcomes, the specific placeholder tokens involved, and one short problem per wrong arm, never a full source or target string. " +
       "Read-only: it calls no provider and writes nothing.",
+    readOnlyHint: true,
+    untrustedContentHint: true,
+    spendGated: false,
+  },
+  [LOCALE_INTEGRITY_METHOD]: {
+    description:
+      "Reports, for every changed key across the target locales, whether its current value keeps the source placeholders and inline markup, stays valid ICU MessageFormat, and carries ICU plural, ordinal, and select arms that fit the target language. " +
+      "Use it to find every translation with an integrity problem in one call, for instance before deciding which keys to fix or retranslate, rather than calling verbatra_key_integrity key by key. " +
+      "Do not read a key's absence as a pass: only keys that count as changed are judged, so a missing, orphaned, or in-sync key never appears, and an entry is listed whether or not it passed, so check its fields. " +
+      "The optional `locales` parameter narrows the report to the named target locales, an omitted `locales` covers every configured target locale, and an explicitly empty array is rejected as invalid params. " +
+      "Each entry carries the key, the boolean outcomes, the specific placeholder tokens involved, and one short problem per wrong arm or markup difference, never a full source or target string. " +
+      "Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
     spendGated: false,
