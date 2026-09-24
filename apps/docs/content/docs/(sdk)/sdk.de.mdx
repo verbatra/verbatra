@@ -1047,6 +1047,12 @@ gebaut wird, und ab dann wird ihr Wert genauso geschwärzt wie der der eingebaut
 Deklarationen werden nie entfernt. Ein Wert mit weniger als acht Zeichen wird nicht über seinen
 Wert geschwärzt, sodass eine kurze Variable niemals fremden Text löschen kann.
 
+Einen DeepL-Key erkennt es allein an seiner Form nur, wenn er das `:fx`-Suffix eines Free-Keys
+trägt oder eine nackte UUID in einem Key-Kontext steht: nach `DeepL-Auth-Key`, als
+`auth_key`-Parameter oder als Wert von `DEEPL_API_KEY`. Jede andere UUID, etwa in einem Dateipfad
+oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird weiterhin überall über
+seinen Wert geschwärzt.
+
 ### declareProviderKeyEnvVar
 
 <AvailableFrom version="0.12.0" />
