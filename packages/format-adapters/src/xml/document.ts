@@ -165,3 +165,25 @@ export function appendIndented(
   }
   container.insertBefore(node, trailing);
 }
+
+export function insertIndentedAfter(
+  doc: Document,
+  parent: Element,
+  anchor: Element,
+  node: Element,
+): void {
+  const indent = anchor.previousSibling;
+  const next = anchor.nextSibling;
+  if (isWhitespaceText(indent)) {
+    parent.insertBefore(doc.createTextNode(indent?.nodeValue ?? ""), next);
+  }
+  parent.insertBefore(node, next);
+}
+
+export function removeIndented(parent: Element, element: Element): void {
+  const indent = element.previousSibling;
+  if (indent !== null && isWhitespaceText(indent)) {
+    parent.removeChild(indent);
+  }
+  parent.removeChild(element);
+}

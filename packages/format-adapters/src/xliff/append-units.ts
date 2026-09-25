@@ -1,7 +1,13 @@
 import type { TranslationEntry } from "@verbatra/core";
 import type { Document, Element, Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
-import { appendIndented, elementChildren, isElement } from "../xml/document.js";
+import {
+  appendIndented,
+  elementChildren,
+  insertIndentedAfter,
+  isElement,
+  removeIndented,
+} from "../xml/document.js";
 import { childByName, collectByTag, type Unit, type XliffVersion } from "./document.js";
 import { writeInlineValue } from "./inline.js";
 import { markTranslated } from "./state.js";
@@ -55,14 +61,18 @@ function createIn(doc: Document, parent: Element, name: string): Element {
 function insertTargetAfterSource(doc: Document, holder: Element): Element {
   const source = childByName(holder, "seg-source") ?? childByName(holder, "source");
   const target = createIn(doc, holder, "target");
-  holder.insertBefore(target, source?.nextSibling ?? null);
+  if (source === null) {
+    holder.appendChild(target);
+  } else {
+    insertIndentedAfter(doc, holder, source, target);
+  }
   return target;
 }
 
 function removeChildren(parent: Element, names: ReadonlySet<string>): void {
   for (const child of elementChildren(parent)) {
     if (names.has(child.localName ?? "")) {
-      parent.removeChild(child);
+      removeIndented(parent, child);
     }
   }
 }
