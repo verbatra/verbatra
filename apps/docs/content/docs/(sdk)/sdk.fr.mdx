@@ -679,7 +679,7 @@ Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que conv
 
 <AvailableFrom version="0.12.0" />
 
-Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme `TranslateRequest.glossary`, et ce que voient les contrôles de révision et l'empreinte de cache de cette locale.
+Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme [`TranslateRequest.glossary`](#fournisseurs-personnalisés), et ce que voient les contrôles de révision et l'empreinte de cache de cette locale.
 
 ### glossaryHits
 
@@ -899,6 +899,61 @@ Un processus qui plante alors qu'il a mis un verrou de côté peut laisser un fi
 `deps.fs` n'atteint pas un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
 
 Le chargement de la configuration reste lui aussi hors du point d'injection. `loadConfig` et `loadConfigWithMeta` ne prennent pas de `deps` : ils lisent le fichier de configuration lui-même sur le vrai disque, et un fichier de glossaire que nomme la configuration via leur propre option `fs`, donc le `deps.fs` que reçoit un flux ultérieur n'atteint aucune de ces deux lectures. Pour garder un projet entier en mémoire, passe le même `SdkFs` comme `loadConfig({ fs })` et fournis la configuration comme `configOverride` plutôt que comme fichier.
+
+## Fournisseurs personnalisés
+
+<AvailableFrom version="0.12.0" />
+
+Un fournisseur que le SDK ne livre pas se branche via `deps.createProvider`, un `CreateProvider`
+qui renvoie un `TranslationProvider`. Le SDK exporte tout le contrat sous forme de types, donc ton
+fournisseur est vérifié contre la même interface que celle des fournisseurs intégrés.
+
+```ts
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/sdk";
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` est l'unique contrat : `id`, `kind` (un `ProviderKind`), `supportsGlossary`
+  et `translateBatch(request)`. Traite chaque valeur d'une requête comme une donnée non fiable, lis
+  toute clé d'API depuis l'environnement plutôt que depuis la requête, et lève un `ProviderError`
+  sans secret quand un appel échoue.
+- `ProviderKind` vaut `"llm"` ou `"machine-translation"`. Il est purement descriptif : rien dans le
+  SDK ne se base dessus.
+- `TranslateRequest` porte `sourceLocale`, `targetLocale`, les `entries` à traduire et, en option,
+  `glossary` (le résultat de [`glossaryForLocale`](#glossaryforlocale) pour la locale cible),
+  `tone`, `maxLength` et `pluralCategories`. Il porte aussi `extractPlaceholders` et, pour certains
+  formats, `comparePlaceholders`, que ton fournisseur utilise pour le contrôle d'intégrité, ainsi
+  que `signal`, qui interrompt un appel en cours, et `onRepair`.
+- `TranslateResult` renvoie `values` et `integrity` par clé, plus `usage`, `notices` et
+  `reviewFlags` en option. Une clé absente de `values` compte comme non traduite, donc un
+  fournisseur peut omettre une valeur qu'il ne sait pas traduire sans risque. Le SDK fait passer
+  chaque valeur renvoyée par son propre contrôle d'intégrité dans tous les cas.
+- `ProviderRetryListener` est le type de `CreateProviderHooks.onRetry`. Il reçoit un
+  `ProviderRetry`, `{ attempt, delayMs?, status? }`, par nouvelle tentative, et chaque appel devient
+  un [événement de progression](#événements-de-progression) `provider-retry`.
+- `ProviderNetwork` est ce que contient `CreateProviderContext.network` quand la politique réseau
+  restreint les destinations d'un fournisseur : la `policy` effective, l'`env` depuis lequel le
+  point de terminaison a été résolu et des `deps` de test optionnels. Un fournisseur personnalisé
+  peut l'ignorer, mais seule la vérification que le SDK fait avant d'appeler la fabrique s'applique
+  alors à ses requêtes.
 
 ## Anatomie du RunSummary
 
