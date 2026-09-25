@@ -1,13 +1,8 @@
 import process from "node:process";
-import { redact, SdkError } from "@verbatra/sdk";
+import { redact, releaseHeldLocks, SdkError } from "@verbatra/sdk";
 import { resolveServerCwd, startMcpServer } from "./index.js";
-import {
-  type McpStopCause,
-  mcpReadyLine,
-  mcpStoppedLine,
-  mcpTerminalHint,
-  projectLabel,
-} from "./session-banner.js";
+import { mcpReadyLine, mcpStoppedLine, mcpTerminalHint, projectLabel } from "./session-banner.js";
+import { createShutdown } from "./shutdown.js";
 
 const STANDALONE_LAUNCH = ["-y", "@verbatra/mcp"] as const;
 
@@ -80,14 +75,18 @@ async function main(): Promise<void> {
     }
   }
 
-  let cause: McpStopCause = "stdin-closed";
-  void handle.closed.then(() => logToStderr(mcpStoppedLine(cause)));
-  const shutdown = (): void => {
-    cause = "signal";
-    void handle.close();
-  };
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  const shutdown = createShutdown({
+    close: () => handle.close(),
+    releaseLocks: releaseHeldLocks,
+    exit: (code) => process.exit(code),
+    onStopped: (cause) => logToStderr(mcpStoppedLine(cause)),
+    startDeadline: (onElapsed, ms) => {
+      setTimeout(onElapsed, ms).unref();
+    },
+  });
+  void handle.closed.then(() => shutdown.onClosed());
+  process.on("SIGINT", () => shutdown.onSignal("SIGINT"));
+  process.on("SIGTERM", () => shutdown.onSignal("SIGTERM"));
 }
 
 main().catch((error: unknown) => {
