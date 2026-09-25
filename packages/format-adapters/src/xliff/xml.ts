@@ -1,11 +1,12 @@
 import { resolve } from "node:path";
 import type { TranslationEntry } from "@verbatra/core";
-import { type Document, type Element, XMLSerializer } from "@xmldom/xmldom";
+import type { Document, Element } from "@xmldom/xmldom";
 import type { WriteContext } from "../adapter.js";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent } from "../shell.js";
+import { serializeXmlInto } from "../xml/document.js";
 import { appendMissingUnits } from "./append-units.js";
 import {
   childByName,
@@ -175,7 +176,8 @@ export async function serializeXliffEntries(
   fs: AdapterFs,
   context: WriteContext,
 ): Promise<string> {
-  const { doc, root } = parseXml(await readDestination(filePath, fs));
+  const original = await readDestination(filePath, fs);
+  const { doc, root } = parseXml(original);
   const version = documentVersion(root);
   const writingSource = isSourceDestination(filePath, context);
   const written = new Set<string>();
@@ -201,5 +203,5 @@ export async function serializeXliffEntries(
       writingSource,
     });
   }
-  return new XMLSerializer().serializeToString(doc);
+  return serializeXmlInto(original, doc);
 }

@@ -1,7 +1,7 @@
 import type { TranslationEntry } from "@verbatra/core";
 import type { Document, Element, Node } from "@xmldom/xmldom";
 import { AdapterError } from "../errors.js";
-import { elementChildren, isElement, TEXT_NODE } from "../xml/document.js";
+import { appendIndented, elementChildren, isElement } from "../xml/document.js";
 import { childByName, collectByTag, type Unit, type XliffVersion } from "./document.js";
 import { writeInlineValue } from "./inline.js";
 import { markTranslated } from "./state.js";
@@ -46,20 +46,6 @@ function matchingFile(root: Element, sourceFile: Element | null, attribute: stri
     throw new AdapterError("INVALID_STRUCTURE", "The XLIFF destination has no <file> element.");
   }
   return file;
-}
-
-function isWhitespaceText(node: Node | null): boolean {
-  return node !== null && node.nodeType === TEXT_NODE && (node.nodeValue ?? "").trim() === "";
-}
-
-function appendIndented(doc: Document, container: Element, node: Element): void {
-  const trailing = isWhitespaceText(container.lastChild) ? container.lastChild : null;
-  const lastElement = elementChildren(container).at(-1);
-  const indent = lastElement?.previousSibling ?? null;
-  if (isWhitespaceText(indent)) {
-    container.insertBefore(doc.createTextNode(indent?.nodeValue ?? ""), trailing);
-  }
-  container.insertBefore(node, trailing);
 }
 
 function createIn(doc: Document, parent: Element, name: string): Element {

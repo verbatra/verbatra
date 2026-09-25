@@ -1,4 +1,5 @@
 import type { TranslationEntry } from "@verbatra/core";
+import type { WriteContext } from "../adapter.js";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
@@ -58,7 +59,7 @@ function renderNewGroup(group: NewGroup, terminator: string): string {
      * pair exists the only possible key is the singular "undefined" one. */
     lines.push(`msgstr "${encodeCString(singular ?? "")}"`);
   }
-  return `${joinSelfTerminated(lines, terminator)}${terminator}`;
+  return joinSelfTerminated(lines, terminator);
 }
 
 function renderMsgstrLine(index: number | undefined, value: string, terminator: string): string {
@@ -66,7 +67,23 @@ function renderMsgstrLine(index: number | undefined, value: string, terminator: 
   return `${keyword} "${encodeCString(value)}"${terminator}`;
 }
 
+function withBlankLine(text: string, terminator: string): string {
+  if (text === "" || text.endsWith(`${terminator}${terminator}`)) {
+    return text;
+  }
+  return text.endsWith(terminator) ? `${text}${terminator}` : `${text}${terminator}${terminator}`;
+}
+
+function appendGroups(text: string, groups: Iterable<NewGroup>, terminator: string): string {
+  let out = text;
+  for (const group of groups) {
+    out = `${withBlankLine(out, terminator)}${renderNewGroup(group, terminator)}`;
+  }
+  return out;
+}
+
 function appendNewEntries(
+  text: string,
   entries: ReadonlyMap<string, TranslationEntry>,
   emitted: ReadonlySet<string>,
   terminator: string,
@@ -77,14 +94,7 @@ function appendNewEntries(
       pending.set(key, entry);
     }
   }
-  if (pending.size === 0) {
-    return "";
-  }
-  let out = "";
-  for (const group of groupEntries(pending).values()) {
-    out += renderNewGroup(group, terminator);
-  }
-  return out;
+  return appendGroups(text, groupEntries(pending).values(), terminator);
 }
 
 function rewriteDocument(doc: PoDocument, entries: ReadonlyMap<string, TranslationEntry>): string {
@@ -123,10 +133,17 @@ function rewriteDocument(doc: PoDocument, entries: ReadonlyMap<string, Translati
     parts.push(renderMsgstrLine(undefined, entry.value, doc.terminator));
     emitted.add(key);
   }
-  return parts.join("") + appendNewEntries(entries, emitted, doc.terminator);
+  return appendNewEntries(parts.join(""), entries, emitted, doc.terminator);
 }
 
-function synthesizeFromScratch(entries: ReadonlyMap<string, TranslationEntry>): string {
+function poLanguage(locale: string): string {
+  return locale.replaceAll("-", "_");
+}
+
+function synthesizeFromScratch(
+  entries: ReadonlyMap<string, TranslationEntry>,
+  locale: string,
+): string {
   const terminator = "\n";
   const groups = groupEntries(entries);
   let maxIndex = -1;
@@ -140,17 +157,15 @@ function synthesizeFromScratch(entries: ReadonlyMap<string, TranslationEntry>): 
   const headerLines = [
     'msgid ""',
     'msgstr ""',
+    `"Language: ${encodeCString(poLanguage(locale))}\\n"`,
     '"Content-Type: text/plain; charset=UTF-8\\n"',
     '"Content-Transfer-Encoding: 8bit\\n"',
   ];
   if (maxIndex >= 0) {
     headerLines.push(`"Plural-Forms: ${defaultPluralFormsExpression(maxIndex + 1)}\\n"`);
   }
-  let out = `${joinSelfTerminated(headerLines, terminator)}${terminator}`;
-  for (const group of groups.values()) {
-    out += renderNewGroup(group, terminator);
-  }
-  return out;
+  const header = `${joinSelfTerminated(headerLines, terminator)}${terminator}`;
+  return appendGroups(header, groups.values(), terminator);
 }
 
 async function readDestination(filePath: string, fs: AdapterFs): Promise<PoDocument | undefined> {
@@ -171,7 +186,9 @@ export async function serializePoEntries(
   entries: ReadonlyMap<string, TranslationEntry>,
   filePath: string,
   fs: AdapterFs,
+  _context: WriteContext,
+  locale: string,
 ): Promise<string> {
   const doc = await readDestination(filePath, fs);
-  return doc === undefined ? synthesizeFromScratch(entries) : rewriteDocument(doc, entries);
+  return doc === undefined ? synthesizeFromScratch(entries, locale) : rewriteDocument(doc, entries);
 }

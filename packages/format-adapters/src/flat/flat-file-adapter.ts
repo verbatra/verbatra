@@ -62,14 +62,16 @@ export interface FlatFileAdapterOptions {
   ) => FlatParseOutcome | Promise<FlatParseOutcome>;
   /**
    * Render entries back to the format's text, preserving key order. Receives the destination path,
-   * the port and the caller's write context, for a format that has to consult the existing file,
-   * or the source-locale file, to write in place.
+   * the port, the caller's write context and the locale being written, for a format that has to
+   * consult the existing file, or the source-locale file, to write in place, or that records the
+   * locale inside the file.
    */
   readonly serializeEntries: (
     entries: ReadonlyMap<string, TranslationEntry>,
     filePath: string,
     fs: AdapterFs,
     context: WriteContext,
+    locale: string,
   ) => Promise<string> | string;
   /** Find this format's placeholder tokens in one value. */
   readonly extractPlaceholders: ExtractPlaceholders;
@@ -170,7 +172,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
       return { resource, invalidIcuKeys, excludedLeafPaths };
     },
     async write(resource, filePath, context = {}): Promise<void> {
-      const data = await serializeEntries(resource.entries, filePath, fs, context);
+      const data = await serializeEntries(resource.entries, filePath, fs, context, resource.locale);
       await fs.writeFileAtomic(filePath, data);
     },
   };

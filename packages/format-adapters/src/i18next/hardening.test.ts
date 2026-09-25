@@ -1,6 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import { AdapterError } from "../errors.js";
 import { MAX_DEPTH, MAX_INPUT_BYTES } from "../json/limits.js";
@@ -17,16 +18,10 @@ async function tempFile(content: string | Uint8Array): Promise<string> {
 
 describe("placeholder extraction is linear (HIGH)", () => {
   it("scales with input size rather than blowing up on an unmatched '{{' value", () => {
-    const durationFor = (repeats: number): number => {
-      const hostile = "{{".repeat(repeats);
-      const start = performance.now();
-      const result = adapter.extractPlaceholders(hostile);
-      expect(result).toEqual([]);
-      return performance.now() - start;
-    };
-    const small = durationFor(20_000);
-    const large = durationFor(200_000);
-    expect(large).toBeLessThan(Math.max(small, 40) * 25);
+    const hostile = "{{".repeat(25_000 * LINEAR_SCALE);
+    expect(adapter.extractPlaceholders(hostile)).toEqual([]);
+    const extract = (value: string) => adapter.extractPlaceholders(value);
+    expect(cpuScalingRatio(extract, "{{".repeat(25_000), hostile)).toBeLessThan(LINEAR_MAX_RATIO);
   });
 
   it("still extracts well-formed placeholders unchanged", () => {
