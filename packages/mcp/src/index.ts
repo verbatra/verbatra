@@ -1,5 +1,5 @@
 export { resolveServerCwd } from "./server-cwd.js";
-export type { McpLaunchArgs, McpStopCause } from "./session-banner.js";
+export type { McpLaunchArgs, McpSpendState, McpStopCause } from "./session-banner.js";
 export {
   mcpReadyLine,
   mcpStoppedLine,

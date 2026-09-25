@@ -36,6 +36,28 @@ describe("startMcpServer", () => {
     await handle.close();
   });
 
+  it.each([
+    ["off without allowSpend", "anthropic", false, "off"],
+    ["on with allowSpend and a translating provider", "anthropic", true, "on"],
+    ["provider-none with allowSpend under provider none", "none", true, "provider-none"],
+  ] as const)("reports the spend state %s", async (_label, provider, allowSpend, expected) => {
+    const { dir, configPath } = await makeConfiguredProject();
+    if (provider === "none") {
+      await writeJsonFile(configPath, {
+        sourceLocale: "en",
+        targetLocales: ["de"],
+        format: "i18next-json",
+        files: { pattern: "locales/{locale}.json" },
+        provider: { id: "none" },
+      });
+    }
+
+    const handle = await startMcpServer({ cwd: dir, configPath, allowSpend });
+    await handle.close();
+
+    expect(handle.spend).toBe(expected);
+  });
+
   it("closes itself and settles closed when the client closes stdin", async () => {
     const { dir, configPath } = await makeConfiguredProject();
 

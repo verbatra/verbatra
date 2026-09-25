@@ -464,9 +464,9 @@ export function sharedGlossaryTranslations(glossary: Glossary): Readonly<Record<
 
 /** A glossary with every secret-shaped value replaced, as {@link redactGlossary} returns it. */
 export interface RedactedGlossary {
-  /** The glossary with each redacted translation, forbidden rendering, note, and part of speech replaced by `[REDACTED]`. */
+  /** The glossary with each secret-shaped string, source terms and terms kept untranslated included, replaced by `[REDACTED]`. */
   readonly glossary: Glossary;
-  /** The source term of every term that had at least one value redacted, in glossary order. */
+  /** The source term, itself redacted, of every term that had at least one value redacted, in glossary order. */
   readonly redactedTerms: readonly string[];
 }
 
@@ -486,6 +486,7 @@ function redactTerm(term: GlossaryTerm): RedactedTerm {
     Object.fromEntries(Object.entries(record).map(([locale, value]) => [locale, each(value)]));
   const next: GlossaryTerm = {
     ...term,
+    source: scrub(term.source),
     ...(term.target !== undefined ? { target: scrub(term.target) } : {}),
     targets: scrubRecord(term.targets, scrub),
     forbidden: scrubRecord(term.forbidden, (renderings) => renderings.map(scrub)),
@@ -496,9 +497,10 @@ function redactTerm(term: GlossaryTerm): RedactedTerm {
 }
 
 /**
- * Passes every value of a glossary through {@link redact}, so a translation, forbidden rendering,
- * note, or part of speech shaped like a provider API key never leaves a tool that shows the
- * glossary. Source terms and terms kept untranslated are left as they are: they name the entry.
+ * Passes every string of a glossary through {@link redact}, so a source term, translation,
+ * forbidden rendering, note, part of speech, or term kept untranslated shaped like a provider API
+ * key never leaves a tool that shows the glossary. A redacted source term is listed as
+ * `[REDACTED]` in `redactedTerms` too, so the list never repeats the secret.
  *
  * @param glossary - A normalized glossary, as {@link readGlossaryFile} or {@link normalizeGlossary}
  * returns it.
@@ -507,7 +509,14 @@ function redactTerm(term: GlossaryTerm): RedactedTerm {
 export function redactGlossary(glossary: Glossary): RedactedGlossary {
   const results = glossary.terms.map(redactTerm);
   return {
-    glossary: { ...glossary, terms: results.map(({ term }) => term) },
+    glossary: {
+      ...glossary,
+      terms: results.map(({ term }) => term),
+      doNotTranslate: glossary.doNotTranslate.map((entry) => ({
+        ...entry,
+        term: redact(entry.term),
+      })),
+    },
     redactedTerms: results.filter(({ redacted }) => redacted).map(({ term }) => term.source),
   };
 }

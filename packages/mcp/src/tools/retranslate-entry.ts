@@ -3,11 +3,17 @@ import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
+import {
+  LOCK_TIMEOUT_DESCRIPTION,
+  lockAcquireTimeoutMs,
+  lockTimeoutMsSchema,
+} from "./lock-timeout.js";
 import { reviewReasonCodeSchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
+  lockTimeoutMs: lockTimeoutMsSchema,
 });
 
 const retranslateEntryResultSchema = z.object({
@@ -25,7 +31,13 @@ async function retranslateKeyEntry(
   context: McpToolContext,
 ): Promise<RetranslateEntryResult> {
   return retranslateEntry(
-    { config: context.config.config, cwd: context.cwd, locale: params.locale, key: params.key },
+    {
+      config: context.config.config,
+      cwd: context.cwd,
+      locale: params.locale,
+      key: params.key,
+      lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
+    },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),
       ...(context.adapterRegistry !== undefined
@@ -52,7 +64,9 @@ export const retranslateEntryTool = defineTool({
     "pinnedKeys is always refused with KEY_PINNED. A key whose value a person wrote, " +
     "imported, or changed outside verbatra is refused with KEY_PROTECTED unless " +
     "project.snapshot reports humanEdits: overwrite, in which case it is replaced like any " +
-    "other key. Leave refused keys for a person. Cost: calls a translation provider and " +
+    "other key. Leave refused keys for a person. " +
+    LOCK_TIMEOUT_DESCRIPTION +
+    "The wait comes before the provider is called, so a timed-out call spends nothing. Cost: calls a translation provider and " +
     "bills your API usage on every call, and it is outside the per-run token budget. Only " +
     "listed when the server was started with spending allowed and a translation provider is " +
     "configured; ask the user before calling it.",

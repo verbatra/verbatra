@@ -305,6 +305,21 @@ describe("redactGlossary", () => {
     expect(glossary.doNotTranslate).toEqual([{ term: "verbatra", caseSensitive: true }]);
   });
 
+  it("redacts a secret-shaped source term and term kept untranslated, never listing the secret", () => {
+    const { glossary, redactedTerms } = redactGlossary(
+      normalizeGlossary({
+        version: 2,
+        terms: [{ source: SECRET, target: "Schlüssel" }],
+        doNotTranslate: [SECRET],
+      }),
+    );
+
+    expect(redactedTerms).toEqual(["[REDACTED]"]);
+    expect(glossary.terms[0]).toMatchObject({ source: "[REDACTED]", target: "Schlüssel" });
+    expect(glossary.doNotTranslate).toEqual([{ term: "[REDACTED]", caseSensitive: true }]);
+    expect(JSON.stringify({ glossary, redactedTerms })).not.toContain(SECRET);
+  });
+
   it("leaves a glossary with nothing secret unchanged", () => {
     const clean = normalizeGlossary({ Save: "Speichern" });
     expect(redactGlossary(clean)).toEqual({ glossary: clean, redactedTerms: [] });

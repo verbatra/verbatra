@@ -10,6 +10,11 @@ import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { glossaryProvenanceSchema, resolveGlossaryProvenance } from "./config-projection.js";
 import { defineTool } from "./define-tool.js";
+import {
+  LOCK_TIMEOUT_DESCRIPTION,
+  lockAcquireTimeoutMs,
+  lockTimeoutMsSchema,
+} from "./lock-timeout.js";
 
 const MAX_GLOSSARY_TERM_LENGTH = 200;
 const MAX_GLOSSARY_TRANSLATION_LENGTH = 2_000;
@@ -73,6 +78,7 @@ const glossaryWriteParamsSchema = z.strictObject({
   partOfSpeech: z.string().min(1).max(MAX_GLOSSARY_PART_OF_SPEECH_LENGTH).nullable().optional(),
   caseSensitive: z.boolean().optional(),
   doNotTranslate: z.boolean().optional(),
+  lockTimeoutMs: lockTimeoutMsSchema,
 });
 
 const EMPTY_GLOSSARY: Glossary = { version: 2, terms: [], doNotTranslate: [] };
@@ -138,8 +144,14 @@ async function glossaryWrite(
   params: z.infer<typeof glossaryWriteParamsSchema>,
   context: McpToolContext,
 ): Promise<GlossaryResult> {
+  const { lockTimeoutMs, ...edit } = params;
   const glossary = await editConfiguredGlossaryTerm(
-    { ...params, loaded: context.config, cwd: context.cwd },
+    {
+      ...edit,
+      loaded: context.config,
+      cwd: context.cwd,
+      lockAcquireTimeoutMs: lockAcquireTimeoutMs(lockTimeoutMs),
+    },
     fsDeps(context),
   );
   return buildResult(context, glossary, params.locale);
@@ -156,9 +168,10 @@ export const glossaryGetTool = defineTool({
     "into that locale is held to, after falling back from the locale to its base language to " +
     "the shared translation. Use it before writing or reviewing a translation to learn the " +
     "terminology it must follow, and before glossary.write to see whether the glossary can be " +
-    "changed at all (only a file-backed one can). Every translation, forbidden rendering, note " +
-    "and part of speech passes through secret redaction, and redactedTerms names each term that " +
-    "had one replaced by [REDACTED]; never write such a value back. A file-backed glossary is " +
+    "changed at all (only a file-backed one can). Every source term, translation, forbidden " +
+    "rendering, note, part of speech and term kept untranslated passes through secret " +
+    "redaction, and redactedTerms names each term that had one replaced by [REDACTED], a " +
+    "redacted source term itself as [REDACTED]; never write such a value back. A file-backed glossary is " +
     "read fresh on every call. Read-only: it calls no provider and writes nothing.",
   paramsSchema: glossaryGetParamsSchema,
   outputSchema: glossaryResultSchema,
@@ -187,7 +200,9 @@ export const glossaryWriteTool = defineTool({
     "translations. It needs a file-backed glossary: an inline glossary or none fails with " +
     "GLOSSARY_NOT_FILE_BACKED, and an edit that would leave an invalid glossary fails with " +
     "CONFIG_INVALID and writes nothing. A version 1 file is rewritten as version 2 only when " +
-    "the edit needs it. Writes the glossary file, calls no provider, and spends nothing.",
+    "the edit needs it. " +
+    LOCK_TIMEOUT_DESCRIPTION +
+    "Writes the glossary file, calls no provider, and spends nothing.",
   paramsSchema: glossaryWriteParamsSchema,
   outputSchema: glossaryResultSchema,
   annotations: {

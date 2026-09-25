@@ -39,11 +39,14 @@ describe("projectLabel", () => {
 
 describe("mcpReadyLine", () => {
   it("names the project and the spend state", () => {
-    expect(mcpReadyLine("web", false)).toBe(
+    expect(mcpReadyLine("web", "off")).toBe(
       "verbatra MCP server running on stdio (project web, spend tools off)",
     );
-    expect(mcpReadyLine(".", true)).toBe(
+    expect(mcpReadyLine(".", "on")).toBe(
       "verbatra MCP server running on stdio (project ., spend tools on)",
+    );
+    expect(mcpReadyLine(".", "provider-none")).toBe(
+      "verbatra MCP server running on stdio (project ., spend tools off (provider none))",
     );
   });
 });

@@ -567,7 +567,7 @@ misma puerta de integridad que una traducción del proveedor antes de que nada l
 al disco; al aceptarse, el archivo de locale y la entrada del bloqueo de esa clave se actualizan dentro
 del bloqueo de escritura del locale. Nunca llama a un proveedor.
 
-Entrada: `{ config, cwd?, locale, key, value, actor? }`. Devuelve un resultado de dos ramas:
+Entrada: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Devuelve un resultado de dos ramas:
 `{ accepted: true, value }`, o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin
 escribir nada. `"empty"` cubre un valor vacío o solo con espacios para un origen que sí tiene texto:
@@ -588,6 +588,10 @@ se deja intacto mientras el valor se escribe sin registro.
 <AvailableFrom version="0.12.0" />
 
 Con `actor: "agent"`, una clave que coincide con los `pinnedKeys` de la configuración lanza `KEY_PINNED` antes de leer o escribir nada. La edición de una clave fijada por parte de una persona se acepta.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` limita la espera del bloqueo de escritura del locale antes de que la llamada falle con `LOCK_CONTENDED` (diez minutos por defecto), `onLockWait` informa de esa espera, y un límite no válido falla con `LOCK_TIMEOUT_INVALID` antes de leer nada.
 
 ### retranslateEntry
 
@@ -1011,6 +1015,10 @@ una edición que dejaría un glosario no válido y una edición cuyo resultado s
 1 MiB del glosario se rechazan con `CONFIG_INVALID`; una escritura fallida, incluido un bloqueo de escritura del glosario que no se puede crear en un proyecto de solo lectura o liberar tras una edición guardada, es `GLOSSARY_UNWRITABLE`, con el error del sistema de archivos como `cause`.
 Una edición que deja el glosario tal como ya está tiene éxito y no escribe nada.
 
+<AvailableFrom version="0.12.0" />
+
+También acepta `lockAcquireTimeoutMs`, que limita la espera del bloqueo del glosario antes de que la llamada falle con `LOCK_CONTENDED` (diez minutos por defecto); un límite no válido falla con `LOCK_TIMEOUT_INVALID` antes de leer nada.
+
 ### glossaryForLocale
 
 <AvailableFrom version="0.12.0" />
@@ -1070,10 +1078,11 @@ clave propia.
 
 <AvailableFrom version="0.12.0" />
 
-Pasa cada traducción, traducción prohibida, nota y categoría gramatical de un `Glossary`
+Pasa cada término de origen, traducción, traducción prohibida, nota, categoría gramatical y término
+de `doNotTranslate` de un `Glossary`
 normalizado por `redact` y devuelve `{ glossary, redactedTerms }`, donde `redactedTerms` nombra cada
-término al que se le sustituyó un valor. Los términos de origen y los de `doNotTranslate` quedan
-como están. El servidor MCP y Studio lo usan antes de que un glosario salga del proceso; úsalo igual
+término al que se le sustituyó un valor, un término de origen redactado como `[REDACTED]`, para que
+la lista nunca repita un secreto. El servidor MCP y Studio lo usan antes de que un glosario salga del proceso; úsalo igual
 en tu propia herramienta.
 
 ### readCurrentGlossary

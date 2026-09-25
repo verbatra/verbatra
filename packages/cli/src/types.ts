@@ -1,6 +1,7 @@
 import type {
   McpLaunchArgs,
   McpServerHandle,
+  McpSpendState,
   McpStopCause,
   StartMcpServerOptions,
 } from "@verbatra/mcp";
@@ -67,7 +68,7 @@ export interface McpModule {
   startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
   resolveServerCwd?(cwd?: string): string;
   projectLabel?(cwd: string, base: string): string;
-  mcpReadyLine?(project: string, allowSpend: boolean): string;
+  mcpReadyLine?(project: string, spend: McpSpendState): string;
   mcpTerminalHint?(launch: McpLaunchArgs): readonly string[];
   mcpStoppedLine?(cause: McpStopCause): string;
 }

@@ -364,13 +364,17 @@ Le résultat porte aussi `description` quand le fichier de la locale source en d
 
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
 
-Entrée : `{ config, cwd?, locale, key, value, actor? }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un refus `placeholder` ou `markup` porte en plus `details` : les placeholders ou balises en cause, chacun préfixé de `-` pour un élément que la source avait et que la valeur candidate a supprimé, ou de `+` pour un élément que la valeur candidate a inventé.
+Entrée : `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un refus `placeholder` ou `markup` porte en plus `details` : les placeholders ou balises en cause, chacun préfixé de `-` pour un élément que la source avait et que la valeur candidate a supprimé, ou de `+` pour un élément que la valeur candidate a inventé.
 
 La valeur écrite est enregistrée dans `verbatra.provenance.json` avec l'origine `human`. Passe `actor: "agent"` quand un agent d'IA l'a écrite, pour que l'enregistrement le dise ; c'est la surface appelante qui l'affirme et rien ne le vérifie. Le fichier de provenance est vérifié avant que la valeur ne passe le contrôle : un fichier corrompu lève `PROVENANCE_FILE_INVALID` et rien n'est écrit, et celui d'un verbatra plus récent, ou celui que l'enregistrement ferait dépasser la taille que verbatra relit, est laissé intact pendant que la valeur est écrite sans enregistrement.
 
 <AvailableFrom version="0.12.0" />
 
 Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lève `KEY_PINNED` avant toute lecture ou écriture. La modification d'une clé épinglée par une personne est acceptée.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` borne l'attente du verrou d'écriture de la locale avant que l'appel échoue avec `LOCK_CONTENDED` (dix minutes par défaut), `onLockWait` signale cette attente, et une borne invalide échoue avec `LOCK_TIMEOUT_INVALID` avant toute lecture.
 
 ### retranslateEntry
 
@@ -677,6 +681,10 @@ Il prend aussi `locale` (`translation` est alors la traduction propre à cette l
 
 Un glossaire inline est refusé avec `GLOSSARY_NOT_FILE_BACKED` plutôt que converti : il vit dans un module de config exécutable. Un champ vide, une modification qui ne fixe aucun champ ou qui mélange `doNotTranslate` avec les champs du terme, des traductions interdites sans locale, une locale invalide, une modification qui laisserait un glossaire invalide et une modification dont le résultat dépasserait la limite de 1 Mio du glossaire sont refusés avec `CONFIG_INVALID` ; une écriture en échec, y compris un verrou d'écriture du glossaire impossible à créer dans un projet en lecture seule ou à libérer après une modification enregistrée, donne `GLOSSARY_UNWRITABLE`, avec l'erreur du système de fichiers comme `cause`. Une modification qui laisse le glossaire tel qu'il est déjà réussit et n'écrit rien.
 
+<AvailableFrom version="0.12.0" />
+
+Il prend aussi `lockAcquireTimeoutMs`, qui borne l'attente du verrou du glossaire avant que l'appel échoue avec `LOCK_CONTENDED` (dix minutes par défaut) ; une borne invalide échoue avec `LOCK_TIMEOUT_INVALID` avant toute lecture.
+
 ### glossaryForLocale
 
 <AvailableFrom version="0.12.0" />
@@ -711,7 +719,7 @@ Projette un `Glossary` normalisé sur une table plate de chaque terme doté d'un
 
 <AvailableFrom version="0.12.0" />
 
-Fait passer chaque traduction, traduction interdite, note et catégorie grammaticale d'un `Glossary` normalisé par `redact` et renvoie `{ glossary, redactedTerms }`, où `redactedTerms` nomme chaque terme dont une valeur a été remplacée. Les termes source et ceux de `doNotTranslate` restent tels quels. Le serveur MCP et Studio l'utilisent avant qu'un glossaire ne quitte le processus ; utilise-le de la même façon dans ton propre outil.
+Fait passer chaque terme source, traduction, traduction interdite, note, catégorie grammaticale et terme de `doNotTranslate` d'un `Glossary` normalisé par `redact` et renvoie `{ glossary, redactedTerms }`, où `redactedTerms` nomme chaque terme dont une valeur a été remplacée, un terme source masqué apparaissant lui-même comme `[REDACTED]`, pour que la liste ne répète jamais un secret. Le serveur MCP et Studio l'utilisent avant qu'un glossaire ne quitte le processus ; utilise-le de la même façon dans ton propre outil.
 
 ### readCurrentGlossary
 

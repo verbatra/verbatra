@@ -15,6 +15,19 @@ export type McpStopCause = "stdin-closed" | "signal";
  */
 export type McpLaunchArgs = readonly string[];
 
+/**
+ * Whether a server advertises the provider-spending tools: `on`, `off` because spending was not
+ * allowed, or `provider-none` because it was allowed but the config's provider is `none`, which
+ * never spends.
+ */
+export type McpSpendState = "on" | "off" | "provider-none";
+
+const SPEND_LABELS: Readonly<Record<McpSpendState, string>> = {
+  on: "spend tools on",
+  off: "spend tools off",
+  "provider-none": "spend tools off (provider none)",
+};
+
 function realPath(path: string): string {
   try {
     return realpathSync(path);
@@ -45,11 +58,12 @@ export function projectLabel(cwd: string, base: string): string {
  * Builds the one-line stderr notice a stdio MCP server prints once it is ready.
  *
  * @param project - The project label, from {@link projectLabel}.
- * @param allowSpend - Whether the provider-spending tools are advertised.
+ * @param spend - Whether the provider-spending tools are advertised, as the server handle's
+ * `spend` reports it.
  * @returns The ready line, without a trailing newline.
  */
-export function mcpReadyLine(project: string, allowSpend: boolean): string {
-  return `verbatra MCP server running on stdio (project ${project}, spend tools ${allowSpend ? "on" : "off"})`;
+export function mcpReadyLine(project: string, spend: McpSpendState): string {
+  return `verbatra MCP server running on stdio (project ${project}, ${SPEND_LABELS[spend]})`;
 }
 
 /**
