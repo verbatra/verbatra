@@ -10,6 +10,11 @@ import { errorMessage, SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import type { LivenessContext } from "../lock/holder-liveness.js";
 import {
+  type LocaleProvenance,
+  provenanceOf,
+  readReportableProvenance,
+} from "../lock/key-provenance.js";
+import {
   isUnreadableLockError,
   type LocaleWriteLockOptions,
   lockFileGuardPath,
@@ -263,15 +268,33 @@ async function planProvenanceLeniently(
   fs: SdkFs,
   targetLocales: readonly string[],
 ): Promise<LocaleMoves> {
-  try {
-    const { file, writable } = await readProvenanceFile(provenanceFilePath(cwd), fs);
-    return writable ? planLocaleMoves(targetLocales, provenanceLocalesWithState(file)) : NO_MOVES;
-  } catch (error) {
-    if (error instanceof SdkError && error.code === "PROVENANCE_FILE_INVALID") {
-      return NO_MOVES;
-    }
-    throw error;
+  const file = await readReportableProvenance(cwd, fs);
+  return file === undefined
+    ? NO_MOVES
+    : planLocaleMoves(targetLocales, provenanceLocalesWithState(file));
+}
+
+export interface CarriedOverState {
+  readonly lock: LockFile;
+  readonly provenanceFor: LocaleProvenance | undefined;
+}
+
+export async function readCarriedOverState(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<CarriedOverState> {
+  const read = await readLockFile(lockFilePath(cwd), fs);
+  const lock = withLockLocalesMoved(
+    read,
+    planLocaleMoves(targetLocales, lockLocalesWithState(read)),
+  );
+  const provenance = await readReportableProvenance(cwd, fs);
+  if (provenance === undefined) {
+    return { lock, provenanceFor: undefined };
   }
+  const moves = planLocaleMoves(targetLocales, provenanceLocalesWithState(provenance));
+  return { lock, provenanceFor: provenanceOf(withProvenanceLocalesMoved(provenance, moves)) };
 }
 
 async function planLockAndProvenance(

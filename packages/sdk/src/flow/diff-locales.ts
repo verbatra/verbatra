@@ -3,10 +3,10 @@ import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { readLocaleProvenance } from "../lock/key-provenance.js";
-import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
+import { baselineFor } from "../lock/lock-file.js";
 import type { ProvenanceRecord } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { readCarriedOverState } from "./locale-carry-over.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
@@ -64,11 +64,11 @@ export async function diffLocalesWithSource(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const lock = await readLockFile(lockFilePath(cwd), fs);
-  const provenanceFor = await readLocaleProvenance(cwd, fs);
+  const locales = selectLocales(config, input.locales);
+  const { lock, provenanceFor } = await readCarriedOverState(cwd, fs, locales);
 
   const results = await Promise.all(
-    selectLocales(config, input.locales).map(async (locale) => {
+    locales.map(async (locale) => {
       const target = await readTargetResource({
         resolver,
         format: config.format,

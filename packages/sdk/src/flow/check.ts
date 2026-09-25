@@ -197,6 +197,10 @@ function qaReports(
  *
  * Use {@link diff} instead when you need the key names rather than the counts.
  *
+ * State the lock-file and provenance file still record under an underscore spelling of a configured
+ * locale (`pt_BR` for `pt-BR`) is read as that locale's, the same way {@link translate} carries it
+ * over, so a respelled locale reports the keys a run would retranslate. Nothing is moved or written.
+ *
  * With {@link CheckInput.consistency} set, each locale also lists the source strings it translates
  * more than one way under different keys. Only keys that are up to date are compared, since a stale
  * translation belongs to an older source text. Values are compared after Unicode NFC normalization,
