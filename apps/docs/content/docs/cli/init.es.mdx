@@ -27,7 +27,7 @@ verbatra init [flags]
 | `--force` | ninguno | desactivado | sobrescribe un `verbatra.config.ts` existente cuyo contenido es distinto |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) que describe lo que se escribió; nunca pregunta |
 
-Un flag siempre gana. Lo que dejes fuera se detecta a partir del proyecto; después se pregunta por ello cuando stdin es una terminal y no se da ni `--yes` ni `--json`, y en otro caso se toma su valor por defecto solo con `--yes`. En una terminal, pulsar Intro acepta el valor sugerido, y eso cuenta como tu respuesta. Un flag con un valor vacío, como `--targets ''`, es un error de uso (`INVALID_OPTION`), nunca una petición del valor por defecto.
+Un flag siempre gana. Lo que dejes fuera se detecta a partir del proyecto; después se pregunta por ello cuando stdin es una terminal y no se da ni `--yes` ni `--json`, y en otro caso se toma su valor por defecto solo con `--yes`. En una terminal, pulsar Intro acepta el valor sugerido, y eso cuenta como tu respuesta. Un flag con un valor vacío, como `--targets ''`, es un error de uso (`INVALID_OPTION`), nunca una petición del valor por defecto. En una terminal, cada respuesta se comprueba en cuanto la das: un proveedor o formato desconocido, un código de locale mal formado, una lista de locales de destino que nombra el locale de origen o ninguno, un patrón sin `{locale}` o una URL base que no es una URL o incluye credenciales se explica en stderr y se vuelve a preguntar, hasta tres veces, así que las respuestas que ya diste se conservan.
 
 <AvailableFrom version="0.12.0" />
 
@@ -124,7 +124,7 @@ Un envoltorio de error para `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 
 ## Archivos existentes
 
-Volver a ejecutar `init` con las mismas respuestas no cambia nada y termina con éxito, así que es seguro repetirlo. Un `verbatra.config.ts` con un contenido distinto se rechaza con `CONFIG_EXISTS` salvo que pases `--force`. Otra configuración de verbatra en el mismo directorio (un `.verbatrarc.json`, por ejemplo, o una propiedad `verbatra` en `package.json`) se rechaza con `CONFIG_EXISTS` incluso con `--force`, porque se leería antes que `verbatra.config.ts`. No se escribe nada cuando `init` se niega.
+Volver a ejecutar `init` con las mismas respuestas no cambia nada y termina con éxito, así que es seguro repetirlo. Un `verbatra.config.ts` con un contenido distinto se rechaza con `CONFIG_EXISTS` salvo que pases `--force`. Otra configuración de verbatra en el mismo directorio (un `.verbatrarc.json`, por ejemplo, o una propiedad `verbatra` en `package.json`) se rechaza con `CONFIG_EXISTS` incluso con `--force`, porque se leería antes que `verbatra.config.ts`. No se escribe nada cuando `init` se niega. Cuando `verbatra.config.ts` ya existe y no pasaste `--force`, `CONFIG_EXISTS` va antes que todo lo demás: en una terminal antes de la primera pregunta y, si no, en lugar de una respuesta que falta, es ambigua o no es válida, así que una nueva ejecución te avisa primero de la configuración existente. `init --cwd` rechaza una ruta que no es un directorio existente con `INVALID_OPTION`, y un directorio en el que no puede escribir, como uno de solo lectura, con `INIT_UNWRITABLE`, nombrando el archivo y cualquier archivo que ya hubiera escrito.
 
 Un `.env.example` existente se conserva tal cual; cuando todavía no nombra la variable de la clave, se le añade esa única línea. Con `--force`, una línea de cabecera que escribió el propio `init` se reescribe para el nuevo proveedor, mientras que una cabecera escrita por ti se conserva. `.gitignore` recibe solo las entradas que le faltan.
 
@@ -152,7 +152,7 @@ verbatra init --provider none --yes
 | Código | Significado |
 | --- | --- |
 | `0` | archivos escritos, o ya al día |
-| `2` | un error de uso: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, o `CONFIG_INVALID` cuando las respuestas no formarían una configuración válida |
+| `2` | un error de uso: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, o `CONFIG_INVALID` cuando las respuestas no formarían una configuración válida |
 
 ## Relacionado
 

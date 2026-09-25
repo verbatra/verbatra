@@ -31,7 +31,16 @@ Now:
 - Running `init` again with the same resulting config changes nothing and exits 0. A
   `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless `--force` is
   given. Another verbatra config file in the directory, which would be read first, is refused with
-  `CONFIG_EXISTS` even under `--force`.
+  `CONFIG_EXISTS` even under `--force`. When `verbatra.config.ts` exists and `--force` is not
+  given, `CONFIG_EXISTS` is reported before anything else: at a terminal before the first prompt,
+  and otherwise in place of a missing, ambiguous or invalid answer.
+- At a terminal, each answer is checked as it is given. An unknown provider or format, a malformed
+  locale code, a target list naming the source locale or no locale, a pattern without `{locale}`,
+  or a base URL that is not a URL or carries credentials is explained on stderr and asked again,
+  up to three times, so the answers already given are kept.
+- `--cwd` naming no existing directory fails with `INVALID_OPTION`, and a directory `init` cannot
+  write to fails with the new `INIT_UNWRITABLE` code naming the file and the files already
+  written, instead of a bare `ENOENT` or `EACCES`.
 - An existing `.env.example` is no longer skipped or overwritten: the key variable is appended when
   it is missing.
 - A base file beside the locale files that names no locale, such as `messages.properties`,

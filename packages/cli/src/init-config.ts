@@ -133,9 +133,13 @@ function optionComment(key: string, choice: ProviderChoice): string | undefined 
   return undefined;
 }
 
+function literal(value: unknown): string {
+  return Array.isArray(value) ? `[${value.map(literal).join(", ")}]` : JSON.stringify(value);
+}
+
 function renderProviderOptions(choice: ProviderChoice): string[] {
   return Object.entries(buildProviderOptions(choice)).flatMap(([key, value]) => {
-    const line = `      ${key}: ${JSON.stringify(value)},`;
+    const line = `      ${key}: ${literal(value)},`;
     const comment = optionComment(key, choice);
     return comment === undefined ? [line] : [comment, line];
   });
@@ -189,7 +193,7 @@ export function renderConfig(draft: ConfigDraft): string {
     "  // The locale your source strings are written in.",
     `  sourceLocale: ${JSON.stringify(draft.sourceLocale)},`,
     "  // The locales to translate into (must not include the source locale).",
-    `  targetLocales: ${JSON.stringify(draft.targetLocales)},`,
+    `  targetLocales: ${literal(draft.targetLocales)},`,
     formatComment(draft.formatOrigin),
     `  format: ${JSON.stringify(draft.format)},`,
     "  files: {",

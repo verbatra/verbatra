@@ -94,9 +94,10 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 | Code | Levé quand |
 | --- | --- |
 | `CLI_ERROR` | un échec ne portait aucun code propre (le code de repli) |
-| `CONFIG_EXISTS` | `init` écraserait un `verbatra.config.ts` différent sans `--force`, ou un autre fichier de config verbatra du répertoire serait lu en premier |
+| `CONFIG_EXISTS` | `init` écraserait un `verbatra.config.ts` différent sans `--force`, ou un autre fichier de config verbatra du répertoire serait lu en premier ; signalé avant toute réponse manquante ou ambiguë, et dans un terminal avant la première question |
 | `CONFIG_INVALID` | `init` n'a pas pu générer une configuration valide à partir des réponses reçues (le SDK lève le même code pour une configuration qui ne se charge pas) |
 | `FORMAT_AMBIGUOUS` | `init` a trouvé plusieurs formats qui lisent les fichiers de locale ; `candidates` les liste |
+| `INIT_UNWRITABLE` | `init` n'a pas pu écrire un fichier dans son répertoire, par exemple parce qu'il est en lecture seule ; le message nomme le fichier, le code du système de fichiers et les fichiers déjà écrits |
 | `INVALID_CONCURRENCY` | `--concurrency` n'est pas un nombre entier de 1 à 100 |
 | `INVALID_DEBOUNCE` | `watch --debounce` n'est pas un nombre entier de millisecondes de 1 à 60000 |
 | `INVALID_DIRECTION` | `tmx` a reçu une direction autre que `import` ou `export`, ou `tmx export` a reçu une option réservée à l'import (`--dry-run`, `--overwrite`) |
@@ -105,7 +106,7 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 | `INVALID_LOCALES` | `--locales` a été donné mais ne liste aucune locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` n'est pas un nombre entier de secondes de 1 à 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` n'est pas un nombre entier d'au moins 1 |
-| `INVALID_OPTION` | une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, ou `--base-url` contient des identifiants, une query string ou un fragment |
+| `INVALID_OPTION` | une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, ou `init --cwd` ne nomme aucun répertoire existant |
 | `INVALID_OUT` | `--out` sur `types` ou `pseudo` a été donné mais ne nomme aucun chemin |
 | `INVALID_PORT` | `studio --port` n'est pas un entier de 1 à 65535 |
 | `INVALID_PROVIDER` | `init --provider` ne nomme aucun fournisseur connu |

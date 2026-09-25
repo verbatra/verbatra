@@ -75,6 +75,7 @@ export interface Prompter {
   readonly interactive: boolean;
   readonly acceptDefaults: boolean;
   readonly ask: (question: string) => Promise<string>;
+  readonly warn: (message: string) => void;
 }
 
 interface Session extends Prompter {
@@ -89,6 +90,7 @@ interface PickSpec {
   readonly detected?: string | undefined;
   readonly fallback?: string | undefined;
   readonly missingReason?: string | undefined;
+  readonly validate?: (answer: string) => void;
 }
 
 const DEFAULT_FORMAT: SupportedFormat = "i18next-json";
@@ -120,7 +122,9 @@ function emptyFlagError(flag: string): CliUsageError {
   return invalidOption(`${flag} was given an empty value. Pass a value, or leave the flag out.`);
 }
 
-async function askFor(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
+const MAX_ASKS = 3;
+
+async function askOnce(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
   const suggestion = spec.detected ?? spec.fallback;
   const question = suggestion === undefined ? `${spec.label}: ` : `${spec.label} [${suggestion}]: `;
   const answer = (await session.ask(question)).trim();
@@ -131,6 +135,29 @@ async function askFor(session: Session, spec: PickSpec): Promise<Resolved | unde
     return { value: spec.fallback, source: "prompt" };
   }
   return undefined;
+}
+
+function answerProblem(spec: PickSpec, answer: string): CliUsageError | undefined {
+  try {
+    spec.validate?.(answer);
+    return undefined;
+  } catch (error) {
+    if (error instanceof CliUsageError) {
+      return error;
+    }
+    throw error;
+  }
+}
+
+async function askFor(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
+  for (let asked = 1; ; asked += 1) {
+    const answer = await askOnce(session, spec);
+    const problem = answer === undefined ? undefined : answerProblem(spec, answer.value);
+    if (problem === undefined || asked >= MAX_ASKS) {
+      return answer;
+    }
+    session.warn(`${problem.message} Answer again.`);
+  }
 }
 
 async function pick(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
@@ -209,6 +236,47 @@ function assertProviderFlags(opts: InitOptions, provider: InitProviderId): void 
   }
 }
 
+function assertBaseUrl(baseUrl: string): void {
+  if (!URL.canParse(baseUrl)) {
+    throw invalidOption(
+      `"${baseUrl}" is not a URL. Enter the server's base URL, such as http://localhost:1234/v1.`,
+    );
+  }
+  assertNoCredentialsInUrl(baseUrl);
+}
+
+function assertLocale(locale: string): void {
+  if (!verbatraConfigSchema.shape.sourceLocale.safeParse(locale).success) {
+    throw new CliUsageError(
+      "INVALID_LOCALE",
+      `"${locale}" is not a BCP 47 locale code. Enter one such as en, pt-BR, or zh-Hant.`,
+    );
+  }
+}
+
+function assertTargets(answer: string, sourceLocale: string | undefined): void {
+  const locales = splitLocales(answer);
+  if (locales.length === 0) {
+    throw noTargetsError();
+  }
+  locales.forEach(assertLocale);
+  const source = sourceLocale?.toLowerCase();
+  if (locales.some((locale) => locale.toLowerCase() === source)) {
+    throw new CliUsageError(
+      "INVALID_LOCALES",
+      `The target locales must not include the source locale ${sourceLocale}.`,
+    );
+  }
+}
+
+function assertPattern(pattern: string): void {
+  if (!pattern.includes("{locale}")) {
+    throw invalidOption(
+      `"${pattern}" has no {locale} token. Enter a pattern such as locales/{locale}.json.`,
+    );
+  }
+}
+
 function assertNoCredentialsInUrl(baseUrl: string): void {
   let parsed: URL;
   try {
@@ -242,6 +310,7 @@ async function resolveOpenAiCompatible(
     flag: "--base-url <url>",
     value: opts.baseUrl,
     label: "Base URL of the OpenAI-compatible server",
+    validate: assertBaseUrl,
   });
   const model = await pick(session, {
     flag: "--model <name>",
@@ -272,6 +341,7 @@ async function resolveProvider(
     flag: PROVIDER_FLAG,
     value: opts.provider,
     label: `Provider (${INIT_PROVIDER_IDS.join(", ")})`,
+    validate: (answer) => assertProviderFlags(opts, parseProvider(answer)),
   });
   if (picked === undefined) {
     return undefined;
@@ -335,6 +405,7 @@ async function resolveFormat(
     label: `Locale file format (${(candidates ?? scaffoldingMetadata.supportedFormats).join(", ")})`,
     detected: detection.format?.from === "input" ? undefined : detection.format?.id,
     fallback: candidates?.[0] ?? DEFAULT_FORMAT,
+    validate: parseFormat,
   });
   if (picked === undefined) {
     return undefined;
@@ -382,6 +453,7 @@ async function resolvePattern(
     label: "Locale file pattern",
     detected: detection.layout?.pattern,
     fallback: patterns?.[0] ?? defaultLayout.pattern,
+    validate: assertPattern,
   });
 }
 
@@ -410,6 +482,7 @@ async function resolveLayout(
     detected: layout?.sourceLocale,
     fallback: unqualified === undefined ? DEFAULT_SOURCE : undefined,
     missingReason: unqualified === undefined ? undefined : unqualifiedSourceReason(unqualified),
+    validate: assertLocale,
   });
   const targetLocales = await pick(session, {
     flag: "--targets <locales>",
@@ -418,6 +491,7 @@ async function resolveLayout(
     detected:
       sourceLocale === undefined ? undefined : detectedTargets(detection, sourceLocale.value),
     fallback: DEFAULT_TARGETS,
+    validate: (answer) => assertTargets(answer, sourceLocale?.value),
   });
   if (targetLocales !== undefined && splitLocales(targetLocales.value).length === 0) {
     session.problems.push(noTargetsError());
@@ -443,12 +517,12 @@ function localeStyleFor(
   return fitsLayout ? layout.localeStyle : undefined;
 }
 
-function missingSentence(missing: readonly MissingFlag[]): string {
+function missingSentence(missing: readonly MissingFlag[], lead = "Missing"): string {
   const flags = missing.map((entry) => entry.flag).join(", ");
   const reasons = missing.flatMap((entry) =>
     entry.reason === undefined ? [] : [`${entry.flag}: ${entry.reason}.`],
   );
-  return [`Missing ${flags}.`, ...reasons].join(" ");
+  return [`${lead} ${flags}.`, ...reasons].join(" ");
 }
 
 function missingOptionsError(session: Session): CliUsageError {
@@ -495,7 +569,7 @@ function combinedError(session: Session): CliUsageError | undefined {
   }
   const extra = [
     ...rest.map((problem) => `[${problem.code}] ${problem.message}`),
-    ...(session.missing.length === 0 ? [] : [`Also ${missingSentence(session.missing)}`]),
+    ...(session.missing.length === 0 ? [] : [missingSentence(session.missing, "Also missing")]),
   ];
   return new CliUsageError(
     first.code,

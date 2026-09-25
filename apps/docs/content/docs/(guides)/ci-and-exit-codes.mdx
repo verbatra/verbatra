@@ -94,9 +94,10 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 | Code | Raised when |
 | --- | --- |
 | `CLI_ERROR` | a failure carried no code of its own (the fallback) |
-| `CONFIG_EXISTS` | `init` would overwrite a different `verbatra.config.ts` without `--force`, or another verbatra config file in the directory would be read first |
+| `CONFIG_EXISTS` | `init` would overwrite a different `verbatra.config.ts` without `--force`, or another verbatra config file in the directory would be read first; reported ahead of any missing or ambiguous answer, and at a terminal before the first prompt |
 | `CONFIG_INVALID` | `init` could not scaffold a valid config from the answers it was given (the SDK raises the same code for a config that fails to load) |
 | `FORMAT_AMBIGUOUS` | `init` found several formats that read the locale files; `candidates` lists them |
+| `INIT_UNWRITABLE` | `init` could not write a file into its directory, for example because it is read-only; the message names the file, the file-system code, and the files already written |
 | `INVALID_CONCURRENCY` | `--concurrency` is not a whole number from 1 to 100 |
 | `INVALID_DEBOUNCE` | `watch --debounce` is not a whole number of milliseconds from 1 to 60000 |
 | `INVALID_DIRECTION` | `tmx` got a direction other than `import` or `export`, or `tmx export` got an import-only flag (`--dry-run`, `--overwrite`) |
@@ -105,7 +106,7 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 | `INVALID_LOCALES` | `--locales` was given but lists no locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` is not a whole number of at least 1 |
-| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, or `--base-url` carries credentials, a query string, or a fragment |
+| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, or `init --cwd` names no existing directory |
 | `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
 | `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
 | `INVALID_PROVIDER` | `init --provider` names no known provider |
