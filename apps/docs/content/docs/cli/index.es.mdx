@@ -58,7 +58,7 @@ Los resultados van a stdout. El progreso, los avisos, las sugerencias, las adver
 
 | Flag o variable | Efecto |
 | --- | --- |
-| `-q`, `--quiet` | muestra solo resultados, advertencias y errores: sin líneas de progreso, avisos ni sugerencias `next:`. Funciona antes o después del nombre del comando |
+| `-q`, `--quiet` | muestra solo resultados, advertencias y errores: omite las líneas de progreso, las sugerencias `next:` y las líneas informativas de stderr, mientras que el resumen del resultado, avisos incluidos, se mantiene. Funciona antes o después del nombre del comando |
 | `--no-color` | nunca colorea la salida |
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | cualquier valor no vacío desactiva el color; `VERBATRA_NO_COLOR` también se impone a `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` o un valor vacío activa el color aunque stderr no sea un terminal, y `0` lo desactiva; `--no-color` y `VERBATRA_NO_COLOR` siguen teniendo prioridad |

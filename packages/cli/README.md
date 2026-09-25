@@ -75,7 +75,7 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 
 `check`, `diff`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `pseudo` and `types` call no provider either.
 
-Two flags apply to every command: `-q, --quiet` prints only results and errors, with no progress, notices, or hints, and `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`).
+Two flags apply to every command: `-q, --quiet` prints only results (their notices included), warnings, and errors, with no progress lines, `next:` hints, or informational lines, and `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`).
 
 Every flag, every example, and the exit-code contract live in the [CLI reference](https://verbatra.kreitz-webdev.de/docs/cli). `verbatra <command> --help` prints the same reference at the terminal.
 
