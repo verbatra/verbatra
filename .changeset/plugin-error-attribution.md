@@ -14,3 +14,8 @@ Now that throw surfaces as an `AdapterError` with code `ADAPTER_FAILED` naming t
 `cause` is the original error. An `AdapterError` the plugin raises itself and an errno failure keep
 their own codes, and built-in adapters report `INVALID_STRUCTURE` as before, now with the parser's
 error as `cause`. `AdapterError` accepts an optional `{ cause }` as its third argument.
+
+A `parseEntries` of a `createFlatFileAdapter` adapter that returns a malformed result, such as a
+plain object instead of a `Map`, an entry whose `value` is not a string, or whose `key` field does
+not match its map key, now fails the read with an `ADAPTER_FAILED` `AdapterError` naming the
+format and the first problem found, instead of a `TypeError` deep inside a later step.
