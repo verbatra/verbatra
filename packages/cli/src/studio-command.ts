@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { isMachineTranslationEnabled } from "@verbatra/sdk";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
@@ -38,6 +39,16 @@ const studioOptsSchema = z.object({
 type StudioOpts = z.infer<typeof studioOptsSchema>;
 
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_STUDIO_ALLOW_SPEND";
+
+function portInUseHint(error: unknown): string | undefined {
+  if (!(error instanceof Error) || !("code" in error) || error.code !== "PORT_IN_USE") {
+    return undefined;
+  }
+  return renderError({
+    code: String(error.code),
+    message: `${error.message}. Pass --port <n> to use another port, or stop the process that holds it.`,
+  });
+}
 
 const AGENT_TOOLS_ENV_VAR = "VERBATRA_STUDIO_AGENT_TOOLS";
 
@@ -140,14 +151,14 @@ export async function runStudio(
         ...(opts.port !== undefined ? { port: opts.port } : {}),
       }),
     streams,
-    () => undefined,
+    portInUseHint,
   );
   if (server === undefined) {
     return failedSession(2);
   }
 
   streams.out(`Verbatra Studio running at ${server.url}?token=${token}\n`);
-  ui.info(studioSpendLine(spend));
+  ui.info(studioSpendLine(spend, isMachineTranslationEnabled(config.config)));
   ui.info(studioAgentToolsLine(exposeAgentTools));
   if (ui.terminal.stdinIsTty) {
     ui.info(PRESS_CTRL_C);

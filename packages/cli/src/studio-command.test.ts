@@ -302,6 +302,9 @@ describe("run studio: failure output never leaks a URL or a token", () => {
 
     expect(code).toBe(2);
     expect(combined).toContain("PORT_IN_USE");
+    expect(cap.err()).toContain(
+      "verbatra: error [PORT_IN_USE] port 5849 is already in use. Pass --port <n> to use another port, or stop the process that holds it.",
+    );
     expect(combined).not.toMatch(/https?:\/\//);
     expect(combined).not.toMatch(TOKEN_SHAPE);
   });
