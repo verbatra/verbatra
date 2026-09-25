@@ -210,7 +210,12 @@ export function makeStudioModule(overrides: Partial<StudioModule> = {}): StudioM
 }
 
 export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServerHandle {
-  return { close: async () => {}, closed: new Promise<void>(() => {}), ...overrides };
+  return {
+    close: async () => {},
+    closed: new Promise<void>(() => {}),
+    spend: "off",
+    ...overrides,
+  };
 }
 
 export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {

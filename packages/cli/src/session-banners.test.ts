@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { mcpReadyLine, mcpStoppedLine, mcpTerminalHint } from "@verbatra/mcp";
+import { type McpSpendState, mcpReadyLine, mcpStoppedLine, mcpTerminalHint } from "@verbatra/mcp";
 import type { WatchController, WatchInput, WatchRunResult } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
@@ -53,12 +53,17 @@ describe("banner wording", () => {
 });
 
 describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
-  function startMcp(argv: readonly string[], facts: TerminalFacts, closed = deferred()) {
+  function startMcp(
+    argv: readonly string[],
+    facts: TerminalFacts,
+    closed = deferred(),
+    spend: McpSpendState = argv.includes("--allow-spend") ? "on" : "off",
+  ) {
     const close = vi.fn(async () => {});
     const { deps } = recordingDeps({
       importMcp: async () =>
         makeMcpModule({
-          startMcpServer: async () => makeMcpHandle({ close, closed: closed.promise }),
+          startMcpServer: async () => makeMcpHandle({ close, closed: closed.promise, spend }),
         }),
     });
     const cap = captureStreams();
@@ -73,7 +78,7 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     closed.resolve();
 
     expect(await done).toBe(0);
-    expect(cap.err()).toBe(`${mcpReadyLine(".", false)}\n${mcpStoppedLine("stdin-closed")}\n`);
+    expect(cap.err()).toBe(`${mcpReadyLine(".", "off")}\n${mcpStoppedLine("stdin-closed")}\n`);
     expect(cap.out()).toBe("");
   });
 
@@ -85,7 +90,7 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     expect(await done).toBe(0);
     expect(cap.err()).toBe(
       [
-        mcpReadyLine(".", true),
+        mcpReadyLine(".", "on"),
         ...mcpTerminalHint(["verbatra", "mcp"]),
         mcpStoppedLine("signal"),
         "",
@@ -94,13 +99,22 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     expect(cap.out()).toBe("");
   });
 
+  it("says spend tools are off because of provider none when the server withholds them", async () => {
+    const { cap, captured, done } = startMcp(["--allow-spend"], PIPED, deferred(), "provider-none");
+    await flush();
+    captured.session().requestStop();
+    await done;
+
+    expect(cap.err()).toContain("(project ., spend tools off (provider none))");
+  });
+
   it("labels a --cwd project relative to the working directory", async () => {
     const { cap, captured, done } = startMcp(["--cwd", join(process.cwd(), "sub")], PIPED);
     await flush();
     captured.session().requestStop();
     await done;
 
-    expect(cap.err()).toContain(mcpReadyLine("sub", false));
+    expect(cap.err()).toContain(mcpReadyLine("sub", "off"));
   });
 
   it("tells the client-config and inspector commands for the CLI subcommand", async () => {
