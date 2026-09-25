@@ -741,6 +741,17 @@ Every check runs when the resolver is created, before any file is read: a patter
 cannot be combined, or a locale the style has no correct spelling for, throws
 `LOCALE_LAYOUT_INVALID`, and two locales resolving to one path throws `LOCALE_PATH_COLLISION`.
 
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` rewrites every absolute path inside the project in a message to
+a path relative to the project root: a path under `cwd` loses that prefix, `cwd` itself becomes
+`.`, and a path outside the project stays as it is. Every per-locale `error.message` and notice
+message on a `RunSummary` already names project files this way, relative to the run's `cwd`; call
+it on the message of an error a flow throws before you show it to a user, an agent, or a browser
+tab. `verbatra mcp` and Studio do the same for every error they return.
+
 ## The workbook pair
 
 The translator handoff, as an Excel workbook or as delimited text; see [Manual translation](/docs/manual-translation).

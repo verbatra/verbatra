@@ -53,7 +53,12 @@ import {
   type LocaleCarryOverPlan,
   withCarryOverNotices,
 } from "../locale-carry-over.js";
-import { failureSummary, isWholeRunError, partition } from "../locale-failure.js";
+import {
+  failureSummary,
+  isWholeRunError,
+  partition,
+  withProjectRelativeMessages,
+} from "../locale-failure.js";
 import { readTargetResource } from "../read-target.js";
 import { readSourceResource } from "../source.js";
 import type { LocaleSummary, RunSummary } from "../summary.js";
@@ -625,7 +630,7 @@ export async function importWorkbook(
     withNewerProvenanceNotice(summaries, newerProvenance),
     carryOver,
     dryRun,
-  );
+  ).map((summary) => withProjectRelativeMessages(summary, cwd));
   const { succeeded, partial, failed } = partition(locales);
   return { dryRun, locales, succeeded, partial, failed };
 }

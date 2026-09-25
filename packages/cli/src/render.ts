@@ -1,4 +1,5 @@
 import { isAbsolute, relative, sep } from "node:path";
+import process from "node:process";
 import {
   type BudgetStanding,
   budgetStanding,
@@ -25,6 +26,7 @@ import {
   type ProgressEvent,
   type ProtectedKey,
   type PseudolocalizeResult,
+  projectRelativeMessage,
   type QaFinding,
   type RunBudget,
   type RunEstimate,
@@ -81,7 +83,7 @@ export function toRenderableError(error: unknown): RenderableError {
     const missing = stringListOf(error, "missing");
     return {
       code: codeOf(error) ?? FALLBACK_ERROR_CODE,
-      message: error.message,
+      message: projectRelativeMessage(error.message, process.cwd()),
       ...(causeCode === undefined ? {} : { causeCode }),
       ...(candidates === undefined ? {} : { candidates }),
       ...(missing === undefined ? {} : { missing }),

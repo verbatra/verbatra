@@ -803,6 +803,18 @@ ein Style, die sich nicht kombinieren lassen, oder eine Locale, für die der Sty
 Schreibweise hat, werfen `LOCALE_LAYOUT_INVALID`; zwei Locales, die auf denselben Pfad auflösen,
 werfen `LOCALE_PATH_COLLISION`.
 
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` schreibt jeden absoluten Pfad innerhalb des Projekts in einer
+Meldung in einen Pfad relativ zum Projektstamm um: Ein Pfad unter `cwd` verliert dieses Präfix,
+`cwd` selbst wird zu `.`, und ein Pfad außerhalb des Projekts bleibt, wie er ist. Jede
+`error.message` und jede Notice-Meldung pro Locale in einer `RunSummary` nennt Projektdateien
+bereits so, relativ zum `cwd` des Laufs; ruf es für die Meldung eines Fehlers auf, den ein Flow
+wirft, bevor du sie einem Menschen, einem Agenten oder einem Browser-Tab zeigst. `verbatra mcp`
+und Studio machen das für jeden Fehler, den sie zurückgeben.
+
 ## Das Arbeitsmappen-Paar
 
 Die Übergabe für menschliche Übersetzerinnen, als Excel-Arbeitsmappe oder als Text mit

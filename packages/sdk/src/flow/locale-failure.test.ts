@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { deriveLocaleStatus, failureSummary, partition } from "./locale-failure.js";
+import {
+  deriveLocaleStatus,
+  failureSummary,
+  partition,
+  withProjectRelativeMessages,
+} from "./locale-failure.js";
 import type { FuzzyCacheHit, LocaleSummary } from "./summary.js";
 
 function summaryWith(locale: string, status: LocaleSummary["status"]): LocaleSummary {
@@ -109,6 +114,36 @@ describe("deriveLocaleStatus", () => {
     expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, providerFailures: ["a", "b"] })).toBe("failed");
     expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, integrityMismatches: ["a"] })).toBe("failed");
     expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, budgetWithheld: ["a"] })).toBe("failed");
+  });
+});
+
+describe("withProjectRelativeMessages", () => {
+  it("names a file inside the project by its project-relative path in the error and every notice", () => {
+    const error = Object.assign(
+      new Error("The de locale file at /proj/locales/de.json could not be read: bad JSON"),
+      { code: "INVALID_JSON" },
+    );
+    const failed = failureSummary("de", error);
+    const summary: LocaleSummary = {
+      ...failed,
+      notices: [{ code: "LOCALE_STATE_CARRY_OVER_SKIPPED", message: "guard at /proj/.lock held" }],
+    };
+
+    const relative = withProjectRelativeMessages(summary, "/proj");
+
+    expect(relative.error).toEqual({
+      code: "INVALID_JSON",
+      message: "The de locale file at locales/de.json could not be read: bad JSON",
+    });
+    expect(relative.notices).toEqual([
+      { code: "LOCALE_STATE_CARRY_OVER_SKIPPED", message: "guard at .lock held" },
+    ]);
+  });
+
+  it("leaves a summary without an error without one", () => {
+    const summary = summaryWith("de", "succeeded");
+
+    expect(withProjectRelativeMessages(summary, "/proj")).toEqual(summary);
   });
 });
 

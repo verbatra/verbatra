@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { computeFingerprint } from "../cache/fingerprint.js";
 import type { VerbatraConfig } from "../config/schema.js";
@@ -455,7 +455,7 @@ describe("translate: a locale whose respelled state could not be moved", () => {
     const ptBr = summary.locales.find((entry) => entry.locale === "pt-BR");
     expect(summary.failed).toEqual(["pt-BR"]);
     expect(ptBr?.error?.code).toBe("LOCALE_STATE_NOT_CARRIED_OVER");
-    expect(ptBr?.error?.message).toContain(guard);
+    expect(ptBr?.error?.message).toContain(`guard at ${relative(dir, guard)}`);
     expect(skipNotices(ptBr)[0]).toContain("A live run would not run the locale while that holds.");
     expect(summary.locales.find((entry) => entry.locale === "de")?.translated).toEqual([
       "greeting",
@@ -514,7 +514,7 @@ describe("translate: a locale whose respelled state could not be moved", () => {
       );
 
       const ptBr = summary.locales.find((entry) => entry.locale === "pt-BR");
-      const reason = `the lock-file guard at ${guard} could not be read or created.`;
+      const reason = `the lock-file guard at ${relative(dir, guard)} could not be read or created.`;
       expect(Date.now() - started).toBeLessThan(5_000);
       expect(summary.failed).toEqual(["de", "pt-BR"]);
       expect(summary.locales[0]?.error?.code).toBe(siblingCode);
