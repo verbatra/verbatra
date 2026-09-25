@@ -11,8 +11,8 @@
     "hero": {
       "headline": "Traduce solo lo que cambió.",
       "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas y deja intactas todas las demás.",
-      "ctaGithub": "Dale una estrella en GitHub",
-      "ctaStart": "Empezar",
+      "ctaGithub": "Estrella en GitHub",
+      "ctaStart": "Guía de inicio",
       "facts": {
         "release": "Última versión",
         "formats": "Formatos de archivo",

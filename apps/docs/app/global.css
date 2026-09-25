@@ -416,6 +416,36 @@ samp {
   color: var(--accent);
 }
 
+:where(.prose) :has(> .vk-link-card) {
+  margin-block: 1.5rem 2rem;
+}
+
+.vk-link-card {
+  color: var(--text-strong);
+  font-weight: 400;
+  text-decoration-line: none;
+  border-color: var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-bg);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.vk-link-card:hover {
+  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+  background: var(--surface-bg);
+}
+
+.vk-link-card p {
+  color: var(--text-muted);
+}
+
+.vk-link-card h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
 #nd-toc h3 {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -557,36 +587,6 @@ figure.shiki {
   border: 0;
   border-radius: 0;
   background: transparent;
-}
-
-:where(.prose) :has(> .vk-link-card) {
-  margin-block: 1.5rem 2rem;
-}
-
-.vk-link-card {
-  color: var(--text-strong);
-  font-weight: 400;
-  text-decoration-line: none;
-  border-color: var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--surface-bg);
-  transition: border-color var(--duration-base) var(--ease-out);
-}
-
-.vk-link-card:hover {
-  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
-  background: var(--surface-bg);
-}
-
-.vk-link-card p {
-  color: var(--text-muted);
-}
-
-.vk-link-card h3 {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-strong);
 }
 
 .vk-evidence-link {
