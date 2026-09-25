@@ -39,6 +39,31 @@ describe("withGeminiRetry: success paths", () => {
   });
 });
 
+describe("withGeminiRetry: timed-out attempts", () => {
+  it("retries an attempt that timed out and returns the eventual success", async () => {
+    const call = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new ProviderError("TIMEOUT", "timed out"))
+      .mockResolvedValueOnce("ok");
+    await expect(withGeminiRetry(call, undefined, FAST)).resolves.toBe("ok");
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops after the configured attempts and rethrows the last timeout", async () => {
+    const timeout = new ProviderError("TIMEOUT", "timed out");
+    const call = vi.fn<() => Promise<string>>().mockRejectedValue(timeout);
+    await expect(withGeminiRetry(call, undefined, FAST)).rejects.toBe(timeout);
+    expect(call).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry another ProviderError", async () => {
+    const refused = new ProviderError("AUTH_FAILED", "no");
+    const call = vi.fn<() => Promise<string>>().mockRejectedValue(refused);
+    await expect(withGeminiRetry(call, undefined, FAST)).rejects.toBe(refused);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("withGeminiRetry: retry listener", () => {
   it("reports each retry with its attempt, delay and status before waiting", async () => {
     const retries: unknown[] = [];
