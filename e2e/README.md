@@ -60,7 +60,9 @@ deterministic test joins the required gate automatically.
   the written value, lands it in the locale file and leaves no `*.lock` file behind once stdin
   closes, and `verbatra mcp --allow-spend` exits 0 and leaves no `*.lock` file behind when stdin
   closes while a `translation.translatePending` call is held mid-request by the same kind of
-  never-answering loopback endpoint, spending nothing). It also covers `check --qa` and `--strict` on committed translations
+  never-answering loopback endpoint, spending nothing, and `verbatra-mcp --allow-spend` exits 0
+  within seconds of a SIGINT or SIGTERM sent during that held call, leaving no `*.lock` file
+  behind). It also covers `check --qa` and `--strict` on committed translations
   (`tests/check-qa.e2e.test.ts`), `extract` (`tests/extract.e2e.test.ts`), per-language CLDR plural
   arms (`tests/icu-plural-arms.e2e.test.ts`), inline markup parity on import
   (`tests/markup-parity.e2e.test.ts`), the network policy and `VERBATRA_NETWORK_POLICY` under a live

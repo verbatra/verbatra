@@ -443,6 +443,10 @@ function verbatraCommand(args: readonly string[], opts: LocationOpts): string {
   return words.map(shellQuote).join(" ");
 }
 
+function formatArgs(format: ExchangeFormat | undefined): readonly string[] {
+  return format === undefined ? [] : ["--format", format];
+}
+
 function loadOptions(opts: SharedOpts, cwd: string): { cwd: string; configPath?: string } {
   return {
     cwd,
@@ -799,13 +803,13 @@ function exportInput(
 
 function hintImportOfExport(
   context: CommandContext,
-  opts: LocationOpts,
+  opts: LocationOpts & { readonly format: ExchangeFormat | undefined },
   cwd: string,
   result: ExportWorkbookResult,
 ): void {
   if (result.locales.some((locale) => locale.rows > 0)) {
     context.ui.hint(
-      verbatraCommand(["import", displayPath(result.path, cwd)], opts),
+      verbatraCommand(["import", displayPath(result.path, cwd), ...formatArgs(opts.format)], opts),
       "once your translators have filled it in",
     );
   }
@@ -898,7 +902,7 @@ export async function runImport(
           const exitCode = runExitCode(summary);
           if (summary.dryRun) {
             context.ui.hint(
-              verbatraCommand(["import", workbook], opts),
+              verbatraCommand(["import", workbook, ...formatArgs(opts.format)], opts),
               "without --dry-run to write the files",
             );
           } else if (exitCode === 0) {

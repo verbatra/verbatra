@@ -24,7 +24,7 @@ Both forms take the same three flags and start the same server, but the wrappers
 - `verbatra mcp` loads `.env.local` and then `.env` from the working directory before it starts; `verbatra-mcp` loads neither, so pass any API key in the environment the MCP client spawns it with.
 - `verbatra mcp` rejects an unknown flag as a usage error and exits `2`; `verbatra-mcp` ignores unknown flags.
 - A startup or config error exits `2` from `verbatra mcp` and `1` from `verbatra-mcp`.
-- `verbatra mcp` force-stops with exit code `130` on a second interrupt during shutdown; `verbatra-mcp` has no such path.
+- Both stop within a few seconds of an interrupt, even while a tool call waits on the provider, and release any locale lock they hold. A second interrupt during shutdown force-stops `verbatra mcp` with exit code `130`; from `@verbatra/mcp` 0.3.0 on it force-stops `verbatra-mcp` with `130` after Ctrl-C and `143` after SIGTERM.
 
 ## Flags
 

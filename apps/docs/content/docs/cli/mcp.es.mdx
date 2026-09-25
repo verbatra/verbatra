@@ -24,7 +24,7 @@ Ambas formas aceptan los mismos tres flags y arrancan el mismo servidor, pero lo
 - `verbatra mcp` carga `.env.local` y luego `.env` desde el directorio de trabajo antes de arrancar; `verbatra-mcp` no carga ninguno de los dos, así que pasa cualquier clave de API en el entorno con el que lo lanza el cliente MCP.
 - `verbatra mcp` rechaza un flag desconocido como error de uso y sale con `2`; `verbatra-mcp` ignora los flags desconocidos.
 - Un error de arranque o de configuración sale con `2` desde `verbatra mcp` y con `1` desde `verbatra-mcp`.
-- `verbatra mcp` se detiene a la fuerza con el código de salida `130` ante una segunda interrupción durante el apagado; `verbatra-mcp` no tiene esa vía.
+- Ambos se detienen pocos segundos después de una interrupción, incluso mientras una llamada a una herramienta espera al proveedor, y liberan cualquier bloqueo de locale que tengan. Una segunda interrupción durante el apagado detiene a la fuerza `verbatra mcp` con el código de salida `130`; desde `@verbatra/mcp` 0.3.0 detiene a la fuerza `verbatra-mcp` con `130` tras Ctrl-C y `143` tras SIGTERM.
 
 ## Flags
 
