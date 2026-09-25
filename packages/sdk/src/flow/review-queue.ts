@@ -6,13 +6,13 @@ import {
   type KeyProvenance,
   keyProvenance,
   type LocaleProvenance,
-  readLocaleProvenance,
 } from "../lock/key-provenance.js";
-import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
+import { baselineFor } from "../lock/lock-file.js";
 import type { LockFile } from "../lock/types.js";
 import type { RunStatusFile, RunStatusLocale } from "../run-status/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
+import { readCarriedOverLock, readCarriedOverProvenance } from "./locale-carry-over.js";
 import { runStatus } from "./run-status.js";
 import type { NeedsReviewEntry } from "./summary.js";
 
@@ -71,9 +71,13 @@ interface QueueState {
   readonly readTarget: (locale: string) => Promise<LocaleResource | undefined>;
 }
 
-async function readLockOrUndefined(cwd: string, fs: SdkFs): Promise<LockFile | undefined> {
+async function readLockOrUndefined(
+  cwd: string,
+  fs: SdkFs,
+  locales: readonly string[],
+): Promise<LockFile | undefined> {
   try {
-    return await readLockFile(lockFilePath(cwd), fs);
+    return await readCarriedOverLock(cwd, fs, locales);
   } catch {
     return undefined;
   }
@@ -82,9 +86,10 @@ async function readLockOrUndefined(cwd: string, fs: SdkFs): Promise<LockFile | u
 async function readProvenanceOrUndefined(
   cwd: string,
   fs: SdkFs,
+  locales: readonly string[],
 ): Promise<LocaleProvenance | undefined> {
   try {
-    return await readLocaleProvenance(cwd, fs);
+    return await readCarriedOverProvenance(cwd, fs, locales);
   } catch {
     return undefined;
   }
@@ -194,8 +199,8 @@ export async function reviewQueue(
     return status;
   }
   const state: QueueState = {
-    provenance: await readProvenanceOrUndefined(cwd, fs),
-    lock: await readLockOrUndefined(cwd, fs),
+    provenance: await readProvenanceOrUndefined(cwd, fs, input.config.targetLocales),
+    lock: await readLockOrUndefined(cwd, fs, input.config.targetLocales),
     readTarget: targetReader(input, cwd, fs, deps),
   };
   const locales: ReviewQueueLocale[] = [];

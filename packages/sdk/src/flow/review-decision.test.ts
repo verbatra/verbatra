@@ -278,6 +278,27 @@ describe("approveEntry", () => {
 
 describe("approveEntry and rejectEntry: boundary checks", () => {
   it.each([
+    ["missing", undefined],
+    ["a number", 42],
+    ["null", null],
+  ])(
+    "refuses an expectedValue that is %s with REVIEW_VALUE_CHANGED before anything is read",
+    async (_label, expectedValue) => {
+      const dir = await makeTempDir();
+      const input = {
+        config: cfg(),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+        expectedValue,
+      } as unknown as Parameters<typeof rejectEntry>[0];
+
+      await expect(approveEntry(input)).rejects.toMatchObject({ code: "REVIEW_VALUE_CHANGED" });
+      await expect(rejectEntry(input)).rejects.toMatchObject({ code: "REVIEW_VALUE_CHANGED" });
+    },
+  );
+
+  it.each([
     ["an empty name", ""],
     ["a name longer than 64 characters", "x".repeat(65)],
     ["a line break", "mk\nroot"],

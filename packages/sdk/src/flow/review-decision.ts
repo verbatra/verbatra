@@ -36,6 +36,7 @@ import {
 } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
+import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 import { writeTargetResource } from "./write-target.js";
@@ -137,11 +138,21 @@ function assertReviewer(reviewer: string | undefined): void {
   }
 }
 
+function assertExpectedValue(expectedValue: unknown): void {
+  if (typeof expectedValue !== "string") {
+    throw new SdkError(
+      "REVIEW_VALUE_CHANGED",
+      "The expectedValue must be the translation the reviewer saw, as a string, so nothing was recorded.",
+    );
+  }
+}
+
 async function reviewContext(
   input: ReviewDecisionInput,
   deps: ReviewDecisionDeps,
 ): Promise<ReviewContext> {
   assertReviewer(input.reviewer);
+  assertExpectedValue(input.expectedValue);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
@@ -160,6 +171,8 @@ async function reviewContext(
       `The key "${input.key}" was not found in the source resource.`,
     );
   }
+  const writeLock = writeLockOptions(input);
+  await carryOverBeforeWrite(cwd, fs, locale, writeLock);
   return {
     config,
     cwd,
@@ -168,7 +181,7 @@ async function reviewContext(
     locale,
     key: input.key,
     sourceEntry,
-    writeLock: writeLockOptions(input),
+    writeLock,
     recordLock: recordLockOptions(input),
   };
 }
@@ -501,7 +514,10 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
- * not `expectedValue`.
+ * not `expectedValue`. Also thrown, before anything is read, when `expectedValue` is not a string.
+ * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
+ * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
+ * written.
  * @throws {@link SdkError} `REVIEW_SOURCE_CHANGED`: the source text changed since the translation
  * was written, or the lock-file has no entry for the key.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
@@ -596,7 +612,10 @@ export async function approveEntry(
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
- * not `expectedValue`.
+ * not `expectedValue`. Also thrown, before anything is read, when `expectedValue` is not a string.
+ * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
+ * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
+ * written.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure.
  * @throws {@link SdkError} `REVIEW_REJECT_UNSUPPORTED`: the configured format keeps the translation

@@ -14,6 +14,7 @@ import {
   type Sniff,
   type ValidateMessage,
 } from "../shell.js";
+import { checkedParseOutcome, type ParsedEntries } from "./parse-outcome.js";
 
 /**
  * What a flat format's `parseEntries` returns when it has content to report as skipped. Returning a
@@ -87,13 +88,6 @@ export interface FlatFileAdapterOptions {
   readonly fs?: AdapterFs;
 }
 
-function normalizeParseOutcome(outcome: FlatParseOutcome): Required<FlatParseResult> {
-  if (outcome instanceof Map) {
-    return { entries: outcome, excludedLeafPaths: [] };
-  }
-  return { entries: outcome.entries, excludedLeafPaths: outcome.excludedLeafPaths ?? [] };
-}
-
 interface ParseRequest {
   readonly content: string;
   readonly namespace: string;
@@ -104,14 +98,16 @@ interface ParseRequest {
 async function toEntries(
   request: ParseRequest,
   fs: AdapterFs,
-  parseEntries: FlatFileAdapterOptions["parseEntries"],
-): Promise<Required<FlatParseResult>> {
+  options: Pick<FlatFileAdapterOptions, "format" | "parseEntries">,
+): Promise<ParsedEntries> {
   const { content, namespace, filePath, locale } = request;
+  let outcome: FlatParseOutcome;
   try {
-    return normalizeParseOutcome(await parseEntries(content, namespace, filePath, fs, locale));
+    outcome = await options.parseEntries(content, namespace, filePath, fs, locale);
   } catch (error) {
     rethrowStructured(error, "The file could not be parsed.");
   }
+  return checkedParseOutcome(options.format, outcome);
 }
 
 /**
@@ -167,7 +163,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
       const { entries, excludedLeafPaths } = await toEntries(
         { content, namespace, filePath, locale },
         fs,
-        parseEntries,
+        { format, parseEntries },
       );
       const resource: LocaleResource = { locale, namespace, format, entries };
       const invalidIcuKeys = computeIcu(entries, computeInvalidIcuKeys);

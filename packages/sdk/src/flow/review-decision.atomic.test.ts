@@ -248,7 +248,7 @@ describe("rejectEntry: a failure leaves every file as it was", () => {
       readFileBounded: async (path, max) => {
         if (path.endsWith(PROVENANCE_FILE_NAME)) {
           provenanceReads += 1;
-          if (provenanceReads === 2) {
+          if (provenanceReads === 3) {
             return { kind: "too-large" };
           }
         }

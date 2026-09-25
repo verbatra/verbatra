@@ -18,9 +18,10 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
-import { baselineFor, lockFilePath, readLockFile } from "../../lock/lock-file.js";
+import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { branchArmProblems } from "../integrity-gate.js";
+import { readCarriedOverLock } from "../locale-carry-over.js";
 import { readTargetResource } from "../read-target.js";
 import {
   createOutputPathGuard,
@@ -423,7 +424,7 @@ export async function exportWorkbook(
   );
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const lock = await readLockFile(lockFilePath(cwd), fs);
+  const lock = await readCarriedOverLock(cwd, fs, locales);
 
   const sheets = await Promise.all(
     locales.map(async (locale) => {

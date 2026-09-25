@@ -75,7 +75,7 @@ function lockCorruptingFs(path: string): LockCorruptingFs {
         return defaultFs.readFileBounded(target, maxBytes);
       }
       reads += 1;
-      return { kind: "ok", content: reads === 1 ? '{"version":1,"locales":{}}' : "{ not json" };
+      return { kind: "ok", content: reads <= 2 ? '{"version":1,"locales":{}}' : "{ not json" };
     },
     writeFile: async (target, data) => {
       if (target === path) {

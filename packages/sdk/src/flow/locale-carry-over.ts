@@ -3,6 +3,7 @@ import {
   cacheFilePath,
   memoryLocalesWithState,
   readTranslationMemory,
+  type TranslationMemoryRead,
   withMemoryLocalesMoved,
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
@@ -279,22 +280,48 @@ export interface CarriedOverState {
   readonly provenanceFor: LocaleProvenance | undefined;
 }
 
+export async function readCarriedOverLock(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<LockFile> {
+  const read = await readLockFile(lockFilePath(cwd), fs);
+  return withLockLocalesMoved(read, planLocaleMoves(targetLocales, lockLocalesWithState(read)));
+}
+
+export async function readCarriedOverProvenance(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<LocaleProvenance | undefined> {
+  const provenance = await readReportableProvenance(cwd, fs);
+  if (provenance === undefined) {
+    return undefined;
+  }
+  const moves = planLocaleMoves(targetLocales, provenanceLocalesWithState(provenance));
+  return provenanceOf(withProvenanceLocalesMoved(provenance, moves));
+}
+
+export async function readCarriedOverMemory(
+  cwd: string,
+  fs: SdkFs,
+  targetLocales: readonly string[],
+): Promise<TranslationMemoryRead> {
+  const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
+  if (!writable) {
+    return { memory, writable };
+  }
+  const moves = planLocaleMoves(targetLocales, memoryLocalesWithState(memory));
+  return { memory: withMemoryLocalesMoved(memory, moves), writable };
+}
+
 export async function readCarriedOverState(
   cwd: string,
   fs: SdkFs,
   targetLocales: readonly string[],
 ): Promise<CarriedOverState> {
-  const read = await readLockFile(lockFilePath(cwd), fs);
-  const lock = withLockLocalesMoved(
-    read,
-    planLocaleMoves(targetLocales, lockLocalesWithState(read)),
-  );
-  const provenance = await readReportableProvenance(cwd, fs);
-  if (provenance === undefined) {
-    return { lock, provenanceFor: undefined };
-  }
-  const moves = planLocaleMoves(targetLocales, provenanceLocalesWithState(provenance));
-  return { lock, provenanceFor: provenanceOf(withProvenanceLocalesMoved(provenance, moves)) };
+  const lock = await readCarriedOverLock(cwd, fs, targetLocales);
+  return { lock, provenanceFor: await readCarriedOverProvenance(cwd, fs, targetLocales) };
 }
 
 async function planLockAndProvenance(
@@ -384,6 +411,23 @@ export async function carryOverRespelledLocales(
   };
 }
 
+export async function carryOverBeforeWrite(
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+  lock: LocaleWriteLockOptions = {},
+): Promise<void> {
+  const plan = await carryOverRespelledLocales(cwd, fs, [locale], {
+    dryRun: false,
+    memory: true,
+    lock,
+  });
+  const refusal = carryOverRefusal(plan, locale, "write");
+  if (refusal !== undefined) {
+    throw refusal;
+  }
+}
+
 function carryOverNotice(carry: LocaleCarryOver, dryRun: boolean): SdkNotice {
   const moved = dryRun
     ? `would be moved to "${carry.to}" on a live run`
@@ -426,18 +470,24 @@ function carryOverSkippedNotice(skip: LocaleCarryOverSkip, dryRun: boolean): Sdk
   };
 }
 
+export type CarryOverRefusalMode = "dry-run" | "run" | "write";
+
+const REFUSAL_OUTCOMES: Readonly<Record<CarryOverRefusalMode, string>> = {
+  "dry-run": "A live run would not run it while that holds",
+  run: "It did not run, and the next run tries the move again",
+  write: "Nothing was written, and the next write or run tries the move again",
+};
+
 export function carryOverRefusal(
   plan: Pick<LocaleCarryOverPlan, "skipped">,
   locale: string,
-  dryRun: boolean,
+  mode: CarryOverRefusalMode,
 ): SdkError | undefined {
   const skip = plan.skipped.find((entry) => entry.to === locale && withholdsLocale(entry));
   if (skip === undefined) {
     return undefined;
   }
-  const outcome = dryRun
-    ? "A live run would not run it while that holds"
-    : "It did not run, and the next run tries the move again";
+  const outcome = REFUSAL_OUTCOMES[mode];
   return new SdkError(
     "LOCALE_STATE_NOT_CARRIED_OVER",
     `The state recorded under "${skip.from}" in ${skip.files.join(", ")} could not be moved to ` +

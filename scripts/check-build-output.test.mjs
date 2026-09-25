@@ -249,3 +249,10 @@ describe("findExportTypeMismatches", () => {
     }
   });
 });
+
+describe("published manifests", () => {
+  it.each(["sdk", "cli", "studio", "mcp"])("the %s package exports its own package.json", (dir) => {
+    const manifest = JSON.parse(readFileSync(`packages/${dir}/package.json`, "utf8"));
+    expect(manifest.exports["./package.json"]).toBe("./package.json");
+  });
+});
