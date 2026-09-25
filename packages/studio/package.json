@@ -27,7 +27,9 @@
   "bugs": {
     "url": "https://github.com/verbatra/verbatra/issues"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/app/zod-jitless.ts"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

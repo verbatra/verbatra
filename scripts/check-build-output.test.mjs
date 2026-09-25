@@ -6,6 +6,7 @@ import {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
+  hasZodJitlessConfig,
   staticImportPattern,
 } from "./check-build-output.mjs";
 
@@ -123,6 +124,24 @@ describe("findForbiddenSpecifiersInText", () => {
       "dist/index.d.ts:1: @verbatra/core",
       "dist/index.d.ts:2: @verbatra/ai-providers",
     ]);
+  });
+});
+
+describe("hasZodJitlessConfig", () => {
+  it.each([
+    "function mc(e,t){return ma(e,t)}We({jitless:!0});var hc=1",
+    "z.config({ jitless: true });",
+  ])("finds the jitless config call in %s", (text) => {
+    expect(hasZodJitlessConfig(text)).toBe(true);
+  });
+
+  it.each([
+    "if(e.jitless||typeof navigator<`u`)return!1",
+    "t.jitless!==!0?(s||=o(t.shape))",
+    "We({jitless:!1});",
+    "",
+  ])("finds no jitless config call in %s", (text) => {
+    expect(hasZodJitlessConfig(text)).toBe(false);
   });
 });
 
