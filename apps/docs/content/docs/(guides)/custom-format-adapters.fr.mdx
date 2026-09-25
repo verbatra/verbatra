@@ -57,6 +57,20 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
+Les deux callbacks reçoivent plus que le texte. `parseEntries(content, namespace, filePath, fs, locale)` reçoit aussi le chemin du fichier, le port `fs` et la locale sous laquelle le fichier est lu, pour un format dont l'unique fichier contient à la fois le texte source et le texte cible. `serializeEntries(entries, filePath, fs, context, locale)` reçoit le chemin de destination, le port, le contexte d'écriture de l'appelant, dont le `sourcePath` optionnel nomme le fichier de la locale source, et, à partir de 0.12.0, la locale écrite comme cinquième argument, pour un format qui inscrit sa locale dans le fichier :
+
+```ts
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace, _filePath, _fs, locale) =>
+    parseToml(content, namespace, locale),
+  serializeEntries: (entries, _filePath, _fs, _context, locale) =>
+    `# locale = "${locale}"\n${serializeToml(entries)}`,
+  extractPlaceholders: tokensIn,
+});
+```
+
 Utilise `createTreeFileAdapter` quand les entrées vivent sur des chemins à travers des objets imbriqués. Il prend `parse` et `serialize` sur un arbre plus un `deriveEntry` qui indique les placeholders de chaque feuille et s'il s'agit d'une forme plurielle.
 
 Les deux fabriques acceptent un `comparePlaceholders` optionnel, pour un format dont une liste plate de jetons perdrait la structure, et un `compareBranchArms` optionnel pour un format à branches plural et select : il reçoit la valeur source, la candidate et une consultation des catégories de pluriel CLDR de la langue cible, et renvoie un problème lisible par branche fautive, que la porte d'intégrité rapporte quand elle rejette la candidate. Si ton format marque du contenu comme non traduisible, signale-le plutôt que de le perdre : un `parseEntries` plat renvoie `{ entries, excludedLeafPaths }` au lieu d'une map nue, et un adaptateur d'arbre signale de lui-même ses feuilles non textuelles.
