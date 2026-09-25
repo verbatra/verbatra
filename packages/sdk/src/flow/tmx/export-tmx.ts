@@ -7,12 +7,12 @@ import {
   type TmxTranslation,
 } from "@verbatra/exchange";
 import { type FingerprintFor, fingerprintsFor } from "../../cache/fingerprint.js";
-import { cacheFilePath, readTranslationMemory } from "../../cache/translation-memory.js";
 import type { TranslationMemory } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
+import { readCarriedOverMemory } from "../locale-carry-over.js";
 import {
   createOutputPathGuard,
   namesNoFile,
@@ -242,7 +242,7 @@ export async function exportTmx(
     ...(input.glossaryPath !== undefined ? { glossaryPath: input.glossaryPath } : {}),
   });
   const path = await resolveOutputPath(fs, cwd, input.out, reserved);
-  const { memory } = await readTranslationMemory(cacheFilePath(cwd), fs);
+  const { memory } = await readCarriedOverMemory(cwd, fs, locales);
   const collected = collect(memory, fingerprintsFor(input.config), locales);
   const build: BuildTmxInput = {
     sourceLanguage: input.config.sourceLocale,

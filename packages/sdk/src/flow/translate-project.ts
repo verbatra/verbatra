@@ -472,7 +472,7 @@ function unlessWithheld(
   run: (targetLocale: string) => Promise<LocaleSummary>,
 ): (targetLocale: string) => Promise<LocaleSummary> {
   return async (targetLocale) => {
-    const refusal = carryOverRefusal(carryOver, targetLocale, dryRun);
+    const refusal = carryOverRefusal(carryOver, targetLocale, dryRun ? "dry-run" : "run");
     if (refusal !== undefined) {
       throw refusal;
     }

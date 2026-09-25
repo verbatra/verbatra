@@ -27,10 +27,20 @@ another process holds the lock-file guard, and treats a guard it cannot read as 
 unreadable guard as the reason rather than failing. When only the translation memory cannot be
 written, the locale still runs, since the memory is only a cache.
 
-Until a run moves it, `check`, `diff` and `lockState` read state still recorded under that one
-underscore spelling as the configured code's, without moving or writing anything, so `verbatra
-check` and `verbatra diff` exit 1, and the MCP `status.check`, `status.diff` and `lock.state` tools
-and Studio report the keys a run would retranslate, including their recorded origins.
+Until a run moves it, every read-only report reads state still recorded under that one underscore
+spelling as the configured code's, without moving or writing anything: `check`, `diff`,
+`lockState`, `keyIntegrity`, `keyValue`, `localeValues`, `reviewQueue`, `exportWorkbook` and
+`exportTmx`. So `verbatra check` and `verbatra diff` exit 1, `verbatra export` hands off the stale
+keys, and the MCP tools and Studio report the keys a run would retranslate, including their
+recorded origins and review decisions. `importTmx` matches against the remembered translations
+the same way.
+
+The writes that record state for one locale move it first, the same way and under the same
+guard: `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry` and `importWorkbook` (a
+dry-run import reads the moved baseline and writes nothing). When the move cannot be made, the
+single-key writes fail with `LOCALE_STATE_NOT_CARRIED_OVER` and write nothing, and an import fails
+that locale with it, so no decision or value is recorded under the new code while the old records
+stay unapplied.
 
 `doctor` gains an informational `locale-state` check that names every locale the lock file,
 translation memory or provenance file holds state for that the config does not list, says whether

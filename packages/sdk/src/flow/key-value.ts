@@ -2,9 +2,10 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import { type KeyProvenance, keyProvenance, readLocaleProvenance } from "../lock/key-provenance.js";
+import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
+import { readCarriedOverProvenance } from "./locale-carry-over.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
 
@@ -108,7 +109,7 @@ export async function keyValue(
   if (targetEntry === undefined) {
     return context;
   }
-  const records = (await readLocaleProvenance(cwd, fs))?.(locale);
+  const records = (await readCarriedOverProvenance(cwd, fs, [locale]))?.(locale);
   return {
     ...context,
     target: targetEntry.value,

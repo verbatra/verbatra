@@ -21,6 +21,7 @@ import { createLocalePathResolver, type LocalePathResolver } from "../../locale-
 import { carrySourcelessLockEntry } from "../../lock/carry-forward.js";
 import {
   assertLockAcquireTimeout,
+  type LocaleWriteLockOptions,
   type LockWaitListener,
   recordLockOptions,
   withLocaleWriteLock,
@@ -32,6 +33,7 @@ import {
   lockFilePath,
   readLockFile,
   updateLockFileLocale,
+  withLockLocalesMoved,
 } from "../../lock/lock-file.js";
 import {
   type PendingProvenance,
@@ -45,6 +47,12 @@ import {
 } from "../../lock/provenance-notice.js";
 import type { LockFile } from "../../lock/types.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
+import {
+  carryOverRefusal,
+  carryOverRespelledLocales,
+  type LocaleCarryOverPlan,
+  withCarryOverNotices,
+} from "../locale-carry-over.js";
 import { failureSummary, isWholeRunError, partition } from "../locale-failure.js";
 import { readTargetResource } from "../read-target.js";
 import { readSourceResource } from "../source.js";
@@ -451,6 +459,45 @@ async function runSheet(
   };
 }
 
+interface SheetImport {
+  readonly ctx: SheetContext;
+  readonly lock: LockFile;
+  readonly carryOver: LocaleCarryOverPlan;
+  readonly lockOptions: LocaleWriteLockOptions;
+  readonly recordOptions: LocaleWriteLockOptions;
+  readonly cacheAdditions: Map<string, Record<string, CacheAddition>>;
+}
+
+async function importSheet(run: SheetImport, sheet: WorkbookSheet): Promise<LocaleSummary> {
+  const { ctx } = run;
+  const refusal = carryOverRefusal(run.carryOver, sheet.locale, ctx.dryRun ? "dry-run" : "run");
+  if (refusal !== undefined) {
+    throw refusal;
+  }
+  if (ctx.dryRun) {
+    return (await runSheet(ctx, sheet, run.lock)).summary;
+  }
+  return withLocaleWriteLock(
+    ctx.cwd,
+    writeLockKeyFor(ctx.config.format, sheet.locale),
+    ctx.fs,
+    async () => {
+      const result = await runSheet(ctx, sheet, run.lock);
+      const update = await updateLockFileLocale(
+        ctx.cwd,
+        ctx.fs,
+        sheet.locale,
+        { mode: "replace", entries: result.lockEntries },
+        result.provenance,
+        run.recordOptions,
+      );
+      collectSheetAdditions(run.cacheAdditions, sheet.locale, result.cacheAdditions);
+      return withProvenanceWriteNotice(result.summary, update.provenance);
+    },
+    run.lockOptions,
+  );
+}
+
 /**
  * Reads a filled translator handoff back into the locale files. It is the inbound half of the
  * exchange that {@link exportWorkbook} starts, and it calls no provider: every value comes from the
@@ -524,7 +571,16 @@ export async function importWorkbook(
     format,
   );
 
-  const lock = await readLockFile(lockFilePath(cwd), fs);
+  const lockOptions = writeLockOptions(input);
+  const carryOver = await carryOverRespelledLocales(
+    cwd,
+    fs,
+    data.sheets
+      .map((sheet) => sheet.locale)
+      .filter((locale) => config.targetLocales.includes(locale)),
+    { dryRun, memory: true, lock: lockOptions },
+  );
+  const lock = withLockLocalesMoved(await readLockFile(lockFilePath(cwd), fs), carryOver.lock);
   const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
 
   const ctx: SheetContext = {
@@ -541,36 +597,15 @@ export async function importWorkbook(
     format,
   };
 
-  const lockOptions = writeLockOptions(input);
   const recordOptions = recordLockOptions(input);
   const summaries: LocaleSummary[] = [];
   const cacheAdditions = new Map<string, Record<string, CacheAddition>>();
   for (const sheet of data.sheets) {
     try {
-      let summary: LocaleSummary;
-      if (dryRun) {
-        summary = (await runSheet(ctx, sheet, lock)).summary;
-      } else {
-        summary = await withLocaleWriteLock(
-          cwd,
-          writeLockKeyFor(config.format, sheet.locale),
-          fs,
-          async () => {
-            const result = await runSheet(ctx, sheet, lock);
-            const update = await updateLockFileLocale(
-              cwd,
-              fs,
-              sheet.locale,
-              { mode: "replace", entries: result.lockEntries },
-              result.provenance,
-              recordOptions,
-            );
-            collectSheetAdditions(cacheAdditions, sheet.locale, result.cacheAdditions);
-            return withProvenanceWriteNotice(result.summary, update.provenance);
-          },
-          lockOptions,
-        );
-      }
+      const summary = await importSheet(
+        { ctx, lock, carryOver, lockOptions, recordOptions, cacheAdditions },
+        sheet,
+      );
       summaries.push(summary);
     } catch (error) {
       if (isWholeRunError(error)) {
@@ -586,7 +621,11 @@ export async function importWorkbook(
     await feedTranslationMemory(cwd, fs, fingerprintsFor(config), cacheAdditions);
   }
 
-  const locales = withNewerProvenanceNotice(summaries, newerProvenance);
+  const locales = withCarryOverNotices(
+    withNewerProvenanceNotice(summaries, newerProvenance),
+    carryOver,
+    dryRun,
+  );
   const { succeeded, partial, failed } = partition(locales);
   return { dryRun, locales, succeeded, partial, failed };
 }

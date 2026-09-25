@@ -379,7 +379,7 @@ describe("carryOverRefusal: withholding a locale whose state stayed behind", () 
   });
 
   it("refuses the locale when the lock file or the provenance file stayed behind", () => {
-    const refusal = carryOverRefusal(skip(["verbatra.lock.json"]), "pt-BR", false);
+    const refusal = carryOverRefusal(skip(["verbatra.lock.json"]), "pt-BR", "run");
 
     expect(refusal).toMatchObject({ code: "LOCALE_STATE_NOT_CARRIED_OVER" });
     expect(refusal?.message).toBe(
@@ -391,17 +391,17 @@ describe("carryOverRefusal: withholding a locale whose state stayed behind", () 
   });
 
   it("says what a live run would do on a dry run", () => {
-    expect(carryOverRefusal(skip(["verbatra.lock.json"]), "pt-BR", true)?.message).toContain(
+    expect(carryOverRefusal(skip(["verbatra.lock.json"]), "pt-BR", "dry-run")?.message).toContain(
       "EROFS. A live run would not run it while that holds",
     );
   });
 
   it("lets the locale run when only the translation memory stayed behind", () => {
-    expect(carryOverRefusal(skip(["verbatra.cache.json"]), "pt-BR", false)).toBeUndefined();
+    expect(carryOverRefusal(skip(["verbatra.cache.json"]), "pt-BR", "run")).toBeUndefined();
   });
 
   it("lets every other locale run", () => {
-    expect(carryOverRefusal(skip(["verbatra.lock.json"]), "de", false)).toBeUndefined();
+    expect(carryOverRefusal(skip(["verbatra.lock.json"]), "de", "run")).toBeUndefined();
   });
 });
 

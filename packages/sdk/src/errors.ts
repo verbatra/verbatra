@@ -213,8 +213,10 @@
  *   its directory is not writable, a directory or file already sits in the way, or the disk is out
  *   of space. The message names the file relative to `cwd` and the underlying file-system code, and
  *   the file-system error is the `cause`.
- * - `LOCALE_STATE_NOT_CARRIED_OVER`: never thrown. It is recorded on the failed
- *   {@link LocaleSummary} of a locale {@link translate} or {@link watch} did not run because the
+ * - `LOCALE_STATE_NOT_CARRIED_OVER`: thrown by {@link editEntry}, {@link retranslateEntry},
+ *   {@link approveEntry} and {@link rejectEntry}, which then write nothing, and otherwise recorded
+ *   on the failed {@link LocaleSummary} of a locale {@link translate}, {@link watch} or
+ *   {@link importWorkbook} did not run because the
  *   state recorded under a respelled code of it, such as `pt_BR` for `pt-BR`, could not be moved
  *   to it in the lock file or the provenance file: another process held the lock-file guard past
  *   `lockAcquireTimeoutMs`, the guard could not be read or created, or a file could not be

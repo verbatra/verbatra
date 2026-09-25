@@ -57,7 +57,8 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./config-schema.json": "./dist/config-schema.json"
+    "./config-schema.json": "./dist/config-schema.json",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
