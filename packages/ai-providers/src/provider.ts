@@ -274,10 +274,8 @@ export interface TranslateResult {
 /**
  * The single contract every provider implements. It is narrow enough that a machine-translation API like
  * DeepL fits it directly, while LLM providers implement it by delegating to the shared
- * `runLlmTranslation` layer. A new provider attaches by implementing this, then adding an entry to the
- * `providerFactories` table in `packages/sdk/src/config/provider-config.ts` alongside its member of the
- * provider config union. That table is a mapped type over the union's id set, so a provider present in
- * one but not the other fails to compile.
+ * `runLlmTranslation` layer. To use your own implementation, return it from the `createProvider`
+ * dependency that `translate`, `watch` and `retranslateEntry` accept.
  *
  * Implementer invariants:
  * - Translatable strings are UNTRUSTED. They travel only as data to the provider; never splice them into
