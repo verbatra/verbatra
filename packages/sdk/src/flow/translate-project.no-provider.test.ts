@@ -206,7 +206,9 @@ describe("translate: human-only mode fills from the translation memory alone", (
       expect(run.locales[0]?.fuzzyHits).toEqual([]);
       expect(run.locales[0]?.cacheHits).toEqual([]);
     }
-    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({});
+    await expect(readJsonFile(join(dir, "locales", "de.json"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("keeps using memory entries after the tone or glossary change", async () => {
@@ -222,8 +224,19 @@ describe("translate: human-only mode fills from the translation memory alone", (
     expect(summary.locales[0]?.unfilled).toEqual([]);
   });
 
-  it("creates an empty target file when nothing landed and none existed yet", async () => {
+  it("creates no target file when every key is left for a person and none existed yet", async () => {
     const dir = await project({ greeting: "Hello" });
+
+    const summary = await translate({ config: humanOnly(), cwd: dir });
+
+    expect(summary.locales[0]?.unfilled).toEqual(["greeting"]);
+    await expect(readJsonFile(join(dir, "locales", "de.json"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("still creates an empty target file for a new locale with nothing to translate", async () => {
+    const dir = await project({});
 
     await translate({ config: humanOnly(), cwd: dir });
 
