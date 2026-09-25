@@ -161,8 +161,71 @@ describe("runInit: interactive answers are checked as they are given", () => {
     const code = await runInit({ cwd: dir }, cap.streams, deps);
 
     expect(code).toBe(2);
-    expect(deps.asked()).toBeGreaterThanOrEqual(3);
+    expect(deps.asked()).toBe(3);
     expect(cap.err()).toContain('[INVALID_PROVIDER] Unknown provider "never"');
+    expect(cap.err()).toContain('Stopped asking for "Provider');
+  });
+
+  it.each([
+    [
+      "the format",
+      ["anthropic", "x", "y", "z"],
+      "INVALID_FORMAT",
+      "Locale file format (",
+      "--format <id>",
+    ],
+    [
+      "the source locale",
+      ["anthropic", "", "a b", "c d", "e f"],
+      "INVALID_LOCALE",
+      'Source locale"',
+      "--source <locale>",
+    ],
+    [
+      "the target locales",
+      ["anthropic", "", "en", "en", "en", "de,en"],
+      "INVALID_LOCALES",
+      'Target locales (comma-separated)"',
+      "--targets <locales>",
+    ],
+    [
+      "the file pattern",
+      ["anthropic", "", "en", "de", "a.json", "b.json", "c.json"],
+      "INVALID_OPTION",
+      'Locale file pattern"',
+      "--path <pattern>",
+    ],
+    [
+      "the base URL",
+      ["openai-compatible", "not a url", "also not", "http://u:p@localhost/v1"],
+      "INVALID_OPTION",
+      'Base URL of the OpenAI-compatible server"',
+      "--base-url <url>",
+    ],
+  ])(
+    "stops on the third invalid answer for %s with its code and names the field",
+    async (_label, answers, errorCode, fieldLabel, flag) => {
+      const cap = captureStreams();
+      const deps = queuedAsk(answers);
+
+      const code = await runInit({ cwd: dir }, cap.streams, deps);
+
+      expect(code).toBe(2);
+      expect(deps.asked()).toBe(answers.length);
+      expect(cap.err()).toContain(`[${errorCode}]`);
+      expect(cap.err()).toContain(`Stopped asking for "${fieldLabel}`);
+      expect(cap.err()).toContain(`after 3 invalid answers; pass ${flag} instead.`);
+      expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
+    },
+  );
+
+  it("asks none of the remaining questions once an answer is refused", async () => {
+    const cap = captureStreams();
+    const deps = queuedAsk(["nope", "still-nope", "never", "anthropic", "", "en", "de", ""]);
+
+    await runInit({ cwd: dir }, cap.streams, deps);
+
+    expect(deps.asked()).toBe(3);
   });
 });
 

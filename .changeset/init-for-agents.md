@@ -37,7 +37,8 @@ Now:
 - At a terminal, each answer is checked as it is given. An unknown provider or format, a malformed
   locale code, a target list naming the source locale or no locale, a pattern without `{locale}`,
   or a base URL that is not a URL or carries credentials is explained on stderr and asked again,
-  up to three times, so the answers already given are kept.
+  up to three times, so the answers already given are kept. A third invalid answer stops `init`
+  with that answer's code, naming the question and the flag to pass instead, and writes nothing.
 - `--cwd` naming no existing directory fails with `INVALID_OPTION`, and a directory `init` cannot
   write to fails with the new `INIT_UNWRITABLE` code naming the file and the files already
   written, instead of a bare `ENOENT` or `EACCES`.
