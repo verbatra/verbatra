@@ -1,4 +1,4 @@
-import { SdkError } from "@verbatra/sdk";
+import { AdapterError, ProviderError, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { makeContext } from "../test-support.js";
@@ -249,6 +249,30 @@ describe("defineTool", () => {
 
     const outcome = await tool.execute({ name: "Ada" }, makeContext());
     expect(outcome).toEqual({ kind: "error", message: "UNKNOWN_KEY: no such key" });
+  });
+
+  it.each([
+    ["a ProviderError", new ProviderError("RATE_LIMITED", "slow down")],
+    ["an AdapterError", new AdapterError("INVALID_STRUCTURE", "bad file")],
+  ])("leads the message of %s with its code, like an SdkError", async (_label, error) => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+      handler: async () => {
+        throw error;
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+    expect(outcome).toEqual({ kind: "error", message: `${error.code}: ${error.message}` });
   });
 
   it("maps a thrown plain Error to an error outcome carrying its message", async () => {

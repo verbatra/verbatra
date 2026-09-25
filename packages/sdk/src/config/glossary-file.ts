@@ -2,7 +2,12 @@ import { SdkError } from "../errors.js";
 import { selectLocales } from "../flow/select-locales.js";
 import { unwritableFileMessage } from "../flow/write-target.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import { glossaryGuardPath, withGlossaryGuard } from "../lock/locale-write-lock.js";
+import {
+  assertLockAcquireTimeout,
+  glossaryGuardPath,
+  withGlossaryGuard,
+  writeLockOptions,
+} from "../lock/locale-write-lock.js";
 import { assertLocksHeld } from "../lock/lock-ownership.js";
 import {
   describeGlossaryIssues,
@@ -228,6 +233,11 @@ export interface UpdateGlossaryTermInput extends GlossaryFileInput {
    * them. Cannot be combined with any field but `caseSensitive`.
    */
   readonly doNotTranslate?: boolean;
+  /**
+   * How long, in milliseconds, to wait for the project's glossary write lock before failing with
+   * `LOCK_CONTENDED`. Defaults to ten minutes.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
 
 /** Injectable dependencies for {@link readGlossaryFile} and {@link updateGlossaryTerm}. */
@@ -297,6 +307,8 @@ export async function readGlossaryFile(
  * an invalid glossary, such as a new term with no translation or a term kept untranslated that is
  * also a glossary term; the glossary file on disk cannot be read as a glossary; or the updated
  * glossary would exceed the maximum glossary file size.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the project's glossary write lock could not be acquired
  * before the timeout elapsed.
  * @throws {@link SdkError} `GLOSSARY_UNWRITABLE`: the glossary file could not be written, or the
@@ -324,7 +336,8 @@ export async function updateGlossaryTerm(
   deps: GlossaryFileDeps = {},
 ): Promise<Glossary> {
   const path = glossaryFilePath(input.glossary);
-  const { glossary: _provenance, cwd: inputCwd, ...edit } = input;
+  const { glossary: _provenance, cwd: inputCwd, lockAcquireTimeoutMs, ...edit } = input;
+  assertLockAcquireTimeout(lockAcquireTimeoutMs);
   assertValidEdit(edit);
   const fs = deps.fs ?? defaultFs;
   const cwd = inputCwd ?? process.cwd();
@@ -332,15 +345,20 @@ export async function updateGlossaryTerm(
   let locked = false;
   let editFailure: { readonly error: unknown } | undefined;
   try {
-    return await withGlossaryGuard(cwd, fs, async () => {
-      locked = true;
-      try {
-        return await applyGlossaryEdit(path, edit, fs);
-      } catch (error) {
-        editFailure = { error };
-        throw error;
-      }
-    });
+    return await withGlossaryGuard(
+      cwd,
+      fs,
+      async () => {
+        locked = true;
+        try {
+          return await applyGlossaryEdit(path, edit, fs);
+        } catch (error) {
+          editFailure = { error };
+          throw error;
+        }
+      },
+      writeLockOptions({ ...(lockAcquireTimeoutMs !== undefined ? { lockAcquireTimeoutMs } : {}) }),
+    );
   } catch (error) {
     throw glossaryGuardFailure(error, editFailure, locked, cwd);
   }

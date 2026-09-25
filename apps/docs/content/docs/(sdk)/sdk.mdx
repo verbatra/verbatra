@@ -536,7 +536,7 @@ integrity gate as a provider translation before anything reaches disk; on accept
 locale file and the lock entry for that key are updated inside the locale's write lock. Never
 calls a provider.
 
-Input: `{ config, cwd?, locale, key, value, actor? }`. Returns a two-armed result:
+Input: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Returns a two-armed result:
 `{ accepted: true, value }`, or
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` with
 nothing written. `"empty"` covers an empty or whitespace-only value for a source that has text: an
@@ -556,6 +556,10 @@ is written without a record.
 <AvailableFrom version="0.12.0" />
 
 With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINNED` before anything is read or written. A person's edit of a pinned key is accepted.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` bounds the wait for the locale's write lock before the call fails with `LOCK_CONTENDED` (ten minutes by default), `onLockWait` reports that wait, and an invalid bound fails with `LOCK_TIMEOUT_INVALID` before anything is read.
 
 ### retranslateEntry
 
@@ -951,6 +955,10 @@ leave an invalid glossary, and an edit whose result would exceed the 1 MiB gloss
 refused with `CONFIG_INVALID`; a failed write, including a glossary write lock that cannot be created in a read-only project or cannot be released after a saved edit, is `GLOSSARY_UNWRITABLE`, with the file-system error as its `cause`. An edit that leaves the
 glossary as it already is succeeds and writes nothing.
 
+<AvailableFrom version="0.12.0" />
+
+It also takes `lockAcquireTimeoutMs`, which bounds the wait for the glossary lock before the call fails with `LOCK_CONTENDED` (ten minutes by default); an invalid bound fails with `LOCK_TIMEOUT_INVALID` before anything is read.
+
 ### glossaryForLocale
 
 <AvailableFrom version="0.12.0" />
@@ -1006,9 +1014,10 @@ named `__proto__` stays an own key.
 
 <AvailableFrom version="0.12.0" />
 
-Passes every translation, forbidden rendering, note, and part of speech of a normalized `Glossary`
-through `redact`, and returns `{ glossary, redactedTerms }`, where `redactedTerms` names each term
-that had a value replaced. Source terms and do-not-translate terms are left as they are. The MCP
+Passes every source term, translation, forbidden rendering, note, part of speech, and
+do-not-translate term of a normalized `Glossary` through `redact`, and returns `{ glossary, redactedTerms }`, where `redactedTerms` names each term
+that had a value replaced, a redacted source term itself as `[REDACTED]`, so the list never
+repeats a secret. The MCP
 server and Studio use it before a glossary leaves the process; use it the same way in your own
 tool.
 

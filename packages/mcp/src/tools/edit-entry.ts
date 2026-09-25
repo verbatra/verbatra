@@ -3,11 +3,17 @@ import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
+import {
+  LOCK_TIMEOUT_DESCRIPTION,
+  lockAcquireTimeoutMs,
+  lockTimeoutMsSchema,
+} from "./lock-timeout.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
   key: z.string().min(1),
   value: z.string().max(20_000),
+  lockTimeoutMs: lockTimeoutMsSchema,
 });
 
 const editEntryResultSchema = z.object({
@@ -31,6 +37,7 @@ async function editKeyEntry(
       key: params.key,
       value: params.value,
       actor: "agent",
+      lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
     },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),
@@ -57,7 +64,9 @@ export const editEntryTool = defineTool({
     "its lock entry at once, with no undo, and is recorded with origin agent in " +
     "verbatra.provenance.json, so a key the last run flagged stays in review.queue. A key " +
     "matching the config's pinnedKeys is refused with KEY_PINNED: it is reserved for a " +
-    "person. Always listed: it needs no spend capability.",
+    "person. " +
+    LOCK_TIMEOUT_DESCRIPTION +
+    "Always listed: it needs no spend capability.",
   paramsSchema,
   outputSchema: editEntryResultSchema,
   annotations: {

@@ -1,5 +1,5 @@
 import { sep } from "node:path";
-import { SdkError } from "@verbatra/sdk";
+import { AdapterError, ProviderError, SdkError } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
@@ -76,7 +76,11 @@ function formatOutputMismatch(
 }
 
 function rawErrorMessage(error: unknown): string {
-  if (error instanceof SdkError) {
+  if (
+    error instanceof SdkError ||
+    error instanceof ProviderError ||
+    error instanceof AdapterError
+  ) {
     return `${error.code}: ${error.message}`;
   }
   if (error instanceof Error) {

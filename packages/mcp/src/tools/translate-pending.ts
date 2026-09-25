@@ -2,11 +2,13 @@ import { assertMachineTranslationEnabled, translate } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
+import { lockAcquireTimeoutMs, lockTimeoutMsSchema } from "./lock-timeout.js";
 import { runSummarySchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
   maxTokens: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+  lockTimeoutMs: lockTimeoutMsSchema,
 });
 
 type TranslatePendingResult = z.infer<typeof runSummarySchema>;
@@ -22,6 +24,7 @@ async function translatePending(
       cwd: context.cwd,
       ...(params.locales !== undefined ? { locales: params.locales } : {}),
       ...(params.maxTokens !== undefined ? { maxTokens: params.maxTokens } : {}),
+      lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
     },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),
@@ -59,7 +62,10 @@ export const translatePendingTool = defineTool({
     "with the reason (placeholder, markup, icu, degenerate, or empty) and, when one part is at " +
     "fault, details such as the dropped placeholder or the ICU arm that does not fit the " +
     "target language. Check failed and partial before treating the run as clean, then read " +
-    "review.queue for what needs a person. Cost: calls a translation provider and bills your " +
+    "review.queue for what needs a person. The optional lockTimeoutMs parameter, 0 to 600000 " +
+    "milliseconds and 30000 by default, bounds how long each locale waits for a write lock " +
+    "another process holds; a locale that times out fails with LOCK_CONTENDED on its own " +
+    "summary before any provider call, and the other locales still run. Cost: calls a translation provider and bills your " +
     "API usage, within the config's token budget and the maxTokens parameter when either is " +
     "set. Only listed when the server was started with spending allowed and a translation " +
     "provider is configured.",

@@ -6,7 +6,13 @@ import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { withLocaleWriteLock, writeLockKeyFor } from "../lock/locale-write-lock.js";
+import {
+  assertLockAcquireTimeout,
+  type LockWaitListener,
+  withLocaleWriteLock,
+  writeLockKeyFor,
+  writeLockOptions,
+} from "../lock/locale-write-lock.js";
 import { updateLockFileLocale } from "../lock/lock-file.js";
 import { settleProvenance } from "../lock/provenance-file.js";
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
@@ -37,6 +43,17 @@ export interface EditEntryInput {
    * it; nothing verifies it.
    */
   readonly actor?: EditEntryActor;
+  /**
+   * Called while waiting on another process's write lock for the locale, so a caller can explain a
+   * stall instead of appearing to hang. Never called for a lock this process holds itself.
+   */
+  readonly onLockWait?: LockWaitListener;
+  /**
+   * How long, in milliseconds, to wait for the locale's write lock before failing with
+   * `LOCK_CONTENDED`. Defaults to ten minutes. It does not bound the lock-file guard taken to
+   * record the written value, which always allows the ten-minute default.
+   */
+  readonly lockAcquireTimeoutMs?: number;
 }
 
 /** Who wrote a value passed to {@link editEntry}. */
@@ -132,6 +149,8 @@ export type EditEntryResult =
  * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
  * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
  * written.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
@@ -147,6 +166,7 @@ export async function editEntry(
   deps: EditEntryDeps = {},
 ): Promise<EditEntryResult> {
   const config = input.config;
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
@@ -170,61 +190,67 @@ export async function editEntry(
     assertNotPinned(protectionPolicy(config), input.key);
   }
   await assertProvenanceReadable(cwd, fs);
-  await carryOverBeforeWrite(cwd, fs, locale);
+  await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 
-  return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
-    const target = await readTarget(cwd, config, adapter, fs, locale);
+  return withLocaleWriteLock(
+    cwd,
+    writeLockKeyFor(config.format, locale),
+    fs,
+    async () => {
+      const target = await readTarget(cwd, config, adapter, fs, locale);
 
-    const gate = gateCandidateValue(sourceEntry, input.value, adapter, locale);
-    if (!gate.accepted) {
-      return {
-        accepted: false,
-        reason: gate.reason,
-        ...(gate.details !== undefined ? { details: gate.details } : {}),
-        value: input.value,
-      };
-    }
+      const gate = gateCandidateValue(sourceEntry, input.value, adapter, locale);
+      if (!gate.accepted) {
+        return {
+          accepted: false,
+          reason: gate.reason,
+          ...(gate.details !== undefined ? { details: gate.details } : {}),
+          value: input.value,
+        };
+      }
 
-    const merged = new Map(target.entries);
-    merged.set(input.key, { ...sourceEntry, value: input.value, namespace: target.namespace });
-    const resolver = createLocalePathResolver(cwd, config);
-    await writeTargetResource(
-      adapter,
-      { locale, namespace: target.namespace, format: config.format, entries: merged },
-      resolver.pathFor(locale),
-      cwd,
-      { sourcePath: resolver.pathFor(config.sourceLocale) },
-    );
+      const merged = new Map(target.entries);
+      merged.set(input.key, { ...sourceEntry, value: input.value, namespace: target.namespace });
+      const resolver = createLocalePathResolver(cwd, config);
+      await writeTargetResource(
+        adapter,
+        { locale, namespace: target.namespace, format: config.format, entries: merged },
+        resolver.pathFor(locale),
+        cwd,
+        { sourcePath: resolver.pathFor(config.sourceLocale) },
+      );
 
-    await updateLockFileLocale(
-      cwd,
-      fs,
-      locale,
-      { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
-      settleProvenance(
-        new Map([[input.key, { origin: input.actor ?? "human", value: input.value }]]),
-        await readTarget(cwd, config, adapter, fs, locale),
-      ),
-    );
+      await updateLockFileLocale(
+        cwd,
+        fs,
+        locale,
+        { mode: "merge", entries: { [input.key]: contentHash(sourceEntry) } },
+        settleProvenance(
+          new Map([[input.key, { origin: input.actor ?? "human", value: input.value }]]),
+          await readTarget(cwd, config, adapter, fs, locale),
+        ),
+      );
 
-    await feedTranslationMemory(
-      cwd,
-      fs,
-      fingerprintsFor(config),
-      new Map([
-        [
-          locale,
-          {
-            [contentHash(sourceEntry)]: {
-              contentHash: contentHash(sourceEntry),
-              value: input.value,
-              source: sourceEntry.value,
+      await feedTranslationMemory(
+        cwd,
+        fs,
+        fingerprintsFor(config),
+        new Map([
+          [
+            locale,
+            {
+              [contentHash(sourceEntry)]: {
+                contentHash: contentHash(sourceEntry),
+                value: input.value,
+                source: sourceEntry.value,
+              },
             },
-          },
-        ],
-      ]),
-    );
+          ],
+        ]),
+      );
 
-    return { accepted: true, value: input.value };
-  });
+      return { accepted: true, value: input.value };
+    },
+    writeLockOptions(input),
+  );
 }
