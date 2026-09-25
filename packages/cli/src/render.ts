@@ -372,15 +372,15 @@ function renderProtectedCount(count: number | undefined): string {
   return count === undefined || count === 0 ? "" : ` (${count} protected)`;
 }
 
-function outOfSyncAdvice(summary: CheckSummary): string {
+function outOfSyncLine(summary: CheckSummary): string {
   const everyStaleKeyProtected =
     summary.locales.some((locale) => locale.stale > 0) &&
     summary.locales.every(
       (locale) => locale.missing === 0 && locale.stale === (locale.protected ?? 0),
     );
   return everyStaleKeyProtected
-    ? "every stale key is protected from machine writes: review or edit it in verbatra studio"
-    : "run verbatra translate to update";
+    ? "out of sync (every stale key is protected from machine writes: review or edit it in verbatra studio)"
+    : "out of sync (run verbatra translate to update)";
 }
 
 export function renderCheckHuman(summary: CheckSummary): string {
@@ -390,9 +390,7 @@ export function renderCheckHuman(summary: CheckSummary): string {
         l.inSync ? "in sync" : "out of sync"
       })`,
   );
-  const overall = summary.inSync
-    ? "all locales in sync"
-    : `out of sync (${outOfSyncAdvice(summary)})`;
+  const overall = summary.inSync ? "all locales in sync" : outOfSyncLine(summary);
   return [
     "verbatra check",
     ...localeLines,
