@@ -1,3 +1,4 @@
+import "./zod-jitless.js";
 import { createRoot } from "react-dom/client";
 import { rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { type ModelContext, registerAgentTools } from "../webmcp/register-tools.js";
