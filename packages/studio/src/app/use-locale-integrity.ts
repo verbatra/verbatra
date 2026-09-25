@@ -4,10 +4,16 @@ import type { RefreshableView } from "../client/state.js";
 import { applyRefreshOutcome } from "../client/state.js";
 import { rpcClient } from "./api.js";
 
-export function useLocaleIntegrity(refreshToken?: unknown): RefreshableView<LocaleIntegrityData> {
+export function useLocaleIntegrity(
+  refreshToken?: unknown,
+  enabled = true,
+): RefreshableView<LocaleIntegrityData> {
   const [view, setView] = useState<RefreshableView<LocaleIntegrityData>>({ kind: "loading" });
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     let cancelled = false;
     void rpcClient.call("locale.integrity", {}).then((response) => {
       if (cancelled) {
@@ -25,7 +31,7 @@ export function useLocaleIntegrity(refreshToken?: unknown): RefreshableView<Loca
     return () => {
       cancelled = true;
     };
-  }, [refreshToken]);
+  }, [refreshToken, enabled]);
 
   return view;
 }

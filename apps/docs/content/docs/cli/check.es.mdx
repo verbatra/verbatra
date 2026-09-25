@@ -73,7 +73,7 @@ verbatra check --qa --strict
 
 <AvailableFrom version="0.12.0" />
 
-Una clave obsoleta cuyo valor escribió, importó o cambió una persona fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` dejaría para una persona (consulta [Proteger traducciones humanas](/docs/protecting-human-translations)). `check` la sigue contando como ausente u obsoleta y muestra la parte protegida entre paréntesis, por ejemplo `2 stale (1 protected)`. `--json` lleva el número como `protected` en cada locale; si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo cuentan las claves fijadas.
+Una clave obsoleta cuyo valor escribió, importó o cambió una persona fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` dejaría para una persona (consulta [Proteger traducciones humanas](/docs/protecting-human-translations)). `check` la sigue contando como ausente u obsoleta y muestra la parte protegida de las obsoletas entre paréntesis, por ejemplo `2 stale (1 protected)`; una clave fijada que falta aún no tiene un valor que proteger y cuenta solo como ausente. `--json` lleva el número como `protected` en cada locale; si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo cuentan las claves fijadas.
 
 ## Control de calidad
 

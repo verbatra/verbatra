@@ -7,8 +7,15 @@ export {
   type LocaleGlossaryTerm,
   ProviderError,
   type ProviderErrorCode,
+  type ProviderKind,
+  type ProviderNetwork,
+  type ProviderRetry,
+  type ProviderRetryListener,
   REVIEW_REASON_CODES,
   type ReviewReasonCode,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
 } from "@verbatra/ai-providers";
 export {
   type CustomFormatId,

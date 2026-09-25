@@ -60,7 +60,7 @@ export async function guardProviderCall<T>(
   try {
     return await call();
   } catch (error) {
-    if (isAbortError(error, signal)) {
+    if (error instanceof ProviderError || isAbortError(error, signal)) {
       throw error;
     }
     const violation = findNetworkPolicyViolation(error);

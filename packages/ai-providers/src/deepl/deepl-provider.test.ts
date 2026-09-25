@@ -28,6 +28,14 @@ function deeplEchoStubClient(): { client: DeepLTranslateClient; calls: DeepLCall
   return { client, calls };
 }
 
+class ConnectionError extends Error {
+  readonly error: { readonly code: string };
+  constructor(error: { readonly code: string }) {
+    super("Connection failure");
+    this.error = error;
+  }
+}
+
 const config = {};
 
 function request(overrides: Partial<TranslateRequest> = {}): TranslateRequest {
@@ -430,44 +438,32 @@ describe("createDeepLProvider: cancellation (best-effort, preflight only)", () =
     expect(result.values.get("k")).toBe("Frei");
   });
 
-  it("bounds a hung request with a retriable TIMEOUT ProviderError even though deepl-node cannot be cancelled", async () => {
-    vi.useFakeTimers();
-    try {
-      const translateText = vi.fn(() => new Promise<never>(() => {}));
-      const client: DeepLTranslateClient = { translateText };
-      const provider = createDeepLProvider({ requestTimeoutMs: 5000 }, { client });
-      const rejection = provider
-        .translateBatch(request({ entries: [entry("k", "Free")] }))
-        .catch((error: unknown) => error);
-      await vi.advanceTimersByTimeAsync(5000);
-      const error = await rejection;
-      expect(translateText).toHaveBeenCalledTimes(1);
-      expect(error).toBeInstanceOf(ProviderError);
-      expect((error as ProviderError).code).toBe("TIMEOUT");
-      expect((error as ProviderError).message).toContain("5000");
-    } finally {
-      vi.useRealTimers();
-    }
+  it("names the configured timeout when deepl-node reports that an attempt timed out", async () => {
+    const translateText = vi.fn(() =>
+      Promise.reject(new ConnectionError({ code: "ECONNABORTED" })),
+    );
+    const client: DeepLTranslateClient = { translateText };
+    const provider = createDeepLProvider({ requestTimeoutMs: 5000 }, { client });
+    const error = await provider
+      .translateBatch(request({ entries: [entry("k", "Free")] }))
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("TIMEOUT");
+    expect((error as ProviderError).message).toContain("5000");
   });
 
-  it("applies the shared default timeout when the config omits requestTimeoutMs", async () => {
-    vi.useFakeTimers();
-    try {
-      const translateText = vi.fn(() => new Promise<never>(() => {}));
-      const client: DeepLTranslateClient = { translateText };
-      const provider = createDeepLProvider(config, { client });
-      const rejection = provider
-        .translateBatch(request({ entries: [entry("k", "Free")] }))
-        .catch((error: unknown) => error);
-      await vi.advanceTimersByTimeAsync(120_000);
-      const error = await rejection;
-      expect(translateText).toHaveBeenCalledTimes(1);
-      expect(error).toBeInstanceOf(ProviderError);
-      expect((error as ProviderError).code).toBe("TIMEOUT");
-      expect((error as ProviderError).message).toContain("120000");
-    } finally {
-      vi.useRealTimers();
-    }
+  it("reports a refused connection as the refusal, not as a timeout", async () => {
+    const translateText = vi.fn(() =>
+      Promise.reject(new ConnectionError({ code: "ECONNREFUSED" })),
+    );
+    const client: DeepLTranslateClient = { translateText };
+    const provider = createDeepLProvider({ requestTimeoutMs: 5000 }, { client });
+    const error = await provider
+      .translateBatch(request({ entries: [entry("k", "Free")] }))
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("PROVIDER_ERROR");
+    expect((error as ProviderError).message).toContain("the connection was refused");
   });
 });
 

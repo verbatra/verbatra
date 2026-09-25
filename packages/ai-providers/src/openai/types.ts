@@ -17,6 +17,7 @@ export interface OpenAiCompletion {
 
 export interface OpenAiCallOptions {
   readonly signal?: AbortSignal;
+  readonly timeout?: number;
 }
 
 export interface OpenAiClient {

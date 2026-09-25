@@ -378,7 +378,7 @@ el archivo está corrupto o lo escribió un verbatra más nuevo.
 
 <AvailableFrom version="0.12.0" />
 
-Cada `LocaleCheckSummary` lleva además `protected`: cuántas de sus claves ausentes y obsoletas dejaría una ejecución de `translate` para una persona según el `humanEdits` y los `pinnedKeys` de la configuración. Siguen contando como ausentes u obsoletas, así que `inSync` sigue en false hasta que una persona las resuelva. Si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo se cuentan las claves fijadas.
+Cada `LocaleCheckSummary` lleva además `protected`: cuántas de sus claves obsoletas dejaría una ejecución de `translate` para una persona según el `humanEdits` y los `pinnedKeys` de la configuración: la parte protegida de `stale`. Una clave fijada que falta aún no tiene un valor que proteger y cuenta solo como ausente. Siguen contando como obsoletas, así que `inSync` sigue en false hasta que una persona las resuelva. Si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo se cuentan las claves fijadas.
 
 <AvailableFrom version="0.12.0" />
 
@@ -567,7 +567,7 @@ misma puerta de integridad que una traducción del proveedor antes de que nada l
 al disco; al aceptarse, el archivo de locale y la entrada del bloqueo de esa clave se actualizan dentro
 del bloqueo de escritura del locale. Nunca llama a un proveedor.
 
-Entrada: `{ config, cwd?, locale, key, value }`. Devuelve un resultado de dos ramas:
+Entrada: `{ config, cwd?, locale, key, value, actor? }`. Devuelve un resultado de dos ramas:
 `{ accepted: true, value }`, o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin
 escribir nada. `"empty"` cubre un valor vacío o solo con espacios para un origen que sí tiene texto:
@@ -646,6 +646,12 @@ Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lo
 `approveEntry`, salvo que un origen desactualizado no impide un rechazo. Devuelve
 `{ locale, key, provenance }`. Un formato que conserva una clave que no recibió, XLIFF, lanza
 `REVIEW_REJECT_UNSUPPORTED` después de restaurar el archivo.
+
+Ambas llamadas toman el bloqueo de escritura del locale. `lockAcquireTimeoutMs` limita la espera
+(diez minutos por defecto) y falla con `LOCK_CONTENDED` cuando se agota, y `onLockWait` informa de
+esa espera; un valor que no es un número entero de milisegundos de al menos 0 lanza
+`LOCK_TIMEOUT_INVALID` antes de leer nada. El tiempo de espera no limita el bloqueo del archivo de
+bloqueo que se toma para registrar la decisión, que siempre admite los diez minutos por defecto.
 
 Ambas llamadas comprueban el archivo de procedencia antes de escribir nada y nunca informan de una
 decisión que no pudieron guardar: un archivo de un verbatra más nuevo, o uno que la decisión haría
@@ -1014,7 +1020,7 @@ Resuelve la parte de un glosario que se aplica a un locale de destino:
 `target` del locale (su propia entrada, luego la de su idioma base, luego la compartida), sus
 traducciones `forbidden`, `caseSensitive`, y su `note` y `partOfSpeech`, o `undefined` cuando nada
 del glosario se aplica allí. Es exactamente lo que una petición de traducción a ese locale lleva como
-`TranslateRequest.glossary`, y lo que ven las comprobaciones de revisión y la huella de caché de
+[`TranslateRequest.glossary`](#proveedores-propios), y lo que ven las comprobaciones de revisión y la huella de caché de
 ese locale.
 
 ### glossaryHits
@@ -1353,6 +1359,61 @@ archivo de glosario que nombre la configuración a través de su propia opción 
 proyecto entero en memoria, pasa el mismo `SdkFs` como `loadConfig({ fs })` y entrega la
 configuración como `configOverride` en lugar de como archivo.
 
+## Proveedores propios
+
+<AvailableFrom version="0.12.0" />
+
+Un proveedor que el SDK no incluye se conecta mediante `deps.createProvider`, un `CreateProvider`
+que devuelve un `TranslationProvider`. El SDK exporta el contrato completo como tipos, así que tu
+proveedor se comprueba contra la misma interfaz que implementan los integrados.
+
+```ts
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/sdk";
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` es el único contrato: `id`, `kind` (un `ProviderKind`), `supportsGlossary`
+  y `translateBatch(request)`. Trata cada valor de una solicitud como datos no confiables, lee
+  cualquier clave de API del entorno y no de la solicitud, y lanza un `ProviderError` sin secretos
+  cuando una llamada falla.
+- `ProviderKind` es `"llm"` o `"machine-translation"`. Es solo descriptivo: nada en el SDK se
+  ramifica según su valor.
+- `TranslateRequest` lleva `sourceLocale`, `targetLocale`, las `entries` que traducir y, de forma
+  opcional, `glossary` (el resultado de [`glossaryForLocale`](#glossaryforlocale) para la locale de
+  destino), `tone`, `maxLength` y `pluralCategories`. También lleva `extractPlaceholders` y, en
+  algunos formatos, `comparePlaceholders`, que tu proveedor usa para la comprobación de integridad,
+  además de `signal`, que cancela una llamada en curso, y `onRepair`.
+- `TranslateResult` devuelve `values` e `integrity` por clave, más `usage`, `notices` y
+  `reviewFlags` opcionales. Una clave ausente de `values` cuenta como no traducida, así que un
+  proveedor puede omitir un valor que no puede traducir con seguridad. En cualquier caso, el SDK
+  pasa cada valor devuelto por su propia comprobación de integridad.
+- `ProviderRetryListener` es el tipo de `CreateProviderHooks.onRetry`. Recibe un `ProviderRetry`,
+  `{ attempt, delayMs?, status? }`, por reintento, y cada llamada se convierte en un
+  [evento de progreso](#eventos-de-progreso) `provider-retry`.
+- `ProviderNetwork` es lo que contiene `CreateProviderContext.network` cuando la política de red
+  limita a dónde puede conectarse un proveedor: la `policy` efectiva, el `env` desde el que se
+  resolvió el endpoint y `deps` opcionales para pruebas. Un proveedor propio puede ignorarlo, pero
+  entonces a sus solicitudes solo se aplica la comprobación que hace el SDK antes de llamar a la
+  fábrica.
+
 ## La anatomía de RunSummary
 
 `translate`, `importWorkbook` y cada ejecución exitosa de `watch` resuelven a un `RunSummary`:
@@ -1419,8 +1480,9 @@ Las partes que conviene conocer:
 - **budget** aparece solo cuando `maxTokens` está configurado: `{ maxTokens, behavior, supported,
   tokensUsed, exceeded }`. `supported` dice si `tokensUsed` es enteramente el uso que informa el
   propio proveedor; es `false` en cuanto una petición vuelve sin una cifra utilizable, y entonces el
-  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Un dry run lo
-  informa con `tokensUsed: 0`, porque no se envió nada. Con `behavior: "stop"` el techo
+  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Un dry run, o
+  cualquier ejecución que no envió ninguna petición, informa `supported: true` con `tokensUsed: 0`:
+  no se envió nada, así que no se proyectó nada. Con `behavior: "stop"` el techo
   se comprueba antes de cada petición que envía la ejecución, incluida cada mitad de una petición
   vuelta a partir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
   última petición admitida se reconcilia con lo que informó el proveedor, lo que puede empujar el
@@ -1497,7 +1559,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |
 | `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
 | `MAX_TOKENS_INVALID` | el `maxTokens` por ejecución de `translate` se fijó pero no es un número entero de al menos 1; se lanza antes de leer o gastar nada |
-| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`); se lanza antes de leer o bloquear nada |
+| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); se lanza antes de leer o bloquear nada |
 | `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
 | `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado o fuera de `cwd`, también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada |
 | `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |

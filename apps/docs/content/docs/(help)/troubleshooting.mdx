@@ -138,7 +138,7 @@ per-minute or per-day quota. `AUTH_FAILED` does not
 resolve by retrying: replace the key behind the environment variable. A smaller `maxBatchSize`
 also reduces the blast radius of a single failed request. When `TIMEOUT` is the rule rather than a
 hiccup (a slow local model, or large batches), raise `requestTimeoutMs` in the provider's options:
-it bounds every request at two minutes by default. See
+it bounds each attempt of a request at two minutes by default. See
 [Request timeout](/docs/providers#request-timeout).
 
 ## The lock file is corrupt (LOCK_FILE_INVALID)

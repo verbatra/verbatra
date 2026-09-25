@@ -230,7 +230,10 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
     },
     error: (error) => {
       stopSpinner();
-      writer.streams.err(`verbatra: ${label("red", "error")} [${error.code}] ${error.message}\n`);
+      const cause = error.causeCode === undefined ? "" : ` (cause: ${error.causeCode})`;
+      writer.streams.err(
+        `verbatra: ${label("red", "error")} [${error.code}] ${error.message}${cause}\n`,
+      );
     },
     status,
     hint: (command, why) => {

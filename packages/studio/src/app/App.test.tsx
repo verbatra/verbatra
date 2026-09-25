@@ -225,7 +225,7 @@ describe("App session expiry", () => {
     });
 
     expect(view.text()).toContain(
-      "Restart Verbatra Studio and open the URL printed in the terminal again.",
+      "Open the URL the running Verbatra Studio printed in its terminal again, or start Studio again if it has stopped.",
     );
   });
 

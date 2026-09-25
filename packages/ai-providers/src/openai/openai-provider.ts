@@ -2,7 +2,7 @@ import { type LlmMechanism, runLlmTranslation } from "../llm/run.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider } from "../provider.js";
 import type { ProviderRetryListener } from "../provider-retry.js";
-import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
+import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import { type OpenAiConfig, openAiConfigSchema } from "./config.js";
 import { buildOpenAiRequest, type OpenAiRequest } from "./request.js";
@@ -50,7 +50,7 @@ function callClient(
   timeoutMs: number,
   signal: AbortSignal | undefined,
 ): Promise<OpenAiCompletion> {
-  return withRequestTimeout(timeoutMs, signal, (requestSignal) =>
-    client.chat.completions.create(body, { signal: requestSignal }),
+  return withSdkAttemptTimeout(timeoutMs, signal, (options) =>
+    client.chat.completions.create(body, options),
   );
 }

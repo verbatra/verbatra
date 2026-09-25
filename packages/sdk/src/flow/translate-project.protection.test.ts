@@ -308,6 +308,19 @@ describe("translate: pinnedKeys", () => {
     }
   });
 
+  it("counts only a present pinned key in the protected share of check's stale count", async () => {
+    const dir = await translatedProject();
+    await writeJsonFile(join(dir, "locales", "en.json"), {
+      ...CHANGED_SOURCE,
+      legal: { terms: "Terms" },
+    });
+    const config = cfg({ pinnedKeys: ["legal.*", "greeting"] });
+
+    const status = await check({ config, cwd: dir });
+
+    expect(status.locales[0]).toMatchObject({ missing: 1, stale: 2, protected: 1 });
+  });
+
   it("does not generate plural forms for a pinned key", async () => {
     const dir = await project({ items_one: "{{count}} item", items_other: "{{count}} items" });
     const config = cfg({

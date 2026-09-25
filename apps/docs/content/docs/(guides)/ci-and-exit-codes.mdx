@@ -71,6 +71,7 @@ type Envelope<TResult> =
       command: string | null;
       code: string;
       message: string;
+      causeCode?: string; // the code of the error this one wraps, when it has one
       candidates?: string[]; // the values to choose from, on an error that has them
       missing?: string[]; // the flags still to pass, on an init usage error
     };
@@ -84,7 +85,7 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 { "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
 ```
 
-`command` is `null` only when the failure happened before a subcommand was resolved. `candidates` appears only on an error that asks you to choose, such as `init`'s `FORMAT_AMBIGUOUS`, and lists the values to choose from. `missing` appears on an `init` usage error that leaves flags unanswered and names each flag still to pass.
+`command` is `null` only when the failure happened before a subcommand was resolved. `candidates` appears only on an error that asks you to choose, such as `init`'s `FORMAT_AMBIGUOUS`, and lists the values to choose from. `missing` appears on an `init` usage error that leaves flags unanswered and names each flag still to pass. `causeCode` appears when the error wraps another coded error, such as a `PROVIDER_CONSTRUCTION_FAILED` caused by `MISSING_API_KEY`; the stderr line then ends with `(cause: MISSING_API_KEY)`.
 
 <AvailableFrom version="0.12.0" />
 

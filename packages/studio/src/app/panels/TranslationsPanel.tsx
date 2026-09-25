@@ -221,14 +221,37 @@ function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
   };
 }
 
+function AllClearCard({ brokenInSync }: { readonly brokenInSync: boolean }): ReactNode {
+  return (
+    <Card
+      role="status"
+      padding="sm"
+      className="mt-4 flex flex-wrap items-center gap-3 border-s-[3px] border-s-success"
+    >
+      <Icon name="check" size={16} className="flex-none text-success" />
+      <div>
+        <p className="m-0 text-sm font-semibold text-foreground">Everything is in sync</p>
+        <p className="m-0 mt-0.5 text-sm text-muted-foreground">
+          No missing, changed, or orphaned keys in any configured locale.
+          {brokenInSync
+            ? " Some translations still have integrity problems; they are listed under Keys."
+            : ""}
+        </p>
+      </div>
+    </Card>
+  );
+}
+
 function StatStrip({
   status,
   diff,
   refreshToken,
+  brokenInSync,
 }: {
   readonly status: RefreshableView<StatusData>;
   readonly diff: DiffState;
   readonly refreshToken: number;
+  readonly brokenInSync: boolean;
 }): ReactNode {
   const usage = useUsageTicker(refreshToken);
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
@@ -272,21 +295,7 @@ function StatStrip({
         />
         <MetricCard label="Last run" icon="zap" value={lastRun.value} hint={lastRun.hint} />
       </div>
-      {allClear ? (
-        <Card
-          role="status"
-          padding="sm"
-          className="mt-4 flex flex-wrap items-center gap-3 border-s-[3px] border-s-success"
-        >
-          <Icon name="check" size={16} className="flex-none text-success" />
-          <div>
-            <p className="m-0 text-sm font-semibold text-foreground">Everything is in sync</p>
-            <p className="m-0 mt-0.5 text-sm text-muted-foreground">
-              No missing, changed, or orphaned keys in any configured locale.
-            </p>
-          </div>
-        </Card>
-      ) : null}
+      {allClear ? <AllClearCard brokenInSync={brokenInSync} /> : null}
       {diff.kind === "loading" ? (
         <div className="mt-4">
           <Skeleton className="h-5 w-64" />
@@ -435,6 +444,14 @@ function LocaleSection({
   );
 }
 
+function needsIntegrity(diff: DiffState, viewMode: DiffViewMode): boolean {
+  return diff.kind === "loaded" && (viewMode === "flat" || isFullyInSync(diff.locales));
+}
+
+function hasIntegrityProblems(integrity: RefreshableView<LocaleIntegrityData>): boolean {
+  return integrity.kind === "data" && integrity.data.some((locale) => locale.entries.length > 0);
+}
+
 function statusSources(
   review: RefreshableView<ReviewQueueData>,
   integrity: RefreshableView<LocaleIntegrityData>,
@@ -462,6 +479,7 @@ function KeyListView({
   localeValues,
   onSelectKey,
   refreshToken,
+  integrity,
 }: {
   readonly locales: readonly DiffLocale[];
   readonly query: string;
@@ -469,15 +487,13 @@ function KeyListView({
   readonly localeValues: LocaleValuesData;
   readonly onSelectKey: (key: string) => void;
   readonly refreshToken: number;
+  readonly integrity: RefreshableView<LocaleIntegrityData>;
 }): ReactNode {
   const [locale, setLocale] = useState("");
   const [statuses, setStatuses] = useState<ReadonlySet<KeyStatus>>(new Set());
   const searchRef = useRef<HTMLInputElement | null>(null);
   useReviewOverlaySignal();
-  const { sources, unavailable } = statusSources(
-    useReviewQueue(refreshToken),
-    useLocaleIntegrity(refreshToken),
-  );
+  const { sources, unavailable } = statusSources(useReviewQueue(refreshToken), integrity);
   const matches = useMemo(() => queryMatcher(localeValues, query), [localeValues, query]);
   const filter: KeyStatusFilter = { locale: locale === "" ? null : locale, statuses };
   const searching = query.trim() !== "";
@@ -553,6 +569,8 @@ function KeysSection({
   onSelectKey,
   refreshToken,
   localeValues,
+  integrity,
+  listOnly,
 }: {
   readonly locales: readonly DiffLocale[];
   readonly query: string;
@@ -562,18 +580,22 @@ function KeysSection({
   readonly onSelectKey: (key: string) => void;
   readonly refreshToken: number;
   readonly localeValues: LocaleValuesData;
+  readonly integrity: RefreshableView<LocaleIntegrityData>;
+  readonly listOnly: boolean;
 }): ReactNode {
   return (
     <PageSection title="Keys">
-      <Toolbar className="mb-4">
-        <Tabs
-          items={VIEW_MODE_ITEMS}
-          active={viewMode}
-          onChange={onViewModeChange}
-          label="Keys view"
-        />
-      </Toolbar>
-      {viewMode === "grid" ? (
+      {listOnly ? null : (
+        <Toolbar className="mb-4">
+          <Tabs
+            items={VIEW_MODE_ITEMS}
+            active={viewMode}
+            onChange={onViewModeChange}
+            label="Keys view"
+          />
+        </Toolbar>
+      )}
+      {viewMode === "grid" && !listOnly ? (
         <StatusGrid locales={locales} refreshToken={refreshToken} onSelectKey={onSelectKey} />
       ) : (
         <KeyListView
@@ -583,6 +605,7 @@ function KeysSection({
           localeValues={localeValues}
           onSelectKey={onSelectKey}
           refreshToken={refreshToken}
+          integrity={integrity}
         />
       )}
     </PageSection>
@@ -787,6 +810,8 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
   }, [refreshToken]);
 
   const allClear = diff.kind === "loaded" && isFullyInSync(diff.locales);
+  const integrity = useLocaleIntegrity(refreshToken, needsIntegrity(diff, viewMode));
+  const brokenInSync = allClear && hasIntegrityProblems(integrity);
 
   return (
     <>
@@ -796,13 +821,18 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
         description="Every pending change across your target locales, and how far along each locale is."
         actions={diff.kind === "loaded" ? <ReviewReportButton locales={diff.locales} /> : undefined}
       />
-      <StatStrip status={status} diff={diff} refreshToken={refreshToken} />
+      <StatStrip
+        status={status}
+        diff={diff}
+        refreshToken={refreshToken}
+        brokenInSync={brokenInSync}
+      />
       {diff.kind === "loading" ? <Loading /> : null}
       {diff.kind === "error" ? <ErrorMessage error={diff.error} /> : null}
       {diff.kind === "loaded" && diff.staleError !== undefined ? (
         <ErrorMessage error={diff.staleError} prefix="Showing the last known pending changes." />
       ) : null}
-      {diff.kind === "loaded" && !allClear ? (
+      {diff.kind === "loaded" && (!allClear || brokenInSync) ? (
         <KeysSection
           locales={diff.locales}
           query={query}
@@ -812,6 +842,8 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           onSelectKey={setSelectedKey}
           refreshToken={refreshToken}
           localeValues={localeValues}
+          integrity={integrity}
+          listOnly={allClear}
         />
       ) : null}
       <LocalesSection status={status} lock={lock} />

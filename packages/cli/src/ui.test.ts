@@ -69,6 +69,20 @@ describe("createUi: plain mode lines", () => {
 
     expect(cap.err()).toBe(`${renderError({ code: "CONFIG_INVALID", message: "bad" })}\n`);
   });
+
+  it("names a wrapped cause's code exactly like renderError", () => {
+    const cap = captureStreams();
+    const error = {
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      message: "m",
+      causeCode: "MISSING_API_KEY",
+    };
+
+    createUi(cap.streams, terminal("plain")).error(error);
+
+    expect(cap.err()).toBe(`${renderError(error)}\n`);
+    expect(cap.err()).toContain("(cause: MISSING_API_KEY)");
+  });
 });
 
 describe("createUi: quiet and json modes", () => {

@@ -210,6 +210,51 @@ describe("mcp (no key)", () => {
     }
   }, 120_000);
 
+  it.each(["SIGINT", "SIGTERM"] as const)(
+    "verbatra-mcp stops promptly on %s during an in-flight translatePending and leaves no locale lock",
+    async (signal) => {
+      const stalledDir = join(consumer.dir, `mcp-standalone-${signal.toLowerCase()}`);
+      await scaffoldStalledProject(stalledDir, endpoint.baseUrl);
+      const requestsBefore = endpoint.requestsReceived();
+      const standalone = {
+        ...consumer,
+        bin: join(consumer.dir, "node_modules", ".bin", "verbatra-mcp"),
+      };
+      const server = spawnVerbatra(standalone, ["--cwd", stalledDir, "--allow-spend"]);
+      let stdout = "";
+      server.stdout?.on("data", (chunk: Buffer | string) => {
+        stdout += String(chunk);
+      });
+
+      try {
+        server.stdin?.write(INITIALIZE_REQUEST);
+        await pollUntil(() => stdout.includes('"id":1'), { timeoutMs: 60_000, intervalMs: 100 });
+        server.stdin?.write(INITIALIZED_NOTIFICATION);
+        server.stdin?.write(TRANSLATE_PENDING_REQUEST);
+        await pollUntil(
+          async () =>
+            endpoint.requestsReceived() > requestsBefore &&
+            (await exists(join(stalledDir, ".verbatra-local/locks/de.lock"))),
+          { timeoutMs: 60_000, intervalMs: 50 },
+        );
+
+        const signalledAt = Date.now();
+        server.kill(signal);
+        const result = await server;
+        const elapsedMs = Date.now() - signalledAt;
+
+        expect(result.signal).toBeUndefined();
+        expect(result.exitCode).toBe(0);
+        expect(elapsedMs).toBeLessThan(10_000);
+        expect(result.stderr).toContain("verbatra MCP server stopped");
+        expect(await lockFilesUnder(stalledDir)).toEqual([]);
+      } finally {
+        server.kill("SIGKILL");
+      }
+    },
+    120_000,
+  );
+
   it("verbatra-mcp exits 0 when the client closes stdin", async () => {
     const standalone = {
       ...consumer,
