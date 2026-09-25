@@ -48,7 +48,7 @@ Le serveur démarre en lecture seule. Sans dépense autorisée, il annonce tous 
 
 Pour laisser l'agent dépenser, active deux choses :
 
-- **L'interrupteur de dépense.** Ajoute `--allow-spend` aux arguments du serveur, ou définis `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` dans son environnement. Le flag l'emporte sur la variable. Une configuration avec `provider: { id: "none" }` garde les deux outils de dépense cachés quoi que tu définisses.
+- **L'interrupteur de dépense.** Ajoute `--allow-spend` aux arguments du serveur, ou définis `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` dans son environnement. Le flag l'emporte sur la variable. Avec `npx verbatra mcp`, la variable peut aussi se trouver dans le `.env.local` ou le `.env` du projet, que cette commande lit d'abord ; `npx -y @verbatra/mcp` ne lit aucun fichier `.env`. Une configuration avec `provider: { id: "none" }` garde les deux outils de dépense cachés quoi que tu définisses.
 - **La clé du fournisseur.** Le serveur lit la même variable d'environnement que la CLI, par exemple `ANTHROPIC_API_KEY` ; vois laquelle est la tienne dans [Fournisseurs](/docs/providers). Il ne lit jamais de clé depuis ses arguments ni depuis un fichier de configuration du client.
 
 N'écris jamais de clé dans un fichier que tu commites : `.mcp.json`, `.cursor/mcp.json` et `.vscode/mcp.json` sont faits pour être partagés avec toute l'équipe. Chaque client ci-dessous a un moyen de transmettre une clé au serveur sans que le fichier la contienne : un environnement hérité, une référence à une variable, ou une invite qui stocke la valeur hors du fichier.

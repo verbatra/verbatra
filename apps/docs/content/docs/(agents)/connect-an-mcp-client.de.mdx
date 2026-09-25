@@ -48,7 +48,7 @@ Der Server startet nur lesend. Ohne erlaubte Ausgaben stellt er jedes Tool auße
 
 Damit der Agent Geld ausgeben darf, schaltest du zwei Dinge ein:
 
-- **Den Spend-Schalter.** Füge `--allow-spend` zu den Argumenten des Servers hinzu, oder setze `VERBATRA_MCP_ALLOW_SPEND` in seiner Umgebung auf `1`, `true`, `yes` oder `on`. Das Flag gewinnt gegenüber der Variable. Eine Konfiguration mit `provider: { id: "none" }` hält beide Spend-Tools verborgen, egal was du setzt.
+- **Den Spend-Schalter.** Füge `--allow-spend` zu den Argumenten des Servers hinzu, oder setze `VERBATRA_MCP_ALLOW_SPEND` in seiner Umgebung auf `1`, `true`, `yes` oder `on`. Das Flag gewinnt gegenüber der Variable. Mit `npx verbatra mcp` kann die Variable auch in `.env.local` oder `.env` des Projekts stehen, die dieser Befehl zuerst liest; `npx -y @verbatra/mcp` liest keine `.env`-Datei. Eine Konfiguration mit `provider: { id: "none" }` hält beide Spend-Tools verborgen, egal was du setzt.
 - **Den Provider-Key.** Der Server liest dieselbe Umgebungsvariable wie die CLI, zum Beispiel `ANTHROPIC_API_KEY`; welche deine ist, steht unter [Provider](/docs/providers). Er liest nie einen Key aus seinen Argumenten oder aus einer Client-Konfigurationsdatei.
 
 Schreib nie einen Key in eine Datei, die du committest: `.mcp.json`, `.cursor/mcp.json` und `.vscode/mcp.json` sind dafür gedacht, mit dem ganzen Team geteilt zu werden. Jeder Client unten hat einen Weg, dem Server einen Key zu übergeben, ohne dass die Datei ihn enthält: eine geerbte Umgebung, einen Verweis auf eine Variable oder eine Abfrage, die den Wert außerhalb der Datei speichert.
