@@ -57,6 +57,20 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
+Both callbacks receive more than the text. `parseEntries(content, namespace, filePath, fs, locale)` also gets the file's path, the `fs` port and the locale the file is read as, for a format whose one file holds both source and target text. `serializeEntries(entries, filePath, fs, context, locale)` gets the destination path, the port, the caller's write context, whose optional `sourcePath` names the source-locale file, and, from 0.12.0, the locale being written as its fifth argument, for a format that records its locale inside the file:
+
+```ts
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace, _filePath, _fs, locale) =>
+    parseToml(content, namespace, locale),
+  serializeEntries: (entries, _filePath, _fs, _context, locale) =>
+    `# locale = "${locale}"\n${serializeToml(entries)}`,
+  extractPlaceholders: tokensIn,
+});
+```
+
 Use `createTreeFileAdapter` when entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form.
 
 Both factories take an optional `comparePlaceholders` for a format whose structure a flat token list would lose, and an optional `compareBranchArms` for a format with plural and select branches: it receives the source value, the candidate and a lookup of the target language's CLDR plural categories, and returns one readable problem per wrong arm, which the integrity gate reports when it refuses the candidate. If your format marks some content untranslatable, report it rather than dropping it: a flat `parseEntries` returns `{ entries, excludedLeafPaths }` instead of a bare map, and a tree adapter reports its non-string leaves automatically.

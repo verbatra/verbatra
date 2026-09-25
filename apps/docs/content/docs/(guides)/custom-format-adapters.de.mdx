@@ -57,6 +57,20 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
+Beide Callbacks bekommen mehr als den Text. `parseEntries(content, namespace, filePath, fs, locale)` bekommt außerdem den Pfad der Datei, den `fs`-Port und die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält. `serializeEntries(entries, filePath, fs, context, locale)` bekommt den Zielpfad, den Port, den Schreibkontext des Aufrufers, dessen optionales `sourcePath` die Datei der Quell-Locale nennt, und, ab 0.12.0, die geschriebene Locale als fünftes Argument, für ein Format, das seine Locale in der Datei festhält:
+
+```ts
+export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
+  format: "custom:toml",
+  extensions: [".toml"],
+  parseEntries: (content, namespace, _filePath, _fs, locale) =>
+    parseToml(content, namespace, locale),
+  serializeEntries: (entries, _filePath, _fs, _context, locale) =>
+    `# locale = "${locale}"\n${serializeToml(entries)}`,
+  extractPlaceholders: tokensIn,
+});
+```
+
 Nimm `createTreeFileAdapter`, wenn Einträge auf Pfaden durch verschachtelte Objekte liegen. Es nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist.
 
 Beide Factories nehmen ein optionales `comparePlaceholders` für ein Format, dessen Struktur eine flache Token-Liste verlieren würde, und ein optionales `compareBranchArms` für ein Format mit Plural- und Select-Zweigen: Es bekommt den Quellwert, den Kandidaten und eine Abfrage der CLDR-Pluralkategorien der Zielsprache und gibt pro falschem Zweig ein lesbares Problem zurück, das das Integritäts-Gate meldet, wenn es den Kandidaten ablehnt. Markiert dein Format Inhalte als nicht übersetzbar, melde sie, statt sie fallen zu lassen: Ein flaches `parseEntries` gibt `{ entries, excludedLeafPaths }` statt einer blanken Map zurück, und ein Baum-Adapter meldet seine Nicht-String-Blätter von selbst.
