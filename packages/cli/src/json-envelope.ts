@@ -16,6 +16,7 @@ export interface ErrorEnvelope {
   readonly command: string | null;
   readonly code: string;
   readonly message: string;
+  readonly causeCode?: string;
   readonly candidates?: readonly string[];
   readonly missing?: readonly string[];
 }
@@ -37,6 +38,7 @@ export function renderErrorEnvelope(command: string | null, error: RenderableErr
     command,
     code: error.code,
     message: error.message,
+    ...(error.causeCode === undefined ? {} : { causeCode: error.causeCode }),
     ...(error.candidates === undefined ? {} : { candidates: error.candidates }),
     ...(error.missing === undefined ? {} : { missing: error.missing }),
   };

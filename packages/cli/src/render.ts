@@ -46,6 +46,7 @@ const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 export interface RenderableError {
   readonly code: string;
   readonly message: string;
+  readonly causeCode?: string;
   readonly candidates?: readonly string[];
   readonly missing?: readonly string[];
 }
@@ -68,14 +69,20 @@ export function displayPath(path: string, base: string | undefined): string {
   return outside ? path : inside;
 }
 
+function codeOf(value: unknown): string | undefined {
+  const code = value instanceof Error ? (value as { code?: unknown }).code : undefined;
+  return typeof code === "string" ? code : undefined;
+}
+
 export function toRenderableError(error: unknown): RenderableError {
   if (error instanceof Error) {
-    const code = (error as { code?: unknown }).code;
+    const causeCode = codeOf(error.cause);
     const candidates = stringListOf(error, "candidates");
     const missing = stringListOf(error, "missing");
     return {
-      code: typeof code === "string" ? code : FALLBACK_ERROR_CODE,
+      code: codeOf(error) ?? FALLBACK_ERROR_CODE,
       message: error.message,
+      ...(causeCode === undefined ? {} : { causeCode }),
       ...(candidates === undefined ? {} : { candidates }),
       ...(missing === undefined ? {} : { missing }),
     };
@@ -675,7 +682,8 @@ export function renderProgressJson(event: ProgressEvent): string | undefined {
 }
 
 export function renderError(error: RenderableError): string {
-  return `verbatra: error [${error.code}] ${error.message}`;
+  const cause = error.causeCode === undefined ? "" : ` (cause: ${error.causeCode})`;
+  return `verbatra: error [${error.code}] ${error.message}${cause}`;
 }
 
 export function renderPseudoHuman(result: PseudolocalizeResult, base?: string): string {

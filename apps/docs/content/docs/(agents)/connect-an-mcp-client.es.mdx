@@ -48,7 +48,7 @@ El servidor arranca en modo solo lectura. Sin gasto permitido, anuncia todas las
 
 Para dejar que el agente gaste, activa dos cosas:
 
-- **El interruptor de gasto.** Añade `--allow-spend` a los argumentos del servidor, o define `VERBATRA_MCP_ALLOW_SPEND` como `1`, `true`, `yes` u `on` en su entorno. El flag gana sobre la variable. Una configuración con `provider: { id: "none" }` mantiene ocultas las dos herramientas de gasto pongas lo que pongas.
+- **El interruptor de gasto.** Añade `--allow-spend` a los argumentos del servidor, o define `VERBATRA_MCP_ALLOW_SPEND` como `1`, `true`, `yes` u `on` en su entorno. El flag gana sobre la variable. Con `npx verbatra mcp` la variable también puede estar en `.env.local` o `.env` del proyecto, que ese comando lee primero; `npx -y @verbatra/mcp` no lee ningún archivo `.env`. Una configuración con `provider: { id: "none" }` mantiene ocultas las dos herramientas de gasto pongas lo que pongas.
 - **La clave del proveedor.** El servidor lee la misma variable de entorno que la CLI, por ejemplo `ANTHROPIC_API_KEY`; consulta cuál es la tuya en [Proveedores](/docs/providers). Nunca lee una clave de sus argumentos ni de un archivo de configuración del cliente.
 
 Nunca escribas una clave en un archivo que subas al repositorio: `.mcp.json`, `.cursor/mcp.json` y `.vscode/mcp.json` están pensados para compartirse con todo el equipo. Cada cliente de abajo tiene una forma de pasarle una clave al servidor sin que el archivo la contenga: un entorno heredado, una referencia a una variable o una solicitud que guarda el valor fuera del archivo.

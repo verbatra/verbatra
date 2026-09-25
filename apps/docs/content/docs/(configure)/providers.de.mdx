@@ -29,7 +29,7 @@ verbatra liest nie einen API-Schlüssel aus der Konfiguration. Jeder gehostete P
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
-Setze die Variable in `.env` (das `verbatra init` in `.gitignore` einträgt) oder exportiere sie in deiner Shell oder deinem CI-Secret-Store. Ist die Variable ungesetzt oder leer, schlägt der Provider mit einem strukturierten `MISSING_API_KEY`-Fehler fehl, dessen Meldung die Variable nennt, aber nie einen Key-Wert enthält. Committe nie einen echten Key.
+Setze die Variable in `.env` (das `verbatra init` in `.gitignore` einträgt) oder exportiere sie in deiner Shell oder deinem CI-Secret-Store. Ist die Variable ungesetzt oder leer, schlägt der Provider mit einem strukturierten `MISSING_API_KEY`-Fehler fehl, dessen Meldung die Variable nennt, aber nie einen Key-Wert enthält. Das SDK wirft ihn beim Erzeugen des Providers und verpackt ihn als `PROVIDER_CONSTRUCTION_FAILED`, deshalb gibt die CLI diesen Code gefolgt von `(cause: MISSING_API_KEY)` aus, und ihr `--json`-Fehlerdatensatz trägt `"causeCode": "MISSING_API_KEY"`. Committe nie einen echten Key.
 
 `openai-compatible` ist anders: Die meisten lokalen Server brauchen gar keinen Key, deshalb steht es nicht in dieser Tabelle. Wie seine Key-Auflösung funktioniert, steht in seinem eigenen Abschnitt unten.
 

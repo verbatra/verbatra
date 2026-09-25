@@ -45,9 +45,10 @@ export interface LocaleCheckSummary {
    */
   readonly provenance?: ProvenanceSummary;
   /**
-   * How many of the missing and stale keys a {@link translate} run would leave alone under the
-   * config's `humanEdits` and `pinnedKeys`, because a person wrote, imported, or changed their
-   * value, or because they are pinned. They still count as missing or stale, so `inSync` stays
+   * How many of the stale keys a {@link translate} run would leave alone under the config's
+   * `humanEdits` and `pinnedKeys`, because a person wrote, imported, or changed their value, or
+   * because they are pinned: the protected share of `stale`. A pinned key that is missing has no
+   * value to protect yet and counts only as missing. They still count as stale, so `inSync` stays
    * false until a person resolves them. When the provenance file is corrupt or was written by a
    * newer verbatra, no origin can be read and only the pinned keys are counted.
    */
@@ -152,7 +153,7 @@ function toCheckSummary(
     ...(provenance !== undefined
       ? { provenance: summarizeProvenance(provenance, source, target) }
       : {}),
-    protected: reportedProtectedKeys(config, result).length,
+    protected: presentProtectedKeys(config, result).length,
     ...(consistency !== undefined
       ? {
           inconsistencies: findInconsistentTranslations(
@@ -165,6 +166,11 @@ function toCheckSummary(
       : {}),
     ...(qa !== undefined ? { qa } : {}),
   };
+}
+
+function presentProtectedKeys(config: VerbatraConfig, result: LocaleDiffResult): readonly string[] {
+  const stale = new Set(result.diff.changed);
+  return reportedProtectedKeys(config, result).filter((key) => stale.has(key));
 }
 
 function qaReports(
