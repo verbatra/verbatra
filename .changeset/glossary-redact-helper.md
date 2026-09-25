@@ -5,9 +5,10 @@
 
 Add `redactGlossary`, `readCurrentGlossary` and `editConfiguredGlossaryTerm` for glossary tools.
 
-`redactGlossary` passes every translation, forbidden rendering, note and part of speech of a
-glossary through `redact` and names the terms that had a value replaced, so a tool can show a
-glossary without leaking a secret-shaped value.
+`redactGlossary` passes every source term, translation, forbidden rendering, note, part of speech
+and term kept untranslated of a glossary through `redact` and names the terms that had a value
+replaced, a redacted source term itself as `[REDACTED]`, so a tool can show a glossary without
+leaking a secret-shaped value.
 
 `readCurrentGlossary` reads the glossary a loaded config names as it is now; pass the result to
 `glossaryForLocale` for one locale's view. `editConfiguredGlossaryTerm` is `updateGlossaryTerm`

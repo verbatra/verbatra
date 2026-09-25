@@ -578,7 +578,7 @@ durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irg
 erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
 Schreibsperre dieser Locale aktualisiert. Ruft nie einen Provider auf.
 
-Eingabe: `{ config, cwd?, locale, key, value, actor? }`. Gibt ein zweiarmiges Ergebnis zurück:
+Eingabe: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
 wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert
@@ -599,6 +599,10 @@ ließe, die verbatra zurückliest, bleibt unangetastet und der Wert wird ohne Ei
 <AvailableFrom version="0.12.0" />
 
 Mit `actor: "agent"` wirft ein Key, der auf die `pinnedKeys` der Konfiguration passt, `KEY_PINNED`, bevor etwas gelesen oder geschrieben wird. Die Bearbeitung eines gepinnten Keys durch einen Menschen wird angenommen.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` begrenzt die Wartezeit auf die Schreibsperre der Locale, bevor der Aufruf mit `LOCK_CONTENDED` scheitert (standardmäßig zehn Minuten), `onLockWait` meldet diese Wartezeit, und eine ungültige Grenze scheitert mit `LOCK_TIMEOUT_INVALID`, bevor etwas gelesen wird.
 
 ### retranslateEntry
 
@@ -1042,6 +1046,10 @@ die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` a
 fehlgeschlagener Schreibvorgang, auch eine Glossar-Schreibsperre, die sich in einem schreibgeschützten Projekt nicht anlegen oder nach einer gespeicherten Änderung nicht freigeben lässt, ist `GLOSSARY_UNWRITABLE`, mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
 wie es schon ist, gelingt und schreibt nichts.
 
+<AvailableFrom version="0.12.0" />
+
+Es nimmt außerdem `lockAcquireTimeoutMs`, das die Wartezeit auf die Glossarsperre begrenzt, bevor der Aufruf mit `LOCK_CONTENDED` scheitert (standardmäßig zehn Minuten); eine ungültige Grenze scheitert mit `LOCK_TIMEOUT_INVALID`, bevor etwas gelesen wird.
+
 ### glossaryForLocale
 
 <AvailableFrom version="0.12.0" />
@@ -1101,10 +1109,11 @@ ein Verbraucher nichts als eine flache Begriffszuordnung zeigen kann. Ein Begrif
 
 <AvailableFrom version="0.12.0" />
 
-Schickt jede Übersetzung, verbotene Wiedergabe, Notiz und Wortart eines normalisierten `Glossary`
+Schickt jeden Quellbegriff, jede Übersetzung, verbotene Wiedergabe, Notiz, Wortart und jeden Begriff
+aus `doNotTranslate` eines normalisierten `Glossary`
 durch `redact` und gibt `{ glossary, redactedTerms }` zurück, wobei `redactedTerms` jeden Begriff
-nennt, bei dem ein Wert ersetzt wurde. Quellbegriffe und Begriffe aus `doNotTranslate` bleiben, wie
-sie sind. Der MCP-Server und Studio nutzen es, bevor ein Glossar den Prozess verlässt; nutze es in
+nennt, bei dem ein Wert ersetzt wurde, einen geschwärzten Quellbegriff selbst als `[REDACTED]`, damit
+die Liste nie ein Secret wiederholt. Der MCP-Server und Studio nutzen es, bevor ein Glossar den Prozess verlässt; nutze es in
 deinem eigenen Werkzeug genauso.
 
 ### readCurrentGlossary

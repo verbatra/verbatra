@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   });
 
   const project = projectLabel(resolveServerCwd(options.cwd), process.cwd());
-  logToStderr(mcpReadyLine(project, options.allowSpend));
+  logToStderr(mcpReadyLine(project, handle.spend));
   if (process.stdin.isTTY === true) {
     for (const line of mcpTerminalHint(STANDALONE_LAUNCH)) {
       logToStderr(line);

@@ -1,8 +1,15 @@
 import type { Readable } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { type CreateProvider, loadConfigWithMeta, redact } from "@verbatra/sdk";
+import {
+  type CreateProvider,
+  isMachineTranslationEnabled,
+  loadConfigWithMeta,
+  redact,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
 import { connectMcpServer } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
+import type { McpSpendState } from "./session-banner.js";
 import type { McpToolContext } from "./types.js";
 
 /** Everything {@link startMcpServer} accepts. Every field is optional. */
@@ -61,6 +68,11 @@ export interface McpServerHandle {
    * through `onLog`. Never rejects.
    */
   readonly closed: Promise<void>;
+  /**
+   * Whether the server advertises the provider-spending tools, and why not: `off` without
+   * `allowSpend`, `provider-none` when spending was allowed but the config's provider is `none`.
+   */
+  readonly spend: McpSpendState;
 }
 
 /**
@@ -120,7 +132,15 @@ export async function startMcpServer(
   return {
     close: () => server.close(),
     closed,
+    spend: spendState(options.allowSpend ?? false, loaded.config),
   };
+}
+
+function spendState(allowSpend: boolean, config: VerbatraConfig): McpSpendState {
+  if (!allowSpend) {
+    return "off";
+  }
+  return isMachineTranslationEnabled(config) ? "on" : "provider-none";
 }
 
 interface ClosableServer {

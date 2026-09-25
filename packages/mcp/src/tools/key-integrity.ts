@@ -1,4 +1,4 @@
-import { type KeyIntegrityEntry, keyIntegrity } from "@verbatra/sdk";
+import { type KeyIntegrityEntry, keyIntegrity, keyValue } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -49,19 +49,21 @@ async function checkKeyIntegrity(
   params: z.infer<typeof paramsSchema>,
   context: McpToolContext,
 ): Promise<KeyIntegrityResult> {
+  const deps = {
+    ...(context.fs !== undefined ? { fs: context.fs } : {}),
+    ...(context.adapterRegistry !== undefined ? { adapterRegistry: context.adapterRegistry } : {}),
+  };
+  const config = context.config.config;
+  const [firstLocale = config.sourceLocale] = params.locales ?? config.targetLocales;
+  await keyValue({ config, cwd: context.cwd, locale: firstLocale, key: params.key }, deps);
   const results = await keyIntegrity(
     {
-      config: context.config.config,
+      config,
       cwd: context.cwd,
       keys: [params.key],
       ...(params.locales !== undefined ? { locales: params.locales } : {}),
     },
-    {
-      ...(context.fs !== undefined ? { fs: context.fs } : {}),
-      ...(context.adapterRegistry !== undefined
-        ? { adapterRegistry: context.adapterRegistry }
-        : {}),
-    },
+    deps,
   );
 
   return {
@@ -83,7 +85,8 @@ export const keyIntegrityTool = defineTool({
     "the baseline was recorded for them. A row is returned for every locale in scope, but " +
     "its entries array is empty when the key has no baseline entry yet or its source text " +
     "still matches the baseline, which means checked and unchanged, not verified correct. " +
-    "The required key parameter is the source key; the optional locales parameter narrows " +
+    "The required key parameter is the source key, and a key the source does not have fails with " +
+    "UNKNOWN_KEY; the optional locales parameter narrows " +
     "the check to the named target locales, and omitting it covers every configured target " +
     "locale. The result carries only boolean outcomes, the placeholder or markup tokens " +
     "involved, and one short problem per arm that does not fit the target language " +
