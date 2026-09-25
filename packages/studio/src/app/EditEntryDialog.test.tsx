@@ -93,6 +93,7 @@ describe("EditEntryDialog", () => {
     expect(rpcCalls).toEqual([
       { method: "key.context", params: { locale: LOCALE, key: KEY } },
       { method: "key.integrity", params: { key: KEY } },
+      { method: "locale.integrity", params: {} },
     ]);
   });
 

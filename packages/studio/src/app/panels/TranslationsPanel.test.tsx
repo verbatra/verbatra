@@ -351,6 +351,44 @@ describe("TranslationsPanel all-clear state", () => {
     expect(sectionTitles(view)).not.toContain("Keys");
   });
 
+  it("keeps the integrity filter reachable when nothing is pending but a translation is broken", async () => {
+    stubSyncedPage({
+      "review.queue": { ok: true, result: { available: false } },
+      "locale.integrity": {
+        ok: true,
+        result: {
+          locales: [
+            {
+              locale: "de",
+              entries: [integrityEntry("app.body", false)],
+            },
+          ],
+        },
+      },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(view.get('[role="status"]').textContent).toContain("integrity problems");
+    expect(sectionTitles(view)).toContain("Keys");
+    expect(view.all("button").some((button) => button.textContent === "Grid")).toBe(false);
+    expect(statusToggle(view, "integrity").textContent).toBe("Integrity problems1");
+    expect(headings(view)).toContain("Integrity problems(1)");
+  });
+
+  it("keeps the key explorer hidden when nothing is pending and every translation passes", async () => {
+    stubSyncedPage({
+      "locale.integrity": { ok: true, result: { locales: [{ locale: "de", entries: [] }] } },
+    });
+
+    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
+    await flush();
+
+    expect(sectionTitles(view)).not.toContain("Keys");
+    expect(view.get('[role="status"]').textContent).not.toContain("integrity problems");
+  });
+
   it("reads a project with no target locales as fully covered", async () => {
     stubPage({ "status.diff": diffResult([]), "status.check": checkResult([]) });
 

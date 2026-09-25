@@ -59,7 +59,8 @@ function SessionExpiredNotice(): ReactNode {
       <div className="max-w-md">
         <h1 className="mb-3 text-xl font-semibold text-foreground">Session expired</h1>
         <p className="text-muted-foreground">
-          Restart Verbatra Studio and open the URL printed in the terminal again.
+          Open the URL the running Verbatra Studio printed in its terminal again, or start Studio
+          again if it has stopped.
         </p>
       </div>
     </div>
