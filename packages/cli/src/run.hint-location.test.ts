@@ -83,6 +83,27 @@ describe("next: hints carry --cwd and --config so they run from where the comman
       "verbatra check --cwd proj --config project.config.json",
     );
   });
+  it.each(["csv", "tsv"])(
+    "export --format %s suggests an import that keeps the format and succeeds",
+    async (format) => {
+      const exported = await runCommand(
+        `verbatra export --format ${format} --cwd proj --config project.config.json`,
+      );
+      expect(exported.code).toBe(0);
+
+      const hint = nextCommand(exported.err);
+      expect(hint).toBe(
+        `verbatra import verbatra-translations --format ${format} --cwd proj --config project.config.json`,
+      );
+
+      const dryRun = await runCommand(`${hint} --dry-run`);
+      expect(dryRun.code).toBe(0);
+      expect(nextCommand(dryRun.err)).toBe(hint);
+
+      const imported = await runCommand(hint);
+      expect(imported.code).toBe(0);
+    },
+  );
 });
 
 describe("next: hints for commands that take a file", () => {
