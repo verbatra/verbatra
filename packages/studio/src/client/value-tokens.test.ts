@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import { PRINTF_TOKEN, segmentValue } from "./value-tokens.js";
 
@@ -14,38 +15,6 @@ function corePositionalPrintfSource(): string {
 }
 
 const LINEAR_BASE_SIZE = 25_000;
-const LINEAR_SCALE = 8;
-const LINEAR_MAX_RATIO = 24;
-const LINEAR_RUNS = 7;
-const MIN_SAMPLE_MS = 5;
-
-function elapsedMs(value: string, repetitions: number): number {
-  const started = process.cpuUsage();
-  for (let repetition = 0; repetition < repetitions; repetition += 1) {
-    segmentValue(value);
-  }
-  const used = process.cpuUsage(started);
-  return (used.user + used.system) / 1_000;
-}
-
-function repetitionsFor(value: string): number {
-  let repetitions = 1;
-  while (elapsedMs(value, repetitions) < MIN_SAMPLE_MS) {
-    repetitions *= 2;
-  }
-  return repetitions;
-}
-
-function scalingRatio(small: string, large: string): number {
-  const repetitions = repetitionsFor(small);
-  let fastestSmall = Number.POSITIVE_INFINITY;
-  let fastestLarge = Number.POSITIVE_INFINITY;
-  for (let run = 0; run < LINEAR_RUNS; run += 1) {
-    fastestSmall = Math.min(fastestSmall, elapsedMs(small, repetitions));
-    fastestLarge = Math.min(fastestLarge, elapsedMs(large, repetitions));
-  }
-  return fastestLarge / fastestSmall;
-}
 
 function tokens(value: string): readonly string[] {
   return segmentValue(value)
@@ -226,7 +195,7 @@ describe("segmentValue", () => {
         .map((segment) => segment.text)
         .join(""),
     ).toBe(large);
-    expect(scalingRatio(small, large)).toBeLessThan(LINEAR_MAX_RATIO);
+    expect(cpuScalingRatio(segmentValue, small, large)).toBeLessThan(LINEAR_MAX_RATIO);
   });
 
   it("treats an unbalanced brace as plain text", () => {
