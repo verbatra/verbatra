@@ -369,6 +369,14 @@ function resolveCommandName(program: Command, argv: readonly string[]): string |
 
 const PROTOCOL_STDOUT_COMMANDS: ReadonlySet<string> = new Set(["mcp"]);
 
+const UNKNOWN_JSON_OPTION = "error: unknown option '--json'";
+
+function writeUnlessJsonRefusal(message: string, write: (text: string) => void): void {
+  if (!message.startsWith(UNKNOWN_JSON_OPTION)) {
+    write(message);
+  }
+}
+
 function renderUsageFailureExit2(
   error: CommanderError,
   program: Command,
@@ -1723,6 +1731,7 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
       "--allow-spend",
       "advertise the tools that call a translation provider (also: VERBATRA_MCP_ALLOW_SPEND)",
     )
+    .configureOutput({ outputError: writeUnlessJsonRefusal })
     .action(async (opts: unknown) => {
       ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
     })
