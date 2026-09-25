@@ -8,9 +8,10 @@ import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { baselineFor, lockFilePath, readLockFile } from "../lock/lock-file.js";
+import { baselineFor } from "../lock/lock-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { branchArmProblems } from "./integrity-gate.js";
+import { readCarriedOverLock } from "./locale-carry-over.js";
 import { judgeEntryMarkup } from "./markup-verdict.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
@@ -208,10 +209,11 @@ export async function keyIntegrity(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const lock = await readLockFile(lockFilePath(cwd), fs);
+  const locales = selectLocales(config, input.locales);
+  const lock = await readCarriedOverLock(cwd, fs, locales);
 
   return Promise.all(
-    selectLocales(config, input.locales).map(async (locale) => {
+    locales.map(async (locale) => {
       const target = await readTargetResource({
         resolver,
         format: config.format,

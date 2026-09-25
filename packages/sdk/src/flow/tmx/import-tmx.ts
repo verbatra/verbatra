@@ -12,7 +12,6 @@ import { type FingerprintFor, fingerprintsFor } from "../../cache/fingerprint.js
 import {
   applyAdditions,
   cacheFilePath,
-  readTranslationMemory,
   writeTranslationMemory,
 } from "../../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../../cache/types.js";
@@ -25,6 +24,7 @@ import {
   type IntegrityGateReason,
   type IntegrityGateRejection,
 } from "../integrity-gate.js";
+import { readCarriedOverMemory } from "../locale-carry-over.js";
 import { selectLocales } from "../select-locales.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
@@ -613,7 +613,7 @@ export async function importTmx(
   const file = resolve(cwd, input.file);
   const document = parse(await readTmxText(file, fs), file);
 
-  const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
+  const { memory, writable } = await readCarriedOverMemory(cwd, fs, locales);
   const fingerprintFor = fingerprintsFor(input.config);
   const ctx: ApplyContext = {
     memory,

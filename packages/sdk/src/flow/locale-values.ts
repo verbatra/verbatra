@@ -3,9 +3,10 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { type KeyProvenance, keyProvenance, readLocaleProvenance } from "../lock/key-provenance.js";
+import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
 import type { ProvenanceRecord } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { readCarriedOverProvenance } from "./locale-carry-over.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
@@ -141,10 +142,11 @@ export async function localeValues(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const provenanceFor = await readLocaleProvenance(cwd, fs);
+  const locales = selectLocales(config, input.locales);
+  const provenanceFor = await readCarriedOverProvenance(cwd, fs, locales);
 
   return Promise.all(
-    selectLocales(config, input.locales).map(async (locale) => {
+    locales.map(async (locale) => {
       const target = await readTargetResource({
         resolver,
         format: config.format,

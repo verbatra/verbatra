@@ -13,6 +13,7 @@ import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import { assertNotPinned, protectionPolicy } from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
@@ -128,6 +129,9 @@ export type EditEntryResult =
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
+ * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
+ * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
+ * written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
@@ -166,6 +170,7 @@ export async function editEntry(
     assertNotPinned(protectionPolicy(config), input.key);
   }
   await assertProvenanceReadable(cwd, fs);
+  await carryOverBeforeWrite(cwd, fs, locale);
 
   return withLocaleWriteLock(cwd, writeLockKeyFor(config.format, locale), fs, async () => {
     const target = await readTarget(cwd, config, adapter, fs, locale);

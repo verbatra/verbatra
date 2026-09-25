@@ -31,6 +31,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import {
   assertNotPinned,
   assertNotProtected,
@@ -300,6 +301,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
+ * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
+ * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
+ * written.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
@@ -345,6 +349,7 @@ export async function retranslateEntry(
     network: config.network,
   });
   await assertProvenanceReadable(cwd, fs);
+  await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 
   return withLocaleWriteLock(
     cwd,
