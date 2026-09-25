@@ -13,6 +13,7 @@ and `watch` show the locale, batch, provider retry, repair round, split retry an
 happen (piped and CI output as one plain line each), `translate` ends with its elapsed time and
 token count, `watch` names the change it picked up, and `export`, `import`, `tmx import`, `diff`,
 `pseudo`, `types`, `extract` and `translate` end with a `next:` hint that repeats `--cwd` and
-`--config` (quoted when a shell would split them) and names the file relative to `--cwd`.
+`--config` (quoted when a shell would split them), names the file relative to `--cwd`, and keeps
+the `--format` of a `csv` or `tsv` export or import so the suggested `import` runs as printed.
 stdout and `--json` output are unchanged, and
 `--quiet` drops the new lines.
