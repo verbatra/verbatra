@@ -1460,7 +1460,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `LOCK_FILE_INVALID` | the lock file is present but corrupt, oversized, or at an unsupported version |
 | `PROVENANCE_FILE_INVALID` | the provenance file is present but corrupt, oversized, or structurally wrong; thrown by a write (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) before it changes anything, and by `loadProvenance`, never by a report; one from a newer verbatra is left untouched instead, and `translate`, `watch`, and `importWorkbook` report the notice `PROVENANCE_VERSION_UNRECOGNIZED` |
 | `PROVENANCE_FILE_UNWRITABLE` | a review decision could not be saved because the provenance file is from a newer verbatra or would grow past the size verbatra reads back (`approveEntry`, `rejectEntry`); nothing is written |
-| `REVIEW_VALUE_CHANGED` | the key has no value, or its value is not the `expectedValue` the reviewer saw (`approveEntry`, `rejectEntry`) |
+| `REVIEW_VALUE_CHANGED` | the key has no value, or its value is not the `expectedValue` the reviewer saw, or `expectedValue` is not a string (`approveEntry`, `rejectEntry`) |
 | `REVIEW_SOURCE_CHANGED` | the source changed since the value was written, so it cannot be approved as it stands (`approveEntry`) |
 | `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF does, or the locale file is too large to keep a copy to restore, so `rejectEntry` left the file as it was |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` failed after it rewrote the locale file, and restoring the locale file or the provenance file failed too; the message names the original failure (also the `cause`) and the files to restore from version control |
