@@ -17,6 +17,8 @@ import type { AnthropicConfig } from "./config.js";
 import { SYSTEM_RULES } from "./request.js";
 import type { MessagesClient } from "./types.js";
 
+class APIConnectionTimeoutError extends Error {}
+
 const config: AnthropicConfig = { model: "claude-test-model", maxTokens: 1024 };
 
 function request(overrides: Partial<TranslateRequest> = {}): TranslateRequest {
@@ -304,55 +306,53 @@ describe("createAnthropicProvider: cancellation", () => {
     expect(composed?.aborted).toBe(true);
   });
 
-  it("still passes a live, unaborted signal to the SDK when the request carries none", async () => {
-    const seen: Array<AbortSignal | undefined> = [];
+  it("passes the per-attempt timeout and no signal to the SDK when the request carries none", async () => {
+    const seen: Array<Parameters<MessagesClient["messages"]["create"]>[1]> = [];
     const client: MessagesClient = {
       messages: {
         create: async (_body, options) => {
-          seen.push(options?.signal);
+          seen.push(options);
           return toolMessage([{ key: "greeting", value: "Hallo {{name}}" }]);
         },
       },
     };
     await createAnthropicProvider(config, { client }).translateBatch(request());
-    expect(seen[0]).toBeInstanceOf(AbortSignal);
-    expect(seen[0]?.aborted).toBe(false);
+    expect(seen[0]).toEqual({ timeout: 120_000 });
   });
 
-  it("rejects with a retriable TIMEOUT ProviderError when the configured timeout elapses", async () => {
-    vi.useFakeTimers();
-    try {
-      const client: MessagesClient = {
-        messages: { create: () => new Promise<never>(() => {}) },
-      };
-      const provider = createAnthropicProvider({ ...config, requestTimeoutMs: 5000 }, { client });
-      const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
-      await vi.advanceTimersByTimeAsync(5000);
-      const error = await rejection;
-      expect(error).toBeInstanceOf(ProviderError);
-      expect((error as ProviderError).code).toBe("TIMEOUT");
-      expect((error as ProviderError).message).toContain("5000");
-    } finally {
-      vi.useRealTimers();
-    }
+  it("hands the configured timeout to the SDK as a per-attempt timeout and names it when an attempt times out", async () => {
+    const seen: Array<Parameters<MessagesClient["messages"]["create"]>[1]> = [];
+    const client: MessagesClient = {
+      messages: {
+        create: (_body, options) => {
+          seen.push(options);
+          return Promise.reject(new APIConnectionTimeoutError());
+        },
+      },
+    };
+    const provider = createAnthropicProvider({ ...config, requestTimeoutMs: 5000 }, { client });
+    const error = await provider.translateBatch(request()).catch((caught: unknown) => caught);
+    expect(seen[0]).toEqual({ timeout: 5000 });
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("TIMEOUT");
+    expect((error as ProviderError).message).toContain("5000");
   });
 
-  it("applies the shared default timeout when the config omits requestTimeoutMs", async () => {
-    vi.useFakeTimers();
-    try {
-      const client: MessagesClient = {
-        messages: { create: () => new Promise<never>(() => {}) },
-      };
-      const provider = createAnthropicProvider(config, { client });
-      const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
-      await vi.advanceTimersByTimeAsync(120_000);
-      const error = await rejection;
-      expect(error).toBeInstanceOf(ProviderError);
-      expect((error as ProviderError).code).toBe("TIMEOUT");
-      expect((error as ProviderError).message).toContain("120000");
-    } finally {
-      vi.useRealTimers();
-    }
+  it("forwards the caller signal next to the timeout", async () => {
+    const controller = new AbortController();
+    const seen: Array<Parameters<MessagesClient["messages"]["create"]>[1]> = [];
+    const client: MessagesClient = {
+      messages: {
+        create: async (_body, options) => {
+          seen.push(options);
+          return toolMessage([{ key: "greeting", value: "Hallo {{name}}" }]);
+        },
+      },
+    };
+    await createAnthropicProvider(config, { client }).translateBatch(
+      request({ signal: controller.signal }),
+    );
+    expect(seen[0]).toEqual({ signal: controller.signal, timeout: 120_000 });
   });
 
   it("re-throws an abort unwrapped instead of a ProviderError", async () => {

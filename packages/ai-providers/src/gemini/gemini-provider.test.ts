@@ -452,7 +452,8 @@ describe("createGeminiProvider: cancellation", () => {
     } catch (error) {
       caught = error;
     }
-    expect(caught).toBe(sentinel);
+    expect(caught).toBe(controller.signal.reason);
+    expect(caught).not.toBeInstanceOf(ProviderError);
   });
 });
 
@@ -468,5 +469,75 @@ describe("createGeminiProvider: registry", () => {
     if (resolved.status === "resolved") {
       expect(resolved.provider.id).toBe("gemini");
     }
+  });
+});
+
+describe("createGeminiProvider: the request timeout bounds each attempt", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  function statusError(status: number): Error {
+    return Object.assign(new Error("upstream"), { status });
+  }
+
+  it("reports the final 503 after its retries, although attempts and backoff together exceed the timeout", async () => {
+    const generateContent = vi.fn(
+      () =>
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(statusError(503)), 800);
+        }),
+    );
+    const provider = createGeminiProvider(
+      { ...config, requestTimeoutMs: 1000 },
+      { client: { models: { generateContent } }, retry: { attempts: 3, baseDelayMs: 250 } },
+    );
+    const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(5000);
+    const error = await rejection;
+    expect(generateContent).toHaveBeenCalledTimes(3);
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("PROVIDER_UNAVAILABLE");
+  });
+
+  it("reports a 429 as RATE_LIMITED rather than a timeout", async () => {
+    const generateContent = vi.fn(() => Promise.reject(statusError(429)));
+    const retries: number[] = [];
+    const provider = createGeminiProvider(
+      { ...config, requestTimeoutMs: 100 },
+      {
+        client: { models: { generateContent } },
+        retry: { attempts: 3, baseDelayMs: 250 },
+        onRetry: (retry) => retries.push(retry.attempt),
+      },
+    );
+    const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await rejection).toMatchObject({ code: "RATE_LIMITED" });
+    expect(retries).toEqual([2, 3]);
+  });
+
+  it("gives every attempt a fresh bound and times out the one that hangs", async () => {
+    const generateContent = vi
+      .fn<GeminiClient["models"]["generateContent"]>()
+      .mockImplementationOnce(() => Promise.reject(statusError(503)))
+      .mockImplementationOnce(() => new Promise<never>(() => {}));
+    const provider = createGeminiProvider(
+      { ...config, requestTimeoutMs: 1000 },
+      { client: { models: { generateContent } }, retry: { attempts: 3, baseDelayMs: 250 } },
+    );
+    const rejection = provider.translateBatch(request()).catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(250);
+    expect(generateContent).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(999);
+    let settled = false;
+    void rejection.then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    const error = await rejection;
+    expect(error).toMatchObject({ code: "TIMEOUT" });
+    expect((error as ProviderError).message).toContain("1000");
   });
 });

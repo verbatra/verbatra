@@ -4,7 +4,7 @@ import { toUsage as toUsageFromCounts } from "../llm/usage.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider, Usage } from "../provider.js";
 import type { ProviderRetryListener } from "../provider-retry.js";
-import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
+import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import { type AnthropicConfig, anthropicConfigSchema } from "./config.js";
 import { type BuiltRequest, buildRequest } from "./request.js";
@@ -55,8 +55,8 @@ function callClient(
   timeoutMs: number,
   signal: AbortSignal | undefined,
 ): Promise<AnthropicMessage> {
-  return withRequestTimeout(timeoutMs, signal, (requestSignal) =>
-    client.messages.create(body, { signal: requestSignal }),
+  return withSdkAttemptTimeout(timeoutMs, signal, (options) =>
+    client.messages.create(body, options),
   );
 }
 

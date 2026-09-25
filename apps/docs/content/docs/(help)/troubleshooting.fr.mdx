@@ -150,8 +150,8 @@ quand la limite est un quota strict par minute ou par jour.
 `AUTH_FAILED` ne se résout pas en réessayant : remplace la clé derrière la
 variable d'environnement. Un `maxBatchSize` plus petit réduit aussi le rayon d'impact d'une seule
 requête échouée. Quand `TIMEOUT` devient la règle plutôt qu'un accroc (un modèle local lent, ou de
-gros lots), augmente `requestTimeoutMs` dans les options du fournisseur : il borne chaque requête à
-deux minutes par défaut. Voir [Délai de requête](/docs/providers#délai-de-requête).
+gros lots), augmente `requestTimeoutMs` dans les options du fournisseur : il borne chaque tentative d'une
+requête à deux minutes par défaut. Voir [Délai de requête](/docs/providers#délai-de-requête).
 
 ## Le fichier de verrouillage est corrompu (LOCK_FILE_INVALID)
 
