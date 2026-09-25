@@ -159,6 +159,29 @@ describe("mcp: --json is refused without touching stdout", () => {
     expect(calls.importMcp).toHaveLength(0);
   });
 
+  it("prints exactly one error line, without commander's own unknown-option line", async () => {
+    const cap = captureStreams();
+
+    await run(["mcp", "--json"], recordingDeps().deps, cap.streams);
+
+    const lines = cap
+      .err()
+      .split("\n")
+      .filter((line) => line.trim() !== "");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatch(/^verbatra: error \[USAGE_ERROR\] mcp does not take --json/);
+  });
+
+  it("still reports another unknown mcp option through commander", async () => {
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--bogus"], recordingDeps().deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.out()).toBe("");
+    expect(cap.err()).toContain("error: unknown option '--bogus'");
+  });
+
   it("keeps the envelope for another command's usage error under --json", async () => {
     const cap = captureStreams();
 

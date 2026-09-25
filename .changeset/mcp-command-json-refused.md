@@ -8,5 +8,5 @@ Previously `verbatra mcp --json` failed as an unknown option and, because `--jso
 command line, printed an `ok: false` JSON envelope to stdout, the stream an MCP client reads as
 protocol messages.
 
-Now it exits 2 with a `USAGE_ERROR` line on stderr explaining that `mcp` takes no `--json`, and
-stdout stays empty.
+Now it exits 2 with a single `USAGE_ERROR` line on stderr explaining that `mcp` takes no `--json`,
+without commander's own `unknown option` line, and stdout stays empty.
