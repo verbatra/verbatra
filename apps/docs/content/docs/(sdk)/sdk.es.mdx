@@ -1014,7 +1014,7 @@ Resuelve la parte de un glosario que se aplica a un locale de destino:
 `target` del locale (su propia entrada, luego la de su idioma base, luego la compartida), sus
 traducciones `forbidden`, `caseSensitive`, y su `note` y `partOfSpeech`, o `undefined` cuando nada
 del glosario se aplica allí. Es exactamente lo que una petición de traducción a ese locale lleva como
-`TranslateRequest.glossary`, y lo que ven las comprobaciones de revisión y la huella de caché de
+[`TranslateRequest.glossary`](#proveedores-propios), y lo que ven las comprobaciones de revisión y la huella de caché de
 ese locale.
 
 ### glossaryHits
@@ -1352,6 +1352,61 @@ archivo de glosario que nombre la configuración a través de su propia opción 
 `deps.fs` que recibe un flujo posterior no alcanza ninguna de las dos lecturas. Para mantener un
 proyecto entero en memoria, pasa el mismo `SdkFs` como `loadConfig({ fs })` y entrega la
 configuración como `configOverride` en lugar de como archivo.
+
+## Proveedores propios
+
+<AvailableFrom version="0.12.0" />
+
+Un proveedor que el SDK no incluye se conecta mediante `deps.createProvider`, un `CreateProvider`
+que devuelve un `TranslationProvider`. El SDK exporta el contrato completo como tipos, así que tu
+proveedor se comprueba contra la misma interfaz que implementan los integrados.
+
+```ts
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/sdk";
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` es el único contrato: `id`, `kind` (un `ProviderKind`), `supportsGlossary`
+  y `translateBatch(request)`. Trata cada valor de una solicitud como datos no confiables, lee
+  cualquier clave de API del entorno y no de la solicitud, y lanza un `ProviderError` sin secretos
+  cuando una llamada falla.
+- `ProviderKind` es `"llm"` o `"machine-translation"`. Es solo descriptivo: nada en el SDK se
+  ramifica según su valor.
+- `TranslateRequest` lleva `sourceLocale`, `targetLocale`, las `entries` que traducir y, de forma
+  opcional, `glossary` (el resultado de [`glossaryForLocale`](#glossaryforlocale) para la locale de
+  destino), `tone`, `maxLength` y `pluralCategories`. También lleva `extractPlaceholders` y, en
+  algunos formatos, `comparePlaceholders`, que tu proveedor usa para la comprobación de integridad,
+  además de `signal`, que cancela una llamada en curso, y `onRepair`.
+- `TranslateResult` devuelve `values` e `integrity` por clave, más `usage`, `notices` y
+  `reviewFlags` opcionales. Una clave ausente de `values` cuenta como no traducida, así que un
+  proveedor puede omitir un valor que no puede traducir con seguridad. En cualquier caso, el SDK
+  pasa cada valor devuelto por su propia comprobación de integridad.
+- `ProviderRetryListener` es el tipo de `CreateProviderHooks.onRetry`. Recibe un `ProviderRetry`,
+  `{ attempt, delayMs?, status? }`, por reintento, y cada llamada se convierte en un
+  [evento de progreso](#eventos-de-progreso) `provider-retry`.
+- `ProviderNetwork` es lo que contiene `CreateProviderContext.network` cuando la política de red
+  limita a dónde puede conectarse un proveedor: la `policy` efectiva, el `env` desde el que se
+  resolvió el endpoint y `deps` opcionales para pruebas. Un proveedor propio puede ignorarlo, pero
+  entonces a sus solicitudes solo se aplica la comprobación que hace el SDK antes de llamar a la
+  fábrica.
 
 ## La anatomía de RunSummary
 

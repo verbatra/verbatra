@@ -1044,7 +1044,7 @@ Löst den Teil eines Glossars auf, der für eine Ziel-Locale gilt:
 mit dem `target` der Locale (ihr eigener Eintrag, dann der ihrer Basissprache, dann der gemeinsame),
 seinen `forbidden`-Wiedergaben, `caseSensitive` sowie `note` und `partOfSpeech`, oder `undefined`,
 wenn nichts im Glossar dort gilt. Genau das trägt eine Übersetzungsanfrage in diese Locale als
-`TranslateRequest.glossary`, und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
+[`TranslateRequest.glossary`](#eigene-provider), und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
 dieser Locale.
 
 ### glossaryHits
@@ -1384,6 +1384,61 @@ Platte und eine Glossardatei, die die Konfiguration nennt, über ihre eigene Opt
 `deps.fs` eines späteren Flows erreicht also keinen der beiden Lesevorgänge. Um ein ganzes Projekt
 im Speicher zu halten, übergib dasselbe `SdkFs` als `loadConfig({ fs })` und reich die
 Konfiguration als `configOverride` statt als Datei herein.
+
+## Eigene Provider
+
+<AvailableFrom version="0.12.0" />
+
+Einen Provider, den das SDK nicht mitbringt, hängst du über `deps.createProvider` an: eine
+`CreateProvider`-Fabrik, die einen `TranslationProvider` zurückgibt. Das SDK exportiert den ganzen
+Vertrag als Typen, also prüft TypeScript deinen Provider gegen dasselbe Interface, das die
+eingebauten Provider implementieren.
+
+```ts
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/sdk";
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` ist der eine Vertrag: `id`, `kind` (ein `ProviderKind`), `supportsGlossary`
+  und `translateBatch(request)`. Behandle jeden Wert in einer Anfrage als nicht vertrauenswürdige
+  Daten, lies einen API-Key aus der Umgebung statt aus der Anfrage und wirf bei einem Fehlschlag
+  einen `ProviderError` ohne Secrets darin.
+- `ProviderKind` ist `"llm"` oder `"machine-translation"`. Der Wert ist rein beschreibend: Nichts im
+  SDK verzweigt danach.
+- `TranslateRequest` enthält `sourceLocale`, `targetLocale`, die zu übersetzenden `entries` und
+  optional `glossary` (das Ergebnis von [`glossaryForLocale`](#glossaryforlocale) für die
+  Ziel-Locale), `tone`, `maxLength` und `pluralCategories`. Dazu kommen `extractPlaceholders` und
+  bei manchen Formaten `comparePlaceholders`, die dein Provider für die Integritätsprüfung nutzt,
+  außerdem `signal`, das einen laufenden Aufruf abbricht, und `onRepair`.
+- `TranslateResult` liefert `values` und `integrity` nach Schlüssel, dazu optional `usage`,
+  `notices` und `reviewFlags`. Ein Schlüssel, der in `values` fehlt, gilt als nicht übersetzt, also
+  kann ein Provider einen Wert weglassen, den er nicht sicher übersetzen kann. Das SDK lässt jeden
+  zurückgegebenen Wert ohnehin durch sein eigenes Integritäts-Gate laufen.
+- `ProviderRetryListener` ist der Typ von `CreateProviderHooks.onRetry`. Er erhält pro
+  Wiederholung ein `ProviderRetry`, `{ attempt, delayMs?, status? }`, und jeder Aufruf wird zu einem
+  `provider-retry`-[Fortschrittsereignis](#fortschrittsereignisse).
+- `ProviderNetwork` steht in `CreateProviderContext.network`, wenn die Netzwerk-Policy einschränkt,
+  wohin ein Provider sich verbinden darf: die wirksame `policy`, die Umgebung `env`, aus der der
+  Endpunkt aufgelöst wurde, und optionale Test-`deps`. Ein eigener Provider darf das ignorieren,
+  dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Fabrik macht.
 
 ## Die Anatomie der RunSummary
 
