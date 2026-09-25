@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -16,6 +16,14 @@ const JAVASCRIPT_TARGET = /\.[cm]?js$/;
 const DECLARATION_SPECIFIER = /(?:from|import)\s*\(?\s*['"](@verbatra\/[a-z-]+)['"]/g;
 
 const DYNAMIC_IMPORT_ONLY_PACKAGES = ["@verbatra/studio", "@verbatra/mcp"];
+
+const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
+
+const ZOD_JITLESS_CONFIG = /\(\{\s*jitless\s*:\s*(?:!0|true)\s*\}\)/;
+
+function hasZodJitlessConfig(text) {
+  return ZOD_JITLESS_CONFIG.test(text);
+}
 
 function dynamicImportPattern(packageName) {
   return new RegExp(`import\\(\\s*['"]${packageName}['"]\\s*\\)`);
@@ -162,7 +170,32 @@ function checkStudioBundle() {
       );
     }
   }
-  return "the studio and mcp commands survive bundling as runtime dynamic imports.";
+  checkStudioZodJitless();
+  return (
+    "the studio and mcp commands survive bundling as runtime dynamic imports, and the Studio " +
+    "client bundle keeps its zod jitless config."
+  );
+}
+
+function checkStudioZodJitless() {
+  const assetsDir = resolve(REPO_ROOT, STUDIO_APP_ASSETS);
+  if (!existsSync(assetsDir)) {
+    throw new Error(`expected build output ${STUDIO_APP_ASSETS} is missing. Run the build first.`);
+  }
+  const scripts = readdirSync(assetsDir).filter((name) => name.endsWith(".js"));
+  if (scripts.length === 0) {
+    throw new Error(`${STUDIO_APP_ASSETS} holds no JavaScript bundle. Run the build first.`);
+  }
+  const configured = scripts.some((name) =>
+    hasZodJitlessConfig(readBuildOutput(`${STUDIO_APP_ASSETS}/${name}`)),
+  );
+  if (!configured) {
+    throw new Error(
+      `${STUDIO_APP_ASSETS} has no z.config({ jitless: true }) call, so zod probes for eval under ` +
+        "the dashboard's script-src 'self' policy. Check that packages/studio/package.json " +
+        "sideEffects keeps src/app/zod-jitless.ts.",
+    );
+  }
 }
 
 function getConfigSchemaFilesPattern(document) {
@@ -224,5 +257,6 @@ export {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
+  hasZodJitlessConfig,
   staticImportPattern,
 };

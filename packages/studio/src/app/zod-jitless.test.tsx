@@ -12,4 +12,11 @@ describe("zod in the Studio client", () => {
     const main = readFileSync(new URL("./main.tsx", import.meta.url), "utf8");
     expect(main.split("\n")[0]).toBe('import "./zod-jitless.js";');
   });
+
+  it("is declared a side effect, so the bundler keeps the bare import in the production build", () => {
+    const manifest: unknown = JSON.parse(
+      readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+    );
+    expect(manifest).toMatchObject({ sideEffects: ["./src/app/zod-jitless.ts"] });
+  });
 });
