@@ -79,7 +79,9 @@ same files in step 3. What you found here is what you check its result against.
 npm install --save-dev @verbatra/cli
 
 pnpm and yarn work too. With pnpm, if it exits with `ERR_PNPM_IGNORED_BUILDS`, run
-`pnpm approve-builds` once and approve neither entry.
+`pnpm approve-builds` once and approve neither entry. npm 11 may print a warning
+that some packages have install scripts not yet covered by `allowScripts`; verbatra
+needs none of those scripts, so leave them unapproved and continue.
 
 ## 3. Scaffold the config, non-interactively
 
@@ -97,8 +99,11 @@ server needs a key. Never pass a key value to `init`.
 
 `init` prints one JSON envelope on stdout and never prompts. Branch on its exit code:
 
-- `0`: compare `result.config` (`format`, `files.pattern`, `files.localeStyle`,
-  `sourceLocale`, `targetLocales`) with what you found in step 1. Every entry in
+- `0`: compare `result.config` (`format`, `files.pattern`, `sourceLocale`,
+  `targetLocales`) with what you found in step 1. `result.config.files.localeStyle`
+  is only present when the files do not spell locales as written, such as Android's
+  `values-de` directories; for every other layout, `result.detection.layout` shows
+  the pattern, locale style, and locales the scan found. Every entry in
   `result.sources` that says `default` was not detected, so check it first. If
   anything is wrong, run the same command again with the right `--format`, `--path`,
   `--source`, or `--targets` and add `--force`.
@@ -115,20 +120,7 @@ server needs a key. Never pass a key value to `init`.
 - `2` with code `CONFIG_EXISTS`: this project already has a verbatra config. Do not
   pass `--force` without asking the human first.
 
-## 4. Run doctor and fix until clean
-
-npx verbatra doctor
-
-`doctor` runs nine checks. Six can fail: the config, the format, the provider id, the
-API-key environment variable that provider reads, the network policy, and the source
-file. The last three (plural rules, locale codes, locale state) are informational and
-never fail. It makes no network
-call and reads no key value, only the variable's name. Fix whatever it reports by editing
-`verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
-or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
-it again. Repeat until it passes with no errors.
-
-## 5. Add the API key variable name - never a value
+## 4. Hand the API key to the human - never a value
 
 Skip this step for provider `none`, which reads no key and has no `.env.example`.
 
@@ -136,8 +128,25 @@ cp .env.example .env
 
 Open `.env` and confirm it names the variable from `result.apiKeyEnvVar` in step 3
 (for example `GEMINI_API_KEY`). Do not write, invent, or ask the human to paste a key
-value into anything you output. Leave the value blank and tell the human to fill
-it in themselves, directly in `.env`.
+value into anything you output. Leave the value blank and tell the human which
+variable to fill in themselves, directly in `.env`. Setting the key is their job,
+not yours: carry on with the next steps without waiting for it.
+
+## 5. Run doctor and fix what is yours to fix
+
+npx verbatra doctor --json
+
+`doctor` runs nine checks. Six can fail: the config, the format, the provider id, the
+API-key environment variable that provider reads, the network policy, and the source
+file. The last three (plural rules, locale codes, locale state) are informational and
+never fail. It makes no network
+call and reads no key value, only the variable's name, from the environment or from
+`.env` and `.env.local`. Fix any other failing check by editing
+`verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
+or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
+it again. Repeat until the only failure left, if any, is the `api-key` check. That
+one only passes once the human has set the key from step 4, so do not loop on it:
+remind the human which variable to set and move on.
 
 ## 6. Preview - read-only, no spend
 
@@ -149,7 +158,10 @@ npx verbatra translate --dry-run --json
 
 None of the three calls a provider, needs a key, or writes a file. `check` gives
 per-locale counts, `diff` names the exact keys, and `translate --dry-run` gives the
-full run summary a real run would produce.
+full run summary a real run would produce. `check` and `diff` exit `1` when a locale
+is not in sync, which is the expected answer before a first run, not a failure; only
+exit `2` means a setup problem. With provider `none`, `translate --dry-run` exits `3`
+when keys are left for a human translator, which is also expected.
 
 Before you go further, know how verbatra treats what is already there: it never
 overwrites or retranslates an existing value. A source key the target file already
