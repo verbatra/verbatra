@@ -87,7 +87,7 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     expect(cap.out()).toContain(
       "[fail] Source locale file: The source locale file was not found at /proj/locales/en.json.",
     );
-    expect(cap.out()).toContain("2 problems found");
+    expect(cap.out()).toContain("2 problems found (run verbatra doctor again after fixing them)");
   });
 
   it("counts a single problem in the singular", async () => {
@@ -101,7 +101,7 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     const cap = captureStreams();
 
     expect(await run(["doctor"], deps, cap.streams)).toBe(1);
-    expect(cap.out()).toContain("1 problem found");
+    expect(cap.out()).toContain("1 problem found (run verbatra doctor again after fixing it)");
   });
 
   it("renders skipped checks distinctly from failed ones", async () => {
