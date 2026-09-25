@@ -386,7 +386,7 @@ Datei beschädigt ist oder von einem neueren verbatra stammt.
 
 <AvailableFrom version="0.12.0" />
 
-Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer fehlenden und veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde. Sie zählen weiter als fehlend oder veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Ist `verbatra.provenance.json` beschädigt oder von einem neueren verbatra, lässt sich keine Herkunft lesen, und nur gepinnte Keys werden gezählt.
+Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde: der geschützte Anteil von `stale`. Ein fehlender gepinnter Key hat noch keinen Wert, den es zu schützen gibt, und zählt nur als fehlend. Sie zählen weiter als veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Ist `verbatra.provenance.json` beschädigt oder von einem neueren verbatra, lässt sich keine Herkunft lesen, und nur gepinnte Keys werden gezählt.
 
 <AvailableFrom version="0.12.0" />
 
@@ -578,7 +578,7 @@ durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irg
 erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
 Schreibsperre dieser Locale aktualisiert. Ruft nie einen Provider auf.
 
-Eingabe: `{ config, cwd?, locale, key, value }`. Gibt ein zweiarmiges Ergebnis zurück:
+Eingabe: `{ config, cwd?, locale, key, value, actor? }`. Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
 wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert
@@ -659,6 +659,13 @@ Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lo
 nur dass eine veraltete Quelle eine Ablehnung nicht verhindert. Gibt `{ locale, key, provenance }`
 zurück. Ein Format, das einen Key behält, den es nicht übergeben bekommt, XLIFF, wirft
 `REVIEW_REJECT_UNSUPPORTED`, nachdem es die Datei wiederhergestellt hat.
+
+Beide Aufrufe nehmen die Schreibsperre der Locale. `lockAcquireTimeoutMs` begrenzt das Warten
+darauf (standardmäßig zehn Minuten) und scheitert mit `LOCK_CONTENDED`, wenn die Zeit abläuft, und
+`onLockWait` meldet dieses Warten; ein Wert, der keine ganze Zahl von mindestens 0 Millisekunden
+ist, wirft `LOCK_TIMEOUT_INVALID`, bevor irgendetwas gelesen wird. Die Wartezeit begrenzt nicht die
+Sperre der Lock-Datei, die zum Festhalten der Entscheidung genommen wird: Die erlaubt immer die
+zehn Minuten des Standards.
 
 Beide Aufrufe prüfen die Herkunftsdatei, bevor etwas geschrieben wird, und melden nie eine
 Entscheidung, die sie nicht speichern konnten: Eine Datei aus einem neueren verbatra, oder eine, die
@@ -1452,7 +1459,8 @@ Die Teile, die du kennen solltest:
   tokensUsed, exceeded }`. `supported` sagt, ob `tokensUsed` vollständig der vom Provider selbst
   gemeldete Verbrauch ist; es ist `false`, sobald eine Anfrage ohne brauchbare Zahl zurückkam, und
   die Summe ist dann teils verbatras Projektion, die genauso gezählt und durchgesetzt wird. Ein
-  Dry-Run meldet es mit `tokensUsed: 0`, weil nichts gesendet wurde. Unter `behavior: "stop"` wird
+  Dry-Run, oder jeder Lauf ohne Anfrage, meldet `supported: true` mit `tokensUsed: 0`: Es wurde
+  nichts gesendet, also nichts projiziert. Unter `behavior: "stop"` wird
   die Obergrenze vor jeder Anfrage geprüft, die der Lauf sendet, auch vor jeder Hälfte einer neu
   aufgeteilten Anfrage. `tokensUsed` landet also auf oder unter `maxTokens`, bis auf einen Rest: Die
   zuletzt zugelassene Anfrage wird auf das abgeglichen, was der Provider gemeldet hat, was die Summe
@@ -1531,7 +1539,7 @@ geworfen.
 | `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor eine Locale läuft |
 | `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während ein Token-Budget gilt, konfiguriert oder für den Lauf; wird geworfen, bevor irgendein Provider-Aufruf stattfindet (ein Dry-Run ist ausgenommen) |
 | `MAX_TOKENS_INVALID` | das `maxTokens` pro Lauf von `translate` wurde gesetzt, ist aber keine ganze Zahl von mindestens 1; wird geworfen, bevor irgendetwas gelesen oder ausgegeben wird |
-| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` wurde gesetzt, ist aber keine ganze Zahl von mindestens 0 Millisekunden (`translate`, `watch` beim Start, `importWorkbook`, `retranslateEntry`, `retranslateEntries`); wird geworfen, bevor irgendetwas gelesen oder gesperrt wird |
+| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` wurde gesetzt, ist aber keine ganze Zahl von mindestens 0 Millisekunden (`translate`, `watch` beim Start, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); wird geworfen, bevor irgendetwas gelesen oder gesperrt wird |
 | `TARGET_UNWRITABLE` | eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt |
 | `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` wurde nach einer Pseudo-Locale gefragt, die eine konfigurierte Locale benennt, oder nach einem Ausgabepfad, der auf eine konfigurierte Locale-Datei oder außerhalb von `cwd` schreiben würde, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor irgendetwas gelesen oder geschrieben wird |
 | `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |

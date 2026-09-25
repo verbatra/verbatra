@@ -13,7 +13,7 @@ describe("usage.summary", () => {
 
   it("does not call a run that counted nothing an estimate", () => {
     expect(usageSummaryTool.description).toContain(
-      "false with tokensUsed 0 when the run sent no request at all, which is no estimate",
+      "true with tokensUsed 0 when the run sent no request at all, since nothing was estimated",
     );
   });
 

@@ -24,8 +24,9 @@ values. To get the previous behavior back, set `humanEdits: "overwrite"` in the 
   overrides the config for one run. `retranslateEntry` refuses a protected value with the new
   `KEY_PROTECTED` code unless `includeHuman` is set or the config says `overwrite`, and refuses a
   pinned key with the new `KEY_PINNED` code; `editEntry` refuses a pinned key for the `agent` actor.
-  `LocaleCheckSummary.protected` and `LocaleDiff.protected` report the keys a run would leave
-  alone, only the pinned ones when the provenance file cannot be read. When `verbatra.provenance.json` was written by a newer verbatra, every stale key with a
+  `LocaleDiff.protected` lists the keys a run would leave alone, and
+  `LocaleCheckSummary.protected` counts those among the stale keys, so a missing pinned key counts
+  only as missing; both cover only the pinned keys when the provenance file cannot be read. When `verbatra.provenance.json` was written by a newer verbatra, every stale key with a
   value is protected. A dry run reads the provenance file unless `humanEdits` is `overwrite`,
   so a corrupt file fails it with `PROVENANCE_FILE_INVALID` as it fails a live run.
   `LocaleSummary.protected` is a new required field, so code that builds a `LocaleSummary` by hand

@@ -103,8 +103,8 @@ export interface RunBudget {
    * Whether {@link tokensUsed} is entirely the provider's own reported usage. False as soon as one
    * counted request came back without a usable figure, so the total is partly verbatra's own
    * projection: a machine-translation API reports none at all, and a failed or truncated request
-   * reports none either. Also false when the run sent no request at all, a dry run included, in
-   * which case nothing was counted. The budget is enforced either way.
+   * reports none either. True when the run sent no request at all, a dry run included: nothing was
+   * counted, so nothing was projected. The budget is enforced either way.
    */
   readonly supported: boolean;
   /**

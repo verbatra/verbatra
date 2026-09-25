@@ -539,7 +539,7 @@ describe("translate: token-less provider with a configured budget", () => {
     expect(summary.budget).toEqual({
       maxTokens: 1,
       behavior: "warn",
-      supported: false,
+      supported: true,
       tokensUsed: 0,
       exceeded: false,
     });
