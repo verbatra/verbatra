@@ -444,6 +444,7 @@ export type {
   SubBatchProgressEvent,
   WritingEvent,
 } from "./progress/types.js";
+export { projectRelativeMessage } from "./project-relative.js";
 export { redact } from "./redact.js";
 export type { RunStatusFile, RunStatusLocale } from "./run-status/types.js";
 export { type ScaffoldableProviderId, scaffoldingMetadata } from "./scaffolding.js";

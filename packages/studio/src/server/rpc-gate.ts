@@ -1,4 +1,4 @@
-import { redact } from "@verbatra/sdk";
+import { projectRelativeMessage, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { entryIdentity, uniqueByIdentity } from "../shared/rpc/entry-identity.js";
@@ -155,7 +155,10 @@ function mapHandlerError(error: unknown, method: RpcMethodName, deps: RpcHandler
   if (isDomainError(error)) {
     return jsonEnvelope(200, {
       ok: false,
-      error: { code: error.code, message: redact(error.message) },
+      error: {
+        code: error.code,
+        message: redact(projectRelativeMessage(error.message, deps.projectRoot)),
+      },
     });
   }
   deps.log?.(studioErrorLine(`${method} failed: ${causeText(error)}`));

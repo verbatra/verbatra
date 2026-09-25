@@ -9,6 +9,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { assertLockAcquireTimeout, type LockWaitListener } from "../lock/locale-write-lock.js";
 import type { ProgressListener } from "../progress/types.js";
+import { projectRelativeMessage } from "../project-relative.js";
 import type { CreateProvider } from "../selection/select-provider.js";
 import { defaultCreateWatcher, defaultRunTranslate } from "./wiring.js";
 
@@ -227,7 +228,11 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
     try {
       input.onRun({ status: "succeeded", summary: await runTranslate(runInput) });
     } catch (error) {
-      input.onRun({ status: "failed", error: describeError(error, "WATCH_RUN_FAILED") });
+      const described = describeError(error, "WATCH_RUN_FAILED");
+      input.onRun({
+        status: "failed",
+        error: { code: described.code, message: projectRelativeMessage(described.message, cwd) },
+      });
     }
   }
 

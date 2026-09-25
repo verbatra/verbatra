@@ -785,6 +785,18 @@ y un estilo que no se pueden combinar, o un locale para el que el estilo no tien
 correcta, lanzan `LOCALE_LAYOUT_INVALID`, y dos locales que resuelven a la misma ruta lanzan
 `LOCALE_PATH_COLLISION`.
 
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` reescribe cada ruta absoluta dentro del proyecto en un mensaje
+como una ruta relativa a la raíz del proyecto: una ruta bajo `cwd` pierde ese prefijo, el propio
+`cwd` pasa a ser `.`, y una ruta fuera del proyecto se queda como está. Cada `error.message` y
+cada mensaje de aviso por locale de un `RunSummary` ya nombra así los archivos del proyecto,
+relativos al `cwd` de la ejecución; llámalo sobre el mensaje de un error que lanza un flujo antes
+de mostrárselo a una persona, a un agente o a una pestaña del navegador. `verbatra mcp` y Studio
+hacen lo mismo con cada error que devuelven.
+
 ## El par del libro
 
 La entrega para traductores humanos, como libro de Excel o como texto delimitado; consulta [Traducción humana](/docs/manual-translation).

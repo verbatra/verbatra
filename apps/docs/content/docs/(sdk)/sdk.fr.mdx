@@ -519,6 +519,18 @@ pattern et un style incompatibles, ou une locale pour laquelle le style n'a pas 
 correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers le même chemin lèvent
 `LOCALE_PATH_COLLISION`.
 
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` réécrit chaque chemin absolu à l'intérieur du projet dans un
+message en chemin relatif à la racine du projet : un chemin sous `cwd` perd ce préfixe, `cwd`
+lui-même devient `.`, et un chemin hors du projet reste tel quel. Chaque `error.message` et chaque
+message de notice par locale d'un `RunSummary` nomme déjà ainsi les fichiers du projet, relatifs
+au `cwd` de l'exécution ; appelle-la sur le message d'une erreur qu'un flux lève avant de le
+montrer à une personne, à un agent ou à un onglet du navigateur. `verbatra mcp` et Studio font de
+même pour chaque erreur qu'ils renvoient.
+
 ## La paire classeur
 
 La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/docs/manual-translation).

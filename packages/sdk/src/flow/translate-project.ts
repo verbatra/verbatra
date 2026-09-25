@@ -72,7 +72,12 @@ import {
   movedFrom,
   withCarryOverNotices,
 } from "./locale-carry-over.js";
-import { failureSummary, isWholeRunError, partition } from "./locale-failure.js";
+import {
+  failureSummary,
+  isWholeRunError,
+  partition,
+  withProjectRelativeMessages,
+} from "./locale-failure.js";
 import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
 import {
   type ProtectionPolicy,
@@ -813,7 +818,7 @@ export async function translate(
     withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance),
     carryOver,
     dryRun,
-  );
+  ).map((summary) => withProjectRelativeMessages(summary, cwd));
   const { succeeded, partial, failed } = partition(locales);
   const usage = summaries.reduce<ReturnType<typeof combineUsage>>(
     (total, summary) => combineUsage(total, summary.usage),

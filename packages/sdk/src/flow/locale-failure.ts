@@ -1,4 +1,5 @@
 import { describeError, SdkError } from "../errors.js";
+import { projectRelativeMessage } from "../project-relative.js";
 import type { FuzzyCacheHit, LocaleSummary } from "./summary.js";
 
 export function failureSummary(locale: string, error: unknown): LocaleSummary {
@@ -23,6 +24,17 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
     malformedRows: [],
     duplicateKeys: [],
     error: describeError(error, "LOCALE_FAILED"),
+  };
+}
+
+export function withProjectRelativeMessages(summary: LocaleSummary, cwd: string): LocaleSummary {
+  const relative = (message: string): string => projectRelativeMessage(message, cwd);
+  return {
+    ...summary,
+    notices: summary.notices.map((notice) => ({ ...notice, message: relative(notice.message) })),
+    ...(summary.error === undefined
+      ? {}
+      : { error: { ...summary.error, message: relative(summary.error.message) } }),
   };
 }
 

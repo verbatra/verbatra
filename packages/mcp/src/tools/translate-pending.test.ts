@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -26,6 +26,19 @@ describe("translation.translatePending", () => {
 
     expect(outcome.kind).toBe("ok");
     expect(outcome).toMatchObject({ result: { succeeded: ["de"] } });
+  });
+
+  it("names a corrupt target file by its project-relative path in the locale's error", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {} });
+    await writeFile(join(dir, "locales", "de.json"), "{ not json", "utf8");
+    const context = makeContext({ cwd: dir, createProvider: () => makeStubProvider() });
+
+    const outcome = await translatePendingTool.execute({}, context);
+
+    expect(outcome.kind).toBe("ok");
+    const message = outcome.kind === "ok" ? JSON.stringify(outcome.result) : "";
+    expect(message).toContain(`at ${join("locales", "de.json")} could not be read`);
+    expect(message).not.toContain(dir);
   });
 
   it("reports each integrity refusal with its reason and details in the declared output", async () => {

@@ -1,5 +1,5 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs } from "../fs.js";
 import { currentHostLiveness } from "../lock/holder-liveness.js";
@@ -85,7 +85,7 @@ describe("translate: lockAcquireTimeoutMs bounds the locale write lock taken bef
     expect(de.status).toBe("failed");
     expect(de.error).toMatchObject({
       code: "LOCK_CONTENDED",
-      message: expect.stringContaining(lockPath),
+      message: expect.stringContaining(`at ${relative(dir, lockPath)}`),
     });
     expect(calls).toHaveLength(0);
     expect(await defaultFs.fileExists(join(dir, "locales", "de.json"))).toBe(false);

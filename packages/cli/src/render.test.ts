@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import process from "node:process";
 import type {
   EstimateCaveatCode,
   LockWaitEvent,
@@ -979,6 +980,20 @@ describe("render: errors", () => {
   it("renderError is a one-line structured message, never a stack", () => {
     expect(renderError({ code: "CONFIG_INVALID", message: "bad" })).toBe(
       "verbatra: error [CONFIG_INVALID] bad",
+    );
+  });
+
+  it("toRenderableError names a file under the working directory by its relative path", () => {
+    const inside = join(process.cwd(), "locales", "de.json");
+    const error = Object.assign(
+      new Error(`The file at ${inside} is bad; ${"/elsewhere/x.json"} too.`),
+      {
+        code: "SOURCE_INVALID",
+      },
+    );
+
+    expect(toRenderableError(error).message).toBe(
+      `The file at ${join("locales", "de.json")} is bad; /elsewhere/x.json too.`,
     );
   });
 

@@ -186,6 +186,25 @@ describe("dispatchRpc envelope", () => {
     });
   });
 
+  it("names a file inside the project by its project-relative path in a domain error", async () => {
+    const result = await dispatchRpc(body({ method: "project.snapshot", params: {} }), deps(), {
+      "project.snapshot": async () => {
+        throw new SdkError(
+          "SOURCE_UNREADABLE",
+          "The source locale file was not found at /project/locales/en.json.",
+        );
+      },
+    });
+
+    expect(await parseBody(result)).toEqual({
+      ok: false,
+      error: {
+        code: "SOURCE_UNREADABLE",
+        message: "The source locale file was not found at locales/en.json.",
+      },
+    });
+  });
+
   it("maps any other handler throw to a constant 500 INTERNAL body with no path substring", async () => {
     const result = await dispatchRpc(body({ method: "project.snapshot", params: {} }), deps(), {
       "project.snapshot": async () => {
