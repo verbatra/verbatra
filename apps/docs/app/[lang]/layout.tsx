@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { JsonLd } from "@/components/json-ld";
+import { pickClientMessages } from "@/lib/client-messages";
 import { LocaleAwareFrameworkProvider } from "@/lib/framework-provider";
 import { i18n, toLocale } from "@/lib/i18n";
 import { i18nConfig } from "@/lib/layout.shared";
@@ -100,7 +101,7 @@ export default async function Layout({
       <body className="flex flex-col min-h-screen">
         <JsonLd data={websiteLd({ lang: locale })} />
         <JsonLd data={organizationLd()} />
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={pickClientMessages(messages)}>
           <LocaleAwareFrameworkProvider>
             <RootProvider theme={{ enabled: false }} i18n={i18nConfig(locale)}>
               {children}
