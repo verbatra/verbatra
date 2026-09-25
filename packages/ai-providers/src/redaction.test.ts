@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/config/scaling";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 import { redactKeys } from "./redaction.js";
@@ -178,10 +179,10 @@ describe("redactKeys: key shapes", () => {
   });
 
   it("returns promptly on long ANSI and percent-encoded near-miss runs (ReDoS-safe)", () => {
-    const nearMiss = `\x1b[${"1;".repeat(20000)}m sk %3D${"%20".repeat(20000)}m`;
-    const start = Date.now();
+    const nearMissOf = (n: number) => `\x1b[${"1;".repeat(n)}m sk %3D${"%20".repeat(n)}m`;
+    const nearMiss = nearMissOf(20000 * LINEAR_SCALE);
     expect(redactKeys(nearMiss)).toBe(nearMiss);
-    expect(Date.now() - start).toBeLessThan(1000);
+    expect(cpuScalingRatio(redactKeys, nearMissOf(20000), nearMiss)).toBeLessThan(LINEAR_MAX_RATIO);
   });
 
   it("redacts a genuine sk-ant key sitting at a word boundary", () => {
@@ -197,11 +198,10 @@ describe("redactKeys: key shapes", () => {
   });
 
   it("returns promptly on a long pathological near-miss input (ReDoS-safe)", () => {
-    const nearMiss = `${"abcdef0123456789".repeat(8000)} sk ${"AIz".repeat(8000)}`;
-    const start = Date.now();
-    const out = redactKeys(nearMiss);
-    expect(Date.now() - start).toBeLessThan(1000);
-    expect(out).toBe(nearMiss);
+    const nearMissOf = (n: number) => `${"abcdef0123456789".repeat(n)} sk ${"AIz".repeat(n)}`;
+    const nearMiss = nearMissOf(8000 * LINEAR_SCALE);
+    expect(redactKeys(nearMiss)).toBe(nearMiss);
+    expect(cpuScalingRatio(redactKeys, nearMissOf(8000), nearMiss)).toBeLessThan(LINEAR_MAX_RATIO);
   });
 });
 

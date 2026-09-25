@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import {
   extractDoubleBracePlaceholders,
@@ -124,8 +125,10 @@ describe("createSingleBraceFabricationComparator: shared by the $t()-free format
 
   it("stays linear on an adversarial pair of values", () => {
     const hostile = "{".repeat(200_000);
-    const start = Date.now();
     expect(compareFlat(hostile, hostile)).toMatchObject({ matches: true });
-    expect(Date.now() - start).toBeLessThan(1000);
+    const compareSelf = (value: string) => compareFlat(value, value);
+    expect(cpuScalingRatio(compareSelf, "{".repeat(25_000), hostile)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });
