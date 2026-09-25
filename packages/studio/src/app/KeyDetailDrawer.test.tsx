@@ -437,6 +437,38 @@ describe("KeyDetailDrawer", () => {
     expect(localeBlocks(view)[1]?.textContent).not.toContain("Retranslate");
   });
 
+  it("reports an integrity defect in a locale where the key is in sync, with retranslate and edit", async () => {
+    stubBackground();
+    const { locale: _locale, ...broken } = integrityEntry("de", {
+      matches: false,
+      missing: ["{{name}}"],
+    });
+    stubRpc({
+      "project.snapshot": capabilities(true, true),
+      "key.value": value("Hello {{name}}", "Hallo"),
+      "locale.integrity": {
+        ok: true,
+        result: { locales: [{ locale: "de", entries: [{ key: KEY, ...broken }] }] },
+      },
+    });
+
+    const view = await renderAsync(
+      <KeyDetailDrawer
+        keyName={KEY}
+        locales={[localeDiff("de", [], [])]}
+        refreshToken={0}
+        onClose={vi.fn()}
+        onEditLocale={vi.fn()}
+      />,
+    );
+    const block = localeBlocks(view)[0];
+
+    expect(block?.textContent).toContain("Placeholder mismatch");
+    expect(block?.textContent).toContain("missing {{name}}");
+    expect(block?.textContent).toContain("Retranslate");
+    expect(block?.textContent).toContain("Edit");
+  });
+
   it("hides the retranslate action when the session may not spend", async () => {
     stubBackground();
     stubRpc({

@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { classifyProviderError } from "./error-classification.js";
 import { ProviderError } from "./errors.js";
-import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "./request-timeout.js";
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  raceAttemptTimeout,
+  withRequestTimeout,
+  withSdkAttemptTimeout,
+} from "./request-timeout.js";
 
 class StatusError extends Error {
   readonly status: number;
@@ -134,5 +139,59 @@ describe("withRequestTimeout: TIMEOUT is a retriable classification", () => {
   it("maps a request-timeout status to TIMEOUT, distinct from the terminal AUTH_FAILED", () => {
     expect(classifyProviderError(new StatusError(408))).toBe("TIMEOUT");
     expect(classifyProviderError(new StatusError(401))).toBe("AUTH_FAILED");
+  });
+});
+
+describe("raceAttemptTimeout: one attempt", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("passes the attempt's own failure through unclassified so a retry loop can read its status", async () => {
+    const raw = new StatusError(503);
+    await expect(raceAttemptTimeout(1000, undefined, () => Promise.reject(raw))).rejects.toBe(raw);
+  });
+
+  it("rejects with a TIMEOUT ProviderError when the attempt outlives the bound", async () => {
+    const rejection = raceAttemptTimeout(1000, undefined, () => new Promise<never>(() => {})).catch(
+      (caught: unknown) => caught,
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await rejection).toMatchObject({ code: "TIMEOUT" });
+  });
+});
+
+describe("withSdkAttemptTimeout: the SDK enforces the bound per attempt", () => {
+  class APIConnectionTimeoutError extends Error {}
+
+  it("hands the timeout to the call and omits the signal when the caller has none", async () => {
+    const call = vi.fn(() => Promise.resolve("ok"));
+    await expect(withSdkAttemptTimeout(3000, undefined, call)).resolves.toBe("ok");
+    expect(call).toHaveBeenCalledWith({ timeout: 3000 });
+  });
+
+  it("hands the caller signal next to the timeout", async () => {
+    const controller = new AbortController();
+    const call = vi.fn(() => Promise.resolve("ok"));
+    await withSdkAttemptTimeout(3000, controller.signal, call);
+    expect(call).toHaveBeenCalledWith({ signal: controller.signal, timeout: 3000 });
+  });
+
+  it("names the configured bound when the SDK reports an attempt timeout", async () => {
+    const error = await withSdkAttemptTimeout(3000, undefined, () =>
+      Promise.reject(new APIConnectionTimeoutError("Request timed out.")),
+    ).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ProviderError);
+    expect((error as ProviderError).code).toBe("TIMEOUT");
+    expect((error as ProviderError).message).toContain("3000");
+  });
+
+  it.each([
+    [429, "RATE_LIMITED"],
+    [500, "PROVIDER_UNAVAILABLE"],
+  ])("reports the final %i after the SDK's retries as %s", async (status, code) => {
+    const error = await withSdkAttemptTimeout(1, undefined, () =>
+      Promise.reject(new StatusError(status)),
+    ).catch((caught: unknown) => caught);
+    expect(error).toMatchObject({ code });
   });
 });

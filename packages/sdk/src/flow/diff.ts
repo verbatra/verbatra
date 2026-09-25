@@ -117,6 +117,10 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * since the key was last translated rather than merely that the two strings differ. Orphaned keys
  * are reported but never removed here; pruning happens only in {@link translate}.
  *
+ * State the lock-file and provenance file still record under an underscore spelling of a configured
+ * locale (`pt_BR` for `pt-BR`) is read as that locale's, the same way {@link translate} carries it
+ * over, so a respelled locale reports the keys a run would retranslate. Nothing is moved or written.
+ *
  * With `unused` set, it also scans the application source named by the config's `extract` block
  * and reports, in {@link DiffSummary.unused}, the source-catalog keys no static reference names.
  * The scan models the i18next runtime: `t` calls and their aliases, `keyPrefix` and `getFixedT`

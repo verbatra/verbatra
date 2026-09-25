@@ -25,13 +25,13 @@ Open that URL, token included; the token is generated fresh per start and is how
 
 The sidebar has four pages: **Translations**, **Review**, **Activity**, and **Settings**. A badge on Review counts the entries still in the queue, capped at "99+". The sidebar collapses to icons (Studio remembers the choice), and in a narrow window it becomes a drawer opened from the top bar; both carry **Documentation** and **Help and issues** links.
 
-The top bar holds a theme switcher (System, Light, Dark), saved in the browser's localStorage, and shows a **Reconnecting** badge when the live-refresh connection has been down for more than a moment. When the server stops accepting the tab's session, for example after Studio restarted with a new token, every page gives way to a **Session expired** screen: open the URL the running Studio printed again.
+The top bar holds a theme switcher (System, Light, Dark), saved in the browser's localStorage, and shows a **Reconnecting** badge when the live-refresh connection has been down for more than a moment. When the server stops accepting the tab's session, for example after Studio restarted with a new token, every page gives way to a **Session expired** screen: open the URL the running Studio printed again, or start Studio again if it has stopped.
 
 ## Read the Translations page
 
 Translations is the working view: everything pending across your target locales, and how far along each locale is.
 
-- **The stat strip** answers the first question at a glance: how many keys need attention, average coverage, how many locales are in sync, and the last run's token usage. When nothing is pending, an all-clear banner replaces the key explorer.
+- **The stat strip** answers the first question at a glance: how many keys need attention, average coverage, how many locales are in sync, and the last run's token usage. When nothing is pending, an all-clear banner replaces the key explorer, unless a translation has an integrity problem: then the banner says so and the key explorer stays, in its List view, so the **Integrity problems** filter is still there.
 - **The key explorer** lists every missing, changed, and orphaned key in one of two views. **List** groups the keys per locale and has a filter that matches a key's name or its translation text, showing at most 500 matches at a time. **Grid** is a key-by-locale matrix with no filter; it renders at most 500 keys and, when there are more, says so and points you to List. In Grid, the arrow keys move between cells and Enter or Space opens the focused key.
 - **The locales table** shows per-locale coverage (missing, stale, up to date) merged with [the lock file](/docs/the-lock-file)'s state, so you can see whether each locale's lock entry agrees with its files. Its **Lock** column reads **In step** when the lock file records no missing or stale key for the locale, **Drift** when it does, and **Not recorded** when the lock file has no entry for that locale. A **Lock vN** badge names the lock file's version, and a collapsible **Lock file details** table lists each recorded locale's key count with its missing, stale, and up-to-date counts.
 
@@ -41,7 +41,7 @@ The List view also filters by state and by locale. Next to the text filter, pick
 
 **Copy as review report** in the page header copies a Markdown report to the clipboard: one section per locale listing its missing, changed, and orphaned keys, ready to paste into a pull request or an issue.
 
-Click any key to open its detail view: the source text, the per-locale values, each locale's sync status, and an integrity indicator per translation (placeholders match, no placeholders, placeholder mismatch with the missing and extra tokens named, or invalid message syntax). A **History** section lists the git commits that touched the project's locale files; it is the same feed as on Activity, not filtered to the open key. From there, **Edit** opens the editor for one locale's value.
+Click any key to open its detail view: the source text, the per-locale values, each locale's sync status, and an integrity indicator per translation (placeholders match, no placeholders, placeholder mismatch with the missing and extra tokens named, or invalid message syntax). The indicator judges the value on disk for every locale, so a defect shows even where the key is in sync, and such a locale offers **Edit** and, with `--allow-spend`, **Retranslate** like any other. A **History** section lists the git commits that touched the project's locale files; it is the same feed as on Activity, not filtered to the open key. From there, **Edit** opens the editor for one locale's value.
 
 <AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
 
@@ -140,7 +140,7 @@ verbatra studio --allow-spend
 
 (Or set `VERBATRA_STUDIO_ALLOW_SPEND=1`; the flag wins when both are given. The provider's API key comes from the environment as always, never from Studio.)
 
-Now a key whose integrity indicator shows a real defect (a placeholder mismatch, invalid message syntax, or an inline markup mismatch) gets a **Retranslate** button in its detail view on the Translations page. It makes one provider call for exactly that locale and key, runs the result through the integrity gate before anything reaches disk, and reports the outcome next to the button. The refreshed value then flows into the UI through the live-refresh loop.
+Now a key whose integrity indicator shows a real defect (a placeholder mismatch, invalid message syntax, an ICU arms mismatch, or an inline markup mismatch) gets a **Retranslate** button, whether or not the key is in sync in that locale, in its detail view on the Translations page. It makes one provider call for exactly that locale and key, runs the result through the integrity gate before anything reaches disk, and reports the outcome next to the button. The refreshed value then flows into the UI through the live-refresh loop.
 
 Without `--allow-spend`, the button is absent entirely, and the server never even registers the retranslate endpoint: spend you did not grant at startup cannot be switched on from the browser.
 

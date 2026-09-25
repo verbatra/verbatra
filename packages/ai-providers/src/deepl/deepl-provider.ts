@@ -10,7 +10,7 @@ import {
   type ValidatedRequestData,
   validateRequest,
 } from "../provider.js";
-import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
+import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
 import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js";
 import { createDefaultClient } from "./client.js";
 import { type DeepLConfig, deepLConfigSchema } from "./config.js";
@@ -45,7 +45,7 @@ export function createDeepLProvider(
   deps: DeepLDeps = {},
 ): TranslationProvider {
   const validConfig = deepLConfigSchema.parse(config);
-  const bundle = resolveClient(deps);
+  const bundle = resolveClient(deps, validConfig.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
   return {
     id: PROVIDER_ID,
     kind: "machine-translation",
@@ -55,11 +55,11 @@ export function createDeepLProvider(
   };
 }
 
-function resolveClient(deps: DeepLDeps): DeepLClientBundle {
+function resolveClient(deps: DeepLDeps, timeoutMs: number): DeepLClientBundle {
   if (deps.client !== undefined) {
     return { client: deps.client, freeAccount: deps.freeAccount ?? false };
   }
-  return createDefaultClient();
+  return createDefaultClient(timeoutMs);
 }
 
 async function translate(
@@ -154,7 +154,7 @@ function callClient(
   timeoutMs: number,
   signal: AbortSignal | undefined,
 ): Promise<DeepLTextResult[]> {
-  return withRequestTimeout(timeoutMs, signal, () =>
+  return withSdkAttemptTimeout(timeoutMs, signal, () =>
     client.translateText(texts, sourceLang, targetLang, options),
   );
 }

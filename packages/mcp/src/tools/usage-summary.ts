@@ -55,8 +55,8 @@ export const usageSummaryTool = defineTool({
     "total reached or passed it. budget.supported says where budget.tokensUsed came from: " +
     "true when every request reported its own usage, false when at least one did not and " +
     "the figure is partly verbatra's own estimate, which is the case for DeepL and Google " +
-    "Cloud Translation and for any request that failed. It is also false with tokensUsed 0 " +
-    "when the run sent no request at all, which is no estimate. The budget is enforced " +
+    "Cloud Translation and for any request that failed. It is true with tokensUsed 0 when " +
+    "the run sent no request at all, since nothing was estimated. The budget is enforced " +
     "either way, and it covers one translate run: it does not cap a single-entry " +
     "retranslation. Takes no parameters. Read-only: it calls no provider and writes " +
     "nothing.",

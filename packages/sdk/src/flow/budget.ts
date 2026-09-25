@@ -180,7 +180,7 @@ export function toBudgetSummary(tracker: BudgetTracker): RunBudget | undefined {
   return {
     maxTokens: tracker.maxTokens,
     behavior: tracker.behavior,
-    supported: tracker.usageSeen && !tracker.estimatedSeen,
+    supported: !tracker.estimatedSeen,
     tokensUsed: tracker.tokensUsed,
     exceeded: tracker.exceeded,
   };

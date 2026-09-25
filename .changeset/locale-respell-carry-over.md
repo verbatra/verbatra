@@ -27,6 +27,11 @@ another process holds the lock-file guard, and treats a guard it cannot read as 
 unreadable guard as the reason rather than failing. When only the translation memory cannot be
 written, the locale still runs, since the memory is only a cache.
 
+Until a run moves it, `check`, `diff` and `lockState` read state still recorded under that one
+underscore spelling as the configured code's, without moving or writing anything, so `verbatra
+check` and `verbatra diff` exit 1, and the MCP `status.check`, `status.diff` and `lock.state` tools
+and Studio report the keys a run would retranslate, including their recorded origins.
+
 `doctor` gains an informational `locale-state` check that names every locale the lock file,
 translation memory or provenance file holds state for that the config does not list, says whether
 the next `translate` run carries it over, and otherwise suggests removing it or respelling the

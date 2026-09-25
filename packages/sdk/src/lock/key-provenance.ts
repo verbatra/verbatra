@@ -3,6 +3,7 @@ import { SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import {
   localeRecords,
+  type ProvenanceFile,
   type ProvenanceOrigin,
   type ProvenanceRecord,
   provenanceFilePath,
@@ -128,10 +129,10 @@ function emptyProvenanceSummary(): {
 
 export type LocaleProvenance = (locale: string) => ReadonlyMap<string, ProvenanceRecord>;
 
-export async function readLocaleProvenance(
+export async function readReportableProvenance(
   cwd: string,
   fs: SdkFs,
-): Promise<LocaleProvenance | undefined> {
+): Promise<ProvenanceFile | undefined> {
   let read: Awaited<ReturnType<typeof readProvenanceFile>>;
   try {
     read = await readProvenanceFile(provenanceFilePath(cwd), fs);
@@ -141,11 +142,19 @@ export async function readLocaleProvenance(
     }
     throw error;
   }
-  if (!read.writable) {
-    return undefined;
-  }
-  const { file } = read;
+  return read.writable ? read.file : undefined;
+}
+
+export function provenanceOf(file: ProvenanceFile): LocaleProvenance {
   return (locale) => localeRecords(file, locale);
+}
+
+export async function readLocaleProvenance(
+  cwd: string,
+  fs: SdkFs,
+): Promise<LocaleProvenance | undefined> {
+  const file = await readReportableProvenance(cwd, fs);
+  return file === undefined ? undefined : provenanceOf(file);
 }
 
 function* translatedValues(

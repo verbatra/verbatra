@@ -46,12 +46,12 @@ describe("createBudgetTracker / toBudgetSummary", () => {
     expect(toBudgetSummary(tracker)).toBeUndefined();
   });
 
-  it("starts with nothing counted and nothing reported", () => {
+  it("starts with nothing counted and nothing projected", () => {
     const tracker = createBudgetTracker(100, "warn");
     expect(toBudgetSummary(tracker)).toEqual({
       maxTokens: 100,
       behavior: "warn",
-      supported: false,
+      supported: true,
       tokensUsed: 0,
       exceeded: false,
     });
