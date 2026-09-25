@@ -2,6 +2,36 @@ import type { RpcResultFor } from "../shared/rpc/contract.js";
 
 export type KeyIntegrityLocaleEntry = RpcResultFor<"key.integrity">["locales"][number];
 
+type LocaleIntegrityReport = RpcResultFor<"locale.integrity">["locales"];
+
+export function withFullIntegrity(
+  changed: readonly KeyIntegrityLocaleEntry[],
+  full: LocaleIntegrityReport,
+  key: string,
+): readonly KeyIntegrityLocaleEntry[] {
+  const judged = new Set(changed.map((entry) => entry.locale));
+  const merged = [...changed];
+  for (const report of full) {
+    const failing = report.entries.find((entry) => entry.key === key);
+    if (failing === undefined || judged.has(report.locale)) {
+      continue;
+    }
+    merged.push({
+      locale: report.locale,
+      hasPlaceholders: failing.hasPlaceholders,
+      matches: failing.matches,
+      missing: failing.missing,
+      extra: failing.extra,
+      icuValid: failing.icuValid,
+      icuArmsMatch: failing.icuArmsMatch,
+      icuArmDetails: failing.icuArmDetails,
+      markupMatches: failing.markupMatches,
+      markupDetails: failing.markupDetails,
+    });
+  }
+  return merged;
+}
+
 export type IntegrityPillTone = "success" | "neutral" | "danger";
 
 export interface IntegrityPillView {
