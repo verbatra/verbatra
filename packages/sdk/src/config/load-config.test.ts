@@ -79,6 +79,20 @@ describe("loadConfig", () => {
     expect(caught.message.split("network.allowedHosts.0:")).toHaveLength(2);
   });
 
+  it.each([
+    ["left out", { policy: "allowlist" }],
+    ["empty", { policy: "allowlist", allowedHosts: [] }],
+  ])("names allowedHosts plainly when an allowlist policy has it %s", async (_label, network) => {
+    const caught = (await loadConfig({ configOverride: { ...baseConfig(), network } }).catch(
+      (e) => e,
+    )) as SdkError;
+    expect(caught.code).toBe("CONFIG_INVALID");
+    expect(caught.message).toContain(
+      'network.allowedHosts: The "allowlist" network policy needs at least one entry in allowedHosts.',
+    );
+    expect(caught.message).not.toContain("expected array");
+  });
+
   it("rejects a stray top-level key (no key field allowed in config)", async () => {
     const withKey = { ...baseConfig(), apiKey: "should-not-be-here" };
     await expect(loadConfig({ configOverride: withKey })).rejects.toMatchObject({

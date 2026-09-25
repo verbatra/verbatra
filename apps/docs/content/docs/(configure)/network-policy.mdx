@@ -57,7 +57,7 @@ export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
 
 `VERBATRA_NETWORK_POLICY` takes the same three values. `VERBATRA_NETWORK_ALLOWED_HOSTS` is a comma-separated list of the same entries as `allowedHosts`. When both the config and the environment set a policy, a host has to satisfy both, so the stricter one always wins: a config cannot loosen what the environment pins, and a config's `allowedHosts` does not widen an environment `allowlist`.
 
-A value verbatra does not recognize, such as `local_only`, fails the run with `CONFIG_INVALID` instead of being ignored, so a typo never quietly allows every host. Setting `VERBATRA_NETWORK_ALLOWED_HOSTS` without `VERBATRA_NETWORK_POLICY` fails the same way.
+A value verbatra does not recognize, such as `local_only`, fails the run with `CONFIG_INVALID` instead of being ignored, so a typo never quietly allows every host. Setting `VERBATRA_NETWORK_ALLOWED_HOSTS` without `VERBATRA_NETWORK_POLICY` fails the same way. `translate --dry-run` and `--estimate` check these variables too and fail the same way, so a dry run never passes where the real run would not; under provider `none`, which connects nowhere, they are not checked.
 
 ## When and how it is checked
 

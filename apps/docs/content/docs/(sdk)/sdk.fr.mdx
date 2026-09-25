@@ -1022,7 +1022,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | Code | Quand |
 | --- | --- |
 | `CONFIG_NOT_FOUND` | aucune config trouvée par la recherche, ou un `configPath` explicite n'existe pas (levé par `loadConfig`) |
-| `CONFIG_INVALID` | une config a été trouvée mais est impossible à analyser ou échoue à la validation, ou son fichier de glossaire n'a pas pu être résolu ; un `translate` hors dry run et `retranslateEntry` le lèvent aussi quand `VERBATRA_NETWORK_POLICY` ou `VERBATRA_NETWORK_ALLOWED_HOSTS` contient une valeur invalide, avant qu'aucun fournisseur ne soit construit |
+| `CONFIG_INVALID` | une config a été trouvée mais est impossible à analyser ou échoue à la validation, ou son fichier de glossaire n'a pas pu être résolu ; `translate` (en dry run aussi, sauf avec le fournisseur `none`) et `retranslateEntry` le lèvent aussi quand `VERBATRA_NETWORK_POLICY` ou `VERBATRA_NETWORK_ALLOWED_HOSTS` contient une valeur invalide, avant qu'aucun fournisseur ne soit construit |
 | `UNKNOWN_FORMAT` | aucun adaptateur n'est enregistré pour le format configuré ; levé avant toute lecture de fichier |
 | `UNKNOWN_LOCALE` | une locale demandée n'est pas parmi les locales cibles configurées |
 | `UNKNOWN_KEY` | une clé demandée n'est pas dans la ressource source (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |

@@ -57,6 +57,35 @@ describe("translate: network policy", () => {
     expect(summary.failed).toEqual([]);
   });
 
+  it.each([
+    ["a dry run", { dryRun: true }],
+    ["an estimate", { estimate: true }],
+  ])("fails %s on an invalid VERBATRA_NETWORK_POLICY like the live run", async (_label, mode) => {
+    vi.stubEnv("VERBATRA_NETWORK_POLICY", "everywhere");
+    const dir = await project();
+    await expect(
+      translate(
+        { config: baseConfig(), cwd: dir, ...mode },
+        { createProvider: recordingFactory() },
+      ),
+    ).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+      message: expect.stringContaining("VERBATRA_NETWORK_POLICY"),
+    });
+    expect(await readdir(join(dir, "locales"))).toEqual(["en.json"]);
+  });
+
+  it("leaves a dry run under provider none alone, since nothing would connect", async () => {
+    vi.stubEnv("VERBATRA_NETWORK_POLICY", "everywhere");
+    const dir = await project();
+    const summary = await translate({
+      config: baseConfig({ provider: { id: "none", options: {} } }),
+      cwd: dir,
+      dryRun: true,
+    });
+    expect(summary.failed).toEqual([]);
+  });
+
   it("hands a permitted provider the policy it must enforce per request", async () => {
     const dir = await project();
     const factory = recordingFactory();

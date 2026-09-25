@@ -1446,7 +1446,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | Code | When |
 | --- | --- |
 | `CONFIG_NOT_FOUND` | no config was found by search, or an explicit `configPath` does not exist (thrown by `loadConfig`) |
-| `CONFIG_INVALID` | a config was found but is unparseable or fails validation, or its glossary file could not be resolved; a non-dry-run `translate` and `retranslateEntry` also throw it when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds an invalid value, before any provider is built |
+| `CONFIG_INVALID` | a config was found but is unparseable or fails validation, or its glossary file could not be resolved; `translate` (a dry run too, unless the provider is `none`) and `retranslateEntry` also throw it when `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` holds an invalid value, before any provider is built |
 | `UNKNOWN_FORMAT` | no adapter is registered for the configured format; thrown before any file is read |
 | `UNKNOWN_LOCALE` | a requested locale is not among the configured target locales |
 | `UNKNOWN_KEY` | a requested key is not in the source resource (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |

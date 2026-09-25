@@ -15,3 +15,9 @@ resolve `localhost` to loopback only, refuse any redirect to another origin, and
 request once with the provider code `NETWORK_POLICY_VIOLATION`, without retries. `doctor` gains a
 `network-policy` check that names the effective policy and the endpoint, for example
 `any host (config: unset; VERBATRA_NETWORK_POLICY: unset)`.
+
+An invalid `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` fails `translate` with
+`CONFIG_INVALID` on a dry run and an estimate too, so they never pass where the live run would
+fail; under provider `none` they are not checked. An `allowlist` policy that leaves out
+`allowedHosts` is reported as `network.allowedHosts: The "allowlist" network policy needs at least
+one entry in allowedHosts.`, the same as an empty list.

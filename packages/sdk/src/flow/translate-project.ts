@@ -1,3 +1,4 @@
+import { processEnvironment } from "@verbatra/ai-providers";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
 import { type FingerprintFor, fingerprintsFor } from "../cache/fingerprint.js";
 import {
@@ -13,6 +14,7 @@ import type { CacheAddition, TranslationMemory } from "../cache/types.js";
 import { glossaryForLocale } from "../config/glossary.js";
 import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
+import { resolveNetworkPolicy } from "../config/network-policy.js";
 import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
@@ -594,6 +596,9 @@ function selectRunMode(
     return { kind: "memory-only", write: !dryRun };
   }
   const providerKind = kindOf(machineProvider.id);
+  if (dryRun) {
+    resolveNetworkPolicy(config.network, processEnvironment());
+  }
   return dryRun
     ? { kind: "plan", providerKind }
     : {
@@ -711,7 +716,8 @@ function estimateFields(
  * the configured provider's endpoint or its proxy. Thrown before the provider is constructed or any
  * API key is read. Not thrown on a dry run.
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
- * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid. Not thrown on a dry run.
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid, on a dry run too, so a dry run
+ * or estimate fails where the live run would. Not checked under the provider `none`.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version. A dry run reads it once before any locale runs; a live run reads it per
  * locale, so this can abort the run after other locales have already been written.
