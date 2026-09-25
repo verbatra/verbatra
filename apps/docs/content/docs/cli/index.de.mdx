@@ -58,7 +58,7 @@ Ergebnisse gehen auf stdout. Fortschritt, Hinweise, Tipps, Warnungen und Fehler 
 
 | Flag oder Variable | Wirkung |
 | --- | --- |
-| `-q`, `--quiet` | gibt nur Ergebnisse, Warnungen und Fehler aus: keine Fortschrittszeilen, Hinweise oder `next:`-Tipps. Es wirkt vor oder nach dem Befehlsnamen |
+| `-q`, `--quiet` | gibt nur Ergebnisse, Warnungen und Fehler aus: lässt Fortschrittszeilen, `next:`-Tipps und informative stderr-Zeilen weg, während die Ergebniszusammenfassung samt ihren Hinweisen bleibt. Es wirkt vor oder nach dem Befehlsnamen |
 | `--no-color` | färbt die Ausgabe nie ein |
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | jeder nicht leere Wert schaltet die Farbe ab; `VERBATRA_NO_COLOR` übersteuert auch `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` oder ein leerer Wert schaltet die Farbe ein, auch wenn stderr kein Terminal ist, und `0` schaltet sie ab; `--no-color` und `VERBATRA_NO_COLOR` haben trotzdem Vorrang |

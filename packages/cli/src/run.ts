@@ -1896,7 +1896,10 @@ function buildProgram(
       "Automate i18n translation and keep your locale files in sync, using a hosted or local AI or machine-translation provider",
     )
     .version(CLI_VERSION)
-    .option("-q, --quiet", "print only results, warnings and errors: no progress, notices or hints")
+    .option(
+      "-q, --quiet",
+      "print only results, warnings and errors: no progress, hints or informational lines",
+    )
     .option("--no-color", "never color the output (also: NO_COLOR, VERBATRA_NO_COLOR)")
     .exitOverride()
     .configureOutput({ writeOut: (s) => streams.out(s), writeErr: (s) => streams.err(s) });

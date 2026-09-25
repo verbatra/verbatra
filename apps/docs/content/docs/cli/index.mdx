@@ -58,7 +58,7 @@ Results go to stdout. Progress, notices, hints, warnings and errors go to stderr
 
 | Flag or variable | Effect |
 | --- | --- |
-| `-q`, `--quiet` | print only results, warnings and errors: no progress lines, notices or `next:` hints. It works before or after the command name |
+| `-q`, `--quiet` | print only results, warnings and errors: drops progress lines, `next:` hints and informational stderr lines, while the result summary, including its notices, stays. It works before or after the command name |
 | `--no-color` | never color the output |
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | any non-empty value turns color off; `VERBATRA_NO_COLOR` also overrides `FORCE_COLOR` |
 | `FORCE_COLOR` | `1`, `2`, `3`, `true` or an empty value turns color on even when stderr is not a terminal, and `0` turns it off; `--no-color` and `VERBATRA_NO_COLOR` still win |
