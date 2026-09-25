@@ -988,6 +988,28 @@ describe("render: errors", () => {
     expect(toRenderableError(new Error("plain"))).toEqual({ code: "CLI_ERROR", message: "plain" });
     expect(toRenderableError("weird")).toEqual({ code: "CLI_ERROR", message: "weird" });
   });
+
+  it("carries the code of a wrapped cause and names it on the stderr line", () => {
+    const cause = Object.assign(new Error("GEMINI_API_KEY is not set"), {
+      code: "MISSING_API_KEY",
+    });
+    const wrapped = Object.assign(new Error("Failed to construct provider", { cause }), {
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+    });
+    const renderable = toRenderableError(wrapped);
+    expect(renderable).toEqual({
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      message: "Failed to construct provider",
+      causeCode: "MISSING_API_KEY",
+    });
+    expect(renderError(renderable)).toBe(
+      "verbatra: error [PROVIDER_CONSTRUCTION_FAILED] Failed to construct provider (cause: MISSING_API_KEY)",
+    );
+    expect(toRenderableError(new Error("m", { cause: new Error("uncoded") }))).toEqual({
+      code: "CLI_ERROR",
+      message: "m",
+    });
+  });
 });
 
 describe("render: lock-wait progress", () => {
