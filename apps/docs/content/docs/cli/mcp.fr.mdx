@@ -22,7 +22,8 @@ verbatra-mcp [flags]
 Les deux formes prennent les trois mêmes options et démarrent le même serveur, mais ce qui l'entoure diffère :
 
 - `verbatra mcp` charge `.env.local` puis `.env` depuis le répertoire de travail avant de démarrer ; `verbatra-mcp` ne charge ni l'un ni l'autre, donc passe toute clé d'API dans l'environnement avec lequel le client MCP le lance.
-- `verbatra mcp` rejette une option inconnue comme erreur d'utilisation et sort avec `2` ; `verbatra-mcp` ignore les options inconnues.
+- Les deux rejettent une option inconnue (une faute de frappe comme `--allowspend`, ou `--json`), une option sans sa valeur ou un argument en trop comme erreur d'utilisation sur stderr et sortent avec `2`. `verbatra-mcp` le fait à partir de `@verbatra/mcp` 0.3.0 ; les versions antérieures ignorent les options inconnues.
+- `--help` affiche l'utilisation et `--version` la version, et les deux sortent avec `0` sans démarrer le serveur ni attendre stdin. `verbatra-mcp --version` affiche la version de `@verbatra/mcp`, `verbatra mcp --version` celle de la CLI. `verbatra-mcp` accepte aussi `-h` et `-V` à partir de `@verbatra/mcp` 0.3.0.
 - Une erreur de démarrage ou de config sort avec `2` depuis `verbatra mcp` et avec `1` depuis `verbatra-mcp`.
 - Les deux s'arrêtent quelques secondes après une interruption, même quand un appel d'outil attend le fournisseur, et libèrent tout verrou de locale qu'ils détiennent. Une seconde interruption pendant l'extinction arrête de force `verbatra mcp` avec le code de sortie `130` ; à partir de `@verbatra/mcp` 0.3.0, elle arrête de force `verbatra-mcp` avec `130` après Ctrl-C et `143` après SIGTERM.
 

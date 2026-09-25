@@ -22,7 +22,8 @@ verbatra-mcp [flags]
 Beide Formen nehmen dieselben drei Flags und starten denselben Server, aber die Hüllen darum unterscheiden sich:
 
 - `verbatra mcp` lädt vor dem Start `.env.local` und danach `.env` aus dem Arbeitsverzeichnis; `verbatra-mcp` lädt keine der beiden, übergib einen API-Key also in der Umgebung, mit der der MCP-Client es startet.
-- `verbatra mcp` lehnt ein unbekanntes Flag als Verwendungsfehler ab und endet mit `2`; `verbatra-mcp` ignoriert unbekannte Flags.
+- Beide lehnen ein unbekanntes Flag (einen Tippfehler wie `--allowspend` oder `--json`), ein Flag ohne Wert oder ein überzähliges Argument als Verwendungsfehler auf stderr ab und enden mit `2`. `verbatra-mcp` tut das ab `@verbatra/mcp` 0.3.0; ältere Versionen ignorieren unbekannte Flags.
+- `--help` gibt die Verwendung aus und `--version` die Version, und beide enden mit `0`, ohne den Server zu starten oder auf stdin zu warten. `verbatra-mcp --version` gibt die Version von `@verbatra/mcp` aus, `verbatra mcp --version` die der CLI. `verbatra-mcp` nimmt ab `@verbatra/mcp` 0.3.0 auch `-h` und `-V`.
 - Ein Start- oder Konfigurationsfehler endet bei `verbatra mcp` mit `2` und bei `verbatra-mcp` mit `1`.
 - Beide stoppen wenige Sekunden nach einem Interrupt, auch wenn ein Tool-Aufruf gerade auf den Provider wartet, und geben jede gehaltene Locale-Sperre frei. Ein zweiter Interrupt während des Herunterfahrens beendet `verbatra mcp` zwangsweise mit Exit-Code `130`; ab `@verbatra/mcp` 0.3.0 beendet er `verbatra-mcp` zwangsweise mit `130` nach Ctrl-C und `143` nach SIGTERM.
 

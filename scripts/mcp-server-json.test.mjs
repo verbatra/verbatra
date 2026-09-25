@@ -21,7 +21,7 @@ const MCP_MANIFEST = JSON.parse(
 );
 const ROOT_MANIFEST = JSON.parse(readFileSync(resolve(REPO_ROOT, "package.json"), "utf8"));
 const RELEASE_WORKFLOW = readFileSync(resolve(REPO_ROOT, ".github/workflows/release.yml"), "utf8");
-const MCP_BIN_SOURCE = readFileSync(resolve(REPO_ROOT, "packages/mcp/src/bin.ts"), "utf8");
+const MCP_BIN_SOURCE = readFileSync(resolve(REPO_ROOT, "packages/mcp/src/bin-args.ts"), "utf8");
 const KEY_ENV_VARS_SOURCE = readFileSync(
   resolve(REPO_ROOT, "packages/ai-providers/src/key-env-vars.ts"),
   "utf8",
@@ -109,7 +109,7 @@ describe("packages/mcp/server.json: official MCP Registry constraints", () => {
   });
 });
 
-describe("packages/mcp/server.json: alignment with packages/mcp/src/bin.ts", () => {
+describe("packages/mcp/server.json: alignment with packages/mcp/src/bin-args.ts", () => {
   it("declares exactly one non-secret variable, the allow-spend variable the bin reads", () => {
     const binVariable = /const ALLOW_SPEND_ENV_VAR = "([A-Z0-9_]+)";/.exec(MCP_BIN_SOURCE)?.[1];
     expect(binVariable).toBeDefined();
