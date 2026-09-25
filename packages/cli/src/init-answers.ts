@@ -81,6 +81,7 @@ export interface Prompter {
 interface Session extends Prompter {
   readonly missing: MissingFlag[];
   readonly problems: CliUsageError[];
+  stopped: boolean;
 }
 
 interface PickSpec {
@@ -149,18 +150,34 @@ function answerProblem(spec: PickSpec, answer: string): CliUsageError | undefine
   }
 }
 
+function refusedAnswer(spec: PickSpec, problem: CliUsageError): CliUsageError {
+  return new CliUsageError(
+    problem.code,
+    `${problem.message} Stopped asking for "${spec.label}" after ${MAX_ASKS} invalid answers; pass ${spec.flag} instead.`,
+    problem.candidates,
+  );
+}
+
 async function askFor(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
   for (let asked = 1; ; asked += 1) {
     const answer = await askOnce(session, spec);
     const problem = answer === undefined ? undefined : answerProblem(spec, answer.value);
-    if (problem === undefined || asked >= MAX_ASKS) {
+    if (problem === undefined) {
       return answer;
+    }
+    if (asked >= MAX_ASKS) {
+      session.problems.push(refusedAnswer(spec, problem));
+      session.stopped = true;
+      return undefined;
     }
     session.warn(`${problem.message} Answer again.`);
   }
 }
 
 async function pick(session: Session, spec: PickSpec): Promise<Resolved | undefined> {
+  if (session.stopped) {
+    return undefined;
+  }
   const flagged = trimmed(spec.value);
   if (flagged !== "") {
     return { value: flagged, source: "flag" };
@@ -170,6 +187,9 @@ async function pick(session: Session, spec: PickSpec): Promise<Resolved | undefi
     return undefined;
   }
   const answered = session.interactive ? await askFor(session, spec) : undefined;
+  if (session.stopped) {
+    return undefined;
+  }
   return answered ?? fallbackAnswer(spec, session);
 }
 
@@ -616,7 +636,7 @@ export async function planInit(
   prompter: Prompter,
   detect: DetectFn,
 ): Promise<InitPlan> {
-  const session: Session = { ...prompter, missing: [], problems: [] };
+  const session: Session = { ...prompter, missing: [], problems: [], stopped: false };
   const givenFormat =
     trimmed(opts.format) === ""
       ? undefined
