@@ -6,7 +6,7 @@ import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
 import { outcomeToContent, readBoundedFile } from "../json/bounded-read.js";
 import { isEnoent } from "../shell.js";
-import { serializeXmlInto } from "../xml/document.js";
+import { insertIndentedAfter, serializeXmlInto } from "../xml/document.js";
 import { appendMissingUnits } from "./append-units.js";
 import {
   childByName,
@@ -112,7 +112,7 @@ async function readDestination(filePath: string, fs: AdapterFs): Promise<string>
 function insertTarget(doc: Document, unit: Unit): Element {
   const target = doc.createElementNS(unit.source.namespaceURI, "target");
   const anchor = childByName(unit.container, "seg-source") ?? unit.source;
-  unit.container.insertBefore(target, anchor.nextSibling);
+  insertIndentedAfter(doc, unit.container, anchor, target);
   return target;
 }
 
