@@ -12,4 +12,6 @@ start, adds how to launch and inspect it when stdin is a terminal, and writes
 `verbatra MCP server stopped (...)` when the client closes stdin or the process is interrupted.
 stdout still carries only MCP messages. `projectLabel`, `mcpReadyLine`, `mcpTerminalHint`,
 `mcpStoppedLine` and the `McpStopCause` and `McpLaunchArgs` types are exported from the package
-root, so `verbatra mcp` in the CLI prints the same lines, each naming its own launch command.
+root, so `verbatra mcp` in the CLI prints the same lines, each naming its own launch command. The
+CLI installs its interrupt handler before printing them, so a Ctrl-C right after the hint still
+prints the stopped line.

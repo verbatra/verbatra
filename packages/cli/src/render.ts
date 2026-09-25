@@ -254,7 +254,10 @@ function renderRefusal(refusal: IntegrityRefusal): string {
   return `      ${neutralizeControlCharacters(refusal.key)}: ${refusal.reason}${renderRefusalDetails(refusal.details)}`;
 }
 
-function renderIntegrityWithheld(locale: LocaleSummary): readonly string[] {
+function renderIntegrityWithheld(
+  locale: LocaleSummary,
+  unrefusedReason: string | undefined,
+): readonly string[] {
   const refusals = locale.integrityRefusals;
   if (refusals === undefined) {
     const keys = renderDetailGroup("integrity-withheld", locale.integrityMismatches);
@@ -265,12 +268,15 @@ function renderIntegrityWithheld(locale: LocaleSummary): readonly string[] {
     ...refusals.map((refusal) => ({ key: refusal.key, line: renderRefusal(refusal) })),
     ...locale.integrityMismatches
       .filter((key) => !refused.has(key))
-      .map((key) => ({ key, line: `      ${neutralizeControlCharacters(key)}` })),
+      .map((key) => ({
+        key,
+        line: `      ${neutralizeControlCharacters(key)}${unrefusedReason === undefined ? "" : `: ${unrefusedReason}`}`,
+      })),
   ].sort((left, right) => (left.key < right.key ? -1 : 1));
   return lines.length === 0 ? [] : ["    integrity-withheld:", ...lines.map((entry) => entry.line)];
 }
 
-function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
+function renderLocaleDetail(locale: LocaleSummary, labels: RunCountLabels): readonly string[] {
   const groups = [
     renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
@@ -289,30 +295,38 @@ function renderLocaleDetail(locale: LocaleSummary): readonly string[] {
       locale.duplicateKeys.map((duplicate) => `${duplicate.key} (${renderPosition(duplicate)})`),
     ),
   ].filter((line): line is string => line !== undefined);
-  return [...renderIntegrityWithheld(locale), ...groups];
+  return [...renderIntegrityWithheld(locale, labels.unrefusedReason), ...groups];
 }
 
 interface RunCountLabels {
   readonly translated: string;
   readonly pruned: string;
+  readonly unrefusedReason?: string;
 }
 
 const DRY_RUN_TRANSLATED_LABELS: Readonly<Record<string, string>> = { import: "would import" };
 
+const UNREFUSED_REASONS: Readonly<Record<string, string>> = {
+  import: "source changed since export",
+};
+
 function runCountLabels(dryRun: boolean, command: string): RunCountLabels {
+  const unrefused = UNREFUSED_REASONS[command];
+  const reason = unrefused === undefined ? {} : { unrefusedReason: unrefused };
   if (!dryRun) {
-    return { translated: "translated", pruned: "pruned" };
+    return { translated: "translated", pruned: "pruned", ...reason };
   }
   return {
     translated: DRY_RUN_TRANSLATED_LABELS[command] ?? "would translate",
     pruned: "would prune",
+    ...reason,
   };
 }
 
 function renderLocaleLine(locale: LocaleSummary, labels: RunCountLabels): readonly string[] {
   if (locale.status === "failed" && locale.error !== undefined) {
     const suffix = ` [${locale.error.code}] ${locale.error.message}`;
-    return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale)];
+    return [`  ${locale.locale}: failed${suffix}`, ...renderLocaleDetail(locale, labels)];
   }
   const counts: ReadonlyArray<readonly [number, string, boolean, string?]> = [
     [locale.translated.length, labels.translated, true],
@@ -340,7 +354,7 @@ function renderLocaleLine(locale: LocaleSummary, labels: RunCountLabels): readon
   const status = locale.status === "failed" ? "failed, " : "";
   return [
     `  ${locale.locale}: ${status}${shown.join(", ")}${tokenSuffix}`,
-    ...renderLocaleDetail(locale),
+    ...renderLocaleDetail(locale, labels),
   ];
 }
 
@@ -358,6 +372,17 @@ function renderProtectedCount(count: number | undefined): string {
   return count === undefined || count === 0 ? "" : ` (${count} protected)`;
 }
 
+function outOfSyncLine(summary: CheckSummary): string {
+  const everyStaleKeyProtected =
+    summary.locales.some((locale) => locale.stale > 0) &&
+    summary.locales.every(
+      (locale) => locale.missing === 0 && locale.stale === (locale.protected ?? 0),
+    );
+  return everyStaleKeyProtected
+    ? "out of sync (every stale key is protected from machine writes: review or edit it in verbatra studio)"
+    : "out of sync (run verbatra translate to update)";
+}
+
 export function renderCheckHuman(summary: CheckSummary): string {
   const localeLines = summary.locales.map(
     (l) =>
@@ -365,9 +390,7 @@ export function renderCheckHuman(summary: CheckSummary): string {
         l.inSync ? "in sync" : "out of sync"
       })`,
   );
-  const overall = summary.inSync
-    ? "all locales in sync"
-    : "out of sync (run verbatra translate to update)";
+  const overall = summary.inSync ? "all locales in sync" : outOfSyncLine(summary);
   return [
     "verbatra check",
     ...localeLines,
@@ -639,6 +662,14 @@ function renderLockHolder(event: LockWaitEvent): string {
   return ` (held${pid}${since})`;
 }
 
+export type InterruptSignal = "SIGINT" | "SIGTERM";
+
+export function renderInterrupted(signal: InterruptSignal, json: boolean): string {
+  return json
+    ? JSON.stringify({ type: "interrupted", signal, locksReleased: true })
+    : `verbatra: interrupted (${signal}), released locks`;
+}
+
 export function renderLockWaitHuman(event: LockWaitEvent): string {
   const waitedSeconds = Math.round(event.elapsedMs / 1000);
   return (
@@ -655,14 +686,14 @@ export function renderLockWait(event: LockWaitEvent, json: boolean): string {
   return json ? renderLockWaitJson(event) : renderLockWaitHuman(event);
 }
 
-export function renderProgressHuman(event: ProgressEvent): string | undefined {
+export function renderProgressHuman(event: ProgressEvent, dryRun = false): string | undefined {
   switch (event.type) {
     case "locale-started":
       return `verbatra: translating ${event.locale}`;
     case "sub-batch":
       return `verbatra: ${event.locale} batch ${event.batchIndex}/${event.totalBatches}`;
     case "locale-finished":
-      return `verbatra: ${event.locale} done, ${event.translated} translated`;
+      return `verbatra: ${event.locale} done, ${event.translated} ${dryRun ? "would translate" : "translated"}`;
     case "run-finished":
       return `verbatra: run finished, ${plural(event.localesCompleted, "locale")} processed`;
     default:

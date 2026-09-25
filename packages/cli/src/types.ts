@@ -75,7 +75,7 @@ export interface McpModule {
 export type Session = StoppableSession;
 
 export interface RunHooks {
-  onLockingCommand?(): void;
+  onLockingCommand?(mode: { readonly json: boolean }): void;
   onWatchSession?(session: Session): void;
   onStudioSession?(session: Session): void;
   onMcpSession?(session: Session): void;

@@ -108,8 +108,10 @@ The missing and changed keys a `translate` run would leave for a person, because
 
 ```text
 verbatra: diffing and scanning the source... done (0.8s)
-next: verbatra translate  (send the pending keys to your provider)
+next: verbatra translate (send the pending keys to your provider)
 ```
+
+When every pending key is protected, a run would leave them all alone, so it suggests `verbatra studio` to review or edit them instead, and `verbatra check` says the same in its out-of-sync line.
 
 These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
 

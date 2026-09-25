@@ -89,8 +89,10 @@ verbatra: fr: writing
 verbatra: fr done, 12 translated
 verbatra: run finished, 2 locales processed
 [ok] done in 4.2s, 1830 tokens
-next: verbatra check  (confirm every locale is in sync)
+next: verbatra check (confirm every locale is in sync)
 ```
+
+Ein Dry-Run oder eine Schätzung sagt stattdessen, was er tun würde: Jede Locale endet mit `verbatra: de done, 12 would translate`, und der nächste Schritt zeigt auf den echten Lauf. Lässt der Provider `none` Keys für einen Menschen übrig (Exit `3`), zeigt der nächste Schritt stattdessen auf `verbatra export` oder Studio.
 
 Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
 
@@ -102,8 +104,8 @@ Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also gena
 | `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Format, Provider oder eine beschädigte Lock-Datei) oder ein Verwendungsfehler |
 | `3` | rein menschliches Projekt (`provider: { id: "none" }`): der Lauf lief sauber durch, aber Keys warten auf eine menschliche Übersetzung |
-| `130` | mit Ctrl-C (SIGINT) abgebrochen; die Schreibsperren des Laufs werden vorher freigegeben |
-| `143` | mit SIGTERM beendet; die Schreibsperren des Laufs werden vorher freigegeben |
+| `130` | mit Ctrl-C (SIGINT) abgebrochen; die Schreibsperren des Laufs werden vorher freigegeben und stderr endet mit `verbatra: interrupted (SIGINT), released locks`, unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
+| `143` | mit SIGTERM beendet; die Schreibsperren des Laufs werden vorher freigegeben und stderr endet mit `verbatra: interrupted (SIGTERM), released locks`, unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
 
 <AvailableFrom version="0.9.0" />
 

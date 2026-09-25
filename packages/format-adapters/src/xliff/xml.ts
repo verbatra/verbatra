@@ -89,7 +89,11 @@ export function parseXliffEntries(
 
 function destinationReadErrorMessage(error: unknown): string {
   if (isEnoent(error)) {
-    return "The destination XLIFF file does not exist.";
+    return (
+      "The destination XLIFF file does not exist, and verbatra does not create one: it updates " +
+      "the targets of a pre-seeded file. Copy the source XLIFF file to this locale's path, set its " +
+      "target language, and run the command again."
+    );
   }
   return `The destination XLIFF file could not be read: ${failureReason(error)}`;
 }

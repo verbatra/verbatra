@@ -601,7 +601,8 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       budgetWithheld.length +
       generation.withheld.length +
       generation.providerFailures.length +
-      generation.budgetWithheld.length,
+      generation.budgetWithheld.length +
+      unfilled.length,
   });
   const pending = pendingProvenance(params, accepted, { cacheHitKeys, fuzzyKeys }, generation);
   let written: LocaleResource = { ...target, entries: merged };

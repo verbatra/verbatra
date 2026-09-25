@@ -22,14 +22,19 @@ export const allowedHostSchema = z
 
 const allowedHostsSchema = z.array(allowedHostSchema);
 
+const ALLOWLIST_NEEDS_HOSTS =
+  'The "allowlist" network policy needs at least one entry in allowedHosts.';
+
 export const networkConfigSchema = z.discriminatedUnion("policy", [
   z.strictObject({ policy: z.literal("any"), allowedHosts: allowedHostsSchema.optional() }),
   z.strictObject({ policy: z.literal("local-only"), allowedHosts: allowedHostsSchema.optional() }),
   z.strictObject({
     policy: z.literal("allowlist"),
-    allowedHosts: allowedHostsSchema.min(1, {
-      message: 'The "allowlist" network policy needs at least one entry in allowedHosts.',
-    }),
+    allowedHosts: z
+      .array(allowedHostSchema, {
+        error: (issue) => (issue.input === undefined ? ALLOWLIST_NEEDS_HOSTS : undefined),
+      })
+      .min(1, { message: ALLOWLIST_NEEDS_HOSTS }),
   }),
 ]);
 

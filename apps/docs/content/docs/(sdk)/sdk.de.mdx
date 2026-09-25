@@ -1567,7 +1567,7 @@ geworfen.
 | Code | Wann |
 | --- | --- |
 | `CONFIG_NOT_FOUND` | die Suche fand keine Konfiguration, oder ein explizites `configPath` existiert nicht (geworfen von `loadConfig`) |
-| `CONFIG_INVALID` | eine Konfiguration wurde gefunden, ist aber nicht parsebar oder fällt durch die Validierung, oder ihre Glossardatei konnte nicht aufgelöst werden; ein `translate` ohne Dry-Run und `retranslateEntry` werfen ihn außerdem, wenn `VERBATRA_NETWORK_POLICY` oder `VERBATRA_NETWORK_ALLOWED_HOSTS` einen ungültigen Wert enthält, bevor ein Provider gebaut wird |
+| `CONFIG_INVALID` | eine Konfiguration wurde gefunden, ist aber nicht parsebar oder fällt durch die Validierung, oder ihre Glossardatei konnte nicht aufgelöst werden; `translate` (auch als Dry-Run, außer beim Provider `none`) und `retranslateEntry` werfen ihn außerdem, wenn `VERBATRA_NETWORK_POLICY` oder `VERBATRA_NETWORK_ALLOWED_HOSTS` einen ungültigen Wert enthält, bevor ein Provider gebaut wird |
 | `UNKNOWN_FORMAT` | für das konfigurierte Format ist kein Adapter registriert; geworfen, bevor irgendeine Datei gelesen wird |
 | `UNKNOWN_LOCALE` | eine angefragte Locale gehört nicht zu den konfigurierten Ziel-Locales |
 | `UNKNOWN_KEY` | ein angefragter Key ist nicht in der Quell-Ressource (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |

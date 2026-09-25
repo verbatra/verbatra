@@ -170,7 +170,7 @@ Every tool result and every log line passes through the same secret-redaction pa
 
 ## Stdout is the protocol channel
 
-The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra mcp` and `verbatra-mcp` never print a banner, a log line, or anything else to stdout; every log and diagnostic goes to stderr instead. The server loads the config before it connects the transport, so a config error is written to stderr immediately and the process exits without ever speaking the protocol. Once it is running, per-call diagnostics (a failed call, a call rejected because a matching one is in progress, an unknown tool) also go to stderr.
+The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra mcp` and `verbatra-mcp` never print a banner, a log line, or anything else to stdout; every log and diagnostic goes to stderr instead. The server loads the config before it connects the transport, so a config error is written to stderr immediately and the process exits without ever speaking the protocol. Once it is running, per-call diagnostics (a failed call, a call rejected because a matching one is in progress, an unknown tool) also go to stderr. For the same reason `verbatra mcp` takes no `--json`: passing it exits `2` with `USAGE_ERROR` explained on stderr and nothing on stdout, since a JSON envelope there would corrupt the protocol stream.
 
 ### What it prints on stderr
 

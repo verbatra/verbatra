@@ -170,7 +170,7 @@ Jedes Tool-Ergebnis und jede Log-Zeile durchläuft dasselbe Schwärzen von Secre
 
 ## stdout ist der Protokollkanal
 
-Der stdio-Transport von MCP nutzt stdout ausschließlich für Protokollnachrichten. `verbatra mcp` und `verbatra-mcp` geben niemals ein Banner, eine Log-Zeile oder irgendetwas anderes auf stdout aus; jedes Log und jede Diagnose geht stattdessen auf stderr. Der Server lädt die Konfiguration, bevor er den Transport verbindet; ein Konfigurationsfehler wird also sofort auf stderr geschrieben, und der Prozess endet, ohne je das Protokoll zu sprechen. Sobald er läuft, gehen auch die Diagnosen pro Aufruf (ein fehlgeschlagener Aufruf, ein abgelehnter Aufruf, weil bereits ein passender läuft, ein unbekanntes Tool) auf stderr.
+Der stdio-Transport von MCP nutzt stdout ausschließlich für Protokollnachrichten. `verbatra mcp` und `verbatra-mcp` geben niemals ein Banner, eine Log-Zeile oder irgendetwas anderes auf stdout aus; jedes Log und jede Diagnose geht stattdessen auf stderr. Der Server lädt die Konfiguration, bevor er den Transport verbindet; ein Konfigurationsfehler wird also sofort auf stderr geschrieben, und der Prozess endet, ohne je das Protokoll zu sprechen. Sobald er läuft, gehen auch die Diagnosen pro Aufruf (ein fehlgeschlagener Aufruf, ein abgelehnter Aufruf, weil bereits ein passender läuft, ein unbekanntes Tool) auf stderr. Aus demselben Grund nimmt `verbatra mcp` kein `--json`: Übergibst du es, endet der Befehl mit `2` und einer Erklärung mit `USAGE_ERROR` auf stderr und schreibt nichts nach stdout, weil ein JSON-Umschlag dort den Protokollstrom beschädigen würde.
 
 ### Was es auf stderr ausgibt
 

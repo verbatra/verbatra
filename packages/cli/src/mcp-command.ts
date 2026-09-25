@@ -77,6 +77,7 @@ export async function runMcp(
   deps: CliDeps,
   streams: Streams,
   settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
+  onSession?: (session: Session) => void,
 ): Promise<Session> {
   const ui = createUi(
     streams,
@@ -127,6 +128,8 @@ export async function runMcp(
     return failedSession(2);
   }
 
+  const session = watchForStop(server, streams, stoppedReporter(ui, mcpModule));
+  onSession?.(session);
   announceReady(ui, mcpModule, cwd, allowSpend);
-  return watchForStop(server, streams, stoppedReporter(ui, mcpModule));
+  return session;
 }

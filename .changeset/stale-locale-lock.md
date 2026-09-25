@@ -47,4 +47,6 @@ old, and can still write once when it resumes.
 Locks from another machine, from another container sharing the host name, or from an older version
 are never reclaimed: delete such a lock by hand once no verbatra process is running. The new
 `releaseHeldLocks()` deletes the locks the current process holds, and the CLI calls it when an
-interrupt stops `translate` or `import` and when a second interrupt force-stops `watch`.
+interrupt stops `translate` or `import` and when a second interrupt force-stops `watch`. An
+interrupted `translate` or `import` then ends stderr with `verbatra: interrupted (SIGINT), released
+locks`, or under `--json` with a `{"type":"interrupted"}` record.

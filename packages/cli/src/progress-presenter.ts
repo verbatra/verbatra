@@ -6,6 +6,7 @@ import { formatElapsed } from "./ui.js";
 export interface ProgressPresenterOptions {
   readonly json: boolean;
   readonly base: string;
+  readonly dryRun?: boolean;
 }
 
 function retryText(event: ProviderRetryEvent): string {
@@ -44,8 +45,8 @@ const STATIC_DETAIL_TYPES: ReadonlySet<ProgressEvent["type"]> = new Set([
   "writing",
 ]);
 
-export function staticProgressLine(event: ProgressEvent): string | undefined {
-  const legacy = renderProgressHuman(event);
+export function staticProgressLine(event: ProgressEvent, dryRun = false): string | undefined {
+  const legacy = renderProgressHuman(event, dryRun);
   if (legacy !== undefined || !STATIC_DETAIL_TYPES.has(event.type)) {
     return legacy;
   }
@@ -72,7 +73,7 @@ export function createProgressPresenter(
 
   const animate = (event: ProgressEvent): void => {
     if (event.type === "locale-finished") {
-      ui.line(renderProgressHuman(event) ?? "");
+      ui.line(renderProgressHuman(event, options.dryRun) ?? "");
       return;
     }
     if (event.type === "run-finished") {
@@ -103,7 +104,7 @@ export function createProgressPresenter(
       animate(event);
       return;
     }
-    const line = staticProgressLine(event);
+    const line = staticProgressLine(event, options.dryRun);
     if (line !== undefined) {
       ui.line(line);
     }

@@ -37,7 +37,7 @@ function writeProject(dir: string): void {
 
 function nextCommand(stderr: string): string {
   const line = stderr.split("\n").find((entry) => entry.startsWith("next: "));
-  return line?.slice("next: ".length).split("  (")[0] ?? "";
+  return line?.slice("next: ".length).split(" (")[0] ?? "";
 }
 
 async function runCommand(command: string) {

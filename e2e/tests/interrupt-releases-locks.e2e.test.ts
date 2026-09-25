@@ -77,6 +77,9 @@ describe("an interrupt releases the write locks a translate run holds (no provid
         expect(result.signal).toBeUndefined();
         expect(result.exitCode).toBe(expectedExit);
         expect(await lockFilesIn(dir)).toEqual([]);
+        expect(
+          result.stderr.trimEnd().endsWith(`verbatra: interrupted (${signal}), released locks`),
+        ).toBe(true);
       } finally {
         run.kill("SIGKILL");
       }

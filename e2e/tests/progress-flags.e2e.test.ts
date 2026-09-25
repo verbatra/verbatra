@@ -53,7 +53,7 @@ describe("translate --dry-run --concurrency 2 (no provider)", () => {
 
     expect(result.stderr).toMatch(/^verbatra: dry run over 2 locales, no provider call\n/);
     expect(result.stderr).toMatch(/\[ok\] dry run done in \d+\.\ds, nothing written\n/);
-    expect(result.stderr.endsWith(`next: verbatra translate --cwd ${dir}  (run it for real)`)).toBe(
+    expect(result.stderr.endsWith(`next: verbatra translate --cwd ${dir} (run it for real)`)).toBe(
       true,
     );
     expect(result.stderr).not.toContain("\x1b[");

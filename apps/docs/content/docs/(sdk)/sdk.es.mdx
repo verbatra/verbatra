@@ -1532,7 +1532,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | Código | Cuándo |
 | --- | --- |
 | `CONFIG_NOT_FOUND` | la búsqueda no encontró ninguna configuración, o un `configPath` explícito no existe (lanzado por `loadConfig`) |
-| `CONFIG_INVALID` | se encontró una configuración pero no se puede parsear o falla la validación, o su archivo de glosario no se pudo resolver; un `translate` que no es dry run y `retranslateEntry` también lo lanzan cuando `VERBATRA_NETWORK_POLICY` o `VERBATRA_NETWORK_ALLOWED_HOSTS` tiene un valor no válido, antes de construir ningún proveedor |
+| `CONFIG_INVALID` | se encontró una configuración pero no se puede parsear o falla la validación, o su archivo de glosario no se pudo resolver; `translate` (también en dry run, salvo con el proveedor `none`) y `retranslateEntry` también lo lanzan cuando `VERBATRA_NETWORK_POLICY` o `VERBATRA_NETWORK_ALLOWED_HOSTS` tiene un valor no válido, antes de construir ningún proveedor |
 | `UNKNOWN_FORMAT` | no hay adaptador registrado para el formato configurado; se lanza antes de leer ningún archivo |
 | `UNKNOWN_LOCALE` | un locale solicitado no está entre los locales de destino configurados |
 | `UNKNOWN_KEY` | una clave solicitada no está en el recurso de origen (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
