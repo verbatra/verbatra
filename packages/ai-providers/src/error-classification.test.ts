@@ -64,6 +64,24 @@ describe("classifyProviderError: by SDK error class name", () => {
     expect(classifyProviderError(new ConnectionError())).toBe("TIMEOUT");
   });
 
+  it.each(["ECONNABORTED", "ETIMEDOUT"])(
+    "keeps a deepl-node ConnectionError wrapping %s a TIMEOUT",
+    (code) => {
+      expect(classifyProviderError(Object.assign(new ConnectionError(), { error: { code } }))).toBe(
+        "TIMEOUT",
+      );
+    },
+  );
+
+  it.each(["ECONNREFUSED", "ENOTFOUND", "ECONNRESET"])(
+    "classifies a deepl-node ConnectionError wrapping %s as PROVIDER_ERROR, not TIMEOUT",
+    (code) => {
+      expect(classifyProviderError(Object.assign(new ConnectionError(), { error: { code } }))).toBe(
+        "PROVIDER_ERROR",
+      );
+    },
+  );
+
   it("falls back to PROVIDER_ERROR for an unrecognized class", () => {
     expect(classifyProviderError(new SomethingElse())).toBe("PROVIDER_ERROR");
   });

@@ -7,7 +7,7 @@ import { extractOpenAiResult } from "../openai/response.js";
 import type { OpenAiClient, OpenAiCompletion } from "../openai/types.js";
 import type { TranslateRequest, TranslateResult, TranslationProvider } from "../provider.js";
 import type { ProviderRetryListener } from "../provider-retry.js";
-import { DEFAULT_REQUEST_TIMEOUT_MS, withRequestTimeout } from "../request-timeout.js";
+import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
 import {
   endpointContextOf,
@@ -61,10 +61,10 @@ function callClient(
   signal: AbortSignal | undefined,
   endpoint: ProviderCallContext | undefined,
 ): Promise<OpenAiCompletion> {
-  return withRequestTimeout(
+  return withSdkAttemptTimeout(
     timeoutMs,
     signal,
-    (requestSignal) => client.chat.completions.create(body, { signal: requestSignal }),
+    (options) => client.chat.completions.create(body, options),
     endpoint,
   );
 }

@@ -20,10 +20,9 @@ const AUTH_FAILED_CLASS_NAMES: ReadonlySet<string> = new Set([
   "PermissionDeniedError",
   "AuthorizationError",
 ]);
-const TIMEOUT_CLASS_NAMES: ReadonlySet<string> = new Set([
-  "APIConnectionTimeoutError",
-  "ConnectionError",
-]);
+const TIMEOUT_CLASS_NAMES: ReadonlySet<string> = new Set(["APIConnectionTimeoutError"]);
+const WRAPPED_CONNECTION_CLASS_NAME = "ConnectionError";
+const WRAPPED_TIMEOUT_CODES: ReadonlySet<string> = new Set(["ECONNABORTED", "ETIMEDOUT"]);
 
 const ABORT_ERROR_CLASS_NAMES: ReadonlySet<string> = new Set(["APIUserAbortError"]);
 
@@ -48,8 +47,7 @@ function readClassName(error: unknown): string | undefined {
   return error.constructor?.name;
 }
 
-export function classifyProviderError(error: unknown): ClassifiedProviderErrorCode {
-  const status = getErrorStatus(error);
+function classifyByStatus(status: number | undefined): ClassifiedProviderErrorCode | undefined {
   if (status === RATE_LIMITED_STATUS) {
     return "RATE_LIMITED";
   }
@@ -59,23 +57,45 @@ export function classifyProviderError(error: unknown): ClassifiedProviderErrorCo
   if (status === TIMEOUT_STATUS) {
     return "TIMEOUT";
   }
-  if (isServerOutageStatus(status)) {
-    return "PROVIDER_UNAVAILABLE";
-  }
+  return isServerOutageStatus(status) ? "PROVIDER_UNAVAILABLE" : undefined;
+}
 
+function classifyByClassName(error: unknown): ClassifiedProviderErrorCode | undefined {
   const className = readClassName(error);
-  if (className !== undefined) {
-    if (RATE_LIMITED_CLASS_NAMES.has(className)) {
-      return "RATE_LIMITED";
-    }
-    if (AUTH_FAILED_CLASS_NAMES.has(className)) {
-      return "AUTH_FAILED";
-    }
-    if (TIMEOUT_CLASS_NAMES.has(className)) {
-      return "TIMEOUT";
-    }
+  if (className === undefined) {
+    return undefined;
   }
-  return "PROVIDER_ERROR";
+  if (RATE_LIMITED_CLASS_NAMES.has(className)) {
+    return "RATE_LIMITED";
+  }
+  if (AUTH_FAILED_CLASS_NAMES.has(className)) {
+    return "AUTH_FAILED";
+  }
+  if (TIMEOUT_CLASS_NAMES.has(className)) {
+    return "TIMEOUT";
+  }
+  if (className === WRAPPED_CONNECTION_CLASS_NAME) {
+    return isWrappedTimeout(error) ? "TIMEOUT" : "PROVIDER_ERROR";
+  }
+  return undefined;
+}
+
+export function classifyProviderError(error: unknown): ClassifiedProviderErrorCode {
+  return classifyByStatus(getErrorStatus(error)) ?? classifyByClassName(error) ?? "PROVIDER_ERROR";
+}
+
+function wrappedCode(error: unknown): string | undefined {
+  const inner = (error as { readonly error?: unknown }).error;
+  if (typeof inner !== "object" || inner === null || !("code" in inner)) {
+    return undefined;
+  }
+  const code = (inner as { readonly code?: unknown }).code;
+  return typeof code === "string" ? code : undefined;
+}
+
+function isWrappedTimeout(error: unknown): boolean {
+  const code = wrappedCode(error);
+  return code === undefined || WRAPPED_TIMEOUT_CODES.has(code);
 }
 
 function isAbortShapedError(error: unknown): boolean {
