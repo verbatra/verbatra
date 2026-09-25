@@ -12,7 +12,7 @@ const config = {
     "/*": ["../../node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*"],
   },
   experimental: {
-    optimizePackageImports: ["@icons-pack/react-simple-icons", "motion"],
+    optimizePackageImports: ["@icons-pack/react-simple-icons"],
     optimisticRouting: false,
   },
   async redirects() {

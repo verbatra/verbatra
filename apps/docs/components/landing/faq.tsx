@@ -1,16 +1,13 @@
 "use client";
 
-import { motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { i18n, isLocale, localizedPath } from "@/lib/i18n";
-import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import type { FaqItem } from "@/lib/structured-data";
+import { cn } from "@/lib/utils";
 import { RELEASES_URL } from "./links";
 import { Reveal } from "./reveal";
 import { SectionHead } from "./section-head";
-
-const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export type FaqEntry = FaqItem & { id: string };
 
@@ -48,13 +45,11 @@ function FaqRow({
   index,
   isOpen,
   onToggle,
-  reduced,
 }: {
   item: FaqEntry;
   index: number;
   isOpen: boolean;
   onToggle: () => void;
-  reduced: boolean;
 }): ReactNode {
   const t = useTranslations("landing.faq");
   const locale = useLocale();
@@ -75,30 +70,32 @@ function FaqRow({
           style={{ fontFamily: "var(--font-display)" }}
         >
           {item.question}
-          <motion.span
+          <span
             aria-hidden="true"
-            className="relative grid h-4 w-4 shrink-0 place-items-center"
-            initial={false}
-            animate={{ rotate: isOpen ? 45 : 0 }}
-            transition={reduced ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT }}
+            className={cn(
+              "relative grid h-4 w-4 shrink-0 place-items-center transition-transform duration-200 ease-(--ease-out) motion-reduce:transition-none",
+              isOpen && "rotate-45",
+            )}
           >
             <span className="h-px w-3.5" style={{ background: "var(--v-glow)" }} />
             <span className="absolute h-3.5 w-px" style={{ background: "var(--v-glow)" }} />
-          </motion.span>
+          </span>
         </button>
       </h3>
-      <motion.section
+      <section
         id={panelId}
         aria-labelledby={buttonId}
-        className="overflow-hidden"
-        initial={false}
-        animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
-        transition={reduced ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT }}
+        className={cn(
+          "grid transition-[grid-template-rows,opacity] duration-300 ease-(--ease-out) motion-reduce:transition-none",
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
       >
-        <p className="max-w-[68ch] pb-5 text-base leading-relaxed text-fd-muted-foreground">
-          {t.rich(`items.${item.id}.answer`, answerTags(locale))}
-        </p>
-      </motion.section>
+        <div className="overflow-hidden">
+          <p className="max-w-[68ch] pb-5 text-base leading-relaxed text-fd-muted-foreground">
+            {t.rich(`items.${item.id}.answer`, answerTags(locale))}
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -106,7 +103,6 @@ function FaqRow({
 export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
   const t = useTranslations("landing.faq");
   const [open, setOpen] = useState(-1);
-  const reduced = useReducedMotionPreference();
 
   return (
     <section className="vk-gutter vk-w-wide vk-rhythm-lg mx-auto" id="faq">
@@ -121,7 +117,6 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
             index={i}
             isOpen={open === i}
             onToggle={() => setOpen((current) => (current === i ? -1 : i))}
-            reduced={reduced}
           />
         ))}
       </Reveal>
