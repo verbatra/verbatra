@@ -24,7 +24,7 @@ Les deux formes prennent les trois mêmes options et démarrent le même serveur
 - `verbatra mcp` charge `.env.local` puis `.env` depuis le répertoire de travail avant de démarrer ; `verbatra-mcp` ne charge ni l'un ni l'autre, donc passe toute clé d'API dans l'environnement avec lequel le client MCP le lance.
 - `verbatra mcp` rejette une option inconnue comme erreur d'utilisation et sort avec `2` ; `verbatra-mcp` ignore les options inconnues.
 - Une erreur de démarrage ou de config sort avec `2` depuis `verbatra mcp` et avec `1` depuis `verbatra-mcp`.
-- `verbatra mcp` s'arrête de force avec le code de sortie `130` sur une seconde interruption pendant l'extinction ; `verbatra-mcp` n'a pas ce chemin.
+- Les deux s'arrêtent quelques secondes après une interruption, même quand un appel d'outil attend le fournisseur, et libèrent tout verrou de locale qu'ils détiennent. Une seconde interruption pendant l'extinction arrête de force `verbatra mcp` avec le code de sortie `130` ; à partir de `@verbatra/mcp` 0.3.0, elle arrête de force `verbatra-mcp` avec `130` après Ctrl-C et `143` après SIGTERM.
 
 ## Options
 
