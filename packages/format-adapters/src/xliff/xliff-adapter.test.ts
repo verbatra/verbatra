@@ -227,6 +227,9 @@ describe("createXliffAdapter write (round-trip fidelity)", () => {
     const error = await readError(adapter.write(resource, missing));
     expect((error as AdapterError).code).toBe("INVALID_STRUCTURE");
     expect((error as AdapterError).message).toMatch(/does not exist/);
+    expect((error as AdapterError).message).toContain(
+      "Copy the source XLIFF file to this locale's path, set its target language, and run the command again.",
+    );
   });
 
   it("raises INVALID_STRUCTURE with a non-misleading message when the destination cannot be read for a reason other than not existing", async () => {
