@@ -548,7 +548,9 @@ export function renderDoctorHuman(result: DoctorResult): string {
   const failed = result.checks.filter((entry) => entry.status === "fail").length;
   const trailer = result.ok
     ? "no problems found"
-    : `${failed} ${failed === 1 ? "problem" : "problems"} found (run verbatra doctor again after fixing them)`;
+    : failed === 1
+      ? "1 problem found (run verbatra doctor again after fixing it)"
+      : `${failed} problems found (run verbatra doctor again after fixing them)`;
   return ["verbatra doctor", ...lines, ...renderLiteralLines(result.literals), trailer].join("\n");
 }
 
