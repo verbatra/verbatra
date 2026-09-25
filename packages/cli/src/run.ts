@@ -367,14 +367,26 @@ function resolveCommandName(program: Command, argv: readonly string[]): string |
   return argv.find((token) => names.has(token)) ?? null;
 }
 
+const PROTOCOL_STDOUT_COMMANDS: ReadonlySet<string> = new Set(["mcp"]);
+
 function renderUsageFailureExit2(
   error: CommanderError,
   program: Command,
   argv: readonly string[],
   streams: Streams,
 ): number {
+  const command = resolveCommandName(program, argv);
+  if (command !== null && PROTOCOL_STDOUT_COMMANDS.has(command)) {
+    if (argvRequestsJson(argv)) {
+      streams.err(
+        `verbatra: error [${USAGE_ERROR_CODE}] ${command} does not take --json: its stdout carries ` +
+          "only MCP protocol messages, so it never prints a JSON envelope. Remove --json.\n",
+      );
+    }
+    return 2;
+  }
   if (argvRequestsJson(argv)) {
-    const envelope = renderErrorEnvelope(resolveCommandName(program, argv), {
+    const envelope = renderErrorEnvelope(command, {
       code: USAGE_ERROR_CODE,
       message: error.message,
     });
@@ -565,8 +577,11 @@ function lockWaitReporter(context: CommandContext): (event: LockWaitEvent) => vo
   };
 }
 
-function progressReporter(context: CommandContext): (event: ProgressEvent) => void {
-  return createProgressPresenter(context.ui, { json: context.json, base: process.cwd() });
+function progressReporter(
+  context: CommandContext,
+  dryRun: boolean,
+): (event: ProgressEvent) => void {
+  return createProgressPresenter(context.ui, { json: context.json, base: process.cwd(), dryRun });
 }
 
 async function withTask<T>(
@@ -622,8 +637,17 @@ function reportTranslateOutcome(
   startedAt: number,
 ): void {
   const elapsed = formatElapsed(Date.now() - startedAt);
+  const handOff = (): void =>
+    context.ui.hint(
+      verbatraCommand(["export"], opts),
+      "hand the keys that need a person to a translator, or edit them in verbatra studio",
+    );
   if (summary.dryRun) {
     context.ui.status("ok", `dry run done in ${elapsed}, nothing written`);
+    if (exitCode === NEEDS_HUMAN_EXIT_CODE) {
+      handOff();
+      return;
+    }
     context.ui.hint(verbatraCommand(["translate"], opts), "run it for real");
     return;
   }
@@ -633,6 +657,9 @@ function reportTranslateOutcome(
     return;
   }
   context.ui.status("warn", `finished in ${elapsed}${usagePhrase(summary)}, see the summary above`);
+  if (exitCode === NEEDS_HUMAN_EXIT_CODE) {
+    handOff();
+  }
 }
 
 function buildTranslateInput(
@@ -645,7 +672,7 @@ function buildTranslateInput(
     config,
     cwd,
     onLockWait: lockWaitReporter(context),
-    onProgress: progressReporter(context),
+    onProgress: progressReporter(context, resolveDryRun(opts)),
     ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
     ...(opts.dryRun === true ? { dryRun: true } : {}),
     ...(opts.prune === true ? { prune: true } : {}),
@@ -780,8 +807,14 @@ async function runMcpCommand(
   hooks: RunHooks,
   settings: TerminalSettings,
 ): Promise<number> {
-  const session = await runMcp(rawOpts, deps, streams, settings);
-  hooks.onMcpSession?.(session);
+  let announced = false;
+  const session = await runMcp(rawOpts, deps, streams, settings, (started) => {
+    announced = true;
+    hooks.onMcpSession?.(started);
+  });
+  if (!announced) {
+    hooks.onMcpSession?.(session);
+  }
   return session.done;
 }
 
@@ -1070,6 +1103,25 @@ async function runCheck(
   );
 }
 
+function everyPendingKeyProtected(summary: DiffSummary): boolean {
+  const pending = summary.locales.flatMap((locale) => {
+    const protectedKeys = new Set(locale.protected ?? []);
+    return [...locale.missing, ...locale.changed].map((key) => protectedKeys.has(key));
+  });
+  return pending.length > 0 && pending.every((isProtected) => isProtected);
+}
+
+function pendingKeysHint(summary: DiffSummary, opts: LocationOpts, context: CommandContext): void {
+  if (everyPendingKeyProtected(summary)) {
+    context.ui.hint(
+      verbatraCommand(["studio"], opts),
+      "every pending key is protected from machine writes, so review or edit it there",
+    );
+    return;
+  }
+  context.ui.hint(verbatraCommand(["translate"], opts), "send the pending keys to your provider");
+}
+
 function hasConfirmedUnusedKeys(summary: DiffSummary): boolean {
   return summary.unused?.status === "complete" && summary.unused.unused.length > 0;
 }
@@ -1105,10 +1157,7 @@ async function runDiff(
             : `${renderDiffHuman(summary)}\n`,
         );
         if (summary.hasPendingChanges) {
-          context.ui.hint(
-            verbatraCommand(["translate"], opts),
-            "send the pending keys to your provider",
-          );
+          pendingKeysHint(summary, opts, context);
         }
         return summary.hasPendingChanges || hasConfirmedUnusedKeys(summary) ? 1 : 0;
       },
@@ -1311,7 +1360,7 @@ function registerTranslateCommand(program: Command, ctx: ProgramContext): void {
       "estimate what the run would send and cost, then exit without calling a provider (implies --dry-run)",
     )
     .action(async (opts: unknown) => {
-      ctx.hooks.onLockingCommand?.();
+      ctx.hooks.onLockingCommand?.({ json: jsonFlagSchema.safeParse(opts).data?.json === true });
       ctx.setCode(await runTranslate(opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(
@@ -1420,7 +1469,7 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--json", "print the run summary as JSON")
     .action(async (workbook: string, opts: unknown) => {
-      ctx.hooks.onLockingCommand?.();
+      ctx.hooks.onLockingCommand?.({ json: jsonFlagSchema.safeParse(opts).data?.json === true });
       ctx.setCode(await runImport(workbook, opts, ctx.deps, ctx.streams, ctx.settings()));
     })
     .addHelpText(

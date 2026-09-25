@@ -108,8 +108,10 @@ Die fehlenden und geänderten Keys, die ein `translate`-Lauf für einen Menschen
 
 ```text
 verbatra: diffing and scanning the source... done (0.8s)
-next: verbatra translate  (send the pending keys to your provider)
+next: verbatra translate (send the pending keys to your provider)
 ```
+
+Ist jeder ausstehende Key geschützt, würde ein Lauf sie alle in Ruhe lassen, deshalb schlägt es stattdessen `verbatra studio` vor, um sie zu prüfen oder zu bearbeiten, und `verbatra check` sagt dasselbe in seiner Zeile zum fehlenden Gleichstand.
 
 Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
 

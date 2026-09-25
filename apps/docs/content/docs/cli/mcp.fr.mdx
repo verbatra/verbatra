@@ -170,7 +170,7 @@ Chaque résultat d'outil et chaque ligne de log passe par la même expurgation d
 
 ## stdout est le canal du protocole
 
-Le transport stdio de MCP utilise stdout exclusivement pour les messages du protocole. `verbatra mcp` et `verbatra-mcp` n'impriment jamais de bannière, de ligne de log ni rien d'autre sur stdout ; tous les logs et diagnostics vont sur stderr à la place. Le serveur charge la config avant de connecter le transport, donc une erreur de config est écrite sur stderr immédiatement et le processus sort sans jamais parler le protocole. Une fois en marche, les diagnostics par appel (un appel échoué, un appel rejeté parce qu'un appel correspondant est en cours, un outil inconnu) vont aussi sur stderr.
+Le transport stdio de MCP utilise stdout exclusivement pour les messages du protocole. `verbatra mcp` et `verbatra-mcp` n'impriment jamais de bannière, de ligne de log ni rien d'autre sur stdout ; tous les logs et diagnostics vont sur stderr à la place. Le serveur charge la config avant de connecter le transport, donc une erreur de config est écrite sur stderr immédiatement et le processus sort sans jamais parler le protocole. Une fois en marche, les diagnostics par appel (un appel échoué, un appel rejeté parce qu'un appel correspondant est en cours, un outil inconnu) vont aussi sur stderr. Pour la même raison, `verbatra mcp` n'accepte pas `--json` : si tu le passes, la commande sort avec `2` et un `USAGE_ERROR` expliqué sur stderr, sans rien écrire sur stdout, car une enveloppe JSON y corromprait le flux du protocole.
 
 ### Ce qu'il affiche sur stderr
 

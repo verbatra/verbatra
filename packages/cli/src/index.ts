@@ -16,6 +16,7 @@ import {
   translate,
   watch,
 } from "@verbatra/sdk";
+import { type InterruptSignal, renderInterrupted } from "./render.js";
 import { run } from "./run.js";
 import { createLineSettler } from "./spinner.js";
 
@@ -23,9 +24,12 @@ const stderr = createLineSettler((text) => {
   process.stderr.write(text);
 });
 
-function exitAfterReleasingLocks(code: number): void {
+function exitAfterReleasingLocks(code: number, signal: InterruptSignal, json: boolean): void {
   stderr.settle();
-  void releaseHeldLocks().finally(() => process.exit(code));
+  void releaseHeldLocks().finally(() => {
+    process.stderr.write(`${renderInterrupted(signal, json)}\n`);
+    process.exit(code);
+  });
 }
 
 const code = await run(
@@ -55,9 +59,9 @@ const code = await run(
     err: stderr.write,
   },
   {
-    onLockingCommand: () => {
-      process.once("SIGINT", () => exitAfterReleasingLocks(130));
-      process.once("SIGTERM", () => exitAfterReleasingLocks(143));
+    onLockingCommand: ({ json }) => {
+      process.once("SIGINT", () => exitAfterReleasingLocks(130, "SIGINT", json));
+      process.once("SIGTERM", () => exitAfterReleasingLocks(143, "SIGTERM", json));
     },
     onWatchSession: (session) => {
       process.on("SIGINT", () => session.requestStop());

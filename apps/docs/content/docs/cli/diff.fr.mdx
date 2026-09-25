@@ -108,8 +108,10 @@ Les clés manquantes et modifiées qu'une exécution de `translate` laisserait �
 
 ```text
 verbatra: diffing and scanning the source... done (0.8s)
-next: verbatra translate  (send the pending keys to your provider)
+next: verbatra translate (send the pending keys to your provider)
 ```
+
+Quand toutes les clés en attente sont protégées, une exécution les laisserait toutes intactes : il suggère donc `verbatra studio` pour les relire ou les modifier, et `verbatra check` dit la même chose dans sa ligne de désynchronisation.
 
 Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
 

@@ -89,8 +89,10 @@ verbatra: fr: writing
 verbatra: fr done, 12 translated
 verbatra: run finished, 2 locales processed
 [ok] done in 4.2s, 1830 tokens
-next: verbatra check  (confirm every locale is in sync)
+next: verbatra check (confirm every locale is in sync)
 ```
+
+A dry run or an estimate says what it would do instead: each locale ends with `verbatra: de done, 12 would translate`, and the next step points at the real run. When provider `none` leaves keys for a person (exit `3`), the next step points at `verbatra export` or Studio instead.
 
 These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
 
@@ -102,8 +104,8 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 | `1` | the run finished but one or more locales failed or came out partial |
 | `2` | could not run: a whole-run error (config, source, format, provider, or a corrupt lock file), or a usage error |
 | `3` | human-only project (`provider: { id: "none" }`): the run finished cleanly, but keys are left for a human translation |
-| `130` | interrupted with Ctrl-C (SIGINT); the run's write locks are released first |
-| `143` | stopped with SIGTERM; the run's write locks are released first |
+| `130` | interrupted with Ctrl-C (SIGINT); the run's write locks are released first and stderr ends with `verbatra: interrupted (SIGINT), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
+| `143` | stopped with SIGTERM; the run's write locks are released first and stderr ends with `verbatra: interrupted (SIGTERM), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
 
 <AvailableFrom version="0.9.0" />
 

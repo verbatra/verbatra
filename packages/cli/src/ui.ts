@@ -238,7 +238,7 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
     status,
     hint: (command, why) => {
       if (!isSilent(terminal)) {
-        const reason = why === undefined ? "" : `  (${why})`;
+        const reason = why === undefined ? "" : ` (${why})`;
         writer.streams.err(`${label("cyan", "next:")} ${command}${reason}\n`);
       }
     },

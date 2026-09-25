@@ -89,8 +89,10 @@ verbatra: fr: writing
 verbatra: fr done, 12 translated
 verbatra: run finished, 2 locales processed
 [ok] done in 4.2s, 1830 tokens
-next: verbatra check  (confirm every locale is in sync)
+next: verbatra check (confirm every locale is in sync)
 ```
+
+Un dry run ou une estimation dit plutôt ce qu'il ferait : chaque locale se termine par `verbatra: de done, 12 would translate`, et l'étape suivante renvoie vers la vraie exécution. Quand le fournisseur `none` laisse des clés à une personne (sortie `3`), l'étape suivante renvoie plutôt vers `verbatra export` ou Studio.
 
 Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
 
@@ -102,8 +104,8 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 | `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, format, fournisseur ou fichier de verrou corrompu) ou une erreur d'utilisation |
 | `3` | projet 100 % humain (`provider: { id: "none" }`) : l'exécution s'est terminée proprement, mais des clés attendent une traduction humaine |
-| `130` | interrompu avec Ctrl-C (SIGINT) ; les verrous d'écriture de l'exécution sont libérés d'abord |
-| `143` | arrêté avec SIGTERM ; les verrous d'écriture de l'exécution sont libérés d'abord |
+| `130` | interrompu avec Ctrl-C (SIGINT) ; les verrous d'écriture de l'exécution sont libérés d'abord, et stderr se termine par `verbatra: interrupted (SIGINT), released locks`, ou sous `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
+| `143` | arrêté avec SIGTERM ; les verrous d'écriture de l'exécution sont libérés d'abord, et stderr se termine par `verbatra: interrupted (SIGTERM), released locks`, ou sous `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
 
 <AvailableFrom version="0.9.0" />
 

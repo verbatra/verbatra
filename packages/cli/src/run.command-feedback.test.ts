@@ -48,7 +48,7 @@ describe("translate: start, outcome and next step", () => {
 
     expect(code).toBe(0);
     expect(err).toMatch(
-      /^verbatra: translating 1 locale with anthropic\/test-model\nverbatra: translating de\n\[ok\] done in \d+\.\ds, 120 tokens\nnext: verbatra check {2}\(confirm every locale is in sync\)\n$/,
+      /^verbatra: translating 1 locale with anthropic\/test-model\nverbatra: translating de\n\[ok\] done in \d+\.\ds, 120 tokens\nnext: verbatra check \(confirm every locale is in sync\)\n$/,
     );
   });
 
@@ -59,7 +59,7 @@ describe("translate: start, outcome and next step", () => {
 
     expect(err).toContain("verbatra: dry run over 1 locale, no provider call\n");
     expect(err).toMatch(/\[ok\] dry run done in \d+\.\ds, nothing written\n/);
-    expect(err).toContain("next: verbatra translate  (run it for real)\n");
+    expect(err).toContain("next: verbatra translate (run it for real)\n");
   });
 
   it("marks an estimate", async () => {
@@ -118,7 +118,7 @@ describe("export and import: task lines and hand-off hints", () => {
 
     expect(err).toMatch(/^verbatra: exporting to xlsx\.\.\. done \(\d+\.\ds\)\n/);
     expect(err).toContain(
-      "next: verbatra import handoff.xlsx  (once your translators have filled it in)\n",
+      "next: verbatra import handoff.xlsx (once your translators have filled it in)\n",
     );
   });
 
@@ -148,7 +148,7 @@ describe("export and import: task lines and hand-off hints", () => {
     });
 
     expect(err).toMatch(/^verbatra: importing handoff\.xlsx\.\.\. done/);
-    expect(err).toContain("next: verbatra check  (confirm every locale is in sync)\n");
+    expect(err).toContain("next: verbatra check (confirm every locale is in sync)\n");
   });
 
   it("import suggests the real import after a dry run, and nothing after a partial one", async () => {
@@ -156,7 +156,7 @@ describe("export and import: task lines and hand-off hints", () => {
       importWorkbook: async () => makeSummary({ dryRun: true }),
     });
     expect(dry.err).toContain(
-      "next: verbatra import handoff.xlsx  (without --dry-run to write the files)\n",
+      "next: verbatra import handoff.xlsx (without --dry-run to write the files)\n",
     );
 
     const partial = await stderrOf(["import", "handoff.xlsx"], {
@@ -171,14 +171,14 @@ describe("tmx: task lines and hints", () => {
     const real = await stderrOf(["tmx", "import", "legacy.tmx"]);
     expect(real.err).toMatch(/verbatra: importing legacy\.tmx into the memory\.\.\. done/);
     expect(real.err).toContain(
-      "next: verbatra translate  (reuses the imported memory before calling a provider)\n",
+      "next: verbatra translate (reuses the imported memory before calling a provider)\n",
     );
 
     const dry = await stderrOf(["tmx", "import", "legacy.tmx", "--dry-run"], {
       importTmx: async () => makeImportTmxResult({ dryRun: true }),
     });
     expect(dry.err).toContain(
-      "next: verbatra tmx import legacy.tmx  (without --dry-run to store it)\n",
+      "next: verbatra tmx import legacy.tmx (without --dry-run to store it)\n",
     );
   });
 
@@ -209,7 +209,7 @@ describe("check, diff and doctor: task lines, scan progress and hints", () => {
 
     expect(seen).toHaveLength(1);
     expect(err).toMatch(/^verbatra: diffing and scanning the source\.\.\. done/);
-    expect(err).toContain("next: verbatra translate  (send the pending keys to your provider)\n");
+    expect(err).toContain("next: verbatra translate (send the pending keys to your provider)\n");
   });
 
   it("diff suggests nothing when nothing is pending", async () => {
@@ -245,7 +245,7 @@ describe("pseudo, types and extract: next steps", () => {
         makeTypesResult({ path: inCwd("verbatra-types.d.ts"), written: true }),
     });
     expect(written.err).toContain(
-      "next: commit verbatra-types.d.ts  (verbatra types --check compares against it in CI)\n",
+      "next: commit verbatra-types.d.ts (verbatra types --check compares against it in CI)\n",
     );
 
     const checked = await stderrOf(["types", "--check"], {
@@ -262,14 +262,12 @@ describe("pseudo, types and extract: next steps", () => {
       extract: async () => makeExtractResult({ added, written: true }),
     });
     expect(real.err).toMatch(/^verbatra: scanning the source\.\.\. done/);
-    expect(real.err).toContain("next: verbatra translate  (translate the new keys)\n");
+    expect(real.err).toContain("next: verbatra translate (translate the new keys)\n");
 
     const dry = await stderrOf(["extract", "--dry-run"], {
       extract: async () => makeExtractResult({ added, dryRun: true }),
     });
-    expect(dry.err).toContain(
-      "next: verbatra extract  (without --dry-run to write the new keys)\n",
-    );
+    expect(dry.err).toContain("next: verbatra extract (without --dry-run to write the new keys)\n");
 
     const none = await stderrOf(["extract"]);
     expect(none.err).not.toContain("next:");

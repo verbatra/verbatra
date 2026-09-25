@@ -716,7 +716,7 @@ describe("render: human run summary", () => {
     expect(text).toContain(
       [
         "    integrity-withheld:",
-        "      drifted",
+        "      drifted: source changed since export",
         '      files: icu ({n} plural: missing arm "few" required by the target language)',
         "      title: empty",
       ].join("\n"),

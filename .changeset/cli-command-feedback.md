@@ -15,5 +15,8 @@ token count, `watch` names the change it picked up, and `export`, `import`, `tmx
 `pseudo`, `types`, `extract` and `translate` end with a `next:` hint that repeats `--cwd` and
 `--config` (quoted when a shell would split them), names the file relative to `--cwd`, and keeps
 the `--format` of a `csv` or `tsv` export or import so the suggested `import` runs as printed.
-stdout and `--json` output are unchanged, and
-`--quiet` drops the new lines.
+A dry run's locale line says `de done, 3 would translate`, a `translate` whose provider `none`
+leaves keys for a person (exit 3) points at `verbatra export` or Studio instead of another run, and
+`diff` and `check` point at `verbatra studio` instead of `translate` when every pending key is
+protected from machine writes. stdout and `--json` output are unchanged, and `--quiet` drops the
+new lines.

@@ -199,7 +199,7 @@ describe("export then import round-trip (no provider)", () => {
     expect(exported.exitCode).toBe(0);
     expect(exported.stderr).toMatch(/^verbatra: exporting to xlsx\.\.\. done \(\d+\.\ds\)\n/);
     expect(exported.stderr).toContain(
-      `next: verbatra import verbatra-translations.xlsx --cwd ${dir}  (once your translators have filled it in)`,
+      `next: verbatra import verbatra-translations.xlsx --cwd ${dir} (once your translators have filled it in)`,
     );
 
     await fillWorkbook(workbookPath, () => "Auf Wiedersehen", {
@@ -212,7 +212,7 @@ describe("export then import round-trip (no provider)", () => {
     const imported = await runVerbatra(consumer, ["import", workbookPath, "--cwd", dir]);
     expect(imported.exitCode).toBe(0);
     expect(imported.stderr).toContain(
-      `next: verbatra check --cwd ${dir}  (confirm every locale is in sync)`,
+      `next: verbatra check --cwd ${dir} (confirm every locale is in sync)`,
     );
 
     const de = await readJsonIn<Record<string, string>>(dir, "locales/de.json");

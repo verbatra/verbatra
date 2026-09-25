@@ -53,7 +53,7 @@ describe("createUi: plain mode lines", () => {
         "verbatra: 2 keys need a human translation",
         "[ok] config loaded",
         "[skip] network check",
-        "next: verbatra check  (confirm every locale is in sync)",
+        "next: verbatra check (confirm every locale is in sync)",
         "next: verbatra import handoff.xlsx",
         "verbatra: translating de",
         "",
@@ -119,10 +119,10 @@ describe("createUi: color", () => {
 
     const err = cap.err();
     expect(err).toContain(`${ESC}31m[fail]${ESC}39m value [x]\n`);
-    expect(err).toContain(`${ESC}36mnext:${ESC}39m verbatra check  (why)\n`);
+    expect(err).toContain(`${ESC}36mnext:${ESC}39m verbatra check (why)\n`);
     expect(err).toContain(`verbatra: ${ESC}31merror${ESC}39m [CODE] message text\n`);
     expect(stripVTControlCharacters(err)).toBe(
-      "[fail] value [x]\nnext: verbatra check  (why)\nverbatra: error [CODE] message text\n",
+      "[fail] value [x]\nnext: verbatra check (why)\nverbatra: error [CODE] message text\n",
     );
   });
 
