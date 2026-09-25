@@ -1,7 +1,10 @@
-export function studioSpendLine(spend: boolean): string {
-  return spend
+export function studioSpendLine(spend: boolean, machineTranslation = true): string {
+  if (!spend) {
+    return "spend tools off (pass --allow-spend to retranslate from Studio)";
+  }
+  return machineTranslation
     ? "spend tools on: Studio can call your translation provider"
-    : "spend tools off (pass --allow-spend to retranslate from Studio)";
+    : "spend tools off (provider none)";
 }
 
 export function studioAgentToolsLine(exposed: boolean): string {

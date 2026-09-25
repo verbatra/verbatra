@@ -47,6 +47,8 @@ describe("banner wording", () => {
   it("points at the flag that turns each Studio capability on", () => {
     expect(studioSpendLine(false)).toContain("--allow-spend");
     expect(studioSpendLine(true)).toContain("spend tools on");
+    expect(studioSpendLine(true, false)).toBe("spend tools off (provider none)");
+    expect(studioSpendLine(false, false)).toContain("pass --allow-spend");
     expect(studioAgentToolsLine(false)).toContain("--expose-agent-tools");
     expect(studioAgentToolsLine(true)).toContain("agent tools on");
   });
