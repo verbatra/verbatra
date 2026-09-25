@@ -27,7 +27,7 @@ verbatra init [flags]
 | `--force` | keins | aus | eine bestehende `verbatra.config.ts` mit abweichendem Inhalt überschreiben |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) ausgeben, der beschreibt, was geschrieben wurde; fragt nie nach |
 
-Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen. Im Terminal übernimmt Enter den vorgeschlagenen Wert, und das zählt als deine Antwort. Ein Flag mit leerem Wert, etwa `--targets ''`, ist ein Verwendungsfehler (`INVALID_OPTION`) und nie eine Bitte um den Standardwert.
+Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen. Im Terminal übernimmt Enter den vorgeschlagenen Wert, und das zählt als deine Antwort. Ein Flag mit leerem Wert, etwa `--targets ''`, ist ein Verwendungsfehler (`INVALID_OPTION`) und nie eine Bitte um den Standardwert. Im Terminal wird jede Antwort sofort geprüft: Ein unbekannter Provider oder ein unbekanntes Format, ein fehlerhafter Locale-Code, eine Liste von Ziel-Locales, die die Quell-Locale oder gar keine Locale nennt, ein Muster ohne `{locale}` oder eine Base-URL, die keine URL ist oder Zugangsdaten enthält, wird auf stderr erklärt und bis zu dreimal neu abgefragt, sodass deine bisherigen Antworten erhalten bleiben.
 
 <AvailableFrom version="0.12.0" />
 
@@ -124,7 +124,7 @@ Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVID
 
 ## Bestehende Dateien
 
-Ein erneutes `init` mit denselben Antworten ändert nichts und ist erfolgreich, du kannst es also gefahrlos wiederholen. Eine `verbatra.config.ts` mit anderem Inhalt wird mit `CONFIG_EXISTS` abgelehnt, außer du übergibst `--force`. Eine andere verbatra-Konfiguration im selben Verzeichnis (zum Beispiel eine `.verbatrarc.json` oder eine `verbatra`-Property in `package.json`) wird auch unter `--force` mit `CONFIG_EXISTS` abgelehnt, weil sie vor `verbatra.config.ts` gelesen würde. Wenn `init` ablehnt, wird nichts geschrieben.
+Ein erneutes `init` mit denselben Antworten ändert nichts und ist erfolgreich, du kannst es also gefahrlos wiederholen. Eine `verbatra.config.ts` mit anderem Inhalt wird mit `CONFIG_EXISTS` abgelehnt, außer du übergibst `--force`. Eine andere verbatra-Konfiguration im selben Verzeichnis (zum Beispiel eine `.verbatrarc.json` oder eine `verbatra`-Property in `package.json`) wird auch unter `--force` mit `CONFIG_EXISTS` abgelehnt, weil sie vor `verbatra.config.ts` gelesen würde. Wenn `init` ablehnt, wird nichts geschrieben. Gibt es `verbatra.config.ts` schon und du hast `--force` nicht übergeben, kommt `CONFIG_EXISTS` vor allem anderen: im Terminal vor der ersten Frage und sonst anstelle einer fehlenden, mehrdeutigen oder ungültigen Antwort, sodass ein erneuter Lauf dich zuerst auf die vorhandene Konfiguration hinweist. `init --cwd` lehnt einen Pfad, der kein vorhandenes Verzeichnis ist, mit `INVALID_OPTION` ab und ein Verzeichnis, in das es nicht schreiben kann, etwa ein schreibgeschütztes, mit `INIT_UNWRITABLE`; die Meldung nennt die Datei und jede bereits geschriebene Datei.
 
 Eine bestehende `.env.example` bleibt, wie sie ist; nennt sie die Key-Variable noch nicht, wird genau diese eine Zeile angehängt. Unter `--force` wird eine Kopfzeile, die `init` selbst geschrieben hat, für den neuen Provider neu geschrieben; eine Kopfzeile von dir bleibt erhalten. `.gitignore` bekommt nur die Einträge, die ihr fehlen.
 
@@ -152,7 +152,7 @@ verbatra init --provider none --yes
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Dateien geschrieben oder schon auf dem aktuellen Stand |
-| `2` | ein Verwendungsfehler: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS` oder `CONFIG_INVALID`, wenn die Antworten keine gültige Konfiguration ergeben würden |
+| `2` | ein Verwendungsfehler: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE` oder `CONFIG_INVALID`, wenn die Antworten keine gültige Konfiguration ergeben würden |
 
 ## Siehe auch
 

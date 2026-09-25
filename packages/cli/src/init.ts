@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { detectProject, type ProjectDetection, scaffoldingMetadata } from "@verbatra/sdk";
@@ -9,6 +9,7 @@ import {
   type InitOptions,
   type InitPlan,
   initOptsSchema,
+  type Prompter,
   planInit,
 } from "./init-answers.js";
 import {
@@ -62,7 +63,7 @@ function competingConfig(cwd: string): string | undefined {
   });
 }
 
-function configAction(cwd: string, content: string, force: boolean): FileAction {
+function assertNoCompetingConfig(cwd: string): void {
   const competing = competingConfig(cwd);
   if (competing !== undefined) {
     throw new CliUsageError(
@@ -70,6 +71,17 @@ function configAction(cwd: string, content: string, force: boolean): FileAction 
       `${competing} already configures verbatra in this directory and would be read before ${CONFIG_FILE}. Edit it, or remove it and run init again.`,
     );
   }
+}
+
+function existingConfigError(): CliUsageError {
+  return new CliUsageError(
+    "CONFIG_EXISTS",
+    `${CONFIG_FILE} already exists in this directory. Pass --force to write a new one over it, or edit it by hand.`,
+  );
+}
+
+function configAction(cwd: string, content: string, force: boolean): FileAction {
+  assertNoCompetingConfig(cwd);
   const path = resolve(cwd, CONFIG_FILE);
   if (!existsSync(path)) {
     return "created";
@@ -129,6 +141,35 @@ interface WrittenFile {
 
 const SILENT_STREAMS: Streams = { out: () => {}, err: () => {} };
 
+const ERRNO_CODE = /^E[A-Z0-9]+$/;
+
+function errnoCode(error: unknown): string | undefined {
+  const code = error instanceof Error && "code" in error ? error.code : undefined;
+  return typeof code === "string" && ERRNO_CODE.test(code) ? code : undefined;
+}
+
+function writing<T>(file: string, cwd: string, written: readonly WrittenFile[], write: () => T): T {
+  try {
+    return write();
+  } catch (error) {
+    const code = errnoCode(error);
+    if (code === undefined) {
+      throw error;
+    }
+    const changed = written
+      .filter((entry) => entry.action !== "unchanged")
+      .map((entry) => entry.path);
+    const kept =
+      changed.length === 0
+        ? "Nothing was written."
+        : `${changed.join(" and ")} ${changed.length === 1 ? "was" : "were"} already written.`;
+    throw new CliUsageError(
+      "INIT_UNWRITABLE",
+      `init could not write ${file} in ${cwd} (${code}). ${kept} Make the directory writable, or pass --cwd <path> naming a writable one, and run init again.`,
+    );
+  }
+}
+
 function writePlan(
   plan: InitPlan,
   cwd: string,
@@ -137,18 +178,23 @@ function writePlan(
 ): readonly WrittenFile[] {
   const content = renderConfig(plan.draft);
   const action = configAction(cwd, content, force);
+  const files: WrittenFile[] = [];
   if (action !== "unchanged") {
-    writeFileSync(resolve(cwd, CONFIG_FILE), content);
+    writing(CONFIG_FILE, cwd, files, () => writeFileSync(resolve(cwd, CONFIG_FILE), content));
   }
   streams.out(`${action === "overwritten" ? "overwrote" : action} ${CONFIG_FILE}\n`);
-  const files: WrittenFile[] = [{ path: CONFIG_FILE, action }];
+  files.push({ path: CONFIG_FILE, action });
   const envVar = keyEnvVarFor(plan.draft.provider);
   if (envVar !== undefined) {
-    const envAction = writeEnvExample(cwd, plan.draft.provider, envVar, force);
+    const envAction = writing(ENV_EXAMPLE_FILE, cwd, files, () =>
+      writeEnvExample(cwd, plan.draft.provider, envVar, force),
+    );
     streams.out(`${envAction} ${ENV_EXAMPLE_FILE}\n`);
     files.push({ path: ENV_EXAMPLE_FILE, action: envAction });
   }
-  const gitignore: GitignoreAction = ensureGitignore(cwd, streams);
+  const gitignore: GitignoreAction = writing(".gitignore", cwd, files, () =>
+    ensureGitignore(cwd, streams),
+  );
   files.push({ path: ".gitignore", action: gitignore });
   return files;
 }
@@ -268,6 +314,39 @@ function interactiveMode(opts: InitOptions, isTty: () => boolean): boolean {
   return opts.yes !== true && opts.json !== true && isTty();
 }
 
+function assertDirectory(cwd: string): void {
+  let isDirectory: boolean;
+  try {
+    isDirectory = statSync(cwd).isDirectory();
+  } catch {
+    isDirectory = false;
+  }
+  if (!isDirectory) {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      `--cwd names ${cwd}, which is not an existing directory. Create it first, or pass the project directory.`,
+    );
+  }
+}
+
+async function planOrExisting(
+  opts: InitOptions,
+  cwd: string,
+  prompter: Prompter,
+  detect: DetectFn,
+): Promise<InitPlan> {
+  assertNoCompetingConfig(cwd);
+  const existing = opts.force !== true && existsSync(resolve(cwd, CONFIG_FILE));
+  if (existing && prompter.interactive) {
+    throw existingConfigError();
+  }
+  try {
+    return await planInit(opts, cwd, prompter, detect);
+  } catch (error) {
+    throw existing && error instanceof CliUsageError ? existingConfigError() : error;
+  }
+}
+
 function renderFailure(error: unknown, json: boolean, streams: Streams): number {
   const renderable = toRenderableError(error);
   streams.err(`${renderError(renderable)}\n`);
@@ -287,12 +366,16 @@ export async function runInit(
   try {
     const opts = initOptsSchema.parse(rawOpts);
     const cwd = opts.cwd ?? process.cwd();
-    const prompter = {
+    if (opts.cwd !== undefined) {
+      assertDirectory(cwd);
+    }
+    const prompter: Prompter = {
       interactive: interactiveMode(opts, deps.isTty ?? stdinIsTty),
       acceptDefaults: opts.yes === true,
       ask: deps.ask ?? ((question: string) => askLine(question, streams)),
+      warn: (message) => streams.err(`${message}\n`),
     };
-    const plan = await planInit(opts, cwd, prompter, deps.detect ?? detectProject);
+    const plan = await planOrExisting(opts, cwd, prompter, deps.detect ?? detectProject);
     const files = writePlan(plan, cwd, opts.force === true, json ? SILENT_STREAMS : streams);
     const steps = nextSteps(plan, opts.cwd);
     if (json) {

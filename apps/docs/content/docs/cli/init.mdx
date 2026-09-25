@@ -27,7 +27,7 @@ verbatra init [flags]
 | `--force` | none | off | overwrite an existing `verbatra.config.ts` whose content differs |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) describing what was written; never prompts |
 
-A flag always wins. Anything you leave out is detected from the project, then prompted for when stdin is a terminal and neither `--yes` nor `--json` is given, and otherwise taken from its default only under `--yes`. At a terminal, pressing Enter accepts the suggested value, and that counts as your answer. A flag given an empty value, such as `--targets ''`, is a usage error (`INVALID_OPTION`), never a request for the default.
+A flag always wins. Anything you leave out is detected from the project, then prompted for when stdin is a terminal and neither `--yes` nor `--json` is given, and otherwise taken from its default only under `--yes`. At a terminal, pressing Enter accepts the suggested value, and that counts as your answer. A flag given an empty value, such as `--targets ''`, is a usage error (`INVALID_OPTION`), never a request for the default. At a terminal, each answer is checked as you give it: an unknown provider or format, a malformed locale code, a target list that names the source locale or no locale, a pattern without `{locale}`, or a base URL that is not a URL or carries credentials is explained on stderr and asked again, up to three times, so the answers you already gave are kept.
 
 <AvailableFrom version="0.12.0" />
 
@@ -124,7 +124,7 @@ An error envelope for `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER`
 
 ## Existing files
 
-Running `init` again with the same answers changes nothing and succeeds, so it is safe to repeat. A `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless you pass `--force`. Another verbatra config in the same directory (a `.verbatrarc.json`, for example, or a `verbatra` property in `package.json`) is refused with `CONFIG_EXISTS` even under `--force`, because it would be read before `verbatra.config.ts`. Nothing is written when `init` refuses.
+Running `init` again with the same answers changes nothing and succeeds, so it is safe to repeat. A `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless you pass `--force`. Another verbatra config in the same directory (a `.verbatrarc.json`, for example, or a `verbatra` property in `package.json`) is refused with `CONFIG_EXISTS` even under `--force`, because it would be read before `verbatra.config.ts`. Nothing is written when `init` refuses. When `verbatra.config.ts` already exists and you did not pass `--force`, `CONFIG_EXISTS` comes before anything else: at a terminal before the first prompt, and otherwise in place of a missing, ambiguous, or invalid answer, so a rerun tells you about the existing config first. `init --cwd` refuses a path that is not an existing directory with `INVALID_OPTION`, and a directory it cannot write to, such as a read-only one, with `INIT_UNWRITABLE`, naming the file and any file it had already written.
 
 An existing `.env.example` is kept as it is; when it does not name the key variable yet, that one line is appended. Under `--force`, a header line `init` wrote itself is rewritten for the new provider, while a header you wrote is kept. `.gitignore` gets only the entries it is missing.
 
@@ -152,7 +152,7 @@ verbatra init --provider none --yes
 | Code | Meaning |
 | --- | --- |
 | `0` | files written, or already up to date |
-| `2` | a usage error: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, or `CONFIG_INVALID` when the answers would not make a valid config |
+| `2` | a usage error: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, or `CONFIG_INVALID` when the answers would not make a valid config |
 
 ## Related
 

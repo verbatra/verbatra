@@ -327,7 +327,7 @@ describe("runInit", () => {
     expect(code).toBe(0);
     const config = readFileSync(join(dir, "verbatra.config.ts"), "utf8");
     expect(config).toContain('sourceLocale: "fr"');
-    expect(config).toContain('targetLocales: ["es","it"]');
+    expect(config).toContain('targetLocales: ["es", "it"]');
     expect(config).toContain('pattern: "i18n/{locale}.json"');
     expect(config).toContain('id: "anthropic"');
   });

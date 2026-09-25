@@ -292,7 +292,7 @@ describe("runInit for agents", () => {
     expect(envelope.missing).toEqual([
       "--provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|none>",
     ]);
-    expect(envelope.message).toContain("Also Missing --provider");
+    expect(envelope.message).toContain("Also missing --provider");
   });
 
   it("reports an invalid option together with the other problems and missing flags", async () => {
