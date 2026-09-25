@@ -27,7 +27,7 @@ async function stubServer(scenario: Scenario): Promise<string> {
         return;
       }
       const status = scenario === "429" ? 429 : 500;
-      response.writeHead(status, { "content-type": "application/json", "retry-after-ms": "150" });
+      response.writeHead(status, { "content-type": "application/json", "retry-after-ms": "600" });
       response.end(JSON.stringify({ error: { message: "upstream" } }));
     });
   });
@@ -67,19 +67,19 @@ async function translateAgainst(baseUrl: string, requestTimeoutMs: number): Prom
 
 describe("requestTimeoutMs through the real OpenAI SDK client: a per-attempt bound", () => {
   it("reports a 429 that outlasts the timeout across retries as RATE_LIMITED", async () => {
-    const error = await translateAgainst(await stubServer("429"), 100);
+    const error = await translateAgainst(await stubServer("429"), 1000);
     expect(error.code).toBe("RATE_LIMITED");
     expect(requests).toBe(3);
   });
 
   it("reports a 500 that outlasts the timeout across retries as PROVIDER_UNAVAILABLE", async () => {
-    const error = await translateAgainst(await stubServer("500"), 100);
+    const error = await translateAgainst(await stubServer("500"), 1000);
     expect(error.code).toBe("PROVIDER_UNAVAILABLE");
     expect(requests).toBe(3);
   });
 
   it("reports a refused connection as the refusal, not as a timeout", async () => {
-    const error = await translateAgainst(await closedPortUrl(), 100);
+    const error = await translateAgainst(await closedPortUrl(), 1000);
     expect(error.code).toBe("PROVIDER_ERROR");
     expect(error.message).toContain("the connection was refused");
   });
