@@ -5,6 +5,15 @@ import { composeKey } from "./key-encoding.js";
 import { parsePoEntries } from "./parse.js";
 import { serializePoEntries } from "./serialize.js";
 
+function writePo(
+  entries: ReadonlyMap<string, TranslationEntry>,
+  path: string,
+  fs: ReturnType<typeof createMemoryAdapterFs>,
+  locale = "de",
+): Promise<string> {
+  return serializePoEntries(entries, path, fs, {}, locale);
+}
+
 const EN_HEADER = [
   'msgid ""',
   'msgstr ""',
@@ -27,7 +36,7 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
     const content = `${EN_HEADER}#. developer note\nmsgctxt "menu"\nmsgid "Open"\nmsgstr "Oeffnen"\n\n`;
     const fs = createMemoryAdapterFs({ "/en.po": content });
     const entries = parsePoEntries(content, "messages");
-    const written = await serializePoEntries(entries, "/en.po", fs);
+    const written = await writePo(entries, "/en.po", fs);
     expect(parsePoEntries(written, "messages")).toEqual(entries);
   });
 
@@ -35,7 +44,7 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
     const content = `${EN_HEADER}#. note\n#: src/app.ts:1\n#, fuzzy\nmsgctxt "menu"\nmsgid "Open"\nmsgstr "Old"\n\n`;
     const fs = createMemoryAdapterFs({ "/en.po": content });
     const key = composeKey("menu", "Open");
-    const written = await serializePoEntries(new Map([[key, entry(key, "New")]]), "/en.po", fs);
+    const written = await writePo(new Map([[key, entry(key, "New")]]), "/en.po", fs);
     expect(written).toContain("#. note");
     expect(written).toContain("#: src/app.ts:1");
     expect(written).toContain("#, fuzzy");
@@ -48,11 +57,7 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
   it("drops a key no longer present in entries", async () => {
     const content = `${EN_HEADER}msgid "Stale"\nmsgstr "Alt"\n\nmsgid "Keep"\nmsgstr "Bleib"\n\n`;
     const fs = createMemoryAdapterFs({ "/en.po": content });
-    const written = await serializePoEntries(
-      new Map([["Keep", entry("Keep", "Bleib")]]),
-      "/en.po",
-      fs,
-    );
+    const written = await writePo(new Map([["Keep", entry("Keep", "Bleib")]]), "/en.po", fs);
     expect(written).not.toContain("Stale");
     expect(written).toContain("Bleib");
   });
@@ -60,7 +65,7 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
   it("drops a whole plural group once every index is removed", async () => {
     const content = `${EN_HEADER}msgid "one item"\nmsgid_plural "%d items"\nmsgstr[0] "one"\nmsgstr[1] "many"\n\n`;
     const fs = createMemoryAdapterFs({ "/en.po": content });
-    const written = await serializePoEntries(new Map(), "/en.po", fs);
+    const written = await writePo(new Map(), "/en.po", fs);
     expect(written).not.toContain("msgid_plural");
     expect(written).not.toContain("one item");
   });
@@ -69,18 +74,14 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
     const content = `${EN_HEADER}msgid "one item"\nmsgid_plural "%d items"\nmsgstr[0] "one"\nmsgstr[1] "many"\n\n`;
     const fs = createMemoryAdapterFs({ "/en.po": content });
     const key1 = composeKey(undefined, "one item", 1);
-    const written = await serializePoEntries(new Map([[key1, entry(key1, "many!")]]), "/en.po", fs);
+    const written = await writePo(new Map([[key1, entry(key1, "many!")]]), "/en.po", fs);
     expect(written).not.toContain("msgstr[0]");
     expect(written).toContain('msgstr[1] "many!"');
   });
 
   it("appends a brand-new singular entry not present in the destination", async () => {
     const fs = createMemoryAdapterFs({ "/en.po": EN_HEADER });
-    const written = await serializePoEntries(
-      new Map([["Fresh", entry("Fresh", "Frisch")]]),
-      "/en.po",
-      fs,
-    );
+    const written = await writePo(new Map([["Fresh", entry("Fresh", "Frisch")]]), "/en.po", fs);
     expect(written).toContain('msgid "Fresh"');
     expect(written).toContain('msgstr "Frisch"');
   });
@@ -90,7 +91,7 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
     const base = composeKey(undefined, "one new item");
     const key0 = composeKey(undefined, "one new item", 0);
     const key1 = composeKey(undefined, "one new item", 1);
-    const written = await serializePoEntries(
+    const written = await writePo(
       new Map([
         [key0, entry(key0, "one new item", { isPlural: true, meaning: "%d new items" })],
         [key1, entry(key1, "%d new items", { isPlural: true, meaning: "%d new items" })],
@@ -106,7 +107,7 @@ describe("serializePoEntries: destination re-read and mutate in place", () => {
 
   it("escapes translated values written back to disk", async () => {
     const fs = createMemoryAdapterFs({ "/en.po": EN_HEADER });
-    const written = await serializePoEntries(
+    const written = await writePo(
       new Map([["Quote", entry("Quote", 'She said "hi"\nnext line')]]),
       "/en.po",
       fs,
@@ -119,7 +120,7 @@ describe("serializePoEntries: additional edge cases", () => {
   it("appends a brand-new msgctxt-disambiguated entry", async () => {
     const fs = createMemoryAdapterFs({ "/en.po": EN_HEADER });
     const key = composeKey("menu", "Open");
-    const written = await serializePoEntries(new Map([[key, entry(key, "Oeffnen")]]), "/en.po", fs);
+    const written = await writePo(new Map([[key, entry(key, "Oeffnen")]]), "/en.po", fs);
     expect(written).toContain('msgctxt "menu"');
     expect(written).toContain('msgid "Open"');
   });
@@ -128,7 +129,7 @@ describe("serializePoEntries: additional edge cases", () => {
     const fs = createMemoryAdapterFs({ "/en.po": EN_HEADER });
     const key0 = composeKey(undefined, "item", 0);
     const key1 = composeKey(undefined, "item", 1);
-    const written = await serializePoEntries(
+    const written = await writePo(
       new Map([
         [key0, entry(key0, "one", { isPlural: true })],
         [key1, entry(key1, "many", { isPlural: true })],
@@ -144,7 +145,7 @@ describe("serializePoEntries: additional edge cases", () => {
     fs.readBounded = async () => {
       throw new Error("EACCES: permission denied");
     };
-    await expect(serializePoEntries(new Map(), "/en.po", fs)).rejects.toMatchObject({
+    await expect(writePo(new Map(), "/en.po", fs)).rejects.toMatchObject({
       code: "INVALID_STRUCTURE",
     });
   });
@@ -153,7 +154,7 @@ describe("serializePoEntries: additional edge cases", () => {
 describe("serializePoEntries: synthesis for a destination that does not exist yet", () => {
   it("produces a well-formed singular-only .po with a minimal header and no Plural-Forms", async () => {
     const fs = createMemoryAdapterFs();
-    const written = await serializePoEntries(
+    const written = await writePo(
       new Map([["Hello", entry("Hello", "Hallo")]]),
       "/missing/fr.po",
       fs,
@@ -171,7 +172,7 @@ describe("serializePoEntries: synthesis for a destination that does not exist ye
     const fs = createMemoryAdapterFs();
     const key0 = composeKey(undefined, "item", 0);
     const key1 = composeKey(undefined, "item", 1);
-    const written = await serializePoEntries(
+    const written = await writePo(
       new Map([
         [key0, entry(key0, "one", { isPlural: true, meaning: "items" })],
         [key1, entry(key1, "many", { isPlural: true, meaning: "items" })],
