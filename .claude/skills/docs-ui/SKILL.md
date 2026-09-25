@@ -36,7 +36,8 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 ## The stack, and why it constrains you
 
 - `fumadocs-ui` and `fumadocs-core` 16.15.11, `next` 16.3.5, `tailwindcss` 4.3.3,
-  `motion` 13.4.0, `next-intl` 4.14.5.
+  `next-intl` 4.14.5. There is no animation library in the client bundle: landing motion is
+  CSS keyframes and transitions in `app/global.css`, each with a `prefers-reduced-motion` opt-out.
 - Tailwind 4 uses CSS-first configuration. There is no `tailwind.config.js`. Tokens are
   CSS custom properties in `app/global.css`, not a JS config object.
 - `app/global.css` opens with three imports in this order, and the order matters:
@@ -140,6 +141,24 @@ footer's oversized watermark only; do not clip it onto a heading.
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
   `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
   `content/docs/index.mdx` and its three locale siblings.
+
+## Keep the client payload small
+
+Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
+
+- No animation library. Landing motion is CSS keyframes and transitions in `app/global.css`,
+  each with a `prefers-reduced-motion` opt-out.
+- `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
+  not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
+  there; `lib/client-messages.test.ts` fails until it is.
+- A brand icon repeated on a page (the marquee's two tracks) is drawn once as an SVG `<symbol>`
+  and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
+  payload.
+- Keep all three `next/font` families preloaded. Every one of them sets text in the first
+  viewport, so it is fetched before the first paint either way; without the preload it is only
+  discovered after the stylesheet, at a higher priority that delays the first contentful paint.
+- Content only needed after an interaction (the AI setup prompt in `package-install.tsx`) is
+  loaded with a dynamic `import()` on hover, focus, or click.
 
 ## Fumadocs UI strings
 

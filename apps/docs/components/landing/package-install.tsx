@@ -1,16 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
 import { TabList, tabId, tabPanelId } from "@/components/ui/tabs";
-import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { type Locale, localizedPath } from "@/lib/i18n";
 import { CLI_PACKAGE, INSTALL_COMMANDS, type PackageManagerId } from "@/lib/install-commands";
 import { usePackageManager } from "@/lib/package-manager-preference";
-import { useReducedMotionPreference } from "@/lib/reduced-motion";
 import { trackUmamiEvent } from "@/lib/umami";
 import { cn } from "@/lib/utils";
 import { NPM_CLI } from "./links";
@@ -18,49 +15,45 @@ import { NPM_CLI } from "./links";
 const INSTALL_ID = "hero-install";
 const AI_PANEL_ID = `${INSTALL_ID}-ai-prompt`;
 const TAB_CLASS = "rounded-md px-2.5 py-1.5 font-mono text-xs transition-colors";
-const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 const ROW_CLASS = "flex items-center gap-3 px-3.5 py-3 font-mono text-sm";
 const CODE_CLASS = "vk-terminal-scroll min-w-0 flex-1 whitespace-nowrap text-fd-foreground";
 
 const HINT_LINK_CLASS =
   "inline-flex min-h-6 items-center underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]";
 
-function Hint({
-  activeKey,
-  hint,
-  reduced,
-}: {
-  activeKey: string;
-  hint: ReactNode | null;
-  reduced: boolean;
-}): ReactNode {
+function Hint({ activeKey, hint }: { activeKey: string; hint: ReactNode | null }): ReactNode {
   return (
     <div aria-live="polite">
-      <AnimatePresence mode="wait">
-        {hint ? (
-          <motion.p
-            key={activeKey}
-            className="mt-3 text-sm leading-relaxed text-fd-muted-foreground"
-            initial={reduced ? false : { opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -4 }}
-            transition={reduced ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT }}
-          >
-            {hint}
-          </motion.p>
-        ) : null}
-      </AnimatePresence>
+      {hint ? (
+        <p
+          key={activeKey}
+          className="vk-hint-enter mt-3 text-sm leading-relaxed text-fd-muted-foreground"
+        >
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
+}
+
+function useAiSetupPrompt(): readonly [string | null, () => void] {
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const load = (): void => {
+    if (prompt !== null) return;
+    void import("@/lib/ai-setup-prompt").then((module) => setPrompt(module.AI_SETUP_PROMPT));
+  };
+  return [prompt, load];
 }
 
 function AiSwitch({
   checked,
   label,
+  onIntent,
   onToggle,
 }: {
   checked: boolean;
   label: string;
+  onIntent: () => void;
   onToggle: () => void;
 }): ReactNode {
   return (
@@ -69,7 +62,12 @@ function AiSwitch({
       role="switch"
       aria-checked={checked}
       aria-controls={AI_PANEL_ID}
-      onClick={onToggle}
+      onPointerEnter={onIntent}
+      onFocus={onIntent}
+      onClick={() => {
+        onIntent();
+        onToggle();
+      }}
       className={cn(
         "ms-auto inline-flex min-h-8 items-center gap-2 whitespace-nowrap rounded-md px-2 font-mono text-xs transition-colors",
         checked ? "text-fd-foreground" : "text-fd-muted-foreground hover:text-fd-foreground",
@@ -103,7 +101,7 @@ export function PackageInstall(): ReactNode {
   const locale = useLocale() as Locale;
   const [manager, selectManager] = usePackageManager("npm");
   const [ai, setAi] = useState(false);
-  const reduced = useReducedMotionPreference();
+  const [prompt, loadPrompt] = useAiSetupPrompt();
 
   const hint: ReactNode | null = ai ? (
     <>
@@ -140,7 +138,12 @@ export function PackageInstall(): ReactNode {
               idPrefix={INSTALL_ID}
             />
           )}
-          <AiSwitch checked={ai} label={t("aiSwitch")} onToggle={() => setAi((on) => !on)} />
+          <AiSwitch
+            checked={ai}
+            label={t("aiSwitch")}
+            onIntent={loadPrompt}
+            onToggle={() => setAi((on) => !on)}
+          />
         </div>
         {INSTALL_COMMANDS.map((entry) => (
           <div
@@ -168,15 +171,19 @@ export function PackageInstall(): ReactNode {
           </div>
         ))}
         <div id={AI_PANEL_ID} hidden={!ai} className={ROW_CLASS}>
-          <code className={CODE_CLASS}>{AI_SETUP_PROMPT}</code>
-          <CopyButton
-            text={AI_SETUP_PROMPT}
-            label={t("copyPromptAria")}
-            onCopied={() => trackUmamiEvent("copy-ai-prompt")}
-          />
+          {prompt === null ? null : (
+            <>
+              <code className={CODE_CLASS}>{prompt}</code>
+              <CopyButton
+                text={prompt}
+                label={t("copyPromptAria")}
+                onCopied={() => trackUmamiEvent("copy-ai-prompt")}
+              />
+            </>
+          )}
         </div>
       </div>
-      <Hint activeKey={ai ? "ai" : manager} hint={hint} reduced={reduced} />
+      <Hint activeKey={ai ? "ai" : manager} hint={hint} />
     </div>
   );
 }
