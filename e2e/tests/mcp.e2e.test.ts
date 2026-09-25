@@ -273,4 +273,61 @@ describe("mcp (no key)", () => {
     expect(result.stderr).toContain("verbatra MCP server stopped (client closed stdin)");
     expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
+
+  describe("verbatra-mcp argument parsing", () => {
+    function standaloneBin(): Consumer {
+      return { ...consumer, bin: join(consumer.dir, "node_modules", ".bin", "verbatra-mcp") };
+    }
+
+    async function settleWithStdinOpen(args: string[]) {
+      const server = spawnVerbatra(standaloneBin(), args, { cwd: dir });
+      const timeout = new Promise<"timed out">((resolve) => {
+        setTimeout(() => resolve("timed out"), 30_000).unref();
+      });
+      const outcome = await Promise.race([server, timeout]);
+      if (outcome === "timed out") {
+        server.kill("SIGKILL");
+        throw new Error(`verbatra-mcp ${args.join(" ")} did not exit within 30s with stdin open`);
+      }
+      return outcome;
+    }
+
+    it("--help prints the usage and exits 0 without waiting on stdin", async () => {
+      const result = await settleWithStdinOpen(["--help"]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("Usage: verbatra-mcp [options]");
+      expect(result.stdout).toContain("--allow-spend");
+      expect(result.stderr).toBe("");
+    }, 60_000);
+
+    it("--version prints the installed @verbatra/mcp version and exits 0", async () => {
+      const manifest = JSON.parse(
+        await readFile(
+          join(consumer.dir, "node_modules", "@verbatra", "mcp", "package.json"),
+          "utf8",
+        ),
+      ) as { version: string };
+
+      const result = await settleWithStdinOpen(["--version"]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe(manifest.version);
+    }, 60_000);
+
+    it.each([
+      ["--allowspend", "unknown option '--allowspend' (did you mean --allow-spend?)"],
+      ["--json", "verbatra-mcp does not take --json"],
+    ])(
+      "refuses %s with a usage error on stderr and exit 2",
+      async (flag, message) => {
+        const result = await settleWithStdinOpen([flag]);
+
+        expect(result.exitCode).toBe(2);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain(`verbatra-mcp: error [USAGE_ERROR] ${message}`);
+      },
+      60_000,
+    );
+  });
 });
