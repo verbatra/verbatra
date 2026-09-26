@@ -510,6 +510,10 @@ samp {
   text-transform: none;
 }
 
+#nd-page .prose :where(thead th code):not(:where(.not-prose, .not-prose *)) {
+  color: var(--text-muted);
+}
+
 #nd-page .prose :where(div:has(> table)):not(:where(.not-prose, .not-prose *)) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
