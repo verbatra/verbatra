@@ -84,5 +84,5 @@ commit message for commitlint.
 
 `.github/PULL_REQUEST_TEMPLATE.md` expects three sections: "What changed" (the change and why),
 "How it was tested" (commands run, cases covered), and a checklist confirming Conventional Commits,
-`pnpm test` passing locally, and a changeset added if a publishable package changed. Fill in the
+`pnpm verify` passing locally, and a changeset added if a publishable package changed. Fill in the
 template rather than replacing it with free-form text.

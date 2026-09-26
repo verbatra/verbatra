@@ -165,7 +165,7 @@ The remaining exports are the building blocks Verbatra Studio, the MCP server, a
 | `createDefaultRegistry`, `createTreeFileAdapter`, `createFlatFileAdapter`, `AdapterRegistry`, `nodeAdapterFs` | The format-adapter construction surface: build an adapter for a format verbatra does not ship and hand the registry to a flow as `deps.adapterRegistry` |
 | `verbatraConfigSchema`, `scaffoldingMetadata` | The zod schema `loadConfig` validates against (also published as `@verbatra/sdk/config-schema.json`), and the facts a project generator needs to write a first config |
 | `LOCK_FILE_NAME`, `CACHE_FILE_NAME`, `EXCHANGE_FORMATS`, `DEFAULT_EXCHANGE_FORMAT`, `DEFAULT_WORKBOOK_PATH`, `DEFAULT_DELIMITED_PATH`, `DEFAULT_TMX_PATH`, `DEFAULT_TYPES_PATH` | The file names and handoff formats a run uses, so tooling can find, offer, or gitignore them without restating the list |
-| `SdkFs`, `redact`, `resolveDryRun`, `isCustomFormatId`, `tmxErrorLocation` | The file-system port every file the SDK touches goes through, the secret-redaction pass, and small helpers for agreeing with verbatra rather than restating it |
+| `SdkFs`, `redact`, `projectRelativeMessage`, `resolveDryRun`, `isCustomFormatId`, `tmxErrorLocation` | The file-system port every file the SDK touches goes through, the secret-redaction pass, the rewrite that names project files by their project-relative path in an error message, and small helpers for agreeing with verbatra rather than restating it |
 
 ## Errors and results
 

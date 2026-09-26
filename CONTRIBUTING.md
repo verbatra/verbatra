@@ -229,8 +229,8 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    the human-only `none`, which never builds a provider. `buildProvider` (around
    `:145`) reads this table, `selectProvider`
    (`packages/sdk/src/selection/select-provider.ts`, around `:95`) wraps it,
-   and the two call sites are `flow/translate-project.ts` (around `:601`) and
-   `flow/retranslate-entry.ts` (around `:344`).
+   and the two call sites are `flow/translate-project.ts` (around `:611`) and
+   `flow/retranslate-entry.ts` (around `:348`).
 
    `ProviderRegistry` in `packages/ai-providers/src/registry.ts` is **not** the
    registration path. It is exported from the package, but nothing outside its
