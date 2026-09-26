@@ -147,7 +147,7 @@ mapped type over `MachineProviderId` (`"anthropic" | "openai" | "gemini" | "deep
 "google-translate" | "openai-compatible"`), so a provider present in the config union but missing
 from the factory table fails to compile. `ProviderId` additionally holds `"none"`, the human-only
 variant that disables machine translation by policy: it has no factory, no provider is ever
-constructed for it, and `isMachineTranslationEnabled` / `assertMachineTranslationEnabled` in the
+constructed for it, and `isMachineProvider` / `machineTranslationDisabledError` in the
 same file are how a flow honours it. `buildProvider(config)` reads this table; `selectProvider`
 (`packages/sdk/src/selection/select-provider.ts`) wraps it. `ProviderRegistry`
 (`packages/ai-providers/src/registry.ts`) is exported from the package but is not on this path:
@@ -155,10 +155,11 @@ nothing outside its own tests resolves a provider through it. Registering a new 
 stopping produces something that compiles and appears registered but is never reached at runtime.
 
 Adding a provider: config schema in `<provider>/config.ts`, factory in
-`<provider>/<provider>-provider.ts`, key handling in `packages/ai-providers/src/env.ts`
-(`PROVIDER_ENV` plus a `require<Name>Key()` helper), export from
-`packages/ai-providers/src/index.ts`, then the two `provider-config.ts` steps (discriminated
-union variant, `providerFactories` entry). See `CONTRIBUTING.md` "Adding a translation provider"
+`<provider>/<provider>-provider.ts`, key handling in `packages/ai-providers/src/key-env-vars.ts`
+(`PROVIDER_ENV`) plus a `require<Name>Key()` helper in `packages/ai-providers/src/env.ts`, export
+from `packages/ai-providers/src/index.ts`, then the two `provider-config.ts` steps (discriminated
+union variant, `providerFactories` entry) and the `PROVIDER_BILLING` entry in
+`packages/sdk/src/config/provider-billing.ts`. See `CONTRIBUTING.md` "Adding a translation provider"
 for the full ordered list with line-number pointers.
 
 ## Core stays pure
