@@ -344,7 +344,7 @@
         },
         "agent": {
           "title": "Or hand it to your agent.",
-          "body": "An MCP server, plus installable skills for the CLI, MCP and Studio.",
+          "body": "An MCP server for Claude Code, Cursor, VS Code and GitHub Copilot, plus installable skills for the CLI, MCP and Studio.",
           "cta": "Start with AI"
         }
       },

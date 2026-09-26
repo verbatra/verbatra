@@ -297,7 +297,7 @@
       },
       "rows": {
         "agent": {
-          "body": "Ein MCP-Server plus installierbare Skills für CLI, MCP und Studio.",
+          "body": "Ein MCP-Server für Claude Code, Cursor, VS Code und GitHub Copilot, plus installierbare Skills für CLI, MCP und Studio.",
           "cta": "Mit KI starten",
           "title": "Oder überlass es deinem Agenten."
         },
