@@ -278,6 +278,28 @@ El primero sale con `0`, el segundo con `1` (el endpoint del proveedor no era al
 
 La clave del proveedor para el paso 4 viene del entorno, como siempre. Guárdala en el almacén de secretos de tu CI o en el entorno de tu shell y deja que el proceso la herede; la CLI no acepta ninguna clave como argumento y no lee ninguna del archivo de configuración. Qué variable lee tu proveedor está en [Proveedores](/docs/providers).
 
+## Cuéntale a tu agente sobre verbatra
+
+La mayoría de los agentes de programación leen un archivo de instrucciones del proyecto al empezar cada sesión: `AGENTS.md` en Codex, Cursor y GitHub Copilot (que también lee `.github/copilot-instructions.md`), `CLAUDE.md` en Claude Code y `GEMINI.md` en Gemini CLI. Pega esto en el que lea tu agente, para que conozca las reglas antes de tocar un archivo de locale:
+
+```md
+## verbatra (i18n)
+
+- Free, no provider call and no API key: `verbatra check`, `verbatra diff`,
+  `verbatra doctor`, `verbatra translate --dry-run`, `verbatra translate --estimate`.
+- Spends provider tokens: `verbatra translate` and `verbatra watch`. Ask before
+  running either, and show the `verbatra translate --estimate` output first.
+- Always pass `--json` and branch on the exit code: 0 clean, 1 ran but not clean
+  (read `result.failed` and `result.partial`), 2 could not run (read `code`),
+  3 keys left for a human in a project with `provider: none`.
+  Recipes: https://verbatra.kreitz-webdev.de/docs/agent-recipes
+- Never read, print, or write an API key value. Keys come from environment
+  variables only, never from a config file or a command line.
+- Commit `verbatra.lock.json` together with the locale files it describes.
+```
+
+Cada comando y cada código de salida que aparece ahí se explica en esta página y en [CI y códigos de salida](/docs/ci-and-exit-codes). Un agente conectado [al servidor MCP](/docs/connect-an-mcp-client) recibe la misma regla de gasto en las instrucciones del propio servidor.
+
 ## El paquete de skills
 
 Las recetas de esta página son la referencia. Si prefieres darle a un agente el conocimiento operativo por adelantado, [verbatra/skills](https://github.com/verbatra/skills) contiene tres documentos de skill que hacen justo eso, instalables con la CLI de [skills.sh](https://www.skills.sh/docs):
@@ -293,6 +315,8 @@ npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 | `verbatra-studio-agent-tools` | Un agente de navegador maneja una pestaña de Studio abierta. |
 
 Cubren lo que un agente hace mal si nadie se lo dice: qué comandos gastan y cuáles son gratis, que un dry run no construye ningún proveedor, qué hace visible el archivo de bloqueo y por qué una herramienta que gasta puede faltar de una lista a propósito. Instala solo la superficie que uses; cada documento se basta a sí mismo. Cambia el nombre que va detrás de `--skill`, o repite la opción para instalar más de una.
+
+Para otro agente, cambia el id que va detrás de `-a`: skills.sh acepta, entre otros, `codex`, `cursor`, `github-copilot`, `gemini-cli`, `windsurf`, `zed` y `junie`. Consulta la [lista de agentes compatibles](https://github.com/vercel-labs/skills).
 
 En Claude Code, el plugin de verbatra instala las tres skills de una vez, junto con el servidor MCP de verbatra con el gasto desactivado y un hook que comprueba los archivos de locale editados. Instálalo por proyecto con `claude plugin marketplace add verbatra/skills` y luego `claude plugin install verbatra@verbatra --scope project`. Qué arranca, por qué el scope de proyecto y cómo activar el gasto lo tienes en [Conectar un cliente MCP](/docs/connect-an-mcp-client#el-plugin-de-verbatra). La instalación de solo skills de arriba sigue funcionando sin el servidor ni el hook.
 
