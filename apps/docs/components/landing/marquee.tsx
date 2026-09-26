@@ -143,7 +143,7 @@ function IconSprite(): ReactNode {
 
 function Icon({ icon }: { icon: IconKey }): ReactNode {
   return (
-    <svg width={ICON} height={ICON} aria-hidden="true">
+    <svg width={ICON} height={ICON} aria-hidden="true" className="vk-marquee-icon">
       <use href={`#${symbolId(icon)}`} />
     </svg>
   );
@@ -174,7 +174,7 @@ function Track({
             href={href}
             data-tip={item.tip}
             tabIndex={hidden ? -1 : undefined}
-            className="vk-tip inline-flex min-h-9 items-center gap-2.5 px-1 text-base font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
+            className="vk-tip vk-marquee-item inline-flex items-center px-1 font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
             style={{ fontFamily: "var(--font-display)" }}
           >
             <span className="shrink-0 text-fd-foreground opacity-85">
@@ -224,10 +224,10 @@ export async function Marquee(): Promise<ReactNode> {
   }));
 
   return (
-    <section aria-label={t("label")} className="pt-14">
+    <section aria-label={t("label")} className="vk-marquee-band">
       <IconSprite />
-      <p className="px-6 text-center text-base text-fd-muted-foreground">{t("intro")}</p>
-      <div className="mt-[22px]">
+      <p className="vk-marquee-intro px-6 text-center text-fd-muted-foreground">{t("intro")}</p>
+      <div className="vk-marquee-rows">
         <Row items={frameworks} href={formatsHref} label={t("frameworksLabel")} direction="left" />
         <Row items={formats} href={formatsHref} label={t("formatsLabel")} direction="right" />
       </div>
