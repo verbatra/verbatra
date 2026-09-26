@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { organizationLd, softwareApplicationLd, techArticleLd, websiteLd } from "./structured-data";
+import {
+  organizationLd,
+  SUPPORTED_AGENT_CLIENTS,
+  softwareApplicationLd,
+  techArticleLd,
+  websiteLd,
+} from "./structured-data";
 
 const ORGANIZATION_ID = "https://verbatra.kreitz-webdev.de/#organization";
 const AUTHOR_ID = "https://verbatra.kreitz-webdev.de/#author";
@@ -80,4 +87,22 @@ describe("softwareApplicationLd", () => {
       expect(part.author).toEqual(AUTHOR_REF);
     }
   });
+});
+
+describe("SUPPORTED_AGENT_CLIENTS", () => {
+  it.each(["", ".de", ".es", ".fr"])(
+    "each client has its own setup section in connect-an-mcp-client%s.mdx",
+    (suffix) => {
+      const page = readFileSync(
+        new URL(`../content/docs/(agents)/connect-an-mcp-client${suffix}.mdx`, import.meta.url),
+        "utf8",
+      );
+      const headings = new Set(
+        [...page.matchAll(/^#{2,3} (.+)$/gm)].map((match) => match[1]?.trim()),
+      );
+      for (const client of SUPPORTED_AGENT_CLIENTS) {
+        expect(headings.has(client), `${client} has no section`).toBe(true);
+      }
+    },
+  );
 });

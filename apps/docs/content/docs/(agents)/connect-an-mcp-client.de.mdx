@@ -1,6 +1,6 @@
 ---
 title: Einen MCP-Client verbinden
-description: Binde den stdio-MCP-Server von verbatra in Claude Code, Cursor, VS Code, Windsurf, Claude Desktop oder jeden anderen MCP-Client ein, ohne dass der Provider-Key je in einer committeten Datei landet.
+description: Binde den stdio-MCP-Server von verbatra in Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Windsurf, Zed, JetBrains AI Assistant, Claude Desktop oder jeden anderen MCP-Client ein, ohne dass der Provider-Key je in einer committeten Datei landet.
 status: new
 ---
 Der MCP-Server von verbatra spricht den stdio-Transport: Dein MCP-Client startet ihn als Kindprozess und spricht über stdin und stdout mit ihm, es gibt also keinen Port, keine URL und nichts, was du selbst am Laufen halten musst. Jeder Client braucht dieselben drei Antworten: welcher Befehl den Server startet, welches Verzeichnis das Projekt ist und woher ein Provider-Key kommt, falls der Agent überhaupt Geld ausgeben darf. Diese Seite beantwortet sie einmal und zeigt dann die Konfigurationssyntax jedes Clients. Die Tools selbst, ihre Eingaben und Ergebnisse sind unter [`verbatra mcp`](/docs/cli/mcp) dokumentiert.
@@ -37,9 +37,15 @@ Clients unterscheiden sich darin, in welchem Verzeichnis sie einen Server starte
 | Client | Arbeitsverzeichnis | Was zu tun ist |
 | --- | --- | --- |
 | Claude Code | nicht dokumentiert, aber `CLAUDE_PROJECT_DIR` ist auf den Projektstamm gesetzt | nichts: ohne `--cwd` nimmt der Server `CLAUDE_PROJECT_DIR` |
+| Codex | nicht dokumentiert | `cwd` auf einen absoluten Pfad setzen |
+| Gemini CLI | nicht dokumentiert | `cwd` auf einen absoluten Pfad setzen |
 | Cursor | nicht dokumentiert | `--cwd ${workspaceFolder}` übergeben |
 | VS Code | der Workspace-Ordner | nichts, oder `cwd` setzen |
+| GitHub Copilot Cloud Agent | nicht dokumentiert | nichts zu setzen: im Sitzungsprotokoll prüfen (siehe unten) |
+| GitHub Copilot CLI | nicht dokumentiert | `--cwd` mit absolutem Pfad übergeben |
 | Windsurf | nicht dokumentiert | `--cwd` mit absolutem Pfad übergeben |
+| Zed | nicht dokumentiert | `--cwd` mit absolutem Pfad übergeben |
+| JetBrains AI Assistant | das **Working directory**, das du einträgst | auf den Projektstamm setzen |
 | Claude Desktop | nicht dokumentiert, und es gibt kein Projekt | `--cwd` mit absolutem Pfad übergeben |
 
 ## Keys und Ausgaben
@@ -51,7 +57,7 @@ Damit der Agent Geld ausgeben darf, schaltest du zwei Dinge ein:
 - **Den Spend-Schalter.** Füge `--allow-spend` zu den Argumenten des Servers hinzu, oder setze `VERBATRA_MCP_ALLOW_SPEND` in seiner Umgebung auf `1`, `true`, `yes` oder `on`. Das Flag gewinnt gegenüber der Variable. Mit `npx verbatra mcp` kann die Variable auch in `.env.local` oder `.env` des Projekts stehen, die dieser Befehl zuerst liest; `npx -y @verbatra/mcp` liest keine `.env`-Datei. Eine Konfiguration mit `provider: { id: "none" }` hält beide Spend-Tools verborgen, egal was du setzt.
 - **Den Provider-Key.** Der Server liest dieselbe Umgebungsvariable wie die CLI, zum Beispiel `ANTHROPIC_API_KEY`; welche deine ist, steht unter [Provider](/docs/providers). Er liest nie einen Key aus seinen Argumenten oder aus einer Client-Konfigurationsdatei.
 
-Schreib nie einen Key in eine Datei, die du committest: `.mcp.json`, `.cursor/mcp.json` und `.vscode/mcp.json` sind dafür gedacht, mit dem ganzen Team geteilt zu werden. Jeder Client unten hat einen Weg, dem Server einen Key zu übergeben, ohne dass die Datei ihn enthält: eine geerbte Umgebung, einen Verweis auf eine Variable oder eine Abfrage, die den Wert außerhalb der Datei speichert.
+Schreib nie einen Key in eine Datei, die du committest: `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/mcp.json`, `.vscode/mcp.json` und `.github/mcp.json` sind dafür gedacht, mit dem ganzen Team geteilt zu werden. Jeder Client unten hat einen Weg, dem Server einen Key zu übergeben, ohne dass die Datei ihn enthält: eine geerbte Umgebung, einen Verweis auf eine Variable oder eine Abfrage, die den Wert außerhalb der Datei speichert.
 
 Auch mit erlaubten Ausgaben weisen die Anweisungen des Servers den Agenten an, zuerst `translation.estimate` aufzurufen und auf dein ausdrückliches Ja zu warten, bevor er ein Spend-Tool aufruft.
 
@@ -120,6 +126,70 @@ claude plugin install verbatra@verbatra --scope project
 - **Ausgaben sind aus.** Die Spend-Tools bleiben verborgen, bis du die Plugin-Option `allowSpend` einschaltest, die das Plugin als `VERBATRA_MCP_ALLOW_SPEND` an den Server übergibt. Deshalb schaltet ein `claude`, das du mit dieser Variable startest, beim Server des Plugins keine Ausgaben ein. Setz die Option mit `--config allowSpend=true` bei `claude plugin install` oder später in `/config`. Claude Code ignoriert Plugin-Optionen in der `.claude/settings.json` eines Projekts, eine committete Datei schaltet Ausgaben für das Team also nie ein. Scopes und Optionen stehen in der [Plugin-Referenz von Claude Code](https://code.claude.com/docs/en/plugins-reference).
 - **Der Key kommt aus deiner Umgebung.** Das Plugin hat keine Option für einen Key. Der Server liest die Variable deines Providers aus der Umgebung, mit der du `claude` gestartet hast, genau wie oben.
 - **Der Hook für Locale-Dateien.** Nachdem Claude eine Datei bearbeitet oder schreibt, die eine Locale-Datei sein kann, führt der Hook das projekteigene `verbatra check --qa` aus. Wenn eine committete Übersetzung einen Platzhalter, Inline-Markup oder ICU kaputt macht, gibt er die Befunde an Claude zurück, damit es sie behebt. Er nutzt nur die `@verbatra/cli` aus dem `node_modules` des Projekts, ab Version 0.12.0, lädt nichts herunter und ruft keinen Provider auf. In einem Projekt ohne lokale `@verbatra/cli` tut er nichts.
+
+## Codex
+
+Die Codex CLI, ihre IDE-Erweiterung und die Desktop-App teilen sich eine Konfiguration: `~/.codex/config.toml` oder die `.codex/config.toml` eines Projekts, die Codex nur in einem Projekt lädt, dem du vertraust. Füge den Server aus einer Shell hinzu:
+
+```bash
+codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
+```
+
+Wie bei Claude Code ist alles nach `--` die eigene Befehlszeile des Servers. Derselbe Eintrag, von Hand geschrieben:
+
+```toml
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp"]
+cwd = "/path/to/your/project"
+```
+
+Damit der Agent Geld ausgeben darf, fügst du den Schalter hinzu und reichst den Key mit `env_vars` weiter. Dort stehen nur Variablennamen: Codex gibt jede davon aus der Umgebung weiter, in der es läuft, sodass die Datei den Wert nie enthält.
+
+```toml
+[mcp_servers.verbatra]
+command = "npx"
+args = ["-y", "@verbatra/mcp", "--allow-spend"]
+cwd = "/path/to/your/project"
+env_vars = ["ANTHROPIC_API_KEY"]
+```
+
+Schreib den Key nicht in eine Tabelle `[mcp_servers.verbatra.env]` und übergib ihn nicht mit `codex mcp add --env`: Beides speichert den Wert selbst. Mit `codex mcp list` siehst du den Eintrag. Siehe die [MCP-Dokumentation von Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) und die [Konfigurationsreferenz](https://learn.chatgpt.com/docs/config-file/config-reference).
+
+## Gemini CLI
+
+Gemini CLI liest `mcpServers` aus der `.gemini/settings.json` im Projekt oder aus `~/.gemini/settings.json`. Es dokumentiert nicht, wogegen ein relatives `cwd` aufgelöst wird, also gib ein absolutes an. Das hält den Eintrag auch in deinen Benutzereinstellungen statt in der geteilten Projektdatei:
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+Gemini CLI entfernt sensible Variablen aus der Umgebung, die es einem Server übergibt, deshalb erreicht ein Key verbatra nur, wenn der Eintrag ihn in `env` nennt. Ein Verweis `$VARIABLE` dort wird aus der Umgebung aufgelöst, in der Gemini CLI läuft, sodass die Datei nur den Namen enthält:
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--allow-spend"],
+      "cwd": "/path/to/your/project",
+      "env": {
+        "ANTHROPIC_API_KEY": "$ANTHROPIC_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Lass `trust` bei einem Eintrag mit erlaubten Ausgaben weg: `"trust": true` überspringt die Bestätigung, die Gemini CLI vor jedem Tool-Aufruf einholt. `gemini mcp add` schreibt denselben Eintrag, aber sein `-e KEY=value` speichert den Wert selbst, also trag einen Key lieber als Verweis in die Datei ein. Mit `/mcp` in Gemini CLI siehst du, ob der Server verbunden ist und welche Tools er anbietet. Siehe die [MCP-Dokumentation von Gemini CLI](https://geminicli.com/docs/tools/mcp-server/).
 
 ## Cursor
 
@@ -199,6 +269,64 @@ Um Ausgaben zu erlauben, deklarierst du den Key als Input. VS Code fragt ihn bei
 
 Alternativ lädt `"envFile": "${workspaceFolder}/.env.local"` den Key aus einer ignorierten Datei, die du schon hast. Mit **MCP: Open User Configuration** öffnest du eine `mcp.json`, die für alle deine Workspaces gilt. Siehe die [Referenz zur MCP-Konfiguration von VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
+### Mit einem Klick installieren
+
+[verbatra in VS Code installieren](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) öffnet VS Code und bietet an, den nur lesenden Server zu installieren. Derselbe Eintrag aus einer Shell:
+
+```bash
+code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
+```
+
+Beide bringen weder einen Key noch den Spend-Schalter mit; ergänze sie wie oben von Hand, wenn der Agent Geld ausgeben soll. Das Link-Format beschreibt der [MCP-Leitfaden für VS-Code-Erweiterungen](https://code.visualstudio.com/api/extension-guides/ai/mcp).
+
+## GitHub Copilot
+
+### Copilot Cloud Agent
+
+Der Cloud Agent arbeitet auf GitHub, nicht auf deinem Rechner. Eine Person mit Admin-Rechten im Repository fügt den Server unter **Settings**, **Copilot**, **MCP servers** hinzu. Der Cloud Agent ruft jedes Tool, das er bekommt, ohne Rückfrage auf, deshalb empfiehlt GitHub, nur lesende Tools freizugeben, und `tools` ist Pflicht. Dieser Eintrag nennt jedes verbatra-Tool, das weder schreibt noch einen Provider aufruft:
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "type": "local",
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"],
+      "tools": [
+        "project.snapshot",
+        "status.check",
+        "status.diff",
+        "lock.state",
+        "key.value",
+        "key.integrity",
+        "glossary.get",
+        "review.queue",
+        "usage.summary",
+        "translation.estimate"
+      ]
+    }
+  }
+}
+```
+
+Füge `translation.editEntry` und `glossary.write` nur hinzu, wenn der Agent in seinem Pull Request Übersetzungen und Glossarbegriffe schreiben soll. Lass Ausgaben ausgeschaltet: Die Anweisung des Servers, vor einem Spend-Tool auf dein Ja zu warten, kann nicht greifen, wenn niemand gefragt wird. Willst du sie trotzdem bewusst erlauben, brauchst du alle drei Punkte, und jeder ist eine eigene Entscheidung:
+
+- ein Agents-Secret mit dem Präfix `COPILOT_MCP_`, zum Beispiel `COPILOT_MCP_ANTHROPIC_API_KEY`, angelegt unter **Settings**, **Secrets and variables**, **Agents**. Nur Secrets mit diesem Präfix erreichen eine MCP-Konfiguration, und sie gehen an die MCP-Server, nicht an den Agenten selbst;
+- `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` und `--allow-spend` in `args`, sodass die Konfiguration einen Verweis enthält, nie den Wert;
+- `translation.translatePending` oder `translation.retranslateEntry` in `tools`. Fehlen sie in der Freigabeliste, kann der Agent sie auch mit `--allow-spend` nicht aufrufen.
+
+GitHub dokumentiert nicht, in welchem Verzeichnis der Server startet. Um das Setup zu prüfen, weist du Copilot ein Issue zu, öffnest **View session** und klappst **Start MCP Servers** auf: Dort stehen die Tools von verbatra, wenn der Server gestartet ist, und ein Konfigurationsfehler beendet den Server, bevor er welche auflistet. Siehe [den Cloud Agent mit MCP erweitern](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) und [Secrets und Variablen für den Cloud Agent](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables).
+
+### Copilot CLI
+
+Copilot CLI speichert deine Server in `~/.copilot/mcp-config.json`. Füge verbatra aus einer Shell hinzu:
+
+```bash
+copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
+```
+
+Es liest außerdem die `.mcp.json` und die `.github/mcp.json` eines Projekts, sobald du dem Ordner vertraust, also wird auch eine committete `.mcp.json` wie die im Abschnitt zu Claude Code übernommen. Diese Datei hat kein `--cwd`, bitte den Agenten deshalb, `project.snapshot` aufzurufen, um zu prüfen, ob der Server die Konfiguration gefunden hat. Copilot CLI gibt einem Server aus deiner Umgebung nur `PATH` weiter: Jede andere Variable, auch der Key und `VERBATRA_MCP_ALLOW_SPEND`, muss im `env` des Eintrags stehen, und die Dokumentation beschreibt dort keine Verweis-Syntax. `--allow-spend` gehört also in `args`, und ein Key nur in die `~/.copilot/mcp-config.json` auf deinem Rechner, nie in eine Projektdatei. Mit `/mcp show verbatra` in Copilot CLI siehst du Status und Tools. Siehe [MCP-Server zu Copilot CLI hinzufügen](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+
 ## Windsurf
 
 Der Cascade-Agent von Windsurf liest seine Server aus einer einzigen `mcp_config.json` für alle Projekte, also nennst du das Projekt mit einem absoluten `--cwd`:
@@ -215,6 +343,41 @@ Der Cascade-Agent von Windsurf liest seine Server aus einer einzigen `mcp_config
 ```
 
 Um Ausgaben zu erlauben, fügst du `--allow-spend` zu `args` hinzu und reichst den Key per Verweis weiter, mit `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. Wo die Datei liegt und die restliche Syntax stehen in der [MCP-Dokumentation von Cascade](https://docs.devin.ai/desktop/cascade/mcp).
+
+## Zed
+
+Zed liest `context_servers` aus seiner Einstellungsdatei; **Settings**, **AI**, **MCP Servers**, **Add Server** schreibt den Eintrag für dich. Die Dokumentation sagt nicht, in welchem Verzeichnis ein Server startet, also übergib ein absolutes `--cwd`:
+
+```json
+{
+  "context_servers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp", "--cwd", "/path/to/your/project"],
+      "env": {}
+    }
+  }
+}
+```
+
+Ein grüner Punkt neben dem Server auf dieser Einstellungsseite heißt, dass er aktiv ist. Zed dokumentiert keine Verweis-Syntax für `env`, ein Key dort ist also ein Wert: Trag ihn und `--allow-spend` nur in deine Benutzereinstellungen ein, nie in die `.zed/settings.json` eines Projekts. Siehe die [MCP-Dokumentation von Zed](https://zed.dev/docs/ai/mcp).
+
+## JetBrains AI Assistant
+
+Öffne in einer JetBrains-IDE **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)**, füge einen Server hinzu und füge ein:
+
+```json
+{
+  "mcpServers": {
+    "verbatra": {
+      "command": "npx",
+      "args": ["-y", "@verbatra/mcp"]
+    }
+  }
+}
+```
+
+Setz **Working directory** auf den Projektstamm und wähl, ob der Server global oder nur im aktuellen Projekt verfügbar ist. JetBrains dokumentiert nicht, wie ein Server Umgebungsvariablen bekommt, also lass diesen Eintrag nur lesend. Siehe die [MCP-Dokumentation von AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "locales": {
+    "de": {
+      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e5c3008b203a56b4"}
+    },
+    "es": {
+      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e47768f0d0f5fa64"}
+    },
+    "fr": {
+      "landing.loop.rows.agent.body": {"origin":"import","valueHash":"a8c47fd78226993b"}
+    }
+  }
+}

@@ -33,6 +33,18 @@ const SUPPORTED_PROVIDERS = [
   "Google Cloud Translation",
   "openai-compatible",
 ];
+export const SUPPORTED_AGENT_CLIENTS = [
+  "Claude Code",
+  "Codex",
+  "Gemini CLI",
+  "Cursor",
+  "VS Code",
+  "GitHub Copilot",
+  "Windsurf",
+  "Zed",
+  "JetBrains AI Assistant",
+  "Claude Desktop",
+] as const;
 const FORMAT_LABELS: Readonly<Record<SupportedFormat, string>> = {
   "i18next-json": "i18next",
   "vue-i18n-json": "vue-i18n",
@@ -89,6 +101,8 @@ export const SEO_KEYWORDS = [
   "AI translation",
   "incremental translation",
   "CLI",
+  "MCP server",
+  "AI agents",
 ] as const;
 
 export function softwareApplicationLd(args: {
@@ -123,6 +137,7 @@ export function softwareApplicationLd(args: {
       `Frameworks: ${SUPPORTED_FRAMEWORKS.join(", ")}`,
       "Placeholder, ICU, and inline markup integrity checked after every translation",
       "Human-only mode: the none provider turns machine translation off and hands every key to a translator",
+      `AI agent ready: a stdio MCP server for ${SUPPORTED_AGENT_CLIENTS.join(", ")}, JSON output with stable exit codes, and installable agent skills`,
     ],
     softwareHelp: { "@type": "CreativeWork", url: `${SITE_URL}/docs` },
     sameAs: [GITHUB_URL, NPM_CLI_URL, NPM_SDK_URL, NPM_STUDIO_URL, NPM_MCP_URL],

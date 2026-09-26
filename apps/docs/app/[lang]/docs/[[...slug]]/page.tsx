@@ -18,6 +18,7 @@ import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import { markdownUrl } from "@/lib/markdown-route";
 import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
 import {
@@ -110,10 +111,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
     ? undefined
     : `https://github.com/verbatra/verbatra/blob/main/apps/docs/content/docs/${page.path}`;
 
-  const markdownHref = localizedPath(
-    lang,
-    `/docs.mdx${params.slug?.length ? `/${params.slug.join("/")}` : ""}`,
-  );
+  const markdownHref = markdownUrl(page.url);
 
   const jsonLd = await pageJsonLd(page, params.slug, lang);
 
@@ -181,7 +179,11 @@ export async function generateMetadata(props: {
   return {
     title: page.data.title,
     description: page.data.description,
-    alternates: { canonical: page.url, languages },
+    alternates: {
+      canonical: page.url,
+      languages,
+      types: { "text/markdown": markdownUrl(page.url) },
+    },
     ...socialMetadata({
       locale: lang,
       path: page.url,

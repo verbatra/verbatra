@@ -10,6 +10,7 @@
       "!**/.next",
       "!**/.source",
       "!**/next-env.d.ts",
+      "!**/verbatra.provenance.json",
       "!**/.agents",
       "!.claude/skills"
     ]

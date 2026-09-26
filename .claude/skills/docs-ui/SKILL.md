@@ -252,8 +252,11 @@ comes from:
   (the contact form's privacy notice); use it rather than restating the declarations.
 - **Page actions**: every non-home docs page renders Fumadocs' `MarkdownCopyButton` and
   `ViewOptionsPopover` under the description, fed by `app/[lang]/docs.mdx/[[...slug]]/route.ts`,
-  which serves the processed Markdown of the page in its own locale. Keep that route in step
-  with `app/llms-full.txt/route.ts` if the Markdown shape changes.
+  which serves the processed Markdown of the page in its own locale. Readers and agents reach it
+  as the page URL plus `.md` (`markdownUrl` in `lib/markdown-route.ts`), or by sending
+  `Accept: text/markdown` to the page URL; `proxy.ts` rewrites both to that route, and every page
+  advertises the `.md` URL as a `text/markdown` alternate. `llms.txt` links to the `.md` URLs.
+  Keep that route in step with `app/llms-full.txt/route.ts` if the Markdown shape changes.
 
 ## Fumadocs API questions go to Context7
 
