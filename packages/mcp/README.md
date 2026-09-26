@@ -56,6 +56,8 @@ Point your client at the `verbatra-mcp` binary. The shape below is the one most 
 }
 ```
 
+In Claude Code, `claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp` writes an equivalent entry to a committed `.mcp.json`, and the [verbatra plugin](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client#the-verbatra-plugin) adds the agent skills alongside it. VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers` rather than `mcpServers`. The exact file, key, and working-directory handling for every client is in [Connect an MCP client](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client).
+
 That configuration is read-only plus local editing: no provider is called and no API key is needed. Add `--allow-spend` to `args`, and the environment variable your configured provider reads its key from, once you also want the two provider-calling tools. `--config <path>` loads a specific config file instead of searching for one, and `VERBATRA_MCP_ALLOW_SPEND` is the environment equivalent of the flag, which the flag always wins over.
 
 ## Tools

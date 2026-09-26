@@ -69,6 +69,16 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 
 Three agent skill documents in [verbatra/skills](https://github.com/verbatra/skills) teach a coding agent which of these surfaces to reach for; install one with `npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y`. That repository verifies each document against this repository's command, format, provider and tool registries.
 
+## Use with AI agents
+
+verbatra is built to be driven by a coding agent as well as by a person:
+
+- **MCP server.** `npx -y @verbatra/mcp` serves a project over stdio to Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot (agent mode, cloud agent, and CLI), Windsurf, Zed, JetBrains AI Assistant, Claude Desktop, and any other stdio client. Tools that call a paid provider stay off the tool list until spending is granted. Per-client setup: [Connect an MCP client](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client).
+- **Claude Code plugin.** `claude plugin marketplace add verbatra/skills`, then `claude plugin install verbatra@verbatra --scope project`, installs the skills, the MCP server with spending off, and a hook that checks edited locale files.
+- **Machine-readable CLI.** Every one-shot command takes `--json` and exits `0`, `1`, or `2` (plus `3` for a human-only project), so an agent branches on the code rather than parsing prose. [Recipes for agents and scripts](https://verbatra.kreitz-webdev.de/docs/agent-recipes).
+- **Docs an agent can read.** [llms.txt](https://verbatra.kreitz-webdev.de/llms.txt) indexes every page, [llms-full.txt](https://verbatra.kreitz-webdev.de/llms-full.txt) holds the full text, and any docs URL returns Markdown with `.md` appended or with `Accept: text/markdown`.
+- **Set it up for someone.** [Start with AI](https://verbatra.kreitz-webdev.de/docs/start-with-ai) is a prompt that walks an agent through a safe first setup, stopping for confirmation before anything spends.
+
 ## Formats and providers
 
 Formats are a closed set of fourteen, each registered by an adapter that round-trips the file in its own document key order rather than rewriting it. See [Formats](https://verbatra.kreitz-webdev.de/docs/formats) for the list and what each adapter preserves.
