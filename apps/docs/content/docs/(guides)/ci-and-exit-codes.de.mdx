@@ -17,7 +17,7 @@ Der Exit-Code ist der Vertrag, auf den dein CI-Schritt verzweigt:
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `types` erzeugte seine Deklaration, `export` schrieb seine Arbeitsmappe, `tmx` importierte oder exportierte seinen Übersetzungsspeicher, `init` legte das Projekt an oder fand es schon auf dem aktuellen Stand, `watch`, `studio` oder `mcp` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
-| `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder unvollständigen Locale, `check` fand ein Locale nicht synchron (oder mit `--qa` eine eingecheckte Übersetzung mit einem Integritätsfehler oder mit `--strict` einer Review-Warnung), `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` stellte fest, dass die committete Deklaration veraltet ist, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
+| `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder unvollständigen Locale, `check` fand ein Locale nicht synchron (oder mit `--qa` eine eingecheckte Übersetzung mit einem Integritätsfehler oder mit `--strict` einer Review-Warnung oder einem unvollständigen Plural), `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` stellte fest, dass die committete Deklaration veraltet ist, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init`, dem ein benötigtes Flag fehlt, das mehrere passende Formate oder Dateimuster findet, das sich weigert, eine bestehende Konfiguration zu überschreiben, oder das keine gültige Konfiguration anlegen kann, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
 | `3` | `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) lief sauber durch, hat aber Keys für eine menschliche Übersetzung übrig gelassen |
 | `130` | `translate` oder `import` wurde mit Ctrl-C (SIGINT) abgebrochen, nachdem die Schreibsperren freigegeben waren, oder `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
@@ -54,7 +54,11 @@ Nimm `check`, wenn der Exit-Code alles ist, was du brauchst. Nimm `diff`, wenn d
 
 <AvailableFrom version="0.12.0" />
 
-Drift ist nicht das Einzige, woran sich ein Gate lohnt. `verbatra check --qa` lässt zusätzlich das Integritäts-Gate und die Review-Flags über jede eingecheckte Übersetzung laufen. Ein von Hand bearbeiteter Wert mit kaputtem Platzhalter, kaputtem Markup oder ICU-Plural-Zweigen, die nicht zu seiner Sprache passen, lässt den Job also mit Exit `1` scheitern. Ergänze `--strict`, damit auch Review-Warnungen wie `EQUALS_SOURCE` scheitern. Auch das ruft keinen Provider auf und braucht keinen Key. Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung). Die [GitHub Action](/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `command: check` und `qa: "true"` aus.
+Drift ist nicht das Einzige, woran sich ein Gate lohnt. `verbatra check --qa` lässt zusätzlich das Integritäts-Gate und die Review-Flags über jede eingecheckte Übersetzung laufen. Ein von Hand bearbeiteter Wert mit kaputtem Platzhalter, kaputtem Markup oder ICU-Plural-Zweigen, die nicht zu seiner Sprache passen, lässt den Job also mit Exit `1` scheitern. Ergänze `--strict`, damit auch Review-Warnungen wie `EQUALS_SOURCE` scheitern. Auch das ruft keinen Provider auf und braucht keinen Key. Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung).
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `check` listet außerdem die Plurale auf, denen eine CLDR-Pluralkategorie fehlt, die ihre Zielsprache verwendet, etwa ein polnisches Android-`<plurals>` mit nur `one` und `other`. Das ist eine Warnung: Ein einfaches `check` behält seinen Exit-Code, und `check --qa --strict` scheitert daran wie an jeder anderen Warnung. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien). Die [GitHub Action](/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `command: check` und `qa: "true"` aus.
 
 Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch`, `export` und `tmx` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
 
@@ -158,6 +162,7 @@ interface LocaleCheckSummary {
   inSync: boolean;             // missing === 0 && stale === 0
   provenance?: ProvenanceSummary; // counts by origin and review state; absent when the provenance file is unreadable
   protected?: number;          // missing and stale keys translate would leave alone (human edits, pinned keys)
+  incompletePlurals: IncompletePlural[]; // plurals lacking CLDR categories; a warning, see verbatra check
   inconsistencies?: InconsistencyGroup[]; // only with --consistency
   qa?: LocaleQaReport;         // only with --qa
 }
@@ -211,6 +216,7 @@ interface DoctorCheck {
     | "network-policy"
     | "source-file"
     | "plural-rules"
+    | "plural-completeness"
     | "locale-codes"
     | "locale-state"
     | "untranslated-literals";

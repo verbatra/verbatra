@@ -20,7 +20,7 @@ verbatra check [flags]
 | `--consistency` | ninguno | desactivado | además informa, por locale, de cada cadena de origen traducida de más de una forma bajo claves distintas; solo es un informe, nunca cambia el código de salida |
 | `--qa` | ninguno | desactivado | además ejecuta el [control de calidad](#control-de-calidad) sobre cada traducción confirmada; salida `1` ante un error |
 | `--severity` | `error` o `warning` | `warning` | con `--qa`, la severidad más baja que se informa; `error` omite por completo los motivos de revisión |
-| `--strict` | ninguno | desactivado | con `--qa`, sale también con `1` cuando el control de calidad informa de una advertencia; no se admite junto con `--severity error` |
+| `--strict` | ninguno | desactivado | con `--qa`, sale también con `1` cuando el control de calidad informa de una advertencia o a un plural le faltan [categorías de plural](#categorías-de-plural); no se admite junto con `--severity error` |
 | `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la comprobación bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
 Una clave falta cuando el origen la tiene y el destino no; está obsoleta cuando la cadena de origen cambió desde la última vez que se tradujo. Un locale está sincronizado cuando no tiene ni lo uno ni lo otro. Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de comprobar nada en silencio, así que una errata en un nombre de locale nunca deja pasar una puerta de CI. ¿Quieres las listas de claves detrás de los contadores? Eso es [`verbatra diff`](/docs/cli/diff).
@@ -65,7 +65,7 @@ verbatra check --consistency
 # also check every committed translation for broken placeholders, markup and ICU
 verbatra check --qa
 
-# fail on quality warnings too, such as an untranslated copy of the source
+# fail on quality warnings and incomplete plurals too
 verbatra check --qa --strict
 ```
 
@@ -74,6 +74,55 @@ verbatra check --qa --strict
 <AvailableFrom version="0.12.0" />
 
 Una clave obsoleta cuyo valor escribió, importó o cambió una persona fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` dejaría para una persona (consulta [Proteger traducciones humanas](/docs/protecting-human-translations)). `check` la sigue contando como ausente u obsoleta y muestra la parte protegida de las obsoletas entre paréntesis, por ejemplo `2 stale (1 protected)`; una clave fijada que falta aún no tiene un valor que proteger y cuenta solo como ausente. `--json` lleva el número como `protected` en cada locale; si `verbatra.provenance.json` está dañado o es de un verbatra más nuevo, no se puede leer ningún origen y solo cuentan las claves fijadas.
+
+## Categorías de plural
+
+<AvailableFrom version="0.12.0" />
+
+Cada `check` también lee los plurales de cada locale de destino y lista los que no tienen una categoría de plural CLDR que usa el idioma de destino. Un `<plurals>` de Android en polaco con solo `one` y `other` tiene todas las claves de la fuente, así que cuenta como sincronizado, pero el polaco también necesita `few` y `many`. `check` nombra lo que falta, por locale y plural:
+
+```text
+plural categories (warning: exit 1 only under --qa --strict)
+  pl: 2 plurals missing CLDR categories
+    cart {count} plural: missing few, many
+    files: missing few, many
+```
+
+Las categorías que usa un idioma salen de las reglas de plural CLDR integradas en Node.js, las mismas que describe [soporte de idiomas](/docs/language-support#plurales). Estos son los formatos comprobados y cómo guarda cada uno un plural:
+
+| Formato | Formas de plural leídas |
+| --- | --- |
+| `i18next-json` | los sufijos de clave `_one`, `_few`, ... y los plurales `_ordinal_` frente a las reglas ordinales |
+| `android-xml` | las entradas `<item quantity>` de cada `<plurals>` |
+| `apple-strings` | las reglas de plural del `.stringsdict` junto al archivo `.strings` |
+| `apple-xcstrings` | las categorías `variations.plural` de cada locale |
+| `next-intl-json`, `arb` | cada `plural` y `selectordinal` de ICU, también los anidados |
+
+Ningún otro formato se informa nunca: los plurales con barra de `vue-i18n-json` son posicionales en lugar de tener nombre de categoría, gettext cuenta las formas `msgstr[n]` según la propia cabecera `Plural-Forms` del archivo, y los demás formatos no tienen concepto de plural.
+
+Lo que cuenta como ausente sigue unas pocas reglas fijas:
+
+- `other` es obligatoria en todos los idiomas. Para un idioma del que Node.js no tiene reglas de plural, es la única categoría obligatoria.
+- Una rama ICU de valor exacto como `=0` o `=1` nunca sustituye a una categoría. `=1` solo coincide con el número 1, mientras que el `one` ruso también cubre 21 y 31, así que a un mensaje con `=1` pero sin `one` le sigue faltando `one`.
+- Una categoría que el idioma no usa no se informa aquí. Un mensaje ICU con una rama que su idioma no usa es un error `icu` con [`--qa`](#control-de-calidad).
+- `select` no es un plural, así que sus ramas nunca se comprueban frente a categorías. Un `selectordinal` de ICU y un plural `_ordinal_` de i18next se comprueban frente a las reglas ordinales.
+- Solo se comprueba un plural que la fuente define y del que el destino tiene al menos una forma. Un plural que falta por completo en el destino ya cuenta como claves ausentes. Cada plural ICU se comprueba por separado, así que un plural anidado al que le falta una categoría en una rama de `select` se informa aunque la otra rama esté completa.
+
+Es una advertencia. Nunca desincroniza un locale, nunca cambia un recuento y deja en paz el código de salida de un `check` normal, igual que una ejecución de traducción informa de la misma situación con el aviso `PLURAL_CATEGORIES_INCOMPLETE` sin fallar. Añade `--qa --strict` para que el job falle por ello, igual que `--strict` falla con cualquier otra advertencia. Una ejecución de traducción solo cierra el hueco por ti en dos casos: i18next con `generatePlurals: true` y un proveedor LLM escribe las formas que faltan, y un proveedor LLM que traduce un mensaje ICU cambiado devuelve exactamente las categorías del idioma de destino. En los plurales de Android y Apple tienes que añadir a mano las formas que faltan.
+
+Con `--json`, cada locale de `result.locales` lleva un array `incompletePlurals`, vacío cuando todos los plurales están completos y ordenado por clave:
+
+```ts
+interface IncompletePlural {
+  code: "PLURAL_CATEGORIES_INCOMPLETE"; // the code a translate run reports for the same condition
+  key: string;                          // base key (files for files_one or files[one]), or the ICU message's key
+  argument?: string;                    // the ICU plural's argument, such as count; absent for key suffixes
+  ruleType: "cardinal" | "ordinal";
+  missing: ("zero" | "one" | "two" | "few" | "many" | "other")[]; // in CLDR order
+}
+```
+
+[`verbatra doctor`](/docs/cli/doctor) nombra los mismos plurales en su comprobación informativa Plural completeness.
 
 ## Control de calidad
 
@@ -135,8 +184,8 @@ Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactame
 
 | Código | Significado |
 | --- | --- |
-| `0` | sincronizado: ningún locale tiene una clave faltante u obsoleta y, con `--qa`, ningún valor confirmado tiene un error (ni una advertencia, con `--strict`) |
-| `1` | desincronizado: al menos un locale tiene una clave faltante u obsoleta, o con `--qa` el control de calidad encontró un error (o una advertencia, con `--strict`); el informe se imprime igualmente |
+| `0` | sincronizado: ningún locale tiene una clave faltante u obsoleta y, con `--qa`, ningún valor confirmado tiene un error (ni una advertencia ni un plural incompleto, con `--strict`) |
+| `1` | desincronizado: al menos un locale tiene una clave faltante u obsoleta, o con `--qa` el control de calidad encontró un error (o una advertencia o un plural incompleto, con `--strict`); el informe se imprime igualmente |
 | `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido, un valor `--severity` desconocido, `--severity` o `--strict` sin `--qa`, o `--strict` junto con `--severity error`) |
 
 El código de salida `1` significa "desincronizado", no un fallo: la ejecución en sí tuvo éxito, solo que el resultado no está todo en verde.

@@ -136,10 +136,10 @@ not yours: carry on with the next steps without waiting for it.
 
 npx verbatra doctor --json
 
-`doctor` runs nine checks. Six can fail: the config, the format, the provider id, the
+`doctor` runs ten checks. Six can fail: the config, the format, the provider id, the
 API-key environment variable that provider reads, the network policy, and the source
-file. The last three (plural rules, locale codes, locale state) are informational and
-never fail. It makes no network
+file. The last four (plural rules, plural completeness, locale codes, locale state) are
+informational and never fail. It makes no network
 call and reads no key value, only the variable's name, from the environment or from
 `.env` and `.env.local`. Fix any other failing check by editing
 `verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,

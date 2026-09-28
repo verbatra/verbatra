@@ -283,7 +283,7 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 <AvailableFrom version="0.9.0" />
 
 Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, no hace
-ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan nueve comprobaciones,
+ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan diez comprobaciones,
 cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida
 (`config`), el formato configurado resuelve a un adaptador (`format-adapter`), el ID de proveedor
 configurado resuelve a una fábrica (`provider`), la variable de entorno de la que ese proveedor lee
@@ -304,6 +304,14 @@ y no resuelve ningún nombre de host.
 La comprobación `plural-rules` es informativa y siempre pasa: su detalle nombra las
 versiones de ICU y CLDR de las que el runtime deriva las categorías de plural de cada idioma de
 destino, y cualquier locale de destino para el que ICU no tiene reglas de plural.
+
+<AvailableFrom version="0.12.0" />
+
+La comprobación `plural-completeness` también es informativa y siempre pasa: lee el archivo de
+origen y cada archivo de locale de destino, y su detalle nombra cada plural al que le faltan
+categorías de plural CLDR que usa su idioma de destino, el mismo hallazgo que `check` informa como
+`incompletePlurals`. Lo dice cuando el formato no guarda las formas de plural por categoría CLDR, y
+un archivo que no puede leer se nombra en el detalle.
 
 La comprobación `locale-codes` también es informativa y siempre pasa: su detalle nombra
 cada código de locale configurado que es válido pero no está en forma BCP 47 canónica, como
@@ -392,6 +400,17 @@ para un valor que la puerta de integridad rechazaría (`reason` de `INTEGRITY_GA
 publican como la tupla `QA_SEVERITIES` (`"error"`, `"warning"`). El informe nunca cambia `inSync`;
 una puerta de CI lee `qa.errors`, y `qa.warnings` para una puerta estricta. Consulta
 [el control de calidad](/docs/cli/check#control-de-calidad) para ver qué valores se comprueban.
+
+<AvailableFrom version="0.12.0" />
+
+Cada `LocaleCheckSummary` también lleva `incompletePlurals`: un `IncompletePlural` por cada plural
+cuyas formas confirmadas no tienen categorías de plural CLDR que usa el idioma de destino, como
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordenado por clave y
+vacío cuando todos los plurales están completos. Cubre `i18next-json`, `android-xml`, `apple-strings`,
+`apple-xcstrings` y los mensajes ICU con `plural` y `selectordinal` de `next-intl-json` y `arb`.
+`other` es siempre obligatoria, una rama de valor exacto como `=1` nunca sustituye a una categoría, y
+una categoría que el idioma no usa no se informa. Es una advertencia: nunca cambia `inSync` ni un
+recuento. Consulta [categorías de plural](/docs/cli/check#categorías-de-plural).
 
 ### diff
 

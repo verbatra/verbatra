@@ -20,7 +20,7 @@ verbatra check [flags]
 | `--consistency` | aucun | désactivé | signale aussi, par locale, chaque chaîne source traduite de plusieurs façons sous des clés différentes ; simple rapport, le code de sortie ne change jamais |
 | `--qa` | aucun | désactivé | lance aussi le [contrôle qualité](#contrôle-qualité) sur chaque traduction commitée ; sortie `1` en cas d'erreur |
 | `--severity` | `error` ou `warning` | `warning` | avec `--qa`, la gravité la plus basse signalée ; `error` ignore complètement les motifs de révision |
-| `--strict` | aucun | désactivé | avec `--qa`, sort aussi avec `1` quand le contrôle qualité signale un avertissement ; interdit avec `--severity error` |
+| `--strict` | aucun | désactivé | avec `--qa`, sort aussi avec `1` quand le contrôle qualité signale un avertissement ou qu'il manque à un pluriel des [catégories de pluriel](#catégories-de-pluriel) ; interdit avec `--severity error` |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de vérification sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 Une clé est manquante quand la source l'a et pas la cible ; obsolète quand la chaîne source a changé depuis sa dernière traduction. Une locale est synchronisée quand elle n'a ni l'un ni l'autre. Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien vérifier en silence, donc une coquille dans un nom de locale ne laisse jamais passer un contrôle CI. Tu veux les listes de clés derrière ces décomptes ? C'est [`verbatra diff`](/docs/cli/diff).
@@ -65,7 +65,7 @@ verbatra check --consistency
 # also check every committed translation for broken placeholders, markup and ICU
 verbatra check --qa
 
-# fail on quality warnings too, such as an untranslated copy of the source
+# fail on quality warnings and incomplete plurals too
 verbatra check --qa --strict
 ```
 
@@ -74,6 +74,55 @@ verbatra check --qa --strict
 <AvailableFrom version="0.12.0" />
 
 Une clé obsolète dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne, ou une clé qui correspond à `pinnedKeys`, est une clé que `translate` laisserait à une personne (voir [Protéger les traductions humaines](/docs/protecting-human-translations)). `check` la compte quand même comme manquante ou obsolète et affiche la part protégée des clés obsolètes entre parenthèses, par exemple `2 stale (1 protected)` ; une clé épinglée manquante n'a pas encore de valeur à protéger et compte seulement comme manquante. `--json` porte ce nombre dans `protected` pour chaque locale ; si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, aucune origine ne peut être lue et seules les clés épinglées comptent.
+
+## Catégories de pluriel
+
+<AvailableFrom version="0.12.0" />
+
+Chaque `check` lit aussi les pluriels de chaque locale cible et liste ceux auxquels il manque une catégorie de pluriel CLDR que la langue cible utilise. Un `<plurals>` Android polonais avec seulement `one` et `other` contient toutes les clés de la source, donc il compte comme synchronisé, mais le polonais a aussi besoin de `few` et `many`. `check` nomme ce qui manque, par locale et par pluriel :
+
+```text
+plural categories (warning: exit 1 only under --qa --strict)
+  pl: 2 plurals missing CLDR categories
+    cart {count} plural: missing few, many
+    files: missing few, many
+```
+
+Les catégories qu'utilise une langue viennent des règles de pluriel CLDR intégrées à Node.js, les mêmes que décrit [la prise en charge des langues](/docs/language-support#pluriels). Voici les formats vérifiés et la façon dont chacun stocke un pluriel :
+
+| Format | Formes de pluriel lues |
+| --- | --- |
+| `i18next-json` | les suffixes de clé `_one`, `_few`, ... et les pluriels `_ordinal_` selon les règles ordinales |
+| `android-xml` | les entrées `<item quantity>` de chaque `<plurals>` |
+| `apple-strings` | les règles de pluriel du `.stringsdict` à côté du fichier `.strings` |
+| `apple-xcstrings` | les catégories `variations.plural` de chaque locale |
+| `next-intl-json`, `arb` | chaque `plural` et `selectordinal` ICU, y compris imbriqués |
+
+Aucun autre format n'est jamais signalé : les pluriels à barre verticale de `vue-i18n-json` sont positionnels au lieu d'être nommés par catégorie, gettext compte les formes `msgstr[n]` selon l'en-tête `Plural-Forms` propre au fichier, et les autres formats n'ont pas de notion de pluriel.
+
+Ce qui compte comme manquant suit quelques règles fixes :
+
+- `other` est obligatoire dans toutes les langues. Pour une langue dont Node.js n'a pas les règles de pluriel, c'est la seule catégorie obligatoire.
+- Une branche ICU à valeur exacte comme `=0` ou `=1` ne remplace jamais une catégorie. `=1` ne correspond qu'au nombre 1, alors que le `one` russe couvre aussi 21 et 31 : un message avec `=1` mais sans `one` manque donc toujours de `one`.
+- Une catégorie que la langue n'utilise pas n'est pas signalée ici. Un message ICU avec une branche que sa langue n'utilise pas est une erreur `icu` avec [`--qa`](#contrôle-qualité).
+- `select` n'est pas un pluriel, ses branches ne sont donc jamais vérifiées par rapport aux catégories. Un `selectordinal` ICU et un pluriel `_ordinal_` i18next sont vérifiés selon les règles ordinales.
+- Seul un pluriel que la source définit, et dont la cible a au moins une forme, est vérifié. Un pluriel totalement absent de la cible compte déjà comme clés manquantes. Chaque pluriel ICU est vérifié séparément : un pluriel imbriqué auquel il manque une catégorie dans une branche de `select` est signalé même si l'autre branche est complète.
+
+C'est un avertissement. Il ne désynchronise jamais une locale, ne change aucun compteur et laisse tranquille le code de sortie d'un `check` simple, de la même façon qu'une exécution de traduction signale la même situation par la notice `PLURAL_CATEGORIES_INCOMPLETE` sans échouer. Ajoute `--qa --strict` pour faire échouer le job dessus, comme `--strict` échoue sur tout autre avertissement. Une exécution de traduction ne comble le manque à ta place que dans deux cas : i18next avec `generatePlurals: true` et un fournisseur LLM écrit les formes manquantes, et un fournisseur LLM qui traduit un message ICU modifié renvoie exactement les catégories de la langue cible. Pour les pluriels Android et Apple, tu dois ajouter les formes manquantes à la main.
+
+Avec `--json`, chaque locale de `result.locales` porte un tableau `incompletePlurals`, vide quand chaque pluriel est complet et trié par clé :
+
+```ts
+interface IncompletePlural {
+  code: "PLURAL_CATEGORIES_INCOMPLETE"; // the code a translate run reports for the same condition
+  key: string;                          // base key (files for files_one or files[one]), or the ICU message's key
+  argument?: string;                    // the ICU plural's argument, such as count; absent for key suffixes
+  ruleType: "cardinal" | "ordinal";
+  missing: ("zero" | "one" | "two" | "few" | "many" | "other")[]; // in CLDR order
+}
+```
+
+[`verbatra doctor`](/docs/cli/doctor) nomme les mêmes pluriels dans sa vérification informative Plural completeness.
 
 ## Contrôle qualité
 
@@ -135,8 +184,8 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 
 | Code | Signification |
 | --- | --- |
-| `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète et, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement, avec `--strict`) |
-| `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement, avec `--strict`) ; le rapport est quand même affiché |
+| `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète et, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement ni de pluriel incomplet, avec `--strict`) |
+| `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement ou un pluriel incomplet, avec `--strict`) ; le rapport est quand même affiché |
 | `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue, une valeur `--severity` inconnue, `--severity` ou `--strict` sans `--qa`, ou `--strict` avec `--severity error`) |
 
 La sortie `1` signifie "désynchronisé", pas un échec : l'exécution elle-même a réussi, le résultat n'est juste pas tout vert.

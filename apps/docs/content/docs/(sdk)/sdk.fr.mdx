@@ -215,13 +215,17 @@ Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modi
 
 <AvailableFrom version="0.9.0" />
 
-Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne fait aucune requête réseau et ne lit jamais la valeur d'une clé d'API. Neuf vérifications s'exécutent, chacune avec son propre verdict `pass`, `fail` ou `skipped`. Cinq couvrent l'essentiel : la config se charge et se valide (`config`), le format configuré se résout en un adaptateur (`format-adapter`), l'ID de fournisseur configuré se résout en une fabrique (`provider`), la variable d'environnement dans laquelle ce fournisseur lit sa clé est définie (`api-key`), et le fichier de locale source peut être lu (`source-file`). Chaque vérification s'exécute même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. La clé d'API est vérifiée par son nom uniquement. La vérification du fichier source le lit et l'analyse au lieu de seulement sonder son existence : un répertoire à sa place, un fichier vide et un contenu malformé sont donc tous signalés ici.
+Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne fait aucune requête réseau et ne lit jamais la valeur d'une clé d'API. Dix vérifications s'exécutent, chacune avec son propre verdict `pass`, `fail` ou `skipped`. Cinq couvrent l'essentiel : la config se charge et se valide (`config`), le format configuré se résout en un adaptateur (`format-adapter`), l'ID de fournisseur configuré se résout en une fabrique (`provider`), la variable d'environnement dans laquelle ce fournisseur lit sa clé est définie (`api-key`), et le fichier de locale source peut être lu (`source-file`). Chaque vérification s'exécute même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. La clé d'API est vérifiée par son nom uniquement. La vérification du fichier source le lit et l'analyse au lieu de seulement sonder son existence : un répertoire à sa place, un fichier vide et un contenu malformé sont donc tous signalés ici.
 
 <AvailableFrom version="0.12.0" />
 
 La vérification `network-policy` passe quand la [politique réseau](/docs/network-policy) effective, issue du bloc `network` de la config et de la variable d'environnement `VERBATRA_NETWORK_POLICY`, autorise l'hôte auquel se connecte le fournisseur configuré et tout proxy qu'il utiliserait. Son détail nomme la politique, ses deux sources et l'hôte. Elle échoue quand cet hôte est refusé ou qu'une variable d'environnement réseau contient une valeur invalide, passe pour le fournisseur `none` et ne résout aucun nom d'hôte.
 
 La vérification `plural-rules` est informative et passe toujours : son détail nomme les versions d'ICU et de CLDR dont le runtime tire les catégories de pluriel de chaque langue cible, ainsi que toute locale cible pour laquelle ICU n'a pas de règles de pluriel.
+
+<AvailableFrom version="0.12.0" />
+
+La vérification `plural-completeness` est elle aussi informative et passe toujours : elle lit le fichier source et chaque fichier de locale cible, et son détail nomme chaque pluriel auquel il manque des catégories de pluriel CLDR que sa langue cible utilise, le même constat que `check` signale dans `incompletePlurals`. Elle le dit quand le format ne stocke pas les formes de pluriel par catégorie CLDR, et un fichier qu'elle ne peut pas lire est nommé dans le détail.
 
 La vérification `locale-codes` est elle aussi informative et passe toujours : son détail nomme chaque code de locale configuré qui est valide mais pas sous forme BCP 47 canonique, comme `zh-hant-tw` ou l'obsolète `iw`, avec la forme canonique que suggère `Intl.getCanonicalLocales`. Rien n'est renommé.
 
@@ -269,6 +273,18 @@ issu de `REVIEW_REASON_CODES`. `qaSeverity: "error"` ignore les motifs de révis
 sont publiées sous la forme du tuple `QA_SEVERITIES` (`"error"`, `"warning"`). Le rapport ne change
 jamais `inSync` ; un contrôle CI lit `qa.errors`, et `qa.warnings` pour un contrôle strict. Voir
 [le contrôle qualité](/docs/cli/check#contrôle-qualité) pour savoir quelles valeurs sont vérifiées.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque `LocaleCheckSummary` porte aussi `incompletePlurals` : un `IncompletePlural` par pluriel dont
+les formes commitées n'ont pas toutes les catégories de pluriel CLDR que la langue cible utilise,
+sous la forme `{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, trié par
+clé et vide quand chaque pluriel est complet. Sont couverts `i18next-json`, `android-xml`,
+`apple-strings`, `apple-xcstrings` et les messages ICU avec `plural` et `selectordinal` de
+`next-intl-json` et `arb`. `other` est toujours obligatoire, une branche à valeur exacte comme `=1` ne
+remplace jamais une catégorie, et une catégorie que la langue n'utilise pas n'est pas signalée.
+C'est un avertissement : il ne change jamais `inSync` ni un compteur. Voir
+[catégories de pluriel](/docs/cli/check#catégories-de-pluriel).
 
 ### diff
 

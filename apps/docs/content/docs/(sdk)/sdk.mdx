@@ -267,7 +267,7 @@ None of these call a provider, write a file, or mutate the lock.
 <AvailableFrom version="0.9.0" />
 
 Validates the project setup and spends nothing: it constructs no provider, makes no network
-request, and never reads an API key value. Nine checks run, each with its own `pass`, `fail`, or
+request, and never reads an API key value. Ten checks run, each with its own `pass`, `fail`, or
 `skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
 adapter (`format-adapter`), the configured provider ID resolves to a factory (`provider`), the
 environment variable that provider reads its key from is set (`api-key`), and the source locale file
@@ -288,6 +288,14 @@ name.
 The `plural-rules` check is informational and always passes: its detail names the ICU and
 CLDR versions the runtime derives each target language's plural categories from, and any target
 locale ICU has no plural rules for.
+
+<AvailableFrom version="0.12.0" />
+
+The `plural-completeness` check is informational too and always passes: it reads the source and
+every target locale file, and its detail names each plural that lacks CLDR plural categories its
+target language uses, the same finding `check` reports as `incompletePlurals`. It says so when the
+format does not store plural forms by CLDR category, and a file it cannot read is named in the
+detail.
 
 The `locale-codes` check is informational too and always passes: its detail names every
 configured locale code that is valid but not in canonical BCP 47 form, such as `zh-hant-tw` or the
@@ -369,6 +377,17 @@ for a value the integrity gate would refuse (`reason` from `INTEGRITY_GATE_REASO
 as the `QA_SEVERITIES` tuple (`"error"`, `"warning"`). The report never changes `inSync`; a CI gate
 reads `qa.errors`, and `qa.warnings` for a strict gate. See
 [the quality check](/docs/cli/check#quality-check) for which values are checked.
+
+<AvailableFrom version="0.12.0" />
+
+Each `LocaleCheckSummary` also carries `incompletePlurals`: one `IncompletePlural` per plural whose
+committed forms lack CLDR plural categories the target language uses, as
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordered by key and
+empty when every plural is complete. It covers `i18next-json`, `android-xml`, `apple-strings`,
+`apple-xcstrings`, and the ICU `plural` and `selectordinal` messages of `next-intl-json` and `arb`.
+`other` is always required, an exact-value arm such as `=1` never stands in for a category, and a
+category the language does not use is not reported. It is a warning: it never changes `inSync` or
+a count. See [plural categories](/docs/cli/check#plural-categories).
 
 ### diff
 
