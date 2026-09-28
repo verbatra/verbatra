@@ -404,7 +404,7 @@
       },
       "title": "Privacy policy",
       "lastUpdatedLabel": "Last updated",
-      "disclaimer": "This is a translation for convenience. In case of any discrepancy, the English version prevails.",
+      "languageVersions": "This privacy policy is available in English, German, Spanish, and French. All four language versions have the same content and are equally binding.",
       "s1": {
         "heading": "1. Responsible party",
         "body": "The party responsible for data processing on this site is Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Germany (the same details as in the <imprint>imprint</imprint>). You can reach us by email at <email>info@kreitz-webdev.de</email>. No data protection officer has been appointed, because neither Art. 37 GDPR nor § 38 BDSG (German Federal Data Protection Act) requires one for this site."

@@ -36,6 +36,12 @@ interface RetiredClaim {
 
 const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   {
+    claim: "English privacy policy prevails over its translations",
+    pattern:
+      /English version prevails|englische Fassung maßgeblich|prevalece la versión en inglés|version anglaise prévaut/,
+    sample: "In case of any discrepancy, the English version prevails.",
+  },
+  {
     claim: "repealed Telemediengesetz",
     pattern: /\bTMG\b|Telemediengesetz/,
     sample: "Angaben gemäß § 5 TMG",

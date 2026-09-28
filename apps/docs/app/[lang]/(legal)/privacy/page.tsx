@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { AnalyticsOptOut, type AnalyticsOptOutLabels } from "@/components/analytics-opt-out";
 import { CALLOUT_CLASS } from "@/components/mdx";
-import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
+import { type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { LEGAL_LAST_UPDATED, localeAlternates, PRIVACY_CONTACT_FORM_ANCHOR } from "@/lib/site";
 import { homeOgImagePath, socialMetadata } from "@/lib/social-metadata";
 
@@ -86,7 +86,6 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
   const { lang } = await props.params;
   const locale = toLocale(lang);
   const t = await getTranslations({ locale, namespace: "legal.privacy" });
-  const isAuthoritative = locale === i18n.defaultLanguage;
   const linkTags = linkTagsFor(locale);
   const optOutLabels: AnalyticsOptOutLabels = {
     optOut: t(`${ANALYTICS_KEY}.optOut.optOut`),
@@ -111,11 +110,9 @@ export default async function PrivacyPage(props: { params: Promise<{ lang: strin
       <h1>{t("title")}</h1>
       {lastUpdated}
 
-      {!isAuthoritative && (
-        <p>
-          <em>{t("disclaimer")}</em>
-        </p>
-      )}
+      <p>
+        <em>{t("languageVersions")}</em>
+      </p>
 
       {SECTION_KEYS.map((key) =>
         key === OBJECTION_KEY ? (

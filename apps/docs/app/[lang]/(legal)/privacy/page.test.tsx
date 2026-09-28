@@ -180,7 +180,26 @@ function imprintFacts(): string[] {
   return [street ?? "missing street", city ?? "missing city"];
 }
 
+const EQUALLY_BINDING: Record<Locale, RegExp> = {
+  en: /All four language versions have the same content and are equally binding\./,
+  de: /Alle vier Sprachfassungen sind inhaltlich gleich und gleichermaßen verbindlich\./,
+  es: /Las cuatro versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes\./,
+  fr: /Les quatre versions linguistiques ont le même contenu et font également foi\./,
+};
+
 describe.each(i18n.languages)("privacy page (%s)", (locale) => {
+  it("states that every language version is equally binding", async () => {
+    const doc = await renderPrivacy(locale);
+    const beforeSections = Array.from(
+      doc.querySelectorAll("article > p"),
+      (node) => node.textContent,
+    )
+      .slice(0, 2)
+      .join(" ");
+
+    expect(beforeSections).toMatch(EQUALLY_BINDING[locale]);
+  });
+
   it("numbers its thirteen headings in order", async () => {
     const doc = await renderPrivacy(locale);
     const numbers = Array.from(doc.querySelectorAll("h2")).map((node) =>
