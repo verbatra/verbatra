@@ -17,7 +17,7 @@ Le code de sortie est le contrat sur lequel ton étape CI se branche :
 | Code | Signification |
 | --- | --- |
 | `0` | succès : `translate` ou `import` a terminé avec toutes les locales complètes, `check` a trouvé toutes les locales synchronisées, `diff` n'a trouvé aucun changement en attente, `doctor` n'a trouvé aucun problème de configuration du projet, `extract` a terminé son analyse, `types` a généré sa déclaration, `export` a écrit son classeur, `tmx` a importé ou exporté sa mémoire de traduction, `init` a généré la structure du projet ou l'a trouvée déjà à jour, `watch`, `studio` ou `mcp` s'est arrêté proprement, ou `--help` ou `--version` a été affiché |
-| `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée (ou, avec `--qa`, une traduction commitée avec une erreur d'intégrité ou, avec `--strict`, un avertissement de révision), `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
+| `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée (ou, avec `--qa`, une traduction commitée avec une erreur d'intégrité ou, avec `--strict`, un avertissement de révision ou un pluriel incomplet), `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
 | `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` à qui il manque une option nécessaire, qui trouve plusieurs formats ou motifs de fichiers qui conviennent, qui refuse d'écraser une config existante, ou qui est incapable de générer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` incapable de charger la config, d'importer `@verbatra/mcp` ou de démarrer son serveur |
 | `3` | `translate` dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`) s'est terminé proprement, mais a laissé des clés pour une traduction humaine |
 | `130` | `translate` ou `import` a été interrompu avec Ctrl-C (SIGINT) après avoir libéré ses verrous d'écriture, ou `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
@@ -54,7 +54,11 @@ Utilise `check` quand le code de sortie te suffit. Utilise `diff` quand tu veux 
 
 <AvailableFrom version="0.12.0" />
 
-La dérive n'est pas la seule chose qui mérite un contrôle. `verbatra check --qa` passe aussi la barrière d'intégrité et les signalements de révision sur chaque traduction commitée : une valeur modifiée à la main avec un placeholder cassé, un balisage cassé ou des branches plurielles ICU qui ne conviennent pas à sa langue fait échouer le job avec la sortie `1`. Ajoute `--strict` pour échouer aussi sur des avertissements de révision comme `EQUALS_SOURCE`. Aucun fournisseur n'est appelé non plus, donc aucune clé n'est nécessaire. Voir [le contrôle qualité](/docs/cli/check#contrôle-qualité). La [GitHub Action](/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `command: check` et `qa: "true"`.
+La dérive n'est pas la seule chose qui mérite un contrôle. `verbatra check --qa` passe aussi la barrière d'intégrité et les signalements de révision sur chaque traduction commitée : une valeur modifiée à la main avec un placeholder cassé, un balisage cassé ou des branches plurielles ICU qui ne conviennent pas à sa langue fait échouer le job avec la sortie `1`. Ajoute `--strict` pour échouer aussi sur des avertissements de révision comme `EQUALS_SOURCE`. Aucun fournisseur n'est appelé non plus, donc aucune clé n'est nécessaire. Voir [le contrôle qualité](/docs/cli/check#contrôle-qualité).
+
+<AvailableFrom version="0.12.0" />
+
+Chaque `check` liste aussi les pluriels auxquels il manque une catégorie de pluriel CLDR que leur langue cible utilise, comme un `<plurals>` Android polonais avec seulement `one` et `other`. C'est un avertissement : un `check` simple garde son code de sortie, et `check --qa --strict` échoue dessus comme sur tout autre avertissement. Voir [catégories de pluriel](/docs/cli/check#catégories-de-pluriel). La [GitHub Action](/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `command: check` et `qa: "true"`.
 
 Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `--locales` sans aucune locale valide est une erreur d'utilisation et sort avec `2`, donc une coquille ne peut jamais mettre le contrôle au vert. `translate`, `watch`, `export` et `tmx` acceptent la même option, et c'est ainsi que tu traduis une locale à la fois face à un fournisseur soumis à des limites de débit.
 
@@ -164,6 +168,7 @@ interface LocaleCheckSummary {
   inSync: boolean;             // missing === 0 && stale === 0
   provenance?: ProvenanceSummary; // counts by origin and review state; absent when the provenance file is unreadable
   protected?: number;          // missing and stale keys translate would leave alone (human edits, pinned keys)
+  incompletePlurals: IncompletePlural[]; // plurals lacking CLDR categories; a warning, see verbatra check
   inconsistencies?: InconsistencyGroup[]; // only with --consistency
   qa?: LocaleQaReport;         // only with --qa
 }
@@ -217,6 +222,7 @@ interface DoctorCheck {
     | "network-policy"
     | "source-file"
     | "plural-rules"
+    | "plural-completeness"
     | "locale-codes"
     | "locale-state"
     | "untranslated-literals";

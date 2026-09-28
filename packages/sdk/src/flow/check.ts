@@ -16,6 +16,7 @@ import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
 import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js";
+import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
 import { reportedProtectedKeys } from "./protection.js";
 import {
   type CheckQaSummary,
@@ -53,6 +54,16 @@ export interface LocaleCheckSummary {
    * newer verbatra, no origin can be read and only the pinned keys are counted.
    */
   readonly protected?: number;
+  /**
+   * Every plural whose committed forms in this locale lack CLDR plural categories the target
+   * language uses, ordered by key; empty when every plural is complete. Checked for the formats
+   * whose plural forms follow CLDR categories: `i18next-json`, `android-xml`, `apple-strings`
+   * (`.stringsdict`), `apple-xcstrings`, and the ICU `plural` and `selectordinal` messages of
+   * `next-intl-json` and `arb`. Always empty for every other format. A warning: it never changes
+   * `inSync` or any count. See {@link IncompletePlural} for what counts. {@link check} always sets
+   * it; it is optional only so a summary built by hand, such as a test double, can leave it out.
+   */
+  readonly incompletePlurals?: readonly IncompletePlural[];
   /**
    * Every source string this locale translates more than one way under different keys, present only
    * when {@link CheckInput.consistency} is true (an empty array then means the locale is
@@ -154,6 +165,7 @@ function toCheckSummary(
       ? { provenance: summarizeProvenance(provenance, source, target) }
       : {}),
     protected: presentProtectedKeys(config, result).length,
+    incompletePlurals: findIncompletePlurals(config.format, source, target, locale),
     ...(consistency !== undefined
       ? {
           inconsistencies: findInconsistentTranslations(
@@ -216,6 +228,10 @@ function qaReports(
  * under its own key (i18next, Apple `.stringsdict` and `.xcstrings`, Android, gettext) is compared
  * per plural category or gettext `msgstr` index. The report never affects `inSync`, a count, or any
  * file, and a translation identical to its own source is not a finding here.
+ *
+ * Every locale also lists, in {@link LocaleCheckSummary.incompletePlurals}, each plural whose
+ * committed forms lack CLDR plural categories the target language uses, such as a Polish Android
+ * `<plurals>` with only `one` and `other`. This is a warning and never changes `inSync`.
  *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending

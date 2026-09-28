@@ -69,7 +69,11 @@ How a plural is checked depends on the format:
 
 - **i18next-json** keys each form with a CLDR suffix (`items_one`, `items_few`), and ordinals with `_ordinal_` (`place_ordinal_two`), which are checked against the ordinal rules. When the source lacks a category the target needs, the run reports `PLURAL_CATEGORIES_INCOMPLETE` naming the missing categories. With `generatePlurals: true` and an LLM provider, verbatra writes the missing forms instead. See [Add a language](/docs/add-a-language#languages-with-more-plural-categories).
 - **next-intl-json and ARB** keep a whole ICU `plural` or `selectordinal` in one value. An LLM provider is asked for exactly the target language's categories, and a value whose arms do not fit the target language is refused, whoever wrote it. See [Plural arms per target language](/docs/translation-safety#plural-arms-per-target-language).
-- **Apple `.stringsdict` and `.xcstrings`, Android `<plurals>` and gettext** round-trip exactly the forms each locale has: none is invented and none is dropped. gettext keys forms by `msgstr[n]` index and keeps the `Plural-Forms` header as written. These formats get no missing-category notice or generation today. See [Formats](/docs/formats).
+- **Apple `.stringsdict` and `.xcstrings`, Android `<plurals>` and gettext** round-trip exactly the forms each locale has: none is invented and none is dropped. gettext keys forms by `msgstr[n]` index and keeps the `Plural-Forms` header as written. These formats get no plural generation, so a missing form has to be added by hand. See [Formats](/docs/formats).
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra check`](/docs/cli/check#plural-categories) and [`verbatra doctor`](/docs/cli/doctor) name every plural in a target locale that lacks a category its language uses, for i18next, Android, Apple `.stringsdict` and `.xcstrings`, and the ICU messages of next-intl and ARB. A Polish Android `<plurals>` with only `one` and `other` is reported as missing `few` and `many`. It is a warning; `check --qa --strict` fails on it. gettext is not checked, because its forms follow the file's own `Plural-Forms` header rather than CLDR categories.
 
 DeepL and Google Cloud Translation translate the plural forms that are there but never generate new ones, and they withhold an ICU plural value like any other string with ICU syntax.
 

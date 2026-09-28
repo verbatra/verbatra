@@ -28,6 +28,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
 import { describeLocaleState } from "./locale-state-doctor.js";
 import { checkNetworkPolicy } from "./network-doctor.js";
+import { describePluralCompleteness } from "./plural-completeness-doctor.js";
 import { describePluralRules } from "./plural-rules.js";
 import { readSourceResource } from "./source.js";
 
@@ -50,6 +51,11 @@ import { readSourceResource } from "./source.js";
  * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
  *   plural categories from, and every target locale ICU has no plural rules for, which falls back to
  *   `one` and `other` and gets no generated plural forms.
+ * - `plural-completeness`: informational, never fails. Reads the source and every target locale
+ *   file and names each plural whose committed forms lack CLDR plural categories the target
+ *   language uses, the same finding {@link check} reports in
+ *   {@link LocaleCheckSummary.incompletePlurals}. It says when the format does not store plural
+ *   forms by CLDR category, or when a file could not be read.
  * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
  *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
  *   canonical form `Intl.getCanonicalLocales` suggests for it.
@@ -70,6 +76,7 @@ export type DoctorCheckId =
   | "network-policy"
   | "source-file"
   | "plural-rules"
+  | "plural-completeness"
   | "locale-codes"
   | "locale-state"
   | "untranslated-literals";
@@ -109,9 +116,9 @@ export interface DoctorResult {
   /** True only when no check failed. This is the value a script should branch on. */
   readonly ok: boolean;
   /**
-   * Every check that ran, always in the same order. A setup run has nine entries, one per setup
+   * Every check that ran, always in the same order. A setup run has ten entries, one per setup
    * check: `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
-   * `plural-rules`, `locale-codes`, and `locale-state`. A literal run
+   * `plural-rules`, `plural-completeness`, `locale-codes`, and `locale-state`. A literal run
    * ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
    */
   readonly checks: readonly DoctorCheck[];
@@ -134,7 +141,8 @@ export interface DoctorInput {
    * Run the untranslated-literal scan instead of the setup checks: the config is loaded, then the
    * source roots of its `extract` block are scanned for hardcoded user-facing string literals. No
    * other setup check runs (`format-adapter`, `provider`, `api-key`, `network-policy`,
-   * `source-file`, `plural-rules`, `locale-codes`, `locale-state`), so no API key environment
+   * `source-file`, `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`), so no
+   * API key environment
    * variable is looked at and a run with no key set can pass.
    */
   readonly literals?: boolean;
@@ -167,6 +175,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "network-policy": "Network policy",
   "source-file": "Source locale file",
   "plural-rules": "Plural rules",
+  "plural-completeness": "Plural completeness",
   "locale-codes": "Locale codes",
   "locale-state": "Locale state",
   "untranslated-literals": "Untranslated literals",
@@ -179,6 +188,7 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "network-policy",
   "source-file",
   "plural-rules",
+  "plural-completeness",
   "locale-codes",
   "locale-state",
 ];
@@ -410,11 +420,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * made, and no file is written. Run it before {@link translate} on a fresh project, or when a run
  * failed and you want the whole list of problems rather than the first one.
  *
- * A setup run reports the nine checks {@link DoctorResult.checks} lists. Six of them can fail: the
+ * A setup run reports the ten checks {@link DoctorResult.checks} lists. Six of them can fail: the
  * config loads and validates, the configured format resolves to an adapter, the configured
  * provider ID resolves to a factory, the environment variable that provider reads its API key from
  * is set, the network policy permits the provider's host, and the source locale file can be read.
- * The other three are informational and never fail. Every check runs even when an
+ * The other four are informational and never fail. Every check runs even when an
  * earlier one failed, so one call reports every independent problem. The API key is checked by
  * variable name only: its value is never read, never returned, and never validated against a
  * provider.
@@ -438,6 +448,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * each target language's plural categories from, and lists any target locale ICU has no plural
  * rules for.
  *
+ * The informational `plural-completeness` check reads the source and every target locale file
+ * and names each plural whose committed forms lack CLDR plural categories the target language
+ * uses, such as a Polish Android `<plurals>` with only `one` and `other`. A file it cannot read is
+ * named in its detail rather than failing the check.
+ *
  * The informational `locale-codes` check names every configured locale code that is
  * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the
  * configured code, so nothing is renamed.
@@ -449,11 +464,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * A config whose provider is `none` passes both the provider and the key check: its provider check
  * reports that machine translation is disabled by policy, and no key variable is looked at.
  *
- * A target locale file is not checked at all: a missing one is not a problem, because
- * {@link translate} creates it. The source locale file is checked, because every other entry point
+ * A missing target locale file is not a problem, because {@link translate} creates it; only the
+ * `plural-completeness` check reads target files at all. The source locale file is checked, because every other entry point
  * fails on it.
  *
- * When the config cannot be loaded the eight config-dependent checks report `skipped` rather than a
+ * When the config cannot be loaded the nine config-dependent checks report `skipped` rather than a
  * verdict they could not reach, and {@link DoctorResult.ok} is false because the config check
  * itself failed.
  *
@@ -512,6 +527,16 @@ export async function doctor(
     networkPolicyCheck(config),
     await checkSourceFile(config, cwd, fs, adapter),
     verdict("plural-rules", true, describePluralRules(config.targetLocales)),
+    verdict(
+      "plural-completeness",
+      true,
+      await describePluralCompleteness(
+        config,
+        cwd,
+        fs,
+        adapter.kind === "resolved" ? adapter.adapter : undefined,
+      ),
+    ),
     verdict(
       "locale-codes",
       true,

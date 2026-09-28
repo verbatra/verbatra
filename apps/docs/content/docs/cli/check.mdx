@@ -20,7 +20,7 @@ verbatra check [flags]
 | `--consistency` | none | off | also report, per locale, every source string translated more than one way under different keys; report only, it never changes the exit code |
 | `--qa` | none | off | also run the [quality check](#quality-check) over every committed translation; exit `1` on an error |
 | `--severity` | `error` or `warning` | `warning` | with `--qa`, the lowest severity to report; `error` skips the review reasons entirely |
-| `--strict` | none | off | with `--qa`, also exit `1` when the quality check reports a warning; not allowed together with `--severity error` |
+| `--strict` | none | off | with `--qa`, also exit `1` when the quality check reports a warning or a plural lacks [plural categories](#plural-categories); not allowed together with `--severity error` |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the check summary under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
 
 A key is missing when the source has it and the target does not; stale when the source string changed since it was last translated. A locale is in sync when it has neither. An empty or unknown `--locales` value is rejected with exit `2` rather than silently checking nothing, so a typo in a locale name never lets a CI gate pass. Want the actual key lists behind the counts? That is [`verbatra diff`](/docs/cli/diff).
@@ -65,7 +65,7 @@ verbatra check --consistency
 # also check every committed translation for broken placeholders, markup and ICU
 verbatra check --qa
 
-# fail on quality warnings too, such as an untranslated copy of the source
+# fail on quality warnings and incomplete plurals too
 verbatra check --qa --strict
 ```
 
@@ -74,6 +74,55 @@ verbatra check --qa --strict
 <AvailableFrom version="0.12.0" />
 
 A stale key whose value a person wrote, imported, or changed outside verbatra, or a key matching `pinnedKeys`, is one `translate` would leave for a person (see [Protecting human translations](/docs/protecting-human-translations)). `check` still counts it as missing or stale, and shows the protected share of the stale count in brackets, for example `2 stale (1 protected)`; a missing pinned key has no value to protect yet and counts only as missing. `--json` carries the count as `protected` on each locale; when `verbatra.provenance.json` is corrupt or from a newer verbatra, no origin can be read and only pinned keys count.
+
+## Plural categories
+
+<AvailableFrom version="0.12.0" />
+
+Every `check` also reads the plurals in each target locale and lists the ones that lack a CLDR plural category the target language uses. A Polish Android `<plurals>` with only `one` and `other` holds every key the source has, so it counts as in sync, but Polish also needs `few` and `many`. `check` names what is missing, per locale and plural:
+
+```text
+plural categories (warning: exit 1 only under --qa --strict)
+  pl: 2 plurals missing CLDR categories
+    cart {count} plural: missing few, many
+    files: missing few, many
+```
+
+The categories a language uses come from the CLDR plural rules built into Node.js, the same ones [language support](/docs/language-support#plurals) describes. The formats checked, and how each stores a plural:
+
+| Format | Plural forms read |
+| --- | --- |
+| `i18next-json` | the `_one`, `_few`, ... key suffixes, and `_ordinal_` plurals against the ordinal rules |
+| `android-xml` | the `<item quantity>` entries of each `<plurals>` |
+| `apple-strings` | the plural rules in the `.stringsdict` beside the `.strings` file |
+| `apple-xcstrings` | the `variations.plural` categories of each locale |
+| `next-intl-json`, `arb` | every ICU `plural` and `selectordinal`, including nested ones |
+
+Every other format is never reported: `vue-i18n-json` pipe plurals are positional rather than named by category, gettext counts `msgstr[n]` forms by the file's own `Plural-Forms` header, and the remaining formats have no plural concept.
+
+What counts as missing follows a few fixed rules:
+
+- `other` is required in every language. For a language Node.js has no plural rules for, it is the only category required.
+- An exact-value ICU arm such as `=0` or `=1` never stands in for a category. `=1` matches the number 1 alone, while Russian `one` also covers 21 and 31, so a message with `=1` but no `one` is still missing `one`.
+- A category the language does not use is not reported here. An ICU message with an arm its language does not use is an `icu` error under [`--qa`](#quality-check).
+- `select` is not a plural, so its arms are never checked against categories. An ICU `selectordinal` and an i18next `_ordinal_` plural are checked against the ordinal rules.
+- Only a plural the source defines, and the target holds at least one form of, is checked. A plural the target lacks entirely is already counted as missing keys. Each ICU plural is checked on its own, so a nested plural that lacks a category in one `select` arm is reported even when the other arm is complete.
+
+It is a warning. It never flips a locale out of sync, never changes a count, and leaves the exit code of a plain `check` alone, the same way a translate run reports the condition as a `PLURAL_CATEGORIES_INCOMPLETE` notice without failing. Add `--qa --strict` to fail the job on it, just as `--strict` fails on every other warning. A translate run fills the gap for you only in two cases: i18next with `generatePlurals: true` and an LLM provider writes the missing forms, and an LLM provider translating a changed ICU message returns exactly the target language's categories. Android and Apple plurals need the missing forms added by hand.
+
+With `--json`, each locale in `result.locales` carries an `incompletePlurals` array, empty when every plural is complete and ordered by key:
+
+```ts
+interface IncompletePlural {
+  code: "PLURAL_CATEGORIES_INCOMPLETE"; // the code a translate run reports for the same condition
+  key: string;                          // base key (files for files_one or files[one]), or the ICU message's key
+  argument?: string;                    // the ICU plural's argument, such as count; absent for key suffixes
+  ruleType: "cardinal" | "ordinal";
+  missing: ("zero" | "one" | "two" | "few" | "many" | "other")[]; // in CLDR order
+}
+```
+
+[`verbatra doctor`](/docs/cli/doctor) names the same plurals in its informational Plural completeness check.
 
 ## Quality check
 
@@ -135,8 +184,8 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 
 | Code | Meaning |
 | --- | --- |
-| `0` | in sync: no locale has a missing or stale key, and with `--qa` no committed value has an error (nor a warning, with `--strict`) |
-| `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning, with `--strict`); the report is still printed |
+| `0` | in sync: no locale has a missing or stale key, and with `--qa` no committed value has an error (nor a warning or an incomplete plural, with `--strict`) |
+| `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning or an incomplete plural, with `--strict`); the report is still printed |
 | `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, `--severity` or `--strict` without `--qa`, or `--strict` with `--severity error`) |
 
 Exit `1` means "out of sync", not a failure: the run itself succeeded, the result just is not all green.

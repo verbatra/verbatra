@@ -290,7 +290,7 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 <AvailableFrom version="0.9.0" />
 
 Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, stellt keine
-Netzwerkanfrage und liest nie einen API-Key-Wert. Neun Prüfungen laufen, jede mit ihrem eigenen
+Netzwerkanfrage und liest nie einen API-Key-Wert. Zehn Prüfungen laufen, jede mit ihrem eigenen
 Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert (`config`), das
 konfigurierte Format löst zu einem Adapter auf (`format-adapter`), die konfigurierte Provider-ID
 löst zu einer Factory auf (`provider`), die Umgebungsvariable, aus der dieser Provider seinen Key
@@ -312,6 +312,14 @@ keinen Hostnamen auf.
 Die Prüfung `plural-rules` ist rein informativ und besteht immer: Ihr Detail nennt die
 ICU- und CLDR-Versionen, aus denen die Laufzeit die Pluralkategorien jeder Zielsprache ableitet,
 und jede Ziel-Locale, für die ICU keine Pluralregeln hat.
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `plural-completeness` ist ebenfalls rein informativ und besteht immer: Sie liest die
+Quell- und jede Ziel-Locale-Datei, und ihr Detail nennt jeden Plural, dem CLDR-Pluralkategorien
+fehlen, die seine Zielsprache verwendet, derselbe Befund, den `check` als `incompletePlurals`
+meldet. Sie sagt es, wenn das Format Pluralformen nicht nach CLDR-Kategorie speichert, und eine
+Datei, die sie nicht lesen kann, wird im Detail genannt.
 
 Die Prüfung `locale-codes` ist ebenfalls rein informativ und besteht immer: Ihr Detail
 nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, etwa
@@ -407,6 +415,17 @@ aus `REVIEW_REASON_CODES` trägt. `qaSeverity: "error"` lässt die Review-Gründ
 Schweregrade sind als Tupel `QA_SEVERITIES` veröffentlicht (`"error"`, `"warning"`). Der Bericht
 ändert `inSync` nie; ein CI-Gate liest `qa.errors` und für ein strenges Gate auch `qa.warnings`.
 Welche Werte geprüft werden, steht unter [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung).
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`: ein `IncompletePlural` pro Plural, dessen
+eingecheckten Formen CLDR-Pluralkategorien fehlen, die die Zielsprache verwendet, als
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, nach Key sortiert und
+leer, wenn jeder Plural vollständig ist. Abgedeckt sind `i18next-json`, `android-xml`, `apple-strings`,
+`apple-xcstrings` und die ICU-Nachrichten mit `plural` und `selectordinal` von `next-intl-json` und
+`arb`. `other` ist immer Pflicht, ein Zweig mit exaktem Wert wie `=1` ersetzt nie eine Kategorie, und
+eine Kategorie, die die Sprache nicht verwendet, wird nicht gemeldet. Es ist eine Warnung: Sie ändert
+nie `inSync` oder eine Zahl. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien).
 
 ### diff
 

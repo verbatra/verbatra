@@ -43,6 +43,7 @@ describe("statusCheckHandler", () => {
           inSync: true,
           provenance: expect.any(Object),
           protected: 0,
+          incompletePlurals: [],
         },
       ]);
     } finally {
@@ -65,6 +66,7 @@ describe("statusCheckHandler", () => {
           inSync: false,
           provenance: expect.any(Object),
           protected: 0,
+          incompletePlurals: [],
         },
       ]);
     } finally {
@@ -92,6 +94,7 @@ describe("statusCheckHandler", () => {
           inSync: false,
           provenance: expect.any(Object),
           protected: 0,
+          incompletePlurals: [],
         },
       ]);
     } finally {
@@ -144,6 +147,7 @@ describe("statusCheckHandler", () => {
           inSync: false,
           provenance: expect.any(Object),
           protected: 0,
+          incompletePlurals: [],
         },
       ]);
 
@@ -159,6 +163,7 @@ describe("statusCheckHandler", () => {
           inSync: true,
           provenance: expect.any(Object),
           protected: 0,
+          incompletePlurals: [],
         },
       ]);
     } finally {

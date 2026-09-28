@@ -25,7 +25,7 @@ verbatra doctor [flags]
 
 ## Qué comprueba
 
-Una ejecución de configuración informa de nueve comprobaciones, en el orden de abajo. Las seis primeras pueden fallar; las tres últimas son informativas y nunca fallan.
+Una ejecución de configuración informa de diez comprobaciones, en el orden de abajo. Las seis primeras pueden fallar; las cuatro últimas son informativas y nunca fallan.
 
 | Comprobación | Pasa cuando |
 | --- | --- |
@@ -36,6 +36,7 @@ Una ejecución de configuración informa de nueve comprobaciones, en el orden de
 | Network policy | la [política de red](/docs/network-policy) efectiva permite el host al que se conecta el proveedor configurado y cualquier proxy que usaría; el detalle nombra la política, de dónde viene y el host |
 | Source locale file | el archivo del locale de origen existe en su ruta resuelta, es un archivo regular y se analiza con el formato configurado |
 | Plural rules | siempre (informativa): nombra las versiones de ICU y CLDR de las que verbatra lee las categorías de plural, y cualquier locale de destino para el que ICU no tiene reglas de plural |
+| Plural completeness | siempre (informativa): nombra cada plural de un archivo de locale de destino al que le faltan categorías de plural CLDR que usa su idioma, el mismo hallazgo que [`verbatra check`](/docs/cli/check#categorías-de-plural) |
 | Locale codes | siempre (informativa): nombra cada código de locale configurado que es válido pero no está en forma BCP 47 canónica, con la forma canónica que conviene usar |
 | Locale state | siempre (informativa): nombra cada locale para el que el archivo de bloqueo, la memoria de traducción o el archivo de procedencia guardan estado y que tu configuración no incluye, y dice si la siguiente ejecución de `translate` lo traslada |
 
@@ -45,13 +46,17 @@ La comprobación Plural rules es informativa y nunca falla: un locale de destino
 
 <AvailableFrom version="0.12.0" />
 
+La comprobación Plural completeness es informativa y nunca falla. Lee el archivo de origen y cada archivo de locale de destino y nombra cada plural al que le falta una categoría que usa su idioma, por ejemplo `pl: files (few, many)` para un `<plurals>` de Android en polaco con solo `one` y `other`. Lista como mucho diez y cuenta el resto; [`verbatra check`](/docs/cli/check#categorías-de-plural) los lista todos. Lo dice cuando el formato no guarda las formas de plural por categoría CLDR, y nombra un archivo que no puede leer en lugar de fallar.
+
+<AvailableFrom version="0.12.0" />
+
 La comprobación Locale codes también es informativa y nunca falla. Un código como `zh-hant-tw`, `en-us` o los obsoletos `iw`, `in` o `tl` es válido, así que se carga y se traduce tal como está escrito, y esta comprobación sugiere en su lugar `zh-Hant-TW`, `en-US`, `he`, `id` o `fil`. Los nombres de archivo siguen el código de tu configuración, así que nada se renombra hasta que lo cambies tú. Un código que no es BCP 47 válido en absoluto, como `en_US`, nunca llega a esta comprobación: hace fallar la comprobación Configuration. Consulta [Códigos de locale](/docs/config-file#códigos-de-locale).
 
 <AvailableFrom version="0.12.0" />
 
 La comprobación Locale state también es informativa y nunca falla. Lee `verbatra.lock.json`, `verbatra.cache.json` y `verbatra.provenance.json` y nombra cada locale para el que guardan estado y que tu configuración no incluye, como `pt_BR` cuando queda atrás después de reescribirlo como `pt-BR`. Para cada uno dice si la siguiente ejecución de `translate` lo traslada a la grafía configurada (consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)), si el código configurado ya tiene estado propio, si compiten dos grafías por él o si no coincide con ningún locale configurado. Elimina el estado de un locale que ya no traduces, o reescribe el locale configurado para que coincida.
 
-Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las ocho comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
+Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una sola ejecución informa de cada problema independiente. La única excepción es la propia configuración: cuando no se puede cargar, las nueve comprobaciones que la necesitan se omiten en lugar de llegar a un veredicto. Una comprobación así se imprime como `[skip]` en el informe legible y lleva `"status": "skipped"` en el envoltorio `--json`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -62,7 +67,7 @@ Cinco detalles que conviene conocer:
 - La clave de API se comprueba **solo por nombre**. `doctor` pregunta si la variable está definida, nunca qué contiene. El valor no se lee, no se imprime y no se envía a ninguna parte. Consulta [Proveedores](/docs/providers) para saber qué variable usa cada proveedor.
 - El proveedor `openai-compatible` es la excepción. Recurre a una clave placeholder, así que una variable ausente no es problema. Solo falla cuando tu configuración nombra su propia variable con `provider.options.apiKeyEnvVar` y esa variable no está definida.
 - Con [`provider: { id: "none" }`](/docs/human-only-workflow), la comprobación del proveedor pasa e indica que la traducción automática está desactivada por política, la de la clave de API pasa sin mirar ninguna variable, y la de la política de red pasa porque nunca se llama a ningún proveedor.
-- Un archivo de locale de **destino** que falta no es un problema: [`verbatra translate`](/docs/cli/translate) lo crea. Los archivos de destino no se comprueban en absoluto.
+- Un archivo de locale de **destino** que falta no es un problema: [`verbatra translate`](/docs/cli/translate) lo crea. Solo la comprobación Plural completeness lee archivos de destino.
 - El archivo del locale de **origen** se lee y se analiza, no solo se comprueba su existencia. Un directorio en su lugar, un archivo vacío y contenido malformado fallan esta comprobación con el mismo mensaje que daría [`verbatra check`](/docs/cli/check), porque esos son justo los casos que hacen fallar a todos los demás comandos. Cuando el `format` configurado no resuelve a ningún adaptador no hay con qué analizarlo, así que la comprobación vuelve a la mera existencia y lo indica.
 
 Igual que [`verbatra translate`](/docs/cli/translate), `doctor` carga `.env.local` y luego `.env` desde el directorio de trabajo antes de mirar el entorno, así que una clave guardada en un archivo dotenv cuenta como definida. Con `--literals` no carga ninguno de los dos archivos.
@@ -129,6 +134,7 @@ verbatra doctor
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
          fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
   [ok  ] Plural rules: ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.
+  [ok  ] Plural completeness: Not checked: The source locale file was not found at /app/locales/en.json.
   [ok  ] Locale codes: Every configured locale code is in canonical BCP 47 form.
   [ok  ] Locale state: Every locale with state in verbatra.lock.json, verbatra.cache.json, and verbatra.provenance.json is configured.
 2 problems found (run verbatra doctor again after fixing them)

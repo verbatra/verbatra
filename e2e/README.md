@@ -65,7 +65,8 @@ deterministic test joins the required gate automatically.
   within seconds of a SIGINT or SIGTERM sent during that held call, leaving no `*.lock` file
   behind). It also covers `check --qa` and `--strict` on committed translations
   (`tests/check-qa.e2e.test.ts`), `extract` (`tests/extract.e2e.test.ts`), per-language CLDR plural
-  arms (`tests/icu-plural-arms.e2e.test.ts`), inline markup parity on import
+  arms (`tests/icu-plural-arms.e2e.test.ts`), plurals missing CLDR categories in `check` and
+  `doctor` (`tests/plural-completeness.e2e.test.ts`), inline markup parity on import
   (`tests/markup-parity.e2e.test.ts`), the network policy and `VERBATRA_NETWORK_POLICY` under a live
   network guard (`tests/network-policy.e2e.test.ts`), the provenance file
   (`tests/provenance.e2e.test.ts`), `pseudo` (`tests/pseudo.e2e.test.ts`), the Studio server served

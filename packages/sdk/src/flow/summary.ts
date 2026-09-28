@@ -10,7 +10,8 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  * - `PLURAL_CATEGORIES_INCOMPLETE`: `i18next-json` only. The target language needs CLDR plural
  *   categories the source does not supply and that plural generation did not produce (it is off,
  *   the provider is not an LLM, or a generated form was withheld), so the missing forms have to be
- *   added by hand.
+ *   added by hand. {@link check} reports the same code, per plural and for every format whose
+ *   plural forms follow CLDR categories, in {@link LocaleCheckSummary.incompletePlurals}.
  * - `SUB_BATCH_FAILED`: one provider sub-batch of a locale failed. Its keys are withheld and retried
  *   on the next run, while the results of the other sub-batches are kept.
  * - `BLANK_ROW_BASELINE_RETAINED`: an imported handoff row was blank, so the existing translation
