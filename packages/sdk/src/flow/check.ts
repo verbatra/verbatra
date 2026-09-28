@@ -25,6 +25,7 @@ import {
   qaLocale,
   totalQa,
 } from "./qa-check.js";
+import { machineClassValues } from "./review-scan.js";
 
 /** One locale's counts in a {@link CheckSummary}. */
 export interface LocaleCheckSummary {
@@ -65,6 +66,41 @@ export interface LocaleCheckSummary {
    * project-wide {@link CheckSummary.qa} totals instead.
    */
   readonly qa?: LocaleQaReport;
+  /**
+   * The review gate's finding for this locale, present only when {@link CheckInput.requireReviewed}
+   * is true. It never changes `inSync` or any count; a CI gate reads the project-wide
+   * {@link CheckSummary.review} instead.
+   */
+  readonly review?: LocaleReviewReport;
+}
+
+/** One locale's part of the review gate, see {@link CheckInput.requireReviewed}. */
+export interface LocaleReviewReport {
+  /**
+   * Every key whose current value has a {@link MachineClassOrigin} and is not approved, in source
+   * order. Empty when the provenance file cannot be read, which
+   * {@link CheckReviewSummary.code} reports instead.
+   */
+  readonly unreviewed: readonly string[];
+}
+
+/**
+ * Why the review gate failed, stable across releases, so a CI script can branch on it.
+ *
+ * - `REVIEW_REQUIRED`: at least one machine-class value is not approved.
+ * - `REVIEW_STATE_UNREADABLE`: the provenance file is corrupt or was written by a newer verbatra,
+ *   so no review state can be read and the gate fails closed.
+ */
+export type CheckReviewCode = "REVIEW_REQUIRED" | "REVIEW_STATE_UNREADABLE";
+
+/** The project-wide review gate, see {@link CheckInput.requireReviewed}. */
+export interface CheckReviewSummary {
+  /** True when every machine-class value in every reported locale is approved. The gate's verdict. */
+  readonly reviewed: boolean;
+  /** How many machine-class values are not approved, summed across the reported locales. */
+  readonly unreviewed: number;
+  /** Why the gate failed. Present exactly when {@link reviewed} is false. */
+  readonly code?: CheckReviewCode;
 }
 
 /** The result of {@link check}: per-locale counts plus one project-wide verdict. */
@@ -79,6 +115,11 @@ export interface CheckSummary {
    * in a strict mode, when `warnings` is too.
    */
   readonly qa?: CheckQaSummary;
+  /**
+   * The review gate's verdict, present only when {@link CheckInput.requireReviewed} is true. A CI
+   * gate fails the build when `reviewed` is false.
+   */
+  readonly review?: CheckReviewSummary;
 }
 
 /** Input for {@link check}. */
@@ -107,6 +148,14 @@ export interface CheckInput {
    * `warning`.
    */
   readonly qaSeverity?: QaSeverity;
+  /**
+   * Also run the review gate (see {@link CheckSummary.review}): every value written by a
+   * machine-class path (see {@link MACHINE_CLASS_ORIGINS}) must be approved in the provenance file.
+   * A value a person wrote, imported, or edited outside verbatra needs no approval, and neither
+   * does one with no provenance record. An approval given against a source text that has changed
+   * since does not count. Keyless: no provider is called and nothing is written. Defaults to false.
+   */
+  readonly requireReviewed?: boolean;
 }
 
 /** Injectable dependencies for {@link check}. Every field has a working default. */
@@ -142,6 +191,7 @@ function toCheckSummary(
   result: LocaleDiffResult,
   consistency: InconsistentTranslationsOptions | undefined,
   qa: LocaleQaReport | undefined,
+  review: LocaleReviewReport | undefined,
 ): LocaleCheckSummary {
   const { locale, diff, source, target, provenance } = result;
   return {
@@ -165,7 +215,33 @@ function toCheckSummary(
         }
       : {}),
     ...(qa !== undefined ? { qa } : {}),
+    ...(review !== undefined ? { review } : {}),
   };
+}
+
+function reviewReport(result: LocaleDiffResult): LocaleReviewReport {
+  const records = result.provenance;
+  if (records === undefined) {
+    return { unreviewed: [] };
+  }
+  return {
+    unreviewed: machineClassValues(result, records)
+      .filter((value) => value.provenance.reviewState !== "approved")
+      .map((value) => value.key),
+  };
+}
+
+function reviewSummary(
+  results: readonly LocaleDiffResult[],
+  reports: readonly LocaleReviewReport[],
+): CheckReviewSummary {
+  const unreviewed = reports.reduce((sum, report) => sum + report.unreviewed.length, 0);
+  if (results.some((result) => result.provenance === undefined)) {
+    return { reviewed: false, unreviewed, code: "REVIEW_STATE_UNREADABLE" };
+  }
+  return unreviewed === 0
+    ? { reviewed: true, unreviewed }
+    : { reviewed: false, unreviewed, code: "REVIEW_REQUIRED" };
 }
 
 function presentProtectedKeys(config: VerbatraConfig, result: LocaleDiffResult): readonly string[] {
@@ -217,6 +293,11 @@ function qaReports(
  * per plural category or gettext `msgstr` index. The report never affects `inSync`, a count, or any
  * file, and a translation identical to its own source is not a finding here.
  *
+ * With {@link CheckInput.requireReviewed} set, each locale also lists the machine-class values
+ * nobody has approved, and {@link CheckSummary.review} carries the verdict a CI gate fails on. The
+ * provenance file is committed, so the gate sees the same decisions on every machine. A provenance
+ * file that cannot be read fails the gate with `REVIEW_STATE_UNREADABLE` rather than the call.
+ *
  * Note that a malformed target locale file surfaces the adapter's own error and code rather than a
  * wrapped {@link SdkError}, because only source reads are wrapped. Its message names the offending
  * locale and the resolved path. A caller that maps SDK codes should be ready for an unrecognized
@@ -241,11 +322,14 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
   const consistency =
     input.consistency === true ? consistencyOptions(input.config.format) : undefined;
   const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results);
+  const review = input.requireReviewed === true ? results.map(reviewReport) : undefined;
   const locales = results.map((result, index) =>
-    toCheckSummary(input.config, result, consistency, qa?.[index]),
+    toCheckSummary(input.config, result, consistency, qa?.[index], review?.[index]),
   );
-  const inSync = locales.every((entry) => entry.inSync);
-  return qa === undefined
-    ? { inSync, locales }
-    : { inSync, locales, qa: totalQa(qa, sourceInvalidIcuKeys) };
+  return {
+    inSync: locales.every((entry) => entry.inSync),
+    locales,
+    ...(qa !== undefined ? { qa: totalQa(qa, sourceInvalidIcuKeys) } : {}),
+    ...(review !== undefined ? { review: reviewSummary(results, review) } : {}),
+  };
 }

@@ -25,6 +25,31 @@ export type KeyOrigin = ProvenanceOrigin | "unrecorded" | "external";
 /** A key's review state as a reader should interpret it. */
 export type KeyReviewState = "unreviewed" | "approved" | "rejected";
 
+/**
+ * The origins whose values a person is asked to review: every write path a person did not write
+ * through. `memory` counts because the translation memory records no author, so an exact hit can
+ * be a provider's answer; `agent` counts because an AI agent's edit still needs a person's review.
+ */
+export type MachineClassOrigin = "machine" | "memory" | "fuzzy" | "agent";
+
+/**
+ * Every {@link MachineClassOrigin}, in the order reports list them. A value with one of these
+ * origins that is not approved is in the review queue (see {@link reviewQueue}) and fails
+ * `check --require-reviewed` (see {@link CheckInput.requireReviewed}).
+ */
+export const MACHINE_CLASS_ORIGINS: readonly MachineClassOrigin[] = Object.freeze([
+  "machine",
+  "memory",
+  "fuzzy",
+  "agent",
+]);
+
+const MACHINE_CLASS: ReadonlySet<KeyOrigin> = new Set<KeyOrigin>(MACHINE_CLASS_ORIGINS);
+
+export function isMachineClassOrigin(origin: KeyOrigin): origin is MachineClassOrigin {
+  return MACHINE_CLASS.has(origin);
+}
+
 /** The interpreted provenance of one key's current value in one locale. */
 export interface KeyProvenance {
   /** Which write path produced the current value, or why that is not known. */
