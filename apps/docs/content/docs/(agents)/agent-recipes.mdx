@@ -306,7 +306,7 @@ Most coding agents read a project instruction file at the start of every session
 
 Every command and exit code in it is covered on this page and in [CI and exit codes](/docs/ci-and-exit-codes). An agent connected to [the MCP server](/docs/connect-an-mcp-client) gets the same spending rule from the server's own instructions.
 
-`verbatra init --agent` writes exactly this section for you, into `AGENTS.md`, or into `CLAUDE.md` when that is the project's only instruction file, between `<!-- verbatra:start -->` and `<!-- verbatra:end -->` markers that a later run refreshes without touching the rest of the file. See [Set up coding agents](/docs/cli/init#set-up-coding-agents).
+`verbatra init --agent` writes exactly this section for you, into `AGENTS.md`, or into `CLAUDE.md` when that is the project's only instruction file, between `<!-- verbatra:start -->` and `<!-- verbatra:end -->` markers that a later run refreshes without touching the rest of the file. In a project that is already set up, `verbatra init --agent` on its own keeps the config and adds only this section and the MCP server. See [Set up coding agents](/docs/cli/init#set-up-coding-agents).
 
 <AvailableFrom version="0.12.0" />
 

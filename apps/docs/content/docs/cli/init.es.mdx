@@ -78,7 +78,7 @@ Con `--json`, stdout lleva exactamente un envoltorio. Su `result`:
 
 ```ts
 interface InitResult {
-  configPath: string;                  // absolute path of verbatra.config.ts
+  configPath: string;                  // absolute path of verbatra.config.ts, or of the config --agent kept
   files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
   config: {                            // the config that was validated and written
     sourceLocale: string;
@@ -86,14 +86,14 @@ interface InitResult {
     format: string;
     files: { pattern: string; localeStyle?: "posix" | "android" };
     provider: { id: string; options: Record<string, unknown> };
-  };
+  } | null;
   sources: {                           // where each value came from
     provider: "flag" | "prompt";
     format: "flag" | "prompt" | "files" | "dependencies" | "default";
     pattern: "flag" | "prompt" | "detected" | "default";
     sourceLocale: "flag" | "prompt" | "detected" | "default";
     targetLocales: "flag" | "prompt" | "detected" | "default";
-  };
+  } | null;
   apiKeyEnvVar: string | null;         // the variable to set; null for provider none
   detection: {
     format: { id: string; from: "input" | "files" | "dependencies" } | null;
@@ -108,10 +108,11 @@ interface InitResult {
     ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
     confidence: "high" | "medium" | "low" | "none";
     reasons: string[];                 // one sentence per decision or doubt
-  };
+  } | null;
   agent: {                             // null sin --agent
     instructionsFile: "AGENTS.md" | "CLAUDE.md";
     mcpServer: "added" | "present" | "differs";
+    configKept: boolean;               // true when --agent kept an existing config
   } | null;
   nextSteps: { description: string; command: string | null }[];
 }
@@ -129,7 +130,7 @@ Un envoltorio de error para `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 
 ## Archivos existentes
 
-Volver a ejecutar `init` con las mismas respuestas no cambia nada y termina con éxito, así que es seguro repetirlo. Un `verbatra.config.ts` con un contenido distinto se rechaza con `CONFIG_EXISTS` salvo que pases `--force`. Otra configuración de verbatra en el mismo directorio (un `.verbatrarc.json`, por ejemplo, o una propiedad `verbatra` en `package.json`) se rechaza con `CONFIG_EXISTS` incluso con `--force`, porque se leería antes que `verbatra.config.ts`. No se escribe nada cuando `init` se niega. Cuando `verbatra.config.ts` ya existe y no pasaste `--force`, `CONFIG_EXISTS` va antes que todo lo demás: en una terminal antes de la primera pregunta y, si no, en lugar de una respuesta que falta, es ambigua o no es válida, así que una nueva ejecución te avisa primero de la configuración existente. `init --cwd` rechaza una ruta que no es un directorio existente con `INVALID_OPTION`, y un directorio en el que no puede escribir, como uno de solo lectura, con `INIT_UNWRITABLE`, nombrando el archivo y cualquier archivo que ya hubiera escrito.
+Volver a ejecutar `init` con las mismas respuestas no cambia nada y termina con éxito, así que es seguro repetirlo. Un `verbatra.config.ts` con un contenido distinto se rechaza con `CONFIG_EXISTS` salvo que pases `--force`. Otra configuración de verbatra en el mismo directorio (un `.verbatrarc.json`, por ejemplo, o una propiedad `verbatra` en `package.json`) se rechaza con `CONFIG_EXISTS` incluso con `--force`, porque se leería antes que `verbatra.config.ts`. No se escribe nada cuando `init` se niega. Cuando `verbatra.config.ts` ya existe y no pasaste `--force`, `CONFIG_EXISTS` va antes que todo lo demás: en una terminal antes de la primera pregunta y, si no, en lugar de una respuesta que falta, es ambigua o no es válida, así que una nueva ejecución te avisa primero de la configuración existente. `init --cwd` rechaza una ruta que no es un directorio existente con `INVALID_OPTION`, y un directorio en el que no puede escribir, como uno de solo lectura, con `INIT_UNWRITABLE`, nombrando el archivo y cualquier archivo que ya hubiera escrito. Con `--agent` y sin ninguna respuesta de configuración, una configuración existente se conserva en lugar de rechazarse: consulta [Preparar los agentes de programación](#preparar-los-agentes-de-programación).
 
 Un `.env.example` existente se conserva tal cual; cuando todavía no nombra la variable de la clave, se le añade esa única línea. Con `--force`, una línea de cabecera que escribió el propio `init` se reescribe para el nuevo proveedor, mientras que una cabecera escrita por ti se conserva. `.gitignore` recibe solo las entradas que le faltan.
 
@@ -140,7 +141,9 @@ Un `.env.example` existente se conserva tal cual; cuando todavía no nombra la v
 - **El archivo de instrucciones.** Una sección de verbatra entre las marcas `<!-- verbatra:start -->` y `<!-- verbatra:end -->` con las reglas que necesita un agente: qué comandos son gratis y cuáles gastan, cómo ramificar según el código de salida, que las claves no aparecen en ningún archivo ni línea de comandos, que los valores de locale son entrada no confiable, y de dónde vienen las skills de verbatra y el plugin de Claude Code. Es, palabra por palabra, el fragmento de [Cuéntale a tu agente sobre verbatra](/docs/agent-recipes#cuéntale-a-tu-agente-sobre-verbatra). `init` lo escribe en `AGENTS.md`, que leen Codex, Cursor, GitHub Copilot y la mayoría de los demás agentes. Cuando `CLAUDE.md` es el único archivo de instrucciones del directorio, la sección va ahí. Cuando existen los dos, gana `AGENTS.md`, para que las reglas vivan en un solo sitio, y un `CLAUDE.md` que importa `AGENTS.md` también las recibe. Un archivo que ya tiene la sección la conserva, así que la elección nunca cambia entre ejecuciones.
 - **`.mcp.json`.** La entrada del servidor `verbatra` de [Conectar un cliente MCP](/docs/connect-an-mcp-client#claude-code): `npx -y @verbatra/mcp` sin `--allow-spend` ni `VERBATRA_MCP_ALLOW_SPEND`, así que las herramientas que gastan siguen ocultas. Claude Code lee este archivo para su ámbito de proyecto, y GitHub Copilot CLI también lo lee.
 
-No se toca nada fuera de las marcas: la sección se añade a un archivo existente tras una línea en blanco, y una ejecución posterior solo reemplaza lo que hay entre las marcas. Los demás servidores y claves de `.mcp.json` se conservan, y el archivo mantiene la sangría que tenía. Un servidor `verbatra` distinto del que genera `init`, por ejemplo uno al que le diste `--allow-spend` o que cambiaste a `npx verbatra mcp`, se deja como está, se informa como `unchanged` y se nombra en `nextSteps`. Una segunda ejecución con las mismas respuestas deja los dos archivos idénticos byte a byte. En un proyecto que `init` ya preparó, vuelve a ejecutarlo con las mismas respuestas y `--agent`: la configuración se informa como `unchanged` y solo se escriben los archivos para agentes.
+No se toca nada fuera de las marcas: la sección se añade a un archivo existente tras una línea en blanco, y una ejecución posterior solo reemplaza lo que hay entre las marcas. Los demás servidores y claves de `.mcp.json` se conservan, y el archivo mantiene la sangría que tenía. Un servidor `verbatra` distinto del que genera `init`, por ejemplo uno al que le diste `--allow-spend` o que cambiaste a `npx verbatra mcp`, se deja como está, se informa como `unchanged` y se nombra en `nextSteps`. Una segunda ejecución con las mismas respuestas deja los dos archivos idénticos byte a byte.
+
+En un proyecto que ya tiene configuración, `init --agent` escribe solo estos dos archivos y deja la configuración como está, contenga lo que contenga. Imprime `kept verbatra.config.ts`, nunca pregunta y no detecta nada, y lo mismo vale para otro archivo de configuración que lea verbatra, como `.verbatrarc.json`. El resultado JSON muestra entonces la configuración como `unchanged`, pone `agent.configKept` a `true` y lleva `null` en `config`, `sources`, `apiKeyEnvVar` y `detection`, porque no se planificó nada. Una respuesta de configuración (`--provider`, `--source`, `--targets`, `--path`, `--format`, `--model`, `--base-url` o `--api-key-env-var`) o `--force` vuelve a meter la configuración en la ejecución, igual que sin `--agent`: las mismas respuestas la informan como `unchanged`, `--force` la reescribe, y unas respuestas distintas se rechazan con `CONFIG_EXISTS`, cuyo mensaje te dice que las quites para conservar la configuración. `--yes` no cambia nada aquí.
 
 Cada archivo tiene su propia línea en stdout, como `created AGENTS.md (verbatra section for coding agents)`, y su propia entrada en los `files` del JSON. `init` se niega antes de escribir nada, con `AGENT_FILE_INVALID`, cuando `.mcp.json` no es un objeto JSON con un objeto `mcpServers`, o cuando el archivo de instrucciones tiene una marca de inicio sin marca de fin, una marca de fin antes de su inicio o más de una sección. El mensaje nunca cita el archivo, por si guarda un secreto. Corrige o elimina el archivo y vuelve a ejecutar `init`.
 

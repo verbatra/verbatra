@@ -306,7 +306,7 @@ Die meisten Coding-Agenten lesen zu Beginn jeder Sitzung eine Anweisungsdatei de
 
 Jeder Befehl und jeder Exit-Code darin wird auf dieser Seite und unter [CI und Exit-Codes](/docs/ci-and-exit-codes) behandelt. Ein Agent, der mit [dem MCP-Server](/docs/connect-an-mcp-client) verbunden ist, bekommt dieselbe Regel zum Geldausgeben aus den Anweisungen des Servers selbst.
 
-`verbatra init --agent` schreibt genau diesen Abschnitt für dich, in `AGENTS.md` oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei des Projekts ist, zwischen die Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, die ein späterer Lauf auffrischt, ohne den Rest der Datei anzufassen. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten).
+`verbatra init --agent` schreibt genau diesen Abschnitt für dich, in `AGENTS.md` oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei des Projekts ist, zwischen die Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, die ein späterer Lauf auffrischt, ohne den Rest der Datei anzufassen. In einem Projekt, das schon eingerichtet ist, behält `verbatra init --agent` allein die Konfiguration und fügt nur diesen Abschnitt und den MCP-Server hinzu. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten).
 
 <AvailableFrom version="0.12.0" />
 
