@@ -1,5 +1,5 @@
-import { AdapterError, ProviderError, SdkError } from "@verbatra/sdk";
-import { describe, expect, it } from "vitest";
+import { AdapterError, errorHint, ProviderError, SdkError } from "@verbatra/sdk";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { makeContext } from "../test-support.js";
 import { defineTool } from "./define-tool.js";
@@ -248,7 +248,10 @@ describe("defineTool", () => {
     });
 
     const outcome = await tool.execute({ name: "Ada" }, makeContext());
-    expect(outcome).toEqual({ kind: "error", message: "UNKNOWN_KEY: no such key" });
+    expect(outcome).toEqual({
+      kind: "error",
+      message: `UNKNOWN_KEY: no such key\nNext step: ${errorHint({ code: "UNKNOWN_KEY" })}`,
+    });
   });
 
   it.each([
@@ -272,7 +275,42 @@ describe("defineTool", () => {
     });
 
     const outcome = await tool.execute({ name: "Ada" }, makeContext());
-    expect(outcome).toEqual({ kind: "error", message: `${error.code}: ${error.message}` });
+    expect(outcome).toEqual({
+      kind: "error",
+      message: `${error.code}: ${error.message}\nNext step: ${errorHint(error)}`,
+    });
+  });
+
+  it("ends a failed construction's message with the key variable to set, never a key value", async () => {
+    const sentinel = "sk-mcp-hint-sentinel-8c2e4a6f0b1d";
+    vi.stubEnv("OPENAI_API_KEY", sentinel);
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+      handler: async () => {
+        throw new SdkError("PROVIDER_CONSTRUCTION_FAILED", "Failed to construct provider", {
+          cause: new ProviderError("MISSING_API_KEY", "unset", { envVar: "GEMINI_API_KEY" }),
+        });
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+
+    expect(outcome).toEqual({
+      kind: "error",
+      message:
+        "PROVIDER_CONSTRUCTION_FAILED: Failed to construct provider\nNext step: Set GEMINI_API_KEY in the environment or in a .env file in the project directory.",
+    });
+    expect(JSON.stringify(outcome)).not.toContain(sentinel);
+    vi.unstubAllEnvs();
   });
 
   it("maps a thrown plain Error to an error outcome carrying its message", async () => {
@@ -389,7 +427,7 @@ describe("defineTool", () => {
 
     expect(outcome).toEqual({
       kind: "error",
-      message: "SOURCE_UNREADABLE: The source directory does not exist: .",
+      message: `SOURCE_UNREADABLE: The source directory does not exist: .\nNext step: ${errorHint({ code: "SOURCE_UNREADABLE" })}`,
     });
   });
 

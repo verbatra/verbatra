@@ -1,4 +1,10 @@
-import { AdapterError, ProviderError, projectRelativeMessage, SdkError } from "@verbatra/sdk";
+import {
+  AdapterError,
+  errorHint,
+  ProviderError,
+  projectRelativeMessage,
+  SdkError,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
@@ -89,7 +95,9 @@ function rawErrorMessage(error: unknown): string {
 }
 
 function describeToolError(error: unknown, cwd: string): string {
-  return projectRelativeMessage(rawErrorMessage(error), cwd);
+  const described = projectRelativeMessage(rawErrorMessage(error), cwd);
+  const hint = errorHint(error);
+  return hint === undefined ? described : `${described}\nNext step: ${hint}`;
 }
 
 export function defineTool<Params, Result extends Readonly<Record<string, unknown>>>(
