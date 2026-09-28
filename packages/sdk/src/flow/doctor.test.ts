@@ -88,11 +88,12 @@ describe("doctor: the config check", () => {
     expect(detailOf(result, "config")).toContain("'verbatra' property in package.json");
   });
 
-  it("marks the eight config-dependent checks skipped rather than failed when the config is absent", async () => {
+  it("marks the nine config-dependent checks skipped rather than failed when the config is absent", async () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(result.checks.map((entry) => entry.status)).toEqual([
       "fail",
+      "skipped",
       "skipped",
       "skipped",
       "skipped",
@@ -260,6 +261,11 @@ describe("doctor: the adapter and provider checks", () => {
       'No factory is registered for provider "mistral"',
     );
     expect(detailOf(result, "provider")).toContain("anthropic, openai, gemini, deepl");
+    expect(statusOf(result, "locales")).toBe("skipped");
+    expect(detailOf(result, "locales")).toBe(
+      'Not checked: provider "mistral" is not a known provider.',
+    );
+    expect(result.locales).toBeUndefined();
   });
 });
 
@@ -386,7 +392,7 @@ describe("doctor: the source locale file check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(result.checks).toHaveLength(9);
+    expect(result.checks).toHaveLength(10);
     expect(statusOf(result, "config")).toBe("pass");
     expect(statusOf(result, "format-adapter")).toBe("pass");
     expect(statusOf(result, "provider")).toBe("pass");
@@ -609,6 +615,7 @@ describe("doctor: it reports every independent problem and spends nothing", () =
       "plural-rules",
       "locale-codes",
       "locale-state",
+      "locales",
     ]);
   });
 });
