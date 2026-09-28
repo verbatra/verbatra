@@ -36,6 +36,33 @@ interface RetiredClaim {
 
 const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   {
+    claim: "commercial imprint basis under § 5 DDG",
+    pattern: /§\s*5\s*DDG/,
+    sample: "Angaben gemäß § 5 DDG",
+  },
+  {
+    claim: "separate § 18 Abs. 2 MStV editorial responsibility block",
+    pattern: /§\s*18\s*Abs\.\s*2\s*MStV|Verantwortlich für den Inhalt/,
+    sample: "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV",
+  },
+  {
+    claim: "commercial or tax law retention of contact enquiries (HGB, AO)",
+    pattern: /\bHGB\b|\(HGB|Handelsgesetzbuch|Abgabenordnung|Commercial Code|Fiscal Code/,
+    sample: "unless statutory retention duties under German commercial or tax law (HGB or AO)",
+  },
+  {
+    claim: "open-ended legal retention of contact enquiries",
+    pattern:
+      /unless we are legally required to keep them|gesetzlich zur Aufbewahrung verpflichtet|la ley nos obligue a conservarlos|la loi nous oblige à les conserver/,
+    sample: "delete them once it has been handled, unless we are legally required to keep them",
+  },
+  {
+    claim: "consumer dispute resolution statement (§ 36 VSBG)",
+    pattern: /Verbraucherstreitbeilegung|Verbraucherschlichtungsstelle|\bVSBG\b/,
+    sample:
+      "Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.",
+  },
+  {
     claim: "English privacy policy prevails over its translations",
     pattern:
       /English version prevails|englische Fassung maßgeblich|prevalece la versión en inglés|version anglaise prévaut/,

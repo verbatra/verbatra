@@ -36,3 +36,22 @@ describe("imprint page: contact form link", () => {
     expect(links).toEqual([href]);
   });
 });
+
+describe("imprint page: non-commercial provider details", () => {
+  it("names the provider under § 18 Abs. 1 MStV in one block with name, address and email", async () => {
+    const page = await ImprintPage({ params: Promise.resolve({ lang: "de" }) });
+    const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
+    const headings = Array.from(doc.querySelectorAll("h2"), (node) => node.textContent);
+    const details = doc.querySelector("h2")?.nextElementSibling?.textContent ?? "";
+
+    expect(headings).toEqual([
+      "Angaben gemäß § 18 Abs. 1 MStV",
+      "Haftung für Inhalte",
+      "Haftung für Links",
+      "Urheberrecht",
+    ]);
+    expect(details).toContain("Mario Kreitz");
+    expect(details).toContain("70378 Stuttgart");
+    expect(details).toContain("info@kreitz-webdev.de");
+  });
+});

@@ -42,17 +42,17 @@ function privacyPath(locale: Locale): string {
 }
 
 const DELETION_RULE: Record<Locale, RegExp> = {
-  en: /deleted once your inquiry has been fully handled, unless statutory retention duties/,
-  de: /gelöscht, sobald deine Anfrage abschließend bearbeitet ist, es sei denn/,
-  es: /Se eliminan una vez que tu consulta se ha gestionado por completo, salvo que/,
-  fr: /supprimés dès que ta demande a été entièrement traitée, sauf si/,
+  en: /deleted once your inquiry has been fully handled\./,
+  de: /gelöscht, sobald deine Anfrage abschließend bearbeitet ist\./,
+  es: /Se eliminan una vez que tu consulta se ha gestionado por completo\./,
+  fr: /supprimés dès que ta demande a été entièrement traitée\./,
 };
 
 const NOTICE_DELETION: Record<Locale, RegExp> = {
-  en: /delete them once it has been handled, unless we are legally required to keep them/,
-  de: /löschen sie, sobald die Anfrage erledigt ist, es sei denn, wir sind gesetzlich zur Aufbewahrung verpflichtet/,
-  es: /los eliminamos una vez gestionada, salvo que la ley nos obligue a conservarlos/,
-  fr: /nous les supprimons une fois celle-ci traitée, sauf si la loi nous oblige à les conserver/,
+  en: /delete them once it has been handled\./,
+  de: /löschen sie, sobald die Anfrage erledigt ist\./,
+  es: /los eliminamos una vez gestionada\./,
+  fr: /nous les supprimons une fois celle-ci traitée\./,
 };
 
 describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
@@ -75,7 +75,5 @@ describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
     expect(target?.tagName).toBe("H2");
     expect(target?.textContent).toMatch(/^12\. /);
     expect(section).toMatch(DELETION_RULE[locale]);
-    expect(section).toMatch(/HGB/);
-    expect(section).toMatch(/AO\b/);
   });
 });
