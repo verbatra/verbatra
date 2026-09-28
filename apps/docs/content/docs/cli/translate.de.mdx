@@ -102,7 +102,7 @@ Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also gena
 | --- | --- |
 | `0` | jede Ziel-Locale kam vollständig durch |
 | `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Format, Provider oder eine beschädigte Lock-Datei) oder ein Verwendungsfehler |
+| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Format, Provider, eine Locale, die der Provider nicht unterstützt, oder eine beschädigte Lock-Datei) oder ein Verwendungsfehler |
 | `3` | rein menschliches Projekt (`provider: { id: "none" }`): der Lauf lief sauber durch, aber Keys warten auf eine menschliche Übersetzung |
 | `130` | mit Ctrl-C (SIGINT) abgebrochen; die Schreibsperren des Laufs werden vorher freigegeben und stderr endet mit `verbatra: interrupted (SIGINT), released locks`, unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
 | `143` | mit SIGTERM beendet; die Schreibsperren des Laufs werden vorher freigegeben und stderr endet mit `verbatra: interrupted (SIGTERM), released locks`, unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
@@ -112,6 +112,10 @@ Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also gena
 Eine fehlschlagende Locale ist nicht fatal: der Lauf läuft zu Ende, endet mit `1`, und das Detail pro Locale steht in der Zusammenfassung. Eine **unvollständige** Locale endet ebenfalls mit `1`. Das ist eine Locale, deren Datei geschrieben wurde, der aber weiterhin Keys fehlen, typischerweise weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat; sie als Erfolg auszuliefern, würde eine halb übersetzte Datei unbemerkt in deinem Repository liegen lassen. Eine Locale, deren Schreibsperre über `--lock-timeout` hinaus umkämpft blieb, scheitert mit `LOCK_CONTENDED` und endet genauso mit `1`.
 
 Die menschenlesbare Ausgabe listet jeden Key, den das [Integritäts-Gate](/docs/translation-safety) abgelehnt hat, unter `integrity-withheld` auf, einen pro Zeile, mit dem Grund (`placeholder`, `markup`, `icu`, `degenerate` oder `empty`) und, wo die Prüfung sie benennen kann, den schuldigen Platzhaltern, Tags oder ICU-Plural-Zweigen. Eine Locale, deren Keys alle abgelehnt wurden, zeigt `failed`, gefolgt von denselben Zählern wie jede andere Locale. Mit `--json` trägt jede Locale dieselben Gründe in `integrityRefusals`.
+
+<AvailableFrom version="0.12.0" />
+
+Eine Locale, die der konfigurierte Provider DeepL oder Google Cloud Translation nicht unterstützt, ist die Ausnahme: Sie wird vor dem Start des Laufs erkannt, also wird der ganze Lauf mit `LOCALE_UNSUPPORTED_BY_PROVIDER` und Exit `2` abgelehnt, auch bei einem Dry Run und mit `--estimate`, und keine Locale wird gestartet oder bezahlt. Übergib die anderen Locales mit `--locales`, um sie zu übersetzen, oder sieh unter [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) nach, wie du das behebst. Ein Glossar oder Tonfall, den der Provider für eine Locale nicht anwenden kann, lehnt nichts ab: Er wird als Hinweis an dieser Locale gemeldet (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), ebenso `LOCALE_UNVERIFIED_BY_PROVIDER` und, bei einem LLM-Provider, `LOCALE_NOT_WELL_TESTED`.
 
 <AvailableFrom version="0.12.0" />
 

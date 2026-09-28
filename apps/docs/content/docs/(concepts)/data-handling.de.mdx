@@ -53,7 +53,9 @@ Einen Provider aufrufen können: `translate` und `watch`, das `retranslateEntry`
 Aktionen zum Neu-Übersetzen und zum Übersetzen offener Keys in Studio und im MCP-Server. Studio und
 der MCP-Server bieten diese Aktionen nur an, wenn du sie mit `--allow-spend` startest. Alles andere,
 darunter `check`, `diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`,
-`translate --dry-run` und `translate --estimate`, arbeitet mit lokalen Dateien und sendet nichts.
+`translate --dry-run` und `translate --estimate`, arbeitet mit lokalen Dateien und sendet nichts. Die eine Ausnahme ist
+`verbatra doctor --live`, das DeepL oder Google Cloud Translation nach der aktuellen Sprachliste fragt,
+dabei deinen API-Schlüssel und nichts aus deinem Projekt sendet und kein Übersetzungskontingent verbraucht.
 
 Ein `translate`-Lauf sendet nur die Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file)
 fehlen oder geändert sind, abzüglich aller Keys, die das
@@ -68,7 +70,7 @@ Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations
 Jeder Request beginnt mit einem DNS-Lookup des Provider-Hostnamens über den Resolver deines
 Systems, der Resolver sieht diesen Namen also. Unter einer [Netzwerkrichtlinie](/docs/network-policy)
 `local-only` oder `allowlist` löst verbatra den Namen zusätzlich selbst auf, um ihn zu prüfen, außer
-es ist eine IP-Adresse oder namentlich in `allowedHosts` gelistet. `verbatra doctor`, Dry Runs und
+es ist eine IP-Adresse oder namentlich in `allowedHosts` gelistet. `verbatra doctor` ohne `--live`, Dry Runs und
 Schätzungen lösen nichts auf.
 
 ## Was jeder Provider bekommt

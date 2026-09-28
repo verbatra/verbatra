@@ -283,8 +283,8 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 <AvailableFrom version="0.9.0" />
 
 Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, no hace
-ninguna petición de red y nunca lee el valor de una clave de API. Se ejecutan nueve comprobaciones,
-cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida
+ninguna petición de red salvo que `live` pida una, y nunca lee el valor de una clave de API. Se
+ejecutan diez comprobaciones, cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida
 (`config`), el formato configurado resuelve a un adaptador (`format-adapter`), el ID de proveedor
 configurado resuelve a una fábrica (`provider`), la variable de entorno de la que ese proveedor lee
 su clave está definida (`api-key`), y el archivo del locale de origen se puede leer (`source-file`). Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
@@ -316,7 +316,20 @@ guardan estado y que la configuración no incluye, como `pt_BR` tras reescribirl
 dice si la siguiente ejecución de `translate` lo traslada. Un archivo que no puede leer se nombra en
 el detalle.
 
-Entrada: `{ cwd?, configPath?, literals?, onProgress? }`. Con `literals` activado, `doctor` solo ejecuta la
+<AvailableFrom version="0.12.0" />
+
+La comprobación `locales` evalúa el locale de origen y cada locale de destino contra el soporte de
+idiomas del proveedor configurado, el mismo juicio que hace `translate` antes de gastar nada. Falla
+con un locale que el proveedor no admite y, en los demás casos, pasa con avisos; es `skipped` con
+el proveedor `none`. Los veredictos por locale viajan en `DoctorResult.locales`, un
+`LocaleCapabilityReport` con el código con el que se envía cada locale, su `support` (`supported`,
+`unverified` o `unsupported`), los indicadores `glossary` y `formality`, y sus avisos. Con
+`live: true`, `doctor` obtiene primero la lista de idiomas actual del proveedor (`/v3/languages` de
+DeepL, `languages` de Cloud Translation), lo que no consume cuota de traducción, cuando la variable
+de la clave del proveedor está definida y la política de red permite su host;
+`LocaleCapabilityReport.live` dice cómo fue. Consulta [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
+
+Entrada: `{ cwd?, configPath?, literals?, live?, onProgress? }`. Con `literals` activado, `doctor` solo ejecuta la
 comprobación `config` y, en lugar de las demás, una comprobación `untranslated-literals` que
 recorre las raíces de código del bloque `extract` de la configuración, igual que
 [`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir). No necesita una
@@ -1491,9 +1504,9 @@ Las partes que conviene conocer:
 - **notices** vive por locale, nunca en el nivel superior. Cubre avisos del proveedor (por ejemplo, una
   degradación de DeepL) y avisos del SDK con los códigos `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (el estado guardado bajo una grafía con guion bajo como `pt_BR` se trasladó al `pt-BR` configurado; consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (ese traslado queda para la siguiente ejecución porque el guard del archivo de bloqueo siguió ocupado o no se pudo leer ni crear, o no se pudo escribir un archivo; salvo que solo quedara atrás la memoria de traducción, el locale no se ejecutó y falló con `LOCALE_STATE_NOT_CARRIED_OVER`) y `PROVENANCE_FILE_TOO_LARGE`
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (el estado guardado bajo una grafía con guion bajo como `pt_BR` se trasladó al `pt-BR` configurado; consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (ese traslado queda para la siguiente ejecución porque el guard del archivo de bloqueo siguió ocupado o no se pudo leer ni crear, o no se pudo escribir un archivo; salvo que solo quedara atrás la memoria de traducción, el locale no se ejecutó y falló con `LOCALE_STATE_NOT_CARRIED_OVER`) `PROVENANCE_FILE_TOO_LARGE`
   (registrar un locale habría hecho crecer `verbatra.provenance.json` por encima de lo que verbatra
-  vuelve a leer, así que el archivo se dejó como estaba). El aviso de caché es de toda la ejecución (un solo archivo, compartido
+  vuelve a leer, así que el archivo se dejó como estaba) y, desde 0.12.0, los cuatro avisos de la comprobación de soporte de locales, generados antes de gastar nada y también en una ejecución en seco: `LOCALE_UNVERIFIED_BY_PROVIDER` (el código enviado no está en la tabla del proveedor, solo su idioma base lo está o viene de `localeMap`), `LOCALE_NOT_WELL_TESTED` (un destino LLM fuera de la lista de idiomas bien probados), `GLOSSARY_UNSUPPORTED_BY_PROVIDER` y `FORMALITY_UNSUPPORTED_BY_PROVIDER` (un glosario o un tono que el proveedor no puede aplicar para el locale). El aviso de caché es de toda la ejecución (un solo archivo, compartido
   por cada locale), así que se adjunta a cada locale de la ejecución.
 - **usage** es `undefined`, nunca un cero inventado, siempre que nada en ese ámbito informara de uso:
   un dry run nunca llama a un proveedor, y DeepL nunca informa de tokens. `RunSummary.usage`
@@ -1593,6 +1606,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada |
 | `EXPORT_UNWRITABLE` | el archivo de entrega que produce `exportWorkbook` no se pudo escribir (su directorio no es escribible, hay un directorio o un archivo en medio, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos, y el error del sistema de archivos es la `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)) |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | el proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución en seco y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)) |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando

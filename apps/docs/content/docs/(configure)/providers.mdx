@@ -102,7 +102,11 @@ provider: {
 DeepL degrades gracefully instead of failing when it cannot honor a setting, and reports each degradation as a notice on the run:
 
 - A configured `glossary` translation or `doNotTranslate` term for the target locale is not applied (DeepL only uses a pre-created glossary id), reported as `GLOSSARY_IGNORED`. Forbidden renderings alone raise no notice: they are checked after translation, never applied.
-- `tone` maps to DeepL's formality: `formal` becomes more formal, `informal` becomes less formal, `neutral` or an absent tone is omitted. On a free-tier key, formality is not supported, so a non-default tone degrades to the default, reported as `FORMALITY_DOWNGRADED`.
+- `tone` maps to DeepL's formality: `formal` becomes more formal, `informal` becomes less formal, `neutral` or an absent tone is omitted. On a free-tier key, formality is not supported, so a non-default tone degrades to the default, reported as `FORMALITY_DOWNGRADED`. Not every target language has formality control either (Swedish and Chinese have none, for example): from 0.12.0 verbatra asks for formality with DeepL's `prefer_more` and `prefer_less`, so such a language falls back to DeepL's default register with a `FORMALITY_DOWNGRADED` notice instead of failing the request.
+
+<AvailableFrom version="0.12.0" />
+
+verbatra ships DeepL's language table, dated and taken from [DeepL's documentation](https://developers.deepl.com/docs/getting-started/supported-languages), and checks your config against it before a run spends anything: a source or target language DeepL does not list is refused with `LOCALE_UNSUPPORTED_BY_PROVIDER`, and a tone or glossary DeepL cannot apply for a locale is a warning. A native `glossaryId` works only when both languages are on DeepL's glossary list (32 languages, such as `DE`, `EN`, `FR`, `JA`, and `ZH`). See [Checking a provider's language support](#checking-a-providers-language-support).
 
 <Callout title="DeepL and placeholders">
 DeepL cannot preserve placeholders or ICU tokens, so it does not send strings that contain them: those entries are withheld (left untranslated) and reported with a `PLACEHOLDER_UNSUPPORTED` notice. Placeholder-free strings translate normally. To translate placeholder-bearing strings, use an LLM provider (Anthropic, OpenAI, Gemini, or openai-compatible).
@@ -127,6 +131,10 @@ Cloud Translation has no formality setting and no generic glossary support at th
 
 - `tone` always reports `FORMALITY_DOWNGRADED` when set to `formal` or `informal`; `neutral` or an absent tone is omitted.
 - A `glossary` translation or `doNotTranslate` term for the target locale always reports `GLOSSARY_IGNORED`.
+
+<AvailableFrom version="0.12.0" />
+
+verbatra ships the Cloud Translation language table too, dated and taken from [Google's language support page](https://docs.cloud.google.com/translate/docs/languages), and refuses a language that is not on it before a run spends anything. A regional code whose language is listed only as a whole, such as `de-AT` where the table has `de`, is sent as written with a warning, since Google may accept or generalize it. See [Checking a provider's language support](#checking-a-providers-language-support).
 
 <Callout title="Google Cloud Translation and placeholders">
 Like DeepL, Google Cloud Translation cannot preserve placeholders or ICU tokens, so it does not send strings that contain them: those entries are withheld (left untranslated) and reported with a `PLACEHOLDER_UNSUPPORTED` notice. Placeholder-free strings translate normally. To translate placeholder-bearing strings, use an LLM provider (Anthropic, OpenAI, Gemini, or openai-compatible).
@@ -266,7 +274,7 @@ Your files, the lock file, and the translation memory always use the locale code
 | Google Cloud Translation | `zh-Hant` (and `zh-HK`, `zh-MO`) is sent as `zh-TW`, `zh-Hans` (and `zh-SG`) as `zh-CN`, and `nb` as `no`. Every other code is sent as written. | Same as the source. |
 | Anthropic, OpenAI, Gemini, openai-compatible | Sent as written, with its English language name (see below). | Sent as written, with its English language, script and region name (see below). |
 
-DeepL has no generic English or Portuguese target, so a target that ends up as a bare `en` or `pt` (for example `en-AU`) fails with `INVALID_REQUEST` before any request is sent, and the message tells you to map it.
+DeepL has no generic English or Portuguese target, so a target that ends up as a bare `en` or `pt` (for example `en-AU`) is refused with `LOCALE_UNSUPPORTED_BY_PROVIDER` before the run starts (see [Checking a provider's language support](#checking-a-providers-language-support)). Map it to `EN-GB`, `EN-US`, `PT-BR`, or `PT-PT`; a `localeMap` entry that still sends a bare `EN` or `PT` fails with `INVALID_REQUEST` before any request.
 
 An LLM provider also receives the English name of each locale, looked up from the locale in your config: `sr-Latn` arrives with `{ "name": "Serbian (Latin)", "script": "Latin" }` and `pt-BR` with `{ "name": "Portuguese (Brazil)", "region": "Brazil" }`, and a fixed system rule asks the model to write in the named script and regional variant. A code Node.js has no name for is sent without one. [Translation safety](/docs/translation-safety) shows the full shape.
 
@@ -285,6 +293,23 @@ provider: {
 ```
 
 Every key must be `sourceLocale` or one of `targetLocales`, spelled exactly as in your config; any other key fails the config load with `CONFIG_INVALID`, naming the key. Every value must be a non-empty string of at most 64 characters, which verbatra sends unchanged: DeepL and Google Cloud Translation get it as the language code, an LLM provider gets it in the request in place of the locale code, so a value such as `"pt-BR (Brazilian Portuguese)"` works there too. The English language names an LLM provider receives still come from the key, the locale in your config, not from the value. A value the provider itself rejects fails that sub-batch with a structured error, like any other provider failure. `localeMap` is accepted by every provider except `none`, and only under `options`: written directly under `provider`, it fails the config load with `CONFIG_INVALID` (from 0.12.0). Changing it does not retranslate keys that are already up to date: only new and changed source strings are sent with the new code. A non-empty `localeMap` is part of the [translation memory](/docs/the-cache) fingerprint, so changing it starts a separate memory bucket: translations made with the old codes are not reused for the new ones.
+
+### Checking a provider's language support
+
+<AvailableFrom version="0.12.0" />
+
+A locale the provider cannot translate used to fail only when its request was sent, after other locales might already have been paid for. verbatra now checks every configured locale before anything is spent, against what it knows about the configured provider:
+
+| Provider | Judged against | Refused before the run | Warned about |
+| --- | --- | --- | --- |
+| DeepL | The DeepL language table verbatra ships, with glossary and formality support per language | A source or target language DeepL does not list | A glossary for a pair outside DeepL's glossary languages, a tone for a language without formality, a code only partly listed |
+| Google Cloud Translation | The Cloud Translation (NMT) language table verbatra ships | A language Google does not list | Any glossary, any `formal` or `informal` tone (the Basic tier has neither), a regional code whose language is listed only as a whole |
+| Anthropic, OpenAI, Gemini, openai-compatible | Nothing: an LLM accepts any language | Never | A language outside the well-tested list on [Language support](/docs/language-support#checking-support-before-a-run) |
+| none | Not applicable: no provider is called | Never | Never |
+
+[`verbatra doctor`](/docs/cli/doctor#locale-support) reports the verdict for every locale under its Locale support check, and `verbatra doctor --locales` prints the code each locale is sent as, whether the provider supports it, and whether it can apply a glossary and a formality setting for it. `verbatra translate` (a dry run and an estimate too), `watch` at startup, and a single-key retranslation refuse an unsupported locale with `LOCALE_UNSUPPORTED_BY_PROVIDER` and exit `2`, before any provider is constructed or any key is read, so no locale of the run starts. Warnings never refuse anything: `translate` reports them as notices on the affected locale (`LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`).
+
+The tables are dated copies of the providers' documentation, and providers add languages. `verbatra doctor --live` fetches the provider's current list first, from DeepL's `/v3/languages` or Cloud Translation's `languages` endpoint, which uses no translation quota. It sends that one request only when the provider's API key variable is set and the [network policy](/docs/network-policy) permits the provider's host; otherwise it says why and uses the shipped table. The live list informs the report only; `translate` always judges against the shipped table. To use a language the provider added after that table's date, map the locale explicitly in `localeMap`: a code from an explicit entry is trusted and sent with a warning rather than refused.
 
 ### Structured errors
 

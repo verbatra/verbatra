@@ -165,8 +165,8 @@ revisión de DPA o NDA.
 
 <AvailableFrom version="0.9.0" />
 
-Nueve cosas, todas sin llamar al proveedor, sin petición de red y sin leer el valor de una clave de
-API. Las seis primeras pueden fallar; las tres últimas son informativas y nunca fallan:
+Diez cosas, todas sin llamar al proveedor, sin petición de red y sin leer el valor de una clave de
+API. Siete pueden fallar; Plural rules, Locale codes y Locale state son informativas y nunca fallan:
 
 - Configuration: la configuración carga y pasa la validación.
 - Format adapter: el `format` configurado se resuelve a un adaptador de archivo.
@@ -181,10 +181,14 @@ API. Las seis primeras pueden fallar; las tres últimas son informativas y nunca
   categorías de plural, los códigos de locale configurados que no están en forma BCP 47 canónica y
   el estado que quedó de un locale que la configuración ya no incluye. Consulta
   [verbatra doctor](/docs/cli/doctor).
+- Locale support: el proveedor admite el locale de origen y cada locale de destino, evaluados
+  contra la tabla de idiomas que verbatra incluye para DeepL y Google Cloud Translation (desde
+  0.12.0). `verbatra doctor --locales` lista el veredicto por locale. Consulta
+  [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
 
 Cada comprobación se ejecuta incluso si una anterior falló, así que una sola ejecución informa de
 todos los problemas independientes a la vez; la excepción es la propia configuración: si falla al
-cargar, se omiten las ocho comprobaciones que la necesitan.
+cargar, se omiten las nueve comprobaciones que la necesitan.
 
 ```bash
 verbatra doctor

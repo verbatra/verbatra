@@ -4,7 +4,7 @@ description: Validate the project setup without calling a provider or reading an
 ---
 <AvailableFrom version="0.9.0" />
 
-Answer one question before you run anything else: is this project set up correctly? `doctor` validates the config, the format adapter, the provider, the API key variable, the network policy, and the source locale file, then reports every problem it found at once. It spends nothing: no provider is constructed, no network request is made, no file is written, and no API key value is ever read.
+Answer one question before you run anything else: is this project set up correctly? `doctor` validates the config, the format adapter, the provider, the API key variable, the network policy, the source locale file, and whether the provider supports every configured locale, then reports every problem it found at once. It spends nothing: no provider is constructed, no network request is made, no file is written, and no API key value is ever read. The one exception is `--live`, which sends the provider's key with a single request for its language list.
 
 Reach for it on a fresh checkout, right after [`verbatra init`](/docs/cli/init), or whenever another command failed and you want the whole list rather than the first error. [`verbatra check`](/docs/cli/check) is the cheapest validation once a project already works, but it reads the locale files and stops at the first whole-run error, so it cannot tell you what is wrong with a project that has no source file yet.
 
@@ -21,11 +21,13 @@ verbatra doctor [flags]
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--literals` | none | off | scan the source roots of the [`extract` block](/docs/config-file#extract) for hardcoded user-facing strings instead of checking the setup (see [Untranslated literals](#untranslated-literals)) |
+| `--locales` | none | off | after the checks, list for every target locale the code it is sent as, whether the provider supports it, and whether it can apply a glossary and a formality setting (see [Locale support](#locale-support)) |
+| `--live` | none | off | fetch the provider's current language list before the Locale support check, which uses no translation quota; implies `--locales` (see [Locale support](#locale-support)) |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the report under `result`; the human-readable error line still goes to stderr |
 
 ## What it checks
 
-A setup run reports nine checks, in the order below. The first six can fail; the last three are informational and never do.
+A setup run reports ten checks, in the order below. Seven of them can fail; Plural rules, Locale codes, and Locale state are informational and never do.
 
 | Check | Passes when |
 | --- | --- |
@@ -38,6 +40,7 @@ A setup run reports nine checks, in the order below. The first six can fail; the
 | Plural rules | always (informational): names the ICU and CLDR versions verbatra reads plural categories from, and any target locale ICU has no plural rules for |
 | Locale codes | always (informational): names every configured locale code that is valid but not in canonical BCP 47 form, with the canonical form to use |
 | Locale state | always (informational): names every locale the lock file, the translation memory, or the provenance file holds state for that your config does not list, and says whether the next `translate` run carries it over |
+| Locale support | the provider supports the source locale and every target locale; the detail counts supported and unverified locales, names the unsupported ones, and counts warnings (see [Locale support](#locale-support)) |
 
 <AvailableFrom version="0.12.0" />
 
@@ -51,17 +54,72 @@ The Locale codes check is informational and never fails either. A code such as `
 
 The Locale state check is informational and never fails either. It reads `verbatra.lock.json`, `verbatra.cache.json`, and `verbatra.provenance.json` and names every locale they hold state for that your config does not list, such as `pt_BR` left behind after you respelled it `pt-BR`. For each one it says whether the next `translate` run carries it over to the configured spelling (see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), whether the configured code already has state of its own, whether two spellings compete for it, or whether it matches no configured locale at all. Remove the state of a locale you no longer translate, or respell the configured locale to match it.
 
-Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the eight checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
+Every check runs even when an earlier one failed, so one run reports every independent problem. The only exception is the config itself: when it cannot be loaded, the nine checks that need it are skipped instead of reaching a verdict. Such a check prints as `[skip]` in the human report and carries `"status": "skipped"` in the `--json` envelope.
 
 Five details are worth knowing:
 
-- The API key is checked **by name only**. `doctor` asks whether the variable is set, never what it holds. The value is not read, not printed, and never sent anywhere. See [Providers](/docs/providers) for which variable each provider uses.
+- The API key is checked **by name only**. `doctor` asks whether the variable is set, never what it holds. The value is not read, not printed, and never sent anywhere, unless you pass `--live`, which sends it to the provider's language list endpoint and nowhere else. See [Providers](/docs/providers) for which variable each provider uses.
 - The `openai-compatible` provider is the exception. It falls back to a placeholder key, so a missing variable is fine. It only fails when your config names its own variable through `provider.options.apiKeyEnvVar` and that variable is unset.
-- With [`provider: { id: "none" }`](/docs/human-only-workflow), the Provider check passes and reports that machine translation is disabled by policy, the API key check passes without looking at any variable, and the Network policy check passes because no provider is ever called.
+- With [`provider: { id: "none" }`](/docs/human-only-workflow), the Provider check passes and reports that machine translation is disabled by policy, the API key check passes without looking at any variable, the Network policy check passes because no provider is ever called, and the Locale support check is skipped as not applicable.
 - A missing **target** locale file is not a problem: [`verbatra translate`](/docs/cli/translate) creates it. Target files are not checked at all.
 - The **source** locale file is read and parsed, not merely probed for. A directory standing in for it, an empty file, and malformed content all fail this check with the same message [`verbatra check`](/docs/cli/check) would give, because those are exactly the cases that make every other command fail. When the configured `format` resolves to no adapter there is nothing to parse with, so the check falls back to existence alone and says so.
 
 Like [`verbatra translate`](/docs/cli/translate), `doctor` loads `.env.local` and then `.env` from the working directory before it looks at the environment, so a key kept in a dotenv file counts as set. With `--literals` it loads neither file.
+
+## Locale support
+
+<AvailableFrom version="0.12.0" />
+
+The Locale support check asks, before anything is spent, whether the configured provider can translate each configured locale. DeepL and Google Cloud Translation are judged against a dated language table verbatra ships for each, taken from the provider's documentation; an LLM provider accepts any locale. The check fails on a locale the provider does not support, which is exactly the locale [`verbatra translate`](/docs/cli/translate) would refuse with `LOCALE_UNSUPPORTED_BY_PROVIDER`, and passes with warnings otherwise. [Language support](/docs/language-support#checking-support-before-a-run) explains the three verdicts and lists the tables.
+
+Add `--locales` to see the verdict per locale, after the checks:
+
+```text
+verbatra doctor
+  ...
+  [fail] Locale support: Provider "deepl", language table of 2026-09-28 (static): 2 of 3 target locales supported, 0 unverified; unsupported: "chr". 1 warning.
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+1 problem found (run verbatra doctor again after fixing it)
+```
+
+Each line names the configured locale, the code the provider receives (after [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider), marked `(localeMap)` when an entry set it), the verdict, and whether the provider can apply a glossary and a `formal` or `informal` tone for that language. A warning is advisory: a glossary or tone the provider cannot apply, a code that is only partly listed, or a language outside the list LLM providers are known to translate well.
+
+`--live` fetches the provider's current language list first, from DeepL's `/v3/languages` or Cloud Translation's `languages` endpoint, and judges against it instead. It is the one flag that makes `doctor` send a request, and that request uses no translation quota. It is sent only when the provider's API key variable is set and the [network policy](/docs/network-policy) permits the provider's host; otherwise, or when the request fails, the report uses the shipped table and a `live language list` line says why. An LLM provider has no list to fetch. `--locales` and `--live` cannot be combined with `--literals`, which replaces the setup checks; doing so is a usage error (`INVALID_OPTION`, exit `2`).
+
+With `--json`, the report travels in the envelope under `result.locales`, whether or not you pass `--locales`:
+
+```ts
+interface LocaleCapabilityReport {
+  provider: string;                  // the configured provider id
+  coverage: "listed" | "open";       // "open" for an LLM provider, which accepts any locale
+  tableVersion: string;              // the table's date (YYYY-MM-DD), or the well-tested list's
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;               // the provider can apply a glossary for this language pair
+    formality: boolean;              // the provider can apply a formal or informal tone
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+`result.locales` is absent when the config could not be loaded, for an unknown provider, and for `provider: { id: "none" }`.
 
 ## Untranslated literals
 
@@ -109,6 +167,12 @@ verbatra doctor --json
 
 # list hardcoded user-facing strings in your source, with no key set
 verbatra doctor --literals
+
+# what the provider supports for each target locale
+verbatra doctor --locales
+
+# the same, against the provider's current language list
+verbatra doctor --live
 ```
 
 A run with two problems looks like this:
@@ -124,6 +188,7 @@ verbatra doctor
   [ok  ] Plural rules: ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.
   [ok  ] Locale codes: Every configured locale code is in canonical BCP 47 form.
   [ok  ] Locale state: Every locale with state in verbatra.lock.json, verbatra.cache.json, and verbatra.provenance.json is configured.
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
 
@@ -131,7 +196,7 @@ verbatra doctor
 
 <AvailableFrom version="0.12.0" />
 
-`doctor` shows one line while it runs its checks, or `scanning the source for literals` with a running file count on an interactive terminal under `--literals`. Its report and its own hint stay on stdout:
+`doctor` shows one line while it runs its checks (`checking the setup and fetching the provider's language list` under `--live`), or `scanning the source for literals` with a running file count on an interactive terminal under `--literals`. Its report and its own hint stay on stdout:
 
 ```text
 verbatra: checking the setup... done (0.2s)
@@ -144,8 +209,8 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 | Code | Meaning |
 | --- | --- |
 | `0` | every check passed |
-| `1` | at least one check failed (the full report is still printed); with `--literals`, a literal was found or a file could not be scanned |
-| `2` | could not run: a usage error, or an explicit `--config` path that does not exist |
+| `1` | at least one check failed (the full report is still printed), including a locale the provider does not support; with `--literals`, a literal was found or a file could not be scanned |
+| `2` | could not run: a usage error (such as `--locales` or `--live` together with `--literals`), or an explicit `--config` path that does not exist |
 
 Exit `1` means "it ran, and it found problems". Exit `2` is reserved for `doctor` being unable to run at all, which is why a missing config file found by search is a failed check and exit `1`, while a `--config` path pointing at nothing is exit `2`.
 
@@ -155,3 +220,4 @@ Exit `1` means "it ran, and it found problems". Exit `2` is reserved for `doctor
 - [`verbatra check`](/docs/cli/check) is the drift gate to run once the setup is sound.
 - [The config file](/docs/config-file) documents every key `doctor` validates.
 - [Providers](/docs/providers) lists the API key variable each provider reads.
+- [Language support](/docs/language-support#checking-support-before-a-run) lists the language tables the Locale support check uses.

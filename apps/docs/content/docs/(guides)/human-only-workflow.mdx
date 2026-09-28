@@ -18,7 +18,7 @@ That writes a config whose provider block is just this, and no `.env.example`, s
 provider: { id: "none" }
 ```
 
-An existing project can switch the same way: replace its `provider` block with `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) then reports "machine translation disabled by policy" and passes its provider and API key checks without looking at any key.
+An existing project can switch the same way: replace its `provider` block with `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) then reports "machine translation disabled by policy", passes its provider and API key checks without looking at any key, and skips its locale support check, since no provider language list applies.
 
 ## What each command does
 

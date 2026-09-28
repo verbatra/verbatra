@@ -102,7 +102,7 @@ Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactame
 | --- | --- |
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor o un archivo de bloqueo corrupto) o un error de uso |
+| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, formato, proveedor, un locale que el proveedor no admite o un archivo de bloqueo corrupto) o un error de uso |
 | `3` | proyecto solo humano (`provider: { id: "none" }`): la ejecución terminó sin errores, pero quedan claves para una traducción humana |
 | `130` | interrumpido con Ctrl-C (SIGINT); antes se liberan los bloqueos de escritura de la ejecución, y stderr termina con `verbatra: interrupted (SIGINT), released locks`, o con `--json` con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
 | `143` | detenido con SIGTERM; antes se liberan los bloqueos de escritura de la ejecución, y stderr termina con `verbatra: interrupted (SIGTERM), released locks`, o con `--json` con el registro `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
@@ -112,6 +112,10 @@ Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactame
 Que falle un locale no es fatal: la ejecución termina, sale con `1` y el detalle por locale queda en el resumen. Un locale **parcial** sale con `1` también. Ese es un locale cuyo archivo se escribió pero todavía tiene claves faltantes, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción, y darlo por bueno dejaría un archivo a medio traducir en tu repositorio sin que nadie lo note. Un locale cuyo bloqueo de escritura siguió disputado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` y sale con `1` de la misma forma.
 
 La salida legible lista cada clave que la [puerta de integridad](/docs/translation-safety) rechazó bajo `integrity-withheld`, una por línea, con el motivo (`placeholder`, `markup`, `icu`, `degenerate` o `empty`) y, donde la comprobación puede nombrarlos, los placeholders, las etiquetas o las ramas de plural ICU culpables. Un locale cuyas claves se rechazaron todas muestra `failed` seguido de los mismos contadores que cualquier otro locale. Con `--json`, cada locale lleva los mismos motivos en `integrityRefusals`.
+
+<AvailableFrom version="0.12.0" />
+
+Un locale que el proveedor DeepL o Google Cloud Translation configurado no admite es la excepción: se detecta antes de que empiece la ejecución, así que toda la ejecución se rechaza con `LOCALE_UNSUPPORTED_BY_PROVIDER` y salida `2`, también en un dry run y con `--estimate`, y ningún locale se empieza ni se paga. Pasa los demás locales con `--locales` para traducirlos, o consulta [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución) para la solución. Un glosario o un tono que el proveedor no puede aplicar para un locale no rechaza nada: se informa como aviso en ese locale (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), igual que `LOCALE_UNVERIFIED_BY_PROVIDER` y, con un proveedor LLM, `LOCALE_NOT_WELL_TESTED`.
 
 <AvailableFrom version="0.12.0" />
 

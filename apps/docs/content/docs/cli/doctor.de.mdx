@@ -4,7 +4,7 @@ description: Prüfe die Projekteinrichtung, ohne einen Provider aufzurufen oder 
 ---
 <AvailableFrom version="0.9.0" />
 
-Beantworte eine Frage, bevor du irgendetwas anderes ausführst: Ist dieses Projekt korrekt eingerichtet? `doctor` prüft die Konfiguration, den Format-Adapter, den Provider, die API-Key-Variable, die Netzwerkrichtlinie und die Quell-Locale-Datei und meldet dann alle gefundenen Probleme auf einmal. Es kostet nichts: kein Provider wird konstruiert, keine Netzwerkanfrage gestellt, keine Datei geschrieben, und kein API-Key-Wert wird je gelesen.
+Beantworte eine Frage, bevor du irgendetwas anderes ausführst: Ist dieses Projekt korrekt eingerichtet? `doctor` prüft die Konfiguration, den Format-Adapter, den Provider, die API-Key-Variable, die Netzwerkrichtlinie, die Quell-Locale-Datei und ob der Provider jede konfigurierte Locale unterstützt, und meldet dann alle gefundenen Probleme auf einmal. Es kostet nichts: kein Provider wird konstruiert, keine Netzwerkanfrage gestellt, keine Datei geschrieben, und kein API-Key-Wert wird je gelesen. Die eine Ausnahme ist `--live`, das den Key des Providers mit einer einzigen Anfrage nach seiner Sprachliste sendet.
 
 Nimm ihn bei einem frischen Checkout, direkt nach [`verbatra init`](/docs/cli/init), oder immer dann, wenn ein anderer Befehl fehlgeschlagen ist und du die vollständige Liste statt des ersten Fehlers willst. [`verbatra check`](/docs/cli/check) ist die günstigste Prüfung, sobald ein Projekt schon funktioniert, aber es liest die Locale-Dateien und bricht beim ersten Fehler des gesamten Laufs ab, kann dir also nicht sagen, was an einem Projekt falsch ist, das noch keine Quelldatei hat.
 
@@ -21,11 +21,13 @@ verbatra doctor [flags]
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe [Nicht übersetzte Literale](#nicht-übersetzte-literale)) |
+| `--locales` | keins | aus | nach den Prüfungen für jede Ziel-Locale auflisten, als welcher Code sie gesendet wird, ob der Provider sie unterstützt und ob er ein Glossar und eine Formality-Einstellung anwenden kann (siehe [Locale-Unterstützung](#locale-unterstützung)) |
+| `--live` | keins | aus | vor der Prüfung Locale support die aktuelle Sprachliste des Providers abrufen, was kein Übersetzungskontingent verbraucht; schließt `--locales` ein (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der den Bericht unter `result` trägt; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 ## Was geprüft wird
 
-Ein Einrichtungslauf meldet neun Prüfungen in der Reihenfolge unten. Die ersten sechs können fehlschlagen; die letzten drei sind rein informativ und tun das nie.
+Ein Einrichtungslauf meldet zehn Prüfungen in der Reihenfolge unten. Sieben davon können fehlschlagen; Plural rules, Locale codes und Locale state sind rein informativ und tun das nie.
 
 | Prüfung | Besteht, wenn |
 | --- | --- |
@@ -38,6 +40,7 @@ Ein Einrichtungslauf meldet neun Prüfungen in der Reihenfolge unten. Die ersten
 | Plural rules | immer (informativ): nennt die ICU- und CLDR-Versionen, aus denen verbatra die Pluralkategorien liest, und jede Ziel-Locale, für die ICU keine Pluralregeln hat |
 | Locale codes | immer (informativ): nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, mit der kanonischen Form, die du verwenden solltest |
 | Locale state | immer (informativ): nennt jede Locale, für die Lock-Datei, Translation Memory oder Provenance-Datei Zustand halten, die deine Konfiguration aber nicht aufführt, und sagt, ob der nächste Lauf von `translate` sie übernimmt |
+| Locale support | der Provider die Quell-Locale und jede Ziel-Locale unterstützt; das Detail zählt unterstützte und nicht verifizierte Locales, nennt die nicht unterstützten und zählt Warnungen (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 
 <AvailableFrom version="0.12.0" />
 
@@ -51,17 +54,72 @@ Auch die Prüfung Locale codes ist rein informativ und schlägt nie fehl. Ein Co
 
 Auch die Prüfung Locale state ist rein informativ und schlägt nie fehl. Sie liest `verbatra.lock.json`, `verbatra.cache.json` und `verbatra.provenance.json` und nennt jede Locale, für die diese Dateien Zustand halten, die deine Konfiguration aber nicht aufführt, etwa `pt_BR`, das zurückgeblieben ist, nachdem du es zu `pt-BR` umgeschrieben hast. Für jede sagt sie, ob der nächste Lauf von `translate` sie in die konfigurierte Schreibweise übernimmt (siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)), ob der konfigurierte Code schon eigenen Zustand hat, ob zwei Schreibweisen um ihn konkurrieren oder ob sie zu gar keiner konfigurierten Locale passt. Entferne den Zustand einer Locale, die du nicht mehr übersetzt, oder schreib die konfigurierte Locale passend um.
 
-Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die acht Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die neun Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
 
 Fünf Details sind wichtig:
 
-- Der API-Key wird **nur über den Namen** geprüft. `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Der Wert wird nicht gelesen, nicht ausgegeben und nirgendwohin gesendet. Welche Variable welcher Provider nutzt, steht unter [Provider](/docs/providers).
+- Der API-Key wird **nur über den Namen** geprüft. `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Der Wert wird nicht gelesen, nicht ausgegeben und nirgendwohin gesendet, außer du übergibst `--live`, das ihn an den Sprachlisten-Endpunkt des Providers sendet und nirgendwo sonst hin. Welche Variable welcher Provider nutzt, steht unter [Provider](/docs/providers).
 - Der Provider `openai-compatible` ist die Ausnahme. Er fällt auf einen Platzhalter-Key zurück, eine fehlende Variable ist also in Ordnung. Er schlägt nur fehl, wenn deine Konfiguration über `provider.options.apiKeyEnvVar` eine eigene Variable benennt und diese nicht gesetzt ist.
-- Mit [`provider: { id: "none" }`](/docs/human-only-workflow) besteht der Provider-Check und meldet, dass maschinelle Übersetzung per Richtlinie abgeschaltet ist, der API-Key-Check besteht, ohne eine Variable anzusehen, und der Network-Policy-Check besteht, weil nie ein Provider aufgerufen wird.
+- Mit [`provider: { id: "none" }`](/docs/human-only-workflow) besteht der Provider-Check und meldet, dass maschinelle Übersetzung per Richtlinie abgeschaltet ist, der API-Key-Check besteht, ohne eine Variable anzusehen, der Network-Policy-Check besteht, weil nie ein Provider aufgerufen wird, und die Prüfung Locale support wird als nicht anwendbar übersprungen.
 - Eine fehlende **Ziel**-Locale-Datei ist kein Problem: [`verbatra translate`](/docs/cli/translate) legt sie an. Ziel-Dateien werden überhaupt nicht geprüft.
 - Die **Quell**-Locale-Datei wird gelesen und geparst, nicht nur auf Existenz geprüft. Ein Verzeichnis an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt scheitern alle an dieser Prüfung, mit derselben Meldung, die auch [`verbatra check`](/docs/cli/check) ausgeben würde, denn genau diese Fälle bringen jeden anderen Befehl zum Scheitern. Wenn das konfigurierte `format` zu keinem Adapter auflöst, gibt es nichts zum Parsen, also fällt die Prüfung auf die reine Existenz zurück und sagt das auch.
 
 Wie [`verbatra translate`](/docs/cli/translate) lädt `doctor` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor es die Umgebung ansieht; ein Key in einer dotenv-Datei zählt also als gesetzt. Mit `--literals` lädt es keine der beiden Dateien.
+
+## Locale-Unterstützung
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung Locale support fragt, bevor irgendetwas ausgegeben wird, ob der konfigurierte Provider jede konfigurierte Locale übersetzen kann. DeepL und Google Cloud Translation werden gegen eine datierte Sprachtabelle beurteilt, die verbatra für jeden der beiden mitliefert und die aus der Dokumentation des Providers stammt; ein LLM-Provider akzeptiert jede Locale. Die Prüfung schlägt bei einer Locale fehl, die der Provider nicht unterstützt, also genau bei der Locale, die [`verbatra translate`](/docs/cli/translate) mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnen würde, und besteht sonst mit Warnungen. [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) erklärt die drei Urteile und listet die Tabellen.
+
+Füg `--locales` hinzu, um nach den Prüfungen das Urteil je Locale zu sehen:
+
+```text
+verbatra doctor
+  ...
+  [fail] Locale support: Provider "deepl", language table of 2026-09-28 (static): 2 of 3 target locales supported, 0 unverified; unsupported: "chr". 1 warning.
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+1 problem found (run verbatra doctor again after fixing it)
+```
+
+Jede Zeile nennt die konfigurierte Locale, den Code, den der Provider bekommt (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes), mit `(localeMap)` markiert, wenn ein Eintrag ihn gesetzt hat), das Urteil und ob der Provider für diese Sprache ein Glossar und einen `formal`- oder `informal`-Tonfall anwenden kann. Eine Warnung ist nur ein Hinweis: ein Glossar oder Tonfall, den der Provider nicht anwenden kann, ein Code, der nur teilweise aufgeführt ist, oder eine Sprache außerhalb der Liste, die LLM-Provider bekanntermaßen gut übersetzen.
+
+`--live` ruft zuerst die aktuelle Sprachliste des Providers ab, von DeepLs `/v3/languages` oder dem `languages`-Endpunkt von Cloud Translation, und urteilt stattdessen gegen sie. Es ist das einzige Flag, mit dem `doctor` eine Anfrage sendet, und diese Anfrage verbraucht kein Übersetzungskontingent. Sie wird nur gesendet, wenn die API-Key-Variable des Providers gesetzt ist und die [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers erlaubt; sonst, oder wenn die Anfrage scheitert, nutzt der Bericht die mitgelieferte Tabelle, und eine Zeile `live language list` sagt, warum. Ein LLM-Provider hat keine Liste zum Abrufen. `--locales` und `--live` lassen sich nicht mit `--literals` kombinieren, das die Einrichtungsprüfungen ersetzt; das ist ein Verwendungsfehler (`INVALID_OPTION`, Exit `2`).
+
+Mit `--json` steht der Bericht im Envelope unter `result.locales`, ob du `--locales` angibst oder nicht:
+
+```ts
+interface LocaleCapabilityReport {
+  provider: string;                  // the configured provider id
+  coverage: "listed" | "open";       // "open" for an LLM provider, which accepts any locale
+  tableVersion: string;              // the table's date (YYYY-MM-DD), or the well-tested list's
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;               // the provider can apply a glossary for this language pair
+    formality: boolean;              // the provider can apply a formal or informal tone
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+`result.locales` fehlt, wenn die Konfiguration nicht geladen werden konnte, bei einem unbekannten Provider und bei `provider: { id: "none" }`.
 
 ## Nicht übersetzte Literale
 
@@ -109,6 +167,12 @@ verbatra doctor --json
 
 # list hardcoded user-facing strings in your source, with no key set
 verbatra doctor --literals
+
+# what the provider supports for each target locale
+verbatra doctor --locales
+
+# the same, against the provider's current language list
+verbatra doctor --live
 ```
 
 Ein Lauf mit zwei Problemen sieht so aus:
@@ -124,6 +188,7 @@ verbatra doctor
   [ok  ] Plural rules: ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.
   [ok  ] Locale codes: Every configured locale code is in canonical BCP 47 form.
   [ok  ] Locale state: Every locale with state in verbatra.lock.json, verbatra.cache.json, and verbatra.provenance.json is configured.
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
 
@@ -131,7 +196,7 @@ verbatra doctor
 
 <AvailableFrom version="0.12.0" />
 
-`doctor` zeigt eine Zeile, während es seine Prüfungen ausführt, oder mit `--literals` die Zeile `scanning the source for literals`, in einem interaktiven Terminal mit laufender Dateianzahl. Sein Bericht und sein eigener Hinweis bleiben auf stdout:
+`doctor` zeigt eine Zeile, während es seine Prüfungen ausführt (mit `--live` `checking the setup and fetching the provider's language list`), oder mit `--literals` die Zeile `scanning the source for literals`, in einem interaktiven Terminal mit laufender Dateianzahl. Sein Bericht und sein eigener Hinweis bleiben auf stdout:
 
 ```text
 verbatra: checking the setup... done (0.2s)
@@ -144,8 +209,8 @@ Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also gena
 | Code | Bedeutung |
 | --- | --- |
 | `0` | alle Prüfungen bestanden |
-| `1` | mindestens eine Prüfung ist fehlgeschlagen (der vollständige Bericht wird trotzdem ausgegeben); mit `--literals`: ein Literal wurde gefunden oder eine Datei konnte nicht gescannt werden |
-| `2` | konnte nicht laufen: ein Verwendungsfehler oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
+| `1` | mindestens eine Prüfung ist fehlgeschlagen (der vollständige Bericht wird trotzdem ausgegeben), auch bei einer Locale, die der Provider nicht unterstützt; mit `--literals`: ein Literal wurde gefunden oder eine Datei konnte nicht gescannt werden |
+| `2` | konnte nicht laufen: ein Verwendungsfehler (etwa `--locales` oder `--live` zusammen mit `--literals`) oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
 
 Exit `1` heißt "es lief, und es wurden Probleme gefunden". Exit `2` ist dafür reserviert, dass `doctor` überhaupt nicht laufen kann. Deshalb ist eine per Suche nicht gefundene Konfigurationsdatei eine fehlgeschlagene Prüfung und Exit `1`, während ein `--config`-Pfad ins Leere Exit `2` ergibt.
 
@@ -155,3 +220,4 @@ Exit `1` heißt "es lief, und es wurden Probleme gefunden". Exit `2` ist dafür 
 - [`verbatra check`](/docs/cli/check) ist das Drift-Gate, sobald die Einrichtung steht.
 - [Die Konfigurationsdatei](/docs/config-file) dokumentiert jeden Key, den `doctor` validiert.
 - [Provider](/docs/providers) listet die API-Key-Variable, die jeder Provider liest.
+- [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) listet die Sprachtabellen, die die Prüfung Locale support nutzt.

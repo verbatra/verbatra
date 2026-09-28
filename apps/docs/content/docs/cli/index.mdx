@@ -77,7 +77,7 @@ The exit code is the contract a CI step or script branches on:
 | Code | Meaning |
 | --- | --- |
 | `0` | success (also `--help` and `--version`) |
-| `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes (or, with `--unused`, a complete scan found an unused source key), `doctor` found a setup problem or, with `--literals`, an untranslated literal, or `types --check` found the committed declaration out of date |
+| `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes (or, with `--unused`, a complete scan found an unused source key), `doctor` found a setup problem (such as a locale the provider does not support) or, with `--literals`, an untranslated literal, or `types --check` found the committed declaration out of date |
 | `2` | could not run: a whole-run error (config, source, provider, lock), or a usage error |
 | `3` | `translate` in a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) finished cleanly, but left keys for a human translation |
 | `130` | `translate` or `import` was interrupted with Ctrl-C (SIGINT) after releasing its write locks, or `watch`, `studio`, or `mcp` was force-stopped by a second interrupt |

@@ -155,8 +155,8 @@ retention terms, and a checklist for a DPA or NDA review.
 
 <AvailableFrom version="0.9.0" />
 
-Nine things, all without a provider call, a network request, or reading an API key value. The
-first six can fail; the last three are informational and never do:
+Ten things, all without a provider call, a network request, or reading an API key value. Seven
+can fail; plural rules, locale codes, and locale state are informational and never do:
 
 - Configuration: a config file was found and passes validation.
 - Format adapter: the configured `format` resolves to a file adapter.
@@ -170,9 +170,13 @@ first six can fail; the last three are informational and never do:
 - Plural rules, Locale codes, and Locale state: the ICU and CLDR versions plural categories come
   from, configured locale codes not in canonical BCP 47 form, and state left behind for a locale
   the config no longer lists. See [verbatra doctor](/docs/cli/doctor).
+- Locale support: the provider supports the source locale and every target locale, judged
+  against the language table verbatra ships for DeepL and Google Cloud Translation (from 0.12.0).
+  `verbatra doctor --locales` lists the verdict per locale. See
+  [Language support](/docs/language-support#checking-support-before-a-run).
 
 Every check runs even after an earlier one fails, so one run reports every independent problem at
-once; the exception is the config itself, where a failure to load skips the eight checks that need
+once; the exception is the config itself, where a failure to load skips the nine checks that need
 it.
 
 ```bash

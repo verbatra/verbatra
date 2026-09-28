@@ -102,7 +102,7 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 | --- | --- |
 | `0` | every target locale came out complete |
 | `1` | the run finished but one or more locales failed or came out partial |
-| `2` | could not run: a whole-run error (config, source, format, provider, or a corrupt lock file), or a usage error |
+| `2` | could not run: a whole-run error (config, source, format, provider, a locale the provider does not support, or a corrupt lock file), or a usage error |
 | `3` | human-only project (`provider: { id: "none" }`): the run finished cleanly, but keys are left for a human translation |
 | `130` | interrupted with Ctrl-C (SIGINT); the run's write locks are released first and stderr ends with `verbatra: interrupted (SIGINT), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
 | `143` | stopped with SIGTERM; the run's write locks are released first and stderr ends with `verbatra: interrupted (SIGTERM), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
@@ -112,6 +112,10 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 One locale failing is not fatal: the run finishes, exits `1`, and the per-locale detail sits in the summary. A **partial** locale exits `1` as well. That is a locale whose file was written but still has keys missing, typically because a provider sub-batch failed or the integrity gate refused a translation, and shipping it as a success would leave a half-translated file in your repository unnoticed. A locale whose write lock stayed contended past `--lock-timeout` fails with `LOCK_CONTENDED` and exits `1` the same way.
 
 The human output lists every key the [integrity gate](/docs/translation-safety) refused under `integrity-withheld`, one per line, with the reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`) and, where the check can name them, the placeholders, tags, or ICU plural arms at fault. A locale whose every key was refused shows `failed` followed by the same counts as any other locale. With `--json`, each locale carries the same reasons in `integrityRefusals`.
+
+<AvailableFrom version="0.12.0" />
+
+A locale the configured DeepL or Google Cloud Translation provider does not support is the exception: it is caught before the run starts, so the whole run is refused with `LOCALE_UNSUPPORTED_BY_PROVIDER` and exit `2`, on a dry run and with `--estimate` too, and no locale is started or paid for. Pass the other locales with `--locales` to translate them, or see [Language support](/docs/language-support#checking-support-before-a-run) for the fix. A glossary or tone the provider cannot apply for a locale does not refuse anything: it is reported as a notice on that locale (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), as are `LOCALE_UNVERIFIED_BY_PROVIDER` and, for an LLM provider, `LOCALE_NOT_WELL_TESTED`.
 
 <AvailableFrom version="0.12.0" />
 

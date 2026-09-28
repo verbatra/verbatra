@@ -8,7 +8,7 @@ verbatra ist eine Dev-Dependency, die Befehle laufen in CI also genauso wie loka
 
 - **Sichere einen Pull Request ab** mit [`verbatra check`](/docs/cli/check) oder [`verbatra diff`](/docs/cli/diff), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action) mit `command: check` oder `command: diff`. Beide sind nur lesend: kein Provider-Aufruf, kein API-Schlüssel nötig, Exit `1` bei Drift.
 - **Übersetze bei einem Push** mit [`verbatra translate`](/docs/cli/translate), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action).
-- **Prüfe beides vorab** mit [`verbatra doctor`](/docs/cli/doctor). Es ist der günstigste Schritt überhaupt: Es prüft die Konfiguration, das Format, den Provider, die Variable für den API-Schlüssel, die Netzwerkrichtlinie und die Quelldatei, ergänzt drei rein informative Berichte (Pluralregeln, Locale-Codes und zurückgebliebener Locale-Zustand), die nie fehlschlagen, ruft nie einen Provider auf und liest nie den Wert eines API-Schlüssels. Es liefert außerdem auch dann noch einen Bericht, wenn die Locale-Dateien eines Projekts noch nicht vorhanden sind; die anderen Befehle können dort nur als Ganzes scheitern.
+- **Prüfe beides vorab** mit [`verbatra doctor`](/docs/cli/doctor). Es ist der günstigste Schritt überhaupt: Es prüft die Konfiguration, das Format, den Provider, die Variable für den API-Schlüssel, die Netzwerkrichtlinie, die Quelldatei und ob der Provider jedes konfigurierte Locale unterstützt, ergänzt drei rein informative Berichte (Pluralregeln, Locale-Codes und zurückgebliebener Locale-Zustand), die nie fehlschlagen, ruft nie einen Provider auf und liest nie den Wert eines API-Schlüssels. Es liefert außerdem auch dann noch einen Bericht, wenn die Locale-Dateien eines Projekts noch nicht vorhanden sind; die anderen Befehle können dort nur als Ganzes scheitern.
 
 ## Die Exit-Codes
 
@@ -18,7 +18,7 @@ Der Exit-Code ist der Vertrag, auf den dein CI-Schritt verzweigt:
 | --- | --- |
 | `0` | Erfolg: `translate` oder `import` schloss jedes Locale vollständig ab, `check` fand jedes Locale synchron, `diff` fand keine ausstehenden Änderungen, `doctor` fand kein Problem in der Einrichtung, `extract` schloss seinen Scan ab, `types` erzeugte seine Deklaration, `export` schrieb seine Arbeitsmappe, `tmx` importierte oder exportierte seinen Übersetzungsspeicher, `init` legte das Projekt an oder fand es schon auf dem aktuellen Stand, `watch`, `studio` oder `mcp` wurde sauber beendet, oder `--help` beziehungsweise `--version` wurde ausgegeben |
 | `1` | der Lauf kam durch, aber das Ergebnis ist nicht sauber: `translate` oder `import` endete mit mindestens einem fehlgeschlagenen oder unvollständigen Locale, `check` fand ein Locale nicht synchron (oder mit `--qa` eine eingecheckte Übersetzung mit einem Integritätsfehler oder mit `--strict` einer Review-Warnung), `diff` fand einen fehlenden oder geänderten Key (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand mindestens eine fehlgeschlagene Prüfung, `types --check` stellte fest, dass die committete Deklaration veraltet ist, oder `studio` beziehungsweise `mcp` scheiterte beim Herunterfahren seines Servers |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init`, dem ein benötigtes Flag fehlt, das mehrere passende Formate oder Dateimuster findet, das sich weigert, eine bestehende Konfiguration zu überschreiben, oder das keine gültige Konfiguration anlegen kann, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
+| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (kaputte Konfiguration, unlesbare Quelle, kaputte Lock-Datei, ein Locale, das der Provider nicht unterstützt), ein Verwendungsfehler (ein leerer oder unbekannter `--locales`-Wert, ein ungültiges `--debounce` oder `--port`), `init`, dem ein benötigtes Flag fehlt, das mehrere passende Formate oder Dateimuster findet, das sich weigert, eine bestehende Konfiguration zu überschreiben, oder das keine gültige Konfiguration anlegen kann, `watch`, das nicht starten oder nicht stoppen kann, `studio`, das die Konfiguration nicht laden, `@verbatra/studio` nicht importieren oder seinen Server nicht starten kann, oder `mcp`, das die Konfiguration nicht laden, `@verbatra/mcp` nicht importieren oder seinen Server nicht starten kann |
 | `3` | `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) lief sauber durch, hat aber Keys für eine menschliche Übersetzung übrig gelassen |
 | `130` | `translate` oder `import` wurde mit Ctrl-C (SIGINT) abgebrochen, nachdem die Schreibsperren freigegeben waren, oder `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |
 | `143` | `translate` oder `import` wurde mit SIGTERM beendet, nachdem die Schreibsperren freigegeben waren |
@@ -28,6 +28,7 @@ Einige Randfälle, die du kennen solltest:
 <AvailableFrom version="0.9.0" />
 
 - Ein **unvollständiges** Locale zählt als Fehlschlag. Das heißt, die Datei wurde geschrieben, aber einige Keys fehlen weiterhin, meist weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat. Es endet mit `1` genau wie ein fehlgeschlagenes Locale, denn ein halb übersetztes Locale auf der Platte ist kein Zustand, den eine Pipeline durchwinken sollte. Um beide auseinanderzuhalten, lies `partial` in der Zusammenfassung. Ein fehlgeschlagener Sub-Batch hinterlässt am Locale einen Hinweis `SUB_BATCH_FAILED`, der den Fehlercode des Providers nennt, oder `PROVIDER_CALL_FAILED`, wenn der Fehlschlag kein strukturierter Provider-Fehler war.
+- Ein **Locale, das der Provider nicht unterstützt**, ist ebenfalls ein Fehler des gesamten Laufs, nie ein einzelnes fehlgeschlagenes Locale. `translate` (auch ein Dry Run und `--estimate`), `watch` beim Start und eine Neuübersetzung eines einzelnen Keys lehnen es mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ab und enden mit `2`, bevor ein Provider konstruiert oder irgendetwas ausgegeben wird; kein Locale des Laufs hat also begonnen, und nichts wurde geschrieben. Beurteilt wird gegen die Sprachtabelle, die verbatra für DeepL und Google Cloud Translation mitliefert; ein LLM-Provider akzeptiert jedes Locale. Lass das Locale mit `--locales` weg, um die anderen zu übersetzen, und führe [`verbatra doctor --locales`](/docs/cli/doctor#locale-unterstützung) aus, um zu sehen, warum. Siehe [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 - Eine **kaputte Lock-Datei** ist bei `translate` wie bei `import` ein Fehler des gesamten Laufs, nie ein einzelnes fehlgeschlagenes Locale. Sie ist eine einzige gemeinsame Datei, deshalb bricht ein Lauf, dessen Lock-Datei mittendrin kaputtgeht, mit `2` ab, statt die restlichen Locales weiter abzuarbeiten. Was vor dem Abbruch geschrieben wurde, bleibt auf der Platte: Repariere die Lock-Datei und starte den Befehl erneut.
 - Ein einzelner Interrupt ist ein sauberer Stopp, und alle drei langlaufenden Befehle (`watch`, `studio` und `mcp`) enden dabei mit `0`. Gehe darüber hinaus nicht davon aus, dass sie sich gleich verhalten: Scheitert der Stopp selbst, endet `watch` mit `2`, während `studio` und `mcp` mit `1` enden.
 - Ein fehlgeschlagener Lauf während `watch` erscheint als Datensatz im Ausgabestrom, nie als Exit-Code ungleich null.
@@ -106,7 +107,7 @@ Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` 
 | `INVALID_LOCALES` | `--locales` angegeben wurde, aber kein Locale auflistet |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` keine ganze Zahl von Sekunden zwischen 1 und 3600 ist |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` keine ganze Zahl von mindestens 1 ist |
-| `INVALID_OPTION` | ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält oder `init --cwd` kein vorhandenes Verzeichnis nennt |
+| `INVALID_OPTION` | ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `init --cwd` kein vorhandenes Verzeichnis nennt oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam |
 | `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
 | `INVALID_PORT` | `studio --port` keine ganze Zahl zwischen 1 und 65535 ist |
 | `INVALID_PROVIDER` | `init --provider` keinen bekannten Provider nennt |
@@ -200,6 +201,8 @@ interface LocaleDiff {
 interface DoctorResult {
   ok: boolean;                 // true exactly when the command exits 0
   checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals; see verbatra doctor
+  locales?: LocaleCapabilityReport; // per-locale provider support; see verbatra doctor
 }
 
 interface DoctorCheck {
@@ -213,12 +216,15 @@ interface DoctorCheck {
     | "plural-rules"
     | "locale-codes"
     | "locale-state"
+    | "locales"
     | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
 }
 ```
+
+Die Prüfung `locales` schlägt bei einem Locale fehl, das der konfigurierte Provider nicht unterstützt, also bei demselben Locale, das `translate` mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnt, und `result.locales` trägt das Urteil für jedes Locale; die Form steht unter [verbatra doctor](/docs/cli/doctor#locale-unterstützung).
 
 ## Ein GitHub-Actions-Job mit der CLI
 

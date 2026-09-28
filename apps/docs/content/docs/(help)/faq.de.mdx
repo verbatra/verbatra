@@ -167,8 +167,8 @@ die Aufbewahrungsbedingungen der Anbieter und eine Checkliste für ein AVV- oder
 
 <AvailableFrom version="0.9.0" />
 
-Neun Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
-lesen. Die ersten sechs können fehlschlagen; die letzten drei sind rein informativ und tun das nie:
+Zehn Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
+lesen. Sieben können fehlschlagen; Plural rules, Locale codes und Locale state sind rein informativ und tun das nie:
 
 - Configuration: Eine Konfigurationsdatei wurde gefunden und besteht die Validierung.
 - Format adapter: Das konfigurierte `format` löst sich zu einem Datei-Adapter auf.
@@ -183,10 +183,14 @@ lesen. Die ersten sechs können fehlschlagen; die letzten drei sind rein informa
   Pluralkategorien stammen, konfigurierte Locale-Codes, die nicht in kanonischer BCP-47-Form sind,
   und Zustand, der für eine Locale zurückgeblieben ist, die die Konfiguration nicht mehr aufführt.
   Siehe [verbatra doctor](/docs/cli/doctor).
+- Locale support: Der Provider unterstützt die Quell-Locale und jede Ziel-Locale, beurteilt
+  gegen die Sprachtabelle, die verbatra für DeepL und Google Cloud Translation mitliefert (ab 0.12.0).
+  `verbatra doctor --locales` listet das Urteil je Locale. Siehe
+  [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes
 unabhängige Problem auf einmal. Die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
-fehl, werden die acht Prüfungen übersprungen, die sie brauchen.
+fehl, werden die neun Prüfungen übersprungen, die sie brauchen.
 
 ```bash
 verbatra doctor
