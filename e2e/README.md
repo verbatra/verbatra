@@ -48,7 +48,11 @@ deterministic test joins the required gate automatically.
   makes any network call fatal), and protection of human work
   (`tests/protect-human.e2e.test.ts`: an imported value whose source changed is listed as
   protected by `translate --dry-run`, not as to translate, is counted by `check` and `diff`, and is
-  planned for translation again only with `--include-human`), and `init` for agents
+  planned for translation again only with `--include-human`), and the persisted review workflow
+  (`tests/review-workflow.e2e.test.ts`: agent-written values seeded through the Studio HTTP API,
+  two approved and one rejected there, then `check --require-reviewed` reporting the same
+  unreviewed key and exit 1 in the project and in a fresh copy without `.verbatra-local`, as a
+  teammate would see it), and `init` for agents
   (`tests/init-for-agents.e2e.test.ts`: a flags-only `init --json` whose config `doctor` passes
   with no hand edit, detection of an existing YAML layout, a `CONFIG_EXISTS` refusal on a second
   run, and the `FORMAT_AMBIGUOUS` and `MISSING_OPTIONS` error envelopes), and interrupt handling
