@@ -29,7 +29,8 @@ deterministic test joins the required gate automatically.
 
 - **No-key tier** (everything except `tests/*.live.e2e.test.ts`, run with `npm run test:nokey`):
   packaging smoke, `init` scaffolding, `check` across i18next, YAML, Flutter ARB, and `.properties`
-  projects, `diff` and `export` on the i18next project, `translate --dry-run`, `translate --estimate` with every provider key blanked
+  projects, `check` on a gettext project whose `posix` locale directories use the gettext names
+  `sr@latin`, `es_419` and `zh_TW` (`tests/gettext-posix-locales.e2e.test.ts`), `diff` and `export` on the i18next project, `translate --dry-run`, `translate --estimate` with every provider key blanked
   (`tests/estimate.e2e.test.ts`: the quantity line, the explicit missing-rate line, a priced run
   once the config carries `rates`, the structured JSON fields, and that no locale, lock, or cache
   file is written), `export` then
