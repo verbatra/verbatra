@@ -203,6 +203,7 @@ const CHECK_FIXES: Record<DoctorCheckId, string | undefined> = {
   "source-file":
     "Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.",
   "plural-rules": undefined,
+  "plural-completeness": undefined,
   "locale-codes": undefined,
   "locale-state": undefined,
   "untranslated-literals":
