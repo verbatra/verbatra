@@ -313,7 +313,7 @@ The cloud agent works on GitHub, not on your machine. A repository admin adds th
 }
 ```
 
-Add `translation.editEntry` and `glossary.write` only if the agent should write translations and glossary terms in its pull request. Leave spending off: the server's instruction to wait for your yes before a spend tool cannot hold when nobody is asked. To grant it deliberately anyway, all three of these are needed, and each one is a separate decision:
+Add `translation.editEntry` and `glossary.write` only if the agent should write translations and glossary terms in its pull request. Keep `review.approve` and `review.reject` out: a review decision needs a person, and an agent approving its own output is what `check --require-reviewed` exists to catch. Leave spending off: the server's instruction to wait for your yes before a spend tool cannot hold when nobody is asked. To grant it deliberately anyway, all three of these are needed, and each one is a separate decision:
 
 - an Agents secret named with the `COPILOT_MCP_` prefix, for example `COPILOT_MCP_ANTHROPIC_API_KEY`, added under **Settings**, **Secrets and variables**, **Agents**. Only secrets with that prefix reach an MCP configuration, and they are passed to MCP servers, not to the agent itself;
 - `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` and `--allow-spend` in `args`, so the configuration holds a reference, never the value;
