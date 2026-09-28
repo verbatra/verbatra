@@ -325,6 +325,13 @@ configuración sigue obteniendo un informe en lugar de un error lanzado.
 Devuelve un `DoctorResult` cuyo `ok` es true exactamente cuando ninguna comprobación falló. Lanza
 `CONFIG_NOT_FOUND` solo para un `configPath` explícito que no existe.
 
+<AvailableFrom version="0.12.0" />
+
+Cada comprobación fallida lleva `fix`, un siguiente paso breve en imperativo como "Set
+ANTHROPIC_API_KEY in the environment or in a .env file in the project directory.". Una
+comprobación que pasó o se omitió no tiene `fix`. Igual que `detail`, nombra variables y rutas,
+nunca el valor de una clave.
+
 ### extract
 
 <AvailableFrom version="0.11.0" />
@@ -796,6 +803,32 @@ cada mensaje de aviso por locale de un `RunSummary` ya nombra así los archivos 
 relativos al `cwd` de la ejecución; llámalo sobre el mensaje de un error que lanza un flujo antes
 de mostrárselo a una persona, a un agente o a una pestaña del navegador. `verbatra mcp` y Studio
 hacen lo mismo con cada error que devuelven.
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` devuelve el siguiente paso que resuelve un error que lanzó verbatra: una frase
+breve en imperativo, o `undefined` cuando no hay ninguna. Cada código de `SdkError`, cada código
+de `ProviderError` y cada código de error de un adaptador de formato tiene una, así que un agente
+puede actuar ante un fallo sin analizar su mensaje. Lee el `code` del error, así que un objeto
+simple `{ code, message }`, como el `error` de una ejecución fallida de `watch`, recibe la misma
+pista. Un error `PROVIDER_CONSTRUCTION_FAILED` toma la pista del error del proveedor que envuelve,
+así que una clave ausente nombra la variable exacta que tienes que definir, leída del `envVar` que
+lleva un `ProviderError` con `MISSING_API_KEY`. Una pista es texto fijo más, como mucho, el nombre
+de una variable: nunca contiene el valor de una clave ni cita el mensaje. El sobre de error
+`--json` de la CLI la lleva como `hint`, y `verbatra mcp` termina con ella el texto de una llamada
+fallida.
+
+```ts
+import { errorHint, translate } from "@verbatra/sdk";
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // p. ej. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+}
+```
 
 ## El par del libro
 

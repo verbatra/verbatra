@@ -29,7 +29,7 @@ verbatra never reads an API key from the config. Each hosted provider reads exac
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
-Set the variable in `.env` (which `verbatra init` gitignores) or export it in your shell or CI secret store. When the variable is unset or empty, the provider fails with a structured `MISSING_API_KEY` error whose message names the variable but never includes a key value. The SDK raises it while constructing the provider and wraps it as `PROVIDER_CONSTRUCTION_FAILED`, so the CLI prints that code followed by `(cause: MISSING_API_KEY)`, and its `--json` error record carries `"causeCode": "MISSING_API_KEY"`. Never commit a real key.
+Set the variable in `.env` (which `verbatra init` gitignores) or export it in your shell or CI secret store. When the variable is unset or empty, the provider fails with a structured `MISSING_API_KEY` error whose message names the variable but never includes a key value. The SDK raises it while constructing the provider and wraps it as `PROVIDER_CONSTRUCTION_FAILED`, so the CLI prints that code followed by `(cause: MISSING_API_KEY)`, and its `--json` error record carries `"causeCode": "MISSING_API_KEY"`. Since 0.12.0 the error also carries the variable's name as `envVar` on the `ProviderError`, and the CLI adds a `hint` naming exactly that variable to set (`next: Set GEMINI_API_KEY in the environment or in a .env file in the project directory.` on stderr). Never commit a real key.
 
 `openai-compatible` is different: most local servers need no key at all, so it is not in this table. See its own section below for how its key resolution works.
 

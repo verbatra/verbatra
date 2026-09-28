@@ -53,6 +53,10 @@ Auch die Prüfung Locale state ist rein informativ und schlägt nie fehl. Sie li
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die acht Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
 
+<AvailableFrom version="0.12.0" />
+
+Jede fehlgeschlagene Prüfung trägt außerdem ein `fix`: einen kurzen nächsten Schritt im Imperativ, ausgegeben als `fix:`-Zeile unter der Prüfung und im `--json`-Envelope als `"fix"` mitgeliefert, etwa `Set ANTHROPIC_API_KEY in the environment or in a .env file in the project directory.` für einen nicht gesetzten Key. Eine bestandene oder übersprungene Prüfung hat keines. Ein Agent kann danach handeln, ohne `detail` zu parsen.
+
 Fünf Details sind wichtig:
 
 - Der API-Key wird **nur über den Namen** geprüft. `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Der Wert wird nicht gelesen, nicht ausgegeben und nirgendwohin gesendet. Welche Variable welcher Provider nutzt, steht unter [Provider](/docs/providers).
@@ -75,6 +79,7 @@ Jeder Fund nennt Datei, Zeile und Spalte. In seinem Text wird Leerraum zusammeng
 verbatra doctor
   [ok  ] Configuration: Loaded /app/verbatra.config.ts.
   [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
+         fix: Wrap each reported literal in a translation call, or suppress it with a `verbatra-ignore-next-line` comment or `extract.literals.ignore`.
     src/components/Header.tsx:12:9  "Welcome back"
     src/pages/settings.tsx:40:22  "Save changes"
     suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
@@ -119,8 +124,10 @@ verbatra doctor
   [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
   [ok  ] Provider: Provider "anthropic" resolves to a factory.
   [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
+         fix: Set ANTHROPIC_API_KEY in the environment or in a .env file in the project directory.
   [ok  ] Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
+         fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
   [ok  ] Plural rules: ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.
   [ok  ] Locale codes: Every configured locale code is in canonical BCP 47 form.
   [ok  ] Locale state: Every locale with state in verbatra.lock.json, verbatra.cache.json, and verbatra.provenance.json is configured.

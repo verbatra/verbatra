@@ -74,6 +74,7 @@ type Envelope<TResult> =
       causeCode?: string; // the code of the error this one wraps, when it has one
       candidates?: string[]; // the values to choose from, on an error that has them
       missing?: string[]; // the flags still to pass, on an init usage error
+      hint?: string; // the next step that resolves the error, when there is one
     };
 ```
 
@@ -86,6 +87,10 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 ```
 
 `command` ist nur dann `null`, wenn der Fehlschlag eintrat, bevor ein Unterbefehl aufgelöst war. `candidates` erscheint nur bei einem Fehler, der dich wählen lässt, etwa `FORMAT_AMBIGUOUS` von `init`, und listet die Werte auf, aus denen du wählst. `missing` erscheint bei einem Verwendungsfehler von `init`, der Flags unbeantwortet lässt, und nennt jedes Flag, das du noch übergeben musst. `causeCode` erscheint, wenn der Fehler einen anderen Fehler mit Code umhüllt, etwa ein `PROVIDER_CONSTRUCTION_FAILED` mit der Ursache `MISSING_API_KEY`; die stderr-Zeile endet dann mit `(cause: MISSING_API_KEY)`.
+
+<AvailableFrom version="0.12.0" />
+
+`hint` erscheint, wenn der Fehler einen nächsten Schritt hat: einen kurzen Satz im Imperativ, der ihn behebt, etwa `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` für einen fehlenden Key oder `` "Run `verbatra check --help` to see the options and arguments it accepts." `` für einen `USAGE_ERROR`. Handle danach, statt `message` zu parsen. Er nennt Variablen, Flags und Pfade, nie den Wert eines Keys. Jeder Code aus dem SDK, von einem Provider und von einem Format-Adapter hat einen (das SDK exportiert denselben Text als [`errorHint`](/docs/sdk#errorhint)), und ebenso jeder Code in der Tabelle unten außer `CLI_ERROR`. Ohne `--json` folgt derselbe Text der Fehlerzeile auf stderr als `next: ...`, außer `--quiet` ist gesetzt.
 
 <AvailableFrom version="0.12.0" />
 
@@ -114,9 +119,9 @@ Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` 
 | `INVALID_SEVERITY` | `check --severity` weder `error` noch `warning` ist |
 | `LAYOUT_AMBIGUOUS` | `init` mehrere Dateimuster gefunden hat, die gleich gut passen; `candidates` listet sie auf |
 | `MISSING_OPTIONS` | `init` nicht fragen konnte (kein Terminal oder `--json`) und ein Wert weder übergeben noch erkannt noch durch `--yes` mit einem Default gefüllt wurde; die Meldung nennt jedes fehlende Flag |
-| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann |
+| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann; sein `hint` nennt das `--help` des Befehls |
 
-Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Eine Klasse von Fehlern folgt dieser Grammatik nicht, weil sie auftritt, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und endet mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst übersieht ein Parser, der allein auf die strukturierte Grammatik setzt, diesen Fall stillschweigend. `init` folgt der strukturierten Grammatik seit 0.12.0; davor gab ein fehlender Provider `verbatra: --provider is required (...)` ohne Code aus. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
+Fehler eines aufgelösten Befehls gehen in beiden Modi unverändert als eine strukturierte Zeile (`verbatra: error [CODE] message`) auf stderr, ein Skript, das Exit-Code und stderr liest, braucht also keine Änderung. Eine Klasse von Fehlern folgt dieser Grammatik nicht, weil sie auftritt, bevor es einen Lauf gibt, der einen Code tragen könnte: ein Fehler beim Parsen der Argumente gibt commanders eigenes `error: unknown option '--nope'` aus, ohne Präfix und ohne Code, und endet mit `2`. Prüfe zuerst den Exit-Code und behandle den Code als optional, sonst übersieht ein Parser, der allein auf die strukturierte Grammatik setzt, diesen Fall stillschweigend. `init` folgt der strukturierten Grammatik seit 0.12.0; davor gab ein fehlender Provider `verbatra: --provider is required (...)` ohne Code aus. Seit 0.12.0 folgt ohne `--json` jeder der beiden Zeilen ein Hinweis als `next: ...`, und mit `--json` schreibt ein Parse-Fehler den `USAGE_ERROR`-Envelope samt `hint` auf stdout. Ohne `--json` schreibt ein fehlgeschlagener Lauf weiterhin überhaupt nichts auf stdout. Datensätze zu Fortschritt und Lock-Wartezeit gehen immer auf stderr, auf stdout stehen also ausschließlich Envelopes.
 
 Der Rest dieses Abschnitts beschreibt das `result`, das jeder Befehl in einen erfolgreichen Envelope legt.
 
@@ -139,7 +144,7 @@ Das `estimate`-Objekt trägt `keys`, `requests`, die Abrechnungsmenge, die der P
 
 Jedes `LocaleSummary` trägt die Key-Listen pro Locale (übersetzt, unverändert, verwaist, zurückgehalten, für Review markiert und mehr); die vollständige Anatomie steht in der [SDK-Referenz](/docs/sdk).
 
-`verbatra watch --json` gibt pro Lauf einen Envelope als NDJSON aus (ein JSON-Objekt pro Zeile), mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit dem `RunSummary` dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit seinem Code und seiner Meldung: dem eigenen Code des Fehlschlags, wo er einen hatte, und sonst `WATCH_RUN_FAILED`. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: Er stoppt weder den Watcher noch ändert er den Exit-Code.
+`verbatra watch --json` gibt pro Lauf einen Envelope als NDJSON aus (ein JSON-Objekt pro Zeile), mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit dem `RunSummary` dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit seinem Code und seiner Meldung: dem eigenen Code des Fehlschlags, wo er einen hatte, und sonst `WATCH_RUN_FAILED`, dazu seinem `hint`, wenn er einen hat. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: Er stoppt weder den Watcher noch ändert er den Exit-Code.
 
 `verbatra check --json` trägt ein Statusdokument. Ohne `--qa` ist das oberste `inSync` genau dann true, wenn der Befehl mit `0` endet; mit `--qa` trägt `qa` die Summen der [Qualitätsprüfung](/docs/cli/check#qualitätsprüfung) und jedes Locale seinen eigenen `qa`-Bericht:
 
@@ -217,6 +222,7 @@ interface DoctorCheck {
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check; never an API key value
 }
 ```
 

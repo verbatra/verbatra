@@ -229,6 +229,10 @@ La vérification `locale-state` est elle aussi informative et passe toujours : s
 
 Entrée : `{ cwd?, configPath?, literals?, onProgress? }`. Avec `literals` activé, `doctor` n'exécute que la vérification `config` et, à la place des autres, une vérification `untranslated-literals` qui parcourt les racines de code du bloc `extract` de la config, comme le fait [`verbatra doctor --literals`](/docs/cli/doctor#littéraux-non-traduits). Aucune config déjà chargée n'est nécessaire : `doctor` la charge lui-même, donc un projet sans aucune config obtient quand même un rapport plutôt qu'une erreur levée. Renvoie un `DoctorResult` dont `ok` est vrai exactement quand aucune vérification n'a échoué. Il lève `CONFIG_NOT_FOUND` uniquement pour un `configPath` explicite qui n'existe pas.
 
+<AvailableFrom version="0.12.0" />
+
+Chaque vérification en échec porte `fix`, une prochaine étape courte à l'impératif comme « Set ANTHROPIC_API_KEY in the environment or in a .env file in the project directory. ». Une vérification réussie ou ignorée n'a pas de `fix`. Comme `detail`, il nomme des variables et des chemins, jamais la valeur d'une clé.
+
 ### extract
 
 <AvailableFrom version="0.11.0" />
@@ -530,6 +534,32 @@ message de notice par locale d'un `RunSummary` nomme déjà ainsi les fichiers d
 au `cwd` de l'exécution ; appelle-la sur le message d'une erreur qu'un flux lève avant de le
 montrer à une personne, à un agent ou à un onglet du navigateur. `verbatra mcp` et Studio font de
 même pour chaque erreur qu'ils renvoient.
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` renvoie la prochaine étape qui résout une erreur levée par verbatra : une
+phrase courte à l'impératif, ou `undefined` quand il n'y en a pas. Chaque code de `SdkError`,
+chaque code de `ProviderError` et chaque code d'erreur d'un adaptateur de format en a une, donc un
+agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l'erreur, donc un
+simple objet `{ code, message }`, comme l'`error` d'une exécution de `watch` en échec, reçoit la
+même indication. Une erreur `PROVIDER_CONSTRUCTION_FAILED` reprend l'indication de l'erreur de
+fournisseur qu'elle enveloppe, donc une clé manquante nomme exactement la variable à définir, lue
+dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une indication est un texte fixe
+plus, au plus, un nom de variable : elle ne contient jamais la valeur d'une clé et ne cite jamais
+le message. L'enveloppe d'erreur `--json` de la CLI la porte sous `hint`, et `verbatra mcp`
+termine avec elle le texte d'un appel en échec.
+
+```ts
+import { errorHint, translate } from "@verbatra/sdk";
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // p. ex. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+}
+```
 
 ## La paire classeur
 
