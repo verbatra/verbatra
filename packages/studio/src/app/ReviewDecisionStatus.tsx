@@ -24,13 +24,37 @@ export type DecisionNotice =
       readonly key: string;
       readonly message: string;
     }
-  | { readonly kind: "batch"; readonly summary: BatchSummary };
+  | { readonly kind: "batch"; readonly summary: BatchSummary }
+  | {
+      readonly kind: "locale-approved";
+      readonly locale: string;
+      readonly approved: number;
+      readonly sourceChanged: number;
+    }
+  | { readonly kind: "locale-failed"; readonly locale: string; readonly message: string };
 
 export const VISIBLE_FAILURE_ENTRIES = 6;
+
+function entries(count: number): string {
+  return `${count} ${count === 1 ? "entry" : "entries"}`;
+}
+
+function localeApprovedText(locale: string, approved: number, sourceChanged: number): string {
+  const saved = `Approved ${entries(approved)} in ${locale}. The decisions are saved in verbatra.provenance.json.`;
+  return sourceChanged === 0
+    ? saved
+    : `${saved} ${entries(sourceChanged)} stayed in the queue because their source changed: edit or retranslate them first.`;
+}
 
 function noticeText(notice: DecisionNotice): string {
   if (notice.kind === "batch") {
     return batchSummaryHeadline(notice.summary);
+  }
+  if (notice.kind === "locale-approved") {
+    return localeApprovedText(notice.locale, notice.approved, notice.sourceChanged);
+  }
+  if (notice.kind === "locale-failed") {
+    return `Could not approve the entries in ${notice.locale}: ${notice.message}`;
   }
   const target = `${notice.key} (${notice.locale})`;
   switch (notice.kind) {
@@ -50,7 +74,9 @@ function noticeText(notice: DecisionNotice): string {
 }
 
 export function noticeFailed(notice: DecisionNotice): boolean {
-  return notice.kind === "batch" ? batchSummaryFailed(notice.summary) : notice.kind === "failed";
+  return notice.kind === "batch"
+    ? batchSummaryFailed(notice.summary)
+    : notice.kind === "failed" || notice.kind === "locale-failed";
 }
 
 function capGroups(

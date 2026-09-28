@@ -31,6 +31,7 @@ export function ReviewRowActions({
   onEdit,
   onRetranslate,
   decisionDisabled = false,
+  approveDisabled = false,
   busy,
   shortcutsActive = false,
   wrap = false,
@@ -40,6 +41,7 @@ export function ReviewRowActions({
   readonly onEdit: () => void;
   readonly onRetranslate?: (() => void) | undefined;
   readonly decisionDisabled?: boolean;
+  readonly approveDisabled?: boolean;
   readonly busy?: RowBusy | undefined;
   readonly shortcutsActive?: boolean;
   readonly wrap?: boolean;
@@ -67,7 +69,7 @@ export function ReviewRowActions({
         variant="secondary-success"
         className="w-24"
         onClick={onApprove}
-        disabled={busy !== undefined || decisionDisabled}
+        disabled={busy !== undefined || decisionDisabled || approveDisabled}
         aria-keyshortcuts={shortcutFor("approve", shortcutsActive)}
       >
         {label("approve", "Approve")}

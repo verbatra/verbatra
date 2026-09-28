@@ -23,24 +23,30 @@ import { ReviewPanel } from "./ReviewPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
 
+const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
+
 const QUEUE: ReviewQueueResult = {
   available: true,
-  version: 1,
-  generatedAt: "2026-05-04T10:15:00.000Z",
   locales: [
     {
       locale: "de",
-      status: "succeeded",
       needsReview: [
-        { key: "checkout.title", reasons: ["EQUALS_SOURCE"] },
-        { key: "checkout.subtitle", reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"] },
+        { key: "checkout.title", reasons: ["EQUALS_SOURCE"], provenance: MACHINE },
+        {
+          key: "checkout.subtitle",
+          reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"],
+          provenance: MACHINE,
+        },
       ],
     },
     {
       locale: "fr",
-      status: "partial",
       needsReview: [
-        { key: "cart.badge", reasons: ["GLOSSARY_TERM_MISSED", "INTEGRITY_REORDERED"] },
+        {
+          key: "cart.badge",
+          reasons: ["GLOSSARY_TERM_MISSED", "INTEGRITY_REORDERED"],
+          provenance: MACHINE,
+        },
       ],
     },
   ],
@@ -206,7 +212,7 @@ describe("ReviewPanel", () => {
     await renderAsync(<ReviewPanel refreshToken={0} />);
 
     expect(rpcCalls).toEqual([
-      { method: "review.queue", params: {} },
+      { method: "review.queue", params: { includeApproved: true } },
       { method: "project.snapshot", params: {} },
       { method: "locale.values", params: {} },
     ]);
@@ -220,10 +226,10 @@ describe("ReviewPanel", () => {
     await flush();
 
     expect(rpcCalls).toEqual([
-      { method: "review.queue", params: {} },
+      { method: "review.queue", params: { includeApproved: true } },
       { method: "project.snapshot", params: {} },
       { method: "locale.values", params: {} },
-      { method: "review.queue", params: {} },
+      { method: "review.queue", params: { includeApproved: true } },
       { method: "locale.values", params: {} },
     ]);
   });
@@ -242,22 +248,20 @@ describe("ReviewPanel", () => {
     expect(view.query("table")).toBeNull();
   });
 
-  it("invites a first run, not an error, when no snapshot has ever been persisted", async () => {
-    stubReview({ available: false });
+  it("explains an unreadable provenance file instead of showing an empty queue", async () => {
+    stubReview({ available: false, reason: "provenance-unreadable" });
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    expect(view.text()).toContain("No run recorded yet");
-    expect(view.text()).toContain("to populate this queue.");
+    expect(view.text()).toContain("Review state cannot be read");
+    expect(view.text()).toContain("verbatra.provenance.json is corrupt");
     expect(view.query('[role="alert"]')).toBeNull();
   });
 
   it("reports an all-clear when the run flagged nothing", async () => {
     stubReview({
       available: true,
-      version: 1,
-      generatedAt: "2026-05-04T10:15:00.000Z",
-      locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
+      locales: [{ locale: "de", needsReview: [] }],
     });
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
@@ -279,7 +283,10 @@ describe("ReviewPanel", () => {
     stubReview();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
-    const chips = view.all("tbody span.rounded-sm").map((chip) => chip.textContent);
+    const chips = view
+      .all("tbody span.rounded-sm")
+      .map((chip) => chip.textContent)
+      .filter((text) => !text?.includes("Origin:"));
 
     expect(chips).toEqual([
       "Matches source text",
@@ -375,7 +382,8 @@ describe("ReviewPanel", () => {
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
 
-    expect(view.all("option").map((option) => option.textContent)).toEqual([
+    expect(localeFilter(view).querySelectorAll("option").length).toBe(3);
+    expect([...localeFilter(view).options].map((option) => option.textContent)).toEqual([
       "All locales",
       "de",
       "fr",
@@ -588,13 +596,10 @@ describe("ReviewPanel", () => {
   it("gives a right-to-left value its own direction, isolates its tokens, and starts it at the key's edge", async () => {
     const arQueue: ReviewQueueResult = {
       available: true,
-      version: 1,
-      generatedAt: "2026-05-04T10:15:00.000Z",
       locales: [
         {
           locale: "ar",
-          status: "succeeded",
-          needsReview: [{ key: "order.ready", reasons: ["EQUALS_SOURCE"] }],
+          needsReview: [{ key: "order.ready", reasons: ["EQUALS_SOURCE"], provenance: MACHINE }],
         },
       ],
     };
@@ -814,17 +819,21 @@ describe("ReviewPanel", () => {
     expect(rowKeys(view)).toHaveLength(3);
   });
 
-  it("hides the row and closes the editor once the server accepts the edit", async () => {
+  it("closes the editor and re-reads the queue, which drops the row a person rewrote", async () => {
     stubReview();
 
     const view = await renderAsync(<ReviewPanel refreshToken={0} />);
     await openEditor(view, "checkout.title");
-    stubRpc({ "translation.editEntry": { ok: true, result: { accepted: true, value: "Kasse" } } });
+    stubRpc({
+      "translation.editEntry": { ok: true, result: { accepted: true, value: "Kasse" } },
+      "review.queue": queueAnswer(without("checkout.title")),
+    });
     await clickAsync(view.getByText("button", "Save"));
+    await flush();
 
     expect(view.query('[role="dialog"]')).toBeNull();
     expect(rowKeys(view)).toEqual(["checkout.subtitle", "cart.badge"]);
-    expect(rpcCalls.at(-1)).toEqual({
+    expect(rpcCalls).toContainEqual({
       method: "translation.editEntry",
       params: { locale: "de", key: "checkout.title", value: "Kasse" },
     });
@@ -1699,6 +1708,7 @@ describe("ReviewPanel: review workflow", () => {
     pressKey("j");
     pressKey("e");
     await flush();
+    stubRpc({ "review.queue": queueAnswer(without("checkout.title")) });
 
     await clickAsync(view.getByText("button", "Save"));
     await flush();
@@ -1792,5 +1802,150 @@ describe("ReviewPanel: retranslations the server is still running", () => {
       "cart.badge (fr) is already being retranslated",
     );
     expect(busyRetranslate(view, "cart.badge")).toBeDefined();
+  });
+});
+
+const MIXED_QUEUE: ReviewQueueResult = {
+  available: true,
+  locales: [
+    {
+      locale: "de",
+      needsReview: [
+        { key: "checkout.title", reasons: [], provenance: MACHINE },
+        {
+          key: "checkout.subtitle",
+          reasons: [],
+          provenance: { origin: "fuzzy", reviewState: "unreviewed" },
+        },
+      ],
+      approved: [
+        {
+          key: "cart.total",
+          reasons: [],
+          provenance: { origin: "agent", reviewState: "approved", reviewer: "mk" },
+        },
+      ],
+    },
+    { locale: "fr", needsReview: [{ key: "cart.badge", reasons: [], provenance: MACHINE }] },
+  ],
+};
+
+function facetSelect(view: RenderResult, label: string): HTMLSelectElement {
+  const element = view.get(`select[aria-label="${label}"]`);
+  if (!(element instanceof HTMLSelectElement)) {
+    throw new Error(`${label} is not a select element`);
+  }
+  return element;
+}
+
+function approveAllButton(view: RenderResult): HTMLButtonElement | null {
+  const element = view.query("[data-approve-locale]");
+  return element instanceof HTMLButtonElement ? element : null;
+}
+
+describe("ReviewPanel: origin and review state", () => {
+  it("shows each entry's origin next to its reasons", async () => {
+    stubReview(MIXED_QUEUE);
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    expect(view.all("tbody tr")[1]?.textContent).toContain("Fuzzy match");
+  });
+
+  it("narrows the queue to one origin", async () => {
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    selectOption(facetSelect(view, "Filter by origin"), "fuzzy");
+
+    expect(rowKeys(view)).toEqual(["checkout.subtitle"]);
+  });
+
+  it("lists the approved values under the Approved state, where Approve is off and Reject stays", async () => {
+    stubDecisionReady();
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+
+    selectOption(facetSelect(view, "Filter by review state"), "approved");
+
+    expect(rowKeys(view)).toEqual(["cart.total"]);
+    expect(rowAction(view, "cart.total", "Approve").hasAttribute("disabled")).toBe(true);
+    expect(approveAllButton(view)).toBeNull();
+  });
+
+  it("offers to approve a whole locale once one is chosen, and saves it through review.approveLocale", async () => {
+    stubReview(MIXED_QUEUE);
+    stubRpc({
+      "review.approveLocale": {
+        ok: true,
+        result: {
+          locale: "de",
+          approved: ["checkout.title"],
+          sourceChanged: ["checkout.subtitle"],
+        },
+      },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    expect(approveAllButton(view)).toBeNull();
+
+    selectOption(localeFilter(view), "de");
+    const button = approveAllButton(view);
+    expect(button?.textContent).toBe("Approve all in de (2)…");
+    await clickAsync(button as HTMLButtonElement);
+    expect(view.get('[role="dialog"]').textContent).toContain(
+      "Every entry of de that needs review",
+    );
+    await clickAsync(view.getByText("button", "Approve 2 entries"));
+    await flush();
+
+    expect(rpcCalls).toContainEqual({ method: "review.approveLocale", params: { locale: "de" } });
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(view.get("[data-decision-status]").textContent).toBe(
+      "Approved 1 entry in de. The decisions are saved in verbatra.provenance.json. 1 entry stayed in the queue because their source changed: edit or retranslate them first.",
+    );
+  });
+
+  it("approves only the chosen origin, and reports a failure", async () => {
+    stubReview(MIXED_QUEUE);
+    stubRpc({ "review.approveLocale": rpcError("LOCK_CONTENDED", "the locale is locked") });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    selectOption(localeFilter(view), "de");
+    selectOption(facetSelect(view, "Filter by origin"), "fuzzy");
+
+    await clickAsync(approveAllButton(view) as HTMLButtonElement);
+    expect(view.get('[role="dialog"]').textContent).toContain("written by fuzzy match");
+    await clickAsync(view.getByText("button", "Approve 1 entry"));
+    await flush();
+
+    expect(rpcCalls).toContainEqual({
+      method: "review.approveLocale",
+      params: { locale: "de", origins: ["fuzzy"] },
+    });
+    expect(view.get("[data-decision-status]").textContent).toBe(
+      "Could not approve the entries in de: the locale is locked",
+    );
+  });
+
+  it("closes the approve-all dialog on Cancel without saving anything", async () => {
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    selectOption(localeFilter(view), "de");
+
+    await clickAsync(approveAllButton(view) as HTMLButtonElement);
+    await clickAsync(view.getByText("button", "Cancel"));
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(rpcCalls.map((call) => call.method)).not.toContain("review.approveLocale");
+  });
+
+  it("clears every facet with Clear filters", async () => {
+    stubReview(MIXED_QUEUE);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    selectOption(facetSelect(view, "Filter by origin"), "agent");
+    expect(rowKeys(view)).toEqual([]);
+
+    await clickAsync(view.getByText("button", "Clear filters"));
+
+    expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle", "cart.badge"]);
   });
 });

@@ -50,7 +50,7 @@ Open the printed URL; the token is required. Add `--verbose` to also print one s
 ## What it serves
 
 - **Translations**: per-locale status, the diff, and lock drift, filterable by state, locale, review queue entries, and integrity problems, down to a per-key detail view with the source value, its source file description, every target's current translation, and who wrote it.
-- **Review**: the needs-review queue of flagged translations, worked from the keyboard or in bulk: approve, reject, or edit an entry side by side with its source, context, glossary terms, and integrity check. Approve and Reject decisions are saved to `verbatra.provenance.json`.
+- **Review**: every translation a provider, the translation memory, or an agent wrote that nobody has approved yet, read from the committed files so the whole team sees the same queue, filterable by locale, origin, and review state, and worked from the keyboard, in bulk, or a whole locale at once: approve, reject, or edit an entry side by side with its source, context, glossary terms, and integrity check. Approve and Reject decisions are saved to `verbatra.provenance.json`, which `verbatra check --require-reviewed` gates on.
 - **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
 - **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here, with the new state shown as soon as the write lands.
 
