@@ -2,7 +2,7 @@
 title: Language support
 description: Which languages verbatra can translate, how locale codes reach each provider, and how plurals, scripts, regional variants and right-to-left text are handled.
 ---
-verbatra has no language list of its own. It accepts any valid BCP 47 locale code, reads and writes the strings of every language the same way, and leaves the translation itself to the provider you configure. So the answer to "which languages can I use?" is: every language your provider supports, and for a human-only project every language at all.
+verbatra has no language list of its own. It accepts any valid BCP 47 locale code, reads and writes the strings of every language the same way, and leaves the translation itself to the provider you configure. So the answer to "which languages can I use?" is: every language your provider supports, and for a human-only project every language at all. For DeepL and Google Cloud Translation, verbatra ships a dated copy of the provider's own language table, so it can tell you before a run spends anything (see [Checking support before a run](#checking-support-before-a-run)).
 
 This page covers what verbatra does with a locale code, where the provider decides, and the limits that apply today.
 
@@ -16,7 +16,7 @@ The code from your config is the one verbatra uses everywhere it stores somethin
 
 ## Coverage by provider
 
-Which languages translate, and how well, is decided by the provider. verbatra does not copy the vendors' lists, because they change; each row links to the vendor's own.
+Which languages translate, and how well, is decided by the provider; each row links to the vendor's own list. verbatra's copy of the DeepL and Google lists is dated and only used to check your config before a run.
 
 | Provider | Languages | Code sent | Glossary | Tone |
 | --- | --- | --- | --- | --- |
@@ -24,14 +24,14 @@ Which languages translate, and how well, is decided by the provider. verbatra do
 | `openai` | No fixed list. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | As written, plus names | Locale terms in the prompt | In the prompt |
 | `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | As written, plus names | Locale terms in the prompt | In the prompt |
 | `openai-compatible` | Whatever the model you run covers | As written, plus names | Locale terms in the prompt | In the prompt |
-| `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Normalized to DeepL's codes | A pre-created DeepL glossary by `glossaryId` only | DeepL formality, not on a free-tier key |
+| `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Normalized to DeepL's codes | A pre-created DeepL glossary by `glossaryId` only, for 32 languages | DeepL formality for some languages, not on a free-tier key |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (the NMT list applies to the Basic, v2 tier verbatra uses) | Normalized for Chinese and Norwegian, otherwise as written | None | None |
 | `none` | Not applicable: no provider is called | Nothing is sent | Not applicable | Not applicable |
 
 What the columns mean in practice:
 
 - **LLM providers** (Anthropic, OpenAI, Gemini, openai-compatible) have no closed language list. They attempt any language you name, and quality falls off for languages with less training data, so a lower-resource target deserves a human review. [Review flags](/docs/translation-safety#review-flags) such as `EQUALS_SOURCE` and `LENGTH_RATIO_OUTLIER` point at the most suspicious results.
-- **DeepL and Google Cloud Translation** have a closed list. A language or pair they do not support fails that sub-batch with a structured error; the keys are withheld and picked up again on the next run. Both also withhold strings that contain placeholders or ICU syntax, with a `PLACEHOLDER_UNSUPPORTED` notice, so a catalog full of placeholders needs an LLM provider whatever the language.
+- **DeepL and Google Cloud Translation** have a closed list. A language they do not list is refused before the run starts, with `LOCALE_UNSUPPORTED_BY_PROVIDER` (see below). Both also withhold strings that contain placeholders or ICU syntax, with a `PLACEHOLDER_UNSUPPORTED` notice, so a catalog full of placeholders needs an LLM provider whatever the language.
 - A `tone` or `glossary` a provider cannot honor is reported as a notice (`FORMALITY_DOWNGRADED`, `GLOSSARY_IGNORED`), never dropped silently. See [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
 
 ### How each provider receives the code
@@ -43,6 +43,38 @@ What the columns mean in practice:
 - **LLM providers** get the code as written, plus the English name of the language, and of its script and region when the code has them. The model is told to write in that script and regional variant. See [Language, script and region names](/docs/translation-safety#language-script-and-region-names).
 
 When the built-in mapping is not what you want, `localeMap` in the provider's `options` sets the exact code per locale, for example `"en-AU": "EN-GB"` for DeepL. The full mapping table and the rules for `localeMap` are on [Providers](/docs/providers#locale-codes-sent-to-the-provider).
+
+## Checking support before a run
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra doctor`](/docs/cli/doctor#locale-support) checks every configured locale against the provider without calling it, and `verbatra doctor --locales` lists the verdict per target locale:
+
+```text
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+Each locale gets one of three verdicts:
+
+- **supported**: the code verbatra sends is on the provider's table, or the provider is an LLM.
+- **unverified**: the code is not on the table but may still work, because only its base language is listed (Google gets `de-AT` as written where its table has `de`), or because it comes from an explicit `localeMap` entry. It is translated, with the warning `LOCALE_UNVERIFIED_BY_PROVIDER`.
+- **unsupported**: neither the code nor its base language is listed. `translate`, `watch`, and a single-key retranslation refuse the whole run with `LOCALE_UNSUPPORTED_BY_PROVIDER` before anything is spent, and `doctor` fails its Locale support check.
+
+A whole run is refused, not just the one locale, so a pipeline never ends up half translated because of a config mistake. To go ahead with the other locales, leave the unsupported one out with `--locales`, or remove it from `targetLocales`. If the provider has added the language since the table's date, map the locale in `provider.options.localeMap`: an explicit entry is trusted and sent as written. `verbatra doctor --live` checks against the provider's current list, when its key is set.
+
+The shipped tables, and the date on each:
+
+| Provider | Table | Glossary | Formality |
+| --- | --- | --- | --- |
+| DeepL | 125 codes from [DeepL's supported languages](https://developers.deepl.com/docs/getting-started/supported-languages), 2026-09-28 | 32 languages; both languages of a pair must be listed | `DE`, `ES`, `ES-419`, `FR`, `IT`, `JA`, `NL`, `PL`, `PT-BR`, `PT-PT`, `RU`, and the regional variants of these languages |
+| Google Cloud Translation | 198 codes from the NMT list on [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages), 2026-09-28 | None at the Basic tier | None at the Basic tier |
+
+LLM providers accept any language, so no locale is refused for them. A target outside this conservative list of languages that LLM providers are known to translate well gets the warning `LOCALE_NOT_WELL_TESTED`, as a nudge to review its output: Arabic (`ar`), Chinese (`zh`), Dutch (`nl`), English (`en`), French (`fr`), German (`de`), Hindi (`hi`), Indonesian (`id`), Italian (`it`), Japanese (`ja`), Korean (`ko`), Polish (`pl`), Portuguese (`pt`), Russian (`ru`), Spanish (`es`), Swedish (`sv`), Turkish (`tr`), Ukrainian (`uk`), and Vietnamese (`vi`). The list matches the base language, so `pt-BR` and `zh-Hant` count as well tested. A human-only project (`provider: { id: "none" }`) calls no provider, so nothing is checked.
 
 ## Scripts and regional variants
 

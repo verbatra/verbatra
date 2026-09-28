@@ -55,7 +55,9 @@ actions de retraduction et de traduction des clés en attente dans Studio et le 
 et le serveur MCP ne proposent ces actions que si tu les lances avec `--allow-spend`. Tout le
 reste, dont `check`, `diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`,
 `translate --dry-run` et `translate --estimate`, travaille sur des fichiers locaux et n'envoie
-rien.
+rien. La seule exception est `verbatra doctor --live`, qui demande à DeepL ou à Google Cloud
+Translation sa liste de langues actuelle, en envoyant ta clé d'API et rien de ton projet, et ne
+consomme aucun quota de traduction.
 
 Une exécution de `translate` n'envoie que les clés absentes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins toutes celles que la
@@ -70,8 +72,8 @@ Voir [Protéger les traductions humaines](/docs/protecting-human-translations#de
 Chaque requête commence par une résolution DNS du nom d'hôte du fournisseur via le résolveur de ton
 système, qui voit donc ce nom. Avec une [politique réseau](/docs/network-policy) `local-only` ou
 `allowlist`, verbatra résout aussi le nom lui-même pour le vérifier, sauf s'il s'agit d'une adresse
-IP ou d'un nom listé dans `allowedHosts`. `verbatra doctor`, les exécutions à blanc et les
-estimations ne résolvent rien.
+IP ou d'un nom listé dans `allowedHosts`. `verbatra doctor` sans `--live`, les exécutions à blanc
+et les estimations ne résolvent rien.
 
 ## Ce que reçoit chaque fournisseur
 

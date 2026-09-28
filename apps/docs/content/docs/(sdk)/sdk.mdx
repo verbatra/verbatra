@@ -267,8 +267,8 @@ None of these call a provider, write a file, or mutate the lock.
 <AvailableFrom version="0.9.0" />
 
 Validates the project setup and spends nothing: it constructs no provider, makes no network
-request, and never reads an API key value. Ten checks run, each with its own `pass`, `fail`, or
-`skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
+request unless `live` asks for one, and never reads an API key value. Eleven checks run, each with
+its own `pass`, `fail`, or `skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
 adapter (`format-adapter`), the configured provider ID resolves to a factory (`provider`), the
 environment variable that provider reads its key from is set (`api-key`), and the source locale file
 can be read (`source-file`). Every check runs even when an earlier one
@@ -306,7 +306,20 @@ locale the lock file, the translation memory, or the provenance file holds state
 does not list, such as `pt_BR` left behind after a respelling to `pt-BR`, and says whether the next
 `translate` run carries it over. A file it cannot read is named in the detail.
 
-Input: `{ cwd?, configPath?, literals?, onProgress? }`. With `literals` set, `doctor` runs only the `config`
+<AvailableFrom version="0.12.0" />
+
+The `locales` check judges the source locale and every target locale against the configured
+provider's language support, the same judgement `translate` makes before it spends anything. It
+fails on a locale the provider does not support and passes with warnings otherwise; it is `skipped`
+for the `none` provider. The per-locale verdicts travel in `DoctorResult.locales`, a
+`LocaleCapabilityReport` with the code each locale is sent as, its `support` (`supported`,
+`unverified`, or `unsupported`), `glossary` and `formality` flags, and its warnings. With
+`live: true`, `doctor` first fetches the provider's current language list (DeepL's `/v3/languages`,
+Cloud Translation's `languages`), which uses no translation quota, when the provider's key variable
+is set and the network policy permits its host; `LocaleCapabilityReport.live` says how that went.
+See [Language support](/docs/language-support#checking-support-before-a-run).
+
+Input: `{ cwd?, configPath?, literals?, live?, onProgress? }`. With `literals` set, `doctor` runs only the `config`
 check and an `untranslated-literals` check instead, scanning the source roots of the config's
 `extract` block, as [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) does. No
 loaded config needed: `doctor` loads it itself, so a project with no config at all still gets a
@@ -1455,8 +1468,8 @@ The parts worth knowing:
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
   `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
-  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read or created, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
-  grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was). The
+  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read or created, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
+  grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was), and, from 0.12.0, the four warnings of the locale support check, raised before anything is spent and on a dry run too: `LOCALE_UNVERIFIED_BY_PROVIDER` (the code sent is not on the provider's table, only its base language is or it comes from `localeMap`), `LOCALE_NOT_WELL_TESTED` (an LLM target outside the well-tested list), `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, and `FORMALITY_UNSUPPORTED_BY_PROVIDER` (a glossary or tone the provider cannot apply for the locale). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.
 - **usage** is `undefined`, never a fabricated zero, whenever nothing in that scope reported usage:
@@ -1555,6 +1568,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` refused its output path: one that resolves outside `cwd`, and one that, or a file the export would write into it, names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; an `xlsx` path that names no file or names `cwd` itself is refused too; refused before anything is read |
 | `EXPORT_UNWRITABLE` | the handoff `exportWorkbook` produces could not be written (its directory is not writable, a directory or file is in the way, or the disk is out of space); the message names the file and the file-system code, and the file-system error is the `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | thrown by `editEntry`, `retranslateEntry`, `approveEntry`, and `rejectEntry`, which write nothing then, and otherwise recorded on the `error` of a locale `translate`, `watch`, or `importWorkbook` did not run because its state under a respelled code such as `pt_BR` could not be moved to it in the lock file or the provenance file; the next run tries again ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)) |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | the configured DeepL or Google Cloud Translation provider does not list the source locale or a selected target locale in the language table verbatra ships; thrown by `translate` (a dry run and an estimate too), `watch` at startup, and `retranslateEntry`, before any provider is built, any key read, or any locale started; a locale mapped explicitly in `localeMap` is trusted instead ([Language support](/docs/language-support#checking-support-before-a-run)) |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
 A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a

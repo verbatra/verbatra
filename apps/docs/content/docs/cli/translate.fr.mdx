@@ -102,7 +102,7 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 | --- | --- |
 | `0` | chaque locale cible est ressortie complète |
 | `1` | l'exécution est allée au bout mais une ou plusieurs locales ont échoué ou sont ressorties partielles |
-| `2` | impossible de s'exécuter : une erreur globale (config, source, format, fournisseur ou fichier de verrou corrompu) ou une erreur d'utilisation |
+| `2` | impossible de s'exécuter : une erreur globale (config, source, format, fournisseur, locale que le fournisseur ne prend pas en charge ou fichier de verrou corrompu) ou une erreur d'utilisation |
 | `3` | projet 100 % humain (`provider: { id: "none" }`) : l'exécution s'est terminée proprement, mais des clés attendent une traduction humaine |
 | `130` | interrompu avec Ctrl-C (SIGINT) ; les verrous d'écriture de l'exécution sont libérés d'abord, et stderr se termine par `verbatra: interrupted (SIGINT), released locks`, ou sous `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
 | `143` | arrêté avec SIGTERM ; les verrous d'écriture de l'exécution sont libérés d'abord, et stderr se termine par `verbatra: interrupted (SIGTERM), released locks`, ou sous `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
@@ -112,6 +112,10 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 Une locale qui échoue n'est pas fatale : l'exécution se termine, sort avec `1`, et le détail par locale se trouve dans le résumé. Une locale **partielle** sort avec `1` elle aussi. C'est une locale dont le fichier a été écrit mais où des clés manquent encore, typiquement parce qu'un sous-lot du fournisseur a échoué ou que la barrière d'intégrité a refusé une traduction, et la livrer comme un succès laisserait passer inaperçu un fichier à moitié traduit dans ton dépôt. Une locale dont le verrou d'écriture est resté disputé au-delà de `--lock-timeout` échoue avec `LOCK_CONTENDED` et sort avec `1` de la même façon.
 
 La sortie lisible liste chaque clé que la [barrière d'intégrité](/docs/translation-safety) a refusée sous `integrity-withheld`, une par ligne, avec la raison (`placeholder`, `markup`, `icu`, `degenerate` ou `empty`) et, quand la vérification sait les nommer, les placeholders, balises ou branches de pluriel ICU en cause. Une locale dont toutes les clés ont été refusées affiche `failed` suivi des mêmes compteurs que toute autre locale. Avec `--json`, chaque locale porte les mêmes raisons dans `integrityRefusals`.
+
+<AvailableFrom version="0.12.0" />
+
+Une locale que le fournisseur DeepL ou Google Cloud Translation configuré ne prend pas en charge fait exception : elle est détectée avant le début de l'exécution, donc toute l'exécution est refusée avec `LOCALE_UNSUPPORTED_BY_PROVIDER` et le code de sortie `2`, aussi en exécution à blanc et avec `--estimate`, et aucune locale n'est démarrée ni payée. Passe les autres locales avec `--locales` pour les traduire, ou vois [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) pour la correction. Un glossaire ou un ton que le fournisseur ne peut pas appliquer pour une locale ne refuse rien : il est signalé comme avis sur cette locale (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), tout comme `LOCALE_UNVERIFIED_BY_PROVIDER` et, pour un fournisseur LLM, `LOCALE_NOT_WELL_TESTED`.
 
 <AvailableFrom version="0.12.0" />
 

@@ -8,7 +8,7 @@ verbatra es una dependencia de desarrollo, así que los comandos que ejecutas en
 
 - **Bloquea un pull request** con [`verbatra check`](/docs/cli/check) o [`verbatra diff`](/docs/cli/diff), ya sea directamente (esta página) o a través de la [GitHub Action](/docs/github-action) con `command: check` o `command: diff`. Ambos son de solo lectura: sin llamada al proveedor, sin clave de API, salen con `1` si hay desfase.
 - **Traduce en cada push** con [`verbatra translate`](/docs/cli/translate), ya sea directamente (esta página) o a través de la [GitHub Action](/docs/github-action).
-- **Haz una comprobación previa de cualquiera de los dos** con [`verbatra doctor`](/docs/cli/doctor). Es el paso más barato de todos: valida la configuración, el formato, el proveedor, la variable de la clave, la política de red y el archivo de origen, añade tres informes meramente informativos (reglas de plural, códigos de locale y estado de locale sobrante) que nunca fallan, nunca llama a un proveedor y nunca lee el valor de una clave. Además sigue dando un informe en un proyecto cuyos archivos de locale todavía no están en su sitio, donde los demás comandos solo pueden fallar por completo.
+- **Haz una comprobación previa de cualquiera de los dos** con [`verbatra doctor`](/docs/cli/doctor). Es el paso más barato de todos: valida la configuración, el formato, el proveedor, la variable de la clave, la política de red, el archivo de origen y si el proveedor admite cada locale configurado, añade tres informes meramente informativos (reglas de plural, códigos de locale y estado de locale sobrante) que nunca fallan, nunca llama a un proveedor y nunca lee el valor de una clave. Además sigue dando un informe en un proyecto cuyos archivos de locale todavía no están en su sitio, donde los demás comandos solo pueden fallar por completo.
 
 ## Los códigos de salida
 
@@ -18,7 +18,7 @@ El código de salida es el contrato sobre el que tu paso de CI toma su decisión
 | --- | --- |
 | `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `extract` completó su análisis, `types` generó su declaración, `export` escribió su libro, `tmx` importó o exportó su memoria de traducción, `init` preparó el proyecto o lo encontró ya al día, `watch`, `studio` o `mcp` se detuvo limpiamente, o se imprimió `--help` o `--version` |
 | `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado (o, con `--qa`, una traducción confirmada con un error de integridad o, con `--strict`, con una advertencia de revisión o un plural incompleto), `diff` encontró una clave ausente o cambiada (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró al menos una comprobación fallida, `types --check` encontró que la declaración confirmada está desactualizada, o `studio` o `mcp` falló al apagar su servidor |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración incorrecta, origen ilegible, archivo de bloqueo corrupto), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` al que le falta un flag que necesita, que encuentra varios formatos o patrones de archivo que encajan, que se niega a sobrescribir una configuración existente o que es incapaz de generar una configuración válida, un arranque o una parada fallidos de `watch`, `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor, o `mcp` incapaz de cargar la configuración, de importar `@verbatra/mcp` o de arrancar su servidor |
+| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración incorrecta, origen ilegible, archivo de bloqueo corrupto, un locale que el proveedor no admite), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` al que le falta un flag que necesita, que encuentra varios formatos o patrones de archivo que encajan, que se niega a sobrescribir una configuración existente o que es incapaz de generar una configuración válida, un arranque o una parada fallidos de `watch`, `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor, o `mcp` incapaz de cargar la configuración, de importar `@verbatra/mcp` o de arrancar su servidor |
 | `3` | `translate` en un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) terminó sin errores, pero dejó claves para una traducción humana |
 | `130` | `translate` o `import` se interrumpió con Ctrl-C (SIGINT) tras liberar sus bloqueos de escritura, o `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
 | `143` | `translate` o `import` se detuvo con SIGTERM tras liberar sus bloqueos de escritura |
@@ -28,6 +28,7 @@ Algunos casos límite que conviene conocer:
 <AvailableFrom version="0.9.0" />
 
 - Un locale **parcial** cuenta como fallo. Significa que el archivo se escribió pero todavía faltan algunas claves, normalmente porque un sublote del proveedor falló o la puerta de integridad rechazó una traducción. Sale con `1` exactamente igual que un locale fallido, porque un locale a medio traducir en disco no es un estado que una canalización deba dejar pasar. Lee `partial` en el resumen para distinguir los dos casos. Un sublote fallido deja en el locale un aviso `SUB_BATCH_FAILED` que nombra el código de error del proveedor, o `PROVIDER_CALL_FAILED` cuando el fallo no fue un error estructurado del proveedor.
+- Un **locale que el proveedor no admite** también es un error de toda la ejecución, nunca un único locale fallido. `translate` (incluidos un dry run y `--estimate`), `watch` al arrancar y la retraducción de una sola clave lo rechazan con `LOCALE_UNSUPPORTED_BY_PROVIDER` y salen con `2` antes de construir ningún proveedor o gastar nada, así que ningún locale de la ejecución ha empezado y no se ha escrito nada. Se evalúa contra la tabla de idiomas que verbatra incluye para DeepL y Google Cloud Translation; un proveedor LLM acepta cualquier locale. Deja fuera ese locale con `--locales` para traducir los demás, y ejecuta [`verbatra doctor --locales`](/docs/cli/doctor#soporte-de-locales) para ver por qué. Consulta [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
 - Un **archivo de bloqueo corrupto** es un error de toda la ejecución tanto en `translate` como en `import`, nunca un único locale fallido. Es un solo archivo compartido, así que un archivo de bloqueo que se corrompe con la ejecución en marcha la detiene con `2` en vez de seguir con los locales restantes. Lo que se escribió antes del corte permanece en disco: repara el archivo de bloqueo y vuelve a ejecutar el comando.
 - Una sola interrupción es una parada limpia, y los tres comandos de larga duración (`watch`, `studio` y `mcp`) salen con `0` ante ella. Más allá de eso no des por hecho que se comportan igual: si la propia parada falla, `watch` sale con `2` mientras que `studio` y `mcp` salen con `1`.
 - Una ejecución fallida durante `watch` aparece como un registro en el flujo de salida, nunca como un código de salida distinto de cero.
@@ -116,7 +117,7 @@ La CLI lanza estos códigos por sí misma. La misma lista se publica como `CLI_E
 | `INVALID_LOCALES` | se dio `--locales` pero no lista ningún locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` no es un número entero de segundos de 1 a 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` no es un número entero de al menos 1 |
-| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, o `init --cwd` no nombra un directorio existente |
+| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals` |
 | `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
 | `INVALID_PORT` | `studio --port` no es un entero de 1 a 65535 |
 | `INVALID_PROVIDER` | `init --provider` no nombra ningún proveedor conocido |
@@ -211,6 +212,8 @@ interface LocaleDiff {
 interface DoctorResult {
   ok: boolean;                 // true exactly when the command exits 0
   checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals; see verbatra doctor
+  locales?: LocaleCapabilityReport; // per-locale provider support; see verbatra doctor
 }
 
 interface DoctorCheck {
@@ -225,6 +228,7 @@ interface DoctorCheck {
     | "plural-completeness"
     | "locale-codes"
     | "locale-state"
+    | "locales"
     | "untranslated-literals";
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
@@ -232,6 +236,8 @@ interface DoctorCheck {
   fix?: string;                // the next step, only on a failed check; never an API key value
 }
 ```
+
+La comprobación `locales` falla con un locale que el proveedor configurado no admite, el mismo locale que `translate` rechaza con `LOCALE_UNSUPPORTED_BY_PROVIDER`, y `result.locales` lleva el veredicto de cada locale; la forma está en [verbatra doctor](/docs/cli/doctor#soporte-de-locales).
 
 ## Un job de GitHub Actions con la CLI
 

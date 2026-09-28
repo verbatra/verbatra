@@ -51,7 +51,9 @@ These can call a provider: `translate` and `watch`, the SDK's `retranslateEntry`
 retranslate and translate-pending actions in Studio and the MCP server. Studio and the MCP server
 offer those actions only when you start them with `--allow-spend`. Everything else, including `check`, `diff`,
 `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`, `translate --dry-run` and
-`translate --estimate`, works from local files and sends nothing.
+`translate --estimate`, works from local files and sends nothing. The one exception is
+`verbatra doctor --live`, which asks DeepL or Google Cloud Translation for its current language
+list, sending your API key and nothing from your project, and uses no translation quota.
 
 A `translate` run sends only the keys that are missing or changed against
 [the lock file](/docs/the-lock-file), minus every key the [translation memory](/docs/the-cache)
@@ -65,7 +67,7 @@ the locale file. A pinned key is never sent. See
 Every request starts with a DNS lookup of the provider's host name through your system's resolver,
 so the resolver sees that name. Under a `local-only` or `allowlist` [network policy](/docs/network-policy),
 verbatra also resolves the name itself to check it, unless it is an IP address or listed by name in
-`allowedHosts`. `verbatra doctor`, dry runs and estimates resolve nothing.
+`allowedHosts`. `verbatra doctor` without `--live`, dry runs and estimates resolve nothing.
 
 ## What each provider receives
 

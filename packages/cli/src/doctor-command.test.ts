@@ -438,3 +438,162 @@ describe("run doctor: the informational locale-codes check", () => {
     }
   });
 });
+
+function localesReport(): DoctorResult {
+  return makeDoctorResult({
+    ok: false,
+    checks: [
+      {
+        id: "locales",
+        title: "Locale support",
+        status: "fail",
+        detail:
+          'Provider "deepl", language table of 2026-09-28 (static): 1 of 2 target locales ' +
+          'supported, 0 unverified; unsupported: "chr". 1 warning.',
+      },
+    ],
+    locales: {
+      provider: "deepl",
+      coverage: "listed",
+      tableVersion: "2026-09-28",
+      tableOrigin: "live",
+      live: { status: "refreshed", detail: "Fetched 2 languages from api.deepl.com." },
+      source: {
+        locale: "en-US",
+        providerCode: "EN",
+        mapped: true,
+        support: "supported",
+        warnings: [],
+      },
+      locales: [
+        {
+          locale: "sv",
+          providerCode: "SV",
+          mapped: false,
+          support: "supported",
+          glossary: true,
+          formality: false,
+          warnings: [
+            {
+              code: "FORMALITY_UNSUPPORTED_BY_PROVIDER",
+              message: 'Provider "deepl" has no formality control for "sv".',
+            },
+          ],
+        },
+        {
+          locale: "chr",
+          providerCode: "CHR",
+          mapped: false,
+          support: "unsupported",
+          glossary: false,
+          formality: false,
+          warnings: [],
+        },
+      ],
+    },
+  });
+}
+
+describe("run doctor --locales and --live", () => {
+  it("prints the per-locale provider report under --locales", async () => {
+    const { deps, calls } = recordingDeps({ doctor: async () => localesReport() });
+    const cap = captureStreams();
+
+    const code = await run(["doctor", "--locales", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(code).toBe(1);
+    expect(calls.doctor).toEqual([{ cwd: "/proj" }]);
+    expect(cap.out()).toContain(
+      "  locale support (deepl, language table of 2026-09-28, live)\n" +
+        "    live language list refreshed: Fetched 2 languages from api.deepl.com.\n" +
+        "    en-US  sent as EN (localeMap)  source, supported\n" +
+        "    sv  sent as SV  supported  glossary: yes  formality: no\n" +
+        '      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv".\n' +
+        "    chr  sent as CHR  unsupported  glossary: no  formality: no\n",
+    );
+  });
+
+  it("keeps the per-locale report out of the plain human report", async () => {
+    const { deps } = recordingDeps({ doctor: async () => localesReport() });
+    const cap = captureStreams();
+
+    await run(["doctor"], deps, cap.streams);
+
+    expect(cap.out()).toContain("[fail] Locale support:");
+    expect(cap.out()).not.toContain("locale support (deepl");
+  });
+
+  it("names an LLM provider's open coverage and prints nothing for a provider without a report", async () => {
+    const report = localesReport();
+    const open = makeDoctorResult({
+      locales: {
+        ...(report.locales as NonNullable<DoctorResult["locales"]>),
+        provider: "anthropic",
+        coverage: "open",
+        tableOrigin: "static",
+        locales: [],
+      },
+    });
+    const { deps } = recordingDeps({ doctor: async () => open });
+    const cap = captureStreams();
+
+    await run(["doctor", "--locales"], deps, cap.streams);
+    expect(cap.out()).toContain(
+      "  locale support (anthropic, accepts any locale, well-tested list of 2026-09-28)",
+    );
+
+    const none = captureStreams();
+    await run(["doctor", "--locales"], recordingDeps().deps, none.streams);
+    expect(none.out()).not.toContain("locale support");
+  });
+
+  it("asks the SDK for the live list under --live, which implies --locales", async () => {
+    const { deps, calls } = recordingDeps({ doctor: async () => localesReport() });
+    const cap = captureStreams();
+
+    await run(["doctor", "--live", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(calls.doctor).toEqual([{ cwd: "/proj", live: true }]);
+    expect(cap.out()).toContain("  locale support (deepl");
+    expect(cap.err()).toContain("checking the setup and fetching the provider's language list");
+  });
+
+  it("carries the report under result.locales in the JSON envelope", async () => {
+    const report = localesReport();
+    const { deps } = recordingDeps({ doctor: async () => report });
+    const cap = captureStreams();
+
+    await run(["doctor", "--json"], deps, cap.streams);
+
+    expect(parseEnvelope(cap.out())).toEqual({
+      ok: true,
+      version: JSON_ENVELOPE_VERSION,
+      command: "doctor",
+      result: report,
+    });
+  });
+
+  it.each([
+    [["--literals", "--locales"], "--locales"],
+    [["--literals", "--live"], "--live"],
+  ])("refuses %j as a usage error with exit 2", async (flags, named) => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(["doctor", ...flags], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(calls.doctor).toEqual([]);
+    expect(cap.err()).toContain("[INVALID_OPTION]");
+    expect(cap.err()).toContain(named);
+  });
+
+  it("documents both flags in the command help", async () => {
+    const cap = captureStreams();
+
+    await run(["doctor", "--help"], recordingDeps().deps, cap.streams);
+
+    expect(cap.out()).toContain("--locales");
+    expect(cap.out()).toContain("--live");
+  });
+});

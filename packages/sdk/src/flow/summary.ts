@@ -41,6 +41,21 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   and the next run tries the move again. A dry run reports this when another process holds the
  *   lock-file guard at the time, or when the guard cannot be read. When only the translation memory stayed behind, the locale runs
  *   without those cached translations, since the memory is only a cache.
+ * - `LOCALE_UNVERIFIED_BY_PROVIDER`: the code sent to a machine-translation provider for the source
+ *   or target locale is not on the provider's language table, but only its base language is, or
+ *   it comes from an explicit `provider.options.localeMap` entry. The locale is translated anyway,
+ *   since the provider may accept it; see {@link LocaleSupport}.
+ * - `LOCALE_NOT_WELL_TESTED`: the provider is an LLM and the target language is outside the
+ *   conservative list of languages LLM providers are known to translate well. It is translated
+ *   anyway; review the output with care.
+ * - `GLOSSARY_UNSUPPORTED_BY_PROVIDER`: a glossary applies to this locale but the provider cannot
+ *   apply a glossary for the language pair (Google Cloud Translation Basic never can; DeepL only
+ *   for the languages on its glossary list), so the glossary is only checked after translation.
+ * - `FORMALITY_UNSUPPORTED_BY_PROVIDER`: the config sets a `formal` or `informal` tone and the
+ *   provider has no formality control for this target language, so the default register is used.
+ *
+ * The last four are raised before anything is spent, from the same assessment {@link doctor}
+ * reports under its `locales` check, and on a dry run too.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
@@ -51,7 +66,11 @@ export type SdkNoticeCode =
   | "PROVENANCE_VERSION_UNRECOGNIZED"
   | "PROVENANCE_FILE_TOO_LARGE"
   | "LOCALE_STATE_CARRIED_OVER"
-  | "LOCALE_STATE_CARRY_OVER_SKIPPED";
+  | "LOCALE_STATE_CARRY_OVER_SKIPPED"
+  | "LOCALE_UNVERIFIED_BY_PROVIDER"
+  | "LOCALE_NOT_WELL_TESTED"
+  | "GLOSSARY_UNSUPPORTED_BY_PROVIDER"
+  | "FORMALITY_UNSUPPORTED_BY_PROVIDER";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is

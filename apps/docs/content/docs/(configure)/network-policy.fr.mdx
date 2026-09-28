@@ -80,4 +80,4 @@ Une requête refusée à ce stade fait échouer son sous-lot avec l'erreur de fo
 
 ## La vérifier avec doctor
 
-[`verbatra doctor`](/docs/cli/doctor) indique la politique effective, d'où vient chacune de ses parties, l'hôte auquel se connecte le fournisseur configuré et si cet hôte est autorisé. La vérification échoue quand l'hôte est refusé ou qu'une variable d'environnement contient une valeur invalide, et comme le reste de `doctor`, elle ne résout aucun nom et n'envoie rien.
+[`verbatra doctor`](/docs/cli/doctor) indique la politique effective, d'où vient chacune de ses parties, l'hôte auquel se connecte le fournisseur configuré et si cet hôte est autorisé. La vérification échoue quand l'hôte est refusé ou qu'une variable d'environnement contient une valeur invalide, et comme le reste de `doctor`, elle ne résout aucun nom et n'envoie rien. La seule requête que `doctor` peut envoyer, la liste de langues récupérée par `verbatra doctor --live`, est soumise à la même politique : un hôte refusé signifie aucune requête, et un hôte autorisé est vérifié de nouveau au moment de l'envoi.

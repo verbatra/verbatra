@@ -111,7 +111,7 @@ Name the keys that would be added, re-translated, or orphaned per locale. Calls 
 
 ### `doctor(input?, deps?): Promise<DoctorResult>`
 
-Validate the config, the format adapter, the provider, its key variable, and the source locale file in one pass, reporting every problem at once. Reads no key value. See [`verbatra doctor`](https://verbatra.kreitz-webdev.de/docs/cli/doctor).
+Validate the config, the format adapter, the provider, its key variable, the network policy, the source locale file, and whether the provider supports every configured locale in one pass, reporting every problem at once. Reads no key value. `translate` refuses a locale the provider does not support with `LOCALE_UNSUPPORTED_BY_PROVIDER` before anything is spent. See [`verbatra doctor`](https://verbatra.kreitz-webdev.de/docs/cli/doctor).
 
 ### `extract(input, deps?): Promise<ExtractResult>`
 

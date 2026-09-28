@@ -77,7 +77,7 @@ Le code de sortie est le contrat sur lequel une étape CI ou un script se branch
 | Code | Signification |
 | --- | --- |
 | `0` | succès (aussi `--help` et `--version`) |
-| `1` | `translate` ou `import` a terminé mais certaines locales ont échoué ou sont ressorties partielles, `check` a trouvé une locale désynchronisée, `diff` a trouvé des changements en attente (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé un problème de configuration ou, avec `--literals`, un littéral non traduit, ou `types --check` a trouvé la déclaration commitée obsolète |
+| `1` | `translate` ou `import` a terminé mais certaines locales ont échoué ou sont ressorties partielles, `check` a trouvé une locale désynchronisée, `diff` a trouvé des changements en attente (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `doctor` a trouvé un problème de configuration (comme une locale que le fournisseur ne prend pas en charge) ou, avec `--literals`, un littéral non traduit, ou `types --check` a trouvé la déclaration commitée obsolète |
 | `2` | impossible de s'exécuter : une erreur globale (config, source, fournisseur, verrou) ou une erreur d'utilisation |
 | `3` | `translate` dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`) s'est terminé proprement, mais a laissé des clés pour une traduction humaine |
 | `130` | `translate` ou `import` a été interrompu avec Ctrl-C (SIGINT) après avoir libéré ses verrous d'écriture, ou `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |

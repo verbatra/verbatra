@@ -2,7 +2,7 @@
 title: Sprachunterstützung
 description: Welche Sprachen verbatra übersetzen kann, wie Locale-Codes bei jedem Provider ankommen und wie Plurale, Schriften, regionale Varianten und Rechts-nach-links-Text behandelt werden.
 ---
-verbatra hat keine eigene Sprachliste. Es akzeptiert jeden gültigen BCP-47-Locale-Code, liest und schreibt die Strings jeder Sprache auf dieselbe Weise und überlässt die eigentliche Übersetzung dem Provider, den du konfigurierst. Die Antwort auf „Welche Sprachen kann ich nutzen?" lautet also: jede Sprache, die dein Provider unterstützt, und in einem rein menschlichen Projekt jede Sprache überhaupt.
+verbatra hat keine eigene Sprachliste. Es akzeptiert jeden gültigen BCP-47-Locale-Code, liest und schreibt die Strings jeder Sprache auf dieselbe Weise und überlässt die eigentliche Übersetzung dem Provider, den du konfigurierst. Die Antwort auf „Welche Sprachen kann ich nutzen?" lautet also: jede Sprache, die dein Provider unterstützt, und in einem rein menschlichen Projekt jede Sprache überhaupt. Für DeepL und Google Cloud Translation liefert verbatra eine datierte Kopie der Sprachtabelle des Providers mit, damit es dir Bescheid geben kann, bevor ein Lauf etwas kostet (siehe [Unterstützung vor einem Lauf prüfen](#unterstützung-vor-einem-lauf-prüfen)).
 
 Diese Seite zeigt, was verbatra mit einem Locale-Code macht, wo der Provider entscheidet und welche Grenzen heute gelten.
 
@@ -16,7 +16,7 @@ Den Code aus deiner Konfiguration verwendet verbatra überall, wo es etwas speic
 
 ## Abdeckung je Provider
 
-Welche Sprachen sich übersetzen lassen und wie gut, entscheidet der Provider. verbatra kopiert die Listen der Anbieter nicht, weil sie sich ändern; jede Zeile verlinkt die Liste des Anbieters selbst.
+Welche Sprachen sich übersetzen lassen und wie gut, entscheidet der Provider; jede Zeile verlinkt die Liste des Anbieters selbst. verbatras Kopie der DeepL- und Google-Listen ist datiert und dient nur dazu, deine Konfiguration vor einem Lauf zu prüfen.
 
 | Provider | Sprachen | Gesendeter Code | Glossar | Tonfall |
 | --- | --- | --- | --- | --- |
@@ -24,14 +24,14 @@ Welche Sprachen sich übersetzen lassen und wie gut, entscheidet der Provider. v
 | `openai` | Keine feste Liste. [Using the OpenAI API in different languages](https://help.openai.com/en/articles/6742369-how-do-i-use-the-openai-api-in-different-languages) | Wie geschrieben, plus Namen | Begriffe der Locale im Prompt | Im Prompt |
 | `gemini` | [Gemini language support](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/google-models#languages-gemini) | Wie geschrieben, plus Namen | Begriffe der Locale im Prompt | Im Prompt |
 | `openai-compatible` | Was das Modell abdeckt, das du betreibst | Wie geschrieben, plus Namen | Begriffe der Locale im Prompt | Im Prompt |
-| `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Auf DeepLs Codes normalisiert | Nur ein vorab angelegtes DeepL-Glossar per `glossaryId` | DeepL-Formality, nicht mit einem Free-Key |
+| `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Auf DeepLs Codes normalisiert | Nur ein vorab angelegtes DeepL-Glossar per `glossaryId`, für 32 Sprachen | DeepL-Formality für einige Sprachen, nicht mit einem Free-Key |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (für die Basic-Stufe v2, die verbatra nutzt, gilt die NMT-Liste) | Für Chinesisch und Norwegisch normalisiert, sonst wie geschrieben | Keins | Keiner |
 | `none` | Entfällt: Es wird kein Provider aufgerufen | Es wird nichts gesendet | Entfällt | Entfällt |
 
 Was die Spalten praktisch bedeuten:
 
 - **LLM-Provider** (Anthropic, OpenAI, Gemini, openai-compatible) haben keine geschlossene Sprachliste. Sie versuchen sich an jeder Sprache, die du nennst, und die Qualität sinkt bei Sprachen mit weniger Trainingsdaten. Eine ressourcenarme Zielsprache verdient deshalb eine menschliche Prüfung. [Review-Flags](/docs/translation-safety#review-flags) wie `EQUALS_SOURCE` und `LENGTH_RATIO_OUTLIER` zeigen auf die verdächtigsten Ergebnisse.
-- **DeepL und Google Cloud Translation** haben eine geschlossene Liste. Eine Sprache oder ein Sprachpaar, das sie nicht unterstützen, lässt diesen Teil-Batch mit einem strukturierten Fehler scheitern; die Keys werden zurückgehalten und beim nächsten Lauf wieder aufgegriffen. Beide halten außerdem Strings mit Platzhaltern oder ICU-Syntax zurück, mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis. Ein Katalog voller Platzhalter braucht also einen LLM-Provider, egal in welcher Sprache.
+- **DeepL und Google Cloud Translation** haben eine geschlossene Liste. Eine Sprache, die sie nicht aufführen, wird vor dem Start des Laufs abgelehnt, mit `LOCALE_UNSUPPORTED_BY_PROVIDER` (siehe unten). Beide halten außerdem Strings mit Platzhaltern oder ICU-Syntax zurück, mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis. Ein Katalog voller Platzhalter braucht also einen LLM-Provider, egal in welcher Sprache.
 - Einen `tone` oder ein `glossary`, das ein Provider nicht umsetzen kann, meldet verbatra als Hinweis (`FORMALITY_DOWNGRADED`, `GLOSSARY_IGNORED`), nie stillschweigend. Siehe [Tonfall und Glossar über die Provider hinweg](/docs/providers#tonfall-und-glossar-über-die-provider-hinweg).
 
 ### Wie jeder Provider den Code bekommt
@@ -43,6 +43,38 @@ Was die Spalten praktisch bedeuten:
 - **LLM-Provider** bekommen den Code wie geschrieben, dazu den englischen Namen der Sprache und, wenn der Code sie enthält, von Schrift und Region. Das Modell wird angewiesen, in dieser Schrift und regionalen Variante zu schreiben. Siehe [Namen von Sprache, Schrift und Region](/docs/translation-safety#namen-von-sprache-schrift-und-region).
 
 Passt die eingebaute Zuordnung nicht, legt `localeMap` in den `options` des Providers den genauen Code je Locale fest, zum Beispiel `"en-AU": "EN-GB"` für DeepL. Die vollständige Zuordnungstabelle und die Regeln für `localeMap` stehen unter [Provider](/docs/providers#an-den-provider-gesendete-locale-codes).
+
+## Unterstützung vor einem Lauf prüfen
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra doctor`](/docs/cli/doctor#locale-unterstützung) prüft jede konfigurierte Locale gegen den Provider, ohne ihn aufzurufen, und `verbatra doctor --locales` listet das Urteil je Ziel-Locale:
+
+```text
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+Jede Locale bekommt eines von drei Urteilen:
+
+- **supported**: Der Code, den verbatra sendet, steht in der Tabelle des Providers, oder der Provider ist ein LLM.
+- **unverified**: Der Code steht nicht in der Tabelle, kann aber trotzdem funktionieren, weil nur seine Grundsprache aufgeführt ist (Google bekommt `de-AT` wie geschrieben, wo seine Tabelle `de` hat) oder weil er aus einem expliziten `localeMap`-Eintrag stammt. Er wird übersetzt, mit der Warnung `LOCALE_UNVERIFIED_BY_PROVIDER`.
+- **unsupported**: Weder der Code noch seine Grundsprache ist aufgeführt. `translate`, `watch` und eine Neuübersetzung eines einzelnen Keys lehnen den ganzen Lauf mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ab, bevor irgendetwas ausgegeben wird, und `doctor` lässt seine Prüfung Locale support scheitern.
+
+Abgelehnt wird der ganze Lauf, nicht nur die eine Locale, damit eine Pipeline nie wegen eines Konfigurationsfehlers halb übersetzt endet. Um mit den anderen Locales weiterzumachen, lass die nicht unterstützte mit `--locales` weg oder entferne sie aus `targetLocales`. Hat der Provider die Sprache nach dem Datum der Tabelle ergänzt, ordne die Locale in `provider.options.localeMap` zu: Einem expliziten Eintrag wird vertraut, und er wird wie geschrieben gesendet. `verbatra doctor --live` prüft gegen die aktuelle Liste des Providers, wenn sein Key gesetzt ist.
+
+Die mitgelieferten Tabellen und das Datum jeder Tabelle:
+
+| Provider | Tabelle | Glossar | Formality |
+| --- | --- | --- | --- |
+| DeepL | 125 Codes aus [DeepLs unterstützten Sprachen](https://developers.deepl.com/docs/getting-started/supported-languages), 2026-09-28 | 32 Sprachen; beide Sprachen eines Paars müssen aufgeführt sein | `DE`, `ES`, `ES-419`, `FR`, `IT`, `JA`, `NL`, `PL`, `PT-BR`, `PT-PT`, `RU` und die regionalen Varianten dieser Sprachen |
+| Google Cloud Translation | 198 Codes aus der NMT-Liste unter [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages), 2026-09-28 | Keins in der Basic-Stufe | Keine in der Basic-Stufe |
+
+LLM-Provider akzeptieren jede Sprache, für sie wird also keine Locale abgelehnt. Ein Ziel außerhalb dieser vorsichtigen Liste von Sprachen, die LLM-Provider bekanntermaßen gut übersetzen, bekommt die Warnung `LOCALE_NOT_WELL_TESTED`, als Anstoß, seine Ausgabe zu prüfen: Arabisch (`ar`), Chinesisch (`zh`), Niederländisch (`nl`), Englisch (`en`), Französisch (`fr`), Deutsch (`de`), Hindi (`hi`), Indonesisch (`id`), Italienisch (`it`), Japanisch (`ja`), Koreanisch (`ko`), Polnisch (`pl`), Portugiesisch (`pt`), Russisch (`ru`), Spanisch (`es`), Schwedisch (`sv`), Türkisch (`tr`), Ukrainisch (`uk`) und Vietnamesisch (`vi`). Die Liste vergleicht die Grundsprache, also gelten `pt-BR` und `zh-Hant` als gut getestet. Ein rein menschliches Projekt (`provider: { id: "none" }`) ruft keinen Provider auf, also wird nichts geprüft.
 
 ## Schriften und regionale Varianten
 

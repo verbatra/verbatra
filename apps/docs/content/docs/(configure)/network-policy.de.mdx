@@ -80,4 +80,4 @@ Eine Anfrage, die an dieser Stelle abgelehnt wird, lässt ihren Teil-Batch mit d
 
 ## Mit doctor prüfen
 
-[`verbatra doctor`](/docs/cli/doctor) meldet die wirksame Richtlinie, woher jeder Teil davon kommt, den Host, zu dem sich der konfigurierte Provider verbindet, und ob dieser Host erlaubt ist. Die Prüfung scheitert, wenn der Host abgelehnt wird oder eine Umgebungsvariable einen ungültigen Wert hat, und wie der Rest von `doctor` löst sie keine Namen auf und sendet nichts.
+[`verbatra doctor`](/docs/cli/doctor) meldet die wirksame Richtlinie, woher jeder Teil davon kommt, den Host, zu dem sich der konfigurierte Provider verbindet, und ob dieser Host erlaubt ist. Die Prüfung scheitert, wenn der Host abgelehnt wird oder eine Umgebungsvariable einen ungültigen Wert hat, und wie der Rest von `doctor` löst sie keine Namen auf und sendet nichts. Für die eine Anfrage, die `doctor` senden kann, die mit `verbatra doctor --live` abgerufene Sprachliste, gilt dieselbe Richtlinie: Ein abgelehnter Host bedeutet keine Anfrage, und ein erlaubter wird beim Senden erneut geprüft.

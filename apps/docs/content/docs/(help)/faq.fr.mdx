@@ -169,9 +169,9 @@ DPA ou NDA.
 
 <AvailableFrom version="0.9.0" />
 
-Neuf choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
-clé d'API. Les six premières peuvent échouer ; les trois dernières sont informatives et n'échouent
-jamais :
+Onze choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
+clé d'API. Sept peuvent échouer ; Plural rules, Plural completeness, Locale codes et Locale state sont
+informatives et n'échouent jamais :
 
 - Configuration : un fichier de config a été trouvé et passe la validation.
 - Format adapter : le `format` configuré se résout en un adaptateur de fichier.
@@ -182,14 +182,19 @@ jamais :
   connecte le fournisseur configuré, et tout proxy qu'il utiliserait.
 - Source locale file : le fichier de la locale source existe à son chemin résolu, est un fichier
   ordinaire et s'analyse correctement avec le format configuré.
-- Plural rules, Locale codes et Locale state : les versions d'ICU et de CLDR d'où viennent les
-  catégories de pluriel, les codes de locale configurés qui ne sont pas en forme BCP 47 canonique, et
+- Plural rules, Plural completeness, Locale codes et Locale state : les versions d'ICU et de CLDR
+  d'où viennent les catégories de pluriel, les pluriels d'un fichier de locale cible auxquels il
+  manque une catégorie que leur langue utilise, les codes de locale configurés qui ne sont pas en forme BCP 47 canonique, et
   l'état laissé pour une locale que la configuration ne liste plus. Voir
   [verbatra doctor](/docs/cli/doctor).
+- Locale support : le fournisseur prend en charge la locale source et chaque locale cible, jugé
+  d'après la table de langues que verbatra embarque pour DeepL et Google Cloud Translation (depuis
+  0.12.0). `verbatra doctor --locales` liste le verdict par locale. Voir
+  [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution).
 
 Chaque vérification s'exécute même si une précédente a échoué, une exécution rapporte donc tous
 les problèmes indépendants à la fois ; l'exception est la configuration elle-même : si elle échoue
-au chargement, les huit vérifications qui en ont besoin sont sautées.
+au chargement, les dix vérifications qui en ont besoin sont sautées.
 
 ```bash
 verbatra doctor

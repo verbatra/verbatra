@@ -231,6 +231,16 @@ export {
   type KeyValueResult,
   keyValue,
 } from "./flow/key-value.js";
+export type {
+  LanguageTableRefresh,
+  LanguageTableRefreshStatus,
+  LocaleCapability,
+  LocaleCapabilityReport,
+  LocaleCapabilityWarning,
+  LocaleCapabilityWarningCode,
+  LocaleSupport,
+  SourceLocaleCapability,
+} from "./flow/locale-capabilities.js";
 export {
   type LocaleIntegrityDeps,
   type LocaleIntegrityInput,

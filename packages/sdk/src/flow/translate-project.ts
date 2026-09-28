@@ -64,6 +64,7 @@ import {
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
+import { assertConfiguredLocalesSupported, withCapabilityNotices } from "./locale-capabilities.js";
 import {
   carryOverRefusal,
   carryOverRespelledLocales,
@@ -702,6 +703,13 @@ function estimateFields(
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locales` names a locale that is not a configured
  * target. Thrown before anything is read, written, or spent.
+ * @throws {@link SdkError} `LOCALE_UNSUPPORTED_BY_PROVIDER`: the configured machine-translation
+ * provider does not support the source locale or a selected target locale, according to its
+ * language table. Thrown before anything is read, written, or spent, so no locale is started, on a
+ * dry run and an estimate too. Leave the locale out with `locales` to translate the others. Warnings
+ * from the same assessment (a locale only partly verified, a glossary or tone the provider cannot
+ * apply, a language outside an LLM's well-tested list) are reported as notices on the affected
+ * {@link LocaleSummary} instead.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `CONCURRENCY_INVALID`: `concurrency` is not an integer of at least 1.
  * @throws {@link SdkError} `CONCURRENCY_BUDGET_CONFLICT`: a live run combined a `concurrency` above
@@ -763,6 +771,7 @@ export async function translate(
   const dryRun = resolveDryRun(input);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const targetLocales = selectLocales(config, input.locales);
+  const capabilities = assertConfiguredLocalesSupported(config, targetLocales);
   const runBudget = resolveRunBudget(config, DEFAULT_BUDGET_BEHAVIOR, input.maxTokens);
   const concurrency = resolveRunConcurrency(input.concurrency, dryRun, runBudget.maxTokens);
   const prune = input.prune ?? config.prune ?? false;
@@ -815,7 +824,10 @@ export async function translate(
   input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
 
   const locales = withCarryOverNotices(
-    withNewerProvenanceNotice(withCacheNotices(summaries, cache), newerProvenance),
+    withNewerProvenanceNotice(
+      withCacheNotices(withCapabilityNotices(summaries, capabilities), cache),
+      newerProvenance,
+    ),
     carryOver,
     dryRun,
   ).map((summary) => withProjectRelativeMessages(summary, cwd));

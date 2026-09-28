@@ -15,6 +15,7 @@ export {
   createDeepLProvider,
   type DeepLDeps,
 } from "./deepl/deepl-provider.js";
+export { deepLLanguageSupport } from "./deepl/language-support.js";
 export type { DeepLTranslateResult } from "./deepl/types.js";
 export { processEnvironment } from "./env.js";
 export { ProviderError, type ProviderErrorCode } from "./errors.js";
@@ -28,6 +29,7 @@ export {
 } from "./gemini/gemini-provider.js";
 export type { GeminiModel } from "./gemini/models.js";
 export {
+  appliesTerms,
   type DoNotTranslateTerm,
   foldGlossaryCase,
   type LocaleGlossary,
@@ -48,14 +50,27 @@ export {
   createGoogleTranslateProvider,
   type GoogleTranslateDeps,
 } from "./google-translate/google-translate-provider.js";
+export { googleTranslateLanguageSupport } from "./google-translate/language-support.js";
 export type { GoogleTranslateResult } from "./google-translate/types.js";
 export { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+export {
+  isWellTestedLanguage,
+  type LanguageMatch,
+  type LanguageRole,
+  matchLanguage,
+  type ProviderCode,
+  providerCodeFor,
+  supportsFormality,
+  supportsGlossaryPair,
+} from "./language-support.js";
 export {
   type DataPayloadInput,
   dataPayloadCharacters,
   resultPayloadCharacters,
   type TranslationItem,
 } from "./llm/payload.js";
+export { llmLanguageSupport } from "./llm/well-tested-languages.js";
+export type { LocaleMap } from "./locale-map.js";
 export {
   type EndpointTarget,
   type ProviderEndpoint,
@@ -101,10 +116,17 @@ export {
   type OpenAiCompatibleDeps,
 } from "./openai-compatible/openai-compatible-provider.js";
 export type {
+  ListedLanguageSupport,
+  LiveLanguageRequest,
+  OpenLanguageSupport,
   PlaceholderComparator,
   PlaceholderExtractor,
   PluralCategories,
   ProviderKind,
+  ProviderLanguage,
+  ProviderLanguageSupport,
+  ProviderLanguageTable,
+  ProviderLanguageTableOrigin,
   ProviderNotice,
   ProviderNoticeCode,
   ReviewFlag,

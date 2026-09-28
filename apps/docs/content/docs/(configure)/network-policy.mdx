@@ -80,4 +80,4 @@ A request refused at this point fails its sub-batch with the provider error `NET
 
 ## Check it with doctor
 
-[`verbatra doctor`](/docs/cli/doctor) reports the effective policy, where each part of it comes from, the host the configured provider connects to, and whether that host is permitted. It fails when the host is refused or an environment variable holds an invalid value, and like the rest of `doctor` it resolves no names and sends nothing.
+[`verbatra doctor`](/docs/cli/doctor) reports the effective policy, where each part of it comes from, the host the configured provider connects to, and whether that host is permitted. It fails when the host is refused or an environment variable holds an invalid value, and like the rest of `doctor` it resolves no names and sends nothing. The one request `doctor` can send, the language list fetched by `verbatra doctor --live`, is held to the same policy: a refused host means no request, and a permitted one is checked again when it is sent.

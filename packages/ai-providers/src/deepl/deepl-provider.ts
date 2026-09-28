@@ -1,6 +1,7 @@
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
+import { supportsFormality } from "../language-support.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import {
   type PlaceholderComparator,
@@ -14,6 +15,7 @@ import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-ti
 import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js";
 import { createDefaultClient } from "./client.js";
 import { type DeepLConfig, deepLConfigSchema } from "./config.js";
+import { DEEPL_LANGUAGE_TABLE } from "./languages.js";
 import { chunkTextsForDeepL } from "./limits.js";
 import { toDeepLSourceCode, toDeepLTargetCode } from "./locale-codes.js";
 import { assertValidDeepLSourceLocale, assertValidDeepLTargetLocale } from "./locale-validation.js";
@@ -73,6 +75,7 @@ async function translate(
   const genericGlossarySupplied = appliesTerms(data.glossary);
   const { options, notices } = buildTranslateOptions({
     freeAccount: bundle.freeAccount,
+    formalityAvailable: supportsFormality(DEEPL_LANGUAGE_TABLE, languages.targetLang),
     genericGlossarySupplied,
     ...(data.tone !== undefined ? { tone: data.tone } : {}),
     ...(config.glossaryId !== undefined ? { glossaryId: config.glossaryId } : {}),

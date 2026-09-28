@@ -31,6 +31,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { readTarget } from "./diff-locales.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
+import { assertConfiguredLocalesSupported } from "./locale-capabilities.js";
 import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import {
   assertNotPinned,
@@ -277,6 +278,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * milliseconds of at least 0. Thrown before anything is read or locked.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: the requested locale is not a configured target locale.
+ * @throws {@link SdkError} `LOCALE_UNSUPPORTED_BY_PROVIDER`: the configured machine-translation
+ * provider does not support the source locale or the requested locale, according to its language
+ * table. Thrown before anything is read or the provider is constructed.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
@@ -333,6 +337,7 @@ export async function retranslateEntry(
   if (locale === undefined) {
     throw new SdkError("UNKNOWN_LOCALE", `Locale "${input.locale}" could not be resolved.`);
   }
+  assertConfiguredLocalesSupported(config, [locale]);
 
   const source = await readSource(config, cwd, fs, adapter);
   const sourceEntry = source.resource.entries.get(input.key);
