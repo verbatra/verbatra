@@ -45,6 +45,7 @@ export {
 } from "./json/tree-file-adapter.js";
 export { createNextIntlJsonAdapter } from "./next-intl/next-intl-adapter.js";
 export { createNgxTranslateJsonAdapter } from "./ngx-translate/ngx-translate-adapter.js";
+export { type PluralFormSet, pluralFormSets, tracksPluralCategories } from "./plural-forms.js";
 export {
   extractPrintfPlaceholders,
   type PrintfPlaceholderOptions,

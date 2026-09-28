@@ -258,6 +258,7 @@ export {
   lockState,
 } from "./flow/lock-state.js";
 export type { UnresolvedArgumentReason } from "./flow/message-arguments.js";
+export type { IncompletePlural } from "./flow/plural-completeness.js";
 export {
   type PseudolocalizeDeps,
   type PseudolocalizeInput,

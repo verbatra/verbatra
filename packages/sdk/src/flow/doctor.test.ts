@@ -88,11 +88,12 @@ describe("doctor: the config check", () => {
     expect(detailOf(result, "config")).toContain("'verbatra' property in package.json");
   });
 
-  it("marks the eight config-dependent checks skipped rather than failed when the config is absent", async () => {
+  it("marks the nine config-dependent checks skipped rather than failed when the config is absent", async () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(result.checks.map((entry) => entry.status)).toEqual([
       "fail",
+      "skipped",
       "skipped",
       "skipped",
       "skipped",
@@ -386,7 +387,7 @@ describe("doctor: the source locale file check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(result.checks).toHaveLength(9);
+    expect(result.checks).toHaveLength(10);
     expect(statusOf(result, "config")).toBe("pass");
     expect(statusOf(result, "format-adapter")).toBe("pass");
     expect(statusOf(result, "provider")).toBe("pass");
@@ -513,11 +514,10 @@ describe("doctor: the source locale file check", () => {
     );
 
     expect(statusOf(result, "source-file")).toBe("pass");
-    expect(probed).toEqual([join(projectDir, "locales", "en.json")]);
-    expect(read).toEqual([
-      join(projectDir, "locales", "en.json"),
-      join(projectDir, "verbatra.lock.json"),
-    ]);
+    const source = join(projectDir, "locales", "en.json");
+    const target = join(projectDir, "locales", "de.json");
+    expect(probed).toEqual([source, source, target]);
+    expect(read).toEqual([source, source, target, join(projectDir, "verbatra.lock.json")]);
   });
 
   it("never touches real disk for the parse when a file-system port is supplied", async () => {
@@ -607,6 +607,7 @@ describe("doctor: it reports every independent problem and spends nothing", () =
       "network-policy",
       "source-file",
       "plural-rules",
+      "plural-completeness",
       "locale-codes",
       "locale-state",
     ]);
