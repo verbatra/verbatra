@@ -49,7 +49,7 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         </em>
       </p>
 
-      <h2>Angaben gem&auml;&szlig; &sect; 5 DDG</h2>
+      <h2>Angaben gem&auml;&szlig; &sect; 18 Abs. 1 MStV</h2>
       <p>
         Mario Kreitz
         <br />
@@ -62,17 +62,6 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         E-Mail: <a href="mailto:info@kreitz-webdev.de">info@kreitz-webdev.de</a>
       </p>
       <p>{t.rich("contactLinkNote", linkTags)}</p>
-
-      <h2>Verantwortlich f&uuml;r den Inhalt nach &sect; 18 Abs. 2 MStV</h2>
-      <p>
-        Mario Kreitz
-        <br />
-        M&ouml;nchfeldstra&szlig;e 7
-        <br />
-        70378 Stuttgart
-        <br />
-        Deutschland
-      </p>
 
       <h2>Haftung f&uuml;r Inhalte</h2>
       <p>
@@ -111,12 +100,6 @@ export default async function ImprintPage(props: { params: Promise<{ lang: strin
         trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, bitten wir um einen
         entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen werden wir derartige
         Inhalte umgehend entfernen.
-      </p>
-
-      <h2>Verbraucherstreitbeilegung</h2>
-      <p>
-        Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer
-        Verbraucherschlichtungsstelle teilzunehmen.
       </p>
     </article>
   );
