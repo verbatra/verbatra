@@ -79,12 +79,46 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
     diseño Java `messages_{locale}.properties`. Un script o una región numérica se une de la
     misma forma, conservando las mayúsculas que configuraste: `zh-Hant-TW` pasa a `zh_Hant_TW` y
     `es-419` pasa a `es_419`. Un locale con variante, como `de-1996`, no tiene escritura posix.
+    El formato `gettext-po` escribe un script a la manera de gettext: consulta
+    [Nombres de locale de gettext](#nombres-de-locale-de-gettext).
   - `android` expande el token a un directorio de recursos completo de Android, escrito como
     `res/{locale}/strings.xml`: `values` para el locale de origen, y luego `values-de`,
     `values-pt-rBR` y `values-b+zh+Hans`.
 
   Un estilo rechaza un locale que no puede escribir correctamente para ese estilo, en lugar de
   escribir un directorio que la plataforma ignoraría en silencio.
+
+### Nombres de locale de gettext
+
+<AvailableFrom version="0.12.0" />
+
+Con `format: "gettext-po"` y `files.localeStyle: "posix"`, un locale se escribe como gettext y
+glibc nombran los locales, `language_REGION@modifier`, mientras tu configuración conserva el código
+BCP 47:
+
+| Código en la configuración | Nombre de archivo |
+| --- | --- |
+| `pt-BR` | `pt_BR` |
+| `es-419` | `es_419` |
+| `sr-Latn` | `sr@latin` |
+| `sr-Latn-RS` | `sr_RS@latin` |
+| `uz-Cyrl` | `uz@cyrillic` |
+| `ks-Deva-IN` | `ks_IN@devanagari` |
+| `zh-Hant-TW` | `zh_TW` |
+| `sr-Cyrl-RS` | `sr_RS` |
+
+- `Latn`, `Cyrl` y `Deva` pasan a los modificadores `@latin`, `@cyrillic` y `@devanagari`.
+- Un script que el idioma y la región ya implican se omite, como hace gettext: el chino
+  tradicional de Taiwán es `zh_TW`, no `zh_Hant_TW`. Por eso `zh-TW` y `zh-Hant-TW` nombran el
+  mismo archivo, y configurar ambos falla con `LOCALE_PATH_COLLISION`.
+- Cualquier otro script no tiene nombre en gettext. `zh-Hant` sin región, por ejemplo, falla con
+  `LOCALE_LAYOUT_INVALID`, y el mensaje nombra el locale y los modificadores admitidos. Configura
+  la región en su lugar, como `zh-Hant-TW` o `zh-Hant-HK`.
+- [`verbatra init`](/docs/cli/init) lee estos nombres de vuelta cuando detecta un diseño
+  existente: `locale/sr@latin/LC_MESSAGES/messages.po` pasa a ser el locale de destino `sr-Latn`.
+
+Todos los demás formatos mantienen bajo `posix` la escritura de ICU (`sr_Latn`, `zh_Hant_TW`), que
+es la que esperan los resource bundles de Java y los archivos ARB de Flutter.
 
 ### Códigos de locale
 

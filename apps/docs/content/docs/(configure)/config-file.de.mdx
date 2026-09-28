@@ -79,13 +79,47 @@ Unbekannte Top-Level-Keys werden abgelehnt, mit `$schema` als einziger Ausnahme.
     Java-Layout `messages_{locale}.properties`. Eine Schrift oder eine numerische Region wird
     genauso angehängt, in der Schreibweise, die du konfiguriert hast: Aus `zh-Hant-TW` wird
     `zh_Hant_TW`, aus `es-419` wird `es_419`. Eine Locale mit Variante wie `de-1996` hat keine
-    posix-Schreibweise.
+    posix-Schreibweise. Das Format `gettext-po` schreibt eine Schrift stattdessen auf die
+    gettext-Art: siehe [gettext-Locale-Namen](#gettext-locale-namen).
   - `android` expandiert das Token zu einem kompletten Android-Ressourcenverzeichnis, geschrieben
     als `res/{locale}/strings.xml`: `values` für die Quell-Locale, dann `values-de`,
     `values-pt-rBR` und `values-b+zh+Hans`.
 
   Ein Style lehnt eine Locale ab, die er für diesen Style nicht korrekt schreiben kann, statt ein
   Verzeichnis zu schreiben, das die Plattform stillschweigend ignorieren würde.
+
+### gettext-Locale-Namen
+
+<AvailableFrom version="0.12.0" />
+
+Mit `format: "gettext-po"` und `files.localeStyle: "posix"` wird eine Locale so geschrieben, wie
+gettext und glibc Locales benennen, `language_REGION@modifier`, während deine Konfiguration den
+BCP-47-Code behält:
+
+| Code in der Konfiguration | Dateiname |
+| --- | --- |
+| `pt-BR` | `pt_BR` |
+| `es-419` | `es_419` |
+| `sr-Latn` | `sr@latin` |
+| `sr-Latn-RS` | `sr_RS@latin` |
+| `uz-Cyrl` | `uz@cyrillic` |
+| `ks-Deva-IN` | `ks_IN@devanagari` |
+| `zh-Hant-TW` | `zh_TW` |
+| `sr-Cyrl-RS` | `sr_RS` |
+
+- `Latn`, `Cyrl` und `Deva` werden zu den Modifikatoren `@latin`, `@cyrillic` und `@devanagari`.
+- Eine Schrift, die Sprache und Region bereits vorgeben, fällt weg, wie bei gettext:
+  Traditionelles Chinesisch in Taiwan ist `zh_TW`, nicht `zh_Hant_TW`. `zh-TW` und `zh-Hant-TW`
+  benennen deshalb dieselbe Datei, und beide zu konfigurieren schlägt mit `LOCALE_PATH_COLLISION`
+  fehl.
+- Jede andere Schrift hat keinen gettext-Namen. `zh-Hant` ohne Region schlägt zum Beispiel mit
+  `LOCALE_LAYOUT_INVALID` fehl, und die Meldung nennt die Locale und die unterstützten
+  Modifikatoren. Konfiguriere stattdessen die Region, etwa `zh-Hant-TW` oder `zh-Hant-HK`.
+- [`verbatra init`](/docs/cli/init) liest diese Namen zurück, wenn es ein bestehendes Layout
+  erkennt: `locale/sr@latin/LC_MESSAGES/messages.po` wird zur Ziel-Locale `sr-Latn`.
+
+Jedes andere Format behält unter `posix` die ICU-Schreibweise (`sr_Latn`, `zh_Hant_TW`), die
+Java-Resource-Bundles und Flutter-ARB-Dateien erwarten.
 
 ### Locale-Codes
 

@@ -78,13 +78,45 @@ Unknown top-level keys are rejected, with `$schema` as the single exception. Thi
   - `posix` replaces `-` with `_`, for gettext (`locale/pt_BR/LC_MESSAGES/messages.po`) and the
     Java `messages_{locale}.properties` layout. A script or a numeric region is joined the same
     way, keeping the case you configured: `zh-Hant-TW` becomes `zh_Hant_TW` and `es-419` becomes
-    `es_419`. A locale with a variant, such as `de-1996`, has no posix spelling.
+    `es_419`. A locale with a variant, such as `de-1996`, has no posix spelling. The `gettext-po`
+    format writes a script the gettext way instead: see [gettext locale names](#gettext-locale-names).
   - `android` expands the token to a whole Android resource directory, written as
     `res/{locale}/strings.xml`: `values` for the source locale, then `values-de`, `values-pt-rBR`,
     and `values-b+zh+Hans`.
 
   A style refuses a locale it cannot spell correctly for that style, rather than writing a
   directory the platform would silently ignore.
+
+### gettext locale names
+
+<AvailableFrom version="0.12.0" />
+
+With `format: "gettext-po"` and `files.localeStyle: "posix"`, a locale is spelled the way gettext
+and glibc name locales, `language_REGION@modifier`, while your config keeps the BCP 47 code:
+
+| Config code | File name |
+| --- | --- |
+| `pt-BR` | `pt_BR` |
+| `es-419` | `es_419` |
+| `sr-Latn` | `sr@latin` |
+| `sr-Latn-RS` | `sr_RS@latin` |
+| `uz-Cyrl` | `uz@cyrillic` |
+| `ks-Deva-IN` | `ks_IN@devanagari` |
+| `zh-Hant-TW` | `zh_TW` |
+| `sr-Cyrl-RS` | `sr_RS` |
+
+- `Latn`, `Cyrl`, and `Deva` become the `@latin`, `@cyrillic`, and `@devanagari` modifiers.
+- A script the language and region already imply is left out, as gettext does: Traditional
+  Chinese in Taiwan is `zh_TW`, not `zh_Hant_TW`. `zh-TW` and `zh-Hant-TW` therefore name the same
+  file, and configuring both fails with `LOCALE_PATH_COLLISION`.
+- Any other script has no gettext name. `zh-Hant` without a region, for example, fails with
+  `LOCALE_LAYOUT_INVALID`, and the message names the locale and the supported modifiers. Configure
+  the region instead, such as `zh-Hant-TW` or `zh-Hant-HK`.
+- [`verbatra init`](/docs/cli/init) reads these names back when it detects an existing layout:
+  `locale/sr@latin/LC_MESSAGES/messages.po` becomes the target `sr-Latn`.
+
+Every other format keeps the ICU spelling under `posix` (`sr_Latn`, `zh_Hant_TW`), which is what
+Java resource bundles and Flutter ARB files expect.
 
 ### Locale codes
 
