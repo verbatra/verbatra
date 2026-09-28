@@ -371,6 +371,36 @@ describe("runInit for agents", () => {
     },
   );
 
+  it.each([
+    ["sr-Latn", "locale/sr@latin/LC_MESSAGES/app.po"],
+    ["zh-Hant-TW", "locale/zh_TW/LC_MESSAGES/app.po"],
+    ["es-419", "locale/es_419/LC_MESSAGES/app.po"],
+  ])(
+    "names the %s source file with the gettext spelling the path resolver uses",
+    async (source, sourceFile) => {
+      write("po/app.pot", 'msgid "a"\nmsgstr ""\n');
+      write("locale/pt_BR/LC_MESSAGES/app.po", 'msgid "a"\nmsgstr "b"\n');
+
+      const { code, out } = await initJson({ provider: "deepl", yes: true, source });
+
+      expect(code).toBe(0);
+      expect(successResult(out).nextSteps.map((step) => step.description)).toContain(
+        `verbatra reads the ${source} source strings from ${sourceFile}, never from po/app.pot. Rename or copy po/app.pot to ${sourceFile} before the first run.`,
+      );
+    },
+  );
+
+  it("gives no source file step for a source locale the layout cannot spell", async () => {
+    write("po/app.pot", 'msgid "a"\nmsgstr ""\n');
+    write("locale/pt_BR/LC_MESSAGES/app.po", 'msgid "a"\nmsgstr "b"\n');
+
+    const { code, out } = await initJson({ provider: "deepl", yes: true, source: "zh-Hant" });
+
+    expect(code).toBe(0);
+    const steps = successResult(out).nextSteps.map((step) => step.description);
+    expect(steps.some((step) => step.includes("never from po/app.pot"))).toBe(false);
+  });
+
   it("tells the user to keep a base file in step when the source file already exists", async () => {
     write("Resources/Strings.resx", "<root/>");
     write("Resources/Strings.en.resx", "<root/>");
