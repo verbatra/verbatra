@@ -64,7 +64,9 @@ deterministic test joins the required gate automatically.
   never-answering loopback endpoint, spending nothing, and `verbatra-mcp --allow-spend` exits 0
   within seconds of a SIGINT or SIGTERM sent during that held call, leaving no `*.lock` file
   behind). It also covers `check --qa` and `--strict` on committed translations
-  (`tests/check-qa.e2e.test.ts`), `extract` (`tests/extract.e2e.test.ts`), per-language CLDR plural
+  (`tests/check-qa.e2e.test.ts`), `check --file` on one locale file (a good file, a broken
+  placeholder, broken JSON syntax reported with its line and column, and a path that is not a
+  locale file; `tests/check-file.e2e.test.ts`), `extract` (`tests/extract.e2e.test.ts`), per-language CLDR plural
   arms (`tests/icu-plural-arms.e2e.test.ts`), plurals missing CLDR categories in `check` and
   `doctor` (`tests/plural-completeness.e2e.test.ts`), inline markup parity on import
   (`tests/markup-parity.e2e.test.ts`), the network policy and `VERBATRA_NETWORK_POLICY` under a live
