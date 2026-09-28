@@ -1,3 +1,4 @@
+import { splitGettextModifier } from "@verbatra/core";
 import { localeCodeSchema } from "../config/locale-code.js";
 
 export type SpellingKind = "plain" | "hyphen" | "underscore" | "android" | "android-source";
@@ -55,7 +56,13 @@ function tagFromSubtags(subtags: readonly string[]): string | undefined {
   return isValidLocale(locale) ? locale : undefined;
 }
 
-function parseTagSpelling(spelling: string): SpelledLocale | undefined {
+function parseModifierSpelling(base: string, script: string): SpelledLocale | undefined {
+  const [language = "", ...region] = base.split("_");
+  const locale = tagFromSubtags([language, script, ...region]);
+  return locale === undefined ? undefined : { locale, kind: "underscore" };
+}
+
+function parsePlainTagSpelling(spelling: string): SpelledLocale | undefined {
   const hasUnderscore = spelling.includes("_");
   if (hasUnderscore && spelling.includes("-")) {
     return undefined;
@@ -69,6 +76,16 @@ function parseTagSpelling(spelling: string): SpelledLocale | undefined {
     return { locale, kind: "plain" };
   }
   return { locale, kind: hasUnderscore ? "underscore" : "hyphen" };
+}
+
+function parseTagSpelling(spelling: string): SpelledLocale | undefined {
+  const modified = splitGettextModifier(spelling);
+  if (modified === undefined) {
+    return undefined;
+  }
+  return modified.script === undefined
+    ? parsePlainTagSpelling(spelling)
+    : parseModifierSpelling(modified.base, modified.script);
 }
 
 function parseAndroidQualifier(qualifier: string): string | undefined {

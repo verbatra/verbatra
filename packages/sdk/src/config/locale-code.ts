@@ -1,3 +1,4 @@
+import { splitGettextModifier } from "@verbatra/core";
 import { z } from "zod";
 
 export const LOCALE_CODE_PATTERN =
@@ -15,7 +16,24 @@ function isValidLocaleCode(code: string): boolean {
   return LOCALE_CODE_PATTERN.test(code) && canonicalLocaleCode(code) !== undefined;
 }
 
+function modifierHint(code: string): string | undefined {
+  const modified = splitGettextModifier(code);
+  if (modified?.script === undefined) {
+    return undefined;
+  }
+  const [language = "", ...region] = modified.base.split("_");
+  const hyphenated = [language, modified.script, ...region].join("-");
+  if (!isValidLocaleCode(hyphenated)) {
+    return "";
+  }
+  return `; write "${hyphenated}" and set files.localeStyle to "posix" to keep "${code}" in the file names of a gettext-po layout`;
+}
+
 function underscoreHint(code: string): string {
+  const modifier = modifierHint(code);
+  if (modifier !== undefined) {
+    return modifier;
+  }
   const hyphenated = code.replaceAll("_", "-");
   if (hyphenated === code || !isValidLocaleCode(hyphenated)) {
     return "";

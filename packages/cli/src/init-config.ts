@@ -63,7 +63,7 @@ export interface ConfigDraft {
   readonly importName: string;
   readonly sourceLocale: string;
   readonly targetLocales: readonly string[];
-  readonly format: string;
+  readonly format: SupportedFormat;
   readonly formatOrigin: FormatOrigin;
   readonly pattern: string;
   readonly localeStyle: LocaleStyle | undefined;

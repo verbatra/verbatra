@@ -1,7 +1,12 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import process from "node:process";
-import { detectProject, type ProjectDetection, scaffoldingMetadata } from "@verbatra/sdk";
+import {
+  createLocalePathResolver,
+  detectProject,
+  type ProjectDetection,
+  scaffoldingMetadata,
+} from "@verbatra/sdk";
 import {
   type AgentScaffoldPlan,
   MCP_CONFIG_FILE,
@@ -249,18 +254,29 @@ function shellQuote(value: string): string {
   return /^[\w./:@-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function sourceFileFor(plan: InitPlan): string {
-  const { pattern, localeStyle, sourceLocale } = plan.draft;
-  const spelled = localeStyle === "posix" ? sourceLocale.replaceAll("-", "_") : sourceLocale;
-  return pattern.replaceAll("{locale}", spelled);
+const PROJECT_ROOT = resolve("/project");
+
+function sourceFileFor(plan: InitPlan): string | undefined {
+  const { pattern, localeStyle, sourceLocale, format } = plan.draft;
+  try {
+    const resolver = createLocalePathResolver(PROJECT_ROOT, {
+      sourceLocale,
+      targetLocales: [],
+      format,
+      files: { pattern, localeStyle },
+    });
+    return relative(PROJECT_ROOT, resolver.pathFor(sourceLocale)).replaceAll("\\", "/");
+  } catch {
+    return undefined;
+  }
 }
 
 function sourceFileStep(plan: InitPlan): NextStep | undefined {
   const unqualified = plan.detection.layout?.unqualifiedSourceFile;
-  if (unqualified === undefined) {
+  const sourceFile = unqualified === undefined ? undefined : sourceFileFor(plan);
+  if (unqualified === undefined || sourceFile === undefined) {
     return undefined;
   }
-  const sourceFile = sourceFileFor(plan);
   const locale = plan.draft.sourceLocale;
   return {
     description: plan.detection.layout?.files.includes(sourceFile)

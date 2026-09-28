@@ -11,6 +11,19 @@ export { contentHash } from "./hash/content-hash.js";
 export { normalizeText } from "./hash/normalize-text.js";
 export { stableStringHash } from "./hash/string-hash.js";
 export {
+  conventionalSubtags,
+  type LocaleTag,
+  NUMERIC_REGION,
+  parseLocaleTag,
+} from "./locale/locale-tag.js";
+export {
+  type LocaleSpelling,
+  posixSpelling,
+  type ScriptConvention,
+  scriptConventionOf,
+  splitGettextModifier,
+} from "./locale/posix-spelling.js";
+export {
   CUSTOM_FORMAT_PREFIX,
   type CustomFormatId,
   customFormatIdSchema,

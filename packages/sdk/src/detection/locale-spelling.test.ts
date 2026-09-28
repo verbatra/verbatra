@@ -8,6 +8,12 @@ describe("parseLocaleSpelling: accepted spellings", () => {
     ["pt_BR", { locale: "pt-BR", kind: "underscore" }],
     ["zh-Hant-TW", { locale: "zh-Hant-TW", kind: "hyphen" }],
     ["es_419", { locale: "es-419", kind: "underscore" }],
+    ["zh_TW", { locale: "zh-TW", kind: "underscore" }],
+    ["zh_Hant_TW", { locale: "zh-Hant-TW", kind: "underscore" }],
+    ["sr@latin", { locale: "sr-Latn", kind: "underscore" }],
+    ["sr_RS@latin", { locale: "sr-Latn-RS", kind: "underscore" }],
+    ["uz@cyrillic", { locale: "uz-Cyrl", kind: "underscore" }],
+    ["ks_IN@devanagari", { locale: "ks-Deva-IN", kind: "underscore" }],
     ["pt-br", { locale: "pt-br", kind: "hyphen" }],
     ["zh-hant-tw", { locale: "zh-hant-tw", kind: "hyphen" }],
     ["values", { locale: undefined, kind: "android-source" }],
@@ -39,6 +45,14 @@ describe("parseLocaleSpelling: rejected spellings", () => {
     "und",
     "qaa",
     "qtz-DE",
+    "sr@Latin",
+    "sr@valencia",
+    "zh@hant",
+    "sr_Latn@latin",
+    "sr-RS@latin",
+    "sr_RS_x@latin",
+    "@latin",
+    "german@latin",
   ])("rejects %j", (spelling) => {
     expect(parseLocaleSpelling(spelling)).toBeUndefined();
   });

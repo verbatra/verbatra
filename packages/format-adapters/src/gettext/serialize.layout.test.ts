@@ -65,3 +65,33 @@ describe("gettext writer: layout", () => {
     expect(await writeOver(EXISTING, {})).toBe(EXISTING);
   });
 });
+
+describe("gettext writer: the Language header of a new catalogue", () => {
+  async function languageHeader(locale: string): Promise<string | undefined> {
+    const fs = createMemoryAdapterFs({});
+    const adapter = createGettextAdapter(fs);
+    const entries = new Map([
+      [
+        "Hello",
+        { key: "Hello", namespace: "messages", value: "x", placeholders: [], isPlural: false },
+      ],
+    ]);
+    await adapter.write({ locale, namespace: "messages", format: "gettext-po", entries }, PATH);
+    return /"Language: ([^"\\]*)\\n"/.exec(fs.files.get(PATH) ?? "")?.[1];
+  }
+
+  it.each([
+    ["sr-Latn", "sr@latin"],
+    ["sr-Latn-RS", "sr_RS@latin"],
+    ["uz-Cyrl", "uz@cyrillic"],
+    ["zh-Hant-TW", "zh_TW"],
+    ["es-419", "es_419"],
+    ["pt-BR", "pt_BR"],
+  ])("names %s as %s, the gettext locale name its directory uses", async (locale, expected) => {
+    expect(await languageHeader(locale)).toBe(expected);
+  });
+
+  it("falls back to the underscore spelling for a locale with no gettext name", async () => {
+    expect(await languageHeader("zh-Hant")).toBe("zh_Hant");
+  });
+});

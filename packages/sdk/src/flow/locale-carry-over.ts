@@ -1,3 +1,4 @@
+import { posixSpelling } from "@verbatra/core";
 import {
   CACHE_FILE_NAME,
   cacheFilePath,
@@ -52,15 +53,24 @@ export type LocaleMoves = ReadonlyMap<string, string>;
 
 const NO_MOVES: LocaleMoves = new Map();
 
-function posixSpelling(locale: string): string {
-  return locale.replaceAll("-", "_").toLowerCase();
+function respelledForms(locale: string): ReadonlySet<string> {
+  const forms = new Set([locale.replaceAll("-", "_").toLowerCase()]);
+  const { spelling } = posixSpelling(locale, "gettext");
+  if (spelling?.includes("@") === true) {
+    forms.add(spelling.toLowerCase());
+  }
+  return forms;
+}
+
+function isRespelling(candidate: string): boolean {
+  return candidate.includes("_") || candidate.includes("@");
 }
 
 export function respellingsOf(locale: string, stateLocales: Iterable<string>): readonly string[] {
-  const wanted = posixSpelling(locale);
+  const wanted = respelledForms(locale);
   return [...stateLocales].filter(
     (candidate) =>
-      candidate !== locale && candidate.includes("_") && candidate.toLowerCase() === wanted,
+      candidate !== locale && isRespelling(candidate) && wanted.has(candidate.toLowerCase()),
   );
 }
 

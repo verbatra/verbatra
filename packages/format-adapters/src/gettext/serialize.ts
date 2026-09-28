@@ -1,4 +1,4 @@
-import type { TranslationEntry } from "@verbatra/core";
+import { posixSpelling, type TranslationEntry } from "@verbatra/core";
 import type { WriteContext } from "../adapter.js";
 import { AdapterError } from "../errors.js";
 import type { AdapterFs, BoundedReadOutcome } from "../fs-port.js";
@@ -137,7 +137,7 @@ function rewriteDocument(doc: PoDocument, entries: ReadonlyMap<string, Translati
 }
 
 function poLanguage(locale: string): string {
-  return locale.replaceAll("-", "_");
+  return posixSpelling(locale, "gettext").spelling ?? locale.replaceAll("-", "_");
 }
 
 function synthesizeFromScratch(
