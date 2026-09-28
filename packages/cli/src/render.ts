@@ -11,6 +11,7 @@ import {
   type ExportTmxResult,
   type ExportWorkbookResult,
   type ExtractResult,
+  errorHint,
   type FuzzyCacheHit,
   type GenerateTypesResult,
   type ImportTmxResult,
@@ -42,6 +43,8 @@ import {
   type UsageSummary,
 } from "@verbatra/sdk";
 import type { CliErrorCode } from "./cli-error-codes.js";
+import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
+import { CliUsageError } from "./cli-usage-error.js";
 
 const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 
@@ -51,6 +54,7 @@ export interface RenderableError {
   readonly causeCode?: string;
   readonly candidates?: readonly string[];
   readonly missing?: readonly string[];
+  readonly hint?: string;
 }
 
 function stringListOf(
@@ -76,17 +80,23 @@ function codeOf(value: unknown): string | undefined {
   return typeof code === "string" ? code : undefined;
 }
 
+function hintOf(error: Error): string | undefined {
+  return error instanceof CliUsageError ? CLI_ERROR_HINTS[error.code] : errorHint(error);
+}
+
 export function toRenderableError(error: unknown): RenderableError {
   if (error instanceof Error) {
     const causeCode = codeOf(error.cause);
     const candidates = stringListOf(error, "candidates");
     const missing = stringListOf(error, "missing");
+    const hint = hintOf(error);
     return {
       code: codeOf(error) ?? FALLBACK_ERROR_CODE,
       message: projectRelativeMessage(error.message, process.cwd()),
       ...(causeCode === undefined ? {} : { causeCode }),
       ...(candidates === undefined ? {} : { candidates }),
       ...(missing === undefined ? {} : { missing }),
+      ...(hint === undefined ? {} : { hint }),
     };
   }
   return { code: FALLBACK_ERROR_CODE, message: String(error) };
@@ -542,9 +552,10 @@ function renderLiteralLines(scan: LiteralScan | undefined): readonly string[] {
 }
 
 export function renderDoctorHuman(result: DoctorResult): string {
-  const lines = result.checks.map(
-    (entry) => `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
-  );
+  const lines = result.checks.flatMap((entry) => [
+    `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
+    ...(entry.fix === undefined ? [] : [`         fix: ${entry.fix}`]),
+  ]);
   const failed = result.checks.filter((entry) => entry.status === "fail").length;
   const trailer = result.ok
     ? "no problems found"

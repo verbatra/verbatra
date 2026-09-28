@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  errorHint,
   type LockWaitEvent,
   type ProgressEvent,
   SdkError,
@@ -562,10 +563,11 @@ describe("run translate: exit codes", () => {
       command: "translate",
       code: "CONFIG_INVALID",
       message: "bad config",
+      hint: errorHint(new SdkError("CONFIG_INVALID", "bad config")),
     });
   });
 
-  it("under --json the stderr line is byte-identical to the non-json run's", async () => {
+  it("under --json the stderr error line is byte-identical to the non-json run's", async () => {
     const failing = (): { deps: CliDeps } =>
       recordingDeps({
         loadConfig: async () => {
@@ -578,8 +580,9 @@ describe("run translate: exit codes", () => {
     const json = captureStreams();
     expect(await run(["translate", "--json"], failing().deps, json.streams)).toBe(2);
 
-    expect(human.err()).toBe("verbatra: error [CONFIG_INVALID] bad config\n");
-    expect(json.err()).toBe(human.err());
+    const errorLine = "verbatra: error [CONFIG_INVALID] bad config\n";
+    expect(human.err()).toBe(`${errorLine}next: ${errorHint({ code: "CONFIG_INVALID" })}\n`);
+    expect(json.err()).toBe(errorLine);
     expect(human.out()).toBe("");
   });
 

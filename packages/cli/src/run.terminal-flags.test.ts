@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
-import { type LockWaitEvent, type ProgressEvent, SdkError } from "@verbatra/sdk";
+import { errorHint, type LockWaitEvent, type ProgressEvent, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { run } from "./run.js";
 import type { TerminalFacts } from "./terminal-mode.js";
@@ -133,6 +133,8 @@ describe("run: plain human output is unchanged by the terminal layer", () => {
 });
 
 describe("run: color", () => {
+  const CONFIG_INVALID_HINT = errorHint(new SdkError("CONFIG_INVALID", "bad config"));
+
   const failingDeps = () =>
     recordingDeps({
       loadConfig: () => Promise.reject(new SdkError("CONFIG_INVALID", "bad config")),
@@ -143,7 +145,10 @@ describe("run: color", () => {
 
     await run(["check"], failingDeps(), cap.streams, {}, COLOR_TTY);
 
-    expect(cap.err()).toBe(`verbatra: ${ESC}31merror${ESC}39m [CONFIG_INVALID] bad config\n`);
+    expect(cap.err()).toBe(
+      `verbatra: ${ESC}31merror${ESC}39m [CONFIG_INVALID] bad config\n` +
+        `${ESC}36mnext:${ESC}39m ${CONFIG_INVALID_HINT}\n`,
+    );
   });
 
   it.each([
@@ -155,7 +160,9 @@ describe("run: color", () => {
 
     await run([...argv], failingDeps(), cap.streams, {}, facts);
 
-    expect(cap.err()).toBe("verbatra: error [CONFIG_INVALID] bad config\n");
+    expect(cap.err()).toBe(
+      `verbatra: error [CONFIG_INVALID] bad config\nnext: ${CONFIG_INVALID_HINT}\n`,
+    );
   });
 
   it("never colors stdout, even on a color terminal", async () => {

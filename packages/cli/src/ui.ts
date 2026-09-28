@@ -137,6 +137,13 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
   const elapsedSuffix = (startedAt: number): string =>
     label("gray", `(${formatElapsed(now() - startedAt)})`);
 
+  const hint = (command: string, why?: string): void => {
+    if (!isSilent(terminal)) {
+      const reason = why === undefined ? "" : ` (${why})`;
+      writer.streams.err(`${label("cyan", "next:")} ${command}${reason}\n`);
+    }
+  };
+
   const status = (word: StatusWord, text: string): void => {
     if (!isSilent(terminal)) {
       writer.streams.err(`${label(STATUS_FORMATS[word], `[${word}]`)} ${text}\n`);
@@ -234,14 +241,12 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
       writer.streams.err(
         `verbatra: ${label("red", "error")} [${error.code}] ${error.message}${cause}\n`,
       );
-    },
-    status,
-    hint: (command, why) => {
-      if (!isSilent(terminal)) {
-        const reason = why === undefined ? "" : ` (${why})`;
-        writer.streams.err(`${label("cyan", "next:")} ${command}${reason}\n`);
+      if (error.hint !== undefined) {
+        hint(error.hint);
       }
     },
+    status,
+    hint,
     task: (taskLabel) => {
       stopSpinner();
       if (isSilent(terminal)) {

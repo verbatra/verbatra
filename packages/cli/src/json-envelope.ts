@@ -19,6 +19,7 @@ export interface ErrorEnvelope {
   readonly causeCode?: string;
   readonly candidates?: readonly string[];
   readonly missing?: readonly string[];
+  readonly hint?: string;
 }
 
 export function renderSuccessEnvelope<TResult>(command: string, result: TResult): string {
@@ -41,6 +42,7 @@ export function renderErrorEnvelope(command: string | null, error: RenderableErr
     ...(error.causeCode === undefined ? {} : { causeCode: error.causeCode }),
     ...(error.candidates === undefined ? {} : { candidates: error.candidates }),
     ...(error.missing === undefined ? {} : { missing: error.missing }),
+    ...(error.hint === undefined ? {} : { hint: error.hint }),
   };
   return JSON.stringify(envelope);
 }

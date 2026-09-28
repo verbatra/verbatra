@@ -1,12 +1,13 @@
 import { join, resolve } from "node:path";
 import process from "node:process";
-import type {
-  EstimateCaveatCode,
-  LockWaitEvent,
-  PricedRunEstimate,
-  ProgressEvent,
-  RunEstimate,
-  UnpricedRunEstimate,
+import {
+  type EstimateCaveatCode,
+  errorHint,
+  type LockWaitEvent,
+  type PricedRunEstimate,
+  type ProgressEvent,
+  type RunEstimate,
+  type UnpricedRunEstimate,
 } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -999,7 +1000,11 @@ describe("render: errors", () => {
 
   it("toRenderableError reads a coded Error, falls back for non-coded and non-Error", () => {
     const coded = Object.assign(new Error("m"), { code: "SOURCE_UNREADABLE" });
-    expect(toRenderableError(coded)).toEqual({ code: "SOURCE_UNREADABLE", message: "m" });
+    expect(toRenderableError(coded)).toEqual({
+      code: "SOURCE_UNREADABLE",
+      message: "m",
+      hint: errorHint(coded),
+    });
     expect(toRenderableError(new Error("plain"))).toEqual({ code: "CLI_ERROR", message: "plain" });
     expect(toRenderableError("weird")).toEqual({ code: "CLI_ERROR", message: "weird" });
   });
@@ -1016,6 +1021,7 @@ describe("render: errors", () => {
       code: "PROVIDER_CONSTRUCTION_FAILED",
       message: "Failed to construct provider",
       causeCode: "MISSING_API_KEY",
+      hint: errorHint(cause),
     });
     expect(renderError(renderable)).toBe(
       "verbatra: error [PROVIDER_CONSTRUCTION_FAILED] Failed to construct provider (cause: MISSING_API_KEY)",
