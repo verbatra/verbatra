@@ -438,7 +438,37 @@ describe("config errors (no provider)", () => {
 
     expect(result.stderr).toMatch(/\[CONFIG_NOT_FOUND\]/);
     expect(result.stderr).toContain("No verbatra configuration found");
+    expect(envelope.hint).toContain("verbatra init");
   });
+
+  it("prints the same next step on stderr without --json", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-e2e-noconfig-human-"));
+    const result = await runVerbatra(consumer, ["check", "--cwd", dir]);
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toMatch(/\nnext: Run `verbatra init`/);
+  });
+});
+
+describe("usage errors under --json (no provider)", () => {
+  it.each([
+    [["check", "--json", "--nope"], "check"],
+    [["import", "--json"], "import"],
+  ])(
+    "%j exits 2 with a USAGE_ERROR envelope and the command's help hint",
+    async (argv, command) => {
+      const result = await runVerbatra(consumer, argv);
+
+      expect(result.exitCode).toBe(2);
+      expectSingleJsonDocument(result.stdout);
+      const envelope = expectErrorEnvelope(parseEnvelope(result.stdout), command);
+      expect(envelope.code).toBe("USAGE_ERROR");
+      expect(envelope.hint).toBe(
+        `Run \`verbatra ${command} --help\` to see the options and arguments it accepts.`,
+      );
+    },
+  );
 });
 
 describe("CLI boundary hardening (subprocess-level proof, no provider)", () => {

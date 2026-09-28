@@ -144,6 +144,7 @@ export interface ErrorEnvelope {
   command: string | null;
   code: string;
   message: string;
+  hint?: string;
 }
 
 export type JsonEnvelope<TResult> = SuccessEnvelope<TResult> | ErrorEnvelope;
