@@ -1,6 +1,7 @@
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { assertProviderNetworkPermitted } from "../config/network-policy.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { errorHint } from "../error-hints.js";
 import { describeError, SdkError } from "../errors.js";
 import { selectLocales } from "../flow/select-locales.js";
 import type { RunSummary } from "../flow/summary.js";
@@ -53,6 +54,11 @@ export type WatchRunResult =
         readonly code: string;
         /** A human-readable description of the failure. Never contains a secret. */
         readonly message: string;
+        /**
+         * The next step that resolves the failure, as {@link errorHint} words it. Absent when the
+         * failure has no hint, such as a `WATCH_RUN_FAILED` one.
+         */
+        readonly hint?: string;
       };
     };
 
@@ -229,9 +235,14 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
       input.onRun({ status: "succeeded", summary: await runTranslate(runInput) });
     } catch (error) {
       const described = describeError(error, "WATCH_RUN_FAILED");
+      const hint = errorHint(error);
       input.onRun({
         status: "failed",
-        error: { code: described.code, message: projectRelativeMessage(described.message, cwd) },
+        error: {
+          code: described.code,
+          message: projectRelativeMessage(described.message, cwd),
+          ...(hint === undefined ? {} : { hint }),
+        },
       });
     }
   }

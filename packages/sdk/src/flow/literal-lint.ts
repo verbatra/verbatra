@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { type LiteralScan, scanLiterals } from "@verbatra/extract";
 import { buildLiteralRules } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { errorHint, sdkErrorHint } from "../error-hints.js";
 import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import type { ScanProgressListener } from "../progress/types.js";
@@ -9,7 +10,7 @@ import { EXTRACT_NOT_CONFIGURED_MESSAGE, scanProgress, toSourceFs } from "./sour
 
 export type LiteralLintOutcome =
   | { readonly kind: "scanned"; readonly scan: LiteralScan }
-  | { readonly kind: "not-run"; readonly detail: string };
+  | { readonly kind: "not-run"; readonly detail: string; readonly fix: string | undefined };
 
 function plural(count: number, singular: string, pluralForm: string): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -38,7 +39,11 @@ export async function lintLiterals(
 ): Promise<LiteralLintOutcome> {
   const extraction = config.extract;
   if (extraction === undefined) {
-    return { kind: "not-run", detail: EXTRACT_NOT_CONFIGURED_MESSAGE };
+    return {
+      kind: "not-run",
+      detail: EXTRACT_NOT_CONFIGURED_MESSAGE,
+      fix: sdkErrorHint("EXTRACT_NOT_CONFIGURED"),
+    };
   }
   try {
     const scan = await scanLiterals(
@@ -56,6 +61,6 @@ export async function lintLiterals(
     );
     return { kind: "scanned", scan };
   } catch (error) {
-    return { kind: "not-run", detail: errorMessage(error) };
+    return { kind: "not-run", detail: errorMessage(error), fix: errorHint(error) };
   }
 }

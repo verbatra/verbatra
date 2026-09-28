@@ -150,6 +150,7 @@ export {
   detectProject,
   type ProjectDetection,
 } from "./detection/detect-project.js";
+export { errorHint } from "./error-hints.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
 export { type BudgetStanding, budgetStanding } from "./flow/budget.js";
 export {

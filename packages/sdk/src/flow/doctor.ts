@@ -19,6 +19,7 @@ import {
   type ProviderConfig,
 } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import { apiKeyHint, errorHint } from "../error-hints.js";
 import { errorMessage, SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
@@ -94,6 +95,13 @@ export interface DoctorCheck {
    * environment variables and paths, never an API key value.
    */
   readonly detail: string;
+  /**
+   * The next step that resolves a failed check: one short imperative sentence, such as "Set
+   * GEMINI_API_KEY in the environment or in a .env file in the project directory.". Present only
+   * when {@link DoctorCheck.status} is `fail`. Like `detail`, it names environment variables and
+   * paths, never an API key value.
+   */
+  readonly fix?: string;
 }
 
 /** The result of {@link doctor}: every check that ran, and one project-wide verdict. */
@@ -175,14 +183,41 @@ const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
   "locale-state",
 ];
 
+const CHECK_FIXES: Record<DoctorCheckId, string | undefined> = {
+  config: "Fix the config the detail names, or run `verbatra init` to create one.",
+  "format-adapter": "Set `format` in the config to a supported format.",
+  provider: `Set \`provider.id\` in the config to a supported provider: ${PROVIDER_IDS.join(", ")}.`,
+  "api-key": "Set the API key environment variable the detail names.",
+  "network-policy":
+    "Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS; correct VERBATRA_NETWORK_POLICY or VERBATRA_NETWORK_ALLOWED_HOSTS if either holds an invalid value.",
+  "source-file":
+    "Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.",
+  "plural-rules": undefined,
+  "locale-codes": undefined,
+  "locale-state": undefined,
+  "untranslated-literals":
+    "Wrap each reported literal in a translation call, or suppress it with a `verbatra-ignore-next-line` comment or `extract.literals.ignore`.",
+};
+
 const SKIPPED_DETAIL = "Not checked: the configuration could not be loaded.";
 
-function check(id: DoctorCheckId, status: DoctorCheckStatus, detail: string): DoctorCheck {
-  return { id, title: CHECK_TITLES[id], status, detail };
+function check(
+  id: DoctorCheckId,
+  status: DoctorCheckStatus,
+  detail: string,
+  fix?: string,
+): DoctorCheck {
+  const base = { id, title: CHECK_TITLES[id], status, detail };
+  const resolvedFix = status === "fail" ? (fix ?? CHECK_FIXES[id]) : undefined;
+  return resolvedFix === undefined ? base : { ...base, fix: resolvedFix };
 }
 
-function verdict(id: DoctorCheckId, passed: boolean, detail: string): DoctorCheck {
-  return check(id, passed ? "pass" : "fail", detail);
+function verdict(id: DoctorCheckId, passed: boolean, detail: string, fix?: string): DoctorCheck {
+  return check(id, passed ? "pass" : "fail", detail, fix);
+}
+
+function failure(id: DoctorCheckId, error: unknown): DoctorCheck {
+  return verdict(id, false, errorMessage(error), errorHint(error));
 }
 
 function toResult(checks: readonly DoctorCheck[]): DoctorResult {
@@ -199,7 +234,7 @@ function loadOptionsFor(input: DoctorInput, deps: DoctorDeps): LoadConfigOptions
 
 type LoadOutcome =
   | { readonly kind: "loaded"; readonly loaded: LoadedConfig }
-  | { readonly kind: "failed"; readonly detail: string };
+  | { readonly kind: "failed"; readonly error: unknown };
 
 function isMissingExplicitConfig(error: unknown, input: DoctorInput): boolean {
   return (
@@ -215,7 +250,7 @@ async function loadForDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Load
     if (isMissingExplicitConfig(error, input)) {
       throw error;
     }
-    return { kind: "failed", detail: errorMessage(error) };
+    return { kind: "failed", error };
   }
 }
 
@@ -227,21 +262,21 @@ function configDetail(source: ConfigSource): string {
 
 type AdapterOutcome =
   | { readonly kind: "resolved"; readonly adapter: FormatAdapter }
-  | { readonly kind: "failed"; readonly detail: string };
+  | { readonly kind: "failed"; readonly error: unknown };
 
 function resolveAdapter(config: VerbatraConfig, deps: DoctorDeps): AdapterOutcome {
   try {
     const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
     return { kind: "resolved", adapter };
   } catch (error) {
-    return { kind: "failed", detail: errorMessage(error) };
+    return { kind: "failed", error };
   }
 }
 
 function checkAdapter(config: VerbatraConfig, outcome: AdapterOutcome): DoctorCheck {
   return outcome.kind === "resolved"
     ? verdict("format-adapter", true, `Format "${config.format}" resolves to an adapter.`)
-    : verdict("format-adapter", false, outcome.detail);
+    : failure("format-adapter", outcome.error);
 }
 
 const MACHINE_TRANSLATION_DISABLED_DETAIL =
@@ -269,7 +304,7 @@ function isEnvVarSet(name: string): boolean {
 function envVarVerdict(name: string): DoctorCheck {
   return isEnvVarSet(name)
     ? verdict("api-key", true, `${name} is set.`)
-    : verdict("api-key", false, `The ${name} environment variable is not set.`);
+    : verdict("api-key", false, `The ${name} environment variable is not set.`, apiKeyHint(name));
 }
 
 function checkOpenAiCompatibleKey(apiKeyEnvVar: string | undefined): DoctorCheck {
@@ -339,7 +374,7 @@ async function checkSourceFile(
       ? await parseSourceVerdict(config, resolver, fs, outcome.adapter, sourcePath)
       : await existenceOnlyVerdict(sourcePath, fs);
   } catch (error) {
-    return verdict("source-file", false, errorMessage(error));
+    return failure("source-file", error);
   }
 }
 
@@ -347,7 +382,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
   const outcome = await loadForDoctor(input, deps);
   if (outcome.kind === "failed") {
     return toResult([
-      verdict("config", false, outcome.detail),
+      failure("config", outcome.error),
       check("untranslated-literals", "skipped", SKIPPED_DETAIL),
     ]);
   }
@@ -360,7 +395,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
     input.onProgress,
   );
   if (lint.kind === "not-run") {
-    return toResult([configCheck, verdict("untranslated-literals", false, lint.detail)]);
+    return toResult([configCheck, verdict("untranslated-literals", false, lint.detail, lint.fix)]);
   }
   const literalCheck = verdict(
     "untranslated-literals",
@@ -461,7 +496,7 @@ export async function doctor(
   const outcome = await loadForDoctor(input, deps);
   if (outcome.kind === "failed") {
     return toResult([
-      verdict("config", false, outcome.detail),
+      failure("config", outcome.error),
       ...CONFIG_DEPENDENT_IDS.map((id) => check(id, "skipped", SKIPPED_DETAIL)),
     ]);
   }
