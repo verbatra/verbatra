@@ -1,6 +1,8 @@
 import type { CliErrorCode } from "./cli-error-codes.js";
 
 export const CLI_ERROR_HINTS = {
+  AGENT_FILE_INVALID:
+    "Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.",
   CLI_ERROR: undefined,
   CONFIG_EXISTS:
     "Pass --force to overwrite the existing config, or remove the other config file the message names.",
