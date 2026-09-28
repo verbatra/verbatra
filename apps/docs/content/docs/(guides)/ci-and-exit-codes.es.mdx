@@ -74,6 +74,7 @@ type Envelope<TResult> =
       causeCode?: string; // the code of the error this one wraps, when it has one
       candidates?: string[]; // the values to choose from, on an error that has them
       missing?: string[]; // the flags still to pass, on an init usage error
+      hint?: string; // the next step that resolves the error, when there is one
     };
 ```
 
@@ -86,6 +87,10 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 ```
 
 `command` es `null` solo cuando el fallo ocurrió antes de resolver un subcomando. `candidates` aparece solo en un error que te pide elegir, como `FORMAT_AMBIGUOUS` de `init`, y lista los valores entre los que elegir. `missing` aparece en un error de uso de `init` que deja flags sin responder y nombra cada flag que aún tienes que pasar. `causeCode` aparece cuando el error envuelve otro error con código, como un `PROVIDER_CONSTRUCTION_FAILED` causado por `MISSING_API_KEY`; la línea de stderr termina entonces con `(cause: MISSING_API_KEY)`.
+
+<AvailableFrom version="0.12.0" />
+
+`hint` aparece cuando el error tiene un siguiente paso: una frase breve en imperativo que lo resuelve, como `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` para una clave ausente o `` "Run `verbatra check --help` to see the options and arguments it accepts." `` para un `USAGE_ERROR`. Actúa según él en lugar de analizar `message`. Nombra variables, flags y rutas, nunca el valor de una clave. Cada código del SDK, de un proveedor y de un adaptador de formato tiene uno (el SDK exporta el mismo texto como [`errorHint`](/docs/sdk#errorhint)), y también cada código de la tabla de abajo excepto `CLI_ERROR`. Sin `--json`, el mismo texto sigue a la línea de error en stderr como `next: ...`, salvo que uses `--quiet`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -115,9 +120,9 @@ La CLI lanza estos códigos por sí misma. La misma lista se publica como `CLI_E
 | `INVALID_SEVERITY` | `check --severity` no es ni `error` ni `warning` |
 | `LAYOUT_AMBIGUOUS` | `init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista |
 | `MISSING_OPTIONS` | `init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta |
-| `USAGE_ERROR` | el analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar |
+| `USAGE_ERROR` | el analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar; su `hint` nombra el `--help` del comando |
 
-Los errores de un comando ya resuelto van a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos, sin cambios, así que un script que lee el código de salida y stderr no necesita ninguna actualización. Una clase de fallo no sigue esa gramática, porque ocurre antes de que exista una ejecución que pueda llevar un código: un error al analizar los argumentos imprime el propio `error: unknown option '--nope'` de commander, sin prefijo y sin código, y sale con `2`. Comprueba primero el código de salida y trata el código de error como opcional, o un analizador escrito solo contra la gramática estructurada lo pasará por alto en silencio. `init` sigue la gramática estructurada desde 0.12.0; antes, un proveedor ausente imprimía `verbatra: --provider is required (...)` sin código. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
+Los errores de un comando ya resuelto van a stderr como una línea estructurada (`verbatra: error [CODE] message`) en ambos modos, sin cambios, así que un script que lee el código de salida y stderr no necesita ninguna actualización. Una clase de fallo no sigue esa gramática, porque ocurre antes de que exista una ejecución que pueda llevar un código: un error al analizar los argumentos imprime el propio `error: unknown option '--nope'` de commander, sin prefijo y sin código, y sale con `2`. Comprueba primero el código de salida y trata el código de error como opcional, o un analizador escrito solo contra la gramática estructurada lo pasará por alto en silencio. `init` sigue la gramática estructurada desde 0.12.0; antes, un proveedor ausente imprimía `verbatra: --provider is required (...)` sin código. Desde 0.12.0, sin `--json` una pista sigue a cualquiera de las dos líneas como `next: ...`, y con `--json` un error de análisis escribe en stdout el envoltorio `USAGE_ERROR` con su `hint`. Sin `--json`, una ejecución fallida sigue sin escribir absolutamente nada en stdout. Los registros de progreso y de espera de bloqueo van siempre a stderr, así que stdout no lleva más que envoltorios.
 
 El resto de esta sección describe el `result` que cada comando pone dentro de un envoltorio de éxito.
 
@@ -140,7 +145,7 @@ El objeto `estimate` lleva `keys`, `requests`, la cantidad facturable que cobra 
 
 Cada `LocaleSummary` lleva las listas de claves por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas para revisión y más); consulta [la referencia del SDK](/docs/sdk) para la anatomía completa.
 
-`verbatra watch --json` imprime un envoltorio por ejecución como NDJSON (un objeto JSON por línea), con `command: "watch"`. Una ejecución correcta es un registro `ok: true` que lleva el `RunSummary` de esa ejecución; una ejecución fallida es un registro `ok: false` que lleva su código y su mensaje: el código propio del fallo cuando lo tenía, y `WATCH_RUN_FAILED` en caso contrario. Una ejecución fallida es solo un registro en el flujo: ni detiene el watcher ni cambia el código de salida.
+`verbatra watch --json` imprime un envoltorio por ejecución como NDJSON (un objeto JSON por línea), con `command: "watch"`. Una ejecución correcta es un registro `ok: true` que lleva el `RunSummary` de esa ejecución; una ejecución fallida es un registro `ok: false` que lleva su código y su mensaje: el código propio del fallo cuando lo tenía, y `WATCH_RUN_FAILED` en caso contrario, más su `hint` cuando lo tiene. Una ejecución fallida es solo un registro en el flujo: ni detiene el watcher ni cambia el código de salida.
 
 `verbatra check --json` lleva un documento de estado. Sin `--qa`, el `inSync` de nivel superior es true exactamente cuando el comando sale con `0`; con `--qa`, `qa` lleva los totales del [control de calidad](/docs/cli/check#control-de-calidad) y cada locale su propio informe `qa`:
 
@@ -218,6 +223,7 @@ interface DoctorCheck {
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check; never an API key value
 }
 ```
 

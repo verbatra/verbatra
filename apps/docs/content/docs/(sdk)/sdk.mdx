@@ -305,6 +305,12 @@ loaded config needed: `doctor` loads it itself, so a project with no config at a
 report rather than a thrown error. Returns a `DoctorResult` whose `ok` is true exactly when no
 check failed. It throws `CONFIG_NOT_FOUND` only for an explicit `configPath` that does not exist.
 
+<AvailableFrom version="0.12.0" />
+
+Every failed check carries `fix`, one short imperative next step such as "Set ANTHROPIC_API_KEY in
+the environment or in a .env file in the project directory.". A check that passed or was skipped
+has no `fix`. Like `detail`, it names variables and paths, never a key value.
+
 ### extract
 
 <AvailableFrom version="0.11.0" />
@@ -751,6 +757,30 @@ a path relative to the project root: a path under `cwd` loses that prefix, `cwd`
 message on a `RunSummary` already names project files this way, relative to the run's `cwd`; call
 it on the message of an error a flow throws before you show it to a user, an agent, or a browser
 tab. `verbatra mcp` and Studio do the same for every error they return.
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` returns the next step that resolves an error verbatra raised: one short
+imperative sentence, or `undefined` when there is none. Every `SdkError` code, every
+`ProviderError` code, and every format adapter error code has one, so an agent can act on a failure
+without parsing its message. It reads the error's `code`, so a plain `{ code, message }` object,
+such as a failed `watch` run's `error`, gets the same hint. A `PROVIDER_CONSTRUCTION_FAILED` error
+takes the hint of the provider error it wraps, so a missing key names the exact variable to set,
+read from the `envVar` a `MISSING_API_KEY` `ProviderError` carries. A hint is fixed text plus, at
+most, a variable name: it never contains a key value or quotes the message. The CLI's `--json`
+error envelope carries it as `hint`, and `verbatra mcp` ends a failed call's text with it.
+
+```ts
+import { errorHint, translate } from "@verbatra/sdk";
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+}
+```
 
 ## The workbook pair
 

@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { errorHint } from "../error-hints.js";
 import { SdkError } from "../errors.js";
 import type { RunSummary } from "../flow/summary.js";
 import type { TranslateInput } from "../flow/translate-project.js";
@@ -475,7 +476,11 @@ describe("watch: failure handling and shutdown", () => {
     await settle();
     expect(results[0]).toEqual({
       status: "failed",
-      error: { code: "SOURCE_INVALID", message: "bad source" },
+      error: {
+        code: "SOURCE_INVALID",
+        message: "bad source",
+        hint: errorHint(new SdkError("SOURCE_INVALID", "bad source")),
+      },
     });
     w.emit();
     await vi.advanceTimersByTimeAsync(300);

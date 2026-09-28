@@ -333,6 +333,13 @@ trotzdem einen Bericht statt eines geworfenen Fehlers. Gibt ein `DoctorResult` z
 genau dann true ist, wenn keine Prüfung fehlgeschlagen ist. Es wirft `CONFIG_NOT_FOUND` nur für
 einen explizit angegebenen `configPath`, der nicht existiert.
 
+<AvailableFrom version="0.12.0" />
+
+Jede fehlgeschlagene Prüfung trägt `fix`, einen kurzen nächsten Schritt im Imperativ wie "Set
+ANTHROPIC_API_KEY in the environment or in a .env file in the project directory.". Eine bestandene
+oder übersprungene Prüfung hat kein `fix`. Wie `detail` nennt es Variablen und Pfade, nie den Wert
+eines Keys.
+
 ### extract
 
 <AvailableFrom version="0.11.0" />
@@ -814,6 +821,32 @@ Meldung in einen Pfad relativ zum Projektstamm um: Ein Pfad unter `cwd` verliert
 bereits so, relativ zum `cwd` des Laufs; ruf es für die Meldung eines Fehlers auf, den ein Flow
 wirft, bevor du sie einem Menschen, einem Agenten oder einem Browser-Tab zeigst. `verbatra mcp`
 und Studio machen das für jeden Fehler, den sie zurückgeben.
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` gibt den nächsten Schritt zurück, der einen Fehler von verbatra behebt: einen
+kurzen Satz im Imperativ, oder `undefined`, wenn es keinen gibt. Jeder `SdkError`-Code, jeder
+`ProviderError`-Code und jeder Fehlercode eines Format-Adapters hat einen, sodass ein Agent auf
+einen Fehler reagieren kann, ohne dessen Meldung zu parsen. Es liest den `code` des Fehlers, also
+bekommt auch ein einfaches `{ code, message }`-Objekt, etwa der `error` eines fehlgeschlagenen
+`watch`-Laufs, denselben Hinweis. Ein `PROVIDER_CONSTRUCTION_FAILED`-Fehler übernimmt den Hinweis
+des Provider-Fehlers, den er umhüllt, sodass ein fehlender Key genau die Variable nennt, die du
+setzen musst, gelesen aus dem `envVar`, das ein `ProviderError` mit `MISSING_API_KEY` trägt. Ein
+Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
+zitiert nie die Meldung. Der `--json`-Fehlerumschlag der CLI trägt ihn als `hint`, und
+`verbatra mcp` beendet den Text eines fehlgeschlagenen Aufrufs damit.
+
+```ts
+import { errorHint, translate } from "@verbatra/sdk";
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // z. B. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+}
+```
 
 ## Das Arbeitsmappen-Paar
 

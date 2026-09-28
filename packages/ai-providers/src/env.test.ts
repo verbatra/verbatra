@@ -60,6 +60,7 @@ describe("requireGoogleTranslateKey", () => {
       expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).code).toBe("MISSING_API_KEY");
       expect((error as ProviderError).message).toContain("GOOGLE_TRANSLATE_API_KEY");
+      expect((error as ProviderError).envVar).toBe("GOOGLE_TRANSLATE_API_KEY");
       expect((error as ProviderError).message).not.toContain("AIza");
     }
   });
@@ -159,6 +160,7 @@ describe("resolveOpenAiCompatibleKey", () => {
       expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).code).toBe("MISSING_API_KEY");
       expect((error as ProviderError).message).toContain("MY_CUSTOM_LOCAL_KEY");
+      expect((error as ProviderError).envVar).toBe("MY_CUSTOM_LOCAL_KEY");
     }
   });
 

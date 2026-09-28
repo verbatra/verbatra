@@ -24,6 +24,7 @@ import {
 import { Command, CommanderError } from "commander";
 import { z } from "zod";
 import type { CliErrorCode } from "./cli-error-codes.js";
+import { usageErrorHint } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { hasConfigFile } from "./config-presence.js";
 import { loadEnvFiles } from "./env.js";
@@ -377,11 +378,38 @@ function writeUnlessJsonRefusal(message: string, write: (text: string) => void):
   }
 }
 
+function argvRequestsQuiet(argv: readonly string[]): boolean {
+  return argv.includes("-q") || argv.includes("--quiet");
+}
+
+function showsHelp(error: CommanderError): boolean {
+  return error.code.startsWith("commander.help");
+}
+
+function hintUsage(
+  error: CommanderError,
+  hint: string,
+  argv: readonly string[],
+  streams: Streams,
+  facts: TerminalFacts,
+): void {
+  if (showsHelp(error) || argv.length === 0) {
+    return;
+  }
+  const terminal = resolveTerminalMode(facts, {
+    json: false,
+    quiet: argvRequestsQuiet(argv),
+    color: !argv.includes("--no-color"),
+  });
+  createUi(streams, terminal).hint(hint);
+}
+
 function renderUsageFailureExit2(
   error: CommanderError,
   program: Command,
   argv: readonly string[],
   streams: Streams,
+  facts: TerminalFacts,
 ): number {
   const command = resolveCommandName(program, argv);
   if (command !== null && PROTOCOL_STDOUT_COMMANDS.has(command)) {
@@ -393,12 +421,16 @@ function renderUsageFailureExit2(
     }
     return 2;
   }
+  const hint = usageErrorHint(command);
   if (argvRequestsJson(argv)) {
     const envelope = renderErrorEnvelope(command, {
       code: USAGE_ERROR_CODE,
       message: error.message,
+      hint,
     });
     streams.out(`${envelope}\n`);
+  } else {
+    hintUsage(error, hint, argv, streams, facts);
   }
   return 2;
 }
@@ -1978,7 +2010,7 @@ async function runRedacted(
       if (argv.length === 0) {
         suggestInitWithoutConfig(streams);
       }
-      return renderUsageFailureExit2(error, program, argv, streams);
+      return renderUsageFailureExit2(error, program, argv, streams, facts);
     }
     throw error;
   }

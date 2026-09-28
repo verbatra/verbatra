@@ -74,6 +74,7 @@ type Envelope<TResult> =
       causeCode?: string; // the code of the error this one wraps, when it has one
       candidates?: string[]; // the values to choose from, on an error that has them
       missing?: string[]; // the flags still to pass, on an init usage error
+      hint?: string; // the next step that resolves the error, when there is one
     };
 ```
 
@@ -86,6 +87,10 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 ```
 
 `command` is `null` only when the failure happened before a subcommand was resolved. `candidates` appears only on an error that asks you to choose, such as `init`'s `FORMAT_AMBIGUOUS`, and lists the values to choose from. `missing` appears on an `init` usage error that leaves flags unanswered and names each flag still to pass. `causeCode` appears when the error wraps another coded error, such as a `PROVIDER_CONSTRUCTION_FAILED` caused by `MISSING_API_KEY`; the stderr line then ends with `(cause: MISSING_API_KEY)`.
+
+<AvailableFrom version="0.12.0" />
+
+`hint` appears when the error has a next step: one short imperative sentence that resolves it, such as `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` for a missing key or `` "Run `verbatra check --help` to see the options and arguments it accepts." `` for a `USAGE_ERROR`. Act on it instead of parsing `message`. It names variables, flags, and paths, never a key value. Every SDK, provider, and format adapter code has one (the SDK exports the same text as [`errorHint`](/docs/sdk#errorhint)), and so does every code in the table below except `CLI_ERROR`. Without `--json`, the same text follows the error line on stderr as `next: ...`, unless `--quiet` is set.
 
 <AvailableFrom version="0.12.0" />
 
@@ -115,9 +120,9 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 | `INVALID_SEVERITY` | `check --severity` is neither `error` nor `warning` |
 | `LAYOUT_AMBIGUOUS` | `init` found several file patterns that fit equally well; `candidates` lists them |
 | `MISSING_OPTIONS` | `init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag |
-| `USAGE_ERROR` | the argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept |
+| `USAGE_ERROR` | the argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept; its `hint` names the command's `--help` |
 
-Errors from a resolved command go to stderr as one structured line (`verbatra: error [CODE] message`) in both modes, unchanged, so a script that reads the exit code and stderr needs no update. One class of failure does not follow that grammar, because it happens before a run exists to carry a code: an argument-parsing error prints commander's own `error: unknown option '--nope'` with no prefix and no code, and exits `2`. Match on the exit code first and treat the code as optional, or a parser written to the structured grammar alone will silently miss it. `init` follows the structured grammar since 0.12.0; before that, a missing provider printed `verbatra: --provider is required (...)` with no code. Without `--json`, a failing run still writes nothing at all to stdout. Progress and lock-wait records always go to stderr, so stdout carries nothing but envelopes.
+Errors from a resolved command go to stderr as one structured line (`verbatra: error [CODE] message`) in both modes, unchanged, so a script that reads the exit code and stderr needs no update. One class of failure does not follow that grammar, because it happens before a run exists to carry a code: an argument-parsing error prints commander's own `error: unknown option '--nope'` with no prefix and no code, and exits `2`. Match on the exit code first and treat the code as optional, or a parser written to the structured grammar alone will silently miss it. `init` follows the structured grammar since 0.12.0; before that, a missing provider printed `verbatra: --provider is required (...)` with no code. Since 0.12.0, a hint follows either line as `next: ...` without `--json`, and under `--json` a parsing error writes the `USAGE_ERROR` envelope with its `hint` to stdout. Without `--json`, a failing run still writes nothing at all to stdout. Progress and lock-wait records always go to stderr, so stdout carries nothing but envelopes.
 
 The rest of this section describes the `result` each command puts inside a successful envelope.
 
@@ -140,7 +145,7 @@ The `estimate` object carries `keys`, `requests`, the billing quantity the provi
 
 Each `LocaleSummary` carries the per-locale key lists (translated, unchanged, orphaned, withheld, flagged for review, and more); see [the SDK reference](/docs/sdk) for the full anatomy.
 
-`verbatra watch --json` prints one envelope per run as NDJSON (one JSON object per line), with `command: "watch"`. A succeeded run is an `ok: true` record carrying that run's `RunSummary`; a failed run is an `ok: false` record carrying its code and message: the failure's own code where it had one, and `WATCH_RUN_FAILED` otherwise. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code.
+`verbatra watch --json` prints one envelope per run as NDJSON (one JSON object per line), with `command: "watch"`. A succeeded run is an `ok: true` record carrying that run's `RunSummary`; a failed run is an `ok: false` record carrying its code and message: the failure's own code where it had one, and `WATCH_RUN_FAILED` otherwise, plus its `hint` when it has one. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code.
 
 `verbatra check --json` carries one status document. Without `--qa`, the top-level `inSync` is true exactly when the command exits `0`; with it, `qa` carries the [quality-check](/docs/cli/check#quality-check) totals and each locale its own `qa` report:
 
@@ -218,6 +223,7 @@ interface DoctorCheck {
   title: string;               // short human-readable name, stable across runs
   status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check; never an API key value
 }
 ```
 

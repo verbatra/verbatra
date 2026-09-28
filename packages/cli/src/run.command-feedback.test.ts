@@ -138,7 +138,7 @@ describe("export and import: task lines and hand-off hints", () => {
 
     expect(code).toBe(2);
     expect(err).toMatch(
-      /^verbatra: exporting to xlsx\.\.\. failed \(\d+\.\ds\)\nverbatra: error \[SOURCE_UNREADABLE\] disk full\n$/,
+      /^verbatra: exporting to xlsx\.\.\. failed \(\d+\.\ds\)\nverbatra: error \[SOURCE_UNREADABLE\] disk full\nnext: .+\n$/,
     );
   });
 

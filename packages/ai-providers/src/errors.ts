@@ -28,13 +28,24 @@ export class ProviderError extends Error {
   readonly code: ProviderErrorCode;
 
   /**
+   * The name of the environment variable the provider reads its API key from, on a
+   * `MISSING_API_KEY` failure. A variable name, never its value. Absent on every other failure.
+   */
+  readonly envVar?: string;
+
+  /**
    * @param code - The failure code.
    * @param message - A description of the failure; key shapes and configured key values in it are
    * replaced by `[REDACTED]`.
+   * @param details - `envVar` names the API key environment variable a `MISSING_API_KEY` failure
+   * is about.
    */
-  constructor(code: ProviderErrorCode, message: string) {
+  constructor(code: ProviderErrorCode, message: string, details?: { readonly envVar?: string }) {
     super(redactKeys(message));
     this.name = "ProviderError";
     this.code = code;
+    if (details?.envVar !== undefined) {
+      this.envVar = details.envVar;
+    }
   }
 }

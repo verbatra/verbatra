@@ -9,7 +9,9 @@ export function processEnvironment(): EnvironmentSource {
 function readRequiredEnv(name: string): string {
   const value = process.env[name];
   if (value === undefined || value.length === 0) {
-    throw new ProviderError("MISSING_API_KEY", `The ${name} environment variable is not set.`);
+    throw new ProviderError("MISSING_API_KEY", `The ${name} environment variable is not set.`, {
+      envVar: name,
+    });
   }
   return value;
 }
@@ -46,6 +48,7 @@ export function resolveOpenAiCompatibleKey(customEnvVar?: string): string {
     throw new ProviderError(
       "MISSING_API_KEY",
       `The ${customEnvVar} environment variable is not set.`,
+      { envVar: customEnvVar },
     );
   }
   return OPENAI_COMPATIBLE_KEY_PLACEHOLDER;
