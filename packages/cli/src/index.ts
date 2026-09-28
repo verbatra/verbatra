@@ -1,6 +1,7 @@
 import process from "node:process";
 import {
   check,
+  checkFile,
   diff,
   doctor,
   exportTmx,
@@ -41,6 +42,7 @@ const code = await run(
     exportWorkbook,
     importWorkbook,
     check,
+    checkFile,
     diff,
     doctor,
     loadConfigWithMeta,

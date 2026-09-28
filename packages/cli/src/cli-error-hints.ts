@@ -24,7 +24,7 @@ export const CLI_ERROR_HINTS = {
   INVALID_PORT: "Pass --port as a whole number from 1 to 65535.",
   INVALID_PROVIDER:
     "Pass --provider with a supported provider id; `verbatra init --help` lists them.",
-  INVALID_QA_OPTION: "Add --qa, and do not combine --strict with --severity error.",
+  INVALID_QA_OPTION: "Add --qa or --file, and do not combine --strict with --severity error.",
   INVALID_SEVERITY: "Pass --severity error or --severity warning.",
   LAYOUT_AMBIGUOUS: "Pass --path with one of the candidates.",
   MISSING_OPTIONS: "Pass every flag the message names, or add --yes to accept the defaults.",

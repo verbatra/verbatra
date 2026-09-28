@@ -1,4 +1,6 @@
 import {
+  type CheckFileInput,
+  type CheckFileSummary,
   type CheckInput,
   type CheckSummary,
   DEFAULT_EXCHANGE_FORMAT,
@@ -38,6 +40,7 @@ import { createProgressPresenter, scanProgressReporter } from "./progress-presen
 import { redactingStreams } from "./redacting-streams.js";
 import {
   displayPath,
+  renderCheckFileHuman,
   renderCheckHuman,
   renderDiffHuman,
   renderDoctorHuman,
@@ -164,16 +167,21 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
   qa: z.boolean().optional(),
   severity: z.string().optional(),
   strict: z.boolean().optional(),
+  file: z.string().optional(),
 });
 
 type CheckOpts = z.infer<typeof checkOptsSchema>;
 
+function runsQualityCheck(opts: CheckOpts): boolean {
+  return opts.qa === true || opts.file !== undefined;
+}
+
 function parseQaSeverity(opts: CheckOpts): QaSeverity | undefined {
-  if (opts.qa !== true && (opts.severity !== undefined || opts.strict === true)) {
+  if (!runsQualityCheck(opts) && (opts.severity !== undefined || opts.strict === true)) {
     const given = opts.severity !== undefined ? "--severity" : "--strict";
     throw new CliUsageError(
       "INVALID_QA_OPTION",
-      `${given} applies to the quality check only. Add --qa to run it.`,
+      `${given} applies to the quality check only. Add --qa, or --file to check one file.`,
     );
   }
   if (opts.severity === undefined) {
@@ -195,8 +203,35 @@ function parseQaSeverity(opts: CheckOpts): QaSeverity | undefined {
   return severity;
 }
 
+const PROJECT_WIDE_CHECK_FLAGS = [
+  ["--locales", (opts: CheckOpts) => opts.locales !== undefined],
+  ["--consistency", (opts: CheckOpts) => opts.consistency === true],
+] as const;
+
+function assertFileCheckOpts(opts: CheckOpts): void {
+  if (opts.file === undefined) {
+    return;
+  }
+  if (opts.file.trim() === "") {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      "The --file option was provided but names no file. Pass the path of one locale file.",
+    );
+  }
+  const given = PROJECT_WIDE_CHECK_FLAGS.filter(([, isGiven]) => isGiven(opts)).map(
+    ([flag]) => flag,
+  );
+  if (given.length > 0) {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      `${given.join(" and ")} cannot be combined with --file, which checks the one locale the file holds. Drop ${given.length === 1 ? "it" : "them"}, or drop --file to check the whole project.`,
+    );
+  }
+}
+
 function parseCheckOpts(rawOpts: unknown): CheckOpts & { readonly qaSeverity?: QaSeverity } {
   const opts = parseLocaleCommandOpts(checkOptsSchema, rawOpts);
+  assertFileCheckOpts(opts);
   const qaSeverity = parseQaSeverity(opts);
   return qaSeverity !== undefined ? { ...opts, qaSeverity } : opts;
 }
@@ -210,6 +245,15 @@ function checkExitCode(summary: CheckSummary, strict: boolean): number {
   const warns = (qa?.warnings ?? 0) > 0 || hasIncompletePlurals(summary);
   const qaFails = qa !== undefined && (qa.errors > 0 || (strict && warns));
   return summary.inSync && !qaFails ? 0 : 1;
+}
+
+function fileHasIncompletePlurals(summary: CheckFileSummary): boolean {
+  return summary.locales.some((locale) => locale.incompletePlurals.length > 0);
+}
+
+function checkFileExitCode(summary: CheckFileSummary, strict: boolean): number {
+  const warns = summary.qa.warnings > 0 || fileHasIncompletePlurals(summary);
+  return summary.qa.errors > 0 || (strict && warns) ? 1 : 0;
 }
 
 const diffOptsSchema = sharedCommandOptsSchema.extend({
@@ -1116,6 +1160,38 @@ function checkInput(
   };
 }
 
+function checkFileInput(
+  config: VerbatraConfig,
+  cwd: string,
+  file: string,
+  opts: CheckOpts & { readonly qaSeverity?: QaSeverity },
+): CheckFileInput {
+  return {
+    config,
+    cwd,
+    file,
+    ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
+  };
+}
+
+async function runCheckFile(
+  context: CommandContext,
+  deps: CliDeps,
+  config: VerbatraConfig,
+  cwd: string,
+  opts: CheckOpts & { readonly file: string; readonly qaSeverity?: QaSeverity },
+): Promise<number> {
+  const summary = await withTask(context, `checking ${opts.file}`, () =>
+    deps.checkFile(checkFileInput(config, cwd, opts.file, opts)),
+  );
+  context.streams.out(
+    context.json
+      ? `${renderSuccessEnvelope("check", summary)}\n`
+      : `${renderCheckFileHuman(summary)}\n`,
+  );
+  return checkFileExitCode(summary, opts.strict === true);
+}
+
 async function runCheck(
   rawOpts: unknown,
   deps: CliDeps,
@@ -1133,6 +1209,9 @@ async function runCheck(
         context,
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
+          if (opts.file !== undefined) {
+            return runCheckFile(context, deps, config, cwd, { ...opts, file: opts.file });
+          }
           const summary = await withTask(context, "checking the locales", () =>
             deps.check(checkInput(config, cwd, opts)),
           );
@@ -1581,10 +1660,14 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
       "--qa",
       "also run the integrity and review checks on every committed translation (exit 1 on errors)",
     )
+    .option(
+      "--file <path>",
+      "check only this locale file: its syntax, then its values against the source (fast, for edit hooks)",
+    )
     .option("--severity <level>", "lowest quality-check severity to report: error or warning")
     .option(
       "--strict",
-      "with --qa, also exit 1 on quality-check warnings and missing plural categories",
+      "with --qa or --file, also exit 1 on quality-check warnings and missing plural categories",
     )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
@@ -1601,6 +1684,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check --consistency    also list source strings translated more than one way",
         "  $ verbatra check --qa             also check placeholders, markup, ICU and review flags",
         "  $ verbatra check --qa --strict    also fail on warnings and missing plural categories",
+        "  $ verbatra check --file locales/de.json --json  check one edited file, nothing else",
       ].join("\n"),
     );
 }

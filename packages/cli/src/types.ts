@@ -6,6 +6,8 @@ import type {
   StartMcpServerOptions,
 } from "@verbatra/mcp";
 import type {
+  CheckFileInput,
+  CheckFileSummary,
   CheckInput,
   CheckSummary,
   DiffInput,
@@ -48,6 +50,7 @@ export interface CliDeps {
   exportWorkbook(input: ExportWorkbookInput): Promise<ExportWorkbookResult>;
   importWorkbook(input: ImportWorkbookInput): Promise<RunSummary>;
   check(input: CheckInput): Promise<CheckSummary>;
+  checkFile(input: CheckFileInput): Promise<CheckFileSummary>;
   diff(input: DiffInput): Promise<DiffSummary>;
   doctor(input: DoctorInput): Promise<DoctorResult>;
   loadConfigWithMeta(options: LoadConfigOptions): Promise<LoadedConfig>;
