@@ -284,12 +284,23 @@ function agentSteps(agent: AgentScaffoldPlan | undefined): readonly NextStep[] {
   ];
 }
 
+function cwdSuffix(cwdFlag: string | undefined): string {
+  return cwdFlag === undefined ? "" : ` --cwd ${shellQuote(cwdFlag)}`;
+}
+
+function doctorStep(suffix: string): NextStep {
+  return {
+    description: "Check the setup. It calls no provider and reads no key value.",
+    command: `npx verbatra doctor${suffix}`,
+  };
+}
+
 function nextSteps(
   plan: InitPlan,
   agent: AgentScaffoldPlan | undefined,
   cwdFlag: string | undefined,
 ): readonly NextStep[] {
-  const suffix = cwdFlag === undefined ? "" : ` --cwd ${shellQuote(cwdFlag)}`;
+  const suffix = cwdSuffix(cwdFlag);
   const steps: NextStep[] = [...agentSteps(agent)];
   if (plan.sources.format === "default") {
     steps.push({
@@ -310,10 +321,7 @@ function nextSteps(
   if (rename !== undefined) {
     steps.push(rename);
   }
-  steps.push({
-    description: "Check the setup. It calls no provider and reads no key value.",
-    command: `npx verbatra doctor${suffix}`,
-  });
+  steps.push(doctorStep(suffix));
   steps.push(
     plan.draft.provider.id === HUMAN_ONLY_PROVIDER
       ? {
@@ -346,10 +354,10 @@ function detectionForJson(detection: ProjectDetection): unknown {
   };
 }
 
-function agentForJson(agent: AgentScaffoldPlan | undefined): unknown {
+function agentForJson(agent: AgentScaffoldPlan | undefined, configKept: boolean): unknown {
   return agent === undefined
     ? null
-    : { instructionsFile: agent.instructions.path, mcpServer: agent.mcpServer };
+    : { instructionsFile: agent.instructions.path, mcpServer: agent.mcpServer, configKept };
 }
 
 function renderDetectionHuman(detection: ProjectDetection): string | undefined {
@@ -412,6 +420,78 @@ async function planOrExisting(
   }
 }
 
+const CONFIG_ANSWER_FLAGS = [
+  ["provider", "--provider"],
+  ["source", "--source"],
+  ["targets", "--targets"],
+  ["path", "--path"],
+  ["format", "--format"],
+  ["model", "--model"],
+  ["baseUrl", "--base-url"],
+  ["apiKeyEnvVar", "--api-key-env-var"],
+] as const;
+
+function wouldRewriteConfig(opts: InitOptions): boolean {
+  return opts.force === true || CONFIG_ANSWER_FLAGS.some(([option]) => opts[option] !== undefined);
+}
+
+function existingConfigFile(cwd: string): string | undefined {
+  return existsSync(resolve(cwd, CONFIG_FILE)) ? CONFIG_FILE : competingConfig(cwd);
+}
+
+function agentOnlyConfigFile(opts: InitOptions, cwd: string): string | undefined {
+  if (opts.agent !== true || wouldRewriteConfig(opts)) {
+    return undefined;
+  }
+  return existingConfigFile(cwd);
+}
+
+function runAgentOnly(
+  configFile: string,
+  opts: InitOptions,
+  cwd: string,
+  json: boolean,
+  streams: Streams,
+): number {
+  const agent = planAgentScaffold(cwd);
+  const out = json ? SILENT_STREAMS : streams;
+  out.out(`kept ${configFile} (already configured; --agent adds only the agent files)\n`);
+  const files: WrittenFile[] = [{ path: configFile, action: "unchanged" }];
+  writeAgentFiles(agent, cwd, files, out);
+  const steps = [...agentSteps(agent), doctorStep(cwdSuffix(opts.cwd))];
+  if (json) {
+    streams.out(
+      `${renderSuccessEnvelope("init", {
+        configPath: resolve(cwd, configFile),
+        files,
+        config: null,
+        sources: null,
+        apiKeyEnvVar: null,
+        detection: null,
+        agent: agentForJson(agent, true),
+        nextSteps: steps,
+      })}\n`,
+    );
+    return 0;
+  }
+  streams.out(`${renderNextStepsHuman(steps)}\n`);
+  return 0;
+}
+
+const AGENT_ONLY_HINT = ` To keep it and add only the agent files, run init --agent without --force and without ${CONFIG_ANSWER_FLAGS.map(([, flag]) => flag).join(", ")}.`;
+
+function withAgentOnlyHint(error: unknown, agent: boolean): unknown {
+  if (!agent || !(error instanceof CliUsageError) || error.code !== "CONFIG_EXISTS") {
+    return error;
+  }
+  return new CliUsageError(
+    error.code,
+    `${error.message}${AGENT_ONLY_HINT}`,
+    error.candidates,
+    error.missing,
+  );
+}
+
 function renderFailure(error: unknown, json: boolean, streams: Streams): number {
   const renderable = toRenderableError(error);
   streams.err(`${renderError(renderable)}\n`);
@@ -428,11 +508,16 @@ export async function runInit(
 ): Promise<number> {
   const parsed = initOptsSchema.safeParse(rawOpts);
   const json = parsed.success && parsed.data.json === true;
+  const agentRequested = parsed.success && parsed.data.agent === true;
   try {
     const opts = initOptsSchema.parse(rawOpts);
     const cwd = opts.cwd ?? process.cwd();
     if (opts.cwd !== undefined) {
       assertDirectory(cwd);
+    }
+    const keptConfig = agentOnlyConfigFile(opts, cwd);
+    if (keptConfig !== undefined) {
+      return runAgentOnly(keptConfig, opts, cwd, json, streams);
     }
     const prompter: Prompter = {
       interactive: interactiveMode(opts, deps.isTty ?? stdinIsTty),
@@ -454,7 +539,7 @@ export async function runInit(
           sources: plan.sources,
           apiKeyEnvVar: keyEnvVar ?? null,
           detection: detectionForJson(plan.detection),
-          agent: agentForJson(agent),
+          agent: agentForJson(agent, false),
           nextSteps: steps,
         })}\n`,
       );
@@ -467,6 +552,6 @@ export async function runInit(
     streams.out(`${renderNextStepsHuman(steps)}\n`);
     return 0;
   } catch (error) {
-    return renderFailure(error, json, streams);
+    return renderFailure(withAgentOnlyHint(error, agentRequested), json, streams);
   }
 }

@@ -1802,6 +1802,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes",
         "  $ verbatra init --provider none --yes       human-only: no provider, no API key",
         "  $ verbatra init --provider gemini --yes --agent   also set up AGENTS.md and .mcp.json for coding agents",
+        "  $ verbatra init --agent                     already configured: keep the config, add only the agent files",
       ].join("\n"),
     );
 }
