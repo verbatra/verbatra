@@ -70,6 +70,8 @@ const SDK_ERROR_HINTS = {
   EXPORT_UNWRITABLE: WRITABLE_OUTPUT_HINT,
   LOCALE_STATE_NOT_CARRIED_OVER:
     "Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.",
+  NOT_A_LOCALE_FILE:
+    "Pass the path of an existing locale file that `files.pattern` maps to a configured locale.",
   LOCALE_FAILED: "Fix the cause the locale's message names, then try again.",
 } as const satisfies Record<SdkErrorCode, string>;
 

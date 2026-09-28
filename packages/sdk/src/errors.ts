@@ -224,6 +224,9 @@
  *   its results under the new code and leave the protection and rejection records under the old
  *   one unapplied, so the next run tries the move again. A dry run records it when another process
  *   holds the lock-file guard at the time.
+ * - `NOT_A_LOCALE_FILE`: {@link checkFile} was given a path that is not the file of any configured
+ *   locale under the config's `files.pattern` and `files.localeStyle`, or no file exists at it.
+ *   Thrown before any locale file is read.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -269,6 +272,7 @@ export type SdkErrorCode =
   | "EXPORT_OUTPUT_CONFLICT"
   | "EXPORT_UNWRITABLE"
   | "LOCALE_STATE_NOT_CARRIED_OVER"
+  | "NOT_A_LOCALE_FILE"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

@@ -193,7 +193,7 @@ export function qaLocale(
 }
 
 export function totalQa(
-  reports: readonly LocaleQaReport[],
+  reports: readonly Pick<LocaleQaReport, "errors" | "warnings">[],
   invalidSourceKeys: readonly string[],
 ): CheckQaSummary {
   let errors = 0;
