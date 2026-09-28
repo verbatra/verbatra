@@ -37,7 +37,10 @@ describe("a corrupt target locale file is attributed to its path and locale", ()
     expect((error as AdapterError).code).toBe("INVALID_JSON");
     expect((error as AdapterError).message).toContain(path);
     expect((error as AdapterError).message).toContain("fr");
-    expect((error as AdapterError).message).toContain("The file is not valid JSON.");
+    expect((error as AdapterError).message).toContain(
+      "The file is not valid JSON (line 1, column 3).",
+    );
+    expect((error as AdapterError).position).toEqual({ line: 1, column: 3 });
   });
 
   it("names the path and locale on diff", async () => {
@@ -96,7 +99,9 @@ describe("target-read attribution covers every adapter, not only JSON", () => {
 
     expect((error as AdapterError).code).toBe("INVALID_YAML");
     expect((error as AdapterError).message).toContain(path);
-    expect((error as AdapterError).message).toContain("The file is not valid YAML.");
+    expect((error as AdapterError).message).toContain(
+      "The file is not valid YAML (line 2, column 1).",
+    );
   });
 
   it("names the path on a malformed XLIFF target", async () => {
