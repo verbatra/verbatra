@@ -17,7 +17,7 @@ El código de salida es el contrato sobre el que tu paso de CI toma su decisión
 | Código | Significado |
 | --- | --- |
 | `0` | éxito: `translate` o `import` terminó cada locale completo, `check` encontró todos los locales sincronizados, `diff` no encontró cambios pendientes, `doctor` no encontró ningún problema de configuración del proyecto, `extract` completó su análisis, `types` generó su declaración, `export` escribió su libro, `tmx` importó o exportó su memoria de traducción, `init` preparó el proyecto o lo encontró ya al día, `watch`, `studio` o `mcp` se detuvo limpiamente, o se imprimió `--help` o `--version` |
-| `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado (o, con `--qa`, una traducción confirmada con un error de integridad o, con `--strict`, con una advertencia de revisión o un plural incompleto), `diff` encontró una clave ausente o cambiada (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró al menos una comprobación fallida, `types --check` encontró que la declaración confirmada está desactualizada, o `studio` o `mcp` falló al apagar su servidor |
+| `1` | la ejecución llegó al final, pero el resultado no está limpio: `translate` o `import` terminó con al menos un locale fallido o parcial, `check` encontró un locale desincronizado (o, con `--qa`, una traducción confirmada con un error de integridad o, con `--strict`, con una advertencia de revisión o un plural incompleto, o, con `--require-reviewed`, una traducción escrita por máquina que nadie aprobó), `diff` encontró una clave ausente o cambiada (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró al menos una comprobación fallida, `types --check` encontró que la declaración confirmada está desactualizada, o `studio` o `mcp` falló al apagar su servidor |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración incorrecta, origen ilegible, archivo de bloqueo corrupto, un locale que el proveedor no admite), un error de uso (un valor `--locales` vacío o desconocido, un `--debounce` o `--port` inválido), `init` al que le falta un flag que necesita, que encuentra varios formatos o patrones de archivo que encajan, que se niega a sobrescribir una configuración existente o que es incapaz de generar una configuración válida, un arranque o una parada fallidos de `watch`, `studio` incapaz de cargar la configuración, de importar `@verbatra/studio` o de arrancar su servidor, o `mcp` incapaz de cargar la configuración, de importar `@verbatra/mcp` o de arrancar su servidor |
 | `3` | `translate` en un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) terminó sin errores, pero dejó claves para una traducción humana |
 | `130` | `translate` o `import` se interrumpió con Ctrl-C (SIGINT) tras liberar sus bloqueos de escritura, o `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |
@@ -60,6 +60,12 @@ La deriva no es lo único que merece una puerta. `verbatra check --qa` también 
 <AvailableFrom version="0.12.0" />
 
 Cada `check` también lista los plurales a los que les falta una categoría de plural CLDR que usa su idioma de destino, como un `<plurals>` de Android en polaco con solo `one` y `other`. Es una advertencia: un `check` normal mantiene su código de salida, y `check --qa --strict` falla por ello como con cualquier otra advertencia. Consulta [categorías de plural](/docs/cli/check#categorías-de-plural). La [GitHub Action](/docs/github-action#comprobar-la-calidad-de-la-traducción) ejecuta la misma puerta con `command: check` y `qa: "true"`.
+
+### Frenar por las decisiones de revisión
+
+<AvailableFrom version="0.12.0" />
+
+`verbatra check --require-reviewed` hace fallar el trabajo con `1` mientras alguna traducción escrita por máquina (origen `machine`, `memory`, `fuzzy` o `agent`) no esté aprobada en el `verbatra.provenance.json` del repositorio, el archivo donde [la cola de Review de Studio](/docs/review-in-studio) y las herramientas MCP `review.approve` y `review.reject` guardan sus decisiones. El sobre JSON sigue siendo `ok: true`, como en cualquier informe; `result.review.code` es `REVIEW_REQUIRED`, o `REVIEW_STATE_UNREADABLE` cuando el archivo de procedencia está dañado o viene de una versión más nueva de verbatra, y `result.locales[].review.unreviewed` nombra las claves. No llama a ningún proveedor, así que no necesita clave. Consulta [`verbatra check`](/docs/cli/check).
 
 Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` sin ningún locale válido es un error de uso y sale con `2`, así que una errata nunca puede poner la puerta en verde. `translate`, `watch`, `export` y `tmx` aceptan el mismo flag, que es como traduces un locale cada vez contra un proveedor con límite de tasa.
 
@@ -152,13 +158,14 @@ Cada `LocaleSummary` lleva las listas de claves por locale (traducidas, sin camb
 
 `verbatra watch --json` imprime un envoltorio por ejecución como NDJSON (un objeto JSON por línea), con `command: "watch"`. Una ejecución correcta es un registro `ok: true` que lleva el `RunSummary` de esa ejecución; una ejecución fallida es un registro `ok: false` que lleva su código y su mensaje: el código propio del fallo cuando lo tenía, y `WATCH_RUN_FAILED` en caso contrario, más su `hint` cuando lo tiene. Una ejecución fallida es solo un registro en el flujo: ni detiene el watcher ni cambia el código de salida.
 
-`verbatra check --json` lleva un documento de estado. Sin `--qa`, el `inSync` de nivel superior es true exactamente cuando el comando sale con `0`; con `--qa`, `qa` lleva los totales del [control de calidad](/docs/cli/check#control-de-calidad) y cada locale su propio informe `qa`:
+`verbatra check --json` lleva un documento de estado. Sin `--qa` ni `--require-reviewed`, el `inSync` de nivel superior es true exactamente cuando el comando sale con `0`; con `--qa`, `qa` lleva los totales del [control de calidad](/docs/cli/check#control-de-calidad) y cada locale su propio informe `qa`, y con `--require-reviewed`, `review` lleva el veredicto de la puerta de revisión:
 
 ```ts
 interface CheckSummary {
-  inSync: boolean;             // without --qa, true exactly when the command exits 0
+  inSync: boolean;             // without --qa or --require-reviewed, true exactly when the command exits 0
   locales: LocaleCheckSummary[];
   qa?: CheckQaSummary;         // only with --qa; see verbatra check
+  review?: CheckReviewSummary; // only with --require-reviewed; see verbatra check
 }
 
 interface LocaleCheckSummary {
@@ -172,6 +179,7 @@ interface LocaleCheckSummary {
   incompletePlurals: IncompletePlural[]; // plurals lacking CLDR categories; a warning, see verbatra check
   inconsistencies?: InconsistencyGroup[]; // only with --consistency
   qa?: LocaleQaReport;         // only with --qa
+  review?: LocaleReviewReport; // only with --require-reviewed
 }
 ```
 

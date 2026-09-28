@@ -78,7 +78,7 @@ describe("read-only flows: state recorded under a respelled locale", () => {
     expect(values?.values.b?.provenance?.origin).toBe("machine");
   });
 
-  it("reviewQueue drops a flag the carried provenance records as approved", async () => {
+  it("reviewQueue drops a value the carried provenance records as approved", async () => {
     const dir = await respelledProject(async (project) => {
       await approveEntry({
         config,
@@ -107,7 +107,9 @@ describe("read-only flows: state recorded under a respelled locale", () => {
 
     const queue = await reviewQueue({ config, cwd: dir });
 
-    expect(queue.available && queue.locales[0]?.needsReview).toEqual([]);
+    expect(queue.available && queue.locales[0]?.needsReview.map((entry) => entry.key)).toEqual([
+      "a",
+    ]);
   });
 
   it("exportWorkbook exports only the key stale against the carried baseline", async () => {

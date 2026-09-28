@@ -1,20 +1,13 @@
-import type { LocaleResource } from "@verbatra/core";
+import type { ReviewReasonCode } from "@verbatra/ai-providers";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
-import {
-  type KeyProvenance,
-  keyProvenance,
-  type LocaleProvenance,
-} from "../lock/key-provenance.js";
-import { baselineFor } from "../lock/lock-file.js";
-import type { LockFile } from "../lock/types.js";
-import type { RunStatusFile, RunStatusLocale } from "../run-status/types.js";
-import { selectAdapter } from "../selection/select-adapter.js";
-import { readTarget } from "./diff-locales.js";
-import { readCarriedOverLock, readCarriedOverProvenance } from "./locale-carry-over.js";
+import type { KeyProvenance, MachineClassOrigin } from "../lock/key-provenance.js";
+import type { RunStatusLocale } from "../run-status/types.js";
+import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js";
+import { type MachineClassValue, machineClassValues } from "./review-scan.js";
 import { runStatus } from "./run-status.js";
-import type { NeedsReviewEntry } from "./summary.js";
+import type { FuzzyCacheHit, NeedsReviewEntry } from "./summary.js";
 
 /** Input for {@link reviewQueue}. */
 export interface ReviewQueueInput {
@@ -22,6 +15,14 @@ export interface ReviewQueueInput {
   readonly config: VerbatraConfig;
   /** Directory the `files.pattern` is resolved against. Defaults to the process working directory. */
   readonly cwd?: string;
+  /** Restrict the queue to these target locales. Defaults to every configured target locale. */
+  readonly locales?: readonly string[];
+  /**
+   * Also list, per locale, the machine-class values already approved (see
+   * {@link ReviewQueueLocale.approved}), for a reviewer who wants to revisit them. Defaults to
+   * false.
+   */
+  readonly includeApproved?: boolean;
 }
 
 /** Injectable dependencies for {@link reviewQueue}. Every field has a working default. */
@@ -32,161 +33,161 @@ export interface ReviewQueueDeps {
   readonly fs?: SdkFs;
 }
 
-/** One key still waiting for a review decision. */
+/** One machine-class value in the review queue. */
 export interface ReviewQueueEntry extends NeedsReviewEntry {
   /**
-   * The provenance of the key's current translation. Absent when the provenance file could not be
-   * read, in which case no entry was filtered on it.
+   * The review reasons the last recorded {@link translate} or {@link watch} run flagged the key
+   * with, from `.verbatra-local/run-status.json`. Empty when that run did not flag the key, or no
+   * run status is available on this machine: the entry is in the queue because nobody approved
+   * its value, not because of a flag.
    */
-  readonly provenance?: KeyProvenance;
+  readonly reasons: readonly ReviewReasonCode[];
+  /** The provenance of the key's current value. Its origin is always a {@link MachineClassOrigin}. */
+  readonly provenance: KeyProvenance & { readonly origin: MachineClassOrigin };
 }
 
-/** One locale's part of a {@link ReviewQueueResult}. */
-export interface ReviewQueueLocale extends Omit<RunStatusLocale, "needsReview"> {
-  /** Keys the recorded run flagged that nobody has approved, rejected, or rewritten since. */
+/** One target locale's part of a {@link ReviewQueueResult}. */
+export interface ReviewQueueLocale {
+  /** The target locale. */
+  readonly locale: string;
+  /**
+   * Every key whose current value has a {@link MachineClassOrigin} and is unreviewed, in source
+   * order. An approval given against a source text that has changed since reads as unreviewed.
+   */
   readonly needsReview: readonly ReviewQueueEntry[];
+  /**
+   * Every key whose current value has a {@link MachineClassOrigin} and is approved, in source
+   * order. Present only when {@link ReviewQueueInput.includeApproved} is true.
+   */
+  readonly approved?: readonly ReviewQueueEntry[];
+  /**
+   * The evidence the last recorded run kept for each fuzzy translation-memory reuse among the
+   * entries in {@link needsReview}. Absent when there is none.
+   */
+  readonly fuzzyHits?: readonly FuzzyCacheHit[];
 }
 
 /**
- * The result of {@link reviewQueue}: the persisted run status of {@link runStatus}, with every
- * locale's flagged keys narrowed to the ones still waiting for a decision.
+ * The result of {@link reviewQueue}. It is `available: false` only when the provenance file cannot
+ * be read, since the queue is built from it.
  */
 export type ReviewQueueResult =
   | {
-      /** No usable status file was found, so there is nothing to review. */
+      /** The provenance file is corrupt or was written by a newer verbatra, so no queue exists. */
       readonly available: false;
+      /** Why the queue could not be built. */
+      readonly reason: "provenance-unreadable";
     }
-  | ({
-      /** A status file was found; its fields are spread alongside, with the narrowed locales. */
+  | {
+      /** The queue was built from the committed files. */
       readonly available: true;
-      /** Per-locale outcomes from the recorded run, narrowed to undecided keys. */
+      /** One entry per requested target locale, in configured order. */
       readonly locales: readonly ReviewQueueLocale[];
-    } & Omit<RunStatusFile, "locales">);
+      /**
+       * When the last recorded run on this machine finished, as an ISO 8601 timestamp: the run the
+       * entries' `reasons` and the `fuzzyHits` come from. Absent when no run status is available.
+       */
+      readonly lastRunAt?: string;
+    };
 
-const WRITTEN_BY_A_PERSON: ReadonlySet<string> = new Set(["human", "import"]);
-
-interface QueueState {
-  readonly provenance: LocaleProvenance | undefined;
-  readonly lock: LockFile | undefined;
-  readonly readTarget: (locale: string) => Promise<LocaleResource | undefined>;
+interface RunFlags {
+  readonly reasons: ReadonlyMap<string, readonly ReviewReasonCode[]>;
+  readonly fuzzyHits: readonly FuzzyCacheHit[];
 }
 
-async function readLockOrUndefined(
-  cwd: string,
-  fs: SdkFs,
-  locales: readonly string[],
-): Promise<LockFile | undefined> {
-  try {
-    return await readCarriedOverLock(cwd, fs, locales);
-  } catch {
-    return undefined;
-  }
-}
+const NO_FLAGS: RunFlags = { reasons: new Map(), fuzzyHits: [] };
 
-async function readProvenanceOrUndefined(
-  cwd: string,
-  fs: SdkFs,
-  locales: readonly string[],
-): Promise<LocaleProvenance | undefined> {
-  try {
-    return await readCarriedOverProvenance(cwd, fs, locales);
-  } catch {
-    return undefined;
-  }
-}
-
-function isUndecided(provenance: KeyProvenance): boolean {
-  return provenance.reviewState === "unreviewed" && !WRITTEN_BY_A_PERSON.has(provenance.origin);
-}
-
-function narrowEntries(
-  entries: readonly NeedsReviewEntry[],
-  target: LocaleResource,
-  locale: string,
-  state: QueueState,
-): ReviewQueueEntry[] {
-  const records = state.provenance?.(locale);
-  const baseline = state.lock === undefined ? undefined : baselineFor(state.lock, locale);
-  const kept: ReviewQueueEntry[] = [];
-  for (const entry of entries) {
-    const current = target.entries.get(entry.key);
-    if (current === undefined) {
-      continue;
-    }
-    if (records === undefined) {
-      kept.push(entry);
-      continue;
-    }
-    const provenance = keyProvenance(
-      records.get(entry.key),
-      current.value,
-      baseline?.get(entry.key),
-    );
-    if (isUndecided(provenance)) {
-      kept.push({ ...entry, provenance });
-    }
-  }
-  return kept;
-}
-
-async function narrowLocale(
-  locale: RunStatusLocale,
-  state: QueueState,
-): Promise<ReviewQueueLocale> {
-  const target = await state.readTarget(locale.locale);
-  if (target === undefined) {
-    return locale;
-  }
-  const needsReview = narrowEntries(locale.needsReview, target, locale.locale, state);
-  const remaining = new Set(needsReview.map((entry) => entry.key));
-  const { fuzzyHits, ...rest } = locale;
-  const keptHits = fuzzyHits?.filter((hit) => remaining.has(hit.key));
+function flagsOf(locale: RunStatusLocale): RunFlags {
   return {
-    ...rest,
-    needsReview,
-    ...(keptHits !== undefined && keptHits.length > 0 ? { fuzzyHits: keptHits } : {}),
+    reasons: new Map(locale.needsReview.map((entry) => [entry.key, entry.reasons])),
+    fuzzyHits: locale.fuzzyHits ?? [],
   };
 }
 
-function targetReader(
-  input: ReviewQueueInput,
+function toEntry(value: MachineClassValue, flags: RunFlags): ReviewQueueEntry {
+  return {
+    key: value.key,
+    reasons: flags.reasons.get(value.key) ?? [],
+    provenance: value.provenance,
+  };
+}
+
+function queueLocale(
+  result: LocaleDiffResult,
+  records: NonNullable<LocaleDiffResult["provenance"]>,
+  flags: RunFlags,
+  includeApproved: boolean,
+): ReviewQueueLocale {
+  const values = machineClassValues(result, records);
+  const needsReview = values
+    .filter((value) => value.provenance.reviewState === "unreviewed")
+    .map((value) => toEntry(value, flags));
+  const queued = new Set(needsReview.map((entry) => entry.key));
+  const fuzzyHits = flags.fuzzyHits.filter((hit) => queued.has(hit.key));
+  return {
+    locale: result.locale,
+    needsReview,
+    ...(includeApproved
+      ? {
+          approved: values
+            .filter((value) => value.provenance.reviewState === "approved")
+            .map((value) => toEntry(value, flags)),
+        }
+      : {}),
+    ...(fuzzyHits.length > 0 ? { fuzzyHits } : {}),
+  };
+}
+
+async function runFlags(
   cwd: string,
   fs: SdkFs,
-  deps: ReviewQueueDeps,
-): (locale: string) => Promise<LocaleResource | undefined> {
-  const configured = new Set(input.config.targetLocales);
-  return async (locale) => {
-    if (!configured.has(locale)) {
-      return undefined;
-    }
-    try {
-      const adapter = selectAdapter(input.config.format, deps.adapterRegistry, deps.fs);
-      return await readTarget(cwd, input.config, adapter, fs, locale);
-    } catch {
-      return undefined;
-    }
+): Promise<{
+  readonly byLocale: ReadonlyMap<string, RunFlags>;
+  readonly lastRunAt?: string;
+}> {
+  const status = await runStatus({ cwd }, { fs });
+  if (!status.available) {
+    return { byLocale: new Map() };
+  }
+  return {
+    byLocale: new Map(status.locales.map((locale) => [locale.locale, flagsOf(locale)])),
+    lastRunAt: status.generatedAt,
   };
 }
 
 /**
- * Reads the review queue: the keys the last non-dry-run {@link translate} or {@link watch} flagged
- * for review (see {@link runStatus}), minus every key that has been dealt with since. It writes
- * nothing and calls no provider.
+ * Reads the review queue from the committed files: every key whose current value was written by a
+ * machine-class path (a provider, the translation memory, a fuzzy match, or an AI agent; see
+ * {@link MACHINE_CLASS_ORIGINS}) and that nobody has approved yet. It writes nothing and calls no
+ * provider.
  *
- * A flagged key leaves the queue once its current translation is approved or rejected in the
- * provenance file (see {@link approveEntry} and {@link rejectEntry}), once a person wrote or
- * imported a new value for it, or once it has no translation any more. Because those decisions
- * are read from committed files, a teammate with the same run status sees the same queue. Each
- * remaining entry carries the provenance of its current translation.
+ * The queue is computed from the locale files, `verbatra.lock.json`, and
+ * `verbatra.provenance.json`, so every teammate and every CI job that has the same commit sees the
+ * same queue. A key leaves it once its value is approved or rejected (see {@link approveEntry},
+ * {@link approveLocale}, and {@link rejectEntry}), or once a person writes or imports a new value.
+ * A later write that changes an approved value, including a hand edit of the locale file, which
+ * reads as the origin `external`, drops the approval: a machine write puts the key back in the
+ * queue, a person's write leaves it out. Keys missing from the target locale and keys no longer in
+ * the source are never listed.
  *
- * Like {@link runStatus}, the read is total and throws nothing. A missing or unusable status file
- * reports `available: false`. A provenance file that cannot be read leaves the flags unnarrowed by
- * review state and without provenance, and a locale whose file cannot be read, or that is no
- * longer configured, keeps its flags as recorded.
+ * The last recorded run's review flags (`.verbatra-local/run-status.json`, local to this machine)
+ * only add detail: each entry carries the reasons that run flagged it with, and each locale the
+ * fuzzy-match evidence for its entries.
  *
- * @param input - The config and the optional working directory.
+ * @param input - The config, the optional locale filter, and whether to list approved values too.
  * @param deps - Optional adapter registry and file-system overrides.
- * @returns The queue of undecided flags, or `available: false` when no run status is usable.
+ * @returns The queue per locale, or `available: false` when the provenance file cannot be read.
+ *
+ * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
+ * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
+ * cannot be combined, or a configured locale has no valid path spelling under that style.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
+ * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
+ * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
+ * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
+ * unsupported version.
+ * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
  */
 export async function reviewQueue(
   input: ReviewQueueInput,
@@ -194,18 +195,32 @@ export async function reviewQueue(
 ): Promise<ReviewQueueResult> {
   const cwd = input.cwd ?? process.cwd();
   const fs = deps.fs ?? defaultFs;
-  const status = await runStatus({ cwd }, { fs });
-  if (!status.available) {
-    return status;
-  }
-  const state: QueueState = {
-    provenance: await readProvenanceOrUndefined(cwd, fs, input.config.targetLocales),
-    lock: await readLockOrUndefined(cwd, fs, input.config.targetLocales),
-    readTarget: targetReader(input, cwd, fs, deps),
-  };
+  const { results } = await diffLocalesWithSource(
+    {
+      config: input.config,
+      cwd,
+      ...(input.locales !== undefined ? { locales: input.locales } : {}),
+    },
+    deps,
+  );
   const locales: ReviewQueueLocale[] = [];
-  for (const locale of status.locales) {
-    locales.push(await narrowLocale(locale, state));
+  const flags = await runFlags(cwd, fs);
+  for (const result of results) {
+    if (result.provenance === undefined) {
+      return { available: false, reason: "provenance-unreadable" };
+    }
+    locales.push(
+      queueLocale(
+        result,
+        result.provenance,
+        flags.byLocale.get(result.locale) ?? NO_FLAGS,
+        input.includeApproved === true,
+      ),
+    );
   }
-  return { ...status, locales };
+  return {
+    available: true,
+    locales,
+    ...(flags.lastRunAt !== undefined ? { lastRunAt: flags.lastRunAt } : {}),
+  };
 }

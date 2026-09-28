@@ -7,6 +7,7 @@ import { keyValueTool } from "./key-value.js";
 import { lockStateTool } from "./lock-state.js";
 import { projectSnapshotTool } from "./project-snapshot.js";
 import { retranslateEntryTool } from "./retranslate-entry.js";
+import { reviewApproveTool, reviewRejectTool } from "./review-decision.js";
 import { reviewQueueTool } from "./review-queue.js";
 import { statusCheckTool } from "./status-check.js";
 import { statusDiffTool } from "./status-diff.js";
@@ -32,6 +33,8 @@ const ALL_TOOLS_IN_ORDER: readonly RegisteredMcpTool[] = [
   retranslateEntryTool,
   translatePendingTool,
   reviewQueueTool,
+  reviewApproveTool,
+  reviewRejectTool,
   usageSummaryTool,
 ];
 

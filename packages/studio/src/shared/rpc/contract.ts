@@ -58,6 +58,11 @@ import {
   reviewDecisionParamsSchema,
 } from "./review-decision.js";
 import {
+  REVIEW_APPROVE_LOCALE_METHOD,
+  type ReviewApproveLocaleResult,
+  reviewApproveLocaleParamsSchema,
+} from "./review-locale.js";
+import {
   REVIEW_QUEUE_METHOD,
   type ReviewQueueResult,
   reviewQueueParamsSchema,
@@ -93,6 +98,7 @@ export const rpcParamsSchemas = {
   [REVIEW_REJECT_METHOD]: reviewDecisionParamsSchema,
   [REVIEW_APPROVE_MANY_METHOD]: reviewBatchParamsSchema,
   [REVIEW_REJECT_MANY_METHOD]: reviewBatchParamsSchema,
+  [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleParamsSchema,
   [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesParamsSchema,
   [IN_FLIGHT_METHOD]: inFlightParamsSchema,
   [EDIT_ENTRY_METHOD]: editEntryParamsSchema,
@@ -124,6 +130,7 @@ export interface RpcResultMap {
   readonly [REVIEW_REJECT_METHOD]: ReviewDecisionResult;
   readonly [REVIEW_APPROVE_MANY_METHOD]: ReviewBatchResult;
   readonly [REVIEW_REJECT_MANY_METHOD]: ReviewBatchResult;
+  readonly [REVIEW_APPROVE_LOCALE_METHOD]: ReviewApproveLocaleResult;
   readonly [RETRANSLATE_ENTRIES_METHOD]: RetranslateEntriesResult;
   readonly [IN_FLIGHT_METHOD]: InFlightResult;
   readonly [EDIT_ENTRY_METHOD]: EditEntryResult;

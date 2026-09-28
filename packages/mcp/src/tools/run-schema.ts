@@ -18,7 +18,7 @@ export const runBudgetSchema = z.object({
   exceeded: z.boolean(),
 });
 
-export const localeRunStatusSchema = z.enum(["succeeded", "partial", "failed"]);
+const localeRunStatusSchema = z.enum(["succeeded", "partial", "failed"]);
 
 export const needsReviewEntrySchema = z.object({
   key: z.string(),
@@ -26,7 +26,7 @@ export const needsReviewEntrySchema = z.object({
 });
 
 export const reviewQueueEntrySchema = needsReviewEntrySchema.extend({
-  provenance: keyProvenanceSchema.optional(),
+  provenance: keyProvenanceSchema,
 });
 
 export const fuzzyCacheHitSchema = z.object({

@@ -324,23 +324,62 @@ export function localeRecords(
 
 export type ProvenanceWriteOutcome = "written" | "unchanged" | "newer-version" | "too-large";
 
-function withRecord(
+function withRecords(
   file: ProvenanceFile,
   locale: string,
-  key: string,
-  record: ProvenanceRecord,
+  records: ReadonlyMap<string, ProvenanceRecord>,
 ): ProvenanceFile {
   const entries = nullPrototypeCopy(
     { ...ownValue(file.locales, locale) },
     (value) => value as ProvenanceRecord,
   );
-  Object.defineProperty(entries, key, {
-    value: record,
-    enumerable: true,
-    writable: true,
-    configurable: true,
-  });
+  for (const [key, record] of records) {
+    Object.defineProperty(entries, key, {
+      value: record,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
   return withLocaleRecords(file, locale, entries);
+}
+
+export type ProvenanceRecordsPlan =
+  | {
+      readonly kind: "write";
+      readonly path: string;
+      readonly content: string;
+      readonly records: ReadonlyMap<string, ProvenanceRecord>;
+    }
+  | { readonly kind: "unchanged"; readonly records: ReadonlyMap<string, ProvenanceRecord> }
+  | { readonly kind: "newer-version" }
+  | { readonly kind: "too-large" };
+
+export async function planProvenanceRecords<T>(
+  cwd: string,
+  fs: SdkFs,
+  locale: string,
+  items: ReadonlyMap<string, T>,
+  build: (item: T, prior: ProvenanceRecord | undefined) => ProvenanceRecord,
+  maxBytes: number = MAX_PROVENANCE_FILE_BYTES,
+): Promise<ProvenanceRecordsPlan> {
+  const path = provenanceFilePath(cwd);
+  const { file, writable } = await readProvenanceFile(path, fs);
+  if (!writable) {
+    return { kind: "newer-version" };
+  }
+  const current = ownValue(file.locales, locale);
+  const records = new Map(
+    [...items].map(([key, item]) => [key, build(item, ownValue(current, key))] as const),
+  );
+  const content = serializeProvenanceFile(withRecords(file, locale, records));
+  if (content === serializeProvenanceFile(file)) {
+    return { kind: "unchanged", records };
+  }
+  if (Buffer.byteLength(content, "utf8") > maxBytes) {
+    return { kind: "too-large" };
+  }
+  return { kind: "write", path, content, records };
 }
 
 export type ProvenanceRecordPlan =
@@ -362,20 +401,25 @@ export async function planProvenanceRecord(
   build: (prior: ProvenanceRecord | undefined) => ProvenanceRecord,
   maxBytes: number = MAX_PROVENANCE_FILE_BYTES,
 ): Promise<ProvenanceRecordPlan> {
-  const path = provenanceFilePath(cwd);
-  const { file, writable } = await readProvenanceFile(path, fs);
-  if (!writable) {
-    return { kind: "newer-version" };
+  const plan = await planProvenanceRecords(
+    cwd,
+    fs,
+    locale,
+    new Map([[key, key]]),
+    (_key, prior) => build(prior),
+    maxBytes,
+  );
+  if (plan.kind === "newer-version" || plan.kind === "too-large") {
+    return plan;
   }
-  const record = build(ownValue(ownValue(file.locales, locale), key));
-  const content = serializeProvenanceFile(withRecord(file, locale, key, record));
-  if (content === serializeProvenanceFile(file)) {
-    return { kind: "unchanged", record };
+  const record = plan.records.get(key);
+  /* v8 ignore next 3 -- planProvenanceRecords builds exactly one record per requested key, so the one key asked for is always present. */
+  if (record === undefined) {
+    throw new Error(`no provenance record was built for ${key}`);
   }
-  if (Buffer.byteLength(content, "utf8") > maxBytes) {
-    return { kind: "too-large" };
-  }
-  return { kind: "write", path, content, record };
+  return plan.kind === "write"
+    ? { kind: "write", path: plan.path, content: plan.content, record }
+    : { kind: "unchanged", record };
 }
 
 export async function writeProvenanceLocale(

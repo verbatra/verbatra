@@ -122,7 +122,7 @@ interface Decision {
   readonly reviewedSourceHash?: string;
 }
 
-function assertReviewer(reviewer: string | undefined): void {
+export function assertReviewer(reviewer: string | undefined): void {
   if (reviewer === undefined) {
     return;
   }
@@ -209,7 +209,7 @@ function withoutReview(record: ProvenanceRecord): ProvenanceRecord {
   return rest;
 }
 
-function decidedRecord(
+export function decidedRecord(
   prior: ProvenanceRecord | undefined,
   value: string,
   decision: Decision,

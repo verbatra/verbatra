@@ -1,100 +1,79 @@
 import { describe, expect, it } from "vitest";
-import { createReviewOverlayStore } from "./review-overlay.js";
 import {
   flattenReviewQueue,
   type ReviewQueueData,
   reviewedValueFor,
   toReviewQueueOutcome,
-  visibleReviewQueueRows,
+  unreviewedRows,
 } from "./review-queue-data.js";
+
+const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
 
 const AVAILABLE: ReviewQueueData = {
   available: true,
-  version: 1,
-  generatedAt: "2026-07-16T00:00:00.000Z",
   locales: [
     {
       locale: "de",
-      status: "succeeded",
       needsReview: [
-        { key: "greeting", reasons: ["EQUALS_SOURCE"] },
-        { key: "farewell", reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"] },
+        { key: "greeting", reasons: ["EQUALS_SOURCE"], provenance: MACHINE },
+        {
+          key: "farewell",
+          reasons: ["LENGTH_RATIO_OUTLIER"],
+          provenance: { origin: "fuzzy", reviewState: "unreviewed" },
+        },
+      ],
+      approved: [
+        { key: "title", reasons: [], provenance: { origin: "agent", reviewState: "approved" } },
       ],
     },
     {
       locale: "fr",
-      status: "succeeded",
-      needsReview: [{ key: "greeting", reasons: ["GLOSSARY_TERM_MISSED"] }],
+      needsReview: [{ key: "greeting", reasons: [], provenance: MACHINE }],
     },
   ],
 };
 
 describe("flattenReviewQueue", () => {
-  it("returns an empty list for available: false", () => {
-    expect(flattenReviewQueue({ available: false })).toEqual([]);
+  it("returns an empty list when the queue is unavailable", () => {
+    expect(flattenReviewQueue({ available: false, reason: "provenance-unreadable" })).toEqual([]);
   });
 
-  it("flattens every locale's needsReview entries into one row per (locale, key) pair", () => {
-    const rows = flattenReviewQueue(AVAILABLE);
-    expect(rows).toEqual([
-      { locale: "de", key: "greeting", reasons: ["EQUALS_SOURCE"] },
-      { locale: "de", key: "farewell", reasons: ["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"] },
-      { locale: "fr", key: "greeting", reasons: ["GLOSSARY_TERM_MISSED"] },
+  it("flattens every locale's entries into one row each, with origin and review state", () => {
+    expect(flattenReviewQueue(AVAILABLE)).toEqual([
+      {
+        locale: "de",
+        key: "greeting",
+        reasons: ["EQUALS_SOURCE"],
+        origin: "machine",
+        reviewState: "unreviewed",
+      },
+      {
+        locale: "de",
+        key: "farewell",
+        reasons: ["LENGTH_RATIO_OUTLIER"],
+        origin: "fuzzy",
+        reviewState: "unreviewed",
+      },
+      { locale: "de", key: "title", reasons: [], origin: "agent", reviewState: "approved" },
+      { locale: "fr", key: "greeting", reasons: [], origin: "machine", reviewState: "unreviewed" },
     ]);
   });
 
-  it("passes exact key names and reason arrays through unmodified, never inventing new data", () => {
-    const rows = flattenReviewQueue(AVAILABLE);
-    const deFarewell = rows.find((row) => row.locale === "de" && row.key === "farewell");
-    expect(deFarewell?.reasons).toEqual(["LENGTH_RATIO_OUTLIER", "PROVIDER_DEGRADED"]);
-  });
-
-  it("returns an empty list when available but no locale has any flagged key", () => {
-    const empty: ReviewQueueData = {
-      available: true,
-      version: 1,
-      generatedAt: "2026-07-16T00:00:00.000Z",
-      locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
-    };
-    expect(flattenReviewQueue(empty)).toEqual([]);
-  });
-});
-
-describe("visibleReviewQueueRows", () => {
-  it("excludes an actioned row from a fresh read, matching acceptance criterion 13/14's overlay behavior", () => {
-    const overlay = createReviewOverlayStore();
-    overlay.markActioned({ locale: "de", key: "greeting" });
-
-    const rows = visibleReviewQueueRows(AVAILABLE, overlay);
-    expect(rows.map((row) => `${row.locale}:${row.key}`)).toEqual(["de:farewell", "fr:greeting"]);
-  });
-
-  it("still excludes the actioned row across a second call with the same overlay, simulating the SSE refresh re-fetch", () => {
-    const overlay = createReviewOverlayStore();
-    overlay.markActioned({ locale: "de", key: "greeting" });
-
-    const first = visibleReviewQueueRows(AVAILABLE, overlay);
-    const second = visibleReviewQueueRows(AVAILABLE, overlay);
-
-    expect(first.some((row) => row.locale === "de" && row.key === "greeting")).toBe(false);
-    expect(second.some((row) => row.locale === "de" && row.key === "greeting")).toBe(false);
-  });
-
-  it("a fresh overlay (simulating a full page reload) no longer excludes the previously actioned row", () => {
-    const before = createReviewOverlayStore();
-    before.markActioned({ locale: "de", key: "greeting" });
-
-    const afterReload = createReviewOverlayStore();
-    const rows = visibleReviewQueueRows(AVAILABLE, afterReload);
-
-    expect(rows.some((row) => row.locale === "de" && row.key === "greeting")).toBe(true);
+  it("counts only the entries that need review", () => {
+    expect(unreviewedRows(AVAILABLE).map((row) => `${row.locale}:${row.key}`)).toEqual([
+      "de:greeting",
+      "de:farewell",
+      "fr:greeting",
+    ]);
   });
 });
 
 describe("toReviewQueueOutcome", () => {
   it("passes through a successful result unchanged", () => {
-    const outcome = toReviewQueueOutcome({ ok: true, result: AVAILABLE });
-    expect(outcome).toEqual({ ok: true, result: AVAILABLE });
+    expect(toReviewQueueOutcome({ ok: true, result: AVAILABLE })).toEqual({
+      ok: true,
+      result: AVAILABLE,
+    });
   });
 
   it("passes through a transport or domain error unchanged", () => {

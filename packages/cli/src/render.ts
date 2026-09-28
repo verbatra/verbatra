@@ -414,7 +414,42 @@ export function renderCheckHuman(summary: CheckSummary): string {
     ...renderIncompletePlurals(summary),
     ...renderConsistencyReport(summary),
     ...renderQaReport(summary),
+    ...renderReviewReport(summary),
   ].join("\n");
+}
+
+const LISTED_UNREVIEWED_KEYS = 10;
+
+function renderUnreviewedKeys(keys: readonly string[]): string {
+  const listed = keys.slice(0, LISTED_UNREVIEWED_KEYS).map(neutralizeControlCharacters).join(", ");
+  const rest = keys.length - LISTED_UNREVIEWED_KEYS;
+  return rest > 0 ? `${listed}, and ${rest} more` : listed;
+}
+
+function renderReviewReport(summary: CheckSummary): readonly string[] {
+  const review = summary.review;
+  if (review === undefined) {
+    return [];
+  }
+  if (review.code === "REVIEW_STATE_UNREADABLE") {
+    return [
+      "review: failed [REVIEW_STATE_UNREADABLE] verbatra.provenance.json is corrupt or from a newer verbatra, so no review state can be read",
+    ];
+  }
+  if (review.reviewed) {
+    return ["review: every machine-written translation is approved"];
+  }
+  return [
+    `review: failed [REVIEW_REQUIRED] ${plural(review.unreviewed, "machine-written translation")} not approved`,
+    ...summary.locales.flatMap((locale) =>
+      locale.review === undefined || locale.review.unreviewed.length === 0
+        ? []
+        : [
+            `  ${locale.locale}: ${locale.review.unreviewed.length} unreviewed: ${renderUnreviewedKeys(locale.review.unreviewed)}`,
+          ],
+    ),
+    "  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json",
+  ];
 }
 
 function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {

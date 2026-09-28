@@ -37,7 +37,7 @@ Translations es la vista de trabajo: todo lo pendiente en tus locales de destino
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-La vista List también filtra por estado y por locale. Junto al filtro de texto, elige un locale o activa uno o varios estados, cada uno con su recuento: **Missing**, **Changed** (desactualizada respecto a su origen), **Orphaned**, **Protected** (las claves protegidas y fijadas que una ejecución deja para una persona), **Review queue** (las entradas que marcó la última ejecución, como en la página Review) e **Integrity problems** (cualquier clave traducida cuyo valor no pasa las comprobaciones de placeholders, marcado o ICU, ramas de plural incluidas, sea cual sea su estado de sincronización). Con estados elegidos, cada locale lista solo esos grupos y un locale sin ninguno se oculta; el filtro de texto sigue aplicándose dentro de ellos. **Review queue** e **Integrity problems** también aparecen como grupos propios siempre que contengan una clave, y un estado cuyos datos no se pueden leer ahora se muestra desactivado. Los recuentos también siguen el filtro de texto, igual que el resumen en la fila de cada locale, que cuenta solo los grupos y las claves que dejan los filtros. Cuando nada coincide, la página lo dice; **Clear filters** restablece entonces el locale, los estados y el texto y te devuelve al campo de búsqueda. En Grid, una clave que el origen ya no tiene muestra **Absent** en cada locale que no la lleva.
+La vista List también filtra por estado y por locale. Junto al filtro de texto, elige un locale o activa uno o varios estados, cada uno con su recuento: **Missing**, **Changed** (desactualizada respecto a su origen), **Orphaned**, **Protected** (las claves protegidas y fijadas que una ejecución deja para una persona), **Review queue** (los valores escritos por máquina que nadie ha aprobado, como en la página Review) e **Integrity problems** (cualquier clave traducida cuyo valor no pasa las comprobaciones de placeholders, marcado o ICU, ramas de plural incluidas, sea cual sea su estado de sincronización). Con estados elegidos, cada locale lista solo esos grupos y un locale sin ninguno se oculta; el filtro de texto sigue aplicándose dentro de ellos. **Review queue** e **Integrity problems** también aparecen como grupos propios siempre que contengan una clave, y un estado cuyos datos no se pueden leer ahora se muestra desactivado. Los recuentos también siguen el filtro de texto, igual que el resumen en la fila de cada locale, que cuenta solo los grupos y las claves que dejan los filtros. Cuando nada coincide, la página lo dice; **Clear filters** restablece entonces el locale, los estados y el texto y te devuelve al campo de búsqueda. En Grid, una clave que el origen ya no tiene muestra **Absent** en cada locale que no la lleva.
 
 **Copy as review report**, en la cabecera de la página, copia un informe en Markdown al portapapeles: una sección por locale con sus claves faltantes, modificadas y huérfanas, lista para pegar en una pull request o en una issue.
 
@@ -71,7 +71,7 @@ Mientras escribes, cada término del glosario se comprueba contra tu borrador: *
 
 ## Trabaja la cola de Review
 
-La página Review lista cada entrada que las heurísticas de revisión marcaron en la ejecución más reciente de `translate` o `watch`: una fila por locale y clave, con un indicador por motivo (traducción mucho más corta o más larga que el origen, más larga que el presupuesto de longitud configurado para la clave, idéntica al origen, un término del glosario omitido, placeholders reordenados, un lote degradado del proveedor o un valor reutilizado de la caché cuyo origen se editó después). Hasta que se haya registrado una ejecución, la página lo dice y se queda vacía; ejecuta `verbatra translate` o `verbatra watch` para llenarla.
+La página Review lista cada traducción escrita por una máquina que nadie ha aprobado todavía: una fila por locale y clave, con el origen del valor y, cuando la ejecución más reciente de `translate` o `watch` en esta máquina la marcó, un indicador por motivo (traducción mucho más corta o más larga que el origen, más larga que el presupuesto de longitud configurado para la clave, idéntica al origen, un término del glosario omitido, placeholders reordenados, un lote degradado del proveedor o un valor reutilizado de la caché cuyo origen se editó después). Cuando no hay nada pendiente, la página muestra que todo está en orden.
 
 <AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
 
@@ -100,6 +100,20 @@ Cada fila muestra la traducción actual debajo de la clave (pasa el cursor por e
 Reject elimina la traducción del archivo de locale y borra su entrada en el [archivo de bloqueo](/docs/the-lock-file), de modo que la clave cuenta como faltante: `verbatra check` la reporta, y la siguiente ejecución de `verbatra translate` o **Translate pending changes across all locales** la vuelve a llenar. Hasta entonces tu app muestra su valor de respaldo para esa clave. Con el proveedor `none`, la clave sigue faltando hasta que alguien escriba un valor nuevo. El texto rechazado también se elimina de la memoria de traducción de esta máquina, y una ejecución nunca lo reutiliza para esa clave desde ninguna memoria, tampoco la de un compañero, para que la siguiente ejecución no lo vuelva a poner, siempre que la ejecución pueda leer el archivo de procedencia (consulta [la caché](/docs/the-cache)). Haz commit del archivo de locale, del archivo de bloqueo y del archivo de procedencia juntos; si un Reject falla a medias, Studio restaura los archivos en caso de fallo. Un formato que no puede eliminar una sola traducción, XLIFF, rechaza el Reject y deja el archivo como estaba; edita el valor en su lugar.
 
 Las señales de revisión son orientativas, distintas de la puerta dura de integridad; consulta [Seguridad de la traducción](/docs/translation-safety) para saber qué significa cada motivo.
+
+### Una cola para todo el equipo
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+La cola se lee de los archivos que haces commit, no de la última ejecución en tu máquina: aparece cada valor cuyo origen es **Machine**, **Memory**, **Fuzzy match** o **Agent** y que no está aprobado, así que un compañero que hace pull de los archivos de locale, del archivo de bloqueo y de `verbatra.provenance.json` ve exactamente la misma cola que tú. Un valor que cambia después de aprobarse vuelve a la cola cuando una máquina escribió el cambio; un valor que una persona escribe o importa, o edita a mano en el archivo de locale, sale de ella, porque lo escribió una persona. Cada fila muestra su origen junto a sus motivos, y una fila que la última ejecución no marcó solo muestra su origen.
+
+La barra de filtros tiene tres opciones más:
+
+- **Needs review** o **Approved**: la segunda lista los valores escritos por máquina que ya están aprobados; ahí Approve está desactivado, pero Reject sigue funcionando, por si quieres retirar un valor.
+- **All origins**, o uno de **Machine**, **Memory**, **Fuzzy match** y **Agent**.
+- Un locale: en cuanto eliges uno, **Approve all in** aprueba cada entrada de ese locale que necesita revisión, o solo las del origen elegido, tras una confirmación que dice cuántas son. El recuento incluye también las entradas que oculta el filtro de texto. Una entrada cuyo origen cambió desde que se escribió se queda en la cola, y la línea sobre la tabla dice cuántas fueron.
+
+Para que una traducción automática sin aprobar haga fallar un pull request, ejecuta [`verbatra check --require-reviewed`](/docs/cli/check) en la CI.
 
 ### Trabaja la cola con el teclado
 

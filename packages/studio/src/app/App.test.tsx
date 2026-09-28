@@ -18,6 +18,8 @@ import {
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
+const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
+
 const PAGE_HEADINGS: Readonly<Record<PageId, string>> = {
   translations: "Translations",
   review: "Review",
@@ -29,15 +31,12 @@ const REVIEW_QUEUE = {
   ok: true,
   result: {
     available: true,
-    version: 1,
-    generatedAt: "2026-07-18T09:41:12.000Z",
     locales: [
       {
         locale: "de",
-        status: "partial",
         needsReview: [
-          { key: "app.title", reasons: ["EQUALS_SOURCE"] },
-          { key: "app.subtitle", reasons: ["LENGTH_RATIO_OUTLIER"] },
+          { key: "app.title", reasons: ["EQUALS_SOURCE"], provenance: MACHINE },
+          { key: "app.subtitle", reasons: ["LENGTH_RATIO_OUTLIER"], provenance: MACHINE },
         ],
       },
     ],

@@ -20,6 +20,7 @@ verbatra check [flags]
 | `--consistency` | aucun | désactivé | signale aussi, par locale, chaque chaîne source traduite de plusieurs façons sous des clés différentes ; simple rapport, le code de sortie ne change jamais |
 | `--qa` | aucun | désactivé | lance aussi le [contrôle qualité](#contrôle-qualité) sur chaque traduction commitée ; sortie `1` en cas d'erreur |
 | `--severity` | `error` ou `warning` | `warning` | avec `--qa`, la gravité la plus basse signalée ; `error` ignore complètement les motifs de révision |
+| `--require-reviewed` | aucun | désactivé | exige aussi que [chaque traduction écrite par une machine soit approuvée](#exiger-des-traductions-relues) ; sort avec `1` tant qu'une ne l'est pas |
 | `--strict` | aucun | désactivé | avec `--qa`, sort aussi avec `1` quand le contrôle qualité signale un avertissement ou qu'il manque à un pluriel des [catégories de pluriel](#catégories-de-pluriel) ; interdit avec `--severity error` |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de vérification sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
@@ -168,6 +169,36 @@ type QaFinding =
 
 Quelques cas restent hors du contrôle : une clé que seule la cible possède (elle est orpheline, et [`verbatra diff`](/docs/cli/diff) la liste), une clé manquante (il n'y a pas de valeur à vérifier) et une clé dont la source n'est pas un ICU valide, contre laquelle aucune traduction ne peut être jugée ; ces clés sont listées une fois sous `invalidSourceKeys`. Les clés [protégées](/docs/protecting-human-translations) et épinglées sont vérifiées comme les autres, puisque leurs valeurs sont livrées tout pareil, et c'est aussi le cas des valeurs rejetées en révision. `--consistency` reste une option séparée qui ne fait que signaler ; combine les deux pour obtenir les deux rapports.
 
+## Exiger des traductions relues
+
+<AvailableFrom version="0.12.0" />
+
+`--require-reviewed` transforme les décisions de relecture en barrière de CI. Chaque valeur des locales vérifiées dont l'[origine](/docs/the-lock-file) est `machine`, `memory`, `fuzzy` ou `agent` doit être approuvée dans `verbatra.provenance.json` ; sinon, la commande sort avec `1`. Une valeur qu'une personne a écrite ou importée, une valeur modifiée à la main dans le fichier de locale et une valeur sans enregistrement de provenance n'ont pas besoin d'approbation. Une approbation antérieure à une modification du texte source de la clé ne compte pas, et toute écriture qui change une valeur approuvée annule son approbation : la barrière juge donc toujours le texte livré. Elle n'appelle aucun fournisseur, n'a besoin d'aucune clé d'API et n'écrit rien.
+
+Les décisions viennent du fichier commité : la barrière voit ce que ton équipe a approuvé dans [Studio](/docs/review-in-studio) ou via un [client MCP](/docs/cli/mcp), en CI comme sur chaque machine. Le rapport lisible nomme les clés non relues, dix au plus par locale :
+
+```text
+review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
+  de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
+```
+
+Avec `--json`, `result.review` porte le verdict et un `code` stable, et chaque locale de `result.locales` porte sa propre liste `review` :
+
+```ts
+interface CheckReviewSummary {
+  reviewed: boolean;             // false fails the gate
+  unreviewed: number;            // machine-written values not approved, summed over the locales
+  code?: "REVIEW_REQUIRED" | "REVIEW_STATE_UNREADABLE"; // present exactly when reviewed is false
+}
+
+interface LocaleReviewReport {
+  unreviewed: string[];          // keys, in source order
+}
+```
+
+`REVIEW_STATE_UNREADABLE` signifie que `verbatra.provenance.json` est corrompu ou a été écrit par une version plus récente de verbatra : aucune décision n'est lisible, donc la barrière échoue au lieu de laisser passer. La dérive donne toujours aussi la sortie `1`, et `--locales` restreint la barrière comme le reste de la vérification.
+
 ## Retour dans le terminal
 
 <AvailableFrom version="0.12.0" />
@@ -184,8 +215,8 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 
 | Code | Signification |
 | --- | --- |
-| `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète et, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement ni de pluriel incomplet, avec `--strict`) |
-| `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement ou un pluriel incomplet, avec `--strict`) ; le rapport est quand même affiché |
+| `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement ni de pluriel incomplet, avec `--strict`) et, avec `--require-reviewed`, chaque traduction écrite par une machine est approuvée |
+| `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement ou un pluriel incomplet, avec `--strict`), ou avec `--require-reviewed` une traduction écrite par une machine n'est pas approuvée ; le rapport est quand même affiché |
 | `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue, une valeur `--severity` inconnue, `--severity` ou `--strict` sans `--qa`, ou `--strict` avec `--severity error`) |
 
 La sortie `1` signifie "désynchronisé", pas un échec : l'exécution elle-même a réussi, le résultat n'est juste pas tout vert.

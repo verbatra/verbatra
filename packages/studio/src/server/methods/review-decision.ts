@@ -14,6 +14,7 @@ function decisionInput(params: ReviewDecisionParams, deps: RpcHandlerDeps): Revi
     locale: params.locale,
     key: params.key,
     expectedValue: params.expectedValue,
+    ...(params.reviewer !== undefined ? { reviewer: params.reviewer } : {}),
   };
 }
 

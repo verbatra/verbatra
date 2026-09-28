@@ -152,13 +152,22 @@ export {
 } from "./detection/detect-project.js";
 export { errorHint } from "./error-hints.js";
 export { SdkError, type SdkErrorCode } from "./errors.js";
+export {
+  type ApproveLocaleDeps,
+  type ApproveLocaleInput,
+  type ApproveLocaleResult,
+  approveLocale,
+} from "./flow/approve-locale.js";
 export { type BudgetStanding, budgetStanding } from "./flow/budget.js";
 export {
   type CheckDeps,
   type CheckInput,
+  type CheckReviewCode,
+  type CheckReviewSummary,
   type CheckSummary,
   check,
   type LocaleCheckSummary,
+  type LocaleReviewReport,
 } from "./flow/check.js";
 export {
   type DiffDeps,
@@ -407,11 +416,13 @@ export {
   type LocalePathResolverConfig,
 } from "./locale-path/resolver.js";
 export type { LocaleStyle } from "./locale-path/style.js";
-export type {
-  KeyOrigin,
-  KeyProvenance,
-  KeyReviewState,
-  ProvenanceSummary,
+export {
+  type KeyOrigin,
+  type KeyProvenance,
+  type KeyReviewState,
+  MACHINE_CLASS_ORIGINS,
+  type MachineClassOrigin,
+  type ProvenanceSummary,
 } from "./lock/key-provenance.js";
 export {
   type LoadLockFileDeps,

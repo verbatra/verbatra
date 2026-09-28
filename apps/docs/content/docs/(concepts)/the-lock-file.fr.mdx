@@ -281,6 +281,16 @@ Toute écriture ultérieure qui change la valeur démarre un nouvel enregistreme
 une valeur approuvée la renvoie donc en revue. Le nom dans `reviewer` est stocké dans un fichier
 commité, il est donc public ; verbatra ne le remplit jamais de lui-même.
 
+<AvailableFrom version="0.12.0" />
+
+Les mêmes décisions peuvent être enregistrées avec `approveLocale` du SDK, qui approuve d'un coup
+toute la file d'une locale, et avec les outils MCP `review.approve` et `review.reject`, qu'un agent
+n'appelle que pour transmettre la décision d'une personne et qui exigent le nom de cette personne
+dans `reviewer`. Comme les décisions vivent dans ce fichier commité, la file de révision et la
+barrière de CI [`verbatra check --require-reviewed`](/docs/cli/check) lisent le même état sur
+chaque machine : chaque valeur d'origine `machine`, `memory`, `fuzzy` ou `agent` qui n'est pas
+approuvée.
+
 ## Commite-le
 
 Commite `verbatra.lock.json` et `verbatra.provenance.json` avec tes fichiers de locale. C'est la référence partagée qui sert de
