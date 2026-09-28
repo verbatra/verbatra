@@ -243,7 +243,7 @@ Entrée : `{ config, cwd?, dryRun?, onProgress? }`, où `config.extract` nomme l
 
 Rapporte la dérive par locale sous forme de comptes : `missing` (dans la source, absent de la cible), `stale` (source modifiée depuis la dernière traduction) et `upToDate`. Utilise-le comme garde-fou de CI.
 
-Entrée : `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
+Entrée : `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
 
 <AvailableFrom version="0.11.0" />
 
@@ -269,6 +269,10 @@ issu de `REVIEW_REASON_CODES`. `qaSeverity: "error"` ignore les motifs de révis
 sont publiées sous la forme du tuple `QA_SEVERITIES` (`"error"`, `"warning"`). Le rapport ne change
 jamais `inSync` ; un contrôle CI lit `qa.errors`, et `qa.warnings` pour un contrôle strict. Voir
 [le contrôle qualité](/docs/cli/check#contrôle-qualité) pour savoir quelles valeurs sont vérifiées.
+
+<AvailableFrom version="0.12.0" />
+
+Avec `requireReviewed: true`, `check` exécute aussi la barrière de relecture, sans clé et sans rien écrire : chaque `LocaleCheckSummary` porte `review: { unreviewed }`, les clés dont la valeur a une origine de machine et n'est pas approuvée, et le résumé porte `review: { reviewed, unreviewed, code? }`. `code` vaut `REVIEW_REQUIRED` quand une valeur n'est pas approuvée, ou `REVIEW_STATE_UNREADABLE` quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, ce qui fait échouer la barrière au lieu de la laisser passer. Le rapport ne change jamais `inSync` ; une barrière de CI lit `review.reviewed`. Voir [`verbatra check`](/docs/cli/check).
 
 ### diff
 
@@ -340,9 +344,9 @@ Un instantané écrit par une version antérieure à l'application du budget de 
 
 <AvailableFrom version="0.12.0" />
 
-Lit la file de révision : les clés que la dernière exécution a signalées (l'instantané de `runStatus`), moins toutes celles dont quelqu'un s'est occupé depuis. Un signalement quitte la file dès que sa valeur actuelle est approuvée ou rejetée dans `verbatra.provenance.json`, dès qu'une personne a écrit ou importé une nouvelle valeur pour elle, ou dès qu'elle n'a plus de traduction ; une valeur réécrite par un agent reste. Comme les décisions viennent de fichiers commités, une personne de ton équipe avec le même état d'exécution voit la même file. Ne lève jamais : un fichier d'état inutilisable donne `{ available: false }`, un fichier de provenance illisible laisse les signalements non filtrés, et une locale dont le fichier ne peut pas être lu garde ses signalements tels qu'enregistrés.
+Lit la file de révision dans les fichiers commités : chaque clé dont la valeur actuelle a une origine de machine (`machine`, `memory`, `fuzzy` ou `agent`, publiées dans le tuple `MACHINE_CLASS_ORIGINS`) et n'est pas approuvée, par locale cible et dans l'ordre de la source. Elle lit les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, donc chaque personne de ton équipe avec le même commit voit la même file. Une clé en sort dès que sa valeur est approuvée ou rejetée, ou qu'une personne écrit ou importe une nouvelle valeur ; une valeur réécrite par un agent reste, tout comme une approbation antérieure à une modification de la source de la clé. L'instantané de la dernière exécution de `runStatus` n'ajoute que des détails : les `reasons` de chaque entrée (vides si l'exécution ne l'a pas signalée), les `fuzzyHits` de la locale et `lastRunAt`.
 
-Entrée : `{ config, cwd? }`. Renvoie la forme de `runStatus`, chaque entrée de `needsReview` portant en plus `provenance`, la `KeyProvenance` de sa valeur actuelle, quand le fichier de provenance est lisible.
+Entrée : `{ config, cwd?, locales?, includeApproved? }`. Renvoie `{ available: true, locales, lastRunAt? }`, chaque locale sous la forme `{ locale, needsReview, approved?, fuzzyHits? }` et chaque entrée sous la forme `{ key, reasons, provenance }` ; `approved` liste les valeurs de machine approuvées et n'est présent qu'avec `includeApproved: true`. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, elle renvoie `{ available: false, reason: "provenance-unreadable" }`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Jusqu'à la 0.11, la file ne contenait que les signalements de la dernière exécution.
 
 ## Opérations sur une seule clé
 
@@ -438,6 +442,21 @@ Entrée : la même que pour `approveEntries`. Exécute `rejectEntry` pour chaque
 chaque valeur rejetée. Un résultat réussi est `{ ok: true, locale, key, provenance }`. Un délai de
 verrou dépassé fait ignorer les entrées suivantes qui ont besoin de ce verrou, comme pour
 `approveEntries`.
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Entrée : `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Approuve toute la file de révision d'une locale, ou seulement ses valeurs ayant l'une des `origins`,
+en une seule écriture de `verbatra.provenance.json`, sous le verrou d'écriture de la locale. Chaque
+approbation est enregistrée comme `approveEntry` en enregistre une, avec le hash de source contre
+lequel elle a été donnée. Elle ne prend aucune valeur attendue : elle approuve ce que la file
+contient au moment de l'appel, donc montre d'abord la file à la personne qui relit. Renvoie
+`{ locale, approved, sourceChanged }` : les clés approuvées, et les clés de la file laissées non
+relues parce que leur source a changé depuis leur écriture. Elle n'écrit que le fichier de
+provenance, n'appelle aucun fournisseur et échoue avec `PROVENANCE_FILE_UNWRITABLE` plutôt que de
+signaler des approbations qu'elle n'a pas pu enregistrer.
 
 ### retranslateEntries
 

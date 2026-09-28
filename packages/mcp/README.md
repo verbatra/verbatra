@@ -78,7 +78,9 @@ Fourteen tools, listed here in the order the server advertises them.
 | `translation.estimate` | Estimate what `translation.translatePending` would send and cost, optionally for a subset of locales, without calling a provider |
 | `translation.retranslateEntry` | Ask the configured provider for a fresh translation of one key in one locale |
 | `translation.translatePending` | Translate every missing or stale key across the configured target locales, or a named subset, in one run, within an optional `maxTokens` ceiling |
-| `review.queue` | The keys the last run flagged for human review, with the reason for each |
+| `review.queue` | Every machine-written translation nobody has approved yet, read from the committed files, with the last run's flags |
+| `review.approve` | Record, on the user's instruction, that a named person approves one key's current translation |
+| `review.reject` | Record, on the user's instruction, that a named person rejects one key's current translation, removing it so it gets replaced |
 | `usage.summary` | Token usage and budget status left behind by the last run |
 
 `translation.retranslateEntry` and `translation.translatePending` are the two that call a provider and spend budget. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, a client listing tools never sees them and calling one by name fails as an unknown tool: the gate is per process, so a spend tool is structurally uncallable rather than refused at call time.

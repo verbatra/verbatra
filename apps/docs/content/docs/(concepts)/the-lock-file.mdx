@@ -250,6 +250,16 @@ Any later write that changes the value starts a fresh, unreviewed record, so edi
 value sends it back for review. The `reviewer` name is stored in a committed file, so it is public;
 verbatra never fills it in on its own.
 
+<AvailableFrom version="0.12.0" />
+
+The same decisions can be recorded through the SDK's `approveLocale`, which approves a locale's
+whole queue at once, and through the MCP tools `review.approve` and `review.reject`, which an agent
+calls only to relay a person's decision and which require that person's `reviewer` name. Because
+the decisions live in this committed file, the review queue and the CI gate
+[`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) read the same
+state on every machine: every value whose origin is `machine`, `memory`, `fuzzy`, or `agent` and
+that is not approved.
+
 ## Commit it
 
 Commit `verbatra.lock.json` and `verbatra.provenance.json` alongside your locale files. It is the shared baseline your teammates

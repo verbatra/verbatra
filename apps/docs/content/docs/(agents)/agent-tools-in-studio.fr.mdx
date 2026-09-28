@@ -41,7 +41,7 @@ Ouvre ensuite l'URL loopback affichée dans ton navigateur compatible WebMCP. L'
 
 ## Le catalogue d'outils
 
-Avec l'option activée, Studio enregistre dix-huit outils. Sans `--allow-spend`, il en enregistre seize : les deux outils de dépense sont entièrement omis. Les noms d'outils sont préfixés et utilisent des tirets bas (par exemple `verbatra_project_snapshot`).
+Avec l'option activée, Studio enregistre vingt outils. Sans `--allow-spend`, il en enregistre dix-huit : les deux outils de dépense sont entièrement omis. Les noms d'outils sont préfixés et utilisent des tirets bas (par exemple `verbatra_project_snapshot`).
 
 ### Outils de lecture (quatorze)
 
@@ -56,7 +56,7 @@ Ils inspectent l'état du projet sans rien changer. Ils sont marqués en lecture
 | `verbatra_lock_state` | l'état du fichier de verrouillage |
 | `verbatra_history_list` | l'historique récent des commits des fichiers de locale |
 | `verbatra_key_integrity` | l'intégrité des placeholders, du balisage en ligne, de l'ICU et des branches ICU pour une clé |
-| `verbatra_review_queue` | la file de révision |
+| `verbatra_review_queue` | chaque valeur écrite par une machine que personne n'a encore approuvée, lue dans les fichiers commités |
 | `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
 | `verbatra_key_value` | les valeurs source et cible pour une clé et une locale |
 | `verbatra_locale_values` | les valeurs source et cible de chaque clé dans chaque locale cible |
@@ -78,13 +78,15 @@ Depuis `@verbatra/studio` 0.6.0, `verbatra_key_value` et `verbatra_locale_values
 
 `verbatra_key_context` renvoie ce que l'éditeur du tableau de bord montre pour une clé et une locale : `source`, `target` et sa `provenance` quand une valeur existe, `description` quand le fichier source en donne une, et `glossary`, les termes dont la source apparaît dans le texte source, sous la forme `{ terms, doNotTranslate }` avec la traduction et les rendus interdits auxquels cette locale est tenue, et `maxLength` quand la config fixe un budget de longueur pour la clé. Passe la valeur que tu comptes écrire dans le paramètre optionnel `draft` et le résultat porte aussi `draftCheck` : pour chaque terme applicable, `targetUsed` et `forbiddenUsed`, et pour chaque terme à garder non traduit, `kept`, jugés selon les règles avec lesquelles une exécution de traduction signale une traduction à relire. Les valeurs du glossaire passent par le même masquage que pour `verbatra_glossary_get`.
 
-Les boutons **Approve** et **Reject** du tableau de bord n'ont aucun outil d'agent, avec ou sans dépense : une décision de revue revient à une personne. `verbatra_review_queue` omet chaque entrée tranchée depuis l'exécution, mais garde celle qu'un agent a modifiée, car cette modification a encore besoin du regard d'une personne.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+La file de révision vient des fichiers commités : `verbatra_review_queue` liste chaque valeur d'origine `machine`, `memory`, `fuzzy` ou `agent` que personne n'a approuvée, la même file que voit chaque membre de l'équipe, et garde une valeur qu'un agent a modifiée, car cette modification a encore besoin du regard d'une personne. Son paramètre facultatif `includeApproved` liste en plus les valeurs approuvées. Jusqu'à `@verbatra/studio` 0.6.0, il ne listait que les signalements de la dernière exécution, et les boutons **Approve** et **Reject** du tableau de bord n'avaient aucun outil d'agent.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Les actions groupées de la page Review, **Approve selected**, **Reject selected** et **Retranslate selected**, n'ont pas non plus d'outil d'agent. Une décision groupée reste l'affaire d'une personne, et une retraduction groupée laisserait un seul appel d'agent dépenser pour jusqu'à 20 entrées d'un coup, donc un agent retraduit une entrée par appel à `verbatra_translation_retranslateEntry`. Une retraduction groupée depuis le tableau de bord puise dans le même budget que les retraductions unitaires, une place par entrée, de sorte qu'ensemble elles ne dépassent jamais 20 entrées retraduites par minute glissante.
 
-### Outils d'écriture (deux)
+### Outils d'écriture (quatre)
 
 `verbatra_translation_editEntry` modifie sur place la valeur d'une locale. Il passe par la même barrière d'intégrité que toute autre écriture verbatra : une valeur qui échoue à l'une de ses vérifications est rejetée et rien n'est écrit. Une modification acceptée écrit le fichier de locale et fait avancer l'entrée de verrou de la clé, exactement comme une modification depuis le tableau de bord. Modifier n'exige aucune option de dépense ; cela ne touche que tes fichiers locaux et n'appelle jamais de fournisseur, mais ce n'est pas sans garde-fou : l'outil est limité à 20 modifications par minute glissante, et un second appel pour la même locale et la même clé pendant qu'un autre est encore en cours est rejeté avec `ALREADY_IN_PROGRESS` (HTTP 409) plutôt que mis en file, pour que deux appelants ne se disputent pas une entrée.
 
@@ -99,6 +101,10 @@ Une modification via `verbatra_translation_editEntry` est enregistrée avec l'or
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` modifie un terme du glossaire et renvoie le glossaire tel qu'il est désormais : une traduction pour toutes les locales ou pour une `locale`, les traductions interdites (`forbidden`) de cette locale, une `note`, une `partOfSpeech`, `caseSensitive` ou, avec `doNotTranslate`, le fait que le terme reste non traduit dans toutes les locales. Une `translation` à `null` efface cette traduction, et le terme est supprimé dès qu'il ne reste plus rien d'autre. Il ne fonctionne que sur un glossaire stocké dans un fichier : un glossaire écrit inline dans la config, ou l'absence de glossaire, est refusé plutôt que converti, et aucun paramètre ne nomme de fichier, la cible venant uniquement de la config chargée. Comme la modification, il ne dépense rien et est enregistré sans `--allow-spend`. Il est limité à 20 écritures par minute glissante.
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+`verbatra_review_approve` et `verbatra_review_reject` enregistrent dans `verbatra.provenance.json` une décision de relecture sur la valeur actuelle d'une clé, exactement comme les boutons **Approve** et **Reject** du tableau de bord. Ils existent pour qu'une personne puisse faire transmettre une décision par l'agent, jamais pour qu'un agent approuve son propre travail : les deux descriptions disent à l'agent de ne les appeler que sur instruction explicite de l'utilisateur, et les deux exigent `reviewer`, le nom de la personne qui a décidé, de 1 à 64 caractères, enregistré dans le fichier commité. Les deux prennent aussi `locale`, `key` et `expectedValue`, le texte que l'utilisateur a relu ; une valeur actuelle différente est refusée avec `REVIEW_VALUE_CHANGED`. `verbatra_review_reject` retire la valeur pour qu'elle soit remplacée, sans annulation possible sur cette surface. Les deux partagent la limite de débit des décisions de relecture, 60 appels par minute glissante par défaut. **Approve all in** pour une locale, comme les autres actions groupées, n'a aucun outil d'agent.
 
 ### Outils de dépense (deux)
 
@@ -132,7 +138,7 @@ L'enregistrement a trois issues possibles, et une seule est un problème.
 
 **Rien de tenté, rien de signalé.** Quand `document.modelContext` est absent (un navigateur sans WebMCP, ou Chrome sans le flag) ou quand tu n'as pas activé l'exposition, Studio ne tente aucun enregistrement. Le tableau de bord reste inchangé et la console reste muette. C'est le no-op prévu, pas un échec.
 
-**Seize outils et aucun avis.** Sans `--allow-spend`, Studio tente seize enregistrements plutôt que dix-huit : les deux outils de dépense sont écartés avant même d'être tentés. Seize outils, c'est le compte sain d'une session sans dépense : leur absence est donc l'état attendu et ne déclenche jamais d'avis.
+**Dix-huit outils et aucun avis.** Sans `--allow-spend`, Studio tente dix-huit enregistrements plutôt que vingt : les deux outils de dépense sont écartés avant même d'être tentés. Dix-huit outils, c'est le compte sain d'une session sans dépense : leur absence est donc l'état attendu et ne déclenche jamais d'avis.
 
 **L'avis.** Si Studio a tenté un enregistrement et que le navigateur l'a rejeté, le tableau de bord affiche un avertissement en haut de la zone de contenu, sur toutes les vues :
 
@@ -149,10 +155,10 @@ Un outil qui échoue n'annule jamais ceux qui suivent, donc tout outil bien enre
 Studio écrit une seule ligne agrégée au niveau erreur, et non une ligne par outil, parce qu'une cause commune fait échouer tous les outils de façon identique :
 
 ```text
-Verbatra agent tools: 2 of 18 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : dix-huit ici, parce que cette session a été lancée avec `--allow-spend`, et seize dans une session sans cette option. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté l'enregistrement, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
+La première phrase indique combien des enregistrements tentés ont échoué, et sur combien de tentatives : vingt ici, parce que cette session a été lancée avec `--allow-spend`, et dix-huit dans une session sans cette option. Chaque outil en échec suit ensuite sous la forme `name (ErrorName: message)`, séparés par des points-virgules. Le nom d'erreur identifie la cause : c'est le `name` de la valeur avec laquelle le navigateur a rejeté l'enregistrement, en général une `DOMException` comme `SecurityError` ou `InvalidStateError`.
 
 Une passe qui n'a jamais atteint la boucle par outil signale une ligne différente et ne déclenche pas l'avis :
 

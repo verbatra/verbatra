@@ -41,7 +41,7 @@ Flag und Umgebungsvariable werden genau wie bei `--allow-spend` aufgelöst: `1`,
 
 ## Der Tool-Katalog
 
-Mit aktiviertem Opt-in registriert Studio achtzehn Tools. Ohne `--allow-spend` sind es sechzehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
+Mit aktiviertem Opt-in registriert Studio zwanzig Tools. Ohne `--allow-spend` sind es achtzehn: die beiden Ausgaben-Tools entfallen vollständig. Tool-Namen tragen ein Präfix und nutzen Unterstriche (zum Beispiel `verbatra_project_snapshot`).
 
 ### Lese-Tools (vierzehn)
 
@@ -56,7 +56,7 @@ Sieh dir den Projektzustand an, ohne etwas zu ändern. Diese sind als nur lesend
 | `verbatra_lock_state` | der Zustand der Lock-Datei |
 | `verbatra_history_list` | jüngste Commit-Historie der Locale-Dateien |
 | `verbatra_key_integrity` | Platzhalter-, Inline-Markup-, ICU- und ICU-Zweig-Integrität für einen Key |
-| `verbatra_review_queue` | die Review-Warteschlange |
+| `verbatra_review_queue` | jeder maschinell geschriebene Wert, den noch niemand freigegeben hat, aus den committeten Dateien |
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
 | `verbatra_key_value` | die Quell- und Zielwerte für einen Key und eine Locale |
 | `verbatra_locale_values` | die Quell- und Zielwerte für jeden Key in jeder Ziel-Locale |
@@ -78,13 +78,15 @@ Seit `@verbatra/studio` 0.6.0 melden `verbatra_key_value` und `verbatra_locale_v
 
 `verbatra_key_context` liefert, was der Editor des Dashboards für einen Key und eine Locale zeigt: `source`, `target` und seine `provenance`, wenn ein Wert existiert, `description`, wenn die Quelldatei eine angibt, und `glossary`, die Begriffe, deren Quelle im Quelltext vorkommt, als `{ terms, doNotTranslate }` mit der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden ist, und `maxLength`, wenn die Config ein Längenbudget für den Key setzt. Gib den Wert, den du schreiben willst, als optionalen Parameter `draft` mit, dann trägt das Ergebnis auch `draftCheck`: für jeden zutreffenden Begriff `targetUsed` und `forbiddenUsed` und für jeden unübersetzt zu lassenden Begriff `kept`, beurteilt nach den Regeln, mit denen ein Übersetzungslauf eine Übersetzung zur Prüfung markiert. Glossarwerte laufen durch dieselbe Schwärzung wie bei `verbatra_glossary_get`.
 
-Die Buttons **Approve** und **Reject** im Dashboard haben kein Agent-Tool, mit oder ohne Spend: Eine Review-Entscheidung trifft eine Person. `verbatra_review_queue` lässt jeden seit dem Lauf entschiedenen Eintrag weg, behält aber einen, den ein Agent bearbeitet hat, weil diese Bearbeitung noch einen Blick von einer Person braucht.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+Die Review-Warteschlange kommt aus den committeten Dateien: `verbatra_review_queue` listet jeden Wert mit der Herkunft `machine`, `memory`, `fuzzy` oder `agent`, den niemand freigegeben hat, dieselbe Warteschlange, die jedes Teammitglied sieht, und behält einen Wert, den ein Agent bearbeitet hat, weil diese Bearbeitung noch einen Blick von einer Person braucht. Sein optionaler Parameter `includeApproved` listet zusätzlich die freigegebenen. Bis `@verbatra/studio` 0.6.0 listete es nur die Markierungen des letzten Laufs, und die Buttons **Approve** und **Reject** im Dashboard hatten kein Agent-Tool.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Auch die Sammelaktionen der Review-Seite, **Approve selected**, **Reject selected** und **Retranslate selected**, haben kein Agent-Tool. Eine Sammelentscheidung trifft weiterhin eine Person, und eine Sammel-Neuübersetzung würde einen einzigen Agent-Aufruf für bis zu 20 Einträge auf einmal Geld ausgeben lassen, also übersetzt ein Agent einen Eintrag pro Aufruf von `verbatra_translation_retranslateEntry` neu. Eine Sammel-Neuübersetzung aus dem Dashboard zieht aus demselben Budget wie einzelne Neuübersetzungen, ein Platz pro Eintrag, sodass beide zusammen nie über 20 neu übersetzte Einträge pro gleitender Minute kommen.
 
-### Schreib-Tools (zwei)
+### Schreib-Tools (vier)
 
 `verbatra_translation_editEntry` bearbeitet den Wert einer Locale an Ort und Stelle. Es läuft durch dasselbe Integritäts-Gate wie jeder andere verbatra-Schreibvorgang: ein Wert, der eine der Prüfungen nicht besteht, wird abgelehnt, und nichts wird geschrieben. Eine akzeptierte Bearbeitung schreibt die Locale-Datei und rückt den Lock-Eintrag des Keys vor, genau wie eine Bearbeitung im Dashboard. Bearbeiten braucht kein Ausgaben-Flag; es berührt nur deine lokalen Dateien und ruft nie einen Provider auf, ungebremst ist es aber nicht: Es ist auf 20 Bearbeitungen pro gleitender Minute begrenzt, und ein zweiter Aufruf für dieselbe Locale und denselben Key, während einer noch läuft, wird mit `ALREADY_IN_PROGRESS` (HTTP 409) abgelehnt statt eingereiht, damit zwei Aufrufer nicht in einen Wettlauf um einen Eintrag geraten.
 
@@ -99,6 +101,10 @@ Eine Bearbeitung über `verbatra_translation_editEntry` wird in `verbatra.proven
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` ändert einen Glossarbegriff und gibt das Glossar in seinem neuen Stand zurück: eine Übersetzung für alle Locales oder für eine `locale`, die verbotenen Wiedergaben (`forbidden`) dieser Locale, eine `note`, eine `partOfSpeech`, `caseSensitive` oder mit `doNotTranslate`, ob der Begriff in jeder Locale unübersetzt bleibt. Eine `translation` von `null` löscht diese Übersetzung, und der Begriff wird entfernt, sobald nichts anderes mehr übrig ist. Es arbeitet nur mit einem dateibasierten Glossar: ein inline in der Konfiguration geschriebenes Glossar, oder gar keines, wird abgelehnt statt umgewandelt, und kein Parameter nennt eine Datei, denn das Ziel stammt allein aus der geladenen Konfiguration. Wie das Bearbeiten gibt es nichts aus und wird ohne `--allow-spend` registriert. Es ist auf 20 Schreibvorgänge pro gleitender Minute begrenzt.
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+`verbatra_review_approve` und `verbatra_review_reject` halten eine Review-Entscheidung über den aktuellen Wert eines Keys in `verbatra.provenance.json` fest, genau wie die Buttons **Approve** und **Reject** im Dashboard. Es gibt sie, damit eine Person den Agenten eine Entscheidung weitergeben lassen kann, nie damit ein Agent seine eigene Arbeit freigibt: Beide Beschreibungen sagen dem Agenten, sie nur auf ausdrückliche Anweisung des Nutzers aufzurufen, und beide verlangen `reviewer`, den Namen der Person, die entschieden hat, 1 bis 64 Zeichen, gespeichert in der committeten Datei. Beide nehmen außerdem `locale`, `key` und `expectedValue`, den Text, den der Nutzer geprüft hat; ein anderer aktueller Wert wird mit `REVIEW_VALUE_CHANGED` abgelehnt. `verbatra_review_reject` entfernt den Wert, damit er ersetzt wird, ohne Rückgängig auf dieser Oberfläche. Beide teilen sich das Ratenlimit für Review-Entscheidungen, standardmäßig 60 Aufrufe pro rollierender Minute. **Approve all in** für eine Locale hat wie die anderen Sammelaktionen kein Agent-Tool.
 
 ### Ausgaben-Tools (zwei)
 
@@ -132,7 +138,7 @@ Die Registrierung hat drei mögliche Ausgänge, und nur einer davon ist ein Prob
 
 **Nichts versucht, nichts gemeldet.** Fehlt `document.modelContext` (ein Browser ohne WebMCP oder Chrome ohne das Flag) oder hast du das Opt-in nicht gesetzt, versucht Studio überhaupt keine Registrierung. Das Dashboard bleibt unverändert und die Konsole bleibt still. Das ist der vorgesehene No-Op, kein Fehler.
 
-**Sechzehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio sechzehn Registrierungen statt achtzehn: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Sechzehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
+**Achtzehn Tools und kein Hinweis.** Ohne `--allow-spend` versucht Studio achtzehn Registrierungen statt zwanzig: die beiden Ausgaben-Tools werden übersprungen, bevor sie überhaupt versucht werden. Achtzehn Tools sind die gesunde Zahl für eine Sitzung ohne Ausgaben, ihr Fehlen ist also der erwartete Zustand und löst nie einen Hinweis aus.
 
 **Der Hinweis.** Hat Studio eine Registrierung versucht und der Browser sie abgelehnt, zeigt das Dashboard oben im Inhaltsbereich eine Warnung, auf jeder Ansicht:
 
@@ -149,10 +155,10 @@ Ein fehlschlagendes Tool bricht nie die nachfolgenden ab, also bleibt jedes Tool
 Studio schreibt eine einzige zusammengefasste Zeile auf Error-Ebene, nicht eine Zeile pro Tool, denn eine gemeinsame Ursache lässt jedes Tool identisch scheitern:
 
 ```text
-Verbatra agent tools: 2 of 18 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier achtzehn, weil diese Sitzung mit `--allow-spend` gestartet wurde, und sechzehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
+Der erste Satz nennt, wie viele der versuchten Registrierungen fehlgeschlagen sind, und von wie vielen Versuchen: hier zwanzig, weil diese Sitzung mit `--allow-spend` gestartet wurde, und achtzehn in einer Sitzung ohne das Flag. Danach folgt jedes fehlschlagende Tool als `name (ErrorName: message)`, getrennt durch Semikolons. Der Fehlername benennt die Ursache: es ist der `name` des Werts, mit dem der Browser abgelehnt hat, meist eine `DOMException` wie `SecurityError` oder `InvalidStateError`.
 
 Ein Durchlauf, der die Tool-Schleife nie erreicht hat, meldet eine andere Zeile und löst den Hinweis nicht aus:
 

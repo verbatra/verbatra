@@ -275,6 +275,15 @@ Cualquier escritura posterior que cambie el valor empieza un registro nuevo, sin
 editar un valor aprobado lo devuelve a revisión. El nombre en `reviewer` se guarda en un archivo con
 commit, así que es público; verbatra nunca lo rellena por su cuenta.
 
+<AvailableFrom version="0.12.0" />
+
+Las mismas decisiones se pueden registrar con `approveLocale` del SDK, que aprueba de una vez toda
+la cola de un locale, y con las herramientas MCP `review.approve` y `review.reject`, que un agente
+solo llama para transmitir la decisión de una persona y que exigen el nombre de esa persona en
+`reviewer`. Como las decisiones viven en este archivo del repositorio, la cola de revisión y la
+puerta de CI [`verbatra check --require-reviewed`](/docs/cli/check) leen el mismo estado en cada
+máquina: cada valor con origen `machine`, `memory`, `fuzzy` o `agent` que no está aprobado.
+
 ## Confírmalo
 
 Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale. Es la línea base compartida contra la

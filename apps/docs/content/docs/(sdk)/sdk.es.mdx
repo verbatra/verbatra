@@ -353,7 +353,7 @@ de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 Informa del desfase por locale como contadores: `missing` (en el origen, ausente del destino), `stale`
 (el origen cambió desde la última traducción) y `upToDate`. Úsalo como puerta de CI.
 
-Entrada: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Devuelve un `CheckSummary` cuyo `inSync` es true
+Entrada: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Devuelve un `CheckSummary` cuyo `inSync` es true
 exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 
 <AvailableFrom version="0.11.0" />
@@ -392,6 +392,16 @@ para un valor que la puerta de integridad rechazaría (`reason` de `INTEGRITY_GA
 publican como la tupla `QA_SEVERITIES` (`"error"`, `"warning"`). El informe nunca cambia `inSync`;
 una puerta de CI lee `qa.errors`, y `qa.warnings` para una puerta estricta. Consulta
 [el control de calidad](/docs/cli/check#control-de-calidad) para ver qué valores se comprueban.
+
+<AvailableFrom version="0.12.0" />
+
+Con `requireReviewed: true`, `check` también ejecuta la puerta de revisión, sin clave y sin escribir
+nada: cada `LocaleCheckSummary` lleva `review: { unreviewed }`, las claves cuyo valor tiene un
+origen de máquina y no está aprobado, y el resumen lleva `review: { reviewed, unreviewed, code? }`.
+`code` es `REVIEW_REQUIRED` cuando un valor no está aprobado, o `REVIEW_STATE_UNREADABLE` cuando el
+archivo de procedencia está dañado o viene de una versión más nueva de verbatra, lo que hace fallar
+la puerta en vez de dejarla pasar. El informe nunca cambia `inSync`; una puerta de CI lee
+`review.reviewed`. Consulta [`verbatra check`](/docs/cli/check).
 
 ### diff
 
@@ -524,18 +534,23 @@ registrado.
 
 <AvailableFrom version="0.12.0" />
 
-Lee la cola de revisión: las claves que marcó la última ejecución (la instantánea de `runStatus`),
-menos todas las que alguien ya atendió desde entonces. Una señal sale de la cola en cuanto su valor
-actual se aprueba o se rechaza en `verbatra.provenance.json`, en cuanto una persona escribe o
-importa un valor nuevo para ella, o en cuanto ya no tiene traducción; un valor que reescribió un
-agente se queda. Como las decisiones vienen de archivos con commit, alguien de tu equipo con el
-mismo estado de ejecución ve la misma cola. Nunca lanza: un archivo de estado inservible da
-`{ available: false }`, un archivo de procedencia ilegible deja las señales sin filtrar, y un locale
-cuyo archivo no se puede leer conserva sus señales tal como se registraron.
+Lee la cola de revisión de los archivos del repositorio: cada clave cuyo valor actual tiene un
+origen de máquina (`machine`, `memory`, `fuzzy` o `agent`, publicado como la tupla
+`MACHINE_CLASS_ORIGINS`) y no está aprobado, por locale de destino y en el orden del origen. Lee los
+archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json`, así que cada persona de tu
+equipo con el mismo commit ve la misma cola. Una clave sale de ella en cuanto su valor se aprueba o
+se rechaza, o una persona escribe o importa un valor nuevo; un valor que reescribió un agente se
+queda, y también una aprobación anterior a un cambio del origen de la clave. La instantánea de la
+última ejecución de `runStatus` solo añade detalle: las `reasons` de cada entrada (vacías si la
+ejecución no la marcó), los `fuzzyHits` del locale y `lastRunAt`.
 
-Entrada: `{ config, cwd? }`. Devuelve la forma de `runStatus`, y cada entrada de `needsReview`
-además lleva `provenance`, la `KeyProvenance` de su valor actual, cuando el archivo de procedencia
-se puede leer.
+Entrada: `{ config, cwd?, locales?, includeApproved? }`. Devuelve `{ available: true, locales, lastRunAt? }`,
+cada locale como `{ locale, needsReview, approved?, fuzzyHits? }` y cada entrada como
+`{ key, reasons, provenance }`; `approved` lista los valores de máquina aprobados y solo aparece con
+`includeApproved: true`. Cuando el archivo de procedencia está dañado o viene de una versión más
+nueva de verbatra, devuelve `{ available: false, reason: "provenance-unreadable" }`. Un archivo de
+origen, de destino o de bloqueo que no se puede leer hace fallar la llamada igual que en `check`.
+Hasta la 0.11 la cola eran solo las marcas de la última ejecución.
 
 ## Operaciones de una sola clave
 
@@ -690,6 +705,20 @@ esperar; las entradas de otros locales se siguen decidiendo. Las llamadas de una
 Entrada: la misma que `approveEntries`. Ejecuta `rejectEntry` por entrada y elimina cada valor
 rechazado. Un resultado correcto es `{ ok: true, locale, key, provenance }`. Un tiempo límite de
 bloqueo omite las entradas posteriores que necesitan ese bloqueo, como en `approveEntries`.
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Entrada: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Aprueba toda la cola de revisión de un locale, o solo sus valores con uno de los `origins`, en una
+sola escritura de `verbatra.provenance.json`, con el bloqueo de escritura del locale. Cada
+aprobación se registra igual que la registra `approveEntry`, con el hash de origen con el que se
+dio. No recibe ningún valor esperado: aprueba lo que la cola contiene cuando se ejecuta, así que
+enséñale antes la cola a quien revisa. Devuelve `{ locale, approved, sourceChanged }`: las claves
+aprobadas y las claves de la cola que quedan sin revisar porque su origen cambió desde que se
+escribieron. Solo escribe el archivo de procedencia, no llama a ningún proveedor y falla con
+`PROVENANCE_FILE_UNWRITABLE` en lugar de informar de aprobaciones que no pudo guardar.
 
 ### retranslateEntries
 

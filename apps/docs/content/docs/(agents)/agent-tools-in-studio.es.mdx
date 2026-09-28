@@ -41,7 +41,7 @@ Después abre en tu navegador compatible con WebMCP la URL de loopback que se im
 
 ## El catálogo de herramientas
 
-Con la opción activada, Studio registra dieciocho herramientas. Sin `--allow-spend` registra dieciséis: las dos herramientas de gasto se omiten por completo. Los nombres de herramienta llevan prefijo y usan guiones bajos (por ejemplo `verbatra_project_snapshot`).
+Con la opción activada, Studio registra veinte herramientas. Sin `--allow-spend` registra dieciocho: las dos herramientas de gasto se omiten por completo. Los nombres de herramienta llevan prefijo y usan guiones bajos (por ejemplo `verbatra_project_snapshot`).
 
 ### Herramientas de lectura (catorce)
 
@@ -56,7 +56,7 @@ Inspeccionan el estado del proyecto sin cambiar nada. Están marcadas como de so
 | `verbatra_lock_state` | el estado del archivo de bloqueo |
 | `verbatra_history_list` | historial reciente de commits de los archivos de locale |
 | `verbatra_key_integrity` | integridad de placeholders, marcado en línea, ICU y ramas ICU para una clave |
-| `verbatra_review_queue` | la cola de revisión |
+| `verbatra_review_queue` | cada valor escrito por máquina que nadie ha aprobado todavía, de los archivos del repositorio |
 | `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución |
 | `verbatra_key_value` | los valores de origen y destino para una clave y un locale |
 | `verbatra_locale_values` | los valores de origen y destino de cada clave en cada locale de destino |
@@ -78,13 +78,15 @@ Desde `@verbatra/studio` 0.6.0, `verbatra_key_value` y `verbatra_locale_values` 
 
 `verbatra_key_context` devuelve lo que muestra el editor del panel para una clave y un locale: `source`, `target` y su `provenance` cuando existe un valor, `description` cuando el archivo de origen da una, y `glossary`, los términos cuyo origen aparece en el texto de origen, como `{ terms, doNotTranslate }` con la traducción y las traducciones prohibidas a las que está sujeto ese locale, y `maxLength` cuando la config fija un presupuesto de longitud para la clave. Pasa el valor que piensas escribir en el parámetro opcional `draft` y el resultado lleva también `draftCheck`: para cada término aplicable, `targetUsed` y `forbiddenUsed`, y para cada término que se mantiene sin traducir, `kept`, juzgados con las reglas con las que una ejecución de traducción marca una traducción para revisión. Los valores del glosario pasan por la misma censura que en `verbatra_glossary_get`.
 
-Los botones **Approve** y **Reject** del panel no tienen herramienta de agente, con o sin gasto: una decisión de revisión la toma una persona. `verbatra_review_queue` omite cada entrada decidida desde la ejecución, pero conserva una que editó un agente, porque esa edición todavía necesita que la mire una persona.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+La cola de revisión sale de los archivos del repositorio: `verbatra_review_queue` lista cada valor con origen `machine`, `memory`, `fuzzy` o `agent` que nadie ha aprobado, la misma cola que ve cada compañero, y conserva un valor que editó un agente, porque esa edición todavía necesita que la mire una persona. Su parámetro opcional `includeApproved` lista además los aprobados. Hasta `@verbatra/studio` 0.6.0 solo listaba las marcas de la última ejecución, y los botones **Approve** y **Reject** del panel no tenían herramienta de agente.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 Las acciones en bloque de la página Review, **Approve selected**, **Reject selected** y **Retranslate selected**, tampoco tienen herramienta de agente. Una decisión en bloque sigue siendo cosa de una persona, y una retraducción en bloque permitiría que una sola llamada de agente gastara en hasta 20 entradas a la vez, así que un agente retraduce una entrada por cada llamada a `verbatra_translation_retranslateEntry`. Una retraducción en bloque desde el panel tira del mismo presupuesto que las retraducciones sueltas, un hueco por entrada, así que juntas nunca pasan de 20 entradas retraducidas por minuto móvil.
 
-### Herramientas de escritura (dos)
+### Herramientas de escritura (cuatro)
 
 `verbatra_translation_editEntry` edita en el sitio el valor de un locale. Pasa por la misma puerta de integridad que cualquier otra escritura de verbatra: un valor que no supera alguna de sus comprobaciones se rechaza y no se escribe nada. Una edición aceptada escribe el archivo de locale y avanza la entrada del bloqueo de esa clave, exactamente como lo hace una edición desde el panel. Editar no necesita ningún flag de gasto; toca solo tus archivos locales y nunca llama a un proveedor, pero no está sin restricciones: está limitada a 20 ediciones por minuto deslizante, y una segunda llamada para el mismo locale y la misma clave mientras otra sigue en curso se rechaza con `ALREADY_IN_PROGRESS` (HTTP 409) en lugar de encolarse, así que dos llamadas no pueden competir por la misma entrada.
 
@@ -99,6 +101,10 @@ Una edición mediante `verbatra_translation_editEntry` queda registrada con el o
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` cambia un término del glosario y devuelve el glosario tal como queda: una traducción para todos los locales o para un `locale`, las traducciones prohibidas (`forbidden`) de ese locale, una `note`, una `partOfSpeech`, `caseSensitive` o, con `doNotTranslate`, si el término se queda sin traducir en todos los locales. Una `translation` a `null` borra esa traducción, y el término se elimina cuando no queda nada más. Solo funciona con un glosario respaldado por archivo: un glosario escrito en línea en la configuración, o la ausencia de glosario, se rechaza en lugar de convertirse, y ningún parámetro nombra un archivo, porque el destino sale únicamente de la configuración cargada. Igual que editar, no gasta nada y se registra sin `--allow-spend`. Está limitada a 20 escrituras por minuto deslizante.
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+`verbatra_review_approve` y `verbatra_review_reject` registran en `verbatra.provenance.json` una decisión de revisión sobre el valor actual de una clave, igual que los botones **Approve** y **Reject** del panel. Existen para que una persona pueda pedirle al agente que transmita una decisión, nunca para que un agente apruebe su propio trabajo: ambas descripciones le dicen al agente que solo las llame por indicación expresa del usuario, y ambas exigen `reviewer`, el nombre de la persona que decidió, de 1 a 64 caracteres, guardado en el archivo del repositorio. Ambas reciben además `locale`, `key` y `expectedValue`, el texto que revisó el usuario; un valor actual distinto se rechaza con `REVIEW_VALUE_CHANGED`. `verbatra_review_reject` elimina el valor para que se sustituya, sin deshacer en esta superficie. Ambas comparten el límite de tasa de las decisiones de revisión, 60 llamadas por minuto móvil por defecto. **Approve all in** para un locale, como las demás acciones en bloque, no tiene herramienta de agente.
 
 ### Herramientas de gasto (dos)
 
@@ -132,7 +138,7 @@ El registro tiene tres desenlaces posibles, y solo uno de ellos es un problema.
 
 **Nada intentado, nada notificado.** Cuando falta `document.modelContext` (un navegador sin WebMCP, o Chrome sin el flag) o cuando no activaste la exposición, Studio no intenta ningún registro. El panel queda igual y la consola permanece en silencio. Ese es el no-op previsto, no un fallo.
 
-**Dieciséis herramientas y ningún aviso.** Sin `--allow-spend`, Studio intenta dieciséis registros en lugar de dieciocho: las dos herramientas de gasto se omiten antes de intentarse siquiera. Dieciséis herramientas es el número correcto de una sesión sin gasto, así que su ausencia es el estado esperado y nunca levanta un aviso.
+**Dieciocho herramientas y ningún aviso.** Sin `--allow-spend`, Studio intenta dieciocho registros en lugar de veinte: las dos herramientas de gasto se omiten antes de intentarse siquiera. Dieciocho herramientas es el número correcto de una sesión sin gasto, así que su ausencia es el estado esperado y nunca levanta un aviso.
 
 **El aviso.** Si Studio intentó un registro y el navegador lo rechazó, el panel muestra una advertencia en la parte superior del área de contenido, en todas las vistas:
 
@@ -149,10 +155,10 @@ Una herramienta que falla nunca cancela las siguientes, así que toda herramient
 Studio escribe una única línea agregada a nivel de error, no una línea por herramienta, porque una causa compartida hace fallar a todas de forma idéntica:
 
 ```text
-Verbatra agent tools: 2 of 18 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-La primera frase dice cuántos de los registros intentados fallaron, y sobre cuántos intentos: aquí dieciocho, porque esta sesión se inició con `--allow-spend`, y dieciséis en una sesión sin ese flag. Después cada herramienta fallida aparece como `name (ErrorName: message)`, separadas por punto y coma. El nombre del error identifica la causa: es el `name` del valor con el que el navegador lo rechazó, normalmente una `DOMException` como `SecurityError` o `InvalidStateError`.
+La primera frase dice cuántos de los registros intentados fallaron, y sobre cuántos intentos: aquí veinte, porque esta sesión se inició con `--allow-spend`, y dieciocho en una sesión sin ese flag. Después cada herramienta fallida aparece como `name (ErrorName: message)`, separadas por punto y coma. El nombre del error identifica la causa: es el `name` del valor con el que el navegador lo rechazó, normalmente una `DOMException` como `SecurityError` o `InvalidStateError`.
 
 Una pasada que nunca llegó al bucle por herramienta registra una línea distinta y no levanta el aviso:
 

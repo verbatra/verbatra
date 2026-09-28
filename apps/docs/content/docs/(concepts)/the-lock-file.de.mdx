@@ -280,6 +280,16 @@ Jeder spätere Schreibvorgang, der den Wert ändert, beginnt einen frischen, ung
 du einen freigegebenen Wert bearbeitest, geht er also zurück ins Review. Der Name unter `reviewer`
 landet in einer committeten Datei und ist damit öffentlich; verbatra füllt ihn nie selbst aus.
 
+<AvailableFrom version="0.12.0" />
+
+Dieselben Entscheidungen lassen sich über `approveLocale` im SDK festhalten, das die ganze
+Warteschlange einer Locale auf einmal freigibt, und über die MCP-Tools `review.approve` und
+`review.reject`, die ein Agent nur aufruft, um die Entscheidung einer Person weiterzugeben, und die
+deren Namen als `reviewer` verlangen. Weil die Entscheidungen in dieser committeten Datei stehen,
+lesen die Review-Warteschlange und das CI-Gate [`verbatra check --require-reviewed`](/docs/cli/check)
+auf jedem Rechner denselben Stand: jeden Wert mit der Herkunft `machine`, `memory`, `fuzzy` oder
+`agent`, der nicht freigegeben ist.
+
 ## Committe sie
 
 Committe `verbatra.lock.json` und `verbatra.provenance.json` zusammen mit deinen Locale-Dateien. Diese Datei ist die gemeinsame

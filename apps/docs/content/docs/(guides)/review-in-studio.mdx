@@ -37,7 +37,7 @@ Translations is the working view: everything pending across your target locales,
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The List view also filters by state and by locale. Next to the text filter, pick one locale, or toggle one or more states, each with its count: **Missing**, **Changed** (stale against its source), **Orphaned**, **Protected** (the protected and pinned keys a run leaves for a person), **Review queue** (the entries the last run flagged, as on the Review page), and **Integrity problems** (any translated key whose value fails the placeholder, markup, or ICU checks, plural arms included, whatever its sync state). With states chosen, each locale lists only those groups and a locale with none of them is hidden; the text filter still applies inside them. **Review queue** and **Integrity problems** also appear as their own groups whenever they hold a key, and a state whose data cannot be read right now is shown disabled. The counts follow the text filter too, and so does the summary on each locale's row, which counts only the groups and keys the filters leave. When nothing matches, the page says so; **Clear filters** then resets the locale, the states, and the text and puts you back in the search field. In Grid, a key the source no longer has reads **Absent** in every locale that does not carry it.
+The List view also filters by state and by locale. Next to the text filter, pick one locale, or toggle one or more states, each with its count: **Missing**, **Changed** (stale against its source), **Orphaned**, **Protected** (the protected and pinned keys a run leaves for a person), **Review queue** (the machine-written values nobody has approved, as on the Review page), and **Integrity problems** (any translated key whose value fails the placeholder, markup, or ICU checks, plural arms included, whatever its sync state). With states chosen, each locale lists only those groups and a locale with none of them is hidden; the text filter still applies inside them. **Review queue** and **Integrity problems** also appear as their own groups whenever they hold a key, and a state whose data cannot be read right now is shown disabled. The counts follow the text filter too, and so does the summary on each locale's row, which counts only the groups and keys the filters leave. When nothing matches, the page says so; **Clear filters** then resets the locale, the states, and the text and puts you back in the search field. In Grid, a key the source no longer has reads **Absent** in every locale that does not carry it.
 
 **Copy as review report** in the page header copies a Markdown report to the clipboard: one section per locale listing its missing, changed, and orphaned keys, ready to paste into a pull request or an issue.
 
@@ -71,7 +71,7 @@ While you type, each glossary term is checked against your draft: **Used** or **
 
 ## Work the Review queue
 
-The Review page lists every entry the review heuristics flagged in the most recent `translate` or `watch` run: one row per locale and key, with an indicator per reason (translation far shorter or longer than the source, longer than the key's configured length budget, identical to the source, a missed glossary term, reordered placeholders, a degraded provider batch, or a value reused from the cache after its source was edited). Until a run has been recorded, the page says so and stays empty; run `verbatra translate` or `verbatra watch` to populate it.
+The Review page lists every translation a machine wrote that nobody has approved yet: one row per locale and key, with the value's origin and, when the most recent `translate` or `watch` run on this machine flagged it, an indicator per reason (translation far shorter or longer than the source, longer than the key's configured length budget, identical to the source, a missed glossary term, reordered placeholders, a degraded provider batch, or a value reused from the cache after its source was edited). When nothing is waiting, the page shows an all-clear.
 
 <AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
 
@@ -100,6 +100,20 @@ Each row shows the key's current translation under the key (hover it for the ful
 Reject removes the translation from the locale file and drops its [lock file](/docs/the-lock-file) entry, so the key counts as missing: `verbatra check` reports it, and the next `verbatra translate` run or **Translate pending changes across all locales** fills it again. Until then your app shows its fallback for that key. With the provider `none`, the key stays missing until someone writes a new value. The rejected text is also dropped from this machine's translation memory, and a run never reuses it for that key from any memory, a teammate's included, so the next run does not put it back, as long as the run can read the provenance file (see [the cache](/docs/the-cache)). Commit the locale file, the lock file, and the provenance file together; if a rejection fails partway, Studio restores the files on failure. A format that cannot drop a single translation, XLIFF, refuses the rejection and leaves the file as it was; edit the value instead.
 
 Review flags are advisory, distinct from the hard integrity gate; see [Translation safety](/docs/translation-safety) for what each reason means.
+
+### One queue for the whole team
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+The queue is read from the files you commit, not from the last run on your machine: every value whose origin is **Machine**, **Memory**, **Fuzzy match**, or **Agent** and that is not approved is listed, so a teammate who pulls the locale files, the lock file, and `verbatra.provenance.json` sees exactly the queue you see. A value that changes after it was approved drops back into the queue when a machine wrote the change; a value a person writes or imports, or edits by hand in the locale file, leaves it, because a person wrote it. Each row shows its origin next to its reasons, and a row the last run did not flag shows only its origin.
+
+The filter bar has three more choices:
+
+- **Needs review** or **Approved**: the second lists the machine-written values already approved, where Approve is off but Reject still works, for a value you want to take back.
+- **All origins**, or one of **Machine**, **Memory**, **Fuzzy match**, and **Agent**.
+- A locale: once one is chosen, **Approve all in** that locale approves every entry of it that needs review, or only those of the chosen origin, after a confirmation that says how many. The count covers entries the text filter hides too. An entry whose source changed since it was written stays in the queue, and the line above the table says how many did.
+
+To make an unapproved machine translation fail a pull request, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
 ### Work the queue from the keyboard
 
