@@ -163,6 +163,7 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
   qa: z.boolean().optional(),
   severity: z.string().optional(),
   strict: z.boolean().optional(),
+  requireReviewed: z.boolean().optional(),
 });
 
 type CheckOpts = z.infer<typeof checkOptsSchema>;
@@ -203,7 +204,8 @@ function parseCheckOpts(rawOpts: unknown): CheckOpts & { readonly qaSeverity?: Q
 function checkExitCode(summary: CheckSummary, strict: boolean): number {
   const qa = summary.qa;
   const qaFails = qa !== undefined && (qa.errors > 0 || (strict && qa.warnings > 0));
-  return summary.inSync && !qaFails ? 0 : 1;
+  const reviewFails = summary.review !== undefined && !summary.review.reviewed;
+  return summary.inSync && !qaFails && !reviewFails ? 0 : 1;
 }
 
 const diffOptsSchema = sharedCommandOptsSchema.extend({
@@ -1076,6 +1078,7 @@ function checkInput(
     ...(opts.consistency === true ? { consistency: true } : {}),
     ...(opts.qa === true ? { qa: true } : {}),
     ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
+    ...(opts.requireReviewed === true ? { requireReviewed: true } : {}),
   };
 }
 
@@ -1546,6 +1549,10 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
     )
     .option("--severity <level>", "lowest quality-check severity to report: error or warning")
     .option("--strict", "with --qa, also exit 1 when the quality check reports warnings")
+    .option(
+      "--require-reviewed",
+      "also exit 1 while a machine-written translation is not approved (reads the committed review state)",
+    )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams, ctx.settings()));
@@ -1561,6 +1568,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check --consistency    also list source strings translated more than one way",
         "  $ verbatra check --qa             also check placeholders, markup, ICU and review flags",
         "  $ verbatra check --qa --strict    fail on quality-check warnings too, not only errors",
+        "  $ verbatra check --require-reviewed  fail while machine translations wait for approval",
       ].join("\n"),
     );
 }
