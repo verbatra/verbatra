@@ -115,6 +115,8 @@ and glibc name locales, `language_REGION@modifier`, while your config keeps the 
 - [`verbatra init`](/docs/cli/init) reads these names back when it detects an existing layout:
   `locale/sr@latin/LC_MESSAGES/messages.po` becomes the target `sr-Latn`.
 
+A catalogue verbatra creates names the locale the same way in its `Language` header.
+
 Every other format keeps the ICU spelling under `posix` (`sr_Latn`, `zh_Hant_TW`), which is what
 Java resource bundles and Flutter ARB files expect.
 

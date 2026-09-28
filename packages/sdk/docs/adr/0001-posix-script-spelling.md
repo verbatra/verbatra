@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-09-28
-- Applies to: `@verbatra/sdk`
+- Applies to: `@verbatra/core`, `@verbatra/format-adapters`, `@verbatra/sdk`, `@verbatra/cli`
 
 ## Context
 
@@ -23,7 +23,7 @@ the directories its other tools read.
 ### 1. The script convention follows the format, not a new locale style
 
 Under `posix`, the `gettext-po` format uses the gettext convention and every other format keeps the
-ICU one (`scriptConventionOf` in `packages/sdk/src/locale-path/posix.ts`). A separate style would
+ICU one (`scriptConventionOf` in `packages/core/src/locale/posix-spelling.ts`). A separate style would
 make every gettext user opt in to the only spelling their toolchain understands, and switching
 `posix` itself to the gettext convention would break the Java and Flutter layouts it already
 serves. The two conventions agree on everything but scripts: `pt-BR` is `pt_BR` and `es-419` is
@@ -68,5 +68,13 @@ recorded under it is carried over to that code like an underscore spelling
   existing `sr@latin`, `uz@cyrillic`, `zh_TW`, and `es_419` directories.
 - `posix` now depends on the format for script subtags only. The `LocaleStyle` and
   `LocalePathResolverConfig.format` JSDoc and the `config-file` docs page state this.
-- The `Language` header the gettext adapter synthesizes for a new catalogue still uses the ICU
-  spelling (`sr_Latn`); the file path is correct, and the header is metadata only.
+- The spelling lives in `@verbatra/core` (`packages/core/src/locale/posix-spelling.ts`, with the
+  tag parser in `locale-tag.ts`): it is pure, needing only `Intl`, and two packages that cannot
+  import each other use it. The sdk resolver spells paths with it, and the gettext adapter
+  (`packages/format-adapters/src/gettext/serialize.ts`) writes the same name into the `Language`
+  header of a catalogue it creates, falling back to the underscore spelling for a locale with no
+  gettext name. The adapter only receives the BCP 47 locale, not the path's spelling, so sharing
+  the function is the seam rather than threading the on-disk name through `FormatAdapter.write`.
+- The `init` next-step hint that names the source file (`packages/cli/src/init.ts`) spells it
+  through `createLocalePathResolver`, the sdk's public mapping, instead of its own underscore
+  replace.

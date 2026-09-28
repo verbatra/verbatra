@@ -118,6 +118,8 @@ BCP-47-Code behält:
 - [`verbatra init`](/docs/cli/init) liest diese Namen zurück, wenn es ein bestehendes Layout
   erkennt: `locale/sr@latin/LC_MESSAGES/messages.po` wird zur Ziel-Locale `sr-Latn`.
 
+Ein Katalog, den verbatra neu anlegt, nennt die Locale in seinem `Language`-Header genauso.
+
 Jedes andere Format behält unter `posix` die ICU-Schreibweise (`sr_Latn`, `zh_Hant_TW`), die
 Java-Resource-Bundles und Flutter-ARB-Dateien erwarten.
 

@@ -1,5 +1,6 @@
 ---
 "@verbatra/sdk": minor
+"@verbatra/cli": minor
 ---
 
 Spell a script the gettext way under the `posix` locale style for the `gettext-po` format.
@@ -21,3 +22,11 @@ bundles and Flutter ARB files use.
 `sr-Latn-RS`. A config code written the gettext way, such as `sr@latin`, is rejected as before, and
 the message now suggests `sr-Latn` with the `posix` style. State recorded under such a code is
 carried over to the respelled one on the next `translate` run, like an underscore spelling.
+
+A `.po` catalogue verbatra creates now writes the same gettext name in its `Language` header
+(`sr@latin`, `zh_TW`, `es_419`) instead of an underscore spelling such as `sr_Latn`.
+
+The `init` next step that names the source locale's file next to a base file (a `.pot` template, a
+Java base bundle) now spells that file through the same path resolver the runs use, so a
+`sr-Latn` source in a gettext layout is named `locale/sr@latin/LC_MESSAGES/app.po`. A source
+locale the layout cannot spell gets no such step.

@@ -117,6 +117,8 @@ BCP 47 :
 - [`verbatra init`](/docs/cli/init) relit ces noms quand il détecte une disposition existante :
   `locale/sr@latin/LC_MESSAGES/messages.po` devient la locale cible `sr-Latn`.
 
+Un catalogue que verbatra crée nomme la locale de la même façon dans son en-tête `Language`.
+
 Tous les autres formats gardent sous `posix` l'écriture ICU (`sr_Latn`, `zh_Hant_TW`), celle
 qu'attendent les resource bundles Java et les fichiers ARB de Flutter.
 
