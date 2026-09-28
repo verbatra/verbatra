@@ -1784,6 +1784,10 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option("--yes", "skip prompts and accept the defaults for anything not passed or detected")
     .option("--force", "overwrite an existing verbatra.config.ts that differs")
     .option("--json", "print one JSON document describing what was written; never prompts")
+    .option(
+      "--agent",
+      "also write verbatra rules for coding agents to AGENTS.md (or CLAUDE.md) and the verbatra MCP server, spending off, to .mcp.json",
+    )
     .action(async (opts: InitOpts) => {
       ctx.setCode(await runInit(opts, ctx.streams));
     })
@@ -1797,6 +1801,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra init --provider gemini --format yaml --path 'i18n/{locale}.yml' --yes --json",
         "  $ verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes",
         "  $ verbatra init --provider none --yes       human-only: no provider, no API key",
+        "  $ verbatra init --provider gemini --yes --agent   also set up AGENTS.md and .mcp.json for coding agents",
       ].join("\n"),
     );
 }

@@ -7,6 +7,7 @@
  * alphabetically.
  */
 export const CLI_ERROR_CODES = [
+  "AGENT_FILE_INVALID",
   "CLI_ERROR",
   "CONFIG_EXISTS",
   "CONFIG_INVALID",

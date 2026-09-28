@@ -2,6 +2,13 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
 import { detectProject, type ProjectDetection, scaffoldingMetadata } from "@verbatra/sdk";
+import {
+  type AgentScaffoldPlan,
+  MCP_CONFIG_FILE,
+  type McpServerState,
+  type PlannedAgentFile,
+  planAgentScaffold,
+} from "./agent-scaffold.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { ensureGitignore, type GitignoreAction } from "./gitignore.js";
 import {
@@ -170,8 +177,39 @@ function writing<T>(file: string, cwd: string, written: readonly WrittenFile[], 
   }
 }
 
+const MCP_SERVER_NOTE: Record<McpServerState, string> = {
+  added: "verbatra MCP server added, spending off",
+  present: "verbatra MCP server already present",
+  differs: "its verbatra server differs from the scaffold and was left as it is",
+};
+
+function writeAgentFile(
+  file: PlannedAgentFile,
+  note: string,
+  cwd: string,
+  files: WrittenFile[],
+  streams: Streams,
+): void {
+  if (file.action !== "unchanged") {
+    writing(file.path, cwd, files, () => writeFileSync(resolve(cwd, file.path), file.content));
+  }
+  streams.out(`${file.action} ${file.path} (${note})\n`);
+  files.push({ path: file.path, action: file.action });
+}
+
+function writeAgentFiles(
+  agent: AgentScaffoldPlan,
+  cwd: string,
+  files: WrittenFile[],
+  streams: Streams,
+): void {
+  writeAgentFile(agent.instructions, "verbatra section for coding agents", cwd, files, streams);
+  writeAgentFile(agent.mcp, MCP_SERVER_NOTE[agent.mcpServer], cwd, files, streams);
+}
+
 function writePlan(
   plan: InitPlan,
+  agent: AgentScaffoldPlan | undefined,
   cwd: string,
   force: boolean,
   streams: Streams,
@@ -196,6 +234,9 @@ function writePlan(
     ensureGitignore(cwd, streams),
   );
   files.push({ path: ".gitignore", action: gitignore });
+  if (agent !== undefined) {
+    writeAgentFiles(agent, cwd, files, streams);
+  }
   return files;
 }
 
@@ -229,9 +270,27 @@ function sourceFileStep(plan: InitPlan): NextStep | undefined {
   };
 }
 
-function nextSteps(plan: InitPlan, cwdFlag: string | undefined): readonly NextStep[] {
+const MCP_SETUP_DOCS = "https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client#claude-code";
+
+function agentSteps(agent: AgentScaffoldPlan | undefined): readonly NextStep[] {
+  if (agent?.mcpServer !== "differs") {
+    return [];
+  }
+  return [
+    {
+      description: `${MCP_CONFIG_FILE} already names a verbatra server that differs from the one init scaffolds, so init left it as it is. Compare it with ${MCP_SETUP_DOCS}.`,
+      command: null,
+    },
+  ];
+}
+
+function nextSteps(
+  plan: InitPlan,
+  agent: AgentScaffoldPlan | undefined,
+  cwdFlag: string | undefined,
+): readonly NextStep[] {
   const suffix = cwdFlag === undefined ? "" : ` --cwd ${shellQuote(cwdFlag)}`;
-  const steps: NextStep[] = [];
+  const steps: NextStep[] = [...agentSteps(agent)];
   if (plan.sources.format === "default") {
     steps.push({
       description: `Set format in ${CONFIG_FILE}: init found no locale file to detect it from.`,
@@ -285,6 +344,12 @@ function detectionForJson(detection: ProjectDetection): unknown {
     confidence: detection.confidence,
     reasons: detection.reasons,
   };
+}
+
+function agentForJson(agent: AgentScaffoldPlan | undefined): unknown {
+  return agent === undefined
+    ? null
+    : { instructionsFile: agent.instructions.path, mcpServer: agent.mcpServer };
 }
 
 function renderDetectionHuman(detection: ProjectDetection): string | undefined {
@@ -376,8 +441,9 @@ export async function runInit(
       warn: (message) => streams.err(`${message}\n`),
     };
     const plan = await planOrExisting(opts, cwd, prompter, deps.detect ?? detectProject);
-    const files = writePlan(plan, cwd, opts.force === true, json ? SILENT_STREAMS : streams);
-    const steps = nextSteps(plan, opts.cwd);
+    const agent = opts.agent === true ? planAgentScaffold(cwd) : undefined;
+    const files = writePlan(plan, agent, cwd, opts.force === true, json ? SILENT_STREAMS : streams);
+    const steps = nextSteps(plan, agent, opts.cwd);
     if (json) {
       const keyEnvVar = keyEnvVarFor(plan.draft.provider);
       streams.out(
@@ -388,6 +454,7 @@ export async function runInit(
           sources: plan.sources,
           apiKeyEnvVar: keyEnvVar ?? null,
           detection: detectionForJson(plan.detection),
+          agent: agentForJson(agent),
           nextSteps: steps,
         })}\n`,
       );
