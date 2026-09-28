@@ -93,6 +93,7 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 
 | Code | Levé quand |
 | --- | --- |
+| `AGENT_FILE_INVALID` | `init --agent` a trouvé un `.mcp.json` qui n'est pas un objet JSON avec un objet `mcpServers`, ou un marqueur verbatra sans paire ou répété dans `AGENTS.md` ou `CLAUDE.md` ; rien n'a été écrit |
 | `CLI_ERROR` | un échec ne portait aucun code propre (le code de repli) |
 | `CONFIG_EXISTS` | `init` écraserait un `verbatra.config.ts` différent sans `--force`, ou un autre fichier de config verbatra du répertoire serait lu en premier ; signalé avant toute réponse manquante ou ambiguë, et dans un terminal avant la première question |
 | `CONFIG_INVALID` | `init` n'a pas pu générer une configuration valide à partir des réponses reçues (le SDK lève le même code pour une configuration qui ne se charge pas) |

@@ -95,6 +95,10 @@ Tout ce qui suit `--` est la ligne de commande du serveur lui-même, transmise t
 }
 ```
 
+`verbatra init --agent` écrit cette entrée pour toi, à côté de chaque serveur que le fichier contient déjà, et ne modifie jamais une entrée `verbatra` déjà présente. Voir [Préparer les agents de code](/docs/cli/init#préparer-les-agents-de-code).
+
+<AvailableFrom version="0.12.0" />
+
 Claude Code demande à chaque personne d'approuver un serveur de scope projet issu de `.mcp.json` avant sa première utilisation dans une session interactive.
 
 Claude Code transmet au serveur l'environnement avec lequel tu as lancé `claude`, plus `CLAUDE_PROJECT_DIR` défini sur la racine du projet. Le fichier commité ne contient donc ni clé ni interrupteur de dépense : un membre de l'équipe qui veut les outils de dépense les active pour une session, avec la clé déjà exportée dans son shell :

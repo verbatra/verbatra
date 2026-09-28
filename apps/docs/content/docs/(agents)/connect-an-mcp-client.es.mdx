@@ -95,6 +95,10 @@ Todo lo que va después de `--` es la línea de comandos del propio servidor y s
 }
 ```
 
+`verbatra init --agent` escribe esta entrada por ti, junto a cualquier servidor que el archivo ya tenga, y nunca cambia una entrada `verbatra` que ya esté ahí. Consulta [Preparar los agentes de programación](/docs/cli/init#preparar-los-agentes-de-programación).
+
+<AvailableFrom version="0.12.0" />
+
 Claude Code pide a cada persona que apruebe un servidor con scope de proyecto de `.mcp.json` antes del primer uso en una sesión interactiva.
 
 Claude Code le pasa al servidor el entorno con el que iniciaste `claude`, más `CLAUDE_PROJECT_DIR` apuntando a la raíz del proyecto. Así, el archivo del repositorio no contiene ni clave ni interruptor de gasto: quien quiera las herramientas de gasto las activa para una sesión, con la clave ya exportada en su shell:

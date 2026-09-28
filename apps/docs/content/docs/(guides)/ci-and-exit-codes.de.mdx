@@ -93,6 +93,7 @@ Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` 
 
 | Code | Ausgelöst, wenn |
 | --- | --- |
+| `AGENT_FILE_INVALID` | `init --agent` eine `.mcp.json` gefunden hat, die kein JSON-Objekt mit einem `mcpServers`-Objekt ist, oder eine unpaarige oder doppelte verbatra-Markierung in `AGENTS.md` oder `CLAUDE.md`; es wurde nichts geschrieben |
 | `CLI_ERROR` | ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code) |
 | `CONFIG_EXISTS` | `init` ohne `--force` eine abweichende `verbatra.config.ts` überschreiben würde oder eine andere verbatra-Konfigurationsdatei im Verzeichnis zuerst gelesen würde; wird vor jeder fehlenden oder mehrdeutigen Antwort gemeldet, im Terminal schon vor der ersten Frage |
 | `CONFIG_INVALID` | `init` aus den erhaltenen Antworten keine gültige Konfiguration erzeugen konnte (das SDK löst denselben Code für eine Konfiguration aus, die sich nicht laden lässt) |

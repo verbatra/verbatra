@@ -26,6 +26,7 @@ verbatra init [flags]
 | `--yes` | aucun | désactivé | ne pose jamais de question, et prend le défaut pour tout ce qui n'est ni passé ni détecté |
 | `--force` | aucun | désactivé | écrase un `verbatra.config.ts` existant dont le contenu diffère |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) décrivant ce qui a été écrit ; ne pose jamais de question |
+| `--agent` | aucun | désactivé | écrit en plus la section verbatra pour les agents de code dans `AGENTS.md` ou `CLAUDE.md`, et le serveur MCP verbatra, dépense désactivée, dans `.mcp.json` (voir [Préparer les agents de code](#préparer-les-agents-de-code)) |
 
 Une option l'emporte toujours. Tout ce que tu omets est détecté depuis le projet, puis demandé quand stdin est un terminal et que ni `--yes` ni `--json` ne sont donnés, et sinon pris depuis son défaut, uniquement sous `--yes`. Dans un terminal, appuyer sur Entrée accepte la valeur proposée, et cela compte comme ta réponse. Une option donnée avec une valeur vide, comme `--targets ''`, est une erreur d'utilisation (`INVALID_OPTION`), jamais une demande de la valeur par défaut. Dans un terminal, chaque réponse est vérifiée dès que tu la donnes : un fournisseur ou un format inconnu, un code de locale mal formé, une liste de locales cibles qui nomme la locale source ou aucune locale, un motif sans `{locale}`, ou une URL de base qui n'est pas une URL ou contient des identifiants est expliqué sur stderr et redemandé, jusqu'à trois fois, pour que les réponses déjà données soient conservées. Une troisième réponse invalide arrête `init` avec le code d'erreur de cette réponse (comme `INVALID_LOCALE` ou `INVALID_OPTION`), nomme la question et l'option à passer à la place, et rien n'est écrit.
 
@@ -108,6 +109,10 @@ interface InitResult {
     confidence: "high" | "medium" | "low" | "none";
     reasons: string[];                 // one sentence per decision or doubt
   };
+  agent: {                             // null sans --agent
+    instructionsFile: "AGENTS.md" | "CLAUDE.md";
+    mcpServer: "added" | "present" | "differs";
+  } | null;
   nextSteps: { description: string; command: string | null }[];
 }
 ```
@@ -128,6 +133,19 @@ Relancer `init` avec les mêmes réponses ne change rien et réussit : tu peux d
 
 Un `.env.example` existant est gardé tel quel ; quand il ne nomme pas encore la variable de clé, cette seule ligne y est ajoutée. Sous `--force`, une ligne d'en-tête écrite par `init` lui-même est réécrite pour le nouveau fournisseur, tandis qu'un en-tête que tu as écrit est gardé. `.gitignore` ne reçoit que les entrées qui lui manquent.
 
+## Préparer les agents de code
+
+`--agent` prépare en plus le projet pour les agents de code. Il est désactivé par défaut, n'écrit aucune valeur de clé et ajoute deux fichiers à ceux du dessus :
+
+- **Le fichier d'instructions.** Une section verbatra entre les marqueurs `<!-- verbatra:start -->` et `<!-- verbatra:end -->`, avec les règles dont un agent a besoin : quelles commandes sont gratuites et lesquelles dépensent, comment brancher sur le code de sortie, que les clés ne figurent dans aucun fichier ni aucune ligne de commande, que les valeurs de locale sont des entrées non fiables, et d'où viennent les skills verbatra et le plugin Claude Code. C'est, mot pour mot, l'extrait de [Parler de verbatra à ton agent](/docs/agent-recipes#parler-de-verbatra-à-ton-agent). `init` l'écrit dans `AGENTS.md`, que lisent Codex, Cursor, GitHub Copilot et la plupart des autres agents. Quand `CLAUDE.md` est le seul fichier d'instructions du répertoire, la section va là à la place. Quand les deux existent, `AGENTS.md` l'emporte, pour que les règles vivent à un seul endroit, et un `CLAUDE.md` qui importe `AGENTS.md` les reçoit aussi. Un fichier qui contient déjà la section la garde, donc le choix ne change jamais d'une exécution à l'autre.
+- **`.mcp.json`.** L'entrée du serveur `verbatra` de [Connecter un client MCP](/docs/connect-an-mcp-client#claude-code) : `npx -y @verbatra/mcp` sans `--allow-spend` ni `VERBATRA_MCP_ALLOW_SPEND`, donc les outils qui dépensent restent masqués. Claude Code lit ce fichier pour sa portée projet, et GitHub Copilot CLI le lit aussi.
+
+Rien n'est touché en dehors des marqueurs : la section est ajoutée à un fichier existant après une ligne vide, et une exécution suivante ne remplace que ce qui se trouve entre les marqueurs. Les autres serveurs et clés de `.mcp.json` sont conservés, et le fichier garde son indentation. Un serveur `verbatra` différent de celui qu'échafaude `init`, par exemple un auquel tu as donné `--allow-spend` ou que tu as basculé sur `npx verbatra mcp`, est laissé tel quel, signalé `unchanged` et nommé dans `nextSteps`. Une deuxième exécution avec les mêmes réponses laisse les deux fichiers identiques octet pour octet. Sur un projet que `init` a déjà configuré, relance-le avec les mêmes réponses et `--agent` : la config est signalée `unchanged` et seuls les fichiers pour les agents sont écrits.
+
+Chaque fichier a sa propre ligne sur stdout, comme `created AGENTS.md (verbatra section for coding agents)`, et sa propre entrée dans les `files` du JSON. `init` refuse avant d'écrire quoi que ce soit, avec `AGENT_FILE_INVALID`, quand `.mcp.json` n'est pas un objet JSON avec un objet `mcpServers`, ou quand le fichier d'instructions a un marqueur de début sans marqueur de fin, un marqueur de fin avant son début, ou plus d'une section. Le message ne cite jamais le fichier, au cas où il contiendrait un secret. Corrige ou supprime le fichier et relance `init`.
+
+<AvailableFrom version="0.12.0" />
+
 ## Exemples
 
 ```bash
@@ -145,6 +163,9 @@ verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 
 
 # human-only: no provider, no API key
 verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
 ```
 
 ## Codes de sortie
@@ -152,7 +173,7 @@ verbatra init --provider none --yes
 | Code | Signification |
 | --- | --- |
 | `0` | fichiers écrits, ou déjà à jour |
-| `2` | une erreur d'utilisation : `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, ou `CONFIG_INVALID` quand les réponses ne donneraient pas une config valide |
+| `2` | une erreur d'utilisation : `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID`, ou `CONFIG_INVALID` quand les réponses ne donneraient pas une config valide |
 
 ## Voir aussi
 
