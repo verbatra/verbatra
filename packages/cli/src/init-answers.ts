@@ -37,6 +37,7 @@ export const initOptsSchema = z.object({
   yes: z.boolean().optional(),
   force: z.boolean().optional(),
   json: z.boolean().optional(),
+  agent: z.boolean().optional(),
 });
 
 export type InitOptions = z.infer<typeof initOptsSchema>;

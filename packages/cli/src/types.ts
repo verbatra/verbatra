@@ -95,4 +95,5 @@ export interface InitOpts {
   readonly yes?: boolean;
   readonly force?: boolean;
   readonly json?: boolean;
+  readonly agent?: boolean;
 }

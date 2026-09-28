@@ -95,6 +95,10 @@ Alles nach `--` ist die eigene Befehlszeile des Servers und wird unverändert du
 }
 ```
 
+`verbatra init --agent` schreibt diesen Eintrag für dich, neben jeden Server, den die Datei schon enthält, und ändert nie einen `verbatra`-Eintrag, der schon da ist. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten).
+
+<AvailableFrom version="0.12.0" />
+
 Claude Code bittet jede Person, einen Server mit Projekt-Scope aus `.mcp.json` vor der ersten Nutzung in einer interaktiven Sitzung freizugeben.
 
 Claude Code gibt dem Server die Umgebung mit, mit der du `claude` gestartet hast, dazu `CLAUDE_PROJECT_DIR` mit dem Projektstamm. Die committete Datei enthält also weder Key noch Spend-Schalter: Wer im Team die Spend-Tools will, schaltet sie für eine Sitzung zu, mit dem Key bereits in der eigenen Shell exportiert:

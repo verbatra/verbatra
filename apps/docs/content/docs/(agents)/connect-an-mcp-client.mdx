@@ -95,6 +95,10 @@ Everything after `--` is the server's own command line, passed through untouched
 }
 ```
 
+`verbatra init --agent` writes this entry for you, next to any server the file already holds, and never changes a `verbatra` entry that is already there. See [Set up coding agents](/docs/cli/init#set-up-coding-agents).
+
+<AvailableFrom version="0.12.0" />
+
 Claude Code asks each person to approve a project-scoped server from `.mcp.json` before the first use in an interactive session.
 
 Claude Code passes the server the environment you started `claude` with, plus `CLAUDE_PROJECT_DIR` set to the project root. So the committed file holds no key and no spend switch: a teammate who wants the spend tools opts in for one session, with the key already exported in their shell:

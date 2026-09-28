@@ -26,6 +26,7 @@ verbatra init [flags]
 | `--yes` | none | off | never prompt, and take the default for anything neither passed nor detected |
 | `--force` | none | off | overwrite an existing `verbatra.config.ts` whose content differs |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) describing what was written; never prompts |
+| `--agent` | none | off | also write the verbatra section for coding agents to `AGENTS.md` or `CLAUDE.md`, and the verbatra MCP server, with spending off, to `.mcp.json` (see [Set up coding agents](#set-up-coding-agents)) |
 
 A flag always wins. Anything you leave out is detected from the project, then prompted for when stdin is a terminal and neither `--yes` nor `--json` is given, and otherwise taken from its default only under `--yes`. At a terminal, pressing Enter accepts the suggested value, and that counts as your answer. A flag given an empty value, such as `--targets ''`, is a usage error (`INVALID_OPTION`), never a request for the default. At a terminal, each answer is checked as you give it: an unknown provider or format, a malformed locale code, a target list that names the source locale or no locale, a pattern without `{locale}`, or a base URL that is not a URL or carries credentials is explained on stderr and asked again, up to three times, so the answers you already gave are kept. A third invalid answer stops `init` with that answer's error code (such as `INVALID_LOCALE` or `INVALID_OPTION`), naming the question and the flag to pass instead, and nothing is written.
 
@@ -77,7 +78,7 @@ With `--json`, stdout carries exactly one envelope. Its `result`:
 
 ```ts
 interface InitResult {
-  configPath: string;                  // absolute path of verbatra.config.ts
+  configPath: string;                  // absolute path of verbatra.config.ts, or of the config --agent kept
   files: { path: string; action: "created" | "overwritten" | "updated" | "unchanged" }[];
   config: {                            // the config that was validated and written
     sourceLocale: string;
@@ -85,14 +86,14 @@ interface InitResult {
     format: string;
     files: { pattern: string; localeStyle?: "posix" | "android" };
     provider: { id: string; options: Record<string, unknown> };
-  };
+  } | null;
   sources: {                           // where each value came from
     provider: "flag" | "prompt";
     format: "flag" | "prompt" | "files" | "dependencies" | "default";
     pattern: "flag" | "prompt" | "detected" | "default";
     sourceLocale: "flag" | "prompt" | "detected" | "default";
     targetLocales: "flag" | "prompt" | "detected" | "default";
-  };
+  } | null;
   apiKeyEnvVar: string | null;         // the variable to set; null for provider none
   detection: {
     format: { id: string; from: "input" | "files" | "dependencies" } | null;
@@ -107,7 +108,12 @@ interface InitResult {
     ambiguities: { subject: "format" | "layout"; candidates: string[] }[];
     confidence: "high" | "medium" | "low" | "none";
     reasons: string[];                 // one sentence per decision or doubt
-  };
+  } | null;
+  agent: {                             // null without --agent
+    instructionsFile: "AGENTS.md" | "CLAUDE.md";
+    mcpServer: "added" | "present" | "differs";
+    configKept: boolean;               // true when --agent kept an existing config
+  } | null;
   nextSteps: { description: string; command: string | null }[];
 }
 ```
@@ -124,9 +130,24 @@ An error envelope for `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER`
 
 ## Existing files
 
-Running `init` again with the same answers changes nothing and succeeds, so it is safe to repeat. A `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless you pass `--force`. Another verbatra config in the same directory (a `.verbatrarc.json`, for example, or a `verbatra` property in `package.json`) is refused with `CONFIG_EXISTS` even under `--force`, because it would be read before `verbatra.config.ts`. Nothing is written when `init` refuses. When `verbatra.config.ts` already exists and you did not pass `--force`, `CONFIG_EXISTS` comes before anything else: at a terminal before the first prompt, and otherwise in place of a missing, ambiguous, or invalid answer, so a rerun tells you about the existing config first. `init --cwd` refuses a path that is not an existing directory with `INVALID_OPTION`, and a directory it cannot write to, such as a read-only one, with `INIT_UNWRITABLE`, naming the file and any file it had already written.
+Running `init` again with the same answers changes nothing and succeeds, so it is safe to repeat. A `verbatra.config.ts` with different content is refused with `CONFIG_EXISTS` unless you pass `--force`. Another verbatra config in the same directory (a `.verbatrarc.json`, for example, or a `verbatra` property in `package.json`) is refused with `CONFIG_EXISTS` even under `--force`, because it would be read before `verbatra.config.ts`. Nothing is written when `init` refuses. When `verbatra.config.ts` already exists and you did not pass `--force`, `CONFIG_EXISTS` comes before anything else: at a terminal before the first prompt, and otherwise in place of a missing, ambiguous, or invalid answer, so a rerun tells you about the existing config first. `init --cwd` refuses a path that is not an existing directory with `INVALID_OPTION`, and a directory it cannot write to, such as a read-only one, with `INIT_UNWRITABLE`, naming the file and any file it had already written. With `--agent` and no config answer, an existing config is kept instead of refused: see [Set up coding agents](#set-up-coding-agents).
 
 An existing `.env.example` is kept as it is; when it does not name the key variable yet, that one line is appended. Under `--force`, a header line `init` wrote itself is rewritten for the new provider, while a header you wrote is kept. `.gitignore` gets only the entries it is missing.
+
+## Set up coding agents
+
+`--agent` also prepares the project for coding agents. It is off by default, it writes no key value, and it adds two files to the ones above:
+
+- **The instruction file.** A verbatra section between `<!-- verbatra:start -->` and `<!-- verbatra:end -->` markers with the rules an agent needs: which commands are free and which spend, how to branch on the exit code, that keys stay out of every file and command line, that locale values are untrusted input, and where the verbatra skills and the Claude Code plugin come from. It is the snippet from [Tell your agent about verbatra](/docs/agent-recipes#tell-your-agent-about-verbatra), word for word. `init` writes it to `AGENTS.md`, which Codex, Cursor, GitHub Copilot, and most other agents read. When `CLAUDE.md` is the only instruction file in the directory, the section goes there instead. When both exist, `AGENTS.md` wins, so the rules live in one place, and a `CLAUDE.md` that imports `AGENTS.md` picks them up too. A file that already holds the section keeps it, so the choice never moves between runs.
+- **`.mcp.json`.** The `verbatra` server entry from [Connect an MCP client](/docs/connect-an-mcp-client#claude-code): `npx -y @verbatra/mcp` with neither `--allow-spend` nor `VERBATRA_MCP_ALLOW_SPEND`, so the spend tools stay hidden. Claude Code reads this file for its project scope, and GitHub Copilot CLI reads it too.
+
+Nothing outside the markers is touched: the section is appended to an existing file after a blank line, and a later run replaces only what sits between the markers. Other servers and keys in `.mcp.json` are kept, and the file keeps the indentation it had. A `verbatra` server that differs from the scaffold, such as one you gave `--allow-spend` or switched to `npx verbatra mcp`, is left as it is, reported `unchanged`, and named in `nextSteps`. A second run with the same answers leaves both files byte for byte as they were.
+
+On a project that already has a config, `init --agent` writes only these two files and keeps the config as it is, whatever it holds. It prints `kept verbatra.config.ts`, never prompts, and runs no detection, and the same goes for another config file verbatra reads, such as `.verbatrarc.json`. The JSON result then lists the config as `unchanged`, sets `agent.configKept` to `true`, and carries `null` for `config`, `sources`, `apiKeyEnvVar`, and `detection`, since nothing was planned. A config answer (`--provider`, `--source`, `--targets`, `--path`, `--format`, `--model`, `--base-url`, or `--api-key-env-var`) or `--force` puts the config back into the run, exactly as without `--agent`: the same answers report it `unchanged`, `--force` rewrites it, and different answers are refused with `CONFIG_EXISTS`, whose message tells you to drop them to keep the config. `--yes` changes nothing here.
+
+Each file gets its own line on stdout, such as `created AGENTS.md (verbatra section for coding agents)`, and its own entry in the JSON `files`. `init` refuses before writing anything, with `AGENT_FILE_INVALID`, when `.mcp.json` is not a JSON object with an `mcpServers` object, or when the instruction file has a start marker without an end marker, an end marker before its start, or more than one section. The message never quotes the file, in case it holds a secret. Fix or remove the file and run `init` again.
+
+<AvailableFrom version="0.12.0" />
 
 ## Examples
 
@@ -145,6 +166,9 @@ verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 
 
 # human-only: no provider, no API key
 verbatra init --provider none --yes
+
+# also set the project up for coding agents
+verbatra init --provider gemini --yes --agent
 ```
 
 ## Exit codes
@@ -152,7 +176,7 @@ verbatra init --provider none --yes
 | Code | Meaning |
 | --- | --- |
 | `0` | files written, or already up to date |
-| `2` | a usage error: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, or `CONFIG_INVALID` when the answers would not make a valid config |
+| `2` | a usage error: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID`, or `CONFIG_INVALID` when the answers would not make a valid config |
 
 ## Related
 
