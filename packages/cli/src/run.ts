@@ -200,9 +200,14 @@ function parseCheckOpts(rawOpts: unknown): CheckOpts & { readonly qaSeverity?: Q
   return qaSeverity !== undefined ? { ...opts, qaSeverity } : opts;
 }
 
+function hasIncompletePlurals(summary: CheckSummary): boolean {
+  return summary.locales.some((locale) => (locale.incompletePlurals?.length ?? 0) > 0);
+}
+
 function checkExitCode(summary: CheckSummary, strict: boolean): number {
   const qa = summary.qa;
-  const qaFails = qa !== undefined && (qa.errors > 0 || (strict && qa.warnings > 0));
+  const warns = (qa?.warnings ?? 0) > 0 || hasIncompletePlurals(summary);
+  const qaFails = qa !== undefined && (qa.errors > 0 || (strict && warns));
   return summary.inSync && !qaFails ? 0 : 1;
 }
 
@@ -1545,7 +1550,10 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
       "also run the integrity and review checks on every committed translation (exit 1 on errors)",
     )
     .option("--severity <level>", "lowest quality-check severity to report: error or warning")
-    .option("--strict", "with --qa, also exit 1 when the quality check reports warnings")
+    .option(
+      "--strict",
+      "with --qa, also exit 1 on quality-check warnings and missing plural categories",
+    )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams, ctx.settings()));
@@ -1560,7 +1568,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check --json           machine-readable status on stdout for CI",
         "  $ verbatra check --consistency    also list source strings translated more than one way",
         "  $ verbatra check --qa             also check placeholders, markup, ICU and review flags",
-        "  $ verbatra check --qa --strict    fail on quality-check warnings too, not only errors",
+        "  $ verbatra check --qa --strict    also fail on warnings and missing plural categories",
       ].join("\n"),
     );
 }

@@ -15,6 +15,7 @@ import {
   type GenerateTypesResult,
   type ImportTmxResult,
   INTEGRITY_GATE_REASONS,
+  type IncompletePlural,
   type InconsistencyGroup,
   type IntegrityRefusal,
   type LiteralScan,
@@ -397,6 +398,7 @@ export function renderCheckHuman(summary: CheckSummary): string {
     "verbatra check",
     ...localeLines,
     overall,
+    ...renderIncompletePlurals(summary),
     ...renderConsistencyReport(summary),
     ...renderQaReport(summary),
   ].join("\n");
@@ -455,6 +457,36 @@ function renderQaReport(summary: CheckSummary): readonly string[] {
       locale.qa === undefined ? [] : renderLocaleQa(locale.locale, locale.qa),
     ),
     ...skipped,
+  ];
+}
+
+function describePluralKind(gap: IncompletePlural): string {
+  if (gap.argument !== undefined) {
+    const kind = gap.ruleType === "ordinal" ? "selectordinal" : "plural";
+    return ` {${neutralizeControlCharacters(gap.argument)}} ${kind}`;
+  }
+  return gap.ruleType === "ordinal" ? " (ordinal)" : "";
+}
+
+function renderIncompletePlural(gap: IncompletePlural): string {
+  return `    ${neutralizeControlCharacters(gap.key)}${describePluralKind(gap)}: missing ${gap.missing.join(", ")}`;
+}
+
+function renderIncompletePlurals(summary: CheckSummary): readonly string[] {
+  const affected = summary.locales.flatMap((locale) =>
+    locale.incompletePlurals !== undefined && locale.incompletePlurals.length > 0
+      ? [{ locale: locale.locale, gaps: locale.incompletePlurals }]
+      : [],
+  );
+  if (affected.length === 0) {
+    return [];
+  }
+  return [
+    "plural categories (warning: exit 1 only under --qa --strict)",
+    ...affected.flatMap(({ locale, gaps }) => [
+      `  ${locale}: ${plural(gaps.length, "plural")} missing CLDR categories`,
+      ...gaps.map(renderIncompletePlural),
+    ]),
   ];
 }
 
