@@ -1,5 +1,5 @@
-import type { FormatId } from "@verbatra/core";
-import { type LocaleTag, parseLocaleTag } from "./tag.js";
+import type { FormatId } from "../model/format-id.js";
+import { type LocaleTag, parseLocaleTag } from "./locale-tag.js";
 
 export type ScriptConvention = "icu" | "gettext";
 
@@ -82,7 +82,7 @@ export function posixSpelling(locale: string, convention: ScriptConvention): Loc
     : { spelling: locale.replaceAll("-", "_") };
 }
 
-export function splitModifier(
+export function splitGettextModifier(
   spelling: string,
 ): { readonly base: string; readonly script: string | undefined } | undefined {
   const at = spelling.indexOf(MODIFIER_SEPARATOR);

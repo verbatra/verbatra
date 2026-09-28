@@ -1,5 +1,5 @@
+import { splitGettextModifier } from "@verbatra/core";
 import { localeCodeSchema } from "../config/locale-code.js";
-import { splitModifier } from "../locale-path/posix.js";
 
 export type SpellingKind = "plain" | "hyphen" | "underscore" | "android" | "android-source";
 
@@ -79,7 +79,7 @@ function parsePlainTagSpelling(spelling: string): SpelledLocale | undefined {
 }
 
 function parseTagSpelling(spelling: string): SpelledLocale | undefined {
-  const modified = splitModifier(spelling);
+  const modified = splitGettextModifier(spelling);
   if (modified === undefined) {
     return undefined;
   }

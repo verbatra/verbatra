@@ -1,5 +1,5 @@
+import { type LocaleSpelling, posixSpelling, type ScriptConvention } from "@verbatra/core";
 import { androidSegment } from "./android.js";
-import { type LocaleSpelling, posixSpelling, type ScriptConvention } from "./posix.js";
 
 /** The locale spellings {@link LocaleStyle} is drawn from, in declaration order. */
 export const LOCALE_STYLES = ["literal", "posix", "android"] as const;

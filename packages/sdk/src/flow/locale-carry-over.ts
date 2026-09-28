@@ -1,3 +1,4 @@
+import { posixSpelling } from "@verbatra/core";
 import {
   CACHE_FILE_NAME,
   cacheFilePath,
@@ -9,7 +10,6 @@ import {
 } from "../cache/translation-memory.js";
 import { errorMessage, SdkError } from "../errors.js";
 import type { SdkFs } from "../fs.js";
-import { posixSpelling } from "../locale-path/posix.js";
 import type { LivenessContext } from "../lock/holder-liveness.js";
 import {
   type LocaleProvenance,

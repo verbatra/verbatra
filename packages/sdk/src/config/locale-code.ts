@@ -1,5 +1,5 @@
+import { splitGettextModifier } from "@verbatra/core";
 import { z } from "zod";
-import { splitModifier } from "../locale-path/posix.js";
 
 export const LOCALE_CODE_PATTERN =
   /^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*(?:-[0-9A-WYZa-wyz](?:-[A-Za-z0-9]{2,8})+)*(?:-[Xx](?:-[A-Za-z0-9]{1,8})+)?$/;
@@ -17,7 +17,7 @@ function isValidLocaleCode(code: string): boolean {
 }
 
 function modifierHint(code: string): string | undefined {
-  const modified = splitModifier(code);
+  const modified = splitGettextModifier(code);
   if (modified?.script === undefined) {
     return undefined;
   }

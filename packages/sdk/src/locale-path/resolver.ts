@@ -1,8 +1,7 @@
 import { resolve } from "node:path";
-import type { FormatId } from "@verbatra/core";
+import { type FormatId, type ScriptConvention, scriptConventionOf } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import { expandPattern, LOCALE_TOKEN, tokenOccupiesWholeSegments } from "./pattern.js";
-import { type ScriptConvention, scriptConventionOf } from "./posix.js";
 import { isSharedCatalogueFormat } from "./shared-catalogue-format.js";
 import { isSafeSpelling, isSegmentStyle, type LocaleStyle, spellLocale } from "./style.js";
 
