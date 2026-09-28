@@ -9,7 +9,11 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "3. To fix one key, read it with key.value, check placeholder and ICU drift with key.integrity, " +
     "then write the corrected text with translation.editEntry. That call is free and passes the same integrity gate as a provider result; " +
     "a rejection comes back as accepted: false with a reason, and sending the identical value again is rejected again. " +
-    "4. Afterwards, review.queue lists the keys the last run flagged for a person and usage.summary reports what that run consumed.",
+    "4. Afterwards, review.queue lists every machine-written value no person has approved yet, and usage.summary reports what the last run consumed.",
+  "Review decisions: review.approve and review.reject record a person's decision on one value in the committed " +
+    "verbatra.provenance.json, under the reviewer name you pass. Call them only when the user has read the value " +
+    "and told you which decision to record; never approve or reject your own translations or edits on your own " +
+    "initiative. review.reject deletes the value from the locale file so it gets replaced.",
   "Spending: translation.retranslateEntry and translation.translatePending call the configured translation provider and bill it. " +
     "They are listed only when the operator started the server with --allow-spend (or VERBATRA_MCP_ALLOW_SPEND) " +
     "and the config's provider is not none. If they are absent, the operator chose not to spend: nothing is broken, " +

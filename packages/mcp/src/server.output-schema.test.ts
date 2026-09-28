@@ -97,6 +97,14 @@ const CALLS_IN_ORDER: readonly { name: string; arguments: Record<string, unknown
     name: "translation.editEntry",
     arguments: { locale: "de", key: "greeting", value: "Hallo {{name}}" },
   },
+  {
+    name: "review.approve",
+    arguments: { locale: "de", key: "greeting", expectedValue: "Hallo {{name}}", reviewer: "mk" },
+  },
+  {
+    name: "review.reject",
+    arguments: { locale: "de", key: "long", expectedValue: "[de] Hi", reviewer: "mk" },
+  },
   { name: "translation.retranslateEntry", arguments: { locale: "fr", key: "greeting" } },
   { name: "glossary.get", arguments: {} },
   { name: "glossary.write", arguments: { term: "SDK", translation: "SDK" } },
@@ -145,7 +153,7 @@ describe("createMcpServer: output schemas", () => {
 
     const { tools } = await client.listTools();
 
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(16);
     for (const tool of tools) {
       expect(tool.outputSchema?.type, tool.name).toBe("object");
     }
@@ -193,7 +201,13 @@ describe("createMcpServer: output schemas", () => {
     expect(queue.structuredContent).toMatchObject({
       available: true,
       locales: [
-        { locale: "de", needsReview: [{ key: "long", reasons: ["LENGTH_RATIO_OUTLIER"] }] },
+        {
+          locale: "de",
+          needsReview: [
+            { key: "greeting", reasons: [] },
+            { key: "long", reasons: ["LENGTH_RATIO_OUTLIER"] },
+          ],
+        },
         { locale: "fr" },
       ],
     });
