@@ -14,13 +14,16 @@ import {
   withCarryOverNotices,
 } from "./locale-carry-over.js";
 
-describe("respellingsOf: underscore spellings of a configured code", () => {
+describe("respellingsOf: underscore and gettext modifier spellings of a configured code", () => {
   it.each([
     ["pt-BR", ["pt_BR"], ["pt_BR"]],
     ["pt-BR", ["pt_br", "PT_BR"], ["pt_br", "PT_BR"]],
     ["zh-Hant-TW", ["zh_Hant_TW", "zh_Hant"], ["zh_Hant_TW"]],
     ["pt-BR", ["pt-BR", "pt-br", "ptBR"], []],
     ["de", ["de", "DE", "de_"], []],
+    ["sr-Latn", ["sr@latin", "sr_Latn", "sr@cyrillic"], ["sr@latin", "sr_Latn"]],
+    ["sr-Latn-RS", ["sr_RS@latin", "SR_rs@latin", "sr_RS"], ["sr_RS@latin", "SR_rs@latin"]],
+    ["zh-Hant-TW", ["zh_TW"], []],
   ])("finds the candidates for %s among %j", (locale, candidates, expected) => {
     expect(respellingsOf(locale, candidates)).toEqual(expected);
   });

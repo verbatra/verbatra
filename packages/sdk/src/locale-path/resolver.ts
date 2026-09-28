@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import type { FormatId } from "@verbatra/core";
 import { SdkError } from "../errors.js";
 import { expandPattern, LOCALE_TOKEN, tokenOccupiesWholeSegments } from "./pattern.js";
+import { type ScriptConvention, scriptConventionOf } from "./posix.js";
 import { isSharedCatalogueFormat } from "./shared-catalogue-format.js";
 import { isSafeSpelling, isSegmentStyle, type LocaleStyle, spellLocale } from "./style.js";
 
@@ -20,7 +21,8 @@ export interface LocalePathResolverConfig {
    * The configured format. Every format maps each locale to a distinct path except a
    * shared-catalogue format (one holding every locale in a single file, such as `apple-xcstrings`),
    * which maps every locale to the same path. A `custom:` format is always treated as one file per
-   * locale.
+   * locale. Under the `posix` locale style, the `gettext-po` format also spells a script the
+   * gettext way (`sr-Latn` as `sr@latin`) rather than the ICU way (`sr_Latn`).
    */
   readonly format: FormatId;
   /** The file layout. */
@@ -68,14 +70,23 @@ function validatePattern(pattern: string, style: LocaleStyle): void {
   }
 }
 
-function safeSpelling(locale: string, style: LocaleStyle, sourceLocale: string): string {
-  const spelling = spellLocale(locale, style, locale === sourceLocale);
-  if (spelling === undefined) {
+interface SpellingContext {
+  readonly style: LocaleStyle;
+  readonly sourceLocale: string;
+  readonly convention: ScriptConvention;
+}
+
+function safeSpelling(locale: string, context: SpellingContext): string {
+  const { style } = context;
+  const result = spellLocale(locale, style, locale === context.sourceLocale, context.convention);
+  if (result.spelling === undefined) {
+    const reason = result.reason === undefined ? "" : `: ${result.reason}`;
     throw new SdkError(
       "LOCALE_LAYOUT_INVALID",
-      `The "${style}" locale style has no valid path spelling for the locale "${locale}".`,
+      `The "${style}" locale style has no valid path spelling for the locale "${locale}"${reason}.`,
     );
   }
+  const { spelling } = result;
   if (!isSafeSpelling(spelling)) {
     throw new SdkError(
       "LOCALE_LAYOUT_INVALID",
@@ -149,8 +160,13 @@ export function createLocalePathResolver(
     return { pathFor: sharedCataloguePathFor(cwd, pattern), localeFor: () => undefined };
   }
 
+  const context: SpellingContext = {
+    style,
+    sourceLocale: config.sourceLocale,
+    convention: scriptConventionOf(config.format),
+  };
   const pathFor = (locale: string): string =>
-    resolve(cwd, expandPattern(pattern, safeSpelling(locale, style, config.sourceLocale)));
+    resolve(cwd, expandPattern(pattern, safeSpelling(locale, context)));
 
   const forward = buildForwardMap(config, pathFor);
   return {

@@ -134,6 +134,23 @@ describe("detectProject: locale styles", () => {
     expect(detection.layout?.locales).toEqual(["en", "pt-BR"]);
   });
 
+  it("reads gettext script modifiers and numeric regions back to BCP 47 locales", async () => {
+    const po = 'msgid "a"\nmsgstr "b"\n';
+    const cwd = await project({
+      "locale/en/LC_MESSAGES/app.po": po,
+      "locale/sr@latin/LC_MESSAGES/app.po": po,
+      "locale/uz@cyrillic/LC_MESSAGES/app.po": po,
+      "locale/zh_TW/LC_MESSAGES/app.po": po,
+      "locale/es_419/LC_MESSAGES/app.po": po,
+    });
+    const detection = await detectProject({ cwd });
+
+    expect(detection.format?.id).toBe("gettext-po");
+    expect(detection.layout?.pattern).toBe("locale/{locale}/LC_MESSAGES/app.po");
+    expect(detection.layout?.localeStyle).toBe("posix");
+    expect(detection.layout?.locales).toEqual(["en", "es-419", "sr-Latn", "uz-Cyrl", "zh-TW"]);
+  });
+
   it("detects the android style and leaves the unqualified source locale open", async () => {
     const xml = '<resources><string name="a">A</string></resources>\n';
     const cwd = await project({

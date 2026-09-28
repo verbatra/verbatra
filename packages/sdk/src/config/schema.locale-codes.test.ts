@@ -89,7 +89,23 @@ describe("verbatraConfigSchema: invalid locale codes", () => {
     },
   );
 
-  it.each(["x_y", "german_DE", "de_1996_1996"])(
+  it.each([
+    ["sr@latin", "sr-Latn"],
+    ["sr_RS@latin", "sr-Latn-RS"],
+    ["uz@cyrillic", "uz-Cyrl"],
+  ])(
+    "rejects the gettext spelling %s with a hint towards %s and the posix style",
+    (locale, hyphenated) => {
+      expect(issuesFor(baseConfig({ targetLocales: [locale] }))).toEqual([
+        {
+          path: "targetLocales.0",
+          message: `"${locale}" is not a valid BCP 47 locale code; write "${hyphenated}" and set files.localeStyle to "posix" to keep "${locale}" in the file names of a gettext-po layout`,
+        },
+      ]);
+    },
+  );
+
+  it.each(["x_y", "german_DE", "de_1996_1996", "german@latin", "sr@klingon"])(
     "gives no hint for %s, whose hyphenated form would still fail the schema",
     (locale) => {
       expect(issuesFor(baseConfig({ targetLocales: [locale] }))).toEqual([
@@ -176,6 +192,24 @@ function relativePath(config: VerbatraConfig, locale: string): string {
   const cwd = resolve("/projects/app");
   return relative(cwd, createLocalePathResolver(cwd, config).pathFor(locale)).replaceAll("\\", "/");
 }
+
+describe("verbatraConfigSchema: the gettext modifier hint keeps every file where it was", () => {
+  it.each(["sr@latin", "sr_RS@latin", "uz@cyrillic", "ks_IN@devanagari"])(
+    "the hint for %s resolves under the posix style to the path the old code resolved to",
+    (locale) => {
+      const pattern = "locale/{locale}/LC_MESSAGES/messages.po";
+      const hinted = hintedCode(locale);
+      const migrated = baseConfig({
+        format: "gettext-po",
+        targetLocales: [hinted],
+        files: { pattern, localeStyle: "posix" },
+      });
+
+      expect(issuesFor(migrated)).toEqual([]);
+      expect(relativePath(migrated, hinted)).toBe(`locale/${locale}/LC_MESSAGES/messages.po`);
+    },
+  );
+});
 
 describe("verbatraConfigSchema: the underscore hint keeps every file where it was", () => {
   it.each(["pt_BR", "pt_br", "zh_Hant_TW", "es_419", "sr_Latn"])(

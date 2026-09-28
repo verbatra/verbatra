@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { splitModifier } from "../locale-path/posix.js";
 
 export const LOCALE_CODE_PATTERN =
   /^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*(?:-[0-9A-WYZa-wyz](?:-[A-Za-z0-9]{2,8})+)*(?:-[Xx](?:-[A-Za-z0-9]{1,8})+)?$/;
@@ -15,7 +16,24 @@ function isValidLocaleCode(code: string): boolean {
   return LOCALE_CODE_PATTERN.test(code) && canonicalLocaleCode(code) !== undefined;
 }
 
+function modifierHint(code: string): string | undefined {
+  const modified = splitModifier(code);
+  if (modified?.script === undefined) {
+    return undefined;
+  }
+  const [language = "", ...region] = modified.base.split("_");
+  const hyphenated = [language, modified.script, ...region].join("-");
+  if (!isValidLocaleCode(hyphenated)) {
+    return "";
+  }
+  return `; write "${hyphenated}" and set files.localeStyle to "posix" to keep "${code}" in the file names of a gettext-po layout`;
+}
+
 function underscoreHint(code: string): string {
+  const modifier = modifierHint(code);
+  if (modifier !== undefined) {
+    return modifier;
+  }
   const hyphenated = code.replaceAll("_", "-");
   if (hyphenated === code || !isValidLocaleCode(hyphenated)) {
     return "";

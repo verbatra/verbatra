@@ -1,5 +1,5 @@
 import { androidSegment } from "./android.js";
-import { parseLocaleTag } from "./tag.js";
+import { type LocaleSpelling, posixSpelling, type ScriptConvention } from "./posix.js";
 
 /** The locale spellings {@link LocaleStyle} is drawn from, in declaration order. */
 export const LOCALE_STYLES = ["literal", "posix", "android"] as const;
@@ -9,10 +9,14 @@ export const LOCALE_STYLES = ["literal", "posix", "android"] as const;
  *
  * - `literal`: the locale is written into the path exactly as configured, so `pt-BR` yields
  *   `pt-BR`. This is the default and suits the JSON and YAML layouts most web projects use.
- * - `posix`: the POSIX spelling, so `pt-BR` yields `pt_BR`. A script or a numeric region is
- *   joined the same way, in the ICU and Java manner, keeping the configured case: `zh-Hant-TW`
- *   yields `zh_Hant_TW` and `es-419` yields `es_419`. A locale with a variant has no such
- *   spelling. Common for gettext-influenced and Java-influenced layouts.
+ * - `posix`: the POSIX spelling, so `pt-BR` yields `pt_BR` and `es-419` yields `es_419`, keeping
+ *   the configured case. A script is joined the same way, in the ICU and Java manner, so
+ *   `zh-Hant-TW` yields `zh_Hant_TW`, except for the `gettext-po` format, which follows the gettext
+ *   convention instead: a script the language and region imply is left out (`zh-Hant-TW` yields
+ *   `zh_TW`), `Latn`, `Cyrl` and `Deva` become the `@latin`, `@cyrillic` and `@devanagari`
+ *   modifiers (`sr-Latn` yields `sr@latin`, `sr-Latn-RS` yields `sr_RS@latin`), and any other
+ *   script has no spelling. A locale with a variant has no spelling in either case. Common for
+ *   gettext-influenced and Java-influenced layouts.
  * - `android`: the Android resource-qualifier spelling, so `pt-BR` yields `values-pt-rBR` and the
  *   source locale yields the unqualified `values`. This style expands to a whole path segment, so
  *   the `{locale}` token must stand alone between separators in the pattern.
@@ -31,23 +35,17 @@ export function isSegmentStyle(style: LocaleStyle): boolean {
   return SEGMENT_STYLES.has(style);
 }
 
-function posixSpelling(locale: string): string | undefined {
-  const tag = parseLocaleTag(locale);
-  if (tag === undefined || tag.variants.length > 0) {
-    return undefined;
-  }
-  return locale.replaceAll("-", "_");
-}
-
 export function spellLocale(
   locale: string,
   style: LocaleStyle,
   isSourceLocale: boolean,
-): string | undefined {
+  convention: ScriptConvention,
+): LocaleSpelling {
   if (style === "android") {
-    return androidSegment(locale, isSourceLocale);
+    const spelling = androidSegment(locale, isSourceLocale);
+    return spelling === undefined ? {} : { spelling };
   }
-  return style === "posix" ? posixSpelling(locale) : locale;
+  return style === "posix" ? posixSpelling(locale, convention) : { spelling: locale };
 }
 
 export function isSafeSpelling(spelling: string): boolean {
