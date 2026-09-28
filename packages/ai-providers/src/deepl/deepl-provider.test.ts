@@ -109,24 +109,43 @@ describe("createDeepLProvider: ordered send and positional zip", () => {
 });
 
 describe("createDeepLProvider: tone -> formality", () => {
-  it("maps formal -> more, informal -> less, neutral/absent -> omitted (pro key)", async () => {
+  it("maps formal -> prefer_more, informal -> prefer_less, neutral/absent -> omitted (pro key)", async () => {
     const a = deeplStubClient(deeplResult(["x"]));
     await createDeepLProvider(config, { client: a.client }).translateBatch(
       request({ tone: "formal", entries: [entry("k", "v")] }),
     );
-    expect(firstCallOf(a.calls).options.formality).toBe("more");
+    expect(firstCallOf(a.calls).options.formality).toBe("prefer_more");
 
     const b = deeplStubClient(deeplResult(["x"]));
     await createDeepLProvider(config, { client: b.client }).translateBatch(
       request({ tone: "informal", entries: [entry("k", "v")] }),
     );
-    expect(firstCallOf(b.calls).options.formality).toBe("less");
+    expect(firstCallOf(b.calls).options.formality).toBe("prefer_less");
 
     const c = deeplStubClient(deeplResult(["x"]));
     await createDeepLProvider(config, { client: c.client }).translateBatch(
       request({ tone: "neutral", entries: [entry("k", "v")] }),
     );
     expect(firstCallOf(c.calls).options.formality).toBeUndefined();
+  });
+
+  it("asks for formality with a fallback and reports it downgraded for a target DeepL lists without formality", async () => {
+    const { client, calls } = deeplStubClient(deeplResult(["x"]));
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({ targetLocale: "zh-Hans", tone: "formal", entries: [entry("k", "v")] }),
+    )) as DeepLTranslateResult;
+
+    expect(firstCallOf(calls).options.formality).toBe("prefer_more");
+    expect(noticeCodes(result)).toEqual(["FORMALITY_DOWNGRADED"]);
+  });
+
+  it("reports no downgrade for a regional target whose language DeepL lists with formality", async () => {
+    const { client } = deeplStubClient(deeplResult(["x"]));
+    const result = (await createDeepLProvider(config, { client }).translateBatch(
+      request({ targetLocale: "de-CH", tone: "informal", entries: [entry("k", "v")] }),
+    )) as DeepLTranslateResult;
+
+    expect(result.notices).toEqual([]);
   });
 });
 
