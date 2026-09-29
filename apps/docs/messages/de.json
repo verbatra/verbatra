@@ -481,6 +481,10 @@
       "title": "Maschinell übersetzte Seite",
       "viewOriginal": "Das englische Original lesen"
     },
+    "outdatedTranslation": {
+      "title": "Übersetzung möglicherweise veraltet",
+      "text": "Die englische Seite wurde nach dieser Übersetzung geändert."
+    },
     "notTranslated": {
       "text": "Diese Seite ist noch nicht übersetzt und wird deshalb auf Englisch angezeigt.",
       "title": "Nicht in deiner Sprache verfügbar"

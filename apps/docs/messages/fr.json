@@ -481,6 +481,10 @@
       "title": "Page traduite automatiquement",
       "viewOriginal": "Lire l'original en anglais"
     },
+    "outdatedTranslation": {
+      "title": "La traduction n'est peut-être plus à jour",
+      "text": "La page anglaise a changé après cette traduction."
+    },
     "notTranslated": {
       "text": "Cette page n'est pas encore traduite, elle s'affiche donc en anglais.",
       "title": "Non disponible dans ta langue"

@@ -48,7 +48,7 @@ Cada comprobación se ejecuta aunque una anterior haya fallado. La única excepc
 
 Una ejecución con dos problemas:
 
-```text
+```text title="Output"
 verbatra doctor
   [ok  ] Configuration: Loaded /app/verbatra.config.ts.
   [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
@@ -79,7 +79,7 @@ La comprobación Locale support pregunta si el proveedor puede traducir cada loc
 
 `--locales` imprime el veredicto por locale después de las comprobaciones:
 
-```text
+```text title="Output"
   locale support (deepl, language table of 2026-09-28, static)
     en  sent as EN  source, supported
     de  sent as DE  supported  glossary: yes  formality: yes
@@ -98,7 +98,7 @@ Cada línea nombra la locale, el código que recibe el proveedor (tras [`localeM
 
 `--literals` encuentra strings visibles para el usuario que nunca llegaron a un catálogo. Recorre las raíces de código de tu [bloque `extract`](/docs/config-file#extract), lee tu código sin escribirlo nunca, no construye proveedor, no lee ninguna clave y no carga ningún `.env`. Solo se ejecutan dos comprobaciones: Configuration y Untranslated literals. Cada hallazgo nombra archivo, línea y columna, con los espacios colapsados, las referencias de caracteres de JSX decodificadas y 80 caracteres como máximo:
 
-```text
+```text title="Output"
   [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
     src/components/Header.tsx:12:9  "Welcome back"
     src/pages/settings.tsx:40:22  "Save changes"

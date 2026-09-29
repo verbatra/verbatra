@@ -136,7 +136,7 @@ footer's oversized watermark only; do not clip it onto a heading.
   real CLI output, English on every locale, and its test pins each line to
   `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
   recaptured.
-- **Docs-facing:** `components/available-from.tsx` renders the version callout. Its rules
+- **Docs-facing:** `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
   `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
@@ -218,8 +218,7 @@ comes from:
   internal DOM for it.
   Use the class for a new label rather than restating the four declarations.
 - **Owned hooks, not library internals**: callouts carry `.vk-callout` (added by the `Callout`
-  mapping in `components/mdx.tsx` and passed explicitly by `available-from.tsx` and the locale
-  notice in the docs page), and the prev/next footer carries `.vk-docs-footer` through
+  mapping in `components/mdx.tsx` and passed explicitly by the locale notice in the docs page), and the prev/next footer carries `.vk-docs-footer` through
   `DocsPage`'s `footer.className`. Style those classes, not Fumadocs' utility classes.
 - **Flat panels**: `rounded-xl border border-fd-border` on `var(--surface-bg)`, with a
   glow-tinted border on hover (`color-mix(in srgb, var(--v-glow) 45%, var(--border-default))`).
@@ -232,7 +231,23 @@ comes from:
 - **Callouts**: one 3px bar plus the icon, both in `--callout-color`, which Fumadocs derives
   from `--color-fd-<type>`. The override block in `global.css` pins `--color-fd-info` and
   `--color-fd-success` to the glow and `--color-fd-warning` to the purple, so an info and a
-  warn callout stay distinguishable without a third hue.
+  warn callout stay distinguishable without a third hue. Vertical padding is one step under
+  Fumadocs' default, and a callout is capped at the prose measure like the text around it.
+- **Locale notice**: every translated page opens with the machine-translated info callout. When
+  the English page was committed after its translation, the same callout turns into a warn
+  callout titled from `docs.outdatedTranslation`, with the English link kept. The comparison reads
+  `lib/translation-freshness.generated.json`, which `scripts/sync-translation-freshness.mjs`
+  writes from the git history of `content/docs` before dev, build, typecheck and test. Without a
+  full history (a shallow clone, or the Docker build, whose context excludes `.git`) it keeps a
+  snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
+- **Pills**: `.vk-pill` is the one badge shape: an outline pill in `--accent` text with the
+  glow-tinted border, mono, `--text-xs`, no fill. The sidebar and footer NEW badge
+  (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase); the
+  `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
+  inside a heading. Do not bring back a filled purple pill.
+- **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
+  `--width-measure` (about 72 characters of body text); tables and code blocks run the full
+  column.
 - **Cards**: MDX `<Cards>` / `<Card>` are Fumadocs' own, mapped in `components/mdx.tsx` to add
   `.vk-link-card` (flat panel, glow border on hover, no prose underline) and to localize `href`.
   "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
@@ -243,6 +258,12 @@ comes from:
   landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
   and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
   `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
+- **Output blocks**: a fence titled exactly `Output` (`` ```text title="Output" ``, the
+  `OUTPUT_BLOCK_TITLE` in `components/mdx.tsx`) is what a command prints, not something to run: the
+  `pre` mapping gives it `.vk-code-output` (on `--surface-card` instead of the void, the title as a
+  `.vk-label`) and drops its copy button, so commands and results read apart at a glance.
+- **Steps**: Fumadocs' `.fd-steps` rail is a 3px `--v-purple` start bar (60 percent), and each
+  step number sits in an outline circle on `--surface-bg` in mono `--accent`.
 - **Sidebar tabs**: the Docs and Reference root folders render as two inline `.vk-label` links
   (`SidebarTabs` in `components/root-tabs.tsx`, the `.vk-sidebar-tabs` hook) in the sidebar banner
   slot of the sidebar and the phone drawer, with a `--accent` underline and `aria-current` on the
@@ -256,7 +277,11 @@ comes from:
   `--font-mono`; the page `<h1>` keeps `verbatra translate`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
   Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
-  a visible frame at phone width, with a thin scrollbar. Short inline code (up to
+  a visible frame, with a thin scrollbar. Cells are compact (0.5rem by 0.75rem, top-aligned). A
+  table of four or more columns gets `.vk-table-stack` and a `data-label` per body cell from
+  `lib/stacked-tables.ts` at build time; under 640px each row stacks into a card, the first cell as
+  its title and every other cell behind its column name, so it does not scroll sideways at phone
+  width. The header row stays in the DOM for assistive technology. Short inline code (up to
   `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX
   `code` mapping and never wraps; longer inline code wraps, in cells and in prose alike.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the

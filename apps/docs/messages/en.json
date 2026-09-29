@@ -5,6 +5,10 @@
       "text": "This page was translated automatically, so it may contain mistakes or read a little oddly. The English version is the source of truth.",
       "viewOriginal": "Read the English original"
     },
+    "outdatedTranslation": {
+      "title": "Translation may be out of date",
+      "text": "The English page changed after this translation."
+    },
     "notTranslated": {
       "title": "Not available in your language",
       "text": "This page has not been translated yet, so it is shown in English."

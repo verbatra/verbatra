@@ -28,6 +28,7 @@ import {
   faqPageLd,
   techArticleLd,
 } from "@/lib/structured-data";
+import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
 
 function breadcrumbTrail(pageUrl: string, lang: Locale): BreadcrumbLdItem[] {
   const items = getBreadcrumbItems(pageUrl, source.getPageTree(lang), { includePage: true });
@@ -77,7 +78,8 @@ async function LocaleNotice({
 }) {
   if (lang === i18n.defaultLanguage || !slug || slug.length === 0) return null;
 
-  if (source.getPage(slug, i18n.defaultLanguage)?.path === page.path) {
+  const sourcePath = source.getPage(slug, i18n.defaultLanguage)?.path;
+  if (sourcePath === page.path) {
     const notTranslated = await getTranslations({ locale: lang, namespace: "docs.notTranslated" });
     return (
       <Callout type="info" className={CALLOUT_CLASS} title={notTranslated("title")}>
@@ -90,9 +92,18 @@ async function LocaleNotice({
     locale: lang,
     namespace: "docs.machineTranslated",
   });
+  const outdated =
+    sourcePath !== undefined && isTranslationOutdated(contentCommitTimes, sourcePath, page.path);
+  const outdatedCopy = outdated
+    ? await getTranslations({ locale: lang, namespace: "docs.outdatedTranslation" })
+    : undefined;
   return (
-    <Callout type="info" className={CALLOUT_CLASS} title={machineTranslated("title")}>
-      {machineTranslated("text")}{" "}
+    <Callout
+      type={outdatedCopy ? "warn" : "info"}
+      className={CALLOUT_CLASS}
+      title={outdatedCopy ? outdatedCopy("title") : machineTranslated("title")}
+    >
+      {machineTranslated("text")} {outdatedCopy ? `${outdatedCopy("text")} ` : null}
       <Link href={`/docs/${slug.join("/")}`}>{machineTranslated("viewOriginal")}</Link>.
     </Callout>
   );
