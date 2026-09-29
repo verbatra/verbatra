@@ -19,8 +19,8 @@ describe("pageToc", () => {
   });
 
   it("offers a line break after each underscore of a title", () => {
-    expect(renderToStaticMarkup(<>{pageToc(toc)[1]?.title}</>)).toBe(
-      "AGENT_<wbr/>FILE_<wbr/>INVALID",
+    expect(renderToStaticMarkup(<span>{pageToc(toc)[1]?.title}</span>)).toBe(
+      "<span>AGENT_<wbr/>FILE_<wbr/>INVALID</span>",
     );
   });
 

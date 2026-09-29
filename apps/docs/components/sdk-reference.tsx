@@ -1,6 +1,7 @@
 import { flattenTree } from "fumadocs-core/page-tree";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import type { MDXComponents } from "mdx/types";
+import type { ReactNode } from "react";
 import { LINK_CARD_CLASS } from "@/components/mdx";
 import { SdkAnchorForwarder } from "@/components/sdk-anchor-forward";
 import { type Locale, localizedPath } from "@/lib/i18n";
@@ -24,8 +25,8 @@ export function sdkReferencePages(locale: Locale): SdkReferencePage[] {
   });
 }
 
-function EntryName({ heading }: { heading: SdkHeading }) {
-  return isIdentifier(heading.title) ? <code>{heading.title}</code> : <>{heading.title}</>;
+function EntryName({ heading }: { heading: SdkHeading }): ReactNode {
+  return isIdentifier(heading.title) ? <code>{heading.title}</code> : heading.title;
 }
 
 export function SdkEntryPoints({ locale }: { locale: Locale }) {

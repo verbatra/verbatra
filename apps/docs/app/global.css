@@ -459,19 +459,6 @@ samp {
   display: none;
 }
 
-.vk-breadcrumb .vk-pill-status {
-  display: none;
-}
-
-.vk-breadcrumb a:focus-visible {
-  border-radius: var(--radius-sm);
-}
-
-#nd-toc a,
-[data-toc-popover-content] a {
-  overflow-wrap: normal;
-}
-
 #nd-page h1 {
   font-size: clamp(2.1rem, 1.6rem + 1.6vw, 2.75rem);
   line-height: var(--leading-heading);
@@ -645,8 +632,8 @@ samp {
   scrollbar-width: thin;
   scrollbar-color: var(--border-default) transparent;
   background:
-    linear-gradient(to left, var(--surface-bg) 40%, transparent) right center / 48px 100%
-    no-repeat local,
+    linear-gradient(to left, var(--surface-bg) 40%, transparent) right center / 48px 100% no-repeat
+    local,
     linear-gradient(to left, color-mix(in srgb, var(--v-glow) 28%, transparent), transparent) right
     center / 20px 100% no-repeat scroll,
     var(--surface-bg);
@@ -1308,4 +1295,20 @@ figure.shiki > pre {
     linear-gradient(to left, color-mix(in srgb, var(--v-glow) 28%, transparent), transparent) right
     center / 20px 100% no-repeat scroll,
     var(--v-void);
+}
+
+.vk-breadcrumb .vk-pill-status {
+  display: none;
+}
+
+.vk-breadcrumb a:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
+[data-toc-popover-content] a {
+  overflow-wrap: normal;
+}
+
+#nd-toc a {
+  overflow-wrap: normal;
 }

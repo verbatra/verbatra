@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { breakAfterUnderscores } from "./word-breaks";
 
 function markup(text: ReturnType<typeof breakAfterUnderscores>): string {
-  return renderToStaticMarkup(<>{text}</>);
+  return renderToStaticMarkup(<span>{text}</span>);
 }
 
 describe("breakAfterUnderscores", () => {
   it("offers a line break only after each underscore", () => {
     expect(markup(breakAfterUnderscores("AGENT_FILE_INVALID"))).toBe(
-      "AGENT_<wbr/>FILE_<wbr/>INVALID",
+      "<span>AGENT_<wbr/>FILE_<wbr/>INVALID</span>",
     );
   });
 
