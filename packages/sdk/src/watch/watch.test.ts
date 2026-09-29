@@ -171,6 +171,34 @@ describe("watch: startup and wiring", () => {
     expect(w.paths).toEqual([]);
   });
 
+  it("calls onReady once, after the watcher is attached and before the initial run starts", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const seen: string[] = [];
+    await watch(
+      {
+        config: baseConfig(),
+        cwd: CWD,
+        onRun: () => seen.push("run"),
+        onReady: () => seen.push(`ready:${w.paths.length}:${r.calls}`),
+      },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await settle();
+    expect(seen).toEqual(["ready:1:0", "run"]);
+  });
+
+  it("does not call onReady when a startup check refuses the session", async () => {
+    const onReady = vi.fn();
+    await expect(
+      watch(
+        { config: baseConfig(), cwd: CWD, onRun: () => {}, onReady },
+        { fs: makeFakeFs({ fileExists: async () => false }), runTranslate: runHarness().run },
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_UNREADABLE" });
+    expect(onReady).not.toHaveBeenCalled();
+  });
+
   it("lets a watcher-factory failure escape unwrapped at startup, with no run started", async () => {
     const r = runHarness();
     const failing: CreateWatcher = () => {
@@ -487,6 +515,29 @@ describe("watch: failure handling and shutdown", () => {
     await settle();
     expect(r.calls).toBe(2);
     expect(results[1]?.status).toBe("succeeded");
+  });
+
+  it("a failing run that wraps a coded error carries the cause code and the wrapping hint", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const results: WatchRunResult[] = [];
+    const cause = Object.assign(new Error("no key"), { code: "MISSING_API_KEY" });
+    const failure = new SdkError("PROVIDER_CONSTRUCTION_FAILED", "no provider", { cause });
+    r.throwNext(failure);
+    await watch(
+      { config: baseConfig(), cwd: CWD, onRun: (x) => results.push(x) },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await settle();
+    expect(results[0]).toEqual({
+      status: "failed",
+      error: {
+        code: "PROVIDER_CONSTRUCTION_FAILED",
+        message: "no provider",
+        causeCode: "MISSING_API_KEY",
+        hint: errorHint(failure),
+      },
+    });
   });
 
   it("a non-coded Error and a non-Error throw both surface a fallback code", async () => {

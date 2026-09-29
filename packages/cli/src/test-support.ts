@@ -173,6 +173,7 @@ export function makeTypesResult(overrides: Partial<GenerateTypesResult> = {}): G
     plural: [],
     written: true,
     stale: true,
+    missing: false,
     check: false,
     ...overrides,
   };
@@ -381,7 +382,11 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     },
     watch: async (input) => {
       calls.watch.push(input);
-      return impl.watch ? impl.watch(input) : ({ stop: async () => {} } satisfies WatchController);
+      if (impl.watch) {
+        return impl.watch(input);
+      }
+      input.onReady?.();
+      return { stop: async () => {} } satisfies WatchController;
     },
     exportWorkbook: async (input) => {
       calls.exportWorkbook.push(input);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  containsMarkupTag,
   maskPlaceholders,
   partitionByPlaceholders,
   partitionForMasking,
@@ -81,6 +82,43 @@ describe("maskPlaceholders", () => {
   });
 });
 
+describe("maskPlaceholders with keepMarkup", () => {
+  it("leaves markup tags in place, including tags that are placeholders, and masks the rest", () => {
+    expect(
+      maskPlaceholders("Hi {name}, open <b>settings</b>", ["{name}", "<b>"], { keepMarkup: true }),
+    ).toEqual({ text: "Hi {0}, open <b>settings</b>", originals: ["{name}"] });
+  });
+
+  it("returns the value unchanged when every placeholder is a markup tag", () => {
+    expect(maskPlaceholders("Open <b>settings</b>", ["<b>"], { keepMarkup: true })).toEqual({
+      text: "Open <b>settings</b>",
+      originals: [],
+    });
+  });
+
+  it("still declines a stray brace beside the markup", () => {
+    expect(
+      maskPlaceholders("{n, plural, one {<b>#</b>}}", ["{n}", "<b>"], { keepMarkup: true }),
+    ).toBeUndefined();
+  });
+});
+
+describe("containsMarkupTag", () => {
+  it.each(["<b>x</b>", "a<br/>b", '<a href="/x">y</a>', "</i>", "<my-tag>"])(
+    "finds a tag in %s",
+    (value) => {
+      expect(containsMarkupTag(value)).toBe(true);
+    },
+  );
+
+  it.each(["5 < 10 > 3", "<0>here</0>", "a <= b", "Tom & Jerry", "{name}"])(
+    "finds no tag in %s",
+    (value) => {
+      expect(containsMarkupTag(value)).toBe(false);
+    },
+  );
+});
+
 describe("unmaskPlaceholders", () => {
   const masked = { text: "Hi {0}, you have {1} messages", originals: ["{name}", "{count}"] };
 
@@ -128,5 +166,14 @@ describe("partitionForMasking", () => {
       { entry: simple, masked: { text: "Hi {0}", originals: ["{name}"] } },
     ]);
     expect(partition.unprotectable).toEqual([icu]);
+  });
+
+  it("keeps markup in place only when asked and only for a value that carries a tag", () => {
+    const rich = entry("rich", "Open <b>settings</b>", ["<b>"]);
+
+    expect(partitionForMasking([rich]).unprotectable).toEqual([rich]);
+    expect(partitionForMasking([rich], { keepMarkup: true }).masked).toEqual([
+      { entry: rich, masked: { text: "Open <b>settings</b>", originals: [] } },
+    ]);
   });
 });

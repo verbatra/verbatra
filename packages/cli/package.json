@@ -45,10 +45,19 @@
   "bin": {
     "verbatra": "./dist/index.js"
   },
+  "main": "./dist/lib.cjs",
+  "module": "./dist/lib.js",
+  "types": "./dist/lib.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/lib.d.ts",
-      "import": "./dist/lib.js"
+      "import": {
+        "types": "./dist/lib.d.ts",
+        "default": "./dist/lib.js"
+      },
+      "require": {
+        "types": "./dist/lib.d.cts",
+        "default": "./dist/lib.cjs"
+      }
     },
     "./package.json": "./package.json"
   },

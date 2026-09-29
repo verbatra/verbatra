@@ -70,6 +70,7 @@ describe("translate --estimate (no provider, no key)", () => {
     });
 
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("verbatra translate (estimate)\n");
     expect(result.stdout).toContain("(dry run: nothing written)");
     expect(result.stdout).toMatch(/estimate: 4 keys in 2 requests/);
     expect(result.stdout).toContain("no rate on file for anthropic/sonnet-test");

@@ -113,8 +113,15 @@ export function toRenderableError(error: unknown): RenderableError {
   return { code: FALLBACK_ERROR_CODE, message: String(error) };
 }
 
+function runHeader(summary: RunSummary, command: string): string {
+  if (summary.estimate !== undefined) {
+    return `verbatra ${command} (estimate)`;
+  }
+  return summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
+}
+
 export function renderHuman(summary: RunSummary, command = "translate"): string {
-  const header = summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
+  const header = runHeader(summary, command);
   const labels = runCountLabels(summary.dryRun, command);
   const localeLines = summary.locales.flatMap((locale) => renderLocaleLine(locale, labels));
   const aggregate = `${summary.succeeded.length} succeeded, ${summary.partial.length} partial, ${summary.failed.length} failed${
@@ -405,7 +412,10 @@ function renderProtectedCount(count: number | undefined): string {
   return count === undefined || count === 0 ? "" : ` (${count} protected)`;
 }
 
-function outOfSyncLine(summary: CheckSummary): string {
+function outOfSyncLine(summary: CheckSummary, machineTranslation: boolean): string {
+  if (!machineTranslation) {
+    return "out of sync (machine translation is disabled: hand the keys to a translator with verbatra export, or edit them in verbatra studio)";
+  }
   const everyStaleKeyProtected =
     summary.locales.some((locale) => locale.stale > 0) &&
     summary.locales.every(
@@ -416,14 +426,16 @@ function outOfSyncLine(summary: CheckSummary): string {
     : "out of sync (run verbatra translate to update)";
 }
 
-export function renderCheckHuman(summary: CheckSummary): string {
+export function renderCheckHuman(summary: CheckSummary, machineTranslation = true): string {
   const localeLines = summary.locales.map(
     (l) =>
       `  ${l.locale}: ${l.missing} missing, ${l.stale} stale${renderProtectedCount(l.protected)}, ${l.upToDate} up-to-date (${
         l.inSync ? "in sync" : "out of sync"
       })`,
   );
-  const overall = summary.inSync ? "all locales in sync" : outOfSyncLine(summary);
+  const overall = summary.inSync
+    ? "all locales in sync"
+    : outOfSyncLine(summary, machineTranslation);
   return [
     "verbatra check",
     ...localeLines,
@@ -970,12 +982,19 @@ export function renderExtractHuman(result: ExtractResult): string {
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
 }
 
+function checkedTypesLine(result: GenerateTypesResult, path: string): string {
+  if (result.missing) {
+    return `  ${path} is missing, run verbatra types to create it`;
+  }
+  return result.stale
+    ? `  ${path} is out of date, re-run verbatra types`
+    : `  ${path} is up to date`;
+}
+
 function renderTypesOutcome(result: GenerateTypesResult, base: string | undefined): string {
   const path = displayPath(result.path, base);
   if (result.check) {
-    return result.stale
-      ? `  ${path} is out of date, re-run verbatra types`
-      : `  ${path} is up to date`;
+    return checkedTypesLine(result, path);
   }
   return result.written ? `  wrote ${path}` : `  unchanged ${path}`;
 }

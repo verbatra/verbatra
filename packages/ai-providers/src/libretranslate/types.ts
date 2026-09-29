@@ -5,11 +5,14 @@ export interface LibreTranslateHttpResponse {
   readonly body: unknown;
 }
 
+export type LibreTranslateTextFormat = "text" | "html";
+
 export interface LibreTranslateClient {
   translate(
     texts: readonly string[],
     sourceLang: string,
     targetLang: string,
+    format: LibreTranslateTextFormat,
     signal: AbortSignal,
   ): Promise<LibreTranslateHttpResponse>;
 }

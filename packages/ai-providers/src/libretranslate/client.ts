@@ -32,7 +32,13 @@ export function createDefaultClient(
   return {
     keyConfigured: apiKey !== undefined,
     client: {
-      translate: (texts, sourceLang, targetLang, signal): Promise<LibreTranslateHttpResponse> =>
+      translate: (
+        texts,
+        sourceLang,
+        targetLang,
+        format,
+        signal,
+      ): Promise<LibreTranslateHttpResponse> =>
         transport.run(async () => {
           const response = await send(url, {
             method: "POST",
@@ -41,7 +47,7 @@ export function createDefaultClient(
               q: texts,
               source: sourceLang,
               target: targetLang,
-              format: "text",
+              format,
               ...(apiKey === undefined ? {} : { api_key: apiKey }),
             }),
             signal,

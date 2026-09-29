@@ -186,16 +186,20 @@ function unverifiedReason(code: ProviderCode): string {
     : "only its base language is listed, so the provider may reject or generalize it";
 }
 
+function isUnknownServerLanguage(table: ProviderLanguageTable, code: ProviderCode): boolean {
+  return table.partial === true && !code.mapped;
+}
+
 function unverifiedWarning(
   provider: MachineProviderId,
   locale: string,
   code: ProviderCode,
   table: ProviderLanguageTable,
 ): LocaleCapabilityWarning {
-  if (table.partial === true && !code.mapped) {
+  if (isUnknownServerLanguage(table, code)) {
     return warning(
       "LOCALE_UNVERIFIED_BY_PROVIDER",
-      `The locale ${sentAs(locale, code)} was not checked against the ${provider} server: a self-hosted server translates only the language models installed on it, so run verbatra doctor --locales --live to check it.`,
+      `The locale ${sentAs(locale, code)} cannot be verified before a run: a self-hosted ${provider} server translates only the language models installed on it. verbatra doctor --locales --live checks them against the server; its result is not kept, so this notice appears on every run.`,
     );
   }
   return warning(
@@ -301,15 +305,15 @@ function listedSource(
 ): SourceLocaleCapability {
   const locale = assessment.config.sourceLocale;
   const verdict = listedSupport(table, assessment.source, "source");
+  const warned = verdict === "unverified" && !isUnknownServerLanguage(table, assessment.source);
   return {
     locale,
     providerCode: assessment.source.code,
     mapped: assessment.source.mapped,
     support: verdict,
-    warnings:
-      verdict === "unverified"
-        ? [unverifiedWarning(assessment.provider.id, locale, assessment.source, table)]
-        : [],
+    warnings: warned
+      ? [unverifiedWarning(assessment.provider.id, locale, assessment.source, table)]
+      : [],
   };
 }
 

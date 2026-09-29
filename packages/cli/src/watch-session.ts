@@ -36,6 +36,14 @@ export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session 
   const watchInput: WatchInput = {
     config: options.config,
     onRun,
+    onReady: () => {
+      streams.err(
+        `verbatra: watching ${options.config.sourceLocale} (${options.config.files.pattern}); running initial translation\n`,
+      );
+      if (ui.terminal.stdinIsTty) {
+        ui.info(PRESS_CTRL_C);
+      }
+    },
     cwd: options.cwd,
     onLockWait: (event) => {
       streams.err(`${renderLockWait(event, options.json)}\n`);
@@ -51,16 +59,7 @@ export function runWatch(options: WatchOptions, deps: CliDeps, ui: Ui): Session 
   };
 
   return stoppableSession<WatchController>({
-    getController: async () => {
-      const controller = await deps.watch(watchInput);
-      streams.err(
-        `verbatra: watching ${options.config.sourceLocale} (${options.config.files.pattern}); running initial translation\n`,
-      );
-      if (ui.terminal.stdinIsTty) {
-        ui.info(PRESS_CTRL_C);
-      }
-      return controller;
-    },
+    getController: () => deps.watch(watchInput),
     onStopRequested: () => {
       streams.err("verbatra: stopping, finishing current run...\n");
     },

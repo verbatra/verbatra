@@ -22,6 +22,7 @@ function watchHarness() {
   let stopCalls = 0;
   const watch = (input: WatchInput): Promise<WatchController> => {
     onRun = input.onRun;
+    input.onReady?.();
     return Promise.resolve({
       stop: () => {
         stopCalls += 1;
@@ -104,9 +105,18 @@ describe("run watch: wiring and rendering", () => {
 
     h.fire({ status: "succeeded", summary: makeSummary({ succeeded: ["de"] }) });
     h.fire({ status: "failed", error: { code: "SOURCE_INVALID", message: "x" } });
+    h.fire({
+      status: "failed",
+      error: {
+        code: "PROVIDER_CONSTRUCTION_FAILED",
+        message: "y",
+        causeCode: "MISSING_API_KEY",
+        hint: "set it",
+      },
+    });
 
     const lines = cap.out().trim().split("\n");
-    expect(lines).toHaveLength(2);
+    expect(lines).toHaveLength(3);
     expect(parseEnvelope(lines[0] ?? "")).toMatchObject({
       ok: true,
       version: JSON_ENVELOPE_VERSION,
@@ -118,6 +128,15 @@ describe("run watch: wiring and rendering", () => {
       command: "watch",
       code: "SOURCE_INVALID",
       message: "x",
+    });
+    expect(parseEnvelope(lines[2] ?? "")).toEqual({
+      ok: false,
+      version: JSON_ENVELOPE_VERSION,
+      command: "watch",
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      message: "y",
+      causeCode: "MISSING_API_KEY",
+      hint: "set it",
     });
 
     session.requestStop();

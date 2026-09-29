@@ -66,6 +66,7 @@ import {
   type RejectedValueHashes,
 } from "./protection.js";
 import { readTargetResource } from "./read-target.js";
+import { inSourceOrder } from "./source-order.js";
 import type {
   FuzzyCacheHit,
   IntegrityRefusal,
@@ -573,11 +574,8 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   for (const key of pruned) {
     merged.delete(key);
   }
-  for (const key of params.source.entries.keys()) {
-    const hit = accepted.get(key);
-    if (hit !== undefined) {
-      merged.set(key, { ...hit.source, value: hit.value, namespace: target.namespace });
-    }
+  for (const [key, hit] of inSourceOrder(params.source.entries.keys(), accepted)) {
+    merged.set(key, { ...hit.source, value: hit.value, namespace: target.namespace });
   }
 
   const generation = await runGeneration(

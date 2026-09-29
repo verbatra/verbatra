@@ -47,8 +47,10 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   without those cached translations, since the memory is only a cache.
  * - `LOCALE_UNVERIFIED_BY_PROVIDER`: the code sent to a machine-translation provider for the source
  *   or target locale is not on the provider's language table, but only its base language is, or
- *   it comes from an explicit `provider.options.localeMap` entry. The locale is translated anyway,
- *   since the provider may accept it; see {@link LocaleSupport}.
+ *   it comes from an explicit `provider.options.localeMap` entry, or the provider is a self-hosted
+ *   LibreTranslate server whose installed languages cannot be known before a run (for such a server
+ *   only a target locale is warned about). The locale is translated anyway, since the provider may
+ *   accept it; see {@link LocaleSupport}.
  * - `LOCALE_NOT_WELL_TESTED`: the provider is an LLM and the target language is outside the
  *   conservative list of languages LLM providers are known to translate well. It is translated
  *   anyway; review the output with care.

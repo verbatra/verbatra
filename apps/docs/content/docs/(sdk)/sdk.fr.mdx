@@ -91,7 +91,7 @@ const summary = await translate({ config, ...options });
 
 Surveille le fichier de la locale source et relance `translate` à chaque changement temporisé. Il déclenche une exécution initiale immédiatement au démarrage, puis une exécution par changement stabilisé. Les exécutions sont sérialisées : les changements survenus pendant une exécution se regroupent en une seule exécution de suivi.
 
-Entrée : `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`. `debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message } }`. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
+Entrée : `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`. `debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
 
 Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Trois problèmes sont refusés au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur : un `concurrency` qui n'est pas un entier d'au moins 1 lève `CONCURRENCY_INVALID`, un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève `CONCURRENCY_BUDGET_CONFLICT` (il n'existe pas de watch en dry run, donc le conflit de budget s'applique toujours), et un fichier source manquant lève `SOURCE_UNREADABLE`. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
@@ -205,7 +205,8 @@ Renvoie un `GenerateTypesResult` : le `path` absolu, le `sourcePath` dont il a �
 combien de `keys` ont été déclarées et combien d'entre elles prennent au moins un argument que
 verbatra a pu déterminer (`withArguments`, qui ne compte jamais une clé de `unresolved`), les clés
 `unresolved` ainsi que les `excluded` et `plural`, si quelque chose a été `written`, si le fichier
-sur disque était `stale` au démarrage de l'exécution, et s'il s'agissait d'une exécution `check`.
+sur disque était `stale` au démarrage de l'exécution, s'il manquait tout à fait (`missing`, un fichier
+manquant est aussi `stale`), et s'il s'agissait d'une exécution `check`.
 
 ## Inspecter l'état sans écrire
 
@@ -613,7 +614,10 @@ agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l
 simple objet `{ code, message }`, comme l'`error` d'une exécution de `watch` en échec, reçoit la
 même indication. Une erreur `PROVIDER_CONSTRUCTION_FAILED` reprend l'indication de l'erreur de
 fournisseur qu'elle enveloppe, donc une clé manquante nomme exactement la variable à définir, lue
-dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une indication est un texte fixe
+dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une erreur `CONFIG_INVALID` venant
+d'un fichier de configuration dont un import n'a pas pu être résolu (son `causeCode` vaut
+`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` ou
+`ERR_UNSUPPORTED_DIR_IMPORT`) te dit plutôt d'installer ou de corriger cet import. Une indication est un texte fixe
 plus, au plus, un nom de variable : elle ne contient jamais la valeur d'une clé et ne cite jamais
 le message. L'enveloppe d'erreur `--json` de la CLI la porte sous `hint`, et `verbatra mcp`
 termine avec elle le texte d'un appel en échec.

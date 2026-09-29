@@ -3,7 +3,11 @@ import type { TranslateRequest } from "../provider.js";
 import { entry, regexExtractor, termGlossary } from "../test-support.js";
 import { createLibreTranslateProvider } from "./libretranslate-provider.js";
 import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./notices.js";
-import type { LibreTranslateClient, LibreTranslateHttpResponse } from "./types.js";
+import type {
+  LibreTranslateClient,
+  LibreTranslateHttpResponse,
+  LibreTranslateTextFormat,
+} from "./types.js";
 
 const config = { baseUrl: "http://localhost:5000" };
 
@@ -11,6 +15,7 @@ interface SentCall {
   readonly texts: readonly string[];
   readonly sourceLang: string;
   readonly targetLang: string;
+  readonly format: LibreTranslateTextFormat;
 }
 
 function stubClient(respond: (texts: readonly string[]) => LibreTranslateHttpResponse): {
@@ -19,8 +24,8 @@ function stubClient(respond: (texts: readonly string[]) => LibreTranslateHttpRes
 } {
   const calls: SentCall[] = [];
   const client: LibreTranslateClient = {
-    translate: async (texts, sourceLang, targetLang) => {
-      calls.push({ texts, sourceLang, targetLang });
+    translate: async (texts, sourceLang, targetLang, format) => {
+      calls.push({ texts, sourceLang, targetLang, format });
       return respond(texts);
     },
   };
@@ -67,7 +72,9 @@ describe("createLibreTranslateProvider: translation", () => {
     const result = await createLibreTranslateProvider(config, { client }).translateBatch(
       request({ entries: [entry("a", "Save"), entry("b", "Cancel")] }),
     );
-    expect(calls).toEqual([{ texts: ["Save", "Cancel"], sourceLang: "en", targetLang: "de" }]);
+    expect(calls).toEqual([
+      { texts: ["Save", "Cancel"], sourceLang: "en", targetLang: "de", format: "text" },
+    ]);
     expect(result.values.get("a")).toBe("DE:Save");
     expect(result.values.get("b")).toBe("DE:Cancel");
     expect(result.integrity.get("a")?.matches).toBe(true);
@@ -128,6 +135,52 @@ describe("createLibreTranslateProvider: translation", () => {
     expect(result.values.size).toBe(0);
     expect(result.integrity.size).toBe(0);
     expect(result.notices?.map((notice) => notice.code)).toEqual(["PLACEHOLDER_UNSUPPORTED"]);
+  });
+
+  it("sends a value with markup tags as html in its own request, and plain text as text", async () => {
+    const { client, calls } = echo((text) => text.replace("settings", "Einstellungen"));
+    const result = await createLibreTranslateProvider(config, { client }).translateBatch(
+      request({
+        entries: [
+          entry("link", "Open <b>settings</b> now"),
+          entry("save", "Save settings"),
+          entry("hi", "Hi {name}, see <i>settings</i>", ["{name}"]),
+        ],
+      }),
+    );
+    expect(calls).toEqual([
+      { texts: ["Save settings"], sourceLang: "en", targetLang: "de", format: "text" },
+      {
+        texts: ["Open <b>settings</b> now", "Hi {0}, see <i>settings</i>"],
+        sourceLang: "en",
+        targetLang: "de",
+        format: "html",
+      },
+    ]);
+    expect(result.values.get("link")).toBe("Open <b>Einstellungen</b> now");
+    expect(result.values.get("save")).toBe("Save Einstellungen");
+    expect(result.values.get("hi")).toBe("Hi {name}, see <i>Einstellungen</i>");
+    expect(result.notices).toEqual([]);
+  });
+
+  it("keeps markup tags that are placeholders in place and sends the value as html", async () => {
+    const { client, calls } = echo();
+    const result = await createLibreTranslateProvider(config, { client }).translateBatch(
+      request({
+        entries: [entry("rich", "Open <b>settings</b> {name}", ["<b>", "{name}"])],
+        extractPlaceholders: (value) => value.match(/<b>|\{[^{}]+\}/g) ?? [],
+      }),
+    );
+    expect(calls).toEqual([
+      {
+        texts: ["Open <b>settings</b> {0}"],
+        sourceLang: "en",
+        targetLang: "de",
+        format: "html",
+      },
+    ]);
+    expect(result.values.get("rich")).toBe("DE:Open <b>settings</b> {name}");
+    expect(result.integrity.get("rich")?.matches).toBe(true);
   });
 
   it("sends nothing when every entry is withheld", async () => {
@@ -201,7 +254,7 @@ describe("createLibreTranslateProvider: failures", () => {
 
   it("times out after requestTimeoutMs with TIMEOUT", async () => {
     const client: LibreTranslateClient = {
-      translate: (_texts, _source, _target, signal) =>
+      translate: (_texts, _source, _target, _format, signal) =>
         new Promise((_resolve, reject) => {
           signal.addEventListener("abort", () => reject(signal.reason));
         }),

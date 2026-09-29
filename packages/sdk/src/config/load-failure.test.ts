@@ -72,4 +72,50 @@ describe("configLoadFailure", () => {
       "Failed to load the verbatra configuration: 42.",
     );
   });
+
+  it("keeps a coded loader error as the cause, so its code and hint survive", () => {
+    const loaderError = namedError("Error", "Cannot find module '@acme/config'", {
+      code: "MODULE_NOT_FOUND",
+    });
+
+    expect(configLoadFailure(loaderError).cause).toBe(loaderError);
+  });
+
+  it("attaches no cause for an uncoded loader error, whose text may quote the file", () => {
+    expect(configLoadFailure(namedError("JSONError", "secret")).cause).toBeUndefined();
+    expect(configLoadFailure("plain failure").cause).toBeUndefined();
+  });
+
+  it.each([
+    ["Cannot find module '@acme/config'", "MODULE_NOT_FOUND"],
+    ["Cannot find package '@acme/config' imported from /p/c.ts", "MODULE_NOT_FOUND"],
+    [
+      'No "exports" main defined in /p/node_modules/@acme/config/package.json',
+      "ERR_PACKAGE_PATH_NOT_EXPORTED",
+    ],
+    [
+      "Package subpath './x' is not defined by \"exports\" in /p/node_modules/@acme/config/package.json",
+      "ERR_PACKAGE_PATH_NOT_EXPORTED",
+    ],
+  ])("recovers the resolution code the TypeScript loader drops from %s", (reason, code) => {
+    const failure = configLoadFailure(
+      namedError(
+        "TypeScriptCompileError",
+        `TypeScriptLoader failed to compile TypeScript:\n${reason}`,
+      ),
+    );
+
+    expect(failure.cause).toMatchObject({ code });
+  });
+
+  it("recovers no code from any other TypeScript loader failure", () => {
+    const failure = configLoadFailure(
+      namedError(
+        "TypeScriptCompileError",
+        "TypeScriptLoader failed to compile TypeScript:\nfoo is not defined",
+      ),
+    );
+
+    expect(failure.cause).toBeUndefined();
+  });
 });

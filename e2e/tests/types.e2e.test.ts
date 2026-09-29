@@ -21,6 +21,7 @@ interface TypesResultJson {
   plural: string[];
   written: boolean;
   stale: boolean;
+  missing: boolean;
   check: boolean;
 }
 
@@ -116,8 +117,33 @@ describe("types (no provider, no key)", () => {
 
     expect(current.exitCode).toBe(0);
     expect(stale.exitCode).toBe(1);
-    expect(successResult(stale.stdout)).toMatchObject({ stale: true, written: false });
+    expect(successResult(stale.stdout)).toMatchObject({
+      stale: true,
+      missing: false,
+      written: false,
+    });
     expect(await readFile(join(dir, "verbatra-types.d.ts"), "utf8")).toBe(before);
+  });
+
+  it("says the declaration is missing from --check before one was ever generated", async () => {
+    const dir = await seedProject("types-check-missing");
+
+    const human = await runVerbatra(consumer, ["types", "--check", "--cwd", dir], {
+      env: NO_PROVIDER_KEYS,
+    });
+    const json = await runVerbatra(consumer, ["types", "--check", "--json", "--cwd", dir], {
+      env: NO_PROVIDER_KEYS,
+    });
+
+    expect(human.exitCode).toBe(1);
+    expect(human.stdout).toContain(
+      "verbatra-types.d.ts is missing, run verbatra types to create it",
+    );
+    expect(successResult(json.stdout)).toMatchObject({
+      stale: true,
+      missing: true,
+      written: false,
+    });
   });
 
   it("leaves every locale file untouched", async () => {

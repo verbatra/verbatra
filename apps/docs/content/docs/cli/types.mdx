@@ -240,7 +240,7 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 | Code | Meaning |
 | --- | --- |
 | `0` | the declaration was generated, whether or not the file changed; or `--check` found it current |
-| `1` | `--check` found the committed declaration out of date |
+| `1` | `--check` found the committed declaration out of date, or missing (`is missing, run verbatra types to create it`) |
 | `2` | could not run: a usage error, a config or source problem, a refused output path (`TYPES_OUTPUT_CONFLICT`), or a declaration that could not be written (`TYPES_UNWRITABLE`) |
 
 ## Related

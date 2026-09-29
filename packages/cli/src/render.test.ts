@@ -93,6 +93,7 @@ describe("displayPath: paths relative to the working directory", () => {
           plural: [],
           check: true,
           stale: true,
+          missing: false,
           written: false,
         },
         base,
@@ -1180,6 +1181,15 @@ describe("renderHuman: pre-run estimate", () => {
     const line = render(tokenEstimate);
     expect(line).toContain("0.1464 USD");
     expect(line).toContain("rates as of 2026-01-15");
+  });
+
+  it("heads an estimate run as an estimate, not as a plain dry run", () => {
+    const [header] = render(tokenEstimate).split("\n");
+
+    expect(header).toBe("verbatra translate (estimate)");
+    expect(renderHuman(makeSummary({ dryRun: true })).split("\n")[0]).toBe(
+      "verbatra translate (dry run)",
+    );
   });
 
   it("calls the figure an estimate rather than a price", () => {

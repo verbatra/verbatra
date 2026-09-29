@@ -135,6 +135,7 @@ function checkDts() {
     "packages/sdk/dist/index.d.ts",
     "packages/sdk/dist/index.d.cts",
     "packages/cli/dist/lib.d.ts",
+    "packages/cli/dist/lib.d.cts",
     "packages/studio/dist/index.d.ts",
   ];
   const hits = declarations.flatMap(findForbiddenSpecifiers);

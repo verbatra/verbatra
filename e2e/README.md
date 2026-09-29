@@ -28,7 +28,9 @@ runs everything else, via `vitest.nokey.config.ts`. Nothing keeps a list of file
 deterministic test joins the required gate automatically.
 
 - **No-key tier** (everything except `tests/*.live.e2e.test.ts`, run with `npm run test:nokey`):
-  packaging smoke, `init` scaffolding, `check` across i18next, YAML, Flutter ARB, and `.properties`
+  packaging smoke, a `.cjs` config that `require`s `defineConfig` from `@verbatra/cli` or
+  `@verbatra/sdk`, and the `causeCode` and hint of a `.cjs` or `.ts` config whose import cannot be
+  resolved (`tests/cjs-config.e2e.test.ts`), `init` scaffolding, `check` across i18next, YAML, Flutter ARB, and `.properties`
   projects, `check` on a gettext project whose `posix` locale directories use the gettext names
   `sr@latin`, `es_419` and `zh_TW` (`tests/gettext-posix-locales.e2e.test.ts`), `diff` and `export` on the i18next project, `translate --dry-run`, `translate --estimate` with every provider key blanked
   (`tests/estimate.e2e.test.ts`: the quantity line, the explicit missing-rate line, a priced run

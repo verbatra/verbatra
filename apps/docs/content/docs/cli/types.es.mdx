@@ -240,7 +240,7 @@ Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactame
 | Código | Significado |
 | --- | --- |
 | `0` | la declaración se generó, haya cambiado el archivo o no; o `--check` la encontró vigente |
-| `1` | `--check` encontró obsoleta la declaración confirmada |
+| `1` | `--check` encontró obsoleta o ausente la declaración confirmada (`is missing, run verbatra types to create it`) |
 | `2` | no se pudo ejecutar: un error de uso, un problema de configuración o de la fuente, una ruta de salida rechazada (`TYPES_OUTPUT_CONFLICT`) o una declaración que no se pudo escribir (`TYPES_UNWRITABLE`) |
 
 ## Relacionado

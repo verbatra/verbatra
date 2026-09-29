@@ -40,6 +40,7 @@ describe("createDefaultClient", () => {
       ["Hello"],
       "en",
       "de",
+      "text",
       new AbortController().signal,
     );
 
@@ -56,12 +57,27 @@ describe("createDefaultClient", () => {
     expect(new Headers(calls[0]?.init?.headers).get("accept-language")).toBe("en");
   });
 
+  it("sends the format it is given, so markup can go out as html", async () => {
+    const { fetch, calls } = recordingFetch({ translatedText: ["<b>Hallo</b>"] });
+    const bundle = createDefaultClient("http://localhost:5000", undefined, fetch);
+
+    await bundle.client.translate(
+      ["<b>Hello</b>"],
+      "en",
+      "de",
+      "html",
+      new AbortController().signal,
+    );
+
+    expect(sentBody(calls[0]?.init).format).toBe("html");
+  });
+
   it("sends LIBRETRANSLATE_API_KEY as api_key when it is set", async () => {
     vi.stubEnv("LIBRETRANSLATE_API_KEY", "lt-key-123456");
     const { fetch, calls } = recordingFetch({ translatedText: ["Hallo"] });
     const bundle = createDefaultClient("https://lt.example.test/api", undefined, fetch);
 
-    await bundle.client.translate(["Hello"], "en", "de", new AbortController().signal);
+    await bundle.client.translate(["Hello"], "en", "de", "text", new AbortController().signal);
 
     expect(bundle.keyConfigured).toBe(true);
     expect(calls[0]?.url).toBe("https://lt.example.test/api/translate");
@@ -72,7 +88,13 @@ describe("createDefaultClient", () => {
     const fetch: FetchLike = async () => new Response("<html>", { status: 502 });
     const bundle = createDefaultClient("http://localhost:5000", undefined, fetch);
 
-    const result = await bundle.client.translate(["x"], "en", "de", new AbortController().signal);
+    const result = await bundle.client.translate(
+      ["x"],
+      "en",
+      "de",
+      "text",
+      new AbortController().signal,
+    );
 
     expect(result).toEqual({ status: 502, body: undefined });
   });
@@ -85,7 +107,7 @@ describe("createDefaultClient", () => {
       deps: { fetch },
     });
 
-    await bundle.client.translate(["Hello"], "en", "de", new AbortController().signal);
+    await bundle.client.translate(["Hello"], "en", "de", "text", new AbortController().signal);
 
     expect(calls[0]?.url).toBe("http://127.0.0.1:5000/translate");
   });
@@ -99,7 +121,7 @@ describe("createDefaultClient", () => {
     });
 
     await expect(
-      bundle.client.translate(["Hello"], "en", "de", new AbortController().signal),
+      bundle.client.translate(["Hello"], "en", "de", "text", new AbortController().signal),
     ).rejects.toThrow();
     expect(calls).toHaveLength(0);
   });

@@ -147,10 +147,13 @@ Beobachtet die Quell-Locale-Datei und führt `translate` bei jeder entprellten �
 feuert beim Start sofort einen initialen Lauf, danach einen Lauf pro beruhigter Änderung. Läufe
 sind serialisiert: Änderungen während eines Laufs fallen zu einem einzigen Folgelauf zusammen.
 
-Eingabe: `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Eingabe: `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
-aufgerufen: `{ status: "succeeded", summary }` oder `{ status: "failed", error: { code, message } }`.
-Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
+aufgerufen: `{ status: "succeeded", summary }` oder
+`{ status: "failed", error: { code, message, causeCode?, hint? } }`, wobei `causeCode` den Code des
+Fehlers nennt, den der Fehlschlag umhüllt, und `hint` der nächste Schritt ist, den `errorHint` liefert.
+`onReady` wird einmal aufgerufen, nachdem die Startprüfungen bestanden sind und direkt vor dem ersten
+Lauf, damit du die Sitzung vor dessen Ausgabe ankündigen kannst. Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
 `onLockWait` und `lockAcquireTimeoutMs` werden an jeden Lauf durchgereicht und verhalten sich genau
 wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge ein und wird einmal
 beim Start geprüft, nicht pro Zyklus.
@@ -279,7 +282,8 @@ Gibt ein `GenerateTypesResult` zurück: den absoluten `path`, den `sourcePath`, 
 wurde, wie viele `keys` deklariert wurden und wie viele davon mindestens ein Argument nehmen, das
 verbatra bestimmen konnte (`withArguments`, das einen Key aus `unresolved` nie mitzählt), die
 `unresolved` Keys sowie die `excluded` und `plural` Keys, ob etwas `written` wurde, ob die Datei auf
-der Platte beim Start `stale` war und ob dies ein `check`-Lauf war.
+der Platte beim Start `stale` war, ob sie ganz fehlte (`missing`, eine fehlende Datei ist auch
+`stale`) und ob dies ein `check`-Lauf war.
 
 ## Zustand inspizieren, ohne zu schreiben
 
@@ -938,7 +942,10 @@ bekommt auch ein einfaches `{ code, message }`-Objekt, etwa der `error` eines fe
 `watch`-Laufs, denselben Hinweis. Ein `PROVIDER_CONSTRUCTION_FAILED`-Fehler übernimmt den Hinweis
 des Provider-Fehlers, den er umhüllt, sodass ein fehlender Key genau die Variable nennt, die du
 setzen musst, gelesen aus dem `envVar`, das ein `ProviderError` mit `MISSING_API_KEY` trägt. Ein
-Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
+`CONFIG_INVALID`-Fehler aus einer Konfigurationsdatei, deren Import sich nicht auflösen ließ (ihr
+`causeCode` ist `MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` oder
+`ERR_UNSUPPORTED_DIR_IMPORT`), sagt stattdessen, dass du diesen Import installieren oder korrigieren
+sollst. Ein Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
 zitiert nie die Meldung. Der `--json`-Fehlerumschlag der CLI trägt ihn als `hint`, und
 `verbatra mcp` beendet den Text eines fehlgeschlagenen Aufrufs damit.
 
