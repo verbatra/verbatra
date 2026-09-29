@@ -61,13 +61,13 @@ export async function Providers(): Promise<ReactNode> {
   return (
     <Section width="wide" rhythm="lg" id="providers">
       <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] xl:items-center xl:gap-14">
-        <Reveal>
+        <div>
           <h2 className="vk-h2 max-w-[13ch]">{t("heading")}</h2>
           <p className="vk-lead mt-5 max-w-[44ch]">{t("lead")}</p>
           <p className="mt-3.5 hidden text-sm text-[color:var(--text-faint)] lg:pointer-fine:block">
             {t("hint")}
           </p>
-        </Reveal>
+        </div>
         <Reveal order={1} className="vk-deck" style={{ "--n": PROVIDERS.length } as CSSProperties}>
           {PROVIDERS.map((provider, index) => (
             <a

@@ -11,7 +11,6 @@ import {
   type GateLine,
 } from "@/lib/gate-demo";
 import { cn } from "@/lib/utils";
-import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 import { Terminal } from "./terminal";
@@ -101,11 +100,10 @@ export async function Proof(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="how">
-      <Reveal>
+      <div>
         <SectionHead title={tHow("heading")} />
-      </Reveal>
-      <Reveal
-        order={1}
+      </div>
+      <div
         className="mt-[52px] grid grid-cols-[minmax(0,1fr)] gap-px overflow-hidden rounded-xl border border-fd-border lg:grid-cols-3"
         style={{ background: "var(--border-default)" }}
       >
@@ -161,8 +159,8 @@ export async function Proof(): Promise<ReactNode> {
             ))}
           </pre>
         </Region>
-      </Reveal>
-      <Reveal order={2}>
+      </div>
+      <div>
         <ol className="mt-5 grid list-none gap-4 md:grid-cols-4">
           {STEP_KEYS.map((key, index) => (
             <li key={key} className="border-t border-fd-border pt-[18px]">
@@ -174,7 +172,7 @@ export async function Proof(): Promise<ReactNode> {
             </li>
           ))}
         </ol>
-      </Reveal>
+      </div>
     </Section>
   );
 }

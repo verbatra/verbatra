@@ -5,7 +5,6 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { EVIDENCE_LINK_CLASS } from "./evidence";
 import { GITHUB_URL } from "./links";
-import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -72,10 +71,10 @@ export async function Gains(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="gains">
-      <Reveal>
+      <div>
         <SectionHead title={t("heading")} lead={t("lead")} />
-      </Reveal>
-      <Reveal order={1}>
+      </div>
+      <div>
         <dl className="mt-12 border-t border-fd-border">
           {items.map((gain) => (
             <div
@@ -95,7 +94,7 @@ export async function Gains(): Promise<ReactNode> {
             </div>
           ))}
         </dl>
-      </Reveal>
+      </div>
     </Section>
   );
 }

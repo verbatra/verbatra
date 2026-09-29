@@ -4,7 +4,6 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { CommandBox } from "./command-box";
 import { NPM_CLI } from "./links";
-import { Reveal } from "./reveal";
 
 const CLOSE_BACKGROUND = [
   "radial-gradient(ellipse 62% 72% at 50% 104%, color-mix(in srgb, var(--v-purple) 58%, transparent), transparent 70%)",
@@ -19,7 +18,7 @@ export async function FinalCta(): Promise<ReactNode> {
   const locale = (await getLocale()) as Locale;
   return (
     <section className="vk-pad-top-lg mx-auto w-full max-w-(--width-layout) px-2 pb-3 md:px-3">
-      <Reveal
+      <div
         className="relative grid justify-items-center overflow-hidden rounded-xl border px-6 py-[92px] text-center md:px-10"
         style={{ background: CLOSE_BACKGROUND, borderColor: CLOSE_BORDER }}
       >
@@ -39,7 +38,7 @@ export async function FinalCta(): Promise<ReactNode> {
         >
           {t("docs")}
         </a>
-      </Reveal>
+      </div>
     </section>
   );
 }

@@ -6,7 +6,6 @@ import { i18n, isLocale, localizedPath } from "@/lib/i18n";
 import type { FaqItem } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 import { RELEASES_URL } from "./links";
-import { Reveal } from "./reveal";
 import { SectionHead } from "./section-head";
 
 export type FaqEntry = FaqItem & { id: string };
@@ -106,10 +105,10 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
 
   return (
     <section className="vk-gutter vk-w-wide vk-rhythm-lg mx-auto" id="faq">
-      <Reveal>
+      <div>
         <SectionHead title={t("heading")} />
-      </Reveal>
-      <Reveal order={1} className="mt-11 max-w-[880px] border-t border-fd-border">
+      </div>
+      <div className="mt-11 max-w-[880px] border-t border-fd-border">
         {items.map((item, i) => (
           <FaqRow
             key={item.id}
@@ -119,7 +118,7 @@ export function Faq({ items }: { items: ReadonlyArray<FaqEntry> }): ReactNode {
             onToggle={() => setOpen((current) => (current === i ? -1 : i))}
           />
         ))}
-      </Reveal>
+      </div>
     </section>
   );
 }
