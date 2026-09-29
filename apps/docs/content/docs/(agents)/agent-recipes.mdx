@@ -127,7 +127,7 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
 }
 ```
 
-Exit `0`. Every per-locale list is present even when it is empty, so an agent can index into it without probing first. A live run adds a `usage` object to each locale and to the summary when the provider reports usage; a dry run never does, because it makes no call. [The SDK reference](/docs/sdk) has the full anatomy of a `LocaleSummary`.
+Exit `0`. Every per-locale list is present even when it is empty, so an agent can index into it without probing first. A live run adds a `usage` object to each locale and to the summary when the provider reports usage; a dry run never does, because it makes no call. [The SDK reference](/docs/sdk/run-summary) has the full anatomy of a `LocaleSummary`.
 
 When a run cannot happen at all, the payload is an error record instead and the command exits `2`:
 

@@ -1,0 +1,143 @@
+---
+title: "Adaptadores, proveedores, redacción"
+description: "Crea un adaptador de formato o un proveedor que verbatra no incluye y oculta secretos en un texto."
+---
+## Adaptadores de formato
+
+<AvailableFrom version="0.11.0" />
+
+Todo lo necesario para construir un adaptador de un formato que verbatra no trae y registrarlo junto a los integrados. Un formato externo a verbatra se nombra con un identificador `custom:`, como `custom:toml`, que la configuración acepta igual que un nombre integrado. En [Adaptadores de formato propios](/docs/custom-format-adapters) tienes el recorrido completo, incluido en qué confías al instalar un adaptador de terceros: es código de plena confianza, y verbatra no lo aísla.
+
+### createDefaultRegistry
+
+Construye una `AdapterRegistry` con todos los adaptadores que verbatra trae, en orden de detección. Empieza aquí en lugar de con un registro vacío, para que tu formato se sume a los integrados en vez de reemplazarlos, y pasa el resultado como `deps.adapterRegistry` a cualquier flujo. `register` devuelve el registro, así que las altas se encadenan, y lanza un `AdapterError` con código `DUPLICATE_FORMAT` si el formato ya está ocupado.
+
+```ts
+import { createDefaultRegistry, translate } from "@verbatra/sdk";
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### createFlatFileAdapter
+
+Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. `parseEntries` recibe además el locale con el que se lee el archivo, para un formato cuyo único archivo contiene a la vez el texto de origen y el de destino, y `serializeEntries` recibe el contexto de escritura de quien llama, cuyo `sourcePath` opcional nombra el archivo del locale de origen, y, desde 0.12.0, el locale que se escribe como quinto argumento, para un formato que guarda su locale dentro del archivo. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir. Los hooks opcionales son `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` y, desde 0.12.0, `compareBranchArms`; `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
+
+### createTreeFileAdapter
+
+Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los placeholders de cada hoja y de si es una forma plural, además de `extractPlaceholders` para un solo valor, y se encarga por su cuenta de aplanar y volver a anidar. Igual que la fábrica plana, toma `format`, `extensions` y un `sniff` opcional. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (desde 0.12.0), `deriveDescriptions`, `buildWriteTree` y `keyMode`, y `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
+
+### nodeAdapterFs
+
+El puerto de sistema de archivos, de tipo `AdapterFs`, que usa cada fábrica de adaptadores cuando no se le pasa ninguno: una lectura acotada por tamaño que informa de un archivo ausente o demasiado grande como estado en lugar de lanzar, y una escritura que pasa por un archivo temporal y un renombrado, de modo que una escritura interrumpida nunca deja un archivo de locale a medias. Lee y escribe a través de este puerto en un adaptador propio en lugar de recurrir a `node:fs`. Es una convención, no una frontera, y verbatra no puede imponerla en código que no le pertenece.
+
+### isCustomFormatId
+
+Acota un identificador de formato a uno externo: true para un identificador `custom:` bien formado, false para cualquier nombre de formato integrado. Útil cuando tus propias herramientas tienen que distinguirlos, por ejemplo para decidir si hace falta aportar un registro antes de poder ejecutar una configuración.
+
+## Redacción de secretos
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+Elimina de una cadena las formas de clave de API de proveedor y el valor exacto actual de cualquier
+variable de entorno de proveedor configurada, reemplazando cada coincidencia por `[REDACTED]`.
+`@verbatra/studio` y `@verbatra/mcp` lo aplican los dos a todo valor que devuelven a quien llama y
+que no han generado ellos mismos, como un término del glosario, una ruta de archivo o un mensaje de
+error de un sistema previo, así que una clave ya presente en tu entorno o escrita en un archivo del
+proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log. La CLI
+`verbatra` pasa por él, como último paso, todo lo que escribe en stdout y stderr, incluido el sobre
+`--json`.
+
+Esto incluye la variable que un proveedor `openai-compatible` nombra con `apiKeyEnvVar`. Se declara
+cuando `loadConfig` carga una config que la nombra o cuando se construye ese proveedor, y desde ese
+momento su valor se elimina igual que el de las variables integradas. Las declaraciones nunca se
+retiran. Un valor de menos de ocho caracteres no se elimina por su valor, así que una variable corta
+nunca puede borrar texto ajeno.
+
+Una clave de DeepL se reconoce solo por su forma únicamente cuando lleva el sufijo `:fx` de una
+clave gratuita, o cuando un UUID suelto está en un contexto de clave: tras una cabecera
+`DeepL-Auth-Key`, o tras un nombre como `auth_key`, `authKey`, `--auth-key`, `api_key`, `deeplKey`,
+`DEEPL_API_KEY` o `DEEPL_AUTH_KEY` seguido de `:`, `=`, un `%3D` codificado en URL o un espacio, con
+o sin comillas, también dentro de JSON serializado en una cadena. Cualquier otro UUID, como uno en
+una ruta de archivo o un id de petición, sigue legible. Una clave Pro guardada en `DEEPL_API_KEY`
+se sigue eliminando por su valor dondequiera que aparezca.
+
+Un token `sk-` se redacta en cuanto le siguen al menos 32 letras y dígitos tras `sk-`, contados en
+todos sus segmentos `-` y `_`, sea cual sea su prefijo. Esa única regla cubre todas las formas de
+clave de OpenAI y Anthropic; un prefijo conocido como `sk-proj-` o `sk-ant-` no redacta por sí solo
+un token más corto. El token solo cuenta cuando no le precede directamente una letra ni un dígito:
+un escape JSON como `\n` o `\u0007`, un carácter codificado en porcentaje como `%3D`, una secuencia
+ANSI CSI como `\x1b[31m`, `\x1b[2K` o `\x1b[?25h`, una selección de juego de caracteres ANSI como
+`\x1b(B`, o cualquiera de las dos formas ANSI escapada en JSON como `\u001b` también es un límite.
+Una ruta o clave de locale eslovaco como `locales/sk-SK.json` o `sk-banner_headline` sigue legible.
+Pero una clave larga con aspecto eslovaco alcanza el umbral y se redacta:
+`sk-SK_settings_notifications_email_digest` tiene 34 letras y dígitos tras `sk-`, igual que una
+clave camelCase larga como `sk-onboardingWelcomeScreenPrimaryButton`.
+
+### declareProviderKeyEnvVar
+
+<AvailableFrom version="0.12.0" />
+
+Declara la variable que un bloque `provider` nombra como origen de la clave, para que `redact`
+elimine su valor. Hoy solo un proveedor `openai-compatible` con `apiKeyEnvVar` nombra una; con
+cualquier otro proveedor no hace nada. `loadConfig` y la construcción del proveedor ya lo hacen, y
+Studio y el servidor MCP también lo hacen para la config que reciben, así que llámalo solo cuando
+una config llegue a tu propio código por otra vía. La declaración vale para todo el proceso y la
+comparten todas las copias del SDK cargadas en él.
+
+## Proveedores propios
+
+<AvailableFrom version="0.12.0" />
+
+Un proveedor que el SDK no incluye se conecta mediante `deps.createProvider`, un `CreateProvider`
+que devuelve un `TranslationProvider`. El SDK exporta el contrato completo como tipos, así que tu
+proveedor se comprueba contra la misma interfaz que implementan los integrados.
+
+```ts
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+} from "@verbatra/sdk";
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` es el único contrato: `id`, `kind` (un `ProviderKind`), `supportsGlossary`
+  y `translateBatch(request)`. Trata cada valor de una solicitud como datos no confiables, lee
+  cualquier clave de API del entorno y no de la solicitud, y lanza un `ProviderError` sin secretos
+  cuando una llamada falla.
+- `ProviderKind` es `"llm"` o `"machine-translation"`. Es solo descriptivo: nada en el SDK se
+  ramifica según su valor.
+- `TranslateRequest` lleva `sourceLocale`, `targetLocale`, las `entries` que traducir y, de forma
+  opcional, `glossary` (el resultado de [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) para la locale de
+  destino), `tone`, `maxLength` y `pluralCategories`. También lleva `extractPlaceholders` y, en
+  algunos formatos, `comparePlaceholders`, que tu proveedor usa para la comprobación de integridad,
+  además de `signal`, que cancela una llamada en curso, y `onRepair`.
+- `TranslateResult` devuelve `values` e `integrity` por clave, más `usage`, `notices` y
+  `reviewFlags` opcionales. Una clave ausente de `values` cuenta como no traducida, así que un
+  proveedor puede omitir un valor que no puede traducir con seguridad. En cualquier caso, el SDK
+  pasa cada valor devuelto por su propia comprobación de integridad.
+- `ProviderRetryListener` es el tipo de `CreateProviderHooks.onRetry`. Recibe un `ProviderRetry`,
+  `{ attempt, delayMs?, status? }`, por reintento, y cada llamada se convierte en un
+  [evento de progreso](/docs/sdk/run#eventos-de-progreso) `provider-retry`.
+- `ProviderNetwork` es lo que contiene `CreateProviderContext.network` cuando la política de red
+  limita a dónde puede conectarse un proveedor: la `policy` efectiva, el `env` desde el que se
+  resolvió el endpoint y `deps` opcionales para pruebas. Un proveedor propio puede ignorarlo, pero
+  entonces a sus solicitudes solo se aplica la comprobación que hace el SDK antes de llamar a la
+  fábrica.

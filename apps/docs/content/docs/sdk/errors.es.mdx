@@ -1,0 +1,81 @@
+---
+title: "Errores"
+description: "El modelo SdkError: cada código, cuándo se lanza y qué errores llevan una causa."
+---
+## El modelo de errores
+
+Los fallos de toda la ejecución lanzan un `SdkError`: una sola clase, un `code` estable y un `message`
+sin secretos. Ramifica sobre el código, no sobre el mensaje. Los fallos por locale, los avisos del
+proveedor y los hallazgos de integridad se comunican como datos en el `RunSummary`, nunca se lanzan.
+
+| Código | Cuándo |
+| --- | --- |
+| `CONFIG_NOT_FOUND` | la búsqueda no encontró ninguna configuración, o un `configPath` explícito no existe (lanzado por `loadConfig`) |
+| `CONFIG_INVALID` | se encontró una configuración pero no se puede parsear o falla la validación, o su archivo de glosario no se pudo resolver; `translate` (también en dry run, salvo con el proveedor `none`) y `retranslateEntry` también lo lanzan cuando `VERBATRA_NETWORK_POLICY` o `VERBATRA_NETWORK_ALLOWED_HOSTS` tiene un valor no válido, antes de construir ningún proveedor |
+| `UNKNOWN_FORMAT` | no hay adaptador registrado para el formato configurado; se lanza antes de leer ningún archivo |
+| `UNKNOWN_LOCALE` | un locale solicitado no está entre los locales de destino configurados |
+| `UNKNOWN_KEY` | una clave solicitada no está en el recurso de origen (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
+| `KEY_PROTECTED` | `retranslateEntry` se negó a reemplazar un valor que escribió, importó o cambió una persona fuera de verbatra, porque ni `includeHuman` ni `humanEdits: "overwrite"` lo permitían |
+| `KEY_PINNED` | la clave coincide con los `pinnedKeys` de la configuración, así que se rechazó una escritura automática (`retranslateEntry`, y `editEntry` con `actor: "agent"`) |
+| `PROVIDER_CONSTRUCTION_FAILED` | el proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente |
+| `MACHINE_TRANSLATION_DISABLED` | la configuración fija `provider: { id: "none" }`, así que se rechazó una acción que gasta en el proveedor antes de construir ningún proveedor (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` y `watch` nunca lo lanzan |
+| `NETWORK_POLICY_VIOLATION` | la [política de red](/docs/network-policy) efectiva no permite el endpoint del proveedor ni su proxy; lo lanzan `translate` fuera de una ejecución de prueba, `watch` al arrancar y `retranslateEntry`, antes de construir el proveedor o leer ninguna clave de API |
+| `SOURCE_UNREADABLE` | el archivo del locale de origen no existe |
+| `SOURCE_INVALID` | el archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador |
+| `LOCK_FILE_INVALID` | el archivo de bloqueo está presente pero corrupto, es demasiado grande o está en una versión no admitida |
+| `PROVENANCE_FILE_INVALID` | el archivo de procedencia está presente pero corrupto, es demasiado grande o tiene una forma incorrecta; lo lanza una escritura (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) antes de cambiar nada, y `loadProvenance`, nunca un informe; uno de un verbatra más nuevo se deja intacto en su lugar, y `translate`, `watch` e `importWorkbook` informan el aviso `PROVENANCE_VERSION_UNRECOGNIZED` |
+| `PROVENANCE_FILE_UNWRITABLE` | una decisión de revisión no se pudo guardar porque el archivo de procedencia es de un verbatra más nuevo o crecería por encima del tamaño que verbatra vuelve a leer (`approveEntry`, `rejectEntry`); no se escribe nada |
+| `REVIEW_VALUE_CHANGED` | la clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa, o `expectedValue` no es un string (`approveEntry`, `rejectEntry`) |
+| `REVIEW_SOURCE_CHANGED` | el origen cambió desde que se escribió el valor, así que no se puede aprobar tal cual (`approveEntry`) |
+| `REVIEW_REJECT_UNSUPPORTED` | el formato conserva el valor de una clave cuando el archivo se escribe sin ella, como XLIFF, o el archivo del locale es demasiado grande para guardar una copia que restaurar, así que `rejectEntry` dejó el archivo como estaba |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` falló después de reescribir el archivo de locale, y también falló la restauración del archivo de locale o del archivo de procedencia; el mensaje nombra el fallo original (también la `cause`) y los archivos que tienes que recuperar del control de versiones |
+| `REVIEWER_INVALID` | `reviewer` está vacío, tiene más de 64 caracteres o contiene un carácter de control (`approveEntry`, `rejectEntry`, `importWorkbook`) |
+| `LOCK_CONTENDED` | el bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, y no se escribió nada; el mensaje nombra la ruta del archivo de bloqueo |
+| `GLOSSARY_NOT_FILE_BACKED` | el glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`) |
+| `GLOSSARY_UNWRITABLE` | el archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de escritura del glosario, por ejemplo en un proyecto de solo lectura, o liberarlo tras una edición guardada (`updateGlossaryTerm`); el error del sistema de archivos es la `cause` |
+| `LOCALE_LAYOUT_INVALID` | `files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado |
+| `LOCALE_PATH_COLLISION` | dos locales configurados resuelven al mismo archivo absoluto |
+| `CONCURRENCY_INVALID` | se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale |
+| `CONCURRENCY_BUDGET_CONFLICT` | una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento) |
+| `MAX_TOKENS_INVALID` | el `maxTokens` por ejecución de `translate` se fijó pero no es un número entero de al menos 1; se lanza antes de leer o gastar nada |
+| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); se lanza antes de leer o bloquear nada |
+| `TARGET_UNWRITABLE` | un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica |
+| `PSEUDO_OUTPUT_CONFLICT` | se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado o fuera de `cwd`, también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada |
+| `SOURCE_UNWRITABLE` | el archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero |
+| `EXTRACT_NOT_CONFIGURED` | se llamó a `extract` con una configuración que no lleva bloque `extract` |
+| `EXTRACT_FS_UNSUPPORTED` | se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta), es absoluta, sale de `cwd` con `..` o nombra el propio `cwd` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra |
+| `TYPES_UNWRITABLE` | el archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria |
+| `TMX_UNWRITABLE` | el archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es escribible, ya hay un directorio en esa ruta, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos |
+| `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada |
+| `EXPORT_UNWRITABLE` | el archivo de entrega que produce `exportWorkbook` no se pudo escribir (su directorio no es escribible, hay un directorio o un archivo en medio, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos, y el error del sistema de archivos es la `cause` |
+| `LOCALE_STATE_NOT_CARRIED_OVER` | lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)) |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | el proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución en seco y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)) |
+| `NOT_A_LOCALE_FILE` | `checkFile` recibió una ruta que no es el archivo de ningún locale configurado, o allí no existe ningún archivo |
+| `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
+
+Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
+falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
+`PROVIDER_CONSTRUCTION_FAILED` (el propio error de la factoría del proveedor, cuyo mensaje también
+pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` y `GLOSSARY_UNWRITABLE` (el error del sistema de archivos) y
+`REVIEW_RESTORE_FAILED` (el fallo que interrumpió la decisión). `CONFIG_NOT_FOUND` y
+`CONFIG_INVALID` no llevan ninguno a propósito, porque el error de un analizador de configuración
+puede citar el contenido del archivo, y una clave escrita en la configuración no debe viajar con el
+error. En `PROVIDER_CONSTRUCTION_FAILED` solo se redacta el mensaje: su `cause` es el error original,
+intacto. Las factorías de proveedor integradas lanzan errores sin secretos, y un error lanzado por un
+`createProvider` que pasas tú vuelve exactamente como lo lanzaste, así que mantén los secretos fuera
+de él o redáctalo tú antes de registrar el `cause`.
+
+Dos excepciones a la regla de una sola clase de error: `retranslateEntry` relanza el `ProviderError`
+propio del proveedor cuando la llamada única falla, y `runStatus` no lanza nunca. Para cómo estos
+códigos se corresponden con los códigos de salida de la CLI, consulta
+[CI y códigos de salida](/docs/ci-and-exit-codes); para ayuda a partir del síntoma, consulta
+[Solución de problemas](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` y su tipo `ProviderErrorCode` se exportan desde `@verbatra/sdk`, así que comprueba
+un fallo de `retranslateEntry` con `error instanceof ProviderError` y ramifica según `error.code`; la
+[página de proveedores](/docs/providers) lista todos los códigos. En una versión anterior, que no
+exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.

@@ -22,7 +22,7 @@ Markdown/MDX.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
   translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
   by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
-  route groups and the `cli` folder). These are translated by an AI agent
+  route groups and the `cli` and `sdk` folders). These are translated by an AI agent
   in the same change as the English page, following the tone rules below; verbatra's
   `next-intl-json` adapter only covers `messages/*.json`, not MDX. Every non-English page renders
   the "Machine-translated page" notice (`docs.machineTranslated` in `messages/*.json`), which is the
@@ -80,9 +80,12 @@ is current, so keeping the wording in step stays an authoring discipline.
 The reference tables are asserted in all four locales against the code by the `scripts/*.test.mjs`
 parity tests (`pnpm test:scripts`):
 
-- `verify-docs-reference-parity.test.mjs`: one `sdk*.mdx` section per SDK entry point, the
-  `SdkErrorCode` table in `sdk*.mdx`, the `ProviderErrorCode` table in `providers*.mdx`, the CLI
-  error codes in `ci-and-exit-codes*.mdx`, and the `generateTypes` refusals in `cli/types*.mdx`.
+- `verify-docs-reference-parity.test.mjs`: exactly one section per SDK entry point across the
+  `sdk/` folder (the pages its `meta.json` lists), the `SdkErrorCode` table in `sdk/errors*.mdx`,
+  the `ProviderErrorCode` table in `providers*.mdx`, the CLI error codes in `cli/output*.mdx`, and
+  the `generateTypes` refusals in `cli/types*.mdx`. An old `/docs/sdk#<entry>` link still lands:
+  `<SdkAnchorForward />` on `sdk/index*.mdx` forwards it to the page that now heads the anchor,
+  and `apps/docs/lib/sdk-anchors.test.ts` pins every anchor of the former single page per locale.
 - `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in
   `packages/mcp/README.md` follows `ALL_TOOLS_IN_ORDER`, with exactly the spend-gated tools marked
   as calling a provider, and the client allowlists name only registered, non-spend tools.

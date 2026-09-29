@@ -161,7 +161,7 @@ await exportWorkbook({ config, format: "csv", out: "handoff" });
 const summary = await importWorkbook({ config, workbook: "verbatra-translations.xlsx" });
 ```
 
-Les deux prennent la config validée de [`loadConfig`](/docs/sdk), et `importWorkbook` renvoie le même `RunSummary` que `translate`. Le classeur lui-même est construit et parsé par `@verbatra/exchange`, un paquet interne que tu n'atteins que via ces deux fonctions.
+Les deux prennent la config validée de [`loadConfig`](/docs/sdk/config#loadconfig), et `importWorkbook` renvoie le même `RunSummary` que `translate`. Le classeur lui-même est construit et parsé par `@verbatra/exchange`, un paquet interne que tu n'atteins que via ces deux fonctions.
 
 ## Ensuite
 

@@ -1,0 +1,155 @@
+---
+title: "Übersicht"
+description: "Installiere @verbatra/sdk, finde die Seite zu jedem Einstiegspunkt und gib dem SDK dein eigenes Dateisystem."
+---
+`@verbatra/sdk` ist der Motor, auf dem der Befehl `verbatra` läuft. Die CLI ist ein dünner Wrapper;
+was die Kommandozeile kann, kannst du also auch im Code. Die unten aufgeführten Seiten katalogisieren die gesamte öffentliche Oberfläche, gruppiert nach der Aufgabe jedes Einstiegspunkts. End-to-End-Beispiele
+stehen in [SDK-Rezepte](/docs/programmatic-api).
+
+<SdkEntryPoints pageLabel="Seite" entriesLabel="Einstiegspunkte" />
+
+<SdkAnchorForward />
+
+## Installation
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Benötigt Node.js `>=22.14.0`.
+
+Die pnpm-Zeile installiert korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS`: pnpm
+sperrt die Installationsskripte des mitgelieferten Gemini-SDK und dessen `protobufjs` und
+hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der jeder spätere pnpm-Befehl im Projekt
+genauso scheitert. Führe einmal `pnpm approve-builds` aus und bestätige keinen der beiden Einträge,
+oder sieh dir in der [Fehlerbehebung](/docs/troubleshooting) die nicht-interaktive Lösung an. Einen
+`npx`-Umweg wie bei der CLI gibt es hier nicht, denn du importierst eine Bibliothek und startest
+kein Binary.
+
+<Callout title="API-Keys und die Umgebung">
+Das SDK liest, hält oder akzeptiert nie einen API-Key. Der Provider liest seinen Key aus der
+Umgebung (zum Beispiel `ANTHROPIC_API_KEY`), wenn er konstruiert wird. Anders als die CLI lädt das
+SDK keine `.env`-Dateien: setze die Variable in deinem eigenen Skript selbst, zum Beispiel mit
+`node --env-file=.env script.js`.
+</Callout>
+
+Jeder Einstiegspunkt nimmt ein Eingabeobjekt, dessen erstes Feld die validierte `config` (aus
+`loadConfig`) ist, außer wo anders vermerkt. Die meisten akzeptieren zusätzlich ein optionales
+zweites `deps`-Argument, das eine Registry, einen Provider-Builder oder ein Dateisystem
+injiziert; im normalen Gebrauch kannst du es ignorieren. Siehe
+[Die Abhängigkeits-Nahtstelle](#die-abhängigkeits-nahtstelle) dazu, was `deps.fs` erreicht.
+
+## Die Abhängigkeits-Nahtstelle
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` ersetzt den Dateisystem-Port, über den die eigene I/O des SDK läuft, typisiert als
+`SdkFs`. Die Nahtstelle ist vollständig: die Run-Status-Datei, die Lock-Datei, die Werkzeuge für die
+Glossardatei, Arbeitsmappen- und Austausch-I/O sowie die Locale-Dateien selbst gehen alle darüber, denn die
+Format-Adapter lesen und schreiben über einen Port, der aus demselben Objekt gebaut wird. Ein
+kompletter Lauf lässt sich damit im Speicher halten. Genau so vermeiden die Tests des SDK die
+Platte, und so kann eine einbettende Anwendung einen Teil eines Projekts auf etwas anderem als
+einer lokalen Platte ablegen.
+
+```ts
+import { translate, type SdkFs } from "@verbatra/sdk";
+
+const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
+```
+
+Zwei Vertragspunkte muss eine Implementierung einhalten. Lesevorgänge sind größenbeschränkt:
+`readFileBounded` und `readBytesBounded` nehmen ein Byte-Limit entgegen und melden `missing` oder
+`too-large` als Zustand, statt zu werfen. Das hält eine bösartige oder versehentlich riesige Datei
+davon ab, den Speicher zu erschöpfen. Schreibvorgänge müssen atomar sein, damit ein Absturz
+mitten im Schreiben nie eine halb geschriebene Datei hinterlässt, und `createExclusive` muss atomar
+gegenüber anderen Prozessen sein, weil es das Primitiv hinter der Schreibsperre pro Locale ist. Das
+Anlegen von Verzeichnissen ist Sache des Aufrufers.
+
+`readDirectory` ist optional, damit eine Implementierung, die vor der Quellcode-Extraktion
+geschrieben wurde, weiterhin kompiliert. [`extract`](/docs/sdk/inspect#extract) ist der einzige Einstiegspunkt, der
+es braucht, und meldet sein Fehlen als `EXTRACT_FS_UNSUPPORTED`. Es listet die direkten Einträge
+eines Verzeichnisses als `{ name, kind }` auf, wobei `kind` `"file"`, `"directory"` oder `"other"`
+ist. Ein symbolischer Link gehört zu `"other"`: Der Scan folgt ihm nie, und genau das hält ihn
+innerhalb der übergebenen Roots.
+
+`realpath` ist ebenfalls optional. Es löst jeden symbolischen Link in einem bestehenden Pfad auf,
+und die Ausgabe-Guards von [`generateTypes`](/docs/sdk/run#generatetypes), [`exportTmx`](/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/docs/sdk/exchange#exportworkbook) und [`pseudolocalize`](/docs/sdk/run#pseudolocalize) sehen damit, wo ein Ausgabepfad wirklich landet, sodass ein Link eine geschriebene Datei weder aus `cwd`
+hinaus noch auf eine Datei tragen kann, von der das Projekt abhängt. Ohne es vergleichen diese
+Guards die Pfade so, wie sie geschrieben sind. Ein Link am Ausgabepfad, dessen Ziel nicht existiert,
+lässt sich nicht auflösen, daher gehen die Guards davon aus, dass `writeFile` und `writeBytes`
+einen Link dort ersetzen, statt durch ihn hindurch zu schreiben, so wie es der atomare Standard-Schreibvorgang tut.
+
+`rename` ist ebenfalls optional.
+
+<AvailableFrom version="0.12.0" />
+
+Es verschiebt eine Datei in einem atomaren Schritt unter einen neuen Namen im selben Verzeichnis,
+ersetzt dabei eine dort schon liegende Datei und scheitert mit einem Fehler, dessen `code` `ENOENT`
+ist, wenn die Quelle fehlt. Die Schreibsperre nutzt es, um eine Sperre oder einen Übernahme-Guard
+eines beendeten Prozesses zu entfernen und um ihre eigene Sperre freizugeben: Die Datei wird unter
+einem eindeutigen Namen `<name>.<pid>.<tag>.<uuid>.stale` beiseitegelegt und nur gelöscht, wenn sie
+noch der Eintrag ist, den die Sperre erwartet. Alles andere, etwa eine Sperre, die ein anderer
+Prozess inzwischen genommen hat, wird mit `createExclusive` zurückgelegt. Scheitert das Umbenennen
+mit `EPERM`, `EBUSY` oder `EACCES`, wie Windows es für eine Datei meldet, die ein anderer Prozess
+offen hat, gilt das als "in dieser Abfrage nicht übernommen", und die Sperre fragt bis zu ihrem
+Timeout weiter ab. Scheitert das Umbenennen beim Freigeben einer Sperre aus irgendeinem Grund, liest
+die Freigabe stattdessen die Sperrdatei und löscht sie, solange sie noch das Token des Halters
+enthält, und versucht einen Fehler mit `EPERM`, `EBUSY` oder `EACCES` ein paar Mal im Abstand einer
+Abfrage erneut. Ein Eintrag, der zurückgelegt werden müsste, aber nicht zurückgelegt werden kann,
+weil ein dritter Prozess den Pfad inzwischen genommen hat, wird gelöscht, da die Token-Prüfung
+seines Halters ab dann ohnehin scheitert. Ohne `rename` liest die Sperre die Datei und löscht sie, wenn sie unverändert
+ist. Das lässt ein breiteres Zeitfenster offen, in dem eine gerade genommene Sperre eines anderen
+Prozesses gelöscht wird.
+
+Beiseitelegen und Zurücklegen sind zwei Schritte, daher können in seltenen Abläufen zwei Prozesse
+kurz beide glauben, dieselbe Sperre zu halten. Jede Sperre hält deshalb ein zufälliges Besitz-Token
+fest, und vor jedem Schreibvorgang, den die Sperre schützt (die Locale-Datei, die Lock-Datei, die
+Provenance-Datei, das Glossar), prüft der Halter, ob die Sperrdatei noch sein Token enthält. Ist das
+nicht so, bricht die Operation mit `LOCK_CONTENDED` ab und schreibt nichts. Eine Sperrdatei, die
+beim Freigeben fehlt oder ein anderes Token enthält, wird genauso gemeldet, wenn die Operation
+erfolgreich war, denn der andere Prozess kann dieselben Dateien seitdem geändert haben; eine
+gescheiterte Operation wirft ihren eigenen Fehler. Prüfung und Schreiben bleiben zwei Schritte, und
+nichts begrenzt die Zeit dazwischen: Ein Halter, der direkt nach der Prüfung angehalten wird (eine
+schlafende Maschine, ein gestoppter Prozess, ein Debugger, ein Sprung der Uhr oder eine lange
+blockierte Event-Loop), setzt seinen Heartbeat aus. Sobald seine Sperre drei Intervalle alt ist
+(standardmäßig 30 Sekunden), übernimmt ein anderer Prozess auf derselben Maschine sie, und der
+angehaltene Halter kann beim Weiterlaufen noch einmal schreiben. Die Token-Prüfung setzt
+voraus, dass `createExclusive` eine Datei anlegt, die `readFileBounded` zurückliest; eine eigene
+Implementierung muss das einhalten.
+
+`touch` und `mtimeMs` sind ebenfalls optional.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` setzt die Änderungszeit einer vorhandenen Datei auf jetzt, und `mtimeMs(path)` gibt
+sie in Millisekunden zurück, oder `undefined`, wenn die Datei fehlt. Mit `touch` hält ein
+Sperr-Halter ein Heartbeat-Intervall von 10 Sekunden in seiner Sperre fest und frischt die
+Änderungszeit der Datei in diesem Takt auf, solange er die Sperre hält. Direkt nach dem Anlegen
+setzt er sie ebenfalls, damit das Alter der Datei nach der Uhr dieses Prozesses gemessen wird und
+nicht nach der des Dateiservers. Mit `mtimeMs` behandelt ein
+wartender Prozess eine Sperre auf seiner eigenen Maschine als verwaist, deren Prozess noch läuft,
+deren Datei aber seit drei der festgehaltenen Intervalle (standardmäßig 30 Sekunden) nicht
+aufgefrischt wurde. Das deckt einen Sperreintrag ab, der seinen Halter überlebt hat, etwa einen, der
+für einen lange laufenden Studio-, `watch`- oder MCP-Server-Prozess zurückgelegt wurde, der ihn
+schon freigegeben hatte. Ein Übernahme-Guard hält keinen Heartbeat fest: Er wird abgeräumt, sobald
+sein Prozess nachweislich nicht mehr existiert und er über zwei Abfragen unverändert gesehen wurde. Ohne diese
+Member gilt eine Sperre nur dann als verwaist, wenn ihr Prozess nachweislich nicht mehr existiert.
+
+Ein Prozess, der abstürzt, während er eine Sperre beiseitegelegt hat, kann eine `.stale`-Datei in
+`.verbatra-local/locks/` hinterlassen. Solche Dateien kannst du gefahrlos von Hand löschen, und der
+nächste Erwerb einer Sperre löscht sie, sobald der Prozess, der sie verschoben hat, nicht mehr
+existiert oder, wenn `touch` implementiert ist, sobald sie älter als die Veraltungsschwelle sind,
+gezählt ab dem Beiseitelegen. Ein Dateisystem ohne `touch` behält sie, bis ihr Verschieber nicht
+mehr existiert.
+
+`deps.fs` erreicht keine vom Aufrufer übergebene `deps.adapterRegistry`.
+Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das, was der Aufrufer
+darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.
+
+Auch das Laden der Konfiguration liegt außerhalb der Nahtstelle. `loadConfig` und
+`loadConfigWithMeta` nehmen keine `deps`: Sie lesen die Konfigurationsdatei selbst von der echten
+Platte und eine Glossardatei, die die Konfiguration nennt, über ihre eigene Option `fs`, das
+`deps.fs` eines späteren Flows erreicht also keinen der beiden Lesevorgänge. Um ein ganzes Projekt
+im Speicher zu halten, übergib dasselbe `SdkFs` als `loadConfig({ fs })` und reich die
+Konfiguration als `configOverride` statt als Datei herein.

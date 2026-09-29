@@ -1,0 +1,198 @@
+---
+title: "Edit and review"
+description: "Read, edit, approve, reject and retranslate one key, or review and retranslate many at once."
+---
+## Single-key operations
+
+These are the seams Verbatra Studio drives; use them to build your own review tooling. All of them
+resolve `locale` and `key` fresh on every call and throw `UNKNOWN_LOCALE` or `UNKNOWN_KEY` when
+either does not exist.
+
+### keyValue
+
+Reads one key's current source value and, when present, its current target value for one locale.
+Read-only.
+
+Input: `{ config, cwd?, locale, key }`. Returns `{ source, target? }`; `target` is absent exactly
+when the key does not yet exist in that locale.
+
+When `target` is present the result also carries `provenance`, the key's interpreted
+`KeyProvenance`: `{ origin, provider?, model?, reviewState, reviewer? }`.
+
+<AvailableFrom version="0.12.0" />
+
+The result also carries `description` when the source locale file gives one for the key: an ARB
+`@key.description`, an XLIFF note, a gettext comment, an Apple `.strings` comment, or a .NET
+`.resx` comment.
+
+### editEntry
+
+Writes one human-typed correction for one key and locale. The candidate value passes the same
+integrity gate as a provider translation before anything reaches disk; on acceptance the
+locale file and the lock entry for that key are updated inside the locale's write lock. Never
+calls a provider.
+
+Input: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Returns a two-armed result:
+`{ accepted: true, value }`, or
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` with
+nothing written. `"empty"` covers an empty or whitespace-only value for a source that has text: an
+edit cannot express clearing a key, so use the workbook's `[[CLEAR]]` sentinel for that. The reason
+set is published as the `INTEGRITY_GATE_REASONS` tuple, so build any runtime schema or exhaustive
+lookup from it rather than retyping the members. A `placeholder` or `markup` refusal also carries
+`details`: the placeholders or tags behind it, each prefixed with `-` for one the source had and
+the candidate dropped or `+` for one the candidate invented.
+
+The written value is recorded in `verbatra.provenance.json` with the origin `human`. Pass
+`actor: "agent"` when an AI agent wrote the value, so the record says so; the calling surface
+asserts it and nothing verifies it. The provenance file is checked before the value is gated: a
+corrupt one throws `PROVENANCE_FILE_INVALID` and nothing is written, and one from a newer verbatra,
+or one the record would grow past the size verbatra reads back, is left untouched while the value
+is written without a record.
+
+<AvailableFrom version="0.12.0" />
+
+With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINNED` before anything is read or written. A person's edit of a pinned key is accepted.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` bounds the wait for the locale's write lock before the call fails with `LOCK_CONTENDED` (ten minutes by default), `onLockWait` reports that wait, and an invalid bound fails with `LOCK_TIMEOUT_INVALID` before anything is read.
+
+### retranslateEntry
+
+Re-runs the provider for exactly one key and locale: a single-entry call through the same provider
+path `translate` uses, gated through the same integrity checks. On acceptance it writes the
+locale file and lock entry for that key only.
+
+Input: `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Returns `{ accepted: true, value, reviewReasons }` (the
+review reason codes, if any, that apply to the new value) or
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
+Unlike `translate`, a provider failure here throws: a `ProviderError`, exported from `@verbatra/sdk`,
+with a stable `code` such as `RATE_LIMITED` or `AUTH_FAILED`. Under `provider: { id: "none" }` it throws `MACHINE_TRANSLATION_DISABLED` first, before reading or locking anything.
+
+The new value is recorded in `verbatra.provenance.json` as `machine`, with the `id` of the provider
+that answered and the configured model. A provider from your own `createProvider` is recorded
+under its own `id`, and without the model when that `id` differs from the configured one. A corrupt provenance file throws `PROVENANCE_FILE_INVALID` before the provider is called.
+
+<AvailableFrom version="0.12.0" />
+
+A key whose current value a person wrote, imported, or changed outside verbatra throws `KEY_PROTECTED` inside the write lock, before the provider is called, unless `includeHuman: true` is passed or the config sets `humanEdits: "overwrite"`. When the provenance file is from a newer verbatra, any existing value counts as protected. A key matching `pinnedKeys` throws `KEY_PINNED` before the provider is constructed, even with `includeHuman`.
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+Records that a person reviewed one key's current value in one locale and accepts it. It writes only
+`verbatra.provenance.json`, never a locale file or the lock file, and calls no provider. The
+approval also stores the lock file's source hash for the key, so it reads as unreviewed again once
+the source changes; any later write that changes the value starts a fresh, unreviewed record.
+
+Input: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` is the text the
+reviewer saw: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
+and `REVIEW_SOURCE_CHANGED` when the source changed since the value was written. `reviewer` is
+optional free text of at most 64 characters with no control characters (`REVIEWER_INVALID`
+otherwise), stored in the committed file and never filled in by verbatra. Returns
+`{ locale, key, provenance }`. A value with no record yet, or one changed outside verbatra, is
+recorded with the origin `unknown`.
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+Records that a person reviewed one key's current value in one locale and refuses it, and removes
+that value so it gets replaced. The key is dropped from the locale file and its lock entry is
+removed, so `check` and `diff` report it as missing and the next `translate` fills it again (under
+`provider: { id: "none" }` it stays missing until someone writes a value). The provenance record is
+kept as `rejected` with a hash of the removed text, and the matching translation-memory entry on
+this machine is dropped. A later `translate` skips any exact or fuzzy memory hit for the key whose
+text matches that hash, so another machine's memory cannot bring the text back either. Calls no
+provider.
+
+Input: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, checked like `approveEntry`
+except that a stale source does not block a rejection. Returns `{ locale, key, provenance }`. A
+format that keeps a key it was not given, XLIFF, throws `REVIEW_REJECT_UNSUPPORTED` after
+restoring the file.
+
+Both calls take the locale's write lock. `lockAcquireTimeoutMs` bounds the wait for it (ten
+minutes by default) and fails with `LOCK_CONTENDED` once it runs out, and `onLockWait` reports that
+wait; a value that is not a whole number of milliseconds of at least 0 throws `LOCK_TIMEOUT_INVALID`
+before anything is read. The timeout does not bound the lock-file guard taken to record the
+decision, which always allows the ten-minute default.
+
+Both calls check the provenance file before anything is written and never report a decision they
+could not save: a file from a newer verbatra, or one the decision would grow past the size verbatra
+reads back, throws `PROVENANCE_FILE_UNWRITABLE`.
+
+## Batch review and retranslation
+
+<AvailableFrom version="0.12.0" />
+
+Each of these runs the matching single-key call once per entry, in the order given, and returns
+`{ results }` with one outcome per entry in that order. An entry that fails does not stop the
+batch: its outcome is `{ locale, key, ok: false, code, message }`, carrying the code of the
+`SdkError`, adapter error, or `ProviderError` that stopped it and a redacted message, and the next
+entry runs. Any other error stops the batch with a `BatchInterruptedError` that carries the
+outcomes of the entries already carried out, whose writes are on disk. An empty `entries` list
+returns an empty `results`.
+
+### approveEntries
+
+Input: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Runs `approveEntry` per entry with the same checks; `reviewer` applies to every entry. A successful
+outcome is `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` bounds each entry's
+wait for its locale's write lock, and `onLockWait` reports that wait. An entry whose lock stays
+taken past the timeout fails with `LOCK_CONTENDED`, and every later entry that needs the same lock
+gets `{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }` instead of
+waiting again; entries of other locales are still decided. The single-entry `approveEntry` and
+`rejectEntry` take the same two options.
+
+### rejectEntries
+
+Input: the same as `approveEntries`. Runs `rejectEntry` per entry, removing each rejected value. A
+successful outcome is `{ ok: true, locale, key, provenance }`. A lock timeout skips the later entries
+needing that lock, as in `approveEntries`.
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Input: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. Approves
+a locale's whole review queue, or only its values with one of `origins`, in one write of
+`verbatra.provenance.json`, under the locale's write lock. Each approval is recorded as
+`approveEntry` records one, with the source hash it was given against. It takes no expected value:
+it approves what the queue holds when it runs, so show the reviewer the queue first. Returns
+`{ locale, approved, sourceChanged }`: the keys approved, and the queued keys left unreviewed because
+their source changed since they were written. It writes only the provenance file, calls no provider,
+and fails with `PROVENANCE_FILE_UNWRITABLE` rather than report approvals it could not save.
+
+### retranslateEntries
+
+Input: `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
+Runs `retranslateEntry` per entry, so it makes up to one provider call per entry. It is not a
+`translate` run: `maxTokens` and `budgetBehavior` do not apply, and the number of entries is the
+only bound on what it spends. A completed outcome is `{ ok: true, locale, key, result }`, where
+`result` is what `retranslateEntry` returned, including a value the integrity gate refused. A value
+a person wrote fails with `KEY_PROTECTED` unless `includeHuman: true` is passed.
+`lockAcquireTimeoutMs` bounds each entry's wait for its locale's write lock, before the provider
+is called, and `onLockWait` reports that wait.
+
+<AvailableFrom version="0.12.0" />
+
+An error that would fail every entry alike stops the provider calls: `MISSING_API_KEY`,
+`AUTH_FAILED`, `RATE_LIMITED` (which covers an exhausted quota), `NETWORK_POLICY_VIOLATION`,
+`PROVIDER_CONSTRUCTION_FAILED`, `CONFIG_INVALID`, or `MACHINE_TRANSLATION_DISABLED`. The entry that
+hit it fails as usual, and every entry after it gets `{ locale, key, ok: false, skipped: true,
+code, message }` naming that code, without another provider call.
+
+An entry whose locale's write lock stays taken past `lockAcquireTimeoutMs` fails with
+`LOCK_CONTENDED`, and every later entry that needs the same lock is skipped the same way with that
+code instead of waiting again: the entries of that locale, or of every locale for a format that
+keeps all locales in one file. Entries of other locales still run.
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+Thrown by `approveEntries`, `rejectEntries`, and `retranslateEntries` when an error that is not the
+outcome of one entry, such as an unexpected file-system failure, stops a batch part way. `results`
+holds the outcomes of the entries completed before it, in order, `entry` names the `{ locale, key }`
+that was running, and `cause` is the original error. Entries after `entry` did not run.

@@ -127,7 +127,7 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
 }
 ```
 
-Sale con `0`. Cada lista por locale está presente aunque esté vacía, así que un agente puede acceder a ella sin comprobar antes. Una ejecución real añade un objeto `usage` a cada locale y al resumen cuando el proveedor informa de consumo; un dry run nunca lo hace, porque no hace ninguna llamada. La anatomía completa de un `LocaleSummary` está en la [referencia del SDK](/docs/sdk).
+Sale con `0`. Cada lista por locale está presente aunque esté vacía, así que un agente puede acceder a ella sin comprobar antes. Una ejecución real añade un objeto `usage` a cada locale y al resumen cuando el proveedor informa de consumo; un dry run nunca lo hace, porque no hace ninguna llamada. La anatomía completa de un `LocaleSummary` está en la [referencia del SDK](/docs/sdk/run-summary).
 
 Cuando una ejecución no puede ni empezar, en su lugar hay un registro de error y el comando sale con `2`:
 
