@@ -1,6 +1,7 @@
 import type * as PageTree from "fumadocs-core/page-tree";
 import { i18n } from "@/lib/i18n";
 import { markdownUrl } from "@/lib/markdown-route";
+import { PAGE_TYPES } from "@/lib/page-type";
 import { SITE_URL } from "@/lib/site";
 import { source } from "@/lib/source";
 import { SUPPORTED_AGENT_CLIENTS } from "@/lib/structured-data";
@@ -83,7 +84,7 @@ verbatra is open source and MIT licensed. You maintain one source locale; on eac
 
 ## For AI agents
 
-- Every page below links to its Markdown source. Append \`.md\` to any docs URL, or send \`Accept: text/markdown\`, to get Markdown instead of HTML. The full text of every page is at ${SITE_URL}/llms-full.txt.
+- Every page below links to its Markdown source. Append \`.md\` to any docs URL, or send \`Accept: text/markdown\`, to get Markdown instead of HTML. The full text of every page is at ${SITE_URL}/llms-full.txt. Each page there and each Markdown response opens with YAML frontmatter naming its title, description, and page type (one of ${PAGE_TYPES.join(", ")}), so you can tell a walkthrough from the authoritative reference.
 - MCP server: \`npx -y @verbatra/mcp\` (or \`verbatra mcp\`) serves a verbatra project over stdio to ${SUPPORTED_AGENT_CLIENTS.join(", ")}, and any other stdio client. Tools that call a paid provider stay off the tool list until spending is granted with \`--allow-spend\` or \`VERBATRA_MCP_ALLOW_SPEND\`. Client setup: ${SITE_URL}/docs/connect-an-mcp-client.md
 - Skills and Claude Code plugin: https://github.com/verbatra/skills
 - Free and read-only: \`check\`, \`diff\`, \`doctor\`, \`translate --dry-run\`. Spends provider tokens: \`translate\`, \`watch\`. Ask the person before a spending run, and never read or print an API key value.

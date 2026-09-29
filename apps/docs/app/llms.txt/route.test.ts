@@ -77,4 +77,8 @@ describe("llms.txt", () => {
     expect(body).toContain("npx -y @verbatra/mcp");
     expect(body).toContain("Accept: text/markdown");
   });
+
+  it("tells an agent every page type a Markdown response can declare", () => {
+    expect(body).toContain("page type (one of overview, tutorial, how-to, concept, reference)");
+  });
 });
