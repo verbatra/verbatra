@@ -1236,10 +1236,15 @@ under), and `supportedFormats` (the closed set of format ids). Read the token-li
 `providerTokenLimitKeys` rather than assuming one: Anthropic calls it `maxTokens` and the others
 `maxOutputTokens`, the schema validates each provider's options strictly, and DeepL and Google Cloud
 Translation have no entry because they take no token limit. The `ScaffoldableProviderId` type is
-`Exclude<ProviderId, "openai-compatible" | "none">`, so it covers the five hosted providers;
-`openai-compatible` is excluded because it has no single required environment variable.
+`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`, so it covers every provider
+that needs nothing but its id; `openai-compatible` and `libretranslate` are excluded because each
+needs a `baseUrl` only you can supply and neither has a required environment variable.
 
 `scaffoldingMetadata.humanOnlyProviderId` is `"none"`, the id that disables machine translation. It has no `providerEnv` entry, since it reads no key.
+
+<AvailableFrom version="0.12.0" />
+
+`scaffoldingMetadata.libreTranslateKeyEnv` is `"LIBRETRANSLATE_API_KEY"`, the variable a `libretranslate` provider reads its key from. It is optional: a server started without `--api-keys` needs none, so a generator should leave it unset.
 
 `scaffoldingMetadata.openAiCompatibleKeyEnv` is `"OPENAI_COMPATIBLE_API_KEY"`, the variable an `openai-compatible` provider reads when its options name no `apiKeyEnvVar`. `scaffoldingMetadata.configSearchPlaces` lists every file name `loadConfig` searches for a config, in the order it checks them; a generator writing `verbatra.config.ts` should refuse when another of them already exists, since the first one found wins.
 

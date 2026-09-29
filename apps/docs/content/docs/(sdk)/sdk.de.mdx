@@ -1349,10 +1349,15 @@ Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt)
 `providerTokenLimitKeys`, statt einen anzunehmen: Anthropic nennt ihn `maxTokens`, die anderen
 `maxOutputTokens`, das Schema validiert die Optionen jedes Providers strikt, und DeepL und Google Cloud
 Translation haben keinen Eintrag, weil sie kein Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
-`Exclude<ProviderId, "openai-compatible" | "none">` und deckt damit die fünf gehosteten Provider ab;
-`openai-compatible` ist ausgenommen, weil es keine einzelne verpflichtende Umgebungsvariable hat.
+`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` und deckt damit jeden Provider ab, der nur
+seine Id braucht; `openai-compatible` und `libretranslate` sind ausgenommen, weil beide eine `baseUrl`
+brauchen, die nur du kennst, und keiner eine verpflichtende Umgebungsvariable hat.
 
 `scaffoldingMetadata.humanOnlyProviderId` ist `"none"`, die ID, die Maschinenübersetzung abschaltet. Sie hat keinen Eintrag in `providerEnv`, weil sie keinen Key liest.
+
+<AvailableFrom version="0.12.0" />
+
+`scaffoldingMetadata.libreTranslateKeyEnv` ist `"LIBRETRANSLATE_API_KEY"`, die Variable, aus der ein `libretranslate`-Provider seinen Key liest. Sie ist optional: Ein Server, der ohne `--api-keys` gestartet wurde, braucht keinen, ein Generator sollte sie also nicht setzen.
 
 `scaffoldingMetadata.openAiCompatibleKeyEnv` ist `"OPENAI_COMPATIBLE_API_KEY"`, die Variable, die ein `openai-compatible`-Provider liest, wenn seine Optionen kein `apiKeyEnvVar` nennen. `scaffoldingMetadata.configSearchPlaces` listet jeden Dateinamen, unter dem `loadConfig` nach einer Konfiguration sucht, in der Reihenfolge, in der es sie prüft; ein Generator, der `verbatra.config.ts` schreibt, sollte ablehnen, wenn eine andere davon schon existiert, weil die zuerst gefundene gewinnt.
 
