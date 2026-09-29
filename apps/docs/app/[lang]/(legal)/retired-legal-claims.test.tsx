@@ -36,6 +36,27 @@ interface RetiredClaim {
 
 const RETIRED_CLAIMS: readonly RetiredClaim[] = [
   {
+    claim: "liability disclaimer for own content",
+    pattern: /Haftung für Inhalte|§\s*7\s*Abs\.\s*1\s*DDG|§§\s*8\s*bis\s*10\s*DDG/,
+    sample: "Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene Inhalte verantwortlich.",
+  },
+  {
+    claim: "liability disclaimer for external links",
+    pattern: /Haftung für Links|zum Zeitpunkt der Verlinkung/,
+    sample: "Haftung für Links",
+  },
+  {
+    claim: "copyright clause requiring written consent despite the MIT license",
+    pattern: /schriftlichen Zustimmung|jede Art der Verwertung/,
+    sample: "bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers",
+  },
+  {
+    claim: "German law requires the imprint in German",
+    pattern:
+      /required by German law|nach deutschem Recht erforderlich|exige la ley alemana|l'exige la loi allemande/,
+    sample: "This legal notice (Impressum) is provided in German as required by German law.",
+  },
+  {
     claim: "commercial imprint basis under § 5 DDG",
     pattern: /§\s*5\s*DDG/,
     sample: "Angaben gemäß § 5 DDG",

@@ -44,14 +44,32 @@ describe("imprint page: non-commercial provider details", () => {
     const headings = Array.from(doc.querySelectorAll("h2"), (node) => node.textContent);
     const details = doc.querySelector("h2")?.nextElementSibling?.textContent ?? "";
 
-    expect(headings).toEqual([
-      "Angaben gemäß § 18 Abs. 1 MStV",
-      "Haftung für Inhalte",
-      "Haftung für Links",
-      "Urheberrecht",
-    ]);
+    expect(headings).toEqual(["Angaben gemäß § 18 Abs. 1 MStV", "Hinweis", "Lizenz"]);
     expect(details).toContain("Mario Kreitz");
     expect(details).toContain("70378 Stuttgart");
     expect(details).toContain("info@kreitz-webdev.de");
   });
+});
+
+describe("imprint page: non-commercial notice and license", () => {
+  it.each(["en", "de", "es", "fr"])(
+    "states the non-commercial basis and links the MIT license for %s readers",
+    async (lang) => {
+      const page = await ImprintPage({ params: Promise.resolve({ lang }) });
+      const doc = new DOMParser().parseFromString(renderToStaticMarkup(page), "text/html");
+      const text = doc.body.textContent?.replace(/\s+/g, " ") ?? "";
+      const license = Array.from(doc.querySelectorAll("a")).find(
+        (link) => link.textContent === "MIT-Lizenz",
+      );
+
+      expect(text).toContain(
+        "Diese Website ist die Dokumentation des nicht-kommerziellen Open-Source-Projekts verbatra.",
+      );
+      expect(text).toContain("Es werden keine Waren oder Dienstleistungen gegen Entgelt angeboten");
+      expect(text).toContain("Der Quellcode von verbatra steht unter der MIT-Lizenz.");
+      expect(license?.getAttribute("href")).toBe(
+        "https://github.com/verbatra/verbatra/blob/main/LICENSE",
+      );
+    },
+  );
 });
