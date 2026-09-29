@@ -3,6 +3,22 @@ import { createMDX } from "fumadocs-mdx/next";
 import createNextIntlPlugin from "next-intl/plugin";
 import { securityHeaders } from "./lib/security-headers.mjs";
 
+export const MOVED_DOCS_PAGES = {
+  testing: "translation-safety",
+  "your-first-translation": "quickstart",
+};
+
+function movedDocsPageRedirects(from, to) {
+  return ["", ".md"].flatMap((suffix) => [
+    { source: `/docs/${from}${suffix}`, destination: `/docs/${to}${suffix}`, permanent: true },
+    {
+      source: `/:locale(de|es|fr)/docs/${from}${suffix}`,
+      destination: `/:locale/docs/${to}${suffix}`,
+      permanent: true,
+    },
+  ]);
+}
+
 const config = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -23,16 +39,7 @@ const config = {
         destination: "https://verbatra.kreitz-webdev.de/:path*",
         permanent: true,
       },
-      {
-        source: "/docs/testing",
-        destination: "/docs/translation-safety",
-        permanent: true,
-      },
-      {
-        source: "/:locale(de|es|fr)/docs/testing",
-        destination: "/:locale/docs/translation-safety",
-        permanent: true,
-      },
+      ...Object.entries(MOVED_DOCS_PAGES).flatMap(([from, to]) => movedDocsPageRedirects(from, to)),
     ];
   },
   async headers() {

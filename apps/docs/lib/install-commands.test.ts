@@ -45,7 +45,7 @@ describe("landing install commands", () => {
   });
 
   it("use the npm command the first-translation guide installs with", () => {
-    expect(docsFile("content/docs/(get-started)/your-first-translation.mdx")).toContain(
+    expect(docsFile("content/docs/(get-started)/quickstart.mdx")).toContain(
       `\`\`\`npm\n${NPM_INSTALL_COMMAND}\n\`\`\``,
     );
   });

@@ -58,7 +58,7 @@ export async function LandingHero(): Promise<ReactNode> {
             className="mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-3"
           >
             <Button
-              href={localizedPath(locale, "/docs/your-first-translation")}
+              href={localizedPath(locale, "/docs/quickstart")}
               variant="primary"
               size="lg"
               className="shadow-[0_10px_34px_-12px_color-mix(in_srgb,var(--v-purple)_85%,transparent)]"
