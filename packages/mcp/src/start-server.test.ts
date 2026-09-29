@@ -11,7 +11,9 @@ import {
   defaultAdapterRegistry,
   makeProject,
   makeStubProvider,
+  makeTempDir,
   nodeFs,
+  staticProject,
   writeJsonFile,
 } from "./test-support.js";
 
@@ -93,7 +95,40 @@ describe("startMcpServer", () => {
     }
   });
 
-  it("propagates a config-not-found error rather than swallowing it", async () => {
+  it.each([
+    [false, "off"],
+    [true, "no-config"],
+  ] as const)(
+    "starts unconfigured in a directory without a config (allowSpend %s, spend %s) and logs why",
+    async (allowSpend, expected) => {
+      const dir = await makeTempDir();
+      const lines: string[] = [];
+
+      const handle = await startMcpServer({
+        cwd: dir,
+        allowSpend,
+        onLog: (line) => lines.push(line),
+      });
+      await handle.close();
+
+      expect(handle.configured).toBe(false);
+      expect(handle.spend).toBe(expected);
+      expect(lines).toEqual([
+        expect.stringMatching(/^Running without a usable project config: CONFIG_NOT_FOUND: /),
+      ]);
+    },
+  );
+
+  it("reports configured: true when the config loads", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({ cwd: dir, configPath });
+    await handle.close();
+
+    expect(handle.configured).toBe(true);
+  });
+
+  it("propagates a config-not-found error for a missing explicit configPath rather than swallowing it", async () => {
     const dir = await makeProject({ greeting: "Hello" });
 
     await expect(
@@ -154,7 +189,10 @@ describe("stdio transport: stdout purity", () => {
     const serverToClient = new PassThrough();
 
     const transport = new StdioServerTransport(clientToServer, serverToClient);
-    const server = await connectMcpServer({ config: baseLoadedConfig(), cwd: dir }, transport);
+    const server = await connectMcpServer(
+      { project: staticProject(baseLoadedConfig()), cwd: dir },
+      transport,
+    );
 
     const chunks: Buffer[] = [];
     const expectedResponseIds = new Set([1, 2, 3, 4]);

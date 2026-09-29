@@ -1,12 +1,7 @@
 import type { Readable } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  type CreateProvider,
-  isMachineTranslationEnabled,
-  loadConfigWithMeta,
-  redact,
-  type VerbatraConfig,
-} from "@verbatra/sdk";
+import { type CreateProvider, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
+import { type McpProjectState, openProjectSession } from "./project-session.js";
 import { connectMcpServer } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
 import type { McpSpendState } from "./session-banner.js";
@@ -22,21 +17,24 @@ export interface StartMcpServerOptions {
    */
   readonly cwd?: string;
   /**
-   * An explicit config file to load instead of searching for one. A path that does not exist fails
-   * startup rather than falling back to the search.
+   * An explicit config file to load instead of searching for one. A path that does not exist at
+   * startup fails startup rather than falling back to the search. A file that exists but is invalid,
+   * or that is removed later, puts the server in unconfigured mode instead.
    */
   readonly configPath?: string;
   /**
    * Whether to advertise the provider-spending tools, `translation.retranslateEntry` and
    * `translation.translatePending`. When off, the default, they are absent from the tool list and a
    * call to either is rejected as an unknown tool. A config whose provider is `none` disables
-   * machine translation by policy, and then they are absent even when this is on.
+   * machine translation by policy, and then they are absent even when this is on, as they are while
+   * no usable config is loaded. It is fixed for the life of the server: a config change can hide
+   * them, never add them when this is off.
    */
   readonly allowSpend?: boolean;
   /**
-   * File-system port the server reads and writes the project through: the config's glossary file
-   * at startup and every file the tools touch afterwards. The config file itself is always read
-   * from the real file system. Defaults to the real file system.
+   * File-system port the server reads and writes the project through: the config's glossary file,
+   * each time the config is loaded, and every file the tools touch. The config file itself is always
+   * read, and checked for changes, on the real file system. Defaults to the real file system.
    */
   readonly fs?: McpToolContext["fs"];
   /** Format-adapter registry the tools resolve the configured format with. Defaults to the built-in registry. */
@@ -48,8 +46,10 @@ export interface StartMcpServerOptions {
   readonly createProvider?: CreateProvider;
   /**
    * Receives one diagnostic line, already redacted, for each tool call that fails, is rejected
-   * because a matching call is still in progress, or names an unknown tool. Never called for a
-   * successful call. Omit it to discard them.
+   * because a matching call is still in progress, or names an unknown tool, and one line each time
+   * the project config is loaded again after a change or fails to load: at startup when the server
+   * starts without a usable config, and whenever that error changes. Never called for a successful
+   * call. Omit it to discard them.
    */
   readonly onLog?: (line: string) => void;
 }
@@ -69,10 +69,18 @@ export interface McpServerHandle {
    */
   readonly closed: Promise<void>;
   /**
-   * Whether the server advertises the provider-spending tools, and why not: `off` without
-   * `allowSpend`, `provider-none` when spending was allowed but the config's provider is `none`.
+   * Whether the server advertised the provider-spending tools at startup, and why not: `off`
+   * without `allowSpend`, `provider-none` when spending was allowed but the config's provider is
+   * `none`, `no-config` when spending was allowed but no usable config was loaded.
    */
   readonly spend: McpSpendState;
+  /**
+   * Whether a usable project config was loaded at startup. When `false` the server runs in
+   * unconfigured mode: `project.snapshot` reports `configured: false`, `project.doctor` explains
+   * what to fix, every other tool refuses with the config error, and the server loads the config on
+   * the first call after it becomes valid, without a restart.
+   */
+  readonly configured: boolean;
 }
 
 /**
@@ -81,6 +89,12 @@ export interface McpServerHandle {
  * the client closes stdin, which settles the handle's `closed` promise. Use this to embed the server
  * in your own process; the `verbatra mcp` CLI command and the `verbatra-mcp` binary both call it.
  *
+ * A missing or invalid config does not stop the server: it starts in unconfigured mode (see
+ * {@link McpServerHandle.configured}). Before each request it checks whether the config file, any
+ * file the config search would find, or the glossary file changed, and loads the config again when
+ * one did, so an edit takes effect without a restart. A call already running keeps the config it
+ * started with.
+ *
  * Nothing but valid MCP protocol messages is ever written to stdout; pass `onLog` to receive
  * per-call diagnostics, which the caller is responsible for writing to stderr.
  *
@@ -88,10 +102,7 @@ export interface McpServerHandle {
  * advertised, and optional dependency injection seams.
  * @returns A handle whose `close()` stops the server and releases the stdio transport.
  *
- * @throws {@link SdkError} `CONFIG_NOT_FOUND`: no config was found by search, or the explicit
- * `configPath` does not exist.
- * @throws {@link SdkError} `CONFIG_INVALID`: the config could not be loaded or fails validation, or
- * its glossary file is missing, oversized, not UTF-8, not valid JSON, or not a flat string map.
+ * @throws {@link SdkError} `CONFIG_NOT_FOUND`: the explicit `configPath` does not exist at startup.
  *
  * @example
  * ```ts
@@ -105,17 +116,19 @@ export async function startMcpServer(
   options: StartMcpServerOptions = {},
 ): Promise<McpServerHandle> {
   const cwd = resolveServerCwd(options.cwd);
-  const loaded = await loadConfigWithMeta({
+  const project = await openProjectSession({
     cwd,
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
+    ...(options.onLog !== undefined ? { onLog: options.onLog } : {}),
   });
+  const initial = project.latest();
 
   const input = process.stdin;
   const transport = new StdioServerTransport(input, process.stdout);
   const server = await connectMcpServer(
     {
-      config: loaded,
+      project,
       cwd,
       allowSpend: options.allowSpend ?? false,
       ...(options.fs !== undefined ? { fs: options.fs } : {}),
@@ -132,15 +145,19 @@ export async function startMcpServer(
   return {
     close: () => server.close(),
     closed,
-    spend: spendState(options.allowSpend ?? false, loaded.config),
+    spend: spendState(options.allowSpend ?? false, initial),
+    configured: initial.kind === "configured",
   };
 }
 
-function spendState(allowSpend: boolean, config: VerbatraConfig): McpSpendState {
+function spendState(allowSpend: boolean, state: McpProjectState): McpSpendState {
   if (!allowSpend) {
     return "off";
   }
-  return isMachineTranslationEnabled(config) ? "on" : "provider-none";
+  if (state.kind === "unconfigured") {
+    return "no-config";
+  }
+  return isMachineTranslationEnabled(state.loaded.config) ? "on" : "provider-none";
 }
 
 interface ClosableServer {

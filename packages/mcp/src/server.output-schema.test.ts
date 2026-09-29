@@ -14,6 +14,7 @@ import {
   baseVerbatraConfig,
   makeProject,
   nodeFs,
+  staticProject,
   writeJsonFile,
 } from "./test-support.js";
 import type { McpServerOptions } from "./types.js";
@@ -61,14 +62,16 @@ async function richProjectOptions(): Promise<McpServerOptions> {
   const glossaryPath = join(dir, "glossary.json");
   await writeJsonFile(glossaryPath, { API: "API" });
   return {
-    config: baseLoadedConfig({
-      config: baseVerbatraConfig({
-        targetLocales: ["de", "fr"],
-        maxTokens: 100_000,
-        pinnedKeys: ["farewell"],
+    project: staticProject(
+      baseLoadedConfig({
+        config: baseVerbatraConfig({
+          targetLocales: ["de", "fr"],
+          maxTokens: 100_000,
+          pinnedKeys: ["farewell"],
+        }),
+        glossary: { source: "file", path: glossaryPath },
       }),
-      glossary: { source: "file", path: glossaryPath },
-    }),
+    ),
     cwd: dir,
     allowSpend: true,
     fs: nodeFs,
@@ -78,6 +81,7 @@ async function richProjectOptions(): Promise<McpServerOptions> {
 
 const CALLS_IN_ORDER: readonly { name: string; arguments: Record<string, unknown> }[] = [
   { name: "project.snapshot", arguments: {} },
+  { name: "project.doctor", arguments: {} },
   { name: "lock.state", arguments: {} },
   { name: "review.queue", arguments: {} },
   { name: "usage.summary", arguments: {} },
@@ -145,7 +149,7 @@ describe("createMcpServer: output schemas", () => {
 
     const { tools } = await client.listTools();
 
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(15);
     for (const tool of tools) {
       expect(tool.outputSchema?.type, tool.name).toBe("object");
     }

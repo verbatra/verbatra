@@ -1,3 +1,4 @@
+import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { baseLoadedConfig, baseVerbatraConfig, makeContext } from "../test-support.js";
 import { projectSnapshotTool } from "./project-snapshot.js";
@@ -88,6 +89,53 @@ describe("project.snapshot", () => {
       expect(outcome).toMatchObject({ kind: "ok" });
       const text = JSON.stringify(outcome);
       expect(text).not.toContain("leaked-secret-value");
+    });
+  });
+
+  it("reports configured: true alongside the config", async () => {
+    const outcome = await projectSnapshotTool.execute({}, makeContext());
+
+    expect(outcome).toMatchObject({ kind: "ok", result: { configured: true } });
+  });
+
+  it("reports configured: false with the load error and a pointer to project.doctor", async () => {
+    const outcome = await projectSnapshotTool.executeUnconfigured?.(
+      {},
+      {
+        cwd: "/project",
+        configError: new SdkError(
+          "CONFIG_INVALID",
+          "The verbatra configuration is invalid: /project/verbatra.config.ts has a syntax error",
+        ),
+      },
+    );
+
+    expect(outcome).toEqual({
+      kind: "ok",
+      result: {
+        configured: false,
+        configProblem: {
+          code: "CONFIG_INVALID",
+          message:
+            "CONFIG_INVALID: The verbatra configuration is invalid: verbatra.config.ts has a syntax error",
+        },
+        nextStep: expect.stringContaining("project.doctor"),
+      },
+    });
+  });
+
+  it("reports an unexpected load failure as CONFIG_INVALID", async () => {
+    const outcome = await projectSnapshotTool.executeUnconfigured?.(
+      {},
+      { cwd: "/project", configError: new Error("EACCES: permission denied") },
+    );
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        configured: false,
+        configProblem: { code: "CONFIG_INVALID", message: "EACCES: permission denied" },
+      },
     });
   });
 

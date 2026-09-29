@@ -4,6 +4,7 @@ export {
   mcpReadyLine,
   mcpStoppedLine,
   mcpTerminalHint,
+  mcpUnconfiguredHint,
   projectLabel,
 } from "./session-banner.js";
 export type { McpServerHandle, StartMcpServerOptions } from "./start-server.js";

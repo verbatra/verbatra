@@ -5,6 +5,7 @@ import { glossaryGetTool, glossaryWriteTool } from "./glossary.js";
 import { keyIntegrityTool } from "./key-integrity.js";
 import { keyValueTool } from "./key-value.js";
 import { lockStateTool } from "./lock-state.js";
+import { projectDoctorTool } from "./project-doctor.js";
 import { projectSnapshotTool } from "./project-snapshot.js";
 import { retranslateEntryTool } from "./retranslate-entry.js";
 import { reviewQueueTool } from "./review-queue.js";
@@ -20,6 +21,7 @@ const SPEND_TOOL_NAMES: ReadonlySet<string> = new Set([
 
 const ALL_TOOLS_IN_ORDER: readonly RegisteredMcpTool[] = [
   projectSnapshotTool,
+  projectDoctorTool,
   statusCheckTool,
   statusDiffTool,
   glossaryGetTool,

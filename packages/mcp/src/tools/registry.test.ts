@@ -3,6 +3,7 @@ import { buildToolRegistry } from "./registry.js";
 
 const EXPECTED_READ_ONLY_ORDER = [
   "project.snapshot",
+  "project.doctor",
   "status.check",
   "status.diff",
   "glossary.get",
@@ -29,11 +30,11 @@ describe("buildToolRegistry", () => {
     }
   });
 
-  it("includes all 14 tools, with the two spend tools present, when spending is allowed", () => {
+  it("includes all 15 tools, with the two spend tools present, when spending is allowed", () => {
     const tools = buildToolRegistry(true);
     const names = tools.map((tool) => tool.name);
 
-    expect(names).toHaveLength(14);
+    expect(names).toHaveLength(15);
     for (const spendTool of SPEND_TOOL_NAMES) {
       expect(names).toContain(spendTool);
     }

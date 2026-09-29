@@ -62,11 +62,12 @@ That configuration is read-only plus local editing: no provider is called and no
 
 ## Tools
 
-Fourteen tools, listed here in the order the server advertises them.
+Fifteen tools, listed here in the order the server advertises them.
 
 | Tool | What it does |
 | --- | --- |
-| `project.snapshot` | Read the resolved project configuration: locales, format, path pattern, provider id, where the config came from, whether a glossary is configured |
+| `project.snapshot` | Read the resolved project configuration: whether a usable config is loaded (`configured`), locales, format, path pattern, provider id, where the config came from, whether a glossary is configured |
+| `project.doctor` | Check the project setup (config, format, provider, API key variable by name, network policy, source file) and get a `fix` for every failed check, with or without a usable config |
 | `status.check` | Per target locale, how many keys are missing, stale, or up to date, and whether the locale is in sync |
 | `status.diff` | Per target locale, the exact keys the next translate run would add, re-translate, or orphan |
 | `glossary.get` | Every glossary term with its translation for all locales, per-locale translations, forbidden renderings, case sensitivity, note and part of speech, the terms kept untranslated, the glossary version and where it comes from; with `locale`, also the terms that locale is held to |
@@ -84,6 +85,8 @@ Fourteen tools, listed here in the order the server advertises them.
 `translation.retranslateEntry` and `translation.translatePending` are the two that call a provider and spend budget. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, a client listing tools never sees them and calling one by name fails as an unknown tool: the gate is per process, so a spend tool is structurally uncallable rather than refused at call time.
 
 Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against. Every result and log line passes through a secret-redaction pass first, so a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it reaches the client or stderr.
+
+The server starts even without a usable config: `project.snapshot` then reports `configured: false`, `project.doctor` says what to fix, and every other tool refuses with the config error. Before each call it checks the config file and its glossary file for changes and loads them again, so creating or editing the config needs no restart. `--allow-spend` is fixed at startup, and a config change never widens it.
 
 See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) for the full tool reference, the exit-code contract, and worked examples.
 

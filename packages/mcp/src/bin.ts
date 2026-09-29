@@ -3,7 +3,13 @@ import { redact, releaseHeldLocks, SdkError } from "@verbatra/sdk";
 import { BIN_NAME, type BinOptions, BinUsageError, HELP_TEXT, parseArgs } from "./bin-args.js";
 import { resolveServerCwd, startMcpServer } from "./index.js";
 import { readPackageManifest } from "./package-manifest.js";
-import { mcpReadyLine, mcpStoppedLine, mcpTerminalHint, projectLabel } from "./session-banner.js";
+import {
+  mcpReadyLine,
+  mcpStoppedLine,
+  mcpTerminalHint,
+  mcpUnconfiguredHint,
+  projectLabel,
+} from "./session-banner.js";
 import { createShutdown } from "./shutdown.js";
 
 const STANDALONE_LAUNCH = ["-y", "@verbatra/mcp"] as const;
@@ -35,6 +41,11 @@ async function serve(options: BinOptions): Promise<void> {
 
   const project = projectLabel(resolveServerCwd(options.cwd), process.cwd());
   logToStderr(mcpReadyLine(project, handle.spend));
+  if (!handle.configured) {
+    for (const line of mcpUnconfiguredHint()) {
+      logToStderr(line);
+    }
+  }
   if (process.stdin.isTTY === true) {
     for (const line of mcpTerminalHint(STANDALONE_LAUNCH)) {
       logToStderr(line);

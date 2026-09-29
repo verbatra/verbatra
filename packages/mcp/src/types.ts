@@ -1,8 +1,9 @@
 import type { CheckDeps, CreateProvider, LoadedConfig, SdkFs } from "@verbatra/sdk";
+import type { McpProjectSession } from "./project-session.js";
 
 /** What every MCP tool call runs against: the loaded project and the injected SDK seams. */
 export interface McpToolContext {
-  /** The project config, loaded once at startup and reused by every tool call. */
+  /** The project config as it was when the call started; a later reload never changes it mid-call. */
   readonly config: LoadedConfig;
   /** The project root every tool resolves locale, lock, and glossary paths against. */
   readonly cwd: string;
@@ -14,8 +15,12 @@ export interface McpToolContext {
   readonly createProvider?: CreateProvider;
 }
 
+export interface McpUnconfiguredContext extends Omit<McpToolContext, "config"> {
+  readonly configError: unknown;
+}
+
 export interface McpServerOptions {
-  readonly config: LoadedConfig;
+  readonly project: McpProjectSession;
   readonly cwd: string;
   readonly allowSpend?: boolean;
   readonly fs?: McpToolContext["fs"];

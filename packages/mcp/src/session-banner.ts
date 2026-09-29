@@ -17,15 +17,16 @@ export type McpLaunchArgs = readonly string[];
 
 /**
  * Whether a server advertises the provider-spending tools: `on`, `off` because spending was not
- * allowed, or `provider-none` because it was allowed but the config's provider is `none`, which
- * never spends.
+ * allowed, `provider-none` because it was allowed but the config's provider is `none`, which never
+ * spends, or `no-config` because it was allowed but no usable config is loaded yet.
  */
-export type McpSpendState = "on" | "off" | "provider-none";
+export type McpSpendState = "on" | "off" | "provider-none" | "no-config";
 
 const SPEND_LABELS: Readonly<Record<McpSpendState, string>> = {
   on: "spend tools on",
   off: "spend tools off",
   "provider-none": "spend tools off (provider none)",
+  "no-config": "spend tools off until a config loads",
 };
 
 function realPath(path: string): string {
@@ -80,6 +81,21 @@ export function mcpTerminalHint(launch: McpLaunchArgs): readonly string[] {
     `  add it to a client:  command "npx", args [${args}]  (${MCP_DOCS_URL})`,
     `  inspect it:          npx @modelcontextprotocol/inspector npx ${launch.join(" ")}`,
     "Press Ctrl-C to stop.",
+  ];
+}
+
+/**
+ * Builds the stderr lines a stdio MCP server prints after its ready line when it started without a
+ * usable project config: what still works, and how to set the project up. The config error itself
+ * reaches the `onLog` callback of {@link startMcpServer}.
+ *
+ * @returns The hint lines, each without a trailing newline.
+ */
+export function mcpUnconfiguredHint(): readonly string[] {
+  return [
+    "No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.",
+    "  set it up:  npx verbatra init in the project, or fix the config project.doctor names",
+    "  no restart needed: the server loads the config on the next call once it is valid",
   ];
 }
 
