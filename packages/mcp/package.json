@@ -58,7 +58,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/sdk": "1.30.1",
     "@verbatra/sdk": "workspace:*",
     "zod": "catalog:"
   },
