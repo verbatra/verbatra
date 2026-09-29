@@ -18,6 +18,7 @@ import {
   INIT_PROVIDER_IDS,
   type InitProviderId,
   isInitProviderId,
+  LIBRETRANSLATE_PROVIDER,
   OPENAI_COMPATIBLE_PROVIDER,
   type ProviderChoice,
   takesModel,
@@ -233,19 +234,32 @@ function invalidOption(message: string): CliUsageError {
   return new CliUsageError("INVALID_OPTION", message);
 }
 
-function assertProviderFlags(opts: InitOptions, provider: InitProviderId): void {
-  const openAiCompatibleOnly = [
-    ["--base-url", opts.baseUrl],
-    ["--api-key-env-var", opts.apiKeyEnvVar],
-  ] as const;
-  if (provider !== OPENAI_COMPATIBLE_PROVIDER) {
-    const given = openAiCompatibleOnly.filter(([, value]) => value !== undefined);
-    if (given.length > 0) {
-      throw invalidOption(
-        `${given.map(([flag]) => flag).join(" and ")} ${given.length === 1 ? "applies" : "apply"} to --provider ${OPENAI_COMPATIBLE_PROVIDER} only.`,
-      );
-    }
+const BASE_URL_PROVIDERS: readonly InitProviderId[] = [
+  OPENAI_COMPATIBLE_PROVIDER,
+  LIBRETRANSLATE_PROVIDER,
+];
+
+function assertFlagsApply(
+  flags: ReadonlyArray<readonly [string, string | undefined]>,
+  providers: readonly InitProviderId[],
+  provider: InitProviderId,
+): void {
+  const given = flags.filter(([, value]) => value !== undefined);
+  if (given.length === 0 || providers.includes(provider)) {
+    return;
   }
+  throw invalidOption(
+    `${given.map(([flag]) => flag).join(" and ")} ${given.length === 1 ? "applies" : "apply"} to --provider ${providers.join(" or ")} only.`,
+  );
+}
+
+function assertProviderFlags(opts: InitOptions, provider: InitProviderId): void {
+  assertFlagsApply([["--base-url", opts.baseUrl]], BASE_URL_PROVIDERS, provider);
+  assertFlagsApply(
+    [["--api-key-env-var", opts.apiKeyEnvVar]],
+    [OPENAI_COMPATIBLE_PROVIDER],
+    provider,
+  );
   if (opts.model !== undefined && !takesModel(provider)) {
     throw invalidOption(`--model does not apply to --provider ${provider}, which takes no model.`);
   }
@@ -354,6 +368,24 @@ async function resolveOpenAiCompatible(
   };
 }
 
+async function resolveLibreTranslate(
+  opts: InitOptions,
+  session: Session,
+  source: ValueSource,
+): Promise<ProviderAnswer | undefined> {
+  const baseUrl = await pick(session, {
+    flag: "--base-url <url>",
+    value: opts.baseUrl,
+    label: "Base URL of the LibreTranslate server",
+    validate: assertBaseUrl,
+  });
+  if (baseUrl === undefined) {
+    return undefined;
+  }
+  assertNoCredentialsInUrl(baseUrl.value);
+  return { choice: { id: LIBRETRANSLATE_PROVIDER, baseUrl: baseUrl.value }, source };
+}
+
 async function resolveProvider(
   opts: InitOptions,
   session: Session,
@@ -371,6 +403,9 @@ async function resolveProvider(
   assertProviderFlags(opts, id);
   if (id === OPENAI_COMPATIBLE_PROVIDER) {
     return resolveOpenAiCompatible(opts, session, picked.source);
+  }
+  if (id === LIBRETRANSLATE_PROVIDER) {
+    return resolveLibreTranslate(opts, session, picked.source);
   }
   const model = trimmed(opts.model);
   return { choice: model === "" ? { id } : { id, model }, source: picked.source };

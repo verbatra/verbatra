@@ -10,14 +10,18 @@ export const HUMAN_ONLY_PROVIDER = scaffoldingMetadata.humanOnlyProviderId;
 
 export const OPENAI_COMPATIBLE_PROVIDER = "openai-compatible" satisfies ProviderId;
 
+export const LIBRETRANSLATE_PROVIDER = "libretranslate" satisfies ProviderId;
+
 export type InitProviderId =
   | ScaffoldableProviderId
   | typeof OPENAI_COMPATIBLE_PROVIDER
+  | typeof LIBRETRANSLATE_PROVIDER
   | typeof HUMAN_ONLY_PROVIDER;
 
 export const INIT_PROVIDER_IDS: readonly InitProviderId[] = [
   ...(Object.keys(scaffoldingMetadata.providerEnv) as ScaffoldableProviderId[]),
   OPENAI_COMPATIBLE_PROVIDER,
+  LIBRETRANSLATE_PROVIDER,
   HUMAN_ONLY_PROVIDER,
 ];
 
@@ -93,6 +97,9 @@ export function buildProviderOptions(choice: ProviderChoice): Record<string, unk
       ...(choice.apiKeyEnvVar === undefined ? {} : { apiKeyEnvVar: choice.apiKeyEnvVar }),
     };
   }
+  if (choice.id === LIBRETRANSLATE_PROVIDER) {
+    return { baseUrl: choice.baseUrl };
+  }
   if (!isModelProvider(choice.id)) {
     return {};
   }
@@ -109,11 +116,17 @@ export function keyEnvVarFor(choice: ProviderChoice): string | undefined {
   if (choice.id === OPENAI_COMPATIBLE_PROVIDER) {
     return choice.apiKeyEnvVar ?? scaffoldingMetadata.openAiCompatibleKeyEnv;
   }
+  if (choice.id === LIBRETRANSLATE_PROVIDER) {
+    return scaffoldingMetadata.libreTranslateKeyEnv;
+  }
   return scaffoldingMetadata.providerEnv[choice.id];
 }
 
 export function isOptionalKey(choice: ProviderChoice): boolean {
-  return choice.id === OPENAI_COMPATIBLE_PROVIDER && choice.apiKeyEnvVar === undefined;
+  return (
+    choice.id === LIBRETRANSLATE_PROVIDER ||
+    (choice.id === OPENAI_COMPATIBLE_PROVIDER && choice.apiKeyEnvVar === undefined)
+  );
 }
 
 const NO_MODEL_NOTES: Readonly<Partial<Record<InitProviderId, string>>> = {
@@ -121,6 +134,8 @@ const NO_MODEL_NOTES: Readonly<Partial<Record<InitProviderId, string>>> = {
   "google-translate": "    // Google Cloud Translation needs no model.",
   "openai-compatible":
     "    // A local or self-hosted server that speaks the OpenAI chat completions API.",
+  libretranslate:
+    "    // A self-hosted LibreTranslate server: classic machine translation, no language model.",
 };
 
 function optionComment(key: string, choice: ProviderChoice): string | undefined {
