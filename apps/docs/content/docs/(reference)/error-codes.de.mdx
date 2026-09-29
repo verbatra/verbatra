@@ -755,13 +755,217 @@ Mindestens eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memor
 - **Exit-Code**: `1`
 - **Nächster Schritt**: Stelle `verbatra.provenance.json` aus der Versionskontrolle wieder her, oder aktualisiere verbatra, wenn eine neuere Version die Datei geschrieben hat.
 
+## Gründe für Integritätsablehnungen [#integrity-refusal-reasons]
+
+Das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) lehnt einen Kandidatenwert mit genau einem dieser Gründe ab, dem ersten, der in der Reihenfolge `empty`, `icu` (lässt sich nicht parsen), `placeholder`, `markup`, `icu` (Plural-Zweige), `degenerate` zutrifft. Ein abgelehnter Wert wird nie geschrieben: Der Key behält seine Baseline und wird beim nächsten Lauf erneut versucht. Der Grund steht nach `translate`, `watch` und `import` in den `integrityRefusals` einer Locale (`integrity-withheld` in der Ausgabe für Menschen), im Ergebnis von `editEntry` und als Fehler von `check --qa`, oft mit `details`, die nennen, was abweicht. Die Menge wird als Tupel `INTEGRITY_GATE_REASONS` ausgeliefert.
+
+### placeholder
+
+Die Platzhalter des Kandidaten weichen von denen seiner Quelle ab, verglichen als Multimenge: Die Anzahl zählt, die Reihenfolge nicht. Was als Platzhalter gilt, legt jedes [Format](/docs/formats) fest. Bei i18next, ngx-translate und YAML wird auch ein Token der Form `{name}` abgelehnt, das der Kandidat hinzufügt und die Quelle nie hatte, obwohl einfache geschweifte Klammern dort wörtlicher Text sind. Die Details nennen jeden weggelassenen Platzhalter mit `-` und jeden hinzugefügten mit `+`, etwa `-{{name}}` oder `+{{nom}}`.
+
+- **Ausgelöst von**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (als Fehler)
+- **Exit-Code**: `1` aus `translate` und `import`, wenn die Locale teilweise oder fehlgeschlagen endet; `1` aus `check --qa`
+- **Nächster Schritt**: Setze die Platzhalter der Quelle wieder in die Übersetzung ein oder lass den nächsten Lauf sie neu übersetzen.
+
+### markup
+
+Das Inline-HTML- oder -XML-Markup des Kandidaten weicht von dem seiner Quelle ab oder ist nicht wohlgeformt. Die Details nennen jedes Tag hinter der Ablehnung, mit `-` für eines, das die Quelle hatte und der Kandidat weggelassen hat, oder mit `+` für eines, das der Kandidat erfunden hat.
+
+- **Ausgelöst von**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (als Fehler)
+- **Exit-Code**: `1` aus `translate` und `import`, wenn die Locale teilweise oder fehlgeschlagen endet; `1` aus `check --qa`
+- **Nächster Schritt**: Behalte die Tags, Attributnamen und geschützten Attributwerte der Quelle in der Übersetzung bei.
+
+#### Wie Markup verglichen wird
+
+Tags werden als Multimenge aus Tag-Namen plus Attributnamen verglichen, und genau das entscheidet,
+was ein Befund ist:
+
+- Abgelehnt: ein weggelassenes Tag, ein erfundenes Tag, ein umbenanntes Tag, ein geänderter Satz von
+  Attributnamen, Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
+  `<b>a<i>b</b></i>`, sowie ein Tag, das in einem anderen gleichen Namens verschachtelt zurückkommt,
+  obwohl die Quelle sie nebeneinander hatte, denn so werden aus zwei Links still und leise einer.
+- Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
+  verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
+  `href` eine korrekte Übersetzung ist und keine kaputte (innerhalb der weiter unten beschriebenen
+  Grenzen für Attributwerte), und beide Schreibweisen eines leeren Elements, `<br>` und `<br/>` sind
+  dasselbe Tag.
+- Gezählt, nicht nur bemerkt: zwei benachbarte Paare, die zu einem verschmolzen werden
+  (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt, weil der Vergleich eine kosmetische
+  Verschmelzung nicht davon unterscheiden kann, dass zwei Links zu einem werden.
+- Exakt verglichen: Eine Änderung der Groß- und Kleinschreibung ist ein Befund. Die leeren
+  HTML-Elemente (`<br>`, `<img>`, `<hr>` und die übrigen) brauchen in jeder Schreibweise kein
+  schließendes Tag, `<BR>` wird also genauso als leeres Element erkannt wie `<br>`.
+- Abgelehnt, wenn ein Attributname hinzukommt oder wegfällt, also auch, wenn für ein Ziel mit
+  Schreibrichtung von rechts nach links ein `dir`-Attribut ergänzt wird. Attributwerte sind bis auf diese Grenzen frei, die
+  Menge der Namen ist es nicht.
+
+Auch eine Quelle ganz ohne Markup ist gegen hineinerfundenes Markup geschützt. Der Kandidat wird
+abgelehnt für jedes Tag-Paar, jedes leere Element und jedes selbstschließende Tag, das er ergänzt,
+für ein schließendes Tag ohne öffnendes (`Hallo</div>`) und für ein nie geschlossenes öffnendes
+Tag, das mehr als seinen Namen trägt, etwa `<Enter onfocus=...>` oder `<x-key onmouseover=...>`.
+
+Ein nie geschlossenes `<Word>`, das nur aus seinem Namen besteht und dessen Name nur Buchstaben,
+Ziffern, Bindestriche und Unterstriche enthält, ist ein Wort in spitzen Klammern, etwa `<Enter>` in
+`Druecke <Enter>`. Solche Wörter werden auf beiden Seiten beiseitegelegt, bevor die Quelle beurteilt
+wird, eine Quelle mit einem solchen Wort wird also trotzdem verglichen: Ein Kandidat, der neben
+`<Enter>` ein `<b>`-Paar weglässt oder ein `<script>`-Paar erfindet, wird abgelehnt. Sobald die
+Quelle Tags trägt, werden Wörter in spitzen Klammern wie Tags gezählt. Trägt sie keine, gilt ein
+Wort in spitzen Klammern, das der Kandidat ergänzt, als normaler Text und wird angenommen, es sei
+denn, sein Name ist in beliebiger Schreibweise ein Standard-HTML-Element (`Hallo <script>`), lautet
+`image`, woraus ein Parser ein `<img>` macht, oder enthält einen Bindestrich, was ihn zu einem
+Custom Element macht (`Hallo <my-widget>`).
+
+Dieser Namenstest ist bewusst vorsichtig: Ein gewöhnliches Wort, das zufällig ein Elementname ist,
+etwa `<Del>`, `<Option>`, `<Select>`, `<Input>` oder `<Menu>`, wird abgelehnt, wenn eine Übersetzung
+es zu einer Quelle hinzufügt, die es nicht hat. Als Ausweg behältst du das Wort in spitzen Klammern
+auch in deinem Quellstring: Eine Übersetzung, die dieselben Wörter in spitzen Klammern trägt wie ihre
+Quelle, wird angenommen.
+
+Kommentare, CDATA-Abschnitte, Deklarationen und Verarbeitungsanweisungen sind keine Tags, und sie
+werden so gelesen, wie ein HTML-Parser sie liest, denn genau dort landen die Werte. `<!-->` und
+`<!--->` sind vollständige leere Kommentare, ein Kommentar endet beim ersten `-->` oder `--!>`, und
+ein Kommentar ohne Ende verbirgt den Rest des Werts. `<![CDATA[`, `<!DOCTYPE html>`, jedes andere
+`<!...`, `<?...` und ein `</`, auf das etwas anderes als ein Buchstabe folgt, etwa `</1 x>`, enden
+alle beim ersten `>`, während ein leeres `</>` wegfällt, so wie ein Parser es verwirft, und ein
+numerisches schließendes Tag wie `</0>` als Tag verglichen wird. Jedes solche Konstrukt wird als
+Multimenge seines Texts verglichen, wobei Folgen von Leerraum zusammengefasst werden, eines, das der
+Kandidat ergänzt, weglässt oder umschreibt, wird also abgelehnt, auch ein Kommentar, dessen Text
+übersetzt wurde. Tags nach dem Ende eines Konstrukts werden wie gewohnt verglichen,
+`Hallo <![CDATA[><img src=x onerror=...>]]>` wird also sowohl für das Konstrukt als auch für das
+`<img>` abgelehnt.
+
+Auch der Inhalt eines Raw-Text-Elements ist Text, denn so liest ihn ein Parser. Nach einem öffnenden
+`script`-, `style`-, `title`-, `textarea`-, `xmp`-, `iframe`-, `noscript`-, `noembed`- oder
+`noframes`-Tag ist alles bis zu seinem schließenden Tag Text, in beliebiger Schreibweise und gefolgt
+von Leerraum, `/` oder `>`, und nach `<plaintext>` ist alles bis zum Ende des Werts Text. Ein Tag,
+das in einem solchen Element steht, wird nicht verglichen, und ein Attributwert in Anführungszeichen
+kann nicht über das schließende Tag hinwegreichen, um zu verbergen, was folgt:
+`Füge ein <script><b x="</script><img src=x onerror=...>` wird für das `<img>` abgelehnt. Wo ein
+Parser diesen Inhalt auf zwei Arten lesen kann, wird der Kandidat abgelehnt, es sei denn, er ist die
+unveränderte Quelle, mit einem Detail wie `+<noscript>...</noscript>`: ein `script`, dessen Inhalt
+`<!--` öffnet, ein `noscript`, dessen Inhalt ein `<` enthält, weil dann davon abhängt, ob Skripte
+aktiviert sind, wie er gelesen wird, und jedes Raw-Text-Element, dessen Inhalt nach einem `svg`-,
+`math`- oder `select`-Tag ein `<` enthält, denn dort ist es womöglich gar kein Raw Text. Aus
+demselben Grund wird ein CDATA-Abschnitt oder ein `image`-Tag in einem Wert, in dem die Quelle oder
+der Kandidat `svg`, `math` oder `select` öffnet, abgelehnt, es sei denn, der Kandidat ist die
+unveränderte Quelle.
+
+Der Inhalt eines `script`-, `style`-, `iframe`-, `noembed`-, `noframes`-, `noscript`-, `xmp`- oder
+`plaintext`-Elements wird ausgeführt oder gestaltet die Seite, statt angezeigt zu werden, und wird
+deshalb nie übersetzt: Jedes solche Element im Kandidaten muss genau den Inhalt des Elements
+tragen, das in der Quelle an derselben Position unter den Elementen dieses Namens steht, sonst wird
+der Kandidat mit einem Detail wie `+<script> content` abgelehnt. Der Inhalt von `title` und
+`textarea` wird als Text angezeigt und darf übersetzt werden. Damit ist normaler Text, der eines dieser Tags wörtlich
+enthält, nicht übersetzbar, denn in `Add a <script> tag` ist alles nach `<script>` sein Inhalt:
+`Füge ein <script> Tag` wird abgelehnt. Maskiere das Tag stattdessen in der Quelle, als
+`Add a &lt;script&gt; tag`, das ist in jedem Format Text und wird wie jedes andere Wort übersetzt.
+
+Die Prüfung ist bewusst zurückhaltend, liest Tags aber so, wie ein HTML-Parser es tut. Ein Tag
+beginnt bei `<` oder `</`, gefolgt von einem Buchstaben oder, bei einem numerischen Rich-Text-Tag
+wie `<0>`, von Ziffern. Sein Name reicht bis zu Leerraum, `/` oder `>`, und ein Attributwert in
+Anführungszeichen darf `>` enthalten. `5 < 10`, `x <= y` und ein maskiertes `&lt;b&gt;` bleiben also
+normaler Text, während `<support@example.com>` und `<abbr title="a > b">` Tags sind, und ein `<`,
+das sein `>` nie erreicht, stellt nichts dar und ist kein Tag. Ein Kandidat, der ein Tag auf diese
+Weise unvollendet lässt, wird trotzdem abgelehnt, wenn seine Quelle jedes Tag vollendet, mit einem
+Detail, das den unvollendeten Anfang nennt, etwa `+<a`. Eine Quelle, deren eigene Tags fehlerhaft
+sind, wird trotzdem verglichen. Nachdem die Tags, die das Format als Platzhalter meldet, und alle
+Wörter in spitzen Klammern beiseitegelegt sind, gilt eine Quelle als fehlerhaft, wenn sie ein
+öffnendes Tag hat, das nie geschlossen wird (leere Elemente ausgenommen), ein schließendes Tag ohne
+öffnendes oder Tags, die in falscher Reihenfolge geschlossen werden. Normaler Text kann das
+versehentlich auslösen: In `a<b and c>d` ist `<b and c>` ein öffnendes `b`-Tag mit den Attributen
+`and` und `c`, das nie geschlossen wird, die Quelle gilt also als fehlerhaft. Bei einer solchen
+Quelle entfällt nur die Prüfung der Verschachtelung: Ihre Tags werden wie alle anderen als
+Multimenge verglichen, eine Übersetzung, die `a<b and c>d` exakt beibehält, wird also angenommen,
+eine, die daneben ein `<img>` ergänzt, abgelehnt, und ebenso eine, die die Wörter innerhalb der
+Folge übersetzt (`a<b und c>d`), weil ein Parser `und` als neues Attribut liest. Auch ist keine
+Quelle zu groß für den Vergleich. Ein Kandidat wird erst abgelehnt, wenn er mehr als doppelt so
+viele Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256, mit dem
+Detail `+more than N inline tags`, das diese Grenze nennt.
+
+Attributwerte sind frei, mit Ausnahmen, die es gibt, weil ein übersetzter Wert in einer Seite
+landet. Der Wert eines URL-Attributs (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
+`data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive` sowie
+die SVG-Animationsattribute `to`, `from`, `values` und `by`) wird gelesen, nachdem numerische
+Zeichenreferenzen sowie `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` und `&bsol;` dekodiert und Tabs,
+Zeilenumbrüche und umgebende Steuerzeichen ignoriert wurden. Ein `javascript:`-, `vbscript:`- oder
+`data:`-Schema darin wird abgelehnt, es sei denn, die Quelle trägt genau diesen Wert am selben Tag
+und Attribut, mit einem Detail wie `+<a href="javascript:...">`. Darüber hinaus muss jede URL im Wert,
+auch jede URL einer `srcset`-, `ping`-, `archive`- oder `values`-Liste, ein Schema und eine
+Authority (Host und Port oder den Host einer schemarelativen `//host`-URL) behalten, die ein
+Quellwert desselben Tags und Attributs hat, und eine relative URL muss relativ bleiben. `/docs` darf
+also zu `/de/docs` werden und `https://verbatra.dev/en` zu `https://verbatra.dev/de`, aber `/docs`
+darf nicht zu `https://evil.example/docs` oder `//evil.example/docs` werden, und ein lokalisierter
+absoluter Link muss denselben Host behalten; das Detail nennt den neuen Origin, etwa
+`+<a href="https://evil.example...">`, oder `+<a href="./...">` für einen absoluten Link, der
+relativ gemacht wurde. Pfad, Query und Fragment dürfen sich frei ändern. Eine geänderte URL ohne
+explizites Schema `http`, `https`, `ws`, `wss`, `ftp` oder `file` wird außerdem abgelehnt, wenn ein
+Backslash (`\` oder `%5C`) in ihren führenden Schrägstrichen oder ihrem Host steht, denn eine Seite
+mit einem anderen Schema liest `//verbatra.dev\@evil.example/` als Link auf evil.example.
+
+Manche Attributwerte müssen genau so zurückkommen, wie die Quelle sie hat, verglichen nach dem
+Dekodieren von Zeichenreferenzen, mit einem Detail wie `+<meta content="...">`: `http-equiv` und
+`content` an `meta`; `type`, `nomodule`, `integrity` und `crossorigin` an `script`; `rel`, `as`,
+`integrity`, `crossorigin` und `type` an `link`; `target` an `base`; `attributeName` und
+`attributeType` an `set`, `animate`, `animateTransform` und `animateMotion`; `sandbox`, `allow` und
+`allowfullscreen` an `iframe`; `method`, `enctype` und `target` an `form`; sowie `style`, `srcdoc`
+und jeder Event-Handler wie `onclick` an jedem Element. Ein übersetzbares Attribut wie `title` oder
+`alt` bleibt frei.
+
+Aus dem Vergleich ganzer Werte folgen zwei formatbedingte Grenzen. Bei einem Format, das mehrere
+Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I18n), wiederholt eine
+Übersetzung, die die Formen ihrer Sprache ergänzt, das Markup der Quelle und wird abgelehnt.
+Dasselbe passiert bei einem Plural im ICU-Stil (`{count, plural, one {...} other {...}}`) in einem
+Format, das ihn als reinen Text speichert, statt ihn als ICU zu parsen (i18next, ngx-translate und
+YAML): Eine Übersetzung mit einer anderen Zahl von Formen als die Quelle wiederholt das Markup darin
+oder lässt es weg und wird abgelehnt. In beiden Fällen wird der Wert zurückgehalten und die
+bisherige Übersetzung bleibt, es geht also nichts verloren, aber die Formen müssen ergänzt werden,
+ohne das Markup mitzuvervielfachen.
+
+Die Prüfung tritt außerdem pro Tag zurück. Ein Tag, das das Format ohnehin als Platzhalter meldet
+(ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB), bleibt zusammen mit so
+vielen schließenden Tags, wie es öffnende gibt, der Platzhalterprüfung überlassen und wird nie
+doppelt gemeldet. Ein solches öffnendes Tag, das der Kandidat nie schließt, wird trotzdem abgelehnt
+und über das fehlende schließende Tag benannt, etwa `-</g>`. Ebenso eines, dessen Verschachtelung
+mit den übrigen Tags nicht mehr der Quelle entspricht, etwa ein `<b>`, das das `<g>`, in dem es
+stand, jetzt kreuzt, und eines, das die Quelle nur als Text trägt, in einem Kommentar oder einem
+Raw-Text-Element, weil es herausgezogen das Element erzeugen würde. Jedes andere Tag im selben Wert
+wird weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`. Eine
+Ablehnung nennt die betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der
+Kandidat weggelassen hat, oder `+` für eines, das der Kandidat erfunden hat.
+
+### icu
+
+Bei next-intl und ARB lässt sich der Kandidat nicht mehr als ICU-Nachricht parsen (auch ein `plural` ohne seinen `other`-Zweig), oder seine `plural`- oder `selectordinal`-Zweige passen nicht zu den CLDR-Kategorien der Zielsprache, oder seine `select`-Zweige weichen von denen der Quelle ab. Die Details nennen jeden falschen Zweig. [Plural-Zweige je Zielsprache](/docs/translation-safety#plural-zweige-je-zielsprache) erklärt die Regel.
+
+- **Ausgelöst von**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (als Fehler)
+- **Exit-Code**: `1` aus `translate` und `import`, wenn die Locale teilweise oder fehlgeschlagen endet; `1` aus `check --qa`
+- **Nächster Schritt**: Korrigiere die Nachricht, sodass sie sich parsen lässt und genau die Zweige trägt, die die Zielsprache braucht.
+
+### degenerate
+
+Der Kandidat ist strukturell entartet: eine Wiederholungsschleife oder eine Länge, die sich von der Quelle entfernt hat. So sieht ein Modell aus, das in die Wiederholung eines Fragments gekippt ist, auch wenn jeder Platzhalter überlebt hat.
+
+- **Ausgelöst von**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (als Fehler)
+- **Exit-Code**: `1` aus `translate` und `import`, wenn die Locale teilweise oder fehlgeschlagen endet; `1` aus `check --qa`
+- **Nächster Schritt**: Lass den nächsten Lauf den Key neu übersetzen oder schreib die Übersetzung von Hand.
+
+### empty
+
+Der Kandidat ist leer oder besteht nur aus Leerraum, obwohl seine Quelle es nicht ist. Eine Übersetzung zu leeren ist ein bewusster Schritt: Das macht der Platzhalter `[[CLEAR]]` der Arbeitsmappe.
+
+- **Ausgelöst von**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (als Fehler)
+- **Exit-Code**: `1` aus `translate` und `import`, wenn die Locale teilweise oder fehlgeschlagen endet; `1` aus `check --qa`
+- **Nächster Schritt**: Schreib eine Übersetzung oder leere den Wert bewusst mit `[[CLEAR]]` in einem Arbeitsmappen-Import.
+
 ## Review-Gründe [#review-reason-codes]
 
-Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück. `translate` und `watch` führen markierte Keys unter `needsReview`, und `check --qa` meldet sechs dieser Gründe als Warnungen, die den Job nur mit `--strict` scheitern lassen. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt, wie jeder gemessen wird.
+Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück. `translate` und `watch` führen markierte Keys unter `needsReview`, und `check --qa` meldet sechs dieser Gründe als Warnungen, die den Job nur mit `--strict` scheitern lassen. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. Jeder Eintrag sagt, wie sein Grund gemessen wird; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht als Ganzes.
 
 ### LENGTH_RATIO_OUTLIER
 
 Die Übersetzung ist viel kürzer oder länger als ihre Quelle.
+
+Er greift unter dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Quelllänge; sehr kurze Quellen werden übersprungen. Gezählt wird in Graphem-Clustern, und jedes Zeichen wird nach seiner Schrift gewichtet: Ein chinesisches Zeichen zählt 3.5, ein japanisches Kana 1.5 und eine koreanische Silbe 2, damit eine korrekte Übersetzung in diese Sprachen nicht nur wegen ihrer Kürze markiert wird.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -771,6 +975,8 @@ Die Übersetzung ist viel kürzer oder länger als ihre Quelle.
 
 Die Übersetzung ist länger als das für ihren Key konfigurierte `maxLength`-Budget.
 
+Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die Grenze ist inklusiv, ein Wert von genau der Budgethöhe wird also nicht markiert, und ein Key ohne Budget wird nie gemessen. Der Wert wird trotzdem geschrieben und gelockt, denn eine korrekte Übersetzung, die ein Layout sprengt, ist besser als gar keine.
+
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Kürze die Übersetzung, oder hebe das `maxLength`-Budget des Keys an.
@@ -778,6 +984,8 @@ Die Übersetzung ist länger als das für ihren Key konfigurierte `maxLength`-Bu
 ### EQUALS_SOURCE
 
 Die Übersetzung gleicht ihrer Quelle wörtlich, obwohl das Ziel-Locale ein anderes ist.
+
+Er greift nur, wenn sich die Ziel-Locale von der Quell-Locale unterscheidet und die Quelle übersetzbaren Text hat: Eine Quelle, die nur aus `doNotTranslate`-Begriffen besteht oder aus Begriffen, deren Übersetzung der Begriff selbst ist, wird nicht markiert.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -787,6 +995,8 @@ Die Übersetzung gleicht ihrer Quelle wörtlich, obwohl das Ziel-Locale ein ande
 
 Einem Glossarbegriff aus der Quelle fehlt seine Übersetzung für das Ziel-Locale, oder ein `doNotTranslate`-Begriff fehlt oder wurde verändert.
 
+Jede Locale wird gegen ihre eigene Übersetzung des Begriffs aus einem Glossar pro Locale geprüft. Der Abgleich ignoriert Groß- und Kleinschreibung, außer der Begriff ist `caseSensitive`, und richtet sich dabei nach den Regeln der jeweiligen Locale (auch beim türkischen `İ`). Die Quellseite verlangt ein ganzes Wort, `AI` wird also in `Airport` nicht gefunden; die Zielseite verlangt nur, dass der Begriff irgendwo im Wert steht, weil ein übersetzter Begriff mit seinem Umfeld verschmilzt (deutsche Komposita, koreanische Partikel). Ein Begriff in einer Schrift ohne Worttrenner (Han, Kana, Thai und ähnliche) wird als bloßes Enthaltensein abgeglichen.
+
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Verwende die Übersetzung des Begriffs aus dem Glossar, oder lass den Begriff unverändert.
@@ -794,6 +1004,8 @@ Einem Glossarbegriff aus der Quelle fehlt seine Übersetzung für das Ziel-Local
 ### GLOSSARY_FORBIDDEN_TERM
 
 Die Übersetzung verwendet eine Wiedergabe, die die `forbidden`-Liste des Glossars für das Ziel-Locale ausschließt.
+
+Abgeglichen wird als ganzes Wort, bei Schriften ohne Worttrenner als bloßes Enthaltensein, eine gebeugte oder zusammengesetzte Form wird also nur erkannt, wenn du sie ebenfalls auflistest. Eine Wiedergabe, die schon in der Quelle steht, wird nicht markiert, weil die Übersetzung sie zitieren darf.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -810,6 +1022,8 @@ Die Platzhalter stimmen genau überein, stehen aber in einer anderen Reihenfolge
 ### PROVIDER_DEGRADED
 
 Der Provider hat den Batch, aus dem dieser Key stammt, herabgestuft, etwa durch eine heruntergestufte Formalität oder ein ignoriertes Glossar.
+
+Er greift, wenn der Batch einen Hinweis `FORMALITY_DOWNGRADED` oder `GLOSSARY_IGNORED` trug, wie ihn DeepL, Google Cloud Translation und LibreTranslate melden. `PLACEHOLDER_UNSUPPORTED` löst ihn nicht aus, weil diese Einträge zurückgehalten und nicht herabgestuft werden.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`)
 - **Exit-Code**: keiner
