@@ -103,6 +103,17 @@ parity tests (`pnpm test:scripts`):
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
 
+## SDK reference entries
+
+Every entry point in `apps/docs/content/docs/sdk/*.mdx` follows one template: the heading (with an
+inline `<AvailableFrom />` when newer than the first release), one lead paragraph, a
+`ts title="Signature"` block (`Signatur`, `Firma`, `Signature` in de, es, fr), an
+`<SdkTypeTable name="<Input type>" />` for an object input, a **Returns** line, and a **Throws**
+line linking each `SdkError` code to `/docs/error-codes#<code>`. The type table renders the
+published English JSDoc on every locale; everything around it is translated. The Throws line is
+test-pinned to each function's `@throws` tags (`scripts/verify-docs-reference-parity.test.mjs`), so
+a new `@throws` code fails `pnpm test:scripts` until all four locales list it.
+
 ## The `<AvailableFrom />` badge
 
 Component: `apps/docs/components/available-from.tsx`. Renders a small inline badge ("Available

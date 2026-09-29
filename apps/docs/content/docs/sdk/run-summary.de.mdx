@@ -111,3 +111,9 @@ seine Obergrenze nie erreicht hat, `"stopped-before-ceiling"`, wenn ein `"stop"`
 zurückgehalten hat, während `tokensUsed` noch unter `maxTokens` lag, und `"reached"`, wenn
 `tokensUsed` `maxTokens` erreicht oder überschritten hat. Nutze es, statt nur `exceeded` zu lesen,
 das in beiden letzten Fällen `true` ist.
+
+```ts title="Signatur"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**Rückgabe:** `BudgetStanding`

@@ -12,6 +12,12 @@ Todo lo necesario para construir un adaptador de un formato que verbatra no trae
 
 Construye una `AdapterRegistry` con todos los adaptadores que verbatra trae, en orden de detección. Empieza aquí en lugar de con un registro vacío, para que tu formato se sume a los integrados en vez de reemplazarlos, y pasa el resultado como `deps.adapterRegistry` a cualquier flujo. `register` devuelve el registro, así que las altas se encadenan, y lanza un `AdapterError` con código `DUPLICATE_FORMAT` si el formato ya está ocupado.
 
+```ts title="Firma"
+function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
+```
+
+**Devuelve:** `AdapterRegistry`
+
 ```ts
 import { createDefaultRegistry, translate } from "@verbatra/sdk";
 
@@ -23,17 +29,49 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Construye un `FormatAdapter` para un formato plano de clave/valor, donde cada entrada se direcciona con una sola clave sin anidamiento. Tú aportas `parseEntries`, `serializeEntries` y `extractPlaceholders` de tu formato; la fábrica aporta la lectura acotada por tamaño, la escritura atómica, la detección por extensión y el manejo estructurado de errores. `parseEntries` recibe además el locale con el que se lee el archivo, para un formato cuyo único archivo contiene a la vez el texto de origen y el de destino, y `serializeEntries` recibe el contexto de escritura de quien llama, cuyo `sourcePath` opcional nombra el archivo del locale de origen, y, desde 0.12.0, el locale que se escribe como quinto argumento, para un formato que guarda su locale dentro del archivo. Dale un `sniff` siempre que tu extensión sea genérica, o tu adaptador reclamará todos los archivos que la compartan y la detección informará de una ambigüedad en lugar de elegir. Los hooks opcionales son `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` y, desde 0.12.0, `compareBranchArms`; `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
 
+```ts title="Firma"
+function createFlatFileAdapter(
+  options: FlatFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="FlatFileAdapterOptions" />
+
+**Devuelve:** `FormatAdapter`
+
 ### createTreeFileAdapter
 
 Construye un `FormatAdapter` para un formato de árbol, cuyas entradas viven en rutas a través de objetos anidados. Toma `parse` y `serialize` sobre un árbol más un `deriveEntry` que informa de los placeholders de cada hoja y de si es una forma plural, además de `extractPlaceholders` para un solo valor, y se encarga por su cuenta de aplanar y volver a anidar. Igual que la fábrica plana, toma `format`, `extensions` y un `sniff` opcional. También lleva los hooks opcionales que necesita un formato estructurado: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (desde 0.12.0), `deriveDescriptions`, `buildWriteTree` y `keyMode`, y `fs` sustituye el puerto del sistema de archivos, `nodeAdapterFs` por defecto.
+
+```ts title="Firma"
+function createTreeFileAdapter(
+  options: TreeFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="TreeFileAdapterOptions" />
+
+**Devuelve:** `FormatAdapter`
 
 ### nodeAdapterFs
 
 El puerto de sistema de archivos, de tipo `AdapterFs`, que usa cada fábrica de adaptadores cuando no se le pasa ninguno: una lectura acotada por tamaño que informa de un archivo ausente o demasiado grande como estado en lugar de lanzar, y una escritura que pasa por un archivo temporal y un renombrado, de modo que una escritura interrumpida nunca deja un archivo de locale a medias. Lee y escribe a través de este puerto en un adaptador propio en lugar de recurrir a `node:fs`. Es una convención, no una frontera, y verbatra no puede imponerla en código que no le pertenece.
 
+```ts title="Firma"
+const nodeAdapterFs: AdapterFs;
+```
+
 ### isCustomFormatId
 
 Acota un identificador de formato a uno externo: true para un identificador `custom:` bien formado, false para cualquier nombre de formato integrado. Útil cuando tus propias herramientas tienen que distinguirlos, por ejemplo para decidir si hace falta aportar un registro antes de poder ejecutar una configuración.
+
+```ts title="Firma"
+function isCustomFormatId(
+  format: string,
+): format is CustomFormatId$1;
+```
+
+**Devuelve:** `format is CustomFormatId$1`
 
 ## Redacción de secretos
 
@@ -49,6 +87,12 @@ error de un sistema previo, así que una clave ya presente en tu entorno o escri
 proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log. La CLI
 `verbatra` pasa por él, como último paso, todo lo que escribe en stdout y stderr, incluido el sobre
 `--json`.
+
+```ts title="Firma"
+function redact(text: string): string;
+```
+
+**Devuelve:** `string`
 
 Esto incluye la variable que un proveedor `openai-compatible` nombra con `apiKeyEnvVar`. Se declara
 cuando `loadConfig` carga una config que la nombra o cuando se construye ese proveedor, y desde ese
@@ -86,6 +130,12 @@ cualquier otro proveedor no hace nada. `loadConfig` y la construcción del prove
 Studio y el servidor MCP también lo hacen para la config que reciben, así que llámalo solo cuando
 una config llegue a tu propio código por otra vía. La declaración vale para todo el proceso y la
 comparten todas las copias del SDK cargadas en él.
+
+```ts title="Firma"
+function declareProviderKeyEnvVar(
+  provider: ProviderConfig,
+): void;
+```
 
 ## Proveedores propios
 

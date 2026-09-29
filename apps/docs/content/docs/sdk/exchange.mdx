@@ -12,13 +12,35 @@ count what changed since.
 Reads one locale file (the source locale or any target locale) and reduces it to a content hash per
 key. A file that does not exist yet reads as an empty snapshot rather than throwing.
 
-Input: `{ config, locale, cwd? }`. Returns `{ locale, hashes }`.
+```ts title="Signature"
+function readLocaleFileSnapshot(
+  input: ReadLocaleFileSnapshotInput,
+  deps?: ReadLocaleFileSnapshotDeps,
+): Promise<LocaleFileSnapshot>;
+```
+
+<SdkTypeTable name="ReadLocaleFileSnapshotInput" />
+
+**Returns:** `LocaleFileSnapshot`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Returns `{ locale, hashes }`.
 
 ### diffLocaleSnapshots
 
 Compares two snapshots of the same file, taken at different times, and counts the keys added,
 changed, and removed between them. A plain synchronous function: `diffLocaleSnapshots(previous,
 current)` returns `{ added, changed, removed }`. Counts only, never key names.
+
+```ts title="Signature"
+function diffLocaleSnapshots(
+  previous: LocaleFileSnapshot,
+  current: LocaleFileSnapshot,
+): LocaleSnapshotDelta;
+```
+
+**Returns:** `LocaleSnapshotDelta`
 
 ## Locale paths
 
@@ -30,6 +52,17 @@ configured locales, and `files.localeStyle`. `createLocalePathResolver(cwd, conf
 `localeFor(path)` is the locale that owns a path, or `undefined` for a path this project does not
 own. Every SDK entry point resolves paths through it, so a watcher or dashboard built on the SDK
 sees exactly the paths a run writes.
+
+```ts title="Signature"
+function createLocalePathResolver(
+  cwd: string,
+  config: LocalePathResolverConfig,
+): LocalePathResolver;
+```
+
+**Returns:** `LocalePathResolver`
+
+**Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
 Every check runs when the resolver is created, before any file is read: a pattern and style that
 cannot be combined, or a locale the style has no correct spelling for, throws
@@ -45,6 +78,15 @@ a path relative to the project root: a path under `cwd` loses that prefix, `cwd`
 message on a `RunSummary` already names project files this way, relative to the run's `cwd`; call
 it on the message of an error a flow throws before you show it to a user, an agent, or a browser
 tab. `verbatra mcp` and Studio do the same for every error they return.
+
+```ts title="Signature"
+function projectRelativeMessage(
+  message: string,
+  cwd: string,
+): string;
+```
+
+**Returns:** `string`
 
 ### errorHint
 
@@ -62,6 +104,12 @@ config file whose import could not be resolved (its `causeCode` is `MODULE_NOT_F
 install or fix that import instead. A hint is fixed text plus, at
 most, a variable name: it never contains a key value or quotes the message. The CLI's `--json`
 error envelope carries it as `hint`, and `verbatra mcp` ends a failed call's text with it.
+
+```ts title="Signature"
+function errorHint(error: unknown): string | undefined;
+```
+
+**Returns:** `string | undefined`
 
 ```ts
 import { errorHint, translate } from "@verbatra/sdk";
@@ -83,7 +131,20 @@ Writes the strings that still need translating (missing and changed keys per loc
 ones with `includeUnchanged`) into a styled `.xlsx` workbook. Rows carry the same review-flag
 signal a translate run computes. No provider call, no lock write.
 
-Input: `{ config, cwd?, out?, configPath?, glossaryPath?, locales?, includeUnchanged?, format? }`. `format` is `xlsx` by
+```ts title="Signature"
+function exportWorkbook(
+  input: ExportWorkbookInput,
+  deps?: ExportWorkbookDeps,
+): Promise<ExportWorkbookResult>;
+```
+
+<SdkTypeTable name="ExportWorkbookInput" />
+
+**Returns:** `ExportWorkbookResult`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/docs/error-codes#export_unwritable)
+
+`format` is `xlsx` by
 default; `csv` and `tsv` write one `<locale>.csv` or `<locale>.tsv` per locale instead, so `out`
 names a directory for them (created if missing) and a file path for `xlsx`. `out` defaults to
 `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) or `DEFAULT_DELIMITED_PATH`
@@ -112,7 +173,20 @@ Reads a filled workbook back into the locale files, running the same source-drif
 checks as `translate`. Only accepted rows advance their lock baseline; a blank or rejected
 row keeps re-exporting until it is genuinely resolved.
 
-Input: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs?, reviewer? }`. With `csv` or `tsv`, `workbook` is either
+```ts title="Signature"
+function importWorkbook(
+  input: ImportWorkbookInput,
+  deps?: ImportWorkbookDeps,
+): Promise<RunSummary>;
+```
+
+<SdkTypeTable name="ImportWorkbookInput" />
+
+**Returns:** [`RunSummary`](/docs/sdk/run-summary)
+
+**Throws:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+With `csv` or `tsv`, `workbook` is either
 one interchange file or the directory holding one per locale, and the locale comes from the file
 name. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
@@ -150,8 +224,20 @@ multilingual file between tools.
 
 ### importTmx
 
-Reads a TMX file into the project's memory. Input:
-`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+Reads a TMX file into the project's memory.
+
+```ts title="Signature"
+function importTmx(
+  input: ImportTmxInput,
+  deps?: ImportTmxDeps,
+): Promise<ImportTmxResult>;
+```
+
+<SdkTypeTable name="ImportTmxInput" />
+
+**Returns:** `ImportTmxResult`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
 
 Nothing from the file is trusted. The XML is parsed under the interchange package's hardening, so an
 entity declaration, an internal DTD subset, an oversized file, or a malformed one is refused with a
@@ -198,6 +284,14 @@ Reads where a refused TMX file went wrong from whatever `importTmx` threw. It re
 a place in the file, and `undefined` for any other error, including a missing or oversized file, so
 you never cast the error or its `cause`.
 
+```ts title="Signature"
+function tmxErrorLocation(
+  error: unknown,
+): TmxErrorLocation | undefined;
+```
+
+**Returns:** `TmxErrorLocation | undefined`
+
 ```ts
 try {
   await importTmx({ config, file: "legacy.tmx" });
@@ -209,8 +303,7 @@ try {
 
 ### exportTmx
 
-Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, configPath?, glossaryPath?,
-locales?, toolVersion? }`, with `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`),
+Writes the memory out as TMX 1.4b. `out` defaults to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`),
 exported as a constant. Before the memory is read, `TMX_OUTPUT_CONFLICT` refuses an `out` that names
 no file (including one ending in a path separator), resolves outside `cwd` or to `cwd` itself, or
 names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra
@@ -226,6 +319,19 @@ entries left out because the memory holds no source text for them, which happens
 carried forward from a cache written before the memory stored source text, and
 `illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from
 segment text.
+
+```ts title="Signature"
+function exportTmx(
+  input: ExportTmxInput,
+  deps?: ExportTmxDeps,
+): Promise<ExportTmxResult>;
+```
+
+<SdkTypeTable name="ExportTmxInput" />
+
+**Returns:** `ExportTmxResult`
+
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
 <AvailableFrom version="0.12.0" />
 

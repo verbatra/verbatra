@@ -107,3 +107,9 @@ reached its ceiling, `"stopped-before-ceiling"` when a `"stop"` budget withheld 
 `tokensUsed` was still below `maxTokens`, and `"reached"` when `tokensUsed` reached or passed
 `maxTokens`. Use it rather than reading `exceeded` alone, which is `true` in both of the last two
 cases.
+
+```ts title="Signature"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**Returns:** `BudgetStanding`

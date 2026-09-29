@@ -12,6 +12,12 @@ Alles, was du brauchst, um einen Format-Adapter für ein Format zu bauen, das ve
 
 Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. `register` gibt die Registry zurück, Registrierungen lassen sich also verketten, und wirft einen `AdapterError` mit dem Code `DUPLICATE_FORMAT`, wenn das Format schon vergeben ist.
 
+```ts title="Signatur"
+function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
+```
+
+**Rückgabe:** `AdapterRegistry`
+
 ```ts
 import { createDefaultRegistry, translate } from "@verbatra/sdk";
 
@@ -23,17 +29,49 @@ const summary = await translate({ config }, { adapterRegistry });
 
 Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. `parseEntries` bekommt außerdem die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält, und `serializeEntries` bekommt den Schreibkontext des Aufrufers, dessen optionales `sourcePath` die Datei der Quell-Locale nennt, und, ab 0.12.0, die geschriebene Locale als fünftes Argument, für ein Format, das seine Locale in der Datei festhält. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen. Die optionalen Hooks sind `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` und, ab 0.12.0, `compareBranchArms`; `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
 
+```ts title="Signatur"
+function createFlatFileAdapter(
+  options: FlatFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="FlatFileAdapterOptions" />
+
+**Rückgabe:** `FormatAdapter`
+
 ### createTreeFileAdapter
 
 Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, sowie `extractPlaceholders` für einen einzelnen Wert, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Wie die flache Factory nimmt sie `format`, `extensions` und ein optionales `sniff`. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (ab 0.12.0), `deriveDescriptions`, `buildWriteTree` und `keyMode`, und `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
+
+```ts title="Signatur"
+function createTreeFileAdapter(
+  options: TreeFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="TreeFileAdapterOptions" />
+
+**Rückgabe:** `FormatAdapter`
 
 ### nodeAdapterFs
 
 Der Dateisystem-Port vom Typ `AdapterFs`, den jede Adapter-Factory verwendet, wenn keiner übergeben wird: ein größenbegrenztes Lesen, das eine fehlende oder zu große Datei als Zustand meldet statt zu werfen, und ein Schreiben über eine temporäre Datei und ein Umbenennen, sodass ein unterbrochener Schreibvorgang nie eine halbfertige Locale-Datei hinterlässt. Lies und schreib in einem eigenen Adapter über diesen Port, statt selbst zu `node:fs` zu greifen. Das ist eine Konvention und keine Grenze, und verbatra kann sie in Code, der ihm nicht gehört, nicht erzwingen.
 
+```ts title="Signatur"
+const nodeAdapterFs: AdapterFs;
+```
+
 ### isCustomFormatId
 
 Grenzt einen Format-Bezeichner auf einen von einem Drittanbieter ein: true für einen wohlgeformten `custom:`-Bezeichner, false für jeden eingebauten Formatnamen. Nützlich, wenn dein eigenes Werkzeug die beiden auseinanderhalten muss, etwa um zu entscheiden, ob erst eine Registry geliefert werden muss, bevor eine Konfiguration laufen kann.
+
+```ts title="Signatur"
+function isCustomFormatId(
+  format: string,
+): format is CustomFormatId$1;
+```
+
+**Rückgabe:** `format is CustomFormatId$1`
 
 ## Secrets schwärzen
 
@@ -49,6 +87,12 @@ Dateipfad oder eine Fehlermeldung eines vorgelagerten Systems, sodass ein bereit
 vorhandener oder in eine Projektdatei geschriebener Key niemals einen Browser-Tab, einen Agenten
 oder eine Log-Zeile erreichen kann. Die `verbatra`-CLI schickt alles, was sie auf stdout und stderr
 schreibt, den `--json`-Umschlag eingeschlossen, als letzten Schritt hindurch.
+
+```ts title="Signatur"
+function redact(text: string): string;
+```
+
+**Rückgabe:** `string`
 
 Das gilt auch für die Variable, die ein `openai-compatible`-Provider über `apiKeyEnvVar` benennt.
 Sie wird deklariert, wenn `loadConfig` eine Config lädt, die sie nennt, oder wenn dieser Provider
@@ -86,6 +130,12 @@ anderen Provider passiert nichts. `loadConfig` und das Bauen des Providers erled
 und Studio sowie der MCP-Server tun es auch für die Config, die sie erhalten. Ruf es also nur auf,
 wenn eine Config auf anderem Weg in deinen eigenen Code gelangt. Die Deklaration gilt für den
 ganzen Prozess und wird von jeder im Prozess geladenen Kopie des SDK geteilt.
+
+```ts title="Signatur"
+function declareProviderKeyEnvVar(
+  provider: ProviderConfig,
+): void;
+```
 
 ## Eigene Provider
 

@@ -59,3 +59,9 @@ Les parties à connaître :
 <AvailableFrom version="0.11.0" />
 
 Classe un `RunBudget` dans l'une des trois valeurs `BudgetStanding`, la même classification que rapportent la ligne de budget de la CLI, Studio et l'outil d'agent `usage.summary` : `"within"` quand l'exécution n'a jamais atteint son plafond, `"stopped-before-ceiling"` quand un budget `"stop"` a retenu une requête alors que `tokensUsed` restait sous `maxTokens`, et `"reached"` quand `tokensUsed` a atteint ou dépassé `maxTokens`. Utilise-le plutôt que de lire seulement `exceeded`, qui vaut `true` dans les deux derniers cas.
+
+```ts title="Signature"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**Renvoie :** `BudgetStanding`

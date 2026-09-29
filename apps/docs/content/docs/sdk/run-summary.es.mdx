@@ -110,3 +110,9 @@ informan la línea de presupuesto de la CLI, Studio y la herramienta de agente `
 presupuesto `"stop"` retuvo una petición mientras `tokensUsed` seguía por debajo de `maxTokens`, y
 `"reached"` cuando `tokensUsed` alcanzó o superó `maxTokens`. Úsalo en lugar de leer solo
 `exceeded`, que vale `true` en los dos últimos casos.
+
+```ts title="Firma"
+function budgetStanding(budget: RunBudget): BudgetStanding;
+```
+
+**Devuelve:** `BudgetStanding`

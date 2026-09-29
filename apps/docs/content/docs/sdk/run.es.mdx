@@ -2,7 +2,7 @@
 title: "Ejecuta traducciones"
 description: "translate, watch y los puntos de entrada en torno a una ejecución, además de pseudolocales y catálogos tipados."
 ---
-## Ejecuta traducciones
+## Traduce y vigila [#ejecuta-traducciones]
 
 ### translate
 
@@ -11,52 +11,40 @@ bloqueo, enviar al proveedor las claves faltantes y modificadas, ejecutar las co
 integridad, escribir los archivos de locale y actualizar el bloqueo.
 Úsalo para scripts, pasos de build y jobs de CI.
 
-Entrada: `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, maxTokens?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+```ts title="Firma"
+function translate(
+  input: TranslateInput,
+  deps?: TranslateDeps,
+): Promise<RunSummary>;
+```
 
-- `locales` restringe la ejecución a un subconjunto de los locales de destino configurados, igual
-  que en `check` y `diff`. Un locale no configurado lanza `UNKNOWN_LOCALE` antes de leer o gastar
-  nada. Omítelo para cubrir todos los locales de destino.
-- `dryRun` lee, compara e informa sin construir ni llamar al proveedor y sin escribir nada.
-- `estimate` añade en `RunSummary.estimate` una estimación de coste previa a la ejecución e implica
-  `dryRun`: no construye ningún proveedor, no lee ninguna clave de API y no escribe nada. La cantidad
-  se informa siempre; una cifra en moneda necesita un bloque `rates` en la configuración que nombre
-  el proveedor y el modelo configurados.
-- `prune` elimina del archivo escrito y del bloqueo las claves huérfanas (claves de destino ausentes
-  del origen). `generatePlurals` sintetiza las formas de plural CLDR que faltan (solo i18next-JSON con
-  un proveedor LLM). Ambos están desactivados por defecto; cuando se definen, cada uno anula la opción
-  de configuración correspondiente para esa ejecución.
-- `concurrency` traduce hasta ese número de locales de destino a la vez (por defecto 1, estrictamente
-  en serie). Un valor menor que 1 lanza `CONCURRENCY_INVALID`; en una ejecución real, un valor mayor
-  que 1 con un presupuesto `maxTokens` lanza `CONCURRENCY_BUDGET_CONFLICT` (un dry run queda exento). Un
-  error de toda la ejecución que surge cuando ya hay locales en marcha impide que se arranque
-  ningún locale más, y los locales en vuelo terminan y liberan sus bloqueos de escritura antes de que
-  `translate` rechace, así que el rechazo llega después del más lento en vez de al instante.
-- `cache` está activado por defecto y reutiliza la [caché de memoria de traducción](/docs/the-cache)
-  local (`verbatra.cache.json`, exportada también como `CACHE_FILE_NAME`); ponlo en false para omitir
-  la caché en la ejecución (el `--no-cache` de la CLI).
-- `humanEdits` (desde 0.12.0) sobrescribe el `humanEdits` de la configuración para esta ejecución: `"overwrite"` retraduce también las claves obsoletas cuyo valor escribió, importó o cambió una persona fuera de verbatra (el `--include-human` de la CLI). Por defecto esas claves se conservan y se listan en `LocaleSummary.protected`; las claves que coinciden con `pinnedKeys` siguen protegidas diga lo que diga esto. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations). Un dry run ahora también lee `verbatra.provenance.json`, salvo que `humanEdits` resulte en `"overwrite"`.
-- `onProgress` se llama a medida que avanza la ejecución (por inicio y fin de cada locale, y por
-  sub-lote del proveedor), y `onLockWait` se dispara mientras el bloqueo de escritura de un locale
-  está en disputa. Ambos son callbacks de notificación; el SDK no escribe nada por sí mismo.
-  `lockAcquireTimeoutMs` anula cuánto tiempo reintenta un bloqueo de escritura en disputa antes de
-  fallar con `LOCK_CONTENDED`; un valor que no sea un número entero de milisegundos de al menos 0
-  lanza `LOCK_TIMEOUT_INVALID` antes de leer nada. Solo limita el bloqueo de escritura del locale tomado antes de
-  cualquier llamada al proveedor; el guard del archivo de bloqueo que registra un locale cuyo
-  archivo ya está escrito siempre espera hasta el valor por defecto de diez minutos, para que un
-  archivo escrito nunca quede sin registrar. `onLockWait` se dispara cuando una espera ya dura un
-  segundo, y nunca para un bloqueo que tiene el mismo proceso, como el guard de un locale hermano
-  con `concurrency` mayor que 1.
-- `maxTokens` (desde 0.12.0) fija un techo de tokens solo para esta ejecución (el `--max-tokens` de la
-  CLI). Siempre actúa como `budgetBehavior: "stop"`, y cuando la configuración también fija
-  `maxTokens` se aplica el menor de los dos, así que puede endurecer el presupuesto configurado pero
-  nunca relajarlo. Un valor que no sea un número entero de al menos 1 lanza `MAX_TOKENS_INVALID` y,
-  como un presupuesto configurado, no se puede combinar con una `concurrency` mayor que 1 en una
-  ejecución real.
+<SdkTypeTable name="TranslateInput" />
+
+**Devuelve:** [`RunSummary`](/docs/sdk/run-summary)
+
+**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Lo que la tabla no cubre:
+
+- `concurrency`: un error de toda la ejecución que surge cuando ya hay locales en marcha impide que
+  se arranque ningún locale más, y los locales en vuelo terminan y liberan sus bloqueos de escritura
+  antes de que `translate` rechace, así que el rechazo llega después del más lento en vez de al
+  instante.
+- `cache` reutiliza la [caché de memoria de traducción](/docs/the-cache) local
+  (`verbatra.cache.json`, exportada también como `CACHE_FILE_NAME`); `false` equivale al
+  `--no-cache` de la CLI.
+- `humanEdits` (desde 0.12.0): por defecto, las claves obsoletas cuyo valor escribió, importó o
+  cambió una persona fuera de verbatra se conservan y se listan en `LocaleSummary.protected`.
+  Consulta [Proteger traducciones humanas](/docs/protecting-human-translations). Un dry run también
+  lee `verbatra.provenance.json`, salvo que `humanEdits` resulte en `"overwrite"`.
+- `onProgress` y `onLockWait` son callbacks de notificación; el SDK no escribe nada por sí mismo.
+  `onProgress` recibe los [eventos de progreso](#eventos-de-progreso) descritos abajo. `onLockWait`
+  se dispara cuando una espera ya dura un segundo.
 - `maxBatchSize` y `budgetBehavior` son solo de configuración; no hay anulación por ejecución.
 
-Devuelve un `RunSummary` (consulta [su anatomía](/docs/sdk/run-summary#la-anatomía-de-runsummary)). Los problemas
-de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y queda como
-`status: "failed"` en la entrada de ese locale mientras la ejecución continúa.
+Los problemas de toda la ejecución lanzan un `SdkError`; que falle un solo locale nunca lanza y
+queda como `status: "failed"` en la entrada de ese locale mientras la ejecución continúa. Consulta
+[la anatomía de `RunSummary`](/docs/sdk/run-summary#la-anatomía-de-runsummary).
 
 ### Eventos de progreso
 
@@ -95,6 +83,14 @@ construirá un proveedor, escribirá un archivo o gastará algo. Es el único si
 que `estimate` implica `dryRun`, así que recurre a él siempre que algo alrededor de una ejecución tenga
 que saberlo de antemano, en lugar de repetir la implicación y acabar desviándote de ella.
 
+```ts title="Firma"
+function resolveDryRun(
+  input: { dryRun?: boolean; estimate?: boolean },
+): boolean;
+```
+
+**Devuelve:** `boolean`
+
 ```ts
 import { resolveDryRun, translate } from "@verbatra/sdk";
 
@@ -111,7 +107,19 @@ anti-rebote. Dispara una ejecución inicial inmediatamente al arrancar, y luego 
 asentado. Las ejecuciones se serializan: los cambios durante una ejecución se colapsan en un único
 seguimiento.
 
-Entrada: `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+```ts title="Firma"
+function watch(
+  input: WatchInput,
+  deps?: WatchDeps,
+): Promise<WatchController>;
+```
+
+<SdkTypeTable name="WatchInput" />
+
+**Devuelve:** `WatchController`
+
+**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
 `{ status: "succeeded", summary }` o `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 donde `causeCode` nombra el error con código que envuelve el fallo y `hint` es el siguiente paso que da
@@ -140,6 +148,10 @@ detiene `translate` o `import`, y cuando una segunda interrupción fuerza la par
 ejecuciones que tomaron esos bloqueos pierden su protección, así que llámalo solo justo antes de
 que el proceso termine. No recibe argumentos y nunca rechaza.
 
+```ts title="Firma"
+function releaseHeldLocks(): Promise<void>;
+```
+
 Un bloqueo que queda atrás de todos modos, porque un proceso se mató de golpe, no lo necesita: una
 ejecución en espera en la misma máquina ve que el proceso registrado ya no existe y recupera el
 bloqueo por sí misma. Consulta [el bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura).
@@ -158,11 +170,24 @@ todas las sintaxis que reconocen los adaptadores, incluidas las ramas `plural` y
 las etiquetas de marcado y las secuencias de escape. No construye ningún proveedor, no lee ninguna
 clave de API y no hace ninguna petición de red.
 
+```ts title="Firma"
+function pseudolocalize(
+  input: PseudolocalizeInput,
+  deps?: PseudolocalizeDeps,
+): Promise<PseudolocalizeResult>;
+```
+
+<SdkTypeTable name="PseudolocalizeInput" />
+
+**Devuelve:** `PseudolocalizeResult`
+
+**Lanza:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
 Cada valor generado pasa por la misma puerta de integridad que debe superar la traducción de
 un proveedor. Uno que no la superaría se copia literalmente del origen y se nombra en `copied` en
 lugar de escribirse roto, así que la entrada sigue presente y sigue renderizándose.
 
-Entrada: `{ config, cwd?, locale?, out? }`. `locale` es `en-XA` por defecto y `out` es
+`locale` es `en-XA` por defecto y `out` es
 `.verbatra-local/pseudo`, que `verbatra init` ya añade a `.gitignore`; el `files.pattern`
 configurado se expande dentro, así que el archivo conserva la disposición que espera la aplicación.
 Un pseudolocale que nombre un locale configurado, o que aterrizaría sobre un archivo de locale
@@ -195,6 +220,19 @@ error de compilación en lugar de un fallo de búsqueda en tiempo de ejecución.
 construye ningún proveedor, no se lee ninguna variable de entorno con una clave de API y no se hace
 ninguna petición de red.
 
+```ts title="Firma"
+function generateTypes(
+  input: GenerateTypesInput,
+  deps?: GenerateTypesDeps,
+): Promise<GenerateTypesResult>;
+```
+
+<SdkTypeTable name="GenerateTypesInput" />
+
+**Devuelve:** `GenerateTypesResult`
+
+**Lanza:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
 Lee un archivo (el catálogo del locale de origen) y escribe un archivo (la declaración); nunca
 toca un archivo de locale de destino. Las claves son exactamente lo que el adaptador de formato ya
 produjo, en orden del documento, así que dos ejecuciones sobre un catálogo sin cambios escriben
@@ -220,7 +258,7 @@ fuera de rango se declaran con sus argumentos informados en `unresolved` en luga
 silencio como si no tomaran ninguno. Los hermanos de plural nunca se agrupan: cada uno se declara
 por su cuenta, y los que el adaptador marcó como plurales se listan.
 
-Entrada: `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` toma por defecto
+`out` toma por defecto
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Antes de leer o escribir nada, `TYPES_OUTPUT_CONFLICT`
 rechaza un `out` que no nombra ningún archivo (también uno que termina en un separador de ruta), es
 absoluto, se sale de `cwd` con `..`, nombra el propio `cwd` (`.`) o no termina en `.ts`, `.mts` o

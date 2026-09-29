@@ -13,7 +13,20 @@ de revisión. Todas resuelven `locale` y `key` de nuevo en cada llamada y lanzan
 Lee el valor de origen actual de una clave y, cuando existe, su valor de destino actual para un locale.
 Solo lectura.
 
-Entrada: `{ config, cwd?, locale, key }`. Devuelve `{ source, target? }`; `target` está ausente
+```ts title="Firma"
+function keyValue(
+  input: KeyValueInput,
+  deps?: KeyValueDeps,
+): Promise<KeyValueResult>;
+```
+
+<SdkTypeTable name="KeyValueInput" />
+
+**Devuelve:** `KeyValueResult`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+
+Devuelve `{ source, target? }`; `target` está ausente
 exactamente cuando la clave todavía no existe en ese locale.
 
 Cuando `target` está presente, el resultado lleva además `provenance`, la `KeyProvenance`
@@ -32,7 +45,20 @@ misma puerta de integridad que una traducción del proveedor antes de que nada l
 al disco; al aceptarse, el archivo de locale y la entrada del bloqueo de esa clave se actualizan dentro
 del bloqueo de escritura del locale. Nunca llama a un proveedor.
 
-Entrada: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Devuelve un resultado de dos ramas:
+```ts title="Firma"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**Devuelve:** `EditEntryResult`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Devuelve un resultado de dos ramas:
 `{ accepted: true, value }`, o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sin
 escribir nada. `"empty"` cubre un valor vacío o solo con espacios para un origen que sí tiene texto:
@@ -64,7 +90,20 @@ Vuelve a ejecutar el proveedor para exactamente una clave y un locale: una llama
 través de la misma ruta de proveedor que usa `translate`, protegida por las mismas comprobaciones de
 integridad. Al aceptarse escribe el archivo de locale y la entrada del bloqueo solo para esa clave.
 
-Entrada: `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Devuelve `{ accepted: true, value, reviewReasons }` (los
+```ts title="Firma"
+function retranslateEntry(
+  input: RetranslateEntryInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntryResult>;
+```
+
+<SdkTypeTable name="RetranslateEntryInput" />
+
+**Devuelve:** `RetranslateEntryResult`
+
+**Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`KEY_PROTECTED`](/docs/error-codes#key_protected), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Devuelve `{ accepted: true, value, reviewReasons }` (los
 códigos de motivo de revisión, si los hay, que se aplican al nuevo valor) o
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. A
 diferencia de `translate`, aquí un fallo del proveedor lanza: un `ProviderError`, exportado desde
@@ -89,7 +128,20 @@ proveedor. La aprobación también guarda el hash de origen de la clave en el ar
 que vuelve a contar como sin revisar en cuanto cambia el origen; cualquier escritura posterior que
 cambie el valor empieza un registro nuevo, sin revisar.
 
-Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` es el texto que
+```ts title="Firma"
+function approveEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Devuelve:** `ReviewDecisionResult`
+
+**Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
+`expectedValue` es el texto que
 vio quien revisa: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
 otro, y `REVIEW_SOURCE_CHANGED` cuando el origen cambió desde que se escribió el valor. `reviewer` es
 texto libre opcional de 64 caracteres como máximo y sin caracteres de control (si no,
@@ -111,7 +163,20 @@ posterior omite cualquier acierto exacto o difuso de la memoria para la clave cu
 con ese hash, así que la memoria de otra máquina tampoco puede devolver el texto. No llama a ningún
 proveedor.
 
-Entrada: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, comprobada como en
+```ts title="Firma"
+function rejectEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Devuelve:** `ReviewDecisionResult`
+
+**Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported), [`REVIEW_RESTORE_FAILED`](/docs/error-codes#review_restore_failed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
+La entrada se comprueba como en
 `approveEntry`, salvo que un origen desactualizado no impide un rechazo. Devuelve
 `{ locale, key, provenance }`. Un formato que conserva una clave que no recibió, XLIFF, lanza
 `REVIEW_REJECT_UNSUPPORTED` después de restaurar el archivo.
@@ -140,7 +205,6 @@ están en disco. Una lista `entries` vacía devuelve `results` vacío.
 
 ### approveEntries
 
-Entrada: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
 Ejecuta `approveEntry` por entrada con las mismas comprobaciones; `reviewer` se aplica a todas las
 entradas. Un resultado correcto es `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs`
 limita la espera de cada entrada por el bloqueo de escritura de su locale, y `onLockWait` informa
@@ -150,17 +214,42 @@ de esa espera. Una entrada cuyo bloqueo sigue ocupado pasado el tiempo límite f
 esperar; las entradas de otros locales se siguen decidiendo. Las llamadas de una sola entrada
 `approveEntry` y `rejectEntry` aceptan las mismas dos opciones.
 
+```ts title="Firma"
+function approveEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Devuelve:** `ReviewEntriesResult`
+
+**Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
+
 ### rejectEntries
 
-Entrada: la misma que `approveEntries`. Ejecuta `rejectEntry` por entrada y elimina cada valor
+Ejecuta `rejectEntry` por entrada y elimina cada valor
 rechazado. Un resultado correcto es `{ ok: true, locale, key, provenance }`. Un tiempo límite de
 bloqueo omite las entradas posteriores que necesitan ese bloqueo, como en `approveEntries`.
+
+```ts title="Firma"
+function rejectEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Devuelve:** `ReviewEntriesResult`
+
+**Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
 
 ### approveLocale
 
 <AvailableFrom version="0.12.0" />
 
-Entrada: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
 Aprueba toda la cola de revisión de un locale, o solo sus valores con uno de los `origins`, en una
 sola escritura de `verbatra.provenance.json`, con el bloqueo de escritura del locale. Cada
 aprobación se registra igual que la registra `approveEntry`, con el hash de origen con el que se
@@ -170,9 +259,21 @@ aprobadas y las claves de la cola que quedan sin revisar porque su origen cambi�
 escribieron. Solo escribe el archivo de procedencia, no llama a ningún proveedor y falla con
 `PROVENANCE_FILE_UNWRITABLE` en lugar de informar de aprobaciones que no pudo guardar.
 
+```ts title="Firma"
+function approveLocale(
+  input: ApproveLocaleInput,
+  deps?: ApproveLocaleDeps,
+): Promise<ApproveLocaleResult>;
+```
+
+<SdkTypeTable name="ApproveLocaleInput" />
+
+**Devuelve:** `ApproveLocaleResult`
+
+**Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
 ### retranslateEntries
 
-Entrada: `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
 Ejecuta `retranslateEntry` por entrada, así que hace hasta una llamada al proveedor por entrada. No
 es una ejecución de `translate`: `maxTokens` y `budgetBehavior` no se aplican, y el número de
 entradas es el único límite de lo que gasta. Un resultado completado es
@@ -181,6 +282,19 @@ un valor que la puerta de integridad rechazó. Un valor que escribió una person
 `KEY_PROTECTED` salvo que pases `includeHuman: true`. `lockAcquireTimeoutMs` limita la espera de
 cada entrada por el bloqueo de escritura de su locale, antes de llamar al proveedor, y
 `onLockWait` informa de esa espera.
+
+```ts title="Firma"
+function retranslateEntries(
+  input: RetranslateEntriesInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntriesResult>;
+```
+
+<SdkTypeTable name="RetranslateEntriesInput" />
+
+**Devuelve:** `RetranslateEntriesResult`
+
+**Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
 
 <AvailableFrom version="0.12.0" />
 
@@ -206,3 +320,9 @@ resultado de una sola entrada, como un fallo inesperado del sistema de archivos,
 medias. `results` contiene los resultados de las entradas completadas antes, en orden, `entry`
 nombra el `{ locale, key }` que se estaba ejecutando y `cause` es el error original. Las entradas
 posteriores a `entry` no se ejecutaron.
+
+```ts title="Firma"
+class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error
+```
+
+<SdkTypeTable name="BatchInterruptedError" />

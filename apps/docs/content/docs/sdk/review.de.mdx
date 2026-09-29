@@ -13,7 +13,20 @@ Review-Tooling zu bauen. Alle lösen `locale` und `key` bei jedem Aufruf frisch 
 Liest den aktuellen Quellwert eines Keys und, falls vorhanden, seinen aktuellen Zielwert für eine
 Locale. Nur lesend.
 
-Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ source, target? }` zurück; `target` fehlt genau
+```ts title="Signatur"
+function keyValue(
+  input: KeyValueInput,
+  deps?: KeyValueDeps,
+): Promise<KeyValueResult>;
+```
+
+<SdkTypeTable name="KeyValueInput" />
+
+**Rückgabe:** `KeyValueResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+
+Gibt `{ source, target? }` zurück; `target` fehlt genau
 dann, wenn der Key in dieser Locale noch nicht existiert.
 
 Ist `target` vorhanden, trägt das Ergebnis außerdem `provenance`, die ausgewertete
@@ -32,7 +45,20 @@ durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irg
 erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
 Schreibsperre dieser Locale aktualisiert. Ruft nie einen Provider auf.
 
-Eingabe: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt ein zweiarmiges Ergebnis zurück:
+```ts title="Signatur"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**Rückgabe:** `EditEntryResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Gibt ein zweiarmiges Ergebnis zurück:
 `{ accepted: true, value }` oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
 wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert
@@ -65,7 +91,20 @@ denselben Provider-Pfad, den `translate` nutzt, abgesichert durch dieselben
 Integritätsprüfungen. Bei Annahme schreibt es die Locale-Datei und den Lock-Eintrag nur für diesen
 Key.
 
-Eingabe: `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
+```ts title="Signatur"
+function retranslateEntry(
+  input: RetranslateEntryInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntryResult>;
+```
+
+<SdkTypeTable name="RetranslateEntryInput" />
+
+**Rückgabe:** `RetranslateEntryResult`
+
+**Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`KEY_PROTECTED`](/docs/error-codes#key_protected), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Gibt `{ accepted: true, value, reviewReasons }` zurück
 (die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
 `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
 Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError`, exportiert aus
@@ -91,7 +130,20 @@ ruft keinen Provider auf. Die Freigabe speichert zusätzlich den Quell-Hash des 
 Lock-Datei, sodass sie wieder als ungeprüft gilt, sobald sich die Quelle ändert; jeder spätere
 Schreibvorgang, der den Wert ändert, beginnt einen frischen, ungeprüften Eintrag.
 
-Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` ist der Text,
+```ts title="Signatur"
+function approveEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Rückgabe:** `ReviewDecisionResult`
+
+**Wirft:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
+`expectedValue` ist der Text,
 den die prüfende Person gesehen hat: Der Aufruf wirft `REVIEW_VALUE_CHANGED`, wenn der Key keinen
 oder einen anderen Wert hat, und `REVIEW_SOURCE_CHANGED`, wenn sich die Quelle geändert hat, seit
 der Wert geschrieben wurde. `reviewer` ist optionaler Freitext mit höchstens 64 Zeichen ohne
@@ -113,7 +165,20 @@ späteres `translate` überspringt jeden exakten oder unscharfen Memory-Treffer 
 Text zu diesem Hash passt, sodass auch das Memory eines anderen Rechners den Text nicht
 zurückbringt. Ruft keinen Provider auf.
 
-Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, geprüft wie bei `approveEntry`,
+```ts title="Signatur"
+function rejectEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Rückgabe:** `ReviewDecisionResult`
+
+**Wirft:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported), [`REVIEW_RESTORE_FAILED`](/docs/error-codes#review_restore_failed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
+Die Eingabe wird wie bei `approveEntry` geprüft,
 nur dass eine veraltete Quelle eine Ablehnung nicht verhindert. Gibt `{ locale, key, provenance }`
 zurück. Ein Format, das einen Key behält, den es nicht übergeben bekommt, XLIFF, wirft
 `REVIEW_REJECT_UNSUPPORTED`, nachdem es die Datei wiederhergestellt hat.
@@ -145,7 +210,6 @@ der schon ausgeführten Einträge trägt, deren Schreibvorgänge bereits auf der
 
 ### approveEntries
 
-Eingabe: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
 Führt `approveEntry` pro Eintrag mit denselben Prüfungen aus; `reviewer` gilt für jeden Eintrag. Ein
 erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` begrenzt
 das Warten jedes Eintrags auf die Schreibsperre seiner Locale, und `onLockWait` meldet dieses
@@ -155,18 +219,44 @@ Warten. Ein Eintrag, dessen Sperre über das Timeout hinaus belegt bleibt, schei
 warten; Einträge anderer Locales werden weiter entschieden. Die Einzelaufrufe `approveEntry` und
 `rejectEntry` nehmen dieselben beiden Optionen.
 
+```ts title="Signatur"
+function approveEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Rückgabe:** `ReviewEntriesResult`
+
+**Wirft:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
+
 ### rejectEntries
 
-Eingabe: wie bei `approveEntries`. Führt `rejectEntry` pro Eintrag aus und entfernt jeden
+Führt `rejectEntry` pro Eintrag aus und entfernt jeden
 abgelehnten Wert. Ein erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. Ein
 Sperr-Timeout überspringt die späteren Einträge, die diese Sperre brauchen, wie bei
 `approveEntries`.
+
+```ts title="Signatur"
+function rejectEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Rückgabe:** `ReviewEntriesResult`
+
+**Wirft:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
 
 ### approveLocale
 
 <AvailableFrom version="0.12.0" />
 
-Eingabe: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt
+Gibt
 die ganze Review-Warteschlange einer Locale frei, oder nur ihre Werte mit einer der `origins`, in
 einem einzigen Schreibvorgang von `verbatra.provenance.json` unter der Schreibsperre der Locale.
 Jede Freigabe wird so festgehalten, wie `approveEntry` eine festhält, mit dem Quell-Hash, gegen den
@@ -177,9 +267,21 @@ Warteschlange, die ungeprüft bleiben, weil sich ihr Quelltext seit dem Schreibe
 schreibt nur die Herkunftsdatei, ruft keinen Provider auf und scheitert mit
 `PROVENANCE_FILE_UNWRITABLE`, statt Freigaben zu melden, die sie nicht speichern konnte.
 
+```ts title="Signatur"
+function approveLocale(
+  input: ApproveLocaleInput,
+  deps?: ApproveLocaleDeps,
+): Promise<ApproveLocaleResult>;
+```
+
+<SdkTypeTable name="ApproveLocaleInput" />
+
+**Rückgabe:** `ApproveLocaleResult`
+
+**Wirft:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
 ### retranslateEntries
 
-Eingabe: `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
 Führt `retranslateEntry` pro Eintrag aus und macht damit bis zu einen Provider-Aufruf pro Eintrag.
 Es ist kein `translate`-Lauf: `maxTokens` und `budgetBehavior` gelten nicht, und die Zahl der
 Einträge ist die einzige Grenze für die Kosten. Ein abgeschlossenes Ergebnis ist
@@ -188,6 +290,19 @@ hat, auch ein Wert, den das Integritäts-Gate abgelehnt hat. Ein Wert, den ein M
 hat, scheitert mit `KEY_PROTECTED`, außer du übergibst `includeHuman: true`.
 `lockAcquireTimeoutMs` begrenzt das Warten jedes Eintrags auf die Schreibsperre seiner Locale, vor
 dem Provider-Aufruf, und `onLockWait` meldet dieses Warten.
+
+```ts title="Signatur"
+function retranslateEntries(
+  input: RetranslateEntriesInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntriesResult>;
+```
+
+<SdkTypeTable name="RetranslateEntriesInput" />
+
+**Rückgabe:** `RetranslateEntriesResult`
+
+**Wirft:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
 
 <AvailableFrom version="0.12.0" />
 
@@ -212,3 +327,9 @@ kein Ergebnis eines einzelnen Eintrags ist, etwa ein unerwarteter Dateisystemfeh
 mittendrin stoppt. `results` enthält die Ergebnisse der vorher abgeschlossenen Einträge in ihrer
 Reihenfolge, `entry` nennt das laufende `{ locale, key }`, und `cause` ist der ursprüngliche Fehler.
 Einträge nach `entry` sind nicht gelaufen.
+
+```ts title="Signatur"
+class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error
+```
+
+<SdkTypeTable name="BatchInterruptedError" />
