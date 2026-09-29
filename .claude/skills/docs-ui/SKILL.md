@@ -59,7 +59,13 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 Three layers exist. Write against the third.
 
 1. **Brand primitives.** `--v-purple: hsl(291 64% 42%)` and `--v-glow: hsl(258 47% 74%)`.
-   Two colors, nothing else. Do not introduce a third brand hue casually.
+   Two brand hues, nothing else. Do not introduce a third brand hue casually. Beside them sit a
+   few tints with one job each, never a general palette: `--v-glow-soft` (the lighter end of
+   `--gradient-headline`, and flag tokens in `Terminal`), `--v-violet` (the far end of
+   `--gradient-headline` and one corner of `HERO_BACKGROUND` in `fx/hero-wash.ts`), `--v-pink`
+   (only through `--v-status-changed`), and `--v-status-new` / `--v-status-changed` /
+   `--v-status-unchanged` (the `tone` colors of `components/ui/badge.tsx`). Reach for one only in
+   the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
@@ -86,7 +92,9 @@ Scales are fixed and narrow, deliberately:
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
   reintroduce a spread.
-- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp.
+- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp. The one
+  exception is the providers deck (`.vk-card` in `app/global.css`): its resting and fanned-out
+  shadows are part of the fan motion and stay local to it; do not reuse them elsewhere.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
 
 ## Typography
@@ -126,8 +134,11 @@ footer's oversized watermark only; do not clip it onto a heading.
   wrap, they scroll sideways inside `.vk-terminal-scroll`, which fades the end edge while there is
   more to see), `hero-demo.tsx` (the hero's Terminal /
   Studio tabs), `evidence.tsx` (the mono evidence chip; a linked chip
-  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx`,
-  `command-box.tsx`, `reveal.tsx`, `hero-facts.tsx` (the release / formats / providers /
+  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
+  `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
+  a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
+  the tab row wraps too, and the AI prompt row keeps scrolling), `reveal.tsx` (the scroll
+  entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or
@@ -140,7 +151,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
   `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
-  `content/docs/index.mdx` and its three locale siblings. `DocsHomeStacks` is the plain text links
+  `content/docs/index.mdx` and its three locale siblings. The hero and the body share one frame
+  (`HOME_FRAME`: one max width, one gutter), so the hero panel and the sections below it start and
+  end on the same edges; a section head sets its lead on the heading's last baseline. `DocsHomeStacks` is the plain text links
   into `pick-your-stack`, grouped (frameworks, platforms, formats) under a label that sits above
   them at every width: no logos, no icons. Fumadocs' `Steps` and `Step`
   are registered there too, for numbered tutorial steps such as the quickstart's.
@@ -208,12 +221,14 @@ comes from:
   remains only for the footer's watermark. Neither hero carries an eyebrow, and no card or
   button on the docs home appends an arrow to its label: the hover border is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
-  landing footer uses for its column titles. The sidebar's top-level entries inside each tab
-  (group triggers such as "CLI", the "Introduction" page, the `For AI agents` separator), the
-  TOC's "On this page" title, table headers, and the sidebar tabs all use this treatment.
+  landing footer uses for its column titles. The sidebar's top-level folders and separators
+  inside each tab (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On
+  this page" title, table headers, and the sidebar tabs all use this treatment. A top-level page
+  ("Introduction", "Error codes", `llms.txt`) keeps its name as written: a page name, and above
+  all a file name, is never uppercased.
   `DocsHomePaths` cards do not: the goal is the card title in sentence case, and the page name
-  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
-  under a root folder (the Docs and Reference tabs) in the class before the tree reaches
+  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every folder and separator
+  name directly under a root folder (the Docs and Reference tabs) in the class before the tree reaches
   `DocsLayout`, and leaves the tab names themselves plain; do not target Fumadocs' or Radix's
   internal DOM for it.
   Use the class for a new label rather than restating the four declarations.
@@ -242,9 +257,14 @@ comes from:
   snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
 - **Pills**: `.vk-pill` is the one badge shape: an outline pill in `--accent` text with the
   glow-tinted border, mono, `--text-xs`, no fill. The sidebar and footer NEW badge
-  (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase); the
+  (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
+  breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
-  inside a heading. Do not bring back a filled purple pill.
+  inside a heading. A badge placed directly under a heading is moved into it; a badge that dates
+  only part of a section sits inline, leading the paragraph or following the list term it dates,
+  never alone as a paragraph in mid-section. A heading whose key a table's "Since" column
+  already dates (the key table on `config-file`) carries no badge. Do not bring back a filled
+  purple pill.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column.
@@ -274,24 +294,49 @@ comes from:
   tab of the current root folder; Fumadocs' dropdown switcher is off (`tabs={false}`). `rootTabs`
   in `lib/root-tabs.ts` builds the tabs, opening each on its first real page, since the Reference
   tab has no page of its own. The header's "Reference" link opens the same tab.
+- **Sidebar titles**: a `sidebarTitle` frontmatter field (`lib/sidebar-title.ts`, a loader plugin in
+  `lib/source.tsx`) names a page in the sidebar and the breadcrumb while its `<h1>` and `<title>`
+  keep `title`. `cli/index` and `sdk/index` use it: titled "CLI reference" and "SDK reference"
+  (localized) so no two pages share a title, and listed as "Overview" in their folder. Both
+  overview pages list their pages as `<Cards>`; the SDK one comes from `<SdkEntryPoints />`
+  (`components/sdk-reference.tsx`), one card per page naming its entry points.
+- **Table of contents**: TOC entries never break inside a word (`overflow-wrap: normal` on
+  `#nd-toc` and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each
+  underscore with `<wbr>` (`breakAfterUnderscores`), so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A page
+  whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
+  locales) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
+  `.vk-code-headings` to the page body, which sets its H3s (one code name each) in `--font-mono`.
+  The phone TOC button carries an explicit `aria-label` (Fumadocs' localized "On this page",
+  `onThisPageLabel`), so its accessible name is not the progress ring's value.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI
   page as its bare command (`translate`) wrapped in `.vk-sidebar-command`, which sets it in
   `--font-mono`; the page `<h1>` keeps `verbatra translate`.
-- **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
-  Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
-  a visible frame, with a thin scrollbar. Cells are compact (0.5rem by 0.75rem, top-aligned). A
-  table of four or more columns gets `.vk-table-stack` and a `data-label` per body cell from
-  `lib/stacked-tables.ts` at build time; under 640px each row stacks into a card, the first cell as
-  its title and every other cell behind its column name, so it does not scroll sideways at phone
-  width. The header row stays in the DOM for assistive technology. Short inline code (up to
-  `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX
-  `code` mapping and never wraps; longer inline code wraps, in cells and in prose alike.
+- **Tables**: the frame is Fumadocs' scroll wrapper (`div:has(> table)`): border, radius and a
+  `--surface-bg` fill sit on it, the table itself is transparent, and only the `thead th` row is
+  filled (`--surface-card`, a `.vk-label`), the same header treatment `.vk-type-table` gets, so a
+  Markdown table and a generated type table read as one component. `#nd-page .prose` is the
+  `vk-article` size container, and every table rule keys on its width, never on the viewport.
+  From 45rem up the wrapper is `overflow: visible` and the header row is sticky below the header
+  (`top: var(--fd-docs-row-3)`); below 45rem the wrapper scrolls sideways with the end-edge fade
+  `.vk-terminal-scroll` uses, and the header is not sticky, because a sticky cell inside a
+  scroll container is offset against that container, not the page. Cells are compact (0.5rem by
+  0.75rem, top-aligned). A table of three or more columns gets `.vk-table-stack` and a
+  `data-label` per body cell from `lib/stacked-tables.ts` at build time; while the article column
+  is under 45rem each row stacks into a card, the first cell as its title and every other cell
+  behind its column name, and under 30rem the column name moves above its value. Under 30rem,
+  code and pills in a cell may wrap too, so a two-column table fits a phone. The header row stays
+  in the DOM for assistive technology. Short inline code (up to `SHORT_INLINE_CODE_MAX`
+  characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never
+  wraps elsewhere; longer inline code wraps, in cells and in prose alike, and the mapping offers a
+  break after every underscore (`breakAfterUnderscores`, `lib/word-breaks.tsx`) so
+  `verbatra_project_snapshot` wraps at `_` before anywhere else.
 - **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
   `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
   the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).
-  The shim adds `.vk-type-table` (a flat panel on `--surface-bg`, the header row as a `.vk-label`)
+  The shim adds `.vk-type-table` (a flat panel on `--surface-bg`, the header row as a filled
+  `.vk-label` like a Markdown table's)
   and a unique `id` per table, and gives the `.md` output a plain Markdown table. Descriptions are
   the published English JSDoc in every locale; the framing prose around them stays translated.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the

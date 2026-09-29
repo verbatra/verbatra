@@ -485,6 +485,13 @@ samp {
   letter-spacing: var(--tracking-snug);
 }
 
+#nd-page .vk-code-headings :where(h3):not(:where(.not-prose, .not-prose *)) {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
 #nd-page .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
   font-size: 1.0625rem;
   line-height: var(--leading-snug);
@@ -518,11 +525,10 @@ samp {
 }
 
 .vk-available-from {
-  margin-block: 0.75rem;
+  vertical-align: 0.1em;
 }
 
 :where(h2, h3, h4) .vk-available-from {
-  margin-block: 0;
   margin-inline-start: 0.125rem;
   vertical-align: 0.2em;
 }
@@ -588,6 +594,10 @@ samp {
   color: var(--text-faint);
 }
 
+#nd-page .prose {
+  container: vk-article / inline-size;
+}
+
 #nd-page .prose :where(thead th):not(:where(.not-prose, .not-prose *)) {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -596,6 +606,15 @@ samp {
   letter-spacing: 0.12em;
   color: var(--text-faint);
   background: var(--surface-card);
+  border-block-end: 1px solid var(--border-default);
+}
+
+#nd-page .prose :where(thead th:first-child):not(:where(.not-prose, .not-prose *)) {
+  border-start-start-radius: calc(var(--radius-md) - 1px);
+}
+
+#nd-page .prose :where(thead th:last-child):not(:where(.not-prose, .not-prose *)) {
+  border-start-end-radius: calc(var(--radius-md) - 1px);
 }
 
 #nd-page .prose :where(th code, td code):not(:where(.not-prose, .not-prose *)) {
@@ -609,8 +628,27 @@ samp {
 #nd-page .prose :where(div:has(> table)):not(:where(.not-prose, .not-prose *)) {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
+  overscroll-behavior-x: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--border-default) transparent;
+  background:
+    linear-gradient(to left, var(--surface-bg) 40%, transparent) right center / 48px 100% no-repeat
+    local,
+    linear-gradient(to left, color-mix(in srgb, var(--v-glow) 28%, transparent), transparent) right
+    center / 20px 100% no-repeat scroll,
+    var(--surface-bg);
+}
+
+@container vk-article (min-width: 45rem) {
+  #nd-page .prose :where(div:has(> table)):not(:where(.not-prose, .not-prose *)) {
+    overflow: visible;
+  }
+
+  #nd-page .prose :where(thead th):not(:where(.not-prose, .not-prose *)) {
+    position: sticky;
+    top: var(--fd-docs-row-3, 0px);
+    z-index: 1;
+  }
 }
 
 .vk-type-table {
@@ -620,18 +658,29 @@ samp {
 }
 
 .vk-type-table > div:first-child {
+  margin: -0.25rem -0.25rem 0.25rem;
+  padding: 0.5rem 1rem;
+  border-block-end: 1px solid var(--border-default);
+  border-start-start-radius: calc(var(--radius-md) - 1px);
+  border-start-end-radius: calc(var(--radius-md) - 1px);
+  background: var(--surface-card);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: var(--text-faint);
 }
 
 #nd-page .prose :where(table):not(:where(.not-prose, .not-prose *)) {
+  margin: 0;
   font-size: var(--text-sm);
+  border: 0;
+  border-radius: 0;
   border-collapse: separate;
   border-spacing: 0;
+  background: transparent;
+  overflow: visible;
 }
 
 #nd-page .prose :where(th, td):not(:where(.not-prose, .not-prose *)) {
@@ -640,7 +689,14 @@ samp {
   line-height: 1.5;
 }
 
-@media (max-width: 639px) {
+@container vk-article (max-width: 29.99rem) {
+  #nd-page .prose :where(td code, th code, td .vk-pill):not(:where(.not-prose, .not-prose *)) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@container vk-article (max-width: 44.99rem) {
   #nd-page .prose :where(.vk-table-stack, .vk-table-stack tbody, .vk-table-stack tr) {
     display: block;
   }
@@ -696,6 +752,19 @@ samp {
 
   #nd-page .prose :where(.vk-table-stack td:first-child)::before {
     content: none;
+  }
+}
+
+@container vk-article (max-width: 29.99rem) {
+  #nd-page .prose :where(.vk-table-stack td) {
+    padding-inline: 0.75rem;
+  }
+
+  #nd-page .prose :where(.vk-table-stack td)::before {
+    display: block;
+    float: none;
+    width: auto;
+    margin-inline-start: 0;
   }
 }
 
@@ -1226,4 +1295,20 @@ figure.shiki > pre {
     linear-gradient(to left, color-mix(in srgb, var(--v-glow) 28%, transparent), transparent) right
     center / 20px 100% no-repeat scroll,
     var(--v-void);
+}
+
+.vk-breadcrumb .vk-pill-status {
+  display: none;
+}
+
+.vk-breadcrumb a:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
+[data-toc-popover-content] a {
+  overflow-wrap: normal;
+}
+
+#nd-toc a {
+  overflow-wrap: normal;
 }

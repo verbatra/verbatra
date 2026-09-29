@@ -383,7 +383,7 @@ function cliMetaCommands(suffix) {
 
 function cliOverviewCommands(suffix) {
   const page = readDocPage("cli/index", suffix);
-  return [...page.matchAll(/^\| \[`([a-z]+)`\]\(\/docs\/cli\/\1\) \|/gm)]
+  return [...page.matchAll(/^ {2}<Card title="([a-z]+)" href="\/docs\/cli\/\1">/gm)]
     .map((match) => match[1])
     .sort();
 }
@@ -409,7 +409,7 @@ describe("the CLI reference covers every command", () => {
     },
   );
 
-  it.each(LOCALE_SUFFIXES)("links every command from the table in cli/index%s.mdx", (suffix) => {
+  it.each(LOCALE_SUFFIXES)("links every command from a card in cli/index%s.mdx", (suffix) => {
     expect(cliOverviewCommands(suffix)).toEqual(names);
   });
 

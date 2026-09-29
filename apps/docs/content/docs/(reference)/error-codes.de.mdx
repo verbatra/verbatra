@@ -2,6 +2,8 @@
 title: Fehlercodes
 description: "Jeder Fehler-, Ergebnis- und Hinweiscode, den verbatra meldet: was er bedeutet, welche Befehle ihn auslösen, der Exit-Code und der nächste Schritt."
 type: reference
+tocDepth: 2
+codeHeadings: true
 ---
 Jeder Fehler, den verbatra meldet, trägt einen stabilen Code: in der Zeile `verbatra: error [CODE] message` auf stderr, als `code` oder `causeCode` eines `--json`-Envelopes, als `error.code` eines gescheiterten Locales oder als Hinweis in der Laufzusammenfassung. Verzweige auf den Code, nie auf die Meldung. Jeder Code hat seinen eigenen Anker, `/docs/error-codes#` gefolgt vom Code in Kleinbuchstaben, etwa [`#config_not_found`](#config_not_found).
 

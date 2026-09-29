@@ -1,7 +1,7 @@
 import { childElements, type HastNode, isElement, textContent, visitParents } from "./hast";
 
 export const STACKED_TABLE_CLASS = "vk-table-stack";
-export const STACKED_TABLE_MIN_COLUMNS = 4;
+export const STACKED_TABLE_MIN_COLUMNS = 3;
 
 function headerLabels(table: HastNode): string[] {
   const headerRow = childElements(table, "thead").flatMap((head) => childElements(head, "tr"))[0];

@@ -1,27 +1,28 @@
 ---
-title: Overview
+title: "CLI reference"
+sidebarTitle: "Overview"
 description: "The verbatra command: its subcommands, the global flags, and how it reads your environment."
 type: reference
 ---
 `@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). These commands do the work:
 
-| Command | What it does |
-| --- | --- |
-| [`init`](/docs/cli/init) | create a verbatra config and `.env.example` for this project |
-| [`extract`](/docs/cli/extract) | scan your application source for translation call sites and add the new keys to the source locale file |
-| [`translate`](/docs/cli/translate) | translate every target locale once, then exit |
-| [`watch`](/docs/cli/watch) | re-translate on every source change until interrupted |
-| [`check`](/docs/cli/check) | report which keys are missing or stale per locale, read-only |
-| [`diff`](/docs/cli/diff) | list the exact keys that would be added, re-translated, or are orphaned per locale, read-only |
-| [`report`](/docs/cli/report) | print a read-only report: `report provenance` lists which translations a machine wrote and which a person reviewed |
-| [`doctor`](/docs/cli/doctor) | validate the project setup and report every problem at once, without calling a provider |
-| [`pseudo`](/docs/cli/pseudo) | generate a pseudolocale from the source strings, without calling a provider |
-| [`types`](/docs/cli/types) | generate TypeScript declarations for your catalog keys and their message arguments, without calling a provider |
-| [`export`](/docs/cli/export) | export untranslated strings for a human translator, as an Excel workbook, one CSV or TSV file per locale, or one XLIFF file per locale for a CAT tool |
-| [`import`](/docs/cli/import) | import a filled workbook or delimited file back into the locale files |
-| [`tmx`](/docs/cli/tmx) | import a TMX translation memory from another tool into this project's memory, or export this project's memory as a TMX file |
-| [`studio`](/docs/cli/studio) | start Verbatra Studio, the local translation dashboard |
-| [`mcp`](/docs/cli/mcp) | start a stdio MCP server exposing verbatra's tools to an MCP client |
+<Cards>
+  <Card title="init" href="/docs/cli/init">Create a verbatra config and `.env.example` for this project.</Card>
+  <Card title="extract" href="/docs/cli/extract">Scan your application source for translation call sites and add the new keys to the source locale file.</Card>
+  <Card title="translate" href="/docs/cli/translate">Translate every target locale once, then exit.</Card>
+  <Card title="watch" href="/docs/cli/watch">Re-translate on every source change until interrupted.</Card>
+  <Card title="check" href="/docs/cli/check">Report which keys are missing or stale per locale, read-only.</Card>
+  <Card title="diff" href="/docs/cli/diff">List the exact keys that would be added, re-translated, or are orphaned per locale, read-only.</Card>
+  <Card title="report" href="/docs/cli/report">Print a read-only report: `report provenance` lists which translations a machine wrote and which a person reviewed.</Card>
+  <Card title="doctor" href="/docs/cli/doctor">Validate the project setup and report every problem at once, without calling a provider.</Card>
+  <Card title="pseudo" href="/docs/cli/pseudo">Generate a pseudolocale from the source strings, without calling a provider.</Card>
+  <Card title="types" href="/docs/cli/types">Generate TypeScript declarations for your catalog keys and their message arguments, without calling a provider.</Card>
+  <Card title="export" href="/docs/cli/export">Export untranslated strings for a human translator, as an Excel workbook, one CSV or TSV file per locale, or one XLIFF file per locale for a CAT tool.</Card>
+  <Card title="import" href="/docs/cli/import">Import a filled workbook or delimited file back into the locale files.</Card>
+  <Card title="tmx" href="/docs/cli/tmx">Import a TMX translation memory from another tool into this project's memory, or export this project's memory as a TMX file.</Card>
+  <Card title="studio" href="/docs/cli/studio">Start Verbatra Studio, the local translation dashboard.</Card>
+  <Card title="mcp" href="/docs/cli/mcp">Start a stdio MCP server exposing verbatra's tools to an MCP client.</Card>
+</Cards>
 
 ## Install and invoke
 

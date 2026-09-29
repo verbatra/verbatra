@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { CONTROL_GROUPS, controlHref } from "@/lib/control-items";
 import type { Locale } from "@/lib/i18n";
 import { Evidence } from "./evidence";
-import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -13,13 +12,10 @@ export async function Control(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="control">
-      <Reveal>
+      <div>
         <SectionHead title={t("heading")} lead={t("lead")} />
-      </Reveal>
-      <Reveal
-        order={1}
-        className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-3 lg:grid-rows-[repeat(4,auto)] lg:gap-y-7"
-      >
+      </div>
+      <div className="mt-12 grid gap-x-12 gap-y-14 lg:grid-cols-3 lg:grid-rows-[repeat(4,auto)] lg:gap-y-7">
         {CONTROL_GROUPS.map((group) => (
           <section
             key={group.key}
@@ -46,7 +42,7 @@ export async function Control(): Promise<ReactNode> {
             </ul>
           </section>
         ))}
-      </Reveal>
+      </div>
     </Section>
   );
 }

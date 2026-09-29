@@ -17,7 +17,7 @@ import {
   DocsHomeStacks,
   DocsHomeSteps,
 } from "@/components/docs-home";
-import { LaneCards, ReferenceRow, VMark } from "@/components/landing";
+import { VMark } from "@/components/landing";
 import { OutputCodeBlock } from "@/components/output-code-block";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import { duplicatesFooter } from "@/lib/docs-neighbours";
 import { type Locale, localizeHref } from "@/lib/i18n";
 import { isShortInlineCode } from "@/lib/inline-code";
 import { cn } from "@/lib/utils";
+import { breakAfterUnderscores } from "@/lib/word-breaks";
 
 export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
@@ -49,7 +50,7 @@ export function getMDXComponents(
     ),
     code: ({ className, children, ...rest }: ComponentProps<"code">) => (
       <code className={cn(isShortInlineCode(children) && SHORT_CODE_CLASS, className)} {...rest}>
-        {children}
+        {breakAfterUnderscores(children)}
       </code>
     ),
     pre: ({
@@ -92,8 +93,6 @@ export function getMDXComponents(
     CommandLine,
     Badge,
     VTabs: Tabs,
-    LaneCards,
-    ReferenceRow,
     VMark,
     DocsHomeHero: (props: Omit<ComponentProps<typeof DocsHomeHero>, "locale">) => (
       <DocsHomeHero {...props} locale={locale} />

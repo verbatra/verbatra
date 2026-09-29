@@ -13,6 +13,8 @@ const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
 const PANEL = "rounded-xl border border-fd-border";
 
+const HOME_FRAME = "mx-auto w-full max-w-[1100px] px-4 md:px-6 lg:px-10";
+
 const PANEL_HOVER =
   "hover:border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))]";
 
@@ -41,7 +43,7 @@ export function DocsHomeHero({
   locale: Locale;
 }): ReactNode {
   return (
-    <section className="not-prose px-2 pt-2 md:px-3">
+    <section className={cn("not-prose pt-4 md:pt-6", HOME_FRAME)}>
       <div
         className="relative overflow-hidden rounded-xl border"
         style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
@@ -87,11 +89,7 @@ export function DocsHomeHero({
 }
 
 export function DocsHomeBody({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <div className="mx-auto grid w-full max-w-[1100px] gap-[72px] px-6 pt-16 pb-20 md:px-10">
-      {children}
-    </div>
-  );
+  return <div className={cn("grid gap-[72px] pt-16 pb-20", HOME_FRAME)}>{children}</div>;
 }
 
 export function DocsHomeSection({
@@ -105,7 +103,7 @@ export function DocsHomeSection({
 }): ReactNode {
   return (
     <section>
-      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-x-16">
+      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-baseline-last lg:gap-x-16">
         <h2
           className="max-w-[16ch] font-semibold text-fd-foreground"
           style={{
@@ -119,7 +117,7 @@ export function DocsHomeSection({
           {title}
         </h2>
         {lead ? (
-          <p className="vk-lead max-w-[46ch] text-fd-muted-foreground lg:justify-self-end lg:pb-1">
+          <p className="vk-lead max-w-[46ch] text-fd-muted-foreground lg:justify-self-end">
             {lead}
           </p>
         ) : null}

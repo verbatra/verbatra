@@ -5,7 +5,6 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
 import { SKILLS_REPO_URL } from "./links";
-import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -54,7 +53,7 @@ function Row({
   children: ReactNode;
 }): ReactNode {
   return (
-    <Reveal className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16">
       <div className={cn("min-w-0", flip && "lg:order-2")}>
         <h3 className="vk-h3 max-w-[18ch]">{title}</h3>
         <p className="mt-3.5 max-w-[44ch] text-base text-fd-muted-foreground">{body}</p>
@@ -63,7 +62,7 @@ function Row({
         </a>
       </div>
       <div className={cn("min-w-0", flip && "lg:order-1")}>{children}</div>
-    </Reveal>
+    </div>
   );
 }
 
@@ -83,9 +82,9 @@ export async function Loop(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="loop">
-      <Reveal>
+      <div>
         <SectionHead title={t("heading")} />
-      </Reveal>
+      </div>
       <div className="mt-[52px] grid gap-[72px]">
         <Row
           title={t("rows.excel.title")}

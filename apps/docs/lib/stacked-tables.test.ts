@@ -61,8 +61,19 @@ describe("rehypeStackedTables", () => {
     expect(cells(wide).at(-1)?.properties?.dataLabel).toBe("");
   });
 
+  it("stacks a three-column table", () => {
+    const three = run(table(["Code", "Meaning", "Fix"], [["a", "b", "c"]]));
+
+    expect(three.properties?.className).toEqual([STACKED_TABLE_CLASS]);
+    expect(cells(three).map((cell) => cell.properties?.dataLabel)).toEqual([
+      "Code",
+      "Meaning",
+      "Fix",
+    ]);
+  });
+
   it("leaves narrow tables and tables without a header row alone", () => {
-    const narrow = run(table(["Code", "Meaning", "Fix"], [["a", "b", "c"]]));
+    const narrow = run(table(["Code", "Meaning"], [["a", "b"]]));
     const headless = run(element("table", [element("tbody", [])]));
 
     expect(narrow.properties?.className).toBeUndefined();
