@@ -42,6 +42,7 @@ export async function baseOptions(locale: Locale): Promise<BaseLayoutProps> {
     },
     links: [
       { text: t("docs"), url: localizedPath(locale, "/docs") },
+      { text: t("reference"), url: localizedPath(locale, "/docs/cli") },
       { text: t("startWithAi"), url: localizedPath(locale, "/docs/start-with-ai") },
       { text: t("contributing"), url: CONTRIBUTING_URL, external: true },
       {
