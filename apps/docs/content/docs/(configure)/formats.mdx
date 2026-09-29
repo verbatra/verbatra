@@ -239,7 +239,7 @@ A tree-based locale file (the JSON family, YAML, and ARB) can carry a leaf that 
 
 The formats above are the ones verbatra ships. A format it does not ship can be supplied by an adapter in your own package, named with a `custom:` identifier such as `custom:toml` and handed to verbatra as part of a registry. The built-in set stays closed, and no built-in name contains a colon, so a third-party identifier can never shadow one.
 
-This is a programmatic path through `@verbatra/sdk`, not a command-line one: the `verbatra` binary loads no plugin of its own. An adapter you install is fully trusted code, at the trust level of any other dependency, and verbatra does not sandbox it. See [Custom format adapters](/docs/custom-format-adapters) for how to build one and for what you are trusting when you install one.
+This is a programmatic path through `@verbatra/sdk`, not a command-line one: the `verbatra` binary loads no plugin of its own. An adapter you install is fully trusted code, at the trust level of any other dependency, and verbatra does not sandbox it. See [Write a custom format adapter](/docs/custom-format-adapters) for how to build one and for what you are trusting when you install one.
 
 ## Inline markup in values
 

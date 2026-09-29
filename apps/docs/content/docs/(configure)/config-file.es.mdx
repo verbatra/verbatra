@@ -70,7 +70,7 @@ Las claves de nivel superior desconocidas se rechazan, con `$schema` como única
 
 - **`sourceLocale`** debe ser un código de locale BCP 47 válido, como `en`, `pt-BR`, `zh-Hant-TW` o `es-419`. Consulta [Códigos de locale](#códigos-de-locale).
 - **`targetLocales`** debe contener al menos un locale, no debe incluir `sourceLocale`, y dos entradas no pueden ser iguales sin distinguir mayúsculas de minúsculas (por ejemplo `["de", "DE"]` se rechaza), porque cada locale se convierte en el nombre de su propia hoja de Excel al exportar.
-- **`format`** es uno de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` o `resx`, o un identificador `custom:` que nombre un formato aportado por un adaptador externo a verbatra. Consulta [Formatos](/docs/formats) y [Adaptadores de formato propios](/docs/custom-format-adapters).
+- **`format`** es uno de `i18next-json`, `vue-i18n-json`, `next-intl-json`, `ngx-translate-json`, `xliff`, `yaml`, `arb`, `properties`, `apple-strings`, `apple-xcstrings`, `android-xml`, `gettext-po`, `ini` o `resx`, o un identificador `custom:` que nombre un formato aportado por un adaptador externo a verbatra. Consulta [Formatos](/docs/formats) y [Escribe un adaptador de formato propio](/docs/custom-format-adapters).
 - **`files.pattern`** debe contener el token `{locale}`, que verbatra reemplaza con cada locale: `locales/{locale}.json` se resuelve a `locales/de.json`. Las rutas se resuelven contra el directorio de trabajo. El patrón es una ruta literal, no un glob, y `{locale}` es el único token que entiende, así que una configuración direcciona exactamente un archivo por locale. Si tu proyecto reparte sus cadenas entre varios archivos de namespace por locale, consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces). La única excepción es `apple-xcstrings`, donde todos los locales comparten un único archivo de catálogo: el token sigue siendo obligatorio en el patrón, pero se resuelve a la misma ruta sin importar el locale. Consulta [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
 - **`files.localeStyle`** decide en qué se expande el token:
   - `literal`, el valor por defecto, usa la etiqueta configurada tal cual, que es lo que necesitan
@@ -228,7 +228,7 @@ Desactivado salvo que lo pongas. `fuzzyCache: { enabled: true }` permite que una
 
 <AvailableFrom version="0.12.0" />
 
-Limita a qué hosts puede conectarse un proveedor de traducción. `policy` es `"any"` (el valor por defecto), `"local-only"` (direcciones loopback, privadas y únicas locales) o `"allowlist"`, y `allowedHosts` lista nombres de host, comodines `*.suffix`, direcciones IP o rangos CIDR que también se permiten. La variable de entorno `VERBATRA_NETWORK_POLICY` puede fijar una política más estricta en CI. Consulta [Política de red](/docs/network-policy).
+Limita a qué hosts puede conectarse un proveedor de traducción. `policy` es `"any"` (el valor por defecto), `"local-only"` (direcciones loopback, privadas y únicas locales) o `"allowlist"`, y `allowedHosts` lista nombres de host, comodines `*.suffix`, direcciones IP o rangos CIDR que también se permiten. La variable de entorno `VERBATRA_NETWORK_POLICY` puede fijar una política más estricta en CI. Consulta [Restringe el acceso a la red](/docs/network-policy).
 
 ```ts
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }

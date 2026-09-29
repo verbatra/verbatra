@@ -56,7 +56,7 @@ With `--allow-spend` under provider `none`, the first line reads `verbatra: spen
 
 Without `--allow-spend`, Studio reads `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` falls back to `VERBATRA_STUDIO_AGENT_TOOLS` the same way. For both, `1`, `true`, `yes` or `on` (any case) counts as on, and the flag always wins over the variable. Without either, Studio never contacts a provider.
 
-Spend from an agent needs both flags; neither implies the other. A config with `provider: { id: "none" }` disables machine translation by policy, so Studio withholds spend even with `--allow-spend`, and the Settings page says so. See [Operate Studio with a browser agent](/docs/agent-tools-in-studio) for the tool catalog and the security model.
+Spend from an agent needs both flags; neither implies the other. A config with `provider: { id: "none" }` disables machine translation by policy, so Studio withholds spend even with `--allow-spend`, and the Settings page says so. See [Drive Studio with a browser agent](/docs/agent-tools-in-studio) for the tool catalog and the security model.
 
 ### Installation
 
@@ -95,5 +95,5 @@ See [Exit codes](/docs/cli/output#exit-codes) for the contract every command fol
 ## Related
 
 - [Review in Studio](/docs/review-in-studio) walks through the Translations page, the review queue and retranslating with `--allow-spend`.
-- [Operate Studio with a browser agent](/docs/agent-tools-in-studio) covers `--expose-agent-tools` and the WebMCP tool surface.
+- [Drive Studio with a browser agent](/docs/agent-tools-in-studio) covers `--expose-agent-tools` and the WebMCP tool surface.
 - [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff) are the same computations Studio shows live.

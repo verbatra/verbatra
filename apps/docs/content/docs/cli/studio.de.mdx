@@ -56,7 +56,7 @@ Mit `--allow-spend` unter dem Provider `none` lautet die erste Zeile `verbatra: 
 
 Ohne `--allow-spend` liest Studio `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` greift auf dieselbe Weise auf `VERBATRA_STUDIO_AGENT_TOOLS` zurück. Bei beiden zählt `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal) als an, und das Flag gewinnt immer gegen die Variable. Ohne beides kontaktiert Studio nie einen Provider.
 
-Ausgaben durch einen Agenten brauchen beide Flags; keines impliziert das andere. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, dann hält Studio Ausgaben auch mit `--allow-spend` zurück, und die Settings-Seite sagt das. Den Tool-Katalog und das Sicherheitsmodell findest du unter [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio).
+Ausgaben durch einen Agenten brauchen beide Flags; keines impliziert das andere. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, dann hält Studio Ausgaben auch mit `--allow-spend` zurück, und die Settings-Seite sagt das. Den Tool-Katalog und das Sicherheitsmodell findest du unter [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio).
 
 ### Installation
 
@@ -95,5 +95,5 @@ Den Vertrag, dem jeder Befehl folgt, findest du unter [Exit-Codes](/docs/cli/out
 ## Siehe auch
 
 - [In Studio prüfen](/docs/review-in-studio) führt durch die Seite Translations, die Review-Warteschlange und das Neuübersetzen mit `--allow-spend`.
-- [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio) behandelt `--expose-agent-tools` und die WebMCP-Tools.
+- [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio) behandelt `--expose-agent-tools` und die WebMCP-Tools.
 - [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) sind dieselben Berechnungen, die Studio live zeigt.
