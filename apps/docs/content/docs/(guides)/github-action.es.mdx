@@ -68,8 +68,26 @@ Añade `qa: "true"` a `command: check` para ejecutar [`verbatra check --qa`](/do
 ```
 
 - Cada hallazgo se convierte en una anotación titulada `verbatra qa: <locale>`: un error para un valor que la puerta de integridad rechazaría, un aviso para un motivo de revisión.
-- El paso falla con cualquier hallazgo de error. Añade `qa-strict: "true"` para fallar también con avisos, o `qa-severity: error` para informar solo de errores.
+- El paso falla con cualquier hallazgo de error. Añade `qa-strict: "true"` para fallar también con avisos y plurales incompletos, o `qa-severity: error` para informar solo de errores.
 - `qa` necesita una `version` `0.12.0` o posterior. Una versión fijada menor hace fallar el paso antes de instalar nada, y lo mismo una prerelease como `0.12.0-next.0`, así que fija la versión final.
+
+## Exigir traducciones revisadas
+
+<AvailableFrom version="0.12.0" />
+
+Añade `require-reviewed: "true"` a `command: check` para ejecutar [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas). El paso falla mientras una traducción escrita por máquina no esté aprobada en el `verbatra.provenance.json` confirmado, donde [Studio](/docs/review-in-studio) guarda las decisiones de revisión. Sigue siendo de solo lectura y sin clave, y se combina con `qa`.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          require-reviewed: "true"
+```
+
+- Cada locale con claves sin aprobar recibe una anotación de error [`REVIEW_REQUIRED`](/docs/error-codes#review_required) que las nombra, y el resumen del job añade una columna `unreviewed`.
+- Un `verbatra.provenance.json` dañado o escrito por un verbatra más reciente hace fallar la puerta con una sola anotación `REVIEW_STATE_UNREADABLE`.
+- Como `qa`, necesita una `version` `0.12.0` o posterior, y una prerelease hace fallar el paso.
 
 ## Modo solo humano
 
@@ -116,6 +134,7 @@ Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra 
 | `qa` | `"false"` | `"true"` añade el control de calidad (`--qa`); solo `check`, necesita `0.12.0` o posterior |
 | `qa-severity` | `""` | severidad mínima que informar, `error` o `warning` (`--severity`); requiere `qa` |
 | `qa-strict` | `"false"` | `"true"` falla también con avisos (`--strict`); requiere `qa` |
+| `require-reviewed` | `"false"` | `"true"` falla también con traducciones de máquina sin aprobar (`--require-reviewed`); solo `check`, necesita `0.12.0` o posterior |
 | `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI |
 
 Las entradas booleanas solo aceptan `"true"` o `"false"`. Un valor o una combinación no válidos hacen fallar el paso con salida `1` antes de instalar nada.
@@ -128,8 +147,8 @@ Las entradas booleanas solo aceptan `"true"` o `"false"`. Un valor o una combina
 
 ## Qué te muestra una ejecución
 
-- **Anotaciones.** Con `translate`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el error. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción añade un aviso que cuenta el resto.
-- **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos.
+- **Anotaciones.** Con `translate`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Cada `check` añade un aviso `PLURAL_CATEGORIES_INCOMPLETE` por locale cuyos plurales carecen de una categoría CLDR que usa el idioma. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el código de error, su causa como `(cause: X)` y una pista `Next step:` cuando la CLI las da. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción las ordena por desviación, revisión, errores de calidad y avisos, y añade un aviso que cuenta el resto.
+- **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos, con `require-reviewed` una columna `unreviewed`; los plurales incompletos tienen su propia sección.
 - **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el código de la propia CLI, así que el paso falla con `1` o `2` solo después de mostrar por qué. Los códigos están en [Códigos de salida y salida JSON](/docs/cli/output#códigos-de-salida).
 
 ## Seguridad

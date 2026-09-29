@@ -68,8 +68,26 @@ Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/docs/cli/
 ```
 
 - Jeder Befund wird zu einer Annotation mit dem Titel `verbatra qa: <locale>`: ein Fehler für einen Wert, den das Integritäts-Gate ablehnen würde, eine Warnung für einen Review-Grund.
-- Der Schritt schlägt bei jedem Fehler-Befund fehl. Mit `qa-strict: "true"` schlägt er auch bei Warnungen fehl, mit `qa-severity: error` meldet er nur Fehler.
+- Der Schritt schlägt bei jedem Fehler-Befund fehl. Mit `qa-strict: "true"` schlägt er auch bei Warnungen und unvollständigen Pluralen fehl, mit `qa-severity: error` meldet er nur Fehler.
 - `qa` braucht eine `version` ab `0.12.0`. Ein niedrigerer Pin lässt den Schritt fehlschlagen, bevor irgendetwas installiert wird, und ein Prerelease wie `0.12.0-next.0` ebenso, also pinne das Release.
+
+## Freigegebene Übersetzungen verlangen
+
+<AvailableFrom version="0.12.0" />
+
+Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) auszuführen. Der Schritt schlägt fehl, solange eine maschinell geschriebene Übersetzung in der committeten `verbatra.provenance.json` nicht freigegeben ist; dort speichert [Studio](/docs/review-in-studio) die Review-Entscheidungen. Es bleibt nur lesend und ohne Schlüssel und lässt sich mit `qa` kombinieren.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          require-reviewed: "true"
+```
+
+- Jede Locale mit nicht freigegebenen Keys bekommt eine [`REVIEW_REQUIRED`](/docs/error-codes#review_required)-Fehler-Annotation, die sie nennt, und die Job-Zusammenfassung ergänzt eine Spalte `unreviewed`.
+- Ist `verbatra.provenance.json` beschädigt oder stammt sie von einem neueren verbatra, schlägt das Gate mit einer einzigen `REVIEW_STATE_UNREADABLE`-Annotation fehl.
+- Wie `qa` braucht es eine `version` ab `0.12.0`, und ein Prerelease lässt den Schritt fehlschlagen.
 
 ## Rein menschlicher Modus
 
@@ -116,6 +134,7 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 | `qa` | `"false"` | `"true"` ergänzt die Qualitätsprüfung (`--qa`); nur `check`, braucht `0.12.0` oder neuer |
 | `qa-severity` | `""` | niedrigste gemeldete Schwere, `error` oder `warning` (`--severity`); verlangt `qa` |
 | `qa-strict` | `"false"` | `"true"` lässt auch Warnungen fehlschlagen (`--strict`); verlangt `qa` |
+| `require-reviewed` | `"false"` | `"true"` lässt auch nicht freigegebene maschinelle Übersetzungen fehlschlagen (`--require-reviewed`); nur `check`, braucht `0.12.0` oder neuer |
 | `node-version` | `"24"` | Node.js-Version, die die Action zum Ausführen der CLI einrichtet |
 
 Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger Wert oder eine ungültige Kombination lässt den Schritt mit Exit `1` fehlschlagen, bevor etwas installiert wird.
@@ -128,8 +147,8 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 
 ## Was ein Lauf dir zeigt
 
-- **Annotationen.** Unter `translate` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehler. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher ergänzt die Action einen Hinweis, der den Rest zählt.
-- **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu.
+- **Annotationen.** Unter `translate` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
+- **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu, mit `require-reviewed` eine Spalte `unreviewed`; unvollständige Plurale bekommen einen eigenen Abschnitt.
 - **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem Code der CLI, sodass der Schritt bei `1` oder `2` erst fehlschlägt, nachdem er gezeigt hat, warum. Die Codes stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes).
 
 ## Sicherheit

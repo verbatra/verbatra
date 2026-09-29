@@ -68,8 +68,26 @@ Add `qa: "true"` to `command: check` to run [`verbatra check --qa`](/docs/cli/ch
 ```
 
 - Each finding becomes one annotation titled `verbatra qa: <locale>`: an error for a value the integrity gate would refuse, a warning for a review reason.
-- The step fails on any error finding. Add `qa-strict: "true"` to fail on warnings too, or `qa-severity: error` to report errors only.
+- The step fails on any error finding. Add `qa-strict: "true"` to fail on warnings and incomplete plurals too, or `qa-severity: error` to report errors only.
 - `qa` needs a `version` of `0.12.0` or newer. A lower pin fails the step before anything is installed, and so does a prerelease such as `0.12.0-next.0`, so pin the release.
+
+## Require reviewed translations
+
+<AvailableFrom version="0.12.0" />
+
+Add `require-reviewed: "true"` to `command: check` to run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations). The step fails while a machine-written translation is not approved in the committed `verbatra.provenance.json`, where [Studio](/docs/review-in-studio) records review decisions. It stays read-only and keyless and combines with `qa`.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          require-reviewed: "true"
+```
+
+- Each locale with unapproved keys gets one [`REVIEW_REQUIRED`](/docs/error-codes#review_required) error annotation naming them, and the job summary adds an `unreviewed` column.
+- A `verbatra.provenance.json` that is corrupt or from a newer verbatra fails the gate with one `REVIEW_STATE_UNREADABLE` annotation.
+- Like `qa`, it needs a `version` of `0.12.0` or newer, and a prerelease fails the step.
 
 ## Human-only mode
 
@@ -116,6 +134,7 @@ If no config is found, the step fails before installing the CLI and names the di
 | `qa` | `"false"` | `"true"` adds the quality check (`--qa`); `check` only, needs `0.12.0` or newer |
 | `qa-severity` | `""` | lowest severity to report, `error` or `warning` (`--severity`); requires `qa` |
 | `qa-strict` | `"false"` | `"true"` also fails on warnings (`--strict`); requires `qa` |
+| `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only, needs `0.12.0` or newer |
 | `node-version` | `"24"` | Node.js version the action sets up to run the CLI |
 
 The boolean inputs accept only `"true"` or `"false"`. An invalid value or combination fails the step with exit `1` before anything is installed.
@@ -128,8 +147,8 @@ The boolean inputs accept only `"true"` or `"false"`. An invalid value or combin
 
 ## What a run shows you
 
-- **Annotations.** Under `translate`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. A run that fails as a whole gets one `verbatra` annotation with the error. GitHub shows at most 10 annotations per severity, so the action adds one notice counting the rest.
-- **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings.
+- **Annotations.** Under `translate`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
+- **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings, with `require-reviewed` an `unreviewed` column; incomplete plurals get their own section.
 - **Exit status.** The action emits the annotations and the summary first, then exits with the CLI's own code, so the step fails on `1` or `2` only after showing why. The codes are on [Exit codes and JSON output](/docs/cli/output#exit-codes).
 
 ## Security
