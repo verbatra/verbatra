@@ -11,13 +11,25 @@ export type HighlightedCommandProps = {
   link?: CommandLineLink;
 };
 
+function Words({ text }: { text: string }): ReactNode {
+  return text.split(/(\s+)/).map((part, index) =>
+    part.trim() === "" ? (
+      part
+    ) : (
+      <span key={`${index}-${part}`} className="whitespace-nowrap">
+        {part}
+      </span>
+    ),
+  );
+}
+
 export function HighlightedCommand({ command, link }: HighlightedCommandProps): ReactNode {
   const tokenAt = link ? command.indexOf(link.token) : -1;
-  if (!link || tokenAt < 0) return <>{command}</>;
+  if (!link || tokenAt < 0) return <Words text={command} />;
 
   return (
     <>
-      {command.slice(0, tokenAt)}
+      <Words text={command.slice(0, tokenAt)} />
       <a
         href={link.href}
         target="_blank"
@@ -27,7 +39,7 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
       >
         {link.token}
       </a>
-      {command.slice(tokenAt + link.token.length)}
+      <Words text={command.slice(tokenAt + link.token.length)} />
     </>
   );
 }

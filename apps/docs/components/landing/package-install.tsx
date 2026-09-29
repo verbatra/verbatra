@@ -126,7 +126,7 @@ export function PackageInstall(): ReactNode {
         className="overflow-hidden rounded-xl border border-fd-border backdrop-blur-[6px]"
         style={{ background: "color-mix(in srgb, var(--v-void) 72%, transparent)" }}
       >
-        <div className="flex min-h-11 items-center gap-1 border-b border-fd-border px-2 py-1.5">
+        <div className="flex min-h-11 flex-wrap items-center gap-1 border-b border-fd-border px-2 py-1.5">
           {ai ? null : (
             <TabList
               tabs={INSTALL_COMMANDS}

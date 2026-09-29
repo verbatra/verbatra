@@ -135,8 +135,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   more to see), `hero-demo.tsx` (the hero's Terminal /
   Studio tabs), `evidence.tsx` (the mono evidence chip; a linked chip
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
-  `command-box.tsx` (each an `@container`: a command wraps at its spaces once the box is under
-  30rem, so the package name is never clipped; the AI prompt row keeps scrolling), `reveal.tsx` (the scroll
+  `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
+  a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
+  the tab row wraps too, and the AI prompt row keeps scrolling), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
