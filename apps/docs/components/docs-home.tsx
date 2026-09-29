@@ -192,6 +192,36 @@ export function DocsHomePaths({
   );
 }
 
+type StackLink = { label: string; href: string };
+
+export function DocsHomeStacks({
+  title,
+  links,
+  locale,
+}: {
+  title: string;
+  links: ReadonlyArray<StackLink>;
+  locale: Locale;
+}): ReactNode {
+  return (
+    <nav
+      aria-label={title}
+      className="not-prose mt-8 flex flex-col gap-3 border-t border-fd-border pt-[18px] sm:flex-row sm:items-baseline sm:gap-6"
+    >
+      <span className="vk-label shrink-0">{title}</span>
+      <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 export function DocsHomeSteps(): ReactNode {
   const t = useTranslations("landing.how.steps");
   return (

@@ -13,6 +13,7 @@ import {
   DocsHomeHero,
   DocsHomePaths,
   DocsHomeSection,
+  DocsHomeStacks,
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { LaneCards, ReferenceRow, VMark } from "@/components/landing";
@@ -84,6 +85,9 @@ export function getMDXComponents(
     DocsHomeSteps,
     DocsHomePaths: (props: Omit<ComponentProps<typeof DocsHomePaths>, "locale">) => (
       <DocsHomePaths {...props} locale={locale} />
+    ),
+    DocsHomeStacks: (props: Omit<ComponentProps<typeof DocsHomeStacks>, "locale">) => (
+      <DocsHomeStacks {...props} locale={locale} />
     ),
     DocsHomeFeatures: (props: Omit<ComponentProps<typeof DocsHomeFeatures>, "locale">) => (
       <DocsHomeFeatures {...props} locale={locale} />

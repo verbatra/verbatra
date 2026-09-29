@@ -12,35 +12,54 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK, Studio
 
 <DocsHomeBody>
 
-<DocsHomeSection title="Wohin als Nächstes" lead="Vier Einstiege, je nachdem, wo du gerade stehst.">
+<DocsHomeSection title="Starte bei deinem Ziel" lead="Wähle, was du vorhast; jede Karte öffnet die Seite, die genau das zeigt.">
 
 <DocsHomePaths
   cards={[
     {
-      tag: "Neu hier",
+      tag: "Ein Projekt übersetzen",
       label: "Schnellstart",
-      body: "Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne Key vorab an und übersetze dann.",
+      body: "Installiere die CLI, sieh dir den Lauf ohne Schlüssel an und übersetze dann deine erste Datei.",
       href: "/docs/quickstart",
       primary: true,
     },
     {
-      tag: "Schon eingerichtet",
-      label: "Eine Sprache hinzufügen",
-      body: "Trage eine Locale in deine Konfiguration ein und lass einen Lauf sie füllen.",
-      href: "/docs/add-a-language",
-    },
-    {
-      tag: "Produktion",
+      tag: "Pull Requests absichern",
       label: "CI und Exit-Codes",
-      body: "Lass den Pull Request fehlschlagen, wenn eine Locale abdriftet, mit JSON-Ausgabe für Skripte.",
+      body: "Lass einen Pull Request fehlschlagen, wenn eine Locale abdriftet, mit JSON-Ausgabe für Skripte.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "Mit einem KI-Agenten",
+      tag: "An Übersetzer übergeben",
+      label: "Menschliche Übersetzung",
+      body: "Exportiere eine Arbeitsmappe, die ein Mensch übersetzt, und importiere sie wieder.",
+      href: "/docs/manual-translation",
+    },
+    {
+      tag: "Mit einem KI-Agenten arbeiten",
       label: "Mit KI einrichten",
       body: "Gib Claude Code, Cursor oder einem beliebigen Coding-Agenten einen Prompt zum Kopieren und Einfügen.",
       href: "/docs/start-with-ai",
     },
+  ]}
+/>
+
+<DocsHomeStacks
+  title="Wähle deinen Stack"
+  links={[
+    { label: "React", href: "/docs/pick-your-stack#react-mit-i18next" },
+    { label: "Next.js", href: "/docs/pick-your-stack#nextjs-mit-next-intl" },
+    { label: "Vue", href: "/docs/pick-your-stack#vue-und-nuxt-mit-vue-i18n" },
+    { label: "Angular", href: "/docs/pick-your-stack#angular-mit-ngx-translate" },
+    { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
+    { label: "Android", href: "/docs/pick-your-stack#android" },
+    { label: "iOS und macOS", href: "/docs/pick-your-stack#ios-und-macos" },
+    { label: "gettext", href: "/docs/pick-your-stack#gettext" },
+    { label: "Spring", href: "/docs/pick-your-stack#java-und-spring" },
+    { label: ".NET", href: "/docs/pick-your-stack#net" },
+    { label: "YAML", href: "/docs/pick-your-stack#yaml" },
+    { label: "XLIFF", href: "/docs/pick-your-stack#xliff" },
+    { label: "INI", href: "/docs/pick-your-stack#ini" },
   ]}
 />
 

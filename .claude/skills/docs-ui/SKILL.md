@@ -138,9 +138,11 @@ footer's oversized watermark only; do not clip it onto a heading.
   recaptured.
 - **Docs-facing:** `components/available-from.tsx` renders the version callout. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
-  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
-  `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
-  `content/docs/index.mdx` and its three locale siblings.
+  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
+  `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
+  `content/docs/index.mdx` and its three locale siblings. `DocsHomeStacks` is the plain text row
+  of framework links into `pick-your-stack`: no logos, no icons. Fumadocs' `Steps` and `Step`
+  are registered there too, for numbered tutorial steps such as the quickstart's.
 
 ## Keep the client payload small
 
