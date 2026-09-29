@@ -1,11 +1,15 @@
-import type { PluralCategory } from "@verbatra/core";
+import { PLURAL_CATEGORIES } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import type { PluralCategoryLookup } from "../shell.js";
 import { compareIcuBranchArms } from "./branch-arms.js";
 
 function cldr(locale: string): PluralCategoryLookup {
-  return (type) =>
-    new Intl.PluralRules(locale, { type }).resolvedOptions().pluralCategories as PluralCategory[];
+  return (type) => {
+    const reported = new Set<string>(
+      new Intl.PluralRules(locale, { type }).resolvedOptions().pluralCategories,
+    );
+    return PLURAL_CATEGORIES.filter((category) => reported.has(category));
+  };
 }
 
 const noRules: PluralCategoryLookup = () => undefined;
