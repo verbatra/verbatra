@@ -225,7 +225,7 @@
         },
         "handoff": {
           "body": "Excel-Export und -Import für Übersetzer, TMX für den Übersetzungsspeicher, generierte TypeScript-Typen für deine Keys.",
-          "note": "vier der vierzehn Befehle",
+          "note": "die Befehle export, import, tmx und types",
           "title": "Menschen und andere Tools können übernehmen."
         }
       },
