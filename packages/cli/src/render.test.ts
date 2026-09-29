@@ -1183,6 +1183,15 @@ describe("renderHuman: pre-run estimate", () => {
     expect(line).toContain("rates as of 2026-01-15");
   });
 
+  it("heads an estimate run as an estimate, not as a plain dry run", () => {
+    const [header] = render(tokenEstimate).split("\n");
+
+    expect(header).toBe("verbatra translate (estimate)");
+    expect(renderHuman(makeSummary({ dryRun: true })).split("\n")[0]).toBe(
+      "verbatra translate (dry run)",
+    );
+  });
+
   it("calls the figure an estimate rather than a price", () => {
     expect(render(tokenEstimate)).toContain("estimate");
     expect(render(tokenEstimate)).not.toContain("total cost:");

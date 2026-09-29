@@ -113,8 +113,15 @@ export function toRenderableError(error: unknown): RenderableError {
   return { code: FALLBACK_ERROR_CODE, message: String(error) };
 }
 
+function runHeader(summary: RunSummary, command: string): string {
+  if (summary.estimate !== undefined) {
+    return `verbatra ${command} (estimate)`;
+  }
+  return summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
+}
+
 export function renderHuman(summary: RunSummary, command = "translate"): string {
-  const header = summary.dryRun ? `verbatra ${command} (dry run)` : `verbatra ${command}`;
+  const header = runHeader(summary, command);
   const labels = runCountLabels(summary.dryRun, command);
   const localeLines = summary.locales.flatMap((locale) => renderLocaleLine(locale, labels));
   const aggregate = `${summary.succeeded.length} succeeded, ${summary.partial.length} partial, ${summary.failed.length} failed${
