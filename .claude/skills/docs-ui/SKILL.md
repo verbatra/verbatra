@@ -59,7 +59,13 @@ dashboard in `packages/studio` (different app, different stack), or anything out
 Three layers exist. Write against the third.
 
 1. **Brand primitives.** `--v-purple: hsl(291 64% 42%)` and `--v-glow: hsl(258 47% 74%)`.
-   Two colors, nothing else. Do not introduce a third brand hue casually.
+   Two brand hues, nothing else. Do not introduce a third brand hue casually. Beside them sit a
+   few tints with one job each, never a general palette: `--v-glow-soft` (the lighter end of
+   `--gradient-headline`, and flag tokens in `Terminal`), `--v-violet` (the far end of
+   `--gradient-headline` and one corner of `HERO_BACKGROUND` in `fx/hero-wash.ts`), `--v-pink`
+   (only through `--v-status-changed`), and `--v-status-new` / `--v-status-changed` /
+   `--v-status-unchanged` (the `tone` colors of `components/ui/badge.tsx`). Reach for one only in
+   the role it already has.
 2. **Fumadocs overrides.** `--color-fd-background`, `--color-fd-card`, `--color-fd-popover`,
    `--color-fd-muted`, `--color-fd-border`, `--color-fd-foreground`,
    `--color-fd-muted-foreground`, `--color-fd-primary`, `--color-fd-primary-foreground`,
@@ -86,7 +92,9 @@ Scales are fixed and narrow, deliberately:
 - Radii: `--radius-sm` 6px, `--radius-md` 10px, and `--radius-lg`, `--radius-xl`,
   `--radius-2xl` all 12px. The large sizes collapsing to one value is intentional. Do not
   reintroduce a spread.
-- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp.
+- Shadows: `--shadow-panel` (a purple-tinted lift) and `--shadow-sm`. Two, not a ramp. The one
+  exception is the providers deck (`.vk-card` in `app/global.css`): its resting and fanned-out
+  shadows are part of the fan motion and stay local to it; do not reuse them elsewhere.
 - Layout: `--gutter` (40px from 768px up) via `.vk-gutter`, `--width-wide` via `.vk-w-wide`.
 
 ## Typography
