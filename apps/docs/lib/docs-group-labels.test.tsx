@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import type * as PageTree from "fumadocs-core/page-tree";
-import { isValidElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { withGroupLabels } from "./docs-group-labels";
@@ -27,13 +26,17 @@ function markup(name: PageTree.Node["name"]): string {
 }
 
 describe("withGroupLabels", () => {
-  it("wraps every top-level name in the shared label class", () => {
+  it("wraps top-level folders and separators in the shared label class", () => {
     const labelled = withGroupLabels(tree);
-    for (const node of labelled.children) {
-      expect(isValidElement(node.name)).toBe(true);
-      expect(markup(node.name)).toMatch(/^<span class="vk-label">.+<\/span>$/);
-    }
     expect(markup(labelled.children[1]?.name)).toBe('<span class="vk-label">Get started</span>');
+    expect(markup(labelled.children[2]?.name)).toBe('<span class="vk-label">Guides</span>');
+    expect(markup(labelled.children[3]?.name)).toBe('<span class="vk-label">For AI agents</span>');
+  });
+
+  it("keeps a top-level page name as written", () => {
+    const [introduction] = withGroupLabels(tree).children;
+    expect(introduction).toBe(tree.children[0]);
+    expect(introduction?.name).toBe("Introduction");
   });
 
   it("leaves nested pages untouched", () => {

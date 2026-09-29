@@ -15,6 +15,7 @@ function withSubgroupLabels(node: PageTree.Node): PageTree.Node {
 }
 
 function withLabel(node: PageTree.Node): PageTree.Node {
+  if (node.type === "page") return node;
   const labelled = { ...node, name: classed("vk-label", node.name) };
   return labelled.type === "folder"
     ? { ...labelled, children: labelled.children.map(withSubgroupLabels) }

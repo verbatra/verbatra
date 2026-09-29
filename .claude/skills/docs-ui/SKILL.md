@@ -208,12 +208,14 @@ comes from:
   remains only for the footer's watermark. Neither hero carries an eyebrow, and no card or
   button on the docs home appends an arrow to its label: the hover border is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
-  landing footer uses for its column titles. The sidebar's top-level entries inside each tab
-  (group triggers such as "CLI", the "Introduction" page, the `For AI agents` separator), the
-  TOC's "On this page" title, table headers, and the sidebar tabs all use this treatment.
+  landing footer uses for its column titles. The sidebar's top-level folders and separators
+  inside each tab (group triggers such as "CLI", the `For AI agents` separator), the TOC's "On
+  this page" title, table headers, and the sidebar tabs all use this treatment. A top-level page
+  ("Introduction", "Error codes", `llms.txt`) keeps its name as written: a page name, and above
+  all a file name, is never uppercased.
   `DocsHomePaths` cards do not: the goal is the card title in sentence case, and the page name
-  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
-  under a root folder (the Docs and Reference tabs) in the class before the tree reaches
+  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every folder and separator
+  name directly under a root folder (the Docs and Reference tabs) in the class before the tree reaches
   `DocsLayout`, and leaves the tab names themselves plain; do not target Fumadocs' or Radix's
   internal DOM for it.
   Use the class for a new label rather than restating the four declarations.
