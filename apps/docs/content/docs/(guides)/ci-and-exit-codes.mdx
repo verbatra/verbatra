@@ -1,60 +1,22 @@
 ---
-title: CI and exit codes
-description: Gate a pipeline on translation state with check or diff, read the exit-code contract, and consume the JSON output.
+title: Run verbatra in CI
+description: Fail a pull request on translation drift, broken values or unreviewed machine output, and translate on a push, with the CLI in any CI system.
 ---
-This guide shows how to make CI fail when translations drift out of sync, and how to read what verbatra reports when it does. The tools are the exit-code contract every command follows and the `--json` output your scripts can parse.
+Use this guide when a pipeline should catch locale files that drifted from the source, or should translate them for you on a push. Every step runs the same CLI you run locally, so it works in any CI system; the examples use GitHub Actions.
 
-verbatra is a dev dependency, so the commands you run locally run the same in CI. The usual split:
+Before you start, you need:
 
-- **Gate a pull request** with [`verbatra check`](/docs/cli/check) or [`verbatra diff`](/docs/cli/diff), either directly (this page) or through the [GitHub Action](/docs/github-action) with `command: check` or `command: diff`. Both are read-only: no provider call, no API key needed, exit `1` on drift.
-- **Translate on a push** with [`verbatra translate`](/docs/cli/translate), either directly (this page) or through the [GitHub Action](/docs/github-action).
-- **Preflight either one** with [`verbatra doctor`](/docs/cli/doctor). It is the cheapest step of all: it validates the config, the format, the provider, the key variable, the network policy, the source file, and whether the provider supports every configured locale, adds three informational reports (plural rules, locale codes, and leftover locale state) that never fail, never calls a provider, and never reads a key value. It also still reports on a project whose locale files are not in place yet, where the other commands can only fail as a whole.
+- `@verbatra/cli` as a dev dependency, with your lockfile committed. The CLI needs Node `>=22.14.0`.
+- A committed config, locale files and [`verbatra.lock.json`](/docs/the-lock-file).
+- For translating only: the API key of your provider in the CI secret store.
 
-## The exit codes
+If you use GitHub Actions and want annotations and a job summary without writing the job yourself, use the [GitHub Action](/docs/github-action) instead.
 
-The full table and its edge cases are on [Exit codes and JSON output](/docs/cli/output#exit-codes). For a gate, three codes matter: `0` means clean, `1` means drift or a failed locale, and `2` means the run could not start, for example a bad config or a mistyped flag.
+## Add a drift gate
 
-## check or diff: picking the gate
+[`verbatra check`](/docs/cli/check) compares the source, the target files and the lock file, and exits `1` when a locale has missing or stale keys. It calls no provider, so the job needs no key and runs on pull requests from forks:
 
-`check` and `diff` run the same read-only computation over your source, target files, and [the lock file](/docs/the-lock-file). The difference is what they report:
-
-```bash
-# counts per locale: exit 1 if any locale is missing or stale
-verbatra check
-
-# key lists per locale: exit 1 if any locale has keys to add or re-translate
-verbatra diff
-```
-
-Use `check` when the exit code is all you need. Use `diff` when you want the exact keys behind the drift, say, to post them in a pull request comment. Orphaned keys (in a target file but gone from source) appear in `diff` output but never set exit code `1` on their own.
-
-### Gating on translation quality
-
-<AvailableFrom version="0.12.0" />
-
-Drift is not the only thing worth gating on. `verbatra check --qa` also runs the integrity gate and the review flags over every committed translation, so a hand-edited value with a broken placeholder, broken markup, or ICU plural arms that do not fit its language fails the job with exit `1`. Add `--strict` to fail on review warnings such as `EQUALS_SOURCE` too. It calls no provider either, so it needs no key. See [the quality check](/docs/cli/check#quality-check). To check just the one file an editor or agent changed, `verbatra check --file <path>` runs the same checks on that file alone, reports a file that does not parse as a `syntax` finding, and exits `2` with `NOT_A_LOCALE_FILE` for a path that is not a locale file; see [One file](/docs/cli/check#one-file).
-
-<AvailableFrom version="0.12.0" />
-
-Every `check` also lists the plurals that lack a CLDR plural category their target language uses, such as a Polish Android `<plurals>` with only `one` and `other`. That is a warning: a plain `check` keeps its exit code, and `check --qa --strict` fails on it like on every other warning. See [plural categories](/docs/cli/check#plural-categories). The [GitHub Action](/docs/github-action#checking-translation-quality) runs the same gate with `command: check` and `qa: "true"`.
-
-### Gating on review decisions
-
-<AvailableFrom version="0.12.0" />
-
-`verbatra check --require-reviewed` fails the job with exit `1` while any machine-written translation (origin `machine`, `memory`, `fuzzy`, or `agent`) is not approved in the committed `verbatra.provenance.json`, the file [Studio's Review queue](/docs/review-in-studio) and the MCP tools `review.approve` and `review.reject` write their decisions to. The JSON envelope stays `ok: true`, as for any report; `result.review.code` is `REVIEW_REQUIRED`, or `REVIEW_STATE_UNREADABLE` when the provenance file is corrupt or from a newer verbatra, and `result.locales[].review.unreviewed` names the keys. It calls no provider, so it needs no key. See [Require reviewed translations](/docs/cli/check#require-reviewed-translations).
-
-Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid locale is a usage error and exits `2`, so a typo can never turn the gate green. `translate`, `watch`, `export` and `tmx` take the same flag, which is how you translate one locale at a time against a rate-limited provider.
-
-## JSON output
-
-The envelope every `--json` command prints, its fields and the codes the CLI raises itself are on [Exit codes and JSON output](/docs/cli/output#json-output). Each command's `result` is described on its command page.
-
-## A GitHub Actions job with the CLI
-
-A drift gate on pull requests, running the CLI directly. `check` never calls a provider, so this job needs no API key at all:
-
-```yaml
+```yaml title=".github/workflows/i18n.yml"
 name: i18n
 on: pull_request
 
@@ -74,17 +36,40 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-The [GitHub Action](/docs/github-action) runs the same gate without an install step: keep the checkout and replace the rest with the action, set to `command: check` (or `command: diff`):
+Swap `check` for [`verbatra diff`](/docs/cli/diff) when you want the key names behind the drift, for example to post them in a pull request comment. It exits `1` on the same condition; orphaned keys show up in its output but never fail it on their own.
 
-```yaml
-      - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
-        with:
-          version: 0.11.1
-          command: check
+To gate only some locales, pass `--locales de,fr`. A `--locales` value with no valid locale exits `2`, so a typo never turns the gate green.
+
+### Gate on translation quality
+
+<AvailableFrom version="0.12.0" />
+
+Drift is not the only failure worth catching. Add `--qa` to also run the integrity gate and the review flags over every committed translation, so a hand-edited value with a broken placeholder, broken markup or unfit ICU plural arms fails the job:
+
+```bash
+verbatra check --qa
 ```
 
-To translate in CI instead, swap the last step for `translate` and pass the provider key from your secret store as the environment variable your provider expects (see [Providers](/docs/providers)):
+- Add `--strict` to fail on review warnings and missing plural categories too.
+- In an edit hook, `verbatra check --file <path>` checks one locale file on its own.
+
+See [the quality check](/docs/cli/check#quality-check) and [One file](/docs/cli/check#one-file). The [GitHub Action](/docs/github-action#checking-translation-quality) runs the same gate with `qa: "true"`.
+
+### Gate on review decisions
+
+<AvailableFrom version="0.12.0" />
+
+Add `--require-reviewed` to fail while any machine-written translation is not approved in the committed `verbatra.provenance.json`, the file [Studio's Review queue](/docs/review-in-studio) and the MCP review tools write to:
+
+```bash
+verbatra check --require-reviewed
+```
+
+It needs no key either. See [Require reviewed translations](/docs/cli/check#require-reviewed-translations) for the codes it reports.
+
+## Translate on a push
+
+Run [`verbatra translate`](/docs/cli/translate) and map the provider key from your secret store into the step's environment. The CLI takes no key argument and reads no key from the config; [Providers](/docs/providers#keys-come-from-the-environment) lists the variable each provider reads.
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -92,12 +77,31 @@ To translate in CI instead, swap the last step for `translate` and pass the prov
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-If you would rather not write these jobs yourself, the [GitHub Action](/docs/github-action) wraps `translate`, `check`, and `diff` alike, and adds annotations and a job summary on top.
+- The step writes locale files into the checkout and stops there. Add your own step that commits them or opens a pull request, and grant `contents: write` or `pull-requests: write` to that job only.
+- To preview first, run `verbatra translate --dry-run` or `--estimate`: neither calls a provider nor needs a key. See [Estimating cost](/docs/estimating-cost).
+- Against a rate-limited provider, translate one locale per step with `--locales`.
 
-## Frozen installs and keys
+## Preflight with doctor
 
-- **Install from the lockfile.** `pnpm install --frozen-lockfile` (or `npm ci`) pins the exact `@verbatra/cli` release your lockfile records, so a CI run is reproducible and cannot silently pull a newer release. The CLI requires Node `>=22.14.0`.
-- **Keys are environment variables, never flags.** The CLI takes no key argument and reads no key from config; providers read only their environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Store the key in your CI secret store and map it into `env`. Error messages name the variable but never contain a key value.
-- **Read-only gates need no key.** `check`, `diff`, `export`, `import`, `extract`, and `tmx` never call a provider, so keep secrets out of those jobs entirely. `pseudo` calls none either, and writes only its own generated locale. `types` calls none either, and writes only its generated declaration. `doctor` calls no provider either and never reads a key value, but it reports an unset key variable as a failed check, so map the key into any job where you want that check to pass. `doctor --literals` runs neither check, so it needs no key at all.
+Put [`verbatra doctor`](/docs/cli/doctor) before either job to fail early on a broken setup. It checks the config, the format, the provider, the key variable, the network policy, the source file and locale support, and never calls a provider or reads a key value. It does report an unset key variable as a failed check, so map the key into any job where that check has to pass.
 
-`translate`, `watch`, `studio`, `doctor`, and `mcp` also load `.env.local` and then `.env` from the working directory before they run (`doctor --literals` loads neither), with real environment variables always winning; `check`, `diff`, `export`, `import`, `extract`, `pseudo`, `types`, and `tmx` load no `.env` files, so in CI you will normally rely on `env:` alone.
+## Exit codes
+
+Branch on the exit code, never on the text: `0` clean, `1` ran but found drift or a failed or partial locale, `2` could not run (bad config, bad flag), and `3` when `translate` in a [human-only](/docs/human-only-workflow) project left keys for a person. The full table and its edge cases are on [Exit codes and JSON output](/docs/cli/output#exit-codes); an error code in the output is explained on [Error codes](/docs/error-codes).
+
+## JSON output
+
+Pass `--json` for one envelope per record on stdout. Its fields are on [Exit codes and JSON output](/docs/cli/output#json-output), and each command's `result` is on its command page. [Script verbatra with JSON](/docs/agent-recipes) has recipes that parse it.
+
+## Keys and installs
+
+- Install with `pnpm install --frozen-lockfile` or `npm ci`, so the job runs the exact `@verbatra/cli` release your lockfile records.
+- Keep secrets out of jobs that never call a provider: `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` and `tmx`.
+- In CI, rely on `env:`. Which commands also load `.env.local` and `.env` is on [Environment files](/docs/cli#environment-files).
+
+## Related
+
+- [Use the GitHub Action](/docs/github-action): the same gates with annotations and a job summary.
+- [`verbatra check`](/docs/cli/check) and [`verbatra diff`](/docs/cli/diff): every flag of the two gates.
+- [Exit codes and JSON output](/docs/cli/output): the contract a CI step reads.
+- [Error codes](/docs/error-codes): what each code means and its next step.

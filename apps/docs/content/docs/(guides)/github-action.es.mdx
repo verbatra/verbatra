@@ -1,32 +1,20 @@
 ---
-title: GitHub Action
-description: "Ejecuta verbatra en GitHub Actions con la acción compuesta: entradas, cableado de secretos, anotaciones y el resumen del job."
+title: Usa la GitHub Action
+description: "Ejecuta verbatra en GitHub Actions con la acción compuesta: traduce en un push o protege un pull request, con anotaciones y un resumen del job."
 ---
-verbatra incluye una GitHub Action compuesta que ejecuta la CLI de verbatra con `--json` en CI, convierte los fallos en anotaciones sobre la ejecución, escribe una tabla de resumen del job y sale con el código de salida de la CLI. Por defecto ejecuta `translate`; fija la entrada `command` para ejecutar en su lugar una puerta de solo lectura con `check` o `diff`. Esta página cubre cómo conectarla y qué te muestra.
+Usa la acción cuando un job de GitHub Actions deba ejecutar verbatra y mostrarte qué pasó. Ejecuta la CLI con `--json`, convierte los fallos en anotaciones, escribe un resumen del job y sale con el código de salida de la CLI. Ejecuta `translate`, `check` o `diff`; para cualquier otro comando o flag, como `--prune`, ejecuta [la CLI directamente](/docs/ci-and-exit-codes).
 
-## Cuándo usarla en lugar de un paso de CLI directo
+Antes de empezar, necesitas:
 
-La acción es un paso de translate, check o diff con los informes ya integrados: anotaciones de error por locale, una tabla de resumen en la página de la ejecución y una propagación del código de salida que nunca se traga un fallo. Prefiérela cuando tu job sea "ejecuta verbatra y muéstrame qué pasó", incluyendo una puerta de solo lectura con `check` o `diff` sobre un pull request.
+- Una configuración de verbatra directamente dentro del directorio en el que se ejecuta la acción (consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración)).
+- Una versión exacta de `@verbatra/cli` que fijar, `0.9.3` o posterior.
+- Solo para `translate`: la clave de API de tu proveedor como secreto del repositorio.
 
-Ejecuta la [CLI directamente](/docs/ci-and-exit-codes) cuando quieras cualquier otra cosa: flags personalizados como `--prune`, tu propio manejo de la salida JSON, o un comando que la acción no admite. La entrada `command` solo acepta `translate` (el valor por defecto), `check` o `diff`; la acción nunca ejecuta `init` ni `watch`.
+## Añade la acción a un workflow
 
-## Disponibilidad
+La acción vive en [verbatra/action](https://github.com/verbatra/action) y en el [GitHub Marketplace](https://github.com/marketplace/actions/verbatra). No hay paquete npm; la referencias con `uses:`. Fíjala a un SHA de commit, como abajo, o usa la etiqueta móvil `verbatra/action@v1`. La antigua forma por ruta dentro del monorepo de verbatra ya no se resuelve.
 
-La acción vive en su propio repositorio, [verbatra/action](https://github.com/verbatra/action), separado del monorepo de verbatra, y está publicada en el [GitHub Actions Marketplace](https://github.com/marketplace/actions/verbatra). No hay paquete npm; la acción solo se consume a través de `uses:`.
-
-Referénciala por repositorio, fijada a un SHA de commit:
-
-```text
-uses: verbatra/action@<commit-sha>
-```
-
-`verbatra/action@v1` es la forma cómoda: la etiqueta `v1` es la línea activamente mantenida y actualizada de forma continua, y se mueve con cada versión, así que las correcciones y funciones te llegan sin tocar el flujo de trabajo. Fijar un SHA es la opción prudente desde el punto de vista de la seguridad, y es la que usan los ejemplos de esta página.
-
-Antes se publicaba desde el monorepo de verbatra y se referenciaba por ruta. Esa forma antigua ya no se resuelve, así que apunta tus flujos de trabajo existentes al repositorio de arriba.
-
-## Uso
-
-```yaml
+```yaml title=".github/workflows/translate.yml"
 name: translate
 on:
   push:
@@ -42,62 +30,33 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.11.1 # pin @verbatra/cli to an exact version, 0.9.3 or newer
+          version: 0.11.1 # an exact @verbatra/cli release, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-La acción instala `@verbatra/cli` y `@verbatra/sdk`, ambos exactamente en la versión que fijas, en un directorio temporal y ejecuta la CLI desde ahí, así que el flujo de trabajo no necesita ningún paso de instalación para verbatra. El pin de arriba es solo un ejemplo: consulta el [paquete `@verbatra/cli` en npm](https://www.npmjs.com/package/@verbatra/cli) para ver la versión actual y sube el pin de forma deliberada, en lugar de seguir una etiqueta móvil.
+La acción instala `@verbatra/cli` y `@verbatra/sdk` exactamente en esa versión en un directorio temporal, así que el job no necesita un paso de instalación propio. Consulta [`@verbatra/cli` en npm](https://www.npmjs.com/package/@verbatra/cli) para ver la versión actual y sube la versión fijada de forma deliberada.
 
-### Cableado de secretos
+### Pasa la clave del proveedor
 
-La acción ejecuta la CLI, y la CLI lee la clave de API del proveedor solo desde el entorno. Esto se aplica al comando por defecto `translate`: pasa la clave desde los secretos de tu repositorio bajo la variable que tu proveedor espera (consulta [Proveedores](/docs/providers)): `ANTHROPIC_API_KEY` arriba, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY` o, para un servidor `openai-compatible` que necesite clave, `OPENAI_COMPATIBLE_API_KEY` (o la variable que nombre su `apiKeyEnvVar`), y para un servidor `libretranslate` arrancado con `--api-keys`, `LIBRETRANSLATE_API_KEY`. Los comandos de solo lectura `check` y `diff` no llaman a ningún proveedor, así que no necesitan clave alguna, que es justo lo que les permite funcionar como puerta en un pull request de un fork, donde no hay secretos disponibles. No existe una entrada de clave; una clave nunca viaja como entrada de la acción ni como argumento de la CLI.
+Pasa la clave desde los secretos del repositorio con la variable que lee tu proveedor; [Proveedores](/docs/providers#las-claves-vienen-del-entorno) las enumera. La acción no tiene una entrada para la clave, así que una clave nunca viaja como entrada ni como argumento de la CLI.
 
-## Entradas
+## Protege un pull request
 
-| Entrada | Obligatoria | Por defecto | Descripción |
-| --- | --- | --- | --- |
-| `version` | sí | - | la versión de `@verbatra/cli` a ejecutar, por ejemplo `0.11.1`. Debe ser una versión semver exacta; el paso falla de inmediato con un dist-tag como `latest`, un rango o un prefijo `^`/`~`. También debe ser `0.9.3` o posterior; un pin más antiguo hace fallar el paso |
-| `command` | no | `"translate"` | qué comando de verbatra ejecutar: `translate` (escribe traducciones), `check` (solo lectura, sale con `1` cuando algún locale tiene claves faltantes u obsoletas), o `diff` (solo lectura, sale con `1` cuando algún locale tiene cambios pendientes). Los comandos de solo lectura no necesitan clave de API de proveedor, así que funcionan como puerta de CI en un pull request de un fork. Cualquier valor fuera de este conjunto hace fallar el paso |
-| `config-path` | no | `""` | archivo de configuración explícito a cargar (equivale a `--config`). Dejarlo vacío exige un archivo de configuración reconocido directamente dentro de `working-directory`; el paso falla antes de instalar la CLI si no se encuentra ninguno ahí. Consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración). |
-| `working-directory` | no | `""` | directorio contra el que resolver la configuración y los archivos de locale (equivale a `--cwd`). La búsqueda de configuración es estricta: solo mira directamente dentro de este directorio, nunca en un directorio padre ni en la raíz del repositorio. Consulta [Descubrimiento de la configuración](#descubrimiento-de-la-configuración). |
-| `dry-run` | no | `"false"` | ponlo en `"true"` para informar de lo que cambiaría sin llamar a un proveedor ni escribir (equivale a `--dry-run`). Solo se aplica cuando `command` es `translate`; combinarlo con `check` o `diff` hace fallar el paso, ya que esos comandos ya son de solo lectura. Debe ser `"true"` o `"false"`; cualquier otro valor hace fallar el paso |
-| `qa` | no | `"false"` | ponlo en `"true"` para ejecutar además el control de calidad sobre cada traducción confirmada (equivale a `--qa`). Solo se aplica cuando `command` es `check`; cualquier otro comando hace fallar el paso. Necesita `version` `0.12.0` o posterior. Debe ser `"true"` o `"false"`; cualquier otro valor hace fallar el paso. Consulta [Comprobar la calidad de la traducción](#comprobar-la-calidad-de-la-traducción) |
-| `qa-severity` | no | `""` | gravedad mínima del control de calidad que se informa, `error` o `warning` (equivale a `--severity`). Vacío informa de ambas. Requiere `qa` |
-| `qa-strict` | no | `"false"` | ponlo en `"true"` para que el paso falle también cuando el control de calidad solo informa de advertencias (equivale a `--strict`). Requiere `qa`. Debe ser `"true"` o `"false"`; cualquier otro valor hace fallar el paso |
-| `node-version` | no | `"24"` | versión de Node.js a preparar para ejecutar la CLI |
-
-Las entradas `qa`, `qa-severity` y `qa-strict`, y la comprobación estricta de `"true"`/`"false"` en `dry-run`, llegan con la versión de la acción que da soporte a verbatra 0.12.0. Usar `qa-severity` o `qa-strict` sin `qa: "true"` hace fallar el paso.
-
-## Salidas
-
-| Salida | Valor |
-| --- | --- |
-| `needs-human` | `"true"` cuando `translate` salió con `3` porque la traducción automática está desactivada por política y quedan claves para una persona; si no, `"false"`. Consulta [Modo solo humano](#modo-solo-humano) |
-
-La salida llega con la versión de la acción que da soporte a verbatra 0.12.0; las versiones anteriores no definen salidas. Todo lo demás que produce una ejecución te llega como anotaciones, el resumen del job y el estado de salida del paso.
-
-## Descubrimiento de la configuración
-
-Cuando `config-path` se deja vacío, la acción exige que exista un archivo de configuración de verbatra reconocido directamente dentro del `working-directory` resuelto. Si no se encuentra ninguno ahí, el paso falla antes de instalar la CLI, indicando el directorio exacto que comprobó.
-
-La búsqueda es estricta: nunca sube a un directorio padre ni a la raíz del repositorio, aunque un directorio superior tenga una configuración válida. Considera un monorepo donde la app a traducir vive en `apps/docs`:
+Pon `command: check` para que falle un pull request cuyos archivos de locale se hayan desviado, o `command: diff` para listar además las claves pendientes. Ambos son de solo lectura y no llaman a ningún proveedor, así que no necesitan clave y se ejecutan en pull requests desde forks:
 
 ```yaml
-      with:
-        version: 0.11.1
-        working-directory: apps/docs
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.11.1
+          command: check
 ```
-
-Aquí `apps/docs` es la raíz en la que debe existir una configuración; se exige un archivo de configuración reconocido directamente dentro de `apps/docs`. Una configuración en la raíz del repositorio exterior no satisface la comprobación, aunque esté por encima de `apps/docs`.
-
-Fija `config-path` para apuntar a un archivo de configuración fuera de esta convención. Un `config-path` relativo se sigue resolviendo contra `working-directory`; uno absoluto se usa tal cual. Una vez confirmada la configuración, la acción siempre se la pasa a la CLI de forma explícita con `--config <resolved-path>`.
 
 ## Comprobar la calidad de la traducción
 
 <AvailableFrom version="0.12.0" />
 
-Pon `qa: "true"` junto con `command: check` para ejecutar [`verbatra check --qa`](/docs/cli/check#control-de-calidad), que pasa las comprobaciones de marcadores, marcado, ICU y plurales y las señales de revisión sobre cada traducción confirmada, incluidos los valores escritos a mano o traídos de otra herramienta. Igual que `check`, es de solo lectura, no llama a ningún proveedor y no necesita clave de API.
+Añade `qa: "true"` a `command: check` para ejecutar [`verbatra check --qa`](/docs/cli/check#control-de-calidad) sobre cada traducción confirmada, incluidos los valores escritos a mano. Sigue siendo de solo lectura y sin clave.
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -107,17 +66,15 @@ Pon `qa: "true"` junto con `command: check` para ejecutar [`verbatra check --qa`
           qa: "true"
 ```
 
-La acción comprueba el pin antes de instalar nada: `qa` con una `version` inferior a `0.12.0` hace fallar el paso, y también una prerelease como `0.12.0-next.0`, porque semver sitúa una prerelease por debajo de su versión final y una prerelease no garantiza el contrato definitivo de `check --qa`. Fija la versión final.
-
-Cada hallazgo se convierte en una anotación titulada `verbatra qa: <locale>`, con el código de motivo y la clave: un error para un valor que la puerta de integridad rechazaría (un marcador, un marcado o un mensaje ICU rotos), una advertencia para un motivo de revisión. El paso falla con cualquier hallazgo de error y, con `qa-strict: "true"`, también con una advertencia. Pon `qa-severity: error` para informar solo de errores. La CLI rechaza cualquier otro valor de `qa-severity`, y `qa-severity: error` junto con `qa-strict`, con la salida `2`. La deriva sigue haciendo fallar el paso, así que la puerta falla cuando un locale está desactualizado o un valor confirmado está roto.
-
-El resumen del job añade las columnas `qa errors` y `qa warnings` a la tabla por locale, los totales del control de calidad a la línea agregada y una tabla de hallazgos (locale, clave, gravedad, motivo, detalles) con hasta 1000 hallazgos, para que el resumen no supere el límite de tamaño de GitHub. Debajo se listan las claves de origen que el control de calidad omitió porque el propio origen no es ICU válido.
+- Cada hallazgo se convierte en una anotación titulada `verbatra qa: <locale>`: un error para un valor que la puerta de integridad rechazaría, un aviso para un motivo de revisión.
+- El paso falla con cualquier hallazgo de error. Añade `qa-strict: "true"` para fallar también con avisos, o `qa-severity: error` para informar solo de errores.
+- `qa` necesita una `version` `0.12.0` o posterior. Una versión fijada menor hace fallar el paso antes de instalar nada, y lo mismo una prerelease como `0.12.0-next.0`, así que fija la versión final.
 
 ## Modo solo humano
 
 <AvailableFrom version="0.12.0" />
 
-Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política (consulta [Flujo solo humano](/docs/human-only-workflow)): `translate` rellena claves solo a partir de coincidencias exactas de la memoria de traducción, no lee ninguna clave de API y sale con `3` cuando deja claves para una persona. Desde la versión de la acción que da soporte a verbatra 0.12.0, la acción trata esa salida como trabajo para una persona, no como un fallo. El paso pasa, cada locale afectado recibe una advertencia `NEEDS_HUMAN` que nombra sus claves sin rellenar y las claves protegidas que una persona tiene que revisar, el resumen del job las lista bajo "Needs a human translation" y la salida `needs-human` vale `"true"`. Ramifica según esa salida para pasar las claves a quien corresponda, por ejemplo con [`verbatra export`](/docs/cli/export):
+Con `provider: { id: "none" }` (consulta [Flujo solo humano](/docs/human-only-workflow)), `translate` sale con `3` cuando deja claves para una persona. La acción lo trata como trabajo que entregar, no como un fallo: el paso pasa, cada locale afectado recibe un aviso `NEEDS_HUMAN`, el resumen del job lista las claves y la salida `needs-human` vale `"true"`. Ramifica sobre ella:
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
@@ -128,24 +85,58 @@ Una configuración con `provider: { id: "none" }` desactiva la traducción autom
         run: echo "Some keys need a human translation; see the job summary."
 ```
 
-Solo `translate` recibe este trato. Un locale parcial o fallido sigue saliendo con `1` y hace fallar el paso, y una salida `3` de `check` o `diff` no se reinterpreta.
+Solo `translate` recibe este trato. Un `3` de `check` o `diff` sigue haciendo fallar el paso.
+
+## Descubrimiento de la configuración
+
+Con `config-path` vacío, la acción exige un archivo de configuración reconocido directamente dentro de `working-directory` (por defecto, la raíz del repositorio). Nunca busca en un directorio padre, así que en un monorepo apunta `working-directory` a la app y deja su configuración ahí:
+
+```yaml
+      with:
+        version: 0.11.1
+        working-directory: apps/docs
+```
+
+Si no encuentra configuración, el paso falla antes de instalar la CLI y nombra el directorio que comprobó. Para cargar una configuración de otro sitio, define `config-path`: una ruta relativa se resuelve contra `working-directory`. La acción siempre pasa el archivo resuelto a la CLI con `--config`.
+
+## Conserva las traducciones
+
+`translate` escribe los archivos de locale actualizados en el checkout del runner y se detiene ahí: la acción nunca hace commit. Añade tu propio paso que haga commit y push, o que abra un pull request, y concede `contents: write` o `pull-requests: write` solo a ese job. Para informar sin escribir, pon `dry-run: "true"` o usa `command: check`.
+
+## Entradas
+
+| Entrada | Por defecto | Efecto |
+| --- | --- | --- |
+| `version` | obligatoria | versión exacta de `@verbatra/cli`, `0.9.3` o posterior; una dist-tag, un rango o un prefijo `^`/`~` hace fallar el paso |
+| `command` | `translate` | `translate`, `check` o `diff`; cualquier otro valor hace fallar el paso |
+| `config-path` | `""` | archivo de configuración que cargar (`--config`); relativo a `working-directory` |
+| `working-directory` | `""` | directorio en el que se ejecuta la CLI (`--cwd`); vacío, es la raíz del repositorio |
+| `dry-run` | `"false"` | `"true"` previsualiza sin llamar a un proveedor ni escribir (`--dry-run`); solo `translate` |
+| `qa` | `"false"` | `"true"` añade el control de calidad (`--qa`); solo `check`, necesita `0.12.0` o posterior |
+| `qa-severity` | `""` | severidad mínima que informar, `error` o `warning` (`--severity`); requiere `qa` |
+| `qa-strict` | `"false"` | `"true"` falla también con avisos (`--strict`); requiere `qa` |
+| `node-version` | `"24"` | versión de Node.js que la acción prepara para ejecutar la CLI |
+
+Las entradas booleanas solo aceptan `"true"` o `"false"`. Un valor o una combinación no válidos hacen fallar el paso con salida `1` antes de instalar nada.
+
+## Salidas
+
+| Salida | Valor |
+| --- | --- |
+| `needs-human` | `"true"` cuando `translate` salió con `3` y dejó claves para una persona; si no, `"false"` |
 
 ## Qué te muestra una ejecución
 
-El informe de locales parciales y el límite de anotaciones descritos aquí llegan con la versión de la acción que da soporte a verbatra 0.12.0. Las versiones anteriores muestran un locale parcial como `ok` en la columna de estado, no le dan anotación ni recuento propio y emiten anotaciones sin límite.
-
-**Anotaciones.** Bajo el comando por defecto `translate`, cuando la CLI sale con `1` (algunos locales fallaron o quedaron parciales), cada locale afectado se convierte en una anotación de error titulada `verbatra: <locale>`. Un locale `failed` lleva su `[CODE] message` estructurado; un locale fallido sin error propio, porque se retuvieron todas sus claves, se informa como `LOCALE_FAILED` y nombra las claves retenidas. Un locale `partial` recibe una anotación `LOCALE_PARTIAL` que indica cuántas claves se tradujeron y cuáles se retuvieron, agrupadas por causa (integridad, fallo del proveedor, presupuesto), con las diez primeras claves de cada grupo y el número de las restantes. Bajo `check`, un locale desfasado se anota como `verbatra check: <locale>` y, con `qa`, cada hallazgo de calidad añade su propia anotación (consulta [Comprobar la calidad de la traducción](#comprobar-la-calidad-de-la-traducción)); bajo `diff`, un locale con cambios pendientes se anota como `verbatra diff: <locale>`. Una salida `3` de `translate` produce en su lugar advertencias `NEEDS_HUMAN` (consulta [Modo solo humano](#modo-solo-humano)). Cuando toda la ejecución falla antes de producir un resumen, una única anotación `verbatra` lleva en su lugar la línea de error, sea cual sea el comando: el error propio de la CLI con la salida `2`, o el fallo propio de la acción antes de que la CLI llegara a ejecutarse (el `working-directory` no existe, no se encontró ninguna configuración o la instalación con npm falló), que sale con `1`.
-
-**Límite de anotaciones.** GitHub muestra como máximo 10 anotaciones de cada gravedad por paso ([límites de anotaciones](https://github.com/actions/toolkit/blob/main/docs/problem-matchers.md#limitations)), así que la acción emite como máximo 10 errores, 10 advertencias y 10 avisos. Primero van los errores de deriva, luego los errores de calidad y después las advertencias. Si deja alguna fuera, añade un aviso que cuenta las omitidas. Las anotaciones son una vista previa; el resumen del job es la vista completa.
-
-**Resumen del job.** Cada ejecución añade un resumen en Markdown a la página del job, con la forma que corresponde al comando ejecutado. Bajo `translate`, es una tabla con una fila por locale (estado, traducidas, sin cambios, huérfanas, ICU inválido, retenidas por integridad, fallos del proveedor, avisos), una línea agregada y listas de los locales parciales y fallidos; un dry run se etiqueta como tal. La columna de estado muestra `ok`, `partial` o `failed`, y la línea agregada cuenta cada uno por separado, por ejemplo `3 locales: 1 succeeded, 1 partial, 1 failed`. Bajo "Partial locales" aparece cada locale parcial con su número de claves traducidas y sus claves retenidas; bajo "Failed locales", cada locale fallido con su código de error o, si no tiene error propio, con sus claves retenidas. Bajo `check`, informa del número de claves faltantes y obsoletas por locale y, con `qa`, de las columnas de calidad y la tabla de hallazgos. Bajo `diff`, informa de las claves faltantes y cambiadas por locale, además de las claves huérfanas listadas aparte, ya que estas nunca hacen fallar el paso por sí solas. Un fallo de toda la ejecución recibe un breve resumen de fallo con el código de salida y el detalle del error, sea cual sea el comando.
-
-**Comportamiento de salida.** La acción captura el stdout y el código de salida de la CLI sin abandonar antes de tiempo, emite las anotaciones y el resumen, y solo entonces sale con el código propio de la CLI. Así que el paso falla con `1` o `2`, pero nunca antes de que puedas ver por qué. La única excepción es una salida `3` de `translate`, con la que el paso pasa (consulta [Modo solo humano](#modo-solo-humano)). Una entrada `version`, `command`, `dry-run`, `qa` o `qa-strict` inválida hace fallar el paso con la salida `1` antes de instalar nada, igual que una combinación de entradas que la acción rechaza (`dry-run` fuera de `translate`, `qa` fuera de `check` o por debajo de la versión `0.12.0`, `qa-severity` o `qa-strict` sin `qa`) y los fallos previos a la CLI descritos arriba. La página de [códigos de salida](/docs/ci-and-exit-codes) detalla qué significa cada código. Si el cableado interno del código de salida se rompe alguna vez, la acción falla con `2` en lugar de informar de un falso éxito.
-
-## Conservar las traducciones
-
-Sin `dry-run`, el comando por defecto `translate` escribe los archivos de locale actualizados en el checkout del runner, y la acción se detiene ahí: no confirma nada. Para conservar los cambios, añade tu propio paso que confirme y haga push, o que abra un pull request. Cuando solo quieras que CI señale traducciones faltantes u obsoletas sin escribir nada, pon `dry-run: "true"` bajo `translate`, o pon `command: check` (o `command: diff`) para ejecutar en su lugar una puerta de solo lectura.
+- **Anotaciones.** Con `translate`, cada locale fallido o parcial se convierte en una anotación de error titulada `verbatra: <locale>`. Con `check` o `diff`, cada locale desviado recibe una titulada `verbatra check: <locale>` o `verbatra diff: <locale>`. La anotación `LOCALE_PARTIAL` de un locale parcial nombra las claves retenidas, agrupadas por causa. Una ejecución que falla por completo recibe una sola anotación `verbatra` con el error. GitHub muestra como mucho 10 anotaciones por severidad, así que la acción añade un aviso que cuenta el resto.
+- **Resumen del job.** Una fila por locale con los recuentos del comando ejecutado, una línea agregada y los locales parciales y fallidos. Con `qa` añade una tabla de hallazgos de hasta 1000 hallazgos.
+- **Estado de salida.** La acción emite primero las anotaciones y el resumen y luego sale con el código de la propia CLI, así que el paso falla con `1` o `2` solo después de mostrar por qué. Los códigos están en [Códigos de salida y salida JSON](/docs/cli/output#códigos-de-salida).
 
 ## Seguridad
 
-Fija ambas referencias con exactitud: la línea `uses:` a un SHA de commit y la entrada `version` a una versión exacta de `@verbatra/cli`. La acción impone la segunda por sí misma rechazando cualquier cosa que no sea una versión semver exacta, así que una ejecución nunca puede resolver `latest` en silencio. Dale al flujo de trabajo solo el privilegio que necesita: `contents: read` para un informe, más `contents: write` o `pull-requests: write` solo cuando un paso posterior confirme o abra un pull request. Las entradas llegan a la CLI a través del entorno como datos y se expanden en un array de argumentos entre comillas y nunca se insertan en texto de shell, así que un valor de entrada manipulado sigue siendo un argumento y nunca se convierte en código ejecutable.
+Fija las dos referencias: `uses:` a un SHA de commit y `version` a una versión exacta; la acción rechaza todo lo que pudiera resolverse a `latest`. Deja el workflow en `contents: read` salvo que un paso posterior escriba. Las entradas llegan a la CLI como un array de argumentos entre comillas, nunca insertadas en texto de shell, así que un valor de entrada manipulado sigue siendo un argumento.
+
+## Relacionado
+
+- [Ejecuta verbatra en CI](/docs/ci-and-exit-codes): las mismas puertas como pasos de CLI simples, en cualquier sistema de CI.
+- [`verbatra check`](/docs/cli/check) y [`verbatra translate`](/docs/cli/translate): los comandos que ejecuta la acción.
+- [verbatra/action](https://github.com/verbatra/action): las notas de versión y la referencia de entradas generada a partir de `action.yml`.

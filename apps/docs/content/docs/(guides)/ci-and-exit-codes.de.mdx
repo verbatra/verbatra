@@ -1,60 +1,22 @@
 ---
-title: CI und Exit-Codes
-description: Sichere eine Pipeline mit check oder diff gegen Übersetzungsdrift ab, lies den Exit-Code-Vertrag und verarbeite die JSON-Ausgabe.
+title: verbatra in CI ausführen
+description: Lass einen Pull Request bei Übersetzungsdrift, kaputten Werten oder ungeprüfter Maschinenausgabe fehlschlagen und übersetze bei einem Push, mit der CLI in jedem CI-System.
 ---
-Diese Anleitung zeigt, wie du CI fehlschlagen lässt, wenn Übersetzungen auseinanderlaufen, und wie du liest, was verbatra dann meldet. Die Werkzeuge dafür sind der Exit-Code-Vertrag, dem jeder Befehl folgt, und die `--json`-Ausgabe, die deine Skripte parsen können.
+Nutze diese Anleitung, wenn eine Pipeline Locale-Dateien erkennen soll, die von der Quelle abweichen, oder wenn sie diese bei einem Push für dich übersetzen soll. Jeder Schritt führt dieselbe CLI aus, die du lokal nutzt, daher funktioniert das in jedem CI-System; die Beispiele verwenden GitHub Actions.
 
-verbatra ist eine Dev-Dependency, die Befehle laufen in CI also genauso wie lokal. Die übliche Aufteilung:
+Bevor du anfängst, brauchst du:
 
-- **Sichere einen Pull Request ab** mit [`verbatra check`](/docs/cli/check) oder [`verbatra diff`](/docs/cli/diff), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action) mit `command: check` oder `command: diff`. Beide sind nur lesend: kein Provider-Aufruf, kein API-Schlüssel nötig, Exit `1` bei Drift.
-- **Übersetze bei einem Push** mit [`verbatra translate`](/docs/cli/translate), entweder direkt (diese Seite) oder über die [GitHub Action](/docs/github-action).
-- **Prüfe beides vorab** mit [`verbatra doctor`](/docs/cli/doctor). Es ist der günstigste Schritt überhaupt: Es prüft die Konfiguration, das Format, den Provider, die Variable für den API-Schlüssel, die Netzwerkrichtlinie, die Quelldatei und ob der Provider jedes konfigurierte Locale unterstützt, ergänzt drei rein informative Berichte (Pluralregeln, Locale-Codes und zurückgebliebener Locale-Zustand), die nie fehlschlagen, ruft nie einen Provider auf und liest nie den Wert eines API-Schlüssels. Es liefert außerdem auch dann noch einen Bericht, wenn die Locale-Dateien eines Projekts noch nicht vorhanden sind; die anderen Befehle können dort nur als Ganzes scheitern.
+- `@verbatra/cli` als Dev-Dependency, mit eingecheckter Lockfile. Die CLI braucht Node `>=22.14.0`.
+- Eine eingecheckte Konfiguration, Locale-Dateien und [`verbatra.lock.json`](/docs/the-lock-file).
+- Nur zum Übersetzen: den API-Schlüssel deines Providers im Secret-Speicher deiner CI.
 
-## Die Exit-Codes
+Wenn du GitHub Actions nutzt und Annotationen und eine Job-Zusammenfassung willst, ohne den Job selbst zu schreiben, nimm stattdessen die [GitHub Action](/docs/github-action).
 
-Die vollständige Tabelle und ihre Randfälle stehen auf [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes). Für ein Gate zählen drei Codes: `0` heißt sauber, `1` heißt Drift oder ein fehlgeschlagenes Locale, und `2` heißt, der Lauf konnte nicht starten, etwa wegen einer kaputten Konfiguration oder eines vertippten Flags.
+## Ein Drift-Gate hinzufügen
 
-## check oder diff: das Gate wählen
+[`verbatra check`](/docs/cli/check) vergleicht die Quelle, die Zieldateien und die Lock-Datei und endet mit `1`, wenn einer Locale Keys fehlen oder veraltet sind. Es ruft keinen Provider auf, daher braucht der Job keinen Schlüssel und läuft auch bei Pull Requests aus Forks:
 
-`check` und `diff` führen dieselbe nur lesende Berechnung über deine Quelle, die Zieldateien und die [Lock-Datei](/docs/the-lock-file) aus. Der Unterschied ist, was sie melden:
-
-```bash
-# counts per locale: exit 1 if any locale is missing or stale
-verbatra check
-
-# key lists per locale: exit 1 if any locale has keys to add or re-translate
-verbatra diff
-```
-
-Nimm `check`, wenn der Exit-Code alles ist, was du brauchst. Nimm `diff`, wenn du die genauen Keys hinter der Drift willst, etwa um sie als Kommentar in einen Pull Request zu posten. Verwaiste Keys (in einer Zieldatei vorhanden, aber aus der Quelle verschwunden) erscheinen in der `diff`-Ausgabe, setzen aber nie allein Exit-Code `1`.
-
-### Auf Übersetzungsqualität prüfen
-
-<AvailableFrom version="0.12.0" />
-
-Drift ist nicht das Einzige, woran sich ein Gate lohnt. `verbatra check --qa` lässt zusätzlich das Integritäts-Gate und die Review-Flags über jede eingecheckte Übersetzung laufen. Ein von Hand bearbeiteter Wert mit kaputtem Platzhalter, kaputtem Markup oder ICU-Plural-Zweigen, die nicht zu seiner Sprache passen, lässt den Job also mit Exit `1` scheitern. Ergänze `--strict`, damit auch Review-Warnungen wie `EQUALS_SOURCE` scheitern. Auch das ruft keinen Provider auf und braucht keinen Key. Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung). Um nur die eine Datei zu prüfen, die ein Editor oder Agent geändert hat, führt `verbatra check --file <path>` dieselben Prüfungen nur auf dieser Datei aus, meldet eine Datei, die sich nicht parsen lässt, als `syntax`-Befund und endet mit Exit `2` und `NOT_A_LOCALE_FILE` für einen Pfad, der keine Locale-Datei ist; siehe [Eine Datei](/docs/cli/check#eine-datei).
-
-<AvailableFrom version="0.12.0" />
-
-Jedes `check` listet außerdem die Plurale auf, denen eine CLDR-Pluralkategorie fehlt, die ihre Zielsprache verwendet, etwa ein polnisches Android-`<plurals>` mit nur `one` und `other`. Das ist eine Warnung: Ein einfaches `check` behält seinen Exit-Code, und `check --qa --strict` scheitert daran wie an jeder anderen Warnung. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien). Die [GitHub Action](/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `command: check` und `qa: "true"` aus.
-
-### Auf Review-Entscheidungen prüfen
-
-<AvailableFrom version="0.12.0" />
-
-`verbatra check --require-reviewed` lässt den Job mit Exit `1` scheitern, solange eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memory`, `fuzzy` oder `agent`) in der committeten `verbatra.provenance.json` nicht freigegeben ist, der Datei, in die [die Review-Warteschlange von Studio](/docs/review-in-studio) und die MCP-Tools `review.approve` und `review.reject` ihre Entscheidungen schreiben. Der JSON-Umschlag bleibt `ok: true` wie bei jedem Bericht; `result.review.code` ist `REVIEW_REQUIRED` oder `REVIEW_STATE_UNREADABLE`, wenn die Provenance-Datei beschädigt ist oder von einer neueren verbatra-Version stammt, und `result.locales[].review.unreviewed` nennt die Keys. Es ruft keinen Provider auf und braucht daher keinen Key. Siehe [`verbatra check`](/docs/cli/check).
-
-Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` ohne gültiges Locale ist ein Verwendungsfehler und endet mit `2`, ein Tippfehler kann das Gate also nie grün schalten. `translate`, `watch`, `export` und `tmx` nehmen dasselbe Flag; so übersetzt du gegen einen ratenbegrenzten Provider ein Locale nach dem anderen.
-
-## JSON-Ausgabe
-
-Den Envelope jedes Befehls mit `--json`, seine Felder und die Codes, die die CLI selbst auslöst, findest du auf [Exit-Codes und JSON-Ausgabe](/docs/cli/output#json-ausgabe). Das `result` jedes Befehls steht auf seiner Befehlsseite.
-
-## Ein GitHub-Actions-Job mit der CLI
-
-Ein Drift-Gate für Pull Requests, das die CLI direkt ausführt. `check` ruft nie einen Provider auf, dieser Job braucht also gar keinen API-Schlüssel:
-
-```yaml
+```yaml title=".github/workflows/i18n.yml"
 name: i18n
 on: pull_request
 
@@ -74,17 +36,40 @@ jobs:
       - run: pnpm exec verbatra check
 ```
 
-Die [GitHub Action](/docs/github-action) führt dasselbe Gate ohne Installationsschritt aus: Behalte den Checkout und ersetze den Rest durch die Action, mit `command: check` (oder `command: diff`):
+Tausche `check` gegen [`verbatra diff`](/docs/cli/diff), wenn du die Key-Namen hinter der Drift willst, etwa um sie in einem Pull-Request-Kommentar zu posten. Es endet unter derselben Bedingung mit `1`; verwaiste Keys erscheinen in seiner Ausgabe, lassen es aber allein nie fehlschlagen.
 
-```yaml
-      - uses: actions/checkout@<commit-sha>
-      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
-        with:
-          version: 0.11.1
-          command: check
+Um nur einige Locales zu prüfen, übergib `--locales de,fr`. Ein `--locales`-Wert ohne gültige Locale endet mit `2`, sodass ein Tippfehler das Gate nie grün macht.
+
+### Auf Übersetzungsqualität prüfen
+
+<AvailableFrom version="0.12.0" />
+
+Drift ist nicht der einzige Fehler, den du abfangen willst. Mit `--qa` laufen zusätzlich das Integritäts-Gate und die Review-Hinweise über jede eingecheckte Übersetzung, sodass ein von Hand bearbeiteter Wert mit kaputtem Platzhalter, kaputtem Markup oder unpassenden ICU-Pluralzweigen den Job fehlschlagen lässt:
+
+```bash
+verbatra check --qa
 ```
 
-Um stattdessen in CI zu übersetzen, tausche den letzten Schritt gegen `translate` und übergib den API-Schlüssel aus deinem Secret-Store als die Umgebungsvariable, die dein Provider erwartet (siehe [Provider](/docs/providers)):
+- Mit `--strict` schlägt er auch bei Review-Warnungen und fehlenden Pluralkategorien fehl.
+- In einem Edit-Hook prüft `verbatra check --file <path>` eine einzelne Locale-Datei.
+
+Siehe [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung) und [Eine Datei](/docs/cli/check#eine-datei). Die [GitHub Action](/docs/github-action#übersetzungsqualität-prüfen) führt dasselbe Gate mit `qa: "true"` aus.
+
+### Auf Review-Entscheidungen prüfen
+
+<AvailableFrom version="0.12.0" />
+
+Mit `--require-reviewed` schlägt der Job fehl, solange eine maschinell geschriebene Übersetzung in der eingecheckten `verbatra.provenance.json` nicht freigegeben ist, der Datei, in die [die Review-Warteschlange in Studio](/docs/review-in-studio) und die MCP-Review-Tools schreiben:
+
+```bash
+verbatra check --require-reviewed
+```
+
+Auch das braucht keinen Schlüssel. Die Codes, die es meldet, stehen unter [Freigegebene Übersetzungen verlangen](/docs/cli/check#freigegebene-übersetzungen-verlangen).
+
+## Bei einem Push übersetzen
+
+Führe [`verbatra translate`](/docs/cli/translate) aus und reiche den Provider-Schlüssel aus deinem Secret-Speicher in die Umgebung des Schritts. Die CLI nimmt kein Schlüssel-Argument an und liest keinen Schlüssel aus der Konfiguration; unter [Provider](/docs/providers#keys-kommen-aus-der-umgebung) steht, welche Variable jeder Provider liest.
 
 ```yaml
       - run: pnpm exec verbatra translate --json
@@ -92,12 +77,31 @@ Um stattdessen in CI zu übersetzen, tausche den letzten Schritt gegen `translat
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Wenn du diese Jobs lieber nicht selbst schreiben willst: Die [GitHub Action](/docs/github-action) verpackt `translate`, `check` und `diff` gleichermaßen und ergänzt Annotationen und eine Job-Zusammenfassung.
+- Der Schritt schreibt Locale-Dateien in den Checkout und hört dort auf. Füge einen eigenen Schritt hinzu, der sie committet oder einen Pull Request öffnet, und gib nur diesem Job `contents: write` oder `pull-requests: write`.
+- Für eine Vorschau führe vorher `verbatra translate --dry-run` oder `--estimate` aus: Keins von beiden ruft einen Provider auf oder braucht einen Schlüssel. Siehe [Kosten abschätzen](/docs/estimating-cost).
+- Bei einem Provider mit Rate-Limit übersetzt du mit `--locales` eine Locale pro Schritt.
 
-## Eingefrorene Installationen und API-Schlüssel
+## Vorab mit doctor prüfen
 
-- **Installiere aus dem Lockfile.** `pnpm install --frozen-lockfile` (oder `npm ci`) pinnt genau das `@verbatra/cli`-Release, das dein Lockfile festhält; ein CI-Lauf ist damit reproduzierbar und kann nie stillschweigend ein neueres Release ziehen. Die CLI braucht Node `>=22.14.0`.
-- **API-Schlüssel sind Umgebungsvariablen, nie Flags.** Die CLI nimmt kein Argument für einen API-Schlüssel entgegen und liest keinen aus der Konfiguration; Provider lesen nur ihre Umgebungsvariable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`). Lege den API-Schlüssel im Secret-Store deiner CI ab und reiche ihn über `env` durch. Fehlermeldungen nennen die Variable, enthalten aber nie den Wert eines API-Schlüssels.
-- **Nur lesende Gates brauchen keinen API-Schlüssel.** `check`, `diff`, `export`, `import`, `extract` und `tmx` rufen nie einen Provider auf, halte Secrets also komplett aus diesen Jobs heraus. `pseudo` ruft ebenfalls keinen auf und schreibt nur seine eigene erzeugte Locale. `types` ruft ebenfalls keinen auf und schreibt nur seine erzeugte Deklaration. `doctor` ruft ebenfalls nie einen Provider auf und liest nie den Wert eines API-Schlüssels, meldet eine nicht gesetzte Variable für den API-Schlüssel aber als fehlgeschlagene Prüfung; reiche den API-Schlüssel also in jeden Job durch, in dem diese Prüfung bestehen soll. `doctor --literals` führt keine der beiden Prüfungen aus und braucht deshalb gar keinen API-Schlüssel.
+Setze [`verbatra doctor`](/docs/cli/doctor) vor beide Jobs, damit ein kaputtes Setup früh auffällt. Es prüft die Konfiguration, das Format, den Provider, die Schlüsselvariable, die Netzwerkrichtlinie, die Quelldatei und die Locale-Unterstützung und ruft dabei nie einen Provider auf oder liest einen Schlüsselwert. Eine nicht gesetzte Schlüsselvariable meldet es aber als fehlgeschlagene Prüfung, also reiche den Schlüssel in jeden Job, in dem diese Prüfung bestehen soll.
 
-`translate`, `watch`, `studio`, `doctor` und `mcp` laden außerdem `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen (`doctor --literals` lädt keine der beiden), wobei echte Umgebungsvariablen immer gewinnen; `check`, `diff`, `export`, `import`, `extract`, `pseudo`, `types` und `tmx` laden keine `.env`-Dateien, sodass du dich in CI normalerweise allein auf `env:` verlässt.
+## Exit-Codes
+
+Verzweige auf den Exit-Code, nie auf den Text: `0` sauber, `1` gelaufen, aber Drift oder eine fehlgeschlagene oder teilweise Locale gefunden, `2` konnte nicht laufen (kaputte Konfiguration, falsches Flag), und `3`, wenn `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt Keys für eine Person übrig gelassen hat. Die vollständige Tabelle und ihre Sonderfälle stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes); ein Fehlercode in der Ausgabe wird unter [Fehlercodes](/docs/error-codes) erklärt.
+
+## JSON-Ausgabe
+
+Übergib `--json` für einen Envelope pro Datensatz auf stdout. Seine Felder stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#json-ausgabe), das `result` jedes Befehls auf seiner Befehlsseite. [verbatra mit JSON skripten](/docs/agent-recipes) hat Rezepte, die ihn auswerten.
+
+## Schlüssel und Installationen
+
+- Installiere mit `pnpm install --frozen-lockfile` oder `npm ci`, damit der Job genau das `@verbatra/cli`-Release ausführt, das deine Lockfile festhält.
+- Halte Secrets aus Jobs heraus, die nie einen Provider aufrufen: `check`, `diff`, `report`, `export`, `import`, `extract`, `pseudo`, `types` und `tmx`.
+- Verlass dich in CI auf `env:`. Welche Befehle zusätzlich `.env.local` und `.env` laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien).
+
+## Siehe auch
+
+- [Die GitHub Action nutzen](/docs/github-action): dieselben Gates mit Annotationen und einer Job-Zusammenfassung.
+- [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff): jedes Flag der beiden Gates.
+- [Exit-Codes und JSON-Ausgabe](/docs/cli/output): der Vertrag, den ein CI-Schritt liest.
+- [Fehlercodes](/docs/error-codes): was jeder Code bedeutet und was als Nächstes zu tun ist.
