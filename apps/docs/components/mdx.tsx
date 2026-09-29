@@ -1,6 +1,7 @@
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
 import { CodeBlockTabs } from "fumadocs-ui/components/codeblock";
+import { Step, Steps } from "fumadocs-ui/components/steps";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
@@ -12,6 +13,7 @@ import {
   DocsHomeHero,
   DocsHomePaths,
   DocsHomeSection,
+  DocsHomeStacks,
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { LaneCards, ReferenceRow, VMark } from "@/components/landing";
@@ -66,6 +68,8 @@ export function getMDXComponents(
     ),
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
     DiffPanel,
+    Step,
+    Steps,
     StudioScreenshot,
     CommandLine,
     Badge,
@@ -81,6 +85,9 @@ export function getMDXComponents(
     DocsHomeSteps,
     DocsHomePaths: (props: Omit<ComponentProps<typeof DocsHomePaths>, "locale">) => (
       <DocsHomePaths {...props} locale={locale} />
+    ),
+    DocsHomeStacks: (props: Omit<ComponentProps<typeof DocsHomeStacks>, "locale">) => (
+      <DocsHomeStacks {...props} locale={locale} />
     ),
     DocsHomeFeatures: (props: Omit<ComponentProps<typeof DocsHomeFeatures>, "locale">) => (
       <DocsHomeFeatures {...props} locale={locale} />

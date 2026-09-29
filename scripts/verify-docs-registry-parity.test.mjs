@@ -95,6 +95,59 @@ describe("the formats page lists every built-in format", () => {
   });
 });
 
+function initDefaultPatterns() {
+  const source = readRepoFile("packages/cli/src/init-config.ts");
+  const table = /export const DEFAULT_LAYOUTS[^=]*= \{([\s\S]*?)\n\};/.exec(source)?.[1];
+  if (table === undefined) {
+    throw new Error("DEFAULT_LAYOUTS could not be located in init-config.ts");
+  }
+  return new Map(
+    [...table.matchAll(/"?([a-z0-9-]+)"?: \{\s*pattern: "([^"]+)"/g)].map((match) => [
+      match[1],
+      match[2],
+    ]),
+  );
+}
+
+function stackSectionsFor(page, format) {
+  return page
+    .split(/^## /m)
+    .slice(1)
+    .filter((section) => section.includes(`npx verbatra init --format ${format}\n`));
+}
+
+describe("the pick-your-stack page covers every built-in format", () => {
+  const formats = supportedFormats();
+  const patterns = initDefaultPatterns();
+
+  it("reads the default layout init writes for every format", () => {
+    expect([...patterns.keys()].sort()).toEqual([...formats].sort());
+  });
+
+  it.each(LOCALE_SUFFIXES)(
+    "gives each format one section with its init command and layout in pick-your-stack%s.mdx",
+    (suffix) => {
+      const page = readDocPage("(get-started)/pick-your-stack", suffix);
+      for (const format of formats) {
+        const sections = stackSectionsFor(page, format);
+        expect(sections, format).toHaveLength(1);
+        expect(sections[0], format).toContain(`\`${patterns.get(format)}\``);
+        expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
+      }
+      const commands = [...page.matchAll(/npx verbatra init --format ([a-z0-9-]+)/g)];
+      expect(commands.map((match) => match[1]).sort()).toEqual([...formats].sort());
+    },
+  );
+
+  it("sees a format whose section is missing or shows the wrong layout", () => {
+    const page = readDocPage("(get-started)/pick-your-stack", "");
+    const withoutIni = page.replace("npx verbatra init --format ini\n", "");
+    expect(stackSectionsFor(withoutIni, "ini")).toHaveLength(0);
+    const wrongLayout = page.replace("`locales/{locale}.ini`", "`config/{locale}.ini`");
+    expect(stackSectionsFor(wrongLayout, "ini")[0]).not.toContain("`locales/{locale}.ini`");
+  });
+});
+
 function providerIds() {
   const source = readRepoFile("packages/sdk/src/config/provider-config.ts");
   const table = /const providerFactories: ProviderFactories = \{([\s\S]*?)\n\};/.exec(source)?.[1];

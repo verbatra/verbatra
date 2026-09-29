@@ -1,0 +1,187 @@
+---
+title: Wähle deinen Stack
+description: Die Format-ID, das übliche Dateilayout und der init-Befehl für jedes Framework, das verbatra unterstützt.
+---
+Such dir unten dein Framework heraus und nimm seinen `init`-Befehl statt des Befehls aus dem [Schnellstart](/docs/quickstart). Jedes Dateilayout ist das Muster, das `init` schreibt, wenn es keine Locale-Dateien findet; gibt es deine Dateien schon, erkennt `init`, wo sie liegen, und mit `--path` legst du das Muster selbst fest. Das vollständige Verhalten jedes Formats steht unter [Formate](/docs/formats).
+
+## React mit i18next
+
+Für Projekte mit i18next, react-i18next und next-i18next.
+
+- Format: `i18next-json`
+- Dateien: `locales/{locale}.json`
+
+```bash
+npx verbatra init --format i18next-json
+```
+
+Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
+
+## Next.js mit next-intl
+
+Für Nachrichtendateien von next-intl, deren Werte ICU-Nachrichten sind.
+
+- Format: `next-intl-json`
+- Dateien: `messages/{locale}.json`
+
+```bash
+npx verbatra init --format next-intl-json
+```
+
+Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
+
+## Vue und Nuxt mit vue-i18n
+
+Für vue-i18n, auch in Nuxt I18n, mit Platzhaltern in einfachen geschweiften Klammern und Pluralformen mit senkrechtem Strich.
+
+- Format: `vue-i18n-json`
+- Dateien: `src/locales/{locale}.json`
+
+```bash
+npx verbatra init --format vue-i18n-json
+```
+
+Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
+
+## Angular mit ngx-translate
+
+Für ngx-translate-JSON, flach oder verschachtelt.
+
+- Format: `ngx-translate-json`
+- Dateien: `src/assets/i18n/{locale}.json`
+
+```bash
+npx verbatra init --format ngx-translate-json
+```
+
+Details: [Die vier JSON-Formate](/docs/formats#die-vier-json-formate).
+
+## Flutter
+
+Für die Application Resource Bundles von Flutter. `init` setzt außerdem `localeStyle: "posix"`, damit `pt-BR` als `app_pt_BR.arb` geschrieben wird, der Name, den `flutter gen-l10n` liest.
+
+- Format: `arb`
+- Dateien: `lib/l10n/app_{locale}.arb`
+
+```bash
+npx verbatra init --format arb
+```
+
+Details: [ARB](/docs/formats#arb).
+
+## Android
+
+Für `strings.xml`-Ressourcen. `init` setzt außerdem `localeStyle: "android"`, damit das Token für die Quelle zu `values` und für Deutsch zu `values-de` wird.
+
+- Format: `android-xml`
+- Dateien: `app/src/main/res/{locale}/strings.xml`
+
+```bash
+npx verbatra init --format android-xml
+```
+
+Details: [Android strings.xml](/docs/formats#android-stringsxml).
+
+## iOS und macOS
+
+Zwei Formate, je nachdem, wie dein Projekt seine Texte speichert. Für `.strings`-Dateien mit ihren `.stringsdict`-Pluralformen:
+
+- Format: `apple-strings`
+- Dateien: `{locale}.lproj/Localizable.strings`
+
+```bash
+npx verbatra init --format apple-strings
+```
+
+Für einen Xcode String Catalog, eine einzige Datei für alle Locales. Leg den Katalog zuerst in Xcode an: verbatra schreibt hinein, legt ihn aber nie selbst an.
+
+- Format: `apple-xcstrings`
+- Dateien: `{locale}Localizable.xcstrings`
+
+```bash
+npx verbatra init --format apple-xcstrings
+```
+
+Details: [Apple .strings](/docs/formats#apple-strings) und [Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings).
+
+## gettext
+
+Für `.po`-Kataloge und ihre `.pot`-Vorlagen, wie sie Python-, PHP- und C-Projekte nutzen. `init` setzt außerdem `localeStyle: "posix"`, damit `pt-BR` als `pt_BR` geschrieben wird.
+
+- Format: `gettext-po`
+- Dateien: `locales/{locale}/LC_MESSAGES/messages.po`
+
+```bash
+npx verbatra init --format gettext-po
+```
+
+Details: [gettext .po/.pot](/docs/formats#gettext-popot).
+
+## Java und Spring
+
+Für `.properties`-Message-Bundles. `init` setzt außerdem `localeStyle: "posix"`, damit `pt-BR` als `messages_pt_BR.properties` geschrieben wird.
+
+- Format: `properties`
+- Dateien: `src/main/resources/messages_{locale}.properties`
+
+```bash
+npx verbatra init --format properties
+```
+
+Details: [Properties](/docs/formats#properties).
+
+## .NET
+
+Für `.resx`-Ressourcendateien. Bilder, Icons und Designer-Einträge bleiben unberührt.
+
+- Format: `resx`
+- Dateien: `Resources/Strings.{locale}.resx`
+
+```bash
+npx verbatra init --format resx
+```
+
+Details: [.NET .resx](/docs/formats#net-resx).
+
+## YAML
+
+Für verschachtelte YAML-Locale-Dateien mit Platzhaltern im i18next-Stil, `{{double-brace}}`.
+
+- Format: `yaml`
+- Dateien: `locales/{locale}.yml`
+
+```bash
+npx verbatra init --format yaml
+```
+
+Details: [YAML](/docs/formats#yaml).
+
+## XLIFF
+
+Für XLIFF-1.2- und -2.0-Dokumente aus Angulars `ng extract-i18n`, einem CAT-Tool oder von einer Agentur.
+
+- Format: `xliff`
+- Dateien: `locales/{locale}.xlf`
+
+```bash
+npx verbatra init --format xliff
+```
+
+Details: [XLIFF](/docs/formats#xliff).
+
+## INI
+
+Für klassische INI-Dateien mit einer Ebene von `[section]`-Überschriften.
+
+- Format: `ini`
+- Dateien: `locales/{locale}.ini`
+
+```bash
+npx verbatra init --format ini
+```
+
+Details: [INI](/docs/formats#ini).
+
+## Etwas anderes
+
+Ein Format, das verbatra nicht mitbringt, kannst du trotzdem übersetzen, über einen Adapter, den du selbst schreibst. Siehe [Eigene Format-Adapter](/docs/custom-format-adapters).
