@@ -1,17 +1,10 @@
 ---
 title: Einen MCP-Client verbinden
 description: Binde den stdio-MCP-Server von verbatra in Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Windsurf, Zed, JetBrains AI Assistant, Claude Desktop oder einen anderen MCP-Client ein, ohne dass der Provider-Key je in einer committeten Datei landet.
+type: how-to
 status: new
 ---
-Damit lässt du einen Coding-Agenten über den MCP-Server von verbatra den Übersetzungsstand lesen, Werte korrigieren und, nur wenn du es erlaubst, Übersetzungen starten. Der Client startet den Server als Kindprozess über stdio: kein Port, nichts, das du selbst am Laufen halten musst.
-
-Du brauchst:
-
-- ein Projekt mit einer verbatra-Konfiguration (ohne eine führst du zuerst [`npx verbatra init`](/docs/cli/init) aus);
-- Node.js 22.14 oder neuer;
-- einen Provider-Key in deiner Umgebung, nur wenn der Agent Geld ausgeben darf.
-
-Tools, Eingaben und Ergebnisse stehen unter [`verbatra mcp`](/docs/cli/mcp#tools).
+Damit lässt du einen Coding-Agenten über den MCP-Server von verbatra den Übersetzungsstand lesen und Werte korrigieren. Der Client startet den Server über stdio, du musst also keinen Port verwalten. Du brauchst ein Projekt mit verbatra-Konfiguration ([`npx verbatra init`](/docs/cli/init)) und Node.js 22.14 oder neuer. Die Tools stehen unter [`verbatra mcp`](/docs/cli/mcp#tools).
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -22,9 +15,7 @@ Tools, Eingaben und Ergebnisse stehen unter [`verbatra mcp`](/docs/cli/mcp#tools
 | `npx -y @verbatra/mcp` | keine Installation | nein |
 | `npx verbatra mcp` | `@verbatra/cli` und `@verbatra/mcp` als Dev-Abhängigkeiten | ja: `.env.local`, dann `.env` |
 
-Alle Beispiele unten nutzen `npx -y @verbatra/mcp`, das in jedem Projekt funktioniert. Zwei ähnlich aussehende Befehle scheitern: `npx -y @verbatra/cli mcp` endet mit `2`, weil die CLI `@verbatra/mcp` nie installiert, und `npx verbatra mcp` ohne lokales `@verbatra/cli` holt ein fremdes Registry-Paket namens `verbatra`.
-
-Richte den Server auf das Verzeichnis mit der Konfiguration. Jeder Client-Abschnitt sagt, wie; die Regel steht unter [Projektverzeichnis](/docs/cli/mcp#projektverzeichnis).
+Die Beispiele nutzen `npx -y @verbatra/mcp`, das in jedem Projekt funktioniert. Meide `npx -y @verbatra/cli mcp`: Es endet mit `2`, weil die CLI `@verbatra/mcp` nie installiert. Richte den Server auf das Verzeichnis mit der Konfiguration; jeder Abschnitt sagt, wie, und die Regel steht unter [Projektverzeichnis](/docs/cli/mcp#projektverzeichnis).
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
@@ -32,19 +23,17 @@ Der Server steht außerdem in der [offiziellen MCP Registry](https://registry.mo
 
 ## Entscheiden, ob der Agent Geld ausgeben darf
 
-Der Server startet nur lesend: `translation.retranslateEntry` und `translation.translatePending` bleiben verborgen, und kein anderes Tool ruft einen Provider auf oder liest einen Key. Lass dafür Key und Ausgaben-Schalter ganz aus der Client-Konfiguration weg.
+Der Server startet nur lesend: Die beiden kostenpflichtigen Tools bleiben verborgen, und kein Tool liest einen Key. Damit der Agent Geld ausgeben darf, ergänzt du beides:
 
-Damit der Agent Geld ausgeben darf, ergänzt du beides:
-
-- `--allow-spend` in den Argumenten des Servers oder `VERBATRA_MCP_ALLOW_SPEND=1` in seiner Umgebung ([Kostenpflichtige Tools](/docs/cli/mcp#kostenpflichtige-tools));
+- `--allow-spend` in den Argumenten oder `VERBATRA_MCP_ALLOW_SPEND=1` in der Umgebung ([Kostenpflichtige Tools](/docs/cli/mcp#kostenpflichtige-tools));
 - die Key-Variable deines Providers, etwa `ANTHROPIC_API_KEY` ([Provider](/docs/providers)).
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Auch dann weist der Server den Agenten an, erst `translation.estimate` auszuführen und vor jedem kostenpflichtigen Aufruf auf dein Ja zu warten, und eine Konfiguration mit `provider: { id: "none" }` hält beide kostenpflichtigen Tools verborgen.
+Der Server weist den Agenten trotzdem an, erst `translation.estimate` auszuführen und vor jeder Ausgabe auf dein Ja zu warten.
 
 <Callout type="warn">
-Schreib nie einen Key in eine committete Datei. `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/mcp.json`, `.vscode/mcp.json` und `.github/mcp.json` teilst du mit dem Team; jeder Abschnitt unten übergibt den Key stattdessen per Verweis oder aus deiner Umgebung.
+Schreib nie einen Key in eine committete Datei wie `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` oder `.vscode/mcp.json`. Jeder Abschnitt unten übergibt den Key stattdessen per Verweis oder aus deiner Umgebung.
 </Callout>
 
 ## Claude Code
@@ -55,15 +44,7 @@ Im Projektstamm:
 claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
 ```
 
-Die Optionen von Claude Code stehen vor `--`, die Argumente des Servers danach. `--scope` legt fest, wo der Eintrag landet:
-
-| Scope | Gespeichert in | Wer ihn bekommt |
-| --- | --- | --- |
-| `local` (Standard) | `~/.claude.json`, unter diesem Projekt | du, in diesem Projekt |
-| `project` | `.mcp.json` im Projektstamm, committet | alle, die das Projekt öffnen |
-| `user` | `~/.claude.json` | du, in jedem Projekt |
-
-`--scope project` schreibt diese `.mcp.json`, die du auch von Hand schreiben kannst:
+Die Optionen von Claude Code stehen vor `--`, die Argumente des Servers danach. `--scope project` legt den Eintrag in der committeten `.mcp.json` ab; `local` (Standard) und `user` halten ihn nur für dich in `~/.claude.json`. Der Eintrag, den du auch von Hand schreiben kannst:
 
 ```json
 {
@@ -79,45 +60,43 @@ Die Optionen von Claude Code stehen vor `--`, die Argumente des Servers danach. 
 
 <AvailableFrom version="0.12.0" />
 
-[`verbatra init --agent`](/docs/cli/init#coding-agenten-einrichten) schreibt denselben Eintrag neben jeden Server, den die Datei schon enthält.
+[`verbatra init --agent`](/docs/cli/init#coding-agenten-einrichten) schreibt denselben Eintrag.
 
-Claude Code setzt `CLAUDE_PROJECT_DIR` auf den Projektstamm, also ist kein `--cwd` nötig, und reicht die Umgebung weiter, mit der du es gestartet hast. Um für eine Sitzung Geld auszugeben, exportierst du den Key und startest mit dem Schalter:
+Claude Code setzt `CLAUDE_PROJECT_DIR` auf den Projektstamm, also ist kein `--cwd` nötig, und reicht die Umgebung deiner Shell weiter. Um für eine Sitzung Geld auszugeben, exportierst du den Key und startest:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
-Kombinier `--env KEY=value` nicht mit `--scope project`: Damit steht der Wert in `.mcp.json`. `claude mcp list` zeigt, ob der Server verbunden ist. Siehe die [MCP-Dokumentation von Claude Code](https://code.claude.com/docs/en/mcp).
+Kombinier `--env KEY=value` nicht mit `--scope project`: Damit steht der Wert in `.mcp.json`. `claude mcp list` prüft die Verbindung. Siehe die [MCP-Dokumentation von Claude Code](https://code.claude.com/docs/en/mcp).
 
 ### Das verbatra-Plugin
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Das Plugin bündelt die drei [verbatra-Skills](/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat. Installier es für das Projekt:
+Das Plugin bündelt die [verbatra-Skills](/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat:
 
 ```bash
 claude plugin marketplace add verbatra/skills
 claude plugin install verbatra@verbatra --scope project
 ```
 
-Jede Person im Team installiert es einmal. Mit dem Standard-Scope `user` würde es in jedem Projekt starten, das du öffnest.
-
-- **Server**: `npx -y @verbatra/mcp` in einer festen Version, mit `--cwd` auf dem offenen Projekt. Ohne Konfiguration startet er trotzdem; führ `npx verbatra init` aus, und der nächste Aufruf findet die Konfiguration.
-- **Ausgaben**: aus, bis du die Plugin-Option `allowSpend` einschaltest (`--config allowSpend=true` bei der Installation oder `/config`). Eine committete `.claude/settings.json` kann sie nicht einschalten, und `VERBATRA_MCP_ALLOW_SPEND` in deiner Shell erreicht diesen Server nicht.
-- **Key**: kommt aus der Umgebung, mit der du `claude` gestartet hast; das Plugin hat keine Key-Option.
-- **Hook**: führt das projekteigene `verbatra check --file <path>` aus (CLI 0.12.0 oder neuer, aus `node_modules`) und gibt kaputte Syntax, Platzhalter, Markup oder ICU an Claude zurück. Er lädt nichts herunter und ruft keinen Provider auf.
+- **Server**: ein festgelegtes `@verbatra/mcp` mit `--cwd` auf dem offenen Projekt. Es startet auch ohne Konfiguration.
+- **Ausgaben**: aus, bis du die Plugin-Option `allowSpend` einschaltest (`--config allowSpend=true` oder `/config`). Eine committete Datei kann sie nicht einschalten.
+- **Key**: kommt aus der Umgebung, mit der du `claude` gestartet hast.
+- **Hook**: führt das projekteigene `verbatra check --file <path>` aus (CLI 0.12.0 oder neuer) und meldet Claude kaputte Syntax, Platzhalter, Markup oder ICU. Er ruft keinen Provider auf.
 
 Siehe die [Plugin-Referenz von Claude Code](https://code.claude.com/docs/en/plugins-reference).
 
 ## Codex
 
-Codex CLI, IDE-Erweiterung und Desktop-App teilen sich `~/.codex/config.toml` oder die `.codex/config.toml` eines vertrauenswürdigen Projekts:
+Codex liest `~/.codex/config.toml` oder die `.codex/config.toml` eines vertrauenswürdigen Projekts:
 
 ```bash
 codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Derselbe Eintrag von Hand, mit erlaubten Ausgaben; `env_vars` nennt Variablen, die Codex aus seiner eigenen Umgebung durchreicht, sodass die Datei nie den Wert enthält:
+Derselbe Eintrag mit erlaubten Ausgaben. `env_vars` nennt Variablen, die Codex durchreicht, sodass die Datei nie den Wert enthält:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -131,7 +110,7 @@ Für einen nur lesenden Eintrag lässt du `--allow-spend` und `env_vars` weg. Ei
 
 ## Gemini CLI
 
-Gemini CLI liest `mcpServers` aus `.gemini/settings.json` oder `~/.gemini/settings.json`. Gib ein absolutes `cwd` an und halte einen Eintrag damit in deinen Benutzereinstellungen:
+Gemini CLI liest `mcpServers` aus `.gemini/settings.json` oder `~/.gemini/settings.json`. Halte einen Eintrag mit absolutem `cwd` in deinen Benutzereinstellungen:
 
 ```json title="~/.gemini/settings.json"
 {
@@ -148,11 +127,11 @@ Gemini CLI liest `mcpServers` aus `.gemini/settings.json` oder `~/.gemini/settin
 }
 ```
 
-Gemini CLI verbirgt sensible Variablen vor Servern, also kommt der Key nur über `env` an, wo `$ANTHROPIC_API_KEY` aus seiner Umgebung eingesetzt wird. Für einen nur lesenden Eintrag lässt du `--allow-spend` und `env` weg, und lass `trust` ungesetzt, damit jeder Aufruf bestätigt wird. `gemini mcp add -e KEY=value` speichert den Wert selbst. `/mcp` zeigt den Server und seine Tools. Siehe die [MCP-Dokumentation von Gemini CLI](https://geminicli.com/docs/tools/mcp-server/).
+Gemini CLI verbirgt sensible Variablen vor Servern, also kommt der Key nur über `env` an, eingesetzt aus seiner Umgebung. Für einen nur lesenden Eintrag lässt du `--allow-spend` und `env` weg, und `trust` bleibt ungesetzt. `/mcp` zeigt die Tools. Siehe die [MCP-Dokumentation von Gemini CLI](https://geminicli.com/docs/tools/mcp-server/).
 
 ## Cursor
 
-Cursor liest `.cursor/mcp.json` im Projekt und `~/.cursor/mcp.json`. `${workspaceFolder}` ist der Projektstamm:
+Cursor liest `.cursor/mcp.json` und `~/.cursor/mcp.json`:
 
 ```json title=".cursor/mcp.json"
 {
@@ -166,11 +145,11 @@ Cursor liest `.cursor/mcp.json` im Projekt und `~/.cursor/mcp.json`. `${workspac
 }
 ```
 
-Für Ausgaben hängst du `"--allow-spend"` an `args` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, das nur den Namen der Variable enthält. Leg diesen Eintrag in `~/.cursor/mcp.json` ab, wenn nicht alle Geld ausgeben sollen. Siehe die [MCP-Dokumentation von Cursor](https://cursor.com/docs/mcp).
+Für Ausgaben hängst du `"--allow-spend"` an `args` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, das nur den Namen der Variable enthält. Siehe die [MCP-Dokumentation von Cursor](https://cursor.com/docs/mcp).
 
 ## VS Code
 
-VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json`. Der oberste Schlüssel heißt `servers`, und Server starten im Workspace-Ordner, also ist kein `--cwd` nötig. Für Ausgaben deklarierst du den Key als Input: VS Code fragt einmal danach und speichert ihn außerhalb der Datei.
+VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json` mit dem obersten Schlüssel `servers`. Server starten im Workspace-Ordner, also ist kein `--cwd` nötig. Für Ausgaben deklarierst du den Key als Input, den VS Code außerhalb der Datei speichert:
 
 ```json title=".vscode/mcp.json"
 {
@@ -195,7 +174,7 @@ VS Code (der Agent-Modus von GitHub Copilot) liest `.vscode/mcp.json`. Der obers
 }
 ```
 
-Für einen nur lesenden Eintrag lässt du `inputs`, `--allow-spend` und `env` weg, oder du lädst den Key mit `"envFile": "${workspaceFolder}/.env.local"`. Für eine nur lesende Installation in einem Schritt nimmst du [verbatra in VS Code installieren](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) oder:
+Für einen nur lesenden Eintrag lässt du `inputs`, `--allow-spend` und `env` weg. [verbatra in VS Code installieren](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) legt den nur lesenden Eintrag in einem Schritt an, genau wie:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -207,7 +186,7 @@ Siehe die [MCP-Konfigurationsreferenz von VS Code](https://code.visualstudio.com
 
 ### Copilot Cloud Agent
 
-Eine Person mit Admin-Rechten im Repository fügt den Server unter **Settings**, **Copilot**, **MCP servers** hinzu. Der Cloud Agent ruft jedes Tool, das er bekommt, ohne Rückfrage auf, deshalb ist `tools` Pflicht; diese Allowlist enthält jedes Tool, das weder schreibt noch einen Provider aufruft:
+Eine Person mit Admin-Rechten fügt den Server unter **Settings**, **Copilot**, **MCP servers** hinzu. Der Cloud Agent ruft Tools ohne Rückfrage auf, also listest du nur Tools, die weder schreiben noch einen Provider aufrufen:
 
 ```json
 {
@@ -234,9 +213,7 @@ Eine Person mit Admin-Rechten im Repository fügt den Server unter **Settings**,
 }
 ```
 
-Nimm `translation.editEntry` und `glossary.write` nur auf, wenn der Agent in seinem Pull Request schreiben soll. Lass `review.approve` und `review.reject` draußen: Eine Review-Entscheidung braucht einen Menschen. Lass Ausgaben aus, denn vor einem Aufruf fragt niemand nach. Willst du sie trotzdem erlauben, brauchst du alle drei: ein Agents-Secret wie `COPILOT_MCP_ANTHROPIC_API_KEY` (nur das Präfix `COPILOT_MCP_` erreicht MCP-Server), `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` mit `--allow-spend` und das kostenpflichtige Tool in `tools`.
-
-Zum Prüfen weist du Copilot ein Issue zu, öffnest **View session** und klappst **Start MCP Servers** auf. Siehe [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Nimm `translation.editEntry` und `glossary.write` nur auf, wenn der Agent in seinem Pull Request schreiben soll, und lass `review.approve` und `review.reject` draußen: Eine Review-Entscheidung braucht einen Menschen. Lass Ausgaben aus. Zum Prüfen öffnest du **View session** des Agenten und klappst **Start MCP Servers** auf. Siehe [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
@@ -244,11 +221,11 @@ Zum Prüfen weist du Copilot ein Issue zu, öffnest **View session** und klappst
 copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Das schreibt `~/.copilot/mcp-config.json`. Copilot CLI liest außerdem `.mcp.json` und `.github/mcp.json` eines vertrauenswürdigen Projekts. Einem Server reicht es nur `PATH` weiter, also gehört `--allow-spend` in `args` und ein Key in das `env` des Eintrags, nur in `~/.copilot/mcp-config.json`. `/mcp show verbatra` zeigt seinen Status. Siehe [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+Das schreibt `~/.copilot/mcp-config.json`. Copilot CLI reicht einem Server nur `PATH` weiter, also gehört ein Key in das `env` dieses Eintrags auf deinem Rechner, nie in eine Projektdatei. Siehe [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
 
 ## Windsurf
 
-Cascade in Windsurf liest eine einzige `mcp_config.json` für alle Projekte, also gibst du ein absolutes `--cwd` an:
+Windsurf liest eine einzige `mcp_config.json` für alle Projekte, also gibst du ein absolutes `--cwd` an:
 
 ```json title="mcp_config.json"
 {
@@ -279,7 +256,7 @@ Zed liest `context_servers` aus seinen Einstellungen; **Settings**, **AI**, **MC
 }
 ```
 
-Ein grüner Punkt auf dieser Seite heißt, dass der Server aktiv ist. Ein Key in `env` ist ein wörtlicher Wert, also ergänzt du ihn und `--allow-spend` nur in deinen Benutzereinstellungen, nie in `.zed/settings.json`. Siehe die [MCP-Dokumentation von Zed](https://zed.dev/docs/ai/mcp).
+Ein Key in `env` ist ein wörtlicher Wert, also ergänzt du ihn und `--allow-spend` nur in deinen Benutzereinstellungen, nie in `.zed/settings.json`. Siehe die [MCP-Dokumentation von Zed](https://zed.dev/docs/ai/mcp).
 
 ## JetBrains AI Assistant
 
@@ -296,11 +273,11 @@ Ein grüner Punkt auf dieser Seite heißt, dass der Server aktiv ist. Ein Key in
 }
 ```
 
-Setz **Working directory** auf den Projektstamm. JetBrains dokumentiert nicht, wie ein Server an Umgebungsvariablen kommt, also bleibt dieser Eintrag nur lesend. Siehe die [MCP-Dokumentation von AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Setz **Working directory** auf den Projektstamm und lass diesen Eintrag nur lesend. Siehe die [MCP-Dokumentation von AI Assistant](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
-**Settings**, **Developer**, **Edit Config** öffnet `claude_desktop_config.json` (`~/Library/Application Support/Claude/` unter macOS, `%APPDATA%\Claude\` unter Windows). Es gibt kein Projekt, also ist `--cwd` absolut:
+**Settings**, **Developer**, **Edit Config** öffnet `claude_desktop_config.json`. Es gibt kein Projekt, also ist `--cwd` absolut:
 
 ```json title="claude_desktop_config.json"
 {
@@ -313,30 +290,25 @@ Setz **Working directory** auf den Projektstamm. JetBrains dokumentiert nicht, w
 }
 ```
 
-Für Ausgaben hängst du `"--allow-spend"` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "..." }`; die Datei liegt außerhalb jedes Repositorys. Starte Claude Desktop nach jeder Änderung neu. Das stderr des Servers landet in `mcp-server-verbatra.log` unter `~/Library/Logs/Claude` oder `%APPDATA%\Claude\logs`. Siehe [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+Für Ausgaben hängst du `"--allow-spend"` an und ergänzt `"env": { "ANTHROPIC_API_KEY": "..." }`; die Datei liegt außerhalb jedes Repositorys. Starte Claude Desktop nach jeder Änderung neu. Siehe [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Jeder andere stdio-Client
 
-Gib dem Client:
-
-- den Befehl `npx` mit `-y @verbatra/mcp` oder den Pfad zu einem installierten `verbatra-mcp`-Binary;
-- `--cwd /path/to/your/project`, außer er startet Server im Projektstamm;
-- `--config <path>`, wenn die Suche nach oben die Konfiguration nicht findet;
-- `--allow-spend` und die Key-Variable nur, wenn der Agent Geld ausgeben soll, über den eigenen Secret-Mechanismus des Clients.
+Gib dem Client den Befehl `npx -y @verbatra/mcp`, dazu `--cwd /path/to/your/project`, außer er startet Server im Projektstamm, und `--config <path>`, wenn die Konfiguration woanders liegt. `--allow-spend` und den Key ergänzt du nur über den eigenen Secret-Mechanismus des Clients.
 
 ## Die Verbindung prüfen
 
-Bitte den Agenten, `project.snapshot` aufzurufen. Es ruft keinen Provider auf und liefert Locales, Format und Provider-ID, sodass ein falsches Verzeichnis sofort auffällt. Der Server schreibt auf stdout nur Protokollnachrichten, alles andere zeigt das Server-Log des Clients.
-
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-- **`configured: false`**: Der Server hat keine nutzbare Konfiguration gefunden, läuft aber weiter. Lass `project.doctor` aufrufen, das jede fehlgeschlagene Prüfung samt Lösung nennt, und führ dann `npx verbatra init` aus oder korrigier `--cwd`. Siehe [Ohne Konfiguration](/docs/cli/mcp#ohne-konfiguration).
+Bitte den Agenten, `project.snapshot` aufzurufen. Es liefert Locales, Format und Provider, ohne den Provider aufzurufen.
+
+- **`configured: false`**: Es wurde keine nutzbare Konfiguration gefunden. Lass `project.doctor` aufrufen und führ dann `npx verbatra init` aus oder korrigier `--cwd`. Siehe [Ohne Konfiguration](/docs/cli/mcp#ohne-konfiguration).
 - **Kostenpflichtige Tools fehlen**: Prüf den Ausgaben-Schalter und ob der Provider `none` ist.
-- **Konfiguration geändert**: Kein Neustart nötig, außer nach einer Änderung an einem Modul, das die Konfiguration importiert. Siehe [Nach einer Konfigurationsänderung](/docs/cli/mcp#nach-einer-konfigurationsänderung).
+- **Konfiguration geändert**: Kein Neustart nötig; siehe [Nach einer Konfigurationsänderung](/docs/cli/mcp#nach-einer-konfigurationsänderung).
 
 ## Siehe auch
 
 - [`verbatra mcp`](/docs/cli/mcp): Flags, jedes Tool und die Exit-Codes.
-- [verbatra mit JSON skripten](/docs/agent-recipes#das-skills-paket): der Skill `verbatra-mcp-tools` für Agenten.
-- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): verbatra zu einem Projekt hinzufügen, bevor du einen Client verbindest.
+- [verbatra mit JSON skripten](/docs/agent-recipes#das-skills-paket): der Skill `verbatra-mcp-tools`.
+- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): verbatra hinzufügen, bevor du einen Client verbindest.
 - [Provider](/docs/providers): welche Key-Variable jeder Provider liest.
