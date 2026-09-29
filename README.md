@@ -38,7 +38,7 @@ export GEMINI_API_KEY=your-key-here
 npx verbatra translate
 ```
 
-A dev-dependency install puts the `verbatra` binary in `node_modules/.bin` rather than on your PATH, so the commands above call it through `npx`, which runs the locally installed binary whichever package manager put it there. Gemini is the cheapest way to try verbatra, because its API has a real free tier: create a key at [Google AI Studio](https://aistudio.google.com/apikey) with no billing setup. Pass `anthropic`, `openai`, `deepl`, `google-translate`, or `openai-compatible` (with `--model` and `--base-url`) to `--provider` instead if you prefer one of those, or `none` to translate by hand only. pnpm users need one extra step before installing; see [Troubleshooting](https://verbatra.kreitz-webdev.de/docs/troubleshooting).
+A dev-dependency install puts the `verbatra` binary in `node_modules/.bin` rather than on your PATH, so the commands above call it through `npx`, which runs the locally installed binary whichever package manager put it there. Gemini is the cheapest way to try verbatra, because its API has a real free tier: create a key at [Google AI Studio](https://aistudio.google.com/apikey) with no billing setup. Pass `anthropic`, `openai`, `deepl`, `google-translate`, `openai-compatible` (with `--model` and `--base-url`), or `libretranslate` (with `--base-url`) to `--provider` instead if you prefer one of those, or `none` to translate by hand only. pnpm users need one extra step before installing; see [Troubleshooting](https://verbatra.kreitz-webdev.de/docs/troubleshooting).
 
 ## Description
 
@@ -49,7 +49,7 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 ## Features
 
 - **Fourteen locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring `.properties`, Apple `.strings`/`.stringsdict`, Xcode String Catalogs, Android `strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx`.
-- **Six providers behind one interface.** Anthropic, OpenAI, Gemini, and any openai-compatible local or self-hosted server as LLMs, plus DeepL and Google Cloud Translation as machine translation, or `none` for a human-only project that never calls one.
+- **Seven providers behind one interface.** Anthropic, OpenAI, Gemini, and any openai-compatible local or self-hosted server as LLMs, plus DeepL, Google Cloud Translation, and a self-hosted LibreTranslate server as machine translation, or `none` for a human-only project that never calls one.
 - **Incremental by default.** The lock file makes every run diff-driven, so a run over an unchanged project calls no provider at all.
 - **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift; `verbatra check --require-reviewed` also fails while a machine-written translation is not approved.
 - **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, or TSV, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.

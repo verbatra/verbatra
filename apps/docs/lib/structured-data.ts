@@ -32,6 +32,7 @@ const SUPPORTED_PROVIDERS = [
   "DeepL",
   "Google Cloud Translation",
   "openai-compatible",
+  "LibreTranslate",
 ];
 export const SUPPORTED_AGENT_CLIENTS = [
   "Claude Code",

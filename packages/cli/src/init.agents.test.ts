@@ -254,7 +254,7 @@ describe("runInit for agents", () => {
 
     expect(code).toBe(2);
     expect(cap.err()).toContain(
-      "[MISSING_OPTIONS] Missing --provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|none>, --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
+      "[MISSING_OPTIONS] Missing --provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|libretranslate|none>, --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
     );
     expect(cap.err()).toContain(
       "Or add --yes to accept the default for --format <id>, --source <locale>, --targets <locales>, --path <pattern>.",
@@ -290,7 +290,7 @@ describe("runInit for agents", () => {
     expect(envelope.code).toBe("FORMAT_AMBIGUOUS");
     expect(envelope.candidates).toHaveLength(4);
     expect(envelope.missing).toEqual([
-      "--provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|none>",
+      "--provider <anthropic|openai|gemini|deepl|google-translate|openai-compatible|libretranslate|none>",
     ]);
     expect(envelope.message).toContain("Also missing --provider");
   });
@@ -474,6 +474,45 @@ describe("runInit for agents", () => {
     expect(parsed.provider.id).toBe("openai-compatible");
   });
 
+  it("scaffolds a libretranslate provider with its base URL and an optional key", async () => {
+    const { code, out } = await initJson({
+      provider: "libretranslate",
+      baseUrl: "http://localhost:5000",
+      yes: true,
+    });
+
+    expect(code).toBe(0);
+    const result = successResult(out);
+    expect(result.config.provider).toEqual({
+      id: "libretranslate",
+      options: { baseUrl: "http://localhost:5000" },
+    });
+    expect(result.apiKeyEnvVar).toBe("LIBRETRANSLATE_API_KEY");
+    expect(result.nextSteps[1]?.description).toContain("only if your server requires a key");
+    const envExample = readFileSync(join(dir, ".env.example"), "utf8");
+    expect(envExample.split("\n")).toContain("LIBRETRANSLATE_API_KEY=");
+    expect(readConfig()).toContain("A self-hosted LibreTranslate server");
+    const parsed = verbatraConfigSchema.parse(evaluateRenderedConfig(readConfig()));
+    expect(parsed.provider.id).toBe("libretranslate");
+  });
+
+  it("prompts for the base URL of libretranslate at a terminal and requires it", async () => {
+    const answers = ["libretranslate", "http://localhost:5000"];
+    let index = 0;
+    const cap = captureStreams();
+    const code = await runInit({ cwd: dir }, cap.streams, {
+      isTty: () => true,
+      ask: async () => answers[index++] ?? "",
+    });
+
+    expect(code).toBe(0);
+    expect(readConfig()).toContain('baseUrl: "http://localhost:5000"');
+
+    const missing = await initJson({ provider: "libretranslate", yes: true, force: true });
+    expect(missing.code).toBe(2);
+    expect(missing.err).toContain("Missing --base-url <url>.");
+  });
+
   it("names a custom key variable for openai-compatible, never its value", async () => {
     const { code } = await initJson({
       provider: "openai-compatible",
@@ -529,11 +568,23 @@ describe("runInit for agents", () => {
   it.each([
     [
       { provider: "deepl", baseUrl: "http://x" },
-      "--base-url applies to --provider openai-compatible only",
+      "--base-url applies to --provider openai-compatible or libretranslate only",
     ],
     [
-      { provider: "gemini", baseUrl: "http://x", apiKeyEnvVar: "K" },
-      "--base-url and --api-key-env-var apply",
+      { provider: "gemini", apiKeyEnvVar: "K" },
+      "--api-key-env-var applies to --provider openai-compatible only",
+    ],
+    [
+      { provider: "libretranslate", baseUrl: "http://x", apiKeyEnvVar: "K" },
+      "--api-key-env-var applies to --provider openai-compatible only",
+    ],
+    [
+      { provider: "libretranslate", baseUrl: "http://x", model: "m" },
+      "--model does not apply to --provider libretranslate",
+    ],
+    [
+      { provider: "libretranslate", baseUrl: "https://user:secret@host" },
+      "must not carry credentials",
     ],
     [{ provider: "deepl", model: "m" }, "--model does not apply to --provider deepl"],
     [

@@ -820,6 +820,7 @@ figure.shiki > pre {
 }
 
 .vk-deck {
+  --mid: calc((var(--n, 6) - 1) / 2);
   position: relative;
   display: flex;
   height: 300px;
@@ -828,13 +829,13 @@ figure.shiki > pre {
 }
 
 .vk-card {
-  --w: 108px;
-  --rot: calc((var(--i) - 2.5) * 5deg);
-  --lift: calc((var(--i) - 2.5) * (var(--i) - 2.5) * 4px);
+  --w: 92px;
+  --rot: calc((var(--i) - var(--mid)) * 5deg);
+  --lift: calc((var(--i) - var(--mid)) * (var(--i) - var(--mid)) * 4px);
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: calc(6 - var(--i));
+  z-index: calc(var(--n, 6) - var(--i));
   display: grid;
   width: var(--w);
   height: 164px;
@@ -851,7 +852,7 @@ figure.shiki > pre {
   color: var(--text-strong);
   text-align: center;
   text-decoration: none;
-  transform: translateX(calc((var(--i) - 2.5) * 4px));
+  transform: translateX(calc((var(--i) - var(--mid)) * 4px));
   transition:
     transform 520ms var(--ease-out),
     box-shadow 520ms var(--ease-out),
@@ -859,7 +860,8 @@ figure.shiki > pre {
 }
 
 .vk-deck.is-in .vk-card {
-  transform: translateX(calc((var(--i) - 2.5) * 22px)) translateY(var(--lift)) rotate(var(--rot));
+  transform: translateX(calc((var(--i) - var(--mid)) * 20px)) translateY(var(--lift))
+    rotate(var(--rot));
   transition-delay: calc(var(--i) * 60ms);
 }
 
@@ -867,7 +869,7 @@ figure.shiki > pre {
 .vk-deck:focus-within .vk-card,
 .vk-deck.is-in:hover .vk-card,
 .vk-deck.is-in:focus-within .vk-card {
-  transform: translateX(calc((var(--i) - 2.5) * 114px));
+  transform: translateX(calc((var(--i) - var(--mid)) * 97px));
   box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--v-purple) 60%, transparent);
   transition-delay: 0ms;
 }

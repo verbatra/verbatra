@@ -1,5 +1,5 @@
 import { ProviderError } from "./errors.js";
-import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+import { LIBRETRANSLATE_ENV_VAR, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 import type { EnvironmentSource } from "./network/environment-rule.js";
 
 export function processEnvironment(): EnvironmentSource {
@@ -34,6 +34,11 @@ export function requireDeepLKey(): string {
 
 export function requireGoogleTranslateKey(): string {
   return readRequiredEnv(PROVIDER_ENV["google-translate"]);
+}
+
+export function readLibreTranslateKey(): string | undefined {
+  const value = process.env[LIBRETRANSLATE_ENV_VAR];
+  return value === undefined || value.length === 0 ? undefined : value;
 }
 
 export const OPENAI_COMPATIBLE_KEY_PLACEHOLDER = "local";

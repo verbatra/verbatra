@@ -5,7 +5,7 @@
 <h1 align="center">@verbatra/cli</h1>
 
 <p align="center">
-  Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, or an openai-compatible local or self-hosted model.
+  Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, a self-hosted LibreTranslate server, or an openai-compatible local or self-hosted model.
 </p>
 
 <p align="center">
@@ -52,7 +52,7 @@ export GEMINI_API_KEY=your-key-here
 npx verbatra translate
 ```
 
-Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, and `none` sets up a human-only project that never calls a provider.
+Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, `libretranslate` needs `--base-url` for your LibreTranslate server, and `none` sets up a human-only project that never calls a provider.
 
 ## Commands
 

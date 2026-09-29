@@ -90,12 +90,13 @@ Run `verbatra init` and let it detect the rest from the locale files:
 npx verbatra init --provider <provider> --yes --json
 
 `<provider>` is one of `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`,
-`openai-compatible`, or `none` (human-only, no machine translation). Ask the human
-which provider to use unless it is already obvious from the project (an existing key
-reference, a comment, a teammate's note). Do not pick a provider that spends against
+`openai-compatible`, `libretranslate`, or `none` (human-only, no machine translation).
+Ask the human which provider to use unless it is already obvious from the project (an
+existing key reference, a comment, a teammate's note). Do not pick a provider that spends against
 a service the human never agreed to. For a local or self-hosted OpenAI-compatible
 server, add `--base-url <url> --model <name>`, plus `--api-key-env-var <NAME>` if the
-server needs a key. Never pass a key value to `init`.
+server needs a key. For a self-hosted LibreTranslate server, add `--base-url <url>`
+only. Never pass a key value to `init`.
 
 `init` prints one JSON envelope on stdout and never prompts. Branch on its exit code:
 

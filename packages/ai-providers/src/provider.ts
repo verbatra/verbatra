@@ -113,7 +113,7 @@ export interface TranslateRequest {
 
 /**
  * Token usage, when the provider reports it. Absent for the providers that do not bill by token
- * (DeepL and Google Cloud Translation).
+ * (DeepL, Google Cloud Translation, and LibreTranslate).
  */
 export interface Usage {
   /** Tokens consumed by the request, summed across the initial call and any repair round. */
@@ -134,7 +134,10 @@ export interface Usage {
  *   renderings does not raise it, since those are checked after translation rather than applied.
  * - `PLACEHOLDER_UNSUPPORTED`: at least one placeholder- or ICU-bearing entry was left untranslated
  *   because the provider cannot preserve those tokens; such entries are withheld (absent from the
- *   result maps) rather than sent to the provider and mangled.
+ *   result maps) rather than sent to the provider and mangled. LibreTranslate sends a value's
+ *   placeholders as numbered markers and restores them, so it raises this only for a value that
+ *   still holds ICU syntax once they are masked, which it never sends, or for one whose markers did
+ *   not all come back exactly once, which it drops instead of writing.
  */
 export type ProviderNoticeCode =
   | "FORMALITY_DOWNGRADED"
@@ -262,8 +265,9 @@ export interface TranslateResult {
   readonly usage?: Usage;
   /**
    * Graceful-degradation notices for this batch. Every provider populates this as a present array:
-   * DeepL and Google Cloud Translation report real notices (for example `GLOSSARY_IGNORED`); an LLM
-   * provider with nothing to report returns an empty array rather than omitting the field.
+   * DeepL, Google Cloud Translation and LibreTranslate report real notices (for example
+   * `GLOSSARY_IGNORED`); an LLM provider with nothing to report returns an empty array rather than
+   * omitting the field.
    */
   readonly notices?: readonly ProviderNotice[];
   /**
@@ -322,6 +326,7 @@ export interface ProviderLanguageTable {
   readonly origin: ProviderLanguageTableOrigin;
   readonly documentation: readonly string[];
   readonly languages: readonly ProviderLanguage[];
+  readonly partial?: true;
 }
 
 export interface LiveLanguageRequest {

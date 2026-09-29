@@ -88,7 +88,7 @@
         },
         "providers": {
           "question": "¿Qué proveedores de traducción puedo usar?",
-          "answer": "Seis, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), y openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada. O pon el proveedor en none para desactivar por completo la traducción automática."
+          "answer": "Siete, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM, y libretranslate, un servidor LibreTranslate autoalojado para traducción automática sin ningún modelo de lenguaje. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada. O pon el proveedor en none para desactivar por completo la traducción automática."
         },
         "languages": {
           "question": "¿Qué idiomas admite verbatra?",
@@ -348,7 +348,7 @@
       "label": "Frameworks y formatos compatibles"
     },
     "providers": {
-      "heading": "Seis proveedores, una interfaz.",
+      "heading": "Siete proveedores, una interfaz.",
       "hint": "Pasa el cursor por las tarjetas o recórrelas con Tab.",
       "kinds": {
         "anthropic": "modelos Claude",
@@ -356,7 +356,8 @@
         "gemini": "nivel gratuito disponible",
         "googleTranslate": "traducción automática",
         "openai": "modelos GPT",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+        "openaiCompatible": "Ollama, vLLM, LM Studio",
+        "libretranslate": "autoalojado, sin LLM"
       },
       "lead": "Cambia modificando una línea de la configuración, o ponlo en none y deja cada cadena en manos humanas."
     }

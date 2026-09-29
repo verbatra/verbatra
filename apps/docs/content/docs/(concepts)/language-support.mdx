@@ -2,7 +2,7 @@
 title: Language support
 description: Which languages verbatra can translate, how locale codes reach each provider, and how plurals, scripts, regional variants and right-to-left text are handled.
 ---
-verbatra has no language list of its own. It accepts any valid BCP 47 locale code, reads and writes the strings of every language the same way, and leaves the translation itself to the provider you configure. So the answer to "which languages can I use?" is: every language your provider supports, and for a human-only project every language at all. For DeepL and Google Cloud Translation, verbatra ships a dated copy of the provider's own language table, so it can tell you before a run spends anything (see [Checking support before a run](#checking-support-before-a-run)).
+verbatra has no language list of its own. It accepts any valid BCP 47 locale code, reads and writes the strings of every language the same way, and leaves the translation itself to the provider you configure. So the answer to "which languages can I use?" is: every language your provider supports, and for a human-only project every language at all. For DeepL and Google Cloud Translation, verbatra ships a dated copy of the provider's own language table, so it can tell you before a run spends anything (see [Checking support before a run](#checking-support-before-a-run)). A self-hosted LibreTranslate server offers the language models installed on it, which `verbatra doctor --locales --live` reads from the server itself.
 
 This page covers what verbatra does with a locale code, where the provider decides, and the limits that apply today.
 
@@ -26,12 +26,14 @@ Which languages translate, and how well, is decided by the provider; each row li
 | `openai-compatible` | Whatever the model you run covers | As written, plus names | Locale terms in the prompt | In the prompt |
 | `deepl` | [DeepL supported languages](https://developers.deepl.com/docs/getting-started/supported-languages) | Normalized to DeepL's codes | A pre-created DeepL glossary by `glossaryId` only, for 32 languages | DeepL formality for some languages, not on a free-tier key |
 | `google-translate` | [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages) (the NMT list applies to the Basic, v2 tier verbatra uses) | Normalized for Chinese and Norwegian, otherwise as written | None | None |
+| `libretranslate` | The models installed on your server; [the upstream list](https://docs.libretranslate.com/) shows what is available to install | The language alone, except `pt-BR`, `zh-Hans` and `zh-Hant` | None | None |
 | `none` | Not applicable: no provider is called | Nothing is sent | Not applicable | Not applicable |
 
 What the columns mean in practice:
 
 - **LLM providers** (Anthropic, OpenAI, Gemini, openai-compatible) have no closed language list. They attempt any language you name, and quality falls off for languages with less training data, so a lower-resource target deserves a human review. [Review flags](/docs/translation-safety#review-flags) such as `EQUALS_SOURCE` and `LENGTH_RATIO_OUTLIER` point at the most suspicious results.
 - **DeepL and Google Cloud Translation** have a closed list. A language they do not list is refused before the run starts, with `LOCALE_UNSUPPORTED_BY_PROVIDER` (see below). Both also withhold strings that contain placeholders or ICU syntax, with a `PLACEHOLDER_UNSUPPORTED` notice, so a catalog full of placeholders needs an LLM provider whatever the language.
+- **LibreTranslate** has no list verbatra can know in advance, because every server installs its own models. No locale is refused before a run; each one is `unverified` until `verbatra doctor --locales --live` checks it against the server's `/languages` list, and a language the server lacks fails its request with `INVALID_REQUEST`. Placeholders travel as numbered markers and are put back afterwards, so placeholder-bearing strings translate; a value that still holds ICU syntax is withheld with `PLACEHOLDER_UNSUPPORTED`.
 - A `tone` or `glossary` a provider cannot honor is reported as a notice (`FORMALITY_DOWNGRADED`, `GLOSSARY_IGNORED`), never dropped silently. See [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
 
 ### How each provider receives the code
@@ -40,6 +42,7 @@ What the columns mean in practice:
 
 - **DeepL** gets the source language without a region or script (`en-US` goes out as `EN`). For the target it keeps the variants DeepL has (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`), sends Chinese as `ZH-HANS` or `ZH-HANT` when the code names a script or region (`zh-Hans`, `zh-TW`; a bare `zh` goes out as `ZH`), sends Spanish with a Latin American or Caribbean region as `ES-419` (`es-MX` and `es-US` both become `ES-419`), and drops any other region or script. A target that ends up as a bare `EN` or `PT` fails before any request, because DeepL has no generic English or Portuguese target.
 - **Google Cloud Translation** gets `zh-Hant`, `zh-HK` and `zh-MO` as `zh-TW`, `zh-Hans` and `zh-SG` as `zh-CN`, and a bare `nb` as `no` (`nb-NO` is sent as written). Every other code is sent as written, after a well-formedness check.
+- **LibreTranslate** gets the language alone (`de-AT` goes out as `de`), except Brazilian Portuguese, sent as `pt-BR`, and Chinese, sent as `zh-Hans` or `zh-Hant` when the code names a script or region.
 - **LLM providers** get the code as written, plus the English name of the language, and of its script and region when the code has them. The model is told to write in that script and regional variant. See [Language, script and region names](/docs/translation-safety#language-script-and-region-names).
 
 When the built-in mapping is not what you want, `localeMap` in the provider's `options` sets the exact code per locale, for example `"en-AU": "EN-GB"` for DeepL. The full mapping table and the rules for `localeMap` are on [Providers](/docs/providers#locale-codes-sent-to-the-provider).
@@ -62,7 +65,7 @@ When the built-in mapping is not what you want, `localeMap` in the provider's `o
 Each locale gets one of three verdicts:
 
 - **supported**: the code verbatra sends is on the provider's table, or the provider is an LLM.
-- **unverified**: the code is not on the table but may still work, because only its base language is listed (Google gets `de-AT` as written where its table has `de`), or because it comes from an explicit `localeMap` entry. It is translated, with the warning `LOCALE_UNVERIFIED_BY_PROVIDER`.
+- **unverified**: the code is not on the table but may still work, because only its base language is listed (Google gets `de-AT` as written where its table has `de`), because it comes from an explicit `localeMap` entry, or because the provider is a LibreTranslate server whose installed models are only known from its live list. It is translated, with the warning `LOCALE_UNVERIFIED_BY_PROVIDER`.
 - **unsupported**: neither the code nor its base language is listed. `translate`, `watch`, and a single-key retranslation refuse the whole run with `LOCALE_UNSUPPORTED_BY_PROVIDER` before anything is spent, and `doctor` fails its Locale support check.
 
 A whole run is refused, not just the one locale, so a pipeline never ends up half translated because of a config mistake. To go ahead with the other locales, leave the unsupported one out with `--locales`, or remove it from `targetLocales`. If the provider has added the language since the table's date, map the locale in `provider.options.localeMap`: an explicit entry is trusted and sent as written. `verbatra doctor --live` checks against the provider's current list, when its key is set.
@@ -72,6 +75,7 @@ The shipped tables, and the date on each:
 | Provider | Table | Glossary | Formality |
 | --- | --- | --- | --- |
 | DeepL | 125 codes from [DeepL's supported languages](https://developers.deepl.com/docs/getting-started/supported-languages), 2026-09-28 | 32 languages; both languages of a pair must be listed | `DE`, `ES`, `ES-419`, `FR`, `IT`, `JA`, `NL`, `PL`, `PT-BR`, `PT-PT`, `RU`, and the regional variants of these languages |
+| LibreTranslate | None: the server's own `/languages` list, fetched by `doctor --live` | None | None |
 | Google Cloud Translation | 198 codes from the NMT list on [Cloud Translation language support](https://docs.cloud.google.com/translate/docs/languages), 2026-09-28 | None at the Basic tier | None at the Basic tier |
 
 LLM providers accept any language, so no locale is refused for them. A target outside this conservative list of languages that LLM providers are known to translate well gets the warning `LOCALE_NOT_WELL_TESTED`, as a nudge to review its output: Arabic (`ar`), Chinese (`zh`), Dutch (`nl`), English (`en`), French (`fr`), German (`de`), Hindi (`hi`), Indonesian (`id`), Italian (`it`), Japanese (`ja`), Korean (`ko`), Polish (`pl`), Portuguese (`pt`), Russian (`ru`), Spanish (`es`), Swedish (`sv`), Turkish (`tr`), Ukrainian (`uk`), and Vietnamese (`vi`). The list matches the base language, so `pt-BR` and `zh-Hant` count as well tested. A human-only project (`provider: { id: "none" }`) calls no provider, so nothing is checked.
@@ -80,14 +84,14 @@ LLM providers accept any language, so no locale is refused for them. A target ou
 
 A script or region subtag changes what the provider is asked for, not how verbatra stores anything:
 
-| Your locale | DeepL | Google Cloud Translation | LLM providers |
-| --- | --- | --- | --- |
-| `pt-BR` / `pt-PT` | `PT-BR` / `PT-PT` | `pt-BR` / `pt-PT` | Portuguese (Brazil) / Portuguese (Portugal) |
-| `es-419`, `es-MX` | `ES-419` | `es-419`, `es-MX` | Spanish (Latin America), Spanish (Mexico) |
-| `zh-Hans` / `zh-Hant` | `ZH-HANS` / `ZH-HANT` | `zh-CN` / `zh-TW` | Chinese (Simplified) / Chinese (Traditional) |
-| `sr-Latn` / `sr-Cyrl` | `SR` for both | `sr-Latn` / `sr-Cyrl` | Serbian (Latin) / Serbian (Cyrillic) |
+| Your locale | DeepL | Google Cloud Translation | LibreTranslate | LLM providers |
+| --- | --- | --- | --- | --- |
+| `pt-BR` / `pt-PT` | `PT-BR` / `PT-PT` | `pt-BR` / `pt-PT` | `pt-BR` / `pt` | Portuguese (Brazil) / Portuguese (Portugal) |
+| `es-419`, `es-MX` | `ES-419` | `es-419`, `es-MX` | `es` | Spanish (Latin America), Spanish (Mexico) |
+| `zh-Hans` / `zh-Hant` | `ZH-HANS` / `ZH-HANT` | `zh-CN` / `zh-TW` | `zh-Hans` / `zh-Hant` | Chinese (Simplified) / Chinese (Traditional) |
+| `sr-Latn` / `sr-Cyrl` | `SR` for both | `sr-Latn` / `sr-Cyrl` | `sr` for both | Serbian (Latin) / Serbian (Cyrillic) |
 
-Two things follow from this table. DeepL keeps a script only for Chinese, so `sr-Latn` and `sr-Cyrl` both go out as `SR` and get whatever script DeepL writes for Serbian. Google Cloud Translation receives the script subtag as written, and whether it accepts it is up to Google's list. For a language written in more than one script, an LLM provider, which is told the script by name, is the dependable choice, and `localeMap` covers the cases where a vendor spells the variant differently.
+Two things follow from this table. DeepL and LibreTranslate keep a script only for Chinese, so `sr-Latn` and `sr-Cyrl` both go out as `SR` (or `sr`) and get whatever script the engine writes for Serbian. Google Cloud Translation receives the script subtag as written, and whether it accepts it is up to Google's list. For a language written in more than one script, an LLM provider, which is told the script by name, is the dependable choice, and `localeMap` covers the cases where a vendor spells the variant differently.
 
 Two checks also account for scripts. The `LENGTH_RATIO_OUTLIER` review flag weights each character by its script, so a compact Chinese, Japanese or Korean translation is not flagged just for being short. And a glossary term written in a script without spaces between words (Han, kana, Thai and similar) is matched by containment rather than by word boundary, and so is a forbidden rendering in such a script.
 
@@ -107,7 +111,7 @@ How a plural is checked depends on the format:
 
 [`verbatra check`](/docs/cli/check#plural-categories) and [`verbatra doctor`](/docs/cli/doctor) name every plural in a target locale that lacks a category its language uses, for i18next, Android, Apple `.stringsdict` and `.xcstrings`, and the ICU messages of next-intl and ARB. A Polish Android `<plurals>` with only `one` and `other` is reported as missing `few` and `many`. It is a warning; `check --qa --strict` fails on it. gettext is not checked, because its forms follow the file's own `Plural-Forms` header rather than CLDR categories.
 
-DeepL and Google Cloud Translation translate the plural forms that are there but never generate new ones, and they withhold an ICU plural value like any other string with ICU syntax.
+DeepL, Google Cloud Translation, and LibreTranslate translate the plural forms that are there but never generate new ones, and they withhold an ICU plural value like any other string with ICU syntax.
 
 ## Right-to-left languages
 

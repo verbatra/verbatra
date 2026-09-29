@@ -1,0 +1,132 @@
+import { describe, expect, it } from "vitest";
+import {
+  maskPlaceholders,
+  partitionByPlaceholders,
+  partitionForMasking,
+  unmaskPlaceholders,
+} from "./placeholder-protection.js";
+import { entry } from "./test-support.js";
+
+describe("partitionByPlaceholders", () => {
+  it("splits placeholder-free (protectable) from placeholder-bearing (unprotectable)", () => {
+    const free = entry("a", "Hello");
+    const bearing = entry("b", "Hello {{name}}", ["{{name}}"]);
+    const { protectable, unprotectable } = partitionByPlaceholders([free, bearing]);
+    expect(protectable).toEqual([free]);
+    expect(unprotectable).toEqual([bearing]);
+  });
+
+  it("returns empty partitions for an empty batch", () => {
+    const { protectable, unprotectable } = partitionByPlaceholders([]);
+    expect(protectable).toEqual([]);
+    expect(unprotectable).toEqual([]);
+  });
+
+  it("preserves relative order so protectable is an order-preserving subsequence", () => {
+    const first = entry("first", "one");
+    const skip = entry("skip", "has {{x}}", ["{{x}}"]);
+    const second = entry("second", "two");
+    const { protectable, unprotectable } = partitionByPlaceholders([first, skip, second]);
+    expect(protectable.map((e) => e.key)).toEqual(["first", "second"]);
+    expect(unprotectable.map((e) => e.key)).toEqual(["skip"]);
+  });
+});
+
+describe("maskPlaceholders", () => {
+  it("replaces each placeholder occurrence with a numbered marker in document order", () => {
+    expect(maskPlaceholders("Hi {name}, you have {count} messages", ["{name}", "{count}"])).toEqual(
+      { text: "Hi {0}, you have {1} messages", originals: ["{name}", "{count}"] },
+    );
+  });
+
+  it("numbers a repeated placeholder once per occurrence", () => {
+    expect(maskPlaceholders("%s and %s", ["%s", "%s"])).toEqual({
+      text: "{0} and {1}",
+      originals: ["%s", "%s"],
+    });
+  });
+
+  it("prefers the longest placeholder where two start at the same position", () => {
+    expect(maskPlaceholders("Hello {{name}} and {name}", ["{name}", "{{name}}"])).toEqual({
+      text: "Hello {0} and {1}",
+      originals: ["{{name}}", "{name}"],
+    });
+  });
+
+  it("masks inline markup placeholders, whose text would otherwise reach the engine", () => {
+    expect(maskPlaceholders('Click <a href="/x">here</a>', ['<a href="/x">', "</a>"])).toEqual({
+      text: "Click {0}here{1}",
+      originals: ['<a href="/x">', "</a>"],
+    });
+  });
+
+  it("declines a value with no non-empty placeholder", () => {
+    expect(maskPlaceholders("Hello", [])).toBeUndefined();
+    expect(maskPlaceholders("Hello", [""])).toBeUndefined();
+  });
+
+  it("declines an ICU value whose normalized placeholder does not occur literally", () => {
+    expect(
+      maskPlaceholders("{count, plural, one {# item} other {# items}}", ["{count}"]),
+    ).toBeUndefined();
+  });
+
+  it("declines a value whose text around the placeholders still holds braces or angle brackets", () => {
+    expect(maskPlaceholders("Hi {name}, {n, number} left", ["{name}"])).toBeUndefined();
+    expect(maskPlaceholders("Use <b>{name}</b>", ["{name}"])).toBeUndefined();
+  });
+
+  it("keeps a surrogate pair intact around a marker", () => {
+    expect(maskPlaceholders("\u{1F600} {name}", ["{name}"])?.text).toBe("\u{1F600} {0}");
+  });
+});
+
+describe("unmaskPlaceholders", () => {
+  const masked = { text: "Hi {0}, you have {1} messages", originals: ["{name}", "{count}"] };
+
+  it("restores every marker, including markers the engine reordered", () => {
+    expect(unmaskPlaceholders("{1} Nachrichten für {0}", masked)).toBe(
+      "{count} Nachrichten für {name}",
+    );
+  });
+
+  it("round-trips a masked value the engine left unchanged", () => {
+    const value = 'Click <a href="/x">here</a> or %1$s';
+    const mask = maskPlaceholders(value, ['<a href="/x">', "</a>", "%1$s"]);
+    expect(mask).toBeDefined();
+    if (mask !== undefined) {
+      expect(unmaskPlaceholders(mask.text, mask)).toBe(value);
+    }
+  });
+
+  it("rejects a translation that dropped a marker", () => {
+    expect(unmaskPlaceholders("Hallo {0}", masked)).toBeUndefined();
+  });
+
+  it("rejects a translation that duplicated a marker", () => {
+    expect(unmaskPlaceholders("{0} {0} {1}", masked)).toBeUndefined();
+  });
+
+  it("rejects a translation that invented a marker the value never had", () => {
+    expect(unmaskPlaceholders("{0} {1} {2}", masked)).toBeUndefined();
+  });
+
+  it("rejects a mangled marker, left as a stray brace", () => {
+    expect(unmaskPlaceholders("{0} { 1}", masked)).toBeUndefined();
+    expect(unmaskPlaceholders("{0} {01}", masked)).toBeUndefined();
+  });
+});
+
+describe("partitionForMasking", () => {
+  it("sorts entries into plain, masked, and unprotectable", () => {
+    const plain = entry("plain", "Save");
+    const simple = entry("simple", "Hi {name}", ["{name}"]);
+    const icu = entry("icu", "{n, plural, one {# file} other {# files}}", ["{n}"]);
+    const partition = partitionForMasking([plain, simple, icu]);
+    expect(partition.plain).toEqual([plain]);
+    expect(partition.masked).toEqual([
+      { entry: simple, masked: { text: "Hi {0}", originals: ["{name}"] } },
+    ]);
+    expect(partition.unprotectable).toEqual([icu]);
+  });
+});

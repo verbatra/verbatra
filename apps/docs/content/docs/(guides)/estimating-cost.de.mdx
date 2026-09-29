@@ -73,6 +73,7 @@ verbatra veröffentlicht bewusst keine Preise. Schlage die aktuelle Rate für de
 | DeepL | Quell**zeichen**, nicht Tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | Quell**zeichen**, nicht Tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nichts: deine eigene Hardware | keine API-Kosten |
+| LibreTranslate | nichts: dein eigener Server, gezählt in Quellzeichen | keine API-Kosten |
 
 ## Schritt 5: verbatra die Rechnung machen lassen
 
@@ -95,7 +96,7 @@ verbatra translate (dry run)
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-Es impliziert `--dry-run`: Es wird kein Provider konstruiert, kein API-Schlüssel gelesen, keine Netzwerkanfrage gestellt und nichts geschrieben. Ein Machine-Translation-Provider wird in Quellzeichen statt in Tokens gezählt, und ein selbst gehosteter `openai-compatible`-Endpunkt wird als gänzlich ohne API-Kosten ausgewiesen.
+Es impliziert `--dry-run`: Es wird kein Provider konstruiert, kein API-Schlüssel gelesen, keine Netzwerkanfrage gestellt und nichts geschrieben. Ein Machine-Translation-Provider wird in Quellzeichen statt in Tokens gezählt, und ein selbst gehosteter `openai-compatible`-Endpunkt oder `libretranslate`-Server wird als gänzlich ohne API-Kosten ausgewiesen.
 
 Die Menge bekommst du geschenkt. Das Geld nicht: verbatra veröffentlicht weiterhin keine Preise, ein Geldbetrag erscheint also erst, wenn du die in Schritt 4 nachgeschlagenen Raten in deine Konfiguration einträgst, unter einem `rates`-Block, der festhält, wann du sie gelesen hast:
 

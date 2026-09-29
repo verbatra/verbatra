@@ -25,6 +25,7 @@ const PROVIDER_IDS: Readonly<Record<Exclude<ProviderId, "none">, true>> = {
   deepl: true,
   "google-translate": true,
   "openai-compatible": true,
+  libretranslate: true,
 };
 
 export const FORMAT_COUNT = Object.keys(FORMAT_IDS).length;

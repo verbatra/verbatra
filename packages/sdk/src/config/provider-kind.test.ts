@@ -12,6 +12,7 @@ const CONFIGS: Record<string, ProviderConfig> = {
     id: "openai-compatible",
     options: { baseUrl: "http://localhost:1234/v1", model: "llama-3", maxOutputTokens: 1024 },
   },
+  libretranslate: { id: "libretranslate", options: { baseUrl: "http://localhost:5000" } },
 };
 
 describe("PROVIDER_KIND", () => {

@@ -51,7 +51,7 @@ The action installs `@verbatra/cli` and `@verbatra/sdk`, both at exactly the ver
 
 ### Secret wiring
 
-The action runs the CLI, and the CLI reads the provider's API key only from the environment. This applies to the default `translate` command: pass the key from your repository secrets under the variable your provider expects (see [Providers](/docs/providers)): `ANTHROPIC_API_KEY` above, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or, for an `openai-compatible` server that needs a key, `OPENAI_COMPATIBLE_API_KEY` (or the variable its `apiKeyEnvVar` names). The read-only `check` and `diff` commands call no provider, so they need no key at all, which is what lets them run as a gate on a fork pull request where secrets are unavailable. There is no key input; a key never travels as an action input or CLI argument.
+The action runs the CLI, and the CLI reads the provider's API key only from the environment. This applies to the default `translate` command: pass the key from your repository secrets under the variable your provider expects (see [Providers](/docs/providers)): `ANTHROPIC_API_KEY` above, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or, for an `openai-compatible` server that needs a key, `OPENAI_COMPATIBLE_API_KEY` (or the variable its `apiKeyEnvVar` names), and for a `libretranslate` server started with `--api-keys`, `LIBRETRANSLATE_API_KEY`. The read-only `check` and `diff` commands call no provider, so they need no key at all, which is what lets them run as a gate on a fork pull request where secrets are unavailable. There is no key input; a key never travels as an action input or CLI argument.
 
 ## Inputs
 

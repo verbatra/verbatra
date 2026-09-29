@@ -88,7 +88,7 @@
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Six, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), et openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
+          "answer": "Sept, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
         },
         "languages": {
           "question": "Quelles langues verbatra prend-il en charge ?",
@@ -348,7 +348,7 @@
       "label": "Frameworks et formats pris en charge"
     },
     "providers": {
-      "heading": "Six fournisseurs, une interface.",
+      "heading": "Sept fournisseurs, une interface.",
       "hint": "Survole les cartes ou parcours-les avec Tab.",
       "kinds": {
         "anthropic": "modèles Claude",
@@ -356,7 +356,8 @@
         "gemini": "offre gratuite disponible",
         "googleTranslate": "traduction automatique",
         "openai": "modèles GPT",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+        "openaiCompatible": "Ollama, vLLM, LM Studio",
+        "libretranslate": "auto-hébergé, sans LLM"
       },
       "lead": "Change de fournisseur en modifiant une ligne de configuration, ou mets-le sur none et garde chaque chaîne entre des mains humaines."
     }

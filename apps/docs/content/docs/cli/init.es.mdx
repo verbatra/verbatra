@@ -15,13 +15,13 @@ verbatra init [flags]
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | directorio actual | analiza este directorio y escribe en él la configuración y los archivos de entorno |
-| `--provider` | `<id>` | ninguno (obligatorio) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` o `none` |
+| `--provider` | `<id>` | ninguno (obligatorio) | proveedor a preparar: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` o `none` |
 | `--format` | `<id>` | detectado, si no `i18next-json` | el formato de los archivos de locale, uno de los ids de [Formatos](/docs/formats) |
 | `--source` | `<locale>` | detectado, si no `en` | el locale de origen en el que están escritas tus cadenas |
 | `--targets` | `<locales>` | detectado, si no `de` | locales de destino separados por comas a los que traducir |
 | `--path` | `<pattern>` | detectado, si no la estructura habitual del formato (consulta [Detección](#detección)) | patrón de los archivos de locale; debe contener el token `{locale}` |
 | `--model` | `<name>` | el valor por defecto del scaffold | el modelo; obligatorio para `openai-compatible`, opcional para `anthropic`, `openai` y `gemini` |
-| `--base-url` | `<url>` | ninguno | la URL del servidor; solo para `openai-compatible`, y ahí es obligatorio |
+| `--base-url` | `<url>` | ninguno | la URL del servidor; solo para `openai-compatible` y `libretranslate`, y ahí es obligatorio |
 | `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | la variable de entorno de la que `openai-compatible` lee su clave; solo para `openai-compatible` |
 | `--yes` | ninguno | desactivado | nunca pregunta, y toma el valor por defecto de todo lo que ni se pasó ni se detectó |
 | `--force` | ninguno | desactivado | sobrescribe un `verbatra.config.ts` existente cuyo contenido es distinto |
@@ -68,7 +68,7 @@ Un catálogo `apple-xcstrings` es un único archivo compartido por todos los loc
 
 ## Ejecuciones desatendidas
 
-Sin una terminal, o con `--json`, `init` nunca pregunta. Un valor que no se pasó, no se detectó ni se tomó por defecto con `--yes` es un error: `init` sale con `2` y `MISSING_OPTIONS` y nombra de una vez cada flag que falta. Un error por una ambigüedad o por un flag no válido también lista los flags que aún faltan, así que una sola ejecución le dice a un agente todo lo que tiene que pasar. `--provider` no tiene valor por defecto, y tampoco lo tienen `--base-url` y `--model` para `openai-compatible`, así que esos siempre hacen falta. Este es el comando que ejecuta un agente:
+Sin una terminal, o con `--json`, `init` nunca pregunta. Un valor que no se pasó, no se detectó ni se tomó por defecto con `--yes` es un error: `init` sale con `2` y `MISSING_OPTIONS` y nombra de una vez cada flag que falta. Un error por una ambigüedad o por un flag no válido también lista los flags que aún faltan, así que una sola ejecución le dice a un agente todo lo que tiene que pasar. `--provider` no tiene valor por defecto, y tampoco lo tienen `--base-url` y `--model` para `openai-compatible` ni `--base-url` para `libretranslate`, así que esos siempre hacen falta. Este es el comando que ejecuta un agente:
 
 ```bash
 npx verbatra init --provider gemini --yes --json
@@ -128,6 +128,10 @@ Un envoltorio de error para `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PRO
 
 `--provider openai-compatible` prepara un servidor local o autoalojado a partir de `--base-url` y `--model`, con `maxOutputTokens: 4096`. Su clave es opcional: un servidor que no necesita ninguna deja `OPENAI_COMPATIBLE_API_KEY` sin definir, y `--api-key-env-var` nombra otra variable para uno que sí la necesita. `init` escribe el nombre de esa variable en la configuración y en `.env.example`, nunca un valor, y rechaza una URL base que lleve credenciales, una query string o un fragmento, como `https://user:key@host` o `https://host/v1?api-key=...`, con los que una clave podría acabar en la configuración confirmada en el repositorio. `--api-key-env-var` espera un nombre en mayúsculas como `LLM_API_KEY`, y un valor rechazado nunca se repite por si era la clave misma.
 
+<AvailableFrom version="0.12.0" />
+
+`--provider libretranslate` prepara un servidor [LibreTranslate](/docs/providers#libretranslate) autoalojado solo a partir de `--base-url`, como `http://localhost:5000`; no lleva modelo y rechaza `--model` y `--api-key-env-var`. Su clave también es opcional: `.env.example` nombra `LIBRETRANSLATE_API_KEY` para un servidor arrancado con `--api-keys`, y un servidor sin ellas la deja sin definir. Se aplican las mismas reglas para la URL base.
+
 ## Archivos existentes
 
 Volver a ejecutar `init` con las mismas respuestas no cambia nada y termina con éxito, así que es seguro repetirlo. Un `verbatra.config.ts` con un contenido distinto se rechaza con `CONFIG_EXISTS` salvo que pases `--force`. Otra configuración de verbatra en el mismo directorio (un `.verbatrarc.json`, por ejemplo, o una propiedad `verbatra` en `package.json`) se rechaza con `CONFIG_EXISTS` incluso con `--force`, porque se leería antes que `verbatra.config.ts`. No se escribe nada cuando `init` se niega. Cuando `verbatra.config.ts` ya existe y no pasaste `--force`, `CONFIG_EXISTS` va antes que todo lo demás: en una terminal antes de la primera pregunta y, si no, en lugar de una respuesta que falta, es ambigua o no es válida, así que una nueva ejecución te avisa primero de la configuración existente. `init --cwd` rechaza una ruta que no es un directorio existente con `INVALID_OPTION`, y un directorio en el que no puede escribir, como uno de solo lectura, con `INIT_UNWRITABLE`, nombrando el archivo y cualquier archivo que ya hubiera escrito. Con `--agent` y sin ninguna respuesta de configuración, una configuración existente se conserva en lugar de rechazarse: consulta [Preparar los agentes de programación](#preparar-los-agentes-de-programación).
@@ -163,6 +167,9 @@ verbatra init --provider deepl --format yaml --path "config/locales/{locale}.yml
 
 # a local server that needs no key
 verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes
+
+# a self-hosted LibreTranslate server, no language model
+verbatra init --provider libretranslate --base-url http://localhost:5000 --yes
 
 # human-only: no provider, no API key
 verbatra init --provider none --yes

@@ -73,6 +73,7 @@ verbatra ne publie délibérément aucun prix. Consulte le tarif courant de ton 
 | DeepL | **caractères** source, pas tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | **caractères** source, pas tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | rien : ton propre matériel | aucun coût d'API |
+| LibreTranslate | rien : ton propre serveur, compté en caractères source | aucun coût d'API |
 
 ## Étape 5 : laisser verbatra faire le calcul
 
@@ -95,7 +96,7 @@ verbatra translate (dry run)
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-Il implique `--dry-run` : aucun fournisseur n'est construit, aucune clé d'API n'est lue, aucun appel réseau n'est fait et rien n'est écrit. Un fournisseur de traduction automatique est compté en caractères source plutôt qu'en tokens, et un endpoint `openai-compatible` auto-hébergé est rapporté comme n'ayant aucun coût d'API.
+Il implique `--dry-run` : aucun fournisseur n'est construit, aucune clé d'API n'est lue, aucun appel réseau n'est fait et rien n'est écrit. Un fournisseur de traduction automatique est compté en caractères source plutôt qu'en tokens, et un endpoint `openai-compatible` ou un serveur `libretranslate` auto-hébergé est rapporté comme n'ayant aucun coût d'API.
 
 La quantité, tu l'obtiens gratuitement. Le montant, non : verbatra ne publie toujours aucun prix, une somme n'apparaît donc qu'une fois que tu as mis dans ta configuration les tarifs relevés à l'étape 4, sous un bloc `rates` qui enregistre la date à laquelle tu les as lus :
 

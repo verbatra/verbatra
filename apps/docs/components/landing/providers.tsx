@@ -3,6 +3,7 @@ import {
   SiDeepl,
   SiGooglegemini,
   SiGoogletranslate,
+  SiLibretranslate,
   SiOllama,
 } from "@icons-pack/react-simple-icons";
 import type { ProviderId } from "@verbatra/sdk";
@@ -16,7 +17,14 @@ import { Section } from "./section";
 const ICON = 32;
 const SI = { size: ICON, color: "currentColor", "aria-hidden": true } as const;
 
-type KindKey = "anthropic" | "openai" | "gemini" | "deepl" | "googleTranslate" | "openaiCompatible";
+type KindKey =
+  | "anthropic"
+  | "openai"
+  | "gemini"
+  | "deepl"
+  | "googleTranslate"
+  | "openaiCompatible"
+  | "libretranslate";
 
 type Provider = { id: ProviderId; kind: KindKey; name: string; icon: ReactNode };
 
@@ -37,6 +45,12 @@ const PROVIDERS: ReadonlyArray<Provider> = [
     name: "OpenAI-compatible",
     icon: <SiOllama {...SI} />,
   },
+  {
+    id: "libretranslate",
+    kind: "libretranslate",
+    name: "LibreTranslate",
+    icon: <SiLibretranslate {...SI} />,
+  },
 ];
 
 export async function Providers(): Promise<ReactNode> {
@@ -54,7 +68,7 @@ export async function Providers(): Promise<ReactNode> {
             {t("hint")}
           </p>
         </Reveal>
-        <Reveal order={1} className="vk-deck">
+        <Reveal order={1} className="vk-deck" style={{ "--n": PROVIDERS.length } as CSSProperties}>
           {PROVIDERS.map((provider, index) => (
             <a
               key={provider.id}

@@ -1,6 +1,11 @@
 import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/config/scaling";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+import {
+  declareKeyEnvVar,
+  LIBRETRANSLATE_ENV_VAR,
+  OPENAI_COMPATIBLE_ENV_VAR,
+  PROVIDER_ENV,
+} from "./key-env-vars.js";
 import { redactKeys } from "./redaction.js";
 import { resetDeclaredKeyEnvVars } from "./test-support.js";
 
@@ -206,7 +211,11 @@ describe("redactKeys: key shapes", () => {
 });
 
 describe("redactKeys: exact key values", () => {
-  const BUILT_IN_NAMES = [...Object.values(PROVIDER_ENV), OPENAI_COMPATIBLE_ENV_VAR];
+  const BUILT_IN_NAMES = [
+    ...Object.values(PROVIDER_ENV),
+    OPENAI_COMPATIBLE_ENV_VAR,
+    LIBRETRANSLATE_ENV_VAR,
+  ];
   const NAMES = [...BUILT_IN_NAMES, "REDACT_KEYS_CUSTOM", "REDACT_KEYS_OTHER"];
   const saved: Record<string, string | undefined> = {};
 

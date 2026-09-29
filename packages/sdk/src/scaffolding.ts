@@ -1,4 +1,5 @@
 import {
+  LIBRETRANSLATE_ENV_VAR,
   OPENAI_COMPATIBLE_ENV_VAR,
   PROVIDER_ENV,
   SCAFFOLD_MODELS,
@@ -12,10 +13,14 @@ import type { ProviderId } from "./config/provider-config.js";
  * A translation provider that project scaffolding can offer with nothing but its id, each with an
  * API key variable in {@link scaffoldingMetadata}. It excludes `openai-compatible`, which needs a
  * `baseUrl` and a model name that only the user can supply and whose key variable is optional and
- * configurable (see `openAiCompatibleKeyEnv`), and `none`, which disables machine translation and
- * so reads no API key at all.
+ * configurable (see `openAiCompatibleKeyEnv`), `libretranslate`, which needs the `baseUrl` of a
+ * self-hosted server and whose key variable is optional (see `libreTranslateKeyEnv`), and `none`,
+ * which disables machine translation and so reads no API key at all.
  */
-export type ScaffoldableProviderId = Exclude<ProviderId, "openai-compatible" | "none">;
+export type ScaffoldableProviderId = Exclude<
+  ProviderId,
+  "openai-compatible" | "libretranslate" | "none"
+>;
 
 const _envCoversAllProviders: Record<ScaffoldableProviderId, string> = PROVIDER_ENV;
 void _envCoversAllProviders;
@@ -79,6 +84,11 @@ export const scaffoldingMetadata = deepFreeze(
      * name no `apiKeyEnvVar`. A local server that needs no key can leave it unset.
      */
     openAiCompatibleKeyEnv: OPENAI_COMPATIBLE_ENV_VAR,
+    /**
+     * The environment variable a `libretranslate` provider reads its key from. It is optional: a
+     * server started without `--api-keys` needs none, so a generator should leave it unset.
+     */
+    libreTranslateKeyEnv: LIBRETRANSLATE_ENV_VAR,
     /**
      * Every file name, relative to the project directory, that {@link loadConfig} searches for a
      * config, in the order it checks them. `package.json` counts only when it has a `verbatra`

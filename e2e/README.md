@@ -79,7 +79,11 @@ deterministic test joins the required gate automatically.
   from the installed package, its `INVALID_PORT` error, and its missing-package hint
   (`tests/studio.e2e.test.ts`), a format adapter built outside verbatra
   (`tests/third-party-adapter.e2e.test.ts`), TMX interchange (`tests/tmx-round-trip.e2e.test.ts`),
-  and `types` including `--check` and `--out` (`tests/types.e2e.test.ts`). It calls no hosted provider and makes no
+  `types` including `--check` and `--out` (`tests/types.e2e.test.ts`), and a `libretranslate`
+  project with no server and no key (`tests/libretranslate.e2e.test.ts`: `init --provider
+  libretranslate`, a `doctor` whose API key check passes without `LIBRETRANSLATE_API_KEY`, a
+  character estimate carrying no cost, and a network policy refusing the server before anything is
+  sent). It calls no hosted provider and makes no
   network request outside 127.0.0.1: only the interrupt test and the `--allow-spend` MCP test point
   an `openai-compatible` provider at a never-answering loopback endpoint the test serves, so the
   tier is deterministic and free.
@@ -88,8 +92,9 @@ deterministic test joins the required gate automatically.
   `.github/workflows/ci.yml`, feeds the `Build and test gate` job, and `release.yml` publishes only
   when the CI workflow concludes successfully. A broken CLI cannot reach npm.
 
-- **Live tier** (`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`; `npm test`
-  runs it alongside the no-key tier): real `translate` and `watch` against a live provider.
+- **Live tier** (`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`,
+  `tests/libretranslate.live.e2e.test.ts`; `npm test` runs it alongside the no-key tier): real
+  `translate` and `watch` against a live provider.
   `translate` fills a missing key and leaves the project in sync, and on an LLM provider writes
   `sr-Latn` in Latin rather than Cyrillic script; `watch` translates on startup,
   again on a source change, and stops on interrupt. It needs `E2E_PROVIDER` (default `gemini`) and
@@ -143,6 +148,24 @@ VERBATRA_STUDIO_TARBALL=$(ls /tmp/packs/verbatra-studio-*.tgz) \
 VERBATRA_MCP_TARBALL=$(ls /tmp/packs/verbatra-mcp-*.tgz) \
   npm run test:nokey
 ```
+
+## Running the LibreTranslate live test
+
+`tests/libretranslate.live.e2e.test.ts` runs against a LibreTranslate server you start yourself and
+skips unless `LIBRETRANSLATE_URL` is set. No CI workflow starts one, so it runs only locally. It
+checks `doctor --live` against the server's `/languages` list, then translates placeholder-bearing
+strings under a `local-only` network policy and expects the placeholders back and the project in
+sync:
+
+```sh
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de
+# wait until http://127.0.0.1:5000/languages answers (the first start downloads the models)
+cd e2e
+LIBRETRANSLATE_URL=http://127.0.0.1:5000 npx vitest run tests/libretranslate.live.e2e.test.ts
+```
+
+`LIBRETRANSLATE_TARGET` picks another target language (default `de`); the server must have its
+model loaded. Use a loopback URL, since the test pins the `local-only` network policy.
 
 ## Choosing the live provider
 

@@ -74,7 +74,7 @@ describe("runInit", () => {
   it("lists none among the providers it offers", async () => {
     const cap = captureStreams();
     expect(await runInit({ cwd: dir, yes: true }, cap.streams, nonInteractive)).toBe(2);
-    expect(cap.err()).toContain("google-translate|openai-compatible|none");
+    expect(cap.err()).toContain("google-translate|openai-compatible|libretranslate|none");
   });
 
   it("scaffolds a google-translate config, env example, and gitignore non-interactively", async () => {

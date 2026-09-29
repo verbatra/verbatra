@@ -123,7 +123,7 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 | `INVALID_LOCALES` | `--locales` was given but lists no locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` is not a whole number of at least 1 |
-| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency` or `--require-reviewed` |
+| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency` or `--require-reviewed` |
 | `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
 | `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
 | `INVALID_PROVIDER` | `init --provider` names no known provider |

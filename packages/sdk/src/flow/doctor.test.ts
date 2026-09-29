@@ -341,6 +341,28 @@ describe("doctor: the API key check", () => {
     expect(detailOf(result, "api-key")).toContain("OPENAI_COMPATIBLE_API_KEY");
   });
 
+  it.each([
+    ["", "The libretranslate provider needs no API key."],
+    ["lt-key-value", "LIBRETRANSLATE_API_KEY is set."],
+  ])(
+    "passes libretranslate whether or not LIBRETRANSLATE_API_KEY is set (%j)",
+    async (value, detail) => {
+      vi.stubEnv("LIBRETRANSLATE_API_KEY", value);
+      await writeConfig(
+        validConfig({
+          provider: { id: "libretranslate", options: { baseUrl: "http://127.0.0.1:5000" } },
+        }),
+      );
+
+      const result = await doctor({ cwd: projectDir });
+
+      expect(statusOf(result, "api-key")).toBe("pass");
+      expect(detailOf(result, "api-key")).toContain(detail);
+      expect(detailOf(result, "api-key")).not.toContain("lt-key-value");
+      expect(statusOf(result, "locales")).toBe("pass");
+    },
+  );
+
   it("fails openai-compatible when its own named variable is unset", async () => {
     vi.stubEnv("MY_LOCAL_LLM_KEY", undefined);
     await writeConfig(

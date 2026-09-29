@@ -4,7 +4,7 @@ description: Lege fest, zu welchen Hosts sich ein Übersetzungs-Provider verbind
 ---
 <AvailableFrom version="0.12.0" />
 
-Ein selbst gehostetes Modell hinter `openai-compatible` hält deine Strings in deinem eigenen Netzwerk, aber nur, solange jede Einstellung stimmt. Eine vertippte `baseUrl`, ein vergessenes `OPENAI_BASE_URL` in irgendeiner Shell oder ein Teammitglied, das den Provider auf einen gehosteten umstellt, reicht aus, um Strings an einen öffentlichen Endpunkt zu schicken. Eine Netzwerkrichtlinie macht die Regel explizit: verbatra weigert sich, mit einem Host zu sprechen, den die Richtlinie nicht erlaubt, und sagt das, bevor irgendeine Anfrage die Maschine verlässt. Was ein Request enthält und was verbatra sonst lokal behält, steht unter [Datenverarbeitung und Datenschutz](/docs/data-handling).
+Ein selbst gehostetes Modell hinter `openai-compatible` oder ein selbst gehosteter LibreTranslate-Server hinter `libretranslate` hält deine Strings in deinem eigenen Netzwerk, aber nur, solange jede Einstellung stimmt. Eine vertippte `baseUrl`, ein vergessenes `OPENAI_BASE_URL` in irgendeiner Shell oder ein Teammitglied, das den Provider auf einen gehosteten umstellt, reicht aus, um Strings an einen öffentlichen Endpunkt zu schicken. Eine Netzwerkrichtlinie macht die Regel explizit: verbatra weigert sich, mit einem Host zu sprechen, den die Richtlinie nicht erlaubt, und sagt das, bevor irgendeine Anfrage die Maschine verlässt. Was ein Request enthält und was verbatra sonst lokal behält, steht unter [Datenverarbeitung und Datenschutz](/docs/data-handling).
 
 ## Einrichten
 
@@ -32,6 +32,8 @@ network: {
 Schreib kein Schema, keinen Port und keinen Pfad: `https://llm.internal:8443` wird beim Laden der Konfiguration abgelehnt.
 
 `local-only` lässt bewusst Link-Local-Adressen weg (`169.254.0.0/16`, das die Cloud-Metadatenadresse enthält, und `fe80::/10`), den Carrier-Grade-NAT-Bereich `100.64.0.0/10` und die unspezifizierten Adressen `0.0.0.0` und `::`. Richte einen Server, der auf `0.0.0.0` lauscht, stattdessen auf `127.0.0.1` aus, und trag einen VPN-Bereich in `allowedHosts` ein, wenn du ihn brauchst. Eine IPv6-Adresse mit Zonen-ID wie `fe80::1%en0` wird ohne die Zone beurteilt, eine Link-Local-Adresse bleibt also abgelehnt.
+
+Die selbst gehosteten Provider, `openai-compatible` und `libretranslate`, verbinden sich mit der `baseUrl` in ihren `options`. Unter `local-only` ist eine `baseUrl` auf Loopback oder im privaten Netz wie `http://127.0.0.1:5000` also erlaubt, und eine öffentliche wird abgelehnt, bevor irgendetwas gesendet wird.
 
 ## Gehostete Provider
 
@@ -63,7 +65,7 @@ Ein Wert, den verbatra nicht kennt, etwa `local_only`, lässt den Lauf mit `CONF
 
 Bevor ein Provider gebaut wird, ermittelt verbatra den Host, zu dem er sich verbinden würde, und prüft ihn gegen die Richtlinie. Ein abgelehnter Host stoppt `translate`, `watch` (beim Start), `retranslate` in Studio und MCP sowie `retranslateEntry` im SDK mit `NETWORK_POLICY_VIOLATION` und Exit-Code `2`. Kein API-Key wird gelesen und nichts wird gesendet. Ein Probelauf und `--estimate` rufen keinen Provider auf, deshalb werden sie nicht abgelehnt; nutze [`verbatra doctor`](/docs/cli/doctor), um die Richtlinie zu prüfen, ohne etwas zu übersetzen.
 
-Weil diese erste Prüfung keine Namen auflöst, besteht ein Hostname, den sie allein nicht einordnen kann, etwa `llm.internal` unter `local-only`, diese Prüfung. Das gilt auch für `localhost`: Es wird wie jeder andere Name aufgelöst und muss ausschließlich mit Loopback-Adressen antworten. Jede Anfrage von `anthropic`, `openai`, `gemini`, `google-translate` und `openai-compatible` wird dann direkt vor dem Senden erneut geprüft:
+Weil diese erste Prüfung keine Namen auflöst, besteht ein Hostname, den sie allein nicht einordnen kann, etwa `llm.internal` unter `local-only`, diese Prüfung. Das gilt auch für `localhost`: Es wird wie jeder andere Name aufgelöst und muss ausschließlich mit Loopback-Adressen antworten. Jede Anfrage von `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` und `libretranslate` wird dann direkt vor dem Senden erneut geprüft:
 
 - ein Hostname wird aufgelöst, und jede Adresse, zu der er auflöst, muss erlaubt sein;
 - einer Weiterleitung wird nicht automatisch gefolgt. Nur einem `307` oder `308` zum selben Ursprung (gleiches Schema, gleicher Host, gleicher Port) wird gefolgt, bis zu fünfmal hintereinander; ein sechstes `307` oder `308` zum selben Ursprung geht ungefolgt an den Provider zurück, der es als Fehler meldet. Eine Weiterleitung zu jedem anderen Ursprung lässt die Anfrage scheitern, egal ob dieser Ursprung erlaubt wäre, und das schließt einen Wechsel von `https` zu `http` auf demselben Host ein, damit eine Anfrage und ihre Zugangsdaten nie einen zweiten Ursprung erreichen. Eine Weiterleitung zum selben Ursprung mit einem anderen Status geht ungefolgt an den Provider zurück, der sie als Fehler meldet.

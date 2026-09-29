@@ -123,7 +123,7 @@ La CLI lanza estos códigos por sí misma. La misma lista se publica como `CLI_E
 | `INVALID_LOCALES` | se dio `--locales` pero no lista ningún locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` no es un número entero de segundos de 1 a 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` no es un número entero de al menos 1 |
-| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency` o `--require-reviewed` |
+| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible` ni `libretranslate`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency` o `--require-reviewed` |
 | `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
 | `INVALID_PORT` | `studio --port` no es un entero de 1 a 65535 |
 | `INVALID_PROVIDER` | `init --provider` no nombra ningún proveedor conocido |

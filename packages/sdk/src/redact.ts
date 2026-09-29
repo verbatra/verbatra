@@ -18,8 +18,8 @@ import { redactKeys } from "@verbatra/ai-providers";
  * name followed by `:`, `=`, URL-encoded `%3D`, or whitespace, quoted or with JSON-escaped quotes,
  * so an unrelated UUID in a path or an id stays readable), and an exact-value scrub, in raw and in
  * JSON-escaped form, of whatever `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
- * `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` currently holds in
- * the process environment, plus any variable declared as a key source: the one an
+ * `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, `OPENAI_COMPATIBLE_API_KEY`, or
+ * `LIBRETRANSLATE_API_KEY` currently holds in the process environment, plus any variable declared as a key source: the one an
  * `openai-compatible` provider names through `apiKeyEnvVar` is declared when {@link loadConfig}
  * loads a config naming it or when that provider is built, and {@link declareProviderKeyEnvVar}
  * declares it for a config obtained some other way. Declarations are never removed. A value shorter

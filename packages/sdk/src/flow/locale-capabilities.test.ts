@@ -322,3 +322,44 @@ describe("withCapabilityNotices", () => {
     expect(withCapabilityNotices([summary], reportOf(deeplConfig()))[0]).toBe(summary);
   });
 });
+
+describe("assessLocaleCapabilities: LibreTranslate", () => {
+  const LIBRETRANSLATE: ProviderConfig = {
+    id: "libretranslate",
+    options: { baseUrl: "http://localhost:5000" },
+  };
+
+  it("judges every locale unverified without a live list, and never refuses one", () => {
+    const config = baseConfig({ provider: LIBRETRANSLATE, targetLocales: ["de-AT", "haw"] });
+    const report = reportOf(config);
+
+    expect(report).toMatchObject({ provider: "libretranslate", coverage: "listed" });
+    expect(report.tableOrigin).toBe("static");
+    expect(report.source).toMatchObject({ providerCode: "en", support: "unverified" });
+    expect(entryOf(report, "de-AT")).toMatchObject({
+      providerCode: "de",
+      support: "unverified",
+      glossary: false,
+      formality: false,
+    });
+    expect(entryOf(report, "haw").warnings[0]?.message).toContain(
+      "was not checked against the libretranslate server: a self-hosted server translates only",
+    );
+    expect(unsupportedLocales(report)).toEqual([]);
+    expect(() => assertConfiguredLocalesSupported(config, config.targetLocales)).not.toThrow();
+  });
+
+  it("keeps the localeMap wording for a mapped locale", () => {
+    const config = baseConfig({
+      provider: {
+        id: "libretranslate",
+        options: { baseUrl: "http://localhost:5000", localeMap: { "de-CH": "de" } },
+      },
+      targetLocales: ["de-CH"],
+    });
+
+    expect(entryOf(reportOf(config), "de-CH").warnings[0]?.message).toContain(
+      "provider.options.localeMap",
+    );
+  });
+});

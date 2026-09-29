@@ -125,3 +125,42 @@ describe("refreshLanguageTable", () => {
     expect(outcome.table).toBeUndefined();
   });
 });
+
+describe("refreshLanguageTable: LibreTranslate", () => {
+  const LIBRETRANSLATE: MachineProviderConfig = {
+    id: "libretranslate",
+    options: { baseUrl: "http://127.0.0.1:5000" },
+  };
+
+  it("fetches the server's language list without any key, even under local-only", async () => {
+    const send = vi.fn(
+      async (_input: string, _init?: RequestInit) =>
+        new Response(JSON.stringify([{ code: "en", name: "English", targets: ["de"] }]), {
+          status: 200,
+        }),
+    );
+    vi.stubGlobal("fetch", send);
+
+    const outcome = await refreshLanguageTable(LIBRETRANSLATE, { policy: "local-only" }, {});
+
+    expect(outcome.refresh.status).toBe("refreshed");
+    expect(outcome.refresh.detail).toContain("Fetched 1 languages from 127.0.0.1");
+    expect(outcome.table?.languages.map((language) => language.code)).toEqual(["en"]);
+    expect(String(send.mock.calls[0]?.[0])).toBe("http://127.0.0.1:5000/languages");
+  });
+
+  it("skips a remote server the local-only policy refuses", async () => {
+    const send = vi.fn();
+    vi.stubGlobal("fetch", send);
+
+    const outcome = await refreshLanguageTable(
+      { id: "libretranslate", options: { baseUrl: "http://203.0.113.7:5000" } },
+      { policy: "local-only" },
+      {},
+    );
+
+    expect(outcome.refresh.status).toBe("skipped");
+    expect(outcome.refresh.detail).toContain("203.0.113.7");
+    expect(send).not.toHaveBeenCalled();
+  });
+});

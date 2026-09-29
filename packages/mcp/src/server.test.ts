@@ -223,6 +223,7 @@ describe("createMcpServer: tools/call", () => {
       "DEEPL_API_KEY",
       "GOOGLE_TRANSLATE_API_KEY",
       "OPENAI_COMPATIBLE_API_KEY",
+      "LIBRETRANSLATE_API_KEY",
     ];
     const originalValues: Record<string, string | undefined> = {};
 

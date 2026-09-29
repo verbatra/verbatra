@@ -1925,7 +1925,8 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
     .option(
       "--provider <id>",
       "translation provider to use: anthropic, openai, gemini, deepl, google-translate, " +
-        "openai-compatible, or none to disable machine translation (required unless prompted)",
+        "openai-compatible, libretranslate, or none to disable machine translation (required " +
+        "unless prompted)",
     )
     .option(
       "--format <id>",
@@ -1944,7 +1945,10 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
       "locale file pattern containing the {locale} token (default: detected, else locales/{locale}.json)",
     )
     .option("--model <name>", "model to use (required for openai-compatible)")
-    .option("--base-url <url>", "server URL for openai-compatible (required for it)")
+    .option(
+      "--base-url <url>",
+      "server URL for openai-compatible or libretranslate (required for both)",
+    )
     .option(
       "--api-key-env-var <name>",
       "environment variable openai-compatible reads its key from (never the key itself)",
@@ -1968,6 +1972,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra init --provider deepl --yes      non-interactive, detect or default the rest",
         "  $ verbatra init --provider gemini --format yaml --path 'i18n/{locale}.yml' --yes --json",
         "  $ verbatra init --provider openai-compatible --base-url http://localhost:11434/v1 --model llama3.1 --yes",
+        "  $ verbatra init --provider libretranslate --base-url http://localhost:5000 --yes",
         "  $ verbatra init --provider none --yes       human-only: no provider, no API key",
         "  $ verbatra init --provider gemini --yes --agent   also set up AGENTS.md and .mcp.json for coding agents",
         "  $ verbatra init --agent                     already configured: keep the config, add only the agent files",

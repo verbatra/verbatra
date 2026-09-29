@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
   processEnvironment,
+  readLibreTranslateKey,
   requireAnthropicKey,
   requireGoogleTranslateKey,
   resolveOpenAiCompatibleKey,
@@ -178,5 +179,21 @@ describe("resolveOpenAiCompatibleKey", () => {
 describe("processEnvironment", () => {
   it("returns the live process environment", () => {
     expect(processEnvironment()).toBe(process.env);
+  });
+});
+
+describe("readLibreTranslateKey", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("returns the key when LIBRETRANSLATE_API_KEY is set", () => {
+    vi.stubEnv("LIBRETRANSLATE_API_KEY", "lt-key");
+    expect(readLibreTranslateKey()).toBe("lt-key");
+  });
+
+  it("returns undefined rather than failing when the variable is unset or empty", () => {
+    vi.stubEnv("LIBRETRANSLATE_API_KEY", "");
+    expect(readLibreTranslateKey()).toBeUndefined();
   });
 });
