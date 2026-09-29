@@ -483,7 +483,7 @@
         "description": "Get in touch with the verbatra documentation site operator."
       },
       "title": "Contact",
-      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the Imprint.",
+      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the <imprint>Imprint</imprint>.",
       "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled. Details are in the <privacy>privacy policy</privacy>.",
       "form": {
         "nameLabel": "Name",

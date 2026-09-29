@@ -77,3 +77,15 @@ describe.each(i18n.languages)("contact page privacy notice (%s)", (locale) => {
     expect(section).toMatch(DELETION_RULE[locale]);
   });
 });
+
+describe.each(i18n.languages)("contact page intro (%s)", (locale) => {
+  it("links the imprint it mentions, in the reader's locale", async () => {
+    const doc = await renderContact(locale);
+    const intro = doc.querySelector("h1 + p");
+    const link = intro?.querySelector("a");
+    const imprintPath = locale === "en" ? "/imprint" : `/${locale}/imprint`;
+
+    expect(link?.getAttribute("href")).toBe(imprintPath);
+    expect(link?.textContent?.length).toBeGreaterThan(0);
+  });
+});

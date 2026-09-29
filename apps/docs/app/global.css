@@ -553,6 +553,35 @@ samp {
   background: var(--surface-bg);
 }
 
+.vk-legal-footer-nav {
+  width: 100%;
+  max-width: var(--width-layout);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+#nd-notebook-layout > .vk-legal-footer {
+  grid-column: main;
+  grid-row: 4;
+}
+
+#nd-notebook-layout > .vk-legal-footer > .vk-legal-footer-nav {
+  margin-inline: 0;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 768px) {
+  #nd-notebook-layout > .vk-legal-footer > .vk-legal-footer-nav {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  #nd-notebook-layout > .vk-legal-footer > .vk-legal-footer-nav {
+    padding-inline: 2rem;
+  }
+}
+
 figure.shiki {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);

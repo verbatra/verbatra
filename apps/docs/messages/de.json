@@ -448,7 +448,7 @@
         "description": "Nimm Kontakt mit dem Betreiber der verbatra-Dokumentationsseite auf."
       },
       "title": "Kontakt",
-      "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im Impressum.",
+      "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im <imprint>Impressum</imprint>.",
       "privacyNotice": "Wir nutzen deinen Namen, deine E-Mail-Adresse und deine Nachricht nur, um deine Anfrage zu beantworten, und löschen sie, sobald die Anfrage erledigt ist. Details findest du in der <privacy>Datenschutzerklärung</privacy>.",
       "form": {
         "nameLabel": "Name",

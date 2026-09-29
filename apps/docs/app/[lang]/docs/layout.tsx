@@ -1,5 +1,6 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import type { ReactNode } from "react";
+import { LegalFooter } from "@/components/legal-footer";
 import { DocsSiteHeader } from "@/components/site-header";
 import { withGroupLabels } from "@/lib/docs-group-labels";
 import { withExpandedNewGroups, withLlmsLinks } from "@/lib/docs-page-tree";
@@ -31,6 +32,7 @@ export default async function Layout({
       tree={tree}
     >
       {children}
+      <LegalFooter locale={locale} />
     </DocsLayout>
   );
 }

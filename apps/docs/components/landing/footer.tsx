@@ -11,6 +11,8 @@ import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
   GITHUB_URL,
+  LEGAL_PAGE_LINKS,
+  LICENSE_URL,
   NPM_CLI,
   NPM_MCP,
   NPM_SDK,
@@ -107,13 +109,15 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     links: [
       {
         literal: "MIT License",
-        href: `${GITHUB_URL}/blob/main/LICENSE`,
+        href: LICENSE_URL,
         external: true,
         trackingTarget: "license",
       },
-      { labelKey: "cols.legal.privacy", href: "/privacy", localized: true },
-      { labelKey: "cols.legal.imprint", href: "/imprint", localized: true },
-      { labelKey: "cols.legal.contact", href: "/contact", localized: true },
+      ...LEGAL_PAGE_LINKS.map(({ key, path }) => ({
+        labelKey: `cols.legal.${key}`,
+        href: path,
+        localized: true,
+      })),
     ],
   },
 ];
