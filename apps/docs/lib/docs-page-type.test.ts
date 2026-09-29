@@ -16,12 +16,6 @@ const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
 const TRANSLATIONS = i18n.languages.filter((locale) => locale !== i18n.defaultLanguage);
 const LOCALE_SUFFIX = new RegExp(`\\.(${TRANSLATIONS.join("|")})\\.mdx$`);
 
-const PENDING_CONFIG_SLICE: ReadonlySet<string> = new Set([
-  "(configure)/config-file.mdx",
-  "(configure)/formats.mdx",
-  "(configure)/providers.mdx",
-]);
-
 const WORD_CEILING: Record<PageType, number> = {
   overview: 600,
   tutorial: 900,
@@ -69,15 +63,8 @@ function everydayGuides(): string[] {
 
 describe("page type frontmatter", () => {
   it("gives every page a type", () => {
-    const untyped = englishPages().filter(
-      (file) => !PENDING_CONFIG_SLICE.has(file) && pageType(readPage(file)) === undefined,
-    );
+    const untyped = englishPages().filter((file) => pageType(readPage(file)) === undefined);
     expect(untyped).toEqual([]);
-  });
-
-  it("exempts only pages that exist", () => {
-    const pages = englishPages();
-    for (const file of PENDING_CONFIG_SLICE) expect(pages, file).toContain(file);
   });
 
   it("makes the docs home the overview page", () => {

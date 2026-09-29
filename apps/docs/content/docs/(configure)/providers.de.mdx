@@ -1,26 +1,27 @@
 ---
 title: Provider
-description: Alle Übersetzungs-Provider, ihre Optionen und API-Schlüssel und das Verhalten, das sie alle teilen.
+description: Alle Übersetzungs-Provider, ihre Optionen und API-Key-Variablen und das Verhalten, das sie alle teilen.
+type: reference
 ---
-verbatra liefert seine Provider hinter einer Schnittstelle: Anthropic, OpenAI, Gemini und openai-compatible (ein lokaler oder selbst gehosteter OpenAI-kompatibler Server) sind Large Language Models, und DeepL, Google Cloud Translation und LibreTranslate (ein selbst gehosteter Server) sind Maschinenübersetzungsdienste. Eine weitere Einstellung, `none`, schaltet maschinelle Übersetzung per Richtlinie ab; siehe [none](#none). Du wählst einen im `provider`-Block deiner [Konfiguration](/docs/config-file), über die `id`. Jede Modell-Id auf dieser Seite ist ein Beispiel, keine Empfehlung: Modellkataloge ändern sich, prüfe also die aktuelle Liste deines Providers. Welche Sprachen jeder Provider abdeckt und wie verbatra ihm deine Locale-Codes übergibt, steht unter [Sprachunterstützung](/docs/language-support).
+Wähle einen Provider über die `id` im `provider`-Block deiner [Konfiguration](/docs/config-file). Anthropic, OpenAI, Gemini und openai-compatible sind Sprachmodelle; DeepL, Google Cloud Translation und LibreTranslate sind Maschinenübersetzungsdienste; `none` schaltet maschinelle Übersetzung ab. Modell-Ids auf dieser Seite sind Beispiele, keine Empfehlungen. Die Sprachabdeckung steht unter [Sprachen und Locales](/docs/language-support), und was jeder Provider bekommt, unter [Datenverarbeitung und Datenschutz](/docs/data-handling).
 
 ## Welchen soll ich nehmen?
 
-Jeder Provider funktioniert mit jedem Format und jedem Befehl; bei der Wahl geht es um Kosten, Qualität, Privatsphäre und darum, wie du an einen Key kommst. Was jeder Provider bekommt und was sein Anbieter über Aufbewahrung und Training sagt, steht unter [Datenverarbeitung und Datenschutz](/docs/data-handling).
+Jeder Provider funktioniert mit jedem Format und jedem Befehl, und ein späterer Wechsel heißt, eine `id` zu ändern.
 
-- **Kleines oder Nebenprojekt, und es soll kostenlos sein?** Nimm **Gemini**. Es hat ein echtes kostenloses API-Kontingent, du kannst also eine ganze App zum Nulltarif übersetzen. Hol dir einen Key im [Google AI Studio](https://aistudio.google.com/apikey) und setze `GEMINI_API_KEY`. Das kostenlose Kontingent ist ratenbegrenzt (siehe den Hinweis unten), was nur bei einem großen ersten Lauf ins Gewicht fällt. Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen und von menschlichen Reviewern lesen lassen, halte vertrauliche Strings also vom kostenlosen Kontingent fern; siehe [Datenverarbeitung und Datenschutz](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter).
-- **Beste Übersetzungsqualität für eine Produktions-App?** Nimm **Anthropic** oder **OpenAI**. Beide sind bezahlte LLMs und lesen `ANTHROPIC_API_KEY` oder `OPENAI_API_KEY`.
-- **Hohes Volumen, glossargetrieben oder kein LLM im Spiel?** Nimm **DeepL**. Es ist eine dedizierte Maschinenübersetzungs-API mit einem kostenlosen und einem bezahlten Kontingent und unterstützt ein natives Glossar per Id. Strings mit Platzhaltern übersetzt es nicht (siehe den Hinweis unten); nimm dafür einen LLM-Provider.
-- **Schon auf Google Cloud, oder willst du die breiteste Sprachabdeckung mit einem einfachen API-Schlüssel?** Nimm **Google Cloud Translation**. Es ist Googles dedizierte Maschinenübersetzungs-API (die Basic-Stufe, v2), abgerechnet über dein Google-Cloud-Projekt. Wie DeepL übersetzt es keine Strings mit Platzhaltern.
-- **Offline, kostenfrei, oder deine Strings dürfen dein Netzwerk nie verlassen?** Nimm **openai-compatible**. Es richtet verbatra auf einen lokalen oder selbst gehosteten Inferenzserver (LM Studio, Ollama, vLLM) statt auf eine gehostete API. Kein Konto, kein API-Schlüssel und kein Netzwerkverkehr über deine eigene Maschine oder dein LAN hinaus.
-- **Eine Richtlinie verbietet Sprachmodelle, aber deine Strings dürfen dein Netzwerk trotzdem nicht verlassen?** Nimm **libretranslate**. Es richtet verbatra auf einen selbst gehosteten [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)-Server: klassische neuronale Maschinenübersetzung ohne Sprachmodell, ohne Konto und ohne Abrechnung pro Zeichen. Siehe [LibreTranslate](#libretranslate).
-- **Gar keine Maschinenübersetzung, weil ein Vertrag oder eine Firmenrichtlinie sie verbietet?** Nimm **none**. Es wird kein Provider erzeugt und kein API-Schlüssel gelesen: verbatra füllt Keys nur aus dem Translation Memory und gibt jeden anderen Key an einen Menschen weiter. Siehe [Rein menschlicher Workflow](/docs/human-only-workflow).
-
-Unsicher? Starte mit Geminis kostenlosem Kontingent und Strings, die nicht vertraulich sind, und wechsle den Provider später, indem du eine `id` in deiner Konfiguration änderst. Sonst ändert sich nichts.
+| Wenn du willst | Nimm |
+| --- | --- |
+| Kostenlos, für ein kleines Projekt mit nicht vertraulichen Strings | **Gemini**: ein kostenloses API-Kontingent, Keys aus dem [Google AI Studio](https://aistudio.google.com/apikey). Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent nutzen und von Menschen prüfen lassen ([Bedingungen](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter)). |
+| Die beste Qualität für eine Produktions-App | **Anthropic** oder **OpenAI**, beide bezahlt. |
+| Hohes Volumen, ein natives Glossar, kein LLM | **DeepL**, kostenloses oder bezahltes Kontingent. Strings mit Platzhaltern überspringt es. |
+| Die breiteste Abdeckung mit einem API-Schlüssel auf Google Cloud | **Google Cloud Translation** (Basic, v2). Strings mit Platzhaltern überspringt es. |
+| Offline, kostenfrei, nichts verlässt dein Netzwerk | **openai-compatible** mit LM Studio, Ollama oder vLLM. |
+| Kein Sprachmodell, aber selbst gehostet | **LibreTranslate** auf deinem eigenen Server. |
+| Gar keine maschinelle Übersetzung | **none**: nur Translation Memory und Menschen. |
 
 ## Keys kommen aus der Umgebung
 
-verbatra liest nie einen API-Schlüssel aus der Konfiguration. Jeder gehostete Provider liest genau eine Umgebungsvariable:
+verbatra liest nie einen Key aus der Konfiguration. Jeder gehostete Provider liest eine Variable:
 
 | Provider-Id | Umgebungsvariable |
 | --- | --- |
@@ -30,13 +31,11 @@ verbatra liest nie einen API-Schlüssel aus der Konfiguration. Jeder gehostete P
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 
-Setze die Variable in `.env` (das `verbatra init` in `.gitignore` einträgt) oder exportiere sie in deiner Shell oder deinem CI-Secret-Store. Ist die Variable ungesetzt oder leer, schlägt der Provider mit einem strukturierten `MISSING_API_KEY`-Fehler fehl, dessen Meldung die Variable nennt, aber nie einen Key-Wert enthält. Das SDK wirft ihn beim Erzeugen des Providers und verpackt ihn als `PROVIDER_CONSTRUCTION_FAILED`, deshalb gibt die CLI diesen Code gefolgt von `(cause: MISSING_API_KEY)` aus, und ihr `--json`-Fehlerdatensatz trägt `"causeCode": "MISSING_API_KEY"`. Seit 0.12.0 trägt der Fehler außerdem den Namen der Variable als `envVar` am `ProviderError`, und die CLI fügt einen `hint` hinzu, der genau diese Variable zum Setzen nennt (`next: Set GEMINI_API_KEY in the environment or in a .env file in the project directory.` auf stderr). Committe nie einen echten Key.
-
-`openai-compatible` und `libretranslate` sind anders: Die meisten selbst gehosteten Server brauchen gar keinen Key, deshalb stehen sie nicht in dieser Tabelle. Wie jeder von beiden seinen Key auflöst, steht in seinem eigenen Abschnitt unten.
+Setze sie in `.env` (das `verbatra init` in `.gitignore` einträgt), in deiner Shell oder in deinem CI-Secret-Store, und committe sie nie. Eine ungesetzte oder leere Variable scheitert mit `MISSING_API_KEY`, das die Variable nennt, aber nie einen Wert. Das SDK verpackt das als `PROVIDER_CONSTRUCTION_FAILED`: Die CLI gibt diesen Code mit `(cause: MISSING_API_KEY)` aus, und `--json` trägt `"causeCode": "MISSING_API_KEY"`. Ab 0.12.0 trägt der Fehler außerdem `envVar`, und die CLI gibt einen `next:`-Hinweis aus, der die zu setzende Variable nennt. `openai-compatible` und `libretranslate` brauchen meist keinen Key; siehe ihre Abschnitte.
 
 ## Anthropic
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "anthropic",
   options: {
@@ -46,11 +45,18 @@ provider: {
 }
 ```
 
-Liest `ANTHROPIC_API_KEY`. `model` und `maxTokens` sind beide erforderlich. `maxTokens` begrenzt die Tokens, die eine einzelne Antwort erzeugen darf; es ist die Option dieses Providers für das Ausgabe-Token-Limit (die anderen nennen sie `maxOutputTokens`). Das optionale `requestTimeoutMs` wird ebenfalls akzeptiert; siehe [Anfrage-Timeout](#anfrage-timeout).
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `model` | String | erforderlich | Die Modell-Id. |
+| `maxTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort ([Limits](#ausgabe-token-limits)); hat nichts mit dem Top-Level-Budget zu tun. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch ([Anfrage-Timeout](#anfrage-timeout)). |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale ([Locale-Codes](#an-den-provider-gesendete-locale-codes)). |
+
+Liest `ANTHROPIC_API_KEY`.
 
 ## OpenAI
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "openai",
   options: {
@@ -60,11 +66,18 @@ provider: {
 }
 ```
 
-Liest `OPENAI_API_KEY`. `model` und `maxOutputTokens` sind beide erforderlich. Das optionale `requestTimeoutMs` wird ebenfalls akzeptiert; siehe [Anfrage-Timeout](#anfrage-timeout).
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `model` | String | erforderlich | Die Modell-Id. |
+| `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch. |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
+
+Liest `OPENAI_API_KEY`.
 
 ## Gemini
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "gemini",
   options: {
@@ -74,24 +87,22 @@ provider: {
 }
 ```
 
-Liest `GEMINI_API_KEY`. `model` und `maxOutputTokens` sind beide erforderlich. Das optionale `requestTimeoutMs` wird ebenfalls akzeptiert; siehe [Anfrage-Timeout](#anfrage-timeout).
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `model` | String | erforderlich | Die Modell-Id. |
+| `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch. |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
+
+Liest `GEMINI_API_KEY`.
 
 <Callout title="Das kostenlose Kontingent und seine Limits">
-Gemini ist der empfohlene Startpunkt für kleine Projekte, weil seine API ein kostenloses Kontingent hat. Erstelle einen Key im [Google AI Studio](https://aistudio.google.com/apikey), ganz ohne hinterlegte Zahlungsdaten. Das kostenlose Kontingent begrenzt Anfragen pro Minute und pro Tag (die genauen Zahlen hängen vom Modell ab und ändern sich mit der Zeit, prüfe also Googles aktuelle Limits), und verbatra teilt Arbeit in sequenzielle Sub-Batches auf, ein erster Lauf über viele Locales kann diese Grenzen also erreichen. Ein kurzer Rate-Limit- oder Serverfehler wird automatisch mit kurzem Backoff wiederholt, aber das glättet nur momentane Aussetzer, keine anhaltende Grenze. Wenn du die Grenze erreichst, übersetze eine Locale nach der anderen oder senke `maxBatchSize` und starte erneut: verbatra greift nur auf, was noch fehlt, Läufe lassen sich also gefahrlos wiederholen. Auch die Datenbedingungen des kostenlosen Kontingents unterscheiden sich von denen des bezahlten: Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen. Siehe [Datenverarbeitung und Datenschutz](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter).
+Ein Key aus dem [Google AI Studio](https://aistudio.google.com/apikey) braucht keine Zahlungsdaten. Das kostenlose Kontingent begrenzt Anfragen pro Minute und pro Tag (pro Modell, und das ändert sich), ein erster Lauf über viele Locales kann die Grenze also erreichen. Kurze Rate-Limits werden wiederholt, eine anhaltende Grenze nicht: Übersetze eine Locale nach der anderen oder senke `maxBatchSize` und starte erneut; ein neuer Lauf greift nur auf, was noch fehlt.
 </Callout>
 
 ## DeepL
 
-```ts
-provider: {
-  id: "deepl",
-  options: {},
-}
-```
-
-Liest `DEEPL_API_KEY`. DeepL ist eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld und kein Ausgabe-Token-Limit. Es akzeptiert drei Optionen, alle optional: `glossaryId`, das ein Glossar nennt, das du bereits in DeepL angelegt hast, `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)) und `localeMap` (siehe [An den Provider gesendete Locale-Codes](#an-den-provider-gesendete-locale-codes)):
-
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "deepl",
   options: {
@@ -100,56 +111,53 @@ provider: {
 }
 ```
 
-DeepL stuft kontrolliert herab, statt fehlzuschlagen, wenn es eine Einstellung nicht einhalten kann, und meldet jede Herabstufung als Hinweis zum Lauf:
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `glossaryId` | String | keine | Ein Glossar, das du in DeepL angelegt hast, nativ angewendet. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Die Mindestwartezeit pro Versuch, bis zu fünf Versuche. |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
-- Eine konfigurierte `glossary`-Übersetzung oder ein Begriff aus `doNotTranslate` für die Ziel-Locale wird nicht angewendet (DeepL nutzt nur eine vorab angelegte Glossar-Id), gemeldet als `GLOSSARY_IGNORED`. Verbotene Wiedergaben allein lösen keinen Hinweis aus: Sie werden nach der Übersetzung geprüft, nie angewendet.
-- `tone` wird auf DeepLs Formalität abgebildet: `formal` wird formeller, `informal` wird informeller, `neutral` oder ein fehlender Tonfall wird weggelassen. Mit einem Key aus dem kostenlosen Kontingent wird Formalität nicht unterstützt, ein nicht-standardmäßiger Tonfall fällt also auf den Default zurück, gemeldet als `FORMALITY_DOWNGRADED`. Auch hat nicht jede Zielsprache eine Formalitätssteuerung (Schwedisch und Chinesisch zum Beispiel haben keine): Ab 0.12.0 fragt verbatra Formalität mit DeepLs `prefer_more` und `prefer_less` an, eine solche Sprache fällt also mit einem `FORMALITY_DOWNGRADED`-Hinweis auf DeepLs Standardregister zurück, statt die Anfrage scheitern zu lassen.
+Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
+
+- **Glossar.** Die Übersetzungen und `doNotTranslate`-Begriffe deines Konfigurations-Glossars werden nicht angewendet (`GLOSSARY_IGNORED`); verbotene Wiedergaben werden nur danach geprüft.
+- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent oder eine Sprache ohne Formalität wie Schwedisch fällt mit `FORMALITY_DOWNGRADED` auf das Standardregister zurück; ab 0.12.0 fragt verbatra mit `prefer_more` und `prefer_less` an, damit die Anfrage nicht scheitert.
+- **Platzhalter.** Ein String mit Platzhaltern oder ICU wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten; nimm dafür einen LLM-Provider.
 
 <AvailableFrom version="0.12.0" />
 
-verbatra liefert DeepLs Sprachtabelle mit, datiert und aus [DeepLs Dokumentation](https://developers.deepl.com/docs/getting-started/supported-languages) übernommen, und prüft deine Konfiguration dagegen, bevor ein Lauf etwas kostet: Eine Quell- oder Zielsprache, die DeepL nicht aufführt, wird mit `LOCALE_UNSUPPORTED_BY_PROVIDER` abgelehnt, und ein Tonfall oder Glossar, das DeepL für eine Locale nicht anwenden kann, ist eine Warnung. Eine native `glossaryId` funktioniert nur, wenn beide Sprachen auf DeepLs Glossarliste stehen (32 Sprachen, etwa `DE`, `EN`, `FR`, `JA` und `ZH`). Siehe [Die Sprachunterstützung eines Providers prüfen](#die-sprachunterstützung-eines-providers-prüfen).
-
-<Callout title="DeepL und Platzhalter">
-DeepL kann Platzhalter oder ICU-Tokens nicht erhalten, deshalb sendet es Strings, die welche enthalten, gar nicht erst: Diese Einträge werden zurückgehalten (unübersetzt gelassen) und mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis gemeldet. Platzhalterfreie Strings werden normal übersetzt. Um Strings mit Platzhaltern zu übersetzen, nimm einen LLM-Provider (Anthropic, OpenAI, Gemini oder openai-compatible).
-</Callout>
+verbatra liefert DeepLs datierte [Sprachtabelle](https://developers.deepl.com/docs/getting-started/supported-languages) mit und lehnt eine nicht aufgeführte Sprache mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ab, bevor etwas ausgegeben wird. Eine `glossaryId` funktioniert nur, wenn beide Sprachen auf DeepLs Glossarliste stehen (etwa `DE`, `EN`, `FR`, `JA`, `ZH`).
 
 ## Google Cloud Translation
 
 <AvailableFrom version="0.10.0" />
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "google-translate",
   options: {},
 }
 ```
 
-Liest `GOOGLE_TRANSLATE_API_KEY`. Wie DeepL ist Google Cloud Translation eine Maschinenübersetzungs-API, kein LLM: Es hat kein `model`-Feld, kein Ausgabe-Token-Limit und in v1 keine Glossar-Option. Es akzeptiert zwei Optionen, beide optional: `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)) und `localeMap` (siehe [An den Provider gesendete Locale-Codes](#an-den-provider-gesendete-locale-codes)).
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf (keine Wiederholungen). |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
-Dieser Provider zielt auf die Basic-Stufe (v2) von Cloud Translation, authentifiziert mit einem einfachen API-Schlüssel aus einem Google-Cloud-Projekt, in dem die Cloud Translation API aktiviert ist. Er nutzt nicht die Advanced-Stufe (v3), die sich mit einem Service-Account oder Application Default Credentials authentifiziert statt mit einer einzelnen Umgebungsvariable, und deshalb nicht zu verbatras Regel "Keys nur aus der Umgebungsvariable" passt.
+Liest `GOOGLE_TRANSLATE_API_KEY`, einen einfachen API-Schlüssel für ein Google-Cloud-Projekt, in dem die Cloud Translation API aktiviert ist. Verwendet wird die Basic-Stufe (v2); Advanced (v3) braucht einen Service-Account, der nicht zu einem Key aus einer Umgebungsvariable passt.
 
-Cloud Translation hat auf der Basic-Stufe keine Formalitätseinstellung und kein generisches Glossar, ein konfigurierter `tone` oder `glossary` wird also nie angewendet. Beides wird als Hinweis gemeldet statt still verworfen:
-
-- `tone` meldet immer `FORMALITY_DOWNGRADED`, wenn es auf `formal` oder `informal` gesetzt ist; `neutral` oder ein fehlender Tonfall wird weggelassen.
-- Eine `glossary`-Übersetzung oder ein Begriff aus `doNotTranslate` für die Ziel-Locale meldet immer `GLOSSARY_IGNORED`.
+- **Keine Formalität, kein Glossar.** Ein Tonfall `formal` oder `informal` meldet `FORMALITY_DOWNGRADED`; eine Glossarübersetzung oder ein `doNotTranslate`-Begriff meldet `GLOSSARY_IGNORED`.
+- **Platzhalter.** Ein String mit Platzhaltern oder ICU wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten.
+- **Codes.** Jeder gesendete Code wird vor jedem Aufruf als wohlgeformtes BCP 47 geprüft (`en_US` scheitert mit `INVALID_REQUEST`). Regionale Codes sind erlaubt; ein Paar, das Google ablehnt, scheitert mit `INVALID_REQUEST` von der API.
 
 <AvailableFrom version="0.12.0" />
 
-verbatra liefert auch die Sprachtabelle von Cloud Translation mit, datiert und aus [Googles Seite zur Sprachunterstützung](https://docs.cloud.google.com/translate/docs/languages) übernommen, und lehnt eine Sprache, die nicht darin steht, ab, bevor ein Lauf etwas kostet. Ein regionaler Code, dessen Sprache nur als Ganzes aufgeführt ist, etwa `de-AT`, wo die Tabelle `de` hat, wird mit einer Warnung so gesendet, wie er geschrieben ist, da Google ihn annehmen oder verallgemeinern kann. Siehe [Die Sprachunterstützung eines Providers prüfen](#die-sprachunterstützung-eines-providers-prüfen).
-
-<Callout title="Google Cloud Translation und Platzhalter">
-Wie DeepL kann Google Cloud Translation Platzhalter oder ICU-Tokens nicht erhalten, deshalb sendet es Strings, die welche enthalten, gar nicht erst: Diese Einträge werden zurückgehalten (unübersetzt gelassen) und mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis gemeldet. Platzhalterfreie Strings werden normal übersetzt. Um Strings mit Platzhaltern zu übersetzen, nimm einen LLM-Provider (Anthropic, OpenAI, Gemini oder openai-compatible).
-</Callout>
-
-<Callout title="Google Cloud Translation und Locale-Codes">
-Der Code, der für jede Locale gesendet wird (nach der [Abbildung der Locale-Codes](#an-den-provider-gesendete-locale-codes)), wird vor jedem Netzwerkaufruf als wohlgeformtes BCP-47 validiert (zum Beispiel `en` oder `pt-BR`); ein fehlerhafter Code wie `en_US` schlägt mit `INVALID_REQUEST` fehl und nennt den betroffenen Code. Anders als DeepL erlaubt Cloud Translation regionale Zielcodes frei, diese Prüfung betrifft also nur die Syntax, keine feste Positivliste. Eine Ziel-Locale oder ein Sprachpaar, das Googles API selbst nicht unterstützt, schlägt weiterhin als strukturiertes `INVALID_REQUEST` fehl, sobald die Anfrage Google erreicht.
-</Callout>
+verbatra liefert Googles datierte [Sprachtabelle](https://docs.cloud.google.com/translate/docs/languages) mit und lehnt eine nicht aufgeführte Sprache ab, bevor etwas ausgegeben wird. Ein regionaler Code, dessen Sprache nur als Ganzes aufgeführt ist, etwa `de-AT`, wird mit einer Warnung so gesendet, wie er geschrieben ist.
 
 ## openai-compatible
 
-Richtet verbatra auf einen Server, der die OpenAI-Chat-Completions-API spricht: LM Studio, Ollama, vLLM und ähnliche funktionieren alle. Die Id benennt das Wire-Protokoll, nicht den Ort des Servers, eine gehostete API, die dasselbe Protokoll spricht, passt hier also auch.
+Jeder Server, der die OpenAI-Chat-Completions-API spricht: LM Studio, Ollama, vLLM oder eine gehostete API mit demselben Protokoll.
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
   options: {
@@ -160,13 +168,18 @@ provider: {
 }
 ```
 
-`baseUrl`, `model` und `maxOutputTokens` sind erforderlich. Anders als bei jedem anderen Provider lebt `baseUrl` in der Konfiguration statt in der Umgebung: Es ist eine Netzwerkadresse, die du ohnehin kennst (eine LAN-IP oder `localhost`), kein Geheimnis. Der Wert muss eine gültige absolute URL mit `http`- oder `https`-Schema sein; alles andere, auch ein fehlendes Schema, lässt die Konfigurationsvalidierung sofort fehlschlagen.
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `baseUrl` | `http`- oder `https`-URL | erforderlich | Der Server, einschließlich seines API-Pfads, meist `/v1`. Eine URL ohne ihn besteht die Validierung und scheitert zur Anfragezeit. |
+| `model` | String | erforderlich | Das Modell, das dein Server anbietet. |
+| `maxOutputTokens` | positive Ganzzahl | erforderlich | Begrenzt die Ausgabe-Tokens einer Antwort. |
+| `apiKeyEnvVar` | Variablenname | keine | Die Variable mit einem Key für diesen Server; nie die Variable eines gehosteten Providers. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt jeden Anfrageversuch. |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
 
-`baseUrl` muss das API-Pfadsegment deines Servers enthalten, typischerweise `/v1`: LM Studio, Ollama und vLLM bedienen ihre OpenAI-kompatiblen Routen alle unter `/v1`. Eine `baseUrl` ohne dieses Segment ist trotzdem eine syntaktisch gültige URL, besteht also die Konfigurationsvalidierung und schlägt stattdessen zur Anfragezeit fehl, weil sie den falschen Pfad erreicht.
+Eine gehostete API funktioniert genauso, zum Beispiel Mistral:
 
-Eine gehostete API, die dasselbe Protokoll spricht, funktioniert genauso. Mistrals Chat-Completions-API ist ein Beispiel:
-
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
   options: {
@@ -178,49 +191,33 @@ provider: {
 }
 ```
 
-`apiKeyEnvVar` nennt die Umgebungsvariable mit deinem Key für diesen Server. Das ist derselbe `openai-compatible`-Provider, auf einen anderen Endpunkt gerichtet, kein dedizierter Mistral-Provider. Das optionale `requestTimeoutMs` wird auch hier akzeptiert und zählt für diesen Provider am meisten: siehe [Anfrage-Timeout](#anfrage-timeout).
+Das Antwortformat ist dasselbe strikte Schema wie bei `openai`, aber vor der Validierung wird das erste balancierte JSON-Objekt aus umgebender Prosa oder einem Code-Fence extrahiert, weil kleinere Modelle so etwas hinzufügen. Die Ausgabe durchläuft trotzdem jede Schema- und Integritätsprüfung. `verbatra init --provider openai-compatible --base-url <url> --model <name>` schreibt diesen Block ([init](/docs/cli/init#provider)), und `--api-key-env-var <NAME>` ergänzt den Namen der Variable.
 
 ### Keys sind optional
 
-Die meisten lokalen Inferenzserver brauchen gar keinen API-Schlüssel, deshalb löst `openai-compatible` seinen Key in drei Stufen auf, der Reihe nach:
+Der Key wird der Reihe nach aufgelöst:
 
-1. **`apiKeyEnvVar`**, ein optionales Konfigurationsfeld, das eine Umgebungsvariable nennt, aus der ein echter Key gelesen wird. Wenn du dieses Feld setzt und die genannte Variable ungesetzt oder leer ist, schlägt verbatra mit `MISSING_API_KEY` fehl, statt still zurückzufallen, denn du hast ausdrücklich gesagt, dass ein Key erforderlich ist.
-2. **`OPENAI_COMPATIBLE_API_KEY`**, eine per Konvention vorgesehene Umgebungsvariable, die gelesen wird, wenn `apiKeyEnvVar` nicht gesetzt ist. Ist sie gesetzt und nicht leer, verwendet verbatra sie; wenn nicht, macht verbatra ohne Fehler weiter.
-3. **Der Platzhalter `"local"`**, gesendet, wenn keine der beiden Stufen etwas ergibt. Das ist ein fester, nicht geheimer String, kein echter Key, und genau das, was einen lokalen Server ohne Key ganz ohne Konfiguration funktionieren lässt.
+1. **`apiKeyEnvVar`**: Wenn gesetzt, muss seine Variable einen Key enthalten, sonst scheitert der Lauf mit `MISSING_API_KEY`.
+2. **`OPENAI_COMPATIBLE_API_KEY`**: wird verwendet, wenn sie gesetzt und nicht leer ist; sonst macht verbatra weiter.
+3. **`"local"`**: ein fester, nicht geheimer Platzhalter, der einen Server ohne Key funktionieren lässt.
 
-`apiKeyEnvVar` kann nie `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY` oder `GOOGLE_TRANSLATE_API_KEY` nennen: Die Konfigurationsvalidierung lehnt das rundheraus ab, eine Konfiguration kann diesen Provider also nicht namentlich auf den Key eines gehosteten Providers richten. Der Client liest außerdem nie selbst `OPENAI_API_KEY` und übergibt dem darunterliegenden SDK immer einen expliziten Key-Wert, ein gehosteter Key kann also nie eine selbst konfigurierte `baseUrl` erreichen.
+`apiKeyEnvVar` kann nicht die Variable eines gehosteten Providers nennen, und der Client liest nie `OPENAI_API_KEY`, ein gehosteter Key erreicht also nie eine eigene `baseUrl`.
 
 <Callout type="warn" title="Ein echter Key über Klartext-http reist unverschlüsselt">
-verbatra erlaubt Klartext-`http://` zu jedem Host, auch zu einer LAN-Adresse, ohne Einschränkung über das http- oder https-Schema hinaus. Das ist gewollt und im üblichen Fall ohne Key sicher: Es geht nichts Geheimes über die Leitung.
-
-Ein echtes Risiko ist es nur, wenn du zusätzlich einen Key konfigurierst (über `apiKeyEnvVar` oder `OPENAI_COMPATIBLE_API_KEY`) **und** `baseUrl` Klartext-`http://` zu einem Nicht-Loopback-Host ist: Dieser Key reist dann unverschlüsselt durch dein Netzwerk. Wenn dein Server einen echten Key verlangt und über localhost hinaus erreichbar ist, verwende `https://` für ihn. verbatra erkennt diese Kombination heute nicht und warnt nicht davor; behandle sie als deine eigene Verantwortung.
+Klartext-`http://` ist zu jedem Host erlaubt, was sicher ist, solange kein Key konfiguriert ist. Mit einem Key und einer `http://`-URL zu einem Nicht-Loopback-Host geht der Key unverschlüsselt durch dein Netzwerk, und verbatra warnt nicht davor. Verwende `https://` für einen Server, der einen Key braucht.
 </Callout>
 
 ### Ein lokales Modell wählen
 
-Bevorzuge ein instruktionsoptimiertes Modell ohne Reasoning und mit guter mehrsprachiger Abdeckung. verbatra fordert ein einzelnes striktes JSON-Objekt an und validiert es, du willst also ein Modell, das Formatvorgaben zuverlässig befolgt. `qwen2.5-14b-instruct` ist ein sinnvoller Standard; wähle das größte solche Modell, das deine Hardware gut ausführt.
-
-<Callout type="warn" title="Meide Reasoning-Modelle und stark quantisierte Builds">
-Reasoning-Modelle (Thinking-Modelle) und stark quantisierte Builds (qat oder Low-Bit) sind hier die üblichen Fehlerquellen: Sie neigen dazu, Reasoning-Prosa um die Antwort herum auszugeben oder abgeschnittenes JSON zurückzugeben, und beides lässt verbatras Schema- und Integritätsprüfungen fehlschlagen. Falls ein reasoning-fähiges Modell unvermeidlich ist, gib ihm Platz zum Nachdenken und Antworten: siehe [Ausgabe-Token-Limits](#ausgabe-token-limits) für die Abstimmung von `maxOutputTokens` und `maxBatchSize`.
-</Callout>
-
-Ein schlechtes lokales Modell schlägt laut fehl, nicht still: verbatra validiert jede Provider-Antwort gegen ein kanonisches Schema sowie die Integritätsprüfungen, ein Modell, das Reasoning-Prosa oder abgeschnittenes JSON ausgibt, wird also mit einem `INVALID_RESPONSE`- oder `OUTPUT_TRUNCATED`-Fehler abgelehnt, statt eine korrupte Übersetzung zu schreiben.
-
-### Tolerantes Parsen für lokale und kleinere Modelle
-
-`openai-compatible` fordert dasselbe strikte, schemagebundene Antwortformat an wie der gehostete `openai`-Provider. Der eine Unterschied liegt auf dem Rückweg: Lokale und kleinere Modelle verpacken eine ansonsten korrekte Antwort eher in umgebende Prosa oder einen Markdown-Code-Fence, obwohl sie darum gebeten wurden, das zu lassen, deshalb extrahiert `openai-compatible` vor dem Parsen das erste balancierte JSON-Objekt an beliebiger Stelle der Antwort, was der gehostete Provider nicht tut. Seine Ausgabe durchläuft trotzdem exakt dieselbe Schemavalidierung und dieselben Integritätsprüfungen wie bei jedem anderen Provider: Die Ausgabe eines lokalen Modells ist nicht vertrauenswürdige Eingabe, und eine fehlerhafte Antwort oder eine mit abweichenden Platzhaltern wird genauso abgelehnt.
-
-<Callout title="Mit verbatra init anlegen">
-`verbatra init --provider openai-compatible --base-url <url> --model <name>` schreibt diesen Block für dich, mit `maxOutputTokens: 4096`. Füge `--api-key-env-var <NAME>` hinzu, wenn der Server einen Key unter einer eigenen Variable braucht; `init` schreibt nur den Namen der Variable, nie einen Wert. Siehe [verbatra init](/docs/cli/init#provider). Alles andere auf dieser Seite (Glossar, Tonfall, Ausgabe-Token-Limits) gilt für ihn wie für jeden LLM-Provider.
-</Callout>
+Bevorzuge ein instruktionsoptimiertes Modell ohne Reasoning und mit guter mehrsprachiger Abdeckung, so groß, wie deine Hardware es gut ausführt; `qwen2.5-14b-instruct` ist ein sinnvoller Standard. Reasoning-Modelle und stark quantisierte Builds neigen dazu, die Antwort in Prosa zu verpacken oder abzuschneiden, was als `INVALID_RESPONSE` oder `OUTPUT_TRUNCATED` scheitert, statt eine korrupte Übersetzung zu schreiben. Brauchst du ein Reasoning-Modell, gib ihm Platz ([Ausgabe-Token-Limits](#ausgabe-token-limits)).
 
 ## LibreTranslate
 
 <AvailableFrom version="0.12.0" />
 
-Richtet verbatra auf einen selbst gehosteten [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)-Server. LibreTranslate ist klassische neuronale Maschinenübersetzung (Argos-Translate-Modelle), kein Sprachmodell, und passt damit zu einer Firma, die LLMs verbietet, aber Maschinenübersetzung akzeptiert, die sie selbst betreibt. verbatra ruft nur seine HTTP-API auf; die AGPL-3.0-Lizenz des Servers erstreckt sich nicht auf dein Projekt.
+Ein selbst gehosteter [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate)-Server: neuronale Maschinenübersetzung (Argos Translate), kein Sprachmodell. verbatra ruft nur seine HTTP-API auf, die AGPL-3.0-Lizenz des Servers erstreckt sich also nicht auf dein Projekt.
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "libretranslate",
   options: {
@@ -229,58 +226,63 @@ provider: {
 }
 ```
 
-`baseUrl` ist Pflicht: die Wurzel der LibreTranslate-API, ohne `/translate`, etwa `http://localhost:5000` oder `https://translate.internal.example/api`. Sie muss eine absolute `http`- oder `https`-URL sein. Zwei Optionen sind optional: `requestTimeoutMs` (siehe [Anfrage-Timeout](#anfrage-timeout)) und `localeMap` (siehe [An den Provider gesendete Locale-Codes](#an-den-provider-gesendete-locale-codes)). Es gibt kein Modell und kein Ausgabe-Token-Limit. Die Sprachen, die es anbietet, sind die auf deinem Server installierten Modelle, starte ihn also mit denen, die du brauchst, zum Beispiel:
+| Option | Typ | Default | Wirkung |
+| --- | --- | --- | --- |
+| `baseUrl` | `http`- oder `https`-URL | erforderlich | Die API-Wurzel, ohne `/translate`. |
+| `requestTimeoutMs` | positive Ganzzahl | `120000` | Begrenzt den ganzen Aufruf (keine Wiederholungen). |
+| `localeMap` | Zuordnung von Locale zu Code | keine | Überschreibt den gesendeten Code pro Locale. |
+
+Seine Sprachen sind die auf deinem Server installierten Modelle:
 
 ```bash
 docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 ```
 
-Der Key ist optional. Ein Server, der ohne `--api-keys` gestartet wurde, nimmt jede Anfrage an, deshalb liest verbatra `LIBRETRANSLATE_API_KEY` nur, wenn sie gesetzt ist, und sendet sie als `api_key` der Anfrage; ist sie nicht gesetzt, wird nichts gesendet, und `verbatra doctor` besteht seine API-Key-Prüfung. Ein Server, der doch einen Key verlangt, lässt den Lauf mit `MISSING_API_KEY` scheitern, das `LIBRETRANSLATE_API_KEY` nennt, und ein Key, den er ablehnt, scheitert mit `AUTH_FAILED`. `verbatra init --provider libretranslate --base-url <url>` schreibt diesen Block.
+- **Key.** `LIBRETRANSLATE_API_KEY` wird nur als `api_key` gesendet, wenn sie gesetzt ist. Ein mit `--api-keys` gestarteter Server lässt den Lauf mit `MISSING_API_KEY` scheitern, wenn sie nicht gesetzt ist, und mit `AUTH_FAILED`, wenn er sie ablehnt.
+- **Keine Formalität, kein Glossar**: `FORMALITY_DOWNGRADED` und `GLOSSARY_IGNORED`, wie bei Google; die Ausgabe wird trotzdem gegen das Glossar geprüft.
+- **Platzhalter** werden als nummerierte Markierungen maskiert (`Hello {{name}}` geht als `Hello {0}` hinaus) und wieder eingesetzt. Ein Wert kommt nur zurück, wenn jede Markierung genau einmal zurückkehrt, sonst wird er mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten; ein Wert mit ICU-Syntax wird nie gesendet.
+- **Markup.** Ein Wert mit HTML-artigen Tags wird im `html`-Format gesendet, sodass der Text innerhalb der Tags übersetzt wird und die Tags bleiben; eine Formulierung über ein Tag hinweg kann leiden, und veränderte Tags werden abgelehnt.
+- **Sprachprüfung.** Jedes Ziel ist bei jedem Lauf `unverified` mit einer `LOCALE_UNVERIFIED_BY_PROVIDER`-Warnung; `verbatra doctor --locales --live` prüft sie gegen das `/languages` des Servers.
 
-LibreTranslate hat keine Formalitätskontrolle und kein Glossar, deshalb meldet ein Tonfall `formal` oder `informal` `FORMALITY_DOWNGRADED`, und eine Glossarübersetzung oder ein Begriff aus `doNotTranslate` meldet `GLOSSARY_IGNORED`. Seine Ausgabe wird trotzdem zur Prüfung gegen das Glossar abgeglichen.
-
-<Callout title="LibreTranslate und Platzhalter">
-Anders als DeepL und Google Cloud Translation übersetzt LibreTranslate Strings mit Platzhaltern. verbatra ersetzt vor dem Senden jeden Platzhalter durch eine nummerierte Markierung, `Hello {{name}}` geht also als `Hello {0}` hinaus, und setzt danach das Original wieder ein, wohin die Engine die Markierung auch verschoben hat. Ein Wert kommt nur zurück, wenn jede Markierung genau einmal zurückkehrt; sonst wird er mit einem `PLACEHOLDER_UNSUPPORTED`-Hinweis zurückgehalten statt geschrieben, und die Integritätsprüfung läuft weiterhin über alles, was geschrieben wird. Ein Wert, der nach dem Maskieren seiner Platzhalter noch ICU-Syntax enthält (etwa ein `plural` oder `select`), wird nie gesendet: Er wird auf dieselbe Weise zurückgehalten. Übersetze solche Werte von Hand oder mit einem LLM-Provider.
-
-Ein Wert mit HTML-artigen Markup-Tags, etwa `Open <b>settings</b> now`, wird im `html`-Format von LibreTranslate gesendet, sodass auch der Text innerhalb der Tags übersetzt wird, während die Tags an ihrem Platz bleiben. Das gilt unabhängig davon, ob dein Format die Tags als Platzhalter behandelt (next-intl Rich Text) oder als einfachen Text (i18next); maskiert werden nur Platzhalter, die keine Tags sind. Die Engine übersetzt den Text zwischen den Tags Stück für Stück, daher kann eine Formulierung über ein Tag hinweg weniger natürlich klingen, und die Integritätsprüfung lehnt weiterhin einen Wert ab, dessen Tags verändert zurückkommen. Alles andere wird als einfacher Text gesendet.
-</Callout>
-
-Vor einem Lauf kann verbatra nicht wissen, welche Modelle dein Server installiert hat, deshalb wird jede Ziel-Locale als `unverified` mit einer `LOCALE_UNVERIFIED_BY_PROVIDER`-Warnung beurteilt, nie abgelehnt. Die Quell-Locale wird ebenfalls als `unverified` beurteilt, aber ohne Warnung. `verbatra doctor --locales --live` ruft die eigene `/languages`-Liste des Servers ab und beurteilt jede Locale dagegen. Dieses Ergebnis wird nicht gespeichert, deshalb meldet `translate` die Warnung bei jedem Lauf, auch nachdem eine Live-Prüfung bestanden wurde. Siehe [Die Sprachunterstützung eines Providers prüfen](#die-sprachunterstützung-eines-providers-prüfen).
+`verbatra init --provider libretranslate --base-url <url>` schreibt diesen Block.
 
 ## none
 
 <AvailableFrom version="0.12.0" />
 
-Schaltet Maschinenübersetzung per Richtlinie ab. Nimm es, wenn eine NDA oder eine Firmenregel verbietet, Strings an irgendeinen Übersetzungsdienst zu schicken, und jede Übersetzung von einem Menschen kommen muss.
+Schaltet maschinelle Übersetzung per Richtlinie ab, für eine NDA oder Firmenregel, die verbietet, Strings an irgendeinen Dienst zu senden.
 
-```ts
+```ts title="verbatra.config.ts"
 provider: { id: "none" }
 ```
 
-`options` darf fehlen; wenn angegeben, muss es `{}` sein. Es wird nie ein Provider erzeugt, kein API-Schlüssel gelesen und keine Netzwerkanfrage gestellt. `translate` und `watch` füllen einen Key nur aus [dem Translation Memory](/docs/the-cache) und melden jeden anderen fehlenden oder geänderten Key als `unfilled`, ohne ihn anzufassen; `translate` endet dann mit Exit-Code `3`. [Studio](/docs/cli/studio) und der [MCP-Server](/docs/cli/mcp) bieten ihre kostenpflichtigen Provider-Aktionen nie an, auch nicht mit `--allow-spend`, und `retranslateEntry` im SDK schlägt mit `MACHINE_TRANSLATION_DISABLED` fehl. Sein Translation Memory ist ein eigener Bereich, ein Projekt, das von einem Maschinen-Provider umsteigt, beginnt also leer, außer es überträgt Einträge mit `tmx export` vor dem Umstieg und `tmx import` danach. `verbatra init --provider none` legt es an. Den ganzen Workflow findest du unter [Rein menschlicher Workflow](/docs/human-only-workflow).
+`options` darf fehlen oder `{}` sein. Es wird kein Provider erzeugt, kein Key gelesen und keine Anfrage gestellt. `translate` und `watch` füllen Keys nur aus [dem Translation Memory](/docs/the-cache) und melden den Rest als `unfilled` (`translate` endet mit Exit `3`). [Studio](/docs/cli/studio) und der [MCP-Server](/docs/cli/mcp) bieten nie kostenpflichtige Aktionen an, und `retranslateEntry` im SDK scheitert mit `MACHINE_TRANSLATION_DISABLED`. Das Translation Memory ist ein eigener Bereich: Übertrage Einträge mit `tmx export` vor dem Umstieg und `tmx import` danach. `verbatra init --provider none` legt es an; siehe [Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow).
 
 ## Tonfall und Glossar über die Provider hinweg
 
-Die optionalen Konfigurationsfelder `tone` und `glossary` (siehe [Konfigurationsdatei](/docs/config-file)) werden pro Provider angewendet:
+Jede Anfrage enthält nur die Glossarbegriffe ihrer Ziel-Locale, und die Ausgabe jedes Providers wird danach gegen sie geprüft.
 
-- **Tonfall.** Die LLM-Provider (Anthropic, OpenAI, Gemini und openai-compatible) erhalten den Tonfall mit der Anfrage und werden angewiesen, ihn einzuhalten. DeepL bildet ihn auf Formalität ab, mit der oben beschriebenen Herabstufung im kostenlosen Kontingent. Google Cloud Translation und LibreTranslate haben gar keine Formalitätskontrolle, ein nicht-neutraler Tonfall meldet also immer `FORMALITY_DOWNGRADED`.
-- **Glossar.** Jede Anfrage enthält nur die Glossarbegriffe ihrer eigenen Ziel-Locale. Die LLM-Provider erhalten die Übersetzungen, die `forbidden`-Wiedergaben, die Begriffe aus `doNotTranslate` und die Notizen als Daten und werden angewiesen, die Übersetzungen als bindend zu behandeln, nie eine verbotene Wiedergabe zu verwenden und Begriffe aus `doNotTranslate` wörtlich zu übernehmen. DeepL kann sie nicht anwenden (mit einem `GLOSSARY_IGNORED`-Hinweis) und wendet nur seine native `glossaryId` an. Google Cloud Translation und LibreTranslate haben gar kein Glossar, eine Übersetzung oder ein Begriff aus `doNotTranslate` meldet also immer `GLOSSARY_IGNORED`. Egal bei welchem Provider wird die Ausgabe gegen die Begriffe der Locale geprüft und zur Prüfung mit `GLOSSARY_TERM_MISSED` oder `GLOSSARY_FORBIDDEN_TERM` markiert.
+| Provider | `tone` | `glossary` |
+| --- | --- | --- |
+| Anthropic, OpenAI, Gemini, openai-compatible | gesendet und eingehalten | Übersetzungen, verbotene Wiedergaben, `doNotTranslate`-Begriffe und Notizen als bindende Daten gesendet |
+| DeepL | auf Formalität abgebildet; `FORMALITY_DOWNGRADED` bei einem kostenlosen Key oder einer Sprache ohne Formalität | `GLOSSARY_IGNORED`; nur `glossaryId` wird angewendet |
+| Google Cloud Translation, LibreTranslate | `FORMALITY_DOWNGRADED` bei `formal` oder `informal` | `GLOSSARY_IGNORED` |
 
 ## Verhalten, das jeder Provider teilt
 
 ### Batching
 
-Die Arbeit einer Locale wird in sequenzielle Sub-Batches von höchstens `maxBatchSize` Einträgen aufgeteilt (Default 50; siehe [Konfigurationsdatei](/docs/config-file)), damit eine überdimensionierte Anfrage nicht die ganze Locale fehlschlagen lässt. Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf automatisch erneut versucht, während die anderen Sub-Batches weiter vorankommen. DeepL und Google Cloud Translation teilen einen Sub-Batch zusätzlich transparent auf so viele Anfragen auf, wie ihre eigenen Grenzen pro Anfrage verlangen.
+Die Arbeit einer Locale geht in sequenziellen Sub-Batches von höchstens [`maxBatchSize`](/docs/config-file#maxbatchsize) Einträgen hinaus (Default `50`). Ein fehlgeschlagener Sub-Batch wird zurückgehalten und beim nächsten Lauf erneut versucht, während der Rest weiter vorankommt. DeepL und Google Cloud Translation teilen einen Sub-Batch zusätzlich auf, damit er in ihre eigenen Anfragegrenzen passt.
 
 ### Wiederholungen
 
-Vorübergehende Fehlschläge (eine Rate-Limit-Antwort oder ein Serverfehler) werden automatisch mit kurzem Backoff wiederholt: Die SDK-Clients von OpenAI, Anthropic und DeepL wiederholen standardmäßig, und verbatra ergänzt eine gleichwertige eigene Wiederholung für Gemini, dessen SDK das nicht tut. Wiederholungen glätten momentane Aussetzer; ein anhaltender Fehlschlag taucht weiterhin als strukturierter Fehler auf. Google Cloud Translation und LibreTranslate haben heute auf keiner Ebene eine Wiederholung: Eine ratenbegrenzte oder Serverfehler-Antwort taucht sofort als `RATE_LIMITED` oder `PROVIDER_UNAVAILABLE` auf, und das übliche Wiederaufgreifen eines zurückgehaltenen Sub-Batches beim nächsten Lauf gilt weiterhin.
+Rate-Limits und Serverfehler werden mit kurzem Backoff wiederholt: Die Clients von OpenAI, Anthropic und DeepL machen das selbst, und verbatra ergänzt dasselbe für Gemini. Google Cloud Translation und LibreTranslate wiederholen nicht: Ein Rate-Limit oder Serverfehler taucht sofort als `RATE_LIMITED` oder `PROVIDER_UNAVAILABLE` auf, und der Sub-Batch wird beim nächsten Lauf wieder aufgegriffen.
 
 ### Anfrage-Timeout
 
-Jeder Provider begrenzt jede ausgehende Anfrage, damit ein Server, der die Verbindung annimmt, aber nie antwortet, keinen Lauf blockieren und die Schreibsperre einer Locale offen halten kann. Diese Grenze ist `requestTimeoutMs`, eine optionale positive Ganzzahl in Millisekunden, die in den `options` jedes Providers akzeptiert wird (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` und `libretranslate`):
+`requestTimeoutMs` begrenzt jede Anfrage, damit ein Server, der die Verbindung annimmt, aber nie antwortet, keinen Lauf blockieren und die Schreibsperre einer Locale offen halten kann. Der Default ist `120000` ms (zwei Minuten); erhöhe ihn für ein langsames lokales Modell oder eine große `maxBatchSize`.
 
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "openai-compatible",
   options: {
@@ -292,30 +294,31 @@ provider: {
 }
 ```
 
-Lässt du sie weg, wendet verbatra seinen eigenen Standard von `120000` ms (zwei Minuten) an: lang genug, dass ein berechtigt langsamer großer Batch nicht abgeschnitten wird, kurz genug, dass ein hängender, aber erreichbarer Server eine Locale nicht unbegrenzt blockiert. Erhöhe sie, wenn ein langsames lokales Modell oder eine große `maxBatchSize` mehr Zeit braucht; senke sie, um schneller zu scheitern. Die Grenze gilt für jeden einzelnen Versuch, nicht für den ganzen Aufruf. Der Client eines Providers wiederholt eine HTTP-Antwort `429` oder `5xx` ein paarmal mit kurzer Pause (die Clients von Anthropic, OpenAI, `openai-compatible` und Gemini wiederholen auch einen Versuch, der in den Timeout gelaufen ist, und alle außer Gemini auch einen Verbindungsfehler), und jeder neue Versuch bekommt wieder die vollen `requestTimeoutMs`. Ein Aufruf, der immer wieder ein Rate-Limit, einen Serverfehler oder eine abgelehnte Verbindung bekommt, scheitert deshalb mit genau dieser Ursache (`RATE_LIMITED`, `PROVIDER_UNAVAILABLE` oder `PROVIDER_ERROR` mit dem Hinweis auf die abgelehnte Verbindung) und nicht mit `TIMEOUT`: `TIMEOUT` heißt, dass ein Versuch innerhalb der Grenze keine Antwort bekommen hat. Der Preis dafür: Bei einem hängenden Server dauert es länger, bis verbatra aufgibt, nämlich bis zu drei Versuche mit je `requestTimeoutMs` plus die Pausen bei Anthropic, OpenAI, `openai-compatible` und Gemini. Scheitert ein Aufruf, ist nur sein eigener Sub-Batch betroffen, sodass die Keys im nächsten Lauf wiederkommen.
+- **Pro Versuch.** Clients wiederholen `429` und `5xx` ein paarmal, jeder Versuch mit dem vollen Timeout. Anthropic, OpenAI, openai-compatible und Gemini wiederholen auch einen Versuch, der in den Timeout gelaufen ist, und alle außer Gemini einen Verbindungsfehler, ein hängender Server braucht also bis zu drei Timeouts plus Backoff, bis aufgegeben wird.
+- **Der Fehler nennt die Ursache.** Wiederholte Rate-Limits, Serverfehler oder abgelehnte Verbindungen scheitern als `RATE_LIMITED`, `PROVIDER_UNAVAILABLE` oder `PROVIDER_ERROR`; `TIMEOUT` heißt, dass ein Versuch rechtzeitig keine Antwort bekommen hat.
+- **DeepL** wartet pro Versuch mindestens den Timeout, bis zu fünf Versuche, und kann eine laufende Anfrage nicht abbrechen, ein unterbrochener Lauf lässt sie also bei DeepL zu Ende laufen.
+- **Google Cloud Translation und LibreTranslate** senden eine Anfrage ohne Wiederholungen, der Timeout deckt also den ganzen Aufruf ab.
 
-Der Client von DeepL nutzt `requestTimeoutMs` als Mindestwartezeit für jeden seiner Versuche und macht bis zu fünf davon, deshalb dauert es bei einem hängenden DeepL-Endpunkt am längsten, bis er scheitert. DeepL ist außerdem die eine Ausnahme beim Abbrechen: Sein Client kann eine bereits laufende Anfrage nicht abbrechen, also läuft die abgeschickte Anfrage bei DeepL zu Ende, wenn ein Lauf unterbrochen wird. Google Cloud Translation und LibreTranslate schicken je eine einzige einfache HTTP-Anfrage ohne Wiederholungen, deshalb gilt die Grenze für den ganzen Aufruf, und sie brechen sofort ab wie die LLM-Provider.
+Nur der fehlgeschlagene Sub-Batch ist betroffen; seine Keys kommen beim nächsten Lauf wieder.
 
 ### An den Provider gesendete Locale-Codes
 
 <AvailableFrom version="0.12.0" />
 
-Deine Dateien, die Lock-Datei und das Übersetzungsgedächtnis verwenden immer die Locale-Codes aus deiner Konfiguration. Die Provider sind sich dabei nicht immer einig: DeepL nimmt eine Quellsprache ohne Region an und nennt traditionelles Chinesisch `ZH-HANT`, wo deine Konfiguration `zh-Hant` oder `zh-TW` sagt. Deshalb übersetzt verbatra den Code erst im letzten Moment, nur für die Anfrage, die es sendet:
+Dateien, Lock-Datei und Translation Memory verwenden immer die Codes deiner Konfiguration. Nur die Anfrage wird in das übersetzt, was der Provider erwartet:
 
 | Provider | Quell-Locale | Ziel-Locale |
 | --- | --- | --- |
-| DeepL | Nur die Sprache: `en-US` wird als `EN` gesendet, `zh-Hant-TW` als `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK` und `zh-MO` werden als `ZH-HANT` gesendet, `zh-Hans`, `zh-CN` und `zh-SG` als `ZH-HANS`. Eine DeepL-Variante bleibt erhalten (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). Spanisch mit einer lateinamerikanischen oder karibischen Region (`MX`, `AR`, `CO`, `CL`, `PE`, `VE`, `EC`, `GT`, `CU`, `BO`, `DO`, `HN`, `PY`, `SV`, `NI`, `CR`, `PA`, `UY`, `PR`, `US` oder `419`) wird als `ES-419` gesendet, `es-MX` wird also zu `ES-419`. Jede andere Region oder Schrift fällt weg: `de-AT` wird als `DE` gesendet, `es-ES` als `ES`. |
-| Google Cloud Translation | `zh-Hant` (und `zh-HK`, `zh-MO`) wird als `zh-TW` gesendet, `zh-Hans` (und `zh-SG`) als `zh-CN` und `nb` als `no`. Jeder andere Code wird so gesendet, wie er geschrieben ist. | Wie bei der Quelle. |
-| LibreTranslate | Nur die Sprache: `de-AT` wird als `de` gesendet, `en-US` als `en`. `pt-BR` bleibt erhalten, und Chinesisch wird als `zh-Hans` oder `zh-Hant` gesendet (`zh-TW` wird zu `zh-Hant`). | Wie bei der Quelle. |
-| Anthropic, OpenAI, Gemini, openai-compatible | So, wie er geschrieben ist, mit dem englischen Namen der Sprache (siehe unten). | So, wie er geschrieben ist, mit dem englischen Namen von Sprache, Schrift und Region (siehe unten). |
+| DeepL | Nur die Sprache: `en-US` als `EN`, `zh-Hant-TW` als `ZH`. | `zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO` als `ZH-HANT`; `zh-Hans`, `zh-CN`, `zh-SG` als `ZH-HANS`. DeepL-Varianten bleiben (`EN-GB`, `EN-US`, `PT-BR`, `PT-PT`, `ES-419`, `FR-CA`, `FR-FR`, `DE-CH`, `DE-DE`). Spanisch mit einer lateinamerikanischen oder karibischen Region (`MX`, `AR`, `CO`, `CL`, `PE`, `VE`, `EC`, `GT`, `CU`, `BO`, `DO`, `HN`, `PY`, `SV`, `NI`, `CR`, `PA`, `UY`, `PR`, `US`, `419`) als `ES-419`. Andere Regionen und Schriften fallen weg: `de-AT` als `DE`. |
+| Google Cloud Translation | `zh-Hant` (`zh-HK`, `zh-MO`) als `zh-TW`, `zh-Hans` (`zh-SG`) als `zh-CN`, `nb` als `no`; alles andere so, wie es geschrieben ist. | Wie bei der Quelle. |
+| LibreTranslate | Nur die Sprache (`de-AT` als `de`), außer dass `pt-BR` bleibt und Chinesisch als `zh-Hans` oder `zh-Hant` geht (`zh-TW` als `zh-Hant`). | Wie bei der Quelle. |
+| Anthropic, OpenAI, Gemini, openai-compatible | So, wie er geschrieben ist, mit dem englischen Namen der Sprache. | So, wie er geschrieben ist, mit den englischen Namen von Sprache, Schrift und Region. |
 
-DeepL hat kein allgemeines Englisch oder Portugiesisch als Ziel. Ein Ziel, das am Ende ein bloßes `en` oder `pt` ist (zum Beispiel `en-AU`), wird deshalb mit `LOCALE_UNSUPPORTED_BY_PROVIDER` abgelehnt, bevor der Lauf startet (siehe [Die Sprachunterstützung eines Providers prüfen](#die-sprachunterstützung-eines-providers-prüfen)). Bilde es auf `EN-GB`, `EN-US`, `PT-BR` oder `PT-PT` ab; ein `localeMap`-Eintrag, der trotzdem ein bloßes `EN` oder `PT` sendet, schlägt mit `INVALID_REQUEST` fehl, bevor eine Anfrage gesendet wird.
+Ein LLM erhält zum Beispiel `sr-Latn` mit `{ "name": "Serbian (Latin)", "script": "Latin" }`, und eine feste Regel bittet es, in dieser Schrift und Variante zu schreiben; ein Code, den Node.js nicht benennen kann, wird ohne Namen gesendet. DeepL hat kein allgemeines Englisch oder Portugiesisch als Ziel, ein Ziel, das am Ende ein bloßes `en` oder `pt` ist (etwa `en-AU`), wird deshalb vor dem Lauf abgelehnt: Bilde es auf `EN-GB`, `EN-US`, `PT-BR` oder `PT-PT` ab.
 
-Ein LLM-Provider erhält außerdem den englischen Namen jeder Locale, nachgeschlagen aus der Locale in deiner Konfiguration: `sr-Latn` kommt mit `{ "name": "Serbian (Latin)", "script": "Latin" }` an und `pt-BR` mit `{ "name": "Portuguese (Brazil)", "region": "Brazil" }`, und eine feste Systemregel bittet das Modell, in der genannten Schrift und regionalen Variante zu schreiben. Ein Code, für den Node.js keinen Namen kennt, wird ohne Namen gesendet. [Übersetzungssicherheit](/docs/translation-safety) zeigt die vollständige Form.
+`localeMap` überschreibt den Code pro Locale, und ein Eintrag gewinnt immer:
 
-Wenn die eingebaute Normalisierung nicht das ist, was du willst, ergänze `localeMap` in den `options` des Providers. Es bildet eine Locale aus deiner Konfiguration auf genau den Code ab, den der Provider erhält, und ein Eintrag gewinnt immer gegen die eingebaute Normalisierung:
-
-```ts
+```ts title="verbatra.config.ts"
 provider: {
   id: "deepl",
   options: {
@@ -327,46 +330,40 @@ provider: {
 }
 ```
 
-Jeder Key muss `sourceLocale` oder einer der `targetLocales` sein, genau so geschrieben wie in deiner Konfiguration. Jeder andere Key lässt das Laden der Konfiguration mit `CONFIG_INVALID` scheitern und nennt den Key. Jeder Wert muss ein nicht leerer String mit höchstens 64 Zeichen sein, den verbatra unverändert sendet: DeepL und Google Cloud Translation erhalten ihn als Sprachcode, ein LLM-Provider erhält ihn in der Anfrage anstelle des Locale-Codes, dort funktioniert also auch ein Wert wie `"pt-BR (Brazilian Portuguese)"`. Die englischen Sprachnamen, die ein LLM-Provider erhält, kommen trotzdem aus dem Key, also der Locale aus deiner Konfiguration, nicht aus dem Wert. Ein Wert, den der Provider selbst ablehnt, lässt diesen Teil-Batch mit einem strukturierten Fehler scheitern, wie jeder andere Provider-Fehler. `localeMap` wird von jedem Provider außer `none` akzeptiert, und zwar nur unter `options`: Direkt unter `provider` lässt es das Laden der Konfiguration mit `CONFIG_INVALID` scheitern (ab 0.12.0). Eine Änderung daran übersetzt Keys, die schon aktuell sind, nicht neu: Nur neue und geänderte Quelltexte werden mit dem neuen Code gesendet. Ein nicht leeres `localeMap` ist Teil des Fingerprints im [Cache](/docs/the-cache), eine Änderung daran beginnt also einen eigenen Speicherbereich: Übersetzungen mit den alten Codes werden für die neuen nicht wiederverwendet.
+- **Keys** müssen `sourceLocale` oder eine Ziel-Locale sein, so geschrieben wie konfiguriert; alles andere scheitert mit `CONFIG_INVALID`. Es gehört unter `options` (direkt unter `provider` scheitert es ab 0.12.0), bei jedem Provider außer `none`.
+- **Werte** sind nicht leere Strings mit höchstens 64 Zeichen und werden unverändert gesendet: an einen Maschinenübersetzungs-Provider als Sprachcode, an ein LLM anstelle des Codes (`"pt-BR (Brazilian Portuguese)"` funktioniert). Die Sprachnamen für ein LLM kommen trotzdem aus dem Key. Ein Wert, der DeepL weiterhin ein bloßes `EN` oder `PT` schickt, scheitert mit `INVALID_REQUEST`; ein Wert, den der Provider ablehnt, lässt seinen Sub-Batch scheitern.
+- **Wirkung auf das Translation Memory.** Nur neue und geänderte Strings gehen mit einem neuen Code hinaus. Ein nicht leeres `localeMap` ist Teil des Fingerprints im [Translation Memory](/docs/the-cache), eine Änderung beginnt also einen eigenen Bereich.
 
 ### Die Sprachunterstützung eines Providers prüfen
 
 <AvailableFrom version="0.12.0" />
 
-Eine Locale, die der Provider nicht übersetzen kann, ist früher erst gescheitert, als ihre Anfrage gesendet wurde, nachdem andere Locales womöglich schon bezahlt waren. verbatra prüft jetzt jede konfigurierte Locale, bevor irgendetwas ausgegeben wird, gegen das, was es über den konfigurierten Provider weiß:
+Jede konfigurierte Locale wird beurteilt, bevor etwas ausgegeben wird:
 
 | Provider | Beurteilt gegen | Vor dem Lauf abgelehnt | Gewarnt bei |
 | --- | --- | --- | --- |
-| DeepL | Die DeepL-Sprachtabelle, die verbatra mitliefert, mit Glossar- und Formalitätsunterstützung je Sprache | Eine Quell- oder Zielsprache, die DeepL nicht aufführt | Einem Glossar für ein Paar außerhalb von DeepLs Glossarsprachen, einem Tonfall für eine Sprache ohne Formalität, einem nur teilweise aufgeführten Code |
-| Google Cloud Translation | Die Sprachtabelle von Cloud Translation (NMT), die verbatra mitliefert | Eine Sprache, die Google nicht aufführt | Jedem Glossar, jedem Tonfall `formal` oder `informal` (die Basic-Stufe hat beides nicht), einem regionalen Code, dessen Sprache nur als Ganzes aufgeführt ist |
-| LibreTranslate | Nichts vor einem Lauf: Die Sprachen sind die auf deinem Server installierten Modelle. Mit `doctor --live` die eigene `/languages`-Liste des Servers | Nie vor einem Lauf | Jeder Ziel-Locale, als `LOCALE_UNVERIFIED_BY_PROVIDER`, bei jedem Lauf (`doctor --live` prüft sie, speichert das Ergebnis aber nicht); jedem Glossar, jedem Tonfall `formal` oder `informal` |
-| Anthropic, OpenAI, Gemini, openai-compatible | Nichts: Ein LLM akzeptiert jede Sprache | Nie | Einer Sprache außerhalb der gut getesteten Liste unter [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) |
-| none | Entfällt: Es wird kein Provider aufgerufen | Nie | Nie |
+| DeepL | Seine mitgelieferte Sprachtabelle, mit Glossar- und Formalitätsunterstützung je Sprache | Eine nicht aufgeführte Quell- oder Zielsprache | Einem Glossar für ein Paar außerhalb der Glossarsprachen, einem Tonfall ohne Formalität, einem nur teilweise aufgeführten Code |
+| Google Cloud Translation | Seine mitgelieferte Sprachtabelle | Eine nicht aufgeführte Sprache | Jedem Glossar, einem Tonfall `formal` oder `informal`, einem regionalen Code, der nur als Sprache aufgeführt ist |
+| LibreTranslate | Nichts vor einem Lauf; mit `doctor --live` das `/languages` des Servers | Nie | Jeder Ziel-Locale bei jedem Lauf, jedem Glossar, einem Tonfall `formal` oder `informal` |
+| Anthropic, OpenAI, Gemini, openai-compatible | Nichts: Ein LLM akzeptiert jede Sprache | Nie | Einer Sprache außerhalb der [gut getesteten Liste](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) |
+| none | Entfällt | Nie | Nie |
 
-[`verbatra doctor`](/docs/cli/doctor#locale-unterstützung) meldet das Urteil für jede Locale unter seiner Prüfung Locale support, und `verbatra doctor --locales` gibt aus, als welcher Code jede Locale gesendet wird, ob der Provider sie unterstützt und ob er ein Glossar und eine Formalitätseinstellung für sie anwenden kann. `verbatra translate` (auch ein Dry Run und eine Schätzung), `watch` beim Start und eine Neuübersetzung eines einzelnen Keys lehnen eine nicht unterstützte Locale mit `LOCALE_UNSUPPORTED_BY_PROVIDER` und Exit `2` ab, bevor ein Provider konstruiert oder ein Key gelesen wird, sodass keine Locale des Laufs startet. Warnungen lehnen nie etwas ab: `translate` meldet sie als Hinweise an der betroffenen Locale (`LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`).
+[`verbatra doctor`](/docs/cli/doctor#locale-unterstützung) meldet jedes Urteil, und `--locales` ergänzt den gesendeten Code sowie Glossar- und Formalitätsunterstützung. `translate` (Dry Run und Schätzung eingeschlossen), `watch` beim Start und eine Neuübersetzung eines einzelnen Keys lehnen eine nicht unterstützte Locale mit `LOCALE_UNSUPPORTED_BY_PROVIDER` und Exit `2` ab, bevor ein Provider erzeugt wird. Warnungen lehnen nie etwas ab; sie erscheinen als Hinweise (`LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`).
 
-Die Tabellen sind datierte Kopien der Provider-Dokumentation, und Provider ergänzen Sprachen. `verbatra doctor --live` ruft zuerst die aktuelle Liste des Providers ab, von DeepLs `/v3/languages`, dem `languages`-Endpunkt von Cloud Translation oder dem `/languages` deines LibreTranslate-Servers, was kein Übersetzungskontingent verbraucht. Diese eine Anfrage sendet es nur, wenn die API-Key-Variable des Providers gesetzt ist (LibreTranslate braucht dafür keine) und die [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers erlaubt; sonst sagt es, warum, und nutzt die mitgelieferte Tabelle. Die Live-Liste fließt nur in den Bericht ein; `translate` urteilt immer gegen die mitgelieferte Tabelle. Um eine Sprache zu nutzen, die der Provider nach dem Datum dieser Tabelle ergänzt hat, bilde die Locale explizit in `localeMap` ab: Einem Code aus einem expliziten Eintrag wird vertraut, und er wird mit einer Warnung gesendet statt abgelehnt.
+Die Tabellen sind datierte Kopien. `verbatra doctor --live` ruft zuerst die aktuelle Liste ab (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`, ohne Kontingent zu verbrauchen), wenn der Key gesetzt ist (LibreTranslate braucht keinen) und die [Netzwerkrichtlinie](/docs/network-policy) es erlaubt. Die Live-Liste fließt nur in den Bericht ein; `translate` verwendet immer die mitgelieferte Tabelle. Für eine seitdem ergänzte Sprache bilde die Locale in `localeMap` ab: Ein expliziter Code wird mit einer Warnung gesendet, nicht abgelehnt.
 
 ### Strukturierte Fehler
 
-Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header oder einen Key tragen könnte. verbatra klassifiziert jeden Fehlschlag über seinen HTTP-Status oder seine SDK-Fehlerklasse und erzeugt einen strukturierten Fehler mit einem stabilen Code und einer festen, geheimnisfreien Meldung. Jeder Code steht mit seiner Bedeutung und dem nächsten Schritt unter [Provider-Fehlercodes](/docs/error-codes#provider-error-codes).
-
-Ein Fehlschlag betrifft nur seinen eigenen Sub-Batch: Die fehlgeschlagenen Keys werden zurückgehalten und beim nächsten Lauf wieder aufgegriffen.
-
-Bei `openai-compatible` nennt ein `PROVIDER_ERROR` zusätzlich Host und Port der konfigurierten `baseUrl`, denn ein Endpunkt, den du selbst betreibst, ist der, der tatsächlich unerreichbar wird: `The translation provider request to localhost:11434 failed: the connection was refused. Check that the endpoint is running and that the configured host and port are right, then run again.` Verwendet wird ausschließlich die Host-Komponente der URL; ein Pfad, ein Query-String oder Benutzerangaben in `baseUrl` erreichen also nie eine Meldung. LibreTranslate nennt den Host seiner `baseUrl` auf dieselbe Weise, und Google Cloud Translation meldet ebenso gegen seinen festen Host, `translation.googleapis.com`; der Query-String mit dem API-Schlüssel erreicht so oder so nie eine Meldung.
+Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Header oder einen Key tragen könnte: verbatra erzeugt einen strukturierten Fehler mit einem stabilen Code und einer festen, geheimnisfreien Meldung ([Provider-Fehlercodes](/docs/error-codes#provider-error-codes)). Nur sein eigener Sub-Batch ist betroffen. Bei openai-compatible und LibreTranslate nennt ein `PROVIDER_ERROR` Host und Port der `baseUrl` (nie ihren Pfad, Query-String oder Benutzerangaben), etwa `The translation provider request to localhost:11434 failed: the connection was refused.`; Google Cloud Translation nennt `translation.googleapis.com`, nie den Query-String mit seinem Key.
 
 ### Ausgabe-Token-Limits
 
-Die vier LLM-Provider begrenzen, wie viele Tokens eine einzelne Antwort erzeugen darf. Stoppt ein Modell, weil es diese Grenze erreicht hat, erzeugt verbatra `OUTPUT_TRUNCATED` statt eines generischen Fehlers über eine fehlerhafte Antwort, mit einer festen Meldung:
+Die LLM-Provider begrenzen die Tokens jeder Antwort. Ein Modell, das an der Grenze stoppt, erzeugt `OUTPUT_TRUNCATED`:
 
 > The provider stopped because the output-token limit was reached. Reduce the batch size or raise the configured max output tokens.
 
-Beide Hebel lösen das Problem: Senke `maxBatchSize` in deiner Konfiguration, damit jede Anfrage eine kleinere Antwort erzeugt, oder erhöhe die Grenze pro Antwort am Provider (`maxTokens` für Anthropic, `maxOutputTokens` für OpenAI, Gemini und openai-compatible). DeepL, Google Cloud Translation und LibreTranslate sind nicht betroffen: Keiner von ihnen hat einen Abschneidefall bei Ausgabe-Tokens. verbatra erholt sich außerdem von selbst: Wird ein Sub-Batch abgeschnitten, teilt verbatra ihn in Hälften und versucht es erneut, bis hinunter zu einem einzelnen Eintrag, sodass die Keys, die in eine kleinere Anfrage passen, trotzdem übersetzt werden und nur ein einzelner Eintrag, der weiterhin überläuft, für den nächsten Lauf zurückgehalten wird.
-
-<Callout title="Reasoning-Modelle verbrauchen dasselbe Budget">
-Ein Reasoning-Modell (Thinking-Modell) verbraucht seine verborgenen Reasoning-Tokens aus demselben Ausgabe-Token-Budget, aus dem es die JSON-Übersetzungen ausgibt. Es kann dieses Budget allein durch das Nachdenken erschöpfen und stoppen, bevor es überhaupt Ausgabe schreibt, was sich als `OUTPUT_TRUNCATED` zeigt. Wenn du ein Reasoning-Modell nutzt, gib ihm reichlich Spielraum: Bevorzuge ein höheres `maxOutputTokens` (`maxTokens` für Anthropic) oder ein kleineres `maxBatchSize`, damit jede Anfrage Platz für das Nachdenken und die Antwort hat.
-</Callout>
+verbatra teilt einen abgeschnittenen Sub-Batch zuerst in Hälften, bis hinunter zu einem Eintrag, und hält nur einen Eintrag zurück, der weiterhin überläuft. Um das dauerhaft zu beheben, senke `maxBatchSize` oder erhöhe `maxTokens` (Anthropic) beziehungsweise `maxOutputTokens`. Ein Reasoning-Modell verbraucht verborgene Reasoning-Tokens aus demselben Budget und kann es erschöpfen, bevor es irgendetwas schreibt, gib ihm also reichlich Spielraum. Die Maschinenübersetzungs-Provider haben keinen Abschneidefall.
 
 ### Review-Flags
 
-Die akzeptierten Übersetzungen jedes Providers durchlaufen dieselben Prüfungen nach der Übersetzung, und ein verdächtiges Ergebnis (zum Beispiel eines, das mit seiner Quelle identisch ist, oder eines, das einen Glossarbegriff verfehlt hat) wird für die Review-Warteschlange markiert statt abgelehnt. Die Grund-Codes und wie du die Warteschlange abarbeitest, stehen in [Übersetzungssicherheit](/docs/translation-safety) und [Review in Studio](/docs/review-in-studio).
+Jede akzeptierte Übersetzung durchläuft dieselben Prüfungen nach der Übersetzung, und eine verdächtige (identisch mit ihrer Quelle, oder mit fehlendem Glossarbegriff) wird zum Review markiert statt abgelehnt. Siehe [Review-Gründe](/docs/error-codes#review-reason-codes) und [In Studio prüfen](/docs/review-in-studio).
