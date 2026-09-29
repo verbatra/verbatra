@@ -53,7 +53,7 @@ Une clé obsolète qu'une personne a écrite, importée ou modifiée hors de ver
 
 Chaque `check` liste les pluriels auxquels il manque une catégorie de pluriel CLDR utilisée par leur langue cible, comme un `<plurals>` Android polonais avec seulement `one` et `other` :
 
-```text
+```text title="Output"
 plural categories (warning: exit 1 only under --qa --strict)
   pl: 2 plurals missing CLDR categories
     cart {count} plural: missing few, many
@@ -91,7 +91,7 @@ interface IncompletePlural {
 - **error** : la valeur échoue à la [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité), avec `placeholder`, `markup`, `icu`, `degenerate` ou `empty`. Les détails listent les tokens perdus en `-{{name}}` et les ajoutés en `+{{nom}}`.
 - **warning** : la valeur porte un [motif de relecture](/docs/translation-safety#signalements-de-révision) : `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM` ou `INTEGRITY_REORDERED`. Une valeur en erreur ne reçoit pas d'avertissement.
 
-```text
+```text title="Output"
 qa: 1 error, 1 warning
   de: 1 error, 1 warning in 42 values checked
     greeting: error placeholder (-{{name}}, +{{nme}})
@@ -114,7 +114,7 @@ type QaFinding =
 
 `--require-reviewed` échoue avec `1` tant qu'une valeur dont l'[origine](/docs/the-lock-file#la-provenance-de-chaque-valeur) est `machine`, `memory`, `fuzzy` ou `agent` n'est pas approuvée dans le `verbatra.provenance.json` commité, où [Studio](/docs/review-in-studio) et les [outils MCP](/docs/cli/mcp) enregistrent leurs décisions. Une approbation antérieure au changement du texte source ou de la valeur ne compte pas.
 
-```text
+```text title="Output"
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
   de: 2 unreviewed: checkout.title, checkout.total
 ```

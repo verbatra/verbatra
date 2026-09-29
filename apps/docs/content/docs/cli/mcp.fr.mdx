@@ -105,7 +105,7 @@ Le serveur répond à la poignée de main MCP `initialize` avec des `instruction
 
 Le serveur démarre même sans config utilisable. `project.snapshot` renvoie alors `configured: false` avec le `configProblem` et un `nextStep`, et `project.doctor` signale la vérification en échec et sa correction. Les autres outils refusent avec l'erreur de config, et les outils payants restent cachés jusqu'au chargement d'une config avec un vrai fournisseur. stderr en donne la raison :
 
-```text
+```text title="Output"
 Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...
 verbatra MCP server running on stdio (project ., spend tools off)
 No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.
@@ -131,7 +131,7 @@ Chaque résultat d'outil et chaque ligne de log passent par la même expurgation
 
 stdout ne transporte que des messages du protocole MCP ; chaque ligne de log et chaque diagnostic partent sur stderr. Une fois connecté, `verbatra mcp` affiche une ligne « prêt », puis une autre à l'arrêt :
 
-```text
+```text title="Output"
 verbatra MCP server running on stdio (project ., spend tools off)
 verbatra MCP server stopped (client closed stdin)
 ```
@@ -144,7 +144,7 @@ Lancé à la main dans un terminal, il explique aussi qu'un client est censé le
 
 `@verbatra/mcp` est un paquet séparé que la CLI charge à la demande. S'il manque, `verbatra mcp` sort avec `2` et :
 
-```text
+```text title="Output"
 Verbatra's MCP server requires @verbatra/mcp. Run it without the CLI with: npx -y @verbatra/mcp, or install it alongside the CLI with: npm install --save-dev @verbatra/mcp
 ```
 
