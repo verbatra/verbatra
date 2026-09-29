@@ -1,4 +1,6 @@
-export const PAGE_TYPES = ["tutorial", "how-to", "concept", "reference"] as const;
+export const PAGE_TYPES = ["overview", "tutorial", "how-to", "concept", "reference"] as const;
+
+export type PageType = (typeof PAGE_TYPES)[number];
 
 export const LOOKUP_REFERENCE_PAGES: ReadonlySet<string> = new Set(["(reference)/error-codes.mdx"]);
 

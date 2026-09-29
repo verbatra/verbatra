@@ -1,6 +1,7 @@
 ---
 title: Set up verbatra with an AI agent
 description: A copy-pasteable prompt for Claude Code, Cursor, or any AI coding agent to add verbatra to a project that already has an i18n setup, gated behind an explicit human confirmation before it ever spends.
+type: tutorial
 ---
 This page is for a project that already has locale files: i18next, vue-i18n, next-intl, ngx-translate, or raw JSON, YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalog `.xcstrings`, Android `strings.xml`, gettext `.po`/`.pot`, INI, or .NET `.resx` files, already committed and already in use. Paste the prompt below into your AI coding agent (Claude Code, Cursor, or any agent that can read your project and run shell commands), and it walks itself through inspecting your setup, installing verbatra, scaffolding a config that matches what it found, and previewing a run, then stops and asks you to confirm before it ever calls a provider for real.
 

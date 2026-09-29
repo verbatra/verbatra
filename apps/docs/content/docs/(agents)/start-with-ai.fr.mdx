@@ -1,6 +1,7 @@
 ---
 title: Configure verbatra avec un agent IA
 description: "Un prompt prêt à copier-coller pour Claude Code, Cursor ou n'importe quel agent IA de code, pour ajouter verbatra à un projet qui a déjà une configuration i18n, protégé par une confirmation humaine explicite avant toute dépense."
+type: tutorial
 ---
 Cette page s'adresse à un projet qui a déjà des fichiers de locale : i18next, vue-i18n, next-intl, ngx-translate, ou des fichiers bruts JSON, YAML, XLIFF, ARB, properties, `.strings` d'Apple, `.xcstrings` (Xcode String Catalog), `strings.xml` d'Android, `.po`/`.pot` gettext, INI ou `.resx` .NET, déjà commités et déjà utilisés. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor, ou tout agent capable de lire ton projet et d'exécuter des commandes shell), et il se charge lui-même d'inspecter ta configuration, d'installer verbatra, de générer une config qui correspond à ce qu'il a trouvé et de prévisualiser une exécution, puis s'arrête et te demande confirmation avant d'appeler un fournisseur pour de vrai.
 
