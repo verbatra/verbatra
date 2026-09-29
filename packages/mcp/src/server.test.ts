@@ -2,7 +2,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createMcpServer } from "./server.js";
-import { baseLoadedConfig, baseVerbatraConfig, makeProject } from "./test-support.js";
+import {
+  baseLoadedConfig,
+  baseVerbatraConfig,
+  makeProject,
+  staticProject,
+} from "./test-support.js";
 import type { McpServerOptions } from "./types.js";
 
 async function connectedClient(options: McpServerOptions): Promise<Client> {
@@ -17,7 +22,7 @@ async function connectedClient(options: McpServerOptions): Promise<Client> {
 describe("createMcpServer: handshake and tools/list", () => {
   it("completes an MCP initialize handshake and returns a non-empty tool list", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     const tools = await client.listTools();
 
@@ -26,7 +31,7 @@ describe("createMcpServer: handshake and tools/list", () => {
 
   it("returns identical tool lists in identical order across two connections to the same process", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const options: McpServerOptions = { config: baseLoadedConfig(), cwd: dir };
+    const options: McpServerOptions = { project: staticProject(baseLoadedConfig()), cwd: dir };
     const server = createMcpServer(options);
 
     const [transportA1, transportA2] = InMemoryTransport.createLinkedPair();
@@ -49,7 +54,7 @@ describe("createMcpServer: handshake and tools/list", () => {
 
   it("gives every tool a JSON Schema object inputSchema", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     const { tools } = await client.listTools();
 
@@ -61,7 +66,7 @@ describe("createMcpServer: handshake and tools/list", () => {
   it("omits the two spend tools when the server was started without spending allowed", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({
-      config: baseLoadedConfig(),
+      project: staticProject(baseLoadedConfig()),
       cwd: dir,
       allowSpend: false,
     });
@@ -76,7 +81,7 @@ describe("createMcpServer: handshake and tools/list", () => {
   it("includes the two spend tools when the server was started with spending allowed", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({
-      config: baseLoadedConfig(),
+      project: staticProject(baseLoadedConfig()),
       cwd: dir,
       allowSpend: true,
     });
@@ -91,9 +96,11 @@ describe("createMcpServer: handshake and tools/list", () => {
   it("omits the two spend tools under provider none even with spending allowed", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({
-      config: baseLoadedConfig({
-        config: baseVerbatraConfig({ provider: { id: "none", options: {} } }),
-      }),
+      project: staticProject(
+        baseLoadedConfig({
+          config: baseVerbatraConfig({ provider: { id: "none", options: {} } }),
+        }),
+      ),
       cwd: dir,
       allowSpend: true,
     });
@@ -110,7 +117,7 @@ describe("createMcpServer: handshake and tools/list", () => {
 describe("createMcpServer: tools/call", () => {
   it("returns a JSON-RPC error, not a result, for an unknown tool name", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     await expect(client.callTool({ name: "does.not.exist", arguments: {} })).rejects.toMatchObject({
       code: -32601,
@@ -119,7 +126,7 @@ describe("createMcpServer: tools/call", () => {
 
   it("returns isError: true naming the offending field for invalid tool input, not a JSON-RPC error", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     const result = await client.callTool({
       name: "key.value",
@@ -133,7 +140,7 @@ describe("createMcpServer: tools/call", () => {
 
   it("returns content and structuredContent for a successful call to a tool with an outputSchema", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     const result = await client.callTool({
       name: "key.value",
@@ -150,7 +157,7 @@ describe("createMcpServer: tools/call", () => {
 
   it("returns the same JSON as text content and as structuredContent", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     const result = await client.callTool({ name: "status.check", arguments: {} });
 
@@ -162,7 +169,7 @@ describe("createMcpServer: tools/call", () => {
 
   it("returns isError: true, not a JSON-RPC error, when a tool's handler throws", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
-    const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+    const client = await connectedClient({ project: staticProject(baseLoadedConfig()), cwd: dir });
 
     const result = await client.callTool({
       name: "key.value",
@@ -194,7 +201,10 @@ describe("createMcpServer: tools/call", () => {
           de: { greeting: "leaked-secret-value" },
         },
       );
-      const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+      const client = await connectedClient({
+        project: staticProject(baseLoadedConfig()),
+        cwd: dir,
+      });
 
       const result = await client.callTool({
         name: "key.value",
@@ -255,7 +265,10 @@ describe("createMcpServer: tools/call", () => {
           },
         },
       );
-      const client = await connectedClient({ config: baseLoadedConfig(), cwd: dir });
+      const client = await connectedClient({
+        project: staticProject(baseLoadedConfig()),
+        cwd: dir,
+      });
 
       for (const [key, expected] of [
         ["risk", riskCopy],
@@ -283,7 +296,7 @@ describe("createMcpServer: spend-gated tool call while spending is disallowed", 
   it("returns a JSON-RPC error for the omitted spend tool, since it is not advertised", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({
-      config: baseLoadedConfig({ config: baseVerbatraConfig() }),
+      project: staticProject(baseLoadedConfig({ config: baseVerbatraConfig() })),
       cwd: dir,
       allowSpend: false,
     });

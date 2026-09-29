@@ -7,6 +7,7 @@ import {
   mcpReadyLine,
   mcpStoppedLine,
   mcpTerminalHint,
+  mcpUnconfiguredHint,
   projectLabel,
 } from "./session-banner.js";
 
@@ -48,6 +49,19 @@ describe("mcpReadyLine", () => {
     expect(mcpReadyLine(".", "provider-none")).toBe(
       "verbatra MCP server running on stdio (project ., spend tools off (provider none))",
     );
+    expect(mcpReadyLine(".", "no-config")).toBe(
+      "verbatra MCP server running on stdio (project ., spend tools off until a config loads)",
+    );
+  });
+});
+
+describe("mcpUnconfiguredHint", () => {
+  it("says what still works, how to set the project up, and that no restart is needed", () => {
+    const hint = mcpUnconfiguredHint().join("\n");
+
+    expect(hint).toContain("project.snapshot and project.doctor work");
+    expect(hint).toContain("npx verbatra init");
+    expect(hint).toContain("no restart needed");
   });
 });
 

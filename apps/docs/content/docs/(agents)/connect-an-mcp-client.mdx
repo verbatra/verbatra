@@ -124,9 +124,9 @@ claude plugin marketplace add verbatra/skills
 claude plugin install verbatra@verbatra --scope project
 ```
 
-`--scope project` records the plugin in the project's `.claude/settings.json` and keeps it out of your other projects. Each teammate still installs it once: until then, Claude Code reports it as not installed and shows the `claude plugin install` command to run. The server needs a verbatra config to start, so under the default `user` scope it would start in every project you open and fail in each one without verbatra. Inside Claude Code, `/plugin marketplace add verbatra/skills` and `/plugin install verbatra@verbatra` do the same; pick **Project scope** when [the install asks for a scope](https://code.claude.com/docs/en/discover-plugins#install-plugins).
+`--scope project` records the plugin in the project's `.claude/settings.json` and keeps it out of your other projects. Each teammate still installs it once: until then, Claude Code reports it as not installed and shows the `claude plugin install` command to run. Under the default `user` scope it would start in every project you open, and in each one without verbatra it would run without a config, where only `project.snapshot` and `project.doctor` do anything. Inside Claude Code, `/plugin marketplace add verbatra/skills` and `/plugin install verbatra@verbatra` do the same; pick **Project scope** when [the install asks for a scope](https://code.claude.com/docs/en/discover-plugins#install-plugins).
 
-- **The server.** The plugin starts `npx -y @verbatra/mcp` at the version it pins, with `--cwd` set to the project Claude Code has open. Run `npx verbatra init` there first if the project has no config yet.
+- **The server.** The plugin starts `npx -y @verbatra/mcp` at the version it pins, with `--cwd` set to the project Claude Code has open. If the project has no config yet, the server still starts: run `npx verbatra init` there, and the next tool call picks the config up without a restart.
 - **Spending is off.** The spend tools stay hidden until you turn on the plugin's `allowSpend` option, which it passes to the server as `VERBATRA_MCP_ALLOW_SPEND`, so starting `claude` with that variable does not turn spending on for the plugin's server. Set it with `--config allowSpend=true` on `claude plugin install`, or later in `/config`. Claude Code ignores plugin options in a project's `.claude/settings.json`, so a committed file never turns spending on for the team. See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference) for scopes and options.
 - **The key comes from your environment.** The plugin has no option for a key. The server reads your provider's variable from the environment you started `claude` with, exactly as above.
 - **The locale-edit hook.** After Claude edits or writes a file that can be a locale file, the hook runs the project's own `verbatra check --qa`. When a committed translation breaks a placeholder, inline markup, or ICU, it hands the findings back to Claude to fix. It only uses the `@verbatra/cli` installed in the project's `node_modules`, version 0.12.0 or later, downloads nothing, and calls no provider. In a project without a local `@verbatra/cli`, it does nothing.
@@ -298,6 +298,7 @@ The cloud agent works on GitHub, not on your machine. A repository admin adds th
       "args": ["-y", "@verbatra/mcp"],
       "tools": [
         "project.snapshot",
+        "project.doctor",
         "status.check",
         "status.diff",
         "lock.state",
@@ -319,7 +320,7 @@ Add `translation.editEntry` and `glossary.write` only if the agent should write 
 - `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` and `--allow-spend` in `args`, so the configuration holds a reference, never the value;
 - `translation.translatePending` or `translation.retranslateEntry` in `tools`. Without them in the allowlist, the agent cannot call them even with `--allow-spend`.
 
-GitHub does not document which directory the server starts in. To check the setup, assign an issue to Copilot, open **View session**, and expand **Start MCP Servers**: verbatra's tools are listed there when it started, and a config error ends the server before it lists any. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) and [secrets and variables for the cloud agent](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables).
+GitHub does not document which directory the server starts in. To check the setup, assign an issue to Copilot, open **View session**, and expand **Start MCP Servers**: verbatra's tools are listed there when it started. A missing or invalid config does not stop it: `project.snapshot` then reports `configured: false`, and `project.doctor` says what to fix. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) and [secrets and variables for the cloud agent](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables).
 
 ### Copilot CLI
 
@@ -414,11 +415,19 @@ Any client that can start a local stdio server works the same way. Give it:
 - `--config <path>` if the config file is not where the upward search finds it;
 - `--allow-spend` and the provider's key variable only if the agent should spend, with the key supplied through the client's own secret or environment mechanism.
 
-The server writes only protocol messages to stdout and every log line to stderr, so a client's server log is the place to look when it does not connect. A config error is reported there before the server ever answers, and the process exits.
+The server writes only protocol messages to stdout and every log line to stderr, so a client's server log is the place to look when it does not connect. A missing or invalid config is reported there too, but the server keeps running (see [Troubleshooting](#troubleshooting)); only a `--config` path that does not exist stops it before it answers.
 
 ## Check the connection
 
 Ask the agent to call `project.snapshot`. It reads the config, calls no provider, and returns the source locale, the target locales, the format, and the provider id, so a wrong working directory or a missing config shows up at once. If the spend tools should be there and are not, check the spend switch and whether the config's provider is `none`.
+
+## Troubleshooting
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- **`project.snapshot` reports `configured: false`.** The server found no config, or found one that does not load. It started anyway, so the client stays connected: `configProblem` names the error (`CONFIG_NOT_FOUND` or `CONFIG_INVALID`), and every tool except `project.snapshot` and `project.doctor` refuses with that error and a `Next step:` line. Ask the agent to call `project.doctor`: it lists every setup check with its status, and each failed one with a `fix`. In a project without verbatra, run `npx verbatra init`; with a wrong working directory, correct `--cwd`.
+- **The config changed.** There is no need to restart the server. Before each call it checks whether the config file, a config file the search would now find, or the glossary file changed, and loads the config again. A call that is already running finishes on the config it started with. When the edit leaves the config invalid, the server goes back to the unconfigured state until it is fixed. `--allow-spend` is fixed when the server starts: a config change can hide the spend tools (a provider of `none`) or bring them back, never turn spending on. The server tells the client with `notifications/tools/list_changed` when its tool list changes.
+- **A JavaScript or TypeScript config imports other files.** Only the config file itself and its glossary file are checked for changes, so restart the server after editing a module the config imports.
 
 ## Next
 

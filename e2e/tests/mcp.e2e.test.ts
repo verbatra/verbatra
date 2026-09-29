@@ -1,4 +1,4 @@
-import { access, readdir, readFile } from "node:fs/promises";
+import { access, mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -41,6 +41,22 @@ const TRANSLATE_PENDING_REQUEST = jsonRpcLine({
   method: "tools/call",
   params: { name: "translation.translatePending", arguments: {} },
 });
+
+function toolCall(id: number, name: string, args: Record<string, unknown> = {}): string {
+  return jsonRpcLine({ id, method: "tools/call", params: { name, arguments: args } });
+}
+
+interface ToolResponse {
+  readonly result?: {
+    readonly isError?: boolean;
+    readonly structuredContent?: Record<string, unknown>;
+    readonly content?: readonly { readonly text: string }[];
+  };
+}
+
+function toolResponse(stdout: string, id: number): ToolResponse {
+  return (responseTo(stdout, id) ?? {}) as ToolResponse;
+}
 
 async function scaffoldProject(dir: string): Promise<void> {
   await writeJsonIn(dir, "locales/en.json", { greeting: "Hello" });
@@ -122,6 +138,26 @@ function responseTo(stdout: string, id: number): Record<string, unknown> | undef
 }
 
 describe("mcp (no key)", () => {
+  async function exchangeAfterConfig(projectDir: string): Promise<Session> {
+    const server = spawnVerbatra(consumer, ["mcp", "--cwd", projectDir]);
+    let stdout = "";
+    server.stdout?.on("data", (chunk: Buffer | string) => {
+      stdout += String(chunk);
+    });
+    try {
+      server.stdin?.write(INITIALIZE_REQUEST);
+      await pollUntil(() => stdout.includes('"id":1'), { timeoutMs: 60_000, intervalMs: 100 });
+      server.stdin?.write(INITIALIZED_NOTIFICATION);
+      await scaffoldProject(projectDir);
+      server.stdin?.write(toolCall(2, "project.snapshot"));
+      server.stdin?.write(toolCall(3, "status.check"));
+      await pollUntil(() => stdout.includes('"id":3'), { timeoutMs: 60_000, intervalMs: 100 });
+    } finally {
+      server.stdin?.end();
+    }
+    return { result: await server, stdout };
+  }
+
   let consumer: Consumer;
   let dir: string;
   let endpoint: StalledEndpoint;
@@ -272,6 +308,77 @@ describe("mcp (no key)", () => {
     );
     expect(result.stderr).toContain("verbatra MCP server stopped (client closed stdin)");
     expect(await lockFilesUnder(dir)).toEqual([]);
+  }, 120_000);
+
+  it("verbatra mcp starts in an empty directory, guides through project.doctor, and loads a config written later without a restart", async () => {
+    const emptyDir = join(consumer.dir, "mcp-unconfigured");
+    await mkdir(emptyDir, { recursive: true });
+
+    const { result, stdout } = await exchangeThenCloseStdin(
+      spawnVerbatra(consumer, ["mcp", "--cwd", emptyDir]),
+      [
+        [INITIALIZE_REQUEST, 1],
+        [INITIALIZED_NOTIFICATION, undefined],
+        [toolCall(2, "project.snapshot"), 2],
+        [toolCall(3, "project.doctor"), 3],
+        [toolCall(4, "status.check"), 4],
+      ],
+    );
+    const configured = await exchangeAfterConfig(emptyDir);
+
+    expect(toolResponse(stdout, 2).result?.structuredContent).toMatchObject({
+      configured: false,
+      configProblem: { code: "CONFIG_NOT_FOUND" },
+      nextStep: expect.stringContaining("project.doctor"),
+    });
+    const doctorChecks = toolResponse(stdout, 3).result?.structuredContent?.checks as
+      | readonly Record<string, unknown>[]
+      | undefined;
+    expect(doctorChecks?.[0]).toMatchObject({
+      id: "config",
+      status: "fail",
+      fix: expect.stringContaining("verbatra init"),
+    });
+    const refusal = toolResponse(stdout, 4).result;
+    expect(refusal?.isError).toBe(true);
+    expect(refusal?.content?.[0]?.text).toMatch(/^CONFIG_NOT_FOUND: [\s\S]*\nNext step: /);
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain(
+      "verbatra MCP server running on stdio (project mcp-unconfigured, spend tools off)\n",
+    );
+    expect(result.stderr).toContain("Running without a usable project config: CONFIG_NOT_FOUND");
+    expect(result.stderr).toContain("npx verbatra init");
+
+    expect(toolResponse(configured.stdout, 2).result?.structuredContent).toMatchObject({
+      configured: true,
+      targetLocales: ["de"],
+    });
+    expect(toolResponse(configured.stdout, 3).result?.isError).toBeUndefined();
+    expect(configured.result.stderr).toContain("Loaded the project config from .verbatrarc.json");
+  }, 120_000);
+
+  it("verbatra-mcp starts in an empty directory and answers project.snapshot and project.doctor", async () => {
+    const emptyDir = join(consumer.dir, "mcp-standalone-unconfigured");
+    await mkdir(emptyDir, { recursive: true });
+    const standalone = {
+      ...consumer,
+      bin: join(consumer.dir, "node_modules", ".bin", "verbatra-mcp"),
+    };
+
+    const { result, stdout } = await exchangeThenCloseStdin(
+      spawnVerbatra(standalone, ["--cwd", emptyDir]),
+      [
+        [INITIALIZE_REQUEST, 1],
+        [INITIALIZED_NOTIFICATION, undefined],
+        [toolCall(2, "project.snapshot"), 2],
+        [toolCall(3, "project.doctor"), 3],
+      ],
+    );
+
+    expect(toolResponse(stdout, 2).result?.structuredContent).toMatchObject({ configured: false });
+    expect(toolResponse(stdout, 3).result?.structuredContent).toMatchObject({ ok: false });
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain("npx verbatra init");
   }, 120_000);
 
   describe("verbatra-mcp argument parsing", () => {

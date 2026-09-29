@@ -77,16 +77,19 @@ describe("startMcpServer: injected fs", () => {
     expect(await existsOnDisk(glossaryPath)).toBe(false);
     expect(connected.contexts).toHaveLength(1);
     const [options] = connected.contexts;
-    expect(options?.config.config.glossary).toEqual({ API: "API", Dashboard: "Armaturenbrett" });
-    expect(options?.fs).toBe(memory.fs);
-    expect(memory.servedPaths).toEqual([glossaryPath]);
+    const state = options?.project.latest();
+    if (options === undefined || state?.kind !== "configured") {
+      throw new Error("expected the server to start configured");
+    }
+    expect(state.loaded.config.glossary).toEqual({ API: "API", Dashboard: "Armaturenbrett" });
+    expect(options.fs).toBe(memory.fs);
+    const servedAtStartup = memory.servedPaths.length;
+    expect(servedAtStartup).toBeGreaterThan(0);
+    expect(new Set(memory.servedPaths)).toEqual(new Set([glossaryPath]));
 
     const outcome = await glossaryGetTool.execute(
       {},
-      makeContext({
-        ...(options !== undefined ? { config: options.config, cwd: options.cwd } : {}),
-        fs: memory.fs,
-      }),
+      makeContext({ config: state.loaded, cwd: options.cwd, fs: memory.fs }),
     );
 
     expect(outcome).toMatchObject({
@@ -99,6 +102,6 @@ describe("startMcpServer: injected fs", () => {
         ],
       },
     });
-    expect(memory.servedPaths.slice(1)).toEqual([glossaryPath]);
+    expect(memory.servedPaths.slice(servedAtStartup)).toEqual([glossaryPath]);
   });
 });

@@ -114,7 +114,9 @@ export {
 } from "./config/glossary-hits.js";
 export type { HumanEditsPolicy } from "./config/human-edits.js";
 export {
+  type ConfigCandidateOptions,
   type ConfigSource,
+  configCandidatePaths,
   type LoadConfigOptions,
   type LoadedConfig,
   loadConfig,

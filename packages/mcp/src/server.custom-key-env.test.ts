@@ -3,7 +3,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { type LoadedConfig, loadConfigWithMeta, redact } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createMcpServer } from "./server.js";
-import { makeProject } from "./test-support.js";
+import { makeProject, staticProject } from "./test-support.js";
 import type { McpServerOptions } from "./types.js";
 
 const KEY_ENV_VAR = "MCP_TEST_LOCAL_KEY";
@@ -57,7 +57,10 @@ describe("createMcpServer: a key read through a custom apiKeyEnvVar never reache
 
   it("redacts the value from a successful tool result", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: FAKE_KEY } });
-    const client = await connectedClient({ config: await loadCustomKeyConfig({}), cwd: dir });
+    const client = await connectedClient({
+      project: staticProject(await loadCustomKeyConfig({})),
+      cwd: dir,
+    });
 
     const result = await client.callTool({
       name: "key.value",
@@ -71,7 +74,7 @@ describe("createMcpServer: a key read through a custom apiKeyEnvVar never reache
   it("redacts the value from glossary entries", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const client = await connectedClient({
-      config: await loadCustomKeyConfig({ Leaked: FAKE_KEY }),
+      project: staticProject(await loadCustomKeyConfig({ Leaked: FAKE_KEY })),
       cwd: dir,
     });
 
@@ -85,7 +88,7 @@ describe("createMcpServer: a key read through a custom apiKeyEnvVar never reache
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     const logs: string[] = [];
     const client = await connectedClient({
-      config: await loadCustomKeyConfig({}),
+      project: staticProject(await loadCustomKeyConfig({})),
       cwd: dir,
       onLog: (line) => logs.push(line),
     });
@@ -143,7 +146,7 @@ describe("createMcpServer: declares the key variable of the config it receives",
     };
     expect(redact(`x ${fakeKey}`)).toBe(`x ${fakeKey}`);
 
-    createMcpServer({ config, cwd: "/project" });
+    createMcpServer({ project: staticProject(config), cwd: "/project" });
 
     expect(redact(`x ${fakeKey}`)).toBe("x [REDACTED]");
   });

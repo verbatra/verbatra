@@ -6,7 +6,7 @@ import {
   SdkError,
 } from "@verbatra/sdk";
 import { z } from "zod";
-import type { McpToolContext } from "../types.js";
+import type { McpToolContext, McpUnconfiguredContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
 
 export interface McpToolAnnotations {
@@ -28,6 +28,10 @@ export interface RegisteredMcpTool {
   readonly outputSchema: Readonly<Record<string, unknown>>;
   readonly annotations: McpToolAnnotations;
   execute(rawParams: unknown, context: McpToolContext): Promise<McpToolOutcome>;
+  executeUnconfigured?(
+    rawParams: unknown,
+    context: McpUnconfiguredContext,
+  ): Promise<McpToolOutcome>;
 }
 
 export interface McpToolConfig<Params, Result extends Readonly<Record<string, unknown>>> {
@@ -37,6 +41,10 @@ export interface McpToolConfig<Params, Result extends Readonly<Record<string, un
   readonly outputSchema: z.ZodObject & z.ZodType<Result>;
   readonly annotations: McpToolAnnotations;
   readonly handler: (params: Params, context: McpToolContext) => Promise<Result>;
+  readonly unconfiguredHandler?: (
+    params: Params,
+    context: McpUnconfiguredContext,
+  ) => Promise<Result>;
 }
 
 function formatValidationError(schema: z.ZodType, error: z.ZodError): string {
@@ -94,10 +102,44 @@ function rawErrorMessage(error: unknown): string {
   return String(error);
 }
 
-function describeToolError(error: unknown, cwd: string): string {
-  const described = projectRelativeMessage(rawErrorMessage(error), cwd);
+export function describeErrorMessage(error: unknown, cwd: string): string {
+  return projectRelativeMessage(rawErrorMessage(error), cwd);
+}
+
+export function describeToolError(error: unknown, cwd: string): string {
+  const described = describeErrorMessage(error, cwd);
   const hint = errorHint(error);
   return hint === undefined ? described : `${described}\nNext step: ${hint}`;
+}
+
+function createExecutor<
+  Params,
+  Result extends Readonly<Record<string, unknown>>,
+  Context extends { readonly cwd: string },
+>(
+  config: McpToolConfig<Params, Result>,
+  handler: (params: Params, context: Context) => Promise<Result>,
+): (rawParams: unknown, context: Context) => Promise<McpToolOutcome> {
+  return async (rawParams, context) => {
+    const parsed = config.paramsSchema.safeParse(rawParams ?? {});
+    if (!parsed.success) {
+      return {
+        kind: "invalid",
+        message: formatValidationError(config.paramsSchema, parsed.error),
+      };
+    }
+    let result: Result;
+    try {
+      result = await handler(parsed.data, context);
+    } catch (error) {
+      return { kind: "error", message: describeToolError(error, context.cwd) };
+    }
+    const mismatch = outputMismatch(config.outputSchema, result);
+    if (mismatch !== undefined) {
+      return { kind: "error", message: formatOutputMismatch(config, mismatch) };
+    }
+    return { kind: "ok", result };
+  };
 }
 
 export function defineTool<Params, Result extends Readonly<Record<string, unknown>>>(
@@ -114,25 +156,9 @@ export function defineTool<Params, Result extends Readonly<Record<string, unknow
     inputSchema,
     outputSchema,
     annotations: config.annotations,
-    async execute(rawParams, context) {
-      const parsed = config.paramsSchema.safeParse(rawParams ?? {});
-      if (!parsed.success) {
-        return {
-          kind: "invalid",
-          message: formatValidationError(config.paramsSchema, parsed.error),
-        };
-      }
-      let result: Result;
-      try {
-        result = await config.handler(parsed.data, context);
-      } catch (error) {
-        return { kind: "error", message: describeToolError(error, context.cwd) };
-      }
-      const mismatch = outputMismatch(config.outputSchema, result);
-      if (mismatch !== undefined) {
-        return { kind: "error", message: formatOutputMismatch(config, mismatch) };
-      }
-      return { kind: "ok", result };
-    },
+    execute: createExecutor(config, config.handler),
+    ...(config.unconfiguredHandler !== undefined
+      ? { executeUnconfigured: createExecutor(config, config.unconfiguredHandler) }
+      : {}),
   };
 }

@@ -1099,6 +1099,24 @@ Speicher kam (mit dem absoluten `filepath`, wenn es einen gibt), und `glossary` 
 Glossar fehlte, inline war oder aus einer Datei aufgelöst wurde. Nutze es, wenn du anzeigen musst,
 woher die Konfiguration kam.
 
+Beide nehmen `fresh: true`, um eine JavaScript- oder TypeScript-Konfigurationsdatei neu auszuwerten,
+statt wiederzuverwenden, was ein früheres Laden im selben Prozess ausgewertet hat; ein lang laufender
+Prozess, der die Konfiguration nach einer Änderung neu lädt, setzt es. JSON-, YAML- und
+`package.json`-Konfigurationen werden immer frisch gelesen.
+
+<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+Listet jede Datei, aus der `loadConfigWithMeta` mit denselben `{ cwd?, configPath? }` eine
+Konfiguration lesen könnte: nur die explizite Datei, wenn `configPath` gesetzt ist, sonst jeden
+Suchort in jedem Verzeichnis der Suchkette, das nächste zuerst, ob es die Datei gibt oder nicht.
+Beobachte diese Pfade, zum Beispiel über ihre Änderungszeiten, um zu bemerken, dass eine
+Konfiguration angelegt, bearbeitet oder entfernt wird, ohne sie bei jeder Anfrage zu laden. Die
+Glossardatei ist nicht dabei; `loadConfigWithMeta` nennt sie in `glossary`.
+
 ### readGlossaryFile
 
 <AvailableFrom version="0.9.0" />

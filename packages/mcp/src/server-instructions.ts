@@ -4,6 +4,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "Locale codes and key names come from that project, never from you.",
   "Recommended order: read before you write, and diff before you spend. " +
     "1. project.snapshot first, to learn the source locale, the target locales, the format, and the provider. " +
+    "If it reports configured: false, call project.doctor and follow the fix of each failed check before anything else. " +
     "2. status.check for missing, stale, and up-to-date counts per locale, then status.diff for the exact key names. " +
     "Both are read-only and call no provider. " +
     "3. To fix one key, read it with key.value, check placeholder and ICU drift with key.integrity, " +
@@ -14,6 +15,14 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "verbatra.provenance.json, under the reviewer name you pass. Call them only when the user has read the value " +
     "and told you which decision to record; never approve or reject your own translations or edits on your own " +
     "initiative. review.reject deletes the value from the locale file so it gets replaced.",
+  "Setup and config changes: project.doctor is always listed, is free, and checks the setup (config, format, " +
+    "provider, API key variable by name, network policy, source file), giving a fix for every failed check. " +
+    "The server starts even without a usable config: then project.snapshot reports configured: false, and every " +
+    "tool except project.snapshot and project.doctor refuses with the config error (CONFIG_NOT_FOUND or " +
+    "CONFIG_INVALID) and a Next step line. The server checks the config file and its glossary file for changes " +
+    "before each call and loads them again, so once the config is created or fixed the next call uses it without " +
+    "a restart. Re-read project.snapshot after a config change, and re-list tools when the server sends " +
+    "notifications/tools/list_changed.",
   "Spending: translation.retranslateEntry and translation.translatePending call the configured translation provider and bill it. " +
     "They are listed only when the operator started the server with --allow-spend (or VERBATRA_MCP_ALLOW_SPEND) " +
     "and the config's provider is not none. If they are absent, the operator chose not to spend: nothing is broken, " +

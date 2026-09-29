@@ -1068,6 +1068,24 @@ configuración vino de un acierto de búsqueda, de una ruta explícita o de una 
 el `filepath` absoluto cuando lo hay), y `glossary` registra si el glosario estaba ausente, en línea o
 resuelto desde un archivo. Úsalo cuando necesites mostrar de dónde salió la configuración.
 
+Ambas aceptan `fresh: true` para volver a evaluar un archivo de configuración en JavaScript o
+TypeScript en lugar de reutilizar lo que evaluó una carga anterior en el mismo proceso; un proceso de
+larga duración que recarga la configuración tras una edición lo activa. Las configuraciones JSON, YAML
+y de `package.json` siempre se leen de nuevo.
+
+<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+Lista cada archivo del que `loadConfigWithMeta` podría leer una configuración con los mismos
+`{ cwd?, configPath? }`: solo el archivo explícito cuando se indica `configPath`, y si no, cada lugar
+de búsqueda en cada directorio de la cadena de búsqueda, el más cercano primero, exista o no.
+Vigila estas rutas, por ejemplo por su fecha de modificación, para notar que una configuración se
+crea, se edita o se elimina sin cargarla en cada petición. El archivo de glosario no se incluye;
+`loadConfigWithMeta` lo nombra en `glossary`.
+
 ### readGlossaryFile
 
 <AvailableFrom version="0.9.0" />

@@ -1006,6 +1006,22 @@ the config came from a search hit, an explicit path, or an in-memory override (w
 `filepath` when there is one), and `glossary` records whether the glossary was absent, inline, or
 resolved from a file. Use it when you need to display where the config came from.
 
+Both take `fresh: true` to evaluate a JavaScript or TypeScript config file again instead of reusing
+what an earlier load in the same process evaluated; a long-running process that reloads the config
+after an edit sets it. JSON, YAML, and `package.json` configs are always read afresh.
+
+<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+Lists every file `loadConfigWithMeta` could read a config from with the same `{ cwd?, configPath? }`:
+the explicit file alone when `configPath` is set, otherwise each search place in each directory of
+the search chain, nearest first, whether or not it exists. Watch these paths, for example by their
+modification times, to notice a config being created, edited, or removed without loading it on
+every request. The glossary file is not included; `loadConfigWithMeta` names it in `glossary`.
+
 ### readGlossaryFile
 
 <AvailableFrom version="0.9.0" />

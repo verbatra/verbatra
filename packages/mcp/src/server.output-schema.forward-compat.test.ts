@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it, vi } from "vitest";
 import { createMcpServer } from "./server.js";
-import { baseLoadedConfig, makeProject } from "./test-support.js";
+import { baseLoadedConfig, makeProject, staticProject } from "./test-support.js";
 
 vi.mock("@verbatra/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@verbatra/sdk")>();
@@ -33,7 +33,7 @@ vi.mock("@verbatra/sdk", async (importOriginal) => {
 });
 
 async function connectedClient(dir: string): Promise<Client> {
-  const server = createMcpServer({ config: baseLoadedConfig(), cwd: dir });
+  const server = createMcpServer({ project: staticProject(baseLoadedConfig()), cwd: dir });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "1.0.0" });
   await server.connect(serverTransport);

@@ -1,5 +1,11 @@
 import { join } from "node:path";
-import { type McpSpendState, mcpReadyLine, mcpStoppedLine, mcpTerminalHint } from "@verbatra/mcp";
+import {
+  type McpSpendState,
+  mcpReadyLine,
+  mcpStoppedLine,
+  mcpTerminalHint,
+  mcpUnconfiguredHint,
+} from "@verbatra/mcp";
 import type { WatchController, WatchInput, WatchRunResult } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
@@ -108,6 +114,30 @@ describe("verbatra mcp: ready, hint and stopped lines on stderr", () => {
     await done;
 
     expect(cap.err()).toContain("(project ., spend tools off (provider none))");
+  });
+
+  it("adds the unconfigured hint after the ready line when the server started without a config", async () => {
+    const close = vi.fn(async () => {});
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async () =>
+            makeMcpHandle({ close, spend: "no-config", configured: false }),
+        }),
+    });
+    const cap = captureStreams();
+    const captured = sessionHooks();
+    const done = run(["mcp", "--allow-spend"], deps, cap.streams, captured.hooks, PIPED);
+    await flush();
+    captured.session().requestStop();
+
+    expect(await done).toBe(0);
+    expect(cap.err()).toBe(
+      [mcpReadyLine(".", "no-config"), ...mcpUnconfiguredHint(), mcpStoppedLine("signal"), ""].join(
+        "\n",
+      ),
+    );
+    expect(cap.out()).toBe("");
   });
 
   it("labels a --cwd project relative to the working directory", async () => {

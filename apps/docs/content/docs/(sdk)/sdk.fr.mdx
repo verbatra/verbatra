@@ -736,6 +736,16 @@ Lève `CONFIG_NOT_FOUND` quand rien n'est trouvé, `CONFIG_INVALID` quand une co
 
 Le même chargement, plus la provenance : renvoie `{ config, source, glossary }`, où `source` dit si la config vient d'une recherche, d'un chemin explicite ou d'une surcharge en mémoire (avec le `filepath` absolu quand il y en a un), et `glossary` note si le glossaire était absent, inline ou résolu depuis un fichier. Utilise-le quand tu dois afficher d'où vient la config.
 
+Les deux acceptent `fresh: true` pour réévaluer un fichier de config JavaScript ou TypeScript au lieu de réutiliser ce qu'un chargement précédent dans le même processus a évalué ; un processus de longue durée qui recharge la config après une modification l'active. Les configs JSON, YAML et `package.json` sont toujours relues.
+
+<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+Liste chaque fichier depuis lequel `loadConfigWithMeta` pourrait lire une config avec les mêmes `{ cwd?, configPath? }` : seulement le fichier explicite quand `configPath` est défini, sinon chaque emplacement de recherche dans chaque répertoire de la chaîne de recherche, le plus proche d'abord, qu'il existe ou non. Surveille ces chemins, par exemple par leur date de modification, pour remarquer qu'une config est créée, modifiée ou supprimée sans la charger à chaque requête. Le fichier de glossaire n'en fait pas partie ; `loadConfigWithMeta` le nomme dans `glossary`.
+
 ### readGlossaryFile
 
 <AvailableFrom version="0.9.0" />
