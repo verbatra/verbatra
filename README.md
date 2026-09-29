@@ -84,7 +84,7 @@ verbatra is built to be driven by a coding agent as well as by a person:
 
 Formats are a closed set of fourteen, each registered by an adapter that round-trips the file in its own document key order rather than rewriting it. See [Formats](https://verbatra.kreitz-webdev.de/docs/formats) for the list and what each adapter preserves.
 
-Providers are a closed set of six behind one narrow interface, four LLM and two machine translation, selected by a single `id` in your config. See [Providers](https://verbatra.kreitz-webdev.de/docs/providers) for each one's options, model ids, and key variable.
+Providers are a closed set of seven behind one narrow interface, four LLM and three machine translation, selected by a single `id` in your config. See [Providers](https://verbatra.kreitz-webdev.de/docs/providers) for each one's options, model ids, and key variable.
 
 A format or provider verbatra does not ship can be added from outside: the SDK re-exports the adapter factories and accepts a registry of your own. See [`.claude/rules/architecture.md`](./.claude/rules/architecture.md).
 
