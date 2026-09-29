@@ -5,7 +5,7 @@
 <h1 align="center">@verbatra/sdk</h1>
 
 <p align="center">
-  Programmatic API to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, or an openai-compatible local or self-hosted model.
+  Programmatic API to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, a self-hosted LibreTranslate server, or an openai-compatible local or self-hosted model.
 </p>
 
 <p align="center">

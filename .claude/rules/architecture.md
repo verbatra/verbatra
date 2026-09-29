@@ -136,15 +136,19 @@ descriptive only, nothing branches on it), `supportsGlossary`, and `translateBat
   `runLlmTranslation` layer (`packages/ai-providers/src/llm/run.ts`) by implementing an
   `LlmMechanism` that performs one HTTP call; they share one canonical response schema and one
   set of system rules. Do not fork this layer.
-- DeepL and Google Cloud Translation (Basic, v2) are the two `machine-translation` providers and
-  implement `translateBatch` directly (`packages/ai-providers/src/deepl/deepl-provider.ts`,
-  `packages/ai-providers/src/google-translate/`), since they take strings and return strings with
-  no prompt.
+- DeepL, Google Cloud Translation (Basic, v2) and a self-hosted LibreTranslate server are the three
+  `machine-translation` providers and implement `translateBatch` directly
+  (`packages/ai-providers/src/deepl/deepl-provider.ts`, `packages/ai-providers/src/google-translate/`,
+  `packages/ai-providers/src/libretranslate/`), since they take strings and return strings with no
+  prompt. How a placeholder-blind engine is kept away from placeholders lives in one place,
+  `packages/ai-providers/src/placeholder-protection.ts`: DeepL and Google withhold every
+  placeholder-bearing entry, LibreTranslate masks placeholders as numbered markers and restores
+  them.
 
 Resolution is a factory table, not the exported `ProviderRegistry`:
 `packages/sdk/src/config/provider-config.ts` defines `providerFactories`, a `ProviderFactories`
 mapped type over `MachineProviderId` (`"anthropic" | "openai" | "gemini" | "deepl" |
-"google-translate" | "openai-compatible"`), so a provider present in the config union but missing
+"google-translate" | "openai-compatible" | "libretranslate"`), so a provider present in the config union but missing
 from the factory table fails to compile. `ProviderId` additionally holds `"none"`, the human-only
 variant that disables machine translation by policy: it has no factory, no provider is ever
 constructed for it, and `isMachineProvider` / `machineTranslationDisabledError` in the

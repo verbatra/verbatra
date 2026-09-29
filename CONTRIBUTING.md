@@ -181,9 +181,12 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      enforce the prompt-injection boundary and schema-bound output.
    - A **machine-translation API** that takes strings and returns strings, with
      no prompt. Set `kind: "machine-translation"` and implement `translateBatch`
-     directly. DeepL and Google Cloud Translation are the two such providers
-     today; see `deepl/deepl-provider.ts` and
-     `google-translate/google-translate-provider.ts`.
+     directly. DeepL, Google Cloud Translation and LibreTranslate are the three
+     such providers today; see `deepl/deepl-provider.ts`,
+     `google-translate/google-translate-provider.ts` and
+     `libretranslate/libretranslate-provider.ts`. Keep placeholders away from
+     the engine through `placeholder-protection.ts` (withhold or mask), never
+     with a new mechanism of your own.
 
    The `kind` field is descriptive, not dispatch. Nothing branches on it; both
    kinds satisfy the same interface. Choose by asking whether you send a prompt.
@@ -201,7 +204,11 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    function argument.** An error message names the variable and never contains a
    key value. If your provider needs a user-selectable variable name, follow
    `resolveOpenAiCompatibleKey` (around `:39`) rather than inventing a third
-   pattern, and note that it still only ever reads `process.env`.
+   pattern, and note that it still only ever reads `process.env`. A key a
+   self-hosted server may not need at all follows `readLibreTranslateKey`: a
+   constant of its own in `key-env-vars.ts` (kept out of `PROVIDER_ENV`, which
+   lists required keys), included in `keyEnvVarNames` so its value is redacted,
+   and an optional reader that returns `undefined` instead of throwing.
 
 4. **`packages/ai-providers/src/scaffold.ts`** - only if `verbatra init` should
    offer the provider. Add a default model to `SCAFFOLD_MODELS` (around `:5`) and
@@ -251,7 +258,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
    `_envCoversAllProviders` (around `:20`) requires an env entry for every
-   provider except `openai-compatible` and `none`, and
+   provider except `openai-compatible`, `libretranslate` and `none`, and
    `_tokenLimitKeysCoverAllModelProviders` (around `:25`) requires a token-limit
    key for every one of those except `deepl` and `google-translate`, the two that
    take no model. Both are unused declarations that exist only to fail the
