@@ -239,7 +239,7 @@ Un fichier de locale en arbre (la famille JSON, YAML et ARB) peut porter une feu
 
 Les formats ci-dessus sont ceux que verbatra fournit. Un format qu'il ne fournit pas, tu peux l'apporter toi-même avec un adaptateur dans ton propre paquet : tu le nommes avec un identifiant `custom:` comme `custom:toml` et tu le remets à verbatra au sein d'un registre. L'ensemble intégré reste fermé, et aucun nom intégré ne contient de deux-points, donc un identifiant tiers ne peut jamais en masquer un.
 
-C'est une voie programmatique via `@verbatra/sdk`, pas une voie en ligne de commande : le binaire `verbatra` ne charge aucun plugin de lui-même. Un adaptateur que tu installes est du code pleinement de confiance, au niveau de confiance de n'importe quelle autre dépendance, et verbatra ne l'exécute pas dans un bac à sable. Voir [Adaptateurs de format personnalisés](/docs/custom-format-adapters) pour savoir comment en construire un et ce à quoi tu accordes ta confiance en l'installant.
+C'est une voie programmatique via `@verbatra/sdk`, pas une voie en ligne de commande : le binaire `verbatra` ne charge aucun plugin de lui-même. Un adaptateur que tu installes est du code pleinement de confiance, au niveau de confiance de n'importe quelle autre dépendance, et verbatra ne l'exécute pas dans un bac à sable. Voir [Écrire un adaptateur de format personnalisé](/docs/custom-format-adapters) pour savoir comment en construire un et ce à quoi tu accordes ta confiance en l'installant.
 
 ## Balisage en ligne dans les valeurs
 

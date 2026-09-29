@@ -4,7 +4,7 @@ description: "Steuere verbatra aus einem Shell-Skript oder einer Agenten-Schleif
 ---
 Nutze diese Seite, wenn ein Skript oder ein Coding-Agent verbatra ausführt und entscheiden muss, was als Nächstes passiert. Jeder einmalige Befehl nimmt `--json` an und gibt einen Envelope auf stdout aus, und der Exit-Code sagt, ob der Lauf sauber war. Die Rezepte unten führen aus, parsen, entscheiden und handeln auf echter, aufgezeichneter Ausgabe.
 
-Der Vertrag selbst steht unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output): die Felder des Envelopes, die Exit-Code-Tabelle und welche Befehle `--json` annehmen. Das `result` jedes Befehls steht auf seiner Befehlsseite. Um das Dashboard in einem Browser statt in einer Shell zu steuern, siehe [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio).
+Der Vertrag selbst steht unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output): die Felder des Envelopes, die Exit-Code-Tabelle und welche Befehle `--json` annehmen. Das `result` jedes Befehls steht auf seiner Befehlsseite. Um das Dashboard in einem Browser statt in einer Shell zu steuern, siehe [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio).
 
 Die Rezepte lesen stdout mit `jq`; jeder JSON-Parser funktioniert.
 

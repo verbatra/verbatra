@@ -239,7 +239,7 @@ Eine baumbasierte Locale-Datei (die JSON-Familie, YAML und ARB) kann ein Blatt t
 
 Die Formate oben sind die, die verbatra mitbringt. Ein Format, das es nicht mitbringt, kannst du über einen Adapter in deinem eigenen Paket liefern: Du benennst es mit einem `custom:`-Bezeichner wie `custom:toml` und übergibst es verbatra als Teil einer Registry. Die eingebaute Menge bleibt geschlossen, und kein eingebauter Name enthält einen Doppelpunkt, ein Bezeichner von außen kann also nie einen eingebauten überdecken.
 
-Das ist ein programmatischer Weg über `@verbatra/sdk`, kein Weg über die Kommandozeile: Das `verbatra`-Binary lädt von sich aus kein Plugin. Ein Adapter, den du installierst, ist voll vertrauenswürdiger Code auf dem Vertrauensniveau jeder anderen Abhängigkeit, und verbatra kapselt ihn nicht ab. Wie du einen baust und worauf du dich beim Installieren einlässt, steht unter [Eigene Format-Adapter](/docs/custom-format-adapters).
+Das ist ein programmatischer Weg über `@verbatra/sdk`, kein Weg über die Kommandozeile: Das `verbatra`-Binary lädt von sich aus kein Plugin. Ein Adapter, den du installierst, ist voll vertrauenswürdiger Code auf dem Vertrauensniveau jeder anderen Abhängigkeit, und verbatra kapselt ihn nicht ab. Wie du einen baust und worauf du dich beim Installieren einlässt, steht unter [Einen eigenen Format-Adapter schreiben](/docs/custom-format-adapters).
 
 ## Inline-Markup in Werten
 
