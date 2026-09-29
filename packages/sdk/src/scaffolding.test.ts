@@ -31,6 +31,7 @@ describe("scaffoldingMetadata", () => {
     expect(Object.keys(scaffoldingMetadata).sort()).toEqual([
       "configSearchPlaces",
       "humanOnlyProviderId",
+      "libreTranslateKeyEnv",
       "openAiCompatibleKeyEnv",
       "providerEnv",
       "providerTokenLimitKeys",
@@ -60,10 +61,10 @@ describe("scaffoldingMetadata", () => {
     });
   });
 
-  it("covers every ProviderId in providerEnv except openai-compatible and none", () => {
+  it("covers every ProviderId in providerEnv except openai-compatible, libretranslate and none", () => {
     const providerIds = providerConfigSchema.options
       .map((variant) => variant.shape.id.value as ProviderId)
-      .filter((id) => id !== "openai-compatible" && id !== "none");
+      .filter((id) => id !== "openai-compatible" && id !== "libretranslate" && id !== "none");
     for (const id of providerIds) {
       const envVar = scaffoldingMetadata.providerEnv[id as ScaffoldableProviderId];
       expect(envVar).toBeTypeOf("string");
@@ -76,6 +77,11 @@ describe("scaffoldingMetadata", () => {
     const providerIds = providerConfigSchema.options.map((variant) => variant.shape.id.value);
     expect(providerIds).toContain("openai-compatible");
     expect(scaffoldingMetadata.providerEnv).not.toHaveProperty("openai-compatible");
+  });
+
+  it("omits libretranslate and names its optional key variable separately", () => {
+    expect(scaffoldingMetadata.providerEnv).not.toHaveProperty("libretranslate");
+    expect(scaffoldingMetadata.libreTranslateKeyEnv).toBe("LIBRETRANSLATE_API_KEY");
   });
 
   it("omits none: human-only mode reads no API key at all", () => {

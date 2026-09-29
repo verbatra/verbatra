@@ -1,4 +1,5 @@
 import {
+  LIBRETRANSLATE_ENV_VAR,
   OPENAI_COMPATIBLE_ENV_VAR,
   PROVIDER_ENV,
   processEnvironment,
@@ -364,6 +365,16 @@ function checkOpenAiCompatibleKey(apiKeyEnvVar: string | undefined): DoctorCheck
   return envVarVerdict(apiKeyEnvVar);
 }
 
+function checkLibreTranslateKey(): DoctorCheck {
+  return isEnvVarSet(LIBRETRANSLATE_ENV_VAR)
+    ? verdict("api-key", true, `${LIBRETRANSLATE_ENV_VAR} is set.`)
+    : verdict(
+        "api-key",
+        true,
+        `The libretranslate provider needs no API key. Set ${LIBRETRANSLATE_ENV_VAR} only if your server runs with --api-keys and requires one.`,
+      );
+}
+
 function checkApiKey(provider: ProviderConfig): DoctorCheck {
   if (!isMachineProvider(provider)) {
     return verdict(
@@ -372,8 +383,11 @@ function checkApiKey(provider: ProviderConfig): DoctorCheck {
       "No API key is needed: machine translation is disabled by policy, so none is read.",
     );
   }
-  return provider.id === "openai-compatible"
-    ? checkOpenAiCompatibleKey(provider.options.apiKeyEnvVar)
+  if (provider.id === "openai-compatible") {
+    return checkOpenAiCompatibleKey(provider.options.apiKeyEnvVar);
+  }
+  return provider.id === "libretranslate"
+    ? checkLibreTranslateKey()
     : envVarVerdict(PROVIDER_ENV[provider.id]);
 }
 
@@ -555,9 +569,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * detail is the same message those entry points raise. When the configured format resolves to no
  * adapter there is nothing to parse with, so the check falls back to existence alone and says so.
  *
- * The `openai-compatible` provider is the one exception on the key check. It falls back to a
- * placeholder key, so a missing variable passes unless the config names its own variable through
- * `provider.options.apiKeyEnvVar`, which then has to be set.
+ * The `openai-compatible` and `libretranslate` providers are the exceptions on the key check. The
+ * first falls back to a placeholder key, so a missing variable passes unless the config names its
+ * own variable through `provider.options.apiKeyEnvVar`, which then has to be set. The second sends
+ * `LIBRETRANSLATE_API_KEY` only when it is set, so a missing variable always passes: a server that
+ * does require a key fails the run with `MISSING_API_KEY` naming that variable.
  *
  * The `network-policy` check reports the effective network policy and the host the configured
  * provider connects to, and fails when the policy refuses that host, exactly as {@link translate}

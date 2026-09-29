@@ -15,6 +15,7 @@ const VALID_PROVIDERS = [
     id: "openai-compatible",
     options: { baseUrl: "http://localhost:1234", model: "m", maxOutputTokens: 1 },
   },
+  { id: "libretranslate", options: { baseUrl: "http://localhost:5000" } },
   { id: "none", options: {} },
 ] as const;
 

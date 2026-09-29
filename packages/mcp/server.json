@@ -63,6 +63,12 @@
           "description": "API key for the openai-compatible provider, read only by the provider-calling tools.",
           "isRequired": false,
           "isSecret": true
+        },
+        {
+          "name": "LIBRETRANSLATE_API_KEY",
+          "description": "API key for the libretranslate provider, needed only when the server runs with --api-keys, read only by the provider-calling tools.",
+          "isRequired": false,
+          "isSecret": true
         }
       ]
     }

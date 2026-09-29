@@ -3,6 +3,7 @@ import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { supportsFormality } from "../language-support.js";
 import { resolveProviderLocale } from "../locale-map.js";
+import { partitionByPlaceholders } from "../placeholder-protection.js";
 import {
   type PlaceholderComparator,
   type PlaceholderExtractor,
@@ -19,7 +20,7 @@ import { DEEPL_LANGUAGE_TABLE } from "./languages.js";
 import { chunkTextsForDeepL } from "./limits.js";
 import { toDeepLSourceCode, toDeepLTargetCode } from "./locale-codes.js";
 import { assertValidDeepLSourceLocale, assertValidDeepLTargetLocale } from "./locale-validation.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE, partitionByPlaceholders } from "./placeholders.js";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
 import { buildTranslateOptions } from "./request.js";
 import { zipResults } from "./response.js";
 import type {

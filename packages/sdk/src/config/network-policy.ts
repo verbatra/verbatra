@@ -40,7 +40,7 @@ export function resolveNetworkPolicy(
 }
 
 export function endpointTargetOf(provider: MachineProviderConfig): EndpointTarget {
-  return provider.id === "openai-compatible"
+  return provider.id === "openai-compatible" || provider.id === "libretranslate"
     ? { id: provider.id, baseUrl: provider.options.baseUrl }
     : { id: provider.id };
 }

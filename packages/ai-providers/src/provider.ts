@@ -322,6 +322,7 @@ export interface ProviderLanguageTable {
   readonly origin: ProviderLanguageTableOrigin;
   readonly documentation: readonly string[];
   readonly languages: readonly ProviderLanguage[];
+  readonly partial?: true;
 }
 
 export interface LiveLanguageRequest {

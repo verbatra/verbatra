@@ -11,12 +11,12 @@ branches on which one is configured.
 
 ## Responsibilities
 
-- **One interface, six implementations.** Anthropic, OpenAI, Gemini and openai-compatible are
-  `kind: "llm"`; DeepL and Google Cloud Translation are `kind: "machine-translation"`, a
-  descriptive label, not a branch point.
+- **One interface, seven implementations.** Anthropic, OpenAI, Gemini and openai-compatible are
+  `kind: "llm"`; DeepL, Google Cloud Translation and LibreTranslate are
+  `kind: "machine-translation"`, a descriptive label, not a branch point.
 - **One shared LLM layer.** The four LLM providers route through `runLlmTranslation`
   (`src/llm/run.ts`) by implementing an `LlmMechanism` that performs one HTTP call, sharing one
-  response schema and one set of compile-time system rules. The two machine-translation providers
+  response schema and one set of compile-time system rules. The three machine-translation providers
   implement `translateBatch` directly, taking strings and returning strings with no prompt.
 - **Key handling.** `src/env.ts` owns `PROVIDER_ENV` and the `require<Name>Key()` helpers.
 - **Structured failure.** Every provider failure surfaces as a `ProviderError` with a stable code,

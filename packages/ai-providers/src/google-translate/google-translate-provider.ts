@@ -3,6 +3,7 @@ import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import type { ProviderNetwork } from "../network/transport.js";
+import { partitionByPlaceholders } from "../placeholder-protection.js";
 import {
   type PlaceholderComparator,
   type PlaceholderExtractor,
@@ -19,7 +20,7 @@ import { GOOGLE_TRANSLATE_ENDPOINT_HOST } from "./endpoint.js";
 import { chunkTextsForGoogleTranslate } from "./limits.js";
 import { toGoogleTranslateCode } from "./locale-codes.js";
 import { assertValidGoogleTranslateLocale } from "./locale-validation.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE, partitionByPlaceholders } from "./placeholders.js";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
 import { buildTranslateNotices } from "./request.js";
 import { parseGoogleTranslateHttpResult, zipResults } from "./response.js";
 import type {

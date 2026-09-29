@@ -4,7 +4,7 @@ import { type EnvironmentSource, readTrimmed } from "./environment-rule.js";
 
 export type EndpointTarget =
   | { readonly id: "anthropic" | "openai" | "gemini" | "deepl" | "google-translate" }
-  | { readonly id: "openai-compatible"; readonly baseUrl: string };
+  | { readonly id: "openai-compatible" | "libretranslate"; readonly baseUrl: string };
 
 export type EndpointTransport = "fetch" | "axios";
 
@@ -73,6 +73,7 @@ export function resolveProviderEndpoint(
     case "google-translate":
       return { url: GOOGLE_TRANSLATE_ENDPOINT, knownPublic: true, transport: "fetch" };
     case "openai-compatible":
+    case "libretranslate":
       return { url: target.baseUrl, knownPublic: false, transport: "fetch" };
   }
 }

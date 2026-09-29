@@ -31,7 +31,9 @@ import type { LocaleSummary, SdkNotice, SdkNoticeCode } from "./summary.js";
  * - `unverified`: the code is not on the list itself but may still work: only its base language is
  *   listed (`de-AT` sent as `de-AT` where the list has `de`), or it comes from an explicit
  *   `provider.options.localeMap` entry, which is trusted so a language the provider added after the
- *   list was dated can still be used. It is translated, with a warning.
+ *   list was dated can still be used, or the provider is a self-hosted `libretranslate` server,
+ *   whose languages are the models installed on it and are only known from its live list. It is
+ *   translated, with a warning.
  * - `unsupported`: neither the code nor its base language is on the list. {@link translate},
  *   {@link watch}, and {@link retranslateEntry} refuse it with `LOCALE_UNSUPPORTED_BY_PROVIDER`
  *   before anything is spent.
@@ -91,7 +93,7 @@ export interface LocaleCapability {
   /**
    * Whether the provider can apply a glossary for the pair of the source language and this
    * language. Always true for an LLM provider, which receives the glossary as data, and always
-   * false for Google Cloud Translation Basic, which has no glossaries. For DeepL it is true when
+   * false for Google Cloud Translation Basic and LibreTranslate, which have no glossaries. For DeepL it is true when
    * both languages are on its glossary list, which is what a native `glossaryId` needs.
    */
   readonly glossary: boolean;
@@ -123,7 +125,10 @@ export interface LanguageTableRefresh {
  * What the configured provider supports for the configured locales, judged before anything is
  * spent. A machine-translation provider (`deepl`, `google-translate`) is judged against a language
  * table verbatra ships, transcribed from the provider's documentation and dated; an LLM provider
- * accepts any locale and is judged against a list of languages it is known to handle well.
+ * accepts any locale and is judged against a list of languages it is known to handle well. A
+ * self-hosted `libretranslate` server offers only the language models installed on it, so its
+ * shipped table lists no language and every locale is `unverified` until a live list fetched from
+ * the server (`doctor --locales --live`) is judged instead.
  */
 export interface LocaleCapabilityReport {
   /** The configured provider. */
@@ -172,7 +177,13 @@ function listedSupport(
   if (match === "exact") {
     return "supported";
   }
-  return match === "base" || code.mapped ? "unverified" : "unsupported";
+  return match === "base" || code.mapped || table.partial === true ? "unverified" : "unsupported";
+}
+
+function unverifiedReason(code: ProviderCode): string {
+  return code.mapped
+    ? "it comes from provider.options.localeMap, so it is sent as configured"
+    : "only its base language is listed, so the provider may reject or generalize it";
 }
 
 function unverifiedWarning(
@@ -181,12 +192,15 @@ function unverifiedWarning(
   code: ProviderCode,
   table: ProviderLanguageTable,
 ): LocaleCapabilityWarning {
-  const reason = code.mapped
-    ? "it comes from provider.options.localeMap, so it is sent as configured"
-    : "only its base language is listed, so the provider may reject or generalize it";
+  if (table.partial === true && !code.mapped) {
+    return warning(
+      "LOCALE_UNVERIFIED_BY_PROVIDER",
+      `The locale ${sentAs(locale, code)} was not checked against the ${provider} server: a self-hosted server translates only the language models installed on it, so run verbatra doctor --locales --live to check it.`,
+    );
+  }
   return warning(
     "LOCALE_UNVERIFIED_BY_PROVIDER",
-    `The locale ${sentAs(locale, code)} is not on the ${provider} language table of ${table.version}: ${reason}.`,
+    `The locale ${sentAs(locale, code)} is not on the ${provider} language table of ${table.version}: ${unverifiedReason(code)}.`,
   );
 }
 
@@ -315,7 +329,7 @@ export function assessProviderLocales(
   locales: readonly string[],
   liveTable?: ProviderLanguageTable,
 ): LocaleCapabilityReport {
-  const support = languageSupportOf(provider.id);
+  const support = languageSupportOf(provider);
   const localeMap = provider.options.localeMap;
   const assessment: Assessment = {
     config,

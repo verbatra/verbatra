@@ -86,6 +86,25 @@ describe("assertEndpointPermitted", () => {
     });
     expect(endpointTargetOf(anthropic)).toEqual({ id: "anthropic" });
   });
+
+  it("maps libretranslate to its base URL, so a loopback server passes local-only", () => {
+    const loopback = {
+      id: "libretranslate",
+      options: { baseUrl: "http://127.0.0.1:5000" },
+    } as const;
+    expect(endpointTargetOf(loopback)).toEqual({
+      id: "libretranslate",
+      baseUrl: "http://127.0.0.1:5000",
+    });
+    expect(() => assertEndpointPermitted(loopback, localOnly, {})).not.toThrow();
+    expect(() =>
+      assertEndpointPermitted(
+        { id: "libretranslate", options: { baseUrl: "http://203.0.113.7:5000" } },
+        localOnly,
+        {},
+      ),
+    ).toThrow(expect.objectContaining({ code: "NETWORK_POLICY_VIOLATION" }));
+  });
 });
 
 describe("assertProviderNetworkPermitted", () => {

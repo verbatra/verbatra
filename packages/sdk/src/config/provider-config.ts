@@ -4,11 +4,13 @@ import {
   createDeepLProvider,
   createGeminiProvider,
   createGoogleTranslateProvider,
+  createLibreTranslateProvider,
   createOpenAiCompatibleProvider,
   createOpenAiProvider,
   deepLConfigSchema,
   geminiConfigSchema,
   googleTranslateConfigSchema,
+  libreTranslateConfigSchema,
   openAiCompatibleConfigSchema,
   openAiConfigSchema,
   type ProviderNetwork,
@@ -37,6 +39,10 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
     id: z.literal("openai-compatible"),
     options: openAiCompatibleConfigSchema.strict(),
   }),
+  z.strictObject({
+    id: z.literal("libretranslate"),
+    options: libreTranslateConfigSchema.strict(),
+  }),
   z.strictObject({ id: z.literal("none"), options: z.strictObject({}).default({}) }),
 ]);
 
@@ -57,8 +63,9 @@ export const providerConfigSchema = z.discriminatedUnion("id", [
  * keep the configured one. A locale without an entry gets the provider's built-in normalization:
  * DeepL receives a source language without region or script (`en-US` is sent as `EN`) and a target
  * mapped to its own variants (`zh-Hant` and `zh-TW` are sent as `ZH-HANT`), Google Cloud
- * Translation receives `zh-TW` for Traditional and `zh-CN` for Simplified Chinese, and the LLM
- * providers receive the configured code unchanged.
+ * Translation receives `zh-TW` for Traditional and `zh-CN` for Simplified Chinese, LibreTranslate
+ * receives the base language (`de-AT` is sent as `de`) except `pt-BR`, `zh-Hans`, and `zh-Hant`,
+ * and the LLM providers receive the configured code unchanged.
  *
  * The `none` variant disables machine translation by policy. Its `options` is always an empty
  * object, filled in when omitted, so `provider.options` exists on every variant: no provider is
@@ -76,9 +83,10 @@ export type ProviderConfigInput = z.input<typeof providerConfigSchema>;
 
 /**
  * The identifier of a supported translation provider: `anthropic`, `openai`, `gemini`, `deepl`,
- * `google-translate`, `openai-compatible`, or `none`. `openai-compatible` targets a local or
- * self-hosted server that speaks the OpenAI chat-completions API; `none` disables machine
- * translation altogether.
+ * `google-translate`, `openai-compatible`, `libretranslate`, or `none`. `openai-compatible` targets a
+ * local or self-hosted server that speaks the OpenAI chat-completions API; `libretranslate` targets
+ * a self-hosted LibreTranslate server, a machine-translation API with no language model behind it;
+ * `none` disables machine translation altogether.
  */
 export type ProviderId = ProviderConfig["id"];
 
@@ -121,6 +129,7 @@ const providerFactories: ProviderFactories = {
     createGoogleTranslateProvider(options, networkDeps(context)),
   "openai-compatible": (options, context) =>
     createOpenAiCompatibleProvider(options, retryingDeps(context)),
+  libretranslate: (options, context) => createLibreTranslateProvider(options, networkDeps(context)),
 };
 
 export const PROVIDER_IDS = Object.keys(providerFactories) as readonly MachineProviderId[];

@@ -24,8 +24,10 @@ function failed(detail: string): LiveRefreshOutcome {
   return { refresh: { status: "failed", detail } };
 }
 
-function keyVariableOf(provider: MachineProviderConfig): string | undefined {
-  return provider.id === "openai-compatible" ? undefined : PROVIDER_ENV[provider.id];
+function requiredKeyVariableOf(provider: MachineProviderConfig): string | undefined {
+  return provider.id === "openai-compatible" || provider.id === "libretranslate"
+    ? undefined
+    : PROVIDER_ENV[provider.id];
 }
 
 function isSet(env: EnvironmentSource, name: string): boolean {
@@ -43,16 +45,16 @@ export async function refreshLanguageTable(
   network: NetworkConfig | undefined,
   env: EnvironmentSource,
 ): Promise<LiveRefreshOutcome> {
-  const support = languageSupportOf(provider.id);
+  const support = languageSupportOf(provider);
   if (support.coverage === "open" || support.fetchLive === undefined) {
     return skipped(
       `Provider "${provider.id}" has no language list to fetch: it accepts any locale.`,
     );
   }
-  const keyVariable = keyVariableOf(provider);
-  if (keyVariable === undefined || !isSet(env, keyVariable)) {
+  const keyVariable = requiredKeyVariableOf(provider);
+  if (keyVariable !== undefined && !isSet(env, keyVariable)) {
     return skipped(
-      `${keyVariable ?? "The API key variable"} is not set, so no request was sent and the static table of ${support.table.version} was used.`,
+      `${keyVariable} is not set, so no request was sent and the static table of ${support.table.version} was used.`,
     );
   }
   try {

@@ -8,6 +8,8 @@ export const PROVIDER_ENV = {
 
 export const OPENAI_COMPATIBLE_ENV_VAR = "OPENAI_COMPATIBLE_API_KEY";
 
+export const LIBRETRANSLATE_ENV_VAR = "LIBRETRANSLATE_API_KEY";
+
 export const DECLARED_KEY_ENV_VARS = Symbol.for("verbatra.keyEnvVars.v1");
 
 type RegistryScope = Record<typeof DECLARED_KEY_ENV_VARS, Set<string> | undefined>;
@@ -28,5 +30,10 @@ export function declareKeyEnvVar(name: string): void {
 }
 
 export function keyEnvVarNames(): readonly string[] {
-  return [...Object.values(PROVIDER_ENV), OPENAI_COMPATIBLE_ENV_VAR, ...declaredKeyEnvVars()];
+  return [
+    ...Object.values(PROVIDER_ENV),
+    OPENAI_COMPATIBLE_ENV_VAR,
+    LIBRETRANSLATE_ENV_VAR,
+    ...declaredKeyEnvVars(),
+  ];
 }

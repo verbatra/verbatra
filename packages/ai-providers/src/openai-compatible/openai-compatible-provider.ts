@@ -1,3 +1,4 @@
+import { endpointContextOf } from "../base-url.js";
 import type { ProviderCallContext } from "../guard.js";
 import { declareKeyEnvVar } from "../key-env-vars.js";
 import { type LlmMechanism, runLlmTranslation } from "../llm/run.js";
@@ -9,11 +10,7 @@ import type { TranslateRequest, TranslateResult, TranslationProvider } from "../
 import type { ProviderRetryListener } from "../provider-retry.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
 import { createDefaultClient } from "./client.js";
-import {
-  endpointContextOf,
-  type OpenAiCompatibleConfig,
-  openAiCompatibleConfigSchema,
-} from "./config.js";
+import { type OpenAiCompatibleConfig, openAiCompatibleConfigSchema } from "./config.js";
 
 const PROVIDER_ID = "openai-compatible";
 

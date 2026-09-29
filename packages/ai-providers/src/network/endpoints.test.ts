@@ -60,6 +60,12 @@ describe("resolveProviderEndpoint", () => {
       ),
     ).toEqual({ url: "http://localhost:11434/v1", knownPublic: false, transport: "fetch" });
   });
+
+  it("uses the configured base URL for libretranslate", () => {
+    expect(
+      resolveProviderEndpoint({ id: "libretranslate", baseUrl: "http://127.0.0.1:5000" }, {}),
+    ).toEqual({ url: "http://127.0.0.1:5000", knownPublic: false, transport: "fetch" });
+  });
 });
 
 describe("proxiesInEffect", () => {

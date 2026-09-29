@@ -52,7 +52,12 @@ export {
 } from "./google-translate/google-translate-provider.js";
 export { googleTranslateLanguageSupport } from "./google-translate/language-support.js";
 export type { GoogleTranslateResult } from "./google-translate/types.js";
-export { declareKeyEnvVar, OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
+export {
+  declareKeyEnvVar,
+  LIBRETRANSLATE_ENV_VAR,
+  OPENAI_COMPATIBLE_ENV_VAR,
+  PROVIDER_ENV,
+} from "./key-env-vars.js";
 export {
   isWellTestedLanguage,
   type LanguageMatch,
@@ -63,6 +68,16 @@ export {
   supportsFormality,
   supportsGlossaryPair,
 } from "./language-support.js";
+export {
+  type LibreTranslateConfig,
+  libreTranslateConfigSchema,
+} from "./libretranslate/config.js";
+export { libreTranslateLanguageSupport } from "./libretranslate/language-support.js";
+export {
+  createLibreTranslateProvider,
+  type LibreTranslateDeps,
+} from "./libretranslate/libretranslate-provider.js";
+export type { LibreTranslateResult } from "./libretranslate/types.js";
 export {
   type DataPayloadInput,
   dataPayloadCharacters,
