@@ -1,0 +1,83 @@
+---
+title: "Fehler"
+description: "Das SdkError-Modell: jeder Code, wann er geworfen wird und welche Fehler eine Ursache mitführen."
+---
+## Das Fehlermodell
+
+Fehlschläge des gesamten Laufs werfen einen `SdkError`: eine Klasse, ein stabiler `code` und eine
+`message` ohne Secrets. Verzweige auf den Code, nicht auf die Message. Fehlschläge pro Locale,
+Provider-Notices und Integritätsbefunde kommen als Daten auf der `RunSummary` an, werden nie
+geworfen.
+
+| Code | Wann |
+| --- | --- |
+| `CONFIG_NOT_FOUND` | die Suche fand keine Konfiguration, oder ein explizites `configPath` existiert nicht (geworfen von `loadConfig`) |
+| `CONFIG_INVALID` | eine Konfiguration wurde gefunden, ist aber nicht parsebar oder fällt durch die Validierung, oder ihre Glossardatei konnte nicht aufgelöst werden; `translate` (auch als Dry-Run, außer beim Provider `none`) und `retranslateEntry` werfen ihn außerdem, wenn `VERBATRA_NETWORK_POLICY` oder `VERBATRA_NETWORK_ALLOWED_HOSTS` einen ungültigen Wert enthält, bevor ein Provider gebaut wird |
+| `UNKNOWN_FORMAT` | für das konfigurierte Format ist kein Adapter registriert; geworfen, bevor irgendeine Datei gelesen wird |
+| `UNKNOWN_LOCALE` | eine angefragte Locale gehört nicht zu den konfigurierten Ziel-Locales |
+| `UNKNOWN_KEY` | ein angefragter Key ist nicht in der Quell-Ressource (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) |
+| `KEY_PROTECTED` | `retranslateEntry` hat es abgelehnt, einen Wert zu ersetzen, den ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, weil weder `includeHuman` noch `humanEdits: "overwrite"` es erlaubt hat |
+| `KEY_PINNED` | der Key passt auf die `pinnedKeys` der Konfiguration, also wurde ein maschineller Schreibvorgang abgelehnt (`retranslateEntry` und `editEntry` mit `actor: "agent"`) |
+| `PROVIDER_CONSTRUCTION_FAILED` | der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys |
+| `MACHINE_TRANSLATION_DISABLED` | die Konfiguration setzt `provider: { id: "none" }`, also wurde eine kostenpflichtige Provider-Aktion abgelehnt, bevor ein Provider gebaut wurde (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` und `watch` werfen ihn nie |
+| `NETWORK_POLICY_VIOLATION` | die wirksame [Netzwerkrichtlinie](/docs/network-policy) erlaubt den Endpunkt des Providers oder seinen Proxy nicht; geworfen von `translate` außerhalb eines Probelaufs, von `watch` beim Start und von `retranslateEntry`, bevor der Provider gebaut oder ein API-Key gelesen wird |
+| `SOURCE_UNREADABLE` | die Quell-Locale-Datei existiert nicht |
+| `SOURCE_INVALID` | die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters |
+| `LOCK_FILE_INVALID` | die Lock-Datei ist vorhanden, aber korrupt, übergroß oder in einer nicht unterstützten Version |
+| `PROVENANCE_FILE_INVALID` | die Herkunftsdatei ist vorhanden, aber korrupt, übergroß oder falsch aufgebaut; geworfen von einem Schreibvorgang (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`), bevor er etwas ändert, und von `loadProvenance`, nie von einem Bericht; eine von einem neueren verbatra bleibt stattdessen unangetastet, und `translate`, `watch` und `importWorkbook` melden die Notice `PROVENANCE_VERSION_UNRECOGNIZED` |
+| `PROVENANCE_FILE_UNWRITABLE` | eine Review-Entscheidung ließ sich nicht speichern, weil die Herkunftsdatei von einem neueren verbatra stammt oder über die Größe wachsen würde, die verbatra wieder einliest (`approveEntry`, `rejectEntry`); nichts wird geschrieben |
+| `REVIEW_VALUE_CHANGED` | der Key hat keinen Wert, oder sein Wert ist nicht der `expectedValue`, den die prüfende Person gesehen hat, oder `expectedValue` ist kein String (`approveEntry`, `rejectEntry`) |
+| `REVIEW_SOURCE_CHANGED` | die Quelle hat sich geändert, seit der Wert geschrieben wurde, also lässt er sich so nicht freigeben (`approveEntry`) |
+| `REVIEW_REJECT_UNSUPPORTED` | das Format behält den Wert eines Keys, wenn die Datei ohne ihn geschrieben wird, wie XLIFF, oder die Locale-Datei ist zu groß, um eine Kopie zum Wiederherstellen aufzuheben, also hat `rejectEntry` die Datei gelassen, wie sie war |
+| `REVIEW_RESTORE_FAILED` | `rejectEntry` ist nach dem Umschreiben der Locale-Datei gescheitert, und auch das Wiederherstellen der Locale-Datei oder der Herkunftsdatei schlug fehl; die Message nennt den ursprünglichen Fehler (auch die `cause`) und die Dateien, die du aus der Versionskontrolle wiederherstellst |
+| `REVIEWER_INVALID` | `reviewer` ist leer, länger als 64 Zeichen oder enthält ein Steuerzeichen (`approveEntry`, `rejectEntry`, `importWorkbook`) |
+| `LOCK_CONTENDED` | die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` nimmt, konnte nicht vor ihrem Timeout erworben werden, oder ein anderer Prozess hat sie vor einem Schreibvorgang übernommen, den sie schützt, und es wurde nichts geschrieben; die Message nennt den Pfad der Lock-Datei |
+| `GLOSSARY_NOT_FILE_BACKED` | das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`) |
+| `GLOSSARY_UNWRITABLE` | die Glossardatei konnte nicht geschrieben oder die Glossar-Schreibsperre nicht angelegt werden, etwa in einem schreibgeschützten Projekt, oder nach einer gespeicherten Änderung nicht freigegeben werden (`updateGlossaryTerm`); der Dateisystem-Fehler ist die `cause` |
+| `LOCALE_LAYOUT_INVALID` | `files.pattern` und `files.localeStyle` lassen sich nicht kombinieren, oder der Style hat keine gültige Pfadschreibweise für eine konfigurierte Locale |
+| `LOCALE_PATH_COLLISION` | zwei konfigurierte Locales lösen auf denselben absoluten Dateipfad auf |
+| `CONCURRENCY_INVALID` | `concurrency` wurde gesetzt, ist aber keine Ganzzahl von mindestens 1; wird geworfen, bevor eine Locale läuft |
+| `CONCURRENCY_BUDGET_CONFLICT` | ein Live-Lauf setzte `concurrency` über 1, während ein Token-Budget gilt, konfiguriert oder für den Lauf; wird geworfen, bevor irgendein Provider-Aufruf stattfindet (ein Dry-Run ist ausgenommen) |
+| `MAX_TOKENS_INVALID` | das `maxTokens` pro Lauf von `translate` wurde gesetzt, ist aber keine ganze Zahl von mindestens 1; wird geworfen, bevor irgendetwas gelesen oder ausgegeben wird |
+| `LOCK_TIMEOUT_INVALID` | `lockAcquireTimeoutMs` wurde gesetzt, ist aber keine ganze Zahl von mindestens 0 Millisekunden (`translate`, `watch` beim Start, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); wird geworfen, bevor irgendetwas gelesen oder gesperrt wird |
+| `TARGET_UNWRITABLE` | eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt |
+| `PSEUDO_OUTPUT_CONFLICT` | `pseudolocalize` wurde nach einer Pseudo-Locale gefragt, die eine konfigurierte Locale benennt, oder nach einem Ausgabepfad, der auf eine konfigurierte Locale-Datei oder außerhalb von `cwd` schreiben würde, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor irgendetwas gelesen oder geschrieben wird |
+| `SOURCE_UNWRITABLE` | die Quell-Locale-Datei konnte nicht geschrieben werden (nur `extract`); `xliff` und `apple-xcstrings` erreichen ihn, wenn noch kein Katalog existiert, denn keines von beiden wird aus dem Nichts erzeugt |
+| `EXTRACT_NOT_CONFIGURED` | `extract` wurde mit einer Konfiguration aufgerufen, die keinen `extract`-Block trägt |
+| `EXTRACT_FS_UNSUPPORTED` | `extract` bekam ein `deps.fs`, das kein `readDirectory` implementiert, es kann also keine Quelldatei gefunden werden |
+| `TYPES_OUTPUT_CONFLICT` | `generateTypes` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet), absolut ist, mit `..` aus `cwd` herausklettert oder `cwd` selbst benennt oder nicht auf `.ts`, `.mts` oder `.cts` endet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein schreibender Lauf weigert sich zusätzlich, eine vorhandene Datei zu ersetzen, die nicht mit verbatras Kopfzeile beginnt |
+| `TYPES_UNWRITABLE` | die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
+| `TMX_OUTPUT_CONFLICT` | `exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird |
+| `TMX_UNWRITABLE` | die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, an dem Pfad liegt schon ein Verzeichnis, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code |
+| `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` hat seinen Ausgabepfad abgelehnt: einen, der außerhalb von `cwd` landet, und einen, der selbst oder über eine Datei, die der Export hineinschreiben würde, eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein `xlsx`-Pfad, der keine Datei oder `cwd` selbst benennt, wird ebenfalls abgelehnt; wird abgelehnt, bevor irgendetwas gelesen wird |
+| `EXPORT_UNWRITABLE` | die von `exportWorkbook` erzeugte Übergabe konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, ein Verzeichnis oder eine Datei liegt im Weg, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code, und der Dateisystem-Fehler ist die `cause` |
+| `LOCALE_STATE_NOT_CARRIED_OVER` | geworfen von `editEntry`, `retranslateEntry`, `approveEntry` und `rejectEntry`, die dann nichts schreiben, sonst steht er auf dem `error` einer Locale, die `translate`, `watch` oder `importWorkbook` nicht ausgeführt hat, weil ihr Zustand unter einem umgeschriebenen Code wie `pt_BR` in der Lock-Datei oder der Provenance-Datei nicht zu ihr verschoben werden konnte; der nächste Lauf versucht es erneut ([Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)) |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-Locale oder eine ausgewählte Ziel-Locale nicht in der Sprachtabelle, die verbatra mitliefert; geworfen von `translate` (auch bei einem Dry-Run und einer Schätzung), `watch` beim Start und `retranslateEntry`, bevor ein Provider gebaut, ein Key gelesen oder eine Locale gestartet wird; einer Locale, die explizit in `localeMap` abgebildet ist, wird stattdessen vertraut ([Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen)) |
+| `NOT_A_LOCALE_FILE` | `checkFile` hat einen Pfad bekommen, der zu keinem konfigurierten Locale gehört, oder dort gibt es keine Datei |
+| `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
+
+Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
+`SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
+Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
+Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` und
+`GLOSSARY_UNWRITABLE` (der Dateisystemfehler) und `REVIEW_RESTORE_FAILED` (der Fehler, der die Entscheidung unterbrochen hat).
+`CONFIG_NOT_FOUND` und `CONFIG_INVALID` tragen bewusst keinen, weil der Fehler eines Config-Parsers
+den Inhalt der Datei zitieren kann und ein in die Config geschriebener Key nicht mit dem Fehler
+mitreisen darf. Geschwärzt wird bei `PROVIDER_CONSTRUCTION_FAILED` nur die Meldung: Der `cause` ist
+der ursprüngliche Fehler, unverändert. Die eingebauten Provider-Factories werfen Fehler ohne
+Geheimnis, und ein Fehler aus einem `createProvider`, das du selbst übergibst, kommt genau so zurück,
+wie du ihn geworfen hast. Halte also Geheimnisse aus ihm heraus oder schwärze ihn selbst, bevor du
+den `cause` loggst.
+
+Zwei Ausnahmen von der Ein-Fehlerklasse-Regel: `retranslateEntry` wirft den eigenen
+`ProviderError` des Providers weiter, wenn der einzelne Aufruf fehlschlägt, und `runStatus` wirft
+überhaupt nie. Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
+[CI und Exit-Codes](/docs/ci-and-exit-codes); Hilfe vom Symptom aus gibt es unter
+[Fehlerbehebung](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` und sein Typ `ProviderErrorCode` werden aus `@verbatra/sdk` exportiert: Prüf einen
+Fehlschlag von `retranslateEntry` also mit `error instanceof ProviderError` und verzweige nach
+`error.code`; die [Provider-Seite](/docs/providers) listet jeden Code. Auf einer älteren Version,
+die die Klasse nicht exportiert, prüf `error.name === "ProviderError"` und lies `code`.

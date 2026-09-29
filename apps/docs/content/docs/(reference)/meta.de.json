@@ -4,7 +4,7 @@
   "pages": [
     "../cli",
     "../(configure)",
-    "../(sdk)",
+    "../sdk",
     "[MCP-Server-Tools](/de/docs/cli/mcp#tools)",
     "external:[Versionshinweise](https://github.com/verbatra/verbatra/releases)"
   ]

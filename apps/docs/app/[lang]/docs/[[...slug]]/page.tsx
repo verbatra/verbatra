@@ -15,6 +15,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/json-ld";
 import { CALLOUT_CLASS, getMDXComponents } from "@/components/mdx";
+import { sdkReferenceComponents } from "@/components/sdk-reference";
 import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
@@ -141,7 +142,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
         <MDX
           components={getMDXComponents(
             lang,
-            undefined,
+            sdkReferenceComponents(lang),
             isHome ? undefined : footerNeighbourUrls(source.getPageTree(lang), page.url),
           )}
         />

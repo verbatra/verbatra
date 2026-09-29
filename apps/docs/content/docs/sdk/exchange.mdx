@@ -1,0 +1,236 @@
+---
+title: "Handoff and exchange"
+description: "Workbook and TMX import and export, locale-file snapshots, locale paths, and error hints."
+---
+## Locale-file snapshots
+
+The building blocks of a live-refresh watcher such as Studio's: capture a locale file's state, then
+count what changed since.
+
+### readLocaleFileSnapshot
+
+Reads one locale file (the source locale or any target locale) and reduces it to a content hash per
+key. A file that does not exist yet reads as an empty snapshot rather than throwing.
+
+Input: `{ config, locale, cwd? }`. Returns `{ locale, hashes }`.
+
+### diffLocaleSnapshots
+
+Compares two snapshots of the same file, taken at different times, and counts the keys added,
+changed, and removed between them. A plain synchronous function: `diffLocaleSnapshots(previous,
+current)` returns `{ added, changed, removed }`. Counts only, never key names.
+
+## Locale paths
+
+### createLocalePathResolver
+
+Resolves the project's locale-to-path mapping in both directions, from `files.pattern`, the
+configured locales, and `files.localeStyle`. `createLocalePathResolver(cwd, config)` returns
+`{ pathFor, localeFor }`: `pathFor(locale)` is the absolute path of one locale's file, and
+`localeFor(path)` is the locale that owns a path, or `undefined` for a path this project does not
+own. Every SDK entry point resolves paths through it, so a watcher or dashboard built on the SDK
+sees exactly the paths a run writes.
+
+Every check runs when the resolver is created, before any file is read: a pattern and style that
+cannot be combined, or a locale the style has no correct spelling for, throws
+`LOCALE_LAYOUT_INVALID`, and two locales resolving to one path throws `LOCALE_PATH_COLLISION`.
+
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` rewrites every absolute path inside the project in a message to
+a path relative to the project root: a path under `cwd` loses that prefix, `cwd` itself becomes
+`.`, and a path outside the project stays as it is. Every per-locale `error.message` and notice
+message on a `RunSummary` already names project files this way, relative to the run's `cwd`; call
+it on the message of an error a flow throws before you show it to a user, an agent, or a browser
+tab. `verbatra mcp` and Studio do the same for every error they return.
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` returns the next step that resolves an error verbatra raised: one short
+imperative sentence, or `undefined` when there is none. Every `SdkError` code, every
+`ProviderError` code, and every format adapter error code has one, so an agent can act on a failure
+without parsing its message. It reads the error's `code`, so a plain `{ code, message }` object,
+such as a failed `watch` run's `error`, gets the same hint. A `PROVIDER_CONSTRUCTION_FAILED` error
+takes the hint of the provider error it wraps, so a missing key names the exact variable to set,
+read from the `envVar` a `MISSING_API_KEY` `ProviderError` carries. A `CONFIG_INVALID` error from a
+config file whose import could not be resolved (its `causeCode` is `MODULE_NOT_FOUND`,
+`ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_UNSUPPORTED_DIR_IMPORT`) says to
+install or fix that import instead. A hint is fixed text plus, at
+most, a variable name: it never contains a key value or quotes the message. The CLI's `--json`
+error envelope carries it as `hint`, and `verbatra mcp` ends a failed call's text with it.
+
+```ts
+import { errorHint, translate } from "@verbatra/sdk";
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+}
+```
+
+## The workbook pair
+
+The translator handoff, as an Excel workbook or as delimited text; see [Manual translation](/docs/manual-translation).
+
+### exportWorkbook
+
+Writes the strings that still need translating (missing and changed keys per locale; add unchanged
+ones with `includeUnchanged`) into a styled `.xlsx` workbook. Rows carry the same review-flag
+signal a translate run computes. No provider call, no lock write.
+
+Input: `{ config, cwd?, out?, configPath?, glossaryPath?, locales?, includeUnchanged?, format? }`. `format` is `xlsx` by
+default; `csv` and `tsv` write one `<locale>.csv` or `<locale>.tsv` per locale instead, so `out`
+names a directory for them (created if missing) and a file path for `xlsx`. `out` defaults to
+`DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) or `DEFAULT_DELIMITED_PATH`
+(`verbatra-translations`), both exported as constants. The accepted values are exported as `EXCHANGE_FORMATS` and the default as `DEFAULT_EXCHANGE_FORMAT`, so a tool that wraps the SDK can validate a format argument without hardcoding the list. Returns `{ path, locales }`: the absolute
+path written and a per-locale row count.
+
+Before anything is read, `EXPORT_OUTPUT_CONFLICT` refuses an `out` that resolves outside `cwd`, and
+one that, or a file the export would write into it, names a configured locale file, the lock file,
+the provenance file, the translation-memory cache, a file verbatra searches for its configuration,
+the `configPath` file, or the `glossaryPath` file, compared case-insensitively and, when `deps.fs`
+implements `realpath` as the default does, again after symbolic links are resolved. An `xlsx` path
+is also refused when it names no file (including one ending in a path separator) or names `cwd`
+itself; a `csv`, `tsv` or XLIFF directory may be `cwd`. A write that fails, because the directory is not
+writable, a directory or file is in the way, or the disk is full, throws `EXPORT_UNWRITABLE` naming
+the file and the file-system code, with the file-system error as its `cause`.
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` and `format: "xliff12"` write one XLIFF 2.0 or 1.2 `<locale>.xlf` per locale into the `out` directory, for a CAT tool: one unit per key, placeholders and markup as protected `<ph>` inline codes, the key's description and meaning as notes, the source hash in the unit's metadata, and a segment state from the lock and review state (`initial` for a missing or stale key, `translated` when up to date, `reviewed` when approved). Both types are exported, `XliffFormat` naming the two XLIFF members of `ExchangeFormat`. See [Hand off to a translation agency](/docs/translation-agency).
+
+Each unit with a target also carries its origin: XLIFF 1.2 qualifies an unapproved machine-class target with `state-qualifier="mt-suggestion"`, and XLIFF 2.0 adds `origin` and `review-state` entries to the unit's `verbatra` metadata group. The result then also carries `provenanceMarkers`: `"written"`, or `"unavailable"` when the provenance file could not be read and no marker was written. See [Machine-translation evidence](/docs/provenance-evidence#markers-in-exports).
+
+### importWorkbook
+
+Reads a filled workbook back into the locale files, running the same source-drift and integrity
+checks as `translate`. Only accepted rows advance their lock baseline; a blank or rejected
+row keeps re-exporting until it is genuinely resolved.
+
+Input: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs?, reviewer? }`. With `csv` or `tsv`, `workbook` is either
+one interchange file or the directory holding one per locale, and the locale comes from the file
+name. Returns the same `RunSummary` shape as `translate`
+(with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
+a configured target fails that locale with `CONFIG_INVALID` as data on the summary, not a throw.
+
+<AvailableFrom version="0.12.0" />
+
+`onLockWait` and `lockAcquireTimeoutMs` behave exactly as on `translate`. `lockAcquireTimeoutMs`
+bounds the wait for a locale's write lock, taken before that locale's file is written, and a locale
+still contended after it fails with `LOCK_CONTENDED` on its own summary while the other locales
+import. Recording a written file in the lock file always allows the ten-minute default. A dry run
+takes no lock, so neither option applies to it.
+
+<AvailableFrom version="0.12.0" />
+
+Each locale's `integrityRefusals` names the rows the integrity gate refused, with the reason and
+its `details`, such as each ICU arm that does not fit the target language. A row withheld because
+its source changed since the export is listed in `integrityMismatches` only. `exportWorkbook` flags
+a current translation with the wrong arms as `icu-arms` in its review columns.
+
+<AvailableFrom version="0.12.0" />
+
+With `xliff2` or `xliff12`, either of which reads both versions, and by default for a `workbook` path ending in `.xlf` or `.xliff`, every inline code is resolved back to its exact text before the same checks. A target equal to the current value changes nothing, a unit whose id names no source key is reported in `malformedRows`, and a unit in state `reviewed` or `final` (1.2: `signed-off`, `final` or `approved="yes"`) is recorded as approved in the provenance file, naming `reviewer` when given (checked like `approveEntry`'s, `REVIEWER_INVALID`), and reported with the notice `HANDOFF_REVIEWS_RECORDED`.
+
+## The TMX pair
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` and `exportTmx` move the [translation memory](/docs/the-cache) in and out of TMX, the
+interchange format the mainstream translation platforms produce and consume. Neither constructs a
+provider, reads an API key, nor makes a network call: every value comes from the file or from the
+memory already on disk. This is not the workbook pair in another format. The workbook pair hands a
+per-locale slice of the pending delta to a human translator; this pair moves the whole memory as one
+multilingual file between tools.
+
+### importTmx
+
+Reads a TMX file into the project's memory. Input:
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Nothing from the file is trusted. The XML is parsed under the interchange package's hardening, so an
+entity declaration, an internal DTD subset, an oversized file, or a malformed one is refused with a
+structured `SOURCE_INVALID` error rather than parsed. When the problem has a place in the file, the
+message names its line, column and, inside a translation unit, the unit's 1-based ordinal, and
+`tmxErrorLocation(error)` returns the same place as a `TmxErrorLocation`, or `undefined` for any
+other error, so you never cast the error or its `cause`. A language tag is resolved to a configured
+locale by an explicit rule: exact spelling after lowercasing and folding underscores to hyphens;
+failing that, the longest configured locale that is a subtag prefix of the tag (RFC 4647 lookup), or
+else a configured locale that extends the tag only by region or variant subtags, never by a script,
+so two tags whose script or region subtags differ (`sr-Latn` and `sr-Cyrl`, `de-AT` and `de-CH`) never match; and a tag is
+reported as ambiguous only when the locales it could reach do not lie on one prefix chain. Segments
+of one unit that resolve to the same locale, the source locale included, never let the last one win:
+an exact tag outranks a prefix match, and two equal-ranked segments with different values store
+nothing for that locale and are counted as `conflicting` (for the source locale, the unit is refused
+and counted in `conflictingSourceUnits`). Every candidate translation then passes the same
+placeholder, inline markup, ICU, degeneracy, and emptiness gate that provider output and a filled workbook row
+already face, checked as the record enters the memory rather than left to the run that later reads
+it.
+
+Where an imported unit disagrees with a translation the memory already holds, the memory wins unless
+`overwrite` is set. Units are stored under the current configuration fingerprint, the same key a real
+run writes, so they stop matching when the provider, model, tone, glossary, or provider `localeMap` changes. Importing the
+same file twice changes nothing the second time.
+
+Returns a report rather than throwing on damaged data: how many units were read, a per-locale
+account of `added`, `unchanged`, `overwritten`, `kept`, `duplicates`, `conflicting`, and `rejected`
+by reason, plus the units that were skipped, carried no source segment, lost inline markup, or had
+`sub` text left out (`subflowDroppedUnits`), and the language tags that matched nothing or matched
+ambiguously. `memoryWritable` is false when the memory file was written by a newer verbatra, in
+which case it is left untouched. The per-locale counts are still reported then, as on a dry run, so
+`added` and `overwritten` describe what would have landed; with `memoryWritable` false, nothing did.
+
+<AvailableFrom version="0.12.0" />
+
+Each locale also lists its `refusals`, one `TmxUnitRefusal` per unit counted under a gate reason:
+`{ unit, reason, details? }`, where `unit` is the unit's 1-based ordinal in the file and `details`
+names what is wrong, such as each ICU arm that does not fit the target language.
+
+### tmxErrorLocation
+
+Reads where a refused TMX file went wrong from whatever `importTmx` threw. It returns a
+`TmxErrorLocation` (`{ line, column, unit? }`, all 1-based) for a `SOURCE_INVALID` refusal that has
+a place in the file, and `undefined` for any other error, including a missing or oversized file, so
+you never cast the error or its `cause`.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+Writes the memory out as TMX 1.4b. Input: `{ config, out?, cwd?, configPath?, glossaryPath?,
+locales?, toolVersion? }`, with `out` defaulting to `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`),
+exported as a constant. Before the memory is read, `TMX_OUTPUT_CONFLICT` refuses an `out` that names
+no file (including one ending in a path separator), resolves outside `cwd` or to `cwd` itself, or
+names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra
+searches for its configuration, the `configPath` file, or the `glossaryPath` file, compared
+case-insensitively and, when `deps.fs` implements `realpath` as the default does, again after
+symbolic links are resolved. A write that fails, because the directory is not writable, a directory
+sits at that path, or the disk is full, throws `TMX_UNWRITABLE` naming the file and the file-system
+code. Only entries under the current configuration fingerprint are written, which is the same set a
+run would reuse. Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not
+change how the memory is keyed. An empty memory produces a valid, empty file rather than an error.
+Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts
+entries left out because the memory holds no source text for them, which happens only for entries
+carried forward from a cache written before the memory stored source text, and
+`illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from
+segment text.
+
+<AvailableFrom version="0.12.0" />
+
+Each target segment carries `<prop type="x-origin">` (`machine`, `human`, `import` or `unknown`,
+the `TmxOrigin` type) and a `machine` one also `<prop type="x-review">` (`approved`, `unreviewed`
+or `rejected`, the `TmxReview` type), derived from every key whose lock entry names the segment's
+source and whose record describes exactly its text. `provenanceMarkers` is `"unavailable"` when the
+provenance file or the lock file could not be read, in which case no segment carries a property.

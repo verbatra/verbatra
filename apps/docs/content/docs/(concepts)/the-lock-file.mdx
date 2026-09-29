@@ -203,7 +203,7 @@ that no longer matches its record, because something outside verbatra changed it
 editing the locale file in a pull request, an older verbatra, or a merge. Each record carries a hash
 of the value it describes, which is how a stale record is caught instead of trusted. `check --json`,
 `diff --json`, and the SDK's key reads report these interpreted origins; the
-[SDK reference](/docs/sdk#loadprovenance) lists the fields.
+[SDK reference](/docs/sdk/inspect#loadprovenance) lists the fields.
 
 The file holds no translated text and no timestamps, and its records are sorted with one record per
 line, so a run that changes nothing leaves it byte for byte as it was, and two branches that touch

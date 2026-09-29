@@ -17,6 +17,16 @@ function readDocPage(prefix, suffix) {
   return readRepoFile(`apps/docs/content/docs/${prefix}${suffix}.mdx`);
 }
 
+function sdkReferencePages() {
+  return JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages;
+}
+
+function readSdkReference(suffix) {
+  return sdkReferencePages()
+    .map((page) => readDocPage(`sdk/${page}`, suffix))
+    .join("\n");
+}
+
 function providerErrorCodes() {
   const source = readRepoFile("packages/ai-providers/src/errors.ts");
   const union = /export type ProviderErrorCode =([\s\S]*?);/.exec(source);
@@ -167,12 +177,15 @@ describe("the SDK reference documents every SdkError code", () => {
     expect(codes).toContain("LOCALE_FAILED");
   });
 
-  it.each(LOCALE_SUFFIXES)("has one table row per code, in union order, in sdk%s.mdx", (suffix) => {
-    expect(sdkErrorTableCodes(readDocPage("(sdk)/sdk", suffix))).toEqual(codes);
-  });
+  it.each(LOCALE_SUFFIXES)(
+    "has one table row per code, in union order, in sdk/errors%s.mdx",
+    (suffix) => {
+      expect(sdkErrorTableCodes(readDocPage("sdk/errors", suffix))).toEqual(codes);
+    },
+  );
 
   it("sees a code missing from the table and a row the union no longer holds", () => {
-    const page = readDocPage("(sdk)/sdk", "");
+    const page = readDocPage("sdk/errors", "");
     const withoutRow = page.replace(/^\| `UNKNOWN_KEY` \|.*\n/m, "");
     const withExtraRow = page.replace(
       /^(\| `UNKNOWN_KEY` \|.*\n)/m,
@@ -203,25 +216,39 @@ describe("the SDK reference catalogs the whole public surface", () => {
     expect(constants.length).toBeGreaterThanOrEqual(4);
   });
 
-  it.each(LOCALE_SUFFIXES)("heads one section per entry point in sdk%s.mdx", (suffix) => {
-    expect(headingDocumentedExports(readDocPage("(sdk)/sdk", suffix))).toEqual(entryPoints);
+  it("reads the whole reference folder, not only its overview", () => {
+    expect(sdkReferencePages()).toEqual(expect.arrayContaining(["index", "run", "errors"]));
+    expect(sdkReferencePages().length).toBeGreaterThanOrEqual(9);
   });
 
-  it.each(LOCALE_SUFFIXES)("names every inline value export in sdk%s.mdx", (suffix) => {
-    const page = readDocPage("(sdk)/sdk", suffix);
+  it.each(LOCALE_SUFFIXES)(
+    "heads exactly one section per entry point across sdk/*%s.mdx",
+    (suffix) => {
+      expect(headingDocumentedExports(readSdkReference(suffix))).toEqual(entryPoints);
+    },
+  );
+
+  it.each(LOCALE_SUFFIXES)("names every inline value export in sdk/*%s.mdx", (suffix) => {
+    const page = readSdkReference(suffix);
 
     expect(inlineExports.filter(({ name }) => !mentionsCodeSpan(page, name))).toEqual([]);
   });
 
-  it.each(LOCALE_SUFFIXES)("prints the value each constant holds in sdk%s.mdx", (suffix) => {
-    const page = readDocPage("(sdk)/sdk", suffix);
+  it.each(LOCALE_SUFFIXES)("prints the value each constant holds in sdk/*%s.mdx", (suffix) => {
+    const page = readSdkReference(suffix);
 
     expect(constants.filter(({ value }) => !mentionsCodeSpan(page, value))).toEqual([]);
   });
 });
 
 describe("the SDK heading rule separates real drift from ordinary prose", () => {
-  const page = readDocPage("(sdk)/sdk", "");
+  const page = readSdkReference("");
+
+  it("sees an entry point headed on two pages of the folder", () => {
+    const entryPoints = headingDocumentedExports(page);
+
+    expect(headingDocumentedExports(`${page}\n### translate\n`)).not.toEqual(entryPoints);
+  });
 
   it("sees an export that left index.ts but kept its section", () => {
     expect(headingDocumentedExports(`${page}\n### resetLockFile\n`)).toContain("resetLockFile");

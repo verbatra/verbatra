@@ -1,0 +1,263 @@
+---
+title: "Übergabe und Austausch"
+description: "Import und Export von Arbeitsmappen und TMX, Locale-Datei-Schnappschüsse, Locale-Pfade und Fehlerhinweise."
+---
+## Locale-Datei-Schnappschüsse
+
+Die Bausteine eines Live-Refresh-Watchers wie dem von Studio: den Zustand einer Locale-Datei
+erfassen und dann zählen, was sich seitdem geändert hat.
+
+### readLocaleFileSnapshot
+
+Liest eine Locale-Datei (die Quell-Locale oder eine beliebige Ziel-Locale) und reduziert sie auf
+einen Inhalts-Hash pro Key. Eine noch nicht existierende Datei liest sich als leerer Schnappschuss,
+statt zu werfen.
+
+Eingabe: `{ config, locale, cwd? }`. Gibt `{ locale, hashes }` zurück.
+
+### diffLocaleSnapshots
+
+Vergleicht zwei Schnappschüsse derselben Datei zu verschiedenen Zeitpunkten und zählt die
+zwischen ihnen hinzugefügten, geänderten und entfernten Keys. Eine schlichte synchrone Funktion:
+`diffLocaleSnapshots(previous, current)` gibt `{ added, changed, removed }` zurück. Nur Zähler,
+nie Key-Namen.
+
+## Locale-Pfade
+
+### createLocalePathResolver
+
+Löst die Locale-zu-Pfad-Zuordnung des Projekts in beide Richtungen auf, aus `files.pattern`, den
+konfigurierten Locales und `files.localeStyle`. `createLocalePathResolver(cwd, config)` liefert
+`{ pathFor, localeFor }`: `pathFor(locale)` ist der absolute Pfad der Datei einer Locale, und
+`localeFor(path)` ist die Locale, zu der ein Pfad gehört, oder `undefined` für einen Pfad, der
+nicht zu diesem Projekt gehört. Jeder SDK-Einstiegspunkt löst Pfade darüber auf, sodass ein
+Watcher oder ein Dashboard auf Basis des SDK genau die Pfade sieht, die ein Lauf schreibt.
+
+Alle Prüfungen laufen beim Erzeugen des Resolvers, bevor eine Datei gelesen wird: ein Pattern und
+ein Style, die sich nicht kombinieren lassen, oder eine Locale, für die der Style keine korrekte
+Schreibweise hat, werfen `LOCALE_LAYOUT_INVALID`; zwei Locales, die auf denselben Pfad auflösen,
+werfen `LOCALE_PATH_COLLISION`.
+
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` schreibt jeden absoluten Pfad innerhalb des Projekts in einer
+Meldung in einen Pfad relativ zum Projektstamm um: Ein Pfad unter `cwd` verliert dieses Präfix,
+`cwd` selbst wird zu `.`, und ein Pfad außerhalb des Projekts bleibt, wie er ist. Jede
+`error.message` und jede Notice-Meldung pro Locale in einer `RunSummary` nennt Projektdateien
+bereits so, relativ zum `cwd` des Laufs; ruf es für die Meldung eines Fehlers auf, den ein Flow
+wirft, bevor du sie einem Menschen, einem Agenten oder einem Browser-Tab zeigst. `verbatra mcp`
+und Studio machen das für jeden Fehler, den sie zurückgeben.
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` gibt den nächsten Schritt zurück, der einen Fehler von verbatra behebt: einen
+kurzen Satz im Imperativ, oder `undefined`, wenn es keinen gibt. Jeder `SdkError`-Code, jeder
+`ProviderError`-Code und jeder Fehlercode eines Format-Adapters hat einen, sodass ein Agent auf
+einen Fehler reagieren kann, ohne dessen Meldung zu parsen. Es liest den `code` des Fehlers, also
+bekommt auch ein einfaches `{ code, message }`-Objekt, etwa der `error` eines fehlgeschlagenen
+`watch`-Laufs, denselben Hinweis. Ein `PROVIDER_CONSTRUCTION_FAILED`-Fehler übernimmt den Hinweis
+des Provider-Fehlers, den er umhüllt, sodass ein fehlender Key genau die Variable nennt, die du
+setzen musst, gelesen aus dem `envVar`, das ein `ProviderError` mit `MISSING_API_KEY` trägt. Ein
+`CONFIG_INVALID`-Fehler aus einer Konfigurationsdatei, deren Import sich nicht auflösen ließ (ihr
+`causeCode` ist `MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` oder
+`ERR_UNSUPPORTED_DIR_IMPORT`), sagt stattdessen, dass du diesen Import installieren oder korrigieren
+sollst. Ein Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
+zitiert nie die Meldung. Der `--json`-Fehlerumschlag der CLI trägt ihn als `hint`, und
+`verbatra mcp` beendet den Text eines fehlgeschlagenen Aufrufs damit.
+
+```ts
+import { errorHint, translate } from "@verbatra/sdk";
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // z. B. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+}
+```
+
+## Das Arbeitsmappen-Paar
+
+Die Übergabe für menschliche Übersetzerinnen, als Excel-Arbeitsmappe oder als Text mit
+Trennzeichen; siehe [Menschliche Übersetzung](/docs/manual-translation).
+
+### exportWorkbook
+
+Schreibt die noch zu übersetzenden Strings (fehlende und geänderte Keys pro Locale; unveränderte
+kommen mit `includeUnchanged` dazu) in eine formatierte `.xlsx`-Arbeitsmappe. Die Zeilen tragen
+dasselbe Review-Flag-Signal, das ein translate-Lauf berechnet. Kein Provider-Aufruf, kein
+Lock-Schreiben.
+
+Eingabe: `{ config, cwd?, out?, configPath?, glossaryPath?, locales?, includeUnchanged?, format? }`. `format` ist standardmäßig
+`xlsx`; `csv` und `tsv` schreiben stattdessen eine `<locale>.csv` bzw. `<locale>.tsv` pro Locale, `out`
+benennt dafür also ein Verzeichnis (das angelegt wird, falls es fehlt) und bei `xlsx` einen Dateipfad.
+`out` ist standardmäßig `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) oder
+`DEFAULT_DELIMITED_PATH` (`verbatra-translations`), beide als Konstanten exportiert. Die zulässigen Werte werden als `EXCHANGE_FORMATS` und der Standardwert als `DEFAULT_EXCHANGE_FORMAT` exportiert, damit ein Werkzeug, das als Wrapper über dem SDK sitzt, ein Format-Argument prüfen kann, ohne die Liste fest zu verdrahten. Gibt
+`{ path, locales }` zurück: den absoluten geschriebenen Pfad und eine Zeilenzahl pro Locale.
+
+Bevor irgendetwas gelesen wird, weist `EXPORT_OUTPUT_CONFLICT` ein `out` zurück, das außerhalb von
+`cwd` landet, und eines, das selbst oder über eine Datei, die der Export hineinschreiben würde, eine
+konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine
+Datei, nach der verbatra seine Konfiguration sucht, die `configPath`-Datei oder die
+`glossaryPath`-Datei benennt, ohne Beachtung der Groß- und Kleinschreibung und, wenn `deps.fs`
+`realpath` implementiert wie die Voreinstellung, noch einmal nach dem Auflösen symbolischer Links.
+Ein `xlsx`-Pfad wird außerdem abgelehnt, wenn er keine Datei benennt (auch einer, der auf ein
+Pfadtrennzeichen endet) oder `cwd` selbst benennt; ein `csv`-, `tsv`- oder XLIFF-Verzeichnis darf `cwd`
+sein. Scheitert das Schreiben, weil das Verzeichnis nicht schreibbar ist, ein Verzeichnis oder eine
+Datei im Weg liegt oder die Platte voll ist, wirft es `EXPORT_UNWRITABLE` mit der Datei und dem
+Dateisystem-Code in der Message und dem Dateisystem-Fehler als `cause`.
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` und `format: "xliff12"` schreiben für ein CAT-Tool eine XLIFF-2.0- bzw. 1.2-Datei `<locale>.xlf` pro Locale in das Verzeichnis `out`: eine Unit pro Key, Platzhalter und Markup als geschützte `<ph>`-Inline-Codes, Beschreibung und Bedeutung des Keys als Notizen, den Quell-Hash in den Metadaten der Unit und einen Segmentstatus aus dem Lock- und Review-Status (`initial` für einen fehlenden oder veralteten Key, `translated` wenn aktuell, `reviewed` wenn freigegeben). Beide Typen werden exportiert, `XliffFormat` benennt die zwei XLIFF-Mitglieder von `ExchangeFormat`. Siehe [An eine Übersetzungsagentur übergeben](/docs/translation-agency).
+
+Jede Unit mit einem Ziel trägt außerdem ihre Herkunft: XLIFF 1.2 kennzeichnet ein nicht freigegebenes Ziel der maschinellen Klasse mit `state-qualifier="mt-suggestion"`, und XLIFF 2.0 ergänzt die `verbatra`-Metagruppe der Unit um die Einträge `origin` und `review-state`. Das Ergebnis trägt dann auch `provenanceMarkers`: `"written"`, oder `"unavailable"`, wenn sich die Herkunftsdatei nicht lesen ließ und keine Markierung geschrieben wurde. Siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#markierungen-in-exporten).
+
+### importWorkbook
+
+Liest eine ausgefüllte Arbeitsmappe zurück in die Locale-Dateien und führt dieselben Prüfungen auf
+Quelldrift und Integrität aus wie `translate`. Nur akzeptierte Zeilen rücken ihre
+Lock-Baseline vor; eine leere oder abgelehnte Zeile wird weiter exportiert, bis sie wirklich
+erledigt ist.
+
+Eingabe: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs?, reviewer? }`. Bei `csv` und `tsv` ist `workbook` entweder
+eine einzelne Übergabedatei oder das Verzeichnis mit einer Datei pro Locale, und die Locale kommt aus
+dem Dateinamen. Gibt dieselbe `RunSummary`-Form zurück wie
+`translate` (mit `needsReview` immer leer, da kein Provider beteiligt ist). Ein Blatt für eine
+Locale, die kein konfiguriertes Ziel ist, lässt diese Locale mit `CONFIG_INVALID` als Daten auf der
+Zusammenfassung fehlschlagen, statt zu werfen.
+
+<AvailableFrom version="0.12.0" />
+
+`onLockWait` und `lockAcquireTimeoutMs` verhalten sich genau wie bei `translate`.
+`lockAcquireTimeoutMs` begrenzt das Warten auf die Schreibsperre einer Locale, die genommen wird,
+bevor die Datei dieser Locale geschrieben wird. Eine Locale, deren Sperre danach noch belegt ist,
+schlägt mit `LOCK_CONTENDED` auf ihrer eigenen Zusammenfassung fehl, während die anderen Locales
+importiert werden. Das Eintragen einer geschriebenen Datei in die Lock-Datei wartet immer bis zum
+Standard von zehn Minuten. Ein Dry-Run nimmt keine Sperre, daher gilt keine der beiden Optionen für
+ihn.
+
+<AvailableFrom version="0.12.0" />
+
+`integrityRefusals` jeder Locale nennt die Zeilen, die das Integritäts-Gate abgelehnt hat, mit dem
+Grund und seinen `details`, etwa jedem ICU-Zweig, der nicht zur Zielsprache passt. Eine Zeile, die
+zurückgehalten wurde, weil sich ihre Quelle seit dem Export geändert hat, steht nur in
+`integrityMismatches`. `exportWorkbook` markiert eine aktuelle Übersetzung mit falschen Zweigen in den
+Review-Spalten als `icu-arms`.
+
+<AvailableFrom version="0.12.0" />
+
+Mit `xliff2` oder `xliff12`, die beide jede Version lesen, und standardmäßig bei einem `workbook`-Pfad auf `.xlf` oder `.xliff` wird jeder Inline-Code vor denselben Prüfungen in seinen exakten Text zurückgeführt. Ein Ziel, das dem aktuellen Wert entspricht, ändert nichts, eine Unit, deren ID keinen Quell-Key nennt, erscheint in `malformedRows`, und eine Unit im Status `reviewed` oder `final` (1.2: `signed-off`, `final` oder `approved="yes"`) wird in der Herkunftsdatei als freigegeben festgehalten, mit `reviewer` als Namen, wenn angegeben (geprüft wie bei `approveEntry`, `REVIEWER_INVALID`), und mit dem Hinweis `HANDOFF_REVIEWS_RECORDED` gemeldet.
+
+## Das TMX-Paar
+
+<AvailableFrom version="0.11.0" />
+
+`importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/docs/the-cache) in TMX hinein und
+wieder heraus, also in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und
+lesen. Keine der beiden Funktionen konstruiert einen Provider, liest einen API-Key oder stellt eine
+Netzwerkanfrage: jeder Wert kommt aus der Datei oder aus dem Übersetzungsspeicher, der ohnehin schon
+auf der Platte liegt. Das ist nicht das Arbeitsmappen-Paar in einem anderen Format. Das
+Arbeitsmappen-Paar übergibt einer Übersetzerin einen Ausschnitt des offenen Deltas pro Locale;
+dieses Paar bewegt den ganzen Übersetzungsspeicher als eine mehrsprachige Datei zwischen Werkzeugen.
+
+### importTmx
+
+Liest eine TMX-Datei in den Übersetzungsspeicher des Projekts. Eingabe:
+`{ config, file, cwd?, dryRun?, overwrite?, locales? }`.
+
+Nichts aus der Datei gilt als vertrauenswürdig. Das XML wird unter der Härtung des
+Interchange-Pakets geparst, sodass eine Entity-Deklaration, ein internes DTD-Subset, eine zu große
+oder eine fehlerhafte Datei mit einem strukturierten `SOURCE_INVALID`-Fehler abgelehnt statt geparst
+wird. Hat das Problem einen Ort in der Datei, nennt die Meldung Zeile, Spalte und, innerhalb einer
+Übersetzungseinheit, deren Ordnungszahl ab 1, und `tmxErrorLocation(error)` liefert denselben Ort
+als `TmxErrorLocation`, bei jedem anderen Fehler `undefined`, sodass du weder den Fehler noch seinen
+`cause` casten musst. Ein Sprach-Tag wird nach einer ausdrücklichen Regel einer konfigurierten
+Locale zugeordnet: exakte Schreibweise nach Kleinschreibung und Faltung von Unterstrichen zu
+Bindestrichen; sonst die längste konfigurierte Locale, die ein Subtag-Präfix des Tags ist (Lookup
+nach RFC 4647), oder andernfalls eine konfigurierte Locale, die das Tag nur um Regions- oder
+Varianten-Subtags erweitert, nie um eine Schrift, sodass zwei Tags mit unterschiedlichen Schrift-
+oder Regions-Subtags (`sr-Latn` und `sr-Cyrl`, `de-AT` und `de-CH`) nie zusammenpassen; und ein Tag wird nur dann als
+mehrdeutig gemeldet, wenn die Locales, die es erreichen könnte, nicht auf einer Präfix-Kette liegen.
+Segmente einer Einheit, die auf dieselbe Locale auflösen, die Quell-Locale eingeschlossen, lassen
+nie das letzte gewinnen: Ein exaktes Tag schlägt einen Präfix-Treffer, und zwei gleichrangige
+Segmente mit unterschiedlichen Werten speichern für diese Locale nichts und werden als `conflicting`
+gezählt (bei der Quell-Locale wird die Einheit abgelehnt und in `conflictingSourceUnits` gezählt).
+Jeder Übersetzungskandidat durchläuft dann dasselbe Gate für Platzhalter, Inline-Markup, ICU,
+Degeneriertheit und Leere, dem Provider-Ausgabe und eine ausgefüllte Arbeitsmappenzeile schon
+unterliegen, geprüft beim Eintritt in den Übersetzungsspeicher, statt dem Lauf überlassen zu
+werden, der ihn später liest.
+
+Widerspricht eine importierte Einheit einer Übersetzung, die der Übersetzungsspeicher schon hat,
+gewinnt der Übersetzungsspeicher, sofern `overwrite` nicht gesetzt ist. Einheiten werden unter dem
+aktuellen Konfigurations-Fingerprint gespeichert, demselben Key, den ein echter Lauf schreibt, und hören
+deshalb auf zu passen, sobald sich Provider, Modell, Tonfall, Glossar oder das `localeMap` des Providers ändern. Dieselbe Datei ein
+zweites Mal zu importieren ändert nichts.
+
+Gibt bei beschädigten Daten einen Bericht zurück, statt zu werfen: wie viele Einheiten gelesen
+wurden, eine Abrechnung pro Locale über `added`, `unchanged`, `overwritten`, `kept`, `duplicates`,
+`conflicting` und `rejected` nach Grund, dazu die Einheiten, die übersprungen wurden, kein
+Quellsegment hatten, Inline-Markup verloren oder deren `sub`-Text weggelassen wurde
+(`subflowDroppedUnits`), sowie die Sprach-Tags, die zu nichts passten oder mehrdeutig passten.
+`memoryWritable` ist false, wenn die Datei des Übersetzungsspeichers von einem neueren verbatra
+geschrieben wurde; sie bleibt dann unangetastet. Die Zählungen pro Locale werden trotzdem gemeldet,
+wie bei einem Probelauf, sodass `added` und `overwritten` beschreiben, was gelandet wäre; bei
+`memoryWritable` false ist nichts gelandet.
+
+<AvailableFrom version="0.12.0" />
+
+Jede Locale listet außerdem ihre `refusals`, ein `TmxUnitRefusal` pro Einheit, die unter einem
+Gate-Grund gezählt wurde: `{ unit, reason, details? }`, wobei `unit` die 1-basierte Position der
+Einheit in der Datei ist und `details` nennt, was falsch ist, etwa jeden ICU-Zweig, der nicht zur
+Zielsprache passt.
+
+### tmxErrorLocation
+
+Liest aus dem, was `importTmx` geworfen hat, wo eine abgelehnte TMX-Datei schiefging. Gibt für eine
+`SOURCE_INVALID`-Ablehnung mit einem Ort in der Datei eine `TmxErrorLocation` zurück
+(`{ line, column, unit? }`, alle ab 1 gezählt) und bei jedem anderen Fehler `undefined`, auch bei
+einer fehlenden oder zu großen Datei, sodass du weder den Fehler noch seinen `cause` casten musst.
+
+```ts
+try {
+  await importTmx({ config, file: "legacy.tmx" });
+} catch (error) {
+  const at = tmxErrorLocation(error);
+  if (at !== undefined) console.error(`line ${at.line}, column ${at.column}`);
+}
+```
+
+### exportTmx
+
+Schreibt den Übersetzungsspeicher als TMX 1.4b heraus. Eingabe: `{ config, out?, cwd?, configPath?,
+glossaryPath?, locales?, toolVersion? }`, wobei `out` auf `DEFAULT_TMX_PATH` (`verbatra-memory.tmx`)
+zurückfällt, das als Konstante exportiert wird. Bevor der Übersetzungsspeicher gelesen wird, weist
+`TMX_OUTPUT_CONFLICT` ein `out` zurück, das keine Datei benennt (auch eines, das auf ein
+Pfadtrennzeichen endet), außerhalb von `cwd` oder auf `cwd` selbst landet oder eine konfigurierte
+Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine
+Konfiguration sucht, die `configPath`-Datei oder die `glossaryPath`-Datei benennt, ohne Beachtung
+der Groß- und Kleinschreibung und, wenn `deps.fs` `realpath` implementiert wie die Voreinstellung,
+noch einmal nach dem Auflösen symbolischer Links. Scheitert das Schreiben, weil das Verzeichnis
+nicht schreibbar ist, an dem Pfad ein Verzeichnis liegt oder die Platte voll ist, wirft es
+`TMX_UNWRITABLE` mit der Datei und dem Dateisystem-Code in der Message. Geschrieben werden nur
+Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe Menge, die ein Lauf
+wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US` wird zu `en-US`), was
+nichts daran ändert, woraus der Key des Übersetzungsspeichers gebildet wird. Ein leerer
+Übersetzungsspeicher ergibt eine gültige, leere Datei statt eines Fehlers. Gibt `{ path, units,
+locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die
+ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei
+Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, und
+`illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem
+Segmenttext entfernt wurden.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`, der
+Typ `TmxOrigin`) und ein `machine`-Segment zusätzlich `<prop type="x-review">` (`approved`,
+`unreviewed` oder `rejected`, der Typ `TmxReview`), abgeleitet aus jedem Key, dessen Lock-Eintrag die
+Quelle des Segments nennt und dessen Eintrag genau seinen Text beschreibt. `provenanceMarkers` ist
+`"unavailable"`, wenn sich die Herkunftsdatei oder die Lock-Datei nicht lesen ließ; dann trägt kein
+Segment eine Property.

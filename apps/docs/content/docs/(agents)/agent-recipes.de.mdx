@@ -127,7 +127,7 @@ verbatra translate --dry-run --json 2>/dev/null | jq .
 }
 ```
 
-Exit `0`. Jede Liste pro Locale ist auch dann vorhanden, wenn sie leer ist, ein Agent kann also darauf zugreifen, ohne vorher zu prüfen. Ein echter Lauf ergänzt pro Locale und in der Zusammenfassung ein `usage`-Objekt, sofern der Provider einen Verbrauch meldet; ein Dry Run nie, weil er keinen Aufruf macht. Die vollständige Anatomie eines `LocaleSummary` steht in der [SDK-Referenz](/docs/sdk).
+Exit `0`. Jede Liste pro Locale ist auch dann vorhanden, wenn sie leer ist, ein Agent kann also darauf zugreifen, ohne vorher zu prüfen. Ein echter Lauf ergänzt pro Locale und in der Zusammenfassung ein `usage`-Objekt, sofern der Provider einen Verbrauch meldet; ein Dry Run nie, weil er keinen Aufruf macht. Die vollständige Anatomie eines `LocaleSummary` steht in der [SDK-Referenz](/docs/sdk/run-summary).
 
 Wenn ein Lauf überhaupt nicht stattfinden kann, ist der Payload stattdessen ein Fehler-Datensatz, und der Befehl endet mit `2`:
 

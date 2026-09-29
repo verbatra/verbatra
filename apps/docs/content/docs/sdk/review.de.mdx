@@ -1,0 +1,214 @@
+---
+title: "Bearbeiten und prüfen"
+description: "Einen Key lesen, bearbeiten, freigeben, ablehnen und neu übersetzen, oder viele auf einmal prüfen und neu übersetzen."
+---
+## Operationen auf einzelnen Keys
+
+Das sind die Nahtstellen, an denen Verbatra Studio ansetzt; nutze sie, um dein eigenes
+Review-Tooling zu bauen. Alle lösen `locale` und `key` bei jedem Aufruf frisch auf und werfen
+`UNKNOWN_LOCALE` oder `UNKNOWN_KEY`, wenn eines von beiden nicht existiert.
+
+### keyValue
+
+Liest den aktuellen Quellwert eines Keys und, falls vorhanden, seinen aktuellen Zielwert für eine
+Locale. Nur lesend.
+
+Eingabe: `{ config, cwd?, locale, key }`. Gibt `{ source, target? }` zurück; `target` fehlt genau
+dann, wenn der Key in dieser Locale noch nicht existiert.
+
+Ist `target` vorhanden, trägt das Ergebnis außerdem `provenance`, die ausgewertete
+`KeyProvenance` des Keys: `{ origin, provider?, model?, reviewState, reviewer? }`.
+
+<AvailableFrom version="0.12.0" />
+
+Das Ergebnis trägt außerdem `description`, wenn die Quell-Locale-Datei eine für den Key angibt:
+eine ARB-`@key.description`, eine XLIFF-Notiz, einen gettext-Kommentar, einen Kommentar in Apples
+`.strings` oder einen Kommentar in .NET-`.resx`.
+
+### editEntry
+
+Schreibt eine von Hand getippte Korrektur für einen Key und eine Locale. Der Kandidatenwert
+durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irgendetwas die Platte
+erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
+Schreibsperre dieser Locale aktualisiert. Ruft nie einen Provider auf.
+
+Eingabe: `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt ein zweiarmiges Ergebnis zurück:
+`{ accepted: true, value }` oder
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`,
+wobei nichts geschrieben wird. `"empty"` deckt einen leeren oder nur aus Whitespace bestehenden Wert
+für eine Quelle mit Text ab: Eine Bearbeitung kann das Leeren eines Keys nicht ausdrücken, nutze
+dafür also das `[[CLEAR]]`-Sentinel der Arbeitsmappe. Die Menge der Gründe wird als Tupel
+`INTEGRITY_GATE_REASONS` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
+daraus, statt die Mitglieder abzutippen. Eine `placeholder`- oder `markup`-Ablehnung trägt
+zusätzlich `details`: die betroffenen Platzhalter oder Tags, jeweils mit `-` für einen, den die
+Quelle hatte und der Kandidat weggelassen hat, oder `+` für einen, den der Kandidat erfunden hat.
+
+Der geschriebene Wert wird in `verbatra.provenance.json` mit der Herkunft `human` festgehalten.
+Übergib `actor: "agent"`, wenn ein KI-Agent den Wert geschrieben hat, damit der Eintrag das sagt; die
+aufrufende Oberfläche behauptet das, geprüft wird es nicht. Die Herkunftsdatei wird geprüft, bevor
+der Wert das Gate durchläuft: Eine beschädigte wirft `PROVENANCE_FILE_INVALID` und nichts wird
+geschrieben, eine von einem neueren verbatra, oder eine, die der Eintrag über die Größe wachsen
+ließe, die verbatra zurückliest, bleibt unangetastet und der Wert wird ohne Eintrag geschrieben.
+
+<AvailableFrom version="0.12.0" />
+
+Mit `actor: "agent"` wirft ein Key, der auf die `pinnedKeys` der Konfiguration passt, `KEY_PINNED`, bevor etwas gelesen oder geschrieben wird. Die Bearbeitung eines gepinnten Keys durch einen Menschen wird angenommen.
+
+<AvailableFrom version="0.12.0" />
+
+`lockAcquireTimeoutMs` begrenzt die Wartezeit auf die Schreibsperre der Locale, bevor der Aufruf mit `LOCK_CONTENDED` scheitert (standardmäßig zehn Minuten), `onLockWait` meldet diese Wartezeit, und eine ungültige Grenze scheitert mit `LOCK_TIMEOUT_INVALID`, bevor etwas gelesen wird.
+
+### retranslateEntry
+
+Lässt den Provider für genau einen Key und eine Locale neu laufen: ein Einzeleintrag-Aufruf durch
+denselben Provider-Pfad, den `translate` nutzt, abgesichert durch dieselben
+Integritätsprüfungen. Bei Annahme schreibt es die Locale-Datei und den Lock-Eintrag nur für diesen
+Key.
+
+Eingabe: `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt `{ accepted: true, value, reviewReasons }` zurück
+(die Review-Grund-Codes, falls vorhanden, die auf den neuen Wert zutreffen) oder
+`{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`.
+Anders als bei `translate` wirft ein Provider-Fehlschlag hier: ein `ProviderError`, exportiert aus
+`@verbatra/sdk`, mit einem stabilen `code` wie `RATE_LIMITED` oder `AUTH_FAILED`. Unter `provider: { id: "none" }` wirft es zuerst `MACHINE_TRANSLATION_DISABLED`, bevor es irgendetwas liest oder sperrt.
+
+Der neue Wert wird in `verbatra.provenance.json` als `machine` festgehalten, mit der `id` des
+Providers, der geantwortet hat, und dem konfigurierten Modell. Ein Provider aus deinem eigenen
+`createProvider` wird unter seiner eigenen `id` festgehalten, und ohne Modell, wenn diese `id` von der
+konfigurierten abweicht. Eine beschädigte Herkunftsdatei wirft `PROVENANCE_FILE_INVALID`, bevor der
+Provider aufgerufen wird.
+
+<AvailableFrom version="0.12.0" />
+
+Ein Key, dessen aktuellen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, wirft `KEY_PROTECTED` innerhalb der Schreibsperre, bevor der Provider aufgerufen wird, außer du übergibst `includeHuman: true` oder die Konfiguration setzt `humanEdits: "overwrite"`. Stammt die Provenienz-Datei von einem neueren verbatra, zählt jeder vorhandene Wert als geschützt. Ein Key, der auf `pinnedKeys` passt, wirft `KEY_PINNED`, bevor der Provider gebaut wird, auch mit `includeHuman`.
+
+### approveEntry
+
+<AvailableFrom version="0.12.0" />
+
+Hält fest, dass eine Person den aktuellen Wert eines Keys in einer Locale geprüft hat und ihn
+übernimmt. Schreibt nur `verbatra.provenance.json`, nie eine Locale-Datei oder die Lock-Datei, und
+ruft keinen Provider auf. Die Freigabe speichert zusätzlich den Quell-Hash des Keys aus der
+Lock-Datei, sodass sie wieder als ungeprüft gilt, sobald sich die Quelle ändert; jeder spätere
+Schreibvorgang, der den Wert ändert, beginnt einen frischen, ungeprüften Eintrag.
+
+Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` ist der Text,
+den die prüfende Person gesehen hat: Der Aufruf wirft `REVIEW_VALUE_CHANGED`, wenn der Key keinen
+oder einen anderen Wert hat, und `REVIEW_SOURCE_CHANGED`, wenn sich die Quelle geändert hat, seit
+der Wert geschrieben wurde. `reviewer` ist optionaler Freitext mit höchstens 64 Zeichen ohne
+Steuerzeichen (sonst `REVIEWER_INVALID`), landet in der committeten Datei und wird nie von verbatra
+ausgefüllt. Gibt `{ locale, key, provenance }` zurück. Ein Wert ohne bisherigen Eintrag, oder einer,
+der außerhalb von verbatra geändert wurde, wird mit der Herkunft `unknown` festgehalten.
+
+### rejectEntry
+
+<AvailableFrom version="0.12.0" />
+
+Hält fest, dass eine Person den aktuellen Wert eines Keys in einer Locale geprüft hat und ihn
+ablehnt, und entfernt diesen Wert, damit er ersetzt wird. Der Key fliegt aus der Locale-Datei und
+sein Lock-Eintrag wird entfernt, sodass `check` und `diff` ihn als fehlend melden und der nächste
+`translate`-Lauf ihn wieder füllt (unter `provider: { id: "none" }` bleibt er fehlend, bis jemand
+einen Wert schreibt). Der Herkunftseintrag bleibt als `rejected` mit einem Hash des entfernten Texts
+erhalten, und der passende Eintrag im Translation Memory auf diesem Rechner wird gelöscht. Ein
+späteres `translate` überspringt jeden exakten oder unscharfen Memory-Treffer für den Key, dessen
+Text zu diesem Hash passt, sodass auch das Memory eines anderen Rechners den Text nicht
+zurückbringt. Ruft keinen Provider auf.
+
+Eingabe: `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, geprüft wie bei `approveEntry`,
+nur dass eine veraltete Quelle eine Ablehnung nicht verhindert. Gibt `{ locale, key, provenance }`
+zurück. Ein Format, das einen Key behält, den es nicht übergeben bekommt, XLIFF, wirft
+`REVIEW_REJECT_UNSUPPORTED`, nachdem es die Datei wiederhergestellt hat.
+
+Beide Aufrufe nehmen die Schreibsperre der Locale. `lockAcquireTimeoutMs` begrenzt das Warten
+darauf (standardmäßig zehn Minuten) und scheitert mit `LOCK_CONTENDED`, wenn die Zeit abläuft, und
+`onLockWait` meldet dieses Warten; ein Wert, der keine ganze Zahl von mindestens 0 Millisekunden
+ist, wirft `LOCK_TIMEOUT_INVALID`, bevor irgendetwas gelesen wird. Die Wartezeit begrenzt nicht die
+Sperre der Lock-Datei, die zum Festhalten der Entscheidung genommen wird: Die erlaubt immer die
+zehn Minuten des Standards.
+
+Beide Aufrufe prüfen die Herkunftsdatei, bevor etwas geschrieben wird, und melden nie eine
+Entscheidung, die sie nicht speichern konnten: Eine Datei aus einem neueren verbatra, oder eine, die
+durch die Entscheidung über die Größe wachsen würde, die verbatra wieder einliest, wirft
+`PROVENANCE_FILE_UNWRITABLE`.
+
+## Review und Neuübersetzung im Stapel
+
+<AvailableFrom version="0.12.0" />
+
+Jeder dieser Aufrufe führt den passenden Einzel-Key-Aufruf einmal pro Eintrag aus, in der
+angegebenen Reihenfolge, und gibt `{ results }` mit einem Ergebnis pro Eintrag in dieser Reihenfolge
+zurück. Ein Eintrag, der scheitert, hält den Stapel nicht an: Sein Ergebnis ist
+`{ locale, key, ok: false, code, message }` mit dem Code des `SdkError`, Adapter-Fehlers oder
+`ProviderError`, der ihn gestoppt hat, und einer geschwärzten Nachricht, und der nächste Eintrag
+läuft. Jeder andere Fehler stoppt den Stapel mit einem `BatchInterruptedError`, der die Ergebnisse
+der schon ausgeführten Einträge trägt, deren Schreibvorgänge bereits auf der Platte sind. Eine leere
+`entries`-Liste ergibt leere `results`.
+
+### approveEntries
+
+Eingabe: `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
+Führt `approveEntry` pro Eintrag mit denselben Prüfungen aus; `reviewer` gilt für jeden Eintrag. Ein
+erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. `lockAcquireTimeoutMs` begrenzt
+das Warten jedes Eintrags auf die Schreibsperre seiner Locale, und `onLockWait` meldet dieses
+Warten. Ein Eintrag, dessen Sperre über das Timeout hinaus belegt bleibt, scheitert mit
+`LOCK_CONTENDED`, und jeder spätere Eintrag, der dieselbe Sperre braucht, bekommt
+`{ locale, key, ok: false, skipped: true, code: "LOCK_CONTENDED", message }`, statt erneut zu
+warten; Einträge anderer Locales werden weiter entschieden. Die Einzelaufrufe `approveEntry` und
+`rejectEntry` nehmen dieselben beiden Optionen.
+
+### rejectEntries
+
+Eingabe: wie bei `approveEntries`. Führt `rejectEntry` pro Eintrag aus und entfernt jeden
+abgelehnten Wert. Ein erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. Ein
+Sperr-Timeout überspringt die späteren Einträge, die diese Sperre brauchen, wie bei
+`approveEntries`.
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Eingabe: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt
+die ganze Review-Warteschlange einer Locale frei, oder nur ihre Werte mit einer der `origins`, in
+einem einzigen Schreibvorgang von `verbatra.provenance.json` unter der Schreibsperre der Locale.
+Jede Freigabe wird so festgehalten, wie `approveEntry` eine festhält, mit dem Quell-Hash, gegen den
+sie erteilt wurde. Sie nimmt keinen erwarteten Wert: Sie gibt frei, was beim Aufruf in der
+Warteschlange steht, zeig der prüfenden Person die Warteschlange also vorher. Gibt
+`{ locale, approved, sourceChanged }` zurück: die freigegebenen Keys und die Keys aus der
+Warteschlange, die ungeprüft bleiben, weil sich ihr Quelltext seit dem Schreiben geändert hat. Sie
+schreibt nur die Herkunftsdatei, ruft keinen Provider auf und scheitert mit
+`PROVENANCE_FILE_UNWRITABLE`, statt Freigaben zu melden, die sie nicht speichern konnte.
+
+### retranslateEntries
+
+Eingabe: `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
+Führt `retranslateEntry` pro Eintrag aus und macht damit bis zu einen Provider-Aufruf pro Eintrag.
+Es ist kein `translate`-Lauf: `maxTokens` und `budgetBehavior` gelten nicht, und die Zahl der
+Einträge ist die einzige Grenze für die Kosten. Ein abgeschlossenes Ergebnis ist
+`{ ok: true, locale, key, result }`, wobei `result` das ist, was `retranslateEntry` zurückgegeben
+hat, auch ein Wert, den das Integritäts-Gate abgelehnt hat. Ein Wert, den ein Mensch geschrieben
+hat, scheitert mit `KEY_PROTECTED`, außer du übergibst `includeHuman: true`.
+`lockAcquireTimeoutMs` begrenzt das Warten jedes Eintrags auf die Schreibsperre seiner Locale, vor
+dem Provider-Aufruf, und `onLockWait` meldet dieses Warten.
+
+<AvailableFrom version="0.12.0" />
+
+Ein Fehler, an dem jeder Eintrag gleich scheitern würde, beendet die Provider-Aufrufe:
+`MISSING_API_KEY`, `AUTH_FAILED`, `RATE_LIMITED` (auch ein erschöpftes Kontingent),
+`NETWORK_POLICY_VIOLATION`, `PROVIDER_CONSTRUCTION_FAILED`, `CONFIG_INVALID` oder
+`MACHINE_TRANSLATION_DISABLED`. Der Eintrag, der ihn ausgelöst hat, scheitert wie gewohnt, und jeder
+Eintrag danach bekommt `{ locale, key, ok: false, skipped: true, code, message }` mit diesem Code,
+ohne weiteren Provider-Aufruf.
+
+Ein Eintrag, dessen Locale-Schreibsperre über `lockAcquireTimeoutMs` hinaus belegt bleibt, scheitert
+mit `LOCK_CONTENDED`, und jeder spätere Eintrag, der dieselbe Sperre braucht, wird auf dieselbe Weise
+mit diesem Code übersprungen, statt erneut zu warten: die Einträge dieser Locale, oder aller Locales
+bei einem Format, das alle Locales in einer Datei hält. Einträge anderer Locales laufen weiter.
+
+### BatchInterruptedError
+
+<AvailableFrom version="0.12.0" />
+
+Wird von `approveEntries`, `rejectEntries` und `retranslateEntries` geworfen, wenn ein Fehler, der
+kein Ergebnis eines einzelnen Eintrags ist, etwa ein unerwarteter Dateisystemfehler, einen Stapel
+mittendrin stoppt. `results` enthält die Ergebnisse der vorher abgeschlossenen Einträge in ihrer
+Reihenfolge, `entry` nennt das laufende `{ locale, key }`, und `cause` ist der ursprüngliche Fehler.
+Einträge nach `entry` sind nicht gelaufen.

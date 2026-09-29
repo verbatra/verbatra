@@ -1,0 +1,389 @@
+---
+title: "Ein Projekt inspizieren"
+description: "Nur lesende Einstiegspunkte: doctor, check, diff, Integritätsprüfungen, Lock- und Provenienzzustand und Lesen in großen Mengen."
+---
+## Zustand inspizieren, ohne zu schreiben
+
+Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verändert das Lock.
+
+### doctor
+
+<AvailableFrom version="0.9.0" />
+
+Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, stellt keine
+Netzwerkanfrage, außer `live` fordert eine an, und liest nie einen API-Key-Wert. Elf Prüfungen laufen, jede mit ihrem eigenen
+Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert (`config`), das
+konfigurierte Format löst zu einem Adapter auf (`format-adapter`), die konfigurierte Provider-ID
+löst zu einer Factory auf (`provider`), die Umgebungsvariable, aus der dieser Provider seinen Key
+liest, ist gesetzt (`api-key`), und die Quell-Locale-Datei lässt sich lesen (`source-file`). Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Aufruf
+meldet also jedes unabhängige Problem. Der API-Key wird nur über den Namen geprüft. Die
+Quelldatei-Prüfung liest und parst die Datei, statt nur ihre Existenz zu sondieren: Ein Verzeichnis
+an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt werden also alle hier gemeldet.
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `network-policy` besteht, wenn die wirksame
+[Netzwerkrichtlinie](/docs/network-policy) aus dem `network`-Block der Konfiguration und der
+Umgebungsvariable `VERBATRA_NETWORK_POLICY` den Host erlaubt, zu dem sich der konfigurierte Provider
+verbindet, und jeden Proxy, den er nutzen würde. Ihr Detail nennt die Richtlinie, ihre beiden
+Quellen und den Host. Sie schlägt fehl, wenn dieser Host abgewiesen wird oder eine
+Netzwerk-Umgebungsvariable einen ungültigen Wert hat, besteht für den Provider `none` und löst
+keinen Hostnamen auf.
+
+Die Prüfung `plural-rules` ist rein informativ und besteht immer: Ihr Detail nennt die
+ICU- und CLDR-Versionen, aus denen die Laufzeit die Pluralkategorien jeder Zielsprache ableitet,
+und jede Ziel-Locale, für die ICU keine Pluralregeln hat.
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `plural-completeness` ist ebenfalls rein informativ und besteht immer: Sie liest die
+Quell- und jede Ziel-Locale-Datei, und ihr Detail nennt jeden Plural, dem CLDR-Pluralkategorien
+fehlen, die seine Zielsprache verwendet, derselbe Befund, den `check` als `incompletePlurals`
+meldet. Sie sagt es, wenn das Format Pluralformen nicht nach CLDR-Kategorie speichert, und eine
+Datei, die sie nicht lesen kann, wird im Detail genannt.
+
+Die Prüfung `locale-codes` ist ebenfalls rein informativ und besteht immer: Ihr Detail
+nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, etwa
+`zh-hant-tw` oder das veraltete `iw`, mit der kanonischen Form, die `Intl.getCanonicalLocales`
+vorschlägt. Umbenannt wird nichts.
+
+Die Prüfung `locale-state` ist ebenfalls rein informativ und besteht immer: Ihr Detail
+nennt jede Locale, für die Lock-Datei, Translation Memory oder Provenance-Datei Zustand halten, die
+die Konfiguration aber nicht aufführt, etwa `pt_BR` nach einer Umschreibung zu `pt-BR`, und sagt,
+ob der nächste Lauf von `translate` sie übernimmt. Eine Datei, die sie nicht lesen kann, nennt das
+Detail.
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `locales` beurteilt die Quell-Locale und jede Ziel-Locale gegen die Sprachunterstützung
+des konfigurierten Providers, dasselbe Urteil, das `translate` fällt, bevor es etwas ausgibt. Sie
+schlägt bei einer Locale fehl, die der Provider nicht unterstützt, und besteht sonst mit Warnungen;
+für den Provider `none` ist sie `skipped`. Die Urteile je Locale stehen in `DoctorResult.locales`,
+einem `LocaleCapabilityReport` mit dem Code, als der jede Locale gesendet wird, ihrem `support`
+(`supported`, `unverified` oder `unsupported`), den Flags `glossary` und `formality` und ihren
+Warnungen. Mit `live: true` ruft `doctor` zuerst die aktuelle Sprachliste des Providers ab (DeepLs
+`/v3/languages`, `languages` von Cloud Translation), was kein Übersetzungskontingent verbraucht,
+sofern die Key-Variable des Providers gesetzt ist und die Netzwerkrichtlinie seinen Host erlaubt;
+`LocaleCapabilityReport.live` sagt, wie das ausging.
+Siehe [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
+
+Eingabe: `{ cwd?, configPath?, literals?, live?, onProgress? }`. Mit gesetztem `literals` führt `doctor` nur die
+Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
+Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
+[`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. Keine geladene
+Konfiguration nötig: `doctor` lädt sie selbst, ein Projekt ganz ohne Konfiguration bekommt also
+trotzdem einen Bericht statt eines geworfenen Fehlers. Gibt ein `DoctorResult` zurück, dessen `ok`
+genau dann true ist, wenn keine Prüfung fehlgeschlagen ist. Es wirft `CONFIG_NOT_FOUND` nur für
+einen explizit angegebenen `configPath`, der nicht existiert.
+
+<AvailableFrom version="0.12.0" />
+
+Jede fehlgeschlagene Prüfung trägt `fix`, einen kurzen nächsten Schritt im Imperativ wie "Set
+ANTHROPIC_API_KEY in the environment or in a .env file in the project directory.". Eine bestandene
+oder übersprungene Prüfung hat kein `fix`. Wie `detail` nennt es Variablen und Pfade, nie den Wert
+eines Keys.
+
+### extract
+
+<AvailableFrom version="0.11.0" />
+
+Durchsucht deinen Anwendungscode nach Übersetzungsaufrufen und führt die Funde in den
+Quell-Locale-Katalog zusammen. Es ist der eine Einstiegspunkt, der Anwendungscode statt einer
+Locale-Datei liest, und genau das macht verbatra in einem Projekt nutzbar, das noch keinen Katalog
+hat. Der Lauf kostet nichts: Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable
+gelesen und keine Netzwerkanfrage gestellt.
+
+Geschrieben wird ausschließlich die Quell-Locale-Datei, und nur wirklich neue Keys werden ergänzt:
+Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert, und ein Key im Katalog, den
+keine Aufrufstelle nennt, bleibt unangetastet. Ein Lauf, der nichts Neues findet, schreibt gar
+nichts. Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, statt geworfen zu werden:
+ein nicht statisches Key-Argument in `dynamic`, ein Key mit zwei verschiedenen Standardwerten in
+`conflicts` (kein Wert wird geschrieben) und eine nicht lesbare Datei in `diagnostics`. Das Ergebnis
+trägt nur Keys, Werte sowie Datei- und Zeilenangaben, nie den Inhalt einer Quelldatei.
+
+Eingabe: `{ config, cwd?, dryRun?, onProgress? }`, wobei `config.extract` das Framework und die
+Quellverzeichnisse benennt. Gibt ein `ExtractResult` zurück. Die Dateisuche läuft über das
+optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member wird als
+`EXTRACT_FS_UNSUPPORTED` gemeldet.
+
+### check
+
+Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
+(Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
+
+Eingabe: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
+genau dann true ist, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
+
+<AvailableFrom version="0.11.0" />
+
+Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsistencies`: eine
+`InconsistencyGroup` pro Quellstring, den die Locale unter verschiedenen Keys unterschiedlich
+übersetzt, mit der `source`, jeder abweichenden Übersetzung als `{ value, keys }` sowie dem
+`context`, der `description`, der `meaning`, `isPlural` und `pluralForm`, die die gruppierten Keys
+teilen. Verglichen werden nur aktuelle Keys, Werte nach NFC-Normalisierung und ohne Leerraum am
+Anfang und Ende, Keys mit abweichender Beschreibung, Bedeutung, Plural-Kennzeichen oder
+gettext-`msgctxt` werden nie gruppiert, und Pluralformen unter eigenen Keys werden pro Form
+verglichen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei und ruft
+keinen Provider auf.
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` trägt außerdem `provenance`: Zähler `byOrigin` und `byReviewState` über
+die Keys, für die die Locale einen Wert hat, gelesen aus `verbatra.provenance.json`. Was jede
+Herkunft bedeutet, steht unter [Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+Dieses und jedes andere Herkunftsfeld eines Berichts fehlt, statt einen Fehler auszulösen, wenn die
+Datei beschädigt ist oder von einem neueren verbatra stammt.
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer veralteten Keys ein `translate`-Lauf unter dem `humanEdits` und den `pinnedKeys` der Konfiguration für einen Menschen übrig lassen würde: der geschützte Anteil von `stale`. Ein fehlender gepinnter Key hat noch keinen Wert, den es zu schützen gibt, und zählt nur als fehlend. Sie zählen weiter als veraltet, also bleibt `inSync` false, bis ein Mensch sie auflöst. Ist `verbatra.provenance.json` beschädigt oder von einem neueren verbatra, lässt sich keine Herkunft lesen, und nur gepinnte Keys werden gezählt.
+
+<AvailableFrom version="0.12.0" />
+
+Mit `qa: true` lässt `check` zusätzlich die Qualitätsprüfung über jeden eingecheckten Wert laufen,
+ohne Key und ohne etwas zu schreiben: Jede `LocaleCheckSummary` trägt einen `qa`-Bericht aus
+`{ checked, errors, warnings, findings }`, und die Zusammenfassung trägt die `qa`-Summen aus
+`{ errors, warnings, invalidSourceKeys }`. Ein Befund ist `{ key, severity: "error", reason, details? }`
+für einen Wert, den das Integritäts-Gate ablehnen würde (`reason` aus `INTEGRITY_GATE_REASONS`),
+oder `{ key, severity: "warning", reason }` für einen Wert, der besteht, aber einen Review-Grund
+aus `REVIEW_REASON_CODES` trägt. `qaSeverity: "error"` lässt die Review-Gründe weg. Die
+Schweregrade sind als Tupel `QA_SEVERITIES` veröffentlicht (`"error"`, `"warning"`). Der Bericht
+ändert `inSync` nie; ein CI-Gate liest `qa.errors` und für ein strenges Gate auch `qa.warnings`.
+Welche Werte geprüft werden, steht unter [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung).
+
+<AvailableFrom version="0.12.0" />
+
+Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`: ein `IncompletePlural` pro Plural, dessen
+eingecheckten Formen CLDR-Pluralkategorien fehlen, die die Zielsprache verwendet, als
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, nach Key sortiert und
+leer, wenn jeder Plural vollständig ist. Abgedeckt sind `i18next-json`, `android-xml`, `apple-strings`,
+`apple-xcstrings` und die ICU-Nachrichten mit `plural` und `selectordinal` von `next-intl-json` und
+`arb`. `other` ist immer Pflicht, ein Zweig mit exaktem Wert wie `=1` ersetzt nie eine Kategorie, und
+eine Kategorie, die die Sprache nicht verwendet, wird nicht gemeldet. Es ist eine Warnung: Sie ändert
+nie `inSync` oder eine Zahl. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien).
+
+Mit `requireReviewed: true` führt `check` zusätzlich das Review-Gate aus, ohne Key und ohne etwas
+zu schreiben: Jede `LocaleCheckSummary` trägt `review: { unreviewed }`, die Keys, deren Wert eine
+maschinelle Herkunft hat und nicht freigegeben ist, und die Zusammenfassung trägt
+`review: { reviewed, unreviewed, code? }`. `code` ist `REVIEW_REQUIRED`, wenn ein Wert nicht
+freigegeben ist, oder `REVIEW_STATE_UNREADABLE`, wenn die Herkunftsdatei beschädigt ist oder von
+einer neueren verbatra-Version stammt; dann scheitert das Gate, statt durchzulassen. Der Bericht
+ändert `inSync` nie; ein CI-Gate liest `review.reviewed`. Siehe [`verbatra check`](/docs/cli/check).
+
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+Prüft eine einzelne Locale-Datei, der schnelle Weg, eine Datei direkt nach einer Änderung durch eine
+Person oder einen Agenten zu validieren. Es liest diese Datei und, für ein Ziel-Locale, die Datei des
+Quell-Locales, und sonst nichts: kein anderes Locale, keine Lock-Datei, keinen Quellcode, keinen
+Provider, keinen API-Key, und es schreibt nichts.
+
+Eingabe: `{ config, cwd?, file, qaSeverity? }`, wobei `file` absolut oder relativ zu `cwd` ist. Gibt
+eine `CheckFileSummary` aus `{ file, role, locales, qa }` zurück: `role` ist `"source"`, `"target"`
+oder `"catalogue"` (die eine Datei von `apple-xcstrings`), jeder Eintrag in `locales` ist ein
+`LocaleFileCheck` aus `{ locale, incompletePlurals, qa }`, dessen `qa` die Form des `qa`-Berichts hat,
+den `check` mit `qa: true` liefert, und `qa` enthält die Summen. Eine Datei, die sich nicht parsen
+lässt, wird nicht geworfen: Ihr Locale trägt einen `QaSyntaxFinding` aus
+`{ severity: "error", reason: "syntax", code, message, line?, column? }` mit dem Code des
+Format-Adapters und, bei JSON und YAML, der Position, die `AdapterError.position` meldet. Eine
+Zieldatei, die sich parsen lässt, wird wie bei `check` mit `qa: true` gegen die Quelle geprüft; die
+Quelldatei nur auf ihre Syntax. Ein Pfad, der zu keinem konfigurierten Locale gehört, oder eine
+Datei, die es nicht gibt, wirft `NOT_A_LOCALE_FILE`. Siehe [Eine Datei](/docs/cli/check#eine-datei).
+
+### diff
+
+Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
+Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
+und kippen nie `hasPendingChanges`, da ein Standardlauf kein `prune` ausführt.
+
+Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
+einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
+statische Referenz nennt, in Katalogreihenfolge. Er ist nur lesend, braucht keinen Key und bildet
+die i18next-Laufzeit nach (`t`-Aufrufe und ihre Aliase, statische `keyPrefix`- und
+`getFixedT`-Präfixe, `Trans`-Keys, Keys mit Namespace sowie Plural- und Kontextvarianten), wobei
+Keys in der Kodierung des Katalogformats verglichen werden. Jeder gelistete Key trägt seinen
+dekodierten `key` und seinen `catalogKey`. Keys, die `extract.unused.ignore` trifft, landen in
+`ignored`, und Keys, die ein Template-Literal mit statischem Anfang erreichen könnte, in
+`possiblyDynamic`. Sein `status` ist `complete`, `unreliable` (mit `unreliableBecause`, das jeden
+Grund mit seinen Fundstellen nennt) oder `not-run` (mit einem `reason` und ohne Key-Liste). Alle
+Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys). Der Bericht
+kippt nie `hasPendingChanges`.
+
+Eingabe: `{ config, cwd?, locales?, unused?, onProgress? }`. Gibt eine `DiffSummary` zurück.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `LocaleDiff` trägt außerdem `changedOrigins`, die ausgewertete Herkunft des aktuellen Werts
+jedes `changed`-Keys (etwa `machine`, `human` oder `external`), damit du vor einem Lauf siehst,
+wessen Arbeit eine Neuübersetzung ersetzen würde.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert. Sie zählen weiter als ausstehend. Ist die Provenienz-Datei nicht lesbar, werden nur gepinnte Keys gelistet.
+
+### keyIntegrity
+
+Meldet für die geänderten Keys jeder Locale, ob der aktuelle Zielwert noch zu den Platzhaltern der
+Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
+Eintrag trägt `key`, `hasPlaceholders`, `matches`, bei einer Abweichung die `missing`- und
+`extra`-Platzhalter-Tokens, `icuValid`, `markupMatches` sowie `markupDetails` mit den Tags hinter
+einer Markup-Abweichung. Einträge tragen nie einen Quell- oder Zielstring-Wert. Dass Markup hier
+gemeldet wird, macht Abweichungen sichtbar, die älter sind als das Gate beim Schreiben: eine
+Übersetzung, die vor der Prüfung entstand, außerhalb von verbatra bearbeitet wurde oder über einen
+Pfad kam, der das Gate nie passiert hat, wird hier nach derselben Regel beurteilt. Das ist der
+Integritätsbericht pro Key, den Studio anzeigt.
+
+<AvailableFrom version="0.12.0" />
+
+Jeder Eintrag trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`,
+`selectordinal` und `select` des Werts zur Zielsprache passen, genau so beurteilt wie beim Gate beim
+Schreiben, und ein kurzes Problem pro fehlendem oder überzähligem Zweig, etwa `{count} plural:
+missing arm "few" required by the target language`. `icuArmsMatch` ist immer true für ein Format,
+das keine Zweige prüft (jedes mitgelieferte Format außer next-intl und ARB).
+
+Eingabe: `{ config, cwd?, locales?, keys? }`. `keys` engt die Prüfung ein; geprüft werden immer
+nur Keys, die für eine Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale
+zurück.
+
+### localeIntegrity
+
+<AvailableFrom version="0.12.0" />
+
+Findet jede Übersetzung in den Ziel-Locales, die gerade kaputt ist: eine, die einen Platzhalter
+verloren oder dazubekommen hat, Inline-Markup verloren oder ergänzt hat, sich nicht mehr als ICU
+parsen lässt oder ICU-Zweige für `plural`, `selectordinal` oder `select` trägt, die nicht zur
+Zielsprache passen. Anders als `keyIntegrity` beurteilt es jeden Key, der in der Quelle und in einer
+Ziel-Locale vorkommt, egal wie sein Sync-Zustand ist, also findet es auch einen Fehler in einer
+Übersetzung, die seit dem Schreiben niemand angefasst hat. Jeder Key wird nach denselben Regeln
+beurteilt wie bei `keyIntegrity` und dem Gate beim Schreiben, und zurück kommen nur fehlerhafte Keys:
+Eine leere `entries`-Liste heißt, dass jede Übersetzung dieser Locale besteht.
+
+Die Kosten sind ein Lesen und Parsen der Quelldatei und jeder angefragten Zieldatei plus eine
+Prüfung pro übersetztem Key. Nichts wird zwischengespeichert; jeder Aufruf liest frisch von der
+Platte.
+
+Eingabe: `{ config, cwd?, locales? }`. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale zurück,
+das nur ihre fehlerhaften Einträge enthält.
+
+### lockState
+
+Meldet für die Lock-Datei Existenz, Version und Drift pro Locale (Baseline-Key-Anzahl plus Zähler
+für fehlend, veraltet und aktuell). `exists` stammt aus einer expliziten Prüfung, sodass "noch keine
+Lock-Datei" und "eine leere, aber vorhandene Lock-Datei" unterscheidbar bleiben. Fehlt die Datei,
+ist das Ergebnis `{ exists: false }` und nichts weiter wird gelesen.
+
+Eingabe: `{ config, cwd?, locales? }`. Gibt ein `LockStateResult` zurück.
+
+Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
+
+### loadLockFile
+
+Liest die Lock-Datei selbst (`verbatra.lock.json`, auch als `LOCK_FILE_NAME` exportiert) und gibt
+ihre geparste Form zurück: `{ version, locales }`, wobei jede Locale Keys auf den Hash des
+Quellinhalts abbildet, aus dem sie zuletzt übersetzt wurden. Eine fehlende Datei fällt auf ein
+leeres Lock zurück, dasselbe Erstlauf-Verhalten, auf das sich `translate` verlässt; nutze
+`lockState`, wenn du Abwesenheit unterscheiden musst.
+
+Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt ein `LockFile` zurück.
+
+### loadProvenance
+
+<AvailableFrom version="0.12.0" />
+
+Liest die Herkunftsdatei selbst (`verbatra.provenance.json`, auch als `PROVENANCE_FILE_NAME`
+exportiert) und gibt ihre gespeicherte Form zurück: `{ version, locales }`, wobei jede Locale Keys
+auf einen Eintrag `{ origin, provider?, model?, valueHash, reviewState?, reviewer?, reviewedSourceHash? }` abbildet. Sie
+enthält keinen übersetzten Text. Eine fehlende Datei oder eine von einem neueren verbatra
+geschriebene liest sich als leer; eine korrupte wirft `PROVENANCE_FILE_INVALID`. `keyValue`,
+`localeValues`, `check`, `diff` und `lockState` melden bereits die ausgewertete Sicht
+(`KeyProvenance`), die außerdem einen Wert ohne Eintrag (`unrecorded`) von einem unterscheidet, der
+seit dem Eintrag außerhalb von verbatra geändert wurde (`external`).
+
+Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt eine `ProvenanceFile` zurück.
+
+### runStatus
+
+Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `translate`- oder
+`watch`-Lauf ohne Dry-Run nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine
+fehlende, korrupte oder unbekannte Datei fällt auf `{ available: false }` zurück. Diese Datei ist
+Best-Effort-Telemetrie, keine Korrektheits-Baseline.
+
+Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt `{ available: false }` oder
+`{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
+
+Ein Schnappschuss, den eine Version von vor dem durchgesetzten Token-Budget geschrieben hat, wird
+weiter gelesen, aber sein `budget` entfällt, wenn es `supported: false` meldet: damals hieß das,
+dass gar nichts gezählt wurde, also ist sein `tokensUsed: 0` keine Zählung. Neu geschriebene
+Schnappschüsse behalten dieselbe `version` und ergänzen nur ein Markierungsfeld, das ein älteres
+Studio oder ein älterer Agent-Server ignoriert, ein älterer Leser zeigt die Review-Warteschlange und
+den Verbrauch also weiter an. Bis zum Upgrade kann er ein geschätztes Budget als nicht erfasst
+anzeigen.
+
+### reviewQueue
+
+<AvailableFrom version="0.12.0" />
+
+Liest die Review-Warteschlange aus den committeten Dateien: jeden Key, dessen aktueller Wert eine
+maschinelle Herkunft hat (`machine`, `memory`, `fuzzy` oder `agent`, veröffentlicht als Tupel
+`MACHINE_CLASS_ORIGINS`) und nicht freigegeben ist, pro Ziel-Locale in der Reihenfolge der Quelle.
+Sie liest die Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json`, also sieht jede
+Person in deinem Team mit demselben Commit dieselbe Warteschlange. Ein Key verlässt sie, sobald sein
+Wert freigegeben oder abgelehnt ist oder eine Person einen neuen Wert schreibt oder importiert; ein
+Wert, den ein Agent neu geschrieben hat, bleibt, ebenso eine Freigabe von vor einer Änderung am
+Quelltext des Keys. Der Schnappschuss des letzten Laufs aus `runStatus` ergänzt nur Details: die
+`reasons` jedes Eintrags (leer, wenn der Lauf ihn nicht markiert hat), die `fuzzyHits` der Locale
+und `lastRunAt`.
+
+Eingabe: `{ config, cwd?, locales?, includeApproved? }`. Gibt `{ available: true, locales, lastRunAt? }`
+zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als
+`{ key, reasons, provenance }`; `approved` listet die freigegebenen maschinellen Werte und ist nur mit
+`includeApproved: true` vorhanden. Ist die Herkunftsdatei beschädigt oder stammt sie von einer
+neueren verbatra-Version, gibt sie `{ available: false, reason: "provenance-unreadable" }` zurück.
+Eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei
+`check`. Bis 0.11 bestand die Warteschlange nur aus den Markierungen des letzten Laufs.
+
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+Erstellt den Bericht pro Locale, den `verbatra report provenance` ausgibt: jeden Key mit einem Wert
+sowohl in der Quelle als auch in einer Ziel-Locale, in der Reihenfolge der Quelle, mit Herkunft,
+Review-Status, Provider, Modell und Reviewer, gezählt in einer von sieben Kategorien
+(`machine-unreviewed`, `machine-reviewed`, `human`, `import`, `external`, `unrecorded`, `unknown`,
+in dieser Reihenfolge veröffentlicht als Tupel `PROVENANCE_BUCKETS`). Er liest die Locale-Dateien,
+`verbatra.lock.json` und `verbatra.provenance.json`, ruft keinen Provider auf und schreibt nichts.
+
+Eingabe: `{ config, cwd?, locales?, toolVersion? }`; `deps` nimmt außerdem `now`, die Uhr, aus der
+`generatedAt` gelesen wird. Gibt `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`
+zurück, jede Locale als `{ locale, total, counts, entries }` und jeden Eintrag als
+`{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` fällt auf
+`unknown` zurück. Ist die Herkunftsdatei beschädigt oder stammt sie von einer neueren
+verbatra-Version, gibt er `{ available: false, reason: "provenance-unreadable" }` zurück, denn ein
+Bericht ohne sie würde jeden Wert als `unrecorded` aufführen. Eine Quell-, Ziel- oder Lock-Datei,
+die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei `check`. Der Bericht ist ein
+unterstützender Nachweis, keine Rechtsberatung; das vollständige Schema steht unter
+[Nachweis maschineller Übersetzungen](/docs/provenance-evidence#das-json-schema).
+
+## Inhalte in großen Mengen lesen
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Liest den aktuellen Quell- und Zielwert jedes Keys, über jede angefragte Ziel-Locale hinweg, in
+einem einzigen Durchgang über die bereits auf der Platte liegenden Dateien. Es ist das Gegenstück
+zu `keyValue` für große Mengen: nutze es, wenn du Übersetzungsinhalte in großer Menge brauchst,
+etwa um Werte statt nur Key-Namen zu durchsuchen oder zu scannen, denn `keyValue` beantwortet
+immer nur einen Key auf einmal. Nur lesend.
+
+Eingabe: `{ config, cwd?, locales? }`; ein weggelassenes `locales` deckt jedes konfigurierte
+Ziel-Locale ab. Gibt ein Array von `{ locale, values }` zurück, ein Eintrag pro Locale, wobei
+`values` jeden Key auf `{ source?, target? }` abbildet. Ein fehlendes `target` bedeutet, dass der
+Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key
+verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle. `values` hat
+keinen Prototyp: Jeder Key, auch einer namens `__proto__` oder `constructor`, ist eine eigene
+Eigenschaft, und ein Key, der im Katalog fehlt, ergibt `undefined`.
+
+Jedes Paar mit einem `target` trägt außerdem `provenance`, dieselbe `KeyProvenance`, die `keyValue`
+meldet.

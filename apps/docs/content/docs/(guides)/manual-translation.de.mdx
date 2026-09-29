@@ -161,7 +161,7 @@ await exportWorkbook({ config, format: "csv", out: "handoff" });
 const summary = await importWorkbook({ config, workbook: "verbatra-translations.xlsx" });
 ```
 
-Beide nehmen die validierte Konfiguration aus [`loadConfig`](/docs/sdk), und `importWorkbook` gibt dieselbe `RunSummary` zurück wie `translate`. Die Arbeitsmappe selbst wird von `@verbatra/exchange` gebaut und geparst, einem internen Paket, das du nur über diese beiden Funktionen erreichst.
+Beide nehmen die validierte Konfiguration aus [`loadConfig`](/docs/sdk/config#loadconfig), und `importWorkbook` gibt dieselbe `RunSummary` zurück wie `translate`. Die Arbeitsmappe selbst wird von `@verbatra/exchange` gebaut und geparst, einem internen Paket, das du nur über diese beiden Funktionen erreichst.
 
 ## Nächste Schritte
 
