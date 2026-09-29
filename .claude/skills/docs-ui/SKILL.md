@@ -279,19 +279,28 @@ comes from:
 - **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI
   page as its bare command (`translate`) wrapped in `.vk-sidebar-command`, which sets it in
   `--font-mono`; the page `<h1>` keeps `verbatra translate`.
-- **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
-  Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
-  a visible frame, with a thin scrollbar. Cells are compact (0.5rem by 0.75rem, top-aligned). A
-  table of four or more columns gets `.vk-table-stack` and a `data-label` per body cell from
-  `lib/stacked-tables.ts` at build time; under 640px each row stacks into a card, the first cell as
-  its title and every other cell behind its column name, so it does not scroll sideways at phone
-  width. The header row stays in the DOM for assistive technology. Short inline code (up to
-  `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX
-  `code` mapping and never wraps; longer inline code wraps, in cells and in prose alike.
+- **Tables**: the frame is Fumadocs' scroll wrapper (`div:has(> table)`): border, radius and a
+  `--surface-bg` fill sit on it, the table itself is transparent, and only the `thead th` row is
+  filled (`--surface-card`, a `.vk-label`), the same header treatment `.vk-type-table` gets, so a
+  Markdown table and a generated type table read as one component. The header row is sticky
+  below the header (`top: var(--fd-docs-row-3)`). `#nd-page .prose` is the `vk-article` size
+  container, and every table rule keys on its width, never on the viewport. From 45rem up the
+  wrapper is `overflow: visible`, because a sticky cell inside a scroll container sticks to that
+  container and would never follow the page; below 45rem it scrolls sideways with the end-edge
+  fade `.vk-terminal-scroll` uses. Cells are compact (0.5rem by 0.75rem, top-aligned). A table of
+  three or more columns gets `.vk-table-stack` and a `data-label` per body cell from
+  `lib/stacked-tables.ts` at build time; while the article column is under 45rem each row stacks
+  into a card, the first cell as its title and every other cell behind its column name, and under
+  30rem the column name moves above its value. Under 24rem short inline code in a cell may wrap
+  too, so a two-column table fits a phone. The header row stays in the DOM for assistive
+  technology. Short inline code (up to `SHORT_INLINE_CODE_MAX` characters in
+  `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never wraps
+  elsewhere; longer inline code wraps, in cells and in prose alike.
 - **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
   `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
   the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).
-  The shim adds `.vk-type-table` (a flat panel on `--surface-bg`, the header row as a `.vk-label`)
+  The shim adds `.vk-type-table` (a flat panel on `--surface-bg`, the header row as a filled
+  `.vk-label` like a Markdown table's)
   and a unique `id` per table, and gives the `.md` output a plain Markdown table. Descriptions are
   the published English JSDoc in every locale; the framing prose around them stays translated.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the
