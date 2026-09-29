@@ -6,10 +6,9 @@ import {
   LOOKUP_REFERENCE_CEILING,
   LOOKUP_REFERENCE_PAGES,
   PAGE_TYPES,
+  type PageType,
   proseWords,
 } from "./page-type";
-
-type PageType = (typeof PAGE_TYPES)[number];
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
 const GUIDES_META = join(CONTENT_DIR, "(guides)/meta.json");
@@ -17,7 +16,14 @@ const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
 const TRANSLATIONS = i18n.languages.filter((locale) => locale !== i18n.defaultLanguage);
 const LOCALE_SUFFIX = new RegExp(`\\.(${TRANSLATIONS.join("|")})\\.mdx$`);
 
+const PENDING_CONFIG_SLICE: ReadonlySet<string> = new Set([
+  "(configure)/config-file.mdx",
+  "(configure)/formats.mdx",
+  "(configure)/providers.mdx",
+]);
+
 const WORD_CEILING: Record<PageType, number> = {
+  overview: 600,
   tutorial: 900,
   "how-to": 1200,
   concept: 1800,
@@ -62,6 +68,22 @@ function everydayGuides(): string[] {
 }
 
 describe("page type frontmatter", () => {
+  it("gives every page a type", () => {
+    const untyped = englishPages().filter(
+      (file) => !PENDING_CONFIG_SLICE.has(file) && pageType(readPage(file)) === undefined,
+    );
+    expect(untyped).toEqual([]);
+  });
+
+  it("exempts only pages that exist", () => {
+    const pages = englishPages();
+    for (const file of PENDING_CONFIG_SLICE) expect(pages, file).toContain(file);
+  });
+
+  it("makes the docs home the overview page", () => {
+    expect(pageType(readPage("index.mdx"))).toBe("overview");
+  });
+
   it("names only a known page type", () => {
     const unknown = englishPages().filter((file) => {
       const type = pageType(readPage(file));

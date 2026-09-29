@@ -1,6 +1,7 @@
 ---
 title: Use the GitHub Action
 description: "Run verbatra in GitHub Actions with the composite action: translate on a push or gate a pull request, with annotations and a job summary."
+type: how-to
 ---
 Use the action when a GitHub Actions job should run verbatra and show you what happened. It runs the CLI with `--json`, turns failures into annotations, writes a job summary and exits with the CLI's exit code. It runs `translate`, `check` or `diff`; for any other command or flag, such as `--prune`, run the [CLI directly](/docs/ci-and-exit-codes).
 

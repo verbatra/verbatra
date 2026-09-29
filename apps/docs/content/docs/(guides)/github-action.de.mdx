@@ -1,6 +1,7 @@
 ---
 title: Die GitHub Action nutzen
 description: "Führe verbatra in GitHub Actions mit der Composite Action aus: übersetze bei einem Push oder sichere einen Pull Request ab, mit Annotationen und einer Job-Zusammenfassung."
+type: how-to
 ---
 Nutze die Action, wenn ein GitHub-Actions-Job verbatra ausführen und dir zeigen soll, was passiert ist. Sie führt die CLI mit `--json` aus, macht aus Fehlschlägen Annotationen, schreibt eine Job-Zusammenfassung und endet mit dem Exit-Code der CLI. Sie führt `translate`, `check` oder `diff` aus; für jeden anderen Befehl oder jedes andere Flag, etwa `--prune`, führst du [die CLI direkt](/docs/ci-and-exit-codes) aus.
 
