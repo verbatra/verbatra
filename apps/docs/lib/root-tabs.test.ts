@@ -1,6 +1,6 @@
 import type * as PageTree from "fumadocs-core/page-tree";
 import { describe, expect, it } from "vitest";
-import { activeRootTab, rootTabs } from "./root-tabs";
+import { activeRootTab, headerActiveTab, isRootTabLinkActive, rootTabs } from "./root-tabs";
 
 const docsTab: PageTree.Folder = {
   $id: "docs",
@@ -82,5 +82,49 @@ describe("activeRootTab", () => {
   it("is none when the current page sits outside every tab", () => {
     expect(activeRootTab(tabs, "root")).toBeUndefined();
     expect(activeRootTab(tabs, undefined)).toBeUndefined();
+  });
+});
+
+describe("isRootTabLinkActive", () => {
+  const tabs = rootTabs(tabbed);
+  const reference = activeRootTab(tabs, "reference");
+
+  it("marks the link that opens the current tab active, whatever page of the tab is open", () => {
+    expect(isRootTabLinkActive("/docs/cli", tabs, reference)).toBe(true);
+    expect(isRootTabLinkActive("/docs", tabs, reference)).toBe(false);
+  });
+
+  it("marks no tab link active outside every tab", () => {
+    expect(isRootTabLinkActive("/docs", tabs, undefined)).toBe(false);
+  });
+
+  it("leaves links that open no tab to their own matching", () => {
+    expect(isRootTabLinkActive("/docs/start-with-ai", tabs, reference)).toBeUndefined();
+  });
+});
+
+describe("headerActiveTab", () => {
+  const tabs = rootTabs(tabbed);
+  const docs = activeRootTab(tabs, "docs");
+  const links = [
+    { text: "Docs", url: "/docs" },
+    { text: "Reference", url: "/docs/cli" },
+    { text: "Start with AI", url: "/docs/start-with-ai" },
+  ];
+
+  it("keeps the current tab when no other header link matches the page", () => {
+    expect(headerActiveTab(links, tabs, docs, () => false)).toBe(docs);
+  });
+
+  it("ignores a tab link's own exact match", () => {
+    expect(
+      headerActiveTab(links, tabs, docs, (item) => "url" in item && item.url === "/docs"),
+    ).toBe(docs);
+  });
+
+  it("yields to a more specific header link, so only one header link is active", () => {
+    const onStartWithAi = (item: (typeof links)[number] | object) =>
+      "url" in item && item.url === "/docs/start-with-ai";
+    expect(headerActiveTab(links, tabs, docs, onStartWithAi)).toBeUndefined();
   });
 });
