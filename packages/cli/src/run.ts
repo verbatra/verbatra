@@ -1696,7 +1696,20 @@ function registerWatchCommand(program: Command, ctx: ProgramContext): void {
     .option("--json", "print each run as one NDJSON record")
     .action(async (opts: unknown) => {
       ctx.setCode(await runWatchCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
-    });
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra watch                     translate now, then again after every source change",
+        "  $ verbatra watch --locales de        keep only German current while you work",
+        "  $ verbatra watch --debounce 1000     wait 1s after the last change before translating",
+        "  $ verbatra watch --json              one NDJSON record per run on stdout",
+        "",
+        "Press Ctrl-C once to finish the current run and stop; press it again to stop at once.",
+      ].join("\n"),
+    );
 }
 
 function registerExportCommand(program: Command, ctx: ProgramContext): void {
