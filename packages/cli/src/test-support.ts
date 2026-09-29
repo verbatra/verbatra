@@ -3,6 +3,7 @@ import {
   mcpReadyLine,
   mcpStoppedLine,
   mcpTerminalHint,
+  mcpUnconfiguredHint,
   projectLabel,
 } from "@verbatra/mcp";
 import type {
@@ -214,6 +215,7 @@ export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServ
     close: async () => {},
     closed: new Promise<void>(() => {}),
     spend: "off",
+    configured: true,
     ...overrides,
   };
 }
@@ -224,6 +226,7 @@ export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
     projectLabel,
     mcpReadyLine,
     mcpTerminalHint,
+    mcpUnconfiguredHint,
     mcpStoppedLine,
     ...overrides,
   };
