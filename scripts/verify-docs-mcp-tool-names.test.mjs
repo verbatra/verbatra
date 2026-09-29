@@ -21,20 +21,55 @@ function registeredToolNames() {
   );
 }
 
-function spendToolNames() {
-  const registry = readFileSync(resolve(TOOLS_DIR, "registry.ts"), "utf8");
-  const block = /SPEND_TOOL_NAMES[^=]*= new Set\(\[([\s\S]*?)\]\)/.exec(registry);
-  if (block?.[1] === undefined) throw new Error("SPEND_TOOL_NAMES could not be located");
-  const identifiers = [...block[1].matchAll(/(\w+)\.name/g)].map((match) => match[1]);
+function registrySource() {
+  return readFileSync(resolve(TOOLS_DIR, "registry.ts"), "utf8");
+}
+
+function toolNamesOf(identifiers) {
   const sources = toolSources();
-  return new Set(
-    identifiers.map((identifier) => {
-      const source = sources.find((text) => text.includes(`export const ${identifier}`));
-      const name = source && /^ {2}name: "([^"]+)",$/m.exec(source)?.[1];
-      if (!name) throw new Error(`the tool ${identifier} could not be located`);
-      return name;
-    }),
-  );
+  return identifiers.map((identifier) => {
+    const declaration = `export const ${identifier} =`;
+    const source = sources.find((text) => text.includes(declaration));
+    const name =
+      source && /^ {2}name: "([^"]+)",$/m.exec(source.slice(source.indexOf(declaration)))?.[1];
+    if (!name) throw new Error(`the tool ${identifier} could not be located`);
+    return name;
+  });
+}
+
+function spendToolNames() {
+  const block = /SPEND_TOOL_NAMES[^=]*= new Set\(\[([\s\S]*?)\]\)/.exec(registrySource());
+  if (block?.[1] === undefined) throw new Error("SPEND_TOOL_NAMES could not be located");
+  return new Set(toolNamesOf([...block[1].matchAll(/(\w+)\.name/g)].map((match) => match[1])));
+}
+
+function toolNamesInOrder() {
+  const block = /ALL_TOOLS_IN_ORDER[^=]*= \[([\s\S]*?)\];/.exec(registrySource());
+  if (block?.[1] === undefined) throw new Error("ALL_TOOLS_IN_ORDER could not be located");
+  return toolNamesOf([...block[1].matchAll(/(\w+Tool)\b/g)].map((match) => match[1]));
+}
+
+const YES = { "": "yes", ".de": "ja", ".es": "sí", ".fr": "oui" };
+
+function toolTableRows(page) {
+  const lines = page.split("\n");
+  const start = lines.findIndex((line) => line.startsWith("| `project.snapshot` |"));
+  if (start === -1) return [];
+  const rows = [];
+  for (const line of lines.slice(start)) {
+    if (!line.startsWith("|")) break;
+    const cells = line.split(" | ");
+    rows.push({
+      name: /^\| `([^`]+)`$/.exec(cells[0])?.[1],
+      spend: cells.at(-1).replace(/ \|$/, ""),
+    });
+  }
+  return rows;
+}
+
+function readmeToolNames() {
+  const readme = readFileSync(resolve(REPO_ROOT, "packages/mcp/README.md"), "utf8");
+  return toolTableRows(readme).map((row) => row.name);
 }
 
 function allowlists(suffix) {
@@ -72,5 +107,45 @@ describe("MCP tool names in the client setup docs", () => {
         }
       }
     });
+  });
+});
+
+describe("the MCP tool reference tables", () => {
+  const ordered = toolNamesInOrder();
+  const spend = spendToolNames();
+
+  it("reads the advertised order from the registry", () => {
+    expect(ordered.length).toBeGreaterThan(10);
+    expect(ordered[0]).toBe("project.snapshot");
+    expect(new Set(ordered)).toEqual(registeredToolNames());
+  });
+
+  describe.each(LOCALE_SUFFIXES)("cli/mcp%s.mdx", (suffix) => {
+    const rows = toolTableRows(
+      readFileSync(resolve(REPO_ROOT, `apps/docs/content/docs/cli/mcp${suffix}.mdx`), "utf8"),
+    );
+
+    it("has one row per registered tool, in the order the server advertises them", () => {
+      expect(rows.map((row) => row.name)).toEqual(ordered);
+    });
+
+    it("marks exactly the spend-gated tools as calling a provider", () => {
+      const marked = rows.filter((row) => row.spend === YES[suffix]).map((row) => row.name);
+
+      expect(new Set(marked)).toEqual(spend);
+    });
+  });
+
+  it("lists the same tools, in the same order, in the @verbatra/mcp README", () => {
+    expect(readmeToolNames()).toEqual(ordered);
+  });
+
+  it("sees a dropped row and a reordered table", () => {
+    const page = readFileSync(resolve(REPO_ROOT, "apps/docs/content/docs/cli/mcp.mdx"), "utf8");
+    const dropped = page.replace(/^\| `usage\.summary` \|.*\n/m, "");
+    const swapped = page.replace(/^(\| `status\.check` \|.*\n)(\| `status\.diff` \|.*\n)/m, "$2$1");
+
+    expect(toolTableRows(dropped).map((row) => row.name)).not.toEqual(ordered);
+    expect(toolTableRows(swapped).map((row) => row.name)).not.toEqual(ordered);
   });
 });
