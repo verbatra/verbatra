@@ -6,6 +6,7 @@
     "../(configure)",
     "../sdk",
     "[Outils du serveur MCP](/fr/docs/cli/mcp#tools)",
+    "error-codes",
     "external:[Notes de version](https://github.com/verbatra/verbatra/releases)"
   ]
 }

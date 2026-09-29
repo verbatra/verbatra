@@ -65,7 +65,7 @@ Ein Lauf, der als Ganzes fehlschlägt, schreibt genau einen `ok: false`-Datensat
 
 <AvailableFrom version="0.12.0" />
 
-`hint` erscheint, wenn der Fehler einen nächsten Schritt hat: einen kurzen Satz im Imperativ, der ihn behebt, etwa `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` für einen fehlenden Key oder `` "Run `verbatra check --help` to see the options and arguments it accepts." `` für einen `USAGE_ERROR`. Handle danach, statt `message` zu parsen. Er nennt Variablen, Flags und Pfade, nie den Wert eines Keys. Jeder Code aus dem SDK, von einem Provider und von einem Format-Adapter hat einen (das SDK exportiert denselben Text als [`errorHint`](/docs/sdk/exchange#errorhint)), und ebenso jeder Code in der Tabelle unten außer `CLI_ERROR`. Ohne `--json` folgt derselbe Text der Fehlerzeile auf stderr als `next: ...`, außer `--quiet` ist gesetzt.
+`hint` erscheint, wenn der Fehler einen nächsten Schritt hat: einen kurzen Satz im Imperativ, der ihn behebt, etwa `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` für einen fehlenden Key oder `` "Run `verbatra check --help` to see the options and arguments it accepts." `` für einen `USAGE_ERROR`. Handle danach, statt `message` zu parsen. Er nennt Variablen, Flags und Pfade, nie den Wert eines Keys. Jeder Code aus dem SDK, von einem Provider und von einem Format-Adapter hat einen (das SDK exportiert denselben Text als [`errorHint`](/docs/sdk/exchange#errorhint)), und ebenso jeder [CLI-Fehlercode](/docs/error-codes#cli-error-codes) außer `CLI_ERROR`. Ohne `--json` folgt derselbe Text der Fehlerzeile auf stderr als `next: ...`, außer `--quiet` ist gesetzt.
 
 Das `result` eines erfolgreichen Envelopes ist bei jedem Befehl anders und steht auf seiner Seite unter JSON-Ausgabe: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
@@ -73,33 +73,7 @@ Das `result` eines erfolgreichen Envelopes ist bei jedem Befehl anders und steht
 
 <AvailableFrom version="0.12.0" />
 
-Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` (mit dem Typ `CliErrorCode`) von `@verbatra/cli` ausgeliefert, sodass ein Skript einen Code dagegen prüfen kann, statt diese Tabelle abzuschreiben. Jeder andere Code kommt vom SDK, einem Provider oder einem Format-Adapter.
-
-| Code | Ausgelöst, wenn |
-| --- | --- |
-| `AGENT_FILE_INVALID` | `init --agent` eine `.mcp.json` gefunden hat, die kein JSON-Objekt mit einem `mcpServers`-Objekt ist, oder eine unpaarige oder doppelte verbatra-Markierung in `AGENTS.md` oder `CLAUDE.md`; es wurde nichts geschrieben |
-| `CLI_ERROR` | ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code) |
-| `CONFIG_EXISTS` | `init` ohne `--force` eine abweichende `verbatra.config.ts` überschreiben würde oder eine andere verbatra-Konfigurationsdatei im Verzeichnis zuerst gelesen würde; wird vor jeder fehlenden oder mehrdeutigen Antwort gemeldet, im Terminal schon vor der ersten Frage |
-| `CONFIG_INVALID` | `init` aus den erhaltenen Antworten keine gültige Konfiguration erzeugen konnte (das SDK löst denselben Code für eine Konfiguration aus, die sich nicht laden lässt) |
-| `FORMAT_AMBIGUOUS` | `init` mehrere Formate gefunden hat, die die Locale-Dateien lesen; `candidates` listet sie auf |
-| `INIT_UNWRITABLE` | `init` eine Datei nicht in sein Verzeichnis schreiben konnte, etwa weil es schreibgeschützt ist; die Meldung nennt die Datei, den Dateisystem-Code und die bereits geschriebenen Dateien |
-| `INVALID_CONCURRENCY` | `--concurrency` keine ganze Zahl zwischen 1 und 100 ist |
-| `INVALID_DEBOUNCE` | `watch --debounce` keine ganze Zahl von Millisekunden zwischen 1 und 60000 ist |
-| `INVALID_DIRECTION` | `tmx` eine andere Richtung als `import` oder `export` bekommen hat oder `tmx export` ein Flag nur für den Import (`--dry-run`, `--overwrite`) |
-| `INVALID_FORMAT` | `--format` bei `export` oder `import` kein unterstütztes Übergabeformat nennt oder `--format` bei `init` kein unterstütztes Format für Locale-Dateien |
-| `INVALID_LOCALE` | `pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist |
-| `INVALID_LOCALES` | `--locales` angegeben wurde, aber kein Locale auflistet |
-| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` keine ganze Zahl von Sekunden zwischen 1 und 3600 ist |
-| `INVALID_MAX_TOKENS` | `translate --max-tokens` keine ganze Zahl von mindestens 1 ist |
-| `INVALID_OPTION` | ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `init --cwd` kein vorhandenes Verzeichnis nennt oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency` oder `--require-reviewed` kommt |
-| `INVALID_OUT` | `--out` bei `types` oder `pseudo` angegeben wurde, aber keinen Pfad nennt |
-| `INVALID_PORT` | `studio --port` keine ganze Zahl zwischen 1 und 65535 ist |
-| `INVALID_PROVIDER` | `init --provider` keinen bekannten Provider nennt |
-| `INVALID_QA_OPTION` | `check` `--severity` oder `--strict` ohne `--qa` oder `--file` bekommen hat, oder `--strict` zusammen mit `--severity error` |
-| `INVALID_SEVERITY` | `check --severity` weder `error` noch `warning` ist |
-| `LAYOUT_AMBIGUOUS` | `init` mehrere Dateimuster gefunden hat, die gleich gut passen; `candidates` listet sie auf |
-| `MISSING_OPTIONS` | `init` nicht fragen konnte (kein Terminal oder `--json`) und ein Wert weder übergeben noch erkannt noch durch `--yes` mit einem Default gefüllt wurde; die Meldung nennt jedes fehlende Flag |
-| `USAGE_ERROR` | der Argument-Parser die Befehlszeile abgelehnt hat (eine unbekannte Option, ein fehlendes Argument) oder `mcp` Optionen bekommen hat, die es nicht annehmen kann; sein `hint` nennt das `--help` des Befehls |
+Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` (mit dem Typ `CliErrorCode`) von `@verbatra/cli` ausgeliefert, sodass ein Skript einen Code dagegen prüfen kann. Jeder andere Code kommt vom SDK, einem Provider oder einem Format-Adapter. Was jeder Code bedeutet, welche Befehle ihn auslösen und was der nächste Schritt ist, steht unter [Fehlercodes](/docs/error-codes#cli-error-codes).
 
 ## Fehler auf stderr
 

@@ -349,22 +349,7 @@ Die Tabellen sind datierte Kopien der Provider-Dokumentation, und Provider ergä
 
 ### Strukturierte Fehler
 
-Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header oder einen Key tragen könnte. verbatra klassifiziert jeden Fehlschlag über seinen HTTP-Status oder seine SDK-Fehlerklasse und erzeugt einen strukturierten Fehler mit einem stabilen Code und einer festen, geheimnisfreien Meldung:
-
-| Code | Bedeutung |
-| --- | --- |
-| `MISSING_API_KEY` | Die erforderliche Umgebungsvariable ist ungesetzt oder leer. Die Meldung nennt die Variable, nie einen Wert. Bei LibreTranslate, dessen Key optional ist, heißt es, dass der Server einen Key verlangt hat und `LIBRETRANSLATE_API_KEY` nicht gesetzt ist. |
-| `INVALID_REQUEST` | Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Code, den DeepL nicht akzeptiert (ein `localeMap`-Eintrag mit einem regionalen Quell-Code oder ein Ziel, das auf ein bloßes `en` oder `pt` hinausläuft), oder ein Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Bei LibreTranslate deckt es auch eine Sprache ab, für die dein Server kein Modell hat, und eine Anfrage über seinem `--char-limit` oder `--batch-limit`. Korrigiere die Konfiguration oder die Anfrage; Wiederholen hilft nicht. |
-| `RATE_LIMITED` | HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit), da Googles API 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler nutzt. Warte und versuche es später erneut, oder erhöhe das Cloud-Translation-Kontingent deines Projekts. |
-| `TIMEOUT` | Ein Netzwerk- oder Anfrage-Timeout; keine Antwort kam rechtzeitig an. Wiederholen kann helfen, und [`requestTimeoutMs`](#anfrage-timeout) hebt die Grenze an. |
-| `AUTH_FAILED` | HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht. |
-| `PROVIDER_UNAVAILABLE` | HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die oben beschriebenen Wiederholungsebenen fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung. Warte und versuche es später erneut. |
-| `OUTPUT_TRUNCATED` | Das Modell hat sein Ausgabe-Token-Limit erreicht; siehe unten. |
-| `INVALID_RESPONSE` | Die Ausgabe war fehlerhaft, unvollständig oder scheiterte am Abgleich mit der Anfrage. |
-| `PROVIDER_REFUSED` | Das Modell hat die Antwort verweigert. |
-| `PROVIDER_BLOCKED` | Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert. |
-| `PROVIDER_ERROR` | Alles Unklassifizierbare. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück. |
-| `NETWORK_POLICY_VIOLATION` | Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Ein neuer Versuch hilft nicht. |
+Ein Provider-Fehlschlag erscheint nie als roher SDK-Fehler, der Request-Header oder einen Key tragen könnte. verbatra klassifiziert jeden Fehlschlag über seinen HTTP-Status oder seine SDK-Fehlerklasse und erzeugt einen strukturierten Fehler mit einem stabilen Code und einer festen, geheimnisfreien Meldung. Jeder Code steht mit seiner Bedeutung und dem nächsten Schritt unter [Provider-Fehlercodes](/docs/error-codes#provider-error-codes).
 
 Ein Fehlschlag betrifft nur seinen eigenen Sub-Batch: Die fehlgeschlagenen Keys werden zurückgehalten und beim nächsten Lauf wieder aufgegriffen.
 

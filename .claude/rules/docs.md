@@ -81,9 +81,13 @@ The reference tables are asserted in all four locales against the code by the `s
 parity tests (`pnpm test:scripts`):
 
 - `verify-docs-reference-parity.test.mjs`: exactly one section per SDK entry point across the
-  `sdk/` folder (the pages its `meta.json` lists), the `SdkErrorCode` table in `sdk/errors*.mdx`,
-  the `ProviderErrorCode` table in `providers*.mdx`, the CLI error codes in `cli/output*.mdx`, and
-  the `generateTypes` refusals in `cli/types*.mdx`. An old `/docs/sdk#<entry>` link still lands:
+  `sdk/` folder (the pages its `meta.json` lists), the `generateTypes` refusals in
+  `cli/types*.mdx`, and `(reference)/error-codes*.mdx`: one `###` entry per code, in source
+  order, for the CLI, `SdkErrorCode`, `ProviderErrorCode` and `AdapterErrorCode` families, the
+  review gate codes, the review reasons and both notice families, with each error code's next step
+  quoted exactly from `packages/sdk/src/error-hints.ts` or `packages/cli/src/cli-error-hints.ts`
+  (in English in every locale, because that is what verbatra prints) and one unique anchor per
+  code. `cli/output`, `sdk/errors` and `providers` link there instead of repeating the tables. An old `/docs/sdk#<entry>` link still lands:
   `<SdkAnchorForward />` on `sdk/index*.mdx` forwards it to the page that now heads the anchor,
   and `apps/docs/lib/sdk-anchors.test.ts` pins every anchor of the former single page per locale.
 - `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in

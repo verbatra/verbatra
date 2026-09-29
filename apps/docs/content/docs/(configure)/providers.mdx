@@ -349,22 +349,7 @@ The tables are dated copies of the providers' documentation, and providers add l
 
 ### Structured errors
 
-A provider failure never surfaces as a raw SDK error, which could carry request headers or a key. verbatra classifies each failure by its HTTP status or SDK error class and raises a structured error with a stable code and a fixed, secret-free message:
-
-| Code | Meaning |
-| --- | --- |
-| `MISSING_API_KEY` | The required environment variable is unset or empty. The message names the variable, never a value. For LibreTranslate, whose key is optional, it means the server demanded a key and `LIBRETRANSLATE_API_KEY` is not set. |
-| `INVALID_REQUEST` | The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Fix the config or the request; retrying will not help. |
-| `RATE_LIMITED` | HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit), since Google's API reuses 403 for both quota and credential failures. Back off and retry later, or raise your project's Cloud Translation quota. |
-| `TIMEOUT` | A network or request timeout; no response arrived in time. Retrying may help, and [`requestTimeoutMs`](#request-timeout) raises the bound. |
-| `AUTH_FAILED` | HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help. |
-| `PROVIDER_UNAVAILABLE` | HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The retry layers described above already absorb a transient 5xx, so one that reaches this code is a sustained outage. Wait and retry later. |
-| `OUTPUT_TRUNCATED` | The model hit its output-token limit; see below. |
-| `INVALID_RESPONSE` | The output was malformed, incomplete, or failed reconciliation against the request. |
-| `PROVIDER_REFUSED` | The model declined to answer. |
-| `PROVIDER_BLOCKED` | The request or response was safety-blocked or filtered. |
-| `PROVIDER_ERROR` | Anything unclassifiable. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message. |
-| `NETWORK_POLICY_VIOLATION` | The [network policy](/docs/network-policy) refused the request right before it was sent: the host name resolved to an address the policy does not permit, or a response redirected to a refused host. The message names only the host. Retrying will not help. |
+A provider failure never surfaces as a raw SDK error, which could carry request headers or a key. verbatra classifies each failure by its HTTP status or SDK error class and raises a structured error with a stable code and a fixed, secret-free message. Every code, with what it means and its next step, is listed under [Provider error codes](/docs/error-codes#provider-error-codes).
 
 A failure affects only its own sub-batch: the failed keys are withheld and picked up again on the next run.
 
