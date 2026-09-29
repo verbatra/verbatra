@@ -88,7 +88,9 @@ describe("run export: SDK delegation and rendering", () => {
     expect(cap.out()).toBe("");
     expect(calls.exportWorkbook).toHaveLength(0);
     expect(cap.err()).toContain("[INVALID_FORMAT]");
-    expect(cap.err()).toContain('The --format option must be one of xlsx, csv, tsv, got "ods".');
+    expect(cap.err()).toContain(
+      'The --format option must be one of xlsx, csv, tsv, xliff2, xliff12, got "ods".',
+    );
     expect(cap.err()).not.toContain("invalid_value");
     expect(cap.err()).not.toContain('"path"');
   });
@@ -268,6 +270,33 @@ describe("run import: SDK delegation and rendering", () => {
     expect(calls.importWorkbook[0]).toMatchObject({ workbook: "handoff", format: "tsv" });
   });
 
+  it("passes --reviewer through to the SDK and omits it when absent", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["import", "handoff/de.xlf", "--reviewer", "Ana"], deps, cap.streams);
+    await run(["import", "handoff/de.xlf"], deps, cap.streams);
+
+    expect(calls.importWorkbook[0]).toMatchObject({ workbook: "handoff/de.xlf", reviewer: "Ana" });
+    expect(calls.importWorkbook[1]).not.toHaveProperty("reviewer");
+    expect(calls.importWorkbook[1]).not.toHaveProperty("format");
+  });
+
+  it("keeps --reviewer in the hint a dry run prints", async () => {
+    const { deps } = recordingDeps({
+      importWorkbook: async () => makeSummary({ dryRun: true, succeeded: ["de"] }),
+    });
+    const cap = captureStreams();
+
+    await run(
+      ["import", "de.xlf", "--dry-run", "--format", "xliff12", "--reviewer", "Ana Lee"],
+      deps,
+      cap.streams,
+    );
+
+    expect(cap.err()).toContain("verbatra import de.xlf --format xliff12 --reviewer 'Ana Lee'");
+  });
+
   it("omits the format entirely when the flag is absent, so the SDK default applies", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();
@@ -287,7 +316,9 @@ describe("run import: SDK delegation and rendering", () => {
     expect(cap.out()).toBe("");
     expect(calls.importWorkbook).toHaveLength(0);
     expect(cap.err()).toContain("[INVALID_FORMAT]");
-    expect(cap.err()).toContain('The --format option must be one of xlsx, csv, tsv, got "ods".');
+    expect(cap.err()).toContain(
+      'The --format option must be one of xlsx, csv, tsv, xliff2, xliff12, got "ods".',
+    );
     expect(cap.err()).not.toContain("invalid_value");
     expect(cap.err()).not.toContain('"path"');
   });

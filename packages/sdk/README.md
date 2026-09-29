@@ -131,11 +131,11 @@ Build a pseudolocale from the source strings, accented, expanded, and bracketed,
 
 ### `exportWorkbook(input, deps?): Promise<ExportWorkbookResult>`
 
-Write the strings that need translating to a translator handoff: a styled Excel workbook, or one CSV or TSV file per locale. See [Manual translation](https://verbatra.kreitz-webdev.de/docs/manual-translation).
+Write the strings that need translating to a translator handoff: a styled Excel workbook, one CSV or TSV file per locale, or one XLIFF 2.0 or 1.2 file per locale for a CAT tool. See [Manual translation](https://verbatra.kreitz-webdev.de/docs/manual-translation) and [Hand off to a translation agency](https://verbatra.kreitz-webdev.de/docs/translation-agency).
 
 ### `importWorkbook(input, deps?): Promise<RunSummary>`
 
-Read a filled handoff back into the locale files, through the same integrity gate a translate run applies, returning the same `RunSummary` shape.
+Read a filled handoff back into the locale files, through the same integrity gate a translate run applies, returning the same `RunSummary` shape. An XLIFF unit a CAT tool marked reviewed or final is recorded as approved in the provenance file.
 
 ### `exportTmx(input, deps?)` and `importTmx(input, deps?)`
 

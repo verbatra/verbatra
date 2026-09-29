@@ -7,6 +7,12 @@ export {
   type TmxTranslation,
 } from "./build-tmx.js";
 export { buildWorkbook } from "./build-workbook.js";
+export {
+  type BuildXliffInput,
+  buildXliff,
+  type XliffExportUnit,
+  type XliffNote,
+} from "./build-xliff.js";
 export { type DelimitedFormat, delimitedFileName } from "./delimited-format.js";
 export { DEFAULT_DELIMITED_LIMITS, type DelimitedLimits } from "./delimited-limits.js";
 export { ExchangeError, type ExchangeErrorCode, type ExchangeErrorLocation } from "./errors.js";
@@ -26,6 +32,16 @@ export {
   type TmxUnit,
 } from "./read-tmx.js";
 export { type ReadWorkbookOptions, readWorkbook } from "./read-workbook.js";
+export {
+  DEFAULT_XLIFF_LIMITS,
+  type ReadXliffOptions,
+  readXliff,
+  type XliffDocument,
+  type XliffLimits,
+  type XliffUnit,
+  type XliffUnitField,
+  type XliffUnitProblem,
+} from "./read-xliff.js";
 export { DEFAULT_TMX_LIMITS, type TmxLimits } from "./tmx-limits.js";
 export type {
   ReviewStatus,
@@ -37,3 +53,10 @@ export type {
   WorkbookRowProblem,
   WorkbookSheet,
 } from "./types.js";
+export {
+  type InlineSpan,
+  XLIFF_FILE_EXTENSION,
+  type XliffState,
+  type XliffVersion,
+  xliffFileName,
+} from "./xliff-vocabulary.js";

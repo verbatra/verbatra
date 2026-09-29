@@ -1,0 +1,109 @@
+---
+title: Entregar a una agencia de traducción
+description: Exporta las cadenas pendientes de traducir como XLIFF 2.0 o 1.2 para una herramienta TAO e importa el archivo devuelto, con sus estados de segmento, con las mismas comprobaciones de seguridad que cualquier otra ejecución.
+---
+<AvailableFrom version="0.12.0" />
+
+Los traductores profesionales y los proveedores de servicios lingüísticos trabajan en herramientas TAO como Trados, memoQ, OmegaT, Matecat y Phrase, y XLIFF es el archivo que esas herramientas intercambian. Un libro de Excel o un archivo CSV les llega como una tabla; un archivo XLIFF les llega como segmentos con estados, notas y marcadores de posición protegidos, que es justo para lo que están hechas sus herramientas, su memoria de traducción y sus comprobaciones de calidad.
+
+verbatra escribe ese archivo desde cualquier formato de proyecto, no solo desde un proyecto XLIFF: JSON de i18next, `strings.xml` de Android, `.po` de gettext y cualquier otro formato que verbatra lea salen como el mismo XLIFF y vuelven por la misma importación.
+
+## El ciclo de ida y vuelta
+
+```bash
+# 1. Export one XLIFF 2.0 file per target locale into handoff/
+verbatra export --format xliff2 --out handoff
+
+# 2. The agency translates handoff/de.xlf, handoff/fr.xlf ... in its CAT tool and sends them back
+
+# 3. Import every returned file, recording who signed off on the reviewed ones
+verbatra import handoff --format xliff2 --reviewer "Agency GmbH"
+```
+
+Usa `--format xliff12` para una herramienta que todavía no lea XLIFF 2.0. Ambos escriben un `<locale>.xlf` por locale de destino en el directorio de `--out` (por defecto `verbatra-translations`), más el mismo manifiesto oculto que una exportación CSV (aquí `.verbatra-export-xliff.json`), así que un archivo que sobra de una exportación anterior y más amplia se rechaza al importar con `HANDOFF_FILE_STALE` en lugar de aplicarse.
+
+Un solo archivo devuelto también se importa por sí mismo. Una ruta que termina en `.xlf` o `.xliff` se lee como XLIFF sin `--format`, y la versión sale del propio archivo, así que `--format xliff2` y `--format xliff12` leen las dos versiones:
+
+```bash
+verbatra import handoff/de.xlf
+```
+
+El locale sale del nombre del archivo. Si una herramienta lo renombró (por ejemplo a `project_de.xlf`), se compara en su lugar el idioma de destino que declara el archivo con tus locales configurados.
+
+## Qué acaba en el archivo
+
+La exportación elige las mismas claves que una exportación a libro: las que faltan y las desactualizadas, más las actualizadas con `--include-unchanged`. Cada clave se convierte en una unidad:
+
+- **La clave da nombre a la unidad.** XLIFF 2.0 la guarda en el `name` de la unidad (su `id` es un `u1`, `u2` ... generado, porque los ids de XLIFF 2.0 no admiten cualquier clave); XLIFF 1.2 la usa como `id` y `resname` del `trans-unit`.
+- **Los marcadores de posición, el marcado en línea y la estructura ICU se convierten en códigos en línea.** `{{name}}`, `%1$s`, `<b>`, `&amp;` y la sintaxis de un `plural` o `select` de ICU pasan a ser elementos `<ph>`, con el texto original en `disp` y `equiv` (XLIFF 2.0, respaldado por `<originalData>`) o como contenido del elemento (XLIFF 1.2). Una herramienta TAO los muestra como etiquetas que el traductor coloca pero no puede editar, mientras que el texto legible de cada rama ICU sigue siendo traducible. La importación devuelve cada código a su texto original exacto, byte a byte.
+- **El contexto viaja como notas.** La descripción y el significado de una clave, cuando el formato del proyecto los tiene, se convierten en elementos `<note>`.
+- **El hash de origen viaja como metadatos.** XLIFF 2.0 lo guarda en el módulo estándar de metadatos (`<mda:meta type="source-hash">` en un grupo `verbatra`), XLIFF 1.2 en el atributo `extradata`. Las herramientas TAO conservan ambos a la vuelta; más abajo verás qué pasa cuando una no lo hace.
+- **Una clave desactualizada lleva su traducción antigua.** Una clave cuyo origen cambió desde que se tradujo se exporta con la traducción anterior como destino, como punto de partida, pero sigue en el estado inicial.
+
+### Estados de segmento
+
+El estado de cada segmento sale del archivo de bloqueo y del [estado de revisión](/docs/review-in-studio):
+
+| La clave está | `state` de XLIFF 2.0 | `state` de XLIFF 1.2 |
+| --- | --- | --- |
+| ausente | `initial`, sin destino | sin destino |
+| desactualizada (cambió el origen) | `initial`, traducción antigua como destino | `needs-translation`, traducción antigua como destino |
+| actualizada, sin revisar | `translated` | `translated` |
+| actualizada y aprobada | `reviewed` | `signed-off` y `approved="yes"` |
+| actualizada pero rechazada | `initial` | `needs-translation` |
+
+El origen de un valor actualizado no cambia su estado: una traducción automática, un acierto de la memoria de traducción y un valor que escribió una persona son todos `translated` hasta que alguien los aprueba.
+
+## Qué acepta la importación
+
+Cada unidad devuelta pasa exactamente por las comprobaciones que aplica una [importación de libro](/docs/manual-translation#qué-acepta-la-importación): la puerta de integridad para marcadores de posición, marcado y sintaxis ICU, la protección contra orígenes desactualizados, `[[CLEAR]]` para vaciar una traducción a propósito y un destino vacío que significa «todavía sin traducir». Lo que añade XLIFF:
+
+- **Un destino tal como se exportó no cambia nada.** Una unidad cuyo destino es exactamente el valor actual del proyecto no se vuelve a escribir, así que una clave actualizada queda idéntica byte a byte en tu archivo de locale y conserva su procedencia. Una clave desactualizada cuya traducción antigua vuelve sin tocar sigue desactualizada, salvo que el estado de la unidad haya pasado de `initial`: así confirma un traductor que la traducción antigua sigue valiendo para el nuevo origen.
+- **Cualquier otro destino es una traducción, sea cual sea su estado.** Algunas herramientas escriben la traducción pero dejan el estado como estaba, así que un destino cambiado se importa incluso en el estado `initial`.
+- **`reviewed` y `final` registran una aprobación.** Una unidad en estado `reviewed` o `final` (XLIFF 1.2: `signed-off`, `final` o `approved="yes"`) se registra como aprobada en `verbatra.provenance.json`, tanto si se importó su valor como si el traductor solo confirmó el valor que ya había. La aprobación nombra a `--reviewer` cuando lo indicas, queda ligada al hash de origen actual como cualquier otra aprobación y se informa con el aviso `HANDOFF_REVIEWS_RECORDED`. Un valor importado conserva el origen `import`; un valor confirmado conserva el origen que tenía, por ejemplo `machine`.
+- **Si falta el hash de origen, se usa el texto de origen.** Cuando una herramienta descartó los metadatos, se compara en su lugar el texto de origen de la unidad con el origen actual: un origen idéntico se importa, uno cambiado se retiene como deriva.
+- **Los daños se informan, no son fatales.** Una unidad cuyo id no nombra ninguna clave de origen, o cuyos códigos en línea no se pueden resolver, se informa como fila mal formada (con el número de unidad y `id`, `source` o `target`), y una clave repetida se informa como duplicada, ganando la primera. El resto del archivo se importa igualmente.
+- **El XML se analiza de forma segura.** Un documento que declara una entidad XML o un subconjunto interno de DTD se rechaza antes de analizarlo, igual que los archivos de más de 32 MB.
+
+`verbatra import --dry-run` muestra todo esto, incluidas las aprobaciones que se registrarían, sin escribir ningún archivo.
+
+XLIFF 1.2 no puede llevar un carácter que XML 1.0 prohíbe (un carácter de control como U+0007); ese carácter se pierde en una exportación 1.2. XLIFF 2.0 lo lleva como elemento `<cp>` y lo devuelve exacto, así que prefiere `xliff2` siempre que la herramienta lo lea.
+
+## Comprobar una herramienta a mano: OmegaT
+
+Las pruebas automáticas editan los archivos exportados como lo haría una herramienta TAO, pero no ejecutan ninguna. Para comprobar un ciclo completo con una herramienta real, [OmegaT](https://omegat.org) es gratuita y lee XLIFF:
+
+1. Exporta una entrega: `verbatra export --format xliff12 --out handoff` (o `xliff2`).
+2. En OmegaT, crea un proyecto con tu idioma de origen y de destino y copia `handoff/de.xlf` en la carpeta `source` del proyecto.
+3. Abre el proyecto. Los marcadores de posición como `{{name}}` aparecen como etiquetas: traduce el texto que los rodea e inserta cada etiqueta con Ctrl+T (Cmd+T en macOS) en lugar de escribirla.
+4. Traduce algunos segmentos, deja otros sin traducir y guarda.
+5. Crea los documentos traducidos (Proyecto, Crear documentos traducidos). OmegaT escribe `de.xlf` en la carpeta `target` del proyecto.
+6. Compruébalo primero: `verbatra import ruta/a/target/de.xlf --dry-run`. Los segmentos traducidos aparecen en `translated`, los que no tocaste en `unfilled`, y no se rechaza nada salvo que se haya perdido una etiqueta.
+7. Impórtalo: `verbatra import ruta/a/target/de.xlf` y después `verbatra check`.
+
+## Desde el SDK
+
+La CLI envuelve las mismas dos funciones que la entrega en libro:
+
+```ts
+import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
+
+const config = await loadConfig();
+
+await exportWorkbook({ config, format: "xliff2", out: "handoff" });
+
+const summary = await importWorkbook({
+  config,
+  workbook: "handoff",
+  format: "xliff2",
+  reviewer: "Agency GmbH",
+});
+```
+
+## Siguiente
+
+<Cards>
+  <Card title="Traducción humana" href="/docs/manual-translation" description="La entrega en libro, CSV y TSV, y cada comprobación que aplica la importación." />
+  <Card title={<code>verbatra export</code>} href="/docs/cli/export" description="Cada flag de exportación, incluidos los formatos XLIFF." />
+  <Card title={<code>verbatra import</code>} href="/docs/cli/import" description="Cada flag de importación, incluido --reviewer." />
+</Cards>

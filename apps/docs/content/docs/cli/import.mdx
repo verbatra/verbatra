@@ -1,6 +1,6 @@
 ---
 title: verbatra import
-description: Import a filled workbook, CSV, or TSV handoff back into the locale files, running the same safety checks.
+description: Import a filled workbook, CSV, TSV, or XLIFF handoff back into the locale files, running the same safety checks.
 ---
 Read a workbook a translator filled in back into your locale files. Every value runs through the same integrity checks as an automated run: values that pass are written and [the lock file](/docs/the-lock-file) is updated; values that fail are withheld and reported instead of written, so a bad cell never lands in a locale file.
 
@@ -10,7 +10,7 @@ Read a workbook a translator filled in back into your locale files. Every value 
 verbatra import <workbook> [flags]
 ```
 
-`<workbook>` is the path to the handoff produced by [`verbatra export`](/docs/cli/export) and filled in by the translator: the workbook file for `xlsx`, and for `csv` and `tsv` either one `<locale>.csv` file or the directory holding one file per locale.
+`<workbook>` is the path to the handoff produced by [`verbatra export`](/docs/cli/export) and filled in by the translator: the workbook file for `xlsx`, and for `csv`, `tsv`, `xliff2` and `xliff12` either one `<locale>.csv`, `<locale>.tsv` or `<locale>.xlf` file or the directory holding one file per locale.
 
 ## Flags
 
@@ -19,7 +19,8 @@ verbatra import <workbook> [flags]
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
 | `--dry-run` | none | off | validate and report without writing locale files or updating the lock |
-| `--format` | `<format>` | `xlsx` | read an Excel workbook (`xlsx`) or delimited files (`csv`, `tsv`) |
+| `--format` | `<format>` | `xlsx`, or `xliff2` for a path ending in `.xlf` or `.xliff` | read an Excel workbook (`xlsx`), delimited files (`csv`, `tsv`), or XLIFF files (`xliff2` and `xliff12` both read either version, from 0.12.0) |
+| `--reviewer` | `<name>` | none | the name recorded on each XLIFF unit the handoff marks `reviewed` or `final` (1.2: `signed-off`, `final` or `approved="yes"`); at most 64 characters with no control characters, and stored in the committed provenance file (from 0.12.0) |
 | `--lock-timeout` | `<seconds>` | `600` | how long to wait for a held per-locale write lock before failing; must be a bare positive integer of seconds no greater than `3600` (a value like `60s`, `0`, `-1`, or `7200` is a usage error, exit `2`) |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the run summary under `result` (the same [`RunSummary` shape](/docs/sdk) as `translate`), or the error code on a failed run; the human-readable error line still goes to stderr |
 
@@ -34,6 +35,9 @@ verbatra import verbatra-translations.xlsx --dry-run
 
 # import every locale file in a CSV handoff directory
 verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 ```
 
 With `csv` or `tsv` the locale comes from the file name, not from a sheet name, so keep every file named exactly as it was exported. A configured target locale with no file (or, in a workbook, no sheet) is reported as that locale's failure with `WORKBOOK_SHEET_MISSING`, never silently skipped.
@@ -43,6 +47,12 @@ A file left over from an earlier export with a wider `--locales` selection is ne
 <AvailableFrom version="0.12.0" />
 
 `--lock-timeout` tunes how long a locale waits for a contended [write lock](/docs/the-lock-file#the-write-lock) before that locale fails with `LOCK_CONTENDED`, exactly as on [`verbatra translate`](/docs/cli/translate). The wait happens before the locale's file is written, so a locale that times out is left untouched while the other locales still import, and the command exits `1`. Once a locale's file is written, recording it in the lock file waits up to the ten-minute default whatever `--lock-timeout` says. While a wait lasts longer than a second, a line on stderr names the lock file and its holder, or a `lock-wait` JSON record under `--json`. `--dry-run` takes no lock, so it never waits.
+
+## XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+An XLIFF file is read with the version it declares, and a single file whose name is not a configured locale is matched by the target language it declares. A unit whose target is exactly the current value changes nothing, any other target runs the integrity gate like a workbook row, and a unit marked `reviewed` or `final` is recorded as approved, naming `--reviewer`, and reported with the `HANDOFF_REVIEWS_RECORDED` notice. A unit whose id names no source key is reported as a malformed row rather than failing the locale. [Hand off to a translation agency](/docs/translation-agency) has the details.
 
 ## Terminal feedback
 
@@ -79,4 +89,5 @@ A blank `Translation` cell never fails a locale: the row is skipped, its prior l
 
 - [Manual translation](/docs/manual-translation) covers the full export, fill, import round-trip and what a translator may edit.
 - [Translation safety](/docs/translation-safety) explains the checks that can withhold a value.
+- [Hand off to a translation agency](/docs/translation-agency) covers the XLIFF round-trip through a CAT tool.
 - [`verbatra export`](/docs/cli/export) produces the handoff this command reads.

@@ -4,7 +4,7 @@ import {
   type LocaleResource,
   type TranslationEntry,
 } from "@verbatra/core";
-import type { WorkbookRow, WorkbookSheet } from "@verbatra/exchange";
+import type { WorkbookRow, WorkbookSheet, XliffState } from "@verbatra/exchange";
 import type { FormatAdapter } from "@verbatra/format-adapters";
 import { gateCandidateValue, type IntegrityGateRejection, refusalOf } from "../integrity-gate.js";
 import { deriveLocaleStatus } from "../locale-failure.js";
@@ -27,6 +27,7 @@ export interface ImportLocaleParams {
   readonly sourceInvalidIcuKeys: readonly string[];
   readonly malformedRows: readonly MalformedRowReport[];
   readonly duplicateKeys: readonly DuplicateKeyReport[];
+  readonly states?: ReadonlyMap<string, XliffState>;
 }
 
 export interface ImportLocaleResult {
@@ -36,6 +37,7 @@ export interface ImportLocaleResult {
     { readonly value: string; readonly source: TranslationEntry; readonly cleared: boolean }
   >;
   readonly withheld: ReadonlySet<string>;
+  readonly approved: ReadonlySet<string>;
 }
 
 export class UnknownKeyError extends Error {
@@ -73,6 +75,11 @@ interface Buckets {
   readonly withheld: Set<string>;
   readonly blankDrifted: Set<string>;
   readonly unfilled: string[];
+  readonly approved: Set<string>;
+}
+
+function isApprovedState(state: XliffState | undefined): boolean {
+  return state === "reviewed" || state === "final";
 }
 
 function trackBlankDrift(row: WorkbookRow, params: ImportLocaleParams, buckets: Buckets): void {
@@ -104,12 +111,68 @@ function classifyTranslation(
   const verdict = judge(row, sourceEntry, params.adapter, params.target.locale);
   if (verdict === "accepted") {
     buckets.accepted.set(row.key, { value: row.translation, source: sourceEntry, cleared: false });
+    if (isApprovedState(params.states?.get(row.key))) {
+      buckets.approved.add(row.key);
+    }
     return;
   }
   buckets.mismatches.push(row.key);
   buckets.withheld.add(row.key);
   if (verdict !== "drift") {
     buckets.refusals.push(refusalOf(row.key, verdict));
+  }
+}
+
+type Echo = "none" | "unfilled" | "kept";
+
+function classifyEcho(
+  row: WorkbookRow,
+  sourceEntry: TranslationEntry,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+  liveCandidates: ReadonlySet<string>,
+): Echo {
+  const state = params.states?.get(row.key);
+  if (state === undefined || params.target.entries.get(row.key)?.value !== row.translation) {
+    return "none";
+  }
+  if (liveCandidates.has(row.key)) {
+    return state === "initial" ? "unfilled" : "none";
+  }
+  if (isApprovedState(state) && contentHash(sourceEntry) === row.sourceHash) {
+    buckets.approved.add(row.key);
+  }
+  return "kept";
+}
+
+function classifyBlank(
+  row: WorkbookRow,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+  liveCandidates: ReadonlySet<string>,
+): void {
+  if (liveCandidates.has(row.key)) {
+    buckets.unfilled.push(row.key);
+  }
+  trackBlankDrift(row, params, buckets);
+}
+
+function classifyFilled(
+  row: WorkbookRow,
+  sourceEntry: TranslationEntry,
+  params: ImportLocaleParams,
+  buckets: Buckets,
+  liveCandidates: ReadonlySet<string>,
+): void {
+  if (row.translation === CLEAR_SENTINEL) {
+    classifyClear(row, sourceEntry, buckets);
+    return;
+  }
+  const echo = classifyEcho(row, sourceEntry, params, buckets, liveCandidates);
+  if (echo === "unfilled") {
+    classifyBlank(row, params, buckets, liveCandidates);
+  } else if (echo === "none") {
+    classifyTranslation(row, sourceEntry, params, buckets);
   }
 }
 
@@ -120,24 +183,16 @@ function classifyRows(
 ): void {
   for (const row of params.sheet.rows) {
     if (row.translation === "") {
-      if (liveCandidates.has(row.key)) {
-        buckets.unfilled.push(row.key);
-      }
-      trackBlankDrift(row, params, buckets);
+      classifyBlank(row, params, buckets, liveCandidates);
       continue;
     }
     if (isUnknownKey(row, params.source, params.target)) {
       throw new UnknownKeyError(row.key);
     }
     const sourceEntry = params.source.entries.get(row.key);
-    if (sourceEntry === undefined) {
-      continue;
+    if (sourceEntry !== undefined) {
+      classifyFilled(row, sourceEntry, params, buckets, liveCandidates);
     }
-    if (row.translation === CLEAR_SENTINEL) {
-      classifyClear(row, sourceEntry, buckets);
-      continue;
-    }
-    classifyTranslation(row, sourceEntry, params, buckets);
   }
 }
 
@@ -159,6 +214,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
     withheld: new Set(),
     blankDrifted: new Set(),
     unfilled: [],
+    approved: new Set(),
   };
   classifyRows(params, buckets, new Set([...diff.missing, ...diff.changed]));
 
@@ -202,5 +258,10 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
     malformedRows: params.malformedRows,
     duplicateKeys: params.duplicateKeys,
   };
-  return { summary, accepted: buckets.accepted, withheld: buckets.withheld };
+  return {
+    summary,
+    accepted: buckets.accepted,
+    withheld: buckets.withheld,
+    approved: buckets.approved,
+  };
 }

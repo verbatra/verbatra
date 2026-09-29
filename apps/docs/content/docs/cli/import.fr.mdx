@@ -1,6 +1,6 @@
 ---
 title: verbatra import
-description: Réimporte une remise remplie (classeur, CSV ou TSV) dans les fichiers de locale, avec les mêmes vérifications de sûreté.
+description: Réimporte une remise remplie (classeur, CSV, TSV ou XLIFF) dans les fichiers de locale, avec les mêmes vérifications de sûreté.
 ---
 Relis dans tes fichiers de locale un classeur rempli par un traducteur. Chaque valeur passe par les mêmes vérifications d'intégrité qu'une exécution automatisée : les valeurs qui passent sont écrites et [le fichier de verrouillage](/docs/the-lock-file) est mis à jour ; les valeurs qui échouent sont retenues et signalées au lieu d'être écrites, donc une cellule défectueuse n'atterrit jamais dans un fichier de locale.
 
@@ -10,7 +10,7 @@ Relis dans tes fichiers de locale un classeur rempli par un traducteur. Chaque v
 verbatra import <workbook> [flags]
 ```
 
-`<workbook>` est le chemin de la remise produite par [`verbatra export`](/docs/cli/export) et remplie par le traducteur : le fichier du classeur avec `xlsx`, et avec `csv` et `tsv` soit un seul fichier `<locale>.csv`, soit le répertoire qui en contient un par locale.
+`<workbook>` est le chemin de la remise produite par [`verbatra export`](/docs/cli/export) et remplie par le traducteur : le fichier du classeur avec `xlsx`, et avec `csv`, `tsv`, `xliff2` et `xliff12` soit un seul fichier `<locale>.csv`, `<locale>.tsv` ou `<locale>.xlf`, soit le répertoire qui en contient un par locale.
 
 ## Options
 
@@ -19,7 +19,8 @@ verbatra import <workbook> [flags]
 | `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
 | `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--dry-run` | aucun | désactivé | valide et rapporte sans écrire les fichiers de locale ni mettre à jour le verrou |
-| `--format` | `<format>` | `xlsx` | lit un classeur Excel (`xlsx`) ou des fichiers délimités (`csv`, `tsv`) |
+| `--format` | `<format>` | `xlsx`, ou `xliff2` pour un chemin terminé par `.xlf` ou `.xliff` | lit un classeur Excel (`xlsx`), des fichiers délimités (`csv`, `tsv`) ou des fichiers XLIFF (`xliff2` et `xliff12` lisent les deux versions, depuis 0.12.0) |
+| `--reviewer` | `<name>` | aucun | le nom enregistré sur chaque unité XLIFF que la remise marque `reviewed` ou `final` (1.2 : `signed-off`, `final` ou `approved="yes"`) ; au plus 64 caractères sans caractère de contrôle, stocké dans le fichier de provenance versionné (depuis 0.12.0) |
 | `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu avant d'échouer ; doit être un entier positif en secondes, sans unité, d'au plus `3600` (une valeur comme `60s`, `0`, `-1` ou `7200` est une erreur d'utilisation, sortie `2`) |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé d'exécution sous `result` (la même [forme `RunSummary`](/docs/sdk) que `translate`), ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
@@ -34,6 +35,9 @@ verbatra import verbatra-translations.xlsx --dry-run
 
 # import every locale file in a CSV handoff directory
 verbatra import handoff --format csv
+
+# import one XLIFF file back from a CAT tool, naming the reviewer
+verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 ```
 
 Avec `csv` ou `tsv`, la locale vient du nom du fichier et non d'un nom de feuille : garde donc chaque fichier nommé exactement comme il a été exporté. Une locale cible configurée sans fichier (ou, dans un classeur, sans feuille) est rapportée comme l'échec de cette locale avec `WORKBOOK_SHEET_MISSING`, jamais ignorée en silence.
@@ -43,6 +47,12 @@ Un fichier laissé par un export antérieur avec une sélection `--locales` plus
 <AvailableFrom version="0.12.0" />
 
 `--lock-timeout` règle combien de temps une locale attend un [verrou d'écriture](/docs/the-lock-file#le-verrou-décriture) occupé avant d'échouer avec `LOCK_CONTENDED`, exactement comme pour [`verbatra translate`](/docs/cli/translate). L'attente a lieu avant l'écriture du fichier de la locale : une locale qui dépasse le délai reste intacte pendant que les autres locales s'importent quand même, et la commande sort avec `1`. Une fois le fichier d'une locale écrit, son enregistrement dans le fichier de verrouillage attend jusqu'au délai par défaut de dix minutes, quoi que dise `--lock-timeout`. Tant qu'une attente dure plus d'une seconde, une ligne sur stderr nomme le fichier de verrou et son détenteur, ou un enregistrement JSON `lock-wait` avec `--json`. `--dry-run` ne prend aucun verrou et n'attend donc jamais.
+
+## XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+Un fichier XLIFF est lu dans la version qu'il déclare, et un fichier unique dont le nom n'est pas une locale configurée est rattaché par la langue cible qu'il déclare. Une unité dont la cible est exactement la valeur actuelle ne change rien, toute autre cible passe par la barrière d'intégrité comme une ligne de classeur, et une unité marquée `reviewed` ou `final` est enregistrée comme approuvée, avec `--reviewer` comme nom, et signalée par l'avis `HANDOFF_REVIEWS_RECORDED`. Une unité dont l'id ne nomme aucune clé source est signalée comme ligne mal formée au lieu de faire échouer la locale. Les détails sont dans [Confier à une agence de traduction](/docs/translation-agency).
 
 ## Retour dans le terminal
 
@@ -79,4 +89,5 @@ Une cellule `Translation` vide ne fait jamais échouer une locale : la ligne est
 
 - [Traduction humaine](/docs/manual-translation) couvre l'aller-retour complet export, remplissage, import et ce qu'un traducteur peut modifier.
 - [Sûreté de la traduction](/docs/translation-safety) explique les vérifications qui peuvent retenir une valeur.
+- [Confier à une agence de traduction](/docs/translation-agency) couvre l'aller-retour XLIFF à travers un outil de TAO.
 - [`verbatra export`](/docs/cli/export) produit la remise que cette commande lit.

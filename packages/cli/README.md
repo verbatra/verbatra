@@ -67,7 +67,7 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 | `verbatra doctor` | Validate the project setup without calling a provider or reading an API key |
 | `verbatra pseudo` | Generate a pseudolocale from the source strings without calling a provider |
 | `verbatra types` | Generate TypeScript declarations for your catalog keys and message arguments |
-| `verbatra export` | Export untranslated strings into a translator handoff (Excel workbook, CSV, or TSV) |
+| `verbatra export` | Export untranslated strings into a translator handoff (Excel workbook, CSV, TSV, or XLIFF) |
 | `verbatra import` | Import a filled handoff back into the locale files, running the same safety checks |
 | `verbatra tmx` | Import a TMX translation memory from another tool, or export this project's memory as TMX |
 | `verbatra studio` | Start Verbatra Studio, the local translation dashboard |

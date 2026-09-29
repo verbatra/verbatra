@@ -97,11 +97,17 @@ Qué cambia frente al libro:
 - **Una reexportación más estrecha retira los locales que deja fuera.** Cada exportación anota los locales que escribió en un manifiesto oculto dentro del directorio de salida. Los archivos de una selección anterior más amplia siguen en disco, pero al importar se rechazan (`HANDOFF_FILE_STALE`) en lugar de aplicarse como si fueran recientes. Nunca se borra nada, así que un archivo ajeno en ese directorio está a salvo.
 - **Todo lo demás es idéntico.** El mismo diff elige las filas y cada fila devuelta pasa por la misma puerta de integridad, así que una entrega delimitada y un libro producen el mismo resultado para los mismos valores.
 
+## XLIFF para una herramienta TAO
+
+<AvailableFrom version="0.12.0" />
+
+Una agencia de traducción que trabaja en una herramienta TAO como Trados, memoQ u OmegaT quiere XLIFF en lugar de una hoja de cálculo. `--format xliff2` y `--format xliff12` escriben un `<locale>.xlf` por locale con estados de segmento, notas y marcadores de posición protegidos, y la importación lo lee de vuelta con las mismas comprobaciones que un libro y registra como aprobado un segmento que la agencia marcó como revisado. Consulta [Entregar a una agencia de traducción](/docs/translation-agency).
+
 ## TMX es otro camino
 
 <AvailableFrom version="0.11.0" />
 
-Una entrega lleva a un traductor humano un recorte por locale del delta pendiente; [`verbatra tmx`](/docs/cli/tmx) lleva toda la memoria de traducción como un único archivo multilingüe, para moverla entre herramientas y no para que alguien traduzca cadenas. TMX no es un valor de `--format`: `xlsx`, `csv` y `tsv` son las formas de entrega, así que usa `verbatra tmx export` y `verbatra tmx import` en lugar de `verbatra export --format tmx`.
+Una entrega lleva a un traductor humano un recorte por locale del delta pendiente; [`verbatra tmx`](/docs/cli/tmx) lleva toda la memoria de traducción como un único archivo multilingüe, para moverla entre herramientas y no para que alguien traduzca cadenas. TMX no es un valor de `--format`: `xlsx`, `csv`, `tsv`, `xliff2` y `xliff12` son las formas de entrega, así que usa `verbatra tmx export` y `verbatra tmx import` en lugar de `verbatra export --format tmx`.
 
 ## Seleccionar qué exportar
 

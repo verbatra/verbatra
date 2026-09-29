@@ -4,8 +4,7 @@ import { checkPlaceholders, contentHash, diffResources, type LocaleResource } fr
 import {
   buildDelimited,
   buildWorkbook,
-  type DelimitedFormat,
-  delimitedFileName,
+  buildXliff,
   type ReviewStatus,
   type WorkbookModel,
   type WorkbookRow,
@@ -18,10 +17,11 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
+import type { LocaleProvenance } from "../../lock/key-provenance.js";
 import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { branchArmProblems } from "../integrity-gate.js";
-import { readCarriedOverLock } from "../locale-carry-over.js";
+import { readCarriedOverLock, readCarriedOverProvenance } from "../locale-carry-over.js";
 import { readTargetResource } from "../read-target.js";
 import {
   createOutputPathGuard,
@@ -35,10 +35,16 @@ import {
 import { selectLocales } from "../select-locales.js";
 import { readSourceResource } from "../source.js";
 import { unwritableFileMessage } from "../write-target.js";
+import { xliffUnits } from "../xliff/xliff-units.js";
 import {
   DEFAULT_EXCHANGE_FORMAT,
+  type DirectoryFormat,
   type ExchangeFormat,
-  isDelimitedFormat,
+  handoffFamily,
+  handoffFileName,
+  isDirectoryFormat,
+  isXliffFormat,
+  xliffVersionOf,
 } from "./exchange-format.js";
 import { exportManifestFileName, writeExportManifest } from "./export-manifest.js";
 
@@ -46,9 +52,9 @@ import { exportManifestFileName, writeExportManifest } from "./export-manifest.j
 export const DEFAULT_WORKBOOK_PATH = "verbatra-translations.xlsx";
 
 /**
- * Default output directory for a delimited handoff. It carries no extension because it names a
- * directory, not a file: the export creates it and writes one `<locale>.<format>` file inside it
- * per exported locale, such as `de.csv`.
+ * Default output directory for a delimited or XLIFF handoff. It carries no extension because it
+ * names a directory, not a file: the export creates it and writes one file inside it per exported
+ * locale, such as `de.csv` for `csv` or `de.xlf` for `xliff2` and `xliff12`.
  */
 export const DEFAULT_DELIMITED_PATH = "verbatra-translations";
 
@@ -60,13 +66,13 @@ export interface ExportWorkbookInput {
   readonly cwd?: string;
   /**
    * Where to write the handoff. Defaults to {@link DEFAULT_WORKBOOK_PATH} for `xlsx` and to
-   * {@link DEFAULT_DELIMITED_PATH} for the delimited formats. Refused with `EXPORT_OUTPUT_CONFLICT`,
+   * {@link DEFAULT_DELIMITED_PATH} for the delimited and XLIFF formats. Refused with `EXPORT_OUTPUT_CONFLICT`,
    * before anything is read or written, when it resolves outside `cwd`, or when it or a file the
    * export would write names a configured locale file, the lock file, the provenance file, the
    * translation-memory cache, a file verbatra searches for its configuration, the
    * {@link ExportWorkbookInput.configPath} file, or the {@link ExportWorkbookInput.glossaryPath}
    * file. For `xlsx` it is also refused when it names no file (including one ending in a path
-   * separator) or names `cwd` itself; a delimited export may write into `cwd`. Names are compared
+   * separator) or names `cwd` itself; a delimited or XLIFF export may write into `cwd`. Names are compared
    * case-insensitively, and, when the file-system port implements `realpath`, again after symbolic
    * links are resolved, so a link cannot carry the handoff anywhere a plain path could not.
    */
@@ -104,7 +110,7 @@ export interface ExportWorkbookDeps {
 export interface ExportWorkbookResult {
   /**
    * The absolute path written: the workbook file for `xlsx`, or the directory the per-locale files
-   * were written into for a delimited format.
+   * were written into for a delimited or XLIFF format.
    */
   readonly path: string;
   /** Row counts per exported locale. */
@@ -290,30 +296,70 @@ async function writeHandoff(
   }
 }
 
-async function writeDelimitedFiles(
+interface HandoffFile {
+  readonly locale: string;
+  readonly content: string;
+}
+
+async function writeDirectoryFiles(
   fs: SdkFs,
   cwd: string,
   directory: string,
-  format: DelimitedFormat,
-  sheets: readonly WorkbookSheet[],
+  format: DirectoryFormat,
+  files: readonly HandoffFile[],
 ): Promise<void> {
   await writeHandoff("the handoff directory", directory, cwd, async () => {
     await fs.mkdir?.(directory);
   });
-  for (const sheet of sheets) {
-    const path = join(directory, delimitedFileName(sheet.locale, format));
-    const content = buildDelimited(sheet, format);
-    await writeHandoff("the handoff file", path, cwd, () => fs.writeFile(path, content));
+  for (const file of files) {
+    const path = join(directory, handoffFileName(file.locale, format));
+    await writeHandoff("the handoff file", path, cwd, () => fs.writeFile(path, file.content));
   }
-  const manifestPath = join(directory, exportManifestFileName(format));
+  const family = handoffFamily(format);
+  const manifestPath = join(directory, exportManifestFileName(family));
   await writeHandoff("the export manifest", manifestPath, cwd, () =>
     writeExportManifest(
       fs,
       directory,
-      format,
-      sheets.map((sheet) => sheet.locale),
+      family,
+      files.map((file) => file.locale),
     ),
   );
+}
+
+interface ExportedSheet extends WorkbookSheet {
+  readonly baseline: ReadonlyMap<string, string>;
+}
+
+interface RenderContext {
+  readonly config: VerbatraConfig;
+  readonly source: LocaleResource;
+  readonly provenance: LocaleProvenance | undefined;
+}
+
+function renderDirectoryFile(
+  format: DirectoryFormat,
+  sheet: ExportedSheet,
+  context: RenderContext,
+): HandoffFile {
+  if (!isXliffFormat(format)) {
+    return { locale: sheet.locale, content: buildDelimited(sheet, format) };
+  }
+  const units = xliffUnits({
+    rows: sheet.rows,
+    source: context.source,
+    records: context.provenance?.(sheet.locale) ?? new Map(),
+    baseline: sheet.baseline,
+  });
+  return {
+    locale: sheet.locale,
+    content: buildXliff({
+      version: xliffVersionOf(format),
+      sourceLanguage: context.config.sourceLocale,
+      targetLanguage: sheet.locale,
+      units,
+    }),
+  };
 }
 
 async function writeWorkbookFile(
@@ -346,21 +392,30 @@ async function resolveHandoffPath(
   format: ExchangeFormat,
   locales: readonly string[],
 ): Promise<string> {
-  if (!isDelimitedFormat(format)) {
+  if (!isDirectoryFormat(format)) {
     return resolveWorkbookPath(guard, input.out ?? DEFAULT_WORKBOOK_PATH);
   }
   return resolveDelimitedDirectory(guard, input.out ?? DEFAULT_DELIMITED_PATH, [
-    ...locales.map((locale) => delimitedFileName(locale, format)),
-    exportManifestFileName(format),
+    ...locales.map((locale) => handoffFileName(locale, format)),
+    exportManifestFileName(handoffFamily(format)),
   ]);
 }
 
 /**
  * Writes the strings awaiting translation to a handoff a human translator can work in: a styled
- * `.xlsx` workbook with one sheet per locale, or one `.csv` or `.tsv` file per locale. A delimited
- * export also writes a `.verbatra-export-<format>.json` manifest into the output directory naming
- * the locales it exported, which {@link importWorkbook} uses to tell a leftover file from an earlier
- * export apart from a current one.
+ * `.xlsx` workbook with one sheet per locale, one `.csv` or `.tsv` file per locale, or one XLIFF
+ * `.xlf` file per locale for a CAT tool. A delimited or XLIFF export also writes a
+ * `.verbatra-export-<csv|tsv|xliff>.json` manifest into the output directory naming the locales it
+ * exported, which {@link importWorkbook} uses to tell a leftover file from an earlier export apart
+ * from a current one.
+ *
+ * An XLIFF file (`xliff2` writes version 2.0, `xliff12` version 1.2) holds one unit per key, named
+ * by the key. Placeholders, inline markup and ICU structure become inline codes a CAT tool shows
+ * and protects, the key's description and meaning become notes, and the source hash travels in the
+ * unit's metadata. Each unit's state comes from the lock and review state: a missing or stale key
+ * is `initial` (1.2: `new`, or `needs-translation` with the stale translation as the target), an
+ * up-to-date translation is `translated`, an approved one is `reviewed` (1.2: `signed-off` and
+ * `approved="yes"`), and a rejected one is `initial` again.
  *
  * By default only missing and stale keys are exported, which is what makes the handoff a work list
  * rather than a dump of the whole project. Each row carries the source text alongside any existing
@@ -426,7 +481,7 @@ export async function exportWorkbook(
   const source = await readSourceResource(config, resolver, fs, adapter);
   const lock = await readCarriedOverLock(cwd, fs, locales);
 
-  const sheets = await Promise.all(
+  const sheets: readonly ExportedSheet[] = await Promise.all(
     locales.map(async (locale) => {
       const target = await readTargetResource({
         resolver,
@@ -435,21 +490,30 @@ export async function exportWorkbook(
         adapter,
         fs,
       });
+      const baseline = baselineFor(lock, locale);
       const rows = buildRows(
         source.resource,
         target,
-        baselineFor(lock, locale),
+        baseline,
         input.includeUnchanged ?? false,
         adapter,
         glossaryForLocale(config.glossary, locale),
         maxLengthBudgets,
       );
-      return { locale, rows };
+      return { locale, rows, baseline };
     }),
   );
 
-  if (isDelimitedFormat(format)) {
-    await writeDelimitedFiles(fs, cwd, path, format, sheets);
+  if (isDirectoryFormat(format)) {
+    const context: RenderContext = {
+      config,
+      source: source.resource,
+      provenance: isXliffFormat(format)
+        ? await readCarriedOverProvenance(cwd, fs, locales)
+        : undefined,
+    };
+    const files = sheets.map((sheet) => renderDirectoryFile(format, sheet, context));
+    await writeDirectoryFiles(fs, cwd, path, format, files);
   } else {
     await writeWorkbookFile(fs, cwd, path, sheets);
   }

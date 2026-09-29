@@ -3,13 +3,13 @@ import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/confi
 import { describe, expect, it } from "vitest";
 import { PRINTF_TOKEN, segmentValue } from "./value-tokens.js";
 
-const CORE_PSEUDO_TRANSFORM = new URL(
-  "../../../core/src/pseudo/pseudo-transform.ts",
+const CORE_PROTECTED_RUNS = new URL(
+  "../../../core/src/placeholder/protected-runs.ts",
   import.meta.url,
 );
 
 function corePositionalPrintfSource(): string {
-  const literals = readFileSync(CORE_PSEUDO_TRANSFORM, "utf8").match(/^\s*"%\(\?:.*",$/gm) ?? [];
+  const literals = readFileSync(CORE_PROTECTED_RUNS, "utf8").match(/^\s*"%\(\?:.*",$/gm) ?? [];
   expect(literals).toHaveLength(1);
   return JSON.parse((literals[0] ?? "").trim().replace(/,$/, "")) as string;
 }
@@ -220,7 +220,7 @@ describe("segmentValue", () => {
 });
 
 describe("segmentValue: printf parity with the core placeholder pattern", () => {
-  it("uses the same printf pattern source as the core pseudo-locale transform", () => {
+  it("uses the same printf pattern source as the core protected-run scanner", () => {
     expect(PRINTF_TOKEN.source).toBe(corePositionalPrintfSource());
   });
 

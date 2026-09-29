@@ -12,6 +12,7 @@ import {
   type ExportWorkbookInput,
   type ExportWorkbookResult,
   type GenerateTypesInput,
+  type ImportWorkbookInput,
   isMachineTranslationEnabled,
   type LoadedConfig,
   type LockWaitEvent,
@@ -124,6 +125,7 @@ const importOptsSchema = sharedCommandOptsSchema.extend({
   dryRun: z.boolean().optional(),
   format: exchangeFormatSchema,
   lockTimeout: z.string().optional(),
+  reviewer: z.string().optional(),
 });
 
 const TMX_DIRECTIONS = ["import", "export"] as const;
@@ -598,6 +600,10 @@ const FORMAT_OPTION_DESCRIPTION = `handoff format: one of ${EXCHANGE_FORMATS.joi
   ", ",
 )} (default ${DEFAULT_EXCHANGE_FORMAT})`;
 
+const IMPORT_FORMAT_OPTION_DESCRIPTION = `handoff format: one of ${EXCHANGE_FORMATS.join(
+  ", ",
+)} (default xliff2 for a .xlf or .xliff path, otherwise ${DEFAULT_EXCHANGE_FORMAT}; either XLIFF format reads both versions)`;
+
 function parseExchangeFormat(value: string | undefined): ExchangeFormat | undefined {
   if (value === undefined) {
     return undefined;
@@ -980,6 +986,52 @@ async function runExport(
   );
 }
 
+interface ImportRunOpts extends LocationOpts {
+  readonly dryRun?: boolean | undefined;
+  readonly format: ExchangeFormat | undefined;
+  readonly reviewer?: string | undefined;
+  readonly lockAcquireTimeoutMs: number | undefined;
+}
+
+function importInput(
+  config: Awaited<ReturnType<CliDeps["loadConfig"]>>,
+  workbook: string,
+  cwd: string,
+  opts: ImportRunOpts,
+  context: CommandContext,
+): ImportWorkbookInput {
+  return {
+    config,
+    workbook,
+    cwd,
+    onLockWait: lockWaitReporter(context),
+    ...(opts.dryRun === true ? { dryRun: true } : {}),
+    ...(opts.format !== undefined ? { format: opts.format } : {}),
+    ...(opts.reviewer !== undefined ? { reviewer: opts.reviewer } : {}),
+    ...(opts.lockAcquireTimeoutMs !== undefined
+      ? { lockAcquireTimeoutMs: opts.lockAcquireTimeoutMs }
+      : {}),
+  };
+}
+
+function hintAfterImport(
+  context: CommandContext,
+  workbook: string,
+  opts: ImportRunOpts,
+  summary: RunSummary,
+  exitCode: number,
+): void {
+  if (summary.dryRun) {
+    const reviewerArgs = opts.reviewer !== undefined ? ["--reviewer", opts.reviewer] : [];
+    context.ui.hint(
+      verbatraCommand(["import", workbook, ...formatArgs(opts.format), ...reviewerArgs], opts),
+      "without --dry-run to write the files",
+    );
+  } else if (exitCode === 0) {
+    context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
+  }
+}
+
 export async function runImport(
   workbook: string,
   rawOpts: unknown,
@@ -1007,17 +1059,7 @@ export async function runImport(
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
           const summary = await withTask(context, `importing ${workbook}`, () =>
-            deps.importWorkbook({
-              config,
-              workbook,
-              cwd,
-              onLockWait: lockWaitReporter(context),
-              ...(opts.dryRun === true ? { dryRun: true } : {}),
-              ...(opts.format !== undefined ? { format: opts.format } : {}),
-              ...(opts.lockAcquireTimeoutMs !== undefined
-                ? { lockAcquireTimeoutMs: opts.lockAcquireTimeoutMs }
-                : {}),
-            }),
+            deps.importWorkbook(importInput(config, workbook, cwd, opts, context)),
           );
           context.streams.out(
             context.json
@@ -1025,14 +1067,7 @@ export async function runImport(
               : `${renderHuman(summary, "import")}\n`,
           );
           const exitCode = runExitCode(summary);
-          if (summary.dryRun) {
-            context.ui.hint(
-              verbatraCommand(["import", workbook, ...formatArgs(opts.format)], opts),
-              "without --dry-run to write the files",
-            );
-          } else if (exitCode === 0) {
-            context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
-          }
+          hintAfterImport(context, workbook, opts, summary, exitCode);
           return exitCode;
         },
       );
@@ -1574,13 +1609,13 @@ function registerExportCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("export")
     .description(
-      "Export untranslated strings into a translator handoff (Excel workbook, CSV, or TSV)",
+      "Export untranslated strings into a translator handoff (Excel workbook, CSV, TSV, or XLIFF)",
     )
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option(
       "--out <path>",
-      "write the handoff here: a file for xlsx (default verbatra-translations.xlsx), a directory for csv and tsv (default verbatra-translations)",
+      "write the handoff here: a file for xlsx (default verbatra-translations.xlsx), a directory for csv, tsv, xliff2 and xliff12 (default verbatra-translations)",
     )
     .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
     .option("--include-unchanged", "also export already up-to-date strings (off by default)")
@@ -1598,6 +1633,7 @@ function registerExportCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra export --locales de,fr       only the German and French sheets",
         "  $ verbatra export --include-unchanged   include already up-to-date strings",
         "  $ verbatra export --format csv          write one <locale>.csv per locale into a directory",
+        "  $ verbatra export --format xliff2       write one <locale>.xlf per locale for a CAT tool",
       ].join("\n"),
     );
 }
@@ -1607,7 +1643,7 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     .command("import")
     .argument(
       "<workbook>",
-      "path to the filled handoff: a workbook file, one csv or tsv file, or a directory of them",
+      "path to the filled handoff: a workbook file, one csv, tsv or xlf file, or a directory of them",
     )
     .description(
       "Import a filled handoff back into the locale files, running the same safety checks",
@@ -1615,7 +1651,11 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
     .option("--cwd <path>", "resolve config and locale files from this directory")
     .option("--config <path>", "load this config file instead of searching for one")
     .option("--dry-run", "validate and report without writing locale files or updating the lock")
-    .option("--format <format>", FORMAT_OPTION_DESCRIPTION)
+    .option("--format <format>", IMPORT_FORMAT_OPTION_DESCRIPTION)
+    .option(
+      "--reviewer <name>",
+      "name recorded on each XLIFF unit the handoff marks reviewed or final (stored in the committed provenance file)",
+    )
     .option(
       "--lock-timeout <seconds>",
       "how long to wait for a held per-locale write lock before failing (default 600)",
@@ -1633,6 +1673,7 @@ function registerImportCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra import translations.xlsx             import the filled workbook",
         "  $ verbatra import translations.xlsx --dry-run   validate and report, write nothing",
         "  $ verbatra import handoff --format csv          import every <locale>.csv in the directory",
+        "  $ verbatra import handoff/de.xlf --reviewer Ana  import an XLIFF file back from a CAT tool",
       ].join("\n"),
     );
 }

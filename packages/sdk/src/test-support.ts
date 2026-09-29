@@ -313,3 +313,72 @@ export function memoryLockFs(
     content: (path) => files.get(path)?.content,
   };
 }
+
+export interface CatToolEdit {
+  readonly target?: string;
+  readonly state?: string;
+  readonly dropHash?: boolean;
+}
+
+function escapeForPattern(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function unitBlock(xml: string, key: string): { readonly start: number; readonly block: string } {
+  const name = escapeForPattern(key);
+  const pattern = xml.includes('version="2.0"')
+    ? new RegExp(`<unit id="u\\d+" name="${name}">[\\s\\S]*?</unit>`)
+    : new RegExp(`<trans-unit id="${name}"[^>]*>[\\s\\S]*?</trans-unit>`);
+  const match = pattern.exec(xml);
+  if (match === null) {
+    throw new Error(`no unit for ${key}`);
+  }
+  return { start: match.index, block: match[0] };
+}
+
+export function xliffSourceInner(xml: string, key: string): string {
+  const { block } = unitBlock(xml, key);
+  return /<source>([\s\S]*?)<\/source>/.exec(block)?.[1] ?? "";
+}
+
+function editXliff2Unit(block: string, edit: CatToolEdit): string {
+  let next = block.replace(/<unit id="(u\d+)" name="([^"]*)">/, '<unit name="$2" id="$1">');
+  if (edit.dropHash === true) {
+    next = next.replace(/\s*<mda:metadata>[\s\S]*?<\/mda:metadata>/, "");
+  }
+  if (edit.target !== undefined) {
+    next = next
+      .replace(/\s*<target>[\s\S]*?<\/target>/, "")
+      .replace("</segment>", `  <target>${edit.target}</target>\n      </segment>`);
+  }
+  if (edit.state !== undefined) {
+    next = next.replace(/<segment state="[^"]*">/, `<segment state="${edit.state}">`);
+  }
+  return next;
+}
+
+function editXliff12Unit(block: string, edit: CatToolEdit): string {
+  let next = block.replace(/<trans-unit ([^>]*)>/, (_whole, attributes: string) => {
+    const kept = attributes
+      .split(/ (?=[\w:-]+=")/)
+      .filter((attribute) => edit.dropHash !== true || !attribute.startsWith("extradata="));
+    return `<trans-unit ${kept.reverse().join(" ")}>`;
+  });
+  if (edit.target !== undefined) {
+    const state = edit.state ?? /<target state="([^"]*)"/.exec(next)?.[1] ?? "translated";
+    next = next
+      .replace(/\s*<target[^>]*>[\s\S]*?<\/target>/, "")
+      .replace("</source>", `</source>\n        <target state="${state}">${edit.target}</target>`);
+  } else if (edit.state !== undefined) {
+    next = next.replace(/<target state="[^"]*">/, `<target state="${edit.state}">`);
+  }
+  return next;
+}
+
+export function editXliffUnit(xml: string, key: string, edit: CatToolEdit): string {
+  const { start, block } = unitBlock(xml, key);
+  const edited = xml.includes('version="2.0"')
+    ? editXliff2Unit(block, edit)
+    : editXliff12Unit(block, edit);
+  return `${xml.slice(0, start)}${edited}${xml.slice(start + block.length)}`;
+}

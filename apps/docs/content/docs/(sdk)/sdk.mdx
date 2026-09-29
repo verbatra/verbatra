@@ -881,9 +881,13 @@ the provenance file, the translation-memory cache, a file verbatra searches for 
 the `configPath` file, or the `glossaryPath` file, compared case-insensitively and, when `deps.fs`
 implements `realpath` as the default does, again after symbolic links are resolved. An `xlsx` path
 is also refused when it names no file (including one ending in a path separator) or names `cwd`
-itself; a `csv` or `tsv` directory may be `cwd`. A write that fails, because the directory is not
+itself; a `csv`, `tsv` or XLIFF directory may be `cwd`. A write that fails, because the directory is not
 writable, a directory or file is in the way, or the disk is full, throws `EXPORT_UNWRITABLE` naming
 the file and the file-system code, with the file-system error as its `cause`.
+
+<AvailableFrom version="0.12.0" />
+
+`format: "xliff2"` and `format: "xliff12"` write one XLIFF 2.0 or 1.2 `<locale>.xlf` per locale into the `out` directory, for a CAT tool: one unit per key, placeholders and markup as protected `<ph>` inline codes, the key's description and meaning as notes, the source hash in the unit's metadata, and a segment state from the lock and review state (`initial` for a missing or stale key, `translated` when up to date, `reviewed` when approved). Both types are exported, `XliffFormat` naming the two XLIFF members of `ExchangeFormat`. See [Hand off to a translation agency](/docs/translation-agency).
 
 ### importWorkbook
 
@@ -891,7 +895,7 @@ Reads a filled workbook back into the locale files, running the same source-drif
 checks as `translate`. Only accepted rows advance their lock baseline; a blank or rejected
 row keeps re-exporting until it is genuinely resolved.
 
-Input: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs? }`. With `csv` or `tsv`, `workbook` is either
+Input: `{ config, workbook, cwd?, dryRun?, format?, onLockWait?, lockAcquireTimeoutMs?, reviewer? }`. With `csv` or `tsv`, `workbook` is either
 one interchange file or the directory holding one per locale, and the locale comes from the file
 name. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
@@ -911,6 +915,10 @@ Each locale's `integrityRefusals` names the rows the integrity gate refused, wit
 its `details`, such as each ICU arm that does not fit the target language. A row withheld because
 its source changed since the export is listed in `integrityMismatches` only. `exportWorkbook` flags
 a current translation with the wrong arms as `icu-arms` in its review columns.
+
+<AvailableFrom version="0.12.0" />
+
+With `xliff2` or `xliff12`, either of which reads both versions, and by default for a `workbook` path ending in `.xlf` or `.xliff`, every inline code is resolved back to its exact text before the same checks. A target equal to the current value changes nothing, a unit whose id names no source key is reported in `malformedRows`, and a unit in state `reviewed` or `final` (1.2: `signed-off`, `final` or `approved="yes"`) is recorded as approved in the provenance file, naming `reviewer` when given (checked like `approveEntry`'s, `REVIEWER_INVALID`), and reported with the notice `HANDOFF_REVIEWS_RECORDED`.
 
 ## The TMX pair
 
@@ -1527,7 +1535,7 @@ The parts worth knowing:
   [Review in Studio](/docs/review-in-studio) for working the queue.
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
-  `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
+  `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED` (from 0.12.0: keys an XLIFF handoff marked reviewed or final were recorded as approved), `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
   `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read or created, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
   grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was), and, from 0.12.0, the four warnings of the locale support check, raised before anything is spent and on a dry run too: `LOCALE_UNVERIFIED_BY_PROVIDER` (the code sent is not on the provider's table, only its base language is or it comes from `localeMap`), `LOCALE_NOT_WELL_TESTED` (an LLM target outside the well-tested list), `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, and `FORMALITY_UNSUPPORTED_BY_PROVIDER` (a glossary or tone the provider cannot apply for the locale). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
@@ -1606,7 +1614,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `REVIEW_SOURCE_CHANGED` | the source changed since the value was written, so it cannot be approved as it stands (`approveEntry`) |
 | `REVIEW_REJECT_UNSUPPORTED` | the format keeps a key's value when the file is written without it, as XLIFF does, or the locale file is too large to keep a copy to restore, so `rejectEntry` left the file as it was |
 | `REVIEW_RESTORE_FAILED` | `rejectEntry` failed after it rewrote the locale file, and restoring the locale file or the provenance file failed too; the message names the original failure (also the `cause`) and the files to restore from version control |
-| `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`) |
+| `REVIEWER_INVALID` | the `reviewer` is empty, longer than 64 characters, or contains a control character (`approveEntry`, `rejectEntry`, `importWorkbook`) |
 | `LOCK_CONTENDED` | a locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could not be acquired before its timeout, or another process took it over before a write it protects, in which case nothing was written; the message names the lock file's path |
 | `GLOSSARY_NOT_FILE_BACKED` | the config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`) |
 | `GLOSSARY_UNWRITABLE` | the glossary file could not be written, or the glossary write lock could not be created, for instance in a read-only project, or released after a saved edit (`updateGlossaryTerm`); the file-system error is the `cause` |
