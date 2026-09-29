@@ -62,7 +62,7 @@ That configuration is read-only plus local editing: no provider is called and no
 
 ## Tools
 
-Fifteen tools, listed here in the order the server advertises them.
+Every tool, listed here in the order the server advertises them.
 
 | Tool | What it does |
 | --- | --- |

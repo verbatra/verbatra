@@ -71,7 +71,7 @@ Les deux acceptent `--locales de,fr` pour contrôler un sous-ensemble. Passer `-
 
 ## Sortie JSON
 
-Douze commandes acceptent `--json` pour une sortie lisible par machine sur stdout : `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` et `init`. Chaque enregistrement tient sur une ligne, et chaque enregistrement est entouré de la même enveloppe : tu te branches sur un seul champ et tu n'as jamais à deviner de quelle commande viennent les données que tu tiens :
+Toutes les commandes sauf `studio` et `mcp` acceptent `--json` pour une sortie lisible par machine sur stdout : `translate`, `watch`, `check`, `diff`, `report`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` et `init`. Chaque enregistrement tient sur une ligne, et chaque enregistrement est entouré de la même enveloppe : tu te branches sur un seul champ et tu n'as jamais à deviner de quelle commande viennent les données que tu tiens :
 
 ```ts
 type Envelope<TResult> =

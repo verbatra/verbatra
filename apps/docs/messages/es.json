@@ -225,7 +225,7 @@
         },
         "handoff": {
           "body": "Exportación e importación de Excel para traductores, TMX para la memoria de traducción y tipos de TypeScript generados para tus claves.",
-          "note": "cuatro de los catorce comandos",
+          "note": "los comandos export, import, tmx y types",
           "title": "Personas y otras herramientas pueden tomar el relevo."
         }
       },

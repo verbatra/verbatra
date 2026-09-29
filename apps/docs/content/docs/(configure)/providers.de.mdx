@@ -1,8 +1,8 @@
 ---
 title: Provider
-description: Die sieben Übersetzungs-Provider, ihre Optionen und API-Schlüssel und das Verhalten, das sie alle teilen.
+description: Alle Übersetzungs-Provider, ihre Optionen und API-Schlüssel und das Verhalten, das sie alle teilen.
 ---
-verbatra liefert sieben Provider hinter einer Schnittstelle: Anthropic, OpenAI, Gemini und openai-compatible (ein lokaler oder selbst gehosteter OpenAI-kompatibler Server) sind Large Language Models, und DeepL, Google Cloud Translation und LibreTranslate (ein selbst gehosteter Server) sind Maschinenübersetzungsdienste. Eine achte Einstellung, `none`, schaltet maschinelle Übersetzung per Richtlinie ab; siehe [none](#none). Du wählst einen im `provider`-Block deiner [Konfiguration](/docs/config-file), über die `id`. Jede Modell-Id auf dieser Seite ist ein Beispiel, keine Empfehlung: Modellkataloge ändern sich, prüfe also die aktuelle Liste deines Providers. Welche Sprachen jeder Provider abdeckt und wie verbatra ihm deine Locale-Codes übergibt, steht unter [Sprachunterstützung](/docs/language-support).
+verbatra liefert seine Provider hinter einer Schnittstelle: Anthropic, OpenAI, Gemini und openai-compatible (ein lokaler oder selbst gehosteter OpenAI-kompatibler Server) sind Large Language Models, und DeepL, Google Cloud Translation und LibreTranslate (ein selbst gehosteter Server) sind Maschinenübersetzungsdienste. Eine weitere Einstellung, `none`, schaltet maschinelle Übersetzung per Richtlinie ab; siehe [none](#none). Du wählst einen im `provider`-Block deiner [Konfiguration](/docs/config-file), über die `id`. Jede Modell-Id auf dieser Seite ist ein Beispiel, keine Empfehlung: Modellkataloge ändern sich, prüfe also die aktuelle Liste deines Providers. Welche Sprachen jeder Provider abdeckt und wie verbatra ihm deine Locale-Codes übergibt, steht unter [Sprachunterstützung](/docs/language-support).
 
 ## Welchen soll ich nehmen?
 
@@ -276,7 +276,7 @@ Vorübergehende Fehlschläge (eine Rate-Limit-Antwort oder ein Serverfehler) wer
 
 ### Anfrage-Timeout
 
-Jeder Provider begrenzt jede ausgehende Anfrage, damit ein Server, der die Verbindung annimmt, aber nie antwortet, keinen Lauf blockieren und die Schreibsperre einer Locale offen halten kann. Diese Grenze ist `requestTimeoutMs`, eine optionale positive Ganzzahl in Millisekunden, die in den `options` aller sieben Provider akzeptiert wird (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` und `libretranslate`):
+Jeder Provider begrenzt jede ausgehende Anfrage, damit ein Server, der die Verbindung annimmt, aber nie antwortet, keinen Lauf blockieren und die Schreibsperre einer Locale offen halten kann. Diese Grenze ist `requestTimeoutMs`, eine optionale positive Ganzzahl in Millisekunden, die in den `options` jedes Providers akzeptiert wird (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` und `libretranslate`):
 
 ```ts
 provider: {

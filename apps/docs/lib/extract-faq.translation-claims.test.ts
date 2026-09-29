@@ -20,10 +20,17 @@ const TRANSLATION_QUESTION: Record<Locale, RegExp> = {
 };
 
 const RETIRED_CLAIMS: Record<Locale, RegExp> = {
-  en: /Yes, both halves|automatically whenever the English source changes|reviewed before publication/,
-  de: /Ja, beide Hälften|automatisch immer dann|vor der Veröffentlichung geprüft/,
-  es: /Sí, las dos mitades|lo retraduce automáticamente|ejecutado por pnpm i18n cada vez|se revisa antes de publicarse/,
-  fr: /Oui, les deux moitiés|retraduit automatiquement|exécuté par pnpm i18n dès que|relu avant sa publication/,
+  en: /Yes, both halves|automatically whenever the English source changes|reviewed before publication|separate, manual step/,
+  de: /Ja, beide Hälften|automatisch immer dann|vor der Veröffentlichung geprüft|eigener, manueller Schritt/,
+  es: /Sí, las dos mitades|lo retraduce automáticamente|ejecutado por pnpm i18n cada vez|se revisa antes de publicarse|paso\s+aparte y manual/,
+  fr: /Oui, les deux moitiés|retraduit automatiquement|exécuté par pnpm i18n dès que|relu avant sa publication|étape séparée et manuelle/,
+};
+
+const SAME_CHANGE_AGENT_TRANSLATION: Record<Locale, RegExp> = {
+  en: /an AI agent translates a doc page in the same change\s+that\s+edits its English source/,
+  de: /übersetzt ein KI-Agent eine Doku-Seite in derselben Änderung,\s+die ihre englische Quelle bearbeitet/,
+  es: /un agente de IA traduce cada página\s+de documentación en el mismo cambio que edita su fuente en inglés/,
+  fr: /un agent IA\s+traduit chaque page de documentation dans le même changement/,
 };
 
 const BEST_EFFORT_REVIEW: Record<Locale, RegExp> = {
@@ -45,6 +52,10 @@ describe.each(i18n.languages)("extractFaqItems: site translation answer (%s)", (
 
   it("does not repeat the retired automatic-pipeline or full-review claims", () => {
     expect(answer).not.toMatch(RETIRED_CLAIMS[locale]);
+  });
+
+  it("says an AI agent translates doc pages in the same change as the English page", () => {
+    expect(answer).toMatch(SAME_CHANGE_AGENT_TRANSLATION[locale]);
   });
 
   it("states the best-effort review and names the pipeline and its drift gate", () => {

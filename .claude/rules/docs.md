@@ -1,8 +1,9 @@
 # Docs (apps/docs)
 
 `apps/docs` (`@verbatra/docs`, private) is a Fumadocs/Next.js site. It dogfoods verbatra for its
-own UI strings but hand-maintains its MDX content translations, because verbatra translates
-structured formats (JSON, XLIFF, YAML, ARB, properties), not Markdown/MDX.
+own UI strings, while its MDX content translations are written by AI agents in the repository,
+because verbatra translates structured formats (JSON, XLIFF, YAML, ARB, properties), not
+Markdown/MDX.
 
 ## Two kinds of translated content, two mechanisms
 
@@ -21,8 +22,12 @@ structured formats (JSON, XLIFF, YAML, ARB, properties), not Markdown/MDX.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
   translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
   by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
-  route groups and the `cli` folder, each with a `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are hand-translated;
-  verbatra's `next-intl-json` adapter only covers `messages/*.json`, not MDX.
+  route groups and the `cli` folder, each with a `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are translated by an AI agent
+  in the same change as the English page, following the tone rules below; verbatra's
+  `next-intl-json` adapter only covers `messages/*.json`, not MDX. Every non-English page renders
+  the "Machine-translated page" notice (`docs.machineTranslated` in `messages/*.json`), which is the
+  honest state and stays. The FAQ answer "Is this site's content translated by AI?" says the same
+  in all four locales, pinned by `apps/docs/lib/extract-faq.translation-claims.test.ts`.
 
 ## Source of truth: what's actually shipped
 
@@ -46,15 +51,33 @@ extension touches: `providers.mdx`, `config-file.mdx`, `formats.mdx`, plus
 ## Every user-facing change updates all four locale files
 
 A change to `messages/en.json` or to an English `page.mdx` is not complete until the corresponding
-`de`, `es`, and `fr` files are updated in the *same* change, whether by hand (MDX content) or by
-re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
+`de`, `es`, and `fr` files are updated in the *same* change, whether by an AI agent (MDX content)
+or by re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
 leave the other three locales to catch up later. `docs-i18n-check.yml` only backstops the
-`messages/*.json` half of this (see above); a stale or missing `.de.mdx`/`.es.mdx`/`.fr.mdx` is
-not caught by CI, so treat this as an authoring discipline, not a check you can rely on to fail.
-The one exception is the reference tables `scripts/verify-docs-reference-parity.test.mjs`
-(`pnpm test:scripts`) asserts in all four locales against the code: one `sdk*.mdx` section per SDK
-entry point, the `ProviderErrorCode` table in `providers*.mdx`, the CLI error codes in
-`ci-and-exit-codes*.mdx`, and the `generateTypes` refusals in `cli/types*.mdx`.
+`messages/*.json` half of this (see above). For MDX, `apps/docs/lib/docs-locale-parity.test.ts`
+fails when a locale misses a page or a `meta` file, when a translated `meta` file lists other
+pages, or when a translated page's `##` and `###` heading counts, code block count, or
+`<AvailableFrom>` versions differ from the English page. It cannot tell whether the prose itself
+is current, so keeping the wording in step stays an authoring discipline.
+
+The reference tables are asserted in all four locales against the code by the `scripts/*.test.mjs`
+parity tests (`pnpm test:scripts`):
+
+- `verify-docs-reference-parity.test.mjs`: one `sdk*.mdx` section per SDK entry point, the
+  `SdkErrorCode` table in `sdk*.mdx`, the `ProviderErrorCode` table in `providers*.mdx`, the CLI
+  error codes in `ci-and-exit-codes*.mdx`, and the `generateTypes` refusals in `cli/types*.mdx`.
+- `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in
+  `packages/mcp/README.md` follows `ALL_TOOLS_IN_ORDER`, with exactly the spend-gated tools marked
+  as calling a provider, and the client allowlists name only registered, non-spend tools.
+- `verify-docs-registry-parity.test.mjs`: the overview table in `formats*.mdx` lists every
+  `SUPPORTED_FORMATS` id in order, `providers*.mdx` opens one `##` section per `providerFactories`
+  id plus `none`, the `cli/doctor*.mdx` check table follows the setup checks in `doctor.ts`, and
+  every `.command(...)` in `run.ts` appears in `cli/meta*.json` and the `cli/index*.mdx` table, with
+  its page's flags table naming exactly its `.option(...)` flags and the `--json` list in
+  `ci-and-exit-codes*.mdx` naming exactly the commands that take `--json`.
+- `verify-docs-registry-counts.test.mjs`: no MDX page spells out a count of formats, providers,
+  or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
+  items.
 
 ## The `<AvailableFrom />` callout
 
@@ -81,9 +104,9 @@ any other UI string, not hand-duplicated per locale MDX file.
 
 Informal address throughout: German `du` (not `Sie`), Spanish `tú` (not `usted`), French `tu` (not
 `vous`). This is the same tone the automated translation already applies
-(`apps/docs/verbatra.config.ts`: `tone: "informal"`), so hand-translated MDX content should match
-it for consistency between machine- and hand-translated pages.
+(`apps/docs/verbatra.config.ts`: `tone: "informal"`), so agent-translated MDX content should match
+it for consistency between the UI strings and the pages.
 
-Never use the em dash (U+2014) in any locale, including hand-written German, Spanish, or French
-content. Use a spaced hyphen, a colon, or parentheses instead, exactly as the repo-wide rule
+Never use the em dash (U+2014) in any locale, including German, Spanish, or French content an agent
+wrote. Use a spaced hyphen, a colon, or parentheses instead, exactly as the repo-wide rule
 requires for English.

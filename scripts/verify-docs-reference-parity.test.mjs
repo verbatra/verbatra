@@ -45,6 +45,37 @@ function documentedCliErrorCodes(suffix) {
   return [...page.matchAll(/^\| `([A-Z_]+)` \|/gm)].map((match) => match[1]);
 }
 
+function sdkErrorCodes() {
+  const source = readRepoFile("packages/sdk/src/errors.ts");
+  const union = /export type SdkErrorCode =([\s\S]*?);/.exec(source);
+  if (union?.[1] === undefined) {
+    throw new Error("the SdkErrorCode union could not be located in errors.ts");
+  }
+  return [...union[1].matchAll(/"([A-Z_]+)"/g)].map((match) => match[1]);
+}
+
+function tableRowsFrom(page, firstRowPattern) {
+  const lines = page.split("\n");
+  const start = lines.findIndex((line) => firstRowPattern.test(line));
+  if (start === -1) {
+    return [];
+  }
+  const rows = [];
+  for (const line of lines.slice(start)) {
+    if (!line.startsWith("|")) {
+      break;
+    }
+    rows.push(line);
+  }
+  return rows;
+}
+
+function sdkErrorTableCodes(page) {
+  return tableRowsFrom(page, /^\| `CONFIG_NOT_FOUND` \|/).map(
+    (row) => /^\| `([A-Z_]+)` \|/.exec(row)?.[1],
+  );
+}
+
 function blockExportNames(members) {
   const names = [];
   for (const raw of members.split(",")) {
@@ -116,6 +147,33 @@ describe("the CI guide documents every code the CLI raises itself", () => {
       expect(documentedCliErrorCodes(suffix)).toEqual(codes);
     },
   );
+});
+
+describe("the SDK reference documents every SdkError code", () => {
+  const codes = sdkErrorCodes();
+
+  it("extracts a non-trivial union, so the comparisons cannot pass vacuously", () => {
+    expect(codes.length).toBeGreaterThanOrEqual(30);
+    expect(codes[0]).toBe("CONFIG_NOT_FOUND");
+    expect(codes).toContain("LOCALE_FAILED");
+  });
+
+  it.each(LOCALE_SUFFIXES)("has one table row per code, in union order, in sdk%s.mdx", (suffix) => {
+    expect(sdkErrorTableCodes(readDocPage("(sdk)/sdk", suffix))).toEqual(codes);
+  });
+
+  it("sees a code missing from the table and a row the union no longer holds", () => {
+    const page = readDocPage("(sdk)/sdk", "");
+    const withoutRow = page.replace(/^\| `UNKNOWN_KEY` \|.*\n/m, "");
+    const withExtraRow = page.replace(
+      /^(\| `UNKNOWN_KEY` \|.*\n)/m,
+      "$1| `RETIRED_CODE` | no longer raised |\n",
+    );
+
+    expect(sdkErrorTableCodes(withoutRow)).not.toContain("UNKNOWN_KEY");
+    expect(sdkErrorTableCodes(withExtraRow)).toContain("RETIRED_CODE");
+    expect(sdkErrorTableCodes(page)).toEqual(codes);
+  });
 });
 
 describe("the SDK reference catalogs the whole public surface", () => {

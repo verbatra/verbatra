@@ -80,7 +80,7 @@ damit sich kein Secret in einer committeten Datei verstecken kann.
 **Symptom**: `No adapter is registered for format "..."`, gefolgt von der Liste der unterstützten
 Formate.
 
-**Ursache**: Das `format` der Konfiguration ist keine der vierzehn registrierten Format-Ids. Das
+**Ursache**: Das `format` der Konfiguration ist keine der registrierten Format-Ids, die unter [Formate](/docs/formats) stehen. Das
 wird geprüft, bevor irgendeine Datei gelesen wird. Bei einer `custom:`-Id nennt die Meldung
 stattdessen das Fremdformat: Die Registry, die der Lauf bekommen hat, enthält keinen Adapter dafür.
 Die `verbatra`-Kommandozeile lädt kein Plugin, deshalb läuft ein `custom:`-Format dort nicht.
@@ -351,7 +351,7 @@ Rest der CLI funktioniert also ohne es.
 lies zuerst
 [pnpm blockiert die Installationsskripte einer Abhängigkeit](#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
 
-## MCP: tools/list eines Agenten zeigt nie retranslateEntry oder translatePending
+## MCP: tools/list eines Agenten zeigt nie `translation.retranslateEntry` oder `translation.translatePending`
 
 **Symptom**: `key.value`, `translation.editEntry` und die anderen lokalen Tools funktionieren, aber
 `translation.retranslateEntry` und `translation.translatePending` fehlen in der Tool-Liste, und

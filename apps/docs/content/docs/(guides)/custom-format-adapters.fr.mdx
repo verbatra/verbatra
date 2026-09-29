@@ -5,7 +5,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-verbatra lit et écrit quatorze formats nativement. Si le tien n'en fait pas partie, tu n'as pas à attendre qu'il soit ajouté : construis un adaptateur dans ton propre paquet, nomme le format avec un identifiant `custom:` et remets à verbatra un registre qui le contient. Rien n'est publié chez verbatra, rien n'est relu par nous, et aucune release n'entre en jeu.
+verbatra lit et écrit nativement les formats listés dans [Formats](/docs/formats). Si le tien n'en fait pas partie, tu n'as pas à attendre qu'il soit ajouté : construis un adaptateur dans ton propre paquet, nomme le format avec un identifiant `custom:` et remets à verbatra un registre qui le contient. Rien n'est publié chez verbatra, rien n'est relu par nous, et aucune release n'entre en jeu.
 
 C'est une API programmatique. La ligne de commande `verbatra` ne charge aucun plugin de lui-même, et c'est délibéré (voir [Ce à quoi tu accordes ta confiance](#ce-à-quoi-tu-accordes-ta-confiance)), donc un projet avec un format personnalisé pilote verbatra via `@verbatra/sdk`.
 

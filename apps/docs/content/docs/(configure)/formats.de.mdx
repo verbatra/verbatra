@@ -1,8 +1,25 @@
 ---
 title: Formate
-description: Die vierzehn unterstützten Formate, wie jedes seine Dateien liest und schreibt, und die Garantie der Dokumentreihenfolge der Keys.
+description: Alle unterstützten Formate, wie jedes seine Dateien liest und schreibt, und die Garantie der Dokumentreihenfolge der Keys.
 ---
-verbatra arbeitet über einen Format-Adapter auf deinen Locale-Dateien. Jeder Adapter liest eine Datei in eine formatneutrale Form, auf der Vergleich, Hashing und Integritätsprüfungen laufen, und schreibt sie dann in der ursprünglichen Form der Datei zurück. Du wählst das Format über das `format`-Feld in deiner [Konfiguration](/docs/config-file). Vierzehn werden unterstützt: vier JSON-Varianten plus XLIFF, YAML, ARB, Java/Spring-Properties, Apple-`.strings`, Xcode String Catalogs (`.xcstrings`), Android `strings.xml`, gettext `.po`/`.pot`, INI und .NET-`.resx`.
+verbatra arbeitet über einen Format-Adapter auf deinen Locale-Dateien. Jeder Adapter liest eine Datei in eine formatneutrale Form, auf der Vergleich, Hashing und Integritätsprüfungen laufen, und schreibt sie dann in der ursprünglichen Form der Datei zurück. Du wählst das Format über das `format`-Feld in deiner [Konfiguration](/docs/config-file), mit einer dieser Ids:
+
+| `format` | Dateien |
+| --- | --- |
+| `i18next-json` | i18next-JSON (`.json`) |
+| `vue-i18n-json` | vue-i18n-JSON (`.json`) |
+| `next-intl-json` | next-intl-JSON (`.json`) |
+| `ngx-translate-json` | ngx-translate-JSON (`.json`) |
+| `xliff` | XLIFF 1.2 und 2.0 (`.xlf`, `.xliff`) |
+| `yaml` | YAML (`.yml`, `.yaml`) |
+| `arb` | Flutter-ARB (`.arb`) |
+| `properties` | Java/Spring-Properties (`.properties`) |
+| `apple-strings` | Apple-`.strings`, mit der zugehörigen `.stringsdict` |
+| `apple-xcstrings` | Xcode String Catalogs (`.xcstrings`) |
+| `android-xml` | Android `strings.xml` |
+| `gettext-po` | gettext (`.po`, `.pot`) |
+| `ini` | INI (`.ini`) |
+| `resx` | .NET-Ressourcen (`.resx`) |
 
 ## Die vier JSON-Formate
 
@@ -220,7 +237,7 @@ Eine baumbasierte Locale-Datei (die JSON-Familie, YAML und ARB) kann ein Blatt t
 
 <AvailableFrom version="0.11.0" />
 
-Die vierzehn Formate oben sind die, die verbatra mitbringt. Ein Format, das es nicht mitbringt, kannst du über einen Adapter in deinem eigenen Paket liefern: Du benennst es mit einem `custom:`-Bezeichner wie `custom:toml` und übergibst es verbatra als Teil einer Registry. Die eingebaute Menge bleibt geschlossen, und kein eingebauter Name enthält einen Doppelpunkt, ein Bezeichner von außen kann also nie einen eingebauten überdecken.
+Die Formate oben sind die, die verbatra mitbringt. Ein Format, das es nicht mitbringt, kannst du über einen Adapter in deinem eigenen Paket liefern: Du benennst es mit einem `custom:`-Bezeichner wie `custom:toml` und übergibst es verbatra als Teil einer Registry. Die eingebaute Menge bleibt geschlossen, und kein eingebauter Name enthält einen Doppelpunkt, ein Bezeichner von außen kann also nie einen eingebauten überdecken.
 
 Das ist ein programmatischer Weg über `@verbatra/sdk`, kein Weg über die Kommandozeile: Das `verbatra`-Binary lädt von sich aus kein Plugin. Ein Adapter, den du installierst, ist voll vertrauenswürdiger Code auf dem Vertrauensniveau jeder anderen Abhängigkeit, und verbatra kapselt ihn nicht ab. Wie du einen baust und worauf du dich beim Installieren einlässt, steht unter [Eigene Format-Adapter](/docs/custom-format-adapters).
 

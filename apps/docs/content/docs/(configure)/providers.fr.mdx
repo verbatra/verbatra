@@ -1,8 +1,8 @@
 ---
 title: Fournisseurs
-description: Les sept fournisseurs de traduction, leurs options et clés d'API, et le comportement qu'ils partagent tous.
+description: Tous les fournisseurs de traduction, leurs options et clés d'API, et le comportement qu'ils partagent tous.
 ---
-verbatra embarque sept fournisseurs derrière une seule interface : Anthropic, OpenAI, Gemini et openai-compatible (un serveur compatible OpenAI, local ou auto-hébergé) sont des grands modèles de langage, et DeepL, Google Cloud Translation et LibreTranslate (un serveur auto-hébergé) sont des services de traduction automatique. Une huitième valeur, `none`, désactive la traduction automatique par règle ; voir [none](#none). Tu en sélectionnes un dans le bloc `provider` de ta [configuration](/docs/config-file), par `id`. Chaque identifiant de modèle sur cette page est un exemple, pas une recommandation : les catalogues de modèles changent, donc vérifie la liste actuelle de ton fournisseur. Quelles langues couvre chaque fournisseur, et comment verbatra lui transmet tes codes de locale, c'est dans [Prise en charge des langues](/docs/language-support).
+verbatra embarque ses fournisseurs derrière une seule interface : Anthropic, OpenAI, Gemini et openai-compatible (un serveur compatible OpenAI, local ou auto-hébergé) sont des grands modèles de langage, et DeepL, Google Cloud Translation et LibreTranslate (un serveur auto-hébergé) sont des services de traduction automatique. Une valeur de plus, `none`, désactive la traduction automatique par règle ; voir [none](#none). Tu en sélectionnes un dans le bloc `provider` de ta [configuration](/docs/config-file), par `id`. Chaque identifiant de modèle sur cette page est un exemple, pas une recommandation : les catalogues de modèles changent, donc vérifie la liste actuelle de ton fournisseur. Quelles langues couvre chaque fournisseur, et comment verbatra lui transmet tes codes de locale, c'est dans [Prise en charge des langues](/docs/language-support).
 
 ## Lequel choisir ?
 
@@ -276,7 +276,7 @@ Les échecs transitoires (une réponse de limite de débit ou une erreur serveur
 
 ### Délai de requête
 
-Chaque fournisseur borne chaque requête sortante, pour qu'un serveur qui accepte la connexion mais ne répond jamais ne puisse pas bloquer une exécution ni garder ouvert le verrou d'écriture d'une locale. Cette borne, c'est `requestTimeoutMs`, un entier positif facultatif en millisecondes accepté dans les `options` des sept fournisseurs (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` et `libretranslate`) :
+Chaque fournisseur borne chaque requête sortante, pour qu'un serveur qui accepte la connexion mais ne répond jamais ne puisse pas bloquer une exécution ni garder ouvert le verrou d'écriture d'une locale. Cette borne, c'est `requestTimeoutMs`, un entier positif facultatif en millisecondes accepté dans les `options` de tous les fournisseurs (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` et `libretranslate`) :
 
 ```ts
 provider: {

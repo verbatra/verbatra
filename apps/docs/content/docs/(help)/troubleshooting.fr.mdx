@@ -75,8 +75,8 @@ qu'un secret ne puisse pas se cacher dans un fichier commité.
 
 **Symptôme** : `No adapter is registered for format "..."` suivi de la liste prise en charge.
 
-**Cause** : le `format` de la configuration n'est pas l'un des quatorze identifiants de format
-enregistrés. C'est vérifié avant toute lecture de fichier. Avec un identifiant `custom:`, le message
+**Cause** : le `format` de la configuration n'est pas l'un des identifiants de format
+enregistrés listés dans [Formats](/docs/formats). C'est vérifié avant toute lecture de fichier. Avec un identifiant `custom:`, le message
 nomme plutôt le format tiers : le registre transmis à l'exécution ne contient aucun adaptateur pour
 lui. La ligne de commande `verbatra` ne charge aucun plugin, donc un format `custom:` ne peut
 pas s'y exécuter.
@@ -340,7 +340,7 @@ démarre son binaire `verbatra-mcp`, ou installe `@verbatra/mcp` à côté de la
 seul ne fonctionne jamais, car il n'installe que la CLI. Si tu installes avec pnpm, lis d'abord
 [pnpm bloque les scripts d'installation d'une dépendance](#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
 
-## MCP : le tools/list d'un agent ne montre jamais retranslateEntry ni translatePending
+## MCP : le tools/list d'un agent ne montre jamais `translation.retranslateEntry` ni `translation.translatePending`
 
 **Symptôme** : `key.value`, `translation.editEntry` et les autres outils locaux fonctionnent, mais
 `translation.retranslateEntry` et `translation.translatePending` sont absents de la liste des

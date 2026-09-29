@@ -75,7 +75,7 @@ que un secreto no pueda esconderse en un archivo confirmado.
 
 **Síntoma**: `No adapter is registered for format "..."` seguido de la lista soportada.
 
-**Causa**: el `format` de la configuración no es uno de los catorce ids de formato registrados. Esto
+**Causa**: el `format` de la configuración no es uno de los ids de formato registrados que aparecen en [Formatos](/docs/formats). Esto
 se comprueba antes de leer ningún archivo. Con un identificador `custom:` el mensaje nombra en su
 lugar el formato de terceros: la registry que recibió la ejecución no tiene ningún adaptador para él.
 La línea de comandos `verbatra` no carga ningún plugin, así que ahí un formato `custom:` no
@@ -337,7 +337,7 @@ inicia su binario `verbatra-mcp`, o instala `@verbatra/mcp` junto a la CLI
 `npx -y @verbatra/cli mcp` por sí solo nunca funciona, porque solo instala la CLI. Si instalas con pnpm, consulta primero
 [pnpm bloquea los scripts de instalación de una dependencia](#pnpm-bloquea-los-scripts-de-instalación-de-una-dependencia-err_pnpm_ignored_builds).
 
-## MCP: el tools/list de un agente nunca muestra retranslateEntry ni translatePending
+## MCP: el tools/list de un agente nunca muestra `translation.retranslateEntry` ni `translation.translatePending`
 
 **Síntoma**: `key.value`, `translation.editEntry` y las demás herramientas locales funcionan, pero
 `translation.retranslateEntry` y `translation.translatePending` faltan en la lista de

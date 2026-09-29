@@ -5,8 +5,8 @@
 > published bytes and needs a changeset naming `@verbatra/sdk`. Do not install this directly;
 > install [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk).
 
-AI and machine-translation providers for verbatra behind one narrow interface. Six providers
-implement the single `TranslationProvider` contract (`src/provider.ts`), so nothing upstream
+AI and machine-translation providers for verbatra behind one narrow interface. Every provider
+implements the single `TranslationProvider` contract (`src/provider.ts`), so nothing upstream
 branches on which one is configured.
 
 ## Responsibilities

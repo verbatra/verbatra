@@ -1,8 +1,25 @@
 ---
 title: Formatos
-description: Los catorce formatos soportados, cómo lee y escribe sus archivos cada uno, y la garantía de orden de claves del documento.
+description: Todos los formatos soportados, cómo lee y escribe sus archivos cada uno, y la garantía de orden de claves del documento.
 ---
-verbatra trabaja sobre tus archivos de locale a través de un adaptador de formato. Cada adaptador lee un archivo y lo convierte en una forma neutral respecto al formato sobre la que se ejecutan el diff, el hashing y las comprobaciones de integridad, y luego lo escribe de vuelta con la forma original del archivo. Eliges el formato con el campo `format` de tu [configuración](/docs/config-file). Se soportan catorce: cuatro variantes de JSON, más XLIFF, YAML, ARB, properties de Java/Spring, `.strings` de Apple, Xcode String Catalogs (`.xcstrings`), `strings.xml` de Android, `.po`/`.pot` de gettext, INI y `.resx` de .NET.
+verbatra trabaja sobre tus archivos de locale a través de un adaptador de formato. Cada adaptador lee un archivo y lo convierte en una forma neutral respecto al formato sobre la que se ejecutan el diff, el hashing y las comprobaciones de integridad, y luego lo escribe de vuelta con la forma original del archivo. Eliges el formato con el campo `format` de tu [configuración](/docs/config-file), con uno de estos ids:
+
+| `format` | Archivos |
+| --- | --- |
+| `i18next-json` | JSON de i18next (`.json`) |
+| `vue-i18n-json` | JSON de vue-i18n (`.json`) |
+| `next-intl-json` | JSON de next-intl (`.json`) |
+| `ngx-translate-json` | JSON de ngx-translate (`.json`) |
+| `xliff` | XLIFF 1.2 y 2.0 (`.xlf`, `.xliff`) |
+| `yaml` | YAML (`.yml`, `.yaml`) |
+| `arb` | ARB de Flutter (`.arb`) |
+| `properties` | properties de Java/Spring (`.properties`) |
+| `apple-strings` | `.strings` de Apple, con su `.stringsdict` |
+| `apple-xcstrings` | Xcode String Catalogs (`.xcstrings`) |
+| `android-xml` | `strings.xml` de Android |
+| `gettext-po` | gettext (`.po`, `.pot`) |
+| `ini` | INI (`.ini`) |
+| `resx` | recursos de .NET (`.resx`) |
 
 ## Los cuatro formatos JSON
 
@@ -220,7 +237,7 @@ Un archivo de locale de árbol (la familia JSON, YAML y ARB) puede llevar una ho
 
 <AvailableFrom version="0.11.0" />
 
-Los catorce formatos de arriba son los que verbatra trae de serie. Un formato que no trae puedes aportarlo tú con un adaptador en tu propio paquete: lo nombras con un identificador `custom:` como `custom:toml` y se lo entregas a verbatra dentro de un registro. El conjunto integrado sigue cerrado, y ningún nombre integrado contiene dos puntos, así que un identificador externo nunca puede ocultar uno integrado.
+Los formatos de arriba son los que verbatra trae de serie. Un formato que no trae puedes aportarlo tú con un adaptador en tu propio paquete: lo nombras con un identificador `custom:` como `custom:toml` y se lo entregas a verbatra dentro de un registro. El conjunto integrado sigue cerrado, y ningún nombre integrado contiene dos puntos, así que un identificador externo nunca puede ocultar uno integrado.
 
 Es una vía programática a través de `@verbatra/sdk`, no una vía de línea de comandos: el binario `verbatra` no carga ningún plugin por su cuenta. Un adaptador que instales es código de plena confianza, al nivel de confianza de cualquier otra dependencia, y verbatra no lo aísla. En [Adaptadores de formato propios](/docs/custom-format-adapters) tienes cómo construir uno y en qué confías al instalarlo.
 

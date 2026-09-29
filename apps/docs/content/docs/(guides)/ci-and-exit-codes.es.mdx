@@ -71,7 +71,7 @@ Ambos aceptan `--locales de,fr` para bloquear un subconjunto. Pasar `--locales` 
 
 ## Salida JSON
 
-Doce comandos aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` e `init`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que decides según un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
+Todos los comandos salvo `studio` y `mcp` aceptan `--json` para una salida legible por máquina en stdout: `translate`, `watch`, `check`, `diff`, `report`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` e `init`. Cada registro ocupa una línea, y cada registro va dentro del mismo envoltorio, así que decides según un solo campo y nunca tienes que adivinar de qué comando son los datos que tienes delante:
 
 ```ts
 type Envelope<TResult> =
