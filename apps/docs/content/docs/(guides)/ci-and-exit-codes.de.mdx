@@ -71,7 +71,7 @@ Beide nehmen `--locales de,fr`, um nur eine Teilmenge abzusichern. `--locales` o
 
 ## JSON-Ausgabe
 
-Zwölf Befehle akzeptieren `--json` für maschinenlesbare Ausgabe auf stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` und `init`. Jeder Datensatz ist eine Zeile, und jeder Datensatz steckt im selben Envelope. Du verzweigst also auf ein einziges Feld und musst nie raten, von welchem Befehl die Daten stammen, die du gerade in der Hand hast:
+Jeder Befehl außer `studio` und `mcp` akzeptiert `--json` für maschinenlesbare Ausgabe auf stdout: `translate`, `watch`, `check`, `diff`, `report`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` und `init`. Jeder Datensatz ist eine Zeile, und jeder Datensatz steckt im selben Envelope. Du verzweigst also auf ein einziges Feld und musst nie raten, von welchem Befehl die Daten stammen, die du gerade in der Hand hast:
 
 ```ts
 type Envelope<TResult> =

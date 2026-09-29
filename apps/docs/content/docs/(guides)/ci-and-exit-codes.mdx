@@ -71,7 +71,7 @@ Both take `--locales de,fr` to gate a subset. Passing `--locales` with no valid 
 
 ## JSON output
 
-Twelve commands accept `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract`, and `init`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
+Every command except `studio` and `mcp` accepts `--json` for machine-readable output on stdout: `translate`, `watch`, `check`, `diff`, `report`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract`, and `init`. Every record is one line, and every record has the same envelope around it, so you branch on one field and never have to guess which command's payload you are holding:
 
 ```ts
 type Envelope<TResult> =
