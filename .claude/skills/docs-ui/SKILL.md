@@ -141,7 +141,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
   `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
-  `content/docs/index.mdx` and its three locale siblings. `DocsHomeStacks` is the plain text links
+  `content/docs/index.mdx` and its three locale siblings. The hero and the body share one frame
+  (`HOME_FRAME`: one max width, one gutter), so the hero panel and the sections below it start and
+  end on the same edges; a section head sets its lead on the heading's last baseline. `DocsHomeStacks` is the plain text links
   into `pick-your-stack`, grouped (frameworks, platforms, formats) under a label that sits above
   them at every width: no logos, no icons. Fumadocs' `Steps` and `Step`
   are registered there too, for numbered tutorial steps such as the quickstart's.
