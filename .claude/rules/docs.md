@@ -99,11 +99,15 @@ parity tests (`pnpm test:scripts`):
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
 
-## The `<AvailableFrom />` callout
+## The `<AvailableFrom />` badge
 
-Component: `apps/docs/components/available-from.tsx`. Renders a Fumadocs `Callout` sourced from
-the `docs.availableFrom` translation namespace (`messages/*.json`), so its copy is translated like
-any other UI string, not hand-duplicated per locale MDX file.
+Component: `apps/docs/components/available-from.tsx`. Renders a small inline badge ("Available
+from X.Y.Z", with the upgrade advice as its `title`) sourced from the `docs.availableFrom`
+translation namespace (`messages/*.json`), so its copy is translated like any other UI string, not
+hand-duplicated per locale MDX file. Written on its own line directly under a `##` to `####`
+heading, it is moved into that heading at build time (`lib/available-from-heading.ts`, after the
+TOC is taken, so the TOC and the heading's anchor stay clean); anywhere else it sits on its own
+line where it is written.
 
 - Usage: `<AvailableFrom version="X.Y.Z" />` for a CLI/SDK feature, or
   `<AvailableFrom version="X.Y.Z" pkg="@verbatra/studio" />` when the feature belongs to a
@@ -117,7 +121,7 @@ any other UI string, not hand-duplicated per locale MDX file.
   version-locked (`fixed` in `.changeset/config.json`), so a CLI/SDK feature uses their shared
   version; `@verbatra/studio` versions independently and needs its own number, which is why
   `pkg="@verbatra/studio"` exists.
-- It never needs removing later. Once a version ships, the callout is historically accurate
+- It never needs removing later. Once a version ships, the badge is historically accurate
   forever; do not go back and strip it once the "from" version is old.
 
 ## Register and tone
