@@ -1,10 +1,12 @@
 ---
-title: Human-only workflow
+title: Run without machine translation
 description: Run verbatra with machine translation disabled by policy, so no string ever reaches a translation service and every translation comes from a person.
 ---
 <AvailableFrom version="0.12.0" />
 
-Some teams may not use machine translation at all: an NDA, a customer contract, or a company rule forbids sending strings to any AI or translation service. verbatra supports that directly. Set the provider to `none`, and every command that could spend or send anything either works from local data alone or refuses outright. The rest of verbatra (diffing, the lock file, the translation memory, export and import, checks, types, pseudolocalization, extraction) works exactly as before, because none of it needs a provider.
+Use this when an NDA, a customer contract or a company rule forbids sending strings to any AI or translation service. With the provider set to `none`, every command that could spend or send anything either works from local data alone or refuses. Everything that needs no provider (diffing, the lock file, the translation memory, export and import, checks, types, pseudolocalization, extraction) works as before.
+
+You need a verbatra project, or a folder where you are about to run `verbatra init`.
 
 ## Set it up
 
@@ -12,31 +14,31 @@ Some teams may not use machine translation at all: an NDA, a customer contract, 
 verbatra init --provider none
 ```
 
-That writes a config whose provider block is just this, and no `.env.example`, since no API key is ever read:
+That writes a config whose provider block is just this, and no `.env.example`, because no API key is ever read:
 
-```ts
+```ts title="verbatra.config.ts"
 provider: { id: "none" }
 ```
 
-An existing project can switch the same way: replace its `provider` block with `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) then reports "machine translation disabled by policy", passes its provider and API key checks without looking at any key, and skips its locale support check, since no provider language list applies.
+In an existing project, replace the `provider` block with `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) then reports "machine translation disabled by policy" and passes its provider and API key checks without looking for a key.
 
 ## What each command does
 
 | Command | With `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | fill a key only from [the translation memory](/docs/the-cache); every other missing or changed key is listed as `unfilled`, left untouched, and offered again next run. Only exact memory hits are written: a fuzzy reuse is never applied, even with `fuzzyCache` on, so such a key also stays `unfilled` until a person translates it. `translate` exits `3` when any key is left, and its hint points at `verbatra export` or Studio rather than at another run. A new locale whose every key is left gets no file yet, as when a run withholds every key, so the keys keep reading as missing. |
-| `export`, `import`, `tmx` | unchanged: the handoff and the translation memory are how human translations get in. |
-| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unchanged; none of them calls a provider. |
-| `studio`, `mcp` | local reads and edits work; the provider-spending actions are never offered, even with `--allow-spend`. |
-| SDK `retranslateEntry` | fails with `MACHINE_TRANSLATION_DISABLED` before reading or locking anything. |
+| `translate`, `watch` | fill a key only from an exact [translation memory](/docs/the-cache) hit, never a fuzzy one; every other missing or changed key is listed as `unfilled`, left untouched and offered again next run. `translate` exits `3` while any key is left |
+| `export`, `import`, `tmx` | unchanged: the handoff and the translation memory are how human translations get in |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unchanged; none of them calls a provider |
+| `studio`, `mcp` | local reads and edits work; the provider-spending actions are never offered, even with `--allow-spend` |
+| SDK [`retranslateEntry`](/docs/sdk/review#retranslateentry) | fails with [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled) before it reads or locks anything |
 
 No provider is constructed on any of these paths, whatever the environment holds, and no network request is made.
 
 ## Switching from a machine provider
 
-The translation memory keeps human-only work in a bucket of its own, apart from anything a machine provider produced, and nothing is read across buckets. Changing `tone` or the glossary does not touch that bucket, so a human translation stays reusable however the project's settings evolve.
+The translation memory keeps human-only work in a bucket of its own, apart from anything a machine provider produced, so switching to `none` starts from an empty memory. Changing `tone` or the glossary never touches that bucket.
 
-That isolation also means switching to `none` starts from an empty memory. To carry earlier translations across, move them explicitly, knowing that you are importing machine output into what is otherwise a human-only memory:
+If you want to carry earlier translations across, move them explicitly, knowing that you are importing machine output into an otherwise human-only memory. Export before you switch: right after the switch, `tmx export` writes the human-only bucket, which is still empty.
 
 ```bash
 # 1. Still on the old provider: export its memory
@@ -48,7 +50,7 @@ verbatra tmx export
 verbatra tmx import verbatra-memory.tmx
 ```
 
-Order matters: run `tmx export` before switching. Run right after the switch, it exports the human-only bucket, which is still empty. See [`verbatra tmx`](/docs/cli/tmx) for the file name and flags.
+See [`verbatra tmx`](/docs/cli/tmx) for the file name and flags.
 
 ## The day-to-day loop
 
@@ -66,15 +68,15 @@ verbatra import verbatra-translations.xlsx
 verbatra check
 ```
 
-Step 1 is optional: `verbatra diff` or `verbatra check` show the same pending keys. `translate` is still worth running, because it fills every key the translation memory already covers (for example strings you reused elsewhere, or translations you brought in with [`verbatra tmx import`](/docs/cli/tmx)), so your translators only see what is truly new. The workbook round-trip itself, including its integrity checks, is described in [Human translation](/docs/manual-translation).
+Step 1 is optional, because `verbatra diff` and `verbatra check` show the same pending keys. It is still worth running: it fills every key the translation memory already covers, so your translators only see what is truly new. For the handoff itself, see [Hand off with Excel or CSV](/docs/manual-translation) or [Hand off to an agency](/docs/translation-agency).
 
 ## In CI
 
-Exit `3` means "finished cleanly, but keys are waiting for a human". It is distinct from `1` (a failed or partial locale) so a pipeline can treat the two differently: fail the build, open a translation ticket, or just report. A failed or partial locale still wins and exits `1`. See [CI and exit codes](/docs/ci-and-exit-codes). The [GitHub Action](/docs/github-action#human-only-mode) passes the step on exit `3` and sets its `needs-human` output to `"true"`, so a later step can hand the keys off.
+Exit `3` means "finished cleanly, but keys are waiting for a human". It is distinct from `1` (a failed or partial locale, which still wins), so a pipeline can fail the build, open a translation request, or just report. The [GitHub Action](/docs/github-action#human-only-mode) passes the step on exit `3` and sets its `needs-human` output to `"true"` for a later step to act on.
 
 ## Related
 
-- [Human translation](/docs/manual-translation) covers the export and import round-trip in detail.
-- [The cache](/docs/the-cache) explains the translation memory `translate` fills from.
-- [Providers](/docs/providers) lists `none` alongside the translation providers.
-- [Data handling and privacy](/docs/data-handling) sets out what leaves the machine with each provider, and what stays local.
+- [Exit codes](/docs/cli/output#exit-codes): the full exit-code contract.
+- [The translation cache](/docs/the-cache): the memory `translate` fills from.
+- [Providers](/docs/providers): `none` next to the translation providers.
+- [Data handling and privacy](/docs/data-handling): what leaves the machine with each provider.

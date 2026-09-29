@@ -1,209 +1,110 @@
 ---
-title: Evidencia de traducción automática
+title: Registrar evidencia de traducción automática
 description: Obtén un registro por clave de qué traducciones escribió una máquina y cuáles revisó una persona, y lleva esa marca a las exportaciones XLIFF y TMX.
 status: new
 ---
 <AvailableFrom version="0.12.0" />
 
-Si publicas texto que tradujo un proveedor o un agente de IA, puede que te pidan mostrar qué texto
-es y si una persona lo miró antes de publicarlo. verbatra ya lo registra por clave en
-`verbatra.provenance.json`. Esta página muestra las dos formas de sacarlo: un informe que puedes
-archivar como archivo de auditoría, y marcas en los archivos XLIFF y TMX que entregas a otras
-herramientas.
+Usa esto cuando alguien pregunta qué parte de tu texto publicado tradujo un proveedor o un agente de IA, y si una persona lo revisó. verbatra lo registra por clave en `verbatra.provenance.json`; lo sacas como un informe para archivar, o como marcas en los archivos XLIFF y TMX que entregas a otras herramientas.
 
 <Callout type="warn" title="Evidencia de apoyo, no asesoramiento jurídico">
 El artículo 50 del Reglamento de IA de la UE (AI Act) fija obligaciones de transparencia para el
 texto generado por IA, y el texto que una persona revisó bajo responsabilidad editorial se trata de
 forma distinta del que no se revisó. Cómo se aplican esas normas a la traducción, y a tu producto,
-no está resuelto de un modo que verbatra pueda decidir por ti. El informe y las marcas son evidencia
-de apoyo que puedes entregar a quien tome esa decisión. No son asesoramiento jurídico, y usarlos no
-hace que un producto cumpla con nada.
+no es algo que verbatra pueda decidir por ti. El informe y las marcas son evidencia de apoyo para
+quien tome esa decisión. No son asesoramiento jurídico, y usarlos no hace que un producto cumpla
+con nada.
 </Callout>
 
 ## Qué puede y qué no puede decirte el registro
 
-Cada valor que escribe verbatra queda registrado con la vía de escritura que lo produjo. La lista
-completa de orígenes está en [la página del archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor); en resumen:
+Cada valor que escribe verbatra se registra con su origen (la ruta de escritura que lo produjo), cualquier decisión de revisión y el nombre de quien revisó; consulta [el archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor). Como evidencia, los orígenes se dividen en dos clases:
 
-- `machine`, `memory`, `fuzzy` y `agent` son la clase máquina: un proveedor, la memoria de
-  traducción, un acierto aproximado de la memoria o un agente de IA escribió el valor. La memoria
-  cuenta como máquina porque no registra quién escribió una entrada, así que un acierto de la
-  memoria puede ser salida automática anterior.
-- `human` e `import` son personas: una edición a través de Studio o del SDK, o un valor importado de
-  la entrega de un traductor.
-- `external` significa que el valor cambió fuera de verbatra desde que se escribió su registro,
-  `unrecorded` significa que no tiene registro (por ejemplo, un valor de antes de que existiera el
-  archivo de procedencia), y `unknown` significa que se registró sin un autor conocido.
+- **Clase máquina**: `machine`, `memory`, `fuzzy` y `agent`. La memoria cuenta como máquina porque no registra quién escribió una entrada.
+- **Personas**: `human` (una edición desde Studio o el SDK) e `import` (la entrega de un traductor).
 
-Junto al origen están la decisión de revisión (aprobado o rechazado) y el nombre del revisor, cuando
-se indicó uno. Una aprobación dada antes de que cambiara el texto de origen cuenta como sin revisar.
+`external` (cambiado fuera de verbatra desde que se registró), `unrecorded` (sin registro) y `unknown` (registrado sin autor conocido) no son ninguna de las dos. Una aprobación dada antes de que cambiara el texto de origen se lee como no revisada.
 
-Ten presentes los límites cuando entregues el registro a alguien:
+Ten en cuenta los límites cuando entregues el registro a alguien:
 
-- **No permite detectar manipulaciones.** Quien puede editar tus archivos de locale puede editar el
-  archivo de procedencia. Su valor viene de estar confirmado junto al código, donde ya se aplican tu
-  historial de git y tu revisión de código.
-- **No tiene marcas de tiempo.** El registro no guarda ninguna a propósito, así que el informe
-  tampoco las lleva por clave. Cuándo se escribió o se aprobó un valor está en el historial de git de
-  `verbatra.provenance.json` (`git log -p verbatra.provenance.json`).
-- **Se inclina hacia máquina.** Los aciertos de la memoria, los aciertos aproximados y las ediciones
-  de agentes cuentan todos como máquina, y un valor de máquina que ninguna persona aprobó cuenta como
-  sin revisar, aunque su texto esté bien.
+- **No es a prueba de manipulaciones.** Quien puede editar tus archivos de locale puede editarlo; su valor viene de tu historial de git y de la revisión de código.
+- **No tiene marcas de tiempo.** Cuándo se escribió o se aprobó un valor está en el historial de git (`git log -p verbatra.provenance.json`).
+- **Se inclina hacia la máquina.** Los aciertos de memoria, las coincidencias aproximadas y las ediciones de agentes cuentan todos como máquina, y un valor de máquina que nadie aprobó cuenta como no revisado, aunque su texto esté bien.
 
 ## El informe de procedencia
 
-`verbatra report provenance` lee los archivos confirmados e imprime, por locale de destino, cuántos
-valores caen en cada grupo. No llama a ningún proveedor, no necesita clave de API y no escribe nada.
+[`verbatra report provenance`](/docs/cli/report) imprime, por locale de destino, cuántos valores caen en cada categoría. Solo lee los archivos confirmados, no llama a ningún proveedor y no escribe nada.
 
 ```bash
 verbatra report provenance
 ```
 
-```text
-verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
-  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
-  de      12                   40                 3      85      1         0           0        141
-  fr      52                   0                  3      85      1         0           0        141
-Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
-```
-
-| Grupo | Escribió el valor | ¿Revisado? |
+| Categoría | El valor lo escribió | ¿Revisado? |
 | --- | --- | --- |
-| `machine-unreviewed` | `machine`, `memory`, `fuzzy` o `agent` | no aprobado, incluido un valor rechazado que vuelve a estar en el archivo |
+| `machine-unreviewed` | `machine`, `memory`, `fuzzy` o `agent` | sin aprobar, incluido un valor rechazado que ha vuelto al archivo |
 | `machine-reviewed` | `machine`, `memory`, `fuzzy` o `agent` | aprobado por una persona |
-| `human` | una persona, a través de verbatra | cualquiera de los dos |
-| `import` | la entrega de un traductor | cualquiera de los dos |
+| `human` | una persona, a través de verbatra | cualquiera |
+| `import` | la entrega de un traductor | cualquiera |
 | `external` | algo fuera de verbatra, desde que se escribió su registro | no se sabe |
 | `unrecorded` | nadie que verbatra conozca: no hay registro | no se sabe |
-| `unknown` | registrado sin un autor conocido | cualquiera de los dos |
+| `unknown` | registrado sin autor conocido | cualquiera |
 
-Solo se listan las claves que tienen un valor tanto en el locale de origen como en el de destino. Una
-clave que falta en un locale no tiene texto del que dar cuenta, y una clave que ya no está en el
-origen no se publica como traducción suya.
+Solo se cuentan las claves con valor tanto en el origen como en el locale de destino: una clave que falta no tiene texto del que dar cuenta.
 
 ### Un archivo de auditoría desde la CI
 
-Con `--json` el informe lista cada clave, lo que lo convierte en un archivo de auditoría que puedes
-archivar con cada versión:
+Con `--json` el informe lista cada clave, lo que lo convierte en un archivo de auditoría para archivar con cada versión:
 
 ```bash
 verbatra report provenance --json > provenance-report.json
 ```
 
-El comando sale con `0` con un informe, con `1` cuando `verbatra.provenance.json` está corrupto o lo
-escribió un verbatra más nuevo, y con `2` cuando no pudo ejecutarse en absoluto (consulta
-[`verbatra report`](/docs/cli/report)). La salida `1` es deliberada: un informe construido sin el
-registro listaría cada valor como `unrecorded`, lo que se lee como «no tenemos ni idea» en lugar de
-como el error que es, así que el job falla en vez de archivarlo. Es la misma regla de fallar en
-cerrado que sigue [`check --require-reviewed`](/docs/cli/check).
+Si `verbatra.provenance.json` está dañado o lo escribió un verbatra más reciente, el comando sale con `1` en lugar de imprimir un informe que listaría cada valor como `unrecorded`. Así un trabajo de CI falla en lugar de archivar un archivo de auditoría vacío.
 
-Si necesitas que cada traducción automática esté revisada antes de una versión, pon como puerta
-`verbatra check --require-reviewed` y archiva el informe a su lado.
+Si cada traducción automática debe revisarse antes de una versión, bloquea también con [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas).
 
 ### El esquema JSON
 
-El informe es el `result` del [envoltorio JSON](/docs/cli/output#salida-json) habitual, con
-`command` fijado a `"report"`. Quien llama al SDK obtiene el mismo objeto de `provenanceReport`.
-
-```json
-{
-  "ok": true,
-  "version": 1,
-  "command": "report",
-  "result": {
-    "available": true,
-    "generatedAt": "2026-09-29T08:00:00.000Z",
-    "toolVersion": "0.12.0",
-    "sourceLocale": "en",
-    "locales": [
-      {
-        "locale": "de",
-        "total": 2,
-        "counts": {
-          "machine-unreviewed": 1,
-          "machine-reviewed": 1,
-          "human": 0,
-          "import": 0,
-          "external": 0,
-          "unrecorded": 0,
-          "unknown": 0
-        },
-        "entries": [
-          {
-            "key": "cart.checkout",
-            "bucket": "machine-unreviewed",
-            "origin": "machine",
-            "reviewState": "unreviewed",
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-5"
-          },
-          {
-            "key": "home.title",
-            "bucket": "machine-reviewed",
-            "origin": "machine",
-            "reviewState": "approved",
-            "provider": "deepl",
-            "reviewer": "Ana"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+El informe es el `result` del [sobre JSON](/docs/cli/output#salida-json) habitual, con `command` en `"report"`. Quien usa el SDK obtiene el mismo objeto de [`provenanceReport`](/docs/sdk/inspect#provenancereport).
 
 | Campo | Tipo | Significado |
 | --- | --- | --- |
 | `available` | `true` | el informe se construyó a partir de los archivos confirmados |
 | `generatedAt` | string | cuándo se generó el informe, ISO 8601 en UTC |
-| `toolVersion` | string | la versión de verbatra que lo generó, o `unknown` cuando quien llama al SDK no pasa ninguna |
+| `toolVersion` | string | la versión de verbatra que lo generó, o `unknown` cuando quien llama desde el SDK no pasa ninguna |
 | `sourceLocale` | string | el locale de origen configurado |
 | `locales[]` | array | una entrada por locale de destino, en el orden configurado, acotada por `--locales` |
 | `locales[].locale` | string | el locale de destino |
 | `locales[].total` | number | cuántas claves se listan para el locale |
-| `locales[].counts` | object | cuántas claves caen en cada grupo; los siete grupos están siempre presentes |
-| `locales[].entries[]` | array | una entrada por clave con un valor en el origen y en el locale, en el orden del origen |
+| `locales[].counts` | object | cuántas claves caen en cada categoría; las siete categorías están siempre presentes |
+| `locales[].entries[]` | array | una entrada por clave con valor en el origen y en el locale, en el orden del origen |
 | `entries[].key` | string | la clave de traducción |
-| `entries[].bucket` | string | uno de los siete grupos de arriba |
-| `entries[].origin` | string | `machine`, `memory`, `fuzzy`, `agent`, `human`, `import`, `unknown`, `unrecorded` o `external` |
+| `entries[].bucket` | string | una de las categorías de arriba |
+| `entries[].origin` | string | el origen, incluidos `unrecorded` y `external` |
 | `entries[].reviewState` | string | `unreviewed`, `approved` o `rejected` |
 | `entries[].provider` | string, opcional | el `id` del proveedor que respondió, para un valor `machine` |
-| `entries[].model` | string, opcional | el modelo configurado, cuando el registro nombra uno |
-| `entries[].reviewer` | string, opcional | el revisor indicado con la decisión, cuando se indicó uno |
+| `entries[].model` | string, opcional | el modelo configurado, cuando el registro lo nombra |
+| `entries[].reviewer` | string, opcional | quien revisó, nombrado con la decisión, cuando se indicó |
 
-Cuando no se puede leer el archivo de procedencia, el resultado es `{ "available": false, "reason": "provenance-unreadable" }`
-y el comando sale con `1`. No hay ningún campo de fecha por clave, porque el registro no guarda marcas
-de tiempo. En versiones posteriores se pueden añadir campos opcionales nuevos; los existentes
-conservan su significado.
+Cuando no se puede leer el archivo de procedencia, el resultado es `{ "available": false, "reason": "provenance-unreadable" }`. Más adelante pueden añadirse campos opcionales nuevos; los existentes mantienen su significado.
 
 ## Marcas en las exportaciones
 
-El mismo origen viaja a los archivos que entregas a otras herramientas, para que una herramienta TAO,
-una memoria de traducción o un revisor al otro lado pueda distinguir la salida automática del trabajo
-humano.
+El origen también viaja a los archivos que entregas a otras herramientas, para que el otro lado distinga la salida automática del trabajo humano.
 
 ### XLIFF
 
-`verbatra export --format xliff12` o `--format xliff2` marca cada unidad que tiene destino:
+[`verbatra export`](/docs/cli/export) con `--format xliff12` o `--format xliff2` marca cada unidad que tiene destino:
 
 | El destino es | XLIFF 1.2 | XLIFF 2.0 |
 | --- | --- | --- |
 | clase máquina, sin aprobar | `state-qualifier="mt-suggestion"` en `<target>` | `<mda:meta type="origin">` y `<mda:meta type="review-state">` |
-| clase máquina, aprobado | sin calificador (una persona lo revisó) | las mismas dos entradas meta |
+| clase máquina, aprobado | sin calificador | las mismas dos entradas meta |
 | human, import, external, unrecorded o unknown | sin calificador | las mismas dos entradas meta |
 
-En XLIFF 1.2, `mt-suggestion` es el valor propio de la especificación para «la traducción la sugiere
-la traducción automática», y toda herramienta TAO que lee 1.2 lo conoce. El calificador va junto al
-`state` habitual de la unidad, así que una traducción automática sin revisar y al día se lee
-`state="translated" state-qualifier="mt-suggestion"`, y una desactualizada conserva su
-`state="needs-translation"`. Una traducción automática aprobada es `signed-off` sin calificador: una
-persona la revisó, así que llamarla sugerencia automática restaría valor a esa revisión. Los valores
-de personas, y los valores cuyo origen verbatra no puede garantizar, tampoco llevan calificador,
-porque un calificador afirma que el texto lo escribió una máquina.
+`mt-suggestion` es el valor de XLIFF 1.2 para "sugerido por traducción automática", que las herramientas TAO muestran como tal, junto al `state` habitual. Un valor que aprobó una persona, o cuyo origen verbatra no puede garantizar, no lleva calificador.
 
-XLIFF 2.0 no tiene calificador de estado, así que el grupo de metadatos `verbatra` de la unidad, que
-ya lleva el hash de origen, recibe dos entradas más con el origen completo y el estado de revisión
-del informe:
+XLIFF 2.0 no tiene calificador de estado, así que el grupo de metadatos `verbatra` de la unidad, que ya contiene el hash del origen, recibe el origen completo y el estado de revisión:
 
 ```xml
 <mda:metaGroup category="verbatra">
@@ -213,48 +114,26 @@ del informe:
 </mda:metaGroup>
 ```
 
-El módulo de metadatos forma parte del propio XLIFF 2.0, y las herramientas que lo admiten lo
-conservan a la vuelta. La alternativa eran las categorías de datos Provenance y MT Confidence de
-ITS 2.0; el módulo ITS solo existe desde XLIFF 2.1, MT Confidence necesita una puntuación que
-verbatra no tiene, y pocas herramientas TAO actúan sobre cualquiera de las dos, así que verbatra usa
-el módulo que encaja con el archivo que escribe.
-
 ### TMX
 
-`verbatra tmx export` escribe una propiedad en cada segmento de destino:
+[`verbatra tmx export`](/docs/cli/tmx) escribe una propiedad `x-origin` en cada segmento de destino, y `x-review` junto a uno `machine`:
 
 ```xml
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
 ```
 
-`x-origin` es `machine`, `human`, `import` o `unknown`. `x-review` acompaña solo a `machine` y es
-`approved`, `unreviewed` o `rejected`. TMX recibe este vocabulario más grueso a propósito. Una
-entrada de la memoria es un par de textos, no una clave, y un mismo texto puede pertenecer a varias
-claves que se escribieron de formas distintas, así que la exportación mira cada clave cuyo origen
-coincide y cuyo registro describe exactamente este texto: si alguna es de clase máquina, el segmento
-es `machine`, y cuenta como `approved` solo cuando lo es cada una de las de clase máquina. Un texto
-que ningún registro describe es `unknown`. El detalle por clave, incluidos `memory`, `fuzzy` y
-`agent`, queda en el informe.
+`x-origin` es `machine`, `human`, `import` o `unknown`; `x-review` es `approved`, `unreviewed` o `rejected`. Una entrada de memoria es un par de textos, no una clave, así que un segmento es `machine` si alguna clave con ese texto exacto es de clase máquina, y `approved` solo cuando todas lo están. Un texto que ningún registro describe es `unknown`.
 
 ### Importar archivos marcados
 
-La importación ignora todas las marcas. Una unidad XLIFF se juzga por su destino y su `state`
-exactamente como antes, y un segmento TMX por su texto. El origen nunca se lee de vuelta de un
-archivo: un valor importado de una entrega se registra como `import`, y una importación TMX solo
-rellena la memoria de traducción, que no registra ningún origen. Por eso, una marca que una
-herramienta reescribió, descartó o inventó no puede cambiar lo que dice tu registro.
+La importación ignora todas las marcas. Una unidad XLIFF se juzga por su destino y su estado, un segmento TMX por su texto. Un valor importado desde una entrega se registra como `import`, y una importación TMX solo llena la memoria de traducción, así que una marca que una herramienta reescribió, quitó o inventó no puede cambiar tu registro.
 
 ### Cuando no se puede leer el registro
 
-Si `verbatra.provenance.json` está corrupto o viene de un verbatra más nuevo (o, para TMX, no se
-puede leer el archivo de bloqueo), la exportación sigue teniendo éxito pero no escribe ninguna marca,
-en lugar de una marca que no puede respaldar. El comando lo indica en su resumen, y el resultado de
-`--json` lleva `provenanceMarkers: "unavailable"` en lugar de `"written"`.
+Si `verbatra.provenance.json` está dañado o es de un verbatra más reciente (o, para TMX, no se puede leer el archivo de bloqueo), la exportación sigue funcionando pero no escribe marcas, en lugar de marcas que no puede respaldar. El resumen lo indica, y el resultado `--json` lleva `provenanceMarkers: "unavailable"` en lugar de `"written"`.
 
-## Siguiente
+## Relacionado
 
-<Cards>
-  <Card title={<code>verbatra report</code>} href="/docs/cli/report" description="Flags, salida y códigos de salida del informe de procedencia." />
-  <Card title="Tratamiento de datos y privacidad" href="/docs/data-handling" description="Qué envía verbatra, a quién, y qué guarda en local." />
-  <Card title="Revisa traducciones en Studio" href="/docs/review-in-studio" description="Aprueba o rechaza traducciones automáticas, una a una o por locale." />
-</Cards>
+- [`verbatra report`](/docs/cli/report): opciones, salida y códigos de salida del informe de procedencia.
+- [Revisar en Studio](/docs/review-in-studio): aprueba o rechaza traducciones automáticas, una a una o por locale.
+- [Tratamiento de datos y privacidad](/docs/data-handling): qué envía verbatra, a quién y qué guarda en local.

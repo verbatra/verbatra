@@ -1,10 +1,12 @@
 ---
-title: Human translation
-description: Export untranslated strings to an Excel workbook, hand it to a translator, and import the result back with the same safety checks as an automated run.
+title: Hand off with Excel or CSV
+description: Export untranslated strings to an Excel workbook or CSV files, hand them to a translator, and import the result back with the same safety checks as an automated run.
 ---
-Not every string belongs to a provider. Marketing copy, legal text, and the languages that matter most often want a human translator. verbatra handles this with a workbook round-trip: **export** the strings that need translating into a styled Excel file, hand it off, then **import** the filled file back into your locale files.
+Use this when a person should translate some strings: marketing copy, legal text, or the languages that matter most. You **export** the strings that need translating, a translator fills them in, and you **import** the file back into your locale files.
 
-The same diff drives both directions. Export picks exactly the keys an automated run would translate (the new and changed ones), and import runs the same integrity checks as `translate`, so a hand-typed value that breaks a placeholder is withheld and reported instead of written.
+Export picks exactly the keys an automated run would translate (the new and changed ones), and import runs the same integrity checks as `translate`, so a hand-typed value that breaks a placeholder is withheld and reported instead of written. Neither command calls a provider or needs an API key.
+
+You need a verbatra project with at least one target locale.
 
 ## The round-trip
 
@@ -18,57 +20,50 @@ verbatra export
 verbatra import verbatra-translations.xlsx
 ```
 
-By default, export writes `verbatra-translations.xlsx` in the working directory. Import reads it back, validates every filled row, writes the values that pass into your locale files, and advances [the lock file](/docs/the-lock-file) baseline for exactly the keys it accepted, the same way a `translate` run would.
+Export writes `verbatra-translations.xlsx` in the working directory. Import validates every filled row, writes the values that pass, and advances [the lock file](/docs/the-lock-file) for exactly the keys it accepted, as a `translate` run would.
 
 ## What lands in the workbook
 
-The file opens with one **Instructions** sheet, then one data sheet per target locale, named for its locale (`de`, `fr`, ...). Because the locale round-trips through the sheet name, a locale that cannot be an Excel worksheet name is rejected before the workbook is built: longer than 31 characters, containing any of `: \ / ? * [ ]`, equal to `Instructions` in any case, or case-insensitively equal to another target locale.
-
-Every data sheet shares the same columns, in this order:
+The workbook opens with an **Instructions** sheet, then one sheet per target locale, named for its locale (`de`, `fr`, ...). Every locale sheet has the same columns:
 
 | Column | Editable | Purpose |
 | --- | --- | --- |
-| `Key` | no | The dotted key path. The sole identity that maps a row back to a string. |
-| `Source` | no | The source-locale value, for reference. |
-| `Current translation` | no | The existing target value, if any. |
-| `Status` | no | `new` (no translation yet), `changed` (the source changed since last translated), or `unchanged` (already up to date, included only with `--include-unchanged`). |
-| `Translation` | **yes** | The only cell the translator fills. |
-| `Source hash` | no | Hidden. The source content hash captured at export, used to detect a source that changed after export. |
-| `Context` | no | Developer context, when the source format carries any (Flutter ARB's `@key.description`, XLIFF's `<note>`). Reference only, never imported. |
-| `Review status` | no | `ok` or `review`: whether verbatra's review heuristics flagged the current translation for a second look. Advisory, never a gate. |
-| `Review reasons` | no | Comma-separated reason labels explaining a `review` status (for example `length-ratio-outlier, equals-source`). |
+| `Key` | no | the key path; the only thing that maps a row back to a string |
+| `Source` | no | the source-locale value |
+| `Current translation` | no | the existing target value, if any |
+| `Status` | no | `new`, `changed` (the source changed since it was translated), or `unchanged` (only with `--include-unchanged`) |
+| `Translation` | **yes** | the only cell the translator fills |
+| `Source hash` | no | hidden; detects a source that changed after export |
+| `Context` | no | the key's description, when the source format carries one; never imported |
+| `Review status` | no | `ok`, or `review` when a [review flag](/docs/translation-safety#review-flags) suggests a second look |
+| `Review reasons` | no | the [review reasons](/docs/error-codes#review-reason-codes) behind a `review` status |
 
-Rows are sorted by key, the header row is frozen, the `Source hash` column is hidden, and every column except `Translation` is locked behind sheet protection with a shaded background. The `Translation` column uses Excel's text format, so a value like `007` or one starting with `=` stays literal text instead of being coerced into a number or formula.
+Every column except `Translation` is locked by sheet protection, and `Translation` uses Excel's text format, so a value like `007` or one starting with `=` stays literal text. The review columns are advisory: import never reads them.
 
 ## Handing off
 
-What a translator needs to know fits in a few lines (and is repeated on the workbook's own Instructions sheet):
+Tell the translator these rules (the Instructions sheet repeats them):
 
-- Fill the `Translation` column, nothing else. The sheet protection enforces this.
-- Do not rename, delete, or reorder the language tabs. verbatra matches each tab to a locale by its exact name, so a renamed or missing tab is reported and that locale is not imported.
-- Sorting and filtering rows is fine: import maps rows by `Key`, never by position. Columns must stay where they are; import reads them by position and verifies the `Key` and `Source hash` headers.
-- An empty `Translation` cell means "not translated yet". Import skips it and never writes an empty string, so a half-filled workbook can come back now and the rest later. A cell holding only spaces counts as empty. To deliberately clear an existing value (set it to empty), type exactly `[[CLEAR]]` in the cell. A cleared key is an accepted row: the run summary lists it under `translated`, and never also under `unchanged`.
+- Fill the `Translation` column, nothing else.
+- Do not rename, delete or reorder the language tabs. Each tab is matched to a locale by its exact name, so a renamed or missing tab fails that locale.
+- Sorting and filtering rows is fine, because rows are matched by `Key`. Columns must stay where they are.
+- Leave a cell empty for "not translated yet". A half-filled workbook can come back now and the rest later.
+- To clear an existing value on purpose, type exactly `[[CLEAR]]`.
 
 ## What import accepts
 
-Import is not a blind paste. Every filled row is judged against the live project before anything is written:
+Every filled row is judged against the live project before anything is written:
 
-- **Source drift**: the hidden `Source hash` is compared to the current source. If the source string changed after export, the row is withheld, so you never overwrite a current source with a translation of an old one.
-- **Placeholder integrity**: the translation must carry exactly the same placeholders as its source. Drop `{name}` or invent `{total}` and the row is withheld.
-- **ICU validity**: an ICU message must stay structurally valid with the same argument names; only the human-readable text may change.
-- **Degenerate or empty values**: a value that collapsed into a repetition loop, ran away in length from its source, or came back empty for a non-empty source is withheld. Use the `[[CLEAR]]` sentinel above to clear a translation deliberately.
-- **Unknown keys**: a filled row whose key exists in neither the current source nor the current target file (say, one typed in by hand) fails that locale's whole sheet, since the round trip is broken. A filled row whose key exists only in the target (an orphaned key) is silently left unwritten.
-- **Context is never a translation source**: import ignores the `Context` column entirely, and a workbook exported before that column existed still imports normally.
+- **Source drift**: if the source string changed after export, the row is withheld, so a translation of an old source never lands.
+- **Integrity**: placeholders, inline markup and ICU structure must match the source, as in every run. See [the integrity gate](/docs/translation-safety#the-integrity-gate).
+- **Degenerate values**: a repetition loop, a runaway length or an empty value for a non-empty source is withheld.
+- **Unknown keys**: a filled row whose key exists in neither the source nor the target fails that locale's sheet. A key that exists only in the target is left unwritten.
 
-Withheld rows are reported in the run summary under the locale they belong to; accepted rows are written and their lock baseline advances. A withheld or blank row keeps its prior baseline, so the key keeps re-exporting until it is genuinely resolved. A blank row whose source drifted since export is additionally called out with a `BLANK_ROW_BASELINE_RETAINED` notice, so the drift stays visible.
-
-Import also surfaces structural findings per locale instead of aborting on them: a blank row whose key still needs a translation (reported as unfilled, still pending, whether the row was exported as `new` or `changed`), a workbook row the reader could not parse (reported by row and column), and a duplicated key (the first occurrence wins and is imported, each later one is reported). None of these fail the sheet on their own. Membership in the unfilled list is decided against the project as it stands at import time, so a first handoff that comes back untouched reports every pending key rather than nothing, and a row exported as `changed` whose key no longer needs work is left out.
-
-Each data sheet is one locale in the summary: a sheet failure (an invented key, a sheet for a locale not in your config, or a configured locale whose tab is missing entirely because it was renamed, deleted, or reordered out) fails that locale and leaves the others untouched. Import shares the `translate` exit-code contract: `0` when every sheet comes out complete, `1` when one fails or comes out partial, `2` when the run could not start, and also when a corrupt lock file aborts it partway (locales applied before the abort stay written). A manual handoff therefore drops into the same [CI checks](/docs/ci-and-exit-codes) as an automated run.
+A withheld or blank row keeps its lock baseline, so the key is exported again until it is resolved; a blank row whose source drifted also raises [`BLANK_ROW_BASELINE_RETAINED`](/docs/error-codes#blank_row_baseline_retained). An unreadable row or a repeated key is reported without failing the sheet. Each sheet is one locale in the run summary, and import uses the same exit codes as `translate`, so a handoff fits the same [CI checks](/docs/ci-and-exit-codes) as an automated run. [`verbatra import`](/docs/cli/import) has the details.
 
 ### Dry-run first
 
-Validate a returned workbook and preview what would be written without touching a single file:
+Preview what a returned workbook would write, without touching a file:
 
 ```bash
 verbatra import verbatra-translations.xlsx --dry-run
@@ -76,7 +71,7 @@ verbatra import verbatra-translations.xlsx --dry-run
 
 ## CSV and TSV instead of a workbook
 
-Some vendors and pipelines want plain text rather than Excel. `--format csv` and `--format tsv` write the same columns, in the same order, as one file per locale:
+If a vendor or a pipeline wants plain text, `--format csv` or `--format tsv` writes the same columns as one file per locale:
 
 ```bash
 # write handoff/de.csv and handoff/fr.csv
@@ -86,32 +81,28 @@ verbatra export --format csv --out handoff
 verbatra import handoff --format csv
 ```
 
-Import also takes a single file (`verbatra import handoff/de.csv --format csv`) and reads the locale from the file name, so keep the files named as they were exported.
+The locale comes from the file name, so keep the files named as they were exported. Compared with the workbook:
 
-What differs from the workbook:
-
-- **No protection.** A workbook leaves only `Translation` editable and hides `Source hash`; a text file cannot. Every column is editable and the hash is visible. An edited or blanked hash is not trusted: the row is compared against the live source and withheld as drift, exactly like a stale row.
-- **No instructions sheet.** Pass the handing-off rules above to the translator yourself.
-- **Quoting is RFC 4180.** A value containing the delimiter, a double quote, a line break, or padding whitespace is quoted, and quotes inside it are doubled, so nothing in a string can shift a column. Files are written with LF line endings, and `csv` carries a UTF-8 BOM so Excel reads it as UTF-8.
-- **A spreadsheet may still change what it opens.** Opening a `.csv` or `.tsv` in a spreadsheet can coerce a value (`007` becoming `7`) and can treat a value starting with `=`, `+`, `-`, or `@` as a formula. Quoting does not prevent it, because a spreadsheet strips the quoting before evaluating. verbatra escapes the lead instead: a value beginning with `=`, `+`, `-`, `@`, a tab, or a carriage return is exported with a leading apostrophe, the marker that tells a spreadsheet to treat the cell as text. Import strips that apostrophe again, so ordinary translations like `-5 Grad` and `+49 30 1234567` are stored exactly as the translator typed them. A leading space is not part of the guard and is left alone. Treat a file coming back from a translator as untrusted input.
-- **A narrower re-export retires the locales it drops.** Every export records the locales it wrote in a hidden manifest in the output directory. Files from an earlier, wider selection stay on disk but are refused on import (`HANDOFF_FILE_STALE`) instead of being applied as if they were fresh. Nothing is ever deleted, so an unrelated file in that directory is safe.
-- **Everything else is identical.** The same diff picks the rows, and every returned row runs the same integrity gate, so a delimited handoff and a workbook produce the same result for the same values.
+- **Nothing is protected.** Every column is editable and `Source hash` is visible. An edited hash is never trusted: the row is compared with the live source and withheld as drift.
+- **There is no Instructions sheet.** Pass the rules above to the translator yourself.
+- **Formulas are defused.** A value starting with `=`, `+`, `-`, `@`, a tab or a carriage return is written with a leading apostrophe, so a spreadsheet keeps it as text; import strips the apostrophe again. Still treat a returned file as untrusted input.
+- **A narrower re-export retires older files.** A file left over from an earlier, wider export is refused on import instead of applied. Nothing is deleted.
 
 ## XLIFF for a CAT tool
 
 <AvailableFrom version="0.12.0" />
 
-A translation agency working in a CAT tool such as Trados, memoQ or OmegaT wants XLIFF rather than a spreadsheet. `--format xliff2` and `--format xliff12` write one `<locale>.xlf` per locale with segment states, notes and protected placeholders, and import reads it back through the same checks as a workbook, recording a segment the agency marked reviewed as approved. See [Hand off to a translation agency](/docs/translation-agency).
+If an agency works in a CAT tool such as Trados, memoQ or OmegaT, export XLIFF instead: see [Hand off to an agency](/docs/translation-agency).
 
 ## TMX is a different path
 
 <AvailableFrom version="0.11.0" />
 
-A handoff carries a per-locale slice of the pending delta to a human translator; [`verbatra tmx`](/docs/cli/tmx) carries the whole translation memory as one multilingual file, for moving it between tools rather than for getting strings translated. TMX is not a `--format` value: `xlsx`, `csv`, `tsv`, `xliff2` and `xliff12` are the handoff shapes, so reach for `verbatra tmx export` and `verbatra tmx import` rather than `verbatra export --format tmx`.
+A handoff carries the pending strings of each locale to a person. [`verbatra tmx`](/docs/cli/tmx) moves the whole translation memory between tools as one multilingual file, so it is not an `export --format` value.
 
 ## Selecting what to export
 
-By default, export includes only the missing and changed strings, the work that actually needs doing:
+By default, export includes only the missing and changed strings:
 
 ```bash
 # Only the German and French sheets
@@ -124,49 +115,30 @@ verbatra export --include-unchanged
 verbatra export --out handoff/round-2.xlsx
 ```
 
-Reach for `--include-unchanged` when a translator wants the full context of a locale, not just the delta. See [`verbatra export`](/docs/cli/export) for every flag.
-
-`--out` has to stay inside the project: a path outside the working directory, or one that would overwrite a locale file, the lock file, the config, or another file the project depends on, is refused with `EXPORT_OUTPUT_CONFLICT` before anything is written, also when a symbolic link would carry it there. A write that fails stops with `EXPORT_UNWRITABLE`.
+Use `--include-unchanged` when a translator wants a whole locale for context. `--out` must stay inside the project and must not name a file the project depends on. See [`verbatra export`](/docs/cli/export) for every flag and rule.
 
 ## The review columns
 
-`Review status` and `Review reasons` are a non-gating layer on top of the checks above: verbatra's heuristics for spotting a translation that is structurally fine but worth a second look. They never withhold a row and import never reads them; the only way to clear a flag is to fix the translation. Both columns are computed fresh at export time from the source and current target values:
-
-- `length-ratio-outlier`: the translation is far shorter or longer than its source.
-- `max-length-exceeded`: the translation is longer than the budget configured for its key.
-- `equals-source`: the translation is identical to the source.
-- `glossary-term-missed`: a glossary term's translation for this locale, or a `doNotTranslate` term, did not make it into the translation.
-- `glossary-forbidden-term`: the translation uses a rendering the glossary forbids for this locale.
-- `integrity-reordered`: the placeholders match but landed in a different order than the source.
-- `icu-arms`: the translation's ICU `plural`, `selectordinal`, or `select` arms do not fit the target language, followed by each missing or extra arm. Unlike the others this is a value the integrity gate would refuse, so fix it before the row comes back (from 0.12.0).
-
-The first six entries above are review reasons; `icu-arms` is an integrity label, not one of them. Two more reasons round out the set of eight review reasons, and both exist only at translate time: `provider-degraded` (a formality-downgraded or glossary-ignored notice on the batch a key came from) and `fuzzy-cache-reuse` (the value was reused from the translation memory for an earlier, near-identical source that has since been edited). Export recomputes the columns from the source and target values alone, so neither one ever appears on an exported row. A row with no translation yet always exports `ok`; there is nothing to review. See [Translation safety](/docs/translation-safety) for how these flags relate to the hard integrity checks.
+Both columns are computed at export from the source and current values, so a row without a translation is always `ok`. `Review reasons` spells each reason in lower case with hyphens (`length-ratio-outlier`), except the two only a run can see (`provider-degraded`, `fuzzy-cache-reuse`), which never appear. It adds `icu-arms` with the missing or extra arms when a value's ICU arms do not fit the target language; the integrity gate refuses that value, so fix it before the row comes back. To clear a flag, fix the translation.
 
 ## From the SDK
 
-The CLI commands wrap two SDK functions, `exportWorkbook` and `importWorkbook`:
+The two commands wrap [`exportWorkbook`](/docs/sdk/exchange#exportworkbook) and [`importWorkbook`](/docs/sdk/exchange#importworkbook):
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
 
 const config = await loadConfig();
 
-// Write a workbook of the strings that need translating
-await exportWorkbook({ config });
-
-// ...or one CSV file per locale, into a directory
 await exportWorkbook({ config, format: "csv", out: "handoff" });
 
-// ...later, import the filled file back
-const summary = await importWorkbook({ config, workbook: "verbatra-translations.xlsx" });
+const summary = await importWorkbook({ config, workbook: "handoff", format: "csv" });
 ```
 
-Both take the validated config from [`loadConfig`](/docs/sdk/config#loadconfig), and `importWorkbook` returns the same `RunSummary` as `translate`. The workbook itself is built and parsed by `@verbatra/exchange`, an internal package you reach only through these two functions.
+`importWorkbook` returns the same [`RunSummary`](/docs/sdk/run-summary) as `translate`.
 
-## Next
+## Related
 
-<Cards>
-  <Card title={<code>verbatra export</code>} href="/docs/cli/export" description="Every export flag and the report it prints." />
-  <Card title={<code>verbatra import</code>} href="/docs/cli/import" description="Every import flag, the run summary, and exit codes." />
-  <Card title="Translation safety" href="/docs/translation-safety" description="The integrity gate that guards every write, manual or automated." />
-</Cards>
+- [`verbatra export`](/docs/cli/export) and [`verbatra import`](/docs/cli/import): every flag, the output paths and the exit codes.
+- [Translation safety](/docs/translation-safety): the integrity gate behind every write.
+- [Run without machine translation](/docs/human-only-workflow): a project where every translation comes from a person.

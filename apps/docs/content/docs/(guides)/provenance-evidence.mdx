@@ -1,66 +1,41 @@
 ---
-title: Machine-translation evidence
+title: Record machine-translation evidence
 description: Produce a per-key record of which translations a machine wrote and which a person reviewed, and carry that marking into XLIFF and TMX exports.
 status: new
 ---
 <AvailableFrom version="0.12.0" />
 
-If you publish text that a provider or an AI agent translated, you may be asked to show which text
-that is and whether a person looked at it before it shipped. verbatra already records that per key
-in `verbatra.provenance.json`. This page shows the two ways to get it out: a report you can archive
-as an audit file, and markers in the XLIFF and TMX files you hand to other tools.
+Use this when someone asks which of your published text a provider or an AI agent translated, and whether a person reviewed it. verbatra records that per key in `verbatra.provenance.json`; you get it out as a report to archive, or as markers in the XLIFF and TMX files you hand to other tools.
 
 <Callout type="warn" title="Supporting evidence, not legal advice">
 Article 50 of the EU AI Act sets transparency obligations for AI-generated text, and text a person
 reviewed under editorial responsibility is treated differently from text that was not. How those
-rules apply to translation, and to your product, is not settled in a way verbatra can decide for
-you. The report and the markers are supporting evidence you can hand to whoever makes that call.
-They are not legal advice, and using them does not make a product compliant with anything.
+rules apply to translation, and to your product, is not something verbatra can decide for you. The
+report and the markers are supporting evidence for whoever makes that call. They are not legal
+advice, and using them does not make a product compliant with anything.
 </Callout>
 
 ## What the record can and cannot tell you
 
-Every value verbatra writes is recorded with the write path that produced it. The full list of
-origins is on [the lock file page](/docs/the-lock-file#provenance-who-wrote-each-value); in short:
+Every value verbatra writes is recorded with its origin (the write path that produced it), any review decision and the reviewer's name; see [the lock file](/docs/the-lock-file#provenance-who-wrote-each-value). For evidence, origins fall into two classes:
 
-- `machine`, `memory`, `fuzzy` and `agent` are the machine class: a provider, the translation
-  memory, a fuzzy memory match, or an AI agent wrote the value. The memory counts as machine because
-  it does not record who wrote an entry, so a memory hit can be earlier machine output.
-- `human` and `import` are people: an edit through Studio or the SDK, or a value imported from a
-  translator's handoff.
-- `external` means the value changed outside verbatra since its record was written, `unrecorded`
-  means it has no record (for example a value from before the provenance file existed), and
-  `unknown` means it was recorded without a known author.
+- **Machine class**: `machine`, `memory`, `fuzzy` and `agent`. The memory counts as machine because it does not record who wrote an entry.
+- **People**: `human` (an edit through Studio or the SDK) and `import` (a translator's handoff).
 
-A review decision (approved or rejected) and the reviewer's name, when one was given, sit next to
-the origin. An approval given before the source text changed reads as unreviewed.
+`external` (changed outside verbatra since it was recorded), `unrecorded` (no record) and `unknown` (recorded without a known author) are neither. An approval given before the source text changed reads as unreviewed.
 
 Keep the limits in mind when you hand the record to someone:
 
-- **It is not tamper-evident.** Anyone who can edit your locale files can edit the provenance file.
-  Its value comes from being committed next to the code, where your git history and code review
-  already apply.
-- **It has no timestamps.** The record deliberately stores none, so the report carries none per
-  key. When a value was written or approved is in the git history of `verbatra.provenance.json`
-  (`git log -p verbatra.provenance.json`).
-- **It errs toward machine.** Memory hits, fuzzy matches and agent edits all count as machine, and
-  a machine value a person has not approved counts as unreviewed, even when its text is fine.
+- **It is not tamper-evident.** Anyone who can edit your locale files can edit it; its value comes from your git history and code review.
+- **It has no timestamps.** When a value was written or approved is in the git history (`git log -p verbatra.provenance.json`).
+- **It errs toward machine.** Memory hits, fuzzy matches and agent edits all count as machine, and a machine value nobody approved counts as unreviewed, even when its text is fine.
 
 ## The provenance report
 
-`verbatra report provenance` reads the committed files and prints, per target locale, how many
-values fall into each bucket. It calls no provider, needs no API key, and writes nothing.
+[`verbatra report provenance`](/docs/cli/report) prints, per target locale, how many values fall into each bucket. It reads only the committed files, calls no provider and writes nothing.
 
 ```bash
 verbatra report provenance
-```
-
-```text
-verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
-  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
-  de      12                   40                 3      85      1         0           0        141
-  fr      52                   0                  3      85      1         0           0        141
-Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
 ```
 
 | Bucket | The value was written by | Reviewed? |
@@ -73,79 +48,23 @@ Supporting evidence from verbatra.provenance.json, not legal advice. --json list
 | `unrecorded` | nobody verbatra knows of: there is no record | not known |
 | `unknown` | recorded without a known author | either |
 
-Only keys that have a value in both the source and the target locale are listed. A key missing from
-a locale has no text to account for, and a key no longer in the source is not shipped as a
-translation of it.
+Only keys with a value in both the source and the target locale are counted: a missing key has no text to account for.
 
 ### An audit file from CI
 
-With `--json` the report lists every key, which makes it an audit file you can archive with each
-release:
+With `--json` the report lists every key, which makes it an audit file to archive with each release:
 
 ```bash
 verbatra report provenance --json > provenance-report.json
 ```
 
-The command exits `0` with a report, `1` when `verbatra.provenance.json` is corrupt or was written by
-a newer verbatra, and `2` when it could not run at all (see [`verbatra report`](/docs/cli/report)).
-Exit `1` is deliberate: a report built without the record would list every value as `unrecorded`,
-which reads as "we have no idea" rather than as the error it is, so the job fails instead of
-archiving it. That is the same fail-closed rule [`check --require-reviewed`](/docs/cli/check) follows.
+If `verbatra.provenance.json` is corrupt or was written by a newer verbatra, the command exits `1` instead of printing a report that would list every value as `unrecorded`. A CI job therefore fails instead of archiving an empty audit file.
 
-If you need every machine translation reviewed before a release, gate on
-`verbatra check --require-reviewed` and archive the report next to it.
+If every machine translation must be reviewed before a release, also gate on [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations).
 
 ### The JSON schema
 
-The report is the `result` of the usual [JSON envelope](/docs/cli/output#json-output), with
-`command` set to `"report"`. SDK callers get the same object from `provenanceReport`.
-
-```json
-{
-  "ok": true,
-  "version": 1,
-  "command": "report",
-  "result": {
-    "available": true,
-    "generatedAt": "2026-09-29T08:00:00.000Z",
-    "toolVersion": "0.12.0",
-    "sourceLocale": "en",
-    "locales": [
-      {
-        "locale": "de",
-        "total": 2,
-        "counts": {
-          "machine-unreviewed": 1,
-          "machine-reviewed": 1,
-          "human": 0,
-          "import": 0,
-          "external": 0,
-          "unrecorded": 0,
-          "unknown": 0
-        },
-        "entries": [
-          {
-            "key": "cart.checkout",
-            "bucket": "machine-unreviewed",
-            "origin": "machine",
-            "reviewState": "unreviewed",
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-5"
-          },
-          {
-            "key": "home.title",
-            "bucket": "machine-reviewed",
-            "origin": "machine",
-            "reviewState": "approved",
-            "provider": "deepl",
-            "reviewer": "Ana"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+The report is the `result` of the usual [JSON envelope](/docs/cli/output#json-output), with `command` set to `"report"`. SDK callers get the same object from [`provenanceReport`](/docs/sdk/inspect#provenancereport).
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -159,43 +78,32 @@ The report is the `result` of the usual [JSON envelope](/docs/cli/output#json-ou
 | `locales[].counts` | object | how many keys fall into each bucket; all seven buckets are always present |
 | `locales[].entries[]` | array | one entry per key with a value in the source and the locale, in source order |
 | `entries[].key` | string | the translation key |
-| `entries[].bucket` | string | one of the seven buckets above |
-| `entries[].origin` | string | `machine`, `memory`, `fuzzy`, `agent`, `human`, `import`, `unknown`, `unrecorded` or `external` |
+| `entries[].bucket` | string | one of the buckets above |
+| `entries[].origin` | string | the origin, including `unrecorded` and `external` |
 | `entries[].reviewState` | string | `unreviewed`, `approved` or `rejected` |
 | `entries[].provider` | string, optional | the provider `id` that answered, for a `machine` value |
 | `entries[].model` | string, optional | the configured model, when the record names one |
 | `entries[].reviewer` | string, optional | the reviewer named with the decision, when one was given |
 
-When the provenance file cannot be read, the result is `{ "available": false, "reason": "provenance-unreadable" }`
-and the command exits `1`. There is no per-key date field, because the record holds no timestamps.
-New optional fields may be added in later versions; existing ones keep their meaning.
+When the provenance file cannot be read, the result is `{ "available": false, "reason": "provenance-unreadable" }`. New optional fields may be added later; existing ones keep their meaning.
 
 ## Markers in exports
 
-The same origin travels into the files you hand to other tools, so a CAT tool, a translation
-memory or a reviewer on the other side can tell machine output from human work.
+The origin also travels into the files you hand to other tools, so the other side can tell machine output from human work.
 
 ### XLIFF
 
-`verbatra export --format xliff12` or `--format xliff2` marks every unit that has a target:
+[`verbatra export`](/docs/cli/export) with `--format xliff12` or `--format xliff2` marks every unit that has a target:
 
 | The target is | XLIFF 1.2 | XLIFF 2.0 |
 | --- | --- | --- |
 | machine class, not approved | `state-qualifier="mt-suggestion"` on `<target>` | `<mda:meta type="origin">` and `<mda:meta type="review-state">` |
-| machine class, approved | no qualifier (a person reviewed it) | the same two meta entries |
+| machine class, approved | no qualifier | the same two meta entries |
 | human, import, external, unrecorded or unknown | no qualifier | the same two meta entries |
 
-In XLIFF 1.2, `mt-suggestion` is the spec's own value for "the translation is suggested by machine
-translation", and every CAT tool that reads 1.2 knows it. The qualifier sits next to the unit's
-usual `state`, so an unreviewed machine translation that is up to date reads
-`state="translated" state-qualifier="mt-suggestion"`, and a stale one keeps its
-`state="needs-translation"`. An approved machine translation is `signed-off` with no qualifier:
-a person reviewed it, so calling it a machine suggestion would understate that review. Values from
-people, and values whose origin verbatra cannot vouch for, get no qualifier either, because a
-qualifier is a claim that a machine wrote the text.
+`mt-suggestion` is the XLIFF 1.2 value for "suggested by machine translation", which CAT tools show as such, next to the usual `state`. A value a person approved, or whose origin verbatra cannot vouch for, gets no qualifier.
 
-XLIFF 2.0 has no state qualifier, so the unit's `verbatra` metadata group, which already carries the
-source hash, gets two more entries with the full origin and review state from the report:
+XLIFF 2.0 has no state qualifier, so the unit's `verbatra` metadata group, which already holds the source hash, gets the full origin and review state:
 
 ```xml
 <mda:metaGroup category="verbatra">
@@ -205,46 +113,26 @@ source hash, gets two more entries with the full origin and review state from th
 </mda:metaGroup>
 ```
 
-The metadata module is part of XLIFF 2.0 itself, and tools that support it keep it on the way
-back. The ITS 2.0 Provenance and MT Confidence data categories were the alternative; the ITS module
-only exists from XLIFF 2.1, MT Confidence needs a score verbatra does not have, and few CAT tools
-act on either, so verbatra uses the module that fits the file it writes.
-
 ### TMX
 
-`verbatra tmx export` writes a property on every target segment:
+[`verbatra tmx export`](/docs/cli/tmx) writes an `x-origin` property on every target segment, and `x-review` next to a `machine` one:
 
 ```xml
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
 ```
 
-`x-origin` is `machine`, `human`, `import` or `unknown`. `x-review` accompanies `machine` only and
-is `approved`, `unreviewed` or `rejected`. TMX gets this coarser vocabulary on purpose. A memory
-entry is a pair of texts, not a key, and one text can belong to several keys that were written in
-different ways, so the export looks at every key whose source matches and whose record describes
-exactly this text: if any of them is machine class, the segment is `machine`, and it counts as
-`approved` only when every machine-class one is. A text no record describes is `unknown`. The
-per-key detail, including `memory`, `fuzzy` and `agent`, stays in the report.
+`x-origin` is `machine`, `human`, `import` or `unknown`; `x-review` is `approved`, `unreviewed` or `rejected`. A memory entry is a pair of texts, not a key, so a segment is `machine` if any key with that exact text is machine class, and `approved` only when every such key is. A text no record describes is `unknown`.
 
 ### Importing marked files
 
-Import ignores every marker. An XLIFF unit is judged by its target and its `state` exactly as
-before, and a TMX segment by its text. Origin is never read back from a file: a value imported from a
-handoff is recorded as `import`, and a TMX import only fills the translation memory, which records
-no origin. A marker a tool rewrote, dropped or invented therefore cannot change what your record
-says.
+Import ignores every marker. An XLIFF unit is judged by its target and state, a TMX segment by its text. A value imported from a handoff is recorded as `import`, and a TMX import only fills the translation memory, so a marker a tool rewrote, dropped or invented cannot change your record.
 
 ### When the record cannot be read
 
-If `verbatra.provenance.json` is corrupt or from a newer verbatra (or, for TMX, the lock file cannot
-be read), the export still succeeds but writes no marker at all, rather than a marker it cannot back
-up. The command says so on its summary, and the `--json` result carries
-`provenanceMarkers: "unavailable"` instead of `"written"`.
+If `verbatra.provenance.json` is corrupt or from a newer verbatra (or, for TMX, the lock file cannot be read), the export still succeeds but writes no markers rather than markers it cannot back up. The summary says so, and the `--json` result carries `provenanceMarkers: "unavailable"` instead of `"written"`.
 
-## Next
+## Related
 
-<Cards>
-  <Card title={<code>verbatra report</code>} href="/docs/cli/report" description="Flags, output and exit codes of the provenance report." />
-  <Card title="Data handling and privacy" href="/docs/data-handling" description="What verbatra sends, to whom, and what it keeps locally." />
-  <Card title="Review in Studio" href="/docs/review-in-studio" description="Approve or reject machine translations, one by one or per locale." />
-</Cards>
+- [`verbatra report`](/docs/cli/report): flags, output and exit codes of the provenance report.
+- [Review in Studio](/docs/review-in-studio): approve or reject machine translations, one by one or per locale.
+- [Data handling and privacy](/docs/data-handling): what verbatra sends, to whom, and what it keeps locally.

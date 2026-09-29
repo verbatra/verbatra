@@ -1,12 +1,10 @@
 ---
-title: An eine Übersetzungsagentur übergeben
+title: An eine Agentur übergeben (XLIFF)
 description: Exportiere die zu übersetzenden Strings als XLIFF 2.0 oder 1.2 für ein CAT-Tool und importiere die zurückgeschickte Datei samt Segmentstatus mit denselben Sicherheitsprüfungen wie jeden anderen Lauf.
 ---
 <AvailableFrom version="0.12.0" />
 
-Professionelle Übersetzerinnen und Sprachdienstleister arbeiten in CAT-Tools wie Trados, memoQ, OmegaT, Matecat und Phrase, und XLIFF ist das Dateiformat, das diese Tools austauschen. Eine Arbeitsmappe oder eine CSV-Datei kommt dort als Tabelle an; eine XLIFF-Datei kommt als Segmente mit Status, Notizen und geschützten Platzhaltern an, und genau darauf sind ihre Werkzeuge, ihr Übersetzungsspeicher und ihre QA-Prüfungen ausgelegt.
-
-verbatra schreibt diese Datei aus jedem Projektformat, nicht nur aus einem XLIFF-Projekt: i18next-JSON, Android-`strings.xml`, gettext-`.po` und jedes andere Format, das verbatra liest, gehen als dasselbe XLIFF hinaus und kommen über denselben Import zurück.
+Das brauchst du, wenn professionelle Übersetzerinnen in einem CAT-Tool wie Trados, memoQ, OmegaT, Matecat oder Phrase arbeiten. XLIFF kommt bei ihnen als Segmente mit Status, Notizen und geschützten Platzhaltern an, und genau darauf sind ihr Übersetzungsspeicher und ihre QA-Prüfungen ausgelegt. verbatra schreibt XLIFF aus jedem Projektformat, nicht nur aus einem XLIFF-Projekt, und liest es über denselben Import zurück wie eine [Arbeitsmappen-Übergabe](/docs/manual-translation).
 
 ## Der Roundtrip
 
@@ -20,29 +18,29 @@ verbatra export --format xliff2 --out handoff
 verbatra import handoff --format xliff2 --reviewer "Agency GmbH"
 ```
 
-Nimm `--format xliff12` für ein Tool, das XLIFF 2.0 noch nicht liest. Beide schreiben eine `<locale>.xlf` pro Ziel-Locale in das `--out`-Verzeichnis (Standard `verbatra-translations`), dazu dasselbe versteckte Manifest wie ein CSV-Export (hier `.verbatra-export-xliff.json`). Eine Datei, die von einem früheren, breiteren Export übrig ist, wird beim Import also mit `HANDOFF_FILE_STALE` abgelehnt statt angewendet.
+Liest das Tool XLIFF 2.0 noch nicht, nimm `--format xliff12`. So oder so bekommst du eine `<locale>.xlf` pro Ziel-Locale. Eine Datei, die von einem früheren, breiteren Export übrig ist, wird beim Import abgelehnt statt angewendet.
 
-Eine einzelne zurückgeschickte Datei lässt sich auch allein importieren. Ein Pfad, der auf `.xlf` oder `.xliff` endet, wird ohne `--format` als XLIFF gelesen, und die Version kommt aus der Datei selbst; `--format xliff2` und `--format xliff12` lesen also beide Versionen:
+Um eine einzelne zurückgeschickte Datei zu importieren, nenn sie direkt. Ein Pfad, der auf `.xlf` oder `.xliff` endet, wird ohne `--format` als XLIFF gelesen, und die XLIFF-Version kommt aus der Datei selbst:
 
 ```bash
 verbatra import handoff/de.xlf
 ```
 
-Die Locale kommt aus dem Dateinamen. Hat ein Tool die Datei umbenannt (etwa in `project_de.xlf`), wird stattdessen die Zielsprache, die die Datei angibt, mit deinen konfigurierten Locales abgeglichen.
+Die Locale kommt aus dem Dateinamen. Hat das Tool die Datei umbenannt (etwa in `project_de.xlf`), wird stattdessen die Zielsprache, die die Datei angibt, mit deinen konfigurierten Locales abgeglichen.
 
 ## Was in der Datei landet
 
-Der Export wählt dieselben Keys wie ein Arbeitsmappen-Export: die fehlenden und veralteten, mit `--include-unchanged` auch die aktuellen. Jeder Key wird zu einer Unit:
+Der Export wählt dieselben Keys wie ein Arbeitsmappen-Export: die fehlenden und geänderten, mit `--include-unchanged` auch die aktuellen. Jeder Key wird zu einer Unit:
 
-- **Der Key benennt die Unit.** XLIFF 2.0 legt ihn in `name` der Unit ab (ihre `id` ist ein erzeugtes `u1`, `u2` ..., weil XLIFF-2.0-IDs nicht jeden Key fassen können); XLIFF 1.2 verwendet ihn als `id` und `resname` der `trans-unit`.
-- **Platzhalter, Inline-Markup und ICU-Struktur werden zu Inline-Codes.** `{{name}}`, `%1$s`, `<b>`, `&amp;` und die Syntax eines ICU-`plural` oder `select` werden zu `<ph>`-Elementen, mit dem Originaltext in `disp` und `equiv` (XLIFF 2.0, gestützt auf `<originalData>`) oder als Inhalt des Elements (XLIFF 1.2). Ein CAT-Tool zeigt sie als Tags an, die die Übersetzerin platziert, aber nicht bearbeiten kann, während der lesbare Text jedes ICU-Zweigs übersetzbar bleibt. Der Import löst jeden Code wieder in seinen exakten Originaltext auf, Byte für Byte.
-- **Kontext reist als Notizen mit.** Beschreibung und Bedeutung eines Keys werden, wo das Projektformat sie trägt, zu `<note>`-Elementen.
-- **Der Quell-Hash reist als Metadaten mit.** XLIFF 2.0 speichert ihn im Standard-Metadatenmodul (`<mda:meta type="source-hash">` in einer `verbatra`-Metagruppe), XLIFF 1.2 im Attribut `extradata`. CAT-Tools behalten beides auf dem Rückweg; was passiert, wenn eines das nicht tut, steht weiter unten.
-- **Ein veralteter Key bringt seine alte Übersetzung mit.** Ein Key, dessen Quelle sich seit der Übersetzung geändert hat, wird mit der bisherigen Übersetzung als Ziel exportiert, als Ausgangspunkt, aber weiterhin im Anfangsstatus.
+- **Der Key benennt die Unit**: in XLIFF 2.0 als `name` der Unit, in XLIFF 1.2 als `id` und `resname` der `trans-unit`.
+- **Platzhalter, Inline-Markup und ICU-Syntax werden zu Inline-Codes** (`<ph>`), die ein CAT-Tool als Tags zeigt, die die Übersetzerin platziert, aber nicht bearbeiten kann. Der Text in jedem ICU-Zweig bleibt übersetzbar. Der Import verwandelt jeden Code wieder in seinen exakten Originaltext.
+- **Kontext reist als Notizen mit**: Beschreibung und Bedeutung eines Keys, wo das Projektformat sie trägt.
+- **Der Quell-Hash reist als Metadaten mit**, damit der Import erkennt, ob sich die Quelle seit dem Export geändert hat.
+- **Ein geänderter Key trägt seine alte Übersetzung** als Ziel, als Ausgangspunkt, im Anfangsstatus.
 
 ### Segmentstatus
 
-Der Status jedes Segments kommt aus der Lock-Datei und dem [Review-Status](/docs/review-in-studio):
+Der Status jedes Segments kommt aus der Lock-Datei und der [Review-Entscheidung](/docs/the-lock-file#review-entscheidungen) des Keys:
 
 | Der Key ist | XLIFF 2.0 `state` | XLIFF 1.2 `state` |
 | --- | --- | --- |
@@ -52,44 +50,44 @@ Der Status jedes Segments kommt aus der Lock-Datei und dem [Review-Status](/docs
 | aktuell und freigegeben | `reviewed` | `signed-off` und `approved="yes"` |
 | aktuell, aber abgelehnt | `initial` | `needs-translation` |
 
-Die Herkunft eines aktuellen Werts ändert seinen Status nicht: eine maschinelle Übersetzung, ein Treffer aus dem Übersetzungsspeicher und ein von einer Person getippter Wert sind alle `translated`, bis jemand sie freigibt.
+Woher ein Wert kommt, ändert seinen Status nicht: Eine maschinelle Übersetzung, ein Treffer aus dem Speicher und ein Wert, den eine Person getippt hat, sind alle `translated`, bis jemand sie freigibt.
 
 ### Markierungen für maschinelle Übersetzung
 
 <AvailableFrom version="0.12.0" />
 
-Die Herkunft reist neben dem Status mit, sodass die Agentur sieht, welche Ziele eine Maschine geschrieben hat. In XLIFF 1.2 trägt ein Ziel, das ein Provider, der Übersetzungsspeicher oder ein KI-Agent geschrieben und niemand freigegeben hat, `state-qualifier="mt-suggestion"`, den Wert, den CAT-Tools als Vorschlag einer maschinellen Übersetzung anzeigen. Ein freigegebenes Ziel trägt keinen Qualifier. In XLIFF 2.0 trägt die `verbatra`-Metagruppe der Unit `<mda:meta type="origin">` und `<mda:meta type="review-state">`. Der Import ignoriert beides: Was die übersetzende Person zurückschickt, wird als `import` festgehalten, und ein bestätigter Wert behält die Herkunft, die er hatte. Siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#xliff).
+Die Herkunft reist neben dem Status mit, sodass die Agentur sieht, welche Ziele eine Maschine geschrieben hat. In XLIFF 1.2 trägt ein nicht freigegebenes, maschinell geschriebenes Ziel `state-qualifier="mt-suggestion"`; in XLIFF 2.0 tragen die Metadaten der Unit ihre Herkunft und ihren Review-Status. Der Import ignoriert beides. Siehe [Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence#xliff).
 
 ## Was der Import annimmt
 
-Jede zurückgeschickte Unit durchläuft genau die Prüfungen, die ein [Arbeitsmappen-Import](/docs/manual-translation#was-der-import-akzeptiert) anwendet: das Integritäts-Gate für Platzhalter, Markup und ICU-Syntax, den Schutz vor veralteten Quellen, `[[CLEAR]]` zum absichtlichen Leeren einer Übersetzung und ein leeres Ziel mit der Bedeutung „noch nicht übersetzt“. Was XLIFF hinzufügt:
+Jede zurückgeschickte Unit durchläuft die Prüfungen eines [Arbeitsmappen-Imports](/docs/manual-translation#was-der-import-akzeptiert): das Integritäts-Gate, den Schutz vor veralteter Quelle, `[[CLEAR]]`, um einen Wert absichtlich zu leeren, und ein leeres Ziel für "noch nicht übersetzt". XLIFF ergänzt diese Regeln:
 
-- **Ein unverändert exportiertes Ziel ändert nichts.** Eine Unit, deren Ziel genau dem aktuellen Wert des Projekts entspricht, wird nicht erneut geschrieben; ein aktueller Key bleibt also Byte für Byte gleich in deiner Locale-Datei und behält seine Provenienz. Ein veralteter Key, dessen alte Übersetzung unangetastet zurückkommt, bleibt veraltet, es sei denn, der Status der Unit ist über `initial` hinaus gewandert. So bestätigt eine Übersetzerin, dass die alte Übersetzung noch zur neuen Quelle passt.
-- **Jedes andere Ziel ist eine Übersetzung, egal in welchem Status.** Manche Tools schreiben die Übersetzung, lassen aber den Status stehen; ein geändertes Ziel wird deshalb auch im Status `initial` importiert.
-- **`reviewed` und `final` halten eine Freigabe fest.** Eine Unit im Status `reviewed` oder `final` (XLIFF 1.2: `signed-off`, `final` oder `approved="yes"`) wird in `verbatra.provenance.json` als freigegeben festgehalten, sowohl wenn ihr Wert importiert wurde als auch wenn die Übersetzerin nur den vorhandenen Wert bestätigt hat. Die Freigabe nennt `--reviewer`, wenn du es angibst, ist wie jede andere Freigabe an den aktuellen Quell-Hash gebunden und wird mit dem Hinweis `HANDOFF_REVIEWS_RECORDED` gemeldet. Ein importierter Wert behält die Herkunft `import`; ein bestätigter Wert behält die Herkunft, die er hatte, etwa `machine`.
-- **Ein entfernter Quell-Hash fällt auf den Quelltext zurück.** Hat ein Tool die Metadaten verworfen, wird stattdessen der Quelltext der Unit mit der aktuellen Quelle verglichen: Eine identische Quelle wird importiert, eine geänderte als Drift zurückgehalten.
-- **Schäden werden gemeldet, nicht fatal.** Eine Unit, deren ID keinen Quell-Key nennt oder deren Inline-Codes sich nicht auflösen lassen, wird als fehlerhafte Zeile gemeldet (mit Unit-Nummer und `id`, `source` oder `target`), und ein wiederholter Key wird als Duplikat gemeldet, wobei der erste gewinnt. Der Rest der Datei wird trotzdem importiert.
-- **Das XML wird sicher geparst.** Ein Dokument, das eine XML-Entität oder ein internes DTD-Subset deklariert, wird vor dem Parsen abgelehnt, ebenso Dateien über 32 MB.
+- **Ein Ziel, das so bleibt, wie es exportiert wurde, ändert nichts.** Der Key bleibt Byte für Byte gleich und behält seine Herkunft. Soll die alte Übersetzung eines veralteten Keys für die neue Quelle gelten, setzt die Übersetzerin seinen Status über `initial` hinaus.
+- **Jedes andere Ziel ist eine Übersetzung, egal in welchem Status**, weil manche Tools den Text schreiben, den Status aber stehen lassen.
+- **`reviewed` und `final` halten eine Freigabe fest.** In XLIFF 1.2 auch `signed-off`, `final` und `approved="yes"`. Die Freigabe wird mit dem Namen aus `--reviewer` in `verbatra.provenance.json` gespeichert und als [`HANDOFF_REVIEWS_RECORDED`](/docs/error-codes#handoff_reviews_recorded) gemeldet. Ein importierter Wert bekommt die Herkunft `import`; ein Wert, den die Übersetzerin nur bestätigt hat, behält seine Herkunft, etwa `machine`.
+- **Fehlt der Quell-Hash, zählt der Quelltext.** Passt der Quelltext der Unit noch, wird sie importiert; sonst wird sie als Drift zurückgehalten.
+- **Schäden werden gemeldet, nicht fatal.** Eine Unit mit unbekanntem Key oder kaputten Inline-Codes wird als fehlerhafte Zeile gemeldet, ein doppelter Key als Duplikat; der Rest der Datei wird trotzdem importiert.
+- **Das XML wird sicher geparst.** Eine Datei, die eine Entity oder ein internes DTD-Subset deklariert, wird abgelehnt, ebenso eine Datei über 32 MB.
 
-`verbatra import --dry-run` zeigt all das, einschließlich der Freigaben, die festgehalten würden, ohne eine Datei zu schreiben.
+Führ zuerst `verbatra import --dry-run` aus, um all das samt der Freigaben zu sehen, ohne eine Datei zu schreiben.
 
-XLIFF 1.2 kann kein Zeichen tragen, das XML 1.0 verbietet (ein Steuerzeichen wie U+0007); ein solches Zeichen fällt beim 1.2-Export weg. XLIFF 2.0 trägt es als `<cp>`-Element und bringt es exakt zurück; nimm also `xliff2`, wann immer das Tool es liest.
+XLIFF 1.2 kann kein Zeichen tragen, das XML 1.0 verbietet (ein Steuerzeichen wie U+0007), deshalb fällt ein solches Zeichen in einem 1.2-Export weg. XLIFF 2.0 trägt es exakt, nimm also `xliff2`, wenn das Tool es liest.
 
 ## Ein Tool von Hand prüfen: OmegaT
 
-Die automatischen Tests bearbeiten die exportierten Dateien so, wie es ein CAT-Tool tut, starten aber keins. Um einen Roundtrip durch ein echtes Tool zu prüfen, ist [OmegaT](https://omegat.org) kostenlos und liest XLIFF:
+Die automatischen Tests bearbeiten exportierte Dateien so, wie es ein CAT-Tool tut, führen aber keines aus. Für einen echten Roundtrip nimm [OmegaT](https://omegat.org), das kostenlos ist:
 
 1. Exportiere eine Übergabe: `verbatra export --format xliff12 --out handoff` (oder `xliff2`).
-2. Lege in OmegaT ein Projekt mit deiner Quell- und Zielsprache an und kopiere `handoff/de.xlf` in den Ordner `source` des Projekts.
-3. Öffne das Projekt. Platzhalter wie `{{name}}` erscheinen als Tags: Übersetze den Text drumherum und füge jedes Tag mit Strg+T (Cmd+T unter macOS) ein, statt es zu tippen.
+2. Leg in OmegaT ein Projekt mit deiner Quell- und Zielsprache an und kopier `handoff/de.xlf` in den Ordner `source` des Projekts.
+3. Öffne das Projekt. Platzhalter wie `{{name}}` erscheinen als Tags: Übersetze den Text drumherum und füg jedes Tag mit Strg+T (Cmd+T unter macOS) ein, statt es zu tippen.
 4. Übersetze einige Segmente, lass einige unübersetzt und speichere.
-5. Erzeuge die übersetzten Dokumente (Projekt, Übersetzte Dokumente erstellen). OmegaT schreibt `de.xlf` in den Ordner `target` des Projekts.
-6. Prüfe zuerst: `verbatra import pfad/zu/target/de.xlf --dry-run`. Die übersetzten Segmente stehen unter `translated`, die unberührten unter `unfilled`, und nichts wird abgelehnt, solange kein Tag verloren ging.
-7. Importiere: `verbatra import pfad/zu/target/de.xlf`, danach `verbatra check`.
+5. Wähl Project, Create Translated Documents. OmegaT schreibt `de.xlf` in den Ordner `target` des Projekts.
+6. Prüf sie: `verbatra import path/to/target/de.xlf --dry-run`. Übersetzte Segmente stehen unter `translated`, unberührte unter `unfilled`, und nichts wird abgelehnt, solange kein Tag verloren ging.
+7. Importiere sie: `verbatra import path/to/target/de.xlf`, danach `verbatra check`.
 
 ## Aus dem SDK
 
-Die CLI umhüllt dieselben zwei Funktionen wie die Arbeitsmappen-Übergabe:
+Die CLI umhüllt dieselben Funktionen [`exportWorkbook`](/docs/sdk/exchange#exportworkbook) und [`importWorkbook`](/docs/sdk/exchange#importworkbook) wie die Arbeitsmappen-Übergabe:
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -106,10 +104,8 @@ const summary = await importWorkbook({
 });
 ```
 
-## Weiter
+## Siehe auch
 
-<Cards>
-  <Card title="Menschliche Übersetzung" href="/docs/manual-translation" description="Die Übergabe als Arbeitsmappe, CSV und TSV und jede Prüfung, die der Import anwendet." />
-  <Card title={<code>verbatra export</code>} href="/docs/cli/export" description="Jedes Export-Flag, einschließlich der XLIFF-Formate." />
-  <Card title={<code>verbatra import</code>} href="/docs/cli/import" description="Jedes Import-Flag, einschließlich --reviewer." />
-</Cards>
+- [`verbatra export`](/docs/cli/export): jedes Export-Flag, einschließlich der XLIFF-Formate.
+- [`verbatra import`](/docs/cli/import): jedes Import-Flag, einschließlich `--reviewer`.
+- [Mit Excel oder CSV übergeben](/docs/manual-translation): die Arbeitsmappen-Übergabe und jede Prüfung des Imports.
