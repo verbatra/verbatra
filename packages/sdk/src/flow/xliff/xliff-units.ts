@@ -4,9 +4,10 @@ import type {
   WorkbookRow,
   XliffExportUnit,
   XliffNote,
+  XliffProvenance,
   XliffState,
 } from "@verbatra/exchange";
-import { keyProvenance } from "../../lock/key-provenance.js";
+import { isMachineClassOrigin, keyProvenance } from "../../lock/key-provenance.js";
 import type { ProvenanceRecord } from "../../lock/provenance-file.js";
 
 export function inlineSpans(value: string): InlineSpan[] {
@@ -41,20 +42,44 @@ function notesOf(entry: TranslationEntry | undefined): XliffNote[] {
   return notes;
 }
 
+export function exportProvenance(
+  row: WorkbookRow,
+  record: ProvenanceRecord | undefined,
+  baselineHash: string | undefined,
+): XliffProvenance {
+  const provenance = keyProvenance(record, row.currentTarget, baselineHash);
+  return {
+    origin: provenance.origin,
+    reviewState: provenance.reviewState,
+    machineSuggestion:
+      isMachineClassOrigin(provenance.origin) && provenance.reviewState !== "approved",
+  };
+}
+
 export interface XliffUnitsInput {
   readonly rows: readonly WorkbookRow[];
   readonly source: LocaleResource;
-  readonly records: ReadonlyMap<string, ProvenanceRecord>;
+  readonly records: ReadonlyMap<string, ProvenanceRecord> | undefined;
   readonly baseline: ReadonlyMap<string, string>;
 }
 
-export function xliffUnits(input: XliffUnitsInput): XliffExportUnit[] {
-  return input.rows.map((row) => ({
+function unitOf(row: WorkbookRow, input: XliffUnitsInput): XliffExportUnit {
+  const record = input.records?.get(row.key);
+  const baselineHash = input.baseline.get(row.key);
+  const hasTarget = row.status !== "new";
+  return {
     key: row.key,
     source: inlineSpans(row.source),
-    ...(row.status === "new" ? {} : { target: inlineSpans(row.currentTarget) }),
-    state: exportState(row, input.records.get(row.key), input.baseline.get(row.key)),
+    ...(hasTarget ? { target: inlineSpans(row.currentTarget) } : {}),
+    state: exportState(row, record, baselineHash),
     sourceHash: row.sourceHash,
     notes: notesOf(input.source.entries.get(row.key)),
-  }));
+    ...(hasTarget && input.records !== undefined
+      ? { provenance: exportProvenance(row, record, baselineHash) }
+      : {}),
+  };
+}
+
+export function xliffUnits(input: XliffUnitsInput): XliffExportUnit[] {
+  return input.rows.map((row) => unitOf(row, input));
 }

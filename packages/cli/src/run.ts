@@ -17,6 +17,7 @@ import {
   type LoadedConfig,
   type LockWaitEvent,
   type ProgressEvent,
+  type ProvenanceReport,
   QA_SEVERITIES,
   type QaSeverity,
   type RunSummary,
@@ -24,7 +25,7 @@ import {
   type TranslateInput,
   type VerbatraConfig,
 } from "@verbatra/sdk";
-import { Command, CommanderError } from "commander";
+import { Argument, Command, CommanderError } from "commander";
 import { z } from "zod";
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { usageErrorHint } from "./cli-error-hints.js";
@@ -49,6 +50,7 @@ import {
   renderExtractHuman,
   renderHuman,
   renderLockWait,
+  renderProvenanceReportHuman,
   renderPseudoHuman,
   renderTmxExportHuman,
   renderTmxImportHuman,
@@ -162,6 +164,12 @@ function parseTmxDirection(raw: string): TmxDirection {
   }
   return direction;
 }
+
+const REPORT_KINDS = ["provenance"] as const;
+
+const reportOptsSchema = sharedCommandOptsSchema.extend({
+  locales: localeListSchema,
+});
 
 const checkOptsSchema = sharedCommandOptsSchema.extend({
   locales: localeListSchema,
@@ -1328,6 +1336,60 @@ async function runDiff(
   });
 }
 
+function unreviewedMachineHint(
+  report: ProvenanceReport,
+  opts: LocationOpts,
+  context: CommandContext,
+): void {
+  const unreviewed = report.locales.reduce(
+    (sum, locale) => sum + locale.counts["machine-unreviewed"],
+    0,
+  );
+  if (unreviewed > 0) {
+    context.ui.hint(
+      verbatraCommand(["studio"], opts),
+      `approve or reject the ${unreviewed === 1 ? "machine translation" : `${unreviewed} machine translations`} no person has reviewed yet`,
+    );
+  }
+}
+
+async function runReport(
+  rawOpts: unknown,
+  deps: CliDeps,
+  streams: Streams,
+  settings?: TerminalSettings,
+): Promise<number> {
+  const context = commandContext("report", rawOpts, streams, settings);
+  return withLocaleOpts(reportOptsSchema, rawOpts, context, async (opts) => {
+    const cwd = opts.cwd ?? process.cwd();
+    return withWholeRunErrors(
+      deps,
+      context,
+      loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
+      async (config) => {
+        const report = await withTask(context, "reading the provenance record", () =>
+          deps.provenanceReport({
+            config,
+            cwd,
+            toolVersion: CLI_VERSION,
+            ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
+          }),
+        );
+        context.streams.out(
+          context.json
+            ? `${renderSuccessEnvelope("report", report)}\n`
+            : `${renderProvenanceReportHuman(report)}\n`,
+        );
+        if (!report.available) {
+          return 1;
+        }
+        unreviewedMachineHint(report, opts, context);
+        return 0;
+      },
+    );
+  });
+}
+
 async function runPseudo(
   rawOpts: unknown,
   deps: CliDeps,
@@ -1794,6 +1856,32 @@ function registerDiffCommand(program: Command, ctx: ProgramContext): void {
     );
 }
 
+function registerReportCommand(program: Command, ctx: ProgramContext): void {
+  program
+    .command("report")
+    .addArgument(new Argument("<report>", "which report to print").choices([...REPORT_KINDS]))
+    .description(
+      "Print a read-only project report: provenance lists where each translation came from and whether a person reviewed it",
+    )
+    .option("--cwd <path>", "resolve config and locale files from this directory")
+    .option("--config <path>", "load this config file instead of searching for one")
+    .option("--locales <list>", "comma-separated subset of target locales (default all configured)")
+    .option("--json", "print the report as JSON, with every key's origin and review state")
+    .action(async (_report: string, opts: unknown) => {
+      ctx.setCode(await runReport(opts, ctx.deps, ctx.streams, ctx.settings()));
+    })
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Examples:",
+        "  $ verbatra report provenance                   counts per locale: machine, reviewed, human, imported",
+        "  $ verbatra report provenance --json > audit.json  every key's origin and review state, for an audit file",
+        "  $ verbatra report provenance --locales de      only the German locale",
+      ].join("\n"),
+    );
+}
+
 function registerPseudoCommand(program: Command, ctx: ProgramContext): void {
   program
     .command("pseudo")
@@ -2136,6 +2224,7 @@ function buildProgram(
   registerTmxCommand(program, ctx);
   registerCheckCommand(program, ctx);
   registerDiffCommand(program, ctx);
+  registerReportCommand(program, ctx);
   registerPseudoCommand(program, ctx);
   registerTypesCommand(program, ctx);
   registerDoctorCommand(program, ctx);

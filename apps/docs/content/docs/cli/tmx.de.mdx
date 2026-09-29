@@ -59,6 +59,8 @@ Eine Datei aus einem anderen Werkzeug ist nicht vertrauenswürdige Eingabe, und 
 
 Dazu kommt: Eine Einheit mit leerem Quellsegment bezeichnet überhaupt keinen String und wird ebenfalls abgelehnt. Inline-Markup (`bpt`, `ept`, `ph`, `it`) wird auf seinen Text eingeebnet, was die Platzhalterprüfung dann auffängt, falls das Markup etwas Wichtiges getragen hat. Ein `sub`-Element in diesem Markup ist ein eigener Textfluss, etwa ein Tooltip oder ein Alternativtext, und gehört nicht zum String des Segments. Sein Text wird deshalb weggelassen statt eingeebnet.
 
+Properties an einem Segment, auch die `x-origin` und `x-review`, die ein verbatra-Export schreibt, werden ignoriert: Eine importierte Einheit landet im Übersetzungsspeicher, der keine Herkunft festhält.
+
 Nichts verschwindet stillschweigend. Jede Ablehnung wird nach Grund gezählt, ebenso jede Einheit, die der Leser gar nicht verwerten konnte, jede Einheit ohne Segment in deiner Quell-Locale, jede Einheit, deren Markup eingeebnet wurde, und jede Einheit, deren `sub`-Text weggelassen wurde.
 
 <AvailableFrom version="0.12.0" />
@@ -116,6 +118,10 @@ Sprach-Tags werden in BCP-47-Form geschrieben, egal wie deine Konfiguration sie 
 Ein Zeichen, das XML 1.0 überhaupt nicht darstellen kann, etwa ein Steuerzeichen oder ein einzelnes Surrogat, wird aus dem Segmenttext entfernt, damit ein konformer Parser die Datei lesen kann. Wie viele entfernt wurden, steht in der Zusammenfassung und im `--json`-Ergebnis.
 
 Ein leerer Übersetzungsspeicher ergibt eine gültige, leere TMX-Datei statt eines Fehlers.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes Zielsegment trägt `<prop type="x-origin">` mit `machine`, `human`, `import` oder `unknown`, gelesen aus `verbatra.provenance.json`, und ein `machine`-Segment trägt zusätzlich `<prop type="x-review">` mit `approved`, `unreviewed` oder `rejected`. Ein Eintrag im Übersetzungsspeicher kann mehreren Keys dienen, deshalb ist ein Segment `machine`, sobald irgendein Key, dessen Eintrag genau diesen Text beschreibt, von einer Maschine geschrieben wurde, und `approved` nur, wenn das für jeden solchen Key gilt. Lässt sich die Herkunftsdatei oder die Lock-Datei nicht lesen, wird keine Property geschrieben, die Zusammenfassung sagt das, und das `--json`-Ergebnis trägt `provenanceMarkers: "unavailable"`. Siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#tmx).
 
 Die Datei wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor der Übersetzungsspeicher gelesen wird, wird ein Exportpfad mit `TMX_OUTPUT_CONFLICT` zurückgewiesen, wenn er keine Datei benennt (auch wenn er auf ein Pfadtrennzeichen endet wie `out/`), aus dem Arbeitsverzeichnis herausklettert oder das Arbeitsverzeichnis selbst benennt, und ebenso einer, der eine Datei benennt, von der das Projekt abhängt: eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die Konfigurationsdatei, die der Lauf geladen hat, oder die Glossardatei, auf die `glossary` in deiner Konfiguration zeigt. Namen werden ohne Beachtung der Groß- und Kleinschreibung verglichen, dieselben Prüfungen laufen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links wirklich landet, sodass ein verlinktes Verzeichnis die Datei weder aus dem Arbeitsverzeichnis hinaus noch auf eine geschützte Datei tragen kann, und es wird nichts geschrieben. Ein Pfad, der diese Prüfungen besteht, kann trotzdem im Moment des Schreibens scheitern: Wenn das Verzeichnis nicht schreibbar ist, an dem Pfad schon ein Verzeichnis liegt oder die Platte voll ist, bricht der Lauf mit `TMX_UNWRITABLE` ab, nennt die Datei und den Dateisystem-Code und endet mit `2`.
 

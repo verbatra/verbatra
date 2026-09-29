@@ -27,6 +27,8 @@ import type {
   ImportWorkbookInput,
   LoadConfigOptions,
   LoadedConfig,
+  ProvenanceReportInput,
+  ProvenanceReportResult,
   PseudolocalizeInput,
   PseudolocalizeResult,
   RunSummary,
@@ -61,6 +63,7 @@ export interface CliDeps {
   generateTypes(input: GenerateTypesInput): Promise<GenerateTypesResult>;
   importTmx(input: ImportTmxInput): Promise<ImportTmxResult>;
   exportTmx(input: ExportTmxInput): Promise<ExportTmxResult>;
+  provenanceReport(input: ProvenanceReportInput): Promise<ProvenanceReportResult>;
 }
 
 export interface StudioModule {

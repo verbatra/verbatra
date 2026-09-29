@@ -49,7 +49,7 @@ AI agent reads through them goes wherever that agent sends it.
 
 These can call a provider: `translate` and `watch`, the SDK's `retranslateEntry`, and the
 retranslate and translate-pending actions in Studio and the MCP server. Studio and the MCP server
-offer those actions only when you start them with `--allow-spend`. Everything else, including `check`, `diff`,
+offer those actions only when you start them with `--allow-spend`. Everything else, including `check`, `diff`, `report`,
 `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`, `translate --dry-run` and
 `translate --estimate`, works from local files and sends nothing. The one exception is
 `verbatra doctor --live`, which asks DeepL, Google Cloud Translation, or your LibreTranslate server
@@ -220,6 +220,14 @@ again. A reviewer's approval or rejection is recorded next to it. Values from pe
 the translation memory, which can hold earlier machine output, so do not read them as human work. See
 [Provenance: who wrote each value](/docs/the-lock-file#provenance-who-wrote-each-value).
 
+<AvailableFrom version="0.12.0" />
+
+To hand that record to someone, run `verbatra report provenance --json` for a per-key audit file of
+machine-written, reviewed, human and imported values, stamped with the date, the verbatra version and
+the source locale. XLIFF and TMX exports carry the same marking, so a CAT tool or another translation
+memory can tell machine output from human work. Both are supporting evidence, not legal advice; see
+[Machine-translation evidence](/docs/provenance-evidence).
+
 ## Checklist for a DPA or NDA review
 
 1. Decide whether strings may leave your network at all. If not, use `provider: { id: "none" }`,
@@ -236,4 +244,5 @@ the translation memory, which can hold earlier machine output, so do not read th
 6. Decide which AI agents, if any, may connect to Studio or the MCP server, under their vendor's
    terms.
 7. Commit `verbatra.provenance.json` so the record of machine-produced values travels with your
-   code.
+   code, and archive `verbatra report provenance --json` with each release if you need to show it
+   later.

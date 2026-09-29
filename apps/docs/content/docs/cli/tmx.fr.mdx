@@ -59,6 +59,8 @@ Un fichier venu d'un autre outil est une entrée non fiable, et une unité qui a
 
 À cela s'ajoute qu'une unité dont le segment source est vide ne désigne aucune chaîne, et se voit donc refusée elle aussi. Le balisage en ligne (`bpt`, `ept`, `ph`, `it`) est aplati en son texte, ce que le contrôle des placeholders rattrape ensuite si ce balisage portait quelque chose d'important. Un élément `sub` dans ce balisage est un flux de texte à part, comme une infobulle ou un texte alternatif, et ne fait pas partie de la chaîne du segment : son texte est donc laissé de côté plutôt qu'aplati.
 
+Les propriétés d'un segment, y compris les `x-origin` et `x-review` qu'écrit un export verbatra, sont ignorées : une unité importée atterrit dans la mémoire, qui n'enregistre aucune origine.
+
 Rien ne disparaît en silence. Chaque refus est compté par motif, tout comme chaque unité que le lecteur n'a pas pu exploiter, chaque unité sans segment dans ta locale source, chaque unité dont le balisage a été aplati et chaque unité dont le texte `sub` a été laissé de côté.
 
 <AvailableFrom version="0.12.0" />
@@ -116,6 +118,10 @@ Les étiquettes de langue sont écrites sous forme BCP 47, quelle que soit la fa
 Un caractère que XML 1.0 ne peut pas représenter du tout, comme un caractère de contrôle ou un demi-codet isolé, est retiré du texte du segment pour qu'un analyseur conforme puisse lire le fichier. Le nombre de caractères retirés figure dans le résumé et dans le résultat `--json`.
 
 Une mémoire vide produit un fichier TMX valide et vide, pas une erreur.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque segment cible porte `<prop type="x-origin">` avec `machine`, `human`, `import` ou `unknown`, lu dans `verbatra.provenance.json`, et un segment `machine` porte aussi `<prop type="x-review">` avec `approved`, `unreviewed` ou `rejected`. Une entrée de la mémoire peut servir plusieurs clés : un segment est donc `machine` dès qu'une clé dont l'enregistrement décrit exactement ce texte a été écrite par une machine, et `approved` seulement quand toutes le sont. Quand le fichier de provenance ou le fichier de verrouillage ne peut pas être lu, aucune propriété n'est écrite, le résumé le signale et le résultat `--json` porte `provenanceMarkers: "unavailable"`. Voir [Preuves de traduction automatique](/docs/provenance-evidence#tmx).
 
 Le fichier n'est écrit qu'à l'intérieur du répertoire de travail. Avant toute lecture de la mémoire, un chemin d'export qui ne nomme aucun fichier (y compris quand il se termine par un séparateur de chemin, comme `out/`), qui sort du répertoire de travail ou qui nomme le répertoire de travail lui-même est refusé avec `TMX_OUTPUT_CONFLICT`, tout comme un chemin qui nomme un fichier dont le projet dépend : un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire vers lequel pointe `glossary` dans ta configuration. Les noms sont comparés sans tenir compte de la casse, les mêmes vérifications sont refaites sur l'endroit où le chemin aboutit vraiment une fois les liens symboliques résolus, si bien qu'un répertoire lié ne peut porter le fichier ni hors du répertoire de travail ni sur un fichier protégé, et rien n'est écrit. Un chemin qui passe ces vérifications peut quand même échouer au moment de l'écriture : quand le répertoire n'est pas inscriptible, qu'un répertoire occupe déjà ce chemin ou que le disque est plein, l'exécution s'arrête avec `TMX_UNWRITABLE`, nomme le fichier et le code du système de fichiers, et sort en `2`.
 

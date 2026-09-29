@@ -113,3 +113,57 @@ describe("buildXliff 1.2", () => {
     expect(stale).toContain('<target state="needs-translation">');
   });
 });
+
+describe("buildXliff provenance markers", () => {
+  const MACHINE = {
+    ...UNIT,
+    state: "translated" as const,
+    provenance: { origin: "machine", reviewState: "unreviewed", machineSuggestion: true },
+  };
+
+  it("qualifies an unreviewed machine target in 1.2 as an MT suggestion", () => {
+    expect(build("1.2", [MACHINE])).toContain(
+      '<target state="translated" state-qualifier="mt-suggestion">',
+    );
+  });
+
+  it("keeps a stale machine target qualified next to its needs-translation state", () => {
+    expect(build("1.2", [{ ...MACHINE, state: "initial" }])).toContain(
+      '<target state="needs-translation" state-qualifier="mt-suggestion">',
+    );
+  });
+
+  it("writes no qualifier in 1.2 when the value is not an MT suggestion", () => {
+    const reviewed = build("1.2", [
+      {
+        ...UNIT,
+        provenance: { origin: "machine", reviewState: "approved", machineSuggestion: false },
+      },
+    ]);
+    expect(reviewed).not.toContain("state-qualifier");
+    expect(reviewed).toContain('<target state="signed-off">');
+  });
+
+  it("writes origin and review state into the 2.0 metadata group after the source hash", () => {
+    expect(build("2.0", [MACHINE])).toContain(
+      [
+        '          <mda:meta type="source-hash">abc</mda:meta>',
+        '          <mda:meta type="origin">machine</mda:meta>',
+        '          <mda:meta type="review-state">unreviewed</mda:meta>',
+        "        </mda:metaGroup>",
+      ].join("\n"),
+    );
+  });
+
+  it("writes no 2.0 provenance metadata for a unit without a target", () => {
+    const { target: _target, ...withoutTarget } = MACHINE;
+    const text = build("2.0", [withoutTarget]);
+    expect(text).not.toContain('type="origin"');
+    expect(text).not.toContain('type="review-state"');
+  });
+
+  it("writes no provenance metadata or qualifier for a unit without provenance", () => {
+    expect(build("2.0", [UNIT])).not.toContain('type="origin"');
+    expect(build("1.2", [{ ...UNIT, state: "translated" }])).not.toContain("state-qualifier");
+  });
+});

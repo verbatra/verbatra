@@ -54,6 +54,12 @@ The state of each segment comes from the lock file and the [review state](/docs/
 
 The origin of an up-to-date value does not change its state: a machine translation, a translation-memory hit and a value a person typed are all `translated` until someone approves them.
 
+### Machine-translation markers
+
+<AvailableFrom version="0.12.0" />
+
+The origin travels next to the state, so the agency can see which targets a machine wrote. In XLIFF 1.2, a target a provider, the translation memory or an AI agent wrote, and that nobody approved, carries `state-qualifier="mt-suggestion"`, the value CAT tools show as a machine-translation suggestion. An approved one carries no qualifier. In XLIFF 2.0 the unit's `verbatra` metadata group carries `<mda:meta type="origin">` and `<mda:meta type="review-state">`. Import ignores both: what the translator returns is recorded as `import`, and a confirmed value keeps the origin it had. See [Machine-translation evidence](/docs/provenance-evidence#xliff).
+
 ## What import accepts
 
 Every returned unit runs through exactly the checks a [workbook import](/docs/manual-translation#what-import-accepts) applies: the integrity gate for placeholders, markup and ICU syntax, the stale-source guard, `[[CLEAR]]` to empty a translation on purpose, and a blank target meaning "not translated yet". What XLIFF adds:

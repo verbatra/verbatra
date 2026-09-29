@@ -7,6 +7,12 @@ export interface XliffNote {
   readonly text: string;
 }
 
+export interface XliffProvenance {
+  readonly origin: string;
+  readonly reviewState: string;
+  readonly machineSuggestion: boolean;
+}
+
 export interface XliffExportUnit {
   readonly key: string;
   readonly source: readonly InlineSpan[];
@@ -14,6 +20,7 @@ export interface XliffExportUnit {
   readonly state: XliffState;
   readonly sourceHash: string;
   readonly notes: readonly XliffNote[];
+  readonly provenance?: XliffProvenance;
 }
 
 export interface BuildXliffInput {

@@ -392,6 +392,14 @@ Lit la file de révision dans les fichiers commités : chaque clé dont la valeu
 
 Entrée : `{ config, cwd?, locales?, includeApproved? }`. Renvoie `{ available: true, locales, lastRunAt? }`, chaque locale sous la forme `{ locale, needsReview, approved?, fuzzyHits? }` et chaque entrée sous la forme `{ key, reasons, provenance }` ; `approved` liste les valeurs de machine approuvées et n'est présent qu'avec `includeApproved: true`. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, elle renvoie `{ available: false, reason: "provenance-unreadable" }`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Jusqu'à la 0.11, la file ne contenait que les signalements de la dernière exécution.
 
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+Construit le rapport par locale qu'affiche `verbatra report provenance` : chaque clé qui a une valeur à la fois dans la source et dans une locale cible, dans l'ordre de la source, avec son origine, son état de relecture, son fournisseur, son modèle et son relecteur, comptée dans l'une des sept catégories (`machine-unreviewed`, `machine-reviewed`, `human`, `import`, `external`, `unrecorded`, `unknown`, publiées dans cet ordre dans le tuple `PROVENANCE_BUCKETS`). Il lit les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, n'appelle aucun fournisseur et n'écrit rien.
+
+Entrée : `{ config, cwd?, locales?, toolVersion? }` ; `deps` accepte aussi `now`, l'horloge dont est tiré `generatedAt`. Renvoie `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`, chaque locale sous la forme `{ locale, total, counts, entries }` et chaque entrée sous la forme `{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` vaut `unknown` par défaut. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, il renvoie `{ available: false, reason: "provenance-unreadable" }`, puisqu'un rapport sans lui listerait chaque valeur comme `unrecorded`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Le rapport est un élément de preuve à l'appui, pas un conseil juridique ; le schéma complet figure sur [Preuves de traduction automatique](/docs/provenance-evidence#le-schéma-json).
+
 ## Opérations sur une seule clé
 
 Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de révision. Toutes résolvent `locale` et `key` de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
@@ -636,6 +644,8 @@ Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de 
 
 `format: "xliff2"` et `format: "xliff12"` écrivent pour un outil de TAO un `<locale>.xlf` en XLIFF 2.0 ou 1.2 par locale dans le répertoire `out` : une unité par clé, les espaces réservés et le balisage comme codes en ligne `<ph>` protégés, la description et le sens de la clé comme notes, le hash de la source dans les métadonnées de l'unité et un état de segment tiré de l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Les deux types sont exportés, `XliffFormat` nommant les deux membres XLIFF d'`ExchangeFormat`. Voir [Confier à une agence de traduction](/docs/translation-agency).
 
+Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/docs/provenance-evidence#marqueurs-dans-les-exports).
+
 ### importWorkbook
 
 Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes contrôles de dérive de source et d'intégrité que `translate`. Seules les lignes acceptées font avancer leur ligne de base du verrou ; une ligne vide ou rejetée continue de se réexporter jusqu'à sa vraie résolution.
@@ -748,11 +758,20 @@ système de fichiers dans le message. Seules les entrées sous l'empreinte de co
 sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait. Les étiquettes de langue sont
 écrites sous forme BCP 47 (`en_US` devient `en-US`), ce qui ne change pas l'indexation de la
 mémoire. Une mémoire vide produit un fichier valide et vide, pas une erreur. Renvoie `{ path, units,
-locales, withoutSource, illegalCharactersRemoved }` ; `withoutSource` compte les entrées laissées de
+locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de
 côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées
 héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et
 `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été
 retirés du texte des segments.
+
+<AvailableFrom version="0.12.0" />
+
+Chaque segment cible porte `<prop type="x-origin">` (`machine`, `human`, `import` ou `unknown`,
+le type `TmxOrigin`) et un segment `machine` aussi `<prop type="x-review">` (`approved`,
+`unreviewed` ou `rejected`, le type `TmxReview`), déduits de chaque clé dont l'entrée de
+verrouillage nomme la source du segment et dont l'enregistrement décrit exactement son texte.
+`provenanceMarkers` vaut `"unavailable"` quand le fichier de provenance ou le fichier de
+verrouillage n'a pas pu être lu ; dans ce cas, aucun segment ne porte de propriété.
 
 ## Config
 

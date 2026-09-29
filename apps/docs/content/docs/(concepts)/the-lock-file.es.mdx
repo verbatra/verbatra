@@ -244,6 +244,12 @@ edición de una sola clave lo conserva sin avisar. El registro dice qué vía de
 un valor; no es a prueba de manipulaciones, porque quien puede editar los archivos de locale también
 puede editarlo a él.
 
+`verbatra report provenance` convierte el archivo en un informe por locale de los valores escritos
+por máquina, revisados, humanos e importados, y las exportaciones llevan la misma marca. A diferencia
+de los demás informes, termina con `1` ante un archivo corrupto o de una versión más nueva en lugar
+de omitir sus campos, porque el archivo es todo lo que informa. Consulta
+[Evidencia de traducción automática](/docs/provenance-evidence).
+
 ### Decisiones de revisión
 
 <AvailableFrom version="0.12.0" />

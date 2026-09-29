@@ -95,7 +95,7 @@ describe("a memory survives being exported to TMX and imported back", () => {
     }
   });
 
-  it("is stable across a second export of the re-imported memory", async () => {
+  it("is stable across a second export of the re-imported memory, origin aside", async () => {
     const config = cfg();
     const dir = await projectWith(AWKWARD);
     const stub = makeStubProvider();
@@ -107,7 +107,13 @@ describe("a memory survives being exported to TMX and imported back", () => {
     await importTmx({ config, file: "memory.tmx", cwd: empty });
     const second = await exportTmx({ config, cwd: empty, out: "second.tmx", toolVersion: "1.0.0" });
 
-    expect(await readFile(second.path, "utf8")).toBe(await readFile(first.path, "utf8"));
+    const firstText = await readFile(first.path, "utf8");
+    const secondText = await readFile(second.path, "utf8");
+    const withoutProperties = (text: string) => text.replace(/<prop [^>]*>[^<]*<\/prop>/g, "");
+    expect(withoutProperties(secondText)).toBe(withoutProperties(firstText));
+    expect(firstText).toContain('<prop type="x-origin">machine</prop>');
+    expect(secondText).not.toContain('<prop type="x-origin">machine</prop>');
+    expect(secondText).toContain('<prop type="x-origin">unknown</prop>');
   });
 });
 

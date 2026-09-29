@@ -575,6 +575,27 @@ When the provenance file is corrupt or from a newer verbatra it returns
 `{ available: false, reason: "provenance-unreadable" }`. A source, target, or lock file that cannot
 be read fails the call as it fails `check`. Up to 0.11 the queue was the last run's flags only.
 
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+Builds the per-locale report `verbatra report provenance` prints: every key with a value in both
+the source and a target locale, in source order, with its origin, review state, provider, model and
+reviewer, counted in one of seven buckets (`machine-unreviewed`, `machine-reviewed`, `human`,
+`import`, `external`, `unrecorded`, `unknown`, published in that order as the `PROVENANCE_BUCKETS`
+tuple). It reads the locale files, `verbatra.lock.json` and `verbatra.provenance.json`, calls no
+provider, and writes nothing.
+
+Input: `{ config, cwd?, locales?, toolVersion? }`; `deps` also takes `now`, the clock
+`generatedAt` is read from. Returns `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`,
+each locale `{ locale, total, counts, entries }` and each entry
+`{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` defaults to
+`unknown`. When the provenance file is corrupt or from a newer verbatra it returns
+`{ available: false, reason: "provenance-unreadable" }`, since a report without it would list
+every value as `unrecorded`. A source, target, or lock file that cannot be read fails the call as it
+fails `check`. The report is supporting evidence, not legal advice; the full schema is on
+[Machine-translation evidence](/docs/provenance-evidence#the-json-schema).
+
 ## Single-key operations
 
 These are the seams Verbatra Studio drives; use them to build your own review tooling. All of them
@@ -889,6 +910,8 @@ the file and the file-system code, with the file-system error as its `cause`.
 
 `format: "xliff2"` and `format: "xliff12"` write one XLIFF 2.0 or 1.2 `<locale>.xlf` per locale into the `out` directory, for a CAT tool: one unit per key, placeholders and markup as protected `<ph>` inline codes, the key's description and meaning as notes, the source hash in the unit's metadata, and a segment state from the lock and review state (`initial` for a missing or stale key, `translated` when up to date, `reviewed` when approved). Both types are exported, `XliffFormat` naming the two XLIFF members of `ExchangeFormat`. See [Hand off to a translation agency](/docs/translation-agency).
 
+Each unit with a target also carries its origin: XLIFF 1.2 qualifies an unapproved machine-class target with `state-qualifier="mt-suggestion"`, and XLIFF 2.0 adds `origin` and `review-state` entries to the unit's `verbatra` metadata group. The result then also carries `provenanceMarkers`: `"written"`, or `"unavailable"` when the provenance file could not be read and no marker was written. See [Machine-translation evidence](/docs/provenance-evidence#markers-in-exports).
+
 ### importWorkbook
 
 Reads a filled workbook back into the locale files, running the same source-drift and integrity
@@ -1004,11 +1027,19 @@ sits at that path, or the disk is full, throws `TMX_UNWRITABLE` naming the file 
 code. Only entries under the current configuration fingerprint are written, which is the same set a
 run would reuse. Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not
 change how the memory is keyed. An empty memory produces a valid, empty file rather than an error.
-Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved }`; `withoutSource` counts
+Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts
 entries left out because the memory holds no source text for them, which happens only for entries
 carried forward from a cache written before the memory stored source text, and
 `illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from
 segment text.
+
+<AvailableFrom version="0.12.0" />
+
+Each target segment carries `<prop type="x-origin">` (`machine`, `human`, `import` or `unknown`,
+the `TmxOrigin` type) and a `machine` one also `<prop type="x-review">` (`approved`, `unreviewed`
+or `rejected`, the `TmxReview` type), derived from every key whose lock entry names the segment's
+source and whose record describes exactly its text. `provenanceMarkers` is `"unavailable"` when the
+provenance file or the lock file could not be read, in which case no segment carries a property.
 
 ## Config
 

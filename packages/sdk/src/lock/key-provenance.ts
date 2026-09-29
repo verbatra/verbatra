@@ -152,6 +152,13 @@ function emptyProvenanceSummary(): {
   };
 }
 
+/**
+ * Whether an export carries machine-translation provenance markers: `written` when it does,
+ * `unavailable` when the committed provenance record could not be read, so no marker was written
+ * rather than a misleading one.
+ */
+export type ProvenanceMarkers = "written" | "unavailable";
+
 export type LocaleProvenance = (locale: string) => ReadonlyMap<string, ProvenanceRecord>;
 
 export async function readReportableProvenance(

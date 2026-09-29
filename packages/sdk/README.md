@@ -152,6 +152,7 @@ The remaining exports are the building blocks Verbatra Studio, the MCP server, a
 | `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`, `approveLocale` | Record a human review decision for one key, a batch, or a whole locale's queue; a rejection removes the translation so the key reads as missing and the next run fills it again |
 | `BatchInterruptedError` | Thrown by the batch calls when an unexpected error stops them, carrying the outcomes of the entries already decided |
 | `reviewQueue`, `loadProvenance`, `PROVENANCE_FILE_NAME`, `MACHINE_CLASS_ORIGINS` | Read every machine-written translation nobody has approved, from the committed files, and the provenance file that records who wrote each translation and its review state |
+| `provenanceReport`, `PROVENANCE_BUCKETS` | Build the per-locale report of machine-written, reviewed, human and imported values behind `verbatra report provenance`, as supporting evidence of which text was machine-generated (not legal advice) |
 | `keyValue`, `localeValues` | Read one key's current source and target values, or a whole locale's key/value pairs |
 | `keyIntegrity` | Report, per changed key, whether its placeholders, inline markup, and ICU still match the locked baseline |
 | `localeIntegrity` | Report, per locale, only the keys whose current translation fails the placeholder, inline markup, or ICU check |

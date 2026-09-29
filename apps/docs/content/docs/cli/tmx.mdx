@@ -59,6 +59,8 @@ A file from another tool is untrusted input, and a unit that reaches the memory 
 
 On top of that, a unit whose source segment is blank identifies no string at all, so it is refused too. Inline markup (`bpt`, `ept`, `ph`, `it`) is flattened to its text, which the placeholder check then catches if the markup was carrying something that mattered. A `sub` element inside that markup is a separate flow of text, such as a tooltip or alternative text, not part of the segment's own string, so its text is left out rather than flattened in.
 
+Properties on a segment, including the `x-origin` and `x-review` a verbatra export writes, are ignored: an imported unit lands in the memory, which records no origin.
+
 Nothing is dropped quietly. Every refusal is counted by reason, and so is every unit the reader could not use, every unit with no segment in your source locale, every unit whose markup was flattened, and every unit whose `sub` text was left out.
 
 <AvailableFrom version="0.12.0" />
@@ -116,6 +118,10 @@ Language tags are written in BCP 47 form, however your config spells them: under
 A character XML 1.0 cannot represent at all, such as a control character or a lone surrogate, is removed from the segment text so the file stays readable by a conformant parser. How many were removed is reported in the summary and in the `--json` result.
 
 An empty memory produces a valid, empty TMX file rather than an error.
+
+<AvailableFrom version="0.12.0" />
+
+Every target segment carries `<prop type="x-origin">` with `machine`, `human`, `import` or `unknown`, read from `verbatra.provenance.json`, and a `machine` segment also carries `<prop type="x-review">` with `approved`, `unreviewed` or `rejected`. A memory entry can serve several keys, so a segment is `machine` when any key whose record describes exactly that text was written by a machine, and `approved` only when every such key is. When the provenance file or the lock file cannot be read, no property is written, the summary says so, and the `--json` result carries `provenanceMarkers: "unavailable"`. See [Machine-translation evidence](/docs/provenance-evidence#tmx).
 
 The file is only written inside the working directory. Before the memory is read, an export path that names no file (including one ending in a path separator, such as `out/`), climbs out of the working directory, or names the working directory itself is refused with `TMX_OUTPUT_CONFLICT`, and so is one naming a file the project depends on: a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file your config points `glossary` at. Names are compared case-insensitively, the same checks run again on where the path really lands once symbolic links are resolved, so a linked directory cannot carry the file outside the working directory or onto a protected file, and nothing is written. A path that passes those checks can still fail at the moment of writing: when the directory is not writable, a directory already sits at that path, or the disk is full, the run stops with `TMX_UNWRITABLE`, naming the file and the file-system code, and exits `2`.
 

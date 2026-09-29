@@ -4,6 +4,7 @@ export {
   buildTmx,
   removedCharacterCount,
   type TmxExportUnit,
+  type TmxProperty,
   type TmxTranslation,
 } from "./build-tmx.js";
 export { buildWorkbook } from "./build-workbook.js";
@@ -12,6 +13,7 @@ export {
   buildXliff,
   type XliffExportUnit,
   type XliffNote,
+  type XliffProvenance,
 } from "./build-xliff.js";
 export { type DelimitedFormat, delimitedFileName } from "./delimited-format.js";
 export { DEFAULT_DELIMITED_LIMITS, type DelimitedLimits } from "./delimited-limits.js";

@@ -64,6 +64,7 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 | `verbatra watch` | Re-translate on every source change until interrupted |
 | `verbatra check` | Report which keys are missing or stale per locale without writing files |
 | `verbatra diff` | Show the keys that would be added, re-translated, or orphaned per locale without writing files |
+| `verbatra report` | Print a read-only report: `report provenance` lists which translations a machine wrote and which a person reviewed |
 | `verbatra doctor` | Validate the project setup without calling a provider or reading an API key |
 | `verbatra pseudo` | Generate a pseudolocale from the source strings without calling a provider |
 | `verbatra types` | Generate TypeScript declarations for your catalog keys and message arguments |
@@ -73,7 +74,7 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 | `verbatra studio` | Start Verbatra Studio, the local translation dashboard |
 | `verbatra mcp` | Start a stdio MCP server exposing verbatra's tools to an MCP client |
 
-`check`, `diff`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `pseudo` and `types` call no provider either.
+`check`, `diff`, `report`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `pseudo` and `types` call no provider either.
 
 Two flags apply to every command: `-q, --quiet` prints only results (their notices included), warnings, and errors, with no progress lines, `next:` hints, or informational lines, and `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`).
 

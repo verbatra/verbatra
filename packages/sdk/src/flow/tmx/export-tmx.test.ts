@@ -231,7 +231,9 @@ describe("exportTmx writes BCP 47 language tags however the config spells its lo
 
     expect(text).toContain('srclang="en-US"');
     expect(text).toContain('<tuv xml:lang="en-US"><seg>Save</seg></tuv>');
-    expect(text).toContain('<tuv xml:lang="pt-BR"><seg>Salvar</seg></tuv>');
+    expect(text).toContain(
+      '<tuv xml:lang="pt-BR"><prop type="x-origin">unknown</prop><seg>Salvar</seg></tuv>',
+    );
     expect(text).not.toContain("_");
 
     const fresh = await makeTempDir();

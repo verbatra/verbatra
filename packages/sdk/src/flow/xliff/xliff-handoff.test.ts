@@ -15,6 +15,7 @@ import {
   xliffSourceInner,
 } from "../../test-support.js";
 import { check } from "../check.js";
+import { approveEntry } from "../review-decision.js";
 import { translate } from "../translate-project.js";
 import type { XliffFormat } from "../workbook/exchange-format.js";
 import { exportWorkbook } from "../workbook/export-workbook.js";
@@ -297,6 +298,46 @@ describe.each(FORMATS)("XLIFF handoff (%s)", (format, version) => {
     const fr = summary.locales.find((locale) => locale.locale === "fr");
     expect(fr?.error?.code).toBe("HANDOFF_FILE_STALE");
     expect(fr?.error?.message).toContain('"fr.xlf"');
+  });
+
+  it("marks where each exported target came from, and imports it back unharmed", async () => {
+    const dir = await translatedProject({ greeting: "Hello {{name}}!", farewell: "Bye" });
+    await approveEntry({
+      config: cfg(),
+      cwd: dir,
+      locale: "de",
+      key: "farewell",
+      expectedValue: (await localeJson(dir, "de")).farewell ?? "",
+    });
+
+    const result = await exportTo(dir, { includeUnchanged: true });
+    const xml = await exported(dir);
+
+    expect(result.provenanceMarkers).toBe("written");
+    if (version === "1.2") {
+      expect(xml.match(/state-qualifier="mt-suggestion"/g)).toHaveLength(1);
+      expect(xml).toMatch(/id="greeting"[^>]*>[\s\S]*?state-qualifier="mt-suggestion"/);
+    } else {
+      expect(xml).toContain('<mda:meta type="origin">machine</mda:meta>');
+      expect(xml).toContain('<mda:meta type="review-state">approved</mda:meta>');
+      expect(xml).toContain('<mda:meta type="review-state">unreviewed</mda:meta>');
+    }
+    const before = await localeBytes(dir, "de");
+    const summary = await importFrom(dir);
+    expect(summary.locales.find((locale) => locale.locale === "de")?.translated).toEqual([]);
+    expect(await localeBytes(dir, "de")).toBe(before);
+  });
+
+  it("writes no marker when the provenance file cannot be read", async () => {
+    const dir = await translatedProject({ greeting: "Hello {{name}}!" });
+    await writeFile(join(dir, PROVENANCE_FILE_NAME), "{ not json", "utf8");
+
+    const result = await exportTo(dir, { includeUnchanged: true });
+    const xml = await exported(dir);
+
+    expect(result.provenanceMarkers).toBe("unavailable");
+    expect(xml).not.toContain("state-qualifier");
+    expect(xml).not.toContain('type="origin"');
   });
 });
 

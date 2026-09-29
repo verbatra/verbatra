@@ -54,6 +54,12 @@ L'état de chaque segment vient du fichier de verrouillage et de l'[état de rel
 
 L'origine d'une valeur à jour ne change pas son état : une traduction automatique, un résultat de la mémoire de traduction et une valeur saisie par une personne sont tous `translated` jusqu'à ce que quelqu'un les approuve.
 
+### Marqueurs de traduction automatique
+
+<AvailableFrom version="0.12.0" />
+
+L'origine voyage à côté de l'état, pour que l'agence voie quelles cibles une machine a écrites. En XLIFF 1.2, une cible écrite par un fournisseur, la mémoire de traduction ou un agent d'IA, et que personne n'a approuvée, porte `state-qualifier="mt-suggestion"`, la valeur que les outils de TAO affichent comme suggestion de traduction automatique. Une cible approuvée ne porte aucun qualificatif. En XLIFF 2.0, le groupe de métadonnées `verbatra` de l'unité porte `<mda:meta type="origin">` et `<mda:meta type="review-state">`. L'import ignore les deux : ce que le traducteur renvoie est enregistré comme `import`, et une valeur confirmée garde l'origine qu'elle avait. Voir [Preuves de traduction automatique](/docs/provenance-evidence#xliff).
+
 ## Ce que l'import accepte
 
 Chaque unité renvoyée passe exactement par les contrôles qu'applique un [import de classeur](/docs/manual-translation#ce-que-limport-accepte) : la barrière d'intégrité pour les espaces réservés, le balisage et la syntaxe ICU, la protection contre les sources obsolètes, `[[CLEAR]]` pour vider une traduction volontairement et une cible vide qui signifie « pas encore traduit ». Ce que XLIFF ajoute :

@@ -3,6 +3,8 @@ import { bcp47 } from "./language-tag.js";
 import { type NumberedSpan, numberInlineCodes } from "./xliff-inline-codes.js";
 import {
   METADATA_CATEGORY,
+  ORIGIN_META_TYPE,
+  REVIEW_STATE_META_TYPE,
   SOURCE_HASH_META_TYPE,
   XLIFF2_METADATA_NAMESPACE,
   XLIFF2_NAMESPACE,
@@ -31,11 +33,27 @@ function renderSpans(spans: readonly NumberedSpan[]): string {
     .join("");
 }
 
+function renderMeta(type: string, value: string): string {
+  return `          <mda:meta type="${type}">${escapeText(value)}</mda:meta>`;
+}
+
+function provenanceMetas(unit: XliffExportUnit): string[] {
+  const provenance = unit.provenance;
+  if (provenance === undefined || unit.target === undefined) {
+    return [];
+  }
+  return [
+    renderMeta(ORIGIN_META_TYPE, provenance.origin),
+    renderMeta(REVIEW_STATE_META_TYPE, provenance.reviewState),
+  ];
+}
+
 function renderMetadata(unit: XliffExportUnit): string[] {
   return [
     "      <mda:metadata>",
     `        <mda:metaGroup category="${METADATA_CATEGORY}">`,
-    `          <mda:meta type="${SOURCE_HASH_META_TYPE}">${escapeText(unit.sourceHash)}</mda:meta>`,
+    renderMeta(SOURCE_HASH_META_TYPE, unit.sourceHash),
+    ...provenanceMetas(unit),
     "        </mda:metaGroup>",
     "      </mda:metadata>",
   ];

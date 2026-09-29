@@ -53,6 +53,7 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 - **Incremental by default.** The lock file makes every run diff-driven, so a run over an unchanged project calls no provider at all.
 - **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift; `verbatra check --require-reviewed` also fails while a machine-written translation is not approved.
 - **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, TSV, or XLIFF 2.0 or 1.2 for a CAT tool, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.
+- **Machine-translation evidence.** Every value is recorded with the write path that produced it and whether a person reviewed it; `verbatra report provenance --json` turns that into a per-key audit file, and XLIFF and TMX exports mark machine-translated text. Supporting evidence, not legal advice.
 - **Source-code extraction.** `verbatra extract` finds translation call sites in your application source and adds the new keys to the source locale; `diff --unused` names the keys nothing references any more.
 - **Spend before you spend.** `--dry-run` and `--estimate` preview a run without calling a provider, and `verbatra pseudo` builds a pseudolocale that exposes truncated layouts before you have a key at all.
 - **Keys stay in your environment.** API keys are read only from environment variables, never from a config file, a CLI argument, or a function argument.

@@ -12,6 +12,7 @@
     "---Check---",
     "check",
     "diff",
+    "report",
     "pseudo",
     "types",
     "---Hand off---",

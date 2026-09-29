@@ -75,7 +75,8 @@ deterministic test joins the required gate automatically.
   `doctor` (`tests/plural-completeness.e2e.test.ts`), inline markup parity on import
   (`tests/markup-parity.e2e.test.ts`), the network policy and `VERBATRA_NETWORK_POLICY` under a live
   network guard (`tests/network-policy.e2e.test.ts`), the provenance file
-  (`tests/provenance.e2e.test.ts`), `pseudo` (`tests/pseudo.e2e.test.ts`), the Studio server served
+  (`tests/provenance.e2e.test.ts`), `report provenance` with `--json`, its human table, and a
+  corrupt provenance file failing it closed (`tests/report-provenance.e2e.test.ts`), `pseudo` (`tests/pseudo.e2e.test.ts`), the Studio server served
   from the installed package, its `INVALID_PORT` error, and its missing-package hint
   (`tests/studio.e2e.test.ts`), a format adapter built outside verbatra
   (`tests/third-party-adapter.e2e.test.ts`), TMX interchange (`tests/tmx-round-trip.e2e.test.ts`),
