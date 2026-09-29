@@ -19,6 +19,7 @@ const SOURCE = {
   greeting: "Hello {{name}}, welcome back!",
   inbox: "You have {{count}} new messages.",
   save: "Save changes",
+  link: "Open <b>settings</b> now",
 };
 
 const TARGET: RunTarget = { locale: targetLocale, key: "greeting" };
@@ -84,6 +85,8 @@ describe.skipIf(baseUrl === "")(`libretranslate (live: ${baseUrl || "skipped"})`
     expect(written.greeting).toContain("{{name}}");
     expect(written.inbox).toContain("{{count}}");
     expect(written.save).not.toBe(SOURCE.save);
+    expect(written.link).toMatch(/<b>[^<]+<\/b>/);
+    expect(written.link).not.toContain("<b>settings</b>");
 
     const check = await runVerbatra(consumer, ["check", "--json", "--cwd", dir]);
     expect(check.exitCode, check.stderr).toBe(0);

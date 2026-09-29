@@ -26,6 +26,9 @@ export interface MaskedValue {
 }
 
 const RESERVED_IN_MASKED_TEXT = /[{}<>]/;
+const RESERVED_BESIDE_MARKUP = /[{}]/;
+const MARKUP_TAG = /<\/?[A-Za-z][\w:.-]*(?:\s[^<>]*)?\/?>/;
+const WHOLE_MARKUP_TAG = new RegExp(`^${MARKUP_TAG.source}$`);
 const MARKER = /\{(0|[1-9]\d*)\}/g;
 const STRAY_BRACE = /[{}]/;
 
@@ -66,18 +69,31 @@ function scanPlaceholders(value: string, candidates: readonly string[]): Scan {
   return { text, residual, originals };
 }
 
+export function containsMarkupTag(value: string): boolean {
+  return MARKUP_TAG.test(value);
+}
+
+export interface MaskOptions {
+  readonly keepMarkup?: boolean;
+}
+
 export function maskPlaceholders(
   value: string,
   placeholders: readonly string[],
+  options: MaskOptions = {},
 ): MaskedValue | undefined {
-  const candidates = distinctByLength(placeholders);
-  if (candidates.length === 0) {
+  const keepMarkup = options.keepMarkup === true;
+  const candidates = distinctByLength(placeholders).filter(
+    (candidate) => !(keepMarkup && WHOLE_MARKUP_TAG.test(candidate)),
+  );
+  if (candidates.length === 0 && !keepMarkup) {
     return undefined;
   }
   const scan = scanPlaceholders(value, candidates);
   const found = new Set(scan.originals);
   const everyPlaceholderLiteral = candidates.every((candidate) => found.has(candidate));
-  if (!everyPlaceholderLiteral || RESERVED_IN_MASKED_TEXT.test(scan.residual)) {
+  const reserved = keepMarkup ? RESERVED_BESIDE_MARKUP : RESERVED_IN_MASKED_TEXT;
+  if (!everyPlaceholderLiteral || reserved.test(scan.residual)) {
     return undefined;
   }
   return { text: scan.text, originals: scan.originals };
@@ -112,12 +128,20 @@ export interface MaskingPartition {
   readonly unprotectable: readonly TranslationEntry[];
 }
 
-export function partitionForMasking(entries: readonly TranslationEntry[]): MaskingPartition {
+export interface MaskingOptions {
+  readonly keepMarkup?: boolean;
+}
+
+export function partitionForMasking(
+  entries: readonly TranslationEntry[],
+  options: MaskingOptions = {},
+): MaskingPartition {
   const { protectable, unprotectable } = partitionByPlaceholders(entries);
   const masked: MaskedEntry[] = [];
   const unmaskable: TranslationEntry[] = [];
   for (const entry of unprotectable) {
-    const mask = maskPlaceholders(entry.value, entry.placeholders);
+    const keepMarkup = options.keepMarkup === true && containsMarkupTag(entry.value);
+    const mask = maskPlaceholders(entry.value, entry.placeholders, { keepMarkup });
     if (mask === undefined) {
       unmaskable.push(entry);
     } else {

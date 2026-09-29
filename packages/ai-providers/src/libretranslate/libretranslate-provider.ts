@@ -6,6 +6,7 @@ import { checkBatchIntegrity, type IntegrityInput } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import {
+  containsMarkupTag,
   type MaskedValue,
   partitionForMasking,
   unmaskPlaceholders,
@@ -27,6 +28,7 @@ import type {
   LibreTranslateClient,
   LibreTranslateClientBundle,
   LibreTranslateResult,
+  LibreTranslateTextFormat,
 } from "./types.js";
 
 const PROVIDER_ID = "libretranslate";
@@ -96,7 +98,7 @@ async function translate(
   request: TranslateRequest,
 ): Promise<LibreTranslateResult> {
   const data = validateRequest(request);
-  const { plain, masked, unprotectable } = partitionForMasking(data.entries);
+  const { plain, masked, unprotectable } = partitionForMasking(data.entries, { keepMarkup: true });
   const outgoing: OutgoingText[] = [
     ...plain.map((entry) => ({ entry, text: entry.value })),
     ...masked.map((item) => ({ entry: item.entry, text: item.masked.text, masked: item.masked })),
@@ -118,18 +120,46 @@ async function translate(
   return assembleResult(data, restored, integrity, unprotectable.length + restored.lost);
 }
 
-async function send(call: Call, outgoing: readonly OutgoingText[]): Promise<readonly string[]> {
-  if (outgoing.length === 0) {
+function formatOf(item: OutgoingText): LibreTranslateTextFormat {
+  return containsMarkupTag(item.text) ? "html" : "text";
+}
+
+const TEXT_FORMATS: readonly LibreTranslateTextFormat[] = ["text", "html"];
+
+async function sendGroup(
+  call: Call,
+  texts: readonly string[],
+  format: LibreTranslateTextFormat,
+): Promise<readonly string[]> {
+  if (texts.length === 0) {
     return [];
   }
-  const texts = outgoing.map((item) => item.text);
   const { status, body } = await withRequestTimeout(
     call.timeoutMs,
     call.signal,
-    (signal) => call.bundle.client.translate(texts, call.sourceLang, call.targetLang, signal),
+    (signal) =>
+      call.bundle.client.translate(texts, call.sourceLang, call.targetLang, format, signal),
     call.context,
   );
   return parseLibreTranslateHttpResult(status, body, call.bundle.keyConfigured);
+}
+
+async function send(call: Call, outgoing: readonly OutgoingText[]): Promise<readonly string[]> {
+  const translated = outgoing.map(() => "");
+  for (const format of TEXT_FORMATS) {
+    const group = outgoing.flatMap((item, index) =>
+      formatOf(item) === format ? [{ index, text: item.text }] : [],
+    );
+    const texts = await sendGroup(
+      call,
+      group.map((item) => item.text),
+      format,
+    );
+    for (const [item, text] of zipTexts(group, texts)) {
+      translated[item.index] = text;
+    }
+  }
+  return translated;
 }
 
 function restore(outgoing: readonly OutgoingText[], translated: readonly string[]): Restored {
