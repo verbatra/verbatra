@@ -260,8 +260,10 @@ fichiers de locale ne correspondent plus à la source anglaise. La prose de la d
 lis en ce moment, chaque guide et chaque page de référence y compris celle-ci, est du MDX à suffixe
 de locale (`page.mdx`, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) et elle aussi traduite par IA,
 mais en dehors de cette chaîne automatisée : `pnpm i18n` ne traduit que les fichiers JSON, XLIFF,
-YAML, ARB et properties, jamais le Markdown, donc il ne touche jamais ces pages. Traduire une page
-de documentation est une étape séparée et manuelle à chaque changement de la source anglaise.
+YAML, ARB et properties, jamais le Markdown, donc il ne touche jamais ces pages. À la place, un agent IA
+traduit chaque page de documentation dans le même changement que celui qui modifie sa source
+anglaise, pour que les quatre langues arrivent ensemble ; c'est pour ça que chaque page non anglaise
+affiche l'avis de traduction automatique.
 
 Tout ne sort pas tel quel de ces deux étapes : certains textes, dont des parties des pages
 juridiques, ont été rédigés ou corrigés directement dans les fichiers de locale. Les traductions

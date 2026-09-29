@@ -239,8 +239,9 @@ locale files have drifted from the English source. The documentation prose you a
 now, every guide and reference page including this one, is locale-suffixed MDX (`page.mdx`,
 `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) that is also AI-translated, but outside that automated
 pipeline: `pnpm i18n` only translates JSON, XLIFF, YAML, ARB, and properties files, never Markdown,
-so it never touches these pages. Translating a doc page is a separate, manual step whenever the
-English source changes.
+so it never touches these pages. Instead, an AI agent translates a doc page in the same change that
+edits its English source, so all four languages land together; that is why every non-English page
+carries the machine-translated notice.
 
 Not everything comes out of those two steps unchanged: some texts, including parts of the legal
 pages, were written or corrected directly in the locale files instead. Translations are checked on a

@@ -1,8 +1,9 @@
 # Docs (apps/docs)
 
 `apps/docs` (`@verbatra/docs`, private) is a Fumadocs/Next.js site. It dogfoods verbatra for its
-own UI strings but hand-maintains its MDX content translations, because verbatra translates
-structured formats (JSON, XLIFF, YAML, ARB, properties), not Markdown/MDX.
+own UI strings, while its MDX content translations are written by AI agents in the repository,
+because verbatra translates structured formats (JSON, XLIFF, YAML, ARB, properties), not
+Markdown/MDX.
 
 ## Two kinds of translated content, two mechanisms
 
@@ -21,8 +22,12 @@ structured formats (JSON, XLIFF, YAML, ARB, properties), not Markdown/MDX.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
   translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
   by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
-  route groups and the `cli` folder, each with a `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are hand-translated;
-  verbatra's `next-intl-json` adapter only covers `messages/*.json`, not MDX.
+  route groups and the `cli` folder, each with a `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are translated by an AI agent
+  in the same change as the English page, following the tone rules below; verbatra's
+  `next-intl-json` adapter only covers `messages/*.json`, not MDX. Every non-English page renders
+  the "Machine-translated page" notice (`docs.machineTranslated` in `messages/*.json`), which is the
+  honest state and stays. The FAQ answer "Is this site's content translated by AI?" says the same
+  in all four locales, pinned by `apps/docs/lib/extract-faq.translation-claims.test.ts`.
 
 ## Source of truth: what's actually shipped
 
@@ -46,8 +51,8 @@ extension touches: `providers.mdx`, `config-file.mdx`, `formats.mdx`, plus
 ## Every user-facing change updates all four locale files
 
 A change to `messages/en.json` or to an English `page.mdx` is not complete until the corresponding
-`de`, `es`, and `fr` files are updated in the *same* change, whether by hand (MDX content) or by
-re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
+`de`, `es`, and `fr` files are updated in the *same* change, whether by an AI agent (MDX content)
+or by re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
 leave the other three locales to catch up later. `docs-i18n-check.yml` only backstops the
 `messages/*.json` half of this (see above); a stale or missing `.de.mdx`/`.es.mdx`/`.fr.mdx` is
 not caught by CI, so treat this as an authoring discipline, not a check you can rely on to fail.
@@ -81,9 +86,9 @@ any other UI string, not hand-duplicated per locale MDX file.
 
 Informal address throughout: German `du` (not `Sie`), Spanish `tú` (not `usted`), French `tu` (not
 `vous`). This is the same tone the automated translation already applies
-(`apps/docs/verbatra.config.ts`: `tone: "informal"`), so hand-translated MDX content should match
-it for consistency between machine- and hand-translated pages.
+(`apps/docs/verbatra.config.ts`: `tone: "informal"`), so agent-translated MDX content should match
+it for consistency between the UI strings and the pages.
 
-Never use the em dash (U+2014) in any locale, including hand-written German, Spanish, or French
-content. Use a spaced hyphen, a colon, or parentheses instead, exactly as the repo-wide rule
+Never use the em dash (U+2014) in any locale, including German, Spanish, or French content an agent
+wrote. Use a spaced hyphen, a colon, or parentheses instead, exactly as the repo-wide rule
 requires for English.

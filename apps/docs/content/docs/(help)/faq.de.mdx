@@ -257,8 +257,9 @@ Quelle abweichen. Die Doku-Prosa, die du gerade liest, jeder Guide und jede Refe
 einschließlich dieser hier, ist locale-suffigiertes MDX (`page.mdx`, `page.de.mdx`, `page.es.mdx`,
 `page.fr.mdx`) und ebenfalls KI-übersetzt, nur außerhalb dieser automatisierten Pipeline:
 `pnpm i18n` übersetzt nur JSON-, XLIFF-, YAML-, ARB- und Properties-Dateien, nie Markdown, es rührt
-diese Seiten also nie an. Eine Doku-Seite zu übersetzen ist ein eigener, manueller Schritt, sobald
-sich die englische Quelle ändert.
+diese Seiten also nie an. Stattdessen übersetzt ein KI-Agent eine Doku-Seite in derselben Änderung,
+die ihre englische Quelle bearbeitet, sodass alle vier Sprachen gemeinsam landen; deshalb trägt jede
+nicht-englische Seite den Hinweis auf die maschinelle Übersetzung.
 
 Nicht alles kommt unverändert aus diesen beiden Schritten: Einige Texte, darunter Teile der
 rechtlichen Seiten, wurden stattdessen direkt in den Locale-Dateien verfasst oder korrigiert.

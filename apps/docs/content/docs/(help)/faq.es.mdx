@@ -254,8 +254,9 @@ se han desviado de la fuente en inglés. La prosa de la documentación que está
 cada guía y cada página de referencia incluida esta, es MDX con sufijo de locale (`page.mdx`,
 `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`) y también está traducida con IA, solo que fuera de esa
 canalización automatizada: `pnpm i18n` solo traduce archivos JSON, XLIFF, YAML, ARB y properties,
-nunca Markdown, así que nunca toca estas páginas. Traducir una página de documentación es un paso
-aparte y manual cada vez que cambia la fuente en inglés.
+nunca Markdown, así que nunca toca estas páginas. En su lugar, un agente de IA traduce cada página
+de documentación en el mismo cambio que edita su fuente en inglés, así que los cuatro idiomas llegan
+juntos; por eso cada página que no está en inglés muestra el aviso de traducción automática.
 
 No todo sale tal cual de esos dos pasos: algunos textos, entre ellos partes de las páginas legales,
 se redactaron o corrigieron directamente en los archivos de locale. Las traducciones se revisan en
