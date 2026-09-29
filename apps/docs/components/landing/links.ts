@@ -8,3 +8,10 @@ export const CONTRIBUTING_URL = `${GITHUB_URL}/blob/main/CONTRIBUTING.md`;
 export const CODE_OF_CONDUCT_URL = `${GITHUB_URL}/blob/main/CODE_OF_CONDUCT.md`;
 export const SECURITY_URL = `${GITHUB_URL}/blob/main/SECURITY.md`;
 export const SKILLS_REPO_URL = "https://github.com/verbatra/skills";
+export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
+
+export const LEGAL_PAGE_LINKS = [
+  { key: "imprint", path: "/imprint" },
+  { key: "privacy", path: "/privacy" },
+  { key: "contact", path: "/contact" },
+] as const;

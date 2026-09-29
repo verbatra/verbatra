@@ -438,7 +438,7 @@
         "title": "Aviso legal",
         "description": "Información legal (Impressum) del sitio de documentación de verbatra."
       },
-      "intro": "Este aviso legal (Impressum) se proporciona en alemán tal como exige la ley alemana.",
+      "intro": "Aviso legal (Impressum) de este sitio web. Los datos se indican en alemán.",
       "lastUpdatedLabel": "Última actualización",
       "contactLinkNote": "Para una respuesta electrónica rápida, también puedes usar nuestro <link>formulario de contacto en línea</link>."
     },
@@ -448,7 +448,7 @@
         "description": "Ponte en contacto con el operador del sitio de documentación de verbatra."
       },
       "title": "Contacto",
-      "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el Aviso legal.",
+      "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el <imprint>Aviso legal</imprint>.",
       "privacyNotice": "Usamos tu nombre, tu dirección de correo electrónico y tu mensaje solo para responder a tu consulta, y los eliminamos una vez gestionada. Encontrarás los detalles en la <privacy>política de privacidad</privacy>.",
       "form": {
         "nameLabel": "Nombre",

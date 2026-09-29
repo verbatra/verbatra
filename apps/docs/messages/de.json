@@ -438,7 +438,7 @@
         "title": "Impressum",
         "description": "Rechtliche Angaben (Impressum) für die verbatra-Dokumentationsseite."
       },
-      "intro": "Dieses Impressum wird, wie nach deutschem Recht erforderlich, auf Deutsch bereitgestellt.",
+      "intro": "Anbieterkennzeichnung für diese Website.",
       "lastUpdatedLabel": "Zuletzt aktualisiert",
       "contactLinkNote": "Für eine schnelle elektronische Antwort kannst du auch unser <link>Online-Kontaktformular</link> nutzen."
     },
@@ -448,7 +448,7 @@
         "description": "Nimm Kontakt mit dem Betreiber der verbatra-Dokumentationsseite auf."
       },
       "title": "Kontakt",
-      "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im Impressum.",
+      "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im <imprint>Impressum</imprint>.",
       "privacyNotice": "Wir nutzen deinen Namen, deine E-Mail-Adresse und deine Nachricht nur, um deine Anfrage zu beantworten, und löschen sie, sobald die Anfrage erledigt ist. Details findest du in der <privacy>Datenschutzerklärung</privacy>.",
       "form": {
         "nameLabel": "Name",

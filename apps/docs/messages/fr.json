@@ -438,7 +438,7 @@
         "title": "Mentions légales",
         "description": "Informations légales (Impressum) pour le site de documentation de verbatra."
       },
-      "intro": "Ces mentions légales (Impressum) sont fournies en allemand, comme l'exige la loi allemande.",
+      "intro": "Mentions légales (Impressum) de ce site. Les informations ci-dessous sont en allemand.",
       "lastUpdatedLabel": "Dernière mise à jour",
       "contactLinkNote": "Pour une réponse électronique rapide, tu peux aussi utiliser notre <link>formulaire de contact en ligne</link>."
     },
@@ -448,7 +448,7 @@
         "description": "Contacte l'opérateur du site de documentation de verbatra."
       },
       "title": "Contact",
-      "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les mentions légales.",
+      "intro": "Utilise ce formulaire pour contacter directement l'opérateur du site. C'est un second canal de contact électronique direct, en plus de l'adresse e-mail indiquée dans les <imprint>mentions légales</imprint>.",
       "privacyNotice": "Nous utilisons ton nom, ton adresse e-mail et ton message uniquement pour répondre à ta demande, et nous les supprimons une fois celle-ci traitée. Tous les détails figurent dans la <privacy>politique de confidentialité</privacy>.",
       "form": {
         "nameLabel": "Nom",
