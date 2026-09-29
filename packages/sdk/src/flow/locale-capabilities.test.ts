@@ -335,7 +335,11 @@ describe("assessLocaleCapabilities: LibreTranslate", () => {
 
     expect(report).toMatchObject({ provider: "libretranslate", coverage: "listed" });
     expect(report.tableOrigin).toBe("static");
-    expect(report.source).toMatchObject({ providerCode: "en", support: "unverified" });
+    expect(report.source).toMatchObject({
+      providerCode: "en",
+      support: "unverified",
+      warnings: [],
+    });
     expect(entryOf(report, "de-AT")).toMatchObject({
       providerCode: "de",
       support: "unverified",
@@ -343,10 +347,35 @@ describe("assessLocaleCapabilities: LibreTranslate", () => {
       formality: false,
     });
     expect(entryOf(report, "haw").warnings[0]?.message).toContain(
-      "was not checked against the libretranslate server: a self-hosted server translates only",
+      "cannot be verified before a run: a self-hosted libretranslate server translates only",
+    );
+    expect(entryOf(report, "haw").warnings[0]?.message).toContain(
+      "its result is not kept, so this notice appears on every run",
     );
     expect(unsupportedLocales(report)).toEqual([]);
     expect(() => assertConfiguredLocalesSupported(config, config.targetLocales)).not.toThrow();
+  });
+
+  it("attaches only the target's own notice to a run's locale, never one for the source", () => {
+    const config = baseConfig({ provider: LIBRETRANSLATE, targetLocales: ["de"] });
+    const summary = failureSummary("de", new Error("x"));
+
+    const [withNotices] = withCapabilityNotices([summary], reportOf(config));
+
+    expect(withNotices?.notices.map((notice) => notice.message)).toEqual([
+      expect.stringContaining('The locale "de" cannot be verified'),
+    ]);
+  });
+
+  it("still warns for a source locale mapped through localeMap", () => {
+    const config = baseConfig({
+      provider: {
+        id: "libretranslate",
+        options: { baseUrl: "http://localhost:5000", localeMap: { en: "en" } },
+      },
+    });
+
+    expect(reportOf(config).source.warnings[0]?.message).toContain("provider.options.localeMap");
   });
 
   it("keeps the localeMap wording for a mapped locale", () => {
