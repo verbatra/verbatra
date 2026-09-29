@@ -20,7 +20,7 @@ import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { markdownUrl } from "@/lib/markdown-route";
-import { pageToc } from "@/lib/page-toc";
+import { onThisPageLabel, pageToc } from "@/lib/page-toc";
 import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
 import {
@@ -133,6 +133,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
   return (
     <DocsPage
       toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
+      tableOfContentPopover={{ trigger: { "aria-label": onThisPageLabel(lang) } }}
       full={isHome}
       breadcrumb={{ enabled: !isHome, includePage: true }}
       footer={{ enabled: !isHome, className: "vk-docs-footer" }}

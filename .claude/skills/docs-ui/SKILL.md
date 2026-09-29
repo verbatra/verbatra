@@ -291,6 +291,8 @@ comes from:
   whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
   locales) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
   `.vk-code-headings` to the page body, which sets its H3s (one code name each) in `--font-mono`.
+  The phone TOC button carries an explicit `aria-label` (Fumadocs' localized "On this page",
+  `onThisPageLabel`), so its accessible name is not the progress ring's value.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI

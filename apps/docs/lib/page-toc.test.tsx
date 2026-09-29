@@ -1,7 +1,7 @@
 import type { TOCItemType } from "fumadocs-core/toc";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { breakAfterUnderscores, pageToc } from "./page-toc";
+import { breakAfterUnderscores, onThisPageLabel, pageToc } from "./page-toc";
 
 const toc: TOCItemType[] = [
   { title: "CLI error codes", url: "#cli-error-codes", depth: 2 },
@@ -41,5 +41,12 @@ describe("pageToc", () => {
       "#cli-error-codes",
       "#sdk-notice-codes",
     ]);
+  });
+});
+
+describe("onThisPageLabel", () => {
+  it("names the table of contents in the page locale", () => {
+    expect(onThisPageLabel("en")).toBe("On this page");
+    expect(onThisPageLabel("de")).toBe("Auf dieser Seite");
   });
 });
