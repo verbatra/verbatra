@@ -70,5 +70,5 @@ export function stateFromXliff2(value: string | null): XliffState {
 }
 
 export function xliffFileName(locale: string): string {
-  return handoffFileName(locale, XLIFF_FILE_EXTENSION, "XLIFF_INVALID");
+  return handoffFileName(locale, XLIFF_FILE_EXTENSION, "WORKBOOK_INVALID");
 }

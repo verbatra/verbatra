@@ -51,12 +51,15 @@ describe("xliffFileName", () => {
     expect(xliffFileName("pt-BR")).toBe("pt-BR.xlf");
   });
 
-  it.each(["", "..", "de/x"])("refuses %j as XLIFF_INVALID", (locale) => {
-    expect(() => xliffFileName(locale)).toThrow(ExchangeError);
-    try {
-      xliffFileName(locale);
-    } catch (error) {
-      expect((error as ExchangeError).code).toBe("XLIFF_INVALID");
-    }
-  });
+  it.each(["", "..", "de/x"])(
+    "refuses %j as WORKBOOK_INVALID, like a delimited file name",
+    (locale) => {
+      expect(() => xliffFileName(locale)).toThrow(ExchangeError);
+      try {
+        xliffFileName(locale);
+      } catch (error) {
+        expect((error as ExchangeError).code).toBe("WORKBOOK_INVALID");
+      }
+    },
+  );
 });
