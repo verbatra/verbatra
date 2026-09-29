@@ -204,13 +204,14 @@ describe("approveEntry", () => {
     const dir = await project({ greeting: "Line one\nLine two" });
     await translate({ config: cfg(), cwd: dir }, { createProvider: stubCreate });
     const value = await currentValue(dir, "greeting");
+    expect(value).toContain("\n");
 
     const result = await approveEntry({
       config: cfg(),
       cwd: dir,
       locale: "de",
       key: "greeting",
-      expectedValue: value.replace("\n", "\r\n"),
+      expectedValue: value.replaceAll("\n", "\r\n"),
     });
 
     expect(result.provenance.reviewState).toBe("approved");
