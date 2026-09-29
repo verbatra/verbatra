@@ -1,6 +1,7 @@
 ---
 title: verbatra check
 description: Informa de qué claves faltan o están obsoletas por locale sin escribir archivos.
+type: reference
 ---
 Informa, por cada locale de destino, de cuántas claves faltan, están obsoletas o al día, y termina con un código en el que un paso de CI puede ramificar. `check` lee y compara como [`verbatra translate`](/docs/cli/translate) antes de llamar al proveedor y se detiene ahí: sin llamada al proveedor, sin escribir archivos, sin clave de API.
 

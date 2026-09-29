@@ -1,6 +1,7 @@
 ---
 title: verbatra translate
 description: Translate every target locale once, then exit.
+type: reference
 ---
 Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice.
 

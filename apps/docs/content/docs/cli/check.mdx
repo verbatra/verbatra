@@ -1,6 +1,7 @@
 ---
 title: verbatra check
 description: Report which keys are missing or stale per locale without writing files.
+type: reference
 ---
 Report, per target locale, how many keys are missing, stale, or up to date, and exit with a code a CI step can branch on. `check` runs the read and diff [`verbatra translate`](/docs/cli/translate) runs before calling a provider, then stops: no provider call, no file written, no API key needed.
 

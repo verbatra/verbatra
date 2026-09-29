@@ -1,6 +1,7 @@
 ---
 title: Error codes
 description: "Every error, result and notice code verbatra reports: what it means, which commands raise it, the exit code, and the next step."
+type: reference
 ---
 Every failure verbatra reports carries a stable code: in the `verbatra: error [CODE] message` line on stderr, as the `code` or `causeCode` of a `--json` envelope, as the `error.code` of a failed locale, or as a notice on the run summary. Branch on the code, never on the message. Each code has its own anchor, `/docs/error-codes#` followed by the code in lower case, such as [`#config_not_found`](#config_not_found).
 
