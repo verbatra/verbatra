@@ -4,12 +4,16 @@ import { z } from "zod";
 import { rehypeAvailableFromInHeading } from "./lib/available-from-heading";
 import { rehypeCodeOptions } from "./lib/code-block-meta";
 import { remarkIntroducedIn } from "./lib/introduced-in";
+import { PAGE_TYPES } from "./lib/page-type";
 import { rehypeStackedTables } from "./lib/stacked-tables";
 
 export const docs = defineDocs({
   dir: "content/docs",
   docs: {
-    schema: pageSchema.extend({ status: z.string().optional() }),
+    schema: pageSchema.extend({
+      status: z.string().optional(),
+      type: z.enum(PAGE_TYPES).optional(),
+    }),
     postprocess: { includeProcessedMarkdown: true, valueToExport: ["introducedIn"] },
   },
 });

@@ -1,141 +1,89 @@
 ---
-title: Wiederherstellung und Rollback
-description: Wie du einen Translate-Lauf rückgängig machst, warum die Locale-Dateien und die Lock-Datei gemeinsam zurückgesetzt werden müssen und was ein abgebrochener Lauf hinterlässt.
+title: Einen Lauf rückgängig machen
+description: Wie du einen translate-Lauf rückgängig machst, warum Locale-Dateien und Lock-Datei gemeinsam zurückgesetzt werden müssen und was ein unterbrochener Lauf hinterlässt.
+type: how-to
 ---
-verbatra hat keinen Undo-Befehl und legt keine Backups an. Ein Lauf schreibt deine Locale-Dateien
-direkt um und aktualisiert `verbatra.lock.json`, und nichts auf der Festplatte erinnert sich an den
-vorherigen Stand. Die Versionskontrolle ist der Wiederherstellungsweg. Das ist der praktische Grund,
-warum sowohl die Locale-Dateien als auch die Lock-Datei committet werden: zusammen sind sie der
-Snapshot, zu dem du zurückkehren kannst.
+Nutze das, wenn ein Lauf Übersetzungen erzeugt hat, die du nicht willst: den falschen Ton, das falsche Modell, ein vergessenes Glossar. verbatra hat keinen Rückgängig-Befehl und legt keine Sicherungen an. Die Versionsverwaltung ist der Wiederherstellungsweg, und deshalb werden die Locale-Dateien und die Lock-Datei committet: Zusammen sind sie der Stand, zu dem du zurückkehrst.
+
+Du brauchst das Projekt in git, mit dem Stand vor dem Lauf committet.
 
 ## Was ein Lauf schreibt
 
-Ein Lauf von `translate`, `watch` oder `import` schreibt zwei Dateien, um die sich ein Rollback
-kümmern muss:
+Ein `translate`-, `watch`- oder `import`-Lauf schreibt die Dateien, um die sich ein Rollback kümmern muss:
 
-- die Ziel-Locale-Dateien, eine pro Locale, unter dem Pfad deines `files.pattern`
-- `verbatra.lock.json`, ein Quell-Content-Hash pro übersetztem Key
+- die Ziel-Locale-Dateien unter deinem `files.pattern`;
+- `verbatra.lock.json`, ein Hash des Quellinhalts pro übersetztem Key.
 
 <AvailableFrom version="0.12.0" />
 
-Außerdem schreibt er `verbatra.provenance.json`, die festhält, welcher Schreibweg jeden Wert erzeugt
-hat. Stelle sie zusammen mit den beiden anderen wieder her, wie unten beschrieben. Vergisst du sie, geht
-nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, liest sich
-als `external`, sodass eine Abweichung nur Information kostet und nie den falschen Urheber nennt.
+Außerdem schreibt er `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her. Wenn du sie vergisst, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, gilt als `external`, also verliert ein Abweichen nur Information und schreibt nie den falschen Autor zu.
 
-Alles Weitere, was er schreibt, ist regenerierbarer Zustand in Nebendateien, den du nie
-wiederherstellst: `verbatra.cache.json` und das Verzeichnis `.verbatra-local/`, beide gitignoriert.
-Ein Lauf kann diese Einträge außerdem einer vorhandenen `.gitignore` hinzufügen, der sie fehlen; das
-ist einmaliges Aufräumen und nicht Teil eines Rollbacks.
+`verbatra.cache.json` und `.verbatra-local/` sind neu erzeugbarer, von git ignorierter Zustand; stell sie nie wieder her. Jede versionierte Datei wird atomar geschrieben, also gibt es nie eine halb geschriebene Datei zu reparieren.
 
-Beide verfolgten Dateien werden atomar geschrieben (eine temporäre Datei, dann ein Rename), sodass
-ein Leser entweder die alte oder die neue Datei sieht, nie eine halb geschriebene Mitte. Es gibt
-keine unvollständige Datei zu reparieren.
+## Einen abgeschlossenen Lauf zurückrollen
 
-## Einen abgeschlossenen Lauf zurücksetzen
-
-Wenn der Lauf noch nicht committet ist, verwirf beide Dateien gemeinsam:
+Ist der Lauf noch nicht committet, verwirf die Locale-Dateien und die Lock-Datei gemeinsam:
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
 ```
 
-Ist `verbatra.provenance.json` bereits committet, stellst du sie genauso wieder her. Hat dieser Lauf
-sie zum ersten Mal angelegt, hat git keine committete Fassung, die es wiederherstellen könnte;
-lösche sie dann stattdessen:
+Stell `verbatra.provenance.json` genauso wieder her, wenn sie schon committet ist. Hat dieser Lauf sie angelegt, hat git nichts wiederherzustellen, also lösch sie:
 
 ```bash
-git checkout HEAD -- verbatra.provenance.json   # bereits committet
-rm verbatra.provenance.json                      # von diesem Lauf angelegt
+git checkout HEAD -- verbatra.provenance.json   # already committed
+rm verbatra.provenance.json                      # created by this run
 ```
 
-Wenn der Lauf bereits committet ist, mache diesen Commit rückgängig:
+Ist der Lauf schon committet, mach den Commit rückgängig:
 
 ```bash
 git revert <commit>
 ```
 
-So oder so: Stelle die Locale-Dateien und `verbatra.lock.json` im selben Schritt wieder her. Der
-nächste Abschnitt erklärt, warum.
+In beiden Fällen stellst du die Locale-Dateien und `verbatra.lock.json` im selben Schritt wieder her. Der nächste Abschnitt erklärt, warum.
 
 ## Warum beide Dateien oder keine
 
-Die Lock-Datei hält einen Hash des **Quellwerts** fest, aus dem jede Übersetzung entstanden ist. Sie
-hält nichts über den übersetzten Wert selbst fest. Deine Locale-Dateien zurückzusetzen, teilt der
-Lock-Datei also nichts mit und kann es auch gar nicht.
+Die Lock-Datei hält einen Hash des **Quell**werts hinter jeder Übersetzung fest und nichts über den übersetzten Wert selbst. Setzt du eine Datei ohne die andere zurück, beschreiben die beiden verschiedene Zeitpunkte.
 
-**Nur die Locale-Dateien zurücksetzen.** Die Lock-Datei enthält weiterhin den Hash der Quelle, wie
-sie jetzt ist. Beim nächsten Lauf ist ein zurückgesetzter Key in der Zieldatei vorhanden, fehlt
-also nicht; und sein festgehaltener Hash passt weiterhin zur aktuellen Quelle, also ist er nicht
-geändert. Er gilt als unverändert, wird nie an den Provider geschickt, und der Wert, auf den du
-zurückgesetzt hast, bleibt dauerhaft stehen. Die Ausnahme sind
-Keys, die der Lauf neu angelegt hat: Das Zurücksetzen hat sie aus der Datei entfernt, also kommen
-sie als fehlend zurück und werden erneut übersetzt. Alles, was der Lauf *ersetzt* hat, strandet.
+**Nur die Locale-Dateien.** Die Lock-Datei sagt weiter, dass jeder Key aktuell ist. Beim nächsten Lauf ist ein zurückgesetzter Key vorhanden und sein Hash passt zur Quelle, also wird er nie wieder gesendet: Der alte Wert bleibt dauerhaft stehen. Nur Keys, die der Lauf neu angelegt hat, kommen als fehlend zurück. `check` und `diff` vergleichen mit derselben Baseline, melden die Locale also als sauber, und nichts sagt dir, dass diese Übersetzungen veraltet sind.
 
-Dass dies still geschieht, ist eine Folge des Designs, kein Zufall. `verbatra check` und
-`verbatra diff` vergleichen gegen dieselbe Lock-Baseline und melden die Locale deshalb als sauber.
-Kein Befehl wird dir sagen, dass diese Übersetzungen veraltet sind, denn gemessen an der
-festgehaltenen Baseline sind sie es nicht.
+**Nur die Lock-Datei.** Die wiederhergestellten Hashes sind älter als die aktuelle Quelle, also gelten die betroffenen Keys als geändert. Der nächste Lauf übersetzt sie erneut und überschreibt die Locale-Dateien, samt Korrekturen von Hand, die seitdem gemacht wurden. Du zahlst doppelt und verlierst die Änderungen.
 
-**Nur die Lock-Datei zurücksetzen.** Das Spiegelbild, und in die andere Richtung zerstörerisch. Die
-wiederhergestellten Hashes sind älter als die aktuelle Quelle, also gelten die betroffenen Keys als
-geändert, und der nächste Lauf übersetzt sie erneut und überschreibt damit, was in deinen
-Locale-Dateien steht, einschließlich seither von Hand vorgenommener Änderungen. Du bezahlst die
-Provider-Aufrufe ein zweites Mal und verlierst die Handkorrekturen.
+**Beide.** Hashes und Übersetzungen gehen auf denselben Zeitpunkt zurück, und der nächste Lauf verhält sich, als hätte es den missglückten Lauf nie gegeben.
 
-**Beide zurücksetzen.** Die Quell-Hashes und die Übersetzungen, die sie beschreiben, gehen auf
-denselben Zeitpunkt zurück, die Baseline ist wieder konsistent, und der nächste Lauf verhält sich
-genau so, wie er es getan hätte, wenn der schlechte Lauf nie stattgefunden hätte.
+## Nach einem Rollback neu laufen lassen
 
-## Nach einem Rollback erneut laufen lassen
+Zurückrollen und `verbatra translate` erneut ausführen ist eine Wiederholung, keine zweite Meinung. Mit gleichem Provider, Modell, Ton, Glossar und Provider-`localeMap` bleibt der [Cache](/docs/the-cache#der-fingerprint)-Fingerprint gleich, also liefert der Lauf dieselben Übersetzungen aus `verbatra.cache.json`, ohne den Provider aufzurufen.
 
-Zurückzusetzen und `verbatra translate` erneut laufen zu lassen, ist eine Wiederholung, keine zweite
-Meinung. Bei gleichem Provider, Modell, Tonfall, Glossar und `localeMap` des Providers ist der Fingerprint des
-[Caches](/docs/the-cache) unverändert, sodass der Lauf dieselben Übersetzungen aus
-`verbatra.cache.json` zurückliefert, ohne den Provider überhaupt aufzurufen.
+Für ein anderes Ergebnis änderst du, was das erste falsch gemacht hat: Ein neuer Ton, ein neues Glossar oder ein anderes Modell ändert den Fingerprint und übersetzt von selbst neu. Um dieselbe Konfiguration erneut an den Provider zu schicken, nimm `--no-cache` dazu:
 
-Um ein anderes Ergebnis zu bekommen, ändere die Ursache dafür, dass das erste falsch war. Tonfall
-oder Glossar zu bearbeiten oder das Modell zu wechseln, ändert den Fingerprint und übersetzt von
-sich aus neu. Willst du dieselbe Konfiguration erneut an den Provider schicken, übergib
-`--no-cache` an [`translate`](/docs/cli/translate).
+```bash
+verbatra translate --no-cache
+```
 
-Um eine Locale von Grund auf neu aufzubauen, statt einen Lauf zurückzusetzen, siehe
-[Wie übersetze ich alles neu?](/docs/faq#wie-übersetze-ich-alles-neu) in der FAQ. Beachte: Die
-Lock-Datei zu löschen ist kein Reset. Ohne Baseline kann nichts als veraltet erkannt werden, also
-übersetzt ein Lauf nach dem Löschen gar nichts.
+Um eine Locale von Grund auf neu aufzubauen, statt einen Lauf rückgängig zu machen, siehe [Wie übersetze ich alles neu?](/docs/faq#wie-übersetze-ich-alles-neu). Die Lock-Datei zu löschen ist kein Zurücksetzen: Ohne Baseline wird nichts als veraltet erkannt, also übersetzt der nächste Lauf nichts.
 
-## Ein abgebrochener oder fehlgeschlagener Lauf
+## Ein unterbrochener oder gescheiterter Lauf
 
-Ein abgebrochener Lauf braucht kein Rollback. Lass ihn einfach erneut laufen.
+Ein unterbrochener Lauf braucht kein Rollback. Führ ihn einfach erneut aus.
 
-Jede Locale wird für sich festgeschrieben: Ihre Zieldatei wird geschrieben, dann werden ihre
-Lock-Einträge festgehalten. Den Befehl abzubrechen, hinterlässt also die bereits fertigen Locales
-vollständig geschrieben und festgehalten und die noch nicht erreichten völlig unberührt. Ein
-erneuter Lauf nimmt sich die unberührten vor und überspringt die fertigen.
+Jede Locale wird für sich abgeschlossen: Erst wird ihre Datei geschrieben, dann werden ihre Lock-Einträge erfasst. Eine Unterbrechung lässt die fertigen Locales vollständig und die anderen unberührt, und ein neuer Lauf nimmt die unberührten auf. Die eine Lücke, zwischen dem Schreiben der Datei und dem Lock-Update, schließt sich von selbst: Hinzugefügte Keys werden so übernommen, wie sie sind, und geänderte Keys tragen noch ihren alten Hash, also werden sie erneut übersetzt. Es geht keine Arbeit verloren.
 
-Die einzige Lücke, zwischen dem Dateischreiben einer Locale und ihrem Lock-Update, löst sich beim
-nächsten Lauf von selbst. Keys, die der Lauf hinzugefügt hatte, stehen jetzt ohne Lock-Eintrag in
-der Zieldatei und werden deshalb so übernommen, wie sie sind; Keys, deren Quelle sich verändert
-hatte, tragen weiterhin ihren alten Hash, werden also als geändert erkannt und erneut übersetzt. In
-keinem der beiden Fälle geht Arbeit verloren.
+Keys, die während eines Laufs zurückgehalten wurden, durch eine gescheiterte Prüfung, einen gescheiterten Provider-Aufruf oder ein Token-Budget, behalten ihren bisherigen Hash, also versucht der nächste Lauf sie erneut. Siehe [Fehlerbehebung](/docs/troubleshooting) für jede Ursache.
 
-Keys, die während eines Laufs zurückgehalten wurden (eine fehlgeschlagene Integritätsprüfung, ein
-Provider-Fehlschlag, eine ungültige ICU-Quelle oder ein gestopptes Token-Budget), behalten ihren
-vorherigen Hash, statt als erledigt festgehalten zu werden, sodass der nächste Lauf sie erneut
-versucht. Was diese Fälle jeweils bedeuten, steht unter [Fehlerbehebung](/docs/troubleshooting).
-
-Ein unterbrochener Lauf gibt seine Schreibsperren frei, bevor er endet. Ein hart abgeschossener
-Prozess (`kill -9`, ein Absturz) kann trotzdem eine unter `.verbatra-local/` zurücklassen; der
-nächste Lauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr existiert, und
-übernimmt die Sperre selbst. Nur eine Sperre, die er nicht prüfen kann (auf einer anderen Maschine
-oder von einer Version vor 0.12.0 geschrieben), lässt den Lauf warten und dann `LOCK_CONTENDED` mit
-dem zu löschenden Pfad melden.
+Ein unterbrochener Lauf gibt seine Schreibsperren frei. Ein hart beendeter Prozess (`kill -9`, ein Absturz) kann eine unter `.verbatra-local/` zurücklassen; der nächste Lauf auf derselben Maschine erkennt, dass der Prozess weg ist, und übernimmt sie. Eine Sperre, die er nicht prüfen kann, lässt den Lauf warten und dann mit [`LOCK_CONTENDED`](/docs/error-codes#lock_contended) scheitern, das den zu löschenden Pfad nennt.
 
 ## Vor einem Lauf, den du nicht leicht rückgängig machen kannst
 
-- Committe zuerst deine Locale-Dateien und `verbatra.lock.json`, damit `git checkout HEAD --` zur
-  Verfügung steht.
-- Sieh dir das Ergebnis vorher mit `verbatra translate --dry-run` an, oder mit `verbatra diff` für
-  die genauen Key-Listen und `verbatra check` für die Zahlen. Keiner der drei ruft einen Provider
-  auf oder schreibt eine Datei.
-- Ergänze `--locales <locale>`, um eine Locale auszuprobieren, bevor du den Rest laufen lässt.
+- Committe zuerst deine Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json`, damit `git checkout HEAD --` etwas hat, wohin es zurückkehren kann.
+- Sieh dir vorab `verbatra translate --dry-run`, `verbatra diff` oder `verbatra check` an. Keiner davon ruft einen Provider auf oder schreibt eine Datei.
+- Probier mit `--locales <locale>` zuerst eine Locale aus.
+
+## Siehe auch
+
+- [Die Lock-Datei](/docs/the-lock-file): was sie festhält und wie Abweichungen erkannt werden.
+- [Der Cache](/docs/the-cache): der Fingerprint und `--no-cache`.
+- [`verbatra translate`](/docs/cli/translate): `--dry-run`, `--locales` und `--no-cache`.
+- [Fehlercodes](/docs/error-codes#lock_contended): `LOCK_CONTENDED` und die anderen Sperrfehler.

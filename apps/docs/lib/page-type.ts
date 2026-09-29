@@ -1,0 +1,9 @@
+export const PAGE_TYPES = ["tutorial", "how-to", "concept", "reference"] as const;
+
+export function proseWords(source: string): number {
+  const body = source
+    .replace(/^---\n[\s\S]*?\n---\n/, "")
+    .replace(/^```[\s\S]*?^```$/gm, "")
+    .replace(/<[^>]+>/g, " ");
+  return body.split(/\s+/).filter((word) => /[A-Za-z0-9]/.test(word)).length;
+}
