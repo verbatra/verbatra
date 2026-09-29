@@ -20,6 +20,19 @@ sola llamada informa de cada problema independiente. La clave de API se comprueb
 La comprobación del archivo de origen lo lee y lo parsea en lugar de solo sondear su existencia, así
 que un directorio en su lugar, un archivo vacío y contenido malformado se informan todos aquí.
 
+```ts title="Firma"
+function doctor(
+  input?: DoctorInput,
+  deps?: DoctorDeps,
+): Promise<DoctorResult>;
+```
+
+<SdkTypeTable name="DoctorInput" />
+
+**Devuelve:** `DoctorResult`
+
+**Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found)
+
 <AvailableFrom version="0.12.0" />
 
 La comprobación `network-policy` pasa cuando la [política de red](/docs/network-policy)
@@ -65,7 +78,7 @@ DeepL, `languages` de Cloud Translation), lo que no consume cuota de traducción
 de la clave del proveedor está definida y la política de red permite su host;
 `LocaleCapabilityReport.live` dice cómo fue. Consulta [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
 
-Entrada: `{ cwd?, configPath?, literals?, live?, onProgress? }`. Con `literals` activado, `doctor` solo ejecuta la
+Con `literals` activado, `doctor` solo ejecuta la
 comprobación `config` y, en lugar de las demás, una comprobación `untranslated-literals` que
 recorre las raíces de código del bloque `extract` de la configuración, igual que
 [`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir). No necesita una
@@ -91,6 +104,19 @@ de un archivo de locale, y eso es lo que hace que verbatra sirva en un proyecto 
 catálogo. No gasta nada: no construye ningún proveedor, no lee ninguna variable de entorno con una
 clave de API y no hace ninguna petición de red.
 
+```ts title="Firma"
+function extract(
+  input: ExtractInput,
+  deps?: ExtractDeps,
+): Promise<ExtractResult>;
+```
+
+<SdkTypeTable name="ExtractInput" />
+
+**Devuelve:** `ExtractResult`
+
+**Lanza:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
+
 Solo se escribe el archivo del locale de origen, y solo se añaden claves realmente nuevas: una clave
 que ya está en el catálogo conserva su valor tal cual, y una clave del catálogo que ninguna llamada
 menciona se deja intacta. Una ejecución que no encuentra nada nuevo no escribe nada en absoluto.
@@ -100,8 +126,7 @@ clave no estático en `dynamic`, una clave encontrada con dos valores por defect
 únicamente claves, valores y ubicaciones de archivo y línea, nunca el contenido de un archivo de
 código.
 
-Entrada: `{ config, cwd?, dryRun?, onProgress? }`, donde `config.extract` nombra el framework y las raíces de
-código. Devuelve un `ExtractResult`. El descubrimiento pasa por el miembro opcional `readDirectory`
+`config.extract` nombra el framework y las raíces de código. El descubrimiento pasa por el miembro opcional `readDirectory`
 de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
@@ -109,7 +134,20 @@ de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 Informa del desfase por locale como contadores: `missing` (en el origen, ausente del destino), `stale`
 (el origen cambió desde la última traducción) y `upToDate`. Úsalo como puerta de CI.
 
-Entrada: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Devuelve un `CheckSummary` cuyo `inSync` es true
+```ts title="Firma"
+function check(
+  input: CheckInput,
+  deps?: CheckDeps,
+): Promise<CheckSummary>;
+```
+
+<SdkTypeTable name="CheckInput" />
+
+**Devuelve:** `CheckSummary`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Devuelve un `CheckSummary` cuyo `inSync` es true
 exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 
 <AvailableFrom version="0.11.0" />
@@ -177,8 +215,20 @@ persona o un agente lo edite. Lee ese archivo y, para un locale de destino, el a
 origen, y nada más: ningún otro locale, ni el archivo de bloqueo, ni código fuente, ni proveedor, ni
 clave de API, y no escribe nada.
 
-Entrada: `{ config, cwd?, file, qaSeverity? }`, donde `file` es absoluto o relativo a `cwd`. Devuelve
-un `CheckFileSummary` de `{ file, role, locales, qa }`: `role` es `"source"`, `"target"` o
+```ts title="Firma"
+function checkFile(
+  input: CheckFileInput,
+  deps?: CheckFileDeps,
+): Promise<CheckFileSummary>;
+```
+
+<SdkTypeTable name="CheckFileInput" />
+
+**Devuelve:** `CheckFileSummary`
+
+**Lanza:** [`NOT_A_LOCALE_FILE`](/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+`file` es absoluto o relativo a `cwd`. El `CheckFileSummary` es `{ file, role, locales, qa }`: `role` es `"source"`, `"target"` o
 `"catalogue"` (el único archivo de `apple-xcstrings`), cada entrada de `locales` es un
 `LocaleFileCheck` de `{ locale, incompletePlurals, qa }` cuyo `qa` tiene la forma del informe `qa`
 que devuelve `check` con `qa: true`, y `qa` contiene los totales. Un archivo que no se puede analizar
@@ -196,6 +246,19 @@ El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de 
 (`missing`, `changed`, `orphaned`) en lugar de contadores. Las claves huérfanas son solo informativas y
 nunca activan `hasPendingChanges`, porque una ejecución por defecto no elimina claves.
 
+```ts title="Firma"
+function diff(
+  input: DiffInput,
+  deps?: DiffDeps,
+): Promise<DiffSummary>;
+```
+
+<SdkTypeTable name="DiffInput" />
+
+**Devuelve:** `DiffSummary`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
 Con `unused: true` también analiza las raíces del bloque `extract` de la configuración y añade un
 informe `unused`, separado de cada lista `orphaned`: las claves del locale de origen que ninguna
 referencia estática nombra, en el orden del catálogo. Es de solo lectura, no necesita clave y modela
@@ -207,8 +270,6 @@ alcanzar un literal de plantilla con cabecera estática, a `possiblyDynamic`. Su
 `unreliable` (con `unreliableBecause` nombrando cada motivo con sus ubicaciones) o `not-run` (con un
 `reason` y sin lista de claves). Consulta todos los motivos en [Claves de origen sin
 uso](/docs/cli/diff#claves-de-origen-sin-uso). El informe nunca activa `hasPendingChanges`.
-
-Entrada: `{ config, cwd?, locales?, unused?, onProgress? }`. Devuelve un `DiffSummary`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -232,6 +293,19 @@ del momento de escritura: una traducción escrita antes de que existiera la comp
 verbatra o producida por una ruta que nunca pasó por la puerta se juzga aquí con la misma regla.
 Este es el informe de integridad por clave que muestra Studio.
 
+```ts title="Firma"
+function keyIntegrity(
+  input: KeyIntegrityInput,
+  deps?: KeyIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="KeyIntegrityInput" />
+
+**Devuelve:** `readonly LocaleKeyIntegrity[]`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
 <AvailableFrom version="0.12.0" />
 
 Cada entrada lleva además `icuArmsMatch` e `icuArmDetails`: si las ramas ICU de `plural`,
@@ -240,7 +314,7 @@ juzga la puerta del momento de escritura, y un problema breve por cada rama que 
 `{count} plural: missing arm "few" required by the target language`. `icuArmsMatch` siempre es true
 para un formato que no comprueba ramas (todos los formatos incluidos salvo next-intl y ARB).
 
-Entrada: `{ config, cwd?, locales?, keys? }`. `keys` acota la comprobación; solo se comprueban las
+`keys` acota la comprobación; solo se comprueban las
 claves que están "modificadas" para un locale. Devuelve un `LocaleKeyIntegrity` por locale comprobado.
 
 ### localeIntegrity
@@ -256,11 +330,24 @@ tocado desde que se escribió. Cada clave se juzga con las mismas reglas que `ke
 puerta del momento de escritura, y solo vuelven las claves que fallan: una lista `entries` vacía
 significa que todas las traducciones de ese locale pasan.
 
+```ts title="Firma"
+function localeIntegrity(
+  input: LocaleIntegrityInput,
+  deps?: LocaleIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="LocaleIntegrityInput" />
+
+**Devuelve:** `readonly LocaleKeyIntegrity[]`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
 El coste es una lectura y un análisis del archivo de origen y de cada archivo de destino pedido,
 más una comprobación por clave traducida. No se guarda nada en caché; cada llamada lee de nuevo del
 disco.
 
-Entrada: `{ config, cwd?, locales? }`. Devuelve un `LocaleKeyIntegrity` por locale comprobado, con
+Devuelve un `LocaleKeyIntegrity` por locale comprobado, con
 solo sus entradas que fallan.
 
 ### lockState
@@ -270,7 +357,18 @@ la línea base más contadores de faltantes, obsoletas y al día). `exists` vien
 así que "todavía no hay archivo de bloqueo" y "un archivo de bloqueo vacío pero presente" siguen siendo
 distinguibles. Cuando el archivo está ausente el resultado es `{ exists: false }` y no se lee nada más.
 
-Entrada: `{ config, cwd?, locales? }`. Devuelve un `LockStateResult`.
+```ts title="Firma"
+function lockState(
+  input: LockStateInput,
+  deps?: LockStateDeps,
+): Promise<LockStateResult>;
+```
+
+<SdkTypeTable name="LockStateInput" />
+
+**Devuelve:** `LockStateResult`
+
+**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
 
 Cada locale lleva además los mismos contadores `provenance` que informa `check`.
 
@@ -282,7 +380,20 @@ contenido de origen desde el que se tradujeron por última vez. Un archivo ausen
 vacío, el mismo comportamiento de primera ejecución en el que se apoya `translate`; usa `lockState`
 cuando necesites distinguir la ausencia.
 
-Entrada: `{ cwd? }`. No necesita configuración. Devuelve un `LockFile`.
+```ts title="Firma"
+function loadLockFile(
+  input?: LoadLockFileInput,
+  deps?: LoadLockFileDeps,
+): Promise<LockFile>;
+```
+
+<SdkTypeTable name="LoadLockFileInput" />
+
+**Devuelve:** `LockFile`
+
+**Lanza:** [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+No necesita configuración. Devuelve un `LockFile`.
 
 ### loadProvenance
 
@@ -297,7 +408,20 @@ como vacío; uno corrupto lanza `PROVENANCE_FILE_INVALID`. `keyValue`, `localeVa
 valor sin registro (`unrecorded`) de uno editado fuera de verbatra desde que se registró
 (`external`).
 
-Entrada: `{ cwd? }`. No necesita configuración. Devuelve un `ProvenanceFile`.
+```ts title="Firma"
+function loadProvenance(
+  input?: LoadProvenanceInput,
+  deps?: LoadProvenanceDeps,
+): Promise<ProvenanceFile>;
+```
+
+<SdkTypeTable name="LoadProvenanceInput" />
+
+**Devuelve:** `ProvenanceFile`
+
+**Lanza:** [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+No necesita configuración. Devuelve un `ProvenanceFile`.
 
 ### runStatus
 
@@ -306,7 +430,18 @@ Lee la instantánea de señales de revisión y uso de tokens que la ejecución m
 corrupto o no reconocido degrada a `{ available: false }`. Este archivo es telemetría de mejor esfuerzo,
 no una línea base de corrección.
 
-Entrada: `{ cwd? }`. No necesita configuración. Devuelve `{ available: false }` o
+```ts title="Firma"
+function runStatus(
+  input?: RunStatusInput,
+  deps?: RunStatusDeps,
+): Promise<RunStatusResult>;
+```
+
+<SdkTypeTable name="RunStatusInput" />
+
+**Devuelve:** `RunStatusResult`
+
+No necesita configuración. Devuelve `{ available: false }` o
 `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
 Una instantánea escrita por una versión anterior a que el presupuesto de tokens se hiciera cumplir
@@ -331,7 +466,20 @@ queda, y también una aprobación anterior a un cambio del origen de la clave. L
 última ejecución de `runStatus` solo añade detalle: las `reasons` de cada entrada (vacías si la
 ejecución no la marcó), los `fuzzyHits` del locale y `lastRunAt`.
 
-Entrada: `{ config, cwd?, locales?, includeApproved? }`. Devuelve `{ available: true, locales, lastRunAt? }`,
+```ts title="Firma"
+function reviewQueue(
+  input: ReviewQueueInput,
+  deps?: ReviewQueueDeps,
+): Promise<ReviewQueueResult>;
+```
+
+<SdkTypeTable name="ReviewQueueInput" />
+
+**Devuelve:** `ReviewQueueResult`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+Devuelve `{ available: true, locales, lastRunAt? }`,
 cada locale como `{ locale, needsReview, approved?, fuzzyHits? }` y cada entrada como
 `{ key, reasons, provenance }`; `approved` lista los valores de máquina aprobados y solo aparece con
 `includeApproved: true`. Cuando el archivo de procedencia está dañado o viene de una versión más
@@ -350,7 +498,20 @@ revisión, proveedor, modelo y revisor, contada en uno de siete grupos (`machine
 como la tupla `PROVENANCE_BUCKETS`). Lee los archivos de locale, `verbatra.lock.json` y
 `verbatra.provenance.json`, no llama a ningún proveedor y no escribe nada.
 
-Entrada: `{ config, cwd?, locales?, toolVersion? }`; `deps` acepta además `now`, el reloj del que se
+```ts title="Firma"
+function provenanceReport(
+  input: ProvenanceReportInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportInput" />
+
+**Devuelve:** `ProvenanceReportResult`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+`deps` acepta además `now`, el reloj del que se
 lee `generatedAt`. Devuelve `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`,
 cada locale como `{ locale, total, counts, entries }` y cada entrada como
 `{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` vale `unknown`
@@ -373,7 +534,20 @@ una sola pasada sobre los archivos que ya están en disco. Es la contraparte en 
 valores en lugar de solo nombres de clave, ya que `keyValue` solo responde para una clave a la vez.
 Solo lectura.
 
-Entrada: `{ config, cwd?, locales? }`; un `locales` omitido cubre cada locale de destino
+```ts title="Firma"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Devuelve:** `readonly LocaleValues[]`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Un `locales` omitido cubre cada locale de destino
 configurado. Devuelve un array de `{ locale, values }`, una entrada por locale, donde `values`
 asigna cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
 se ha traducido en ese locale; un `source` ausente significa que la clave está huérfana, presente

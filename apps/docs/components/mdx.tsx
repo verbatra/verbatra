@@ -2,6 +2,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
 import { CodeBlock, CodeBlockTabs, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
@@ -86,6 +87,7 @@ export function getMDXComponents(
     DiffPanel,
     Step,
     Steps,
+    TypeTable,
     StudioScreenshot,
     CommandLine,
     Badge,

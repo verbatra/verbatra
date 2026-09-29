@@ -141,7 +141,8 @@ export interface TranslateInput {
   /**
    * Generate the plural categories a target language requires rather than translating each
    * category separately. Defaults to the config's `generatePlurals`, then to false. Takes effect
-   * only with an LLM provider; a machine-translation provider generates nothing.
+   * only for the `i18next-json` format with an LLM provider; any other format, a
+   * machine-translation provider, and provider `none` generate nothing.
    */
   readonly generatePlurals?: boolean;
   /**

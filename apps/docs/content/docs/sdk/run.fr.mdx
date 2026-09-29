@@ -2,26 +2,47 @@
 title: "Lancer des traductions"
 description: "translate, watch et les points d'entrée autour d'une exécution, plus les pseudo-locales et les catalogues typés."
 ---
-## Lancer des traductions
+## Traduire et surveiller [#lancer-des-traductions]
 
 ### translate
 
 Le flux en une passe : lire la source, comparer chaque locale cible à la ligne de base du verrou, envoyer les clés manquantes et modifiées au fournisseur, exécuter les contrôles d'intégrité, écrire les fichiers de locale et mettre à jour le verrou. Utilise-le pour les scripts, les étapes de build et les jobs CI.
 
-Entrée : `{ config, cwd?, locales?, dryRun?, estimate?, prune?, generatePlurals?, concurrency?, cache?, humanEdits?, maxTokens?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+```ts title="Signature"
+function translate(
+  input: TranslateInput,
+  deps?: TranslateDeps,
+): Promise<RunSummary>;
+```
 
-- `locales` restreint l'exécution à un sous-ensemble des locales cibles configurées, exactement comme sur `check` et `diff`. Une locale non configurée lève `UNKNOWN_LOCALE` avant toute lecture et toute dépense. Omets-le pour couvrir toutes les locales cibles.
-- `dryRun` lit, compare et rapporte sans construire ni appeler le fournisseur et sans rien écrire.
-- `estimate` ajoute sur `RunSummary.estimate` une estimation de coût avant exécution et implique `dryRun` : il ne construit aucun fournisseur, ne lit aucune clé d'API et n'écrit rien. La quantité est toujours rapportée ; un montant en devise exige un bloc `rates` dans la config nommant le fournisseur et le modèle configurés.
-- `prune` supprime les clés orphelines (clés cibles absentes de la source) du fichier écrit et du verrou. `generatePlurals` synthétise les formes plurielles CLDR manquantes (i18next-JSON avec un fournisseur LLM uniquement). Les deux sont désactivés par défaut ; quand ils sont définis, chacun remplace l'option de config correspondante pour cette exécution.
-- `concurrency` traite jusqu'à ce nombre de locales cibles à la fois (par défaut 1, strictement en série). Une valeur inférieure à 1 lève `CONCURRENCY_INVALID` ; sur une exécution réelle, une valeur supérieure à 1 avec un budget `maxTokens` lève `CONCURRENCY_BUDGET_CONFLICT` (un dry run est exempté). Une erreur globale levée alors que des locales tournent déjà empêche toute autre locale d'être démarrée, et les locales en cours terminent et libèrent leurs verrous d'écriture avant que `translate` ne rejette, donc le rejet arrive après la plus lente plutôt qu'instantanément.
-- `cache` est activé par défaut et réutilise le [cache de mémoire de traduction](/docs/the-cache) local (`verbatra.cache.json`, exporté aussi comme `CACHE_FILE_NAME`) ; mets-le à false pour contourner le cache le temps de l'exécution (le `--no-cache` de la CLI).
-- `humanEdits` (à partir de 0.12.0) remplace le `humanEdits` de la config pour cette exécution : `"overwrite"` retraduit aussi les clés obsolètes dont la valeur a été écrite, importée ou modifiée hors de verbatra par une personne (le `--include-human` de la CLI). Par défaut ces clés sont gardées et listées dans `LocaleSummary.protected` ; les clés qui correspondent à `pinnedKeys` restent protégées quoi qu'il dise. Voir [Protéger les traductions humaines](/docs/protecting-human-translations). Un dry run lit désormais aussi `verbatra.provenance.json`, sauf si `humanEdits` vaut `"overwrite"`.
-- `onProgress` est appelé à mesure que l'exécution avance (au démarrage et à la fin de chaque locale, et par sous-lot du fournisseur), et `onLockWait` se déclenche pendant qu'un verrou d'écriture de locale est disputé. Les deux sont des callbacks de notification ; le SDK n'écrit rien de lui-même. `lockAcquireTimeoutMs` remplace la durée pendant laquelle un verrou d'écriture disputé réessaie avant d'échouer avec `LOCK_CONTENDED` ; une valeur qui n'est pas un nombre entier de millisecondes d'au moins 0 lève `LOCK_TIMEOUT_INVALID` avant toute lecture. Il ne borne que le verrou d'écriture de la locale pris avant tout appel fournisseur ; le verrou de garde du fichier de verrouillage qui enregistre une locale dont le fichier est déjà écrit attend toujours jusqu'à la valeur par défaut de dix minutes, pour qu'un fichier écrit ne reste jamais sans trace. `onLockWait` ne se déclenche qu'une fois qu'une attente dure depuis une seconde, et jamais pour un verrou que le même processus détient, comme le verrou de garde d'une locale sœur avec `concurrency` au-dessus de 1.
-- `maxTokens` (à partir de 0.12.0) fixe un plafond de tokens pour cette seule exécution (le `--max-tokens` de la CLI). Il agit toujours comme `budgetBehavior: "stop"`, et quand la config fixe aussi `maxTokens`, le plus bas des deux s'applique, donc il peut resserrer le budget configuré mais jamais l'assouplir. Une valeur qui n'est pas un nombre entier d'au moins 1 lève `MAX_TOKENS_INVALID`, et comme un budget configuré, il ne peut pas être combiné avec un `concurrency` supérieur à 1 sur une exécution réelle.
-- `maxBatchSize` et `budgetBehavior` sont réservés à la config ; il n'y a pas de surcharge par exécution.
+<SdkTypeTable name="TranslateInput" />
 
-Renvoie un `RunSummary` (voir [son anatomie](/docs/sdk/run-summary#anatomie-du-runsummary)). Les problèmes globaux lèvent une `SdkError` ; l'échec d'une seule locale ne lève jamais rien et se retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exécution continue.
+**Renvoie :** [`RunSummary`](/docs/sdk/run-summary)
+
+**Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Ce que le tableau ne couvre pas :
+
+- `concurrency` : une erreur globale levée alors que des locales tournent déjà empêche toute autre
+  locale d'être démarrée, et les locales en cours terminent et libèrent leurs verrous d'écriture
+  avant que `translate` ne rejette, donc le rejet arrive après la plus lente plutôt
+  qu'instantanément.
+- `cache` réutilise le [cache de mémoire de traduction](/docs/the-cache) local
+  (`verbatra.cache.json`, exporté aussi comme `CACHE_FILE_NAME`) ; `false` correspond au
+  `--no-cache` de la CLI.
+- `humanEdits` (à partir de 0.12.0) : par défaut, les clés obsolètes dont la valeur a été écrite,
+  importée ou modifiée hors de verbatra par une personne sont gardées et listées dans
+  `LocaleSummary.protected`. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+  Un dry run lit aussi `verbatra.provenance.json`, sauf si `humanEdits` vaut `"overwrite"`.
+- `onProgress` et `onLockWait` sont des callbacks de notification ; le SDK n'écrit rien de lui-même.
+  `onProgress` reçoit les [événements de progression](#événements-de-progression) décrits plus bas.
+  `onLockWait` ne se déclenche qu'une fois qu'une attente dure depuis une seconde.
+- `maxBatchSize` et `budgetBehavior` sont réservés à la config ; il n'y a pas de surcharge par
+  exécution.
+
+Les problèmes globaux lèvent une `SdkError` ; l'échec d'une seule locale ne lève jamais rien et se
+retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exécution continue. Voir
+[l'anatomie du `RunSummary`](/docs/sdk/run-summary#anatomie-du-runsummary).
 
 ### Événements de progression
 
@@ -60,6 +81,14 @@ fournisseur, écrira un fichier ou dépensera quoi que ce soit. C'est le seul en
 voulant qu'`estimate` implique `dryRun` est décidée : utilise-la dès que quelque chose autour d'une
 exécution doit le savoir à l'avance, plutôt que de redire l'implication et de t'en écarter.
 
+```ts title="Signature"
+function resolveDryRun(
+  input: { dryRun?: boolean; estimate?: boolean },
+): boolean;
+```
+
+**Renvoie :** `boolean`
+
 ```ts
 import { resolveDryRun, translate } from "@verbatra/sdk";
 
@@ -73,7 +102,20 @@ const summary = await translate({ config, ...options });
 
 Surveille le fichier de la locale source et relance `translate` à chaque changement temporisé. Il déclenche une exécution initiale immédiatement au démarrage, puis une exécution par changement stabilisé. Les exécutions sont sérialisées : les changements survenus pendant une exécution se regroupent en une seule exécution de suivi.
 
-Entrée : `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`. `debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
+```ts title="Signature"
+function watch(
+  input: WatchInput,
+  deps?: WatchDeps,
+): Promise<WatchController>;
+```
+
+<SdkTypeTable name="WatchInput" />
+
+**Renvoie :** `WatchController`
+
+**Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+`debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
 
 Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Trois problèmes sont refusés au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur : un `concurrency` qui n'est pas un entier d'au moins 1 lève `CONCURRENCY_INVALID`, un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève `CONCURRENCY_BUDGET_CONFLICT` (il n'existe pas de watch en dry run, donc le conflit de budget s'applique toujours), et un fichier source manquant lève `SOURCE_UNREADABLE`. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
@@ -86,6 +128,10 @@ point de se terminer sans laisser finir ses exécutions en cours : la CLI l'appe
 interruption arrête `translate` ou `import`, et quand une seconde interruption force l'arrêt de
 `watch`. Les exécutions qui ont pris ces verrous perdent leur protection, appelle-le donc seulement
 juste avant la fin du processus. Il ne prend aucun argument et ne rejette jamais.
+
+```ts title="Signature"
+function releaseHeldLocks(): Promise<void>;
+```
 
 Un verrou resté en place malgré tout, parce qu'un processus a été tué net, n'en a pas besoin : une
 exécution en attente sur la même machine voit que le processus enregistré n'existe plus et reprend
@@ -105,12 +151,25 @@ placeholders restent intacts dans toutes les syntaxes que reconnaissent les adap
 les branches `plural` et `select` d'ICU, les balises de balisage et les séquences d'échappement.
 Il ne construit aucun fournisseur, ne lit aucune clé d'API et ne fait aucune requête réseau.
 
+```ts title="Signature"
+function pseudolocalize(
+  input: PseudolocalizeInput,
+  deps?: PseudolocalizeDeps,
+): Promise<PseudolocalizeResult>;
+```
+
+<SdkTypeTable name="PseudolocalizeInput" />
+
+**Renvoie :** `PseudolocalizeResult`
+
+**Lève :** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
 Chaque valeur générée est tenue à la même barrière d'intégrité qu'une traduction de fournisseur doit
 franchir. Une valeur qui ne la franchirait pas est copiée telle quelle depuis la source et nommée
 dans `copied` plutôt qu'écrite sous une forme cassée, l'entrée reste donc présente et continue de
 s'afficher.
 
-Entrée : `{ config, cwd?, locale?, out? }`. `locale` vaut `en-XA` par défaut et `out`
+`locale` vaut `en-XA` par défaut et `out`
 `.verbatra-local/pseudo`, que `verbatra init` ajoute déjà à `.gitignore` ; le `files.pattern`
 configuré y est développé, le fichier garde donc la disposition qu'attend l'application. Une
 pseudo-locale qui nomme une locale configurée, ou qui se poserait sur un fichier de locale
@@ -141,6 +200,19 @@ compilation au lieu d'un échec de recherche à l'exécution. Il ne dépense rie
 n'est construit, aucune variable d'environnement contenant une clé d'API n'est lue et aucune requête
 réseau n'est faite.
 
+```ts title="Signature"
+function generateTypes(
+  input: GenerateTypesInput,
+  deps?: GenerateTypesDeps,
+): Promise<GenerateTypesResult>;
+```
+
+<SdkTypeTable name="GenerateTypesInput" />
+
+**Renvoie :** `GenerateTypesResult`
+
+**Lève :** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
 Un fichier est lu (le catalogue de la locale source) et un fichier est écrit (la déclaration) ; un
 fichier de locale cible n'est jamais touché. Les clés sont exactement ce que l'adaptateur de format
 avait déjà produit, dans l'ordre du document, si bien que deux exécutions sur un catalogue inchangé
@@ -167,7 +239,7 @@ avec leurs arguments signalés dans `unresolved` plutôt que déclarés en silen
 aucun. Les clés plurielles sœurs ne sont jamais fusionnées : chacune est déclarée à part, et celles
 que l'adaptateur a marquées au pluriel sont listées.
 
-Entrée : `{ config, cwd?, out?, configPath?, glossaryPath?, check? }`. `out` vaut par défaut
+`out` vaut par défaut
 `DEFAULT_TYPES_PATH` (`verbatra-types.d.ts`). Avant toute lecture ou écriture,
 `TYPES_OUTPUT_CONFLICT` refuse un `out` qui ne nomme aucun fichier (y compris un `out` terminé par
 un séparateur de chemin), est absolu, sort de `cwd` avec `..`, nomme `cwd` lui-même (`.`) ou ne se termine

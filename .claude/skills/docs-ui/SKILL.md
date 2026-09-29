@@ -288,6 +288,12 @@ comes from:
   width. The header row stays in the DOM for assistive technology. Short inline code (up to
   `SHORT_INLINE_CODE_MAX` characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX
   `code` mapping and never wraps; longer inline code wraps, in cells and in prose alike.
+- **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
+  `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
+  the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).
+  The shim adds `.vk-type-table` (a flat panel on `--surface-bg`, the header row as a `.vk-label`)
+  and a unique `id` per table, and gives the `.md` output a plain Markdown table. Descriptions are
+  the published English JSDoc in every locale; the framing prose around them stays translated.
 - **Links**: `--accent` text with a 40 percent glow underline that turns solid on hover, the
   same `LINK_CLASS` the landing rows use. Heading anchors are explicitly exempt so a
   section title never renders as a link. `.vk-prose-link` shares that exact rule in

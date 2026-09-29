@@ -20,6 +20,19 @@ meldet also jedes unabhängige Problem. Der API-Key wird nur über den Namen gep
 Quelldatei-Prüfung liest und parst die Datei, statt nur ihre Existenz zu sondieren: Ein Verzeichnis
 an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt werden also alle hier gemeldet.
 
+```ts title="Signatur"
+function doctor(
+  input?: DoctorInput,
+  deps?: DoctorDeps,
+): Promise<DoctorResult>;
+```
+
+<SdkTypeTable name="DoctorInput" />
+
+**Rückgabe:** `DoctorResult`
+
+**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found)
+
 <AvailableFrom version="0.12.0" />
 
 Die Prüfung `network-policy` besteht, wenn die wirksame
@@ -67,7 +80,7 @@ sofern die Key-Variable des Providers gesetzt ist und die Netzwerkrichtlinie sei
 `LocaleCapabilityReport.live` sagt, wie das ausging.
 Siehe [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
-Eingabe: `{ cwd?, configPath?, literals?, live?, onProgress? }`. Mit gesetztem `literals` führt `doctor` nur die
+Mit gesetztem `literals` führt `doctor` nur die
 Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
 Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
 [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. Keine geladene
@@ -93,6 +106,19 @@ Locale-Datei liest, und genau das macht verbatra in einem Projekt nutzbar, das n
 hat. Der Lauf kostet nichts: Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable
 gelesen und keine Netzwerkanfrage gestellt.
 
+```ts title="Signatur"
+function extract(
+  input: ExtractInput,
+  deps?: ExtractDeps,
+): Promise<ExtractResult>;
+```
+
+<SdkTypeTable name="ExtractInput" />
+
+**Rückgabe:** `ExtractResult`
+
+**Wirft:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
+
 Geschrieben wird ausschließlich die Quell-Locale-Datei, und nur wirklich neue Keys werden ergänzt:
 Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert, und ein Key im Katalog, den
 keine Aufrufstelle nennt, bleibt unangetastet. Ein Lauf, der nichts Neues findet, schreibt gar
@@ -101,8 +127,7 @@ ein nicht statisches Key-Argument in `dynamic`, ein Key mit zwei verschiedenen S
 `conflicts` (kein Wert wird geschrieben) und eine nicht lesbare Datei in `diagnostics`. Das Ergebnis
 trägt nur Keys, Werte sowie Datei- und Zeilenangaben, nie den Inhalt einer Quelldatei.
 
-Eingabe: `{ config, cwd?, dryRun?, onProgress? }`, wobei `config.extract` das Framework und die
-Quellverzeichnisse benennt. Gibt ein `ExtractResult` zurück. Die Dateisuche läuft über das
+`config.extract` benennt das Framework und die Quellverzeichnisse. Die Dateisuche läuft über das
 optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member wird als
 `EXTRACT_FS_UNSUPPORTED` gemeldet.
 
@@ -111,7 +136,20 @@ optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member w
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
 (Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
 
-Eingabe: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
+```ts title="Signatur"
+function check(
+  input: CheckInput,
+  deps?: CheckDeps,
+): Promise<CheckSummary>;
+```
+
+<SdkTypeTable name="CheckInput" />
+
+**Rückgabe:** `CheckSummary`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Gibt eine `CheckSummary` zurück, deren `inSync`
 genau dann true ist, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
 <AvailableFrom version="0.11.0" />
@@ -179,8 +217,20 @@ Person oder einen Agenten zu validieren. Es liest diese Datei und, für ein Ziel
 Quell-Locales, und sonst nichts: kein anderes Locale, keine Lock-Datei, keinen Quellcode, keinen
 Provider, keinen API-Key, und es schreibt nichts.
 
-Eingabe: `{ config, cwd?, file, qaSeverity? }`, wobei `file` absolut oder relativ zu `cwd` ist. Gibt
-eine `CheckFileSummary` aus `{ file, role, locales, qa }` zurück: `role` ist `"source"`, `"target"`
+```ts title="Signatur"
+function checkFile(
+  input: CheckFileInput,
+  deps?: CheckFileDeps,
+): Promise<CheckFileSummary>;
+```
+
+<SdkTypeTable name="CheckFileInput" />
+
+**Rückgabe:** `CheckFileSummary`
+
+**Wirft:** [`NOT_A_LOCALE_FILE`](/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+`file` ist absolut oder relativ zu `cwd`. Die `CheckFileSummary` besteht aus `{ file, role, locales, qa }`: `role` ist `"source"`, `"target"`
 oder `"catalogue"` (die eine Datei von `apple-xcstrings`), jeder Eintrag in `locales` ist ein
 `LocaleFileCheck` aus `{ locale, incompletePlurals, qa }`, dessen `qa` die Form des `qa`-Berichts hat,
 den `check` mit `qa: true` liefert, und `qa` enthält die Summen. Eine Datei, die sich nicht parsen
@@ -197,6 +247,19 @@ Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die K
 Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
 und kippen nie `hasPendingChanges`, da ein Standardlauf kein `prune` ausführt.
 
+```ts title="Signatur"
+function diff(
+  input: DiffInput,
+  deps?: DiffDeps,
+): Promise<DiffSummary>;
+```
+
+<SdkTypeTable name="DiffInput" />
+
+**Rückgabe:** `DiffSummary`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
 Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
 einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
 statische Referenz nennt, in Katalogreihenfolge. Er ist nur lesend, braucht keinen Key und bildet
@@ -209,8 +272,6 @@ dekodierten `key` und seinen `catalogKey`. Keys, die `extract.unused.ignore` tri
 Grund mit seinen Fundstellen nennt) oder `not-run` (mit einem `reason` und ohne Key-Liste). Alle
 Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys). Der Bericht
 kippt nie `hasPendingChanges`.
-
-Eingabe: `{ config, cwd?, locales?, unused?, onProgress? }`. Gibt eine `DiffSummary` zurück.
 
 <AvailableFrom version="0.12.0" />
 
@@ -234,6 +295,19 @@ gemeldet wird, macht Abweichungen sichtbar, die älter sind als das Gate beim Sc
 Pfad kam, der das Gate nie passiert hat, wird hier nach derselben Regel beurteilt. Das ist der
 Integritätsbericht pro Key, den Studio anzeigt.
 
+```ts title="Signatur"
+function keyIntegrity(
+  input: KeyIntegrityInput,
+  deps?: KeyIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="KeyIntegrityInput" />
+
+**Rückgabe:** `readonly LocaleKeyIntegrity[]`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
 <AvailableFrom version="0.12.0" />
 
 Jeder Eintrag trägt außerdem `icuArmsMatch` und `icuArmDetails`: ob die ICU-Zweige für `plural`,
@@ -242,7 +316,7 @@ Schreiben, und ein kurzes Problem pro fehlendem oder überzähligem Zweig, etwa 
 missing arm "few" required by the target language`. `icuArmsMatch` ist immer true für ein Format,
 das keine Zweige prüft (jedes mitgelieferte Format außer next-intl und ARB).
 
-Eingabe: `{ config, cwd?, locales?, keys? }`. `keys` engt die Prüfung ein; geprüft werden immer
+`keys` engt die Prüfung ein; geprüft werden immer
 nur Keys, die für eine Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale
 zurück.
 
@@ -259,11 +333,24 @@ Ziel-Locale vorkommt, egal wie sein Sync-Zustand ist, also findet es auch einen 
 beurteilt wie bei `keyIntegrity` und dem Gate beim Schreiben, und zurück kommen nur fehlerhafte Keys:
 Eine leere `entries`-Liste heißt, dass jede Übersetzung dieser Locale besteht.
 
+```ts title="Signatur"
+function localeIntegrity(
+  input: LocaleIntegrityInput,
+  deps?: LocaleIntegrityDeps,
+): Promise<readonly LocaleKeyIntegrity[]>;
+```
+
+<SdkTypeTable name="LocaleIntegrityInput" />
+
+**Rückgabe:** `readonly LocaleKeyIntegrity[]`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
 Die Kosten sind ein Lesen und Parsen der Quelldatei und jeder angefragten Zieldatei plus eine
 Prüfung pro übersetztem Key. Nichts wird zwischengespeichert; jeder Aufruf liest frisch von der
 Platte.
 
-Eingabe: `{ config, cwd?, locales? }`. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale zurück,
+Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale zurück,
 das nur ihre fehlerhaften Einträge enthält.
 
 ### lockState
@@ -273,7 +360,18 @@ für fehlend, veraltet und aktuell). `exists` stammt aus einer expliziten Prüfu
 Lock-Datei" und "eine leere, aber vorhandene Lock-Datei" unterscheidbar bleiben. Fehlt die Datei,
 ist das Ergebnis `{ exists: false }` und nichts weiter wird gelesen.
 
-Eingabe: `{ config, cwd?, locales? }`. Gibt ein `LockStateResult` zurück.
+```ts title="Signatur"
+function lockState(
+  input: LockStateInput,
+  deps?: LockStateDeps,
+): Promise<LockStateResult>;
+```
+
+<SdkTypeTable name="LockStateInput" />
+
+**Rückgabe:** `LockStateResult`
+
+**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
 
 Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
 
@@ -285,7 +383,20 @@ Quellinhalts abbildet, aus dem sie zuletzt übersetzt wurden. Eine fehlende Date
 leeres Lock zurück, dasselbe Erstlauf-Verhalten, auf das sich `translate` verlässt; nutze
 `lockState`, wenn du Abwesenheit unterscheiden musst.
 
-Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt ein `LockFile` zurück.
+```ts title="Signatur"
+function loadLockFile(
+  input?: LoadLockFileInput,
+  deps?: LoadLockFileDeps,
+): Promise<LockFile>;
+```
+
+<SdkTypeTable name="LoadLockFileInput" />
+
+**Rückgabe:** `LockFile`
+
+**Wirft:** [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+Keine Konfiguration nötig. Gibt ein `LockFile` zurück.
 
 ### loadProvenance
 
@@ -300,7 +411,20 @@ geschriebene liest sich als leer; eine korrupte wirft `PROVENANCE_FILE_INVALID`.
 (`KeyProvenance`), die außerdem einen Wert ohne Eintrag (`unrecorded`) von einem unterscheidet, der
 seit dem Eintrag außerhalb von verbatra geändert wurde (`external`).
 
-Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt eine `ProvenanceFile` zurück.
+```ts title="Signatur"
+function loadProvenance(
+  input?: LoadProvenanceInput,
+  deps?: LoadProvenanceDeps,
+): Promise<ProvenanceFile>;
+```
+
+<SdkTypeTable name="LoadProvenanceInput" />
+
+**Rückgabe:** `ProvenanceFile`
+
+**Wirft:** [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Keine Konfiguration nötig. Gibt eine `ProvenanceFile` zurück.
 
 ### runStatus
 
@@ -309,7 +433,18 @@ Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `tr
 fehlende, korrupte oder unbekannte Datei fällt auf `{ available: false }` zurück. Diese Datei ist
 Best-Effort-Telemetrie, keine Korrektheits-Baseline.
 
-Eingabe: `{ cwd? }`. Keine Konfiguration nötig. Gibt `{ available: false }` oder
+```ts title="Signatur"
+function runStatus(
+  input?: RunStatusInput,
+  deps?: RunStatusDeps,
+): Promise<RunStatusResult>;
+```
+
+<SdkTypeTable name="RunStatusInput" />
+
+**Rückgabe:** `RunStatusResult`
+
+Keine Konfiguration nötig. Gibt `{ available: false }` oder
 `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
 
 Ein Schnappschuss, den eine Version von vor dem durchgesetzten Token-Budget geschrieben hat, wird
@@ -335,7 +470,20 @@ Quelltext des Keys. Der Schnappschuss des letzten Laufs aus `runStatus` ergänzt
 `reasons` jedes Eintrags (leer, wenn der Lauf ihn nicht markiert hat), die `fuzzyHits` der Locale
 und `lastRunAt`.
 
-Eingabe: `{ config, cwd?, locales?, includeApproved? }`. Gibt `{ available: true, locales, lastRunAt? }`
+```ts title="Signatur"
+function reviewQueue(
+  input: ReviewQueueInput,
+  deps?: ReviewQueueDeps,
+): Promise<ReviewQueueResult>;
+```
+
+<SdkTypeTable name="ReviewQueueInput" />
+
+**Rückgabe:** `ReviewQueueResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+Gibt `{ available: true, locales, lastRunAt? }`
 zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als
 `{ key, reasons, provenance }`; `approved` listet die freigegebenen maschinellen Werte und ist nur mit
 `includeApproved: true` vorhanden. Ist die Herkunftsdatei beschädigt oder stammt sie von einer
@@ -354,7 +502,20 @@ Review-Status, Provider, Modell und Reviewer, gezählt in einer von sieben Kateg
 in dieser Reihenfolge veröffentlicht als Tupel `PROVENANCE_BUCKETS`). Er liest die Locale-Dateien,
 `verbatra.lock.json` und `verbatra.provenance.json`, ruft keinen Provider auf und schreibt nichts.
 
-Eingabe: `{ config, cwd?, locales?, toolVersion? }`; `deps` nimmt außerdem `now`, die Uhr, aus der
+```ts title="Signatur"
+function provenanceReport(
+  input: ProvenanceReportInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportInput" />
+
+**Rückgabe:** `ProvenanceReportResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+`deps` nimmt außerdem `now`, die Uhr, aus der
 `generatedAt` gelesen wird. Gibt `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`
 zurück, jede Locale als `{ locale, total, counts, entries }` und jeden Eintrag als
 `{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` fällt auf
@@ -377,7 +538,20 @@ zu `keyValue` für große Mengen: nutze es, wenn du Übersetzungsinhalte in gro�
 etwa um Werte statt nur Key-Namen zu durchsuchen oder zu scannen, denn `keyValue` beantwortet
 immer nur einen Key auf einmal. Nur lesend.
 
-Eingabe: `{ config, cwd?, locales? }`; ein weggelassenes `locales` deckt jedes konfigurierte
+```ts title="Signatur"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Rückgabe:** `readonly LocaleValues[]`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Ein weggelassenes `locales` deckt jedes konfigurierte
 Ziel-Locale ab. Gibt ein Array von `{ locale, values }` zurück, ein Eintrag pro Locale, wobei
 `values` jeden Key auf `{ source?, target? }` abbildet. Ein fehlendes `target` bedeutet, dass der
 Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key

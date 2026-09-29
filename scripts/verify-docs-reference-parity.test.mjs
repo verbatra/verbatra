@@ -353,6 +353,129 @@ describe("the SDK reference catalogs the whole public surface", () => {
   });
 });
 
+const SDK_ERROR_CODES = new Set(unionCodes("packages/sdk/src/errors.ts", "SdkErrorCode"));
+
+const THROWS_LINE = /^\*\*(?:Throws|Wirft|Lanza|Lève) ?:\*\* (.*)$/m;
+
+function sdkTypeExports() {
+  const source = readRepoFile("packages/sdk/src/index.ts");
+  const names = [];
+  for (const block of source.matchAll(/export\s+(type\s+)?\{([\s\S]*?)\}\s+from\s+"[^"]+";/g)) {
+    for (const raw of block[2].split(",")) {
+      const member = raw.trim().replace(/^type\s+/, "");
+      if (member !== "" && (block[1] !== undefined || raw.trim().startsWith("type "))) {
+        names.push(
+          member
+            .split(/\s+as\s+/)
+            .at(-1)
+            .trim(),
+        );
+      }
+    }
+  }
+  return new Set(names);
+}
+
+function functionJsDoc({ name, module }) {
+  if (!module.startsWith("./")) {
+    return "";
+  }
+  const source = readRepoFile(`packages/sdk/src/${module.slice(2).replace(/\.js$/, ".ts")}`);
+  const doc = new RegExp(
+    `(/\\*\\*(?:(?!\\*/)[\\s\\S])*\\*/)\\s*export (?:async )?function ${name}\\b`,
+  ).exec(source);
+  return doc?.[1] ?? "";
+}
+
+function declaredThrows(name, exportsByName) {
+  const entry = exportsByName.get(name);
+  if (entry === undefined) {
+    return [];
+  }
+  const codes = [];
+  for (const tag of functionJsDoc(entry).split("@throws").slice(1)) {
+    const text = tag.split(/\n\s*\*\s*@(?!link)/)[0];
+    const inherited = /Every code \{@link (\w+)\} throws/.exec(text);
+    if (inherited !== null) {
+      codes.push(...declaredThrows(inherited[1], exportsByName));
+    }
+    for (const [, code] of text.matchAll(/`([A-Z_]+)`/g)) {
+      if (SDK_ERROR_CODES.has(code)) {
+        codes.push(code);
+      }
+    }
+  }
+  return [...new Set(codes)].sort();
+}
+
+function entrySections(page) {
+  const sections = new Map();
+  for (const section of page.split(/^### /m).slice(1)) {
+    const [heading = "", ...body] = section.split("\n");
+    if (ENTRY_POINT_NAME.test(heading.trim())) {
+      sections.set(heading.trim(), body.join("\n").split(/^## /m)[0]);
+    }
+  }
+  return sections;
+}
+
+function documentedThrows(section) {
+  const line = THROWS_LINE.exec(section)?.[1] ?? "";
+  return [...new Set([...line.matchAll(/\[`([A-Z_]+)`\]/g)].map((match) => match[1]))].sort();
+}
+
+describe("each SDK entry point states what it takes and what it throws", () => {
+  const exportsByName = new Map(sdkValueExports().map((entry) => [entry.name, entry]));
+  const typeExports = sdkTypeExports();
+
+  it("reads the declared throws from the source, so the comparison cannot pass vacuously", () => {
+    expect(declaredThrows("check", exportsByName)).toContain("UNKNOWN_LOCALE");
+    expect(declaredThrows("editConfiguredGlossaryTerm", exportsByName)).toEqual(
+      expect.arrayContaining(["UNKNOWN_LOCALE", "GLOSSARY_UNWRITABLE"]),
+    );
+    expect(declaredThrows("redact", exportsByName)).toEqual([]);
+    expect(typeExports).toContain("TranslateInput");
+  });
+
+  it.each(LOCALE_SUFFIXES)(
+    "lists exactly the declared codes under each entry in sdk/*%s.mdx",
+    (suffix) => {
+      const sections = entrySections(readSdkReference(suffix));
+      const drift = [...sections]
+        .map(([name, section]) => ({
+          name,
+          declared: declaredThrows(name, exportsByName),
+          documented: documentedThrows(section),
+        }))
+        .filter(({ declared, documented }) => declared.join() !== documented.join());
+
+      expect(sections.size).toBeGreaterThanOrEqual(50);
+      expect(drift).toEqual([]);
+    },
+  );
+
+  it.each(LOCALE_SUFFIXES)(
+    "renders a type table only for an exported declaration in sdk/*%s.mdx",
+    (suffix) => {
+      const tables = [...readSdkReference(suffix).matchAll(/<SdkTypeTable name="(\w+)" \/>/g)].map(
+        (match) => match[1],
+      );
+
+      expect(tables.length).toBeGreaterThanOrEqual(30);
+      expect(tables.filter((name) => !typeExports.has(name) && !exportsByName.has(name))).toEqual(
+        [],
+      );
+    },
+  );
+
+  it("sees a code that is thrown but missing from the page", () => {
+    const section = "**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format)\n";
+
+    expect(documentedThrows(section)).toEqual(["UNKNOWN_FORMAT"]);
+    expect(documentedThrows(section)).not.toEqual(declaredThrows("check", exportsByName));
+  });
+});
+
 describe("the SDK heading rule separates real drift from ordinary prose", () => {
   const page = readSdkReference("");
 

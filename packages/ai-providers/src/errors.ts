@@ -2,7 +2,8 @@ import { redactKeys } from "./redaction.js";
 
 /**
  * The stable code a {@link ProviderError} carries. Branch on it rather than on the message; the
- * providers page of the documentation says what each one means.
+ * error codes reference says what each one means and what to do next:
+ * https://verbatra.kreitz-webdev.de/docs/error-codes#provider-error-codes
  */
 export type ProviderErrorCode =
   | "MISSING_API_KEY"

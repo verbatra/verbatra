@@ -10,7 +10,20 @@ Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour cons
 
 Lit la valeur source actuelle d'une clé et, quand elle existe, sa valeur cible actuelle pour une locale. En lecture seule.
 
-Entrée : `{ config, cwd?, locale, key }`. Renvoie `{ source, target? }` ; `target` est absent exactement quand la clé n'existe pas encore dans cette locale.
+```ts title="Signature"
+function keyValue(
+  input: KeyValueInput,
+  deps?: KeyValueDeps,
+): Promise<KeyValueResult>;
+```
+
+<SdkTypeTable name="KeyValueInput" />
+
+**Renvoie :** `KeyValueResult`
+
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+
+Renvoie `{ source, target? }` ; `target` est absent exactement quand la clé n'existe pas encore dans cette locale.
 
 Quand `target` est présent, le résultat porte aussi `provenance`, la `KeyProvenance` interprétée de la clé : `{ origin, provider?, model?, reviewState, reviewer? }`.
 
@@ -22,7 +35,20 @@ Le résultat porte aussi `description` quand le fichier de la locale source en d
 
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
 
-Entrée : `{ config, cwd?, locale, key, value, actor?, onLockWait?, lockAcquireTimeoutMs? }`. Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un refus `placeholder` ou `markup` porte en plus `details` : les placeholders ou balises en cause, chacun préfixé de `-` pour un élément que la source avait et que la valeur candidate a supprimé, ou de `+` pour un élément que la valeur candidate a inventé.
+```ts title="Signature"
+function editEntry(
+  input: EditEntryInput,
+  deps?: EditEntryDeps,
+): Promise<EditEntryResult>;
+```
+
+<SdkTypeTable name="EditEntryInput" />
+
+**Renvoie :** `EditEntryResult`
+
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Renvoie un résultat à deux branches : `{ accepted: true, value }`, ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }` sans rien écrire. `"empty"` couvre une valeur vide ou uniquement composée d'espaces pour une source qui a du texte : une modification ne peut pas exprimer l'effacement d'une clé, alors utilise pour ça la sentinelle `[[CLEAR]]` du classeur. L'ensemble des raisons est livré sous forme du tuple `INTEGRITY_GATE_REASONS` : construis tout schéma d'exécution ou table exhaustive à partir de lui plutôt que de retaper les membres. Un refus `placeholder` ou `markup` porte en plus `details` : les placeholders ou balises en cause, chacun préfixé de `-` pour un élément que la source avait et que la valeur candidate a supprimé, ou de `+` pour un élément que la valeur candidate a inventé.
 
 La valeur écrite est enregistrée dans `verbatra.provenance.json` avec l'origine `human`. Passe `actor: "agent"` quand un agent d'IA l'a écrite, pour que l'enregistrement le dise ; c'est la surface appelante qui l'affirme et rien ne le vérifie. Le fichier de provenance est vérifié avant que la valeur ne passe le contrôle : un fichier corrompu lève `PROVENANCE_FILE_INVALID` et rien n'est écrit, et celui d'un verbatra plus récent, ou celui que l'enregistrement ferait dépasser la taille que verbatra relit, est laissé intact pendant que la valeur est écrite sans enregistrement.
 
@@ -38,7 +64,20 @@ Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lè
 
 Relance le fournisseur pour exactement une clé et une locale : un appel à entrée unique via le même chemin de fournisseur que `translate`, passé par les mêmes contrôles d'intégrité. À l'acceptation, il écrit le fichier de locale et l'entrée de verrou pour cette clé seulement.
 
-Entrée : `{ config, cwd?, locale, key, includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`. Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
+```ts title="Signature"
+function retranslateEntry(
+  input: RetranslateEntryInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntryResult>;
+```
+
+<SdkTypeTable name="RetranslateEntryInput" />
+
+**Renvoie :** `RetranslateEntryResult`
+
+**Lève :** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`KEY_PINNED`](/docs/error-codes#key_pinned), [`KEY_PROTECTED`](/docs/error-codes#key_protected), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
 
 La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec l'`id` du fournisseur qui a répondu et le modèle configuré. Un fournisseur issu de ton propre `createProvider` est enregistré sous son propre `id`, et sans le modèle quand cet `id` diffère de celui configuré. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
 
@@ -52,7 +91,20 @@ Une clé dont la valeur actuelle a été écrite, importée ou modifiée hors de
 
 Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et l'accepte. N'écrit que `verbatra.provenance.json`, jamais un fichier de locale ni le fichier de verrouillage, et n'appelle aucun fournisseur. L'approbation enregistre aussi le hash source de la clé dans le fichier de verrouillage, si bien qu'elle redevient non relue dès que la source change ; toute écriture ultérieure qui change la valeur démarre un nouvel enregistrement non relu.
 
-Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. `expectedValue` est le texte que la personne a vu : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif d'au plus 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
+```ts title="Signature"
+function approveEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Renvoie :** `ReviewDecisionResult`
+
+**Lève :** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
+`expectedValue` est le texte que la personne a vu : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif d'au plus 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
 
 ### rejectEntry
 
@@ -60,7 +112,20 @@ Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, l
 
 Enregistre qu'une personne a relu la valeur actuelle d'une clé dans une locale et la refuse, et supprime cette valeur pour qu'elle soit remplacée. La clé est retirée du fichier de locale et son entrée de verrou est supprimée : `check` et `diff` la signalent comme manquante et la prochaine exécution de `translate` la remplit à nouveau (avec `provider: { id: "none" }`, elle reste manquante jusqu'à ce que quelqu'un écrive une valeur). L'enregistrement de provenance est conservé comme `rejected` avec un hash du texte supprimé, et l'entrée correspondante de la mémoire de traduction de cette machine est retirée. Un `translate` ultérieur ignore tout succès exact ou approximatif de la mémoire pour la clé dont le texte correspond à ce hash, si bien que la mémoire d'une autre machine ne peut pas non plus ramener le texte. N'appelle aucun fournisseur.
 
-Entrée : `{ config, cwd?, locale, key, expectedValue, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`, vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
+```ts title="Signature"
+function rejectEntry(
+  input: ReviewDecisionInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewDecisionResult>;
+```
+
+<SdkTypeTable name="ReviewDecisionInput" />
+
+**Renvoie :** `ReviewDecisionResult`
+
+**Lève :** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable), [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported), [`REVIEW_RESTORE_FAILED`](/docs/error-codes#review_restore_failed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
+L'entrée est vérifiée comme pour `approveEntry`, sauf qu'une source périmée n'empêche pas un rejet. Renvoie `{ locale, key, provenance }`. Un format qui garde une clé qu'on ne lui a pas transmise, XLIFF, lève `REVIEW_REJECT_UNSUPPORTED` après avoir restauré le fichier.
 
 Les deux appels prennent le verrou d'écriture de la locale. `lockAcquireTimeoutMs` borne l'attente de ce verrou (dix minutes par défaut) et échoue avec `LOCK_CONTENDED` une fois écoulée, et `onLockWait` signale cette attente ; une valeur qui n'est pas un nombre entier de millisecondes d'au moins 0 lève `LOCK_TIMEOUT_INVALID` avant toute lecture. Ce délai ne borne pas le verrou du fichier de verrouillage pris pour enregistrer la décision, qui accorde toujours les dix minutes par défaut.
 
@@ -80,7 +145,6 @@ liste `entries` vide renvoie des `results` vides.
 
 ### approveEntries
 
-Entrée : `{ config, cwd?, entries: [{ locale, key, expectedValue }], reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
 Exécute `approveEntry` pour chaque entrée avec les mêmes vérifications ; `reviewer` s'applique à
 chaque entrée. Un résultat réussi est `{ ok: true, locale, key, provenance }`.
 `lockAcquireTimeoutMs` borne l'attente de chaque entrée pour le verrou d'écriture de sa locale, et
@@ -90,18 +154,43 @@ avec `LOCK_CONTENDED`, et chaque entrée suivante qui a besoin du même verrou r
 nouveau ; les entrées des autres locales sont toujours décidées. Les appels à une seule entrée
 `approveEntry` et `rejectEntry` acceptent les deux mêmes options.
 
+```ts title="Signature"
+function approveEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Renvoie :** `ReviewEntriesResult`
+
+**Lève :** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
+
 ### rejectEntries
 
-Entrée : la même que pour `approveEntries`. Exécute `rejectEntry` pour chaque entrée et retire
+Exécute `rejectEntry` pour chaque entrée et retire
 chaque valeur rejetée. Un résultat réussi est `{ ok: true, locale, key, provenance }`. Un délai de
 verrou dépassé fait ignorer les entrées suivantes qui ont besoin de ce verrou, comme pour
 `approveEntries`.
+
+```ts title="Signature"
+function rejectEntries(
+  input: ReviewEntriesInput,
+  deps?: ReviewDecisionDeps,
+): Promise<ReviewEntriesResult>;
+```
+
+<SdkTypeTable name="ReviewEntriesInput" />
+
+**Renvoie :** `ReviewEntriesResult`
+
+**Lève :** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
 
 ### approveLocale
 
 <AvailableFrom version="0.12.0" />
 
-Entrée : `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`.
 Approuve toute la file de révision d'une locale, ou seulement ses valeurs ayant l'une des `origins`,
 en une seule écriture de `verbatra.provenance.json`, sous le verrou d'écriture de la locale. Chaque
 approbation est enregistrée comme `approveEntry` en enregistre une, avec le hash de source contre
@@ -112,9 +201,21 @@ relues parce que leur source a changé depuis leur écriture. Elle n'écrit que 
 provenance, n'appelle aucun fournisseur et échoue avec `PROVENANCE_FILE_UNWRITABLE` plutôt que de
 signaler des approbations qu'elle n'a pas pu enregistrer.
 
+```ts title="Signature"
+function approveLocale(
+  input: ApproveLocaleInput,
+  deps?: ApproveLocaleDeps,
+): Promise<ApproveLocaleResult>;
+```
+
+<SdkTypeTable name="ApproveLocaleInput" />
+
+**Renvoie :** `ApproveLocaleResult`
+
+**Lève :** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
+
 ### retranslateEntries
 
-Entrée : `{ config, cwd?, entries: [{ locale, key }], includeHuman?, onLockWait?, lockAcquireTimeoutMs? }`.
 Exécute `retranslateEntry` pour chaque entrée, et fait donc jusqu'à un appel au fournisseur par
 entrée. Ce n'est pas une exécution de `translate` : `maxTokens` et `budgetBehavior` ne s'appliquent
 pas, et le nombre d'entrées est la seule limite de ce qu'il dépense. Un résultat terminé est
@@ -123,6 +224,19 @@ une valeur refusée par la barrière d'intégrité. Une valeur écrite par une p
 `KEY_PROTECTED`, sauf si tu passes `includeHuman: true`. `lockAcquireTimeoutMs` borne l'attente de
 chaque entrée pour le verrou d'écriture de sa locale, avant l'appel au fournisseur, et
 `onLockWait` signale cette attente.
+
+```ts title="Signature"
+function retranslateEntries(
+  input: RetranslateEntriesInput,
+  deps?: RetranslateEntryDeps,
+): Promise<RetranslateEntriesResult>;
+```
+
+<SdkTypeTable name="RetranslateEntriesInput" />
+
+**Renvoie :** `RetranslateEntriesResult`
+
+**Lève :** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid)
 
 <AvailableFrom version="0.12.0" />
 
@@ -148,3 +262,9 @@ le résultat d'une seule entrée, comme une défaillance inattendue du système 
 lot en cours de route. `results` contient les résultats des entrées terminées avant, dans l'ordre,
 `entry` nomme le `{ locale, key }` en cours, et `cause` est l'erreur d'origine. Les entrées après
 `entry` ne se sont pas exécutées.
+
+```ts title="Signature"
+class BatchInterruptedError<R = ReviewBatchOutcome | RetranslateBatchOutcome> extends Error
+```
+
+<SdkTypeTable name="BatchInterruptedError" />

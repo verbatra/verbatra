@@ -2,17 +2,29 @@
 title: "Configuración y glosario"
 description: "Carga y valida la configuración, lee y edita el glosario y detecta un proyecto."
 ---
-## Configuración
+## Carga la configuración [#configuración]
 
 ### loadConfig
 
-Encuentra, carga y valida la configuración del proyecto, devolviendo una `VerbatraConfig`. Opciones:
-`{ cwd?, configPath?, configOverride?, fs? }`, con precedencia de `configOverride` (validar un objeto en
+Encuentra, carga y valida la configuración del proyecto, devolviendo una `VerbatraConfig`. La precedencia
+va de `configOverride` (validar un objeto en
 memoria) sobre `configPath` (cargar un archivo explícito) sobre la búsqueda. La búsqueda empieza en
 `cwd` y cubre `verbatra.config.ts` (también `.js`/`.cjs`), la familia `.verbatrarc` (`.json`, `.yaml`,
 `.yml`, `.js`, `.cjs`, `.ts`) y una propiedad `"verbatra"` en `package.json`. Un `glossary` dado como
 ruta de archivo se lee y valida aquí, así que el código posterior siempre ve un glosario en memoria:
 un mapa de versión 1 de término de origen a traducción, o una definición de versión 2.
+
+```ts title="Firma"
+function loadConfig(
+  options?: LoadConfigOptions,
+): Promise<VerbatraConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**Devuelve:** `VerbatraConfig`
+
+**Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 Lanza `CONFIG_NOT_FOUND` cuando no se encuentra nada, `CONFIG_INVALID` cuando se encuentra una
 configuración pero es inválida. Consulta el [Archivo de configuración](/docs/config-file) para ver el esquema.
@@ -25,6 +37,18 @@ La misma carga, más la procedencia: devuelve `{ config, source, glossary }`, do
 configuración vino de un acierto de búsqueda, de una ruta explícita o de una anulación en memoria (con
 el `filepath` absoluto cuando lo hay), y `glossary` registra si el glosario estaba ausente, en línea o
 resuelto desde un archivo. Úsalo cuando necesites mostrar de dónde salió la configuración.
+
+```ts title="Firma"
+function loadConfigWithMeta(
+  options?: LoadConfigOptions,
+): Promise<LoadedConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**Devuelve:** `LoadedConfig`
+
+**Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 Ambas aceptan `fresh: true` para volver a evaluar un archivo de configuración en JavaScript o
 TypeScript en lugar de reutilizar lo que evaluó una carga anterior en el mismo proceso; un proceso de
@@ -44,6 +68,18 @@ Vigila estas rutas, por ejemplo por su fecha de modificación, para notar que un
 crea, se edita o se elimina sin cargarla en cada petición. El archivo de glosario no se incluye;
 `loadConfigWithMeta` lo nombra en `glossary`.
 
+```ts title="Firma"
+function configCandidatePaths(
+  options?: ConfigCandidateOptions,
+): readonly string[];
+```
+
+<SdkTypeTable name="ConfigCandidateOptions" />
+
+**Devuelve:** `readonly string[]`
+
+## Glosario
+
 ### readGlossaryFile
 
 <AvailableFrom version="0.9.0" />
@@ -52,10 +88,23 @@ Lee un glosario respaldado por archivo directamente del disco y lo devuelve como
 normalizado: `{ version, terms, doNotTranslate }`, donde `version` es `1` para un mapa plano de
 términos y `2` para un [glosario por locale](/docs/config-file#glossary), y cada término lleva
 `source`, un `target` opcional, `targets`, `forbidden`, `caseSensitive` y, de forma opcional, `note`
-y `partOfSpeech`. Recibe `{ glossary }`, la `GlossaryProvenance` de `loadConfigWithMeta`, de modo
+y `partOfSpeech`. Su entrada `glossary` es la `GlossaryProvenance` de `loadConfigWithMeta`, de modo
 que el archivo que lee siempre es el que nombra la configuración; no hay ningún argumento de ruta.
 Úsalo en una herramienta de larga duración que deba mostrar el glosario tal como está ahora y no
 como estaba cuando se cargó la configuración.
+
+```ts title="Firma"
+function readGlossaryFile(
+  input: GlossaryFileInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="GlossaryFileInput" />
+
+**Devuelve:** `Glossary`
+
+**Lanza:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 Lanza `GLOSSARY_NOT_FILE_BACKED` cuando el glosario está en línea o ausente, y `CONFIG_INVALID`
 cuando el archivo falta, es demasiado grande, no es UTF-8, no es JSON válido, no es ni un mapa plano
@@ -70,11 +119,24 @@ Hasta la 0.11 devolvía el propio mapa plano de términos.
 <AvailableFrom version="0.9.0" />
 
 Añade, cambia o elimina exactamente un término de un glosario respaldado por archivo y devuelve el
-glosario normalizado tal como queda. Recibe `{ glossary, cwd?, term, translation }`, donde
-`translation` es el texto nuevo o `null` para eliminar el término. El resto del archivo conserva su
+glosario normalizado tal como queda. `translation`
+es el texto nuevo o `null` para eliminar el término. El resto del archivo conserva su
 orden de claves y su sangría, la escritura es atómica y todo el ciclo de leer, modificar y escribir
 se mantiene bajo un bloqueo de glosario para todo el proyecto, así que dos ediciones simultáneas se
 serializan en vez de entrelazarse.
+
+```ts title="Firma"
+function updateGlossaryTerm(
+  input: UpdateGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="UpdateGlossaryTermInput" />
+
+**Devuelve:** `Glossary`
+
+**Lanza:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
 
 <AvailableFrom version="0.12.0" />
 
@@ -111,6 +173,15 @@ del glosario se aplica allí. Es exactamente lo que una petición de traducción
 [`TranslateRequest.glossary`](/docs/sdk/extend#proveedores-propios), y lo que ven las comprobaciones de revisión y la huella de caché de
 ese locale.
 
+```ts title="Firma"
+function glossaryForLocale(
+  glossary: GlossaryInput | Glossary | undefined,
+  locale: string,
+): LocaleGlossary | undefined;
+```
+
+**Devuelve:** `LocaleGlossary | undefined`
+
 ### glossaryHits
 
 <AvailableFrom version="0.12.0" />
@@ -122,6 +193,17 @@ con la traducción y las traducciones prohibidas a las que está sujeto ese loca
 se mantiene sin traducir y aparece en él. Un término coincide con o sin mayúsculas según indique,
 normalizando para `sourceLocale`. Usa la misma coincidencia que aplica una ejecución de traducción
 al marcar un término de glosario omitido, y no lee nada.
+
+```ts title="Firma"
+function glossaryHits(
+  glossary: GlossaryInput | Glossary | undefined,
+  locale: string,
+  sourceLocale: string,
+  text: string,
+): LocaleGlossary;
+```
+
+**Devuelve:** `LocaleGlossary`
 
 ### glossaryDraftCheck
 
@@ -135,6 +217,16 @@ traducciones prohibidas que usa el borrador y no el origen), y cada término que
 traducir con `kept`. Son las reglas con las que una ejecución de traducción marca
 `GLOSSARY_TERM_MISSED` y `GLOSSARY_FORBIDDEN_TERM`. No lee nada.
 
+```ts title="Firma"
+function glossaryDraftCheck(
+  input: GlossaryDraftCheckInput,
+): GlossaryDraftCheck;
+```
+
+<SdkTypeTable name="GlossaryDraftCheckInput" />
+
+**Devuelve:** `GlossaryDraftCheck`
+
 ### normalizeGlossary
 
 <AvailableFrom version="0.12.0" />
@@ -143,6 +235,14 @@ Convierte un glosario en cualquiera de sus formas, un mapa plano de la versión 
 la versión 2, al `Glossary` normalizado que devuelve `readGlossaryFile`, con todos los valores por
 defecto rellenados. Úsalo para mostrar un glosario en línea igual que uno respaldado por archivo. No
 vuelve a validar; `loadConfig` ya lo hizo.
+
+```ts title="Firma"
+function normalizeGlossary(
+  glossary: GlossaryInput | Glossary,
+): Glossary;
+```
+
+**Devuelve:** `Glossary`
 
 ### sharedGlossaryTranslations
 
@@ -153,6 +253,14 @@ compartido a esa traducción, en el orden del glosario. Las traducciones por loc
 prohibidas y los términos de `doNotTranslate` quedan fuera, así que úsalo solo donde un consumidor
 no pueda mostrar más que un mapa plano de términos. Un término llamado `__proto__` sigue siendo una
 clave propia.
+
+```ts title="Firma"
+function sharedGlossaryTranslations(
+  glossary: Glossary,
+): Readonly<Record<string, string>>;
+```
+
+**Devuelve:** `Readonly<Record<string, string>>`
 
 ### redactGlossary
 
@@ -165,6 +273,12 @@ término al que se le sustituyó un valor, un término de origen redactado como 
 la lista nunca repita un secreto. El servidor MCP y Studio lo usan antes de que un glosario salga del proceso; úsalo igual
 en tu propia herramienta.
 
+```ts title="Firma"
+function redactGlossary(glossary: Glossary): RedactedGlossary;
+```
+
+**Devuelve:** `RedactedGlossary`
+
 ### readCurrentGlossary
 
 <AvailableFrom version="0.12.0" />
@@ -176,15 +290,43 @@ configuración, y en ambos casos el resultado es el `Glossary` normalizado, o `u
 configuración no declara ninguno. Para ver a qué está sujeto un locale de destino, pasa el resultado
 a `glossaryForLocale`.
 
+```ts title="Firma"
+function readCurrentGlossary(
+  input: ReadCurrentGlossaryInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary | undefined>;
+```
+
+<SdkTypeTable name="ReadCurrentGlossaryInput" />
+
+**Devuelve:** `Glossary | undefined`
+
+**Lanza:** [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
 ### editConfiguredGlossaryTerm
 
 <AvailableFrom version="0.12.0" />
 
 `updateGlossaryTerm` para una herramienta que tiene una configuración cargada: recibe
-`{ loaded, cwd?, term, ... }` con los mismos campos de edición, trata un campo dejado en `undefined`
+`loaded` en lugar de `glossary` con los mismos campos de edición, trata un campo dejado en `undefined`
 como ausente y comprueba primero `locale` contra los locales de destino configurados; si no es uno de
 ellos, falla con `UNKNOWN_LOCALE` y no escribe nada. El servidor MCP y Studio escriben el glosario
 a través de ella.
+
+```ts title="Firma"
+function editConfiguredGlossaryTerm(
+  input: EditConfiguredGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="EditConfiguredGlossaryTermInput" />
+
+**Devuelve:** `Glossary`
+
+**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+
+## Escritura, detección y modo solo humano
 
 ### defineConfig
 
@@ -192,6 +334,14 @@ Un ayudante de identidad para escribir un `verbatra.config.ts` tipado: devuelve 
 existe puramente para la inferencia de tipos y el autocompletado del editor, incluido el completado de
 los IDs de modelo conocidos del proveedor seleccionado. La restricción de modelos es solo al escribir;
 en tiempo de ejecución cualquier cadena no vacía pasa la validación.
+
+```ts title="Firma"
+function defineConfig(
+  config: AuthoringConfigFor<"anthropic">,
+): VerbatraConfigInput;
+```
+
+**Devuelve:** `VerbatraConfigInput`
 
 ### verbatraConfigSchema
 
@@ -229,6 +379,17 @@ ambos necesitan una `baseUrl` que solo tú conoces y ninguno tiene una variable 
 
 Detecta el formato de los archivos de locale de un proyecto y su estructura a partir de sus archivos, igual que hace `verbatra init` antes de escribir una configuración. No escribe nada y no llama a ningún proveedor. Recorre el directorio (saltándose los directorios ocultos, `node_modules` y la salida de compilación, dentro de una profundidad y un número de entradas acotados) en busca de archivos que reclame un adaptador registrado, encuentra en cada uno el segmento de la ruta que escribe un locale, y se queda con el patrón de archivo que cubre más locales. El formato es aquel cuyo adaptador reclama con `canHandle` cada archivo encontrado según su contenido; para JSON, donde todos los adaptadores JSON lo hacen, decide una única biblioteca de i18n coincidente en `package.json`.
 
+```ts title="Firma"
+function detectProject(
+  input?: DetectProjectInput,
+  deps?: DetectProjectDeps,
+): Promise<ProjectDetection>;
+```
+
+<SdkTypeTable name="DetectProjectInput" />
+
+**Devuelve:** `ProjectDetection`
+
 ```ts
 import { detectProject } from "@verbatra/sdk";
 
@@ -248,8 +409,25 @@ El resultado lleva `format` (con `from`: `input`, `files` o `dependencies`), `la
 
 Devuelve `false` exactamente cuando la configuración fija `provider: { id: "none" }`, el modo [solo humano](/docs/human-only-workflow) en el que nunca se construye un proveedor ni se lee una clave de API. Una interfaz que ofrece acciones que gastan en el proveedor lo lee para omitirlas por completo; así es como Studio y el servidor MCP retienen el gasto incluso con `--allow-spend`.
 
+```ts title="Firma"
+function isMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+): boolean;
+```
+
+**Devuelve:** `boolean`
+
 ### assertMachineTranslationEnabled
 
 <AvailableFrom version="0.12.0" />
 
 Recibe la configuración y una frase corta que nombra la acción, y lanza un `SdkError` `MACHINE_TRANSLATION_DISABLED` con `provider: { id: "none" }`. Llámalo antes de envolver `translate` en una acción explícita de "traducir todo lo pendiente", para que la acción falle igual que `retranslateEntry` en lugar de rellenar en silencio solo desde la memoria de traducción.
+
+```ts title="Firma"
+function assertMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+  action: string,
+): void;
+```
+
+**Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
