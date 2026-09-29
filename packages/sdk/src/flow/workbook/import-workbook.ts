@@ -61,6 +61,7 @@ import {
 import { readTargetResource } from "../read-target.js";
 import { assertReviewer } from "../review-decision.js";
 import { readSourceResource } from "../source.js";
+import { inSourceOrder } from "../source-order.js";
 import type { LocaleSummary, RunSummary } from "../summary.js";
 import { writeTargetResource } from "../write-target.js";
 import { withApprovalNotice, withHandoffApprovals } from "../xliff/handoff-approvals.js";
@@ -225,11 +226,12 @@ async function readImportData(
 }
 
 function mergeAccepted(
+  sourceResource: LocaleResource,
   target: LocaleResource,
   accepted: ImportLocaleResult["accepted"],
 ): Map<string, TranslationEntry> {
   const merged = new Map(target.entries);
-  for (const [key, { value, source }] of accepted) {
+  for (const [key, { value, source }] of inSourceOrder(sourceResource.entries.keys(), accepted)) {
     merged.set(key, { ...source, value, namespace: target.namespace });
   }
   return merged;
@@ -420,7 +422,7 @@ async function runSheet(
     return { summary, lockEntries: {}, provenance: { records: new Map() }, cacheAdditions: {} };
   }
 
-  const merged = mergeAccepted(target, accepted);
+  const merged = mergeAccepted(ctx.source, target, accepted);
   let written: LocaleResource = { ...target, entries: merged };
   if (accepted.size > 0) {
     const path = ctx.resolver.pathFor(sheet.locale);

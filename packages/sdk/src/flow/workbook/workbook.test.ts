@@ -394,6 +394,28 @@ describe("importWorkbook", () => {
     expect(Object.keys(lock.locales.de ?? {}).sort()).toEqual(["farewell", "greeting"]);
   });
 
+  it("writes new keys in source order, not in the handoff's alphabetical row order", async () => {
+    const dir = await project(
+      { title: "Home", nested: { title: "Account", link: "Open settings" }, alpha: "First" },
+      { de: {} },
+    );
+    const config = cfg({ targetLocales: ["de"] });
+    const out = await exportWorkbook({ config, cwd: dir });
+    await fillWorkbook(out.path, "de", {
+      alpha: "Erste",
+      "nested.link": "Einstellungen öffnen",
+      "nested.title": "Konto",
+      title: "Start",
+    });
+
+    await importWorkbook({ config, workbook: out.path, cwd: dir });
+
+    const raw = await readFile(join(dir, "locales", "de.json"), "utf8");
+    const de = JSON.parse(raw) as { nested: Record<string, string> };
+    expect(Object.keys(JSON.parse(raw) as object)).toEqual(["title", "nested", "alpha"]);
+    expect(Object.keys(de.nested)).toEqual(["title", "link"]);
+  });
+
   it("imports a legacy workbook built without the Context column", async () => {
     const dir = await project({ greeting: "Hello" }, { de: undefined });
     const config = cfg({ targetLocales: ["de"] });
