@@ -294,6 +294,17 @@ export {
 export type { UnresolvedArgumentReason } from "./flow/message-arguments.js";
 export type { IncompletePlural } from "./flow/plural-completeness.js";
 export {
+  PROVENANCE_BUCKETS,
+  type ProvenanceBucket,
+  type ProvenanceReport,
+  type ProvenanceReportDeps,
+  type ProvenanceReportEntry,
+  type ProvenanceReportInput,
+  type ProvenanceReportLocale,
+  type ProvenanceReportResult,
+  provenanceReport,
+} from "./flow/provenance-report.js";
+export {
   type PseudolocalizeDeps,
   type PseudolocalizeInput,
   type PseudolocalizeResult,
