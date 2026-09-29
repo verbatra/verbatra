@@ -277,6 +277,12 @@ comes from:
   tab of the current root folder; Fumadocs' dropdown switcher is off (`tabs={false}`). `rootTabs`
   in `lib/root-tabs.ts` builds the tabs, opening each on its first real page, since the Reference
   tab has no page of its own. The header's "Reference" link opens the same tab.
+- **Sidebar titles**: a `sidebarTitle` frontmatter field (`lib/sidebar-title.ts`, a loader plugin in
+  `lib/source.tsx`) names a page in the sidebar and the breadcrumb while its `<h1>` and `<title>`
+  keep `title`. `cli/index` and `sdk/index` use it: titled "CLI reference" and "SDK reference"
+  (localized) so no two pages share a title, and listed as "Overview" in their folder. Both
+  overview pages list their pages as `<Cards>`; the SDK one comes from `<SdkEntryPoints />`
+  (`components/sdk-reference.tsx`), one card per page naming its entry points.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI

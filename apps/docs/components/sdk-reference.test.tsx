@@ -71,27 +71,23 @@ describe("the SDK reference pages", () => {
     });
   });
 
-  it("indexes every page with its entry points as links", () => {
-    const html = renderToStaticMarkup(
-      <SdkEntryPoints locale="de" pageLabel="Seite" entriesLabel="Einstiegspunkte" />,
-    );
+  it("indexes every page as a card that names its entry points", () => {
+    const html = renderToStaticMarkup(<SdkEntryPoints locale="de" />);
 
-    expect(html).toContain("<th>Seite</th><th>Einstiegspunkte</th>");
     expect(html).toContain('href="/de/docs/sdk/run"');
-    expect(html).toContain('href="/de/docs/sdk/run#translate"><code>translate</code></a>');
-    expect(html).toContain(
-      'href="/de/docs/sdk/run#fortschrittsereignisse">Fortschrittsereignisse</a>',
-    );
+    expect(html).toContain('href="/de/docs/sdk/errors"');
+    expect(html).toContain("vk-link-card");
+    expect(html).toContain("Übersetzungen ausführen");
+    expect(html).toContain("<span><code>translate</code></span><span>, Fortschrittsereignisse");
     expect(html).not.toContain("das-fehlermodell");
+    expect(html).not.toContain("<table");
   });
 });
 
 describe("the SDK reference MDX components", () => {
-  it("bind the page locale, so the MDX passes only its labels", () => {
+  it("bind the page locale, so the MDX passes no props", () => {
     const { SdkEntryPoints: Bound } = sdkReferenceComponents("de");
-    const html = Bound
-      ? renderToStaticMarkup(<Bound pageLabel="Seite" entriesLabel="Punkte" />)
-      : "";
+    const html = Bound ? renderToStaticMarkup(<Bound />) : "";
 
     expect(html).toContain('href="/de/docs/sdk/errors"');
   });

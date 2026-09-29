@@ -1,27 +1,28 @@
 ---
-title: Vista general
+title: "Referencia de la CLI"
+sidebarTitle: "Vista general"
 description: "El comando verbatra: sus subcomandos, los flags globales y cómo lee tu entorno."
 type: reference
 ---
 `@verbatra/cli` incluye el binario `verbatra`, una capa fina sobre [`@verbatra/sdk`](/docs/sdk). Estos comandos hacen el trabajo:
 
-| Comando | Qué hace |
-| --- | --- |
-| [`init`](/docs/cli/init) | crea una configuración de verbatra y un `.env.example` para este proyecto |
-| [`extract`](/docs/cli/extract) | analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo del locale de origen |
-| [`translate`](/docs/cli/translate) | traduce cada locale de destino una vez y luego sale |
-| [`watch`](/docs/cli/watch) | retraduce en cada cambio del origen hasta que lo interrumpas |
-| [`check`](/docs/cli/check) | informa de qué claves faltan o están obsoletas por locale, solo lectura |
-| [`diff`](/docs/cli/diff) | lista las claves exactas que se añadirían, se retraducirían o están huérfanas por locale, solo lectura |
-| [`report`](/docs/cli/report) | imprime un informe de solo lectura: `report provenance` lista qué traducciones escribió una máquina y cuáles revisó una persona |
-| [`doctor`](/docs/cli/doctor) | valida la configuración del proyecto e informa de todos los problemas a la vez, sin llamar a un proveedor |
-| [`pseudo`](/docs/cli/pseudo) | genera un pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor |
-| [`types`](/docs/cli/types) | genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor |
-| [`export`](/docs/cli/export) | exporta las cadenas sin traducir para un traductor humano, como libro de Excel, como un archivo CSV o TSV por locale o como un archivo XLIFF por locale para una herramienta TAO |
-| [`import`](/docs/cli/import) | importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale |
-| [`tmx`](/docs/cli/tmx) | importa una memoria de traducción TMX de otra herramienta a la memoria de este proyecto, o exporta la memoria de este proyecto como archivo TMX |
-| [`studio`](/docs/cli/studio) | arranca Verbatra Studio, el panel local de traducción |
-| [`mcp`](/docs/cli/mcp) | arranca un servidor MCP por stdio que expone las herramientas de verbatra a un cliente MCP |
+<Cards>
+  <Card title="init" href="/docs/cli/init">Crea una configuración de verbatra y un `.env.example` para este proyecto.</Card>
+  <Card title="extract" href="/docs/cli/extract">Analiza el código de tu aplicación en busca de llamadas de traducción y añade las claves nuevas al archivo del locale de origen.</Card>
+  <Card title="translate" href="/docs/cli/translate">Traduce cada locale de destino una vez y luego sale.</Card>
+  <Card title="watch" href="/docs/cli/watch">Retraduce en cada cambio del origen hasta que lo interrumpas.</Card>
+  <Card title="check" href="/docs/cli/check">Informa de qué claves faltan o están obsoletas por locale, solo lectura.</Card>
+  <Card title="diff" href="/docs/cli/diff">Lista las claves exactas que se añadirían, se retraducirían o están huérfanas por locale, solo lectura.</Card>
+  <Card title="report" href="/docs/cli/report">Imprime un informe de solo lectura: `report provenance` lista qué traducciones escribió una máquina y cuáles revisó una persona.</Card>
+  <Card title="doctor" href="/docs/cli/doctor">Valida la configuración del proyecto e informa de todos los problemas a la vez, sin llamar a un proveedor.</Card>
+  <Card title="pseudo" href="/docs/cli/pseudo">Genera un pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor.</Card>
+  <Card title="types" href="/docs/cli/types">Genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor.</Card>
+  <Card title="export" href="/docs/cli/export">Exporta las cadenas sin traducir para un traductor humano, como libro de Excel, como un archivo CSV o TSV por locale o como un archivo XLIFF por locale para una herramienta TAO.</Card>
+  <Card title="import" href="/docs/cli/import">Importa un libro rellenado o un archivo delimitado de vuelta a los archivos de locale.</Card>
+  <Card title="tmx" href="/docs/cli/tmx">Importa una memoria de traducción TMX de otra herramienta a la memoria de este proyecto, o exporta la memoria de este proyecto como archivo TMX.</Card>
+  <Card title="studio" href="/docs/cli/studio">Arranca Verbatra Studio, el panel local de traducción.</Card>
+  <Card title="mcp" href="/docs/cli/mcp">Arranca un servidor MCP por stdio que expone las herramientas de verbatra a un cliente MCP.</Card>
+</Cards>
 
 ## Instala e invoca
 
