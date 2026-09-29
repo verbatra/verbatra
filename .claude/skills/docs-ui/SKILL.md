@@ -209,8 +209,9 @@ comes from:
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
   landing footer uses for its column titles. The sidebar's top-level entries inside each tab
   (group triggers such as "CLI", the "Introduction" page, the `For AI agents` separator), the
-  TOC's "On this page" title, table headers, and the tags on `DocsHomePaths` cards all use this
-  treatment. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
+  TOC's "On this page" title, table headers, and the sidebar tabs all use this treatment.
+  `DocsHomePaths` cards do not: the goal is the card title in sentence case, and the page name
+  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
   under a root folder (the Docs and Reference tabs) in the class before the tree reaches
   `DocsLayout`, and leaves the tab names themselves plain; do not target Fumadocs' or Radix's
   internal DOM for it.

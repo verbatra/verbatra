@@ -68,3 +68,30 @@ describe("DocsHomeStacks", () => {
     ]);
   });
 });
+
+describe("DocsHomePaths", () => {
+  it("leads each card with the goal as its title and demotes the page name below the body", async () => {
+    const { DocsHomePaths } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomePaths
+        cards={[
+          {
+            goal: "Translate a project",
+            page: "Quickstart",
+            body: "Install the CLI.",
+            href: "/docs/quickstart",
+          },
+        ]}
+        locale="en"
+      />,
+    );
+    const card = new DOMParser().parseFromString(markup, "text/html").querySelector("a");
+    expect([...(card?.children ?? [])].map((child) => child.textContent)).toEqual([
+      "Translate a project",
+      "Install the CLI.",
+      "Quickstart",
+    ]);
+    expect(card?.querySelector(".vk-label")).toBeNull();
+    expect(card?.classList.contains("grid-rows-subgrid")).toBe(true);
+  });
+});

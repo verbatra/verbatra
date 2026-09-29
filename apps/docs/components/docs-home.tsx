@@ -131,8 +131,8 @@ export function DocsHomeSection({
 
 type PathCard = {
   href: string;
-  tag: string;
-  label: string;
+  goal: string;
+  page: string;
   body: string;
   primary?: boolean;
 };
@@ -151,7 +151,7 @@ export function DocsHomePaths({
           key={card.href}
           href={localizedPath(locale, card.href)}
           className={cn(
-            "flex flex-col gap-2 p-5 transition-[filter,border-color]",
+            "row-span-3 grid grid-rows-subgrid gap-y-2 p-5 transition-[filter,border-color]",
             card.primary ? "rounded-xl hover:brightness-110" : `${PANEL} ${PANEL_HOVER}`,
           )}
           style={
@@ -161,20 +161,17 @@ export function DocsHomePaths({
           }
         >
           <span
-            className="vk-label"
-            style={
-              card.primary
-                ? { color: "color-mix(in srgb, var(--accent-fill-fg) 90%, transparent)" }
-                : undefined
-            }
+            className="font-semibold"
+            style={{
+              ...DISPLAY,
+              fontSize: "1.1rem",
+              letterSpacing: "-0.01em",
+              lineHeight: 1.25,
+              textWrap: "balance",
+              color: card.primary ? undefined : "var(--text-strong)",
+            }}
           >
-            {card.tag}
-          </span>
-          <span
-            className={cn("font-semibold", !card.primary && "text-fd-foreground")}
-            style={{ ...DISPLAY, fontSize: "1.1rem", letterSpacing: "-0.01em" }}
-          >
-            {card.label}
+            {card.goal}
           </span>
           <span
             className="text-sm leading-relaxed"
@@ -185,6 +182,16 @@ export function DocsHomePaths({
             }}
           >
             {card.body}
+          </span>
+          <span
+            className="self-end text-sm font-medium"
+            style={{
+              color: card.primary
+                ? "color-mix(in srgb, var(--accent-fill-fg) 92%, transparent)"
+                : "var(--accent)",
+            }}
+          >
+            {card.page}
           </span>
         </Link>
       ))}
