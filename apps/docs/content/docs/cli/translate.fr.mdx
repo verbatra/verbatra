@@ -1,6 +1,7 @@
 ---
 title: verbatra translate
 description: Traduit chaque locale cible une fois, puis termine.
+type: reference
 ---
 Lance une passe de traduction sur chaque locale cible, puis termine. `translate` compare la source au [fichier de verrouillage](/docs/the-lock-file), n'envoie au fournisseur que les chaînes nouvelles ou modifiées, exécute les [contrôles d'intégrité](/docs/translation-safety), écrit les fichiers de locale et met à jour le verrou. Une chaîne inchangée n'est jamais envoyée deux fois.
 

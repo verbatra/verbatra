@@ -1,6 +1,7 @@
 ---
 title: verbatra translate
 description: Traduce cada locale de destino una vez y luego termina.
+type: reference
 ---
 Ejecuta una pasada de traducción sobre cada locale de destino y termina. `translate` compara el origen con [el archivo de bloqueo](/docs/the-lock-file), envía al proveedor solo los strings nuevos o modificados, ejecuta las [comprobaciones de integridad](/docs/translation-safety), escribe los archivos de locale y actualiza el bloqueo. Nunca envía dos veces un string sin cambios.
 

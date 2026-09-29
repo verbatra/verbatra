@@ -2,7 +2,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { i18n } from "./i18n";
-import { PAGE_TYPES, proseWords } from "./page-type";
+import {
+  LOOKUP_REFERENCE_CEILING,
+  LOOKUP_REFERENCE_PAGES,
+  PAGE_TYPES,
+  proseWords,
+} from "./page-type";
 
 type PageType = (typeof PAGE_TYPES)[number];
 
@@ -18,6 +23,10 @@ const WORD_CEILING: Record<PageType, number> = {
   concept: 1800,
   reference: 3000,
 };
+
+function wordCeiling(file: string, type: PageType): number {
+  return LOOKUP_REFERENCE_PAGES.has(file) ? LOOKUP_REFERENCE_CEILING : WORD_CEILING[type];
+}
 
 function readPage(file: string): string {
   return readFileSync(join(CONTENT_DIR, file), "utf8");
@@ -62,13 +71,20 @@ describe("page type frontmatter", () => {
   });
 
   it.each(typedPages())("keeps %s under the word ceiling of a %s page", (file, type) => {
-    expect(proseWords(readPage(file))).toBeLessThanOrEqual(WORD_CEILING[type]);
+    expect(proseWords(readPage(file))).toBeLessThanOrEqual(wordCeiling(file, type));
   });
 
   it.each(typedPages())("gives every translation of %s the same type", (file, type) => {
     for (const locale of TRANSLATIONS) {
       const translated = readPage(file.replace(/\.mdx$/, `.${locale}.mdx`));
       expect(pageType(translated), locale).toBe(type);
+    }
+  });
+
+  it("keeps the raised ceiling for reference lookup pages only", () => {
+    expect(LOOKUP_REFERENCE_CEILING).toBeGreaterThan(WORD_CEILING.reference);
+    for (const file of LOOKUP_REFERENCE_PAGES) {
+      expect(pageType(readPage(file)), file).toBe("reference");
     }
   });
 
