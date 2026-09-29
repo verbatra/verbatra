@@ -1,6 +1,7 @@
 ---
 title: SDK recipes
 description: Complete, runnable patterns for driving verbatra from your own scripts, CI jobs, and tooling.
+type: how-to
 ---
 The [SDK reference](/docs/sdk) catalogs every entry point. This page is the hands-on companion:
 end-to-end recipes you can copy into a script and run. One thing to set up first: the SDK does not
@@ -50,13 +51,9 @@ A `partial` locale is one whose file was written with keys still missing. It is 
 the CLI exits `1` on it, and your own script should treat it the same way, which is why the check
 above tests `partial` alongside `failed`.
 
-Pass `dryRun: true` to preview without calling a provider or writing anything, and `prune: true`
-or `generatePlurals: true` to override those config options for one run. Pass `locales: ["de"]` to
-restrict the run to a subset of the configured targets, which is how you work through a
-rate-limited provider one language at a time; an unconfigured locale throws `UNKNOWN_LOCALE` before
-anything is read or spent. Set `concurrency` above 1
-to translate locales in parallel (not allowed with a `maxTokens` budget on a live run) and
-`cache: false` to bypass the [translation-memory cache](/docs/the-cache).
+Pass `dryRun: true` to preview without calling a provider or writing anything, and `locales: ["de"]`
+to restrict the run to some of the configured targets, which is how you work through a rate-limited
+provider one language at a time. [`translate`](/docs/sdk/run#translate) lists every other option.
 
 ## Estimate a run before spending
 
@@ -97,26 +94,11 @@ if (estimate !== undefined) {
 
 It bounds the plan, not the invoice: a live run usually spends less, because it consults the
 [translation-memory cache](/docs/the-cache) and collapses identical source strings, and it can
-spend more for every reason `caveats` names. `resolveDryRun` is the one place the
-`estimate`-implies-`dryRun` rule is decided, so call it rather than restating it. For the method
+spend more for every reason `caveats` names. For the method
 behind the numbers, see [Estimating cost](/docs/estimating-cost).
 
-`caveats` is never empty. Its codes (`EstimateCaveatCode`) are:
-
-- `CACHE_NOT_CONSULTED`: the translation memory is not read, so keys a live run would serve from
-  the cache are still counted. Applies to every estimate.
-- `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
-  string; the estimate counts every key. Applies to every estimate.
-- `TRANSPORT_RETRIES_NOT_COUNTED`: one billable call is counted per planned request, although the
-  provider SDKs may retry a failed call underneath it and a retried attempt can still be billed.
-  Applies to every estimate.
-- `TRANSLATION_LENGTH_IS_ESTIMATED`: the response is sized from the source plus a fixed expansion
-  allowance, so a target language that runs longer reports more completion tokens. Token-billed
-  providers only.
-- `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not the provider's own
-  tokenizer. Token-billed providers only.
-- `REPAIR_REQUESTS_NOT_COUNTED`: the repair round for keys that came back missing, and the retry
-  in halves for a cut-off response, are not counted. Token-billed providers only.
+`caveats` is never empty; [RunSummary](/docs/sdk/run-summary) lists what each `EstimateCaveatCode`
+leaves out.
 
 ## Check in CI without writing
 
@@ -209,9 +191,7 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 ```
 
 `config.extract` has to name the framework and the source roots, or the call throws
-`EXTRACT_NOT_CONFIGURED`. Discovery goes through the optional `readDirectory` member of `SdkFs`, so
-a custom `deps.fs` without it is refused with `EXTRACT_FS_UNSUPPORTED`, and a source catalog that
-cannot be written raises `SOURCE_UNWRITABLE`.
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/docs/sdk/inspect#extract) lists every other error it raises.
 
 ## Generate a typed catalog
 
@@ -248,10 +228,8 @@ if (gate.stale) {
 ```
 
 Pass `configPath` so the config file the run loaded is refused as an output path. A `check` run
-writes nothing, refuses nothing for its content, and only reports `stale`. Everything a generating
-run refuses, with `TYPES_OUTPUT_CONFLICT`, is listed on the
-[`verbatra types`](/docs/cli/types) page; a declaration that cannot be written raises
-`TYPES_UNWRITABLE`.
+writes nothing and only reports `stale`. [`verbatra types`](/docs/cli/types) lists everything a
+generating run refuses.
 
 ## Build a pseudolocale
 
@@ -274,10 +252,8 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` defaults to `en-XA` and `out` to `.verbatra-local/pseudo`. A pseudolocale that names a
-configured locale, or an `out` that would land on a configured locale file, is refused with
-`PSEUDO_OUTPUT_CONFLICT` before anything is read or written. The transform is deterministic, so a
-second run over unchanged source rewrites nothing and reports `written` as false.
+`locale` defaults to `en-XA` and `out` to `.verbatra-local/pseudo`. The transform is deterministic,
+so a second run over unchanged source rewrites nothing and reports `written` as false.
 
 ## Edit and retranslate a single key
 
@@ -318,10 +294,8 @@ if (retry.accepted) {
 ```
 
 An unknown locale or key throws `UNKNOWN_LOCALE` or `UNKNOWN_KEY`, and `retranslateEntry` throws
-the provider's own `ProviderError` (for example `RATE_LIMITED`) when the call itself fails. Before
-any provider is built it also throws `MACHINE_TRANSLATION_DISABLED` in a
-[human-only](/docs/human-only-workflow) project, and `NETWORK_POLICY_VIOLATION` when the
-[network policy](/docs/network-policy) does not permit the provider's endpoint. See
+the provider's own `ProviderError` (for example `RATE_LIMITED`) when the call itself fails;
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists the rest. See
 [Review in Studio](/docs/review-in-studio) for the same seams behind a UI.
 
 <AvailableFrom version="0.12.0" />

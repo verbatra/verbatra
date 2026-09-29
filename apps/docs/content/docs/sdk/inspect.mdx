@@ -1,6 +1,7 @@
 ---
 title: "Inspect a project"
 description: "Read-only entry points: doctor, check, diff, integrity checks, lock and provenance state, and bulk reads."
+type: reference
 ---
 ## Inspect state without writing
 
@@ -10,15 +11,12 @@ None of these call a provider, write a file, or mutate the lock.
 
 <AvailableFrom version="0.9.0" />
 
-Validates the project setup and spends nothing: it constructs no provider, makes no network
-request unless `live` asks for one, and never reads an API key value. Eleven checks run, each with
-its own `pass`, `fail`, or `skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
-adapter (`format-adapter`), the configured provider ID resolves to a factory (`provider`), the
-environment variable that provider reads its key from is set (`api-key`), and the source locale file
-can be read (`source-file`). Every check runs even when an earlier one
-failed, so one call reports every independent problem. The API key is checked by name only. The
-source-file check reads and parses the file rather than only probing for it, so a directory in its
-place, an empty file, and malformed content are all reported here.
+Validates the project setup and spends nothing: it constructs no provider, never reads an API key
+value, and makes no network request unless `live` asks for one. Each check returns its own `pass`,
+`fail`, or `skipped` verdict, and every check runs even when an earlier one failed, so one call
+reports every independent problem. [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
+checks. The API key is checked by name only, and the source-file check parses the file, so a
+directory in its place, an empty file, and malformed content are all reported.
 
 ```ts title="Signature"
 function doctor(
@@ -35,46 +33,28 @@ function doctor(
 
 <AvailableFrom version="0.12.0" />
 
-The `network-policy` check passes when the effective [network policy](/docs/network-policy),
-from the config's `network` block and the `VERBATRA_NETWORK_POLICY` environment variable, permits
-the host the configured provider connects to and any proxy it would use. Its detail names the
-policy, both of its sources, and the host. It fails when that host is refused or a network
-environment variable holds an invalid value, passes for the `none` provider, and resolves no host
-name.
-
-The `plural-rules` check is informational and always passes: its detail names the ICU and
-CLDR versions the runtime derives each target language's plural categories from, and any target
-locale ICU has no plural rules for.
+The `network-policy` check fails when the effective [network policy](/docs/network-policy) refuses
+the host the configured provider connects to or its proxy, or a network environment variable holds
+an invalid value. It passes for the `none` provider. The `plural-rules` check is informational and
+always passes; its detail names the ICU and CLDR versions behind each target language's plural
+categories.
 
 <AvailableFrom version="0.12.0" />
 
-The `plural-completeness` check is informational too and always passes: it reads the source and
-every target locale file, and its detail names each plural that lacks CLDR plural categories its
-target language uses, the same finding `check` reports as `incompletePlurals`. It says so when the
-format does not store plural forms by CLDR category, and a file it cannot read is named in the
-detail.
-
-The `locale-codes` check is informational too and always passes: its detail names every
-configured locale code that is valid but not in canonical BCP 47 form, such as `zh-hant-tw` or the
-deprecated `iw`, with the canonical form `Intl.getCanonicalLocales` suggests. Nothing is renamed.
-
-The `locale-state` check is informational too and always passes: its detail names every
-locale the lock file, the translation memory, or the provenance file holds state for that the config
-does not list, such as `pt_BR` left behind after a respelling to `pt-BR`, and says whether the next
-`translate` run carries it over. A file it cannot read is named in the detail.
+The `plural-completeness`, `locale-codes`, and `locale-state` checks are informational too and
+always pass. Their details name plurals that lack a CLDR category their target language uses (what
+`check` reports as `incompletePlurals`), configured locale codes that are not in canonical BCP 47
+form, and locales the lock, memory, or provenance file holds state for that the config no longer
+lists. Nothing is renamed.
 
 <AvailableFrom version="0.12.0" />
 
-The `locales` check judges the source locale and every target locale against the configured
-provider's language support, the same judgement `translate` makes before it spends anything. It
-fails on a locale the provider does not support and passes with warnings otherwise; it is `skipped`
-for the `none` provider. The per-locale verdicts travel in `DoctorResult.locales`, a
-`LocaleCapabilityReport` with the code each locale is sent as, its `support` (`supported`,
-`unverified`, or `unsupported`), `glossary` and `formality` flags, and its warnings. With
-`live: true`, `doctor` first fetches the provider's current language list (DeepL's `/v3/languages`,
-Cloud Translation's `languages`), which uses no translation quota, when the provider's key variable
-is set and the network policy permits its host; `LocaleCapabilityReport.live` says how that went.
-See [Language support](/docs/language-support#checking-support-before-a-run).
+The `locales` check judges every configured locale against the provider's language support, as
+`translate` does before it spends anything: it fails on an unsupported locale and is `skipped` for
+the `none` provider. The per-locale verdicts travel in `DoctorResult.locales` as a
+`LocaleCapabilityReport`. With `live: true`, `doctor` first fetches the provider's current language
+list, which uses no translation quota; `LocaleCapabilityReport.live` says how that went. See
+[Language support](/docs/language-support#checking-support-before-a-run).
 
 With `literals` set, `doctor` runs only the `config`
 check and an `untranslated-literals` check instead, scanning the source roots of the config's
@@ -148,10 +128,7 @@ exactly when every checked locale has nothing missing and nothing stale.
 With `consistency: true`, each `LocaleCheckSummary` also carries `inconsistencies`: one
 `InconsistencyGroup` per source string the locale translates more than one way under different
 keys, naming the `source`, every distinct translation as `{ value, keys }`, and the `context`,
-`description`, `meaning`, `isPlural`, and `pluralForm` the grouped keys share. Only up-to-date keys
-are compared, values are compared after NFC normalization and trimming surrounding whitespace, keys
-whose description, meaning, plural flag, or gettext `msgctxt` differ are never grouped, and plural
-forms stored under their own keys are compared per form. It is a report only: it never changes
+`description`, `meaning`, `isPlural`, and `pluralForm` the grouped keys share. It is a report only: it never changes
 `inSync`, a count, or any file, and it calls no provider.
 
 <AvailableFrom version="0.12.0" />
@@ -250,9 +227,7 @@ function diff(
 
 With `unused: true` it also scans the roots of the config's `extract` block and adds an `unused`
 report, separate from every `orphaned` list: the source-locale keys no static reference names, in
-catalog order. It is read-only and keyless, and it models the i18next runtime (`t` calls and their
-aliases, static `keyPrefix` and `getFixedT` prefixes, `Trans` keys, namespace-qualified keys, and
-plural and context variants), comparing keys in the catalog format's encoding. Each listed key
+catalog order. It is read-only and keyless and models the i18next runtime. Each listed key
 carries its decoded `key` and its `catalogKey`. Keys matched by `extract.unused.ignore` land in
 `ignored`, and keys a template literal with a static head could reach land in `possiblyDynamic`. Its
 `status` is `complete`, `unreliable` (with `unreliableBecause` naming each reason with its sites),
@@ -276,9 +251,7 @@ Reports, for each locale's changed keys, whether the current target value still 
 placeholders, whether it still carries the source's inline markup, and whether it is valid ICU. Each
 entry carries `key`, `hasPlaceholders`, `matches`, the `missing` and `extra` placeholder tokens on a
 mismatch, `icuValid`, `markupMatches`, and `markupDetails` naming the tags behind a markup mismatch.
-Entries never carry a source or target string value. Reporting markup here is what makes drift that
-predates the write-time gate visible: a translation written before the check existed, edited outside
-verbatra, or produced by a path that never crossed the gate is judged here by the same rule. This is
+Entries never carry a source or target string value. A value written before the write-time gate existed or edited outside verbatra is judged by the same rule. This is
 the per-key integrity report Studio surfaces.
 
 ```ts title="Signature"
