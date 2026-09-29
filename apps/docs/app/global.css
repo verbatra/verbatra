@@ -822,6 +822,7 @@ figure.shiki > pre {
 .vk-deck {
   --mid: calc((var(--n, 6) - 1) / 2);
   position: relative;
+  container-type: inline-size;
   display: flex;
   height: 300px;
   align-items: center;
@@ -829,7 +830,8 @@ figure.shiki > pre {
 }
 
 .vk-card {
-  --w: 92px;
+  --w: 108px;
+  --stride: min(112px, (100cqi - var(--w)) / (var(--n, 6) - 1));
   --rot: calc((var(--i) - var(--mid)) * 5deg);
   --lift: calc((var(--i) - var(--mid)) * (var(--i) - var(--mid)) * 4px);
   position: absolute;
@@ -840,7 +842,8 @@ figure.shiki > pre {
   width: var(--w);
   height: 164px;
   margin: -82px 0 0 calc(var(--w) / -2);
-  padding: 16px 10px 14px;
+  padding: 16px 8px 14px;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr auto auto auto;
   place-items: center;
   align-content: center;
@@ -869,13 +872,14 @@ figure.shiki > pre {
 .vk-deck:focus-within .vk-card,
 .vk-deck.is-in:hover .vk-card,
 .vk-deck.is-in:focus-within .vk-card {
-  transform: translateX(calc((var(--i) - var(--mid)) * 97px));
+  transform: translateX(calc((var(--i) - var(--mid)) * var(--stride)));
   box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--v-purple) 60%, transparent);
   transition-delay: 0ms;
 }
 
 .vk-card:hover,
 .vk-card:focus-visible {
+  z-index: calc(var(--n, 6) + 1);
   border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
 }
 
@@ -913,16 +917,18 @@ figure.shiki > pre {
 
 @media (max-width: 1023px) {
   .vk-deck {
-    display: grid;
+    --cols: 2;
+    --gap: 12px;
+    flex-wrap: wrap;
     height: auto;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--gap);
   }
 
   .vk-card,
   .vk-deck.is-in .vk-card,
   .vk-deck:hover .vk-card {
     position: static;
+    flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));
     width: auto;
     margin: 0;
     box-shadow: none;
@@ -933,6 +939,12 @@ figure.shiki > pre {
   .vk-card-kind,
   .vk-card-id {
     opacity: 1;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .vk-deck {
+    --cols: 4;
   }
 }
 
