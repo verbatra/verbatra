@@ -538,11 +538,10 @@ samp {
 }
 
 .vk-available-from {
-  margin-block: 0.75rem;
+  vertical-align: 0.1em;
 }
 
 :where(h2, h3, h4) .vk-available-from {
-  margin-block: 0;
   margin-inline-start: 0.125rem;
   vertical-align: 0.2em;
 }

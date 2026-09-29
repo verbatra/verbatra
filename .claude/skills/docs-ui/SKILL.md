@@ -250,7 +250,11 @@ comes from:
   (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
   breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
-  inside a heading. Do not bring back a filled purple pill.
+  inside a heading. A badge placed directly under a heading is moved into it; a badge that dates
+  only part of a section sits inline, leading the paragraph or following the list term it dates,
+  never alone as a paragraph in mid-section. A heading whose key a table's "Since" column
+  already dates (the key table on `config-file`) carries no badge. Do not bring back a filled
+  purple pill.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
   column.

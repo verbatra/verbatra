@@ -157,17 +157,13 @@ La version 2 donne à chaque terme une traduction par locale, des traductions in
 
 Chaque terme a besoin d'un `target`, d'une entrée dans `targets` ou d'une liste `forbidden`, et ne peut pas interdire sa propre traduction, nommer deux fois une locale ni figurer aussi dans `doNotTranslate`. Une requête ne porte que les termes de sa locale cible, et l'empreinte de [cache](/docs/the-cache) de chaque locale ne couvre que ceux-là. Un fichier version 1 continue de fonctionner avec la même empreinte ; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) du SDK ne le réécrit en version 2 que pour une modification que la version 1 ne sait pas exprimer.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
-
-Seule la forme fichier se modifie depuis [Studio](/docs/review-in-studio), un terme à la fois ; un glossaire en ligne y reste en lecture seule. Les fournisseurs LLM ont pour instruction de traiter les traductions comme contraignantes, d'éviter les traductions interdites et de garder les termes à ne pas traduire ; DeepL, Google Cloud Translation et LibreTranslate ne peuvent pas les appliquer. La sortie de chaque fournisseur est vérifiée ensuite et signalée `GLOSSARY_TERM_MISSED` ou `GLOSSARY_FORBIDDEN_TERM` ([raisons de révision](/docs/error-codes#review-reason-codes)).
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Seule la forme fichier se modifie depuis [Studio](/docs/review-in-studio), un terme à la fois ; un glossaire en ligne y reste en lecture seule. Les fournisseurs LLM ont pour instruction de traiter les traductions comme contraignantes, d'éviter les traductions interdites et de garder les termes à ne pas traduire ; DeepL, Google Cloud Translation et LibreTranslate ne peuvent pas les appliquer. La sortie de chaque fournisseur est vérifiée ensuite et signalée `GLOSSARY_TERM_MISSED` ou `GLOSSARY_FORBIDDEN_TERM` ([raisons de révision](/docs/error-codes#review-reason-codes)).
 
 ### generatePlurals
 
 Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cible a besoin mais que la source n'a pas, comme few et many pour le polonais ; les clés ordinales (`<key>_ordinal_<category>`) suivent les règles ordinales CLDR. Seul `i18next-json` avec un fournisseur LLM le prend en charge. Tout le reste, et une locale sans règles CLDR, reçoit à la place l'avertissement de pluriel par locale (en supposant `one` et `other` pour les cardinaux, `other` pour les ordinaux). Il n'y a pas d'option CLI ; `translate()` du SDK accepte une surcharge par exécution.
 
 ### fuzzyCache
-
-<AvailableFrom version="0.11.0" />
 
 `fuzzyCache: { enabled: true }` laisse une clé dont la source a changé réutiliser la traduction de sa forme antérieure quand les deux se ressemblent au moins à hauteur de `threshold`, au lieu d'appeler le fournisseur. Une réutilisation :
 
@@ -180,8 +176,6 @@ Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cib
 
 ### humanEdits et pinnedKeys
 
-<AvailableFrom version="0.12.0" />
-
 `humanEdits` couvre une clé obsolète dont la valeur vient d'une modification dans Studio ou via le SDK (`human`), d'un livrable importé (`import`) ou d'une modification hors de verbatra (`external`), comme l'enregistre la [provenance](/docs/the-lock-file#la-provenance-de-chaque-valeur) :
 
 - `"protect"` garde la valeur ; la clé n'est pas envoyée, reste obsolète dans `check` et apparaît comme protégée.
@@ -191,8 +185,6 @@ Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cib
 Une clé qui correspond à `pinnedKeys` (par exemple `["legal.*", "brand.name"]`) n'est jamais traduite, suggérée ni retraduite, quoi que dise `humanEdits`, et un agent IA ne peut pas la modifier ; une personne le peut toujours. Une valeur sans enregistrement de provenance (`unrecorded`) n'est pas protégée. Voir [Garder les traductions humaines](/docs/protecting-human-translations).
 
 ### network
-
-<AvailableFrom version="0.12.0" />
 
 `"local-only"` autorise les adresses loopback, privées et uniques locales plus `allowedHosts` ; `"allowlist"` n'autorise que `allowedHosts`. `VERBATRA_NETWORK_POLICY` peut imposer une politique plus stricte en CI. Voir [Restreindre l'accès réseau](/docs/network-policy).
 
@@ -205,8 +197,6 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 Les entrées manquantes et modifiées d'une locale partent en sous-lots séquentiels d'au plus cette taille, pour qu'une requête trop grosse ne puisse pas faire échouer toute la locale ; un sous-lot échoué est retenté à l'exécution suivante pendant que les autres avancent. Il n'y a ni option CLI ni surcharge par exécution.
 
 ### maxLength
-
-<AvailableFrom version="0.11.0" />
 
 Une table associant une clé de traduction à la plus longue valeur qu'elle peut contenir, pour les chaînes soumises à une contrainte de mise en page :
 
@@ -226,12 +216,10 @@ maxLength: {
 
 `maxTokens` est un budget pour toute l'exécution : tokens d'entrée plus de sortie, sommés sur chaque appel fournisseur (traduction et génération de pluriels) et sur chaque locale cible. `translate --max-tokens <n>` fixe pour une exécution un plafond plus strict qui s'arrête toujours ; le chiffre le plus bas s'applique (depuis 0.12.0).
 
-<AvailableFrom version="0.11.0" />
-
 `budgetBehavior` décide de ce que fait le fait de l'atteindre :
 
 - `"warn"`, la valeur par défaut, compte la dépense et signale le dépassement ; l'exécution continue comme si aucun budget n'était défini.
-- `"stop"` en fait un plafond (appliqué depuis 0.11.0, DeepL, Google Cloud Translation et LibreTranslate compris). Avant chaque requête, l'exécution projette son coût de la même façon que [l'estimation préalable](/docs/estimating-cost) et refuse une requête qui dépasserait `maxTokens`. Les clés de cette requête sont retenues, ainsi que chaque clé pas encore tentée : le reste de la locale en cours et chaque locale suivante, dont la comparaison et le rapport d'orphelines tournent quand même. Les clés retenues gardent leur hash de verrouillage précédent et sont retentées à l'exécution suivante.
+- `"stop"` <AvailableFrom version="0.11.0" /> en fait un plafond (DeepL, Google Cloud Translation et LibreTranslate compris). Avant chaque requête, l'exécution projette son coût de la même façon que [l'estimation préalable](/docs/estimating-cost) et refuse une requête qui dépasserait `maxTokens`. Les clés de cette requête sont retenues, ainsi que chaque clé pas encore tentée : le reste de la locale en cours et chaque locale suivante, dont la comparaison et le rapport d'orphelines tournent quand même. Les clés retenues gardent leur hash de verrouillage précédent et sont retentées à l'exécution suivante.
 
 Le décompte sous `"stop"` :
 
@@ -256,8 +244,6 @@ Le `maxTokens` de premier niveau est ce budget de toute l'exécution. Le `provid
 
 ### rates
 
-<AvailableFrom version="0.11.0" />
-
 Lu uniquement par [`verbatra translate --estimate`](/docs/estimating-cost) ; une exécution réelle l'ignore. verbatra ne livre aucun prix, c'est donc toi qui les fournis, avec la date à laquelle tu les as lus.
 
 ```ts title="verbatra.config.ts"
@@ -274,8 +260,6 @@ rates: {
 Une clé de `table` est `provider/model` pour un fournisseur avec un modèle, et l'id seul pour un fournisseur sans modèle (`deepl`, `google-translate`). Une entrée est soit facturée aux tokens (`inputPerMillionTokens` et `outputPerMillionTokens`), soit facturée aux caractères (`perMillionCharacters`), jamais les deux ; un tarif négatif est rejeté. `openai-compatible` et `libretranslate` n'envoient aucune facture, donc leur quantité est indiquée sans tarif. Une clé de tarif manquante est signalée comme absente, jamais comme nulle, et une entrée dans la mauvaise unité est refusée.
 
 ### extract
-
-<AvailableFrom version="0.11.0" />
 
 Lu uniquement par [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor#littéraux-non-traduits) et [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées).
 

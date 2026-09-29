@@ -157,17 +157,13 @@ Version 2 gives each term a translation per locale, forbidden renderings, and te
 
 Each term needs a `target`, a `targets` entry or a `forbidden` list, and may not forbid its own translation, name a locale twice, or also appear in `doNotTranslate`. A request carries only its target locale's terms, and each locale's [cache](/docs/the-cache) fingerprint covers only those. A version 1 file keeps working with the same fingerprint; the SDK's [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) rewrites it as version 2 only for an edit version 1 cannot express.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
-
-Only the file form can be edited from [Studio](/docs/review-in-studio), one term at a time; an inline glossary is read-only there. LLM providers are instructed to treat translations as binding, avoid forbidden renderings and keep do-not-translate terms; DeepL, Google Cloud Translation and LibreTranslate cannot apply them. Every provider's output is checked afterwards and flagged `GLOSSARY_TERM_MISSED` or `GLOSSARY_FORBIDDEN_TERM` ([review reasons](/docs/error-codes#review-reason-codes)).
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Only the file form can be edited from [Studio](/docs/review-in-studio), one term at a time; an inline glossary is read-only there. LLM providers are instructed to treat translations as binding, avoid forbidden renderings and keep do-not-translate terms; DeepL, Google Cloud Translation and LibreTranslate cannot apply them. Every provider's output is checked afterwards and flagged `GLOSSARY_TERM_MISSED` or `GLOSSARY_FORBIDDEN_TERM` ([review reasons](/docs/error-codes#review-reason-codes)).
 
 ### generatePlurals
 
 When true, verbatra synthesizes the CLDR plural forms a target needs but the source lacks, such as Polish `few` and `many`; ordinal keys (`<key>_ordinal_<category>`) follow the CLDR ordinal rules. Only `i18next-json` with an LLM provider supports it. Everything else, and a locale without CLDR rules, gets the per-locale plural warning instead (assuming `one` and `other` for cardinals, `other` for ordinals). There is no CLI flag; the SDK's `translate()` takes a per-run override.
 
 ### fuzzyCache
-
-<AvailableFrom version="0.11.0" />
 
 `fuzzyCache: { enabled: true }` lets a key whose source changed reuse the translation of its earlier form when the two are at least `threshold` alike, instead of calling the provider. A reuse:
 
@@ -180,8 +176,6 @@ When true, verbatra synthesizes the CLDR plural forms a target needs but the sou
 
 ### humanEdits and pinnedKeys
 
-<AvailableFrom version="0.12.0" />
-
 `humanEdits` covers a stale key whose value came from Studio or an SDK edit (`human`), an imported handoff (`import`), or an edit outside verbatra (`external`), as recorded in [provenance](/docs/the-lock-file#provenance-who-wrote-each-value):
 
 - `"protect"` keeps the value; the key is not sent, stays stale in `check`, and is listed as protected.
@@ -191,8 +185,6 @@ When true, verbatra synthesizes the CLDR plural forms a target needs but the sou
 A key matching `pinnedKeys` (for example `["legal.*", "brand.name"]`) is never translated, suggested or retranslated, whatever `humanEdits` says, and an AI agent cannot edit it; a person still can. A value with no provenance record (`unrecorded`) is not protected. See [Keep human translations](/docs/protecting-human-translations).
 
 ### network
-
-<AvailableFrom version="0.12.0" />
 
 `"local-only"` permits loopback, private and unique-local addresses plus `allowedHosts`; `"allowlist"` permits `allowedHosts` only. `VERBATRA_NETWORK_POLICY` can pin a stricter policy in CI. See [Restrict network access](/docs/network-policy).
 
@@ -205,8 +197,6 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 A locale's missing and changed entries go out in sequential sub-batches of at most this size, so one oversized request cannot fail the whole locale; a failed sub-batch is retried next run while the others proceed. There is no CLI flag or per-run override.
 
 ### maxLength
-
-<AvailableFrom version="0.11.0" />
 
 A map from translation key to the longest value it may hold, for strings under a layout constraint:
 
@@ -226,12 +216,10 @@ maxLength: {
 
 `maxTokens` is a whole-run budget: input plus output tokens, summed over every provider call (translation and plural generation) and every target locale. `translate --max-tokens <n>` sets a stricter, always-stopping ceiling for one run; the lower figure applies (from 0.12.0).
 
-<AvailableFrom version="0.11.0" />
-
 `budgetBehavior` decides what reaching it does:
 
 - `"warn"`, the default, counts the spend and flags the overrun; the run continues as if no budget were set.
-- `"stop"` makes it a ceiling (enforced from 0.11.0, DeepL, Google Cloud Translation and LibreTranslate included). Before each request, the run projects its cost the same way [the pre-run estimate](/docs/estimating-cost) does and refuses one that would pass `maxTokens`. That request's keys are withheld, and so is every key not yet attempted: the rest of the current locale and every later locale, whose diff and orphan reporting still run. Withheld keys keep their prior lock hash and are retried next run.
+- `"stop"` <AvailableFrom version="0.11.0" /> makes it a ceiling (DeepL, Google Cloud Translation and LibreTranslate included). Before each request, the run projects its cost the same way [the pre-run estimate](/docs/estimating-cost) does and refuses one that would pass `maxTokens`. That request's keys are withheld, and so is every key not yet attempted: the rest of the current locale and every later locale, whose diff and orphan reporting still run. Withheld keys keep their prior lock hash and are retried next run.
 
 Counting under `"stop"`:
 
@@ -256,8 +244,6 @@ The top-level `maxTokens` is this whole-run budget. Anthropic's `provider.option
 
 ### rates
 
-<AvailableFrom version="0.11.0" />
-
 Read only by [`verbatra translate --estimate`](/docs/estimating-cost); a live run ignores it. verbatra ships no prices, so you supply them with the date you read them.
 
 ```ts title="verbatra.config.ts"
@@ -274,8 +260,6 @@ rates: {
 A `table` key is `provider/model` for a provider with a model and the bare id for one without (`deepl`, `google-translate`). An entry is either token-billed (`inputPerMillionTokens` and `outputPerMillionTokens`) or character-billed (`perMillionCharacters`), never both; a negative rate is rejected. `openai-compatible` and `libretranslate` send no invoice, so their quantity is reported without a rate. A missing rate key is reported as absent, never as zero, and an entry in the wrong unit is refused.
 
 ### extract
-
-<AvailableFrom version="0.11.0" />
 
 Read only by [`verbatra extract`](/docs/cli/extract), [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) and [`verbatra diff --unused`](/docs/cli/diff#unused-source-keys).
 
