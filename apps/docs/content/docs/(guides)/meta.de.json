@@ -3,6 +3,7 @@
   "pages": [
     "---Alltag---",
     "../(get-started)/add-a-language",
+    "extract-keys",
     "estimating-cost",
     "protecting-human-translations",
     "../(help)/recovery-and-rollback",

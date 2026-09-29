@@ -17,10 +17,12 @@ import {
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { LaneCards, ReferenceRow, VMark } from "@/components/landing";
+import { OutputCodeBlock } from "@/components/output-code-block";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
 import Tabs from "@/components/ui/tabs";
+import { OUTPUT_ATTRIBUTE } from "@/lib/code-block-meta";
 import { duplicatesFooter } from "@/lib/docs-neighbours";
 import { type Locale, localizeHref } from "@/lib/i18n";
 import { isShortInlineCode } from "@/lib/inline-code";
@@ -30,8 +32,6 @@ export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
 export const CODE_TABS_CLASS = "vk-code-tabs";
 export const SHORT_CODE_CLASS = "vk-code-short";
-export const OUTPUT_CODE_CLASS = "vk-code-output";
-export const OUTPUT_BLOCK_TITLE = "Output";
 
 const NO_NEIGHBOURS: ReadonlySet<string> = new Set();
 
@@ -51,19 +51,20 @@ export function getMDXComponents(
         {children}
       </code>
     ),
-    pre: ({ title, className, children, ...rest }: ComponentProps<typeof CodeBlock>) => {
-      const isOutput = title === OUTPUT_BLOCK_TITLE;
-      return (
-        <CodeBlock
-          title={title}
-          allowCopy={!isOutput}
-          className={cn(isOutput && OUTPUT_CODE_CLASS, className)}
-          {...rest}
-        >
+    pre: ({
+      [OUTPUT_ATTRIBUTE]: output,
+      children,
+      ...rest
+    }: ComponentProps<typeof CodeBlock> & { [OUTPUT_ATTRIBUTE]?: boolean }) =>
+      output === true ? (
+        <OutputCodeBlock locale={locale} {...rest}>
+          {children}
+        </OutputCodeBlock>
+      ) : (
+        <CodeBlock {...rest}>
           <Pre>{children}</Pre>
         </CodeBlock>
-      );
-    },
+      ),
     Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
       <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />
     ),

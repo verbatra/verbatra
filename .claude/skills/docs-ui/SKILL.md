@@ -258,10 +258,14 @@ comes from:
   landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
   and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
   `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
-- **Output blocks**: a fence titled exactly `Output` (`` ```text title="Output" ``, the
-  `OUTPUT_BLOCK_TITLE` in `components/mdx.tsx`) is what a command prints, not something to run: the
-  `pre` mapping gives it `.vk-code-output` (on `--surface-card` instead of the void, the title as a
-  `.vk-label`) and drops its copy button, so commands and results read apart at a glance.
+- **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
+  something to run. The flag, not a title, is the marker, so it reads the same in every locale:
+  `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in
+  `source.config.ts`) turns it into a `data-output` prop, and the `pre` mapping renders
+  `OutputCodeBlock` (`components/output-code-block.tsx`) with `.vk-code-output` (on
+  `--surface-card` instead of the void, the caption as a `.vk-label`), no copy button, and the
+  caption from `docs.codeBlock.output` in `messages/*.json`. Never write `title="Output"`: it stays
+  an ordinary English-captioned block.
 - **Steps**: Fumadocs' `.fd-steps` rail is a 3px `--v-purple` start bar (60 percent), and each
   step number sits in an outline circle on `--surface-bg` in mono `--accent`.
 - **Sidebar tabs**: the Docs and Reference root folders render as two inline `.vk-label` links

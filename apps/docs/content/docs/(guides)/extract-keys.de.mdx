@@ -1,0 +1,93 @@
+---
+title: Keys aus dem Quellcode extrahieren
+description: Übernimm die Übersetzungs-Keys, die dein Code schon aufruft, in die Quell-Locale-Datei, füll ihren Text aus und gib sie an translate weiter.
+type: how-to
+---
+<AvailableFrom version="0.11.0" />
+
+Nutze das, wenn dein Code deinem Katalog voraus ist: Du schreibst `t("cart.empty", "Your cart is empty")` in eine Komponente und willst den Key in der Quell-Locale-Datei, ohne ihn von Hand zu kopieren. Außerdem bringt es ein Projekt, das nie internationalisiert wurde, von seinem Code aus an den Start statt von einer leeren JSON-Datei.
+
+`verbatra extract` liest deinen Quellcode und schreibt nur die Quell-Locale-Datei. Es ruft keinen Provider auf, braucht keinen API-Key und stellt keine Netzwerkanfrage.
+
+Du brauchst:
+
+- eine verbatra-Konfiguration (führ [`verbatra init`](/docs/cli/init) aus, wenn du keine hast);
+- Code, der `t(...)`, `$t(...)` oder `i18n.t(...)` von i18next aufruft, das einzige Framework, das `extract` heute liest;
+- einen Namespace pro Katalogdatei. Ein Key mit Namespace wie `t("common:nav.home")` wird gemeldet und nie geschrieben, weil eine Konfiguration genau eine Datei adressiert.
+
+## Zeig verbatra deinen Quellcode
+
+Füg einen `extract`-Block mit den Verzeichnissen hinzu, die durchsucht werden sollen:
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  extract: {
+    framework: "i18next",
+    roots: ["src"], // [!code highlight]
+  },
+});
+```
+
+Außerhalb von `roots` wird nichts gelesen, und Build-Ausgaben wie `node_modules` und `dist` werden immer übersprungen. Liegt generierter Code unter einer Root, trag den Namen seines Verzeichnisses in `exclude` ein. Jedes Feld steht unter [`extract`](/docs/config-file#extract).
+
+## Sieh dir an, was hinzukäme
+
+```bash
+verbatra extract --dry-run
+```
+
+Die Zusammenfassung listet die neuen Keys mit Datei und Zeile, die sie genannt haben, und schreibt nichts. Lies drei Teile davon, bevor du weitermachst:
+
+- **new keys**: was ein echter Lauf der Quelldatei hinzufügen würde.
+- **dynamic keys**: Aufrufstellen, deren Key kein vollständiger String ist, etwa `t("user." + id)` oder `` t(`nav.${page}`) ``. Sie werden nie geschrieben. Trag diese Keys von Hand in den Katalog ein oder schreib den Aufruf mit einem literalen Key.
+- **conflicts**: ein Key mit zwei verschiedenen Standardwerten an zwei Aufrufstellen. Keiner der Werte wird geschrieben, also wähl einen Text und bring die Aufrufstellen in Einklang.
+
+## Füg die Keys hinzu
+
+```bash
+verbatra extract
+```
+
+```text output
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+next: verbatra translate (translate the new keys)
+```
+
+Ein Standardwert aus der Aufrufstelle wird zum Quelltext des Keys. Ein Key, der schon im Katalog steht, behält seinen Wert, sodass ein erneutes `extract` deine Änderungen nie überschreibt, und ein Lauf, der nichts Neues findet, lässt die Datei byteidentisch.
+
+Ein Key, dessen Aufrufstelle keinen Standardwert hatte, wird mit leerem Wert hinzugefügt und im `--json`-Ergebnis unter `withoutDefault` aufgeführt. Schreib seinen Quelltext in die Quell-Locale-Datei, bevor du übersetzt.
+
+Wenn dein Format `xliff` oder `apple-xcstrings` ist, leg den Quellkatalog zuerst an (den `.xcstrings`-Katalog in Xcode): `extract` hängt an ihn an, legt ihn aber nie an.
+
+## Übersetze die neuen Keys
+
+```bash
+verbatra translate
+```
+
+Die neuen Keys fehlen in jeder Ziel-Locale, also übersetzt der Lauf genau sie und sonst nichts. Wenn der Stapel groß ist, schau dir die Kosten vorher mit [`--estimate`](/docs/estimating-cost) an.
+
+Wenn du TypeScript nutzt, erzeug deine Key-Deklarationen mit [`verbatra types`](/docs/cli/types) neu, damit ein Tippfehler in einem neuen Key die Kompilierung scheitern lässt.
+
+## Halte Code und Katalog im Gleichschritt
+
+`extract` fügt nur hinzu. Zwei Prüfungen, die nur lesen, decken die anderen Richtungen ab:
+
+- `verbatra diff --unused` listet Quell-Keys, die keine Aufrufstelle mehr nennt. Es nutzt die `extract`-Roots und löscht nichts; ob du einen Key entfernst, entscheidest du. Unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys) steht, wann die Liste vollständig genug ist, um ihr zu trauen.
+- `verbatra doctor --literals` listet für Nutzer sichtbare Strings, die nie durch `t(...)` gegangen sind, etwa JSX-Text oder ein `aria-label`. Unter [Nicht übersetzte Literale](/docs/cli/doctor#nicht-übersetzte-literale) steht, was zählt und wie du eines zurückhältst.
+
+Führ `verbatra extract` erneut aus, wann immer du Aufrufstellen hinzufügst. Das lässt sich gefahrlos wiederholen, und es endet mit `0`, egal was es findet. Ein CI-Schritt, der bei neuen Keys scheitern soll, liest deshalb die Liste `added` aus `--json` statt den Exit-Code.
+
+## Siehe auch
+
+- [`verbatra extract`](/docs/cli/extract): die Aufrufformen, die es liest, der vollständige Bericht und das JSON-Ergebnis.
+- [Die Konfigurationsdatei](/docs/config-file#extract): der `extract`-Block.
+- [`verbatra translate`](/docs/cli/translate): füllt die Ziel-Locales.
+- [Fehlercodes](/docs/error-codes#extract_not_configured): `EXTRACT_NOT_CONFIGURED`, wenn der Block fehlt.

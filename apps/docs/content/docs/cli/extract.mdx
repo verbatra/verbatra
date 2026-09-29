@@ -112,7 +112,7 @@ interface ExtractResult {
 
 The summary goes to stdout. On stderr, a spinner line counts the scanned files; when keys were added, a hint suggests `verbatra translate`, or after `--dry-run` the same extract without the flag. `--quiet` drops the stderr lines:
 
-```text title="Output"
+```text output
 verbatra: scanning the source... done (0.6s)
 verbatra extract
   42 files scanned, 18 keys already present
@@ -152,6 +152,7 @@ There is no exit `1`: dynamic call sites and conflicting defaults are findings, 
 
 ## Related
 
+- [Extract keys from source code](/docs/extract-keys) walks through the workflow from call site to translated key.
 - [The config file](/docs/config-file#extract) documents the `extract` block.
 - [`verbatra translate`](/docs/cli/translate) fills in the target locales once the new keys exist.
 - [`verbatra types`](/docs/cli/types) declares the keys for TypeScript.
