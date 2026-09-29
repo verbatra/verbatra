@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { cosmiconfig } from "cosmiconfig";
+import { cosmiconfig, type Loader } from "cosmiconfig";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import type { z } from "zod";
 import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { redact } from "../redact.js";
+import { freshConfigLoaders } from "./fresh-loaders.js";
 import {
   describeGlossaryIssues,
   isGlossaryDefinition,
@@ -50,6 +51,22 @@ export interface LoadConfigOptions {
   readonly configPath?: string;
   /** File-system port used to read the glossary file. Defaults to the real file system. */
   readonly fs?: SdkFs;
+  /**
+   * Re-evaluate a JavaScript or TypeScript config file, and the modules it imports, instead of
+   * reusing what an earlier load in the same process evaluated. Without it, a process that loads
+   * the config twice keeps the first result of a `verbatra.config.ts`, `.js`, or `.cjs` file even
+   * after the file changed. A long-running process that reloads the config after an edit sets it.
+   * JSON, YAML, and `package.json` configs are always read afresh. Defaults to `false`.
+   */
+  readonly fresh?: boolean;
+}
+
+/** Where {@link configCandidatePaths} looks: the working directory and an optional explicit config file. */
+export interface ConfigCandidateOptions {
+  /** Directory the config search starts from. Defaults to the process working directory. */
+  readonly cwd?: string;
+  /** An explicit config file, resolved against `cwd`. When set, it is the only candidate. */
+  readonly configPath?: string;
 }
 
 /**
@@ -132,6 +149,32 @@ function collectSearchChain(startDir: string, stopDir: string): ReadonlySet<stri
   }
   chain.add(stop);
   return chain;
+}
+
+/**
+ * Lists every file {@link loadConfigWithMeta} could load a config from with the same `cwd` and
+ * `configPath`: the explicit file alone when `configPath` is set, otherwise each search place in
+ * each directory of the search chain, nearest directory first, whether or not the file exists. A
+ * long-running process can watch these paths to notice a config being created, edited, or removed
+ * without loading it again on every request. A glossary file the config points at is not included;
+ * {@link LoadedConfig.glossary} names it.
+ *
+ * @param options - The working directory and an optional explicit config file.
+ * @returns Absolute paths, in the order the search would try them.
+ */
+export function configCandidatePaths(options: ConfigCandidateOptions = {}): readonly string[] {
+  const cwd = options.cwd ?? process.cwd();
+  if (options.configPath !== undefined) {
+    return [resolve(cwd, options.configPath)];
+  }
+  return [...collectSearchChain(cwd, findSearchStopDir(cwd))].flatMap((dir) =>
+    CONFIG_SEARCH_PLACES.map((place) => join(dir, place)),
+  );
+}
+
+function configLoaders(fresh: boolean): Readonly<Record<string, Loader>> {
+  const alias = resolveSelfPackageAliases();
+  return fresh ? freshConfigLoaders(alias) : { ".ts": TypeScriptLoader({ alias }) };
 }
 
 function formatIssues(error: z.ZodError): string {
@@ -283,7 +326,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
 
   const explorer = cosmiconfig(MODULE_NAME, {
     searchPlaces: CONFIG_SEARCH_PLACES,
-    loaders: { ".ts": TypeScriptLoader({ alias: resolveSelfPackageAliases() }) },
+    loaders: configLoaders(options.fresh ?? false),
     searchStrategy: "global",
     stopDir,
   });
