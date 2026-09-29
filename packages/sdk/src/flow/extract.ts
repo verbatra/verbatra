@@ -183,6 +183,9 @@ function toAddedKey(key: ExtractedKey): AddedKey {
  * @throws {@link SdkError} `EXTRACT_FS_UNSUPPORTED`: the supplied `deps.fs` implements no
  * `readDirectory`, so no source file can be discovered.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
+ * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
+ * cannot be combined, or a configured locale has no valid path spelling under that style.
+ * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_INVALID`: a source catalog exists but could not be parsed.
  * @throws {@link SdkError} `SOURCE_UNWRITABLE`: the source catalog could not be written. The
  * `xliff` and `apple-xcstrings` formats reach this when no catalog exists yet: neither is created

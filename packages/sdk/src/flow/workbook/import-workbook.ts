@@ -538,6 +538,8 @@ async function importSheet(run: SheetImport, sheet: WorkbookSheet): Promise<Loca
  *
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0. Thrown before anything is read.
+ * @throws {@link SdkError} `REVIEWER_INVALID`: the reviewer is empty, longer than 64 characters, or
+ * contains a control character. Thrown before anything is read.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the handoff file was not found, or the source
  * locale file does not exist.
