@@ -1,470 +1,212 @@
 ---
 title: Übersetzungssicherheit
 description: "Das Sicherheitsmodell: nicht vertrauenswürdige Strings, das Integritäts-Gate, Review-Flags, das Token-Budget und Fehler, die nie etwas preisgeben."
+type: concept
 ---
-verbatra vertraut Maschinenausgaben nicht, und den Strings, die es übersetzt, auch nicht. Jedes
-Ergebnis passiert ein Integritäts-Gate, bevor es geschrieben werden darf, alles, was das Gate
-ablehnt, taucht als Daten auf, statt den Lauf fehlschlagen zu lassen, und Geheimnisse bleiben aus
-jedem Fehlerpfad heraus. Diese Seite behandelt jede Schicht dieses Modells.
+verbatra vertraut weder den Strings, die es übersetzt, noch dem, was ein Provider zurückschickt.
+Jeder Wert durchläuft ein Integritäts-Gate, bevor er geschrieben werden kann, was das Gate ablehnt,
+taucht als Daten auf, statt den Lauf scheitern zu lassen, und Secrets bleiben aus jedem Fehlerpfad
+heraus.
+
+| Schicht | Schützt vor | Bei einem Fehlschlag |
+| --- | --- | --- |
+| Prompt-Injection-Grenze | einem String, der wie eine Anweisung klingt | nichts scheitert: Strings sind immer nur Daten |
+| Integritäts-Gate | kaputten Platzhaltern, ICU, Markup, leeren oder entarteten Werten | der Key wird zurückgehalten und im nächsten Lauf erneut versucht |
+| Review-Flags | einem gültigen, aber verdächtigen Wert | der Key wird geschrieben und für einen Menschen eingereiht |
+| Token-Budget | Ausgaben über eine Obergrenze, die du setzt | der Rest des Laufs wird zurückgehalten oder markiert |
+| Strukturierte Fehler | einem Key oder Header, der in eine Meldung gerät | ein stabiler Code mit fester Meldung |
 
 ## Nicht vertrauenswürdige Strings und die Prompt-Injection-Grenze
 
-verbatra lässt nie zu, dass ein übersetzbarer String wie eine Anweisung an die KI wirkt. Ein
-übersetzbarer String kann Text enthalten, der wie eine Anweisung aussieht (ein UI-String, der
-wörtlich "ignore your instructions" lautet), deshalb behandelt verbatra jeden einzelnen als nicht
-vertrauenswürdige Eingabe. Die Systemregeln, die an einen LLM-Provider gehen, sind Konstanten aus
-der Kompilierzeit. Alle variablen Eingaben, die zu übersetzenden Einträge samt deinem Glossar und
-Tonfall, die Sprachnamen und bei einem ICU-Plural die Pluralkategorien der Zielsprache, reisen ausschließlich im
-JSON-Datenpayload des User-Turns und werden nie in den Anweisungskanal gespleißt. Die Ausgabe des
-Providers ist auf ein Schema beschränkt und wird als Daten validiert: Eine fehlerhafte Antwort
-schlägt fehl, und eine Antwort mit einem Key, der nie angefragt wurde, lässt den ganzen Sub-Batch
-fehlschlagen, weil es um erfundene Inhalte herum kein sicheres teilweises Annehmen gibt.
+Ein übersetzbarer String kann Text enthalten, der wie eine Anweisung aussieht ("ignoriere deine
+Anweisungen"), deshalb behandelt verbatra jeden String als nicht vertrauenswürdige Eingabe. Die
+Systemregeln an einen LLM-Provider sind Konstanten zur Compile-Zeit. Alles Variable (die Einträge,
+dein Glossar und Tonfall, die Sprachnamen, die Zielkategorien eines Plurals) reist nur in der
+JSON-Nutzlast des User-Turns, nie im Anweisungskanal. Die Antwort muss zu einem festen Schema passen;
+eine Antwort mit einem nie angefragten Key lässt ihren ganzen Teil-Batch scheitern, weil es rund um
+erfundene Inhalte keine sichere teilweise Annahme gibt.
 
 ### Namen von Sprache, Schrift und Region
 
 <AvailableFrom version="0.12.0" />
 
-Ein Locale-Code allein reicht einem Modell nicht immer: `sr-Latn` kommt oft in kyrillischer
-Schrift zurück, und `pt-BR` und `pt-PT` verschwimmen. Deshalb erhält ein LLM-Provider zusätzlich
-`sourceLanguage` und `targetLanguage`: den englischen Namen der Sprache und, wenn der Code sie
-nennt, der Schrift und der Region, nachgeschlagen mit `Intl.DisplayNames` aus den Daten, die in
-Node.js eingebaut sind.
+Ein Locale-Code allein reicht nicht immer: `sr-Latn` kommt oft auf Kyrillisch zurück, und `pt-BR`
+und `pt-PT` verschwimmen. Deshalb bekommt ein LLM-Provider zusätzlich den englischen Namen jeder
+Sprache, mit Schrift und Region, wenn der Code sie nennt, nachgeschlagen mit `Intl.DisplayNames` aus
+den in Node.js eingebauten Daten:
 
 | Locale | Gesendete Namen |
 | --- | --- |
 | `sr-Latn` | `{ "name": "Serbian (Latin)", "script": "Latin" }` |
 | `zh-Hant-TW` | `{ "name": "Chinese (Traditional, Taiwan)", "script": "Traditional", "region": "Taiwan" }` |
-| `pt-PT` | `{ "name": "Portuguese (Portugal)", "region": "Portugal" }` |
 | `es-419` | `{ "name": "Spanish (Latin America)", "region": "Latin America" }` |
 | `qaa` (private Nutzung) | keine: Der Code wird allein gesendet |
 
-Die Namen stammen aus der Locale in deiner Konfiguration, auch wenn ein
-[`localeMap`](/docs/providers)-Eintrag dem Provider einen anderen Code schickt. Sie reisen wie die
-übrigen Eingaben oben als Daten im Payload des User-Turns, und eine feste Systemregel bittet das
-Modell, in der genannten Schrift und regionalen Variante zu schreiben. Sie sind nicht Teil des
-Fingerprints des Übersetzungsspeichers, vorhandener Speicher wird also weiter wiederverwendet.
-DeepL und Google Cloud Translation nehmen einen Sprachcode und erhalten keine Namen.
-
-Wie jeder Provider deine Locale-Codes bekommt und wie Schriften und regionale Varianten zwischen
-ihnen übersetzt werden, steht unter [Sprachunterstützung](/docs/language-support).
+Die Namen kommen aus der Locale in deiner Konfiguration, auch wenn ein `localeMap`-Eintrag einen
+anderen Code sendet, und reisen wie der Rest als Daten; eine feste Systemregel bittet das Modell, in
+der genannten Schrift und Variante zu schreiben. Sie sind nicht Teil des Fingerprints im
+[Cache](/docs/the-cache). Die Provider für maschinelle Übersetzung bekommen nur Codes; siehe
+[Sprachen und Locales](/docs/language-support).
 
 ## Das Integritäts-Gate
 
-Eine schemavalide Übersetzung kann trotzdem kaputt sein, deshalb berechnet ein Gate die
-Entscheidung über Annehmen oder Ablehnen direkt aus dem Kandidatenwert neu; dem eigenen
-Integritätsbericht des Providers wird nie vertraut. Dasselbe Gate läuft auf jedem Schreibpfad:
-einer Übersetzung vom Provider, einer importierten Arbeitsmappen-Zeile und einer von Hand
-getippten Bearbeitung in Studio. Es läuft außerdem pro Key auf einem wiederverwendeten Wert. Wird
-eine Übersetzung mehreren Keys mit demselben Quellinhalt ausgeliefert (ein Treffer im
-[Cache](/docs/the-cache) oder die Kopie, die identischen Text nur eine einzige Provider-Anfrage
-kosten lässt), lässt jeder Key das Gate gegen seinen eigenen Quelleintrag laufen, und ein Key,
-dessen Prüfung fehlschlägt, wird zurückgehalten statt geschrieben. Gleichheit entscheidet ein
-Content-Hash, der Text bis auf Unicode-NFC-Normalisierung und LF-Zeilenenden als gleich behandelt,
-zwei Keys können also übereinstimmen, ohne bytegleich zu sein. Genau deshalb läuft das Gate pro Key
-erneut.
+Eine schema-gültige Übersetzung kann trotzdem kaputt sein, deshalb entscheidet ein Gate anhand des
+Kandidatenwerts selbst, ob er angenommen wird; dem eigenen Bericht des Providers wird nie vertraut.
+Dasselbe Gate läuft auf jedem Schreibpfad: einer Provider-Antwort, einem Cache-Treffer, einer
+Importzeile aus der Arbeitsmappe und einer in Studio getippten Bearbeitung. Ein Wert, den sich
+mehrere Keys mit demselben Quelltext teilen, wird pro Key gegen dessen eigene Quelle geprüft.
 
-- Platzhalter-Integrität: Der übersetzte Wert muss dieselben Platzhalter tragen wie seine Quelle,
-  verglichen als Multimenge (die Anzahl zählt, die Reihenfolge nicht). Lass einen fallen, füge
-  einen hinzu oder verändere einen, und der Kandidat wird abgelehnt. Was als Platzhalter zählt,
-  ist pro Format definiert; siehe [Formate](/docs/formats).
-- ICU-Integrität: Für die ICU-Formate (next-intl und ARB, die für Plural- und
-  Select-Anweisungen die ICU-MessageFormat-Syntax nutzen) muss der übersetzte Wert weiterhin als
-  gültige Nachricht parsen. Ein Kandidat, der jeden Platzhalter behält, aber die Plural- oder
-  Select-Struktur bricht, wird ebenfalls abgelehnt. Für diese Formate vergleicht die
-  Platzhalterprüfung außerdem pro Zweig: Ein Platzhalter, der in einem Plural-Zweig erfunden
-  wurde, fällt auch dann auf, wenn er in einem anderen legitim vorkommt. Plural- und
-  Select-Zweige müssen außerdem zur Zielsprache passen; siehe
-  [Plural-Zweige je Zielsprache](#plural-zweige-je-zielsprache) weiter unten.
-- Erfundene Einzelklammer-Token: Bei den Doppelklammer-Formaten (i18next, ngx-translate und YAML)
-  ist ein Token der Form `{name}` gewöhnlicher Literaltext und keine Interpolation. Es wird deshalb
-  nicht als Platzhalter erfasst und muss eine Übersetzung nicht überleben. Eines zu erfinden wird
-  trotzdem abgelehnt: Ein `{name}`-förmiges Token, das im Kandidaten auftaucht und in der Quelle nie
-  vorkam, ist unter jeder Interpolationskonvention eine Erfindung. Genau das macht es sicher, es
-  abzulehnen, ohne die Delimiter des Projekts zu kennen. Die Prüfung läuft nur in diese eine
-  Richtung: Ein Kandidat, der den umgebenden Literaltext weglässt oder ändert, bleibt unangetastet.
-- Inline-Markup-Parität: Der übersetzte Wert muss dasselbe Inline-HTML bzw. -XML tragen wie seine
-  Quelle, und zwar wohlgeformt. Ein weggelassenes, erfundenes, umbenanntes oder unausgeglichenes
-  Tag zerstört die Darstellung eines Strings so, wie ein weggelassener Platzhalter dessen
-  Interpolation zerstört, und wird deshalb genauso abgelehnt. Siehe
-  [Inline-Markup-Parität](#inline-markup-parität) weiter unten.
-- Degeneriertheit: Der Wert darf nicht strukturell degeneriert sein, etwa eine Wiederholungsschleife
-  oder eine Länge, die der Quelle davongelaufen ist. Das fängt ein Modell ab, das in das Wiederholen
-  eines Fragments gekippt ist, selbst wenn jeder Platzhalter überlebt hat.
-- Leere Werte: Eine nicht leere Quelle darf nicht in einen leeren oder nur aus Leerraum bestehenden
-  Wert übersetzt werden. Eine Übersetzung zu leeren ist ein eigener, bewusster Schritt, und das
-  `[[CLEAR]]`-Sentinel der Arbeitsmappe ist der Weg dafür; siehe
-  [Manuelle Übersetzung](/docs/manual-translation).
+| Prüfung | Ein Kandidat wird abgelehnt, wenn |
+| --- | --- |
+| Platzhalter | seine Platzhalter von denen der Quelle abweichen, verglichen als Multimenge (die Anzahl zählt, die Reihenfolge nicht). Was als Platzhalter gilt, legt jedes [Format](/docs/formats) fest. |
+| ICU | er sich bei next-intl und ARB nicht mehr als ICU-Nachricht parsen lässt oder seine Plural-Zweige nicht zur Zielsprache passen (unten). Der Vergleich beachtet Zweige, ein in einem Plural-Zweig erfundener Platzhalter wird also erkannt. |
+| Erfundene Tokens | er bei i18next, ngx-translate und YAML ein Token der Form `{name}` hinzufügt, das die Quelle nie hatte. Eines wegzulassen ist erlaubt, weil einfache geschweifte Klammern dort wörtlicher Text sind. |
+| Inline-Markup | seine HTML- oder XML-Tags von denen der Quelle abweichen oder unausgeglichen sind (unten). |
+| Entartung | er eine Wiederholungsschleife ist oder seine Länge sich von der Quelle entfernt hat. |
+| Leere | er bei nicht leerer Quelle leer ist oder nur aus Leerraum besteht. Eine Übersetzung zu leeren ist ein bewusster Schritt: Das macht der Platzhalter `[[CLEAR]]` der Arbeitsmappe ([Mit Excel oder CSV übergeben](/docs/manual-translation)). |
 
-Ein Kandidat, der mehr als eine Regel verletzt, wird mit einem einzigen Grund abgelehnt, dem
-ersten, der in dieser Reihenfolge zutrifft: `empty`, dann `icu` für eine Nachricht, die sich nicht
-parsen lässt (auch ein `plural` ohne seinen `other`-Zweig), dann `placeholder`, `markup`, `icu` für
-Zweige, die nicht zur Zielsprache passen, und `degenerate`. Ein leerer Wert wird deshalb als `empty`
-gemeldet, auch wenn seine Quelle Platzhalter oder Tags trägt, und eine kaputte ICU-Nachricht als
-`icu` statt als die Platzhalter, die ein Parser darin nicht mehr findet.
+Ein Kandidat, der mehrere Prüfungen verletzt, wird mit einem Grund abgelehnt, dem ersten, der in
+dieser Reihenfolge zutrifft: `empty`, `icu` (lässt sich nicht parsen), `placeholder`, `markup`,
+`icu` (Zweige), `degenerate`. Jeder Grund und die Details, die verbatra dazu ausgibt, stehen unter
+[Gründe für Integritätsablehnungen](/docs/error-codes#integrity-refusal-reasons).
 
-Ein abgelehnter Kandidat wird als Daten zurückgehalten, nie geschrieben: Er erscheint in der
-Lauf-Zusammenfassung als Integritätsabweichung, behält seinen vorherigen Hash in
-[der Lock-Datei](/docs/the-lock-file) und wird beim nächsten Lauf erneut versucht. Zurückgehalten
-bleibt außerdem von fehlgeschlagen getrennt: Ein Key, für den nichts übersetzt wurde (der
-Provider-Aufruf warf einen Fehler, oder der Key fehlte auch nach der begrenzten Reparaturrunde
-noch), wird als Provider-Fehlschlag gemeldet, nicht als Integritätsabweichung. Beide werden auf
-demselben Weg erneut versucht.
+Was das Gate garantiert: Ein abgelehnter Wert wird nie geschrieben. Er erscheint in der
+Lauf-Zusammenfassung als Integritätsabweichung, behält seinen bisherigen Hash in
+[der Lock-Datei](/docs/the-lock-file) und wird im nächsten Lauf erneut versucht. Ein Key, für den
+gar keine Übersetzung kam (der Provider-Aufruf scheiterte, oder der Key fehlte auch nach einer
+Nachfrage noch), wird stattdessen als Provider-Fehlschlag gemeldet und genauso erneut versucht. Auf
+der Quellseite wird ein Key, dessen eigener Wert ungültiges ICU ist, vor der Übersetzung
+beiseitegelegt.
 
-Auf der Quellseite wird ein Quell-Key, dessen eigener Wert ungültiges ICU ist, vor der Übersetzung
-beiseitegelegt und gemeldet, statt in kaputtem Zustand an den Provider zu gehen.
+Was es nicht garantiert: dass die Übersetzung richtig ist. Es beweist Struktur, nicht Bedeutung.
 
 ### Plural-Zweige je Zielsprache
 
 <AvailableFrom version="0.12.0" />
 
-Ein ICU-Plural hat einen Zweig pro CLDR-Pluralkategorie seiner Sprache, und Sprachen
-unterscheiden sich: Englisch hat `one` und `other`, Russisch, Polnisch und Tschechisch haben
-`one`, `few`, `many` und `other`, Arabisch und Walisisch alle sechs, Japanisch nur `other`. Für
-next-intl und ARB liest verbatra die Kategorien der Zielsprache aus den CLDR-Daten, die in Node.js
-eingebaut sind, und misst jede Übersetzung daran:
+Ein ICU-Plural hat einen Zweig pro CLDR-Pluralkategorie seiner Sprache: Englisch hat `one` und
+`other`, Russisch und Polnisch vier, Arabisch und Walisisch sechs, Japanisch nur `other`. Bei
+next-intl und ARB liest verbatra die Kategorien der Zielsprache aus den in Node.js eingebauten
+CLDR-Daten:
 
-- Ein LLM-Provider wird um genau die Zweige der Zielsprache gebeten: die Kardinalkategorien für
-  ein `plural`, die Ordinalkategorien für ein `selectordinal`. Die Kategorien reisen als Daten im
-  Payload des User-Turns neben den Locales; die Systemregeln sagen nur, was damit zu tun ist,
-  deshalb bleibt die Prompt-Injection-Grenze oben unverändert. Ein englisches `{n, plural, one {#
-  file} other {# files}}` kommt aus einem russischen Lauf mit den Zweigen `one`, `few`, `many`
-  und `other` zurück und aus einem japanischen Lauf nur mit `other`.
-- Das Integritäts-Gate lehnt einen Kandidaten mit dem ICU-Grund ab, wenn sein `plural` oder
-  `selectordinal` einen Zweig auslässt, den die Zielsprache braucht, oder einen Kategorie-Zweig
-  behält, den die Zielsprache nicht hat. Die Ablehnung nennt jeden falschen Zweig. Das gilt auf
-  jedem Schreibweg, also wird auch ein von Hand getippter russischer Wert mit nur `one` und
-  `other` abgelehnt.
-- Zweige mit exaktem Wert wie `=0` und `=1` sind keine Kategorien: Jeder, den die Quelle hat,
-  muss erhalten bleiben, und eine Übersetzung darf weitere hinzufügen. `offset` und jedes `#`
-  bleiben unverändert.
-- `select`-Zweige sind Schlüssel, die dein Code übergibt, keine Sprachregeln, deshalb behält eine
-  Übersetzung genau die `select`-Zweige der Quelle.
-- Für eine Ziel-Locale, für die Node.js keine Pluralregeln hat, ist nur `other` Pflicht, und jedes
-  CLDR-Schlüsselwort wird akzeptiert. [`verbatra doctor`](/docs/cli/doctor) nennt eine solche
-  Locale.
+- Ein LLM-Provider wird nach genau diesen Zweigen gefragt (Kardinalzahlen für `plural`,
+  Ordinalzahlen für `selectordinal`). Die Kategorien reisen als Daten, die Injection-Grenze bleibt
+  also unverändert.
+- Das Gate lehnt ein `plural` oder `selectordinal` ab, dem ein nötiger Zweig fehlt oder das einen
+  behält, den die Sprache nicht hat, auf jedem Schreibpfad, und nennt jeden falschen Zweig.
+- Zweige mit exaktem Wert wie `=0` müssen alle erhalten bleiben, und eine Übersetzung darf weitere
+  hinzufügen. `select`-Zweige sind die Keys deines Codes, eine Übersetzung behält also genau die der
+  Quelle.
+- Für eine Locale, für die Node.js keine Pluralregeln hat, ist nur `other` Pflicht.
 
-DeepL und Google Cloud Translation können eine ICU-Nachricht nicht umbauen, deshalb lassen sie
-weiterhin jeden ICU-Wert unübersetzt (der Hinweis `PLACEHOLDER_UNSUPPORTED`). Ein Zielwert, der vor
-dieser Prüfung geschrieben wurde, etwa ein französischer Plural ohne den CLDR-Zweig `many`, bleibt
-in der Datei, bis sich seine Quelle ändert; wird eine gecachte oder importierte Kopie davon erneut
-angeboten, wird sie abgelehnt und der Key neu übersetzt.
-[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) findet einen solchen Wert, ohne darauf
-zu warten.
+Ein Wert, der vor dieser Prüfung geschrieben wurde, etwa ein französischer Plural ohne `many`, bleibt,
+bis sich seine Quelle ändert; [`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) findet ihn
+jetzt schon. Wie Plurale in den anderen Formaten funktionieren, steht unter
+[Sprachen und Locales](/docs/language-support#plurale).
 
 ### Inline-Markup-Parität
 
 <AvailableFrom version="0.11.0" />
 
-Rich Text erreicht einen übersetzbaren String als Inline-Markup: ein `<b>` um einen Teil eines
-i18next-`Trans`-Blocks, ein maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in
-einem gettext-Katalog. Nichts davon ist ein Platzhalter, es wurde davor also mit nichts verglichen.
+Rich Text erreicht einen String als Inline-Markup: ein `<b>` in einem i18next-`Trans`-Block, ein
+maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in einem gettext-Katalog. Ein
+weggelassenes oder kaputtes Tag zerbricht die Darstellung so, wie ein weggelassener Platzhalter die
+Interpolation zerbricht, deshalb vergleicht das Gate Tag-Namen und Attributnamen als Multimenge:
 
-Tags werden als Multimenge aus Tag-Namen plus Attributnamen verglichen, und genau das entscheidet,
-was ein Befund ist:
+- **Abgelehnt**: ein weggelassenes, erfundenes oder umbenanntes Tag; eine geänderte Menge von
+  Attributnamen (auch ein hinzugefügtes `dir`); unausgeglichenes oder falsch verschachteltes Markup;
+  zwei Tags, die zu einem verschmolzen sind.
+- **Angenommen**: dieselben Tags in anderer Reihenfolge; ein übersetzter Attributwert wie `title`
+  oder `alt`; `<br>` geschrieben als `<br/>`.
+- **Geschützte Werte**: Ein URL-Attribut muss Schema und Host behalten (`/docs` darf zu `/de/docs`
+  werden, nie zu `https://evil.example/docs`), eine `javascript:`-URL wird abgelehnt, und Werte wie
+  `style`, Event-Handler oder ein `<meta content>` müssen genau wie in der Quelle bleiben.
+- **Nicht übersetzt**: Der Inhalt von `script`, `style` und ähnlichen Elementen muss unverändert
+  zurückkommen. Maskiere so ein Tag im Fließtext (`&lt;script&gt;`), um den Text drumherum zu
+  übersetzen.
 
-- Abgelehnt: ein weggelassenes Tag, ein erfundenes Tag, ein umbenanntes Tag, ein geänderter Satz von
-  Attributnamen, Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
-  `<b>a<i>b</b></i>`, sowie ein Tag, das in einem anderen gleichen Namens verschachtelt zurückkommt,
-  obwohl die Quelle sie nebeneinander hatte, denn so werden aus zwei Links still und leise einer.
-- Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
-  verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
-  `href` eine korrekte Übersetzung ist und keine kaputte (innerhalb der weiter unten beschriebenen
-  Grenzen für Attributwerte), und beide Schreibweisen eines leeren Elements, `<br>` und `<br/>` sind
-  dasselbe Tag.
-- Gezählt, nicht nur bemerkt: zwei benachbarte Paare, die zu einem verschmolzen werden
-  (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt, weil der Vergleich eine kosmetische
-  Verschmelzung nicht davon unterscheiden kann, dass zwei Links zu einem werden.
-- Exakt verglichen: Eine Änderung der Groß- und Kleinschreibung ist ein Befund. Die leeren
-  HTML-Elemente (`<br>`, `<img>`, `<hr>` und die übrigen) brauchen in jeder Schreibweise kein
-  schließendes Tag, `<BR>` wird also genauso als leeres Element erkannt wie `<br>`.
-- Abgelehnt, wenn ein Attributname hinzukommt oder wegfällt, also auch, wenn für ein Ziel mit
-  Schreibrichtung von rechts nach links ein `dir`-Attribut ergänzt wird. Attributwerte sind bis auf diese Grenzen frei, die
-  Menge der Namen ist es nicht.
-
-Auch eine Quelle ganz ohne Markup ist gegen hineinerfundenes Markup geschützt. Der Kandidat wird
-abgelehnt für jedes Tag-Paar, jedes leere Element und jedes selbstschließende Tag, das er ergänzt,
-für ein schließendes Tag ohne öffnendes (`Hallo</div>`) und für ein nie geschlossenes öffnendes
-Tag, das mehr als seinen Namen trägt, etwa `<Enter onfocus=...>` oder `<x-key onmouseover=...>`.
-
-Ein nie geschlossenes `<Word>`, das nur aus seinem Namen besteht und dessen Name nur Buchstaben,
-Ziffern, Bindestriche und Unterstriche enthält, ist ein Wort in spitzen Klammern, etwa `<Enter>` in
-`Druecke <Enter>`. Solche Wörter werden auf beiden Seiten beiseitegelegt, bevor die Quelle beurteilt
-wird, eine Quelle mit einem solchen Wort wird also trotzdem verglichen: Ein Kandidat, der neben
-`<Enter>` ein `<b>`-Paar weglässt oder ein `<script>`-Paar erfindet, wird abgelehnt. Sobald die
-Quelle Tags trägt, werden Wörter in spitzen Klammern wie Tags gezählt. Trägt sie keine, gilt ein
-Wort in spitzen Klammern, das der Kandidat ergänzt, als normaler Text und wird angenommen, es sei
-denn, sein Name ist in beliebiger Schreibweise ein Standard-HTML-Element (`Hallo <script>`), lautet
-`image`, woraus ein Parser ein `<img>` macht, oder enthält einen Bindestrich, was ihn zu einem
-Custom Element macht (`Hallo <my-widget>`).
-
-Dieser Namenstest ist bewusst vorsichtig: Ein gewöhnliches Wort, das zufällig ein Elementname ist,
-etwa `<Del>`, `<Option>`, `<Select>`, `<Input>` oder `<Menu>`, wird abgelehnt, wenn eine Übersetzung
-es zu einer Quelle hinzufügt, die es nicht hat. Als Ausweg behältst du das Wort in spitzen Klammern
-auch in deinem Quellstring: Eine Übersetzung, die dieselben Wörter in spitzen Klammern trägt wie ihre
-Quelle, wird angenommen.
-
-Kommentare, CDATA-Abschnitte, Deklarationen und Verarbeitungsanweisungen sind keine Tags, und sie
-werden so gelesen, wie ein HTML-Parser sie liest, denn genau dort landen die Werte. `<!-->` und
-`<!--->` sind vollständige leere Kommentare, ein Kommentar endet beim ersten `-->` oder `--!>`, und
-ein Kommentar ohne Ende verbirgt den Rest des Werts. `<![CDATA[`, `<!DOCTYPE html>`, jedes andere
-`<!...`, `<?...` und ein `</`, auf das etwas anderes als ein Buchstabe folgt, etwa `</1 x>`, enden
-alle beim ersten `>`, während ein leeres `</>` wegfällt, so wie ein Parser es verwirft, und ein
-numerisches schließendes Tag wie `</0>` als Tag verglichen wird. Jedes solche Konstrukt wird als
-Multimenge seines Texts verglichen, wobei Folgen von Leerraum zusammengefasst werden, eines, das der
-Kandidat ergänzt, weglässt oder umschreibt, wird also abgelehnt, auch ein Kommentar, dessen Text
-übersetzt wurde. Tags nach dem Ende eines Konstrukts werden wie gewohnt verglichen,
-`Hallo <![CDATA[><img src=x onerror=...>]]>` wird also sowohl für das Konstrukt als auch für das
-`<img>` abgelehnt.
-
-Auch der Inhalt eines Raw-Text-Elements ist Text, denn so liest ihn ein Parser. Nach einem öffnenden
-`script`-, `style`-, `title`-, `textarea`-, `xmp`-, `iframe`-, `noscript`-, `noembed`- oder
-`noframes`-Tag ist alles bis zu seinem schließenden Tag Text, in beliebiger Schreibweise und gefolgt
-von Leerraum, `/` oder `>`, und nach `<plaintext>` ist alles bis zum Ende des Werts Text. Ein Tag,
-das in einem solchen Element steht, wird nicht verglichen, und ein Attributwert in Anführungszeichen
-kann nicht über das schließende Tag hinwegreichen, um zu verbergen, was folgt:
-`Füge ein <script><b x="</script><img src=x onerror=...>` wird für das `<img>` abgelehnt. Wo ein
-Parser diesen Inhalt auf zwei Arten lesen kann, wird der Kandidat abgelehnt, es sei denn, er ist die
-unveränderte Quelle, mit einem Detail wie `+<noscript>...</noscript>`: ein `script`, dessen Inhalt
-`<!--` öffnet, ein `noscript`, dessen Inhalt ein `<` enthält, weil dann davon abhängt, ob Skripte
-aktiviert sind, wie er gelesen wird, und jedes Raw-Text-Element, dessen Inhalt nach einem `svg`-,
-`math`- oder `select`-Tag ein `<` enthält, denn dort ist es womöglich gar kein Raw Text. Aus
-demselben Grund wird ein CDATA-Abschnitt oder ein `image`-Tag in einem Wert, in dem die Quelle oder
-der Kandidat `svg`, `math` oder `select` öffnet, abgelehnt, es sei denn, der Kandidat ist die
-unveränderte Quelle.
-
-Der Inhalt eines `script`-, `style`-, `iframe`-, `noembed`-, `noframes`-, `noscript`-, `xmp`- oder
-`plaintext`-Elements wird ausgeführt oder gestaltet die Seite, statt angezeigt zu werden, und wird
-deshalb nie übersetzt: Jedes solche Element im Kandidaten muss genau den Inhalt des Elements
-tragen, das in der Quelle an derselben Position unter den Elementen dieses Namens steht, sonst wird
-der Kandidat mit einem Detail wie `+<script> content` abgelehnt. Der Inhalt von `title` und
-`textarea` wird als Text angezeigt und darf übersetzt werden. Damit ist normaler Text, der eines dieser Tags wörtlich
-enthält, nicht übersetzbar, denn in `Add a <script> tag` ist alles nach `<script>` sein Inhalt:
-`Füge ein <script> Tag` wird abgelehnt. Maskiere das Tag stattdessen in der Quelle, als
-`Add a &lt;script&gt; tag`, das ist in jedem Format Text und wird wie jedes andere Wort übersetzt.
-
-Die Prüfung ist bewusst zurückhaltend, liest Tags aber so, wie ein HTML-Parser es tut. Ein Tag
-beginnt bei `<` oder `</`, gefolgt von einem Buchstaben oder, bei einem numerischen Rich-Text-Tag
-wie `<0>`, von Ziffern. Sein Name reicht bis zu Leerraum, `/` oder `>`, und ein Attributwert in
-Anführungszeichen darf `>` enthalten. `5 < 10`, `x <= y` und ein maskiertes `&lt;b&gt;` bleiben also
-normaler Text, während `<support@example.com>` und `<abbr title="a > b">` Tags sind, und ein `<`,
-das sein `>` nie erreicht, stellt nichts dar und ist kein Tag. Ein Kandidat, der ein Tag auf diese
-Weise unvollendet lässt, wird trotzdem abgelehnt, wenn seine Quelle jedes Tag vollendet, mit einem
-Detail, das den unvollendeten Anfang nennt, etwa `+<a`. Eine Quelle, deren eigene Tags fehlerhaft
-sind, wird trotzdem verglichen. Nachdem die Tags, die das Format als Platzhalter meldet, und alle
-Wörter in spitzen Klammern beiseitegelegt sind, gilt eine Quelle als fehlerhaft, wenn sie ein
-öffnendes Tag hat, das nie geschlossen wird (leere Elemente ausgenommen), ein schließendes Tag ohne
-öffnendes oder Tags, die in falscher Reihenfolge geschlossen werden. Normaler Text kann das
-versehentlich auslösen: In `a<b and c>d` ist `<b and c>` ein öffnendes `b`-Tag mit den Attributen
-`and` und `c`, das nie geschlossen wird, die Quelle gilt also als fehlerhaft. Bei einer solchen
-Quelle entfällt nur die Prüfung der Verschachtelung: Ihre Tags werden wie alle anderen als
-Multimenge verglichen, eine Übersetzung, die `a<b and c>d` exakt beibehält, wird also angenommen,
-eine, die daneben ein `<img>` ergänzt, abgelehnt, und ebenso eine, die die Wörter innerhalb der
-Folge übersetzt (`a<b und c>d`), weil ein Parser `und` als neues Attribut liest. Auch ist keine
-Quelle zu groß für den Vergleich. Ein Kandidat wird erst abgelehnt, wenn er mehr als doppelt so
-viele Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256, mit dem
-Detail `+more than N inline tags`, das diese Grenze nennt.
-
-Attributwerte sind frei, mit Ausnahmen, die es gibt, weil ein übersetzter Wert in einer Seite
-landet. Der Wert eines URL-Attributs (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
-`data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive` sowie
-die SVG-Animationsattribute `to`, `from`, `values` und `by`) wird gelesen, nachdem numerische
-Zeichenreferenzen sowie `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` und `&bsol;` dekodiert und Tabs,
-Zeilenumbrüche und umgebende Steuerzeichen ignoriert wurden. Ein `javascript:`-, `vbscript:`- oder
-`data:`-Schema darin wird abgelehnt, es sei denn, die Quelle trägt genau diesen Wert am selben Tag
-und Attribut, mit einem Detail wie `+<a href="javascript:...">`. Darüber hinaus muss jede URL im Wert,
-auch jede URL einer `srcset`-, `ping`-, `archive`- oder `values`-Liste, ein Schema und eine
-Authority (Host und Port oder den Host einer schemarelativen `//host`-URL) behalten, die ein
-Quellwert desselben Tags und Attributs hat, und eine relative URL muss relativ bleiben. `/docs` darf
-also zu `/de/docs` werden und `https://verbatra.dev/en` zu `https://verbatra.dev/de`, aber `/docs`
-darf nicht zu `https://evil.example/docs` oder `//evil.example/docs` werden, und ein lokalisierter
-absoluter Link muss denselben Host behalten; das Detail nennt den neuen Origin, etwa
-`+<a href="https://evil.example...">`, oder `+<a href="./...">` für einen absoluten Link, der
-relativ gemacht wurde. Pfad, Query und Fragment dürfen sich frei ändern. Eine geänderte URL ohne
-explizites Schema `http`, `https`, `ws`, `wss`, `ftp` oder `file` wird außerdem abgelehnt, wenn ein
-Backslash (`\` oder `%5C`) in ihren führenden Schrägstrichen oder ihrem Host steht, denn eine Seite
-mit einem anderen Schema liest `//verbatra.dev\@evil.example/` als Link auf evil.example.
-
-Manche Attributwerte müssen genau so zurückkommen, wie die Quelle sie hat, verglichen nach dem
-Dekodieren von Zeichenreferenzen, mit einem Detail wie `+<meta content="...">`: `http-equiv` und
-`content` an `meta`; `type`, `nomodule`, `integrity` und `crossorigin` an `script`; `rel`, `as`,
-`integrity`, `crossorigin` und `type` an `link`; `target` an `base`; `attributeName` und
-`attributeType` an `set`, `animate`, `animateTransform` und `animateMotion`; `sandbox`, `allow` und
-`allowfullscreen` an `iframe`; `method`, `enctype` und `target` an `form`; sowie `style`, `srcdoc`
-und jeder Event-Handler wie `onclick` an jedem Element. Ein übersetzbares Attribut wie `title` oder
-`alt` bleibt frei.
-
-Aus dem Vergleich ganzer Werte folgen zwei formatbedingte Grenzen. Bei einem Format, das mehrere
-Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I18n), wiederholt eine
-Übersetzung, die die Formen ihrer Sprache ergänzt, das Markup der Quelle und wird abgelehnt.
-Dasselbe passiert bei einem Plural im ICU-Stil (`{count, plural, one {...} other {...}}`) in einem
-Format, das ihn als reinen Text speichert, statt ihn als ICU zu parsen (i18next, ngx-translate und
-YAML): Eine Übersetzung mit einer anderen Zahl von Formen als die Quelle wiederholt das Markup darin
-oder lässt es weg und wird abgelehnt. In beiden Fällen wird der Wert zurückgehalten und die
-bisherige Übersetzung bleibt, es geht also nichts verloren, aber die Formen müssen ergänzt werden,
-ohne das Markup mitzuvervielfachen.
-
-Die Prüfung tritt außerdem pro Tag zurück. Ein Tag, das das Format ohnehin als Platzhalter meldet
-(ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB), bleibt zusammen mit so
-vielen schließenden Tags, wie es öffnende gibt, der Platzhalterprüfung überlassen und wird nie
-doppelt gemeldet. Ein solches öffnendes Tag, das der Kandidat nie schließt, wird trotzdem abgelehnt
-und über das fehlende schließende Tag benannt, etwa `-</g>`. Ebenso eines, dessen Verschachtelung
-mit den übrigen Tags nicht mehr der Quelle entspricht, etwa ein `<b>`, das das `<g>`, in dem es
-stand, jetzt kreuzt, und eines, das die Quelle nur als Text trägt, in einem Kommentar oder einem
-Raw-Text-Element, weil es herausgezogen das Element erzeugen würde. Jedes andere Tag im selben Wert
-wird weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`. Eine
-Ablehnung nennt die betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der
-Kandidat weggelassen hat, oder `+` für eines, das der Kandidat erfunden hat.
+Markup, das in einen String ohne Markup erfunden wird, wird ebenfalls abgelehnt, während ein
+gewöhnliches Wort in spitzen Klammern wie `<Enter>` als Text gelesen wird. Tags, die das Format
+schon als Platzhalter meldet, überlässt es der Platzhalterprüfung. Die vollständigen Regeln,
+einschließlich wie Kommentare, Rohtext und fehlerhafte Quellen gelesen werden, stehen unter
+[`markup`](/docs/error-codes#markup).
 
 ## Review-Flags
 
-Das Gate zu bestehen beweist, dass eine Übersetzung strukturell sicher ist, nicht, dass sie gut
-ist, deshalb markiert eine zweite, beratende Schicht verdächtige Ergebnisse für einen Menschen.
-Ein Review-Flag hält nie einen Key zurück und trägt einen oder mehrere Grund-Codes:
+Das Gate zu bestehen beweist, dass eine Übersetzung strukturell sicher ist, nicht, dass sie gut ist.
+Eine zweite, beratende Schicht markiert verdächtige Ergebnisse für einen Menschen. Ein Flag hält nie
+einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Warteschlange gestellt.
 
-- `LENGTH_RATIO_OUTLIER`: Die Übersetzung ist deutlich kürzer oder länger als ihre Quelle (unter
-  dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Länge; sehr kurze Quellen werden
-  übersprungen). Gezählt wird in Graphem-Clustern, ein Emoji oder ein Buchstabe mit Akzent zählt
-  also einmal, und jedes Zeichen wird nach seiner eigenen Schrift gewichtet: Ein chinesisches
-  Zeichen zählt 3.5, ein japanisches Kana 1.5 und eine koreanische Silbe 2, weil solcher Text von
-  Natur aus deutlich kürzer ist als lateinischer. Eine korrekte Übersetzung von Englisch nach
-  Japanisch wird nicht allein wegen ihrer Kürze markiert, auch wenn sie Platzhalter oder URLs
-  enthält.
-  Ein Anstoß hinzusehen, kein Urteil.
-- `MAX_LENGTH_EXCEEDED`: Die Übersetzung ist länger als das absolute Budget, das für ihren Key
-  unter [`maxLength`](/docs/config-file) konfiguriert ist. Gezählt in Graphemclustern, am Wert
-  genau so, wie er geschrieben ist, und die Grenze ist inklusiv: ein Wert von genau der Budgethöhe
-  wird nicht markiert. Ein Key ohne konfiguriertes Budget wird nie gemessen. Wie jeder Grund hier
-  markiert er, statt zu blockieren: eine Übersetzung über Budget wird trotzdem geschrieben und
-  trotzdem gelockt, denn eine korrekte Übersetzung, die ein Layout-Budget überschreitet, ist
-  besser als gar keine Übersetzung.
-- `EQUALS_SOURCE`: Die Übersetzung ist wortwörtlich mit der Quelle identisch, obwohl sich die
-  Ziel-Locale von der Quell-Locale unterscheidet, und die Quelle hatte tatsächlich übersetzbaren
-  Text. Eine Quelle, die nur aus Begriffen aus `doNotTranslate` oder aus Begriffen besteht, deren
-  Übersetzung der Begriff selbst ist, wird nicht markiert, denn sie zu übernehmen ist das richtige
-  Ergebnis.
-- `GLOSSARY_TERM_MISSED`: Ein Glossarbegriff kommt in der Quelle vor, aber seine Übersetzung für
-  die Ziel-Locale fehlt in der Übersetzung, oder ein Begriff aus `doNotTranslate` fehlt oder wurde
-  verändert. Jede Locale wird gegen ihre eigene Übersetzung aus einem
-  [Glossar pro Locale](/docs/config-file#glossary) geprüft, Deutsch also nie
-  gegen den französischen Begriff. Der Abgleich ignoriert Groß- und Kleinschreibung, außer der
-  Begriff ist `caseSensitive`, richtet sich dabei nach den Regeln der jeweiligen Locale (auch
-  beim türkischen `İ`), und beide Seiten werden bewusst unterschiedlich streng behandelt. Die Quellseite
-  verlangt ein ganzes Wort, deshalb zählt der Begriff `AI` innerhalb von `Airport` nicht als
-  vorhanden und kann keine Erwartung wecken, die niemand vorgegeben hat. Die Zielseite verlangt nur,
-  dass der Begriff irgendwo in der Übersetzung auftaucht, denn ein übersetzter Begriff verschmilzt
-  völlig zu Recht mit seinem Umfeld: deutsche Komposita (`Benutzerkonto`), koreanische Partikel
-  (`계정을`), japanische Lehnwörter. Eine Wortgrenze zu fordern würde in den meisten Sprachen, für
-  die du ein Glossar führst, korrekte Übersetzungen markieren. Auch ein Quellbegriff in einer
-  Schrift ohne Worttrenner (Han, Kana, Thai und ähnliche) hat keine Wortgrenze und fällt deshalb auf
-  dieselbe Regel des bloßen Enthaltenseins zurück.
-- `GLOSSARY_FORBIDDEN_TERM`: Die Übersetzung verwendet eine Wiedergabe, die die `forbidden`-Liste
-  des Glossars für die Ziel-Locale ausschließt. Abgeglichen wird als ganzes Wort, bei Schriften
-  ohne Worttrenner als bloßes Enthaltensein. Eine gebeugte oder zusammengesetzte Form wird also nur
-  erkannt, wenn du sie ebenfalls auflistest. Eine Wiedergabe, die schon in der Quelle steht, wird
-  nicht markiert, weil die Übersetzung sie zitieren darf. Wie jeder Grund hier markiert er, statt
-  zu blockieren.
-- `INTEGRITY_REORDERED`: Die Platzhaltermenge stimmte exakt überein, landete aber in einer anderen
-  Reihenfolge als in der Quelle. Feuert nur auf einer Übersetzung, die das Gate bereits akzeptiert
-  hat.
-- `PROVIDER_DEGRADED`: Der Batch, aus dem dieser Key stammt, wurde vom Provider kontrolliert
-  herabgestuft (eine Formalitäts-Herabstufung oder ein ignoriertes Glossar; im aktuellen
-  Provider-Satz nur DeepL).
-- `FUZZY_CACHE_REUSE`: Der Wert wurde für diesen Quelltext nie übersetzt. Er kam aus
-  [dem Cache](/docs/the-cache) als unscharfe Wiederverwendung eines früheren, fast identischen
-  Quelltexts, der seither bearbeitet wurde. Ähnlichkeit wird in Zeichen gemessen, und Bedeutung ist
-  keine Funktion des Zeichenabstands: eine gestrichene Verneinung, ein umgedrehtes Modalverb oder
-  ein ausgetauschter Eigenname sind alles kleine Änderungen, die einen Satz umkehren, und kein
-  Schwellwert trennt sie von einer Tippfehlerkorrektur. Deshalb trägt jede unscharfe
-  Wiederverwendung diesen Grund bei jedem Lauf, ganz gleich wie sie bewertet wurde. Tritt nur auf,
-  wenn `fuzzyCache` aktiviert ist.
+| Grund | Markiert eine Übersetzung, die |
+| --- | --- |
+| [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | viel kürzer oder länger als ihre Quelle ist, gewichtet nach Schrift |
+| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | länger als das [`maxLength`](/docs/config-file#maxlength)-Budget des Keys ist |
+| [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | mit ihrem Quelltext identisch ist |
+| [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | die Übersetzung eines Glossarbegriffs auslässt oder einen nicht zu übersetzenden Begriff verändert |
+| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | eine Wiedergabe verwendet, die das Glossar verbietet |
+| [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | jeden Platzhalter behält, aber in anderer Reihenfolge |
+| [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | aus einem Batch stammt, den der Provider herabgestuft hat, etwa durch eine weggefallene Formalität |
+| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | [von einer ähnlichen, bearbeiteten Quelle wiederverwendet](/docs/the-cache#unscharfe-wiederverwendung) wurde |
 
 <AvailableFrom version="0.11.0" />
 
-`MAX_LENGTH_EXCEEDED` und `FUZZY_CACHE_REUSE` sind die beiden neuesten Gründe; ein Lauf auf einem
-früheren Release trägt sie nie.
+`MAX_LENGTH_EXCEEDED` und `FUZZY_CACHE_REUSE` gibt es ab 0.11.0.
 
 <AvailableFrom version="0.12.0" />
 
-`GLOSSARY_FORBIDDEN_TERM` ist noch neuer; ein Lauf auf einem Release vor 0.12.0 trägt ihn nie.
+`GLOSSARY_FORBIDDEN_TERM` gibt es ab 0.12.0.
 
-Ein aus [dem Cache](/docs/the-cache) wiederverwendeter Wert und ein Wert, der an einen Key mit
-gleichem Quelltext weitergereicht wurde, durchlaufen dieselben Review-Heuristiken wie ein frisch
-übersetzter String.
-
-Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung und speisen die
-Review-Warteschlange: Die CLI gibt die Anzahl aus, die Excel-Arbeitsmappe trägt dasselbe Signal in
-ihren Review-Spalten, und Studios Review-Seite listet die markierten Keys zum Abarbeiten; siehe
-[Review in Studio](/docs/review-in-studio). Ein markierter Key verlässt die Warteschlange, sobald
-ein Mensch seinen aktuellen Wert freigibt oder ablehnt (auf Studios Review-Seite oder mit
-`approveEntry` und `rejectEntry` aus dem SDK) oder ihn neu schreibt; siehe
-[Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
+Cache-Treffer und Werte, die sich Keys teilen, durchlaufen dieselben Heuristiken wie frische
+Übersetzungen. Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung,
+in den Review-Spalten der Arbeitsmappe und auf [Studios Review-Seite](/docs/review-in-studio). Ein
+Key verlässt die Warteschlange, sobald ein Mensch seinen Wert freigibt, ablehnt oder neu schreibt;
+siehe [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
 
 ## Das Token-Budget
 
-Die Kosten beim Provider sollten eine Obergrenze haben, die du setzt, nicht eine, die du auf der
-Rechnung entdeckst. Mit konfiguriertem `maxTokens` zählt verbatra, was der Lauf über jeden
-Provider-Aufruf und jede Ziel-Locale hinweg ausgibt. Was an der Obergrenze passiert, bestimmt
-`budgetBehavior`:
+Provider-Ausgaben sollten eine Obergrenze haben, die du setzt, nicht eine, die du auf der Rechnung
+entdeckst. Mit konfiguriertem `maxTokens` zählt verbatra die Tokens eines Laufs über jeden Aufruf
+und jede Locale. Mit `budgetBehavior: "warn"` (dem Standard) markiert es eine Überschreitung nur.
+Mit `"stop"` schätzt es jeden Request vor dem Senden und hält den zurück, der die Obergrenze
+überschreiten würde, samt jedem übrigen Kandidaten danach; diese Keys behalten ihre Baseline und
+werden im nächsten Lauf erneut versucht.
 
-- `warn` (der Default): Der Lauf geht weiter, und die Zusammenfassung vermerkt, dass das Budget
-  überschritten wurde. Es wird nichts zurückgehalten.
-- `stop`: Jede Anfrage wird projiziert, bevor sie gesendet wird, und eine, die den Lauf über die
-  Obergrenze brächte, wird gar nicht erst gesendet. Ihre Keys und jeder weitere verbleibende
-  Kandidat werden als `budgetWithheld` zurückgehalten, behalten ihren vorherigen Lock-Hash und
-  werden beim nächsten Lauf erneut versucht.
+Was das Budget garantiert: Arbeit, die vor der Obergrenze erledigt wurde, bleibt geschrieben und
+gelockt, und nichts bleibt halb geschrieben zurück. Ein Provider, der keinen eigenen Verbrauch
+meldet, wird aus der Schätzung gezählt, sodass die Obergrenze auch dort hält.
 
-<AvailableFrom version="0.11.0" />
-
-Vor 0.11.0 zählte `stop` einen Teil-Batch erst, nachdem er bezahlt war, ein Lauf konnte die
-Obergrenze also um einen Teil-Batch überschreiten, und für DeepL oder Google Cloud Translation
-zählte es gar nichts. Erst die Projektion vor jeder Anfrage macht daraus eine Obergrenze.
-
-Bereits Geleistetes wird nie rückgängig gemacht, und es bleibt nichts halb Fertiges zurück: Was vor
-der Obergrenze übersetzt wurde, bleibt geschrieben und gelockt, und ein zurückgehaltener Key behält
-seine bisherige Baseline. Ein gestoppter Lauf hinterlässt also keine halb geschriebene
-Locale-Datei und keinen Lock-Eintrag, der zurückgehaltene Arbeit beansprucht. Die Prüfung gilt für
-jede Anfrage, die der Lauf sendet, auch für jede Hälfte einer nach einer abgeschnittenen Antwort
-neu aufgeteilten Anfrage, eine Kaskade von Retrys kann eine Reservierung also nicht überholen. Das
-Einzige, was eine Projektion nicht zusichern kann, ist die bereits laufende Anfrage: Sie kann mehr
-melden als projiziert war. Die Endsumme kann deshalb um die Differenz dieser einen Anfrage über
-`maxTokens` liegen, und um nicht mehr. Danach wird nichts weiter gesendet. Zwei Dinge liegen außerhalb dessen, was eine Reservierung begrenzen kann, weil sie in einer bereits zugelassenen Anfrage passieren: Die Provider-Schicht sendet eine eigene Reparatur-Anfrage, wenn Keys fehlen, ein zugelassener Batch kann also bis zu etwa das Doppelte seiner Projektion kosten, und die Zählung ist nur so gut wie das, was der Provider meldet. Beides landet beim Abgleich, und danach wird nichts weiter zugelassen.
-
-Zwei Grenzen gehören klar gesagt. Die Obergrenze begrenzt einen Lauf, keine Sitzung: `watch`
-startet für jeden ausgelösten Lauf ein frisches Budget, eine Watch-Sitzung kann also bei jeder
-Quelltext-Änderung erneut bis zu `maxTokens` ausgeben. Und sie gilt für `translate` und sonst
-nichts: Das Neuübersetzen eines einzelnen Eintrags aus [dem Studio-Dashboard](/docs/review-in-studio) oder
-den Agent-Tools läuft auf einem eigenen Pfad mit eigenem Provider, und kein Budget begrenzt diese
-Ausgabe.
-
-Unter `warn` ändert das Budget nie den Exit-Code des Befehls. Unter `stop` kann es das: Eine
-Locale, bei der Keys zurückgehalten wurden, wird als `partial` gemeldet, wenn einige Keys trotzdem
-gelandet sind, und als `failed`, wenn gar keiner, und beide enden mit Exit `1`. Ein Provider, der
-keinen eigenen Token-Verbrauch meldet (DeepL, Google Cloud Translation), wird über die Projektion gezählt
-statt ungemessen zu bleiben, der Schutzmechanismus greift dort also ebenfalls; `supported` im
-Budget der Zusammenfassung sagt, dass die Zahl verbatras Zählung ist und nicht die des Providers.
+Was es nicht garantiert: Ein Request, der schon unterwegs ist, kann mehr kosten als geschätzt, die
+Summe kann also um die Differenz dieses einen Requests über `maxTokens` enden. Die Obergrenze
+begrenzt einen Lauf, keine `watch`-Sitzung, und deckt keine Retranslates einzelner Einträge aus
+Studio oder den Agent-Tools ab. Die genauen Regeln, und wie `--max-tokens` sie verschärft, stehen
+unter [`maxTokens` und `budgetBehavior`](/docs/config-file#maxtokens-und-budgetbehavior).
 
 ## Fehler geben nichts preis
 
-API-Schlüssel kommen nur aus Umgebungsvariablen, nie aus der Konfiguration oder aus Argumenten,
-also steckt in keinem Wert, den verbatra verarbeitet, ein Key. Wenn ein Provider-SDK-Aufruf
-fehlschlägt, wird der rohe Fehler (der Request-Header oder Zugangsdaten tragen kann) verworfen,
-nie gebunden, geloggt oder weitergeworfen; an seiner Stelle erzeugt verbatra einen strukturierten
-Fehler mit einem stabilen Code (etwa `RATE_LIMITED`, `TIMEOUT` oder `AUTH_FAILED`) und einer
-statischen, geheimnisfreien Meldung. Dieselbe Regel gilt über den ganzen Lauf: Hinweise und
-Zusammenfassungen tragen Codes und Zählungen, keine Geheimnisse.
+API-Keys kommen nur aus Umgebungsvariablen, nie aus Konfiguration oder Argumenten. Scheitert ein
+Provider-Aufruf, wird der rohe SDK-Fehler (der Request-Header oder Zugangsdaten tragen kann)
+verworfen, nie gebunden, geloggt oder erneut geworfen. An seiner Stelle erzeugt verbatra einen
+strukturierten Fehler mit stabilem Code und fester, geheimnisfreier Meldung; die Codes stehen unter
+[Provider-Fehlercodes](/docs/error-codes#provider-error-codes). Hinweise und Zusammenfassungen
+tragen Codes und Zahlen, nie Secrets. Wie Keys aus der Ausgabe entfernt werden, steht unter
+[Datenverarbeitung](/docs/data-handling#api-keys).
 
 ## Wo du das siehst
 
-All das sind Daten in der Lauf-Zusammenfassung, pro Locale: übersetzte Keys,
-Integritätsabweichungen, Provider-Fehlschläge, wegen des Budgets zurückgehaltene Keys, Quell-Keys
-mit ungültigem ICU, Review-Flags und Hinweise. Nichts wird versteckt, und der Fehlschlag einer
-Locale stoppt nie die anderen. Wo jede Prüfung in der Pipeline sitzt, steht unter
-[Wie es funktioniert](/docs/how-it-works).
+Alles oben ist Daten in der Lauf-Zusammenfassung, pro Locale: übersetzte Keys,
+Integritätsabweichungen, Provider-Fehlschläge, wegen des Budgets zurückgehaltene Keys, Quell-Keys mit
+ungültigem ICU, Review-Flags und Hinweise. Das Scheitern einer Locale hält die anderen nie auf.
 
 <AvailableFrom version="0.12.0" />
 
-Das Gate und die Review-Flags laufen auch über das, was schon eingecheckt ist:
-[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) prüft jeden Zielwert in deinen
-Locale-Dateien, egal wie er dorthin kam, meldet eine Ablehnung durch das Gate als Fehler und einen
-Review-Grund als Warnung und endet bei einem Fehler mit Exit `1`. So kann eine von Hand bearbeitete
-Übersetzung einen Pull Request aufhalten, ganz ohne Provider-Aufruf.
+Das Gate und die Review-Flags laufen auch über das, was schon committet ist:
+[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) prüft jeden Zielwert, egal wie er dahin
+kam, und endet bei einer Gate-Ablehnung mit `1`, sodass eine von Hand bearbeitete Übersetzung einen
+Pull Request ohne Provider-Aufruf blockieren kann.
+
+## Siehe auch
+
+- [Wie ein Lauf funktioniert](/docs/how-it-works): wo jede Prüfung in der Pipeline sitzt.
+- [Fehlercodes](/docs/error-codes): Ablehnungsgründe, Review-Gründe und Provider-Codes.
+- [In Studio prüfen](/docs/review-in-studio): die Review-Warteschlange abarbeiten.
+- [Datenverarbeitung und Datenschutz](/docs/data-handling): was deinen Rechner verlässt.

@@ -1,107 +1,109 @@
 ---
-title: How it works
+title: How a run works
 description: The translation pipeline end to end, from reading the source locale to updating the lock file.
+type: concept
 ---
 A run is a pipeline: read the source locale, diff each target against the lock file, send only what
-needs work to the provider, check what comes back, write, and record the result. This page walks
-that pipeline so you know exactly what happens when you run `verbatra translate`.
+needs work to the provider, check what comes back, write, and record the result. The pipeline is
+the same whether the run came from the CLI, the SDK, or `watch`.
 
 <DiffPanel />
 
-A run starts from your validated config; see [Config file](/docs/config-file) for where it is found
-and what it contains. Everything below is the same whether the run came from the CLI, the SDK, or
-`watch`.
-
 ## Read the source locale
 
-The format adapter reads the source locale file into a neutral set of keyed entries, so the rest of
-the pipeline works the same for every format. A missing source file fails the run with
-`SOURCE_UNREADABLE`; a file the adapter cannot parse fails with `SOURCE_INVALID`. While reading, the
-adapter also flags source keys whose values are invalid for the format's message syntax (invalid
-ICU): those keys ride along but are set aside instead of being sent to the provider in a broken
-state.
+The format adapter reads the source file into a neutral set of keyed entries, so every later step
+works the same for every format. A source key whose value is invalid for the format's message
+syntax (invalid ICU) is set aside and reported rather than sent to the provider in a broken state.
+A source file that is missing or cannot be parsed fails the run; see
+[`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable) and
+[`SOURCE_INVALID`](/docs/error-codes#source_invalid).
 
 ## Diff against the lock baseline
 
-This diff exists so a run is incremental: the provider is called only for strings that actually
-need work. verbatra reads the existing target locale file (an absent file counts as empty) and
-diffs the source against it, using [the lock file](/docs/the-lock-file) as the baseline of what was
-translated before. Every source key lands in one of four buckets:
+The diff is what makes a run incremental. verbatra reads the existing target file (an absent file
+counts as empty) and compares each source key against [the lock file](/docs/the-lock-file), the
+record of what was translated before:
 
-- missing: the target does not have the key yet.
-- changed: the source value no longer matches the hash recorded in the lock.
-- unchanged: the source value still matches the recorded hash.
-- orphaned: the key is in the target but no longer in the source.
-
-Only missing and changed keys become translation candidates. Unchanged keys are left alone.
-Orphaned keys are reported and, by default, left in place; with `--prune` (or `prune: true` in the
-config) exactly those keys are removed from the target file and the lock, and nothing else.
+| Bucket | Meaning | What the run does |
+| --- | --- | --- |
+| missing | the target does not have the key | translates it |
+| changed | the source no longer matches the recorded hash | translates it |
+| unchanged | the source still matches the recorded hash | leaves it alone |
+| orphaned | the key is in the target but not in the source | reports it; removes it only with `--prune` or `prune: true` |
 
 <AvailableFrom version="0.12.0" />
 
-Two kinds of candidate are held back. A changed key whose current value a person wrote or imported is protected by default (`humanEdits`), and a key matching `pinnedKeys` is never machine-translated; both stay stale until a person resolves them. See [Protecting human translations](/docs/protecting-human-translations).
+Two kinds of candidate are held back. A changed key whose current value a person wrote or imported
+is protected by default (`humanEdits`), and a key matching `pinnedKeys` is never machine-translated.
+Both stay stale until a person resolves them; see
+[Protecting human translations](/docs/protecting-human-translations).
 
 ## Batch to the provider
 
-Before anything is sent, every candidate is looked up in the local translation-memory cache
-(`verbatra.cache.json`). A stored translation for the same source text, under the same provider,
-model, tone, locale glossary and provider `localeMap` fingerprint, is reused as-is and never reaches the provider; only the
-misses go on. See [The cache](/docs/the-cache) for how entries are keyed and when they stop
-matching.
+Every candidate is first looked up in the [translation cache](/docs/the-cache). A hit is reused and
+never reaches the provider. Of the misses, keys with the same source content are grouped, so that
+text costs one request per locale rather than one per key.
 
-Of the candidates that reach the provider, those sharing the same source content are grouped
-first, so that text costs one request per locale rather than one per key; the value that comes
-back is copied to the other keys in its group and re-checked against each one's own source in the
-integrity step below. The groups go to your configured provider in sequential sub-batches of at
-most `maxBatchSize` (default 50), so one oversized request cannot take down a whole locale. Each
-sub-batch carries the entries plus the glossary terms of its target locale and your optional `tone`. If a sub-batch call fails
-(a rate limit, a timeout, a revoked key), its keys are withheld for this run and picked up again
-next run while the other sub-batches keep making progress. See [Providers](/docs/providers) for
-how each provider applies the inputs.
+The groups go to your provider in sequential sub-batches of at most `maxBatchSize` (default 50),
+each carrying the entries, the glossary terms of that locale and your `tone`. If a sub-batch fails
+(a rate limit, a timeout, a revoked key), its keys are withheld for this run while the other
+sub-batches keep going. [Providers](/docs/providers) describes how each provider applies these
+inputs.
 
 ## Validate the response
 
-Provider output is never trusted as free text. For the LLM providers (Anthropic, OpenAI, Gemini,
-and openai-compatible), the response must match a fixed schema, checked before anything else
-happens:
+Provider output is data, never free text. For the LLM providers the response must match a fixed
+schema:
 
-- A malformed response, or one containing a key that was never requested, fails the whole
+- A malformed response, or one that contains a key that was never requested, fails the whole
   sub-batch.
-- A requested key that comes back missing or duplicated is re-requested once.
-- If it is still unresolved after that, the key counts as not translated this run and is retried
-  next run.
+- A requested key that comes back missing or duplicated is requested once more.
+- A key still unresolved after that is not translated this run.
 
-DeepL and Google Cloud Translation are machine-translation APIs without this response layer, but
-their results go through the same integrity checks below.
+The machine-translation providers have no response schema, but their results go through the same
+integrity gate.
 
 ## Run the integrity gate
 
-A translation that passed schema validation can still be broken, so verbatra recomputes its own
-accept-or-reject decision from the candidate value itself: it never trusts the provider's report.
-Each accepted candidate must pass every check the gate applies; see
-[Translation safety](/docs/translation-safety) for what those are. A candidate that fails any of
-them is withheld instead of written,
-surfaces on the run summary, and is retried next run. See
-[Translation safety](/docs/translation-safety) for the full safety model.
+A schema-valid translation can still be broken, so verbatra decides from the candidate value itself
+whether to accept it and never trusts the provider's own report. A candidate that loses a
+placeholder, breaks an ICU message or its markup, comes back empty, or degenerates is withheld
+instead of written. The checks are on [Translation safety](/docs/translation-safety#the-integrity-gate).
 
 ## Write through the adapter
 
-Accepted translations are merged into the target and written by the format adapter, atomically, in
-document key order: a key already in the target keeps its position, and a new key appends where the
-source puts it. An interrupted write never leaves a half-finished locale file, and a formatter or
-code reviewer sees stable, minimal diffs.
+Accepted translations are merged into the target and written by the format adapter, atomically and
+in document key order: a key already in the target keeps its position, and a new key lands where
+the source puts it. An interrupted write never leaves a half-written file, and reviewers see small,
+stable diffs.
 
 ## Update the lock
 
-After a locale is written, its lock entries are refreshed with the current source hashes, with one
-deliberate exception: a key withheld this run keeps its prior hash, so the next run still sees it
-as needing work. Each locale's write happens under a cross-process write lock, so two overlapping
-runs never diff against a stale baseline or pay for the same provider call twice. The details live
-in [The lock file](/docs/the-lock-file).
+After a locale is written, its lock entries are refreshed with the current source hashes. A key
+withheld this run keeps its previous hash, so the next run still sees it as needing work. Each
+locale is written under a cross-process [write lock](/docs/the-lock-file#the-write-lock), so two
+overlapping runs never diff against a stale baseline or pay twice for the same call.
 
 ## One locale at a time, failures as data
 
-Each target locale runs on its own: one locale failing does not stop the others. The run returns a
-summary per locale (translated, unchanged, orphaned, withheld, flagged for review, notices), and a
-dry run (`--dry-run`) produces the same summary shape after the diff step, without constructing a
-provider or writing anything.
+Each target locale runs on its own, and one locale failing does not stop the others. The run
+returns a summary per locale: translated, unchanged, orphaned, withheld, flagged for review, and
+notices. What each field holds is on [RunSummary](/docs/sdk/run-summary).
+
+What this design guarantees:
+
+- A second run with no source edits calls the provider for nothing.
+- Nothing a check rejected is ever written, and nothing withheld is recorded as done.
+- A dry run (`--dry-run`) stops after the diff and returns the same summary shape, without building
+  a provider or writing a file.
+
+What it does not do: it never judges whether a translation is good. That is what
+[review flags](/docs/translation-safety#review-flags) and a person are for.
+
+## Related
+
+- [`verbatra translate`](/docs/cli/translate): flags, output and exit codes of a run.
+- [The lock file and provenance](/docs/the-lock-file): what the baseline records.
+- [The translation cache](/docs/the-cache): how reuse is keyed.
+- [Translation safety](/docs/translation-safety): the integrity gate and review flags.
+- [Error codes](/docs/error-codes): every code a run can report.
