@@ -77,7 +77,9 @@ deterministic test joins the required gate automatically.
   from the installed package, its `INVALID_PORT` error, and its missing-package hint
   (`tests/studio.e2e.test.ts`), a format adapter built outside verbatra
   (`tests/third-party-adapter.e2e.test.ts`), TMX interchange (`tests/tmx-round-trip.e2e.test.ts`),
-  and `types` including `--check` and `--out` (`tests/types.e2e.test.ts`). It calls no hosted provider and makes no
+  `types` including `--check` and `--out` (`tests/types.e2e.test.ts`), and an XLIFF 2.0 handoff
+  exported, filled as a CAT tool would, and imported with its review state
+  (`tests/xliff-handoff.e2e.test.ts`). It calls no hosted provider and makes no
   network request outside 127.0.0.1: only the interrupt test and the `--allow-spend` MCP test point
   an `openai-compatible` provider at a never-answering loopback endpoint the test serves, so the
   tier is deterministic and free.
