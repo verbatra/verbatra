@@ -5,9 +5,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Starte deine App in einer Sprache, die es nicht gibt. `pseudo` baut allein aus deinen Quellstrings eine künstliche Locale: Jeder Wert wird mit Akzenten versehen, verlängert und in sichtbare Begrenzungszeichen gesetzt. So fallen ein abgeschnittener Button, ein aus zwei Fragmenten zusammengeklebter Satz und ein Label, das nie für die Übersetzung extrahiert wurde, sofort auf dem Bildschirm auf. Es kostet nichts: Es wird kein Provider konstruiert, keine Netzwerkanfrage gestellt und kein API-Key gelesen, es funktioniert also in einem frischen Checkout, bevor überhaupt ein Key existiert.
-
-Greif am ersten Tag dazu, bevor du ein Provider-Konto hast, und danach immer wieder, wenn du ein Layout änderst. [`verbatra translate --dry-run`](/docs/cli/translate) sagt dir, was ein echter Lauf übersetzen würde; `pseudo` gibt dir etwas, womit du die App wirklich starten kannst.
+Lass deine App in einer Sprache laufen, die es nicht gibt. `pseudo` baut aus deinen Quellstrings eine Fake-Locale: Jeder Wert bekommt Akzente, wird länger und steckt zwischen sichtbaren Markern, sodass abgeschnittene Buttons, zusammengestückelte Sätze und nie extrahierte Labels auffallen. Der Befehl erstellt keinen Provider, liest keinen API-Key und macht keine Netzwerkanfrage, er funktioniert also, bevor es einen API-Key gibt.
 
 ## Synopsis
 
@@ -19,109 +17,95 @@ verbatra pseudo [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
-| `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--locale` | `<code>` | `en-XA` | die zu erzeugende Pseudo-Locale |
-| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, in das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und innerhalb davon |
-| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Ergebnis unter `result` trägt |
+| `--locale` | `<code>` | `en-XA` | die zu erzeugende Pseudo-Locale; nur Buchstaben, Ziffern und Bindestriche (sonst `INVALID_LOCALE`) |
+| `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, unter das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und darin |
 
-## Was die Transformation tut
+Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
+
+## Verhalten
+
+### Was die Transformation tut
 
 | Schritt | Was du siehst |
 | --- | --- |
-| Akzentuieren | jeder ASCII-Buchstabe wird zu einem akzentuierten Doppelgänger, aus `Save` wird `Śáṽé` |
-| Verlängern | der Wert wächst um etwa ein Drittel seiner übersetzbaren Länge, ungefähr so viel, wie Deutsch gegenüber Englisch braucht |
-| Markieren | der Wert wird in `[` und `]` gefasst, ein abgeschnittener oder zusammengesetzter String fällt so auf einen Blick auf |
+| Akzente | jeder ASCII-Buchstabe wird zu einem akzentuierten Doppelgänger, `Save` liest sich also `Śáṽé` |
+| Verlängern | der Wert wächst um etwa ein Drittel seiner übersetzbaren Länge, ungefähr das, was Deutsch gegenüber Englisch braucht |
+| Markieren | der Wert steht zwischen `[` und `]`, ein abgeschnittener oder zusammengesetzter String fällt also sofort auf |
 
 Aus `Hello {{name}}, you have {{count}} unread messages` wird
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
 
-Alles, was kein übersetzbarer Text ist, bleibt unangetastet. Platzhalter überleben in jeder Syntax, die die [Format-Adapter](/docs/formats) kennen: Tokens mit doppelten geschweiften Klammern, i18next-Verschachtelungsreferenzen, Argumente in einfachen geschweiften Klammern und ICU-Argumente, printf-Konvertierungen und Apple-Pluralvariablen, Markup-Tags, XML-Entities, verlinkte vue-i18n-Nachrichten und Escape-Sequenzen. Innerhalb einer ICU-Nachricht bleiben die Argumentnamen, die Schlüsselwörter `plural` und `select` und jeder Zweig-Selektor genau so stehen, wie sie geschrieben sind, und nur der Text innerhalb eines Zweigs wird akzentuiert.
+Nur übersetzbarer Text ändert sich. Platzhalter überleben in jeder Syntax, die die [Format-Adapter](/docs/formats) kennen, und in einer ICU-Nachricht bleiben Argumentnamen, die Schlüsselwörter `plural` und `select` und die Zweig-Selektoren unverändert. Durch Pipes getrennte Pluralformen von vue-i18n werden einzeln umgewandelt: `car | cars` wird zu `[ćáŕ··] | [ćáŕś··]`. Die Transformation ist deterministisch, die Datei lässt sich also sauber diffen.
 
-vue-i18n packt Pluralformen in einen einzigen, durch Pipe getrennten Wert, deshalb wird jede Form für sich akzentuiert, verlängert und markiert: Aus `car | cars` wird `[ćáŕ··] | [ćáŕś··]` statt eines einzigen geklammerten Blocks, und genau bei Pluralen ist das Layout am schwersten richtig hinzubekommen.
+### Nichts Kaputtes landet je in der Datei
 
-Die Transformation ist deterministisch: Dieselbe Quelle erzeugt immer dieselbe Pseudo-Locale, und die Datei lässt sich sauber diffen.
+Jeder erzeugte Wert besteht dasselbe Integritäts-Gate wie die Übersetzung eines Providers: dieselben Platzhalter wie die Quelle, gültige Nachrichtensyntax, nicht entartet, nicht leer. Ein Wert, der durchfallen würde, wird unverändert aus der Quelle kopiert und unter `copied verbatim` genannt; das ist ein Hinweis, kein Fehler.
 
-## Nichts Kaputtes landet je in der Datei
+### Wohin die Ausgabe geht
 
-Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie die Übersetzung eines Providers: dieselben Platzhalter wie die Quelle, gültig unter der Nachrichtensyntax des Formats, nicht degeneriert und nicht leer. Ein Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in der Ausgabe unter `copied verbatim` genannt. Der Eintrag ist also weiterhin vorhanden und wird weiterhin gerendert. Das ist ein Bericht, kein Fehlschlag, und der Befehl endet trotzdem mit `0`.
+Die Pseudo-Locale landet außerhalb deiner echten Locale-Dateien, standardmäßig unter `.verbatra-local/pseudo`, das [`verbatra init`](/docs/cli/init) in `.gitignore` einträgt (`pseudo` ergänzt den Eintrag, falls er fehlt). Dein `files.pattern` wird in diesem Verzeichnis aufgelöst, mit `locales/{locale}.json` schreibt der Standardlauf also `.verbatra-local/pseudo/locales/en-XA.json`. Richte deinen Dev-Server darauf aus, oder schreib mit `--out` dorthin, wo dein Build schon ausliefert.
 
-## Wohin die Ausgabe geht
+`PSEUDO_OUTPUT_CONFLICT` lehnt ab, bevor irgendetwas gelesen oder geschrieben wird:
 
-Die Pseudo-Locale wird außerhalb deiner echten Locale-Dateien geschrieben, standardmäßig unter `.verbatra-local/pseudo`. [`verbatra init`](/docs/cli/init) trägt `.verbatra-local/` bereits in `.gitignore` ein, die erzeugte Datei wird also nicht versehentlich committet, und `pseudo` ergänzt diesen Eintrag in einer vorhandenen `.gitignore`, falls er fehlt.
+- eine Pseudo-Locale, die deine Quell-Locale oder eine Ziel-Locale benennt,
+- ein `--out`, das die Datei in dasselbe Verzeichnis wie eine konfigurierte Locale-Datei legt,
+- ein `--out`, das absolut ist, aus dem Arbeitsverzeichnis herausführt oder nach dem Auflösen symbolischer Links außerhalb des Projekts, in seiner Wurzel oder auf einer Datei landet, von der das Projekt abhängt.
 
-Dein konfiguriertes `files.pattern` wird innerhalb dieses Verzeichnisses expandiert, die Datei behält also das Layout, das deine App erwartet: Mit `locales/{locale}.json` schreibt der Standardlauf nach `.verbatra-local/pseudo/locales/en-XA.json`. Richte deinen Dev-Server oder deine i18n-Bibliothek auf dieses Verzeichnis aus, um sie zu laden. Mit `--out` schreibst du sie dorthin, wo dein Build sie ohnehin ausliefert.
-
-Drei Regeln verhindern, dass sie je für eine echte Übersetzung einsteht:
-
-- Eine Pseudo-Locale, die deine Quell-Locale oder eine deiner Ziel-Locales benennt, wird mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, bevor irgendetwas gelesen oder geschrieben wird.
-- Ein `--out`, das die Datei in dasselbe Verzeichnis wie eine konfigurierte Locale-Datei legen würde, wird genauso zurückgewiesen, nicht nur eines, das eine Locale-Datei überschreiben würde.
-- Ein `--out`, das absolut ist oder mit `..` aus dem Arbeitsverzeichnis herausklettert, wird ebenfalls zurückgewiesen, damit eine erzeugte Pseudo-Locale nie außerhalb des Projekts landet, aus dem sie stammt. Dieselben Prüfungen laufen noch einmal auf dem Ziel, auf dem `--out` nach dem Auflösen symbolischer Links wirklich landet: Ein verlinktes Verzeichnis, das aus dem Projekt hinaus, auf das Projektverzeichnis selbst oder auf das Verzeichnis mit deinen Locale-Dateien zeigt, oder eine verlinkte Datei, die auf eine Locale-Datei, die Lock-Datei oder eine andere Datei zeigt, von der das Projekt abhängt, wird ebenfalls mit `PSEUDO_OUTPUT_CONFLICT` zurückgewiesen, und es wird nichts geschrieben.
-
-Weil die Datei außerhalb von `files.pattern` liegt, sieht [`verbatra translate`](/docs/cli/translate) sie nie und gibt nie Geld für sie aus, und [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) melden sie nie als fehlend oder veraltet. Es gibt nichts zu `targetLocales` hinzuzufügen und nichts aus der CI auszuschließen.
+Weil die Datei außerhalb von `files.pattern` liegt, gibt [`translate`](/docs/cli/translate) nie Geld für sie aus, und [`check`](/docs/cli/check) und [`diff`](/docs/cli/diff) melden sie nie.
 
 ### Formate, die durch Patchen einer vorhandenen Datei geschrieben werden
 
-`xliff` und `apple-xcstrings` werden nicht von Grund auf neu geschrieben: Ihre Writer patchen Einheiten, die bereits im Zieldokument stehen. Die Pseudo-Locale-Datei wird deshalb bei jedem Schreibvorgang neu aus deiner Quelldatei kopiert, damit ein Key, den du nach dem ersten Lauf zur Quelle hinzufügst, weiterhin in der Pseudo-Locale ankommt, statt stillschweigend zu fehlen. Bei einer kopierten XLIFF-Datei wird außerdem das Attribut `target-language` auf die Pseudo-Locale umgeschrieben, damit die Datei nie behauptet, eine Sprache zu enthalten, die sie nicht enthält.
+Die Writer für `xliff` und `apple-xcstrings` patchen Einheiten, die schon im Zieldokument stehen. Deshalb wird die Pseudo-Locale-Datei bei jedem Schreiben neu aus deiner Quelldatei kopiert, und ein später zur Quelle hinzugefügter Key kommt trotzdem an. Bei einer kopierten XLIFF-Datei wird `target-language` auf die Pseudo-Locale umgeschrieben.
 
-## Beispiele
+### JSON-Ausgabe
 
-```bash
-# generate en-XA under .verbatra-local/pseudo
-verbatra pseudo
+Mit `--json` trägt der [JSON-Envelope](/docs/cli/output#json-ausgabe) `locale`, `path`, `entries` (Quelleinträge), `transformed` (pseudolokalisiert), `copied` (unverändert kopierte Keys) und `written` (`false`, wenn die Datei schon aktuell war).
 
-# generate a second pseudolocale alongside it
-verbatra pseudo --locale en-XB
+### Rückmeldung im Terminal
 
-# write it where the dev server already serves static files
-verbatra pseudo --out public/locales-pseudo
+<AvailableFrom version="0.12.0" />
 
-# machine-readable result for a script
-verbatra pseudo --json
-```
-
-Ein Lauf sieht so aus:
+Das Ergebnis geht auf stdout; die Fortschrittszeile und der nächste Schritt gehen auf stderr:
 
 ```text
+verbatra: pseudolocalizing the source... done (0.1s)
 verbatra pseudo
   en-XA: 118 of 120 entries pseudolocalized
     copied verbatim: legal.disclaimer, brand.name
   wrote .verbatra-local/pseudo/locales/en-XA.json
-```
-
-Lass ihn ohne Änderung an der Quelle noch einmal laufen, und er schreibt nichts neu:
-
-```text
-verbatra pseudo
-  en-XA: 120 of 120 entries pseudolocalized
-  unchanged .verbatra-local/pseudo/locales/en-XA.json
-```
-
-## Rückmeldung im Terminal
-
-<AvailableFrom version="0.12.0" />
-
-`pseudo` zeigt eine Zeile, während es die Pseudolocale schreibt, und sagt dir dann, welche Datei du in deinem Dev-Server laden sollst:
-
-```text
-verbatra: pseudolocalizing the source... done (0.1s)
 next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
 ```
 
-Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
+Ein zweiter Lauf über eine unveränderte Quelle meldet `unchanged` statt `wrote`. `--quiet` unterdrückt die stderr-Zeilen. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+
+## Beispiele
+
+```bash
+# en-XA unter .verbatra-local/pseudo erzeugen
+verbatra pseudo
+
+# eine zweite Pseudo-Locale daneben erzeugen
+verbatra pseudo --locale en-XB
+
+# dorthin schreiben, wo der Dev-Server schon statische Dateien ausliefert
+verbatra pseudo --out public/locales-pseudo
+
+# maschinenlesbares Ergebnis für ein Skript
+verbatra pseudo --json
+```
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | die Pseudo-Locale wurde erzeugt, egal ob sich die Datei geändert hat |
-| `2` | konnte nicht laufen: ein Verwendungsfehler, ein Problem mit Konfiguration oder Quelle, oder eine zurückgewiesene Pseudo-Locale oder ein zurückgewiesener Ausgabepfad |
+| `0` | die Pseudo-Locale wurde erzeugt, ob sich die Datei geändert hat oder nicht; unverändert kopierte Werte ändern daran nichts |
+| `2` | konnte nicht laufen: ein Bedienfehler, ein Config- oder Quellproblem oder eine abgelehnte Pseudo-Locale oder ein abgelehnter Ausgabepfad |
 
-Es gibt keinen Exit `1`: Ein wortwörtlich kopierter Wert wird gemeldet, nicht als Fehlschlag behandelt.
+Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra translate`](/docs/cli/translate) macht die echte Arbeit, sobald du einen Key hast.
-- [`verbatra doctor`](/docs/cli/doctor) ist der andere Befehl, der ein Projekt prüft, ohne Geld auszugeben.
+- [`verbatra translate`](/docs/cli/translate) macht das Echte, sobald du einen API-Key hast.
+- [`verbatra doctor`](/docs/cli/doctor) prüft ein Projekt ebenfalls, ohne etwas auszugeben.
 - [Formate](/docs/formats) listet die Platzhaltersyntax jedes Formats.
-- [Konfigurationsdatei](/docs/config-file) dokumentiert `files.pattern`, das über das Layout der erzeugten Datei entscheidet.
+- [Die Config-Datei](/docs/config-file) dokumentiert `files.pattern`, das den Aufbau der erzeugten Datei bestimmt.

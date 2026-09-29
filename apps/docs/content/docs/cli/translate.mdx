@@ -2,7 +2,7 @@
 title: verbatra translate
 description: Translate every target locale once, then exit.
 ---
-Run one translation pass over every target locale, then exit. `translate` reads the source locale, diffs it against [the lock file](/docs/the-lock-file), sends only the new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. Anything still current is never re-sent, so you never pay twice for an unchanged string.
+Run one translation pass over every target locale, then exit. `translate` diffs the source against [the lock file](/docs/the-lock-file), sends only new or changed strings to the provider, runs the [integrity checks](/docs/translation-safety), writes the locale files, and updates the lock. An unchanged string is never sent twice.
 
 ## Synopsis
 
@@ -14,40 +14,117 @@ verbatra translate [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
-| `--config` | `<path>` | search for one | load this config file instead of searching for one |
-| `--locales` | `<list>` | every configured target locale | translate only this comma-separated subset; an unconfigured locale fails the run with `UNKNOWN_LOCALE` before anything is read or spent, and an empty list is a usage error, exit `2` |
-| `--dry-run` | none | off | preview changes without calling a provider or writing files (no API key needed) |
-| `--prune` | none | the config's `prune` option, otherwise off | remove orphaned keys (in a target file but absent from source) from the written file and the lock |
-| `--lock-timeout` | `<seconds>` | `600` | how long to wait for a held per-locale write lock before failing; must be a bare positive integer of seconds no greater than `3600` (a value like `60s`, `0`, `-1`, or `7200` is a usage error, exit `2`) |
-| `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once; must be a positive integer no greater than `100` |
-| `--max-tokens` | `<n>` | the config's `maxTokens` | a hard token ceiling for this run alone; when the config also sets `maxTokens`, the lower of the two applies; must be a positive integer (a value like `10k` or `0` is a usage error, exit `2`) |
-| `--no-cache` | none | off (cache on) | bypass the local [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) for this run |
-| `--include-human` | none | off | also retranslate stale keys whose value a person wrote, imported, or changed outside verbatra, for this run only (`humanEdits: "overwrite"`); [pinned keys](/docs/protecting-human-translations#pinning-keys) stay untouched |
-| `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the run summary under `result` (the [`RunSummary` shape](/docs/sdk)), or the error code on a failed run; the human-readable error line still goes to stderr |
-| `--estimate` | none | off | estimate what the run would send and what it would cost, then exit without calling a provider; implies `--dry-run`, so no API key is needed |
+| `--locales` | `<list>` | every configured target locale | translate only this comma-separated subset; an unconfigured locale fails with `UNKNOWN_LOCALE`, an empty list exits `2` |
+| `--dry-run` | none | off | report what a run would change without calling a provider or writing files; needs no API key |
+| `--prune` | none | the config's `prune` option, otherwise off | remove orphaned keys (in a target file, absent from source) from the written file and the lock |
+| `--lock-timeout` | `<seconds>` | `600` | wait this long for a held per-locale write lock; a whole number from `1` to `3600` |
+| `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once; a whole number from `1` to `100`, refused under a token budget |
+| `--max-tokens` | `<n>` | the config's `maxTokens` | hard token ceiling for this run; the lower of this and the config's `maxTokens` applies |
+| `--no-cache` | none | off (cache on) | bypass the [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) for this run |
+| `--include-human` | none | off | also retranslate stale keys a person wrote or imported, for this run only; [pinned keys](/docs/protecting-human-translations#pinning-keys) stay untouched |
+| `--estimate` | none | off | estimate what the run would send and cost, then exit; implies `--dry-run` |
 
-By default a run deletes nothing: orphaned keys are reported and left in place. `--prune` removes exactly those keys and nothing else, and overrides the config's `prune` option for this run. Before it runs, `translate` loads `.env.local` and then `.env` from the working directory; a variable already set in the real environment wins.
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. Before it runs, `translate` loads `.env.local` and then `.env` from the working directory; a variable already set in the real environment wins.
 
-`--dry-run` constructs no provider at all, so it needs no API key and cannot spend anything: it reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), it neither reads nor writes the cache, and it takes no per-locale write lock, so it never waits on a run already in progress. The `.env` load above still happens on a dry run; there is simply no key to read. That makes it a complete way to try verbatra on a real project before creating a provider account.
+## Behavior
 
-In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) a dry run is the one exception to the cache rule: it reads the translation memory, still writing nothing, so its plan lists the same `cacheHits` and `unfilled` keys a live run would, and `--estimate` reports nothing to send and nothing billed (`estimated spend: none, machine translation is disabled by policy`). An estimate exits like the dry run it is: `3` when keys are left for a human, so a script reads the same code from either.
+### Dry run
+
+`--dry-run` constructs no provider, so it needs no API key and cannot spend anything. It reads the source and target files, diffs them against the lock file, and reports exactly what a real run would change. It writes nothing (no locale file, no lock update, no run-status snapshot), neither reads nor writes the cache, and takes no write lock, so it never waits on a run in progress.
+
+By default a run deletes nothing: orphaned keys are reported and left in place. `--prune` removes exactly those keys, and `--prune --dry-run` previews them.
+
+### Cost estimate
 
 <AvailableFrom version="0.12.0" />
 
-`--estimate` adds a pre-run cost estimate to that dry run: how many keys would be sent, how many provider requests they would be split into, and the quantity the configured provider actually bills for (estimated prompt and completion tokens for an LLM, estimated source characters for DeepL or Google Cloud Translation, no cost at all for a self-hosted `openai-compatible` endpoint, and nothing for a human-only project). It implies `--dry-run`, so it spends nothing and writes nothing. A currency figure appears only when the config carries a `rates` block covering the configured provider and model; without one the quantity is still reported and the missing rate key is named, rather than a cost of `0.00` being invented. Every figure is printed beside the date those rates were read, and beside a line naming what the estimate leaves out. See [Estimating cost](/docs/estimating-cost).
+`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM, source characters for DeepL or Google Cloud Translation, nothing for a self-hosted `openai-compatible` endpoint or a human-only project). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. See [Estimating cost](/docs/estimating-cost).
+
+### A subset of locales
 
 <AvailableFrom version="0.11.0" />
 
-`--locales de,fr` narrows the run to a subset of the configured targets. Locales left out are untouched: their files, their lock entries, and their cache entries all stay as they were. It is the flag to reach for on a rate-limited free tier, where translating one locale at a time is the only way through, and it is also the fastest way to re-run a single locale that came out partial. The run-status snapshot always describes the most recent run alone, so a subset run narrows it to that subset.
+`--locales de,fr` narrows the run to part of the configured targets. The other locales keep their files, lock entries, and cache entries as they were. Use it on a rate-limited free tier to translate one locale at a time, or to re-run a single locale that came out partial. The run-status snapshot then describes that subset only.
 
-`--lock-timeout` tunes how long a locale waits for a contended [write lock](/docs/the-lock-file) before that locale fails with `LOCK_CONTENDED`. The other locales still run, and the command exits `1` with the code on that locale's summary, like any other failed locale. Raise it when another run legitimately holds the lock for a while, lower it to fail fast in CI. A lock left behind by a verbatra process that is no longer running on this machine is reclaimed at once rather than waited out, and Ctrl-C or SIGTERM releases the run's locks before the command exits `130` (`143` for SIGTERM). It bounds only that wait, which happens before any provider call: once a locale's file is written, recording it in the lock file waits up to the ten-minute default whatever `--lock-timeout` says, so a written file is never left unrecorded (see [The write lock](/docs/the-lock-file#the-write-lock)).
+### Write locks and interrupts
+
+A locale waits up to `--lock-timeout` for a contended [write lock](/docs/the-lock-file#the-write-lock), then fails with `LOCK_CONTENDED` while the other locales still run. A lock left by a verbatra process that is no longer running on this machine is reclaimed at once. The timeout bounds only that wait before any provider call: recording a written file in the lock file always waits up to the ten-minute default, so a written file is never left unrecorded. Ctrl-C or SIGTERM releases the run's locks before the command exits.
+
+### Token ceiling
 
 <AvailableFrom version="0.12.0" />
 
-`--max-tokens` caps what one run may spend without touching the config. It is always a hard stop: a provider request that would pass the ceiling is withheld rather than sent, whatever `budgetBehavior` says, and its keys are listed as `budgetWithheld` in the summary. The ceiling is counted the same way as a configured [`maxTokens` budget](/docs/config-file#maxtokens-and-budgetbehavior). When the config also sets `maxTokens`, the lower of the two applies, so the flag can tighten the budget but never loosen it. A run the ceiling cut short exits `1`, as a locale that came out partial always does. Run `--estimate` first to pick a sensible figure.
+`--max-tokens` is always a hard stop: a provider request that would pass the ceiling is withheld, whatever `budgetBehavior` says, and its keys are listed as `budgetWithheld`. It is counted like a configured [`maxTokens` budget](/docs/config-file#maxtokens-and-budgetbehavior) and can tighten that budget but never loosen it. A run the ceiling cut short exits `1`. Run `--estimate` first to pick a figure.
 
-`--concurrency` runs several target locales in parallel to finish a large project faster. It is refused with exit `2` when a token budget applies, from the config's `maxTokens` or from `--max-tokens`, because the ceiling would still hold but which locale loses its remaining work would depend on the order the locales interleave, so the same project would not produce the same run twice (a dry run is exempt). If a whole-run error (in practice a corrupt lock file) surfaces once locales are already running, no further locale is started, and the ones in flight finish and release their write locks before the command exits with `2`, so the run leaves no lock behind for the next one to wait on. As a run advances, progress is printed to stderr (one line per locale start, provider sub-batch, and locale finish), so a `--json` run's stdout stays a single clean summary. `--no-cache` skips the [translation-memory cache](/docs/the-cache) for the run, making exactly the provider calls it would with no cache present.
+### Parallel locales
+
+`--concurrency` is refused with exit `2` when a token budget applies (from `maxTokens` or `--max-tokens`), because which locale loses its remaining work would depend on how the locales interleave; a dry run is exempt. If a whole-run error, such as a corrupt lock file, surfaces while locales are running, no further locale starts, and the running ones finish and release their locks before the command exits `2`.
+
+### Keys a person wrote
+
+<AvailableFrom version="0.12.0" />
+
+A stale key whose value a person wrote, imported, or changed outside verbatra is kept by default: it is listed as `protected`, not sent to the provider, and stays stale for `verbatra check`. A stderr line says how many were kept and points to `--include-human`, which retranslates them for one run (`humanEdits: "overwrite"`). Protected keys do not change the exit code, except in a human-only project. See [Protecting human translations](/docs/protecting-human-translations).
+
+### Human-only projects
+
+<AvailableFrom version="0.12.0" />
+
+In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) no provider is called. Keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and exits `3`; a failed or partial locale still wins with `1`. A dry run reads the memory here, so its plan shows the same `cacheHits` and `unfilled` keys, and `--estimate` reports nothing billed. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
+
+### Failed and partial locales
+
+<AvailableFrom version="0.9.0" />
+
+One locale failing is not fatal: the run finishes and exits `1`. A **partial** locale exits `1` too: its file was written but keys are still missing, typically because a provider sub-batch failed or the integrity gate refused a translation. The human output lists every refused key under `integrity-withheld` with its reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`); with `--json`, each locale carries them in `integrityRefusals`.
+
+### Unsupported locales
+
+<AvailableFrom version="0.12.0" />
+
+A locale the configured DeepL or Google Cloud Translation provider does not support refuses the whole run with `LOCALE_UNSUPPORTED_BY_PROVIDER` and exit `2`, on a dry run and with `--estimate` too, before anything is spent. Leave it out with `--locales`, or see [Language support](/docs/language-support#checking-support-before-a-run). A glossary or tone the provider cannot apply only adds a notice (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), as do `LOCALE_UNVERIFIED_BY_PROVIDER` and, for an LLM, `LOCALE_NOT_WELL_TESTED`.
+
+### JSON output
+
+With `--json`, stdout carries one [envelope](/docs/cli/output#json-output) whose `result` is a `RunSummary`:
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // whether this was a dry run (no provider calls, no writes)
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales whose run succeeded
+  partial: string[];        // locales written with keys still missing; these exit 1 too
+  failed: string[];         // locales whose run failed
+  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
+  budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
+  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
+}
+```
+
+Each `LocaleSummary` carries the per-locale key lists (translated, unchanged, orphaned, withheld, flagged for review, and more); see [the SDK reference](/docs/sdk) for the full anatomy.
+
+### Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+`translate` names the locales and provider before the run, and prints the elapsed time, tokens used, and the next command afterwards. On an interactive terminal the progress is one spinner line; when stderr is piped, every step is a plain line:
+
+```text
+verbatra: translating 2 locales with gemini/gemini-2.5-flash
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 12 translated
+verbatra: translating fr
+verbatra: fr batch 1/1
+verbatra: fr: writing
+verbatra: fr done, 12 translated
+verbatra: run finished, 2 locales processed
+[ok] done in 4.2s, 1830 tokens
+next: verbatra check (confirm every locale is in sync)
+```
+
+A dry run or an estimate ends each locale with `would translate` instead. These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
 
 ## Examples
 
@@ -71,66 +148,23 @@ verbatra translate --max-tokens 50000
 verbatra translate --include-human
 ```
 
-## Terminal feedback
-
-<AvailableFrom version="0.12.0" />
-
-Before the run, `translate` names the locales and the provider it is about to use (or says it is a dry run or an estimate), and after the summary it prints the elapsed time, the tokens used, and the next command to run. On an interactive terminal the per-locale progress becomes one spinner line that shows the locale, the batch, a provider retry, a repair round and the file write as they happen, and only each locale's `done` line stays. When stderr is piped, every step prints as a plain line of its own, and a provider retry, a repair round, a retry in halves and the file write each add one:
-
-```text
-verbatra: translating 2 locales with gemini/gemini-2.5-flash
-verbatra: translating de
-verbatra: de batch 1/1
-verbatra: de: writing
-verbatra: de done, 12 translated
-verbatra: translating fr
-verbatra: fr batch 1/1
-verbatra: fr: writing
-verbatra: fr done, 12 translated
-verbatra: run finished, 2 locales processed
-[ok] done in 4.2s, 1830 tokens
-next: verbatra check (confirm every locale is in sync)
-```
-
-A dry run or an estimate says what it would do instead: each locale ends with `verbatra: de done, 12 would translate`, and the next step points at the real run. When provider `none` leaves keys for a person (exit `3`), the next step points at `verbatra export` or Studio instead.
-
-These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
-
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | every target locale came out complete |
-| `1` | the run finished but one or more locales failed or came out partial |
-| `2` | could not run: a whole-run error (config, source, format, provider, a locale the provider does not support, or a corrupt lock file), or a usage error |
-| `3` | human-only project (`provider: { id: "none" }`): the run finished cleanly, but keys are left for a human translation |
-| `130` | interrupted with Ctrl-C (SIGINT); the run's write locks are released first and stderr ends with `verbatra: interrupted (SIGINT), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
-| `143` | stopped with SIGTERM; the run's write locks are released first and stderr ends with `verbatra: interrupted (SIGTERM), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
+| `1` | the run finished, but a locale failed or came out partial |
+| `2` | could not run: a config, source, format, provider, unsupported-locale, or lock-file error, or a usage error |
+| `3` | human-only project: the run finished cleanly, but keys are left for a human translation |
+| `130` | interrupted with Ctrl-C (SIGINT) after releasing the write locks |
+| `143` | stopped with SIGTERM after releasing the write locks |
 
-<AvailableFrom version="0.9.0" />
-
-One locale failing is not fatal: the run finishes, exits `1`, and the per-locale detail sits in the summary. A **partial** locale exits `1` as well. That is a locale whose file was written but still has keys missing, typically because a provider sub-batch failed or the integrity gate refused a translation, and shipping it as a success would leave a half-translated file in your repository unnoticed. A locale whose write lock stayed contended past `--lock-timeout` fails with `LOCK_CONTENDED` and exits `1` the same way.
-
-The human output lists every key the [integrity gate](/docs/translation-safety) refused under `integrity-withheld`, one per line, with the reason (`placeholder`, `markup`, `icu`, `degenerate`, or `empty`) and, where the check can name them, the placeholders, tags, or ICU plural arms at fault. A locale whose every key was refused shows `failed` followed by the same counts as any other locale. With `--json`, each locale carries the same reasons in `integrityRefusals`.
-
-<AvailableFrom version="0.12.0" />
-
-A locale the configured DeepL or Google Cloud Translation provider does not support is the exception: it is caught before the run starts, so the whole run is refused with `LOCALE_UNSUPPORTED_BY_PROVIDER` and exit `2`, on a dry run and with `--estimate` too, and no locale is started or paid for. Pass the other locales with `--locales` to translate them, or see [Language support](/docs/language-support#checking-support-before-a-run) for the fix. A glossary or tone the provider cannot apply for a locale does not refuse anything: it is reported as a notice on that locale (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), as are `LOCALE_UNVERIFIED_BY_PROVIDER` and, for an LLM provider, `LOCALE_NOT_WELL_TESTED`.
-
-<AvailableFrom version="0.12.0" />
-
-Exit `3` only happens in a [human-only](/docs/human-only-workflow) project. No provider is called there: keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and left untouched. A failed or partial locale still wins and exits `1`. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
-
-<AvailableFrom version="0.12.0" />
-
-Stale keys whose value a person wrote, imported, or changed outside verbatra are kept by default: they are listed as `protected`, are not sent to the provider, and stay stale for `verbatra check`. A line on stderr says how many were left and points to `--include-human`. It leaves out [pinned keys](/docs/protecting-human-translations#pinning-keys), which `--include-human` never overwrites, and it is not printed when `--include-human` was passed. They do not change the exit code, except in a human-only project, where they count toward exit `3` like `unfilled` keys. `--include-human` retranslates them for one run. See [Protecting human translations](/docs/protecting-human-translations).
-
-<AvailableFrom version="0.12.0" />
+On an interrupt, stderr ends with `verbatra: interrupted (SIGINT), released locks`, or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. See [the exit-code contract](/docs/cli/output#exit-codes).
 
 ## Related
 
 - [How it works](/docs/how-it-works) explains the read, diff, translate, write pipeline.
-- [The cache](/docs/the-cache) explains what `--no-cache` bypasses and how reuse is scoped.
+- [The cache](/docs/the-cache) explains what `--no-cache` bypasses.
 - [Translation safety](/docs/translation-safety) covers the integrity checks and the needs-review queue.
 - [`verbatra diff`](/docs/cli/diff) previews the same pending keys read-only.
-- [CI and exit codes](/docs/ci-and-exit-codes) shows how to branch on these codes.
+- [CI and exit codes](/docs/ci-and-exit-codes) shows how to branch on these codes in a pipeline.

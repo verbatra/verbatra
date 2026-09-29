@@ -2,7 +2,7 @@
 title: verbatra watch
 description: Übersetze bei jeder Quelländerung neu, bis unterbrochen wird.
 ---
-Beobachte die Quell-Locale-Datei und führe bei jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Vor dem Lauf lädt es `.env.local` und dann `.env` aus dem Arbeitsverzeichnis; eine bereits in der echten Umgebung gesetzte Variable gewinnt.
+Beobachte die Quell-Locale-Datei und führe nach jeder entprellten Änderung eine neue Übersetzung aus, bis du unterbrichst. `watch` startet mit einer initialen Übersetzung und hält deine Ziel-Locales dann aktuell, während du speicherst. Jeder Lauf arbeitet genau wie [`verbatra translate`](/docs/cli/translate).
 
 ## Synopsis
 
@@ -14,49 +14,37 @@ verbatra watch [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
-| `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge beobachten und übersetzen; eine nicht konfigurierte Locale wird beim Start mit `UNKNOWN_LOCALE` abgelehnt, bevor die Beobachtung überhaupt beginnt, und eine leere Liste ist ein Verwendungsfehler, Exit `2` |
-| `--debounce` | `<ms>` | `300` | so viele Millisekunden nach der letzten Änderung warten, bevor übersetzt wird; muss eine positive Ganzzahl ohne Einheit und höchstens `60000` sein (ein Wert wie `250ms`, `0`, `-1` oder `90000` ist ein Verwendungsfehler, Exit `2`) |
-| `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird, bevor der Lauf scheitert; muss eine positive Ganzzahl an Sekunden ohne Einheit und höchstens `3600` sein (ein Wert wie `60s`, `0`, `-1` oder `7200` ist ein Verwendungsfehler, Exit `2`) |
-| `--concurrency` | `<n>` | `1` | pro Lauf bis zu `n` Ziel-Locales gleichzeitig übersetzen; muss eine positive Ganzzahl von höchstens `100` sein |
-| `--no-cache` | keins | aus (Cache an) | bei jedem Lauf den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) umgehen |
-| `--json` | keins | aus | jeden Lauf als einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, im NDJSON-Stil (ein Objekt pro Zeile) |
+| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge beobachten; einmal beim Start geprüft, wo eine nicht konfigurierte Locale mit `UNKNOWN_LOCALE` scheitert |
+| `--debounce` | `<ms>` | `300` | so viele Millisekunden nach der letzten Änderung warten, bevor übersetzt wird; eine Ganzzahl von `1` bis `60000` |
+| `--lock-timeout` | `<seconds>` | `600` | in jedem Lauf so lange auf eine gehaltene Schreibsperre einer Locale warten; eine Ganzzahl von `1` bis `3600` |
+| `--concurrency` | `<n>` | `1` | pro Lauf bis zu `n` Ziel-Locales gleichzeitig übersetzen; eine Ganzzahl von `1` bis `100`, abgelehnt bei einem `maxTokens`-Budget |
+| `--no-cache` | keins | aus (Cache an) | den [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) bei jedem Lauf umgehen |
 
-Mit `--json` erzeugt jeder Lauf einen [Envelope](/docs/ci-and-exit-codes#json-ausgabe)-Datensatz mit `command: "watch"`: einen `ok: true`-Datensatz, der das [`RunSummary`](/docs/sdk) dieses Laufs unter `result` trägt, oder einen `ok: false`-Datensatz mit Fehlercode und Meldung. Die Startzeile, der Stopp-Hinweis und der Fortschritt jedes Laufs gehen auf stderr, der stdout-Strom bleibt also sauberes NDJSON. Ein fehlgeschlagener Lauf ist nur ein Datensatz im Strom: er stoppt weder den Watcher noch ändert er den Exit-Code. Ohne `--json` geht die Zusammenfassung eines erfolgreichen Laufs auf stdout und die Zeile `verbatra: error [CODE] message` eines fehlgeschlagenen Laufs auf stderr, wie die Fehler jedes anderen Befehls.
+Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`; hier gibt `--json` einen Datensatz pro Lauf aus. Vor dem Start lädt `watch` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis; eine bereits in der echten Umgebung gesetzte Variable gewinnt.
 
-`--locales de,fr` grenzt jeden Zyklus der Sitzung auf eine Teilmenge der konfigurierten Ziele ein, was eine Entwicklungsschleife günstig hält, wenn dich nur eine Sprache interessiert. Die Teilmenge wird einmal beim Start validiert, nicht bei jedem Lauf.
+## Verhalten
 
-`--lock-timeout` gilt für jeden Zyklus: Es stellt ein, wie lange eine Locale auf eine umkämpfte [Schreibsperre](/docs/the-lock-file) wartet, bevor diese Locale in der Zusammenfassung des Laufs mit `LOCK_CONTENDED` scheitert, während die anderen Locales weiterlaufen. Der Watcher läuft so oder so weiter. Eine Sperre, die ein auf dieser Maschine nicht mehr laufender verbatra-Prozess hinterlassen hat, wird sofort übernommen statt abgewartet.
+### Jeder Lauf
 
-`--concurrency` gilt für den Lauf jedes Zyklus. Jeder Lauf bekommt ein frisches Token-Budget, und ein `--concurrency` über `1` wird weiterhin abgelehnt, wenn die Konfiguration ein `maxTokens`-Budget setzt, denn welche Locale ihre restliche Arbeit verliert, hinge von der Reihenfolge ab, in der sich die Locales verschränken: `watch` lehnt diese Kombination beim Start ab und beendet sich vor dem initialen Lauf mit Exit `2`, statt eine Sitzung zu starten, die in jedem Zyklus fehlschlägt. `--no-cache` umgeht den [Übersetzungsspeicher-Cache](/docs/the-cache) bei jedem Zyklus.
+Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frischen Token-Budget. Eine Locale, deren [Schreibsperre](/docs/the-lock-file) länger als `--lock-timeout` belegt bleibt, scheitert in der Zusammenfassung dieses Laufs mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen; eine Sperre eines nicht mehr laufenden verbatra-Prozesses wird sofort übernommen. Ein fehlgeschlagener Lauf stoppt den Watcher nie.
 
-## Stoppen
+Eine `--concurrency` über `1` zusammen mit einem konfigurierten `maxTokens`-Budget wird beim Start mit Exit `2` abgelehnt, noch vor dem ersten Lauf, weil sonst die Reihenfolge der Locales entscheiden würde, welche ihre restliche Arbeit verliert.
 
-Der erste Interrupt (Ctrl-C oder SIGTERM) lässt den aktuellen Lauf zu Ende gehen, stoppt den Watcher sauber und endet mit `0`. Ein zweiter Interrupt, während dieses Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`. Der erzwungene Stopp gibt die Schreibsperren der Sitzung frei, bevor der Prozess endet, sodass der nächste Lauf nicht auf sie warten muss.
+### Stoppen
 
 <AvailableFrom version="0.12.0" />
 
-Ohne `--json` sagt dir `watch` auf stderr, wo es gerade steht: nach jedem Lauf gibt es `verbatra: waiting for changes...` aus, in einem interaktiven Terminal folgt auf die Startzeile `verbatra: press Ctrl-C to stop`, und sobald das Herunterfahren abgeschlossen ist, erscheint `verbatra: stopped`. Mit `--json` kommt keine dieser Zeilen dazu, stderr bleibt also genau wie bisher.
+Die erste Unterbrechung (Strg-C oder SIGTERM) lässt den aktuellen Lauf fertig werden, stoppt den Watcher und endet mit `0`. Eine zweite Unterbrechung, während das Herunterfahren noch läuft, erzwingt den Stopp mit Exit `130`, nachdem die Schreibsperren der Sitzung freigegeben wurden. Ohne `--json` schreibt stderr nach jedem Lauf `verbatra: waiting for changes...`, in einem interaktiven Terminal nach der Startzeile `verbatra: press Ctrl-C to stop` und nach dem Herunterfahren `verbatra: stopped`.
 
-## Beispiele
+### JSON-Ausgabe
 
-```bash
-# watch and re-translate on each change
-verbatra watch
+Mit `--json` ist stdout NDJSON: ein [Envelope](/docs/cli/output#json-ausgabe) pro Lauf, mit `command: "watch"`. Ein erfolgreicher Lauf ist ein `ok: true`-Datensatz mit der [`RunSummary`](/docs/cli/translate#json-ausgabe) dieses Laufs; ein fehlgeschlagener Lauf ist ein `ok: false`-Datensatz mit dem eigenen Code des Fehlers, oder `WATCH_RUN_FAILED`, wenn er keinen hatte, plus seinem `hint`, falls vorhanden. Ein fehlgeschlagener Lauf ist nur ein Datensatz: Er stoppt den Watcher nicht und ändert den Exit-Code nicht. Startzeile, Stopp-Hinweis und Fortschritt gehen auf stderr. Ohne `--json` geht die Zusammenfassung eines Laufs auf stdout und die Zeile `verbatra: error [CODE] message` eines fehlgeschlagenen Laufs auf stderr.
 
-# calmer in a busy editor: wait 1s after the last change, stream NDJSON
-verbatra watch --debounce 1000 --json
-
-# keep only German current while you work
-verbatra watch --locales de
-```
-
-## Rückmeldung im Terminal
+### Rückmeldung im Terminal
 
 <AvailableFrom version="0.12.0" />
 
-Ohne `--json` nennt `watch` die Quelldatei, sobald sich eine Änderung daran gesetzt hat, und läuft dann genau wie `translate`, mit demselben Spinner in einem interaktiven Terminal:
+Ohne `--json` nennt `watch` die Quelldatei, sobald sich eine Änderung daran gesetzt hat, und meldet den Lauf dann wie `translate`, mit demselben Spinner in einem interaktiven Terminal:
 
 ```text
 verbatra: change detected: locales/en.json
@@ -68,20 +56,35 @@ verbatra: run finished, 1 locale processed
 verbatra: waiting for changes...
 ```
 
-Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
+Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
+
+## Beispiele
+
+```bash
+# beobachten und bei jeder Änderung neu übersetzen
+verbatra watch
+
+# ruhiger in einem hektischen Editor: 1 s nach der letzten Änderung warten, NDJSON ausgeben
+verbatra watch --debounce 1000 --json
+
+# nur Deutsch aktuell halten, während du arbeitest
+verbatra watch --locales de
+```
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | sauber gestoppt durch einen einzelnen Interrupt |
-| `2` | konnte nicht starten oder stoppen: ein Konfigurationsfehler, ein Start- oder Stoppfehler oder ein Verwendungsfehler (einschließlich eines ungültigen `--debounce`) |
-| `130` | zwangsbeendet durch einen zweiten Interrupt |
+| `0` | durch eine einzelne Unterbrechung sauber gestoppt |
+| `2` | konnte nicht starten oder stoppen: ein Konfigurationsfehler, ein Fehler beim Start oder Herunterfahren oder ein Verwendungsfehler wie ein ungültiges `--debounce` |
+| `130` | durch eine zweite Unterbrechung zwangsweise gestoppt |
+
+Ein fehlgeschlagener Lauf während der Sitzung ändert den Exit-Code nie. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [`verbatra translate`](/docs/cli/translate) ist der Einmal-Lauf, den `watch` wiederholt.
+- [`verbatra translate`](/docs/cli/translate) ist der einmalige Lauf, den `watch` wiederholt.
 - [Der Cache](/docs/the-cache) erklärt, was `--no-cache` bei jedem Lauf umgeht.
-- [Wie es funktioniert](/docs/how-it-works) erklärt, was jeder Lauf tut.
+- [So funktioniert es](/docs/how-it-works) erklärt, was jeder Lauf tut.
 - [Menschliche Übersetzungen schützen](/docs/protecting-human-translations) erklärt, warum ein Lauf einen veralteten Wert behält, den ein Mensch geschrieben hat.
-- Die [SDK-Referenz](/docs/sdk) dokumentiert die Formen `WatchRunResult` und `RunSummary`.
+- [Die SDK-Referenz](/docs/sdk) dokumentiert die Formen `WatchRunResult` und `RunSummary`.

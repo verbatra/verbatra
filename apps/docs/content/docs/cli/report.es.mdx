@@ -1,20 +1,11 @@
 ---
 title: verbatra report
-description: Imprime un informe de solo lectura del proyecto. El informe de procedencia lista de dónde viene cada traducción y si una persona la revisó.
+description: Imprime un informe del proyecto de solo lectura. El informe de procedencia lista de dónde viene cada traducción y si una persona la revisó.
 status: new
 ---
 <AvailableFrom version="0.12.0" />
 
-`verbatra report provenance` lee `verbatra.provenance.json`, el archivo de bloqueo y los archivos de
-locale, e imprime por locale de destino cuántos valores escribió una máquina sin que nadie los
-revisara, cuántos revisó una persona, cuántos escribieron o importaron personas y de cuántos no
-puede dar cuenta verbatra. Con `--json` lista el origen, el estado de revisión, el proveedor, el
-modelo y el revisor de cada clave, para un archivo de auditoría. No llama a ningún proveedor, no
-necesita clave de API y no escribe nada.
-
-El informe es evidencia de apoyo de qué texto generó una máquina, no asesoramiento jurídico.
-[Evidencia de traducción automática](/docs/provenance-evidence) explica qué puede y qué no puede
-mostrar, los grupos y el esquema JSON completo.
+`verbatra report provenance` lee `verbatra.provenance.json`, el archivo de bloqueo y los archivos de locale, e imprime por locale de destino cuántos valores escribió una máquina, cuántos revisó una persona y cuántos escribieron o importaron personas. No llama a ningún proveedor, no necesita clave de API y no escribe nada. El informe es una evidencia de apoyo, no asesoramiento legal.
 
 ## Sinopsis
 
@@ -22,36 +13,19 @@ mostrar, los grupos y el esquema JSON completo.
 verbatra report <report> [flags]
 ```
 
-`<report>` nombra el informe que se imprime. `provenance` es el único por ahora; cualquier otro nombre
-es un error de uso.
+- `<report>`: el informe que se imprime. `provenance` es el único por ahora; cualquier otro nombre es un error de uso.
 
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
-| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
-| `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino separado por comas del que informar |
-| `--json` | ninguno | desactivado | imprime en stdout un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) con el informe bajo `result`, con todas las claves, o el código de error en una ejecución fallida; la línea de error legible sigue yendo a stderr |
+| `--locales` | `<list>` | todos los destinos configurados | informa solo de este subconjunto separado por comas; un valor vacío o desconocido es un error de uso, salida `2` |
 
-No hay `--out`: el informe va a stdout, como `check` y `diff`, así que redirígelo para conservarlo
-(`verbatra report provenance --json > provenance-report.json`). Un valor `--locales` vacío o
-desconocido se rechaza con salida `2`.
+También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
-## Ejemplos
+## Comportamiento
 
-```bash
-# counts per locale: machine and unreviewed, machine and reviewed, human, imported, and the rest
-verbatra report provenance
-
-# every key's origin and review state, for an audit file
-verbatra report provenance --json > provenance-report.json
-
-# only the German locale
-verbatra report provenance --locales de
-```
-
-## Salida
+### Salida
 
 ```text
 verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
@@ -60,41 +34,54 @@ verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z
 Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
 ```
 
-La primera línea nombra el locale de origen, la versión de verbatra y cuándo se hizo el informe. Cada
-fila cuenta las claves que tienen un valor tanto en el origen como en ese locale. Los grupos se
-describen en [Evidencia de traducción automática](/docs/provenance-evidence#el-informe-de-procedencia).
+La primera línea nombra el locale de origen, la versión de verbatra y cuándo se generó el informe. Cada fila cuenta las claves que tienen valor tanto en el origen como en ese locale. [Evidencia de traducción automática](/docs/provenance-evidence#el-informe-de-procedencia) describe las categorías, lo que el informe puede y no puede mostrar, y el esquema JSON completo.
 
-## Información en el terminal
+No hay `--out`: el informe va a stdout, como en `check` y `diff`, así que redirígelo si quieres guardarlo.
 
-El comando muestra una línea mientras lee los archivos. Cuando hay traducciones automáticas
-esperando revisión, sugiere Studio:
+### Salida JSON
+
+`--json` imprime un [envoltorio](/docs/cli/output#salida-json) cuyo `result` lista el origen, el estado de revisión, el proveedor, el modelo y el revisor de cada clave, para un archivo de auditoría. Si el archivo de procedencia no se puede leer, el resultado es `{ "available": false, "reason": "provenance-unreadable" }`.
+
+### Procedencia ilegible
+
+Un informe sin un archivo de procedencia legible listaría cada valor como `unrecorded`, lo que no es lo mismo que no tener registro. Por eso el comando falla de forma segura con la salida `1`, como [`check --require-reviewed`](/docs/cli/check), para que un job de CI no archive un archivo de auditoría vacío.
+
+### Información en el terminal
+
+El comando muestra una línea mientras lee los archivos. Cuando hay traducciones automáticas esperando revisión, sugiere Studio:
 
 ```text
 verbatra: reading the provenance record... done (0.1s)
 next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
 ```
 
-Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe
-arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal).
+Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+
+## Ejemplos
+
+```bash
+# contadores por locale: máquina sin revisar, máquina revisada, humana, importada y el resto
+verbatra report provenance
+
+# origen y estado de revisión de cada clave, para un archivo de auditoría
+verbatra report provenance --json > provenance-report.json
+
+# solo el locale alemán
+verbatra report provenance --locales de
+```
 
 ## Códigos de salida
 
 | Código | Significado |
 | --- | --- |
 | `0` | se imprimió el informe |
-| `1` | sin informe: `verbatra.provenance.json` está corrupto o lo escribió un verbatra más nuevo. Con `--json` el resultado es `{ "available": false, "reason": "provenance-unreadable" }` |
-| `2` | no se pudo ejecutar: un error de configuración, un archivo de origen o de bloqueo ilegible, un valor `--locales` vacío o desconocido, o un nombre de informe desconocido |
+| `1` | no hay informe: `verbatra.provenance.json` está dañado o lo escribió un verbatra más nuevo |
+| `2` | no se pudo ejecutar: un error de configuración, un archivo de origen o de bloqueo ilegible, un valor `--locales` desconocido o vacío, o un nombre de informe desconocido |
 
-Un informe construido sin un archivo de procedencia legible listaría cada valor como `unrecorded`, lo
-que no es lo mismo que no tener registro. Por eso el comando falla en cerrado, como
-[`check --require-reviewed`](/docs/cli/check), para que un job de CI no archive un archivo de
-auditoría vacío.
+Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [Evidencia de traducción automática](/docs/provenance-evidence) cubre el informe, su esquema y las
-  marcas de traducción automática en las exportaciones XLIFF y TMX.
-- [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor) explica el
-  archivo de procedencia que lee el informe.
-- [`verbatra check --require-reviewed`](/docs/cli/check) hace fallar la CI mientras una traducción
-  automática no esté aprobada.
+- [Evidencia de traducción automática](/docs/provenance-evidence) cubre el informe, su esquema y las marcas de traducción automática en las exportaciones XLIFF y TMX.
+- [El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor) explica el archivo de procedencia que lee el informe.
+- [`verbatra check --require-reviewed`](/docs/cli/check) hace fallar CI mientras una traducción automática no esté aprobada.

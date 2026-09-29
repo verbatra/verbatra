@@ -2,7 +2,7 @@
 title: verbatra watch
 description: Re-translate on every source change until interrupted.
 ---
-Watch the source locale file and re-run a translation on each debounced change, until you interrupt it. `watch` runs an initial translation at startup, then keeps your target locales current as you save. Before it runs, it loads `.env.local` and then `.env` from the working directory; a variable already set in the real environment wins.
+Watch the source locale file and re-run a translation after each debounced change, until you interrupt it. `watch` runs an initial translation at startup, then keeps your target locales current as you save. Each run works exactly like [`verbatra translate`](/docs/cli/translate).
 
 ## Synopsis
 
@@ -14,30 +14,49 @@ verbatra watch [flags]
 
 | Flag | Argument | Default | Effect |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
-| `--config` | `<path>` | search for one | load this config file instead of searching for one |
-| `--locales` | `<list>` | every configured target locale | watch and translate only this comma-separated subset; an unconfigured locale is rejected at startup with `UNKNOWN_LOCALE` before any watching begins, and an empty list is a usage error, exit `2` |
-| `--debounce` | `<ms>` | `300` | wait this many milliseconds after the last change before translating; must be a bare positive integer no greater than `60000` (a value like `250ms`, `0`, `-1`, or `90000` is a usage error, exit `2`) |
-| `--lock-timeout` | `<seconds>` | `600` | how long to wait for a held per-locale write lock before failing; must be a bare positive integer of seconds no greater than `3600` (a value like `60s`, `0`, `-1`, or `7200` is a usage error, exit `2`) |
-| `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once per run; must be a positive integer no greater than `100` |
-| `--no-cache` | none | off (cache on) | bypass the local [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) on every run |
-| `--json` | none | off | print each run as one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout, NDJSON style (one object per line) |
+| `--locales` | `<list>` | every configured target locale | watch only this comma-separated subset; checked once at startup, where an unconfigured locale fails with `UNKNOWN_LOCALE` |
+| `--debounce` | `<ms>` | `300` | wait this many milliseconds after the last change before translating; a whole number from `1` to `60000` |
+| `--lock-timeout` | `<seconds>` | `600` | wait this long for a held per-locale write lock in each run; a whole number from `1` to `3600` |
+| `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once per run; a whole number from `1` to `100`, refused under a `maxTokens` budget |
+| `--no-cache` | none | off (cache on) | bypass the [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) on every run |
 
-With `--json`, each run emits one [envelope](/docs/ci-and-exit-codes#json-output) record with `command: "watch"`: an `ok: true` record carrying that run's [`RunSummary`](/docs/sdk) under `result`, or an `ok: false` record carrying an error code and message. The startup line, the stopping notice, and per-run progress all go to stderr, so the stdout stream stays clean NDJSON. A failed run is just a record on the stream: it neither stops the watcher nor changes the exit code. Without `--json`, a successful run's summary goes to stdout and a failed run's `verbatra: error [CODE] message` line goes to stderr, like every other command's errors.
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`; here `--json` prints one record per run. Before it starts, `watch` loads `.env.local` and then `.env` from the working directory; a variable already set in the real environment wins.
 
-`--locales de,fr` narrows every cycle of the session to a subset of the configured targets, which keeps a development loop cheap when you only care about one language. The subset is validated once at startup rather than on each run.
+## Behavior
 
-`--lock-timeout` applies to every cycle: it tunes how long a locale waits for a contended [write lock](/docs/the-lock-file) before that locale fails with `LOCK_CONTENDED` in that run's summary, while the other locales still run. The watcher keeps going either way. A lock left behind by a verbatra process that is no longer running on this machine is reclaimed at once rather than waited out.
+### Each run
 
-`--concurrency` applies to each cycle's run. Each run gets a fresh token budget, and a `--concurrency` above `1` is still refused when the config sets a `maxTokens` budget, because which locale loses its remaining work would depend on the order the locales interleave: `watch` refuses that combination at startup and exits `2` before the initial run, instead of starting a session that fails every cycle. `--no-cache` bypasses the [translation-memory cache](/docs/the-cache) on every cycle.
+Every run translates the `--locales` subset, or every target, with a fresh token budget. A locale whose [write lock](/docs/the-lock-file) stays contended past `--lock-timeout` fails with `LOCK_CONTENDED` in that run's summary while the other locales still run; a lock left by a verbatra process that is no longer running is reclaimed at once. A failed run never stops the watcher.
 
-## Stopping
+A `--concurrency` above `1` together with a configured `maxTokens` budget is refused at startup with exit `2`, before the initial run, because which locale loses its remaining work would depend on how the locales interleave.
 
-The first interrupt (Ctrl-C, or SIGTERM) lets the current run finish, stops the watcher cleanly, and exits `0`. A second interrupt while that shutdown is still in flight force-stops with exit `130`. The force-stop releases the session's write locks before the process exits, so the next run does not have to wait for them.
+### Stopping
 
 <AvailableFrom version="0.12.0" />
 
-Without `--json`, `watch` tells you where it is on stderr: after every run it prints `verbatra: waiting for changes...`, on an interactive terminal it follows the startup line with `verbatra: press Ctrl-C to stop`, and once the shutdown has finished it prints `verbatra: stopped`. With `--json` none of these lines are added, so stderr stays exactly as before.
+The first interrupt (Ctrl-C or SIGTERM) lets the current run finish, stops the watcher, and exits `0`. A second interrupt while that shutdown is still in flight force-stops with exit `130`, after releasing the session's write locks. Without `--json`, stderr says `verbatra: waiting for changes...` after every run, `verbatra: press Ctrl-C to stop` after the startup line on an interactive terminal, and `verbatra: stopped` once the shutdown has finished.
+
+### JSON output
+
+With `--json`, stdout is NDJSON: one [envelope](/docs/cli/output#json-output) per run, with `command: "watch"`. A succeeded run is an `ok: true` record carrying that run's [`RunSummary`](/docs/cli/translate#json-output); a failed run is an `ok: false` record with the failure's own code, or `WATCH_RUN_FAILED` when it had none, plus its `hint` when it has one. A failed run is only a record: it neither stops the watcher nor changes the exit code. The startup line, the stopping notice and progress go to stderr. Without `--json`, a run's summary goes to stdout and a failed run's `verbatra: error [CODE] message` line to stderr.
+
+### Terminal feedback
+
+<AvailableFrom version="0.12.0" />
+
+Without `--json`, `watch` names the source file once a change to it has settled, then reports the run as `translate` does, with the same spinner on an interactive terminal:
+
+```text
+verbatra: change detected: locales/en.json
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 1 translated
+verbatra: run finished, 1 locale processed
+verbatra: waiting for changes...
+```
+
+These lines go to stderr, and `--quiet` drops them. See [Terminal output](/docs/cli/output#terminal-output).
 
 ## Examples
 
@@ -52,31 +71,15 @@ verbatra watch --debounce 1000 --json
 verbatra watch --locales de
 ```
 
-## Terminal feedback
-
-<AvailableFrom version="0.12.0" />
-
-Without `--json`, `watch` names the source file when a change to it has settled, then runs exactly as `translate` does, with the same spinner on an interactive terminal:
-
-```text
-verbatra: change detected: locales/en.json
-verbatra: translating de
-verbatra: de batch 1/1
-verbatra: de: writing
-verbatra: de done, 1 translated
-verbatra: run finished, 1 locale processed
-verbatra: waiting for changes...
-```
-
-These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
-
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | stopped cleanly by a single interrupt |
-| `2` | could not start or stop: a config error, a startup or shutdown failure, or a usage error (including an invalid `--debounce`) |
+| `2` | could not start or stop: a config error, a startup or shutdown failure, or a usage error such as an invalid `--debounce` |
 | `130` | force-stopped by a second interrupt |
+
+A failed run during the session never changes the exit code. See [the exit-code contract](/docs/cli/output#exit-codes).
 
 ## Related
 
