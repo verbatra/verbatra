@@ -1,163 +1,76 @@
 ---
-title: Rezepte für Agenten und Skripte
-description: "Steuere verbatra aus einer Agenten-Schleife oder einem Shell-Skript: welche Befehle JSON ausgeben, wie die Payloads wirklich aussehen und wie du darauf verzweigst."
+title: verbatra mit JSON skripten
+description: "Steuere verbatra aus einem Shell-Skript oder einer Agenten-Schleife: halte stdout sauber, lies die Payloads, verzweige auf den Exit-Code und folge einem watch-Strom."
 ---
-Ein Agent oder ein Skript braucht drei Dinge von einer CLI: eine stabile Art zu fragen, eine parsebare Antwort und ein eindeutiges Signal, was passiert ist. verbatra gibt dir alle drei über `--json` und den Exit-Code. Diese Seite ist die ausgearbeitete Fassung davon: echte aufgezeichnete Payloads und kurze Rezepte, die ausführen, parsen, entscheiden und handeln.
+Nutze diese Seite, wenn ein Skript oder ein Coding-Agent verbatra ausführt und entscheiden muss, was als Nächstes passiert. Jeder einmalige Befehl nimmt `--json` an und gibt einen Envelope auf stdout aus, und der Exit-Code sagt, ob der Lauf sauber war. Die Rezepte unten führen aus, parsen, entscheiden und handeln auf echter, aufgezeichneter Ausgabe.
 
-Sie wiederholt den Vertrag nicht. Der [`--json`-Envelope und jede `result`-Form](/docs/cli/output#json-ausgabe) sind in der CI-Anleitung dokumentiert, die [CLI-Übersicht](/docs/cli) nennt die Konvention, und jede Befehlsseite trägt ihre eigene Exit-Code-Tabelle. Lies dort, was ein Feld bedeutet; lies hier, was du damit machst.
+Der Vertrag selbst steht unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output): die Felder des Envelopes, die Exit-Code-Tabelle und welche Befehle `--json` annehmen. Das `result` jedes Befehls steht auf seiner Befehlsseite. Um das Dashboard in einem Browser statt in einer Shell zu steuern, siehe [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio).
 
-Wenn du einen Agenten willst, der das Dashboard im Browser bedient statt einen Prozess in einer Shell, ist das eine andere Oberfläche: siehe [Studio mit einem Browser-Agenten bedienen](/docs/agent-tools-in-studio).
-
-Die Rezepte unten lesen stdout mit `jq`, weil das das Kleinste ist, was einen JSON-Strom aus einer Shell liest. Jeder JSON-Parser tut es; nichts an der Ausgabe hängt an `jq`.
-
-## Welche Befehle JSON ausgeben
-
-| Befehl | `--json` | Ein erfolgreicher Datensatz trägt |
-| --- | --- | --- |
-| [`translate`](/docs/cli/translate) | ja | ein `RunSummary` |
-| [`watch`](/docs/cli/watch) | ja | ein `RunSummary` pro Lauf, als NDJSON |
-| [`check`](/docs/cli/check) | ja | ein `CheckSummary` |
-| [`diff`](/docs/cli/diff) | ja | ein `DiffSummary` |
-| [`doctor`](/docs/cli/doctor) | ja | ein `DoctorResult` |
-| [`export`](/docs/cli/export) | ja | den geschriebenen Pfad und die Zeilenzahl pro Locale |
-| [`import`](/docs/cli/import) | ja | ein `RunSummary` |
-| [`tmx`](/docs/cli/tmx) | ja | bei `import` die gelesenen Units und pro Locale die Anzahl der hinzugefügten, behaltenen und abgelehnten Units; bei `export` den geschriebenen Pfad und die Anzahl der Units pro Locale |
-| [`pseudo`](/docs/cli/pseudo) | ja | die erzeugte Pseudolocale, ihren Pfad und die Anzahl der Einträge |
-| [`types`](/docs/cli/types) | ja | den Pfad der Deklaration, die Anzahl der Keys, wie viele Keys Argumente nehmen, die Keys, deren Argumente nicht bestimmt werden konnten, und ob die Datei geschrieben wurde |
-| [`extract`](/docs/cli/extract) | ja | die zur Quell-Locale hinzugefügten Keys und was der Scan nicht auflösen konnte |
-| [`init`](/docs/cli/init) | ja | den Konfigurationspfad, jede geschriebene Datei und was mit ihr passiert ist, die Konfiguration, die Erkennung und die nächsten Befehle |
-| [`studio`](/docs/cli/studio) | nein | |
-| [`mcp`](/docs/cli/mcp) | nein | |
-
-`studio` und `mcp` sind langlaufende Server, deshalb hat keiner der beiden einen maschinenlesbaren Modus. Alles andere, was ein Agent von einem Projekt braucht, ist über die anderen zwölf erreichbar.
-
-`doctor` kam in 0.9.0 dazu, `tmx`, `pseudo`, `types` und `extract` in 0.11.0 und `init` in 0.12.0.
-
-<AvailableFrom version="0.11.0" />
+Die Rezepte lesen stdout mit `jq`; jeder JSON-Parser funktioniert.
 
 ## Auf stdout stehen Envelopes und sonst nichts
 
-Datensätze zu Fortschritt und Lock-Wartezeit sowie die menschenlesbare Fehlerzeile gehen in beiden Modi auf stderr. Leite stderr um, und stdout ist ein sauberer Strom aus JSON-Datensätzen:
+Fortschritt, Lock-Wait-Datensätze und die lesbare Fehlerzeile gehen alle auf stderr, daher trägt stdout JSON-Envelopes und sonst nichts. Verwirf stderr für einen sauberen Strom oder behalte es als Log:
 
 ```bash
 verbatra check --json 2>/dev/null
-```
-
-Behalte stderr, wenn du ein Protokoll davon willst, was der Lauf gerade getan hat:
-
-```bash
 verbatra translate --json 2>run.log | jq .
 ```
 
-## Drei Payloads, aufgezeichnet
+## Die Payloads lesen
 
-Jeder Payload unten ist echte Ausgabe aus einem kleinen Projekt: Quell-Locale `en`, eine Ziel-Locale `de` und eine `de`-Datei, die `app.title` bereits hat, `app.greeting` aber nicht.
+Jeder Payload unten stammt aus einem kleinen Projekt: Quell-Locale `en`, eine Ziel-Locale `de` und eine `de`-Datei, die `app.title` hat, aber nicht `app.greeting`.
 
-`verbatra check --json` beantwortet "läuft irgendetwas auseinander", in Zahlen:
-
-```bash
-verbatra check --json 2>/dev/null
-```
+`check` beantwortet „ist etwas nicht synchron“, in Zahlen, und endet hier mit `1`:
 
 ```json
-{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0}]}}
+{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0,"incompletePlurals":[]}]}}
 ```
 
-Der Befehl endet mit `1`, weil `inSync` false ist. Das ist das günstigste Gate überhaupt: Der Exit-Code allein sagt dir, ob du den Payload überhaupt lesen musst.
-
-`verbatra diff --json` beantwortet dieselbe Frage über Key-Namen statt über Zahlen:
-
-```bash
-verbatra diff --json 2>/dev/null
-```
+`diff` beantwortet dieselbe Frage mit Key-Namen und endet ebenfalls mit `1`. Nimm es, wenn das Skript die Keys nennen muss; nimm `check`, wenn ein Ja oder Nein reicht:
 
 ```json
 {"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
 ```
 
-Ebenfalls Exit `1`. Nimm `diff`, wenn der Agent die Keys benennen muss (um einen Pull-Request-Kommentar zu schreiben oder um zu entscheiden, ob sich die Arbeit lohnt); nimm `check`, wenn ein Ja oder Nein reicht.
-
-`verbatra translate --dry-run --json` beantwortet "was würde ein Lauf tun", ohne Provider-Aufruf, ohne API-Key und ohne irgendetwas zu schreiben. Zum Lesen hier formatiert; auf der Leitung ist es eine einzelne Zeile wie die beiden oben:
+`translate --dry-run` beantwortet „was würde ein Lauf tun“, ohne Provider-Aufruf, ohne Schlüssel und ohne etwas zu schreiben. Es endet mit `0`. Jede Liste pro Locale ist vorhanden, auch wenn sie leer ist, also reduziere das Ergebnis auf die Felder, mit denen du arbeitest:
 
 ```bash
-verbatra translate --dry-run --json 2>/dev/null | jq .
+verbatra translate --dry-run --json 2>/dev/null \
+  | jq -c '.result | {dryRun, succeeded, partial, failed, translated: [.locales[].translated[]]}'
 ```
+
+```text title="Output"
+{"dryRun":true,"succeeded":["de"],"partial":[],"failed":[],"translated":["app.greeting"]}
+```
+
+Die vollständige Form des Eintrags einer Locale steht unter [RunSummary](/docs/sdk/run-summary).
+
+Kann ein Lauf gar nicht stattfinden, bekommt stdout einen Fehler-Envelope und der Befehl endet mit `2`. Verzweige auf `code`, nie auf `message`, und handle nach `hint`, wenn es vorhanden ist:
 
 ```json
-{
-  "ok": true,
-  "version": 1,
-  "command": "translate",
-  "result": {
-    "dryRun": true,
-    "locales": [
-      {
-        "locale": "de",
-        "status": "succeeded",
-        "translated": [
-          "app.greeting"
-        ],
-        "unchanged": [
-          "app.title"
-        ],
-        "orphaned": [],
-        "pruned": [],
-        "invalidIcuSource": [],
-        "cacheHits": [],
-        "fuzzyHits": [],
-        "integrityMismatches": [],
-        "integrityRefusals": [],
-        "providerFailures": [],
-        "budgetWithheld": [],
-        "generated": [],
-        "notices": [],
-        "needsReview": [],
-        "unfilled": [],
-        "protected": [],
-        "malformedRows": [],
-        "duplicateKeys": []
-      }
-    ],
-    "succeeded": [
-      "de"
-    ],
-    "partial": [],
-    "failed": []
-  }
-}
+{"ok":false,"version":1,"command":"check","code":"CONFIG_INVALID","message":"The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined","hint":"Fix the config field the message names, then run `verbatra doctor` to confirm the setup."}
 ```
-
-Exit `0`. Jede Liste pro Locale ist auch dann vorhanden, wenn sie leer ist, ein Agent kann also darauf zugreifen, ohne vorher zu prüfen. Ein echter Lauf ergänzt pro Locale und in der Zusammenfassung ein `usage`-Objekt, sofern der Provider einen Verbrauch meldet; ein Dry Run nie, weil er keinen Aufruf macht. Die vollständige Anatomie eines `LocaleSummary` steht in der [SDK-Referenz](/docs/sdk/run-summary).
-
-Wenn ein Lauf überhaupt nicht stattfinden kann, ist der Payload stattdessen ein Fehler-Datensatz, und der Befehl endet mit `2`:
-
-```json
-{"ok":false,"version":1,"command":"check","code":"CONFIG_INVALID","message":"The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined"}
-```
-
-`code` ist der stabile Teil. Verzweige darauf, nicht auf `message`.
 
 ## `ok: true` heißt nicht, dass alles übersetzt wurde
 
-Das ist die Stelle, an der Skripte auflaufen. Eine Locale kann innerhalb eines Laufs scheitern, der selbst durchgekommen ist. Der Envelope bleibt `ok: true`, weil der Befehl lief und eine Zusammenfassung erzeugt hat; der Fehlschlag taucht in `result.failed` und `result.partial` auf, und der Exit-Code ist `1`.
-
-Hier ist `translate` gegen einen nicht erreichbaren Provider-Endpunkt:
+Eine Locale kann innerhalb eines Laufs fehlschlagen, der selbst vollständig durchlief. Der Envelope bleibt `ok: true`, der Fehlschlag zeigt sich in `result.failed` oder `result.partial`, und der Exit-Code ist `1`. Hier `translate` gegen einen nicht erreichbaren Provider-Endpunkt:
 
 ```bash
 verbatra translate --json 2>/dev/null | jq -c '{ok, succeeded: .result.succeeded, partial: .result.partial, failed: .result.failed}'
 ```
 
-```json
+```text title="Output"
 {"ok":true,"succeeded":[],"partial":[],"failed":["de"]}
 ```
 
-`ok` beantwortet "ist der Befehl gelaufen". `succeeded`, `partial` und `failed` beantworten "ist die Arbeit angekommen". Der Exit-Code fasst beides bereits zusammen, deshalb liegt ein Agent, der nur den Exit-Code liest, nie falsch, und ein Agent, der nur `ok` liest, liegt beim ersten schlechten Tag eines Providers falsch.
+`ok` beantwortet „ist der Befehl gelaufen“; `succeeded`, `partial` und `failed` beantworten „ist die Arbeit angekommen“. Der Exit-Code vereint beides, daher liegt ein Skript, das nur den Exit-Code liest, nie falsch.
 
 ## Auf den Exit-Code verzweigen
 
-Drei Codes decken jeden einmalig laufenden Befehl ab. Dieses Gate liest `check`, gibt die auseinandergelaufenen Locales aus, wenn es welche gibt, und behandelt einen Fehler des gesamten Laufs als ein Problem anderer Art:
+Dieses Gate liest `check`, gibt die abweichenden Locales aus und behandelt einen Lauf, der nicht starten konnte, als anderes Problem:
 
-```bash
+```bash title="gate.sh"
 #!/usr/bin/env bash
 set -uo pipefail
 
@@ -166,86 +79,74 @@ status=$?
 
 case $status in
   0)
-    # in sync: nothing to do
     echo "every locale is in sync"
     ;;
   1)
-    # it ran, the result is not clean: the payload says what drifted
     echo "$report" | jq -r '.result.locales[] | select(.inSync | not) | "\(.locale): \(.missing) missing, \(.stale) stale"'
     ;;
   2)
-    # it could not run: the payload is an error envelope
     echo "$report" | jq -r '"cannot run [\(.code)] \(.message)"' >&2
     exit 2
     ;;
 esac
 ```
 
-Im selben Projekt liefern die drei Zweige:
+Im selben Projekt geben die drei Zweige aus:
 
-```
+```text title="Output"
 de: 1 missing, 0 stale
 every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
 ```
 
-Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, wegen dem du hier bist, kein Absturz. Code `130` kommt hier nie vor, denn `check` nutzt ihn nicht: Nur `translate` und `import` enden mit `130` bei Strg+C, nachdem sie ihre Schreibsperren freigegeben haben, und die drei langlaufenden Befehle (`watch`, `studio` und `mcp`), wenn ein zweiter Interrupt sie zwangsbeendet. Die vollständige Tabelle steht in [CI und Exit-Codes](/docs/ci-and-exit-codes).
+Führe das nicht unter `set -e` aus: Ein Exit-Code ungleich null ist genau das Signal, das du willst. `translate` ergänzt `3` in einem rein menschlichen Projekt, und die Interrupt-Codes stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes).
 
 ## `watch` ist ein Strom, kein einzelner Payload
 
-`watch --json` ist von anderer Art als die übrigen elf. Es gibt für die Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein JSON-Objekt pro Zeile, kein umschließendes Array, kein Abschluss. Ein Konsument liest zeilenweise und liest weiter.
-
-Roh, zwei Läufe einer Sitzung (der zweite, nachdem die Quelldatei mit einem Syntaxfehler gespeichert wurde):
+`watch --json` gibt für die gesamte Lebensdauer des Prozesses einen Envelope pro Lauf aus, als NDJSON: ein Objekt pro Zeile, kein umschließendes Array. Ein fehlgeschlagener Lauf ist ein Datensatz im Strom, nicht das Ende der Sitzung:
 
 ```json
-{"ok":true,"version":1,"command":"watch","result":{"dryRun":false,"locales":[{"locale":"de","status":"succeeded","translated":["app.greeting"],"unchanged":["app.title"],"orphaned":[],"pruned":[],"invalidIcuSource":[],"cacheHits":[],"fuzzyHits":[],"integrityMismatches":[],"integrityRefusals":[],"providerFailures":[],"budgetWithheld":[],"generated":[],"notices":[],"needsReview":[],"unfilled":[],"protected":[],"malformedRows":[],"duplicateKeys":[],"usage":{"inputTokens":120,"outputTokens":40}}],"succeeded":["de"],"partial":[],"failed":[],"usage":{"inputTokens":120,"outputTokens":40}}}
-{"ok":false,"version":1,"command":"watch","code":"SOURCE_INVALID","message":"The source locale file at /home/dev/app/locales/en.json could not be read: The file is not valid JSON."}
+{"ok":false,"version":1,"command":"watch","code":"SOURCE_INVALID","message":"The source locale file at locales/en.json could not be read: The file is not valid JSON (line 2, column 1).","causeCode":"INVALID_JSON","hint":"Fix the file the message names so it parses under the configured format."}
 ```
 
-Beide Datensatzarten erscheinen im selben Strom, reduziere also jede Zeile auf die Felder, auf die du reagierst. `--unbuffered` lässt `jq` pro Zeile ausgeben, und genau das macht aus der Pipe etwas, worauf du reagieren kannst, statt etwas, das du am Ende liest:
+Reduziere jede Zeile auf die Felder, mit denen du arbeitest. `--unbuffered` lässt `jq` pro Zeile ausgeben, sodass du reagieren kannst, während die Läufe passieren:
 
 ```bash
 verbatra watch --json 2>/dev/null \
   | jq -c --unbuffered '{ok, code, failed: (.result.failed // null), translated: [(.result.locales // [])[].translated[]]}'
 ```
 
-Drei Läufe einer Sitzung (Änderung, Änderung, dann eine kaputte Quelldatei):
-
-```json
+```text title="Output"
 {"ok":true,"code":null,"failed":[],"translated":["app.greeting"]}
 {"ok":true,"code":null,"failed":[],"translated":["app.logout"]}
 {"ok":false,"code":"SOURCE_INVALID","failed":null,"translated":[]}
 ```
 
-Aus dieser letzten Zeile folgen zwei Dinge. Ein fehlgeschlagener Lauf ist ein Datensatz im Strom, nicht das Ende der Sitzung: Der Watcher lief weiter und übersetzte danach weiter. Und er ändert nie den Exit-Code, der allein davon abhängt, wie die Sitzung endet. Ein langlebiger Agent behandelt eine `ok: false`-Zeile deshalb als meldenswertes Ereignis, nicht als Grund, den Prozess neu zu starten.
+Der Watcher läuft nach dem fehlgeschlagenen Lauf weiter, und der Fehlschlag ändert nie den Exit-Code, der nur davon abhängt, wie die Sitzung endet. Behandle eine `ok: false`-Zeile als Ereignis, das du meldest, nicht als Grund für einen Neustart.
 
 ## Eine ausgearbeitete Schleife: absichern, entscheiden, übersetzen, melden
 
-Alles zusammengesetzt. Das läuft unbeaufsichtigt, verweigert Ausgaben für einen Auftrag, der zu groß ist, um ihn einem Roboter zu überlassen, und meldet, was wirklich angekommen ist, statt dessen, was angefragt wurde:
+Diese Schleife läuft unbeaufsichtigt, lehnt einen Job ab, der zu groß ist, um ihn einem Roboter zu überlassen, und meldet, was angekommen ist, statt was angefragt wurde:
 
-```bash
+```bash title="translate-small.sh"
 #!/usr/bin/env bash
 set -uo pipefail
 
-# 1. Run: ask what is pending. Read-only, no provider call, no API key.
 pending=$(verbatra diff --json 2>/dev/null)
 case $? in
   0) echo "nothing pending"; exit 0 ;;
   2) echo "$pending" | jq -r '"cannot run [\(.code)] \(.message)"' >&2; exit 2 ;;
 esac
 
-# 2. Parse: which locales have work, and how much.
 echo "$pending" | jq -r '.result.locales[] | select(.hasPendingChanges)
   | "\(.locale): \((.missing + .changed) | length) pending"'
 
-# 3. Decide: only spend unattended when the job is small.
 keys=$(echo "$pending" | jq '[.result.locales[] | .missing + .changed] | flatten | length')
 if [ "$keys" -gt 200 ]; then
   echo "$keys pending keys is above the unattended limit; run this by hand" >&2
   exit 1
 fi
 
-# 4. Act: translate, then report what landed, not what was asked for.
 summary=$(verbatra translate --json 2>/dev/null)
 status=$?
 echo "$summary" | jq -r 'if .ok | not then "run error [\(.code)] \(.message)"
@@ -258,29 +159,11 @@ echo "$summary" | jq -r 'if .ok | not then "run error [\(.code)] \(.message)"
 exit $status
 ```
 
-Die drei Ausgänge in einem Projekt mit einem ausstehenden Key in `de`:
-
-```
-de: 1 pending
-succeeded: de
-```
-
-```
-de: 1 pending
-failed: de
-```
-
-```
-nothing pending
-```
-
-Der erste endet mit `0`, der zweite mit `1` (der Provider-Endpunkt war nicht erreichbar), der dritte mit `0`, ohne etwas auszugeben. Schritt 1 nutzt bewusst `diff` statt `translate --dry-run`: Beide sind nur lesend und brauchen keinen Key, aber `diff` ist die genau dafür gebaute Frage, und sein Exit-Code allein beantwortet schon, ob es Arbeit gibt.
-
-Der Provider-Key für Schritt 4 kommt aus der Umgebung, wie immer. Lege ihn in deinem CI-Secret-Store oder deiner Shell-Umgebung ab und lass den Prozess ihn erben; die CLI nimmt kein Key-Argument entgegen und liest keinen aus der Konfigurationsdatei. Welche Variable dein Provider liest, steht unter [Provider](/docs/providers).
+Mit einem offenen Key in `de` gibt sie `de: 1 pending` und dann `succeeded: de` aus und endet mit `0`; gegen einen nicht erreichbaren Provider gibt sie `failed: de` aus und endet mit `1`; ist nichts offen, gibt sie `nothing pending` aus, ohne etwas zu bezahlen. Der erste Schritt nutzt `diff`, weil es nur liest, keinen Schlüssel braucht und sein Exit-Code allein sagt, ob es Arbeit gibt. Der Schlüssel für `translate` kommt aus der Umgebung; siehe [Provider](/docs/providers#keys-kommen-aus-der-umgebung).
 
 ## Deinem Agenten von verbatra erzählen
 
-Die meisten Coding-Agenten lesen zu Beginn jeder Sitzung eine Anweisungsdatei des Projekts: `AGENTS.md` bei Codex, Cursor und GitHub Copilot (das auch `.github/copilot-instructions.md` liest), `CLAUDE.md` bei Claude Code und `GEMINI.md` bei Gemini CLI. Füge das hier in die Datei ein, die dein Agent liest, damit er die Regeln kennt, bevor er eine Locale-Datei anfasst:
+Die meisten Coding-Agenten lesen zu Beginn einer Sitzung eine Projekt-Anweisungsdatei: `AGENTS.md` (Codex, Cursor, GitHub Copilot), `CLAUDE.md` (Claude Code) oder `GEMINI.md` (Gemini CLI). Füge diesen Abschnitt in deine ein:
 
 ```md
 ## verbatra (i18n)
@@ -304,39 +187,31 @@ Die meisten Coding-Agenten lesen zu Beginn jeder Sitzung eine Anweisungsdatei de
   `claude plugin install verbatra@verbatra --scope project`.
 ```
 
-Jeder Befehl und jeder Exit-Code darin wird auf dieser Seite und unter [CI und Exit-Codes](/docs/ci-and-exit-codes) behandelt. Ein Agent, der mit [dem MCP-Server](/docs/connect-an-mcp-client) verbunden ist, bekommt dieselbe Regel zum Geldausgeben aus den Anweisungen des Servers selbst.
-
-`verbatra init --agent` schreibt genau diesen Abschnitt für dich, in `AGENTS.md` oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei des Projekts ist, zwischen die Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, die ein späterer Lauf auffrischt, ohne den Rest der Datei anzufassen. In einem Projekt, das schon eingerichtet ist, behält `verbatra init --agent` allein die Konfiguration und fügt nur diesen Abschnitt und den MCP-Server hinzu. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten).
+`verbatra init --agent` schreibt genau diesen Abschnitt für dich, zwischen die Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`, die ein späterer Lauf auffrischt. Siehe [Coding-Agenten einrichten](/docs/cli/init#coding-agenten-einrichten).
 
 <AvailableFrom version="0.12.0" />
 
 ## Das Skills-Paket
 
-Die Rezepte auf dieser Seite sind die Referenz. Wenn du einem Agenten das Betriebswissen lieber vorab in die Hand gibst: [verbatra/skills](https://github.com/verbatra/skills) enthält drei Skill-Dokumente, die genau das tun, installierbar mit der [skills.sh](https://www.skills.sh/docs)-CLI:
+[verbatra/skills](https://github.com/verbatra/skills) enthält drei Skill-Dokumente, die einem Agenten dieses Wissen von Anfang an mitgeben: welche Befehle Geld kosten, dass ein Probelauf keinen Provider erzeugt und warum ein kostenpflichtiges Tool absichtlich fehlen kann. Installiere eines mit der CLI von [skills.sh](https://www.skills.sh/docs):
 
 ```bash
 npx skills@latest add verbatra/skills --skill verbatra-cli -a claude-code -y
 ```
 
-| Skill | Nimm es, wenn |
+| Skill | Nutze ihn, wenn |
 | --- | --- |
-| `verbatra-cli` | der Agent das `verbatra`-Binary aus einer Shell oder aus CI steuert. |
+| `verbatra-cli` | der Agent die `verbatra`-Binary aus einer Shell oder CI steuert. |
 | `verbatra-mcp-tools` | ein MCP-Client mit `verbatra mcp` verbunden ist. |
 | `verbatra-studio-agent-tools` | ein Browser-Agent einen offenen Studio-Tab steuert. |
 
-Sie decken ab, was ein Agent ohne Ansage falsch macht: welche Befehle Geld kosten und welche gratis sind, dass ein Dry Run überhaupt keinen Provider erzeugt, was die Lock-Datei sichtbar macht und warum ein Tool, das Provider-Budget ausgibt, absichtlich in einer Tool-Liste fehlen kann. Installiere nur die Oberfläche, die du nutzt; jedes Dokument steht für sich. Tausche den Namen hinter `--skill` aus oder wiederhole den Schalter, um mehrere zu installieren.
+Tausche den Namen nach `--skill` oder wiederhole das Flag, um mehr als einen zu installieren. Für einen anderen Agenten tauschst du die ID nach `-a`, zum Beispiel `codex`, `cursor`, `github-copilot` oder `gemini-cli`; siehe die [Liste der unterstützten Agenten](https://github.com/vercel-labs/skills).
 
-Für einen anderen Agenten tauschst du die ID hinter `-a` aus: skills.sh akzeptiert unter anderem `codex`, `cursor`, `github-copilot`, `gemini-cli`, `windsurf`, `zed` und `junie`. Siehe die [Liste der unterstützten Agenten](https://github.com/vercel-labs/skills).
+In Claude Code installiert das verbatra-Plugin alle drei Skills zusammen mit dem MCP-Server (Ausgaben ausgeschaltet) und einem Hook, der bearbeitete Locale-Dateien prüft. Siehe [Das verbatra-Plugin](/docs/connect-an-mcp-client#das-verbatra-plugin).
 
-In Claude Code installiert das verbatra-Plugin alle drei Skills in einem Schritt, zusammen mit dem verbatra-MCP-Server bei ausgeschalteten Ausgaben und einem Hook, der bearbeitete Locale-Dateien prüft. Installier es pro Projekt mit `claude plugin marketplace add verbatra/skills`, dann `claude plugin install verbatra@verbatra --scope project`. Was es startet, warum der Projekt-Scope und wie du Ausgaben einschaltest, steht unter [Einen MCP-Client verbinden](/docs/connect-an-mcp-client#das-verbatra-plugin). Die reine Skills-Installation oben funktioniert weiter, ohne Server und ohne Hook.
+## Siehe auch
 
-## Weiter
-
-<Cards>
-  <Card title="CI und Exit-Codes" href="/docs/ci-and-exit-codes" description="Der Envelope, die Exit-Code-Tabelle und jede result-Form vollständig." />
-  <Card title="CLI-Übersicht" href="/docs/cli" description="Die gemeinsamen Flags und wie das Binary deine Umgebung liest." />
-  <Card title={<code>verbatra doctor</code>} href="/docs/cli/doctor" description="Die günstigste Vorabprüfung vor einem unbeaufsichtigten Lauf." />
-  <Card title="verbatra mit einem KI-Agenten einrichten" href="/docs/start-with-ai" description="Ein Prompt zum Kopieren und Einfügen, der dieselben Befehle nutzt, um verbatra in ein bestehendes Projekt zu übernehmen, abgesichert durch eine menschliche Bestätigung." />
-  <Card title="Studio mit einem Browser-Agenten bedienen" href="/docs/agent-tools-in-studio" description="Dasselbe Projekt, bedient aus einem authentifizierten Dashboard-Tab statt aus einer Shell." />
-  <Card title="Das SDK" href="/docs/sdk" description="Überspringe die Prozessgrenze und rufe translate, check und diff direkt aus TypeScript auf." />
-</Cards>
+- [Exit-Codes und JSON-Ausgabe](/docs/cli/output): der Envelope und der Exit-Code-Vertrag.
+- [Fehlercodes](/docs/error-codes): jeder `code`, den ein Payload tragen kann, mit seinem nächsten Schritt.
+- [verbatra in CI ausführen](/docs/ci-and-exit-codes): dieselben Gates in einer Pipeline.
+- [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): ein Prompt, der verbatra in ein bestehendes Projekt übernimmt.
