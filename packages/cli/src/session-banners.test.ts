@@ -284,6 +284,7 @@ describe("verbatra watch: Ctrl-C, idle and stopped lines", () => {
     const { deps } = recordingDeps({
       watch: async (input: WatchInput): Promise<WatchController> => {
         onRun = input.onRun;
+        input.onReady?.();
         return { stop: async () => {} };
       },
     });
@@ -307,6 +308,40 @@ describe("verbatra watch: Ctrl-C, idle and stopped lines", () => {
         "verbatra: press Ctrl-C to stop",
         "verbatra: waiting for changes...",
         "verbatra: error [SOURCE_INVALID] bad",
+        "verbatra: waiting for changes...",
+        "verbatra: stopping, finishing current run...",
+        "verbatra: stopped",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("announces the session before a failing initial run reports its error", async () => {
+    const { deps } = recordingDeps({
+      watch: async (input: WatchInput): Promise<WatchController> => {
+        input.onReady?.();
+        input.onRun({
+          status: "failed",
+          error: {
+            code: "PROVIDER_CONSTRUCTION_FAILED",
+            message: "no provider",
+            causeCode: "MISSING_API_KEY",
+          },
+        });
+        return { stop: async () => {} };
+      },
+    });
+    const cap = captureStreams();
+    const captured = sessionHooks();
+    const done = run(["watch"], deps, cap.streams, captured.hooks, PIPED);
+    await flush();
+    captured.session().requestStop();
+    await done;
+
+    expect(cap.err()).toBe(
+      [
+        "verbatra: watching en (locales/{locale}.json); running initial translation",
+        "verbatra: error [PROVIDER_CONSTRUCTION_FAILED] no provider (cause: MISSING_API_KEY)",
         "verbatra: waiting for changes...",
         "verbatra: stopping, finishing current run...",
         "verbatra: stopped",

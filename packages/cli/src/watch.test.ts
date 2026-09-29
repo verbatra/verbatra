@@ -22,6 +22,7 @@ function watchHarness() {
   let stopCalls = 0;
   const watch = (input: WatchInput): Promise<WatchController> => {
     onRun = input.onRun;
+    input.onReady?.();
     return Promise.resolve({
       stop: () => {
         stopCalls += 1;

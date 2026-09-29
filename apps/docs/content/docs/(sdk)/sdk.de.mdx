@@ -147,11 +147,13 @@ Beobachtet die Quell-Locale-Datei und führt `translate` bei jeder entprellten �
 feuert beim Start sofort einen initialen Lauf, danach einen Lauf pro beruhigter Änderung. Läufe
 sind serialisiert: Änderungen während eines Laufs fallen zu einem einzigen Folgelauf zusammen.
 
-Eingabe: `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Eingabe: `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
 aufgerufen: `{ status: "succeeded", summary }` oder
 `{ status: "failed", error: { code, message, causeCode?, hint? } }`, wobei `causeCode` den Code des
-Fehlers nennt, den der Fehlschlag umhüllt, und `hint` der nächste Schritt ist, den `errorHint` liefert. Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
+Fehlers nennt, den der Fehlschlag umhüllt, und `hint` der nächste Schritt ist, den `errorHint` liefert.
+`onReady` wird einmal aufgerufen, nachdem die Startprüfungen bestanden sind und direkt vor dem ersten
+Lauf, damit du die Sitzung vor dessen Ausgabe ankündigen kannst. Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
 `onLockWait` und `lockAcquireTimeoutMs` werden an jeden Lauf durchgereicht und verhalten sich genau
 wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge ein und wird einmal
 beim Start geprüft, nicht pro Zyklus.

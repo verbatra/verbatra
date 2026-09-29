@@ -171,6 +171,34 @@ describe("watch: startup and wiring", () => {
     expect(w.paths).toEqual([]);
   });
 
+  it("calls onReady once, after the watcher is attached and before the initial run starts", async () => {
+    const w = watcherHarness();
+    const r = runHarness();
+    const seen: string[] = [];
+    await watch(
+      {
+        config: baseConfig(),
+        cwd: CWD,
+        onRun: () => seen.push("run"),
+        onReady: () => seen.push(`ready:${w.paths.length}:${r.calls}`),
+      },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await settle();
+    expect(seen).toEqual(["ready:1:0", "run"]);
+  });
+
+  it("does not call onReady when a startup check refuses the session", async () => {
+    const onReady = vi.fn();
+    await expect(
+      watch(
+        { config: baseConfig(), cwd: CWD, onRun: () => {}, onReady },
+        { fs: makeFakeFs({ fileExists: async () => false }), runTranslate: runHarness().run },
+      ),
+    ).rejects.toMatchObject({ code: "SOURCE_UNREADABLE" });
+    expect(onReady).not.toHaveBeenCalled();
+  });
+
   it("lets a watcher-factory failure escape unwrapped at startup, with no run started", async () => {
     const r = runHarness();
     const failing: CreateWatcher = () => {

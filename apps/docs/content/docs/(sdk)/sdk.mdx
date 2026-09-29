@@ -137,11 +137,13 @@ Watches the source locale file and re-runs `translate` on every debounced change
 initial run immediately at startup, then one run per settled change. Runs are serialized: changes
 during a run collapse into a single follow-up.
 
-Input: `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Input: `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 `debounceMs` defaults to 300. `onRun` is called once per run with a `WatchRunResult`:
 `{ status: "succeeded", summary }` or `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 where `causeCode` names the coded error the failure wraps and `hint` is the next step `errorHint`
-gives. The SDK does no logging; `onRun` is the only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
+gives. `onReady` is called once, after the startup checks pass and right before the initial run, so
+you can announce the session ahead of that run's output. The SDK does no logging; `onRun` is the
+only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
 `lockAcquireTimeoutMs` are passed through to every run and behave exactly as on `translate`.
 `locales` narrows every run of the session to that subset and is validated once at startup, not per
 cycle.

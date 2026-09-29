@@ -90,6 +90,11 @@ export interface WatchInput {
    * {@link watch} itself resolves as soon as watching starts.
    */
   readonly onRun: (result: WatchRunResult) => void;
+  /**
+   * Called once when the session's startup checks have passed and the watcher is attached, right
+   * before the initial run starts, so a caller can announce the session ahead of that run's output.
+   */
+  readonly onReady?: () => void;
   /** Called while waiting on another process's write lock, never for one this process holds. */
   readonly onLockWait?: LockWaitListener;
   /**
@@ -303,6 +308,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   const watcher = (deps.createWatcher ?? defaultCreateWatcher)([sourcePath]);
   watcher.onChange(onRawEvent);
 
+  input.onReady?.();
   startRun();
 
   async function stop(): Promise<void> {

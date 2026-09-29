@@ -145,11 +145,13 @@ anti-rebote. Dispara una ejecución inicial inmediatamente al arrancar, y luego 
 asentado. Las ejecuciones se serializan: los cambios durante una ejecución se colapsan en un único
 seguimiento.
 
-Entrada: `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
+Entrada: `{ config, cwd?, locales?, debounceMs?, onRun, onReady?, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
 `{ status: "succeeded", summary }` o `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 donde `causeCode` nombra el error con código que envuelve el fallo y `hint` es el siguiente paso que da
-`errorHint`. El SDK no registra nada; `onRun` es la única salida. `concurrency`, `cache`, `onProgress`, `onLockWait` y
+`errorHint`. `onReady` se llama una vez, cuando pasan las comprobaciones de arranque y justo antes de la
+ejecución inicial, para que puedas anunciar la sesión antes de la salida de esa ejecución. El SDK no
+registra nada; `onRun` es la única salida. `concurrency`, `cache`, `onProgress`, `onLockWait` y
 `lockAcquireTimeoutMs` se pasan a cada ejecución y se comportan igual que en `translate`. `locales`
 acota cada ejecución de la sesión a ese subconjunto y se valida una sola vez al arrancar, no en cada
 ciclo.
