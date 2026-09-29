@@ -12,6 +12,7 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
+import type { ProvenanceMarkers } from "../../lock/key-provenance.js";
 import { readCarriedOverMemory } from "../locale-carry-over.js";
 import {
   createOutputPathGuard,
@@ -23,6 +24,7 @@ import {
 import { selectLocales } from "../select-locales.js";
 import { unwritableFileMessage } from "../write-target.js";
 import { assertDistinctLocales } from "./locale-match.js";
+import { readTmxOriginLookup, type TmxOriginLookup } from "./tmx-origin.js";
 
 /** Default output path for a TMX export, used when {@link ExportTmxInput.out} is omitted. */
 export const DEFAULT_TMX_PATH = "verbatra-memory.tmx";
@@ -57,6 +59,12 @@ export interface ExportTmxResult {
    * rather than dropped silently.
    */
   readonly illegalCharactersRemoved: number;
+  /**
+   * Whether each target segment carries its `x-origin` property (and `x-review` next to
+   * `x-origin="machine"`): `written` when it does, `unavailable` when `verbatra.provenance.json` or
+   * `verbatra.lock.json` could not be read, in which case no segment carries one.
+   */
+  readonly provenanceMarkers: ProvenanceMarkers;
 }
 
 /** Input for {@link exportTmx}. */
@@ -127,6 +135,7 @@ function collect(
   memory: TranslationMemory,
   fingerprintFor: FingerprintFor,
   locales: readonly string[],
+  originOf: TmxOriginLookup | undefined,
 ): Collected {
   const byHash = new Map<string, Collecting>();
   const counts: ExportTmxLocaleCount[] = [];
@@ -141,7 +150,11 @@ function collect(
         withoutSource += 1;
         continue;
       }
-      addTranslation(byHash, hash, source, { language: locale, text: value });
+      addTranslation(byHash, hash, source, {
+        language: locale,
+        text: value,
+        ...(originOf !== undefined ? { properties: originOf(locale, hash, value) } : {}),
+      });
       kept += 1;
     }
     counts.push({ locale, units: kept });
@@ -197,6 +210,16 @@ async function writeTmxFile(fs: SdkFs, path: string, cwd: string, content: strin
  * An empty memory, including a missing, unparsable or newer-version cache file, produces a valid,
  * empty TMX file rather than an error. An existing file at the output path is replaced.
  *
+ * Each target segment carries a `<prop type="x-origin">` naming where that text came from, read
+ * from `verbatra.provenance.json`: `machine`, `human`, `import`, or `unknown` (see
+ * {@link TmxOrigin}). A `machine` segment also carries `<prop type="x-review">` with `approved`,
+ * `unreviewed`, or `rejected` (see {@link TmxReview}). A memory entry is not tied to one key, so
+ * the origin comes from every key whose lock entry names the same source hash and whose record
+ * describes exactly this text: any machine-class record makes it `machine`, and it counts as
+ * `approved` only when every such machine-class record is approved. When the provenance file or
+ * the lock file cannot be read, no segment carries a property and
+ * {@link ExportTmxResult.provenanceMarkers} is `unavailable`; the export still succeeds.
+ *
  * It reads the memory and writes a file; it never changes the memory, which is why the CLI refuses
  * `--dry-run` and `--overwrite` on this direction rather than accepting and ignoring them.
  *
@@ -243,7 +266,8 @@ export async function exportTmx(
   });
   const path = await resolveOutputPath(fs, cwd, input.out, reserved);
   const { memory } = await readCarriedOverMemory(cwd, fs, locales);
-  const collected = collect(memory, fingerprintsFor(input.config), locales);
+  const originOf = await readTmxOriginLookup(cwd, fs, locales);
+  const collected = collect(memory, fingerprintsFor(input.config), locales, originOf);
   const build: BuildTmxInput = {
     sourceLanguage: input.config.sourceLocale,
     units: collected.units,
@@ -256,5 +280,6 @@ export async function exportTmx(
     locales: collected.counts,
     withoutSource: collected.withoutSource,
     illegalCharactersRemoved: removedCharacterCount(build),
+    provenanceMarkers: originOf === undefined ? "unavailable" : "written",
   };
 }

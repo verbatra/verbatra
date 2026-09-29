@@ -3,6 +3,7 @@ import { bcp47 } from "./language-tag.js";
 import { type NumberedSpan, numberInlineCodes } from "./xliff-inline-codes.js";
 import {
   EXTRADATA_SOURCE_HASH_PREFIX,
+  XLIFF12_MT_SUGGESTION,
   XLIFF12_NAMESPACE,
   xliff12State,
 } from "./xliff-vocabulary.js";
@@ -26,6 +27,13 @@ function isApproved(unit: XliffExportUnit): boolean {
   return unit.state === "reviewed" || unit.state === "final";
 }
 
+function targetAttributes(unit: XliffExportUnit): string {
+  const state = `state="${xliff12State(unit.state, true)}"`;
+  return unit.provenance?.machineSuggestion === true
+    ? `${state} state-qualifier="${XLIFF12_MT_SUGGESTION}"`
+    : state;
+}
+
 function renderTransUnit(unit: XliffExportUnit): string {
   const numbered = numberInlineCodes(unit.source, unit.target);
   const attributes = [
@@ -38,9 +46,7 @@ function renderTransUnit(unit: XliffExportUnit): string {
   const target =
     numbered.target === undefined
       ? []
-      : [
-          `        <target state="${xliff12State(unit.state, true)}">${renderSpans(numbered.target)}</target>`,
-        ];
+      : [`        <target ${targetAttributes(unit)}>${renderSpans(numbered.target)}</target>`];
   return [
     `      <trans-unit ${attributes.join(" ")}>`,
     `        <source>${renderSpans(numbered.source)}</source>`,

@@ -140,3 +140,18 @@ describe("XLIFF 2.0 round trip of characters XML forbids", () => {
     expect(document.units[0]?.source).toBe(`${value}${value}`);
   });
 });
+
+describe.each(VERSIONS)("XLIFF %s provenance markers on import", (version) => {
+  it("reads a unit carrying origin markers exactly as one without them", () => {
+    const plain = unit({ key: "k", target: [text("Hallo")], state: "translated" });
+    const marked: XliffExportUnit = {
+      ...plain,
+      provenance: { origin: "machine", reviewState: "unreviewed", machineSuggestion: true },
+    };
+    const withMarkers = readXliff(buildXliff(input(version, [marked])));
+    const without = readXliff(buildXliff(input(version, [plain])));
+
+    expect(withMarkers.problems).toEqual([]);
+    expect(withMarkers.units).toEqual(without.units);
+  });
+});

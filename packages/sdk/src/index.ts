@@ -387,6 +387,7 @@ export {
   type TmxUnitRefusal,
   tmxErrorLocation,
 } from "./flow/tmx/import-tmx.js";
+export type { TmxOrigin, TmxReview } from "./flow/tmx/tmx-origin.js";
 export {
   resolveDryRun,
   type TranslateDeps,
@@ -437,6 +438,7 @@ export {
   type KeyReviewState,
   MACHINE_CLASS_ORIGINS,
   type MachineClassOrigin,
+  type ProvenanceMarkers,
   type ProvenanceSummary,
 } from "./lock/key-provenance.js";
 export {

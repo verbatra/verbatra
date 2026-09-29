@@ -20,6 +20,12 @@ export const METADATA_CATEGORY = "verbatra";
 
 export const SOURCE_HASH_META_TYPE = "source-hash";
 
+export const ORIGIN_META_TYPE = "origin";
+
+export const REVIEW_STATE_META_TYPE = "review-state";
+
+export const XLIFF12_MT_SUGGESTION = "mt-suggestion";
+
 export const EXTRADATA_SOURCE_HASH_PREFIX = "verbatra-source-hash:";
 
 const STATE_RANK: Readonly<Record<XliffState, number>> = {

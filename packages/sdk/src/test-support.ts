@@ -370,7 +370,7 @@ function editXliff12Unit(block: string, edit: CatToolEdit): string {
       .replace(/\s*<target[^>]*>[\s\S]*?<\/target>/, "")
       .replace("</source>", `</source>\n        <target state="${state}">${edit.target}</target>`);
   } else if (edit.state !== undefined) {
-    next = next.replace(/<target state="[^"]*">/, `<target state="${edit.state}">`);
+    next = next.replace(/<target state="[^"]*"/, `<target state="${edit.state}"`);
   }
   return next;
 }

@@ -2,9 +2,15 @@ import { bcp47 } from "./language-tag.js";
 import { countIllegalXmlCharacters } from "./xml-character.js";
 import { escapeAttribute, escapeText } from "./xml-escape.js";
 
+export interface TmxProperty {
+  readonly type: string;
+  readonly value: string;
+}
+
 export interface TmxTranslation {
   readonly language: string;
   readonly text: string;
+  readonly properties?: readonly TmxProperty[];
 }
 
 export interface TmxExportUnit {
@@ -22,14 +28,20 @@ const CREATION_TOOL = "verbatra";
 
 const UNKNOWN_TOOL_VERSION = "unknown";
 
-function tuv(language: string, text: string): string {
-  return `      <tuv xml:lang="${escapeAttribute(bcp47(language))}"><seg>${escapeText(text)}</seg></tuv>`;
+function prop(property: TmxProperty): string {
+  return `<prop type="${escapeAttribute(property.type)}">${escapeText(property.value)}</prop>`;
+}
+
+function tuv(language: string, text: string, properties: readonly TmxProperty[] = []): string {
+  return `      <tuv xml:lang="${escapeAttribute(bcp47(language))}">${properties.map(prop).join("")}<seg>${escapeText(text)}</seg></tuv>`;
 }
 
 function tu(unit: TmxExportUnit, sourceLanguage: string): string {
   const rows = [
     tuv(sourceLanguage, unit.source),
-    ...unit.translations.map((translation) => tuv(translation.language, translation.text)),
+    ...unit.translations.map((translation) =>
+      tuv(translation.language, translation.text, translation.properties),
+    ),
   ];
   return `    <tu>\n${rows.join("\n")}\n    </tu>`;
 }

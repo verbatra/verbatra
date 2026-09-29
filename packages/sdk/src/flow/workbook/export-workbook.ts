@@ -17,7 +17,7 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver } from "../../locale-path/resolver.js";
-import type { LocaleProvenance } from "../../lock/key-provenance.js";
+import type { LocaleProvenance, ProvenanceMarkers } from "../../lock/key-provenance.js";
 import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import { branchArmProblems } from "../integrity-gate.js";
@@ -120,6 +120,12 @@ export interface ExportWorkbookResult {
     /** How many translatable rows that locale contributed. */
     readonly rows: number;
   }[];
+  /**
+   * Present for the XLIFF formats only: whether each unit with a target carries its origin and
+   * review state (`written`), or none does because `verbatra.provenance.json` is corrupt or from a
+   * newer verbatra (`unavailable`). The export itself succeeds either way.
+   */
+  readonly provenanceMarkers?: ProvenanceMarkers;
 }
 
 function reasonLabel(reason: string): string {
@@ -348,7 +354,7 @@ function renderDirectoryFile(
   const units = xliffUnits({
     rows: sheet.rows,
     source: context.source,
-    records: context.provenance?.(sheet.locale) ?? new Map(),
+    records: context.provenance?.(sheet.locale),
     baseline: sheet.baseline,
   });
   return {
@@ -504,14 +510,15 @@ export async function exportWorkbook(
     }),
   );
 
+  let provenanceMarkers: ProvenanceMarkers | undefined;
   if (isDirectoryFormat(format)) {
-    const context: RenderContext = {
-      config,
-      source: source.resource,
-      provenance: isXliffFormat(format)
-        ? await readCarriedOverProvenance(cwd, fs, locales)
-        : undefined,
-    };
+    const provenance = isXliffFormat(format)
+      ? await readCarriedOverProvenance(cwd, fs, locales)
+      : undefined;
+    if (isXliffFormat(format)) {
+      provenanceMarkers = provenance === undefined ? "unavailable" : "written";
+    }
+    const context: RenderContext = { config, source: source.resource, provenance };
     const files = sheets.map((sheet) => renderDirectoryFile(format, sheet, context));
     await writeDirectoryFiles(fs, cwd, path, format, files);
   } else {
@@ -521,5 +528,6 @@ export async function exportWorkbook(
   return {
     path,
     locales: sheets.map((sheet) => ({ locale: sheet.locale, rows: sheet.rows.length })),
+    ...(provenanceMarkers !== undefined ? { provenanceMarkers } : {}),
   };
 }
