@@ -140,8 +140,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
   `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
-  `content/docs/index.mdx` and its three locale siblings. `DocsHomeStacks` is the plain text row
-  of framework links into `pick-your-stack`: no logos, no icons. Fumadocs' `Steps` and `Step`
+  `content/docs/index.mdx` and its three locale siblings. `DocsHomeStacks` is the plain text links
+  into `pick-your-stack`, grouped (frameworks, platforms, formats) under a label that sits above
+  them at every width: no logos, no icons. Fumadocs' `Steps` and `Step`
   are registered there too, for numbered tutorial steps such as the quickstart's.
 
 ## Keep the client payload small
@@ -209,8 +210,9 @@ comes from:
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
   landing footer uses for its column titles. The sidebar's top-level entries inside each tab
   (group triggers such as "CLI", the "Introduction" page, the `For AI agents` separator), the
-  TOC's "On this page" title, table headers, and the tags on `DocsHomePaths` cards all use this
-  treatment. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
+  TOC's "On this page" title, table headers, and the sidebar tabs all use this treatment.
+  `DocsHomePaths` cards do not: the goal is the card title in sentence case, and the page name
+  sits below the body. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
   under a root folder (the Docs and Reference tabs) in the class before the tree reaches
   `DocsLayout`, and leaves the tab names themselves plain; do not target Fumadocs' or Radix's
   internal DOM for it.
@@ -241,12 +243,17 @@ comes from:
   landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
   and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
   `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
-- **Sidebar tabs**: the Docs and Reference root folders render Fumadocs' sidebar tab switcher
-  (the default dropdown) at the top of the sidebar and the phone drawer. `rootTabs` in
-  `lib/docs-page-tree.ts` builds the tabs, opening each on its first real page, since the
-  Reference tab has no page of its own. The header's "Reference" link opens the same tab.
+- **Sidebar tabs**: the Docs and Reference root folders render as two inline `.vk-label` links
+  (`SidebarTabs` in `components/root-tabs.tsx`, the `.vk-sidebar-tabs` hook) in the sidebar banner
+  slot of the sidebar and the phone drawer, with a `--accent` underline and `aria-current` on the
+  tab of the current root folder; Fumadocs' dropdown switcher is off (`tabs={false}`). `rootTabs`
+  in `lib/root-tabs.ts` builds the tabs, opening each on its first real page, since the Reference
+  tab has no page of its own. The header's "Reference" link opens the same tab.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
+- **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI
+  page as its bare command (`translate`) wrapped in `.vk-sidebar-command`, which sets it in
+  `--font-mono`; the page `<h1>` keeps `verbatra translate`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
   Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
   a visible frame at phone width, with a thin scrollbar. Short inline code (up to

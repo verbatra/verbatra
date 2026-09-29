@@ -116,6 +116,25 @@ function stackSectionsFor(page, format) {
     .filter((section) => section.includes(`npx verbatra init --format ${format}\n`));
 }
 
+function headingSlug(heading) {
+  return heading
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replace(/ /g, "-");
+}
+
+function stackTableRows(page) {
+  const intro = page.split(/^## /m)[0];
+  return [...intro.matchAll(/^\| \[[^\]]+\]\(#([^)]+)\) \| `([^`]+)` \| `([^`]+)` \|$/gm)].map(
+    (match) => ({ anchor: match[1], format: match[2], pattern: match[3] }),
+  );
+}
+
+function stackSectionAnchor(page, format) {
+  const [section] = stackSectionsFor(page, format);
+  return section === undefined ? undefined : headingSlug(section.split("\n", 1)[0]);
+}
+
 describe("the pick-your-stack page covers every built-in format", () => {
   const formats = supportedFormats();
   const patterns = initDefaultPatterns();
@@ -134,16 +153,28 @@ describe("the pick-your-stack page covers every built-in format", () => {
         expect(sections[0], format).toContain(`\`${patterns.get(format)}\``);
         expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
       }
+      const rows = stackTableRows(page);
+      expect(rows.map((row) => row.format).sort()).toEqual([...formats].sort());
+      for (const row of rows) {
+        expect(row.pattern, row.format).toBe(patterns.get(row.format));
+        expect(row.anchor, row.format).toBe(stackSectionAnchor(page, row.format));
+      }
       const commands = [...page.matchAll(/npx verbatra init --format ([a-z0-9-]+)/g)];
       expect(commands.map((match) => match[1]).sort()).toEqual([...formats].sort());
     },
   );
 
-  it("sees a format whose section is missing or shows the wrong layout", () => {
+  it("sees a format whose section, table row, or layout is missing or wrong", () => {
     const page = readDocPage("(get-started)/pick-your-stack", "");
     const withoutIni = page.replace("npx verbatra init --format ini\n", "");
     expect(stackSectionsFor(withoutIni, "ini")).toHaveLength(0);
-    const wrongLayout = page.replace("`locales/{locale}.ini`", "`config/{locale}.ini`");
+    const wrongRow = page.replace("| [INI](#ini) | `ini` |", "| [INI](#yaml) | `ini` |");
+    const iniRow = stackTableRows(wrongRow).find((row) => row.format === "ini");
+    expect(iniRow?.anchor).not.toBe(stackSectionAnchor(wrongRow, "ini"));
+    expect(stackTableRows(page.replace("| [INI](#ini) | `ini` |", "| INI | `ini` |"))).toHaveLength(
+      formats.length - 1,
+    );
+    const wrongLayout = page.replaceAll("`locales/{locale}.ini`", "`config/{locale}.ini`");
     expect(stackSectionsFor(wrongLayout, "ini")[0]).not.toContain("`locales/{locale}.ini`");
   });
 });

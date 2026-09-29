@@ -489,6 +489,60 @@ samp {
   line-height: var(--leading-snug);
 }
 
+.vk-sidebar-tabs {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.vk-sidebar-tab {
+  position: relative;
+  padding-block: 0.5rem 0.625rem;
+  font-weight: 500;
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+.vk-sidebar-tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.vk-sidebar-tab:hover {
+  color: var(--text-strong);
+}
+
+.vk-sidebar-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.vk-sidebar-tab[aria-current="true"] {
+  color: var(--text-strong);
+}
+
+.vk-sidebar-tab[aria-current="true"]::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vk-sidebar-tab,
+  .vk-sidebar-tab::after {
+    transition: none;
+  }
+}
+
+.vk-sidebar-command {
+  font-family: var(--font-mono);
+}
+
 .vk-sidebar-group {
   font-size: var(--text-xs);
   font-weight: 500;

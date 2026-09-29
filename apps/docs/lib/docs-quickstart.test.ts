@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const QUICKSTART = join(import.meta.dirname, "../content/docs/(get-started)/quickstart.mdx");
+const GET_STARTED = join(import.meta.dirname, "../content/docs/(get-started)");
+const QUICKSTART = join(GET_STARTED, "quickstart.mdx");
+const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const WORD_CEILING = 800;
 
 function proseWords(source: string): number {
@@ -30,5 +32,11 @@ describe("the quickstart", () => {
   it("reaches a first translation through init, translate, and check", () => {
     const commands = [...source.matchAll(/^npx verbatra (\w+)/gm)].map((match) => match[1]);
     expect(commands).toEqual(["init", "translate", "translate", "check"]);
+  });
+
+  it.each(LOCALE_SUFFIXES)("nests the steps under their own H2 in quickstart%s.mdx", (suffix) => {
+    const page = readFileSync(join(GET_STARTED, `quickstart${suffix}.mdx`), "utf8");
+    const beforeSteps = page.slice(0, page.indexOf("<Steps>")).trimEnd().split("\n");
+    expect(beforeSteps.at(-1)).toMatch(/^## \S/);
   });
 });

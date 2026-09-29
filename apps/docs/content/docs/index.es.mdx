@@ -17,27 +17,27 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 <DocsHomePaths
   cards={[
     {
-      tag: "Traducir un proyecto",
-      label: "Inicio rápido",
+      goal: "Traducir un proyecto",
+      page: "Inicio rápido",
       body: "Instala la CLI, previsualiza la ejecución sin clave y luego traduce tu primer archivo.",
       href: "/docs/quickstart",
       primary: true,
     },
     {
-      tag: "Proteger los pull requests",
-      label: "CI y códigos de salida",
+      goal: "Proteger los pull requests",
+      page: "CI y códigos de salida",
       body: "Haz fallar un pull request cuando un locale se desfase, con salida JSON para scripts.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "Pasar el trabajo a traductores",
-      label: "Traducción humana",
+      goal: "Pasar el trabajo a traductores",
+      page: "Traducción humana",
       body: "Exporta un libro de trabajo para que lo traduzca una persona y vuelve a importarlo.",
       href: "/docs/manual-translation",
     },
     {
-      tag: "Usar con un agente de IA",
-      label: "Configura con IA",
+      goal: "Usar con un agente de IA",
+      page: "Configura con IA",
       body: "Dale a Claude Code, Cursor o cualquier agente de código un prompt listo para copiar y pegar.",
       href: "/docs/start-with-ai",
     },
@@ -46,20 +46,35 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 
 <DocsHomeStacks
   title="Elige tu stack"
-  links={[
-    { label: "React", href: "/docs/pick-your-stack#react-con-i18next" },
-    { label: "Next.js", href: "/docs/pick-your-stack#nextjs-con-next-intl" },
-    { label: "Vue", href: "/docs/pick-your-stack#vue-y-nuxt-con-vue-i18n" },
-    { label: "Angular", href: "/docs/pick-your-stack#angular-con-ngx-translate" },
-    { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
-    { label: "Android", href: "/docs/pick-your-stack#android" },
-    { label: "iOS y macOS", href: "/docs/pick-your-stack#ios-y-macos" },
-    { label: "gettext", href: "/docs/pick-your-stack#gettext" },
-    { label: "Spring", href: "/docs/pick-your-stack#java-y-spring" },
-    { label: ".NET", href: "/docs/pick-your-stack#net" },
-    { label: "YAML", href: "/docs/pick-your-stack#yaml" },
-    { label: "XLIFF", href: "/docs/pick-your-stack#xliff" },
-    { label: "INI", href: "/docs/pick-your-stack#ini" },
+  groups={[
+    {
+      title: "Frameworks",
+      links: [
+        { label: "React", href: "/docs/pick-your-stack#react-con-i18next" },
+        { label: "Next.js", href: "/docs/pick-your-stack#nextjs-con-next-intl" },
+        { label: "Vue", href: "/docs/pick-your-stack#vue-y-nuxt-con-vue-i18n" },
+        { label: "Angular", href: "/docs/pick-your-stack#angular-con-ngx-translate" },
+      ],
+    },
+    {
+      title: "Plataformas",
+      links: [
+        { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
+        { label: "Android", href: "/docs/pick-your-stack#android" },
+        { label: "iOS y macOS", href: "/docs/pick-your-stack#ios-y-macos" },
+        { label: "Spring", href: "/docs/pick-your-stack#java-y-spring" },
+        { label: ".NET", href: "/docs/pick-your-stack#net" },
+      ],
+    },
+    {
+      title: "Formatos",
+      links: [
+        { label: "gettext", href: "/docs/pick-your-stack#gettext" },
+        { label: "YAML", href: "/docs/pick-your-stack#yaml" },
+        { label: "XLIFF", href: "/docs/pick-your-stack#xliff" },
+        { label: "INI", href: "/docs/pick-your-stack#ini" },
+      ],
+    },
   ]}
 />
 

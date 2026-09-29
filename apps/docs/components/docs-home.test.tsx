@@ -42,9 +42,15 @@ describe("DocsHomeStacks", () => {
     const markup = renderToStaticMarkup(
       <DocsHomeStacks
         title="Pick your stack"
-        links={[
-          { label: "React", href: "/docs/pick-your-stack#react-with-i18next" },
-          { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
+        groups={[
+          {
+            title: "Frameworks",
+            links: [{ label: "React", href: "/docs/pick-your-stack#react-with-i18next" }],
+          },
+          {
+            title: "Platforms",
+            links: [{ label: "Flutter", href: "/docs/pick-your-stack#flutter" }],
+          },
         ]}
         locale={locale}
       />,
@@ -60,11 +66,52 @@ describe("DocsHomeStacks", () => {
     expect(links.every((link) => link.querySelector("img, svg") === null)).toBe(true);
   });
 
+  it("puts the title above the groups and each group label above its own list", () => {
+    const nav = renderStacks("en").querySelector("nav");
+    expect(nav?.classList.contains("flex-col")).toBe(true);
+    expect(nav?.className).not.toMatch(/(^|\s)\w+:flex-row/);
+    const groups = [...(nav?.querySelectorAll("ul") ?? [])].map((list) => [
+      list.previousElementSibling?.textContent,
+      [...list.querySelectorAll("a")].map((link) => link.textContent),
+    ]);
+    expect(groups).toEqual([
+      ["Frameworks", ["React"]],
+      ["Platforms", ["Flutter"]],
+    ]);
+  });
+
   it("keeps the section anchor and prefixes the reader's locale", () => {
     const hrefs = [...renderStacks("de").querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(hrefs).toEqual([
       "/de/docs/pick-your-stack#react-with-i18next",
       "/de/docs/pick-your-stack#flutter",
     ]);
+  });
+});
+
+describe("DocsHomePaths", () => {
+  it("leads each card with the goal as its title and demotes the page name below the body", async () => {
+    const { DocsHomePaths } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomePaths
+        cards={[
+          {
+            goal: "Translate a project",
+            page: "Quickstart",
+            body: "Install the CLI.",
+            href: "/docs/quickstart",
+          },
+        ]}
+        locale="en"
+      />,
+    );
+    const card = new DOMParser().parseFromString(markup, "text/html").querySelector("a");
+    expect([...(card?.children ?? [])].map((child) => child.textContent)).toEqual([
+      "Translate a project",
+      "Install the CLI.",
+      "Quickstart",
+    ]);
+    expect(card?.querySelector(".vk-label")).toBeNull();
+    expect(card?.classList.contains("grid-rows-subgrid")).toBe(true);
   });
 });

@@ -43,8 +43,6 @@ vi.mock("@/lib/source", () => ({
   source: { getPageTree: () => ({ name: "docs", children: [] }) },
 }));
 vi.mock("@/lib/docs-page-tree", () => ({
-  rootTabs: () => [],
-  withExpandedNewGroups: <T,>(tree: T) => tree,
   withLlmsLinks: async <T,>(tree: T) => tree,
   withShortCommandLabels: <T,>(tree: T) => tree,
 }));

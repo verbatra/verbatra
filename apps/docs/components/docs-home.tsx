@@ -131,8 +131,8 @@ export function DocsHomeSection({
 
 type PathCard = {
   href: string;
-  tag: string;
-  label: string;
+  goal: string;
+  page: string;
   body: string;
   primary?: boolean;
 };
@@ -151,7 +151,7 @@ export function DocsHomePaths({
           key={card.href}
           href={localizedPath(locale, card.href)}
           className={cn(
-            "flex flex-col gap-2 p-5 transition-[filter,border-color]",
+            "row-span-3 grid grid-rows-subgrid gap-y-2 p-5 transition-[filter,border-color]",
             card.primary ? "rounded-xl hover:brightness-110" : `${PANEL} ${PANEL_HOVER}`,
           )}
           style={
@@ -161,20 +161,17 @@ export function DocsHomePaths({
           }
         >
           <span
-            className="vk-label"
-            style={
-              card.primary
-                ? { color: "color-mix(in srgb, var(--accent-fill-fg) 90%, transparent)" }
-                : undefined
-            }
+            className="font-semibold"
+            style={{
+              ...DISPLAY,
+              fontSize: "1.1rem",
+              letterSpacing: "-0.01em",
+              lineHeight: 1.25,
+              textWrap: "balance",
+              color: card.primary ? undefined : "var(--text-strong)",
+            }}
           >
-            {card.tag}
-          </span>
-          <span
-            className={cn("font-semibold", !card.primary && "text-fd-foreground")}
-            style={{ ...DISPLAY, fontSize: "1.1rem", letterSpacing: "-0.01em" }}
-          >
-            {card.label}
+            {card.goal}
           </span>
           <span
             className="text-sm leading-relaxed"
@@ -186,6 +183,16 @@ export function DocsHomePaths({
           >
             {card.body}
           </span>
+          <span
+            className="self-end text-sm font-medium"
+            style={{
+              color: card.primary
+                ? "color-mix(in srgb, var(--accent-fill-fg) 92%, transparent)"
+                : "var(--accent)",
+            }}
+          >
+            {card.page}
+          </span>
         </Link>
       ))}
     </div>
@@ -194,30 +201,41 @@ export function DocsHomePaths({
 
 type StackLink = { label: string; href: string };
 
+type StackGroup = { title: string; links: ReadonlyArray<StackLink> };
+
 export function DocsHomeStacks({
   title,
-  links,
+  groups,
   locale,
 }: {
   title: string;
-  links: ReadonlyArray<StackLink>;
+  groups: ReadonlyArray<StackGroup>;
   locale: Locale;
 }): ReactNode {
   return (
     <nav
       aria-label={title}
-      className="not-prose mt-8 flex flex-col gap-3 border-t border-fd-border pt-[18px] sm:flex-row sm:items-baseline sm:gap-6"
+      className="not-prose mt-8 flex flex-col gap-4 border-t border-fd-border pt-[18px]"
     >
-      <span className="vk-label shrink-0">{title}</span>
-      <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        {links.map((link) => (
-          <li key={link.href}>
-            <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
-              {link.label}
-            </Link>
-          </li>
+      <span className="vk-label">{title}</span>
+      <div className="flex flex-col gap-5 md:flex-row md:flex-wrap md:gap-x-12">
+        {groups.map((group) => (
+          <div key={group.title} className="flex flex-col gap-2 md:flex-none">
+            <span className="text-xs font-medium text-[color:var(--text-faint)]">
+              {group.title}
+            </span>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              {group.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </nav>
   );
 }
