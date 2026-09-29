@@ -13,6 +13,8 @@ const EXPECTED_READ_ONLY_ORDER = [
   "translation.editEntry",
   "translation.estimate",
   "review.queue",
+  "review.approve",
+  "review.reject",
   "usage.summary",
 ];
 
@@ -29,11 +31,11 @@ describe("buildToolRegistry", () => {
     }
   });
 
-  it("includes all 14 tools, with the two spend tools present, when spending is allowed", () => {
+  it("includes all 16 tools, with the two spend tools present, when spending is allowed", () => {
     const tools = buildToolRegistry(true);
     const names = tools.map((tool) => tool.name);
 
-    expect(names).toHaveLength(14);
+    expect(names).toHaveLength(16);
     for (const spendTool of SPEND_TOOL_NAMES) {
       expect(names).toContain(spendTool);
     }
@@ -86,6 +88,7 @@ describe("buildToolRegistry", () => {
       "translation.editEntry",
       "translation.retranslateEntry",
       "translation.translatePending",
+      "review.reject",
     ]);
   });
 
@@ -93,6 +96,8 @@ describe("buildToolRegistry", () => {
     const writers = new Set([
       "glossary.write",
       "translation.editEntry",
+      "review.approve",
+      "review.reject",
       "translation.retranslateEntry",
       "translation.translatePending",
     ]);

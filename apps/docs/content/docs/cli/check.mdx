@@ -19,9 +19,10 @@ verbatra check [flags]
 | `--locales` | `<list>` | all configured targets | comma-separated subset of target locales to check |
 | `--consistency` | none | off | also report, per locale, every source string translated more than one way under different keys; report only, it never changes the exit code |
 | `--qa` | none | off | also run the [quality check](#quality-check) over every committed translation; exit `1` on an error |
-| `--file` | `<path>` | off | check only this one locale file: its syntax, then its values against the source, reading no other locale (see [One file](#one-file)); not allowed together with `--locales` or `--consistency` |
+| `--file` | `<path>` | off | check only this one locale file: its syntax, then its values against the source, reading no other locale (see [One file](#one-file)); not allowed together with `--locales`, `--consistency` or `--require-reviewed` |
 | `--severity` | `error` or `warning` | `warning` | with `--qa` or `--file`, the lowest severity to report; `error` skips the review reasons entirely |
 | `--strict` | none | off | with `--qa` or `--file`, also exit `1` when the quality check reports a warning or a plural lacks [plural categories](#plural-categories); not allowed together with `--severity error` |
+| `--require-reviewed` | none | off | also [require every machine-written translation to be approved](#require-reviewed-translations); exit `1` while one is not |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the check summary under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
 
 A key is missing when the source has it and the target does not; stale when the source string changed since it was last translated. A locale is in sync when it has neither. An empty or unknown `--locales` value is rejected with exit `2` rather than silently checking nothing, so a typo in a locale name never lets a CI gate pass. Want the actual key lists behind the counts? That is [`verbatra diff`](/docs/cli/diff).
@@ -172,6 +173,36 @@ type QaFinding =
 
 A few things the check leaves alone: a key only the target has (it is orphaned, and [`verbatra diff`](/docs/cli/diff) lists it), a missing key (there is no value to check), and a key whose source is not valid ICU, which no translation can be judged against; those are listed once under `invalidSourceKeys`. [Protected](/docs/protecting-human-translations) and pinned keys are checked like any other, since their values ship all the same, and so are values a reviewer rejected. `--consistency` stays a separate, report-only flag; combine the two to get both reports.
 
+## Require reviewed translations
+
+<AvailableFrom version="0.12.0" />
+
+`--require-reviewed` turns review decisions into a CI gate. Every value in the checked locales whose [origin](/docs/the-lock-file#provenance-who-wrote-each-value) is `machine`, `memory`, `fuzzy`, or `agent` must be approved in `verbatra.provenance.json`; one that is not sets exit `1`. A value a person wrote or imported, a value edited by hand in the locale file, and a value with no provenance record need no approval. An approval given before the key's source text changed does not count, and any write that changes an approved value drops its approval, so the gate always judges the text that ships. It calls no provider, needs no API key, and writes nothing.
+
+The decisions come from the committed file, so the gate sees what your teammates approved in [Studio](/docs/review-in-studio) or through an [MCP client](/docs/cli/mcp), in CI as on every machine. The human report names the unreviewed keys, at most ten per locale:
+
+```text
+review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
+  de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
+```
+
+With `--json`, `result.review` carries the verdict and a stable `code`, and each locale in `result.locales` carries its own `review` list:
+
+```ts
+interface CheckReviewSummary {
+  reviewed: boolean;             // false fails the gate
+  unreviewed: number;            // machine-written values not approved, summed over the locales
+  code?: "REVIEW_REQUIRED" | "REVIEW_STATE_UNREADABLE"; // present exactly when reviewed is false
+}
+
+interface LocaleReviewReport {
+  unreviewed: string[];          // keys, in source order
+}
+```
+
+`REVIEW_STATE_UNREADABLE` means `verbatra.provenance.json` is corrupt or was written by a newer verbatra: no decision can be read, so the gate fails rather than passes. Drift still sets exit `1` too, and `--locales` narrows the gate like the rest of the check.
+
 ## One file
 
 <AvailableFrom version="0.12.0" />
@@ -185,7 +216,7 @@ The path is resolved against `--cwd` and matched against your config's `files.pa
 - The source locale file is checked for syntax only, since there is nothing to hold it against. Its keys that are not valid ICU are listed under `invalidSourceKeys`.
 - For `apple-xcstrings`, which keeps every locale in one catalogue, the catalogue is checked for every target locale.
 
-A path that is no configured locale's file, or a file that does not exist, fails with `NOT_A_LOCALE_FILE` and exit `2`. `--severity` and `--strict` work as with `--qa`; `--locales` and `--consistency` are refused, because the file already decides the locale.
+A path that is no configured locale's file, or a file that does not exist, fails with `NOT_A_LOCALE_FILE` and exit `2`. `--severity` and `--strict` work as with `--qa`; `--locales`, `--consistency` and `--require-reviewed` are refused, because the file already decides the locale.
 
 ```text
 verbatra check --file locales/de.json (target)
@@ -244,9 +275,9 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 
 | Code | Meaning |
 | --- | --- |
-| `0` | in sync: no locale has a missing or stale key, and with `--qa` no committed value has an error (nor a warning or an incomplete plural, with `--strict`); with `--file`, the file has no error finding |
-| `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning or an incomplete plural, with `--strict`); with `--file`, the file has an error finding, a syntax error included; the report is still printed |
-| `2` | could not run: a whole-run error such as `NOT_A_LOCALE_FILE` for a `--file` path, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, `--severity` or `--strict` without `--qa` or `--file`, `--strict` with `--severity error`, or `--file` with `--locales` or `--consistency`) |
+| `0` | in sync: no locale has a missing or stale key, with `--qa` no committed value has an error (nor a warning or an incomplete plural, with `--strict`), and with `--require-reviewed` every machine-written translation is approved; with `--file`, the file has no error finding |
+| `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning or an incomplete plural, with `--strict`), or with `--require-reviewed` a machine-written translation is not approved; with `--file`, the file has an error finding, a syntax error included; the report is still printed |
+| `2` | could not run: a whole-run error such as `NOT_A_LOCALE_FILE` for a `--file` path, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, `--severity` or `--strict` without `--qa` or `--file`, `--strict` with `--severity error`, or `--file` with `--locales`, `--consistency` or `--require-reviewed`) |
 
 Exit `1` means "out of sync", not a failure: the run itself succeeded, the result just is not all green.
 

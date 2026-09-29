@@ -15,7 +15,7 @@ a `syntax` finding with the adapter's code and, for JSON and YAML, its line and 
 failing. The source locale file is checked for syntax alone. It writes nothing, reads no lock-file
 and calls no provider. It exits 1 on an error finding (and on warnings under `--strict`) and 2 with
 the new `NOT_A_LOCALE_FILE` code for a path that is not a locale file of the project. It cannot be
-combined with `--locales` or `--consistency`.
+combined with `--locales`, `--consistency` or `--require-reviewed`.
 
 `AdapterError` gains a `position` (line and column) for malformed JSON and YAML, and its message
 names the same position, for every command that reports such a file.

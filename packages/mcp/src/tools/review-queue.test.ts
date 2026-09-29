@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { approveEntry, editEntry } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
@@ -6,7 +6,6 @@ import {
   baseVerbatraConfig,
   makeContext,
   makeProject,
-  makeTempDir,
   trackAdapterRegistryCalls,
   trackFsCalls,
   writeJsonFile,
@@ -28,22 +27,27 @@ async function writeRunStatus(dir: string, keys: readonly string[]): Promise<voi
   });
 }
 
+async function agentProject(): Promise<string> {
+  const dir = await makeProject({ greeting: "Hello", title: "Title" }, { de: {} });
+  const config = baseVerbatraConfig();
+  for (const [key, value] of [
+    ["greeting", "Hallo"],
+    ["title", "Titel"],
+  ] as const) {
+    await editEntry({ config, cwd: dir, locale: "de", key, value, actor: "agent" });
+  }
+  return dir;
+}
+
+const AGENT = { origin: "agent", reviewState: "unreviewed" } as const;
+
 describe("review.queue", () => {
-  it("reports available: false when no run has completed in this project yet", async () => {
-    const dir = await makeTempDir();
+  it("lists every unapproved machine-class value from the committed files", async () => {
+    const dir = await agentProject();
 
     const outcome = await reviewQueueTool.execute({}, makeContext({ cwd: dir }));
 
-    expect(outcome).toEqual({ kind: "ok", result: { available: false } });
-  });
-
-  it("reports the flagged keys from the last run's status file", async () => {
-    const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
-    await writeRunStatus(dir, ["greeting"]);
-
-    const outcome = await reviewQueueTool.execute({}, makeContext({ cwd: dir }));
-
-    expect(outcome).toMatchObject({
+    expect(outcome).toEqual({
       kind: "ok",
       result: {
         available: true,
@@ -51,11 +55,8 @@ describe("review.queue", () => {
           {
             locale: "de",
             needsReview: [
-              {
-                key: "greeting",
-                reasons: ["EQUALS_SOURCE"],
-                provenance: { origin: "unrecorded", reviewState: "unreviewed" },
-              },
+              { key: "greeting", reasons: [], provenance: AGENT },
+              { key: "title", reasons: [], provenance: AGENT },
             ],
           },
         ],
@@ -63,12 +64,26 @@ describe("review.queue", () => {
     });
   });
 
-  it("leaves out a flagged key that was approved or no longer has a translation", async () => {
-    const dir = await makeProject({ greeting: "Hello", title: "Title" }, { de: {} });
-    await writeRunStatus(dir, ["greeting", "title"]);
+  it("adds the last run's flags and the time it finished", async () => {
+    const dir = await agentProject();
+    await writeRunStatus(dir, ["greeting"]);
+
+    const outcome = await reviewQueueTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        lastRunAt: "2026-01-01T00:00:00.000Z",
+        locales: [{ needsReview: [{ key: "greeting", reasons: ["EQUALS_SOURCE"] }, {}] }],
+      },
+    });
+  });
+
+  it("leaves out an approved value and a value a person wrote", async () => {
+    const dir = await agentProject();
     const config = baseVerbatraConfig();
-    await editEntry({ config, cwd: dir, locale: "de", key: "greeting", value: "Hallo" });
     await approveEntry({ config, cwd: dir, locale: "de", key: "greeting", expectedValue: "Hallo" });
+    await editEntry({ config, cwd: dir, locale: "de", key: "title", value: "Überschrift" });
 
     const outcome = await reviewQueueTool.execute({}, makeContext({ cwd: dir }));
 
@@ -78,9 +93,20 @@ describe("review.queue", () => {
     });
   });
 
+  it("reports available: false when the provenance file cannot be read", async () => {
+    const dir = await agentProject();
+    await writeFile(join(dir, "verbatra.provenance.json"), "{ not json", "utf8");
+
+    const outcome = await reviewQueueTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toEqual({
+      kind: "ok",
+      result: { available: false, reason: "provenance-unreadable" },
+    });
+  });
+
   it("reads the target through an injected adapter registry", async () => {
-    const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
-    await writeRunStatus(dir, ["greeting"]);
+    const dir = await agentProject();
     const { adapterRegistry, counts } = trackAdapterRegistryCalls();
 
     await reviewQueueTool.execute({}, makeContext({ cwd: dir, adapterRegistry }));
@@ -88,19 +114,18 @@ describe("review.queue", () => {
     expect(counts.resolveCalls).toBeGreaterThan(0);
   });
 
+  it("uses an injected fs rather than the real filesystem", async () => {
+    const dir = await agentProject();
+    const { fs, counts } = trackFsCalls();
+
+    await reviewQueueTool.execute({}, makeContext({ cwd: dir, fs }));
+
+    expect(counts.readFileBounded).toBeGreaterThan(0);
+  });
+
   it("rejects an unrecognized parameter", async () => {
     const outcome = await reviewQueueTool.execute({ bogus: true }, makeContext());
 
     expect(outcome.kind).toBe("invalid");
-  });
-
-  it("uses an injected fs to read the run status file rather than the real filesystem", async () => {
-    const dir = await makeTempDir();
-    const { fs, counts } = trackFsCalls();
-
-    const outcome = await reviewQueueTool.execute({}, makeContext({ cwd: dir, fs }));
-
-    expect(outcome).toEqual({ kind: "ok", result: { available: false } });
-    expect(counts.readFileBounded).toBeGreaterThan(0);
   });
 });

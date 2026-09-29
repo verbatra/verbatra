@@ -6,7 +6,6 @@ import type {
   ProbeOutcome,
 } from "../client/reconnect.js";
 import { createReconnectController } from "../client/reconnect.js";
-import { createReviewOverlayStore, type ReviewOverlayStore } from "../client/review-overlay.js";
 import type { FetchLike, RpcClient } from "../client/rpc-client.js";
 import { createRpcClient } from "../client/rpc-client.js";
 import { createSessionStore, type SessionStore } from "../client/state.js";
@@ -26,8 +25,6 @@ export const rpcClient: RpcClient = budgetTracking(
   createRpcClient({ fetchImpl: browserFetch, session: sessionStore }),
   rateBudget,
 );
-
-export const reviewOverlayStore: ReviewOverlayStore = createReviewOverlayStore();
 
 export const agentToolsStatusStore: AgentToolsStatusStore = createAgentToolsStatusStore();
 

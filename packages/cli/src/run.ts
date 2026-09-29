@@ -167,6 +167,7 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
   qa: z.boolean().optional(),
   severity: z.string().optional(),
   strict: z.boolean().optional(),
+  requireReviewed: z.boolean().optional(),
   file: z.string().optional(),
 });
 
@@ -206,6 +207,7 @@ function parseQaSeverity(opts: CheckOpts): QaSeverity | undefined {
 const PROJECT_WIDE_CHECK_FLAGS = [
   ["--locales", (opts: CheckOpts) => opts.locales !== undefined],
   ["--consistency", (opts: CheckOpts) => opts.consistency === true],
+  ["--require-reviewed", (opts: CheckOpts) => opts.requireReviewed === true],
 ] as const;
 
 function assertFileCheckOpts(opts: CheckOpts): void {
@@ -224,7 +226,7 @@ function assertFileCheckOpts(opts: CheckOpts): void {
   if (given.length > 0) {
     throw new CliUsageError(
       "INVALID_OPTION",
-      `${given.join(" and ")} cannot be combined with --file, which checks the one locale the file holds. Drop ${given.length === 1 ? "it" : "them"}, or drop --file to check the whole project.`,
+      `${given.join(", ")} cannot be combined with --file, which checks the one locale the file holds. Drop ${given.length === 1 ? "it" : "them"}, or drop --file to check the whole project.`,
     );
   }
 }
@@ -244,7 +246,8 @@ function checkExitCode(summary: CheckSummary, strict: boolean): number {
   const qa = summary.qa;
   const warns = (qa?.warnings ?? 0) > 0 || hasIncompletePlurals(summary);
   const qaFails = qa !== undefined && (qa.errors > 0 || (strict && warns));
-  return summary.inSync && !qaFails ? 0 : 1;
+  const reviewFails = summary.review !== undefined && !summary.review.reviewed;
+  return summary.inSync && !qaFails && !reviewFails ? 0 : 1;
 }
 
 function fileHasIncompletePlurals(summary: CheckFileSummary): boolean {
@@ -1157,6 +1160,7 @@ function checkInput(
     ...(opts.consistency === true ? { consistency: true } : {}),
     ...(opts.qa === true ? { qa: true } : {}),
     ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
+    ...(opts.requireReviewed === true ? { requireReviewed: true } : {}),
   };
 }
 
@@ -1398,7 +1402,31 @@ async function runTypes(
 
 const doctorOptsSchema = sharedCommandOptsSchema.extend({
   literals: z.boolean().optional(),
+  locales: z.boolean().optional(),
+  live: z.boolean().optional(),
 });
+
+type DoctorOpts = z.infer<typeof doctorOptsSchema>;
+
+function parseDoctorOpts(rawOpts: unknown): DoctorOpts {
+  const opts = doctorOptsSchema.parse(rawOpts);
+  if (opts.literals === true && (opts.locales === true || opts.live === true)) {
+    throw new CliUsageError(
+      "INVALID_OPTION",
+      `${opts.live === true ? "--live" : "--locales"} reports on the setup checks, which --literals replaces. Drop one of the two.`,
+    );
+  }
+  return opts;
+}
+
+function doctorTaskLabel(opts: DoctorOpts): string {
+  if (opts.literals === true) {
+    return "scanning the source for literals";
+  }
+  return opts.live === true
+    ? "checking the setup and fetching the provider's language list"
+    : "checking the setup";
+}
 
 async function runDoctor(
   rawOpts: unknown,
@@ -1408,7 +1436,7 @@ async function runDoctor(
 ): Promise<number> {
   const context = commandContext("doctor", rawOpts, streams, settings);
   return withParsedOpts(
-    () => doctorOptsSchema.parse(rawOpts),
+    () => parseDoctorOpts(rawOpts),
     context,
     async (opts) => {
       const cwd = opts.cwd ?? process.cwd();
@@ -1417,18 +1445,19 @@ async function runDoctor(
         if (!literals) {
           loadEnvFiles(cwd);
         }
-        const label = literals ? "scanning the source for literals" : "checking the setup";
-        const result = await withTask(context, label, (task) =>
+        const result = await withTask(context, doctorTaskLabel(opts), (task) =>
           deps.doctor({
             cwd,
             ...(opts.config !== undefined ? { configPath: opts.config } : {}),
             ...(literals ? { literals: true, onProgress: scanProgressReporter(task) } : {}),
+            ...(opts.live === true ? { live: true } : {}),
           }),
         );
+        const showLocales = opts.locales === true || opts.live === true;
         context.streams.out(
           context.json
             ? `${renderSuccessEnvelope("doctor", result)}\n`
-            : `${renderDoctorHuman(result)}\n`,
+            : `${renderDoctorHuman(result, { locales: showLocales })}\n`,
         );
         return result.ok ? 0 : 1;
       } catch (error) {
@@ -1669,6 +1698,10 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
       "--strict",
       "with --qa or --file, also exit 1 on quality-check warnings and missing plural categories",
     )
+    .option(
+      "--require-reviewed",
+      "also exit 1 while a machine-written translation is not approved (reads the committed review state)",
+    )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams, ctx.settings()));
@@ -1684,6 +1717,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check --consistency    also list source strings translated more than one way",
         "  $ verbatra check --qa             also check placeholders, markup, ICU and review flags",
         "  $ verbatra check --qa --strict    also fail on warnings and missing plural categories",
+        "  $ verbatra check --require-reviewed  fail while machine translations wait for approval",
         "  $ verbatra check --file locales/de.json --json  check one edited file, nothing else",
       ].join("\n"),
     );
@@ -1791,6 +1825,14 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
       "--literals",
       "scan the extract source roots for hardcoded user-facing strings instead of checking the setup",
     )
+    .option(
+      "--locales",
+      "list per target locale what the provider supports: code sent, support, glossary, formality",
+    )
+    .option(
+      "--live",
+      "fetch the provider's current language list first (needs its key; uses no translation quota); implies --locales",
+    )
     .option("--json", "print the doctor report as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runDoctor(opts, ctx.deps, ctx.streams, ctx.settings()));
@@ -1803,6 +1845,8 @@ function registerDoctorCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra doctor             report every setup problem at once (exit 1 if any)",
         "  $ verbatra doctor --json      machine-readable report on stdout for CI",
         "  $ verbatra doctor --literals  list untranslated string literals (exit 1 if any)",
+        "  $ verbatra doctor --locales   what the provider supports for each target locale",
+        "  $ verbatra doctor --live      the same, against the provider's current language list",
         "",
         "With --literals it reads your source and never writes it, constructs no provider, and " +
           "reads no API key, so it runs before any key exists.",

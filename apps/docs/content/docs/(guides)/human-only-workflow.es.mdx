@@ -18,7 +18,7 @@ Eso escribe una configuración cuyo bloque de proveedor es solo esto, y ningún 
 provider: { id: "none" }
 ```
 
-Un proyecto existente cambia igual: sustituye su bloque `provider` por `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) informa entonces "machine translation disabled by policy" y supera sus comprobaciones de proveedor y de clave de API sin mirar ninguna clave.
+Un proyecto existente cambia igual: sustituye su bloque `provider` por `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) informa entonces "machine translation disabled by policy" supera sus comprobaciones de proveedor y de clave de API sin mirar ninguna clave, y omite su comprobación de soporte de locales, ya que no se aplica ninguna lista de idiomas de proveedor.
 
 ## Qué hace cada comando
 

@@ -19,6 +19,11 @@ import {
   agentRetranslateEntryParamsSchema,
   RETRANSLATE_ENTRY_METHOD,
 } from "../shared/rpc/retranslate-entry.js";
+import {
+  agentReviewDecisionParamsSchema,
+  REVIEW_APPROVE_METHOD,
+  REVIEW_REJECT_METHOD,
+} from "../shared/rpc/review-decision.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import { PROJECT_SNAPSHOT_METHOD } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
@@ -188,15 +193,47 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [REVIEW_QUEUE_METHOD]: {
     description:
-      "Lists the entries the last recorded translation run flagged as needing human review, per locale, with the reason code behind each flag. " +
-      "Use it to find the translations most worth a second look before spending anything on them. " +
-      "Do not treat an unavailable result as an empty queue: it means no run has ever recorded a status snapshot, or that snapshot is missing, corrupt, or at an unrecognized version. " +
-      "An entry leaves the list once a person approves or rejects its current value in the dashboard, rewrites it, or it loses its translation; an entry corrected through verbatra_translation_editEntry stays listed, because an agent's edit still needs a person's review. " +
-      "Each remaining entry carries the provenance of its current value when the project's provenance file is readable. " +
-      "Takes no parameters. Read-only: it calls no provider and writes nothing.",
+      "Lists, per target locale, every key whose current value a provider, the translation memory, a fuzzy match, or an AI agent wrote and that no person has approved yet, with the provenance of that value. " +
+      "The queue is computed from the committed locale files, lock file, and provenance file, so every teammate sees the same one. " +
+      "Use it to find the translations waiting for a person before spending anything on them. " +
+      "Each entry's reasons are the flags the last translation run on this machine gave the key, empty when it gave none. " +
+      "The optional `includeApproved` parameter, when true, also lists each locale's approved machine-written values under approved. " +
+      "An entry leaves the list once a person approves or rejects its value, rewrites it, or imports a new one; an entry corrected through verbatra_translation_editEntry stays listed, because an agent's edit still needs a person's review. " +
+      "An unavailable result means the provenance file is corrupt or from a newer verbatra, not an empty queue. " +
+      "Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
     spendGated: false,
+  },
+  [REVIEW_APPROVE_METHOD]: {
+    description:
+      "Records that a person reviewed one key's current translation in one target locale and accepts it, in the project's committed provenance file, so the key leaves the review queue for everyone and counts for verbatra check --require-reviewed. " +
+      "Call it only when the user has read the value and told you to approve it: never approve your own translations or edits on your own initiative, because the approval is recorded as the named person's review. " +
+      "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source. " +
+      "The required `expectedValue` parameter is the translation the user reviewed, read with verbatra_key_value; the call is refused with REVIEW_VALUE_CHANGED, writing nothing, when the current value differs. " +
+      "The required `reviewer` parameter names the person who made the decision, 1 to 64 characters; it is stored in a committed file, so it is public. " +
+      "A value whose source changed since it was written is refused with REVIEW_SOURCE_CHANGED. Any later write that changes the value drops the approval. " +
+      "It never touches a locale file or the lock file and calls no provider. " +
+      "This tool is always registered: it needs no capability flag and is never gated behind the spend flag.",
+    readOnlyHint: false,
+    untrustedContentHint: true,
+    spendGated: false,
+    agentInput: { schema: agentReviewDecisionParamsSchema, stamp: {} },
+  },
+  [REVIEW_REJECT_METHOD]: {
+    description:
+      "Records that a person reviewed one key's current translation in one target locale and refuses it, and removes that translation so it gets replaced: the value is deleted from the locale file and its lock entry is dropped, with no undo on this surface. " +
+      "Call it only when the user has read the value and told you to reject it: never reject your own translations or edits on your own initiative, because the rejection is recorded as the named person's review. " +
+      "The required `locale` parameter must be a configured target locale and the required `key` parameter must exist in the source. " +
+      "The required `expectedValue` parameter is the translation the user reviewed, read with verbatra_key_value; the call is refused with REVIEW_VALUE_CHANGED, removing nothing, when the current value differs. " +
+      "The required `reviewer` parameter names the person who made the decision, 1 to 64 characters; it is stored in a committed file, so it is public. " +
+      "A format that cannot drop one value, such as XLIFF, is refused with REVIEW_REJECT_UNSUPPORTED; correct the value with verbatra_translation_editEntry instead. " +
+      "It calls no provider. " +
+      "This tool is always registered: it needs no capability flag and is never gated behind the spend flag.",
+    readOnlyHint: false,
+    untrustedContentHint: true,
+    spendGated: false,
+    agentInput: { schema: agentReviewDecisionParamsSchema, stamp: {} },
   },
   [USAGE_SUMMARY_METHOD]: {
     description:

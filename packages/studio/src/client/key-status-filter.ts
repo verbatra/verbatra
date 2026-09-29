@@ -3,7 +3,7 @@ import type { DiffLocale } from "./diff-view.js";
 import { keyMatchesQuery } from "./filter.js";
 import { hasIntegrityProblem } from "./integrity-pill.js";
 import { type LocaleValuesData, valuesForLocale } from "./locale-values.js";
-import type { ReviewOverlayEntry } from "./review-overlay.js";
+import type { ReviewEntryRef } from "./review-queue-data.js";
 
 export type KeyStatus = "missing" | "changed" | "orphaned" | "protected" | "review" | "integrity";
 
@@ -37,7 +37,7 @@ export interface KeyStatusFilter {
 }
 
 export interface KeyStatusSources {
-  readonly review: readonly ReviewOverlayEntry[];
+  readonly review: readonly ReviewEntryRef[];
   readonly integrity: LocaleIntegrityData;
 }
 

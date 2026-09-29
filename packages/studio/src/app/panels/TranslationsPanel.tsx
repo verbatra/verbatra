@@ -29,13 +29,13 @@ import {
 import type { LocaleValuesData } from "../../client/locale-values.js";
 import { localeValuesOrEmpty, valuesForLocale } from "../../client/locale-values.js";
 import { provenanceSummaryParts } from "../../client/provenance-view.js";
-import { type ReviewQueueData, visibleReviewQueueRows } from "../../client/review-queue-data.js";
+import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-data.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
 import { toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Accordion, AccordionItem } from "../Accordion.js";
-import { reviewOverlayStore, rpcClient } from "../api.js";
+import { rpcClient } from "../api.js";
 import { Badge } from "../Badge.js";
 import { Button } from "../Button.js";
 import { Card } from "../Card.js";
@@ -68,7 +68,6 @@ import { Toolbar } from "../Toolbar.js";
 import { EmptyState, MonoValue, PageSection } from "../ui.js";
 import { useLocaleIntegrity } from "../use-locale-integrity.js";
 import { useLocaleValues } from "../use-locale-values.js";
-import { useReviewOverlaySignal } from "../use-review-overlay-signal.js";
 import { useReviewQueue } from "../use-review-queue.js";
 import { useStatusData } from "../use-status-data.js";
 import { useUsageTicker } from "../use-usage-ticker.js";
@@ -465,7 +464,7 @@ function statusSources(
   }
   return {
     sources: {
-      review: review.kind === "data" ? visibleReviewQueueRows(review.data, reviewOverlayStore) : [],
+      review: review.kind === "data" ? unreviewedRows(review.data) : [],
       integrity: integrity.kind === "data" ? integrity.data : [],
     },
     unavailable,
@@ -492,7 +491,6 @@ function KeyListView({
   const [locale, setLocale] = useState("");
   const [statuses, setStatuses] = useState<ReadonlySet<KeyStatus>>(new Set());
   const searchRef = useRef<HTMLInputElement | null>(null);
-  useReviewOverlaySignal();
   const { sources, unavailable } = statusSources(useReviewQueue(refreshToken), integrity);
   const matches = useMemo(() => queryMatcher(localeValues, query), [localeValues, query]);
   const filter: KeyStatusFilter = { locale: locale === "" ? null : locale, statuses };
@@ -864,8 +862,7 @@ export function TranslationsPanel({ refreshToken }: PanelProps): ReactNode {
           locale={editingLocale}
           keyName={selectedKey}
           onClose={() => setEditingLocale(null)}
-          onAccepted={(acceptedLocale, key) => {
-            reviewOverlayStore.markActioned({ locale: acceptedLocale, key });
+          onAccepted={() => {
             setEditingLocale(null);
           }}
         />

@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { KeyValuePair } from "./filter.js";
-import { filterReviewRows, reviewValuesKey, uniqueReviewLocales } from "./review-filter.js";
+import {
+  filterReviewRows,
+  REVIEW_ORIGIN_LABELS,
+  REVIEW_STATE_LABELS,
+  reviewValuesKey,
+  uniqueReviewLocales,
+} from "./review-filter.js";
 import type { ReviewQueueRow } from "./review-queue-data.js";
 
 function row(locale: string, key: string): ReviewQueueRow {
-  return { locale, key, reasons: ["EQUALS_SOURCE"] };
+  return { locale, key, reasons: ["EQUALS_SOURCE"], origin: "machine", reviewState: "unreviewed" };
 }
 
 const ROWS: readonly ReviewQueueRow[] = [
@@ -126,5 +132,30 @@ describe("filterReviewRows", () => {
 describe("reviewValuesKey", () => {
   it("combines locale and key into one composite lookup key", () => {
     expect(reviewValuesKey("de", "home.title")).toBe("de\thome.title");
+  });
+});
+
+describe("filterReviewRows: origin and review state", () => {
+  const fuzzy: ReviewQueueRow = { ...row("de", "a"), origin: "fuzzy" };
+  const approved: ReviewQueueRow = { ...row("de", "b"), reviewState: "approved" };
+  const rows = [row("de", "c"), fuzzy, approved];
+
+  it("shows only the entries that need review by default", () => {
+    expect(filterReviewRows(rows, { locale: null, query: "" })).toEqual([row("de", "c"), fuzzy]);
+  });
+
+  it("narrows to one origin", () => {
+    expect(filterReviewRows(rows, { locale: null, query: "", origin: "fuzzy" })).toEqual([fuzzy]);
+  });
+
+  it("shows the approved entries when asked", () => {
+    expect(filterReviewRows(rows, { locale: null, query: "", reviewState: "approved" })).toEqual([
+      approved,
+    ]);
+  });
+
+  it("labels every origin and review state", () => {
+    expect(Object.keys(REVIEW_ORIGIN_LABELS)).toEqual(["machine", "memory", "fuzzy", "agent"]);
+    expect(REVIEW_STATE_LABELS).toEqual({ unreviewed: "Needs review", approved: "Approved" });
   });
 });

@@ -11,6 +11,7 @@ import {
   REVIEW_REJECT_MANY_METHOD,
 } from "../shared/rpc/review-batch.js";
 import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
+import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import type { StudioRateLimit, StudioRateLimits } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
@@ -89,6 +90,7 @@ function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits
     [REVIEW_REJECT_METHOD]: reviewDecision,
     [REVIEW_APPROVE_MANY_METHOD]: reviewDecision,
     [REVIEW_REJECT_MANY_METHOD]: reviewDecision,
+    [REVIEW_APPROVE_LOCALE_METHOD]: reviewDecision,
   });
 }
 
@@ -102,6 +104,7 @@ function buildInFlightGuard(): RpcInFlightGuard {
       REVIEW_REJECT_METHOD,
       REVIEW_APPROVE_MANY_METHOD,
       REVIEW_REJECT_MANY_METHOD,
+      REVIEW_APPROVE_LOCALE_METHOD,
       RETRANSLATE_ENTRIES_METHOD,
     ]),
     Date.now,

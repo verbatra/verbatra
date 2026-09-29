@@ -10,6 +10,7 @@ export interface ReviewBulkBarProps {
   readonly busyNote: string | null;
   readonly decisionBlocker: string | null;
   readonly retranslateBlocker: string | null;
+  readonly approveDisabled?: boolean;
   readonly onApprove: () => void;
   readonly onReject: () => void;
   readonly onRetranslate: (() => void) | undefined;
@@ -32,6 +33,7 @@ export function ReviewBulkBar({
   busyNote,
   decisionBlocker,
   retranslateBlocker,
+  approveDisabled = false,
   onApprove,
   onReject,
   onRetranslate,
@@ -58,7 +60,7 @@ export function ReviewBulkBar({
         <Button
           variant="secondary-success"
           className="w-32"
-          disabled={idle || decisionBlocker !== null}
+          disabled={idle || decisionBlocker !== null || approveDisabled}
           onClick={onApprove}
         >
           {label("approve", "Approve selected")}

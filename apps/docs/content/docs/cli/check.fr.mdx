@@ -19,9 +19,10 @@ verbatra check [flags]
 | `--locales` | `<list>` | toutes les cibles configurées | sous-ensemble de locales cibles à vérifier, séparées par des virgules |
 | `--consistency` | aucun | désactivé | signale aussi, par locale, chaque chaîne source traduite de plusieurs façons sous des clés différentes ; simple rapport, le code de sortie ne change jamais |
 | `--qa` | aucun | désactivé | lance aussi le [contrôle qualité](#contrôle-qualité) sur chaque traduction commitée ; sortie `1` en cas d'erreur |
-| `--file` | `<path>` | désactivé | vérifie seulement ce fichier de locale : sa syntaxe, puis ses valeurs par rapport à la source, sans lire aucune autre locale (vois [Un seul fichier](#un-seul-fichier)) ; interdit avec `--locales` ou `--consistency` |
+| `--file` | `<path>` | désactivé | vérifie seulement ce fichier de locale : sa syntaxe, puis ses valeurs par rapport à la source, sans lire aucune autre locale (vois [Un seul fichier](#un-seul-fichier)) ; interdit avec `--locales`, `--consistency` ou `--require-reviewed` |
 | `--severity` | `error` ou `warning` | `warning` | avec `--qa` ou `--file`, la gravité la plus basse signalée ; `error` ignore complètement les motifs de révision |
 | `--strict` | aucun | désactivé | avec `--qa` ou `--file`, sort aussi avec `1` quand le contrôle qualité signale un avertissement ou qu'il manque à un pluriel des [catégories de pluriel](#catégories-de-pluriel) ; interdit avec `--severity error` |
+| `--require-reviewed` | aucun | désactivé | exige aussi que [chaque traduction écrite par une machine soit approuvée](#exiger-des-traductions-relues) ; sort avec `1` tant qu'une ne l'est pas |
 | `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de vérification sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
 
 Une clé est manquante quand la source l'a et pas la cible ; obsolète quand la chaîne source a changé depuis sa dernière traduction. Une locale est synchronisée quand elle n'a ni l'un ni l'autre. Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien vérifier en silence, donc une coquille dans un nom de locale ne laisse jamais passer un contrôle CI. Tu veux les listes de clés derrière ces décomptes ? C'est [`verbatra diff`](/docs/cli/diff).
@@ -172,6 +173,36 @@ type QaFinding =
 
 Quelques cas restent hors du contrôle : une clé que seule la cible possède (elle est orpheline, et [`verbatra diff`](/docs/cli/diff) la liste), une clé manquante (il n'y a pas de valeur à vérifier) et une clé dont la source n'est pas un ICU valide, contre laquelle aucune traduction ne peut être jugée ; ces clés sont listées une fois sous `invalidSourceKeys`. Les clés [protégées](/docs/protecting-human-translations) et épinglées sont vérifiées comme les autres, puisque leurs valeurs sont livrées tout pareil, et c'est aussi le cas des valeurs rejetées en révision. `--consistency` reste une option séparée qui ne fait que signaler ; combine les deux pour obtenir les deux rapports.
 
+## Exiger des traductions relues
+
+<AvailableFrom version="0.12.0" />
+
+`--require-reviewed` transforme les décisions de relecture en barrière de CI. Chaque valeur des locales vérifiées dont l'[origine](/docs/the-lock-file) est `machine`, `memory`, `fuzzy` ou `agent` doit être approuvée dans `verbatra.provenance.json` ; sinon, la commande sort avec `1`. Une valeur qu'une personne a écrite ou importée, une valeur modifiée à la main dans le fichier de locale et une valeur sans enregistrement de provenance n'ont pas besoin d'approbation. Une approbation antérieure à une modification du texte source de la clé ne compte pas, et toute écriture qui change une valeur approuvée annule son approbation : la barrière juge donc toujours le texte livré. Elle n'appelle aucun fournisseur, n'a besoin d'aucune clé d'API et n'écrit rien.
+
+Les décisions viennent du fichier commité : la barrière voit ce que ton équipe a approuvé dans [Studio](/docs/review-in-studio) ou via un [client MCP](/docs/cli/mcp), en CI comme sur chaque machine. Le rapport lisible nomme les clés non relues, dix au plus par locale :
+
+```text
+review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
+  de: 2 unreviewed: checkout.title, checkout.total
+  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json
+```
+
+Avec `--json`, `result.review` porte le verdict et un `code` stable, et chaque locale de `result.locales` porte sa propre liste `review` :
+
+```ts
+interface CheckReviewSummary {
+  reviewed: boolean;             // false fails the gate
+  unreviewed: number;            // machine-written values not approved, summed over the locales
+  code?: "REVIEW_REQUIRED" | "REVIEW_STATE_UNREADABLE"; // present exactly when reviewed is false
+}
+
+interface LocaleReviewReport {
+  unreviewed: string[];          // keys, in source order
+}
+```
+
+`REVIEW_STATE_UNREADABLE` signifie que `verbatra.provenance.json` est corrompu ou a été écrit par une version plus récente de verbatra : aucune décision n'est lisible, donc la barrière échoue au lieu de laisser passer. La dérive donne toujours aussi la sortie `1`, et `--locales` restreint la barrière comme le reste de la vérification.
+
 ## Un seul fichier
 
 <AvailableFrom version="0.12.0" />
@@ -185,7 +216,7 @@ Le chemin est résolu par rapport à `--cwd` et comparé à `files.pattern` et `
 - Le fichier de la locale source n'est vérifié que pour sa syntaxe, puisqu'il n'y a rien à quoi le comparer. Ses clés qui ne sont pas de l'ICU valide sont listées sous `invalidSourceKeys`.
 - Pour `apple-xcstrings`, qui garde toutes les locales dans un seul catalogue, le catalogue est vérifié pour chaque locale cible.
 
-Un chemin qui n'est le fichier d'aucune locale configurée, ou un fichier qui n'existe pas, échoue avec `NOT_A_LOCALE_FILE` et sort avec `2`. `--severity` et `--strict` fonctionnent comme avec `--qa` ; `--locales` et `--consistency` sont refusés, parce que le fichier décide déjà de la locale.
+Un chemin qui n'est le fichier d'aucune locale configurée, ou un fichier qui n'existe pas, échoue avec `NOT_A_LOCALE_FILE` et sort avec `2`. `--severity` et `--strict` fonctionnent comme avec `--qa` ; `--locales`, `--consistency` et `--require-reviewed` sont refusés, parce que le fichier décide déjà de la locale.
 
 ```text
 verbatra check --file locales/de.json (target)
@@ -244,9 +275,9 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 
 | Code | Signification |
 | --- | --- |
-| `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète et, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement ni de pluriel incomplet, avec `--strict`) ; avec `--file`, le fichier n'a aucun constat d'erreur |
-| `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement ou un pluriel incomplet, avec `--strict`) ; avec `--file`, le fichier a un constat d'erreur, erreur de syntaxe comprise ; le rapport est quand même affiché |
-| `2` | impossible de s'exécuter : une erreur globale comme `NOT_A_LOCALE_FILE` pour un chemin `--file`, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue, une valeur `--severity` inconnue, `--severity` ou `--strict` sans `--qa` ni `--file`, `--strict` avec `--severity error`, ou `--file` avec `--locales` ou `--consistency`) |
+| `0` | synchronisé : aucune locale n'a de clé manquante ou obsolète, avec `--qa`, aucune valeur commitée n'a d'erreur (ni d'avertissement ni de pluriel incomplet, avec `--strict`) et, avec `--require-reviewed`, chaque traduction écrite par une machine est approuvée ; avec `--file`, le fichier n'a aucun constat d'erreur |
+| `1` | désynchronisé : au moins une locale a une clé manquante ou obsolète, ou avec `--qa` le contrôle qualité a trouvé une erreur (ou un avertissement ou un pluriel incomplet, avec `--strict`), ou avec `--require-reviewed` une traduction écrite par une machine n'est pas approuvée ; avec `--file`, le fichier a un constat d'erreur, erreur de syntaxe comprise ; le rapport est quand même affiché |
+| `2` | impossible de s'exécuter : une erreur globale comme `NOT_A_LOCALE_FILE` pour un chemin `--file`, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue, une valeur `--severity` inconnue, `--severity` ou `--strict` sans `--qa` ni `--file`, `--strict` avec `--severity error`, ou `--file` avec `--locales`, `--consistency` ou `--require-reviewed`) |
 
 La sortie `1` signifie "désynchronisé", pas un échec : l'exécution elle-même a réussi, le résultat n'est juste pas tout vert.
 

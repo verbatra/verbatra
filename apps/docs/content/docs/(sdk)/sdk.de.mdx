@@ -290,7 +290,7 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 <AvailableFrom version="0.9.0" />
 
 Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, stellt keine
-Netzwerkanfrage und liest nie einen API-Key-Wert. Zehn Prüfungen laufen, jede mit ihrem eigenen
+Netzwerkanfrage, außer `live` fordert eine an, und liest nie einen API-Key-Wert. Elf Prüfungen laufen, jede mit ihrem eigenen
 Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert (`config`), das
 konfigurierte Format löst zu einem Adapter auf (`format-adapter`), die konfigurierte Provider-ID
 löst zu einer Factory auf (`provider`), die Umgebungsvariable, aus der dieser Provider seinen Key
@@ -332,7 +332,21 @@ die Konfiguration aber nicht aufführt, etwa `pt_BR` nach einer Umschreibung zu 
 ob der nächste Lauf von `translate` sie übernimmt. Eine Datei, die sie nicht lesen kann, nennt das
 Detail.
 
-Eingabe: `{ cwd?, configPath?, literals?, onProgress? }`. Mit gesetztem `literals` führt `doctor` nur die
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung `locales` beurteilt die Quell-Locale und jede Ziel-Locale gegen die Sprachunterstützung
+des konfigurierten Providers, dasselbe Urteil, das `translate` fällt, bevor es etwas ausgibt. Sie
+schlägt bei einer Locale fehl, die der Provider nicht unterstützt, und besteht sonst mit Warnungen;
+für den Provider `none` ist sie `skipped`. Die Urteile je Locale stehen in `DoctorResult.locales`,
+einem `LocaleCapabilityReport` mit dem Code, als der jede Locale gesendet wird, ihrem `support`
+(`supported`, `unverified` oder `unsupported`), den Flags `glossary` und `formality` und ihren
+Warnungen. Mit `live: true` ruft `doctor` zuerst die aktuelle Sprachliste des Providers ab (DeepLs
+`/v3/languages`, `languages` von Cloud Translation), was kein Übersetzungskontingent verbraucht,
+sofern die Key-Variable des Providers gesetzt ist und die Netzwerkrichtlinie seinen Host erlaubt;
+`LocaleCapabilityReport.live` sagt, wie das ausging.
+Siehe [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
+
+Eingabe: `{ cwd?, configPath?, literals?, live?, onProgress? }`. Mit gesetztem `literals` führt `doctor` nur die
 Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
 Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
 [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. Keine geladene
@@ -376,7 +390,7 @@ optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member w
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
 (Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
 
-Eingabe: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
+Eingabe: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Gibt eine `CheckSummary` zurück, deren `inSync`
 genau dann true ist, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
 <AvailableFrom version="0.11.0" />
@@ -426,6 +440,14 @@ leer, wenn jeder Plural vollständig ist. Abgedeckt sind `i18next-json`, `androi
 `arb`. `other` ist immer Pflicht, ein Zweig mit exaktem Wert wie `=1` ersetzt nie eine Kategorie, und
 eine Kategorie, die die Sprache nicht verwendet, wird nicht gemeldet. Es ist eine Warnung: Sie ändert
 nie `inSync` oder eine Zahl. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien).
+
+Mit `requireReviewed: true` führt `check` zusätzlich das Review-Gate aus, ohne Key und ohne etwas
+zu schreiben: Jede `LocaleCheckSummary` trägt `review: { unreviewed }`, die Keys, deren Wert eine
+maschinelle Herkunft hat und nicht freigegeben ist, und die Zusammenfassung trägt
+`review: { reviewed, unreviewed, code? }`. `code` ist `REVIEW_REQUIRED`, wenn ein Wert nicht
+freigegeben ist, oder `REVIEW_STATE_UNREADABLE`, wenn die Herkunftsdatei beschädigt ist oder von
+einer neueren verbatra-Version stammt; dann scheitert das Gate, statt durchzulassen. Der Bericht
+ändert `inSync` nie; ein CI-Gate liest `review.reviewed`. Siehe [`verbatra check`](/docs/cli/check).
 
 ### checkFile
 
@@ -581,19 +603,24 @@ anzeigen.
 
 <AvailableFrom version="0.12.0" />
 
-Liest die Review-Warteschlange: die Keys, die der letzte Lauf markiert hat (der Schnappschuss von
-`runStatus`), abzüglich aller Keys, um die sich seitdem jemand gekümmert hat. Ein Flag verlässt die
-Warteschlange, sobald sein aktueller Wert in `verbatra.provenance.json` freigegeben oder abgelehnt
-ist, sobald eine Person einen neuen Wert geschrieben oder importiert hat oder sobald der Key keine
-Übersetzung mehr hat; einen Wert, den ein Agent neu geschrieben hat, behält sie. Weil die
-Entscheidungen aus committeten Dateien kommen, sieht jemand aus deinem Team mit demselben
-Run-Status dieselbe Warteschlange. Wirft nie: eine unbrauchbare Status-Datei ergibt
-`{ available: false }`, eine unlesbare Herkunftsdatei lässt die Flags ungefiltert, und eine Locale,
-deren Datei sich nicht lesen lässt, behält ihre Flags wie aufgezeichnet.
+Liest die Review-Warteschlange aus den committeten Dateien: jeden Key, dessen aktueller Wert eine
+maschinelle Herkunft hat (`machine`, `memory`, `fuzzy` oder `agent`, veröffentlicht als Tupel
+`MACHINE_CLASS_ORIGINS`) und nicht freigegeben ist, pro Ziel-Locale in der Reihenfolge der Quelle.
+Sie liest die Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json`, also sieht jede
+Person in deinem Team mit demselben Commit dieselbe Warteschlange. Ein Key verlässt sie, sobald sein
+Wert freigegeben oder abgelehnt ist oder eine Person einen neuen Wert schreibt oder importiert; ein
+Wert, den ein Agent neu geschrieben hat, bleibt, ebenso eine Freigabe von vor einer Änderung am
+Quelltext des Keys. Der Schnappschuss des letzten Laufs aus `runStatus` ergänzt nur Details: die
+`reasons` jedes Eintrags (leer, wenn der Lauf ihn nicht markiert hat), die `fuzzyHits` der Locale
+und `lastRunAt`.
 
-Eingabe: `{ config, cwd? }`. Gibt die Form von `runStatus` zurück, wobei jeder Eintrag in
-`needsReview` zusätzlich `provenance` trägt, die `KeyProvenance` seines aktuellen Werts, wenn die
-Herkunftsdatei lesbar ist.
+Eingabe: `{ config, cwd?, locales?, includeApproved? }`. Gibt `{ available: true, locales, lastRunAt? }`
+zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als
+`{ key, reasons, provenance }`; `approved` listet die freigegebenen maschinellen Werte und ist nur mit
+`includeApproved: true` vorhanden. Ist die Herkunftsdatei beschädigt oder stammt sie von einer
+neueren verbatra-Version, gibt sie `{ available: false, reason: "provenance-unreadable" }` zurück.
+Eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei
+`check`. Bis 0.11 bestand die Warteschlange nur aus den Markierungen des letzten Laufs.
 
 ## Operationen auf einzelnen Keys
 
@@ -754,6 +781,21 @@ Eingabe: wie bei `approveEntries`. Führt `rejectEntry` pro Eintrag aus und entf
 abgelehnten Wert. Ein erfolgreiches Ergebnis ist `{ ok: true, locale, key, provenance }`. Ein
 Sperr-Timeout überspringt die späteren Einträge, die diese Sperre brauchen, wie bei
 `approveEntries`.
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Eingabe: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. Gibt
+die ganze Review-Warteschlange einer Locale frei, oder nur ihre Werte mit einer der `origins`, in
+einem einzigen Schreibvorgang von `verbatra.provenance.json` unter der Schreibsperre der Locale.
+Jede Freigabe wird so festgehalten, wie `approveEntry` eine festhält, mit dem Quell-Hash, gegen den
+sie erteilt wurde. Sie nimmt keinen erwarteten Wert: Sie gibt frei, was beim Aufruf in der
+Warteschlange steht, zeig der prüfenden Person die Warteschlange also vorher. Gibt
+`{ locale, approved, sourceChanged }` zurück: die freigegebenen Keys und die Keys aus der
+Warteschlange, die ungeprüft bleiben, weil sich ihr Quelltext seit dem Schreiben geändert hat. Sie
+schreibt nur die Herkunftsdatei, ruft keinen Provider auf und scheitert mit
+`PROVENANCE_FILE_UNWRITABLE`, statt Freigaben zu melden, die sie nicht speichern konnte.
 
 ### retranslateEntries
 
@@ -1597,9 +1639,9 @@ Die Teile, die du kennen solltest:
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
   DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (Zustand unter einer Unterstrich-Schreibweise wie `pt_BR` wurde zum konfigurierten `pt-BR` verschoben; siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (dieses Verschieben bleibt dem nächsten Lauf überlassen, weil der Guard der Lock-Datei belegt blieb oder sich nicht lesen oder anlegen ließ oder eine Datei nicht geschrieben werden konnte; blieb nicht nur das Translation Memory zurück, lief die Locale nicht und scheiterte mit `LOCALE_STATE_NOT_CARRIED_OVER`) und `PROVENANCE_FILE_TOO_LARGE`
-  ab (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
-  die verbatra zurückliest, daher blieb die Datei, wie sie war). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
+  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (Zustand unter einer Unterstrich-Schreibweise wie `pt_BR` wurde zum konfigurierten `pt-BR` verschoben; siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (dieses Verschieben bleibt dem nächsten Lauf überlassen, weil der Guard der Lock-Datei belegt blieb oder sich nicht lesen oder anlegen ließ oder eine Datei nicht geschrieben werden konnte; blieb nicht nur das Translation Memory zurück, lief die Locale nicht und scheiterte mit `LOCALE_STATE_NOT_CARRIED_OVER`), `PROVENANCE_FILE_TOO_LARGE`
+  (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
+  die verbatra zurückliest, daher blieb die Datei, wie sie war) und ab 0.12.0 die vier Warnungen der Prüfung der Locale-Unterstützung, erhoben, bevor irgendetwas ausgegeben wird, und auch bei einem Dry-Run: `LOCALE_UNVERIFIED_BY_PROVIDER` (der gesendete Code steht nicht in der Tabelle des Providers, nur seine Grundsprache, oder er stammt aus `localeMap`), `LOCALE_NOT_WELL_TESTED` (ein LLM-Ziel außerhalb der gut getesteten Liste), `GLOSSARY_UNSUPPORTED_BY_PROVIDER` und `FORMALITY_UNSUPPORTED_BY_PROVIDER` (ein Glossar oder Tonfall, den der Provider für die Locale nicht anwenden kann). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
   sich alle Locales teilen) und wird deshalb an jede Locale des Laufs gehängt.
 - **usage** ist `undefined`, nie eine erfundene Null, wann immer nichts in diesem Bereich einen
   Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
@@ -1701,6 +1743,7 @@ geworfen.
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` hat seinen Ausgabepfad abgelehnt: einen, der außerhalb von `cwd` landet, und einen, der selbst oder über eine Datei, die der Export hineinschreiben würde, eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein `xlsx`-Pfad, der keine Datei oder `cwd` selbst benennt, wird ebenfalls abgelehnt; wird abgelehnt, bevor irgendetwas gelesen wird |
 | `EXPORT_UNWRITABLE` | die von `exportWorkbook` erzeugte Übergabe konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, ein Verzeichnis oder eine Datei liegt im Weg, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code, und der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | geworfen von `editEntry`, `retranslateEntry`, `approveEntry` und `rejectEntry`, die dann nichts schreiben, sonst steht er auf dem `error` einer Locale, die `translate`, `watch` oder `importWorkbook` nicht ausgeführt hat, weil ihr Zustand unter einem umgeschriebenen Code wie `pt_BR` in der Lock-Datei oder der Provenance-Datei nicht zu ihr verschoben werden konnte; der nächste Lauf versucht es erneut ([Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)) |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-Locale oder eine ausgewählte Ziel-Locale nicht in der Sprachtabelle, die verbatra mitliefert; geworfen von `translate` (auch bei einem Dry-Run und einer Schätzung), `watch` beim Start und `retranslateEntry`, bevor ein Provider gebaut, ein Key gelesen oder eine Locale gestartet wird; einer Locale, die explizit in `localeMap` abgebildet ist, wird stattdessen vertraut ([Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen)) |
 | `NOT_A_LOCALE_FILE` | `checkFile` hat einen Pfad bekommen, der zu keinem konfigurierten Locale gehört, oder dort gibt es keine Datei |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 

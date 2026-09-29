@@ -3,6 +3,7 @@ import { assertProviderNetworkPermitted } from "../config/network-policy.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorHint } from "../error-hints.js";
 import { describeError, SdkError } from "../errors.js";
+import { assertConfiguredLocalesSupported } from "../flow/locale-capabilities.js";
 import { selectLocales } from "../flow/select-locales.js";
 import type { RunSummary } from "../flow/summary.js";
 import { resolveRunConcurrency, type TranslateInput } from "../flow/translate-project.js";
@@ -153,6 +154,9 @@ export interface WatchController {
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locales` names a locale that is not a configured
  * target. Thrown once at startup, before any watching begins.
+ * @throws {@link SdkError} `LOCALE_UNSUPPORTED_BY_PROVIDER`: the configured machine-translation
+ * provider does not support the source locale or a watched target locale, according to its
+ * language table. Thrown once at startup, before any watching begins or any API key is read.
  * @throws {@link SdkError} `CONCURRENCY_INVALID`: `concurrency` is not an integer of at least 1.
  * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
  * milliseconds of at least 0.
@@ -196,7 +200,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   const debounceMs = input.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const fs = deps.fs ?? defaultFs;
 
-  selectLocales(input.config, input.locales);
+  assertConfiguredLocalesSupported(input.config, selectLocales(input.config, input.locales));
   resolveRunConcurrency(input.concurrency, false, input.config.maxTokens, false);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   assertProviderNetworkPermitted(input.config);

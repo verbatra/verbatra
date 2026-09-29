@@ -51,7 +51,7 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 - **Fourteen locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring `.properties`, Apple `.strings`/`.stringsdict`, Xcode String Catalogs, Android `strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx`.
 - **Six providers behind one interface.** Anthropic, OpenAI, Gemini, and any openai-compatible local or self-hosted server as LLMs, plus DeepL and Google Cloud Translation as machine translation, or `none` for a human-only project that never calls one.
 - **Incremental by default.** The lock file makes every run diff-driven, so a run over an unchanged project calls no provider at all.
-- **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift.
+- **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift; `verbatra check --require-reviewed` also fails while a machine-written translation is not approved.
 - **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, or TSV, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.
 - **Source-code extraction.** `verbatra extract` finds translation call sites in your application source and adds the new keys to the source locale; `diff --unused` names the keys nothing references any more.
 - **Spend before you spend.** `--dry-run` and `--estimate` preview a run without calling a provider, and `verbatra pseudo` builds a pseudolocale that exposes truncated layouts before you have a key at all.
@@ -89,7 +89,7 @@ A format or provider verbatra does not ship can be added from outside: the SDK r
 
 ## Studio
 
-`verbatra studio` starts Verbatra Studio, a local web dashboard over your project with four pages: translation status and diff, a needs-review queue you can approve, reject, and edit from the keyboard or in bulk, a live locale-file activity feed with the last run's token usage, and the resolved config with an editable glossary. Every page refreshes live as your locale files change.
+`verbatra studio` starts Verbatra Studio, a local web dashboard over your project with four pages: translation status and diff, a review queue of every machine-written translation nobody has approved, shared through the committed provenance file, that you can approve, reject, and edit from the keyboard, in bulk, or a whole locale at once, a live locale-file activity feed with the last run's token usage, and the resolved config with an editable glossary. Every page refreshes live as your locale files change.
 
 The server binds to `127.0.0.1` only and authenticates every request. Local editing is always on and runs through the same integrity gate a translate run applies. Actions that spend provider budget exist only when you start Studio with `--allow-spend`; without that flag, Studio never calls a provider.
 

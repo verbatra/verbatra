@@ -267,8 +267,8 @@ None of these call a provider, write a file, or mutate the lock.
 <AvailableFrom version="0.9.0" />
 
 Validates the project setup and spends nothing: it constructs no provider, makes no network
-request, and never reads an API key value. Ten checks run, each with its own `pass`, `fail`, or
-`skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
+request unless `live` asks for one, and never reads an API key value. Eleven checks run, each with
+its own `pass`, `fail`, or `skipped` verdict. Five cover the basics: the config loads and validates (`config`), the configured format resolves to an
 adapter (`format-adapter`), the configured provider ID resolves to a factory (`provider`), the
 environment variable that provider reads its key from is set (`api-key`), and the source locale file
 can be read (`source-file`). Every check runs even when an earlier one
@@ -306,7 +306,20 @@ locale the lock file, the translation memory, or the provenance file holds state
 does not list, such as `pt_BR` left behind after a respelling to `pt-BR`, and says whether the next
 `translate` run carries it over. A file it cannot read is named in the detail.
 
-Input: `{ cwd?, configPath?, literals?, onProgress? }`. With `literals` set, `doctor` runs only the `config`
+<AvailableFrom version="0.12.0" />
+
+The `locales` check judges the source locale and every target locale against the configured
+provider's language support, the same judgement `translate` makes before it spends anything. It
+fails on a locale the provider does not support and passes with warnings otherwise; it is `skipped`
+for the `none` provider. The per-locale verdicts travel in `DoctorResult.locales`, a
+`LocaleCapabilityReport` with the code each locale is sent as, its `support` (`supported`,
+`unverified`, or `unsupported`), `glossary` and `formality` flags, and its warnings. With
+`live: true`, `doctor` first fetches the provider's current language list (DeepL's `/v3/languages`,
+Cloud Translation's `languages`), which uses no translation quota, when the provider's key variable
+is set and the network policy permits its host; `LocaleCapabilityReport.live` says how that went.
+See [Language support](/docs/language-support#checking-support-before-a-run).
+
+Input: `{ cwd?, configPath?, literals?, live?, onProgress? }`. With `literals` set, `doctor` runs only the `config`
 check and an `untranslated-literals` check instead, scanning the source roots of the config's
 `extract` block, as [`verbatra doctor --literals`](/docs/cli/doctor#untranslated-literals) does. No
 loaded config needed: `doctor` loads it itself, so a project with no config at all still gets a
@@ -345,7 +358,7 @@ a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
 Reports per-locale drift as counts: `missing` (in source, absent from target), `stale` (source
 changed since last translated), and `upToDate`. Use it as a CI gate.
 
-Input: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity? }`. Returns a `CheckSummary` whose `inSync` is true
+Input: `{ config, cwd?, locales?, consistency?, qa?, qaSeverity?, requireReviewed? }`. Returns a `CheckSummary` whose `inSync` is true
 exactly when every checked locale has nothing missing and nothing stale.
 
 <AvailableFrom version="0.11.0" />
@@ -394,6 +407,14 @@ empty when every plural is complete. It covers `i18next-json`, `android-xml`, `a
 `other` is always required, an exact-value arm such as `=1` never stands in for a category, and a
 category the language does not use is not reported. It is a warning: it never changes `inSync` or
 a count. See [plural categories](/docs/cli/check#plural-categories).
+
+With `requireReviewed: true`, `check` also runs the review gate, keyless and without writing
+anything: each `LocaleCheckSummary` carries `review: { unreviewed }`, the keys whose value has a
+machine-class origin and is not approved, and the summary carries
+`review: { reviewed, unreviewed, code? }`. `code` is `REVIEW_REQUIRED` when a value is not approved,
+or `REVIEW_STATE_UNREADABLE` when the provenance file is corrupt or from a newer verbatra, which
+fails the gate rather than passing it. The report never changes `inSync`; a CI gate reads
+`review.reviewed`. See [Require reviewed translations](/docs/cli/check#require-reviewed-translations).
 
 ### checkFile
 
@@ -538,17 +559,21 @@ review queue and usage. Until it is upgraded, it may show an estimated budget as
 
 <AvailableFrom version="0.12.0" />
 
-Reads the review queue: the keys the last run flagged (the `runStatus` snapshot), minus every key
-dealt with since. A flag leaves the queue once its current value is approved or rejected in
-`verbatra.provenance.json`, once a person wrote or imported a new value for it, or once it has no
-translation any more; a value an agent rewrote stays. Because the decisions come from committed
-files, a teammate with the same run status sees the same queue. Never throws: an unusable status
-file gives `{ available: false }`, an unreadable provenance file leaves the flags unnarrowed, and a
-locale whose file cannot be read keeps its flags as recorded.
+Reads the review queue from the committed files: every key whose current value has a machine-class
+origin (`machine`, `memory`, `fuzzy`, or `agent`, published as the `MACHINE_CLASS_ORIGINS` tuple)
+and is not approved, per target locale, in source order. It reads the locale files,
+`verbatra.lock.json`, and `verbatra.provenance.json`, so every teammate with the same commit sees
+the same queue. A key leaves it once its value is approved or rejected, or a person writes or
+imports a new value; a value an agent rewrote stays, and so does an approval given before the key's
+source changed. The last run's `runStatus` snapshot only adds detail: each entry's `reasons` (empty
+when the run did not flag it), the locale's `fuzzyHits`, and `lastRunAt`.
 
-Input: `{ config, cwd? }`. Returns the `runStatus` shape, with each `needsReview` entry also
-carrying `provenance`, the `KeyProvenance` of its current value, when the provenance file is
-readable.
+Input: `{ config, cwd?, locales?, includeApproved? }`. Returns `{ available: true, locales, lastRunAt? }`,
+each locale `{ locale, needsReview, approved?, fuzzyHits? }` and each entry `{ key, reasons, provenance }`;
+`approved` lists the approved machine-class values and is present only with `includeApproved: true`.
+When the provenance file is corrupt or from a newer verbatra it returns
+`{ available: false, reason: "provenance-unreadable" }`. A source, target, or lock file that cannot
+be read fails the call as it fails `check`. Up to 0.11 the queue was the last run's flags only.
 
 ## Single-key operations
 
@@ -698,6 +723,19 @@ waiting again; entries of other locales are still decided. The single-entry `app
 Input: the same as `approveEntries`. Runs `rejectEntry` per entry, removing each rejected value. A
 successful outcome is `{ ok: true, locale, key, provenance }`. A lock timeout skips the later entries
 needing that lock, as in `approveEntries`.
+
+### approveLocale
+
+<AvailableFrom version="0.12.0" />
+
+Input: `{ config, cwd?, locale, origins?, reviewer?, onLockWait?, lockAcquireTimeoutMs? }`. Approves
+a locale's whole review queue, or only its values with one of `origins`, in one write of
+`verbatra.provenance.json`, under the locale's write lock. Each approval is recorded as
+`approveEntry` records one, with the source hash it was given against. It takes no expected value:
+it approves what the queue holds when it runs, so show the reviewer the queue first. Returns
+`{ locale, approved, sourceChanged }`: the keys approved, and the queued keys left unreviewed because
+their source changed since they were written. It writes only the provenance file, calls no provider,
+and fails with `PROVENANCE_FILE_UNWRITABLE` rather than report approvals it could not save.
 
 ### retranslateEntries
 
@@ -1474,8 +1512,8 @@ The parts worth knowing:
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
   degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
   `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
-  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read or created, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), and `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
-  grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was). The
+  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read or created, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
+  grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was), and, from 0.12.0, the four warnings of the locale support check, raised before anything is spent and on a dry run too: `LOCALE_UNVERIFIED_BY_PROVIDER` (the code sent is not on the provider's table, only its base language is or it comes from `localeMap`), `LOCALE_NOT_WELL_TESTED` (an LLM target outside the well-tested list), `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, and `FORMALITY_UNSUPPORTED_BY_PROVIDER` (a glossary or tone the provider cannot apply for the locale). The
   cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
   the run.
 - **usage** is `undefined`, never a fabricated zero, whenever nothing in that scope reported usage:
@@ -1574,6 +1612,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` refused its output path: one that resolves outside `cwd`, and one that, or a file the export would write into it, names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; an `xlsx` path that names no file or names `cwd` itself is refused too; refused before anything is read |
 | `EXPORT_UNWRITABLE` | the handoff `exportWorkbook` produces could not be written (its directory is not writable, a directory or file is in the way, or the disk is out of space); the message names the file and the file-system code, and the file-system error is the `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | thrown by `editEntry`, `retranslateEntry`, `approveEntry`, and `rejectEntry`, which write nothing then, and otherwise recorded on the `error` of a locale `translate`, `watch`, or `importWorkbook` did not run because its state under a respelled code such as `pt_BR` could not be moved to it in the lock file or the provenance file; the next run tries again ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)) |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | the configured DeepL or Google Cloud Translation provider does not list the source locale or a selected target locale in the language table verbatra ships; thrown by `translate` (a dry run and an estimate too), `watch` at startup, and `retranslateEntry`, before any provider is built, any key read, or any locale started; a locale mapped explicitly in `localeMap` is trusted instead ([Language support](/docs/language-support#checking-support-before-a-run)) |
 | `NOT_A_LOCALE_FILE` | `checkFile` was given a path that is not the file of any configured locale, or no file exists there |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 

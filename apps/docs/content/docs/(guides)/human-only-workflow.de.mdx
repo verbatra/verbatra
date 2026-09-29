@@ -18,7 +18,7 @@ Das schreibt eine Konfiguration, deren Provider-Block nur so aussieht, und keine
 provider: { id: "none" }
 ```
 
-Ein bestehendes Projekt stellst du genauso um: Ersetz seinen `provider`-Block durch `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) meldet dann "machine translation disabled by policy" und besteht seine Provider- und API-Key-Prüfung, ohne sich einen Key anzusehen.
+Ein bestehendes Projekt stellst du genauso um: Ersetz seinen `provider`-Block durch `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) meldet dann "machine translation disabled by policy", besteht seine Provider- und API-Key-Prüfung, ohne sich einen Key anzusehen, und überspringt seine Prüfung der Locale-Unterstützung, da keine Sprachliste eines Providers gilt.
 
 ## Was jeder Befehl macht
 

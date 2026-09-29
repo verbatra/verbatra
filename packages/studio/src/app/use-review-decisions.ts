@@ -1,3 +1,4 @@
+import type { MachineClassOrigin } from "@verbatra/sdk";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { budgetRefusal } from "../client/rate-budget.js";
 import {
@@ -62,6 +63,11 @@ export interface ReviewDecisions {
   readonly approve: (row: EntryRef, value: string) => void;
   readonly retranslate: (row: EntryRef) => void;
   readonly approveMany: (targets: readonly ValuedEntry[], onSettled: BatchSettled) => void;
+  readonly approveLocale: (
+    locale: string,
+    origins: readonly MachineClassOrigin[] | undefined,
+    onSettled: () => void,
+  ) => void;
   readonly rejectMany: (targets: readonly ValuedEntry[], onSettled: BatchSettled) => void;
   readonly retranslateMany: (rows: readonly EntryRef[], onSettled: BatchSettled) => void;
   readonly rejected: (target: EntryRef) => void;
@@ -224,6 +230,29 @@ export function useReviewDecisions(
     settleBatch(targets, summarizeReviewBatch(action, response), onSettled);
   }
 
+  async function approveLocale(
+    locale: string,
+    origins: readonly MachineClassOrigin[] | undefined,
+    onSettled: () => void,
+  ): Promise<void> {
+    const response = await rpcClient.call("review.approveLocale", {
+      locale,
+      ...(origins !== undefined ? { origins: [...origins] } : {}),
+    });
+    onSettled();
+    if (!response.ok) {
+      settle({ kind: "locale-failed", locale, message: response.error.message });
+      return;
+    }
+    settle({
+      kind: "locale-approved",
+      locale,
+      approved: response.result.approved.length,
+      sourceChanged: response.result.sourceChanged.length,
+    });
+    onDecided();
+  }
+
   async function retranslateMany(
     rows: readonly EntryRef[],
     onSettled: BatchSettled,
@@ -313,6 +342,7 @@ export function useReviewDecisions(
     approve: (row, value) => void approve(row, value),
     retranslate: (row) => void retranslate(row),
     approveMany: (targets, onSettled) => void decideMany("approve", targets, onSettled),
+    approveLocale: (locale, origins, onSettled) => void approveLocale(locale, origins, onSettled),
     rejectMany: (targets, onSettled) => void decideMany("reject", targets, onSettled),
     retranslateMany: (rows, onSettled) => void retranslateMany(rows, onSettled),
     rejected: (target) => {
@@ -323,7 +353,10 @@ export function useReviewDecisions(
       settle({ kind: "failed", action: "reject", ...target, message });
       onDecided();
     },
-    updated: (target) => settle({ kind: "updated", locale: target.locale, key: target.key }),
+    updated: (target) => {
+      settle({ kind: "updated", locale: target.locale, key: target.key });
+      onDecided();
+    },
     reloaded,
     awaitingReload: () => awaitingReload.current.size > 0,
   };

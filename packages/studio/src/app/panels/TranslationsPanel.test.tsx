@@ -10,7 +10,6 @@ import {
   flush,
   render,
   renderAsync,
-  reviewOverlayStore,
   rpcCalls,
   rpcError,
   selectOption,
@@ -20,6 +19,8 @@ import {
 import { TranslationsPanel } from "./TranslationsPanel.js";
 
 vi.mock("../api.js", () => import("../test-support.js").then((module) => module.apiMock()));
+
+const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
 
 const writeText = vi.fn<(text: string) => Promise<void>>();
 Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
@@ -353,7 +354,7 @@ describe("TranslationsPanel all-clear state", () => {
 
   it("keeps the integrity filter reachable when nothing is pending but a translation is broken", async () => {
     stubSyncedPage({
-      "review.queue": { ok: true, result: { available: false } },
+      "review.queue": { ok: true, result: { available: false, reason: "provenance-unreadable" } },
       "locale.integrity": {
         ok: true,
         result: {
@@ -1334,7 +1335,7 @@ describe("TranslationsPanel key overlays", () => {
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
   });
 
-  it("marks an accepted edit actioned for this session and returns to the drawer", async () => {
+  it("returns to the drawer after an accepted edit", async () => {
     stubPage({
       ...drawerStubs(),
       "translation.editEntry": { ok: true, result: { accepted: true, value: "Hallo" } },
@@ -1347,7 +1348,6 @@ describe("TranslationsPanel key overlays", () => {
     await clickAsync(view.getByText("button", "Save"));
     await flush();
 
-    expect(reviewOverlayStore.isActioned({ locale: "de", key: "app.title" })).toBe(true);
     expect(view.get('[role="dialog"]').getAttribute("aria-label")).toBe("Details for app.title");
   });
 });
@@ -1383,13 +1383,10 @@ function stubFilterPage(overrides: Stubs = {}): void {
       ok: true,
       result: {
         available: true,
-        version: 1,
-        generatedAt: "2026-05-04T10:15:00.000Z",
         locales: [
           {
             locale: "fr",
-            status: "succeeded",
-            needsReview: [{ key: "app.subtitle", reasons: ["EQUALS_SOURCE"] }],
+            needsReview: [{ key: "app.subtitle", reasons: ["EQUALS_SOURCE"], provenance: MACHINE }],
           },
         ],
       },
@@ -1473,19 +1470,6 @@ describe("TranslationsPanel key filters", () => {
       "Orphaned(1)",
       "Review queue(1)",
     ]);
-  });
-
-  it("leaves out an entry decided in this tab from the review queue group", async () => {
-    stubFilterPage();
-    const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
-    await switchToList(view);
-    await flush();
-
-    act(() => {
-      reviewOverlayStore.markActioned({ locale: "fr", key: "app.subtitle" });
-    });
-
-    expect(statusToggle(view, "review").textContent).toBe("Review queue0");
   });
 
   it("narrows the lists to the chosen statuses and hides a locale with none of them", async () => {

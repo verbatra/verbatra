@@ -167,8 +167,9 @@ die Aufbewahrungsbedingungen der Anbieter und eine Checkliste für ein AVV- oder
 
 <AvailableFrom version="0.9.0" />
 
-Neun Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
-lesen. Die ersten sechs können fehlschlagen; die letzten drei sind rein informativ und tun das nie:
+Elf Dinge, alle ohne Provider-Aufruf, ohne Netzwerk-Request und ohne einen API-Schlüssel-Wert zu
+lesen. Sieben können fehlschlagen; Plural rules, Plural completeness, Locale codes und Locale state
+sind rein informativ und tun das nie:
 
 - Configuration: Eine Konfigurationsdatei wurde gefunden und besteht die Validierung.
 - Format adapter: Das konfigurierte `format` löst sich zu einem Datei-Adapter auf.
@@ -179,14 +180,19 @@ lesen. Die ersten sechs können fehlschlagen; die letzten drei sind rein informa
   sich der konfigurierte Provider verbindet, und jeden Proxy, den er nutzen würde.
 - Source locale file: Die Quell-Locale-Datei existiert unter ihrem aufgelösten Pfad, ist eine
   reguläre Datei und lässt sich im konfigurierten Format parsen.
-- Plural rules, Locale codes und Locale state: die ICU- und CLDR-Versionen, aus denen die
-  Pluralkategorien stammen, konfigurierte Locale-Codes, die nicht in kanonischer BCP-47-Form sind,
+- Plural rules, Plural completeness, Locale codes und Locale state: die ICU- und CLDR-Versionen,
+  aus denen die Pluralkategorien stammen, Plurale in einer Ziel-Locale-Datei, denen eine Kategorie
+  fehlt, die ihre Sprache verwendet, konfigurierte Locale-Codes, die nicht in kanonischer BCP-47-Form sind,
   und Zustand, der für eine Locale zurückgeblieben ist, die die Konfiguration nicht mehr aufführt.
   Siehe [verbatra doctor](/docs/cli/doctor).
+- Locale support: Der Provider unterstützt die Quell-Locale und jede Ziel-Locale, beurteilt
+  gegen die Sprachtabelle, die verbatra für DeepL und Google Cloud Translation mitliefert (ab 0.12.0).
+  `verbatra doctor --locales` listet das Urteil je Locale. Siehe
+  [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
 Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes
 unabhängige Problem auf einmal. Die Ausnahme ist die Konfiguration selbst: Schlägt sie beim Laden
-fehl, werden die acht Prüfungen übersprungen, die sie brauchen.
+fehl, werden die zehn Prüfungen übersprungen, die sie brauchen.
 
 ```bash
 verbatra doctor

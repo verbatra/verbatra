@@ -20,6 +20,7 @@ import {
   REVIEW_REJECT_MANY_METHOD,
 } from "../shared/rpc/review-batch.js";
 import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
+import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import {
   PROJECT_SNAPSHOT_METHOD,
@@ -49,6 +50,7 @@ import {
   reviewRejectManyHandler,
 } from "./methods/review-batch.js";
 import { reviewApproveHandler, reviewRejectHandler } from "./methods/review-decision.js";
+import { reviewApproveLocaleHandler } from "./methods/review-locale.js";
 import { reviewQueueHandler } from "./methods/review-queue.js";
 import { snapshotHandler } from "./methods/snapshot.js";
 import { translatePendingHandler } from "./methods/translate-pending.js";
@@ -99,6 +101,7 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     [REVIEW_REJECT_METHOD]: reviewRejectHandler,
     [REVIEW_APPROVE_MANY_METHOD]: reviewApproveManyHandler,
     [REVIEW_REJECT_MANY_METHOD]: reviewRejectManyHandler,
+    [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleHandler,
     ...(capabilities.spend
       ? {
           [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,

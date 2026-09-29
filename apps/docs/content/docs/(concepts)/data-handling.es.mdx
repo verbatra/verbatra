@@ -53,7 +53,9 @@ Pueden llamar a un proveedor: `translate` y `watch`, el `retranslateEntry` del S
 de retraducir y de traducir pendientes en Studio y en el servidor MCP. Studio y el servidor MCP
 solo ofrecen esas acciones si los arrancas con `--allow-spend`. Todo lo demás, incluidos `check`,
 `diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`, `translate --dry-run` y
-`translate --estimate`, trabaja con archivos locales y no envía nada.
+`translate --estimate`, trabaja con archivos locales y no envía nada. La única excepción es
+`verbatra doctor --live`, que pide a DeepL o a Google Cloud Translation su lista de idiomas actual,
+enviando tu clave de API y nada de tu proyecto, y no consume cuota de traducción.
 
 Una ejecución de `translate` envía solo las claves que faltan o cambiaron respecto al
 [archivo de bloqueo](/docs/the-lock-file), menos todas las que la
@@ -68,8 +70,8 @@ nunca se escribe en el archivo de locale. Una clave fijada no se envía nunca. C
 Cada petición empieza con una consulta DNS del nombre de host del proveedor a través del resolvedor
 de tu sistema, así que el resolvedor ve ese nombre. Con una [política de red](/docs/network-policy)
 `local-only` o `allowlist`, verbatra además resuelve el nombre por su cuenta para comprobarlo,
-salvo que sea una dirección IP o figure por nombre en `allowedHosts`. `verbatra doctor`, las
-ejecuciones en seco y las estimaciones no resuelven nada.
+salvo que sea una dirección IP o figure por nombre en `allowedHosts`. `verbatra doctor` sin
+`--live`, las ejecuciones en seco y las estimaciones no resuelven nada.
 
 ## Qué recibe cada proveedor
 

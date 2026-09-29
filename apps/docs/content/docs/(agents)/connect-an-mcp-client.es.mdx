@@ -313,7 +313,7 @@ El cloud agent trabaja en GitHub, no en tu máquina. Una persona con permisos de
 }
 ```
 
-Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir traducciones y términos del glosario en su pull request. Deja el gasto desactivado: la instrucción del servidor de esperar tu sí antes de una herramienta de gasto no puede cumplirse cuando no se pregunta a nadie. Si aun así quieres permitirlo a propósito, necesitas las tres cosas, y cada una es una decisión aparte:
+Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir traducciones y términos del glosario en su pull request. Deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona, y un agente que aprueba su propia salida es justo lo que `check --require-reviewed` debe detectar. Deja el gasto desactivado: la instrucción del servidor de esperar tu sí antes de una herramienta de gasto no puede cumplirse cuando no se pregunta a nadie. Si aun así quieres permitirlo a propósito, necesitas las tres cosas, y cada una es una decisión aparte:
 
 - un secreto de Agents con el prefijo `COPILOT_MCP_`, por ejemplo `COPILOT_MCP_ANTHROPIC_API_KEY`, creado en **Settings**, **Secrets and variables**, **Agents**. Solo los secretos con ese prefijo llegan a una configuración MCP, y se pasan a los servidores MCP, no al propio agente;
 - `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` y `--allow-spend` en `args`, para que la configuración contenga una referencia, nunca el valor;

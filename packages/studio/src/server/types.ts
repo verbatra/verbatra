@@ -146,13 +146,14 @@ export interface StudioServerDeps {
   readonly glossaryWriteRateLimitMax?: number;
   /**
    * Rolling window in milliseconds for the rate limits of `review.approve`, `review.reject`,
-   * `review.approveMany`, and `review.rejectMany`, each counted on its own. Defaults to 60000.
+   * `review.approveMany`, `review.rejectMany`, and `review.approveLocale`, each counted on its
+   * own. Defaults to 60000.
    */
   readonly reviewDecisionRateLimitWindowMs?: number;
   /**
-   * How many calls of each of `review.approve`, `review.reject`, `review.approveMany`, and
-   * `review.rejectMany` the window allows before `METHOD_RATE_LIMITED`, a batch counting as one
-   * call. Defaults to 60.
+   * How many calls of each of `review.approve`, `review.reject`, `review.approveMany`,
+   * `review.rejectMany`, and `review.approveLocale` the window allows before
+   * `METHOD_RATE_LIMITED`, a batch or a whole locale counting as one call. Defaults to 60.
    */
   readonly reviewDecisionRateLimitMax?: number;
 }

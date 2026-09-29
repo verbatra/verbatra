@@ -80,4 +80,4 @@ Una petición rechazada en este punto hace fallar su sub-lote con el error de pr
 
 ## Compruébala con doctor
 
-[`verbatra doctor`](/docs/cli/doctor) informa de la política efectiva, de dónde viene cada parte, del host al que se conecta el proveedor configurado y de si ese host está permitido. Falla cuando el host se rechaza o una variable de entorno tiene un valor no válido, y como el resto de `doctor`, no resuelve nombres ni envía nada.
+[`verbatra doctor`](/docs/cli/doctor) informa de la política efectiva, de dónde viene cada parte, del host al que se conecta el proveedor configurado y de si ese host está permitido. Falla cuando el host se rechaza o una variable de entorno tiene un valor no válido, y como el resto de `doctor`, no resuelve nombres ni envía nada. La única petición que `doctor` puede enviar, la lista de idiomas que obtiene `verbatra doctor --live`, está sujeta a la misma política: un host rechazado significa que no hay petición, y uno permitido se vuelve a comprobar cuando se envía.

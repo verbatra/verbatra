@@ -3,8 +3,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach } from "vitest";
 import { budgetTracking, createRateBudget, type RateBudget } from "../client/rate-budget.js";
 import type { ConnectionStatus } from "../client/reconnect.js";
-import type { ReviewOverlayStore } from "../client/review-overlay.js";
-import { createReviewOverlayStore } from "../client/review-overlay.js";
 import type { RpcClient } from "../client/rpc-client.js";
 import type { SessionStore } from "../client/state.js";
 import { createSessionStore } from "../client/state.js";
@@ -168,14 +166,12 @@ let stores = freshStores();
 
 function freshStores(): {
   session: SessionStore;
-  overlay: ReviewOverlayStore;
   agentTools: AgentToolsStatusStore;
   rateBudget: RateBudget;
 } {
   return {
     rateBudget: createRateBudget(),
     session: createSessionStore(),
-    overlay: createReviewOverlayStore(),
     agentTools: createAgentToolsStatusStore(),
   };
 }
@@ -184,12 +180,6 @@ export const sessionStore: SessionStore = {
   getState: () => stores.session.getState(),
   markSessionExpired: () => stores.session.markSessionExpired(),
   subscribe: (listener) => stores.session.subscribe(listener),
-};
-
-export const reviewOverlayStore: ReviewOverlayStore = {
-  isActioned: (entry) => stores.overlay.isActioned(entry),
-  markActioned: (entry) => stores.overlay.markActioned(entry),
-  subscribe: (listener) => stores.overlay.subscribe(listener),
 };
 
 export const rateBudget: RateBudget = {
@@ -249,7 +239,6 @@ export interface AppApiModule {
   readonly rpcClient: RpcClient;
   readonly rateBudget: RateBudget;
   readonly sessionStore: SessionStore;
-  readonly reviewOverlayStore: ReviewOverlayStore;
   readonly agentToolsStatusStore: AgentToolsStatusStore;
   readonly refreshBus: typeof refreshBus;
   readonly connectionStore: typeof connectionStore;
@@ -260,7 +249,6 @@ export function apiMock(): AppApiModule {
     rpcClient: budgetTracking({ call: callRpc } as unknown as RpcClient, rateBudget),
     rateBudget,
     sessionStore,
-    reviewOverlayStore,
     agentToolsStatusStore,
     refreshBus,
     connectionStore,

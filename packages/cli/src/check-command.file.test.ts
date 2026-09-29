@@ -83,7 +83,8 @@ describe("run check --file: usage errors", () => {
   it.each([
     [["--locales", "de"], "--locales"],
     [["--consistency"], "--consistency"],
-    [["--locales", "de", "--consistency"], "--locales and --consistency"],
+    [["--require-reviewed"], "--require-reviewed"],
+    [["--locales", "de", "--consistency"], "--locales, --consistency"],
   ])("rejects %j next to --file", async (flags, named) => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();

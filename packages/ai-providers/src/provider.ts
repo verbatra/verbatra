@@ -3,6 +3,8 @@ import { PLURAL_CATEGORIES, translationEntrySchema } from "@verbatra/core";
 import { z } from "zod";
 import { ProviderError } from "./errors.js";
 import { type LocaleGlossary, localeGlossarySchema } from "./glossary.js";
+import type { LocaleNormalizer } from "./locale-map.js";
+import type { ProviderNetwork } from "./network/transport.js";
 
 /**
  * A provider is either a prompt-driven LLM (`llm`) or a dedicated machine-translation API
@@ -304,6 +306,46 @@ export interface TranslationProvider {
    */
   translateBatch(request: TranslateRequest): Promise<TranslateResult>;
 }
+
+export interface ProviderLanguage {
+  readonly code: string;
+  readonly source: boolean;
+  readonly target: boolean;
+  readonly glossary: boolean;
+  readonly formality: boolean;
+}
+
+export type ProviderLanguageTableOrigin = "static" | "live";
+
+export interface ProviderLanguageTable {
+  readonly version: string;
+  readonly origin: ProviderLanguageTableOrigin;
+  readonly documentation: readonly string[];
+  readonly languages: readonly ProviderLanguage[];
+}
+
+export interface LiveLanguageRequest {
+  readonly network?: ProviderNetwork;
+}
+
+interface LanguageCodeMapping {
+  readonly toSourceCode: LocaleNormalizer;
+  readonly toTargetCode: LocaleNormalizer;
+}
+
+export interface ListedLanguageSupport extends LanguageCodeMapping {
+  readonly coverage: "listed";
+  readonly table: ProviderLanguageTable;
+  readonly fetchLive?: (request: LiveLanguageRequest) => Promise<ProviderLanguageTable>;
+}
+
+export interface OpenLanguageSupport extends LanguageCodeMapping {
+  readonly coverage: "open";
+  readonly version: string;
+  readonly wellTestedLanguages: readonly string[];
+}
+
+export type ProviderLanguageSupport = ListedLanguageSupport | OpenLanguageSupport;
 
 const requestDataSchema = z.object({
   sourceLocale: z.string().min(1),

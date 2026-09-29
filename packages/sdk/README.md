@@ -115,7 +115,7 @@ Name the keys that would be added, re-translated, or orphaned per locale. Calls 
 
 ### `doctor(input?, deps?): Promise<DoctorResult>`
 
-Validate the config, the format adapter, the provider, its key variable, and the source locale file in one pass, reporting every problem at once. Reads no key value. See [`verbatra doctor`](https://verbatra.kreitz-webdev.de/docs/cli/doctor).
+Validate the config, the format adapter, the provider, its key variable, the network policy, the source locale file, and whether the provider supports every configured locale in one pass, reporting every problem at once. Reads no key value. `translate` refuses a locale the provider does not support with `LOCALE_UNSUPPORTED_BY_PROVIDER` before anything is spent. See [`verbatra doctor`](https://verbatra.kreitz-webdev.de/docs/cli/doctor).
 
 ### `extract(input, deps?): Promise<ExtractResult>`
 
@@ -149,9 +149,9 @@ The remaining exports are the building blocks Verbatra Studio, the MCP server, a
 | --- | --- |
 | `editEntry`, `retranslateEntry` | Save a manual translation for one key, or re-run the provider for one key. Both run the candidate through the same integrity gate as a full run and hold the same per-locale write lock; a rejection names an `IntegrityGateReason` and writes nothing |
 | `retranslateEntries` | Re-run the provider for a batch of keys, one outcome per entry, holding each locale's write lock once |
-| `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries` | Record a human review decision for one key or a batch; a rejection removes the translation so the key reads as missing and the next run fills it again |
+| `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`, `approveLocale` | Record a human review decision for one key, a batch, or a whole locale's queue; a rejection removes the translation so the key reads as missing and the next run fills it again |
 | `BatchInterruptedError` | Thrown by the batch calls when an unexpected error stops them, carrying the outcomes of the entries already decided |
-| `reviewQueue`, `loadProvenance`, `PROVENANCE_FILE_NAME` | Read the keys waiting for human review, and the provenance file that records who wrote each translation and its review state |
+| `reviewQueue`, `loadProvenance`, `PROVENANCE_FILE_NAME`, `MACHINE_CLASS_ORIGINS` | Read every machine-written translation nobody has approved, from the committed files, and the provenance file that records who wrote each translation and its review state |
 | `keyValue`, `localeValues` | Read one key's current source and target values, or a whole locale's key/value pairs |
 | `keyIntegrity` | Report, per changed key, whether its placeholders, inline markup, and ICU still match the locked baseline |
 | `localeIntegrity` | Report, per locale, only the keys whose current translation fails the placeholder, inline markup, or ICU check |

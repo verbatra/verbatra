@@ -41,7 +41,7 @@ Then open the printed loopback URL in your WebMCP-capable browser. The agent on 
 
 ## The tool catalog
 
-With the opt-in on, Studio registers eighteen tools. Without `--allow-spend` it registers sixteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
+With the opt-in on, Studio registers twenty tools. Without `--allow-spend` it registers eighteen: the two spend tools are omitted entirely. Tool names are prefixed and use underscores (for example `verbatra_project_snapshot`).
 
 ### Read tools (fourteen)
 
@@ -56,7 +56,7 @@ Inspect project state without changing anything. These are marked read-only.
 | `verbatra_lock_state` | the lock file's state |
 | `verbatra_history_list` | recent locale file commit history |
 | `verbatra_key_integrity` | placeholder, inline markup, ICU, and ICU arm integrity for a key |
-| `verbatra_review_queue` | the needs-review queue |
+| `verbatra_review_queue` | every machine-written value nobody has approved yet, from the committed files |
 | `verbatra_usage_summary` | the last run's token usage and budget |
 | `verbatra_key_value` | the source and target values for one key and locale |
 | `verbatra_locale_values` | the source and target values for every key across every target locale |
@@ -78,13 +78,15 @@ Since `@verbatra/studio` 0.6.0, `verbatra_key_value` and `verbatra_locale_values
 
 `verbatra_key_context` returns what the dashboard's editor shows for one key and locale: `source`, `target` and its `provenance` when a value exists, `description` when the source file gives one, and `glossary`, the terms whose source occurs in the source text as `{ terms, doNotTranslate }` with the translation and forbidden renderings that locale is held to, and `maxLength` when the config sets a length budget for the key. Pass the value you mean to write as the optional `draft` parameter and the result also carries `draftCheck`: for each applying term, `targetUsed` and `forbiddenUsed`, and for each term to keep untranslated, `kept`, judged by the rules a translate run uses to flag a translation for review. Glossary values pass through the same redaction as `verbatra_glossary_get`.
 
-The dashboard's **Approve** and **Reject** buttons have no agent tool, with or without spend: a review decision is a person's call. `verbatra_review_queue` leaves out every entry decided since the run, but keeps one an agent edited, since that edit still needs a person's look.
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+The review queue comes from the committed files: `verbatra_review_queue` lists every value whose origin is `machine`, `memory`, `fuzzy`, or `agent` and that nobody has approved, the same queue every teammate sees, and keeps a value an agent edited, since that edit still needs a person's look. Its optional `includeApproved` parameter also lists the approved ones. Up to `@verbatra/studio` 0.6.0 it listed only the last run's flags, and the dashboard's **Approve** and **Reject** buttons had no agent tool.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 The Review page's bulk actions, **Approve selected**, **Reject selected**, and **Retranslate selected**, have no agent tool either. A batch decision is still a person's call, and a batch retranslation would let one agent call spend on up to 20 entries at once, so an agent retranslates one entry per `verbatra_translation_retranslateEntry` call. A batch retranslation from the dashboard draws on the same budget as single retranslations, one slot per entry, so together they never pass 20 retranslated entries per rolling minute.
 
-### Write tools (two)
+### Write tools (four)
 
 `verbatra_translation_editEntry` edits one locale's value in place. It goes through the same integrity gate as every other verbatra write: a value that fails any of its checks is rejected and nothing is written. An accepted edit writes the locale file and advances the key's lock entry, exactly as a dashboard edit does. Editing needs no spend flag; it touches only your local files and never calls a provider, but it is not ungated: it is rate limited at 20 edits per rolling minute, and a second call for the same locale and key while one is still in flight is rejected with `ALREADY_IN_PROGRESS` (HTTP 409) rather than queued, so two callers cannot race on one entry.
 
@@ -99,6 +101,10 @@ An edit through `verbatra_translation_editEntry` is recorded with the origin `ag
 <AvailableFrom version="0.4.0" pkg="@verbatra/studio" />
 
 `verbatra_glossary_write` changes one glossary term, and returns the glossary as it now stands: a translation for all locales or for one `locale`, that locale's `forbidden` renderings, a `note`, a `partOfSpeech`, `caseSensitive`, or with `doNotTranslate` whether the term stays untranslated in every locale. A `translation` of `null` clears that translation, and the term is removed once nothing else is left. It works only on a file-backed glossary: a glossary written inline in the config, or no glossary at all, is refused rather than converted, and no parameter names a file, since the target comes from the loaded config alone. Like editing, it spends nothing and is registered without `--allow-spend`. It is rate limited at 20 writes per rolling minute.
+
+<AvailableFrom version="0.7.0" pkg="@verbatra/studio" />
+
+`verbatra_review_approve` and `verbatra_review_reject` record a review decision on one key's current value, exactly as the dashboard's **Approve** and **Reject** buttons do, in `verbatra.provenance.json`. They exist so a person can have the agent relay a decision, never so an agent approves its own work: both descriptions tell the agent to call them only on the user's explicit instruction, and both require `reviewer`, the name of the person who decided, 1 to 64 characters, stored in the committed file. Each also takes `locale`, `key`, and `expectedValue`, the text the user reviewed; a different current value is refused with `REVIEW_VALUE_CHANGED`. `verbatra_review_reject` removes the value so it gets replaced, with no undo on this surface. Both share the review decision rate limit, 60 calls per rolling minute by default. **Approve all in** a locale, like the other bulk actions, has no agent tool.
 
 ### Spend tools (two)
 
@@ -132,7 +138,7 @@ Registration has three possible outcomes, and only one of them is a problem.
 
 **Nothing attempted, nothing reported.** When `document.modelContext` is absent (a browser without WebMCP, or Chrome without the flag) or when you did not opt in, Studio attempts no registration at all. The dashboard is unchanged and the console stays quiet. That is the designed no-op, not a failure.
 
-**Sixteen tools and no notice.** Without `--allow-spend`, Studio attempts sixteen registrations rather than eighteen: the two spend tools are skipped before they are ever attempted. Sixteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
+**Eighteen tools and no notice.** Without `--allow-spend`, Studio attempts eighteen registrations rather than twenty: the two spend tools are skipped before they are ever attempted. Eighteen tools is the healthy count for a session without spend, so their absence is the expected state and never raises a notice.
 
 **The notice.** If Studio attempted a registration and the browser rejected it, the dashboard renders a warning at the top of the content area, on every view:
 
@@ -149,10 +155,10 @@ A failing tool never cancels the ones after it, so every tool that did register 
 Studio writes one aggregate line at error level, not one line per tool, because a shared cause fails every tool identically:
 
 ```text
-Verbatra agent tools: 2 of 18 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
+Verbatra agent tools: 2 of 20 tool registrations failed. verbatra_status_diff (SecurityError: ...); verbatra_key_value (SecurityError: ...)
 ```
 
-The first sentence gives how many of the attempted registrations failed, and out of how many attempts: eighteen here, because this session was started with `--allow-spend`, and sixteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
+The first sentence gives how many of the attempted registrations failed, and out of how many attempts: twenty here, because this session was started with `--allow-spend`, and eighteen in a session without it. Each failing tool then follows as `name (ErrorName: message)`, separated by semicolons. The error name identifies the cause: it is the `name` of the value the browser rejected with, usually a `DOMException` such as `SecurityError` or `InvalidStateError`.
 
 A pass that never reached the per-tool loop reports a different line and does not raise the notice:
 

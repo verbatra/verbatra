@@ -5,6 +5,7 @@ import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../share
 import { agentEditEntryParamsSchema } from "../shared/rpc/edit-entry.js";
 import { HUMAN_ONLY_METHOD_NAMES } from "../shared/rpc/human-only.js";
 import { agentRetranslateEntryParamsSchema } from "../shared/rpc/retranslate-entry.js";
+import { agentReviewDecisionParamsSchema } from "../shared/rpc/review-decision.js";
 import type { ProjectSnapshotResult } from "../shared/rpc/snapshot.js";
 import { type ModelContext, registerAgentTools, type WebMcpTool } from "./register-tools.js";
 import type { AgentToolsRegistration } from "./registration-report.js";
@@ -38,6 +39,8 @@ const READ_TOOLS = [
 const WRITE_AND_SPEND_TOOLS = [
   "translation.editEntry",
   "glossary.write",
+  "review.approve",
+  "review.reject",
   "translation.retranslateEntry",
   "translation.translatePending",
 ] as const;
@@ -59,6 +62,8 @@ const UNTRUSTED_TOOLS = [
   "translation.translatePending",
   "translation.estimate",
   "glossary.write",
+  "review.approve",
+  "review.reject",
 ] as const;
 
 const TEXT_FREE_TOOLS = [
@@ -246,26 +251,28 @@ describe("registerAgentTools no-ops", () => {
 });
 
 describe("registerAgentTools registration set", () => {
-  it("registers the fourteen read tools and the two unpriced write tools, but no spend tool, when spend is false", async () => {
+  it("registers the fourteen read tools and the four unpriced write tools, but no spend tool, when spend is false", async () => {
     const { tools } = await registerWith(SNAPSHOT_ON);
     const names = tools.map((tool) => tool.name);
 
-    expect(tools).toHaveLength(16);
+    expect(tools).toHaveLength(18);
     for (const name of READ_TOOLS) {
       expect(names).toContain(expectedName(name));
     }
     expect(names).toContain(expectedName("translation.editEntry"));
     expect(names).toContain(expectedName("glossary.write"));
+    expect(names).toContain(expectedName("review.approve"));
+    expect(names).toContain(expectedName("review.reject"));
     for (const name of SPEND_TOOLS) {
       expect(names).not.toContain(expectedName(name));
     }
   });
 
-  it("registers all eighteen tools when spend is true", async () => {
+  it("registers all twenty tools when spend is true", async () => {
     const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
     const names = tools.map((tool) => tool.name);
 
-    expect(tools).toHaveLength(18);
+    expect(tools).toHaveLength(20);
     for (const name of [...READ_TOOLS, ...WRITE_AND_SPEND_TOOLS]) {
       expect(names).toContain(expectedName(name));
     }
@@ -321,15 +328,15 @@ describe("registerAgentTools registration report", () => {
   it("reports every attempted tool as registered when the surface accepts them all", async () => {
     const { registration } = await registerWith(SNAPSHOT_ON);
 
-    expect(registration.attempted).toBe(16);
-    expect(registration.registered).toHaveLength(16);
+    expect(registration.attempted).toBe(18);
+    expect(registration.registered).toHaveLength(18);
     expect(registration.failures).toEqual([]);
   });
 
   it("counts the two spend tools among the attempts once spend is granted", async () => {
     const { registration } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
 
-    expect(registration.attempted).toBe(18);
+    expect(registration.attempted).toBe(20);
     expect(registration.failures).toEqual([]);
   });
 
@@ -359,8 +366,8 @@ describe("registerAgentTools failure reporting", () => {
     const registration = await registerWithContext(SNAPSHOT_ON, context);
     const registeredNames = tools.map((tool) => tool.name);
 
-    expect(registration.attempted).toBe(16);
-    expect(registration.registered).toHaveLength(15);
+    expect(registration.attempted).toBe(18);
+    expect(registration.registered).toHaveLength(17);
     expect(registration.failures).toEqual([
       { tool: refused, errorName: "SecurityError", message: "registration refused" },
     ]);
@@ -386,7 +393,7 @@ describe("registerAgentTools failure reporting", () => {
       expect(registration.failures).toEqual([
         { tool: refused, errorName: "SecurityError", message: "registration refused" },
       ]);
-      expect(registration.registered).toHaveLength(15);
+      expect(registration.registered).toHaveLength(17);
       expect(tools.map((tool) => tool.name)).toContain(expectedName("key.value"));
     } finally {
       process.off("unhandledRejection", onUnhandled);
@@ -400,16 +407,16 @@ describe("registerAgentTools failure reporting", () => {
     const second = await registerWithContext(SNAPSHOT_ON, context);
 
     expect(first.failures).toEqual([]);
-    expect(first.registered).toHaveLength(16);
+    expect(first.registered).toHaveLength(18);
     expect(second.registered).toEqual([]);
-    expect(second.failures).toHaveLength(16);
+    expect(second.failures).toHaveLength(18);
     expect(new Set(second.failures.map((failure) => failure.errorName))).toEqual(
       new Set(["InvalidStateError"]),
     );
     expect(second.failures.map((failure) => failure.tool)).toContain(
       expectedName("project.snapshot"),
     );
-    expect(tools).toHaveLength(16);
+    expect(tools).toHaveLength(18);
   });
 });
 
@@ -427,6 +434,8 @@ function schemaParamNames(method: RpcMethodName): Set<string> {
   const agentSchemas: Partial<Record<RpcMethodName, z.ZodType>> = {
     "translation.editEntry": agentEditEntryParamsSchema,
     "translation.retranslateEntry": agentRetranslateEntryParamsSchema,
+    "review.approve": agentReviewDecisionParamsSchema,
+    "review.reject": agentReviewDecisionParamsSchema,
   };
   const agentSchema = agentSchemas[method] ?? rpcParamsSchemas[method];
   const schema = z.toJSONSchema(agentSchema) as {
@@ -455,15 +464,20 @@ describe("registerAgentTools: review decisions stay with a person", () => {
     expect(names).not.toContain("verbatra_translation_retranslateEntries");
   });
 
-  it("never registers approve or reject, even with every capability granted", async () => {
+  it("registers approve and reject for one entry, with a reviewer the agent must name", async () => {
     const { tools, registration } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
     const names = tools.map((tool) => tool.name);
 
-    expect(names).not.toContain("verbatra_review_approve");
-    expect(names).not.toContain("verbatra_review_reject");
-    expect(names).toHaveLength(18);
+    expect(names).toContain("verbatra_review_approve");
+    expect(names).toContain("verbatra_review_reject");
+    expect(names).not.toContain("verbatra_review_approveLocale");
     expect(names).toHaveLength(RPC_METHOD_NAMES.length - HUMAN_ONLY_METHOD_NAMES.length);
     expect(registration.attempted).toBe(names.length);
+    for (const name of ["verbatra_review_approve", "verbatra_review_reject"]) {
+      expect(toolByName(tools, name).inputSchema).toMatchObject({
+        required: ["locale", "key", "expectedValue", "reviewer"],
+      });
+    }
   });
 });
 

@@ -26,10 +26,11 @@ const EXPECTED_METHOD_NAMES = [
   "review.rejectMany",
   "translation.retranslateEntries",
   "translation.inFlight",
+  "review.approveLocale",
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the twenty-four agreed method names, no more, no fewer", () => {
+  it("contains exactly the twenty-five agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });
@@ -60,7 +61,8 @@ describe("rpcParamsSchemas", () => {
       { locale: "de", key: "greeting" },
       { locale: "", key: "greeting" },
     ],
-    ["review.queue", {}, { extra: true }],
+    ["review.queue", { includeApproved: true }, { extra: true }],
+    ["review.approveLocale", { locale: "de", origins: ["fuzzy"] }, { locale: "de", origins: [] }],
     [
       "translation.editEntry",
       { locale: "de", key: "greeting", value: "Hallo" },
@@ -76,8 +78,8 @@ describe("rpcParamsSchemas", () => {
     ["usage.summary", {}, { extra: true }],
     [
       "review.approve",
-      { locale: "de", key: "greeting", expectedValue: "Hallo" },
       { locale: "de", key: "greeting", expectedValue: "Hallo", reviewer: "mk" },
+      { locale: "de", key: "greeting", expectedValue: "Hallo", reviewer: "" },
     ],
     [
       "review.reject",

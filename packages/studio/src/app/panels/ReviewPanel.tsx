@@ -1,17 +1,23 @@
+import type { MachineClassOrigin } from "@verbatra/sdk";
 import type { ChangeEvent, ReactNode, Ref } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyValuePair } from "../../client/filter.js";
 import { localeValuesOrEmpty, valuesIndex } from "../../client/locale-values.js";
 import { canRetranslateReviewed } from "../../client/retranslate-eligibility.js";
-import { filterReviewRows, uniqueReviewLocales } from "../../client/review-filter.js";
+import {
+  filterReviewRows,
+  REVIEW_ORIGIN_LABELS,
+  REVIEW_STATE_LABELS,
+  uniqueReviewLocales,
+} from "../../client/review-filter.js";
 import {
   elapsedSeconds,
   hasRunningRetranslation,
   type PendingRow,
   type RowBusyAction,
 } from "../../client/review-in-flight.js";
-import type { ReviewQueueRow } from "../../client/review-queue-data.js";
-import { reviewedValueFor, visibleReviewQueueRows } from "../../client/review-queue-data.js";
+import type { QueueReviewState, ReviewQueueRow } from "../../client/review-queue-data.js";
+import { flattenReviewQueue, reviewedValueFor } from "../../client/review-queue-data.js";
 import {
   bulkBusyNote,
   bulkDecisionBlocker,
@@ -34,7 +40,7 @@ import {
 import { MAX_RETRANSLATE_BATCH_ENTRIES } from "../../shared/rpc/retranslate-entries.js";
 import { MAX_REVIEW_BATCH_ENTRIES } from "../../shared/rpc/review-batch.js";
 import type { StudioCapabilities } from "../../shared/rpc/snapshot.js";
-import { reviewOverlayStore } from "../api.js";
+import { ApproveLocaleDialog } from "../ApproveLocaleDialog.js";
 import { BulkRejectDialog, type BulkRejectEntry } from "../BulkRejectDialog.js";
 import { Button } from "../Button.js";
 import { Checkbox } from "../Checkbox.js";
@@ -43,6 +49,7 @@ import { ErrorMessage } from "../ErrorMessage.js";
 import { SearchInput } from "../Input.js";
 import { cn } from "../lib/cn.js";
 import { PageHeader } from "../PageHeader.js";
+import { ProvenanceBadge } from "../ProvenanceBadge.js";
 import type { PanelProps } from "../panel-props.js";
 import { RejectEntryDialog } from "../RejectEntryDialog.js";
 import { ReviewBulkBar, type ReviewBulkBarProps } from "../ReviewBulkBar.js";
@@ -74,7 +81,6 @@ import {
   rowId,
   useReviewDecisions,
 } from "../use-review-decisions.js";
-import { useReviewOverlaySignal } from "../use-review-overlay-signal.js";
 import { useReviewQueue } from "../use-review-queue.js";
 
 interface EditingTarget {
@@ -156,6 +162,7 @@ function RowActionsFor({
     <ReviewRowActions
       wrap={wrap}
       decisionDisabled={value === undefined}
+      approveDisabled={row.reviewState === "approved"}
       busy={actions.busyOf(row)}
       shortcutsActive={actions.activeId === rowId(row)}
       onApprove={() => {
@@ -171,6 +178,15 @@ function RowActionsFor({
       onEdit={() => actions.onEdit(row, false)}
       onRetranslate={onRetranslate === undefined ? undefined : () => onRetranslate(row)}
     />
+  );
+}
+
+function RowWhy({ row }: { readonly row: ReviewQueueRow }): ReactNode {
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      <ProvenanceBadge provenance={{ origin: row.origin, reviewState: row.reviewState }} />
+      <ReviewReasonChips reasons={row.reasons} />
+    </span>
   );
 }
 
@@ -218,14 +234,14 @@ function ReviewRow({
         <ReviewEntry row={row} value={value} />
         {wide ? null : (
           <div className="mt-2 space-y-2" data-row-stacked="">
-            <ReviewReasonChips reasons={row.reasons} />
+            <RowWhy row={row} />
             {canWrite ? <RowActionsFor row={row} value={value} actions={actions} wrap /> : null}
           </div>
         )}
       </TableCell>
       {wide ? (
         <TableCell>
-          <ReviewReasonChips reasons={row.reasons} />
+          <RowWhy row={row} />
         </TableCell>
       ) : null}
       {wide && canWrite ? (
@@ -291,28 +307,54 @@ function ReviewTable({
   );
 }
 
-function ReviewFilterBar({
+export interface ReviewFacets {
+  readonly locale: string;
+  readonly origin: MachineClassOrigin | "";
+  readonly reviewState: QueueReviewState;
+}
+
+const ALL_FACETS: ReviewFacets = { locale: "", origin: "", reviewState: "unreviewed" };
+
+const ORIGIN_OPTIONS = Object.keys(REVIEW_ORIGIN_LABELS) as readonly MachineClassOrigin[];
+
+const STATE_OPTIONS = Object.keys(REVIEW_STATE_LABELS) as readonly QueueReviewState[];
+
+function isOrigin(value: string): value is MachineClassOrigin {
+  return (ORIGIN_OPTIONS as readonly string[]).includes(value);
+}
+
+function FacetSelects({
   locales,
-  locale,
-  query,
-  onLocaleChange,
-  onQueryChange,
-  onShowShortcuts,
-  matchCount,
-  searchRef,
+  facets,
+  onFacetsChange,
 }: {
   readonly locales: readonly string[];
-  readonly locale: string;
-  readonly query: string;
-  readonly onLocaleChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  readonly onShowShortcuts: () => void;
-  readonly matchCount: number;
-  readonly searchRef: Ref<HTMLInputElement>;
+  readonly facets: ReviewFacets;
+  readonly onFacetsChange: (facets: ReviewFacets) => void;
 }): ReactNode {
   return (
-    <FilterBar label="Review queue filters">
-      <Select aria-label="Filter by locale" value={locale} onChange={onLocaleChange}>
+    <>
+      <Select
+        aria-label="Filter by review state"
+        value={facets.reviewState}
+        onChange={(event) =>
+          onFacetsChange({
+            ...facets,
+            reviewState: event.target.value === "approved" ? "approved" : "unreviewed",
+          })
+        }
+      >
+        {STATE_OPTIONS.map((state) => (
+          <option key={state} value={state}>
+            {REVIEW_STATE_LABELS[state]}
+          </option>
+        ))}
+      </Select>
+      <Select
+        aria-label="Filter by locale"
+        value={facets.locale}
+        onChange={(event) => onFacetsChange({ ...facets, locale: event.target.value })}
+      >
         <option value="">All locales</option>
         {locales.map((code) => (
           <option key={code} value={code}>
@@ -320,6 +362,57 @@ function ReviewFilterBar({
           </option>
         ))}
       </Select>
+      <Select
+        aria-label="Filter by origin"
+        value={facets.origin}
+        onChange={(event) =>
+          onFacetsChange({
+            ...facets,
+            origin: isOrigin(event.target.value) ? event.target.value : "",
+          })
+        }
+      >
+        <option value="">All origins</option>
+        {ORIGIN_OPTIONS.map((origin) => (
+          <option key={origin} value={origin}>
+            {REVIEW_ORIGIN_LABELS[origin]}
+          </option>
+        ))}
+      </Select>
+    </>
+  );
+}
+
+export interface ApproveAllAction {
+  readonly locale: string;
+  readonly count: number;
+  readonly onClick: () => void;
+}
+
+function ReviewFilterBar({
+  locales,
+  facets,
+  query,
+  onFacetsChange,
+  onQueryChange,
+  onShowShortcuts,
+  matchCount,
+  searchRef,
+  approveAll,
+}: {
+  readonly locales: readonly string[];
+  readonly facets: ReviewFacets;
+  readonly query: string;
+  readonly onFacetsChange: (facets: ReviewFacets) => void;
+  readonly onQueryChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  readonly onShowShortcuts: () => void;
+  readonly matchCount: number;
+  readonly searchRef: Ref<HTMLInputElement>;
+  readonly approveAll: ApproveAllAction | undefined;
+}): ReactNode {
+  return (
+    <FilterBar label="Review queue filters">
+      <FacetSelects locales={locales} facets={facets} onFacetsChange={onFacetsChange} />
       <SearchInput
         ref={searchRef}
         aria-label="Filter by key or translation text"
@@ -330,6 +423,11 @@ function ReviewFilterBar({
       <span className="text-sm text-muted-foreground">
         {matchCount} {matchCount === 1 ? "entry" : "entries"}
       </span>
+      {approveAll !== undefined ? (
+        <Button variant="secondary-success" onClick={approveAll.onClick} data-approve-locale="">
+          Approve all in {approveAll.locale} ({approveAll.count})…
+        </Button>
+      ) : null}
       <Button
         variant="ghost"
         className="ms-auto"
@@ -351,7 +449,7 @@ export function ReviewPanel({ refreshToken }: PanelProps): ReactNode {
       <PageHeader
         kicker="Workspace"
         title="Review"
-        description="Entries the most recent run flagged that nobody has approved, rejected, or rewritten yet. Decisions are saved to verbatra.provenance.json; commit it to share them."
+        description="Every translation a provider, the translation memory, or an agent wrote that nobody has approved yet, read from the committed files. Decisions are saved to verbatra.provenance.json; commit it to share them with your team."
       />
       <ReviewPanelBody refreshToken={refreshToken} />
     </>
@@ -519,7 +617,6 @@ function ReviewDialogs({
           reviewReasons={editing.reasons}
           onClose={onCloseEditor}
           onAccepted={(acceptedLocale, key) => {
-            reviewOverlayStore.markActioned({ locale: acceptedLocale, key });
             decisions.updated({ locale: acceptedLocale, key });
             onCloseEditor();
           }}
@@ -666,25 +763,27 @@ function handleShortcut(action: ReviewShortcutAction, context: ShortcutContext):
 function ReviewQueueContent({
   rows,
   filtered,
-  locale,
+  facets,
   query,
-  onLocaleChange,
+  onFacetsChange,
   onQueryChange,
   onShowShortcuts,
   bulk,
   capabilities,
   actions,
+  approveAll,
 }: {
   readonly rows: readonly ReviewQueueRow[];
   readonly filtered: readonly ReviewQueueRow[];
-  readonly locale: string;
+  readonly facets: ReviewFacets;
   readonly query: string;
-  readonly onLocaleChange: (locale: string) => void;
+  readonly onFacetsChange: (facets: ReviewFacets) => void;
   readonly onQueryChange: (query: string) => void;
   readonly onShowShortcuts: () => void;
   readonly bulk: BulkSelection;
   readonly capabilities: StudioCapabilities | undefined;
   readonly actions: RowActions;
+  readonly approveAll: ApproveAllAction | undefined;
 }): ReactNode {
   const searchRef = useRef<HTMLInputElement | null>(null);
   if (rows.length === 0) {
@@ -698,15 +797,18 @@ function ReviewQueueContent({
     <>
       <ReviewFilterBar
         locales={uniqueReviewLocales(rows)}
-        locale={locale}
+        facets={facets}
         query={query}
-        onLocaleChange={(event) => onLocaleChange(event.target.value)}
+        onFacetsChange={onFacetsChange}
         onQueryChange={(event) => onQueryChange(event.target.value)}
         onShowShortcuts={onShowShortcuts}
         matchCount={filtered.length}
         searchRef={searchRef}
+        approveAll={approveAll}
       />
-      {capabilities?.writeToDisk === true ? <ReviewBulkBar {...bulk.bar} /> : null}
+      {capabilities?.writeToDisk === true ? (
+        <ReviewBulkBar {...bulk.bar} approveDisabled={facets.reviewState === "approved"} />
+      ) : null}
       {filtered.length === 0 ? (
         <EmptyState
           icon="search"
@@ -714,7 +816,7 @@ function ReviewQueueContent({
           action={
             <Button
               onClick={() => {
-                onLocaleChange("");
+                onFacetsChange(ALL_FACETS);
                 onQueryChange("");
                 searchRef.current?.focus();
               }}
@@ -723,7 +825,7 @@ function ReviewQueueContent({
             </Button>
           }
         >
-          No flagged entry matches the current filters.
+          No entry matches the current filters.
         </EmptyState>
       ) : (
         <ReviewTable
@@ -778,6 +880,23 @@ function busyFor(
   };
 }
 
+function approveAllFor(
+  facets: ReviewFacets,
+  count: number,
+  canWrite: boolean,
+  open: (action: ApproveAllAction) => void,
+): ApproveAllAction | undefined {
+  if (!canWrite || facets.reviewState !== "unreviewed" || facets.locale === "" || count === 0) {
+    return undefined;
+  }
+  const action: ApproveAllAction = {
+    locale: facets.locale,
+    count,
+    onClick: () => open(action),
+  };
+  return action;
+}
+
 function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const [reloadToken, setReloadToken] = useState(0);
   const view = useReviewQueue(refreshToken, reloadToken);
@@ -785,12 +904,12 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   const capabilities =
     capabilitiesState.kind === "loaded" ? capabilitiesState.capabilities : undefined;
   const spend = canRetranslateReviewed(capabilities);
-  useReviewOverlaySignal();
   const [editing, setEditing] = useState<EditingTarget | null>(null);
   const [rejecting, setRejecting] = useState<RejectingTarget | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [locale, setLocale] = useState("");
+  const [facets, setFacets] = useState<ReviewFacets>(ALL_FACETS);
   const [query, setQuery] = useState("");
+  const [approvingLocale, setApprovingLocale] = useState<ApproveAllAction | null>(null);
   const localeValues = localeValuesOrEmpty(useLocaleValues(refreshToken, reloadToken));
   const values = useMemo(() => valuesIndex(localeValues), [localeValues]);
   const decisions = useReviewDecisions(() => setReloadToken((current) => current + 1), {
@@ -806,14 +925,27 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     }
   }, [view, settleReload]);
 
-  const rows =
-    view.kind === "data" && view.data.available
-      ? visibleReviewQueueRows(view.data, reviewOverlayStore)
-      : [];
-  const filtered = filterReviewRows(rows, { locale: locale === "" ? null : locale, query }, values);
+  const rows = view.kind === "data" ? flattenReviewQueue(view.data) : [];
+  const filterOf = (search: string) => ({
+    locale: facets.locale === "" ? null : facets.locale,
+    query: search,
+    origin: facets.origin === "" ? null : facets.origin,
+    reviewState: facets.reviewState,
+  });
+  const filtered = filterReviewRows(rows, filterOf(query), values);
+  const approveAll = approveAllFor(
+    facets,
+    filterReviewRows(rows, filterOf("")).length,
+    capabilities?.writeToDisk === true,
+    setApprovingLocale,
+  );
   const active = useActiveRow(filtered);
   const settledFocus = useSettledFocus(
-    view.kind === "data" && !decisions.awaitingReload() && editing === null && rejecting === null,
+    view.kind === "data" &&
+      !decisions.awaitingReload() &&
+      editing === null &&
+      rejecting === null &&
+      approvingLocale === null,
     active.focusActive,
   );
   const settledCount = decisions.settledCount;
@@ -841,15 +973,17 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     onToggleSelected: bulk.toggle,
   };
 
-  useReviewShortcuts(editing === null && rejecting === null && bulk.rejecting === null, (action) =>
-    handleShortcut(action, {
-      helpOpen,
-      setHelpOpen,
-      active,
-      canWrite: capabilities?.writeToDisk === true,
-      actions,
-      toggleSelected: bulk.toggle,
-    }),
+  useReviewShortcuts(
+    editing === null && rejecting === null && bulk.rejecting === null && approvingLocale === null,
+    (action) =>
+      handleShortcut(action, {
+        helpOpen,
+        setHelpOpen,
+        active,
+        canWrite: capabilities?.writeToDisk === true,
+        actions,
+        toggleSelected: bulk.toggle,
+      }),
   );
 
   if (view.kind === "loading") {
@@ -865,8 +999,9 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
   }
   if (!view.data.available) {
     return (
-      <EmptyState icon="review" title="No run recorded yet">
-        Run <code>verbatra translate</code> or <code>verbatra watch</code> to populate this queue.
+      <EmptyState icon="review" title="Review state cannot be read">
+        <code>verbatra.provenance.json</code> is corrupt or was written by a newer verbatra. Restore
+        it from version control or upgrade verbatra.
       </EmptyState>
     );
   }
@@ -878,15 +1013,31 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
       <ReviewQueueContent
         rows={rows}
         filtered={filtered}
-        locale={locale}
+        facets={facets}
         query={query}
-        onLocaleChange={setLocale}
+        onFacetsChange={setFacets}
         onQueryChange={setQuery}
         onShowShortcuts={() => setHelpOpen(true)}
         bulk={bulk}
         capabilities={capabilities}
         actions={actions}
+        approveAll={approveAll}
       />
+      {approvingLocale !== null ? (
+        <ApproveLocaleDialog
+          locale={approvingLocale.locale}
+          count={approvingLocale.count}
+          originLabel={facets.origin === "" ? null : REVIEW_ORIGIN_LABELS[facets.origin]}
+          onConfirm={(settled) =>
+            decisions.approveLocale(
+              approvingLocale.locale,
+              facets.origin === "" ? undefined : [facets.origin],
+              settled,
+            )
+          }
+          onClose={() => setApprovingLocale(null)}
+        />
+      ) : null}
       <ReviewDialogs
         helpOpen={helpOpen}
         spend={spend}

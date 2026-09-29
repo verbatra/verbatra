@@ -13,7 +13,7 @@ export function useReviewQueue(
 
   useEffect(() => {
     let cancelled = false;
-    void rpcClient.call("review.queue", {}).then((response) => {
+    void rpcClient.call("review.queue", { includeApproved: true }).then((response) => {
       if (cancelled) {
         return;
       }

@@ -21,6 +21,9 @@ import {
   type InconsistencyGroup,
   type IntegrityRefusal,
   type LiteralScan,
+  type LocaleCapability,
+  type LocaleCapabilityReport,
+  type LocaleCapabilityWarning,
   type LocaleCheckSummary,
   type LocaleDiff,
   type LocaleFileCheck,
@@ -414,7 +417,42 @@ export function renderCheckHuman(summary: CheckSummary): string {
     ...renderIncompletePlurals(summary, "--qa --strict"),
     ...renderConsistencyReport(summary),
     ...renderQaReport(summary),
+    ...renderReviewReport(summary),
   ].join("\n");
+}
+
+const LISTED_UNREVIEWED_KEYS = 10;
+
+function renderUnreviewedKeys(keys: readonly string[]): string {
+  const listed = keys.slice(0, LISTED_UNREVIEWED_KEYS).map(neutralizeControlCharacters).join(", ");
+  const rest = keys.length - LISTED_UNREVIEWED_KEYS;
+  return rest > 0 ? `${listed}, and ${rest} more` : listed;
+}
+
+function renderReviewReport(summary: CheckSummary): readonly string[] {
+  const review = summary.review;
+  if (review === undefined) {
+    return [];
+  }
+  if (review.code === "REVIEW_STATE_UNREADABLE") {
+    return [
+      "review: failed [REVIEW_STATE_UNREADABLE] verbatra.provenance.json is corrupt or from a newer verbatra, so no review state can be read",
+    ];
+  }
+  if (review.reviewed) {
+    return ["review: every machine-written translation is approved"];
+  }
+  return [
+    `review: failed [REVIEW_REQUIRED] ${plural(review.unreviewed, "machine-written translation")} not approved`,
+    ...summary.locales.flatMap((locale) =>
+      locale.review === undefined || locale.review.unreviewed.length === 0
+        ? []
+        : [
+            `  ${locale.locale}: ${locale.review.unreviewed.length} unreviewed: ${renderUnreviewedKeys(locale.review.unreviewed)}`,
+          ],
+    ),
+    "  approve or reject them in verbatra studio's Review queue, then commit verbatra.provenance.json",
+  ];
 }
 
 function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
@@ -624,7 +662,48 @@ function renderLiteralLines(scan: LiteralScan | undefined): readonly string[] {
   ];
 }
 
-export function renderDoctorHuman(result: DoctorResult): string {
+function yesNo(value: boolean): string {
+  return value ? "yes" : "no";
+}
+
+function renderCapabilityWarnings(warnings: readonly LocaleCapabilityWarning[]): readonly string[] {
+  return warnings.map((warning) => `      warning [${warning.code}] ${warning.message}`);
+}
+
+function renderTargetCapability(entry: LocaleCapability): readonly string[] {
+  return [
+    `    ${entry.locale}  sent as ${entry.providerCode}${entry.mapped ? " (localeMap)" : ""}  ` +
+      `${entry.support}  glossary: ${yesNo(entry.glossary)}  formality: ${yesNo(entry.formality)}`,
+    ...renderCapabilityWarnings(entry.warnings),
+  ];
+}
+
+function renderLocaleCapabilities(report: LocaleCapabilityReport | undefined): readonly string[] {
+  if (report === undefined) {
+    return [];
+  }
+  const table =
+    report.coverage === "open"
+      ? `accepts any locale, well-tested list of ${report.tableVersion}`
+      : `language table of ${report.tableVersion}, ${report.tableOrigin}`;
+  const { source } = report;
+  return [
+    `  locale support (${report.provider}, ${table})`,
+    ...(report.live === undefined
+      ? []
+      : [`    live language list ${report.live.status}: ${report.live.detail}`]),
+    `    ${source.locale}  sent as ${source.providerCode}${source.mapped ? " (localeMap)" : ""}  ` +
+      `source, ${source.support}`,
+    ...renderCapabilityWarnings(source.warnings),
+    ...report.locales.flatMap(renderTargetCapability),
+  ];
+}
+
+export interface DoctorRenderOptions {
+  readonly locales?: boolean;
+}
+
+export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOptions = {}): string {
   const lines = result.checks.flatMap((entry) => [
     `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
     ...(entry.fix === undefined ? [] : [`         fix: ${entry.fix}`]),
@@ -635,7 +714,13 @@ export function renderDoctorHuman(result: DoctorResult): string {
     : failed === 1
       ? "1 problem found (run verbatra doctor again after fixing it)"
       : `${failed} problems found (run verbatra doctor again after fixing them)`;
-  return ["verbatra doctor", ...lines, ...renderLiteralLines(result.literals), trailer].join("\n");
+  return [
+    "verbatra doctor",
+    ...lines,
+    ...renderLiteralLines(result.literals),
+    ...(options.locales === true ? renderLocaleCapabilities(result.locales) : []),
+    trailer,
+  ].join("\n");
 }
 
 const DIFF_GROUP_WIDTH = 14;
