@@ -463,6 +463,10 @@ samp {
   display: none;
 }
 
+.vk-breadcrumb a:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
 #nd-toc a,
 [data-toc-popover-content] a {
   overflow-wrap: normal;
