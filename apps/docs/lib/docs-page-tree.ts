@@ -41,6 +41,28 @@ function firstPageUrl(folder: PageTree.Folder): string | undefined {
   return undefined;
 }
 
+const COMMAND_PAGE = /\/docs\/cli\/([a-z-]+)$/;
+
+function shortCommandLabel(page: PageTree.Item): PageTree.Item {
+  const command = COMMAND_PAGE.exec(page.url)?.[1];
+  if (command === undefined || page.name !== `verbatra ${command}`) return page;
+  return { ...page, name: command };
+}
+
+function withShortLabels(node: PageTree.Node): PageTree.Node {
+  if (node.type === "page") return shortCommandLabel(node);
+  if (node.type !== "folder") return node;
+  return {
+    ...node,
+    ...(node.index ? { index: shortCommandLabel(node.index) } : {}),
+    children: node.children.map(withShortLabels),
+  };
+}
+
+export function withShortCommandLabels(tree: PageTree.Root): PageTree.Root {
+  return { ...tree, children: tree.children.map(withShortLabels) };
+}
+
 export function rootTabs(tree: PageTree.Root): LayoutTab[] {
   return tree.children.filter(isRootFolder).flatMap((folder) => {
     const url = firstPageUrl(folder);

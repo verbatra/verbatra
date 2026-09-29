@@ -46,6 +46,7 @@ vi.mock("@/lib/docs-page-tree", () => ({
   rootTabs: () => [],
   withExpandedNewGroups: <T,>(tree: T) => tree,
   withLlmsLinks: async <T,>(tree: T) => tree,
+  withShortCommandLabels: <T,>(tree: T) => tree,
 }));
 vi.mock("@/lib/docs-status-badges", () => ({
   withStatusBadges: async <T,>(tree: T) => tree,

@@ -3,7 +3,12 @@ import type { ReactNode } from "react";
 import { LegalFooter } from "@/components/legal-footer";
 import { DocsSiteHeader } from "@/components/site-header";
 import { withGroupLabels } from "@/lib/docs-group-labels";
-import { rootTabs, withExpandedNewGroups, withLlmsLinks } from "@/lib/docs-page-tree";
+import {
+  rootTabs,
+  withExpandedNewGroups,
+  withLlmsLinks,
+  withShortCommandLabels,
+} from "@/lib/docs-page-tree";
 import { withStatusBadges } from "@/lib/docs-status-badges";
 import { toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
@@ -20,7 +25,10 @@ export default async function Layout({
   const locale = toLocale(lang);
   const tree = withGroupLabels(
     withExpandedNewGroups(
-      await withStatusBadges(await withLlmsLinks(source.getPageTree(locale), locale), locale),
+      await withStatusBadges(
+        withShortCommandLabels(await withLlmsLinks(source.getPageTree(locale), locale)),
+        locale,
+      ),
     ),
   );
   const { nav, ...base } = await baseOptions(locale);
