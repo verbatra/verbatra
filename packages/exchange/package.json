@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Translator interchange for verbatra: build and read styled Excel workbooks over a neutral, format-agnostic row model, and read and write TMX translation memory.",
+  "description": "Translator interchange for verbatra: build and read styled Excel workbooks over a neutral, format-agnostic row model, read and write TMX translation memory, and build and read XLIFF 1.2 and 2.0 handoff files.",
   "keywords": [
     "i18n",
     "internationalization",

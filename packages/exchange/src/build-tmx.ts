@@ -1,4 +1,6 @@
-import { countIllegalXmlCharacters, stripIllegalXmlCharacters } from "./xml-character.js";
+import { bcp47 } from "./language-tag.js";
+import { countIllegalXmlCharacters } from "./xml-character.js";
+import { escapeAttribute, escapeText } from "./xml-escape.js";
 
 export interface TmxTranslation {
   readonly language: string;
@@ -19,41 +21,6 @@ export interface BuildTmxInput {
 const CREATION_TOOL = "verbatra";
 
 const UNKNOWN_TOOL_VERSION = "unknown";
-
-function escapeText(raw: string): string {
-  return stripIllegalXmlCharacters(raw)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\r", "&#13;");
-}
-
-const REGION_SUBTAG = /^[a-z]{2}$/i;
-
-const SCRIPT_SUBTAG = /^[a-z]{4}$/i;
-
-function casedSubtag(subtag: string): string {
-  const lower = subtag.toLowerCase();
-  if (REGION_SUBTAG.test(subtag)) {
-    return subtag.toUpperCase();
-  }
-  return SCRIPT_SUBTAG.test(subtag) ? `${lower.charAt(0).toUpperCase()}${lower.slice(1)}` : lower;
-}
-
-function bcp47(tag: string): string {
-  const [language = "", ...rest] = tag.replaceAll("_", "-").split("-");
-  const singleton = rest.findIndex((subtag) => subtag.length === 1);
-  const cased = singleton === -1 ? rest.length : singleton;
-  return [
-    language.toLowerCase(),
-    ...rest.slice(0, cased).map(casedSubtag),
-    ...rest.slice(cased).map((subtag) => subtag.toLowerCase()),
-  ].join("-");
-}
-
-function escapeAttribute(raw: string): string {
-  return escapeText(raw).replaceAll('"', "&quot;");
-}
 
 function tuv(language: string, text: string): string {
   return `      <tuv xml:lang="${escapeAttribute(bcp47(language))}"><seg>${escapeText(text)}</seg></tuv>`;
