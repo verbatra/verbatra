@@ -111,7 +111,7 @@ verbatra: diffing and scanning the source... done (0.8s)
 next: verbatra translate (send the pending keys to your provider)
 ```
 
-When every pending key is protected, a run would leave them all alone, so it suggests `verbatra studio` to review or edit them instead, and `verbatra check` says the same in its out-of-sync line.
+When every pending key is protected, a run would leave them all alone, so it suggests `verbatra studio` to review or edit them instead, and `verbatra check` says the same in its out-of-sync line. Under `provider: { id: "none" }`, where no run can fill a key, both point at the human handoff instead: `diff` suggests `verbatra export`, and `check`'s out-of-sync line names `verbatra export` and `verbatra studio`.
 
 These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
 

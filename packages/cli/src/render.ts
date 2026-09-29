@@ -405,7 +405,10 @@ function renderProtectedCount(count: number | undefined): string {
   return count === undefined || count === 0 ? "" : ` (${count} protected)`;
 }
 
-function outOfSyncLine(summary: CheckSummary): string {
+function outOfSyncLine(summary: CheckSummary, machineTranslation: boolean): string {
+  if (!machineTranslation) {
+    return "out of sync (machine translation is disabled: hand the keys to a translator with verbatra export, or edit them in verbatra studio)";
+  }
   const everyStaleKeyProtected =
     summary.locales.some((locale) => locale.stale > 0) &&
     summary.locales.every(
@@ -416,14 +419,16 @@ function outOfSyncLine(summary: CheckSummary): string {
     : "out of sync (run verbatra translate to update)";
 }
 
-export function renderCheckHuman(summary: CheckSummary): string {
+export function renderCheckHuman(summary: CheckSummary, machineTranslation = true): string {
   const localeLines = summary.locales.map(
     (l) =>
       `  ${l.locale}: ${l.missing} missing, ${l.stale} stale${renderProtectedCount(l.protected)}, ${l.upToDate} up-to-date (${
         l.inSync ? "in sync" : "out of sync"
       })`,
   );
-  const overall = summary.inSync ? "all locales in sync" : outOfSyncLine(summary);
+  const overall = summary.inSync
+    ? "all locales in sync"
+    : outOfSyncLine(summary, machineTranslation);
   return [
     "verbatra check",
     ...localeLines,

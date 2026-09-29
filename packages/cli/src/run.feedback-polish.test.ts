@@ -79,6 +79,58 @@ describe("translate: progress and hints", () => {
   );
 });
 
+describe("provider none: next steps point at the human handoff", () => {
+  const HAND_OFF =
+    "next: verbatra export (hand the keys that need a person to a translator, or edit them in verbatra studio)\n";
+
+  it("check says out of sync with the handoff, never translate", async () => {
+    const { out } = await runWith(["check"], {
+      loadConfig: async () => humanOnly,
+      check: async () =>
+        makeCheckSummary({
+          inSync: false,
+          locales: [{ locale: "de", missing: 1, stale: 0, upToDate: 1, inSync: false }],
+        }),
+    });
+
+    expect(out).not.toContain("verbatra translate");
+    expect(out).toContain(
+      "out of sync (machine translation is disabled: hand the keys to a translator with verbatra export, or edit them in verbatra studio)",
+    );
+  });
+
+  it("diff points at export for the pending keys", async () => {
+    const { err } = await runWith(["diff"], {
+      loadConfig: async () => humanOnly,
+      diff: async () => makeDiffSummary({ hasPendingChanges: true }),
+    });
+
+    expect(err).not.toContain("verbatra translate");
+    expect(err).toContain(HAND_OFF);
+  });
+
+  it("a dry run with nothing to fill points at check, not at a real run", async () => {
+    const { code, err } = await runWith(["translate", "--dry-run"], {
+      loadConfig: async () => humanOnly,
+      translate: async () => makeSummary({ dryRun: true, locales: [makeLocale({})] }),
+    });
+
+    expect(code).toBe(0);
+    expect(err).not.toContain("run it for real");
+    expect(err).toContain("next: verbatra check (confirm every locale is in sync)\n");
+  });
+
+  it("a dry run the translation memory would fill still offers the real run", async () => {
+    const { err } = await runWith(["translate", "--dry-run"], {
+      loadConfig: async () => humanOnly,
+      translate: async () =>
+        makeSummary({ dryRun: true, locales: [makeLocale({ translated: ["a"] })] }),
+    });
+
+    expect(err).toContain("next: verbatra translate (run it for real)\n");
+  });
+});
+
 describe("check and diff: every pending key protected", () => {
   it("diff points at Studio when every missing or changed key is protected", async () => {
     const { err } = await runWith(["diff"], {

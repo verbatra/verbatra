@@ -735,26 +735,43 @@ function usagePhrase(summary: RunSummary): string {
   return usage === undefined ? "" : `, ${usage.inputTokens + usage.outputTokens} tokens`;
 }
 
-function reportTranslateOutcome(
+const HAND_OFF_PURPOSE =
+  "hand the keys that need a person to a translator, or edit them in verbatra studio";
+
+function wouldWriteAnything(summary: RunSummary): boolean {
+  return summary.locales.some((locale) => locale.translated.length > 0);
+}
+
+function dryRunHint(
   context: CommandContext,
   opts: LocationOpts,
   summary: RunSummary,
+  machineTranslation: boolean,
+): void {
+  if (!machineTranslation && !wouldWriteAnything(summary)) {
+    context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
+    return;
+  }
+  context.ui.hint(verbatraCommand(["translate"], opts), "run it for real");
+}
+
+function reportTranslateOutcome(
+  context: CommandContext,
+  opts: LocationOpts,
+  run: { readonly summary: RunSummary; readonly machineTranslation: boolean },
   exitCode: number,
   startedAt: number,
 ): void {
+  const { summary } = run;
   const elapsed = formatElapsed(Date.now() - startedAt);
-  const handOff = (): void =>
-    context.ui.hint(
-      verbatraCommand(["export"], opts),
-      "hand the keys that need a person to a translator, or edit them in verbatra studio",
-    );
+  const handOff = (): void => context.ui.hint(verbatraCommand(["export"], opts), HAND_OFF_PURPOSE);
   if (summary.dryRun) {
     context.ui.status("ok", `dry run done in ${elapsed}, nothing written`);
     if (exitCode === NEEDS_HUMAN_EXIT_CODE) {
       handOff();
       return;
     }
-    context.ui.hint(verbatraCommand(["translate"], opts), "run it for real");
+    dryRunHint(context, opts, summary, run.machineTranslation);
     return;
   }
   if (exitCode === 0) {
@@ -821,7 +838,13 @@ export async function runTranslate(
           );
           renderNeedsHumanHint(config, summary, opts.includeHuman === true, context.ui);
           const exitCode = translateExitCode(config, summary);
-          reportTranslateOutcome(context, opts, summary, exitCode, startedAt);
+          reportTranslateOutcome(
+            context,
+            opts,
+            { summary, machineTranslation: isMachineTranslationEnabled(config) },
+            exitCode,
+            startedAt,
+          );
           return exitCode;
         },
         () => loadEnvFiles(cwd),
@@ -1265,7 +1288,7 @@ async function runCheck(
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("check", summary)}\n`
-              : `${renderCheckHuman(summary)}\n`,
+              : `${renderCheckHuman(summary, isMachineTranslationEnabled(config))}\n`,
           );
           return checkExitCode(summary, opts.strict === true);
         },
@@ -1282,7 +1305,16 @@ function everyPendingKeyProtected(summary: DiffSummary): boolean {
   return pending.length > 0 && pending.every((isProtected) => isProtected);
 }
 
-function pendingKeysHint(summary: DiffSummary, opts: LocationOpts, context: CommandContext): void {
+function pendingKeysHint(
+  summary: DiffSummary,
+  opts: LocationOpts,
+  context: CommandContext,
+  machineTranslation: boolean,
+): void {
+  if (!machineTranslation) {
+    context.ui.hint(verbatraCommand(["export"], opts), HAND_OFF_PURPOSE);
+    return;
+  }
   if (everyPendingKeyProtected(summary)) {
     context.ui.hint(
       verbatraCommand(["studio"], opts),
@@ -1328,7 +1360,7 @@ async function runDiff(
             : `${renderDiffHuman(summary)}\n`,
         );
         if (summary.hasPendingChanges) {
-          pendingKeysHint(summary, opts, context);
+          pendingKeysHint(summary, opts, context, isMachineTranslationEnabled(config));
         }
         return summary.hasPendingChanges || hasConfirmedUnusedKeys(summary) ? 1 : 0;
       },
