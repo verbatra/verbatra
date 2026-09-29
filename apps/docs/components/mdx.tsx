@@ -17,7 +17,7 @@ import {
   DocsHomeStacks,
   DocsHomeSteps,
 } from "@/components/docs-home";
-import { LaneCards, ReferenceRow, VMark } from "@/components/landing";
+import { VMark } from "@/components/landing";
 import { OutputCodeBlock } from "@/components/output-code-block";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
@@ -92,8 +92,6 @@ export function getMDXComponents(
     CommandLine,
     Badge,
     VTabs: Tabs,
-    LaneCards,
-    ReferenceRow,
     VMark,
     DocsHomeHero: (props: Omit<ComponentProps<typeof DocsHomeHero>, "locale">) => (
       <DocsHomeHero {...props} locale={locale} />
