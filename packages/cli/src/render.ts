@@ -30,8 +30,12 @@ import {
   type LocaleQaReport,
   type LocaleSummary,
   type LockWaitEvent,
+  PROVENANCE_BUCKETS,
   type ProgressEvent,
   type ProtectedKey,
+  type ProvenanceBucket,
+  type ProvenanceMarkers,
+  type ProvenanceReportResult,
   type PseudolocalizeResult,
   projectRelativeMessage,
   type QaFinding,
@@ -377,6 +381,15 @@ function renderLocaleLine(locale: LocaleSummary, labels: RunCountLabels): readon
   ];
 }
 
+function unavailableMarkersLine(
+  markers: ProvenanceMarkers | undefined,
+  unreadable: string,
+): readonly string[] {
+  return markers === "unavailable"
+    ? [`  no machine-translation markers written: ${unreadable} could not be read`]
+    : [];
+}
+
 export function renderExportHuman(result: ExportWorkbookResult, base?: string): string {
   const localeLines = result.locales.map((l) => `  ${l.locale}: ${plural(l.rows, "row")}`);
   const total = result.locales.reduce((sum, l) => sum + l.rows, 0);
@@ -384,6 +397,7 @@ export function renderExportHuman(result: ExportWorkbookResult, base?: string): 
     `verbatra export -> ${displayPath(result.path, base)}`,
     ...localeLines,
     `${plural(total, "row")} across ${plural(result.locales.length, "locale")}`,
+    ...unavailableMarkersLine(result.provenanceMarkers, "verbatra.provenance.json"),
   ].join("\n");
 }
 
@@ -1144,5 +1158,48 @@ export function renderTmxExportHuman(result: ExportTmxResult, base?: string): st
     `${plural(result.units, "unit")} across ${plural(result.locales.length, "locale")}`,
     ...withoutSource,
     ...removed,
+    ...unavailableMarkersLine(
+      result.provenanceMarkers,
+      "verbatra.provenance.json or verbatra.lock.json",
+    ),
+  ].join("\n");
+}
+
+const BUCKET_LABELS: Readonly<Record<ProvenanceBucket, string>> = {
+  "machine-unreviewed": "machine, unreviewed",
+  "machine-reviewed": "machine, reviewed",
+  human: "human",
+  import: "import",
+  external: "external",
+  unrecorded: "unrecorded",
+  unknown: "unknown",
+};
+
+function renderTable(rows: readonly (readonly string[])[]): string[] {
+  const widths = (rows[0] ?? []).map((_cell, column) =>
+    Math.max(...rows.map((row) => (row[column] ?? "").length)),
+  );
+  return rows.map((row) =>
+    `  ${row.map((cell, column) => cell.padEnd(widths[column] ?? 0)).join("  ")}`.trimEnd(),
+  );
+}
+
+export function renderProvenanceReportHuman(result: ProvenanceReportResult): string {
+  if (!result.available) {
+    return [
+      "verbatra report provenance",
+      "  no report: verbatra.provenance.json is corrupt or from a newer verbatra, so no origin can be read",
+    ].join("\n");
+  }
+  const header = ["locale", ...PROVENANCE_BUCKETS.map((bucket) => BUCKET_LABELS[bucket]), "total"];
+  const rows = result.locales.map((locale) => [
+    locale.locale,
+    ...PROVENANCE_BUCKETS.map((bucket) => String(locale.counts[bucket])),
+    String(locale.total),
+  ]);
+  return [
+    `verbatra report provenance (source ${result.sourceLocale}, verbatra ${result.toolVersion}, ${result.generatedAt})`,
+    ...renderTable([header, ...rows]),
+    "Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.",
   ].join("\n");
 }

@@ -30,6 +30,9 @@ import type {
   LoadConfigOptions,
   LoadedConfig,
   LocaleSummary,
+  ProvenanceReport,
+  ProvenanceReportInput,
+  ProvenanceReportResult,
   PseudolocalizeInput,
   PseudolocalizeResult,
   RunSummary,
@@ -204,6 +207,51 @@ export function makeExportTmxResult(overrides: Partial<ExportTmxResult> = {}): E
     locales: [],
     withoutSource: 0,
     illegalCharactersRemoved: 0,
+    provenanceMarkers: "written",
+    ...overrides,
+  };
+}
+
+export function makeProvenanceReport(
+  overrides: Partial<ProvenanceReport> = {},
+): ProvenanceReportResult {
+  return {
+    available: true,
+    generatedAt: "2026-09-29T08:00:00.000Z",
+    toolVersion: "1.2.3",
+    sourceLocale: "en",
+    locales: [
+      {
+        locale: "de",
+        total: 3,
+        counts: {
+          "machine-unreviewed": 1,
+          "machine-reviewed": 1,
+          human: 1,
+          import: 0,
+          external: 0,
+          unrecorded: 0,
+          unknown: 0,
+        },
+        entries: [
+          {
+            key: "a",
+            bucket: "machine-unreviewed",
+            origin: "machine",
+            provider: "deepl",
+            reviewState: "unreviewed",
+          },
+          {
+            key: "b",
+            bucket: "machine-reviewed",
+            origin: "machine",
+            reviewState: "approved",
+            reviewer: "Ana",
+          },
+          { key: "c", bucket: "human", origin: "human", reviewState: "unreviewed" },
+        ],
+      },
+    ],
     ...overrides,
   };
 }
@@ -298,6 +346,7 @@ export interface DepCalls {
   generateTypes: GenerateTypesInput[];
   importTmx: ImportTmxInput[];
   exportTmx: ExportTmxInput[];
+  provenanceReport: ProvenanceReportInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -319,6 +368,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     generateTypes: [],
     importTmx: [],
     exportTmx: [],
+    provenanceReport: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -388,6 +438,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     exportTmx: async (input) => {
       calls.exportTmx.push(input);
       return impl.exportTmx ? impl.exportTmx(input) : makeExportTmxResult();
+    },
+    provenanceReport: async (input) => {
+      calls.provenanceReport.push(input);
+      return impl.provenanceReport ? impl.provenanceReport(input) : makeProvenanceReport();
     },
   };
   return { deps, calls };

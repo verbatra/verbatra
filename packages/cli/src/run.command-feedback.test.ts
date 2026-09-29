@@ -11,6 +11,7 @@ import {
   makeExtractResult,
   makeImportTmxResult,
   makeLocale,
+  makeProvenanceReport,
   makePseudoResult,
   makeSummary,
   makeTypesResult,
@@ -274,6 +275,29 @@ describe("pseudo, types and extract: next steps", () => {
   });
 });
 
+describe("report provenance: start, outcome and next step", () => {
+  it("reports the read and points at Studio while machine translations wait for review", async () => {
+    const { code, err } = await stderrOf(["report", "provenance"]);
+
+    expect(code).toBe(0);
+    expect(err).toMatch(/^verbatra: reading the provenance record\.\.\. done/);
+    expect(err).toContain(
+      "next: verbatra studio (approve or reject the machine translation no person has reviewed yet)\n",
+    );
+  });
+
+  it("gives no next step when every machine translation is reviewed", async () => {
+    const { err } = await stderrOf(["report", "provenance"], {
+      provenanceReport: async () => ({
+        ...makeProvenanceReport(),
+        locales: [],
+      }),
+    });
+
+    expect(err).not.toContain("next:");
+  });
+});
+
 describe("--quiet and --json keep every new line off stderr", () => {
   it.each([
     [["export"]],
@@ -282,6 +306,7 @@ describe("--quiet and --json keep every new line off stderr", () => {
     [["tmx", "export"]],
     [["check"]],
     [["diff"]],
+    [["report", "provenance"]],
     [["doctor"]],
     [["pseudo"]],
     [["types"]],

@@ -12,6 +12,7 @@ import {
   importWorkbook,
   loadConfig,
   loadConfigWithMeta,
+  provenanceReport,
   pseudolocalize,
   releaseHeldLocks,
   translate,
@@ -53,6 +54,7 @@ const code = await run(
     generateTypes,
     importTmx,
     exportTmx,
+    provenanceReport,
   },
   {
     out: (text) => {
