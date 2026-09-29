@@ -126,8 +126,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   wrap, they scroll sideways inside `.vk-terminal-scroll`, which fades the end edge while there is
   more to see), `hero-demo.tsx` (the hero's Terminal /
   Studio tabs), `evidence.tsx` (the mono evidence chip; a linked chip
-  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx`,
-  `command-box.tsx`, `reveal.tsx`, `hero-facts.tsx` (the release / formats / providers /
+  takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
+  `command-box.tsx` (each an `@container`: a command wraps at its spaces once the box is under
+  30rem, so the package name is never clipped; the AI prompt row keeps scrolling), `reveal.tsx`, `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
   section composes `Section` plus `SectionHead`; it does not re-derive page padding or

@@ -17,6 +17,7 @@ const AI_PANEL_ID = `${INSTALL_ID}-ai-prompt`;
 const TAB_CLASS = "rounded-md px-2.5 py-1.5 font-mono text-xs transition-colors";
 const ROW_CLASS = "flex items-center gap-3 px-3.5 py-3 font-mono text-sm";
 const CODE_CLASS = "vk-terminal-scroll min-w-0 flex-1 whitespace-nowrap text-fd-foreground";
+const COMMAND_CLASS = `${CODE_CLASS} @max-[30rem]:whitespace-normal`;
 
 const HINT_LINK_CLASS =
   "inline-flex min-h-6 items-center underline decoration-fd-border underline-offset-4 transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]";
@@ -120,7 +121,7 @@ export function PackageInstall(): ReactNode {
   ) : null;
 
   return (
-    <div className="vk-w-install not-prose w-full">
+    <div className="vk-w-install not-prose @container w-full">
       <div
         className="overflow-hidden rounded-xl border border-fd-border backdrop-blur-[6px]"
         style={{ background: "color-mix(in srgb, var(--v-void) 72%, transparent)" }}
@@ -157,7 +158,7 @@ export function PackageInstall(): ReactNode {
             <span aria-hidden="true" style={{ color: "var(--v-glow)" }}>
               $
             </span>
-            <code className={CODE_CLASS}>
+            <code className={COMMAND_CLASS}>
               <HighlightedCommand
                 command={entry.command}
                 link={{ token: CLI_PACKAGE, href: NPM_CLI }}
