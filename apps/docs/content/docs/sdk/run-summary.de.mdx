@@ -1,6 +1,7 @@
 ---
 title: "RunSummary"
 description: "Was translate, importWorkbook und watch zurückgeben, Feld für Feld."
+type: reference
 ---
 ## Die Anatomie der RunSummary
 
@@ -88,6 +89,23 @@ Die Teile, die du kennen solltest:
   `budgetWithheld` stehen, scheitert, ohne dass etwas geworfen wurde. Der Grund steht in diesen
   Listen und in ihren `notices`, etwa `SUB_BATCH_FAILED` für einen gescheiterten Provider-Batch oder
   `BUDGET_TOKENS_EXCEEDED` für das Token-Budget. Prüf `status`, nie, ob `error` vorhanden ist.
+- **estimate** erscheint nur, wenn der Lauf eine Schätzung vor dem Lauf angefordert hat. Seine
+  Liste `caveats` ist nie leer und nennt, was die Zahl auslässt, als Member von `EstimateCaveatCode`:
+  - `CACHE_NOT_CONSULTED`: Der Übersetzungsspeicher wird nicht gelesen, Keys, die ein echter Lauf
+    aus dem Cache bedienen würde, werden also trotzdem mitgezählt. Gilt für jede Schätzung.
+  - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: Ein echter Lauf sendet einen Vertreter pro identischem
+    Quellstring; die Schätzung zählt jeden Key. Gilt für jede Schätzung.
+  - `TRANSPORT_RETRIES_NOT_COUNTED`: Pro geplanter Anfrage wird ein abrechenbarer Aufruf gezählt,
+    obwohl die Provider-SDKs einen fehlgeschlagenen Aufruf darunter wiederholen können und ein
+    wiederholter Versuch trotzdem abgerechnet werden kann. Gilt für jede Schätzung.
+  - `TRANSLATION_LENGTH_IS_ESTIMATED`: Die Antwort wird aus der Quelle plus einem festen Zuschlag für
+    Textverlängerung bemessen, eine Zielsprache mit längeren Texten meldet also mehr
+    Completion-Tokens. Nur Provider mit Token-Abrechnung.
+  - `TOKEN_COUNT_IS_HEURISTIC`: Tokens werden aus Zeichenzahlen abgeleitet, nicht aus dem eigenen
+    Tokenizer des Providers. Nur Provider mit Token-Abrechnung.
+  - `REPAIR_REQUESTS_NOT_COUNTED`: Die Reparaturrunde für Keys, die fehlend zurückkamen, und der
+    Retry in Hälften bei einer abgeschnittenen Antwort werden nicht gezählt. Nur Provider mit
+    Token-Abrechnung.
 - **cacheHits** listet Keys, die aus dem [Übersetzungsspeicher-Cache](/docs/the-cache) statt vom
   Provider bedient wurden. **fuzzyHits** listet die Keys, die eine Übersetzung für einen
   geänderten Quellstring wiederverwendet haben, jeweils mit `key`, `similarity` und dem getroffenen

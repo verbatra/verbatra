@@ -1,6 +1,7 @@
 ---
 title: "Inspecciona un proyecto"
 description: "Puntos de entrada de solo lectura: doctor, check, diff, comprobaciones de integridad, estado del lock y de la procedencia, y lecturas en bloque."
+type: reference
 ---
 ## Inspecciona el estado sin escribir
 
@@ -10,15 +11,13 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 
 <AvailableFrom version="0.9.0" />
 
-Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, no hace
-ninguna petición de red salvo que `live` pida una, y nunca lee el valor de una clave de API. Se
-ejecutan once comprobaciones, cada una con su propio veredicto `pass`, `fail` o `skipped`. Cinco cubren lo básico: la configuración se carga y se valida
-(`config`), el formato configurado resuelve a un adaptador (`format-adapter`), el ID de proveedor
-configurado resuelve a una fábrica (`provider`), la variable de entorno de la que ese proveedor lee
-su clave está definida (`api-key`), y el archivo del locale de origen se puede leer (`source-file`). Todas las comprobaciones se ejecutan aunque una anterior haya fallado, así que una
-sola llamada informa de cada problema independiente. La clave de API se comprueba solo por nombre.
-La comprobación del archivo de origen lo lee y lo parsea en lugar de solo sondear su existencia, así
-que un directorio en su lugar, un archivo vacío y contenido malformado se informan todos aquí.
+Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, nunca lee el
+valor de una clave de API y no hace ninguna petición de red salvo que `live` pida una. Cada
+comprobación devuelve su propio veredicto `pass`, `fail` o `skipped`, y todas se ejecutan aunque una
+anterior haya fallado, así que una sola llamada informa de cada problema independiente.
+[`verbatra doctor`](/docs/cli/doctor#qué-comprueba) enumera las comprobaciones. La clave de API se
+comprueba solo por nombre, y la comprobación del archivo de origen lo parsea, así que un directorio
+en su lugar, un archivo vacío y contenido malformado se informan todos.
 
 ```ts title="Firma"
 function doctor(
@@ -35,48 +34,29 @@ function doctor(
 
 <AvailableFrom version="0.12.0" />
 
-La comprobación `network-policy` pasa cuando la [política de red](/docs/network-policy)
-efectiva, que sale del bloque `network` de la configuración y de la variable de entorno
-`VERBATRA_NETWORK_POLICY`, permite el host al que se conecta el proveedor configurado y cualquier
-proxy que usaría. Su detalle nombra la política, sus dos fuentes y el host. Falla cuando ese host
-se rechaza o una variable de entorno de red tiene un valor no válido, pasa para el proveedor `none`
-y no resuelve ningún nombre de host.
-
-La comprobación `plural-rules` es informativa y siempre pasa: su detalle nombra las
-versiones de ICU y CLDR de las que el runtime deriva las categorías de plural de cada idioma de
-destino, y cualquier locale de destino para el que ICU no tiene reglas de plural.
+La comprobación `network-policy` falla cuando la [política de red](/docs/network-policy) efectiva
+rechaza el host al que se conecta el proveedor configurado o su proxy, o cuando una variable de
+entorno de red tiene un valor no válido. Pasa para el proveedor `none`. La comprobación
+`plural-rules` es informativa y siempre pasa; su detalle nombra las versiones de ICU y CLDR detrás
+de las categorías de plural de cada idioma de destino.
 
 <AvailableFrom version="0.12.0" />
 
-La comprobación `plural-completeness` también es informativa y siempre pasa: lee el archivo de
-origen y cada archivo de locale de destino, y su detalle nombra cada plural al que le faltan
-categorías de plural CLDR que usa su idioma de destino, el mismo hallazgo que `check` informa como
-`incompletePlurals`. Lo dice cuando el formato no guarda las formas de plural por categoría CLDR, y
-un archivo que no puede leer se nombra en el detalle.
-
-La comprobación `locale-codes` también es informativa y siempre pasa: su detalle nombra
-cada código de locale configurado que es válido pero no está en forma BCP 47 canónica, como
-`zh-hant-tw` o el obsoleto `iw`, con la forma canónica que sugiere `Intl.getCanonicalLocales`. No
-se renombra nada.
-
-La comprobación `locale-state` también es informativa y siempre pasa: su detalle nombra
-cada locale para el que el archivo de bloqueo, la memoria de traducción o el archivo de procedencia
-guardan estado y que la configuración no incluye, como `pt_BR` tras reescribirlo como `pt-BR`, y
-dice si la siguiente ejecución de `translate` lo traslada. Un archivo que no puede leer se nombra en
-el detalle.
+Las comprobaciones `plural-completeness`, `locale-codes` y `locale-state` también son informativas y
+siempre pasan. Sus detalles nombran los plurales a los que les falta una categoría CLDR que usa su
+idioma de destino (lo que `check` informa como `incompletePlurals`), los códigos de locale
+configurados que no están en forma BCP 47 canónica y los locales para los que el lock, la memoria o
+el archivo de procedencia guardan estado pero que la configuración ya no incluye. No se renombra
+nada.
 
 <AvailableFrom version="0.12.0" />
 
-La comprobación `locales` evalúa el locale de origen y cada locale de destino contra el soporte de
-idiomas del proveedor configurado, el mismo juicio que hace `translate` antes de gastar nada. Falla
-con un locale que el proveedor no admite y, en los demás casos, pasa con avisos; es `skipped` con
-el proveedor `none`. Los veredictos por locale viajan en `DoctorResult.locales`, un
-`LocaleCapabilityReport` con el código con el que se envía cada locale, su `support` (`supported`,
-`unverified` o `unsupported`), los indicadores `glossary` y `formality`, y sus avisos. Con
-`live: true`, `doctor` obtiene primero la lista de idiomas actual del proveedor (`/v3/languages` de
-DeepL, `languages` de Cloud Translation), lo que no consume cuota de traducción, cuando la variable
-de la clave del proveedor está definida y la política de red permite su host;
-`LocaleCapabilityReport.live` dice cómo fue. Consulta [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
+La comprobación `locales` juzga cada locale configurado frente al soporte de idiomas del proveedor,
+como hace `translate` antes de gastar nada: falla con un locale no soportado y es `skipped` para el
+proveedor `none`. Los veredictos por locale viajan en `DoctorResult.locales` como un
+`LocaleCapabilityReport`. Con `live: true`, `doctor` obtiene primero la lista de idiomas actual del
+proveedor, que no consume cuota de traducción; `LocaleCapabilityReport.live` dice cómo fue. Consulta
+[Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
 
 Con `literals` activado, `doctor` solo ejecuta la
 comprobación `config` y, en lugar de las demás, una comprobación `untranslated-literals` que
@@ -155,11 +135,7 @@ exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 Con `consistency: true`, cada `LocaleCheckSummary` lleva además `inconsistencies`: un
 `InconsistencyGroup` por cada cadena de origen que el locale traduce de más de una forma bajo claves
 distintas, con el `source`, cada traducción distinta como `{ value, keys }` y el `context`, la
-`description`, el `meaning`, `isPlural` y `pluralForm` que comparten las claves agrupadas. Solo se
-comparan las claves al día, los valores se comparan tras la normalización NFC y sin los espacios
-del principio y del final, las claves con distinta descripción, significado, marca de plural o
-`msgctxt` de gettext nunca se agrupan, y las formas plurales guardadas bajo su propia clave se
-comparan forma por forma. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo, y
+`description`, el `meaning`, `isPlural` y `pluralForm` que comparten las claves agrupadas. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo, y
 no llama a ningún proveedor.
 
 <AvailableFrom version="0.12.0" />
@@ -261,10 +237,7 @@ function diff(
 
 Con `unused: true` también analiza las raíces del bloque `extract` de la configuración y añade un
 informe `unused`, separado de cada lista `orphaned`: las claves del locale de origen que ninguna
-referencia estática nombra, en el orden del catálogo. Es de solo lectura, no necesita clave y modela
-el runtime de i18next (llamadas `t` y sus alias, prefijos estáticos de `keyPrefix` y `getFixedT`,
-claves de `Trans`, claves con namespace y variantes de plural y de contexto), comparando las claves
-en la codificación del formato del catálogo. Cada clave listada lleva su `key` decodificada y su
+referencia estática nombra, en el orden del catálogo. Es de solo lectura, no necesita clave y modela el runtime de i18next. Cada clave listada lleva su `key` decodificada y su
 `catalogKey`. Las claves que coinciden con `extract.unused.ignore` van a `ignored`, y las que podría
 alcanzar un literal de plantilla con cabecera estática, a `possiblyDynamic`. Su `status` es `complete`,
 `unreliable` (con `unreliableBecause` nombrando cada motivo con sus ubicaciones) o `not-run` (con un
@@ -288,9 +261,7 @@ coincidiendo con los placeholders del origen, de si sigue llevando el marcado en
 origen y de si es ICU válido. Cada entrada lleva `key`, `hasPlaceholders`, `matches`, los tokens de
 placeholder `missing` y `extra` en una discrepancia, `icuValid`, `markupMatches` y `markupDetails` con
 las etiquetas causantes de una discordancia de marcado. Las entradas nunca llevan un valor de cadena
-de origen o destino. Informar del marcado aquí es lo que hace visible el desfase anterior a la puerta
-del momento de escritura: una traducción escrita antes de que existiera la comprobación, editada fuera de
-verbatra o producida por una ruta que nunca pasó por la puerta se juzga aquí con la misma regla.
+de origen o destino. Un valor escrito antes de que existiera la puerta del momento de escritura o editado fuera de verbatra se juzga con la misma regla.
 Este es el informe de integridad por clave que muestra Studio.
 
 ```ts title="Firma"

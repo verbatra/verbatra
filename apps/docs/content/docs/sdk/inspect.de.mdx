@@ -1,6 +1,7 @@
 ---
 title: "Ein Projekt inspizieren"
 description: "Nur lesende Einstiegspunkte: doctor, check, diff, Integritätsprüfungen, Lock- und Provenienzzustand und Lesen in großen Mengen."
+type: reference
 ---
 ## Zustand inspizieren, ohne zu schreiben
 
@@ -10,15 +11,13 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 
 <AvailableFrom version="0.9.0" />
 
-Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, stellt keine
-Netzwerkanfrage, außer `live` fordert eine an, und liest nie einen API-Key-Wert. Elf Prüfungen laufen, jede mit ihrem eigenen
-Urteil `pass`, `fail` oder `skipped`. Fünf decken die Grundlagen ab: Die Konfiguration lädt und validiert (`config`), das
-konfigurierte Format löst zu einem Adapter auf (`format-adapter`), die konfigurierte Provider-ID
-löst zu einer Factory auf (`provider`), die Umgebungsvariable, aus der dieser Provider seinen Key
-liest, ist gesetzt (`api-key`), und die Quell-Locale-Datei lässt sich lesen (`source-file`). Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Aufruf
-meldet also jedes unabhängige Problem. Der API-Key wird nur über den Namen geprüft. Die
-Quelldatei-Prüfung liest und parst die Datei, statt nur ihre Existenz zu sondieren: Ein Verzeichnis
-an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt werden also alle hier gemeldet.
+Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, liest nie einen
+API-Key-Wert und stellt keine Netzwerkanfrage, außer `live` fordert eine an. Jede Prüfung liefert ihr
+eigenes Urteil `pass`, `fail` oder `skipped`, und jede läuft auch dann, wenn eine frühere
+fehlgeschlagen ist; ein Aufruf meldet also jedes unabhängige Problem.
+[`verbatra doctor`](/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf. Der API-Key wird nur
+über den Namen geprüft, und die Quelldatei-Prüfung parst die Datei: Ein Verzeichnis an ihrer Stelle,
+eine leere Datei und fehlerhafter Inhalt werden alle gemeldet.
 
 ```ts title="Signatur"
 function doctor(
@@ -35,50 +34,29 @@ function doctor(
 
 <AvailableFrom version="0.12.0" />
 
-Die Prüfung `network-policy` besteht, wenn die wirksame
-[Netzwerkrichtlinie](/docs/network-policy) aus dem `network`-Block der Konfiguration und der
-Umgebungsvariable `VERBATRA_NETWORK_POLICY` den Host erlaubt, zu dem sich der konfigurierte Provider
-verbindet, und jeden Proxy, den er nutzen würde. Ihr Detail nennt die Richtlinie, ihre beiden
-Quellen und den Host. Sie schlägt fehl, wenn dieser Host abgewiesen wird oder eine
-Netzwerk-Umgebungsvariable einen ungültigen Wert hat, besteht für den Provider `none` und löst
-keinen Hostnamen auf.
-
-Die Prüfung `plural-rules` ist rein informativ und besteht immer: Ihr Detail nennt die
-ICU- und CLDR-Versionen, aus denen die Laufzeit die Pluralkategorien jeder Zielsprache ableitet,
-und jede Ziel-Locale, für die ICU keine Pluralregeln hat.
+Die Prüfung `network-policy` schlägt fehl, wenn die wirksame
+[Netzwerkrichtlinie](/docs/network-policy) den Host, zu dem sich der konfigurierte Provider verbindet,
+oder seinen Proxy abweist oder eine Netzwerk-Umgebungsvariable einen ungültigen Wert hat. Für den
+Provider `none` besteht sie. Die Prüfung `plural-rules` ist rein informativ und besteht immer; ihr
+Detail nennt die ICU- und CLDR-Versionen hinter den Pluralkategorien jeder Zielsprache.
 
 <AvailableFrom version="0.12.0" />
 
-Die Prüfung `plural-completeness` ist ebenfalls rein informativ und besteht immer: Sie liest die
-Quell- und jede Ziel-Locale-Datei, und ihr Detail nennt jeden Plural, dem CLDR-Pluralkategorien
-fehlen, die seine Zielsprache verwendet, derselbe Befund, den `check` als `incompletePlurals`
-meldet. Sie sagt es, wenn das Format Pluralformen nicht nach CLDR-Kategorie speichert, und eine
-Datei, die sie nicht lesen kann, wird im Detail genannt.
-
-Die Prüfung `locale-codes` ist ebenfalls rein informativ und besteht immer: Ihr Detail
-nennt jeden konfigurierten Locale-Code, der gültig, aber nicht in kanonischer BCP-47-Form ist, etwa
-`zh-hant-tw` oder das veraltete `iw`, mit der kanonischen Form, die `Intl.getCanonicalLocales`
-vorschlägt. Umbenannt wird nichts.
-
-Die Prüfung `locale-state` ist ebenfalls rein informativ und besteht immer: Ihr Detail
-nennt jede Locale, für die Lock-Datei, Translation Memory oder Provenance-Datei Zustand halten, die
-die Konfiguration aber nicht aufführt, etwa `pt_BR` nach einer Umschreibung zu `pt-BR`, und sagt,
-ob der nächste Lauf von `translate` sie übernimmt. Eine Datei, die sie nicht lesen kann, nennt das
-Detail.
+Die Prüfungen `plural-completeness`, `locale-codes` und `locale-state` sind ebenfalls rein informativ
+und bestehen immer. Ihre Details nennen Plurale, denen eine CLDR-Kategorie ihrer Zielsprache fehlt
+(was `check` als `incompletePlurals` meldet), konfigurierte Locale-Codes, die nicht in kanonischer
+BCP-47-Form sind, und Locales, für die Lock-Datei, Translation Memory oder Provenance-Datei noch
+Zustand halten, die die Konfiguration aber nicht mehr aufführt. Umbenannt wird nichts.
 
 <AvailableFrom version="0.12.0" />
 
-Die Prüfung `locales` beurteilt die Quell-Locale und jede Ziel-Locale gegen die Sprachunterstützung
-des konfigurierten Providers, dasselbe Urteil, das `translate` fällt, bevor es etwas ausgibt. Sie
-schlägt bei einer Locale fehl, die der Provider nicht unterstützt, und besteht sonst mit Warnungen;
-für den Provider `none` ist sie `skipped`. Die Urteile je Locale stehen in `DoctorResult.locales`,
-einem `LocaleCapabilityReport` mit dem Code, als der jede Locale gesendet wird, ihrem `support`
-(`supported`, `unverified` oder `unsupported`), den Flags `glossary` und `formality` und ihren
-Warnungen. Mit `live: true` ruft `doctor` zuerst die aktuelle Sprachliste des Providers ab (DeepLs
-`/v3/languages`, `languages` von Cloud Translation), was kein Übersetzungskontingent verbraucht,
-sofern die Key-Variable des Providers gesetzt ist und die Netzwerkrichtlinie seinen Host erlaubt;
-`LocaleCapabilityReport.live` sagt, wie das ausging.
-Siehe [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
+Die Prüfung `locales` beurteilt jede konfigurierte Locale gegen die Sprachunterstützung des
+Providers, wie es `translate` tut, bevor es etwas ausgibt: Sie schlägt bei einer nicht unterstützten
+Locale fehl und ist für den Provider `none` `skipped`. Die Urteile je Locale stehen in
+`DoctorResult.locales` als `LocaleCapabilityReport`. Mit `live: true` ruft `doctor` zuerst die
+aktuelle Sprachliste des Providers ab, was kein Übersetzungskontingent verbraucht;
+`LocaleCapabilityReport.live` sagt, wie das ausging. Siehe
+[Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
 Mit gesetztem `literals` führt `doctor` nur die
 Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
@@ -158,10 +136,7 @@ Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsiste
 `InconsistencyGroup` pro Quellstring, den die Locale unter verschiedenen Keys unterschiedlich
 übersetzt, mit der `source`, jeder abweichenden Übersetzung als `{ value, keys }` sowie dem
 `context`, der `description`, der `meaning`, `isPlural` und `pluralForm`, die die gruppierten Keys
-teilen. Verglichen werden nur aktuelle Keys, Werte nach NFC-Normalisierung und ohne Leerraum am
-Anfang und Ende, Keys mit abweichender Beschreibung, Bedeutung, Plural-Kennzeichen oder
-gettext-`msgctxt` werden nie gruppiert, und Pluralformen unter eigenen Keys werden pro Form
-verglichen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei und ruft
+teilen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei und ruft
 keinen Provider auf.
 
 <AvailableFrom version="0.12.0" />
@@ -262,10 +237,7 @@ function diff(
 
 Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
 einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
-statische Referenz nennt, in Katalogreihenfolge. Er ist nur lesend, braucht keinen Key und bildet
-die i18next-Laufzeit nach (`t`-Aufrufe und ihre Aliase, statische `keyPrefix`- und
-`getFixedT`-Präfixe, `Trans`-Keys, Keys mit Namespace sowie Plural- und Kontextvarianten), wobei
-Keys in der Kodierung des Katalogformats verglichen werden. Jeder gelistete Key trägt seinen
+statische Referenz nennt, in Katalogreihenfolge. Er ist nur lesend, braucht keinen Key und bildet die i18next-Laufzeit nach. Jeder gelistete Key trägt seinen
 dekodierten `key` und seinen `catalogKey`. Keys, die `extract.unused.ignore` trifft, landen in
 `ignored`, und Keys, die ein Template-Literal mit statischem Anfang erreichen könnte, in
 `possiblyDynamic`. Sein `status` ist `complete`, `unreliable` (mit `unreliableBecause`, das jeden
@@ -289,10 +261,7 @@ Meldet für die geänderten Keys jeder Locale, ob der aktuelle Zielwert noch zu 
 Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
 Eintrag trägt `key`, `hasPlaceholders`, `matches`, bei einer Abweichung die `missing`- und
 `extra`-Platzhalter-Tokens, `icuValid`, `markupMatches` sowie `markupDetails` mit den Tags hinter
-einer Markup-Abweichung. Einträge tragen nie einen Quell- oder Zielstring-Wert. Dass Markup hier
-gemeldet wird, macht Abweichungen sichtbar, die älter sind als das Gate beim Schreiben: eine
-Übersetzung, die vor der Prüfung entstand, außerhalb von verbatra bearbeitet wurde oder über einen
-Pfad kam, der das Gate nie passiert hat, wird hier nach derselben Regel beurteilt. Das ist der
+einer Markup-Abweichung. Einträge tragen nie einen Quell- oder Zielstring-Wert. Ein Wert, der vor dem Gate beim Schreiben entstand oder außerhalb von verbatra bearbeitet wurde, wird nach derselben Regel beurteilt. Das ist der
 Integritätsbericht pro Key, den Studio anzeigt.
 
 ```ts title="Signatur"

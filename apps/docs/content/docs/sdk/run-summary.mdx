@@ -1,6 +1,7 @@
 ---
 title: "RunSummary"
 description: "What translate, importWorkbook and watch resolve to, field by field."
+type: reference
 ---
 ## The RunSummary anatomy
 
@@ -86,6 +87,22 @@ The parts worth knowing:
   reason is in those lists and in its `notices`, such as `SUB_BATCH_FAILED` for a failed provider
   batch or `BUDGET_TOKENS_EXCEEDED` for the token budget. Test `status`, never the presence of
   `error`.
+- **estimate** appears only when the run was asked for a pre-run estimate. Its `caveats` list is
+  never empty and names what the figure leaves out, as `EstimateCaveatCode` members:
+  - `CACHE_NOT_CONSULTED`: the translation memory is not read, so keys a live run would serve from
+    the cache are still counted. Applies to every estimate.
+  - `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: a live run sends one representative per identical source
+    string; the estimate counts every key. Applies to every estimate.
+  - `TRANSPORT_RETRIES_NOT_COUNTED`: one billable call is counted per planned request, although the
+    provider SDKs may retry a failed call underneath it and a retried attempt can still be billed.
+    Applies to every estimate.
+  - `TRANSLATION_LENGTH_IS_ESTIMATED`: the response is sized from the source plus a fixed expansion
+    allowance, so a target language that runs longer reports more completion tokens. Token-billed
+    providers only.
+  - `TOKEN_COUNT_IS_HEURISTIC`: tokens are derived from character counts, not the provider's own
+    tokenizer. Token-billed providers only.
+  - `REPAIR_REQUESTS_NOT_COUNTED`: the repair round for keys that came back missing, and the retry
+    in halves for a cut-off response, are not counted. Token-billed providers only.
 - **cacheHits** lists keys served from the [translation-memory cache](/docs/the-cache) rather than
   the provider. **fuzzyHits** lists the keys that reused a translation for a source string
   that had changed, each carrying `key`, `similarity`, and the `previousSource` it matched; it is

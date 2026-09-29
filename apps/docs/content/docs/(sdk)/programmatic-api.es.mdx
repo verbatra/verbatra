@@ -1,6 +1,7 @@
 ---
 title: Recetas del SDK
 description: Patrones completos y ejecutables para manejar verbatra desde tus propios scripts, jobs de CI y herramientas.
+type: how-to
 ---
 La [referencia del SDK](/docs/sdk) cataloga cada punto de entrada. Esta página es la compañera práctica:
 recetas de principio a fin que puedes copiar en un script y ejecutar. Una cosa que preparar primero: el
@@ -51,14 +52,10 @@ Un locale `partial` es aquel cuyo archivo se escribió con claves aún faltantes
 CLI sale con `1` ante él, y tu propio script debería tratarlo igual: por eso la comprobación de
 arriba mira `partial` junto a `failed`.
 
-Pasa `dryRun: true` para previsualizar sin llamar a un proveedor ni escribir nada, y `prune: true` o
-`generatePlurals: true` para anular esas opciones de configuración en una sola ejecución. Pasa
-`locales: ["de"]` para restringir la ejecución a un subconjunto de los destinos configurados, que es
-como recorres un proveedor con límite de tasa un idioma cada vez; un locale no configurado lanza
-`UNKNOWN_LOCALE` antes de leer ni gastar nada. Pon
-`concurrency` por encima de 1 para traducir locales en paralelo (no permitido con un presupuesto
-`maxTokens` en una ejecución real) y `cache: false` para omitir la
-[caché de memoria de traducción](/docs/the-cache).
+Pasa `dryRun: true` para previsualizar sin llamar a un proveedor ni escribir nada, y `locales: ["de"]`
+para restringir la ejecución a parte de los destinos configurados, que es como recorres un
+proveedor con límite de tasa un idioma cada vez. [`translate`](/docs/sdk/run#translate) enumera
+cada una de las demás opciones.
 
 ## Estima una ejecución antes de gastar
 
@@ -100,27 +97,11 @@ if (estimate !== undefined) {
 
 Acota el plan, no la factura: una ejecución real suele gastar menos, porque consulta la
 [caché de memoria de traducción](/docs/the-cache) y agrupa las cadenas de origen idénticas, y puede
-gastar más por cada motivo que nombra `caveats`. `resolveDryRun` es el único sitio donde se decide
-la regla de que `estimate` implica `dryRun`, así que llámalo en lugar de repetirla. Para el método
+gastar más por cada motivo que nombra `caveats`. Para el método
 detrás de los números, consulta [Estimar el coste](/docs/estimating-cost).
 
-`caveats` nunca está vacío. Sus códigos (`EstimateCaveatCode`) son:
-
-- `CACHE_NOT_CONSULTED`: no se lee la memoria de traducción, así que las claves que una ejecución
-  real serviría desde la caché se cuentan igualmente. Se aplica a toda estimación.
-- `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: una ejecución real envía un representante por cada cadena
-  de origen idéntica; la estimación cuenta cada clave. Se aplica a toda estimación.
-- `TRANSPORT_RETRIES_NOT_COUNTED`: se cuenta una llamada facturable por cada petición planificada,
-  aunque los SDK del proveedor pueden reintentar por debajo una llamada fallida y un intento
-  reintentado puede facturarse igualmente. Se aplica a toda estimación.
-- `TRANSLATION_LENGTH_IS_ESTIMATED`: la respuesta se dimensiona a partir del origen más un margen
-  de expansión fijo, así que un idioma de destino que se alarga más informa de más tokens de
-  completado. Solo proveedores que facturan por tokens.
-- `TOKEN_COUNT_IS_HEURISTIC`: los tokens se derivan del número de caracteres, no del tokenizador
-  propio del proveedor. Solo proveedores que facturan por tokens.
-- `REPAIR_REQUESTS_NOT_COUNTED`: no se cuentan la ronda de reparación para las claves que volvieron
-  faltantes ni el reintento en mitades de una respuesta cortada. Solo proveedores que facturan por
-  tokens.
+`caveats` nunca está vacío; [RunSummary](/docs/sdk/run-summary) enumera lo que deja fuera cada
+`EstimateCaveatCode`.
 
 ## Comprueba en CI sin escribir
 
@@ -215,9 +196,8 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 ```
 
 `config.extract` tiene que nombrar el framework y las raíces de código, o la llamada lanza
-`EXTRACT_NOT_CONFIGURED`. El descubrimiento pasa por el miembro opcional `readDirectory` de
-`SdkFs`, así que un `deps.fs` propio sin él se rechaza con `EXTRACT_FS_UNSUPPORTED`, y un catálogo
-de origen que no se puede escribir lanza `SOURCE_UNWRITABLE`.
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/docs/sdk/inspect#extract) enumera cada uno de los demás
+errores que lanza.
 
 ## Genera un catálogo tipado
 
@@ -255,10 +235,8 @@ if (gate.stale) {
 ```
 
 Pasa `configPath` para que el archivo de configuración que cargó la ejecución se rechace como ruta
-de salida. Una ejecución con `check` no escribe nada, no rechaza nada por su contenido y solo
-informa de `stale`. Todo lo que rechaza una ejecución que escribe, con `TYPES_OUTPUT_CONFLICT`,
-está listado en la página de [`verbatra types`](/docs/cli/types); una declaración que no se puede
-escribir lanza `TYPES_UNWRITABLE`.
+de salida. Una ejecución con `check` no escribe nada y solo informa de `stale`.
+[`verbatra types`](/docs/cli/types) enumera todo lo que rechaza una ejecución que escribe.
 
 ## Construye un pseudolocale
 
@@ -282,11 +260,9 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` es `en-XA` por defecto y `out` es `.verbatra-local/pseudo`. Un pseudolocale que nombre
-un locale configurado, o un `out` que caería sobre un archivo de locale configurado, se rechaza
-con `PSEUDO_OUTPUT_CONFLICT` antes de leer o escribir nada. La transformación es determinista, así
-que una segunda ejecución sobre un origen sin cambios no reescribe nada e informa de `written`
-como false.
+`locale` es `en-XA` por defecto y `out` es `.verbatra-local/pseudo`. La transformación es
+determinista, así que una segunda ejecución sobre un origen sin cambios no reescribe nada e informa
+de `written` como false.
 
 ## Edita y retraduce una sola clave
 
@@ -327,11 +303,10 @@ if (retry.accepted) {
 ```
 
 Un locale o una clave desconocidos lanzan `UNKNOWN_LOCALE` o `UNKNOWN_KEY`, y `retranslateEntry` lanza
-el `ProviderError` propio del proveedor (por ejemplo `RATE_LIMITED`) cuando la llamada en sí falla.
-Antes de construir ningún proveedor también lanza `MACHINE_TRANSLATION_DISABLED` en un proyecto
-[solo humano](/docs/human-only-workflow), y `NETWORK_POLICY_VIOLATION` cuando la
-[política de red](/docs/network-policy) no permite el endpoint del proveedor. Consulta [Revisión en Studio](/docs/review-in-studio) para los mismos puntos de integración detrás de
-una interfaz.
+el `ProviderError` propio del proveedor (por ejemplo `RATE_LIMITED`) cuando la llamada en sí falla;
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) enumera el resto. Consulta
+[Revisión en Studio](/docs/review-in-studio) para los mismos puntos de integración detrás de una
+interfaz.
 
 <AvailableFrom version="0.12.0" />
 
