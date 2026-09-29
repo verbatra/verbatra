@@ -149,8 +149,9 @@ sind serialisiert: Änderungen während eines Laufs fallen zu einem einzigen Fol
 
 Eingabe: `{ config, cwd?, locales?, debounceMs?, onRun, concurrency?, cache?, onProgress?, onLockWait?, lockAcquireTimeoutMs? }`.
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
-aufgerufen: `{ status: "succeeded", summary }` oder `{ status: "failed", error: { code, message } }`.
-Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
+aufgerufen: `{ status: "succeeded", summary }` oder
+`{ status: "failed", error: { code, message, causeCode?, hint? } }`, wobei `causeCode` den Code des
+Fehlers nennt, den der Fehlschlag umhüllt, und `hint` der nächste Schritt ist, den `errorHint` liefert. Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
 `onLockWait` und `lockAcquireTimeoutMs` werden an jeden Lauf durchgereicht und verhalten sich genau
 wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge ein und wird einmal
 beim Start geprüft, nicht pro Zyklus.

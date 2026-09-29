@@ -294,6 +294,10 @@ function stringCode(error: unknown): string | undefined {
   return undefined;
 }
 
+export function causeCodeOf(error: unknown): string | undefined {
+  return error instanceof Error ? stringCode(error.cause) : undefined;
+}
+
 export function describeError(
   error: unknown,
   fallbackCode: string,

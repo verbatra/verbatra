@@ -2,7 +2,7 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { assertProviderNetworkPermitted } from "../config/network-policy.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorHint } from "../error-hints.js";
-import { describeError, SdkError } from "../errors.js";
+import { causeCodeOf, describeError, SdkError } from "../errors.js";
 import { assertConfiguredLocalesSupported } from "../flow/locale-capabilities.js";
 import { selectLocales } from "../flow/select-locales.js";
 import type { RunSummary } from "../flow/summary.js";
@@ -55,6 +55,11 @@ export type WatchRunResult =
         readonly code: string;
         /** A human-readable description of the failure. Never contains a secret. */
         readonly message: string;
+        /**
+         * The code of the error this failure wraps, such as `MISSING_API_KEY` under a
+         * `PROVIDER_CONSTRUCTION_FAILED`. Absent when the failure wraps no coded error.
+         */
+        readonly causeCode?: string;
         /**
          * The next step that resolves the failure, as {@link errorHint} words it. Absent when the
          * failure has no hint, such as a `WATCH_RUN_FAILED` one.
@@ -239,12 +244,14 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
       input.onRun({ status: "succeeded", summary: await runTranslate(runInput) });
     } catch (error) {
       const described = describeError(error, "WATCH_RUN_FAILED");
+      const causeCode = causeCodeOf(error);
       const hint = errorHint(error);
       input.onRun({
         status: "failed",
         error: {
           code: described.code,
           message: projectRelativeMessage(described.message, cwd),
+          ...(causeCode === undefined ? {} : { causeCode }),
           ...(hint === undefined ? {} : { hint }),
         },
       });
