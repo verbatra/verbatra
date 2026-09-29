@@ -1,10 +1,12 @@
 ---
-title: Flux 100 % humain
-description: Utilise verbatra avec la traduction automatique désactivée par principe, pour qu'aucune chaîne n'atteigne jamais un service de traduction et que chaque traduction vienne d'une personne.
+title: Travailler sans traduction automatique
+description: Fais tourner verbatra avec la traduction automatique désactivée par principe, pour qu'aucune chaîne n'atteigne jamais un service de traduction et que chaque traduction vienne d'une personne.
 ---
 <AvailableFrom version="0.12.0" />
 
-Certaines équipes n'ont pas le droit d'utiliser la traduction automatique : un NDA, un contrat client ou une règle de l'entreprise interdit d'envoyer des chaînes à un service d'IA ou de traduction. verbatra le prend en charge directement. Mets le fournisseur à `none`, et chaque commande qui pourrait dépenser ou envoyer quoi que ce soit travaille uniquement sur des données locales ou refuse net. Le reste de verbatra (le diff, le fichier de verrou, la mémoire de traduction, l'export et l'import, les vérifications, les types, la pseudolocalisation, l'extraction) fonctionne exactement comme avant, car rien de tout cela n'a besoin d'un fournisseur.
+Utilise ceci quand un NDA, un contrat client ou une règle d'entreprise interdit d'envoyer des chaînes à un service d'IA ou de traduction. Avec le fournisseur réglé sur `none`, chaque commande qui pourrait dépenser ou envoyer quoi que ce soit travaille uniquement avec des données locales ou refuse. Tout ce qui n'a pas besoin de fournisseur (le diff, le fichier de verrouillage, la mémoire de traduction, l'export et l'import, les contrôles, les types, la pseudo-localisation, l'extraction) fonctionne comme avant.
+
+Il te faut un projet verbatra, ou un dossier où tu vas lancer `verbatra init`.
 
 ## Mise en place
 
@@ -12,31 +14,31 @@ Certaines équipes n'ont pas le droit d'utiliser la traduction automatique : un 
 verbatra init --provider none
 ```
 
-Cela écrit une configuration dont le bloc fournisseur se réduit à ceci, et aucun `.env.example`, puisqu'aucune clé d'API n'est jamais lue :
+Cela écrit une config dont le bloc provider se résume à ceci, sans `.env.example`, puisqu'aucune clé d'API n'est jamais lue :
 
-```ts
+```ts title="verbatra.config.ts"
 provider: { id: "none" }
 ```
 
-Un projet existant bascule de la même façon : remplace son bloc `provider` par `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) signale alors « machine translation disabled by policy », réussit ses vérifications de fournisseur et de clé d'API sans regarder aucune clé, et ignore sa vérification de prise en charge des locales, puisqu'aucune liste de langues de fournisseur ne s'applique.
+Dans un projet existant, remplace le bloc `provider` par `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) signale alors "machine translation disabled by policy" et valide ses contrôles de fournisseur et de clé d'API sans chercher de clé.
 
 ## Ce que fait chaque commande
 
 | Commande | Avec `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | ne remplissent une clé que depuis [la mémoire de traduction](/docs/the-cache) ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée de nouveau à l'exécution suivante. Seules les correspondances exactes de la mémoire sont écrites : une réutilisation approximative n'est jamais appliquée, même avec `fuzzyCache` activé, et une telle clé reste donc `unfilled` jusqu'à ce qu'une personne la traduise. `translate` sort avec `3` quand il reste une clé, et son indication renvoie vers `verbatra export` ou Studio plutôt que vers une nouvelle exécution. Une nouvelle locale dont toutes les clés restent en attente ne reçoit pas encore de fichier, comme quand une exécution retient toutes les clés, et ses clés restent donc manquantes. |
-| `export`, `import`, `tmx` | inchangées : l'échange de fichiers et la mémoire de traduction sont la voie d'entrée des traductions humaines. |
-| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | inchangées ; aucune n'appelle de fournisseur. |
-| `studio`, `mcp` | la lecture et la modification locales fonctionnent ; les actions qui dépensent auprès du fournisseur ne sont jamais proposées, même avec `--allow-spend`. |
-| `retranslateEntry` du SDK | échoue avec `MACHINE_TRANSLATION_DISABLED` avant de lire ou de verrouiller quoi que ce soit. |
+| `translate`, `watch` | remplissent une clé uniquement à partir d'une correspondance exacte de la [mémoire de traduction](/docs/the-cache), jamais d'une correspondance approximative ; toute autre clé manquante ou modifiée est listée comme `unfilled`, laissée intacte et proposée à nouveau à l'exécution suivante. `translate` sort avec `3` tant qu'il reste une clé |
+| `export`, `import`, `tmx` | inchangées : la remise et la mémoire de traduction sont les voies d'entrée des traductions humaines |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | inchangées ; aucune n'appelle de fournisseur |
+| `studio`, `mcp` | les lectures et modifications locales fonctionnent ; les actions qui dépensent auprès du fournisseur ne sont jamais proposées, même avec `--allow-spend` |
+| SDK [`retranslateEntry`](/docs/sdk/review#retranslateentry) | échoue avec [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled) avant de lire ou de verrouiller quoi que ce soit |
 
 Aucun fournisseur n'est construit sur aucun de ces chemins, quel que soit le contenu de l'environnement, et aucune requête réseau n'est faite.
 
 ## Passer depuis un fournisseur automatique
 
-La mémoire de traduction garde le travail 100 % humain dans un compartiment à part, séparé de tout ce qu'un fournisseur automatique a produit, et rien n'est lu d'un compartiment à l'autre. Changer `tone` ou le glossaire ne touche pas ce compartiment, une traduction humaine reste donc réutilisable quelle que soit l'évolution des réglages du projet.
+La mémoire de traduction garde le travail 100 % humain dans un compartiment à part, séparé de tout ce qu'un fournisseur automatique a produit, donc passer à `none` part d'une mémoire vide. Changer `tone` ou le glossaire ne touche jamais ce compartiment.
 
-Cet isolement signifie aussi que passer à `none` démarre avec une mémoire vide. Pour reprendre des traductions antérieures, déplace-les explicitement, en sachant que tu importes ainsi de la sortie automatique dans une mémoire par ailleurs 100 % humaine :
+Si tu veux reprendre des traductions antérieures, déplace-les explicitement, en sachant que tu importes une sortie machine dans une mémoire autrement 100 % humaine. Exporte avant de basculer : juste après le changement, `tmx export` écrit le compartiment humain, encore vide.
 
 ```bash
 # 1. Still on the old provider: export its memory
@@ -48,7 +50,7 @@ verbatra tmx export
 verbatra tmx import verbatra-memory.tmx
 ```
 
-L'ordre compte : lance `tmx export` avant de basculer. Lancé juste après la bascule, il exporte le compartiment 100 % humain, encore vide. Voir [`verbatra tmx`](/docs/cli/tmx) pour le nom du fichier et les options.
+Voir [`verbatra tmx`](/docs/cli/tmx) pour le nom du fichier et les options.
 
 ## La boucle au quotidien
 
@@ -66,15 +68,15 @@ verbatra import verbatra-translations.xlsx
 verbatra check
 ```
 
-L'étape 1 est facultative : `verbatra diff` ou `verbatra check` montrent les mêmes clés en attente. `translate` vaut quand même la peine, car il remplit chaque clé que la mémoire de traduction couvre déjà (par exemple des chaînes que tu as réutilisées ailleurs, ou des traductions importées avec [`verbatra tmx import`](/docs/cli/tmx)), pour que tes traducteurs ne voient que ce qui est vraiment nouveau. L'aller-retour du classeur lui-même, avec ses contrôles d'intégrité, est décrit dans [Traduction humaine](/docs/manual-translation).
+L'étape 1 est facultative, car `verbatra diff` et `verbatra check` montrent les mêmes clés en attente. Elle vaut quand même le coup : elle remplit chaque clé que la mémoire de traduction couvre déjà, donc tes traducteurs ne voient que ce qui est vraiment nouveau. Pour la remise elle-même, voir [Confier avec Excel ou CSV](/docs/manual-translation) ou [Confier à une agence](/docs/translation-agency).
 
 ## En CI
 
-La sortie `3` signifie « terminé proprement, mais des clés attendent un humain ». Elle se distingue de `1` (une locale en échec ou partielle) pour qu'un pipeline puisse traiter les deux différemment : faire échouer le build, ouvrir un ticket de traduction, ou simplement le signaler. Une locale en échec ou partielle reste prioritaire et sort avec `1`. Voir [CI et codes de sortie](/docs/ci-and-exit-codes). La [GitHub Action](/docs/github-action#mode-humain-uniquement) laisse l'étape réussir sur la sortie `3` et met sa sortie `needs-human` à `"true"`, pour qu'une étape suivante puisse transmettre les clés.
+Le code de sortie `3` signifie "terminé proprement, mais des clés attendent une personne". Il se distingue de `1` (une locale en échec ou partielle, qui l'emporte toujours), donc un pipeline peut faire échouer le build, ouvrir une demande de traduction ou simplement le signaler. L'[action GitHub](/docs/github-action#mode-humain-uniquement) laisse passer l'étape sur le code `3` et met sa sortie `needs-human` à `"true"` pour qu'une étape suivante agisse.
 
 ## Voir aussi
 
-- [Traduction humaine](/docs/manual-translation) détaille l'aller-retour d'export et d'import.
-- [Le cache](/docs/the-cache) explique la mémoire de traduction depuis laquelle `translate` remplit.
-- [Fournisseurs](/docs/providers) liste `none` à côté des fournisseurs de traduction.
-- [Traitement des données et confidentialité](/docs/data-handling) montre ce qui quitte la machine avec chaque fournisseur et ce qui reste en local.
+- [Codes de sortie](/docs/cli/output#codes-de-sortie) : le contrat complet des codes de sortie.
+- [Le cache de traduction](/docs/the-cache) : la mémoire que `translate` utilise pour remplir.
+- [Fournisseurs](/docs/providers) : `none` à côté des fournisseurs de traduction.
+- [Traitement des données et vie privée](/docs/data-handling) : ce qui quitte la machine avec chaque fournisseur.

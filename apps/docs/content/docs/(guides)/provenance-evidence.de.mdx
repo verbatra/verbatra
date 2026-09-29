@@ -1,214 +1,110 @@
 ---
-title: Nachweis maschineller Übersetzungen
+title: Nachweis maschineller Übersetzungen festhalten
 description: Erstelle pro Key einen Nachweis, welche Übersetzungen eine Maschine geschrieben und welche eine Person geprüft hat, und trag diese Kennzeichnung in XLIFF- und TMX-Exporte.
 status: new
 ---
 <AvailableFrom version="0.12.0" />
 
-Wenn du Text veröffentlichst, den ein Provider oder ein KI-Agent übersetzt hat, wirst du vielleicht
-gefragt, welcher Text das ist und ob eine Person ihn vor der Auslieferung angesehen hat. verbatra
-hält das bereits pro Key in `verbatra.provenance.json` fest. Diese Seite zeigt die zwei Wege, es
-herauszuholen: einen Bericht, den du als Audit-Datei archivieren kannst, und Markierungen in den
-XLIFF- und TMX-Dateien, die du an andere Tools weitergibst.
+Das brauchst du, wenn jemand fragt, welchen deiner veröffentlichten Texte ein Provider oder ein KI-Agent übersetzt hat und ob eine Person ihn geprüft hat. verbatra hält das pro Key in `verbatra.provenance.json` fest; du holst es als Bericht zum Archivieren heraus oder als Markierungen in den XLIFF- und TMX-Dateien, die du an andere Tools weitergibst.
 
 <Callout type="warn" title="Unterstützender Nachweis, keine Rechtsberatung">
 Artikel 50 der EU-KI-Verordnung (AI Act) legt Transparenzpflichten für KI-erzeugten Text fest, und
 Text, den eine Person unter redaktioneller Verantwortung geprüft hat, wird anders behandelt als Text,
 bei dem das nicht geschehen ist. Wie diese Regeln auf Übersetzungen und auf dein Produkt anzuwenden
-sind, ist nicht so geklärt, dass verbatra es für dich entscheiden könnte. Der Bericht und die
-Markierungen sind ein unterstützender Nachweis, den du an die Person weitergeben kannst, die diese
-Entscheidung trifft. Sie sind keine Rechtsberatung, und ihr Einsatz macht ein Produkt mit nichts
-konform.
+sind, kann verbatra nicht für dich entscheiden. Der Bericht und die Markierungen sind ein
+unterstützender Nachweis für die Person, die diese Entscheidung trifft. Sie sind keine
+Rechtsberatung, und ihr Einsatz macht ein Produkt mit nichts konform.
 </Callout>
 
 ## Was der Nachweis sagen kann und was nicht
 
-Jeder Wert, den verbatra schreibt, wird mit dem Schreibweg festgehalten, der ihn erzeugt hat. Die
-vollständige Liste der Herkünfte steht auf
-[der Seite zur Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat); kurz gesagt:
+Jeder Wert, den verbatra schreibt, wird mit seiner Herkunft (dem Schreibweg, der ihn erzeugt hat), einer etwaigen Review-Entscheidung und dem Namen der prüfenden Person festgehalten; siehe [die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat). Für einen Nachweis fallen die Herkünfte in zwei Klassen:
 
-- `machine`, `memory`, `fuzzy` und `agent` bilden die maschinelle Klasse: Ein Provider, der
-  Übersetzungsspeicher, ein unscharfer Treffer im Übersetzungsspeicher oder ein KI-Agent hat den
-  Wert geschrieben. Der Übersetzungsspeicher zählt als Maschine, weil er nicht festhält, wer einen
-  Eintrag geschrieben hat; ein Treffer daraus kann also frühere maschinelle Ausgabe sein.
-- `human` und `import` sind Menschen: eine Bearbeitung über Studio oder das SDK oder ein Wert, der
-  aus der Übergabe einer übersetzenden Person importiert wurde.
-- `external` bedeutet, dass sich der Wert außerhalb von verbatra geändert hat, seit sein Eintrag
-  geschrieben wurde, `unrecorded` bedeutet, dass er keinen Eintrag hat (etwa ein Wert aus der Zeit
-  vor der Herkunftsdatei), und `unknown` bedeutet, dass er ohne bekannten Urheber festgehalten wurde.
+- **Maschinelle Klasse**: `machine`, `memory`, `fuzzy` und `agent`. Der Speicher zählt als Maschine, weil er nicht festhält, wer einen Eintrag geschrieben hat.
+- **Menschen**: `human` (eine Bearbeitung über Studio oder das SDK) und `import` (die Übergabe einer Übersetzerin).
 
-Eine Review-Entscheidung (freigegeben oder abgelehnt) und der Name der prüfenden Person, wenn einer
-angegeben wurde, stehen neben der Herkunft. Eine Freigabe von vor einer Änderung am Quelltext zählt
-als nicht geprüft.
+`external` (seit dem Festhalten außerhalb von verbatra geändert), `unrecorded` (kein Eintrag) und `unknown` (ohne bekannte Urheberschaft festgehalten) gehören zu keiner der beiden. Eine Freigabe, die vor einer Änderung des Quelltexts erteilt wurde, gilt als ungeprüft.
 
-Behalte die Grenzen im Blick, wenn du den Nachweis weitergibst:
+Denk an die Grenzen, wenn du den Nachweis weitergibst:
 
-- **Er ist nicht fälschungssicher.** Wer deine Locale-Dateien bearbeiten kann, kann auch die
-  Herkunftsdatei bearbeiten. Ihr Wert entsteht dadurch, dass sie neben dem Code committet wird, wo
-  deine Git-Historie und dein Code-Review ohnehin greifen.
-- **Er hat keine Zeitstempel.** Der Nachweis speichert bewusst keine, also trägt auch der Bericht
-  keine pro Key. Wann ein Wert geschrieben oder freigegeben wurde, steht in der Git-Historie von
-  `verbatra.provenance.json` (`git log -p verbatra.provenance.json`).
-- **Im Zweifel zählt er als Maschine.** Treffer aus dem Übersetzungsspeicher, unscharfe Treffer und
-  Bearbeitungen durch Agenten zählen alle als Maschine, und ein maschineller Wert, den keine Person
-  freigegeben hat, zählt als nicht geprüft, auch wenn sein Text in Ordnung ist.
+- **Er ist nicht fälschungssicher.** Wer deine Locale-Dateien bearbeiten kann, kann auch ihn bearbeiten; sein Wert kommt aus deiner Git-Historie und deinem Code-Review.
+- **Er hat keine Zeitstempel.** Wann ein Wert geschrieben oder freigegeben wurde, steht in der Git-Historie (`git log -p verbatra.provenance.json`).
+- **Er neigt zur Maschine.** Speichertreffer, unscharfe Treffer und Agent-Bearbeitungen zählen alle als Maschine, und ein maschineller Wert, den niemand freigegeben hat, zählt als ungeprüft, auch wenn sein Text in Ordnung ist.
 
 ## Der Herkunftsbericht
 
-`verbatra report provenance` liest die committeten Dateien und gibt pro Ziel-Locale aus, wie viele
-Werte in jede Kategorie fallen. Er ruft keinen Provider auf, braucht keinen API-Key und schreibt
-nichts.
+[`verbatra report provenance`](/docs/cli/report) gibt pro Ziel-Locale aus, wie viele Werte in jede Kategorie fallen. Er liest nur die committeten Dateien, ruft keinen Provider auf und schreibt nichts.
 
 ```bash
 verbatra report provenance
 ```
 
-```text
-verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
-  locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
-  de      12                   40                 3      85      1         0           0        141
-  fr      52                   0                  3      85      1         0           0        141
-Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
-```
-
 | Kategorie | Der Wert wurde geschrieben von | Geprüft? |
 | --- | --- | --- |
-| `machine-unreviewed` | `machine`, `memory`, `fuzzy` oder `agent` | nicht freigegeben, auch ein abgelehnter Wert, der wieder in der Datei steht |
+| `machine-unreviewed` | `machine`, `memory`, `fuzzy` oder `agent` | nicht freigegeben, einschließlich eines abgelehnten Werts, der wieder in der Datei steht |
 | `machine-reviewed` | `machine`, `memory`, `fuzzy` oder `agent` | von einer Person freigegeben |
 | `human` | einer Person, über verbatra | beides möglich |
-| `import` | der Übergabe einer übersetzenden Person | beides möglich |
-| `external` | etwas außerhalb von verbatra, seit sein Eintrag geschrieben wurde | nicht bekannt |
-| `unrecorded` | niemandem, den verbatra kennt: Es gibt keinen Eintrag | nicht bekannt |
-| `unknown` | festgehalten ohne bekannten Urheber | beides möglich |
+| `import` | der Übergabe einer Übersetzerin | beides möglich |
+| `external` | etwas außerhalb von verbatra, seit sein Eintrag geschrieben wurde | unbekannt |
+| `unrecorded` | niemandem, den verbatra kennt: Es gibt keinen Eintrag | unbekannt |
+| `unknown` | ohne bekannte Urheberschaft festgehalten | beides möglich |
 
-Aufgeführt werden nur Keys, die sowohl in der Quell- als auch in der Ziel-Locale einen Wert haben.
-Ein Key, der in einer Locale fehlt, hat keinen Text, über den Rechenschaft abzulegen wäre, und ein
-Key, der nicht mehr in der Quelle steht, wird nicht als Übersetzung davon ausgeliefert.
+Gezählt werden nur Keys mit einem Wert sowohl in der Quelle als auch in der Ziel-Locale: Ein fehlender Key hat keinen Text, über den Rechenschaft abzulegen wäre.
 
 ### Eine Audit-Datei aus der CI
 
-Mit `--json` listet der Bericht jeden Key auf und wird so zu einer Audit-Datei, die du mit jedem
-Release archivieren kannst:
+Mit `--json` listet der Bericht jeden Key, was ihn zu einer Audit-Datei macht, die du mit jedem Release archivierst:
 
 ```bash
 verbatra report provenance --json > provenance-report.json
 ```
 
-Der Befehl endet mit `0`, wenn er einen Bericht ausgibt, mit `1`, wenn `verbatra.provenance.json`
-beschädigt ist oder von einer neueren verbatra-Version geschrieben wurde, und mit `2`, wenn er gar
-nicht laufen konnte (siehe [`verbatra report`](/docs/cli/report)). Exit `1` ist Absicht: Ein Bericht
-ohne den Nachweis würde jeden Wert als `unrecorded` aufführen, was sich wie „wir haben keine Ahnung“
-liest statt wie der Fehler, der es ist, also scheitert der Job, statt ihn zu archivieren. Das ist
-dieselbe Regel, nach der auch [`check --require-reviewed`](/docs/cli/check) im Zweifel scheitert.
+Ist `verbatra.provenance.json` beschädigt oder von einer neueren verbatra-Version geschrieben, endet der Befehl mit `1`, statt einen Bericht auszugeben, der jeden Wert als `unrecorded` listen würde. Ein CI-Job scheitert also, statt eine leere Audit-Datei zu archivieren.
 
-Wenn jede maschinelle Übersetzung vor einem Release geprüft sein muss, nimm
-`verbatra check --require-reviewed` als Gate und archiviere den Bericht daneben.
+Muss jede maschinelle Übersetzung vor einem Release geprüft sein, sichere zusätzlich mit [`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) ab.
 
 ### Das JSON-Schema
 
-Der Bericht ist das `result` des üblichen [JSON-Envelopes](/docs/cli/output#json-ausgabe),
-mit `command` auf `"report"`. Aufrufe über das SDK bekommen dasselbe Objekt von `provenanceReport`.
-
-```json
-{
-  "ok": true,
-  "version": 1,
-  "command": "report",
-  "result": {
-    "available": true,
-    "generatedAt": "2026-09-29T08:00:00.000Z",
-    "toolVersion": "0.12.0",
-    "sourceLocale": "en",
-    "locales": [
-      {
-        "locale": "de",
-        "total": 2,
-        "counts": {
-          "machine-unreviewed": 1,
-          "machine-reviewed": 1,
-          "human": 0,
-          "import": 0,
-          "external": 0,
-          "unrecorded": 0,
-          "unknown": 0
-        },
-        "entries": [
-          {
-            "key": "cart.checkout",
-            "bucket": "machine-unreviewed",
-            "origin": "machine",
-            "reviewState": "unreviewed",
-            "provider": "anthropic",
-            "model": "claude-sonnet-4-5"
-          },
-          {
-            "key": "home.title",
-            "bucket": "machine-reviewed",
-            "origin": "machine",
-            "reviewState": "approved",
-            "provider": "deepl",
-            "reviewer": "Ana"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+Der Bericht ist das `result` der üblichen [JSON-Hülle](/docs/cli/output#json-ausgabe), mit `command` auf `"report"`. SDK-Aufrufer bekommen dasselbe Objekt von [`provenanceReport`](/docs/sdk/inspect#provenancereport).
 
 | Feld | Typ | Bedeutung |
 | --- | --- | --- |
 | `available` | `true` | der Bericht wurde aus den committeten Dateien erstellt |
 | `generatedAt` | string | wann der Bericht erstellt wurde, ISO 8601 in UTC |
-| `toolVersion` | string | die verbatra-Version, die ihn erstellt hat, oder `unknown`, wenn ein Aufruf über das SDK keine übergibt |
+| `toolVersion` | string | die verbatra-Version, die ihn erstellt hat, oder `unknown`, wenn ein SDK-Aufrufer keine übergibt |
 | `sourceLocale` | string | die konfigurierte Quell-Locale |
-| `locales[]` | array | ein Eintrag pro Ziel-Locale, in der konfigurierten Reihenfolge, eingegrenzt durch `--locales` |
+| `locales[]` | array | ein Eintrag pro Ziel-Locale, in konfigurierter Reihenfolge, eingegrenzt durch `--locales` |
 | `locales[].locale` | string | die Ziel-Locale |
-| `locales[].total` | number | wie viele Keys für die Locale aufgeführt sind |
+| `locales[].total` | number | wie viele Keys für die Locale gelistet sind |
 | `locales[].counts` | object | wie viele Keys in jede Kategorie fallen; alle sieben Kategorien sind immer vorhanden |
-| `locales[].entries[]` | array | ein Eintrag pro Key mit einem Wert in der Quelle und in der Locale, in der Reihenfolge der Quelle |
+| `locales[].entries[]` | array | ein Eintrag pro Key mit einem Wert in Quelle und Locale, in Quellreihenfolge |
 | `entries[].key` | string | der Übersetzungs-Key |
-| `entries[].bucket` | string | eine der sieben Kategorien oben |
-| `entries[].origin` | string | `machine`, `memory`, `fuzzy`, `agent`, `human`, `import`, `unknown`, `unrecorded` oder `external` |
+| `entries[].bucket` | string | eine der Kategorien oben |
+| `entries[].origin` | string | die Herkunft, einschließlich `unrecorded` und `external` |
 | `entries[].reviewState` | string | `unreviewed`, `approved` oder `rejected` |
 | `entries[].provider` | string, optional | die `id` des Providers, der geantwortet hat, bei einem `machine`-Wert |
 | `entries[].model` | string, optional | das konfigurierte Modell, wenn der Eintrag eines nennt |
-| `entries[].reviewer` | string, optional | die prüfende Person, die mit der Entscheidung genannt wurde, wenn eine angegeben wurde |
+| `entries[].reviewer` | string, optional | die mit der Entscheidung genannte prüfende Person, wenn eine angegeben wurde |
 
-Lässt sich die Herkunftsdatei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`,
-und der Befehl endet mit `1`. Ein Datumsfeld pro Key gibt es nicht, weil der Nachweis keine
-Zeitstempel enthält. Spätere Versionen können neue optionale Felder ergänzen; bestehende behalten
-ihre Bedeutung.
+Lässt sich die Herkunftsdatei nicht lesen, ist das Ergebnis `{ "available": false, "reason": "provenance-unreadable" }`. Später können neue optionale Felder hinzukommen; vorhandene behalten ihre Bedeutung.
 
 ## Markierungen in Exporten
 
-Dieselbe Herkunft reist in die Dateien mit, die du an andere Tools weitergibst, sodass ein CAT-Tool,
-ein Übersetzungsspeicher oder eine prüfende Person auf der anderen Seite maschinelle Ausgabe von
-menschlicher Arbeit unterscheiden kann.
+Die Herkunft reist auch in die Dateien mit, die du an andere Tools weitergibst, damit die Gegenseite maschinelle Ausgabe von menschlicher Arbeit unterscheiden kann.
 
 ### XLIFF
 
-`verbatra export --format xliff12` oder `--format xliff2` markiert jede Unit, die ein Ziel hat:
+[`verbatra export`](/docs/cli/export) mit `--format xliff12` oder `--format xliff2` markiert jede Unit mit einem Ziel:
 
 | Das Ziel ist | XLIFF 1.2 | XLIFF 2.0 |
 | --- | --- | --- |
-| maschinelle Klasse, nicht freigegeben | `state-qualifier="mt-suggestion"` an `<target>` | `<mda:meta type="origin">` und `<mda:meta type="review-state">` |
-| maschinelle Klasse, freigegeben | kein Qualifier (eine Person hat es geprüft) | dieselben zwei Meta-Einträge |
+| maschinelle Klasse, nicht freigegeben | `state-qualifier="mt-suggestion"` auf `<target>` | `<mda:meta type="origin">` und `<mda:meta type="review-state">` |
+| maschinelle Klasse, freigegeben | kein Qualifier | dieselben zwei Meta-Einträge |
 | human, import, external, unrecorded oder unknown | kein Qualifier | dieselben zwei Meta-Einträge |
 
-In XLIFF 1.2 ist `mt-suggestion` der eigene Wert der Spezifikation für „die Übersetzung wurde von
-einer maschinellen Übersetzung vorgeschlagen“, und jedes CAT-Tool, das 1.2 liest, kennt ihn. Der
-Qualifier steht neben dem üblichen `state` der Unit, sodass eine nicht geprüfte, aktuelle
-maschinelle Übersetzung `state="translated" state-qualifier="mt-suggestion"` lautet und eine
-veraltete ihr `state="needs-translation"` behält. Eine freigegebene maschinelle Übersetzung ist
-`signed-off` ohne Qualifier: Eine Person hat sie geprüft, sie als maschinellen Vorschlag zu
-bezeichnen, würde diese Prüfung unterschlagen. Werte von Menschen und Werte, für deren Herkunft
-verbatra nicht bürgen kann, bekommen ebenfalls keinen Qualifier, denn ein Qualifier ist die Aussage,
-dass eine Maschine den Text geschrieben hat.
+`mt-suggestion` ist der XLIFF-1.2-Wert für "von maschineller Übersetzung vorgeschlagen", den CAT-Tools auch so anzeigen, neben dem üblichen `state`. Ein Wert, den eine Person freigegeben hat oder für dessen Herkunft verbatra nicht bürgen kann, bekommt keinen Qualifier.
 
-XLIFF 2.0 hat keinen State-Qualifier, deshalb bekommt die `verbatra`-Metagruppe der Unit, die schon
-den Quell-Hash trägt, zwei weitere Einträge mit der vollständigen Herkunft und dem Review-Status aus
-dem Bericht:
+XLIFF 2.0 hat keinen Status-Qualifier, deshalb bekommt die `verbatra`-Metadatengruppe der Unit, die schon den Quell-Hash enthält, die vollständige Herkunft und den Review-Status:
 
 ```xml
 <mda:metaGroup category="verbatra">
@@ -218,49 +114,26 @@ dem Bericht:
 </mda:metaGroup>
 ```
 
-Das Metadatenmodul ist Teil von XLIFF 2.0 selbst, und Tools, die es unterstützen, behalten es auf dem
-Rückweg. Die Datenkategorien Provenance und MT Confidence aus ITS 2.0 wären die Alternative gewesen;
-das ITS-Modul gibt es aber erst ab XLIFF 2.1, MT Confidence braucht einen Wert, den verbatra nicht
-hat, und nur wenige CAT-Tools reagieren auf eines von beiden, also nutzt verbatra das Modul, das zu
-der Datei passt, die es schreibt.
-
 ### TMX
 
-`verbatra tmx export` schreibt an jedes Zielsegment eine Property:
+[`verbatra tmx export`](/docs/cli/tmx) schreibt auf jedes Zielsegment eine Eigenschaft `x-origin` und neben ein `machine`-Segment zusätzlich `x-review`:
 
 ```xml
 <tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
 ```
 
-`x-origin` ist `machine`, `human`, `import` oder `unknown`. `x-review` begleitet nur `machine` und
-ist `approved`, `unreviewed` oder `rejected`. TMX bekommt dieses gröbere Vokabular mit Absicht. Ein
-Eintrag im Übersetzungsspeicher ist ein Textpaar, kein Key, und ein Text kann zu mehreren Keys
-gehören, die auf unterschiedliche Weise geschrieben wurden. Deshalb betrachtet der Export jeden Key,
-dessen Quelle passt und dessen Eintrag genau diesen Text beschreibt: Gehört einer davon zur
-maschinellen Klasse, ist das Segment `machine`, und es zählt nur dann als `approved`, wenn jeder
-Key der maschinellen Klasse freigegeben ist. Ein Text, den kein Eintrag beschreibt, ist `unknown`.
-Die Details pro Key, einschließlich `memory`, `fuzzy` und `agent`, bleiben im Bericht.
+`x-origin` ist `machine`, `human`, `import` oder `unknown`; `x-review` ist `approved`, `unreviewed` oder `rejected`. Ein Speichereintrag ist ein Textpaar, kein Key, deshalb ist ein Segment `machine`, wenn irgendein Key mit genau diesem Text zur maschinellen Klasse gehört, und `approved` nur, wenn das für jeden solchen Key gilt. Ein Text, den kein Eintrag beschreibt, ist `unknown`.
 
 ### Markierte Dateien importieren
 
-Der Import ignoriert jede Markierung. Eine XLIFF-Unit wird genau wie bisher nach ihrem Ziel und
-ihrem `state` beurteilt und ein TMX-Segment nach seinem Text. Die Herkunft wird nie aus einer Datei
-zurückgelesen: Ein Wert, der aus einer Übergabe importiert wird, wird als `import` festgehalten, und
-ein TMX-Import füllt nur den Übersetzungsspeicher, der keine Herkunft festhält. Eine Markierung, die
-ein Tool umgeschrieben, weggelassen oder erfunden hat, kann also nicht ändern, was in deinem
-Nachweis steht.
+Der Import ignoriert jede Markierung. Eine XLIFF-Unit wird nach ihrem Ziel und Status beurteilt, ein TMX-Segment nach seinem Text. Ein aus einer Übergabe importierter Wert wird als `import` festgehalten, und ein TMX-Import füllt nur den Übersetzungsspeicher. Eine Markierung, die ein Tool umgeschrieben, entfernt oder erfunden hat, kann deinen Nachweis also nicht ändern.
 
 ### Wenn sich der Nachweis nicht lesen lässt
 
-Ist die Herkunftsdatei `verbatra.provenance.json` beschädigt oder stammt sie von einer neueren verbatra-Version (oder
-lässt sich bei TMX die Lock-Datei nicht lesen), gelingt der Export trotzdem, schreibt aber gar keine
-Markierung statt einer, die er nicht belegen kann. Der Befehl sagt das in seiner Zusammenfassung,
-und das `--json`-Ergebnis trägt `provenanceMarkers: "unavailable"` statt `"written"`.
+Ist `verbatra.provenance.json` beschädigt oder von einer neueren verbatra-Version (oder lässt sich bei TMX die Lock-Datei nicht lesen), gelingt der Export trotzdem, schreibt aber keine Markierungen statt solcher, die er nicht belegen kann. Die Zusammenfassung sagt das, und das `--json`-Ergebnis trägt `provenanceMarkers: "unavailable"` statt `"written"`.
 
-## Weiter
+## Siehe auch
 
-<Cards>
-  <Card title={<code>verbatra report</code>} href="/docs/cli/report" description="Flags, Ausgabe und Exit-Codes des Herkunftsberichts." />
-  <Card title="Datenverarbeitung und Datenschutz" href="/docs/data-handling" description="Was verbatra sendet, an wen, und was es lokal behält." />
-  <Card title="Übersetzungen in Studio prüfen" href="/docs/review-in-studio" description="Maschinelle Übersetzungen freigeben oder ablehnen, einzeln oder pro Locale." />
-</Cards>
+- [`verbatra report`](/docs/cli/report): Flags, Ausgabe und Exit-Codes des Herkunftsberichts.
+- [In Studio prüfen](/docs/review-in-studio): maschinelle Übersetzungen freigeben oder ablehnen, einzeln oder pro Locale.
+- [Datenverarbeitung und Datenschutz](/docs/data-handling): was verbatra an wen sendet und was es lokal behält.

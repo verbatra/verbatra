@@ -1,10 +1,12 @@
 ---
-title: Rein menschlicher Workflow
+title: Ohne maschinelle Übersetzung arbeiten
 description: Betreib verbatra mit per Richtlinie abgeschalteter Maschinenübersetzung, damit kein String je einen Übersetzungsdienst erreicht und jede Übersetzung von einem Menschen kommt.
 ---
 <AvailableFrom version="0.12.0" />
 
-Manche Teams dürfen gar keine Maschinenübersetzung nutzen: Eine NDA, ein Kundenvertrag oder eine Firmenregel verbietet, Strings an irgendeinen KI- oder Übersetzungsdienst zu schicken. verbatra unterstützt das direkt. Setz den Provider auf `none`, und jeder Befehl, der etwas ausgeben oder senden könnte, arbeitet entweder nur mit lokalen Daten oder lehnt glatt ab. Der Rest von verbatra (Diffing, die Lock-Datei, das Translation Memory, Export und Import, Checks, Typen, Pseudolokalisierung, Extraktion) funktioniert genau wie vorher, weil nichts davon einen Provider braucht.
+Das brauchst du, wenn eine Geheimhaltungsvereinbarung, ein Kundenvertrag oder eine Firmenregel verbietet, Strings an einen KI- oder Übersetzungsdienst zu schicken. Steht der Provider auf `none`, arbeitet jeder Befehl, der etwas ausgeben oder senden könnte, nur mit lokalen Daten oder verweigert den Dienst. Alles, was keinen Provider braucht (Diffing, die Lock-Datei, der Übersetzungsspeicher, Export und Import, Prüfungen, Typen, Pseudolokalisierung, Extraktion), funktioniert wie gewohnt.
+
+Du brauchst ein verbatra-Projekt oder einen Ordner, in dem du gleich `verbatra init` ausführst.
 
 ## Einrichten
 
@@ -12,31 +14,31 @@ Manche Teams dürfen gar keine Maschinenübersetzung nutzen: Eine NDA, ein Kunde
 verbatra init --provider none
 ```
 
-Das schreibt eine Konfiguration, deren Provider-Block nur so aussieht, und keine `.env.example`, weil nie ein API-Schlüssel gelesen wird:
+Das schreibt eine Config, deren Provider-Block nur so aussieht, und keine `.env.example`, weil nie ein API-Key gelesen wird:
 
-```ts
+```ts title="verbatra.config.ts"
 provider: { id: "none" }
 ```
 
-Ein bestehendes Projekt stellst du genauso um: Ersetz seinen `provider`-Block durch `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) meldet dann "machine translation disabled by policy", besteht seine Provider- und API-Key-Prüfung, ohne sich einen Key anzusehen, und überspringt seine Prüfung der Locale-Unterstützung, da keine Sprachliste eines Providers gilt.
+In einem bestehenden Projekt ersetzt du den `provider`-Block durch `{ id: "none" }`. [`verbatra doctor`](/docs/cli/doctor) meldet dann "machine translation disabled by policy" und besteht seine Provider- und API-Key-Prüfungen, ohne nach einem Key zu suchen.
 
 ## Was jeder Befehl macht
 
 | Befehl | Mit `provider: { id: "none" }` |
 | --- | --- |
-| `translate`, `watch` | füllen einen Key nur aus [dem Translation Memory](/docs/the-cache); jeder andere fehlende oder geänderte Key wird als `unfilled` gemeldet, nicht angefasst und beim nächsten Lauf wieder angeboten. Geschrieben werden nur exakte Treffer im Memory: Eine unscharfe Wiederverwendung wird nie angewendet, auch nicht mit eingeschaltetem `fuzzyCache`, so ein Key bleibt also ebenfalls `unfilled`, bis ein Mensch ihn übersetzt. `translate` endet mit `3`, wenn ein Key übrig bleibt, und sein Hinweis zeigt auf `verbatra export` oder Studio statt auf einen weiteren Lauf. Eine neue Locale, deren Keys alle übrig bleiben, bekommt noch keine Datei, wie bei einem Lauf, der jeden Key zurückhält, sodass die Keys weiter als fehlend gelten. |
-| `export`, `import`, `tmx` | unverändert: Über die Übergabe und das Translation Memory kommen menschliche Übersetzungen hinein. |
-| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unverändert; keiner davon ruft einen Provider auf. |
-| `studio`, `mcp` | lokales Lesen und Bearbeiten funktioniert; die kostenpflichtigen Provider-Aktionen werden nie angeboten, auch nicht mit `--allow-spend`. |
-| SDK `retranslateEntry` | schlägt mit `MACHINE_TRANSLATION_DISABLED` fehl, bevor irgendetwas gelesen oder gesperrt wird. |
+| `translate`, `watch` | füllen einen Key nur aus einem exakten Treffer im [Übersetzungsspeicher](/docs/the-cache), nie aus einem unscharfen; jeder andere fehlende oder geänderte Key wird als `unfilled` gelistet, nicht angefasst und beim nächsten Lauf wieder angeboten. `translate` endet mit `3`, solange ein Key übrig ist |
+| `export`, `import`, `tmx` | unverändert: Über die Übergabe und den Übersetzungsspeicher kommen menschliche Übersetzungen herein |
+| `check`, `diff`, `doctor`, `pseudo`, `types`, `extract` | unverändert; keiner von ihnen ruft einen Provider auf |
+| `studio`, `mcp` | lokales Lesen und Bearbeiten funktioniert; die kostenpflichtigen Provider-Aktionen werden nie angeboten, auch nicht mit `--allow-spend` |
+| SDK [`retranslateEntry`](/docs/sdk/review#retranslateentry) | scheitert mit [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled), bevor es etwas liest oder sperrt |
 
 Auf keinem dieser Wege wird ein Provider erzeugt, egal was in der Umgebung steht, und es gibt keine Netzwerkanfrage.
 
 ## Umstieg von einem Maschinen-Provider
 
-Das Translation Memory hält rein menschliche Arbeit in einem eigenen Bereich, getrennt von allem, was ein Maschinen-Provider erzeugt hat, und zwischen den Bereichen wird nichts gelesen. Eine Änderung von `tone` oder am Glossar berührt diesen Bereich nicht, eine menschliche Übersetzung bleibt also wiederverwendbar, egal wie sich die Einstellungen des Projekts entwickeln.
+Der Übersetzungsspeicher hält rein menschliche Arbeit in einem eigenen Bereich, getrennt von allem, was ein Maschinen-Provider erzeugt hat. Der Umstieg auf `none` beginnt also mit einem leeren Speicher. Eine Änderung an `tone` oder am Glossar berührt diesen Bereich nie.
 
-Diese Trennung heißt auch: Der Umstieg auf `none` beginnt mit einem leeren Memory. Willst du frühere Übersetzungen mitnehmen, überträgst du sie ausdrücklich, im Wissen, dass du damit Maschinenausgabe in ein sonst rein menschliches Memory importierst:
+Willst du frühere Übersetzungen mitnehmen, übertrag sie ausdrücklich, und sei dir bewusst, dass du damit maschinelle Ausgaben in einen sonst rein menschlichen Speicher importierst. Exportiere vor dem Umstieg: Direkt danach schreibt `tmx export` den rein menschlichen Bereich, der noch leer ist.
 
 ```bash
 # 1. Still on the old provider: export its memory
@@ -48,7 +50,7 @@ verbatra tmx export
 verbatra tmx import verbatra-memory.tmx
 ```
 
-Die Reihenfolge zählt: Führ `tmx export` vor dem Umstieg aus. Direkt nach dem Umstieg exportiert es den rein menschlichen Bereich, der dann noch leer ist. Dateiname und Flags findest du unter [`verbatra tmx`](/docs/cli/tmx).
+Dateiname und Flags stehen unter [`verbatra tmx`](/docs/cli/tmx).
 
 ## Der tägliche Ablauf
 
@@ -66,15 +68,15 @@ verbatra import verbatra-translations.xlsx
 verbatra check
 ```
 
-Schritt 1 ist optional: `verbatra diff` oder `verbatra check` zeigen dieselben ausstehenden Keys. `translate` lohnt sich trotzdem, weil es jeden Key füllt, den das Translation Memory schon abdeckt (zum Beispiel Strings, die du woanders wiederverwendet hast, oder Übersetzungen, die du mit [`verbatra tmx import`](/docs/cli/tmx) hereingeholt hast), sodass deine Übersetzer nur sehen, was wirklich neu ist. Den Arbeitsmappen-Durchlauf selbst, samt seinen Integritätsprüfungen, beschreibt [Menschliche Übersetzung](/docs/manual-translation).
+Schritt 1 ist optional, denn `verbatra diff` und `verbatra check` zeigen dieselben offenen Keys. Er lohnt sich trotzdem: Er füllt jeden Key, den der Übersetzungsspeicher schon abdeckt, sodass deine Übersetzerinnen nur wirklich Neues sehen. Für die Übergabe selbst siehe [Mit Excel oder CSV übergeben](/docs/manual-translation) oder [An eine Agentur übergeben](/docs/translation-agency).
 
 ## In CI
 
-Exit-Code `3` heißt "sauber durchgelaufen, aber Keys warten auf einen Menschen". Er unterscheidet sich von `1` (eine fehlgeschlagene oder unvollständige Locale), damit eine Pipeline beides unterschiedlich behandeln kann: den Build scheitern lassen, ein Übersetzungs-Ticket öffnen oder einfach berichten. Eine fehlgeschlagene oder unvollständige Locale hat weiterhin Vorrang und endet mit `1`. Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes). Die [GitHub Action](/docs/github-action#rein-menschlicher-modus) lässt den Schritt bei Exit `3` bestehen und setzt ihren Output `needs-human` auf `"true"`, damit ein späterer Schritt die Keys weitergeben kann.
+Exit `3` heißt "sauber fertig, aber Keys warten auf einen Menschen". Er unterscheidet sich von `1` (eine fehlgeschlagene oder unvollständige Locale, die weiterhin Vorrang hat), sodass eine Pipeline den Build scheitern lassen, eine Übersetzungsanfrage anlegen oder nur berichten kann. Die [GitHub Action](/docs/github-action#rein-menschlicher-modus) lässt den Schritt bei Exit `3` bestehen und setzt ihre Ausgabe `needs-human` auf `"true"`, damit ein späterer Schritt darauf reagieren kann.
 
 ## Siehe auch
 
-- [Menschliche Übersetzung](/docs/manual-translation) beschreibt den Export- und Import-Durchlauf im Detail.
-- [Der Cache](/docs/the-cache) erklärt das Translation Memory, aus dem `translate` füllt.
-- [Provider](/docs/providers) führt `none` neben den Übersetzungs-Providern auf.
-- [Datenverarbeitung und Datenschutz](/docs/data-handling) zeigt, was mit jedem Provider den Rechner verlässt und was lokal bleibt.
+- [Exit-Codes](/docs/cli/output#exit-codes): der vollständige Exit-Code-Vertrag.
+- [Der Übersetzungs-Cache](/docs/the-cache): der Speicher, aus dem `translate` füllt.
+- [Provider](/docs/providers): `none` neben den Übersetzungs-Providern.
+- [Datenverarbeitung und Datenschutz](/docs/data-handling): was mit jedem Provider die Maschine verlässt.
