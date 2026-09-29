@@ -55,6 +55,7 @@ export type {
 } from "./types.js";
 export {
   type InlineSpan,
+  XLIFF_FILE_EXTENSION,
   type XliffState,
   type XliffVersion,
   xliffFileName,

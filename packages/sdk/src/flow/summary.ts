@@ -16,6 +16,10 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   on the next run, while the results of the other sub-batches are kept.
  * - `BLANK_ROW_BASELINE_RETAINED`: an imported handoff row was blank, so the existing translation
  *   and its lock-file baseline were kept rather than being erased.
+ * - `HANDOFF_REVIEWS_RECORDED`: an imported XLIFF handoff marked keys `reviewed` or `final` (XLIFF
+ *   1.2: `signed-off`, `final`, or `approved="yes"`), so {@link importWorkbook} recorded those
+ *   values as approved in the provenance file, naming {@link ImportWorkbookInput.reviewer} when it
+ *   is given. A dry run reports what would be recorded and records nothing.
  * - `BUDGET_TOKENS_EXCEEDED`: the configured token budget was reached. Under `warn` the run
  *   continues and the overrun is reported; under `stop` the request that would have crossed the
  *   ceiling is withheld before it is sent, and so is every request after it.
@@ -61,6 +65,7 @@ export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
   | "SUB_BATCH_FAILED"
   | "BLANK_ROW_BASELINE_RETAINED"
+  | "HANDOFF_REVIEWS_RECORDED"
   | "BUDGET_TOKENS_EXCEEDED"
   | "CACHE_VERSION_UNRECOGNIZED"
   | "PROVENANCE_VERSION_UNRECOGNIZED"

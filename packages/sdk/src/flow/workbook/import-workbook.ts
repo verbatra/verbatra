@@ -1,8 +1,7 @@
-import { basename, join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import {
   type DelimitedFormat,
-  delimitedFileName,
   readDelimited,
   readWorkbook,
   type WorkbookData,
@@ -60,30 +59,36 @@ import {
   withProjectRelativeMessages,
 } from "../locale-failure.js";
 import { readTargetResource } from "../read-target.js";
+import { assertReviewer } from "../review-decision.js";
 import { readSourceResource } from "../source.js";
 import type { LocaleSummary, RunSummary } from "../summary.js";
 import { writeTargetResource } from "../write-target.js";
+import { withApprovalNotice, withHandoffApprovals } from "../xliff/handoff-approvals.js";
+import { type HandoffStates, readXliffHandoff } from "../xliff/xliff-import.js";
 import {
-  DEFAULT_EXCHANGE_FORMAT,
+  type DirectoryFormat,
   type ExchangeFormat,
-  isDelimitedFormat,
+  handoffExtension,
+  importFormatFor,
+  isDirectoryFormat,
+  isXliffFormat,
 } from "./exchange-format.js";
-import { readExportedLocales } from "./export-manifest.js";
+import { collectHandoffFiles, type HandoffSource } from "./handoff-files.js";
 import { type ImportLocaleResult, importLocale } from "./import-locale.js";
 
 const MAX_WORKBOOK_FILE_BYTES = 64 * 1024 * 1024;
-
-const MAX_DELIMITED_FILE_BYTES = 32 * 1024 * 1024;
 
 /** Input for {@link importWorkbook}. */
 export interface ImportWorkbookInput {
   /** The resolved project config, normally from {@link loadConfig}. */
   readonly config: VerbatraConfig;
   /**
-   * Path to the filled handoff. For a delimited import the path is tried as a single file first,
-   * so one individual `<locale>.<format>` file can be imported on its own, with the locale taken
-   * from its file name. If no file exists there, the path is treated as the directory the
-   * per-locale files were written into and every configured target locale found inside is read.
+   * Path to the filled handoff. For a delimited or XLIFF import the path is tried as a single file
+   * first, so one individual `<locale>.<csv|tsv|xlf>` file can be imported on its own, with the
+   * locale taken from its file name. A single XLIFF file whose name is not a configured target
+   * locale is matched by the target language it declares instead. If no file exists there, the
+   * path is treated as the directory the per-locale files were written into and every configured
+   * target locale found inside is read.
    */
   readonly workbook: string;
   /** Directory the `files.pattern` and `workbook` are resolved against. Defaults to the process working directory. */
@@ -94,8 +99,19 @@ export interface ImportWorkbookInput {
    * Defaults to false.
    */
   readonly dryRun?: boolean;
-  /** The handoff shape to read. Defaults to `xlsx`. */
+  /**
+   * The handoff shape to read. Defaults to `xliff2` when {@link ImportWorkbookInput.workbook} ends
+   * in `.xlf` or `.xliff`, and to `xlsx` otherwise. `xliff2` and `xliff12` both read either XLIFF
+   * version, which is taken from the file.
+   */
   readonly format?: ExchangeFormat;
+  /**
+   * Free text naming the reviewer, at most 64 characters with no control characters, recorded on
+   * each value an XLIFF handoff marks `reviewed` or `final` (1.2: `signed-off`, `final`, or
+   * `approved="yes"`). It is stored in the committed provenance file, so it is public. Other
+   * handoff formats carry no review state, so it is not used for them.
+   */
+  readonly reviewer?: string;
   /**
    * Called while waiting on another process's write lock, so a CLI can explain a stall instead of
    * appearing to hang. Never called for a lock this process holds itself.
@@ -133,71 +149,8 @@ async function readWorkbookBytes(path: string, fs: SdkFs): Promise<Uint8Array> {
   return read.bytes;
 }
 
-interface DelimitedSource {
-  readonly locale: string;
-  readonly text: string;
-}
-
-interface DelimitedHandoff {
-  readonly sources: readonly DelimitedSource[];
-  readonly staleLocales: readonly string[];
-  readonly expectedLocales: readonly string[];
-}
-
-async function readDelimitedText(path: string, fs: SdkFs): Promise<string | undefined> {
-  const read = await fs.readFileBounded(path, MAX_DELIMITED_FILE_BYTES);
-  if (read.kind === "missing") {
-    return undefined;
-  }
-  if (read.kind === "too-large") {
-    throw new SdkError(
-      "SOURCE_INVALID",
-      `The interchange file at ${path} exceeds the maximum allowed size of ${MAX_DELIMITED_FILE_BYTES} bytes.`,
-    );
-  }
-  return read.content;
-}
-
-async function collectDelimitedSources(
-  path: string,
-  config: VerbatraConfig,
-  fs: SdkFs,
-  format: DelimitedFormat,
-): Promise<DelimitedHandoff> {
-  const single = await readDelimitedText(path, fs);
-  if (single !== undefined) {
-    const locale = basename(path, `.${format}`);
-    return {
-      sources: [{ locale, text: single }],
-      staleLocales: [],
-      expectedLocales: [locale],
-    };
-  }
-  const exported = await readExportedLocales(fs, path, format);
-  const sources: DelimitedSource[] = [];
-  const staleLocales: string[] = [];
-  for (const locale of config.targetLocales) {
-    const text = await readDelimitedText(join(path, delimitedFileName(locale, format)), fs);
-    if (text === undefined) {
-      continue;
-    }
-    if (exported !== undefined && !exported.has(locale)) {
-      staleLocales.push(locale);
-      continue;
-    }
-    sources.push({ locale, text });
-  }
-  if (sources.length === 0 && staleLocales.length === 0) {
-    throw new SdkError(
-      "SOURCE_UNREADABLE",
-      `No ${format} file was found at ${path}, and it holds no <locale>.${format} file for any configured target locale.`,
-    );
-  }
-  return { sources, staleLocales, expectedLocales: config.targetLocales };
-}
-
 function parseDelimitedSources(
-  sources: readonly DelimitedSource[],
+  sources: readonly HandoffSource[],
   format: DelimitedFormat,
 ): WorkbookData {
   const sheets: WorkbookSheet[] = [];
@@ -216,6 +169,35 @@ interface ImportRead {
   readonly data: WorkbookData;
   readonly staleLocales: readonly string[];
   readonly expectedLocales: readonly string[];
+  readonly states?: HandoffStates;
+}
+
+async function readDirectoryHandoff(
+  path: string,
+  config: VerbatraConfig,
+  fs: SdkFs,
+  format: DirectoryFormat,
+  source: LocaleResource,
+): Promise<ImportRead> {
+  const files = await collectHandoffFiles(path, config, fs, format);
+  if (isXliffFormat(format)) {
+    const handoff = readXliffHandoff(files, source, config);
+    return {
+      data: {
+        sheets: handoff.sheets,
+        malformedRows: handoff.malformedRows,
+        duplicateKeys: handoff.duplicateKeys,
+      },
+      staleLocales: files.staleLocales,
+      expectedLocales: handoff.expectedLocales,
+      states: handoff.states,
+    };
+  }
+  return {
+    data: parseDelimitedSources(files.sources, format),
+    staleLocales: files.staleLocales,
+    expectedLocales: files.expectedLocales,
+  };
 }
 
 async function readImportData(
@@ -223,15 +205,11 @@ async function readImportData(
   config: VerbatraConfig,
   fs: SdkFs,
   format: ExchangeFormat,
+  source: LocaleResource,
 ): Promise<ImportRead> {
   try {
-    if (isDelimitedFormat(format)) {
-      const handoff = await collectDelimitedSources(path, config, fs, format);
-      return {
-        data: parseDelimitedSources(handoff.sources, format),
-        staleLocales: handoff.staleLocales,
-        expectedLocales: handoff.expectedLocales,
-      };
+    if (isDirectoryFormat(format)) {
+      return await readDirectoryHandoff(path, config, fs, format, source);
     }
     return {
       data: await readWorkbook(await readWorkbookBytes(path, fs)),
@@ -331,14 +309,20 @@ interface SheetContext {
   readonly malformedRows: WorkbookData["malformedRows"];
   readonly duplicateKeys: WorkbookData["duplicateKeys"];
   readonly format: ExchangeFormat;
+  readonly states: HandoffStates | undefined;
+  readonly reviewer: string | undefined;
+}
+
+function plainFileName(locale: string, format: DirectoryFormat): string {
+  return `${locale}.${handoffExtension(format)}`;
 }
 
 class MissingSheetError extends Error {
   readonly code = "WORKBOOK_SHEET_MISSING";
   constructor(locale: string, format: ExchangeFormat) {
     super(
-      isDelimitedFormat(format)
-        ? `The handoff has no "${delimitedFileName(locale, format)}" file for the configured target locale "${locale}". ` +
+      isDirectoryFormat(format)
+        ? `The handoff has no "${plainFileName(locale, format)}" file for the configured target locale "${locale}". ` +
             "The file may have been renamed, deleted, or left out of the directory."
         : `The workbook has no sheet (tab) for the configured target locale "${locale}". ` +
             "The tab may have been renamed, deleted, or reordered out of the workbook.",
@@ -349,9 +333,9 @@ class MissingSheetError extends Error {
 
 class StaleHandoffFileError extends Error {
   readonly code = "HANDOFF_FILE_STALE";
-  constructor(locale: string, format: DelimitedFormat) {
+  constructor(locale: string, format: DirectoryFormat) {
     super(
-      `The file "${delimitedFileName(locale, format)}" is left over from an earlier export that included the target locale "${locale}"; ` +
+      `The file "${plainFileName(locale, format)}" is left over from an earlier export that included the target locale "${locale}"; ` +
         "the most recent export into this directory did not. Its rows were not applied, because they " +
         "reflect that earlier run. Re-export the locale to refresh the file, or delete it.",
     );
@@ -373,7 +357,7 @@ function absentLocaleFailures(
       continue;
     }
     const error =
-      stale.has(locale) && isDelimitedFormat(format)
+      stale.has(locale) && isDirectoryFormat(format)
         ? new StaleHandoffFileError(locale, format)
         : new MissingSheetError(locale, format);
     failures.push(failureSummary(locale, error));
@@ -398,8 +382,8 @@ async function runSheet(
   if (!ctx.config.targetLocales.includes(sheet.locale)) {
     throw new SdkError(
       "CONFIG_INVALID",
-      isDelimitedFormat(ctx.format)
-        ? `The handoff has a file named "${sheet.locale}.${ctx.format}", whose locale is not a configured target locale. ` +
+      isDirectoryFormat(ctx.format)
+        ? `The handoff has a file named "${plainFileName(sheet.locale, ctx.format)}", whose locale is not a configured target locale. ` +
             "Name every interchange file exactly as it was exported."
         : `The workbook has a sheet named "${sheet.locale}", which is not a configured target locale. ` +
             "It may be a renamed, added, or reordered tab; leave every language tab named exactly as exported.",
@@ -413,7 +397,8 @@ async function runSheet(
     fs: ctx.fs,
   });
   const baseline = baselineFor(lock, sheet.locale);
-  const { summary, accepted } = importLocale({
+  const states = ctx.states?.get(sheet.locale);
+  const imported = importLocale({
     sheet,
     source: ctx.source,
     target,
@@ -426,7 +411,10 @@ async function runSheet(
     duplicateKeys: ctx.duplicateKeys
       .filter((duplicate) => duplicate.locale === sheet.locale)
       .map((duplicate) => ({ key: duplicate.key, row: duplicate.row, ...lineOf(duplicate) })),
+    ...(states !== undefined ? { states } : {}),
   });
+  const { accepted, approved } = imported;
+  const summary = withApprovalNotice(imported.summary, approved, ctx.dryRun);
 
   if (ctx.dryRun) {
     return { summary, lockEntries: {}, provenance: { records: new Map() }, cacheAdditions: {} };
@@ -459,7 +447,15 @@ async function runSheet(
   return {
     summary,
     lockEntries: computeSheetLockEntries(ctx.source, merged, baseline, accepted),
-    provenance: importProvenance(written, merged, accepted),
+    provenance: await withHandoffApprovals(importProvenance(written, merged, accepted), {
+      cwd: ctx.cwd,
+      fs: ctx.fs,
+      locale: sheet.locale,
+      approved,
+      written,
+      source: ctx.source,
+      reviewer: ctx.reviewer,
+    }),
     cacheAdditions: sheetCacheAdditions(accepted),
   };
 }
@@ -563,17 +559,19 @@ export async function importWorkbook(
   const cwd = input.cwd ?? process.cwd();
   const dryRun = input.dryRun ?? false;
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
+  assertReviewer(input.reviewer);
   const fs = deps.fs ?? defaultFs;
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const format = input.format ?? DEFAULT_EXCHANGE_FORMAT;
-  const { data, staleLocales, expectedLocales } = await readImportData(
+  const format = importFormatFor(input.format, input.workbook);
+  const { data, staleLocales, expectedLocales, states } = await readImportData(
     resolve(cwd, input.workbook),
     config,
     fs,
     format,
+    source.resource,
   );
 
   const lockOptions = writeLockOptions(input);
@@ -600,6 +598,8 @@ export async function importWorkbook(
     malformedRows: data.malformedRows,
     duplicateKeys: data.duplicateKeys,
     format,
+    states,
+    reviewer: input.reviewer,
   };
 
   const recordOptions = recordLockOptions(input);

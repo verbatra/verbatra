@@ -395,6 +395,7 @@ export {
   DEFAULT_EXCHANGE_FORMAT,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
+  type XliffFormat,
 } from "./flow/workbook/exchange-format.js";
 export {
   DEFAULT_DELIMITED_PATH,
