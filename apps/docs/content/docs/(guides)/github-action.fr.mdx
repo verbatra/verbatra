@@ -68,8 +68,26 @@ Ajoute `qa: "true"` à `command: check` pour lancer [`verbatra check --qa`](/doc
 ```
 
 - Chaque constat devient une annotation intitulée `verbatra qa: <locale>` : une erreur pour une valeur que le contrôle d'intégrité refuserait, un avertissement pour un motif de relecture.
-- L'étape échoue sur tout constat d'erreur. Ajoute `qa-strict: "true"` pour échouer aussi sur les avertissements, ou `qa-severity: error` pour ne signaler que les erreurs.
+- L'étape échoue sur tout constat d'erreur. Ajoute `qa-strict: "true"` pour échouer aussi sur les avertissements et les pluriels incomplets, ou `qa-severity: error` pour ne signaler que les erreurs.
 - `qa` demande une `version` `0.12.0` ou plus récente. Un épinglage inférieur fait échouer l'étape avant toute installation, tout comme une préversion telle que `0.12.0-next.0`, donc épingle la version finale.
+
+## Exiger des traductions relues
+
+<AvailableFrom version="0.12.0" />
+
+Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues). L'étape échoue tant qu'une traduction écrite par une machine n'est pas approuvée dans le `verbatra.provenance.json` commité, où [Studio](/docs/review-in-studio) enregistre les décisions de relecture. Cela reste en lecture seule et sans clé, et se combine avec `qa`.
+
+```yaml
+      - uses: verbatra/action@<commit-sha> # a commit on the v1 line
+        with:
+          version: 0.12.0
+          command: check
+          require-reviewed: "true"
+```
+
+- Chaque locale avec des clés non approuvées reçoit une annotation d'erreur [`REVIEW_REQUIRED`](/docs/error-codes#review_required) qui les nomme, et le résumé de job ajoute une colonne `unreviewed`.
+- Un `verbatra.provenance.json` corrompu ou écrit par un verbatra plus récent fait échouer le contrôle avec une seule annotation `REVIEW_STATE_UNREADABLE`.
+- Comme `qa`, il demande une `version` `0.12.0` ou plus récente, et une préversion fait échouer l'étape.
 
 ## Mode humain uniquement
 
@@ -116,6 +134,7 @@ Si aucune configuration n'est trouvée, l'étape échoue avant d'installer la CL
 | `qa` | `"false"` | `"true"` ajoute le contrôle qualité (`--qa`) ; `check` uniquement, demande `0.12.0` ou plus récente |
 | `qa-severity` | `""` | gravité minimale signalée, `error` ou `warning` (`--severity`) ; exige `qa` |
 | `qa-strict` | `"false"` | `"true"` échoue aussi sur les avertissements (`--strict`) ; exige `qa` |
+| `require-reviewed` | `"false"` | `"true"` échoue aussi sur les traductions machine non approuvées (`--require-reviewed`) ; uniquement `check`, demande `0.12.0` ou plus récente |
 | `node-version` | `"24"` | version de Node.js que l'action installe pour exécuter la CLI |
 
 Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Une valeur ou une combinaison invalide fait échouer l'étape avec la sortie `1` avant toute installation.
@@ -128,8 +147,8 @@ Les entrées booléennes n'acceptent que `"true"` ou `"false"`. Une valeur ou un
 
 ## Ce qu'une exécution te montre
 
-- **Annotations.** Avec `translate`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec l'erreur. GitHub affiche au plus 10 annotations par gravité, donc l'action ajoute une notice qui compte le reste.
-- **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats.
+- **Annotations.** Avec `translate`, chaque locale en échec ou partielle devient une annotation d'erreur intitulée `verbatra: <locale>`. Avec `check` ou `diff`, chaque locale qui a dérivé en reçoit une intitulée `verbatra check: <locale>` ou `verbatra diff: <locale>`. L'annotation `LOCALE_PARTIAL` d'une locale partielle nomme les clés retenues, regroupées par cause. Chaque `check` ajoute un avertissement `PLURAL_CATEGORIES_INCOMPLETE` par locale dont les pluriels n'ont pas une catégorie CLDR que la langue utilise. Une exécution qui échoue dans son ensemble reçoit une seule annotation `verbatra` avec le code d'erreur, sa cause sous la forme `(cause: X)` et une piste `Next step:` quand la CLI les fournit. GitHub affiche au plus 10 annotations par gravité, donc l'action les ordonne par dérive, relecture, erreurs de qualité puis avertissements, et ajoute une notice qui compte le reste.
+- **Résumé de job.** Une ligne par locale avec les compteurs de la commande exécutée, une ligne agrégée et les locales partielles et en échec. Avec `qa`, il ajoute un tableau de constats jusqu'à 1000 constats, avec `require-reviewed` une colonne `unreviewed` ; les pluriels incomplets ont leur propre section.
 - **Statut de sortie.** L'action émet d'abord les annotations et le résumé, puis sort avec le code de la CLI elle-même, donc l'étape n'échoue sur `1` ou `2` qu'après avoir montré pourquoi. Les codes sont dans [Codes de sortie et sortie JSON](/docs/cli/output#codes-de-sortie).
 
 ## Sécurité
