@@ -3,85 +3,67 @@ title: Connect an MCP client
 description: Wire verbatra's stdio MCP server into Claude Code, Codex, Gemini CLI, Cursor, VS Code, GitHub Copilot, Windsurf, Zed, JetBrains AI Assistant, Claude Desktop, or any other MCP client, with the provider key kept out of every committed file.
 status: new
 ---
-verbatra's MCP server speaks the stdio transport: your MCP client starts it as a child process and talks to it over stdin and stdout, so there is no port, no URL, and nothing to keep running yourself. Every client needs the same three answers: which command starts the server, which directory is the project, and where a provider key comes from, if the agent is allowed to spend at all. This page answers them once and then shows each client's own config syntax. The tools themselves, their inputs, and their results are documented in [`verbatra mcp`](/docs/cli/mcp).
+Use this to let a coding agent read translation status, fix values and, only if you allow it, run translations through verbatra's MCP server. The client starts the server as a child process over stdio, so there is no port and nothing to keep running.
+
+You need:
+
+- a project with a verbatra config (run [`npx verbatra init`](/docs/cli/init) first if there is none);
+- Node.js 22.14 or later;
+- a provider key in your environment, only if the agent should spend.
+
+Tools, inputs and results are in [`verbatra mcp`](/docs/cli/mcp#tools).
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
 ## Pick a launch command
 
-Two commands start the same server:
-
 | Command | Needs | Reads `.env` files |
 | --- | --- | --- |
-| `npx -y @verbatra/mcp` | nothing installed: npx fetches `@verbatra/mcp` on demand and runs its `verbatra-mcp` binary | no |
-| `npx verbatra mcp` | both `@verbatra/cli` and `@verbatra/mcp` installed in the project | yes: `.env.local`, then `.env`, from the working directory, or the `--cwd` directory |
+| `npx -y @verbatra/mcp` | nothing installed | no |
+| `npx verbatra mcp` | `@verbatra/cli` and `@verbatra/mcp` as dev dependencies | yes: `.env.local`, then `.env` |
 
-`npx -y @verbatra/mcp` is the default in every example below, because it works in any project. Switch to `npx verbatra mcp` when the project already has both packages as dev dependencies and its provider key already lives in `.env.local`:
+Every example below uses `npx -y @verbatra/mcp`, which works in any project. Two look-alikes fail: `npx -y @verbatra/cli mcp` exits `2` because the CLI never installs `@verbatra/mcp`, and `npx verbatra mcp` without a local `@verbatra/cli` fetches an unrelated registry package named `verbatra`.
 
-```npm
-npm install --save-dev @verbatra/cli @verbatra/mcp
-```
-
-Two commands that look right do not work in a project without those installs. `npx -y @verbatra/cli mcp` installs only the CLI, which loads `@verbatra/mcp` on demand and never installs it, so it exits `2` with `Verbatra's MCP server requires @verbatra/mcp`. `npx verbatra mcp` without a local `@verbatra/cli` makes npx look up a registry package named `verbatra`, which is not verbatra's CLI, so the command fails, and it could run someone else's package if that name is ever registered.
+Point the server at the directory that holds the config. Each client section says how; [Project directory](/docs/cli/mcp#project-directory) has the rule.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Every `@verbatra/mcp` release also publishes the server to the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.verbatra/verbatra`, right after the npm package, so a client that browses the registry can find it there.
+The server is also listed in the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.verbatra/verbatra`.
 
-## Which directory is the project
+## Decide whether the agent may spend
 
-The server loads the config and resolves every locale file from its working directory, or from the directory `--cwd` names. Without `--cwd`, a `CLAUDE_PROJECT_DIR` environment variable that names an existing directory takes the place of the working directory. Without `--config`, it searches upward from there for a config file, stopping at the nearest `.git` directory, but the tools still resolve paths from the working directory itself. Point the server at the directory that holds `verbatra.config.ts`.
+The server starts read-only: `translation.retranslateEntry` and `translation.translatePending` stay hidden, and no other tool calls a provider or reads a key. For that setup, leave the key and the spend switch out of the client config.
 
-Clients differ in which directory they start a server in:
+To let the agent spend, add both:
 
-| Client | Working directory | What to do |
-| --- | --- | --- |
-| Claude Code | not documented, but `CLAUDE_PROJECT_DIR` is set to the project root | nothing: the server uses `CLAUDE_PROJECT_DIR` when there is no `--cwd` |
-| Codex | not documented | set `cwd` to an absolute path |
-| Gemini CLI | not documented | set `cwd` to an absolute path |
-| Cursor | not documented | pass `--cwd ${workspaceFolder}` |
-| VS Code | the workspace folder | nothing, or set `cwd` |
-| GitHub Copilot cloud agent | not documented | nothing to set: check the session log (see below) |
-| GitHub Copilot CLI | not documented | pass `--cwd` with an absolute path |
-| Windsurf | not documented | pass `--cwd` with an absolute path |
-| Zed | not documented | pass `--cwd` with an absolute path |
-| JetBrains AI Assistant | the **Working directory** you enter | set it to the project root |
-| Claude Desktop | not documented, and there is no project | pass `--cwd` with an absolute path |
-
-## Keys and spending
-
-The server starts read-only. Without spending allowed, it advertises every tool except `translation.retranslateEntry` and `translation.translatePending`, and none of those tools calls a provider or reads a key: reading status and the glossary, pricing a run with `translation.estimate`, and writing a translation by hand with `translation.editEntry` all work with no key at all. For that setup, leave the key and the spend switch out of the client config entirely.
-
-To let the agent spend, turn on two things:
-
-- **The spend switch.** Add `--allow-spend` to the server's arguments, or set `VERBATRA_MCP_ALLOW_SPEND` to `1`, `true`, `yes`, or `on` in its environment. The flag wins over the variable. With `npx verbatra mcp` the variable can also sit in the project's `.env.local` or `.env`, which that command reads first; `npx -y @verbatra/mcp` reads no `.env` file. A config with `provider: { id: "none" }` keeps both spend tools hidden whatever you set.
-- **The provider key.** The server reads the same environment variable as the CLI, for example `ANTHROPIC_API_KEY`; see [Providers](/docs/providers) for yours. It never reads a key from its arguments or from a client config file.
-
-Never write a key into a file you commit: `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, and `.github/mcp.json` are meant to be shared with the whole team. Each client below has a way to hand the server a key without the file holding it: an inherited environment, a reference to a variable, or a prompt that stores the value outside the file.
-
-Even with spending allowed, the server's own instructions tell the agent to run `translation.estimate` first and to wait for your explicit yes before it calls a spend tool.
+- `--allow-spend` in the server's arguments, or `VERBATRA_MCP_ALLOW_SPEND=1` in its environment ([Spend tools](/docs/cli/mcp#spend-tools));
+- your provider's key variable, such as `ANTHROPIC_API_KEY` ([Providers](/docs/providers)).
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.estimate`, the `none` provider, and those server instructions arrived in this release.
+Even then, the server tells the agent to run `translation.estimate` and wait for your yes before any spend call, and a config with `provider: { id: "none" }` keeps both spend tools hidden.
+
+<Callout type="warn">
+Never write a key into a committed file. `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/mcp.json`, `.vscode/mcp.json` and `.github/mcp.json` are shared with the team; each section below passes the key by reference or from your environment instead.
+</Callout>
 
 ## Claude Code
 
-Add the server from the project root:
+From the project root:
 
 ```bash
 claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp
 ```
 
-Everything after `--` is the server's own command line, passed through untouched, so verbatra's flags go after it and Claude Code's own options (`--transport`, `--scope`, `--env`) go before it. `--scope` decides where the entry is stored:
+Claude Code's options go before `--`, the server's own arguments after it. `--scope` picks where the entry is stored:
 
 | Scope | Stored in | Who gets it |
 | --- | --- | --- |
-| `local` (the default) | `~/.claude.json`, under this project's path | you, in this project only |
-| `project` | `.mcp.json` at the project root, meant to be committed | everyone who opens the project |
+| `local` (default) | `~/.claude.json`, under this project | you, in this project |
+| `project` | `.mcp.json` at the project root, committed | everyone who opens the project |
 | `user` | `~/.claude.json` | you, in every project |
 
-`--scope project` writes this `.mcp.json`, which you can also write by hand and commit:
+`--scope project` writes this `.mcp.json`, which you can also write by hand:
 
 ```json
 {
@@ -95,62 +77,49 @@ Everything after `--` is the server's own command line, passed through untouched
 }
 ```
 
-`verbatra init --agent` writes this entry for you, next to any server the file already holds, and never changes a `verbatra` entry that is already there. See [Set up coding agents](/docs/cli/init#set-up-coding-agents).
-
 <AvailableFrom version="0.12.0" />
 
-Claude Code asks each person to approve a project-scoped server from `.mcp.json` before the first use in an interactive session.
+[`verbatra init --agent`](/docs/cli/init#set-up-coding-agents) writes the same entry next to any server the file already holds.
 
-Claude Code passes the server the environment you started `claude` with, plus `CLAUDE_PROJECT_DIR` set to the project root. So the committed file holds no key and no spend switch: a teammate who wants the spend tools opts in for one session, with the key already exported in their shell:
+Claude Code sets `CLAUDE_PROJECT_DIR` to the project root, so no `--cwd` is needed, and passes on the environment you started it with. To spend for one session, export the key and start it with the switch:
 
 ```bash
 VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
-With the `npx verbatra mcp` launch command instead, the server also picks the key up from the project's `.env.local` or `.env`, so it does not need to be exported at all.
-
-Do not pass a key with `--env` together with `--scope project`: `--env KEY=value` writes the value itself into the entry, and with that scope the entry is `.mcp.json`.
-
-Run `claude mcp list` to see whether the server connects. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp) for the full command reference.
+Do not combine `--env KEY=value` with `--scope project`: it writes the value into `.mcp.json`. Run `claude mcp list` to see whether the server connects. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
 ### The verbatra plugin
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Instead of adding the server by hand, you can install the verbatra plugin for Claude Code. It brings the three [verbatra skills](/docs/agent-recipes#the-skills-pack), this MCP server, and a hook that checks locale files after Claude edits them. Install it for the project, from a shell in the project root:
+The plugin bundles the three [verbatra skills](/docs/agent-recipes#the-skills-pack), this server, and a hook that checks a locale file after Claude edits it. Install it for the project:
 
 ```bash
 claude plugin marketplace add verbatra/skills
 claude plugin install verbatra@verbatra --scope project
 ```
 
-`--scope project` records the plugin in the project's `.claude/settings.json` and keeps it out of your other projects. Each teammate still installs it once: until then, Claude Code reports it as not installed and shows the `claude plugin install` command to run. Under the default `user` scope it would start in every project you open, and in each one without verbatra it would run without a config, where only `project.snapshot` and `project.doctor` do anything. Inside Claude Code, `/plugin marketplace add verbatra/skills` and `/plugin install verbatra@verbatra` do the same; pick **Project scope** when [the install asks for a scope](https://code.claude.com/docs/en/discover-plugins#install-plugins).
+Each teammate installs it once. Under the default `user` scope it would start in every project you open.
 
-- **The server.** The plugin starts `npx -y @verbatra/mcp` at the version it pins, with `--cwd` set to the project Claude Code has open. If the project has no config yet, the server still starts: run `npx verbatra init` there, and the next tool call picks the config up without a restart.
-- **Spending is off.** The spend tools stay hidden until you turn on the plugin's `allowSpend` option, which it passes to the server as `VERBATRA_MCP_ALLOW_SPEND`, so starting `claude` with that variable does not turn spending on for the plugin's server. Set it with `--config allowSpend=true` on `claude plugin install`, or later in `/config`. Claude Code ignores plugin options in a project's `.claude/settings.json`, so a committed file never turns spending on for the team. See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference) for scopes and options.
-- **The key comes from your environment.** The plugin has no option for a key. The server reads your provider's variable from the environment you started `claude` with, exactly as above.
-- **The locale-edit hook.** After Claude edits or writes a file that can be a locale file, the hook runs the project's own `verbatra check --file <path>` on that one file, reading no other locale. When the file no longer parses, or a translation in it breaks a placeholder, inline markup, or ICU, it hands the findings back to Claude to fix, with the line and column of a JSON or YAML syntax error. With a CLI older than `check --file`, it falls back to `verbatra check --qa` over the whole project and reports the edited locale's findings. It only uses the `@verbatra/cli` installed in the project's `node_modules`, version 0.12.0 or later, downloads nothing, and calls no provider. In a project without a local `@verbatra/cli`, it does nothing.
+- **Server**: `npx -y @verbatra/mcp` at a pinned version, with `--cwd` set to the open project. Without a config it still starts; run `npx verbatra init` and the next call picks the config up.
+- **Spending**: off until you turn on the plugin's `allowSpend` option (`--config allowSpend=true` on install, or `/config`). A committed `.claude/settings.json` cannot turn it on, and `VERBATRA_MCP_ALLOW_SPEND` in your shell does not reach this server.
+- **Key**: read from the environment you started `claude` with; the plugin has no key option.
+- **Hook**: runs the project's own `verbatra check --file <path>` (CLI 0.12.0 or later, from `node_modules`) and hands broken syntax, placeholders, markup or ICU back to Claude. It downloads nothing and calls no provider.
+
+See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference).
 
 ## Codex
 
-The Codex CLI, its IDE extension, and the desktop app share one configuration: `~/.codex/config.toml`, or a project's `.codex/config.toml`, which Codex loads only in a project you trust. Add the server from a shell:
+The Codex CLI, IDE extension and desktop app share `~/.codex/config.toml`, or a trusted project's `.codex/config.toml`:
 
 ```bash
 codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-As with Claude Code, everything after `--` is the server's own command line. The same entry, written by hand:
+The same entry by hand, with spending allowed; `env_vars` names variables Codex passes through from its own environment, so the file never holds the value:
 
-```toml
-[mcp_servers.verbatra]
-command = "npx"
-args = ["-y", "@verbatra/mcp"]
-cwd = "/path/to/your/project"
-```
-
-To allow spending, add the switch and forward the key with `env_vars`, which lists only variable names: Codex passes each one through from the environment it runs in, so the file never holds the value.
-
-```toml
+```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
 command = "npx"
 args = ["-y", "@verbatra/mcp", "--allow-spend"]
@@ -158,27 +127,13 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Do not put the key in an `[mcp_servers.verbatra.env]` table or pass it with `codex mcp add --env`: both store the value itself. Run `codex mcp list` to see the entry. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) and the [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+Drop `--allow-spend` and `env_vars` for a read-only entry. An `[mcp_servers.verbatra.env]` table or `codex mcp add --env` stores the value itself. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 ## Gemini CLI
 
-Gemini CLI reads `mcpServers` from `.gemini/settings.json` in the project or from `~/.gemini/settings.json`. It does not document which directory a relative `cwd` resolves against, so give an absolute one, which also keeps the entry in your user settings rather than the shared project file:
+Gemini CLI reads `mcpServers` from `.gemini/settings.json` or `~/.gemini/settings.json`. Give an absolute `cwd`, and keep an entry with one in your user settings:
 
-```json
-{
-  "mcpServers": {
-    "verbatra": {
-      "command": "npx",
-      "args": ["-y", "@verbatra/mcp"],
-      "cwd": "/path/to/your/project"
-    }
-  }
-}
-```
-
-Gemini CLI redacts sensitive variables from the environment it hands a server, so a key reaches verbatra only when the entry names it in `env`. A `$VARIABLE` reference there is expanded from the environment Gemini CLI runs in, so the file holds only the name:
-
-```json
+```json title="~/.gemini/settings.json"
 {
   "mcpServers": {
     "verbatra": {
@@ -193,13 +148,13 @@ Gemini CLI redacts sensitive variables from the environment it hands a server, s
 }
 ```
 
-Leave `trust` unset on a spend-enabled entry: `"trust": true` skips Gemini CLI's confirmation before every tool call. `gemini mcp add` writes the same entry, but its `-e KEY=value` stores the value itself, so add a key by reference in the file instead. Run `/mcp` inside Gemini CLI to see whether the server connected and which tools it lists. See the [Gemini CLI MCP documentation](https://geminicli.com/docs/tools/mcp-server/).
+Gemini CLI hides sensitive variables from servers, so the key arrives only through `env`, where `$ANTHROPIC_API_KEY` is expanded from its environment. Drop `--allow-spend` and `env` for a read-only entry, and leave `trust` unset so every call is confirmed. `gemini mcp add -e KEY=value` stores the value itself. Run `/mcp` to see the server and its tools. See the [Gemini CLI MCP documentation](https://geminicli.com/docs/tools/mcp-server/).
 
 ## Cursor
 
-Cursor reads a project's servers from `.cursor/mcp.json` and your own from `~/.cursor/mcp.json`:
+Cursor reads `.cursor/mcp.json` in the project and `~/.cursor/mcp.json`. `${workspaceFolder}` is the project root:
 
-```json
+```json title=".cursor/mcp.json"
 {
   "mcpServers": {
     "verbatra": {
@@ -211,44 +166,13 @@ Cursor reads a project's servers from `.cursor/mcp.json` and your own from `~/.c
 }
 ```
 
-`${workspaceFolder}` is Cursor's variable for the project root. To allow spending, add the switch and forward the key by reference, so the file holds only the variable's name and the value comes from the environment Cursor runs in:
-
-```json
-{
-  "mcpServers": {
-    "verbatra": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@verbatra/mcp", "--cwd", "${workspaceFolder}", "--allow-spend"],
-      "env": {
-        "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-Keep a spend-enabled entry in `~/.cursor/mcp.json` rather than the committed project file if not everyone on the team should spend. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
+To spend, append `"--allow-spend"` to `args` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`, which holds only the variable's name. Keep that entry in `~/.cursor/mcp.json` if not everyone should spend. See the [Cursor MCP documentation](https://cursor.com/docs/mcp).
 
 ## VS Code
 
-VS Code (GitHub Copilot's agent mode) reads a workspace's servers from `.vscode/mcp.json`. Its top-level key is `servers`, not `mcpServers`, and it starts a server in the workspace folder, so no `--cwd` is needed:
+VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`. Its top-level key is `servers`, and it starts servers in the workspace folder, so no `--cwd` is needed. To spend, declare the key as an input: VS Code prompts once and stores it outside the file.
 
-```json
-{
-  "servers": {
-    "verbatra": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@verbatra/mcp"]
-    }
-  }
-}
-```
-
-To allow spending, declare the key as an input. VS Code prompts for it the first time the server starts and stores the value securely, outside the file:
-
-```json
+```json title=".vscode/mcp.json"
 {
   "inputs": [
     {
@@ -271,23 +195,19 @@ To allow spending, declare the key as an input. VS Code prompts for it the first
 }
 ```
 
-Alternatively, `"envFile": "${workspaceFolder}/.env.local"` loads the key from an ignored file you already have. Run **MCP: Open User Configuration** for a `mcp.json` that applies to all your workspaces. See the [VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
-
-### Install with one click
-
-[Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) opens VS Code and offers to install the read-only server. The same entry from a shell:
+Drop `inputs`, `--allow-spend` and `env` for a read-only entry, or load the key with `"envFile": "${workspaceFolder}/.env.local"`. For a read-only install in one step, use [Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) or:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
 ```
 
-Both carry no key and no spend switch; add those by hand as above if the agent should spend. The link format is described in the [VS Code MCP developer guide](https://code.visualstudio.com/api/extension-guides/ai/mcp).
+See the [VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
 ## GitHub Copilot
 
 ### Copilot cloud agent
 
-The cloud agent works on GitHub, not on your machine. A repository admin adds the server under **Settings**, **Copilot**, **MCP servers**. The cloud agent calls every tool it is given without asking you first, so GitHub recommends allowlisting read-only tools, and `tools` is required. This entry lists every verbatra tool that neither writes nor calls a provider:
+A repository admin adds the server under **Settings**, **Copilot**, **MCP servers**. The cloud agent calls every tool it is given without asking, so `tools` is required; this allowlist holds every tool that neither writes nor calls a provider:
 
 ```json
 {
@@ -314,29 +234,23 @@ The cloud agent works on GitHub, not on your machine. A repository admin adds th
 }
 ```
 
-Add `translation.editEntry` and `glossary.write` only if the agent should write translations and glossary terms in its pull request. Keep `review.approve` and `review.reject` out: a review decision needs a person, and an agent approving its own output is what `check --require-reviewed` exists to catch. Leave spending off: the server's instruction to wait for your yes before a spend tool cannot hold when nobody is asked. To grant it deliberately anyway, all three of these are needed, and each one is a separate decision:
+Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request. Keep `review.approve` and `review.reject` out: a review decision needs a person. Leave spending off, since nobody is asked before a call. If you grant it anyway, you need all three: an Agents secret such as `COPILOT_MCP_ANTHROPIC_API_KEY` (only the `COPILOT_MCP_` prefix reaches MCP servers), `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` with `--allow-spend`, and the spend tool in `tools`.
 
-- an Agents secret named with the `COPILOT_MCP_` prefix, for example `COPILOT_MCP_ANTHROPIC_API_KEY`, added under **Settings**, **Secrets and variables**, **Agents**. Only secrets with that prefix reach an MCP configuration, and they are passed to MCP servers, not to the agent itself;
-- `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` and `--allow-spend` in `args`, so the configuration holds a reference, never the value;
-- `translation.translatePending` or `translation.retranslateEntry` in `tools`. Without them in the allowlist, the agent cannot call them even with `--allow-spend`.
-
-GitHub does not document which directory the server starts in. To check the setup, assign an issue to Copilot, open **View session**, and expand **Start MCP Servers**: verbatra's tools are listed there when it started. A missing or invalid config does not stop it: `project.snapshot` then reports `configured: false`, and `project.doctor` says what to fix. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) and [secrets and variables for the cloud agent](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables).
+To check it, assign an issue to Copilot, open **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
-
-Copilot CLI keeps your servers in `~/.copilot/mcp-config.json`. Add verbatra from a shell:
 
 ```bash
 copilot mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-It also reads a project's `.mcp.json` and `.github/mcp.json` once you confirm folder trust, so a committed `.mcp.json` like the one in the Claude Code section is picked up as well. That file has no `--cwd`, so ask the agent to call `project.snapshot` to confirm the server found the config. Copilot CLI passes a server only `PATH` from your environment: every other variable, the key and `VERBATRA_MCP_ALLOW_SPEND` included, has to be in the entry's `env`, and its documentation describes no reference syntax there. So `--allow-spend` goes in `args`, and a key goes only into `~/.copilot/mcp-config.json` on your machine, never into a project file. Run `/mcp show verbatra` inside Copilot CLI to see its status and tools. See [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
+This writes `~/.copilot/mcp-config.json`. Copilot CLI also reads a trusted project's `.mcp.json` and `.github/mcp.json`. It passes a server only `PATH`, so `--allow-spend` goes in `args` and a key into the entry's `env`, only in `~/.copilot/mcp-config.json`. Run `/mcp show verbatra` for its status. See [Adding MCP servers to Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers).
 
 ## Windsurf
 
-Windsurf's Cascade agent reads its servers from one `mcp_config.json` for all projects, so name the project with an absolute `--cwd`:
+Windsurf's Cascade reads one `mcp_config.json` for all projects, so give an absolute `--cwd`:
 
-```json
+```json title="mcp_config.json"
 {
   "mcpServers": {
     "verbatra": {
@@ -347,13 +261,13 @@ Windsurf's Cascade agent reads its servers from one `mcp_config.json` for all pr
 }
 ```
 
-To allow spending, add `--allow-spend` to `args` and forward the key by reference with `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. The file's location and the rest of the syntax are in the [Cascade MCP documentation](https://docs.devin.ai/desktop/cascade/mcp).
+To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}" }`. See the [Cascade MCP documentation](https://docs.devin.ai/desktop/cascade/mcp).
 
 ## Zed
 
-Zed reads `context_servers` from its settings file; **Settings**, **AI**, **MCP Servers**, **Add Server** writes the entry for you. Its documentation does not say which directory a server starts in, so pass an absolute `--cwd`:
+Zed reads `context_servers` from its settings; **Settings**, **AI**, **MCP Servers**, **Add Server** writes the entry:
 
-```json
+```json title="settings.json"
 {
   "context_servers": {
     "verbatra": {
@@ -365,11 +279,11 @@ Zed reads `context_servers` from its settings file; **Settings**, **AI**, **MCP 
 }
 ```
 
-A green dot next to the server in that settings page means it is active. Zed documents no reference syntax for `env`, so a key there is a value: add it and `--allow-spend` only in your user settings, never in a project's `.zed/settings.json`. See the [Zed MCP documentation](https://zed.dev/docs/ai/mcp).
+A green dot in that page means the server is active. A key in `env` is a literal value, so add it and `--allow-spend` only in your user settings, never in `.zed/settings.json`. See the [Zed MCP documentation](https://zed.dev/docs/ai/mcp).
 
 ## JetBrains AI Assistant
 
-In a JetBrains IDE, open **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)**, add a server, and paste:
+Open **Settings**, **Tools**, **AI Assistant**, **Model Context Protocol (MCP)**, add a server, and paste:
 
 ```json
 {
@@ -382,18 +296,13 @@ In a JetBrains IDE, open **Settings**, **Tools**, **AI Assistant**, **Model Cont
 }
 ```
 
-Set **Working directory** to the project root, and pick whether the server is available globally or only in the current project. JetBrains does not document how a server gets environment variables, so keep this entry read-only. See the [AI Assistant MCP documentation](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+Set **Working directory** to the project root. JetBrains does not document how a server gets environment variables, so keep this entry read-only. See the [AI Assistant MCP documentation](https://www.jetbrains.com/help/ai-assistant/mcp.html).
 
 ## Claude Desktop
 
-Claude Desktop reads `claude_desktop_config.json`, which it opens for you under **Settings**, **Developer**, **Edit Config**:
+**Settings**, **Developer**, **Edit Config** opens `claude_desktop_config.json` (`~/Library/Application Support/Claude/` on macOS, `%APPDATA%\Claude\` on Windows). There is no project, so `--cwd` is absolute:
 
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-It has no notion of a project, so `--cwd` must be an absolute path:
-
-```json
+```json title="claude_desktop_config.json"
 {
   "mcpServers": {
     "verbatra": {
@@ -404,36 +313,30 @@ It has no notion of a project, so `--cwd` must be an absolute path:
 }
 ```
 
-To allow spending, add `--allow-spend` to `args` and an `env` block naming your provider's variable, for example `"env": { "ANTHROPIC_API_KEY": "..." }`. This file is per user and lives outside every repository, so the value stays on your machine; never copy it into a project file. Quit and restart Claude Desktop after every change. The server's diagnostics go to stderr, which Claude Desktop writes to `mcp-server-verbatra.log` in `~/Library/Logs/Claude` on macOS and in `%APPDATA%\Claude\logs` on Windows. See [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
+To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." }`; the file lives outside every repository. Restart Claude Desktop after each change. The server's stderr goes to `mcp-server-verbatra.log` in `~/Library/Logs/Claude` or `%APPDATA%\Claude\logs`. See [Connect to local MCP servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers).
 
 ## Any other stdio client
 
-Any client that can start a local stdio server works the same way. Give it:
+Give the client:
 
-- the command `npx` with the arguments `-y @verbatra/mcp`, or the absolute path to an installed `verbatra-mcp` binary;
-- `--cwd /path/to/your/project` unless you know the client starts servers in the project root;
-- `--config <path>` if the config file is not where the upward search finds it;
-- `--allow-spend` and the provider's key variable only if the agent should spend, with the key supplied through the client's own secret or environment mechanism.
-
-The server writes only protocol messages to stdout and every log line to stderr, so a client's server log is the place to look when it does not connect. A missing or invalid config is reported there too, but the server keeps running (see [Troubleshooting](#troubleshooting)); only a `--config` path that does not exist stops it before it answers.
+- the command `npx` with `-y @verbatra/mcp`, or the path to an installed `verbatra-mcp` binary;
+- `--cwd /path/to/your/project`, unless it starts servers in the project root;
+- `--config <path>` if the upward search would not find the config;
+- `--allow-spend` and the key variable only if the agent should spend, through the client's own secret mechanism.
 
 ## Check the connection
 
-Ask the agent to call `project.snapshot`. It reads the config, calls no provider, and returns the source locale, the target locales, the format, and the provider id, so a wrong working directory or a missing config shows up at once. If the spend tools should be there and are not, check the spend switch and whether the config's provider is `none`.
-
-## Troubleshooting
+Ask the agent to call `project.snapshot`. It calls no provider and returns the locales, the format and the provider id, so a wrong directory shows at once. The server writes only protocol messages to stdout, so the client's server log shows anything else.
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-- **`project.snapshot` reports `configured: false`.** The server found no config, or found one that does not load. It started anyway, so the client stays connected: `configProblem` names the error (`CONFIG_NOT_FOUND` or `CONFIG_INVALID`), and every tool except `project.snapshot` and `project.doctor` refuses with that error and a `Next step:` line. Ask the agent to call `project.doctor`: it lists every setup check with its status, and each failed one with a `fix`. In a project without verbatra, run `npx verbatra init`; with a wrong working directory, correct `--cwd`.
-- **The config changed.** There is no need to restart the server. Before each call it checks whether the config file, a config file the search would now find, or the glossary file changed, and loads the config again. A call that is already running finishes on the config it started with. When the edit leaves the config invalid, the server goes back to the unconfigured state until it is fixed. `--allow-spend` is fixed when the server starts: a config change can hide the spend tools (a provider of `none`) or bring them back, never turn spending on. The server tells the client with `notifications/tools/list_changed` when its tool list changes.
-- **A JavaScript or TypeScript config imports other files.** Only the config file itself and its glossary file are checked for changes, so restart the server after editing a module the config imports.
+- **`configured: false`**: the server found no usable config but keeps running. Ask for `project.doctor`, which names each failed check and its fix, then run `npx verbatra init` or correct `--cwd`. See [Without a config](/docs/cli/mcp#without-a-config).
+- **Spend tools missing**: check the spend switch and whether the provider is `none`.
+- **Config edited**: no restart needed, except after editing a module the config imports. See [After a config change](/docs/cli/mcp#after-a-config-change).
 
-## Next
+## Related
 
-<Cards>
-  <Card title={<code>verbatra mcp</code>} href="/docs/cli/mcp" description="Every tool, its inputs and results, and the exit codes." />
-  <Card title="Recipes for agents and scripts" href="/docs/agent-recipes#the-skills-pack" description="The verbatra-mcp-tools skill, which teaches an agent how to work with these tools." />
-  <Card title="Set up verbatra with an AI agent" href="/docs/start-with-ai" description="A prompt that adds verbatra to a project before you connect a client to it." />
-  <Card title="Providers" href="/docs/providers" description="Which environment variable each provider reads its key from." />
-</Cards>
+- [`verbatra mcp`](/docs/cli/mcp): flags, every tool, and the exit codes.
+- [Script verbatra with JSON](/docs/agent-recipes#the-skills-pack): the `verbatra-mcp-tools` skill for agents.
+- [Set up verbatra with an AI agent](/docs/start-with-ai): add verbatra to a project before connecting a client.
+- [Providers](/docs/providers): the key variable each provider reads.
