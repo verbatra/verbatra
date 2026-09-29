@@ -349,22 +349,7 @@ Las tablas son copias fechadas de la documentación de los proveedores, y los pr
 
 ### Errores estructurados
 
-Un fallo de proveedor nunca aflora como un error en bruto del SDK, que podría llevar cabeceras de la petición o una clave. verbatra clasifica cada fallo por su estado HTTP o la clase de error del SDK y levanta un error estructurado con un código estable y un mensaje fijo y sin secretos:
-
-| Código | Significado |
-| --- | --- |
-| `MISSING_API_KEY` | La variable de entorno requerida no está definida o está vacía. El mensaje nombra la variable, nunca un valor. En LibreTranslate, cuya clave es opcional, significa que el servidor exigió una clave y `LIBRETRANSLATE_API_KEY` no está definida. |
-| `INVALID_REQUEST` | La petición falló la validación antes de cualquier llamada de red: un campo malformado, un código que DeepL no acepta (una entrada de `localeMap` con un código de origen regional, o un destino que acaba siendo un `en` o `pt` escueto), o un código que no es BCP-47 bien formado para Google Cloud Translation. En LibreTranslate cubre además un idioma para el que tu servidor no tiene modelo y una petición que supera su `--char-limit` o su `--batch-limit`. Corrige la configuración o la petición; reintentar no ayudará. |
-| `RATE_LIMITED` | HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, esto también cubre un HTTP 403 cuyo cuerpo nombra un motivo de cuota (un límite diario o por minuto), porque la API de Google reutiliza el 403 tanto para fallos de cuota como de credenciales. Espera y reintenta más tarde, o aumenta la cuota de Cloud Translation de tu proyecto. |
-| `TIMEOUT` | Un tiempo de espera de red o de petición; no llegó respuesta a tiempo. Reintentar puede ayudar, y [`requestTimeoutMs`](#tiempo-de-espera-de-petición) sube el límite. |
-| `AUTH_FAILED` | HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. En Google Cloud Translation, comprueba que `GOOGLE_TRANSLATE_API_KEY` sea una clave válida y sin restricciones para un proyecto con la Cloud Translation API activada. Reintentar no ayudará. |
-| `PROVIDER_UNAVAILABLE` | HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Los reintentos de las capas descritas arriba ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida. Espera y reintenta más tarde. |
-| `OUTPUT_TRUNCATED` | El modelo alcanzó su límite de tokens de salida; consulta más abajo. |
-| `INVALID_RESPONSE` | La salida era malformada, incompleta o falló la reconciliación contra la petición. |
-| `PROVIDER_REFUSED` | El modelo se negó a responder. |
-| `PROVIDER_BLOCKED` | La petición o la respuesta fue bloqueada o filtrada por seguridad. |
-| `PROVIDER_ERROR` | Cualquier cosa inclasificable. Cuando el fallo es un problema de transporte reconocible, el mensaje lo nombra (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) y dice qué comprobar; si no, recurre a un mensaje estático y sin secretos. |
-| `NETWORK_POLICY_VIOLATION` | La [política de red](/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda. |
+Un fallo de proveedor nunca aflora como un error en bruto del SDK, que podría llevar cabeceras de la petición o una clave. verbatra clasifica cada fallo por su estado HTTP o la clase de error del SDK y levanta un error estructurado con un código estable y un mensaje fijo y sin secretos. Cada código, con lo que significa y su siguiente paso, está en [Códigos de error del proveedor](/docs/error-codes#provider-error-codes).
 
 Un fallo solo afecta a su propio sublote: las claves fallidas se retienen y se recogen de nuevo en la siguiente ejecución.
 

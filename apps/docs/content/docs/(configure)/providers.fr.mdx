@@ -349,22 +349,7 @@ Les tables sont des copies datées de la documentation des fournisseurs, et les 
 
 ### Erreurs structurées
 
-Un échec de fournisseur ne remonte jamais comme une erreur SDK brute, qui pourrait porter des en-têtes de requête ou une clé. verbatra classe chaque échec selon son statut HTTP ou sa classe d'erreur SDK et lève une erreur structurée avec un code stable et un message fixe, sans secret :
-
-| Code | Signification |
-| --- | --- |
-| `MISSING_API_KEY` | La variable d'environnement requise est absente ou vide. Le message nomme la variable, jamais une valeur. Pour LibreTranslate, dont la clé est facultative, cela veut dire que le serveur a exigé une clé et que `LIBRETRANSLATE_API_KEY` n'est pas définie. |
-| `INVALID_REQUEST` | La requête a échoué à la validation avant tout appel réseau : un champ malformé, un code que DeepL n'accepte pas (une entrée de `localeMap` donnant un code source régional, ou une cible qui aboutit à un `en` ou `pt` nu), ou un code qui n'est pas du BCP-47 bien formé pour Google Cloud Translation. Pour LibreTranslate, cela couvre aussi une langue pour laquelle ton serveur n'a pas de modèle et une requête qui dépasse son `--char-limit` ou son `--batch-limit`. Corrige la configuration ou la requête ; réessayer n'aidera pas. |
-| `RATE_LIMITED` | HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute), car l'API de Google réutilise le 403 à la fois pour les échecs de quota et d'identifiants. Attends et réessaie plus tard, ou augmente le quota Cloud Translation de ton projet. |
-| `TIMEOUT` | Un délai réseau ou de requête dépassé ; aucune réponse n'est arrivée à temps. Réessayer peut aider, et [`requestTimeoutMs`](#délai-de-requête) relève la borne. |
-| `AUTH_FAILED` | HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Pour Google Cloud Translation, vérifie que `GOOGLE_TRANSLATE_API_KEY` est une clé valide et sans restriction pour un projet où l'API Cloud Translation est activée. Réessayer n'aidera pas. |
-| `PROVIDER_UNAVAILABLE` | HTTP 5xx : le fournisseur a échoué de son côté, et la requête elle-même n'a jamais été en cause. Les couches de nouvelles tentatives décrites plus haut absorbent déjà un 5xx transitoire, donc un 5xx qui atteint ce code est une panne durable. Attends et réessaie plus tard. |
-| `OUTPUT_TRUNCATED` | Le modèle a atteint sa limite de tokens de sortie ; voir plus bas. |
-| `INVALID_RESPONSE` | La sortie était malformée, incomplète, ou a échoué à la réconciliation avec la requête. |
-| `PROVIDER_REFUSED` | Le modèle a refusé de répondre. |
-| `PROVIDER_BLOCKED` | La requête ou la réponse a été bloquée ou filtrée pour raison de sécurité. |
-| `PROVIDER_ERROR` | Tout ce qui est inclassable. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret. |
-| `NETWORK_POLICY_VIOLATION` | La [politique réseau](/docs/network-policy) a refusé la requête juste avant son envoi : le nom d'hôte pointait vers une adresse que la politique n'autorise pas, ou une réponse redirigeait vers un hôte refusé. Le message ne nomme que l'hôte. Réessayer n'aidera pas. |
+Un échec de fournisseur ne remonte jamais comme une erreur SDK brute, qui pourrait porter des en-têtes de requête ou une clé. verbatra classe chaque échec selon son statut HTTP ou sa classe d'erreur SDK et lève une erreur structurée avec un code stable et un message fixe, sans secret. Chaque code, avec ce qu'il signifie et son étape suivante, se trouve dans [Codes d'erreur des fournisseurs](/docs/error-codes#provider-error-codes).
 
 Un échec n'affecte que son propre sous-lot : les clés échouées sont retenues et reprises à l'exécution suivante.
 

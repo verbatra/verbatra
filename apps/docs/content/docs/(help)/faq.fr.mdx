@@ -2,235 +2,109 @@
 title: FAQ
 description: Des réponses courtes aux questions qui reviennent le plus en utilisant verbatra.
 ---
-Des réponses rapides, chacune ancrée dans le comportement réel de verbatra. Pour une aide qui part
-des symptômes et des messages d'erreur, voir [Dépannage](/docs/troubleshooting).
+Des réponses courtes avec un lien vers la page qui donne les détails. Pour les messages d'erreur,
+voir [Dépannage](/docs/troubleshooting) et [Codes d'erreur](/docs/error-codes).
 
 ## Comment je contrôle le coût ?
 
-Six leviers, tous sans appel au fournisseur tant que tu n'en décides pas autrement :
-
-- Les exécutions sont incrémentales par défaut : seules les clés manquantes ou dont la source a
-  changé depuis la référence du fichier de verrouillage sont envoyées au fournisseur. Un projet
-  inchangé ne coûte rien à relancer.
-- `--dry-run` (ou `translate({ config, dryRun: true })`) prévisualise exactement ce qui serait
-  envoyé, sans appel au fournisseur et sans écriture.
-- `verbatra translate --estimate` dimensionne l'exécution en plus de ce dry run : clés, requêtes au
-  fournisseur, quantité facturée et un montant en devise quand la configuration a des `rates` pour
-  le fournisseur. Voir [Estimer le coût](/docs/estimating-cost).
-- `verbatra translate --max-tokens <n>` fixe un plafond de tokens strict pour une seule exécution
-  sans toucher à la configuration ; si la configuration fixe aussi `maxTokens`, le plus bas des
-  deux s'applique.
-- `maxTokens` dans la configuration fixe un plafond de tokens pour toute l'exécution, avec
-  `budgetBehavior` qui décide de ce qui se passe quand il est atteint : `"warn"` (le défaut) le
-  signale et continue, `"stop"` retient chaque clé pas encore tentée ; les clés retenues sont
-  retentées automatiquement à l'exécution suivante.
-- Gemini a une vraie offre d'API gratuite, et le fournisseur `openai-compatible` fonctionne avec un
-  modèle local à coût d'API nul. Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les
-  requêtes de l'offre gratuite pour améliorer ses produits : garde donc les textes confidentiels
-  hors de celle-ci ; voir [Traitement des données et confidentialité](/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur).
+Les exécutions sont incrémentales, donc seules les clés manquantes ou modifiées atteignent le
+fournisseur, et relancer un projet inchangé ne coûte rien. `verbatra translate --estimate`
+dimensionne une exécution sans appeler de fournisseur, et `--max-tokens` ou `maxTokens` dans la
+config la plafonnent. Voir [Estimer le coût](/docs/estimating-cost).
 
 ## Combien coûte réellement une exécution ?
 
-Un exemple chiffré, pour donner un ordre de grandeur. Un projet de 400 clés à traduire vers 3
-locales, avec le `maxBatchSize` par défaut de 50, envoie 8 requêtes par locale, soit 24 au total.
-À environ 4 caractères par token, avec des valeurs source de 40 caractères et des noms de clés de
-20, cela fait à peu près 40 900 tokens d'entrée et 30 700 tokens de sortie, donc environ 71 700
-tokens pour toute l'exécution. Sur `gemini-2.5-flash`, à un tarif illustratif de $0.10 par million
-de tokens d'entrée et $0.40 par million de tokens de sortie, cela revient à environ 1,6 centime.
-
-Les hypothèses derrière ce chiffre, pour que tu le remettes à l'échelle de ton projet : 400 clés
-par locale et 3 locales ; des valeurs de 40 caractères et des noms de clés de 20 ; pas de
-`description`, `meaning`, glossaire ni ton ; `maxBatchSize` à sa valeur par défaut ; 4 caractères
-par token ; la marge d'expansion de 50 % que verbatra applique à chaque estimation de sortie. Le
-tarif est une valeur d'exemple qui rend le calcul concret, pas un prix relevé : consulte le vrai sur la page tarifaire de
-ton fournisseur, car verbatra ne suit pas les tarifs des fournisseurs et ceux-ci changent.
-
-Deux choses pèsent plus sur la facture réelle que le nombre de clés. Chaque requête porte une
-surcharge constante d'environ 650 tokens (les règles système fixes et le schéma de sortie) : un
-`maxBatchSize` plus grand répartit donc cette constante sur davantage de clés, et un plus petit
-coûte proportionnellement plus. Et ce chiffre n'est que le coût de la première exécution : les
-exécutions sont incrémentales, donc au quotidien tu paies pour la poignée de chaînes que tu as
-modifiées, pas pour tout le fichier. DeepL n'entre pas du tout dans cette formule, puisqu'il
-facture des caractères source plutôt que des tokens.
-
-Voir [Estimer le coût](/docs/estimating-cost) pour la méthode, le cas de la traduction automatique et la façon de
-calibrer sur une exécution réelle mesurée.
+Peu : 400 clés vers 3 locales avec `gemini-2.5-flash` font environ 72 000 tokens, soit à peu près
+1,6 centime à un tarif illustratif, et les exécutions suivantes ne paient que les textes que tu as
+modifiés. L'exemple complet, ses hypothèses et la façon de calibrer sur ton propre projet sont dans
+[Estimer le coût](/docs/estimating-cost).
 
 ## Avec quel fournisseur commencer ?
 
-Gemini : il a une offre d'API gratuite, donc tu peux traduire un projet entier sans frais, et
-changer plus tard revient à modifier un seul `id` dans la configuration. Anthropic et OpenAI sont
-les choix qualité en LLM payant, DeepL et Google Cloud Translation sont les options de traduction
-automatique dédiées, et `openai-compatible` ou `libretranslate` garde tout sur ton propre matériel. Voir
-[Fournisseurs](/docs/providers) pour la comparaison complète. Garde les textes confidentiels hors de
-l'offre gratuite de Gemini : hors EEE, Suisse et Royaume-Uni, Google peut utiliser ses requêtes pour
-améliorer ses produits. Voir
+Gemini, parce que son niveau d'API gratuit te permet de traduire tout un projet sans frais, et
+changer plus tard revient à modifier un `id`. Garde les textes confidentiels hors du niveau
+gratuit : voir
 [Traitement des données et confidentialité](/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur).
+Tous les fournisseurs sont comparés dans [Fournisseurs](/docs/providers).
 
 ## Je peux faire tourner un modèle local ?
 
-Oui. Le fournisseur `openai-compatible` pointe verbatra vers n'importe quel serveur qui parle
-l'API de chat d'OpenAI, comme LM Studio, Ollama ou vLLM, via son option `baseUrl`. La plupart des
-serveurs locaux n'ont besoin d'aucune clé d'API : quand ni une variable nommée par `apiKeyEnvVar`
-ni `OPENAI_COMPATIBLE_API_KEY` n'est définie, verbatra envoie le placeholder fixe `"local"`. Si
-ton serveur a besoin d'une clé, nomme sa variable d'environnement avec `apiKeyEnvVar`.
-
-Si ta règle interdit complètement les modèles de langage, le fournisseur `libretranslate` pointe
-verbatra vers un serveur LibreTranslate auto-hébergé : de la traduction automatique classique sur
-ton propre matériel, sans aucun modèle de langage. Voir [LibreTranslate](/docs/providers#libretranslate).
+Oui : le fournisseur `openai-compatible` fait pointer verbatra vers tout serveur qui parle l'API de
+chat d'OpenAI, comme LM Studio, Ollama ou vLLM, en général sans clé. Sans aucun modèle de langage,
+`libretranslate` utilise un serveur LibreTranslate auto-hébergé. Voir
+[Fournisseurs](/docs/providers#libretranslate).
 
 ## Quelles langues verbatra prend-il en charge ?
 
-Toutes celles que ton fournisseur prend en charge. verbatra lui-même accepte n'importe quel code
-de locale BCP 47 valide, comme `pt-BR`, `sr-Latn` ou `zh-Hant`, et lit les règles de pluriel dans
-CLDR. DeepL et Google Cloud Translation ont des listes de langues fixes, les fournisseurs LLM n'en
-ont pas. [Prise en charge des langues](/docs/language-support) donne la liste de chaque
-fournisseur, le code que chacun reçoit, et la façon dont sont traités les écritures, les variantes
-régionales et le texte de droite à gauche.
+Toute langue que ton fournisseur prend en charge, écrite sous forme de code BCP 47 valide comme
+`pt-BR` ou `zh-Hant`. DeepL et Google Cloud Translation ont des listes fixes ; les fournisseurs LLM
+n'en ont aucune. Voir [Prise en charge des langues](/docs/language-support).
 
 ## Comment les clés gardent-elles leur ordre ?
 
-Les adaptateurs de la famille JSON, YAML et ARB font l'aller-retour des fichiers exactement dans
-l'ordre du document : les clés existantes gardent leurs positions (y compris les clés de type
-entier), et les nouvelles clés sont ajoutées dans l'ordre de la source. Un fichier traduit se
-compare proprement avec sa version précédente. Voir [Formats](/docs/formats).
+Les clés existantes gardent leur position et les nouvelles sont ajoutées dans l'ordre de la source,
+donc un fichier traduit donne un diff propre. Voir [Formats](/docs/formats).
 
 ## Pourquoi une traduction a-t-elle été signalée pour révision ?
 
-Les traductions acceptées passent par des heuristiques de révision qui signalent les résultats
-suspects sans les retenir : une longueur très disproportionnée par rapport à la source
-(`LENGTH_RATIO_OUTLIER`), une valeur plus longue que le budget configuré pour sa clé
-(`MAX_LENGTH_EXCEEDED`), une traduction identique à la source (`EQUALS_SOURCE`), un terme de
-glossaire manqué (`GLOSSARY_TERM_MISSED`), une traduction interdite par le glossaire (`GLOSSARY_FORBIDDEN_TERM`), des placeholders réordonnés (`INTEGRITY_REORDERED`),
-un chemin dégradé côté fournisseur (`PROVIDER_DEGRADED`), ou une valeur réutilisée depuis le
-cache pour une chaîne source modifiée depuis (`FUZZY_CACHE_REUSE`). Les signalements atterrissent
-sur la liste `needsReview` du résumé d'exécution et dans la file de révision de Studio. Voir
-[Sûreté de la traduction](/docs/translation-safety).
+Une heuristique de révision a trouvé quelque chose qui mérite un second regard, comme une
+traduction identique à sa source, et l'a signalée sans la retenir. Chaque code de motif figure dans
+[Motifs de révision](/docs/error-codes#review-reason-codes).
 
 ## verbatra fonctionne-t-il dans un monorepo ?
 
-Oui. La recherche de configuration démarre dans le répertoire de travail courant et remonte, donc
-lancer depuis le répertoire d'un paquet trouve la configuration de ce paquet. La recherche s'arrête
-au répertoire `.git` ancêtre le plus proche : elle trouve donc une configuration à la racine de ton
-monorepo sans déborder sur un projet sans rapport situé au-dessus. Depuis n'importe où
-ailleurs, passe `--cwd <dir>` (chaque commande le prend en charge) ou pointe vers un fichier
-précis avec `--config <path>`. Dans le SDK, les mêmes leviers sont `cwd` et `configPath` sur
-`loadConfig`. Le `files.pattern` et le fichier de verrouillage se résolvent par rapport au répertoire
-de travail.
+Oui. La recherche de la config remonte depuis le répertoire de travail et s'arrête au `.git` le plus
+proche, donc un paquet trouve sa propre config et la racine celle de la racine ; `--cwd` et
+`--config` pointent n'importe où ailleurs. Voir [Fichier de configuration](/docs/config-file).
 
 ## Que dois-je commiter ?
 
-Commite tes fichiers de locale et `verbatra.lock.json` : le fichier de verrouillage enregistre,
-par clé, le hash du contenu source dont chaque traduction provient, et le commiter est ce qui rend
-les exécutions incrémentales et la détection de dérive opérantes partout, CI comprise. Ne commite
-pas `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; `verbatra init` ajoute les
-quatre au `.gitignore`, et `translate`, `watch`, `import`, `tmx import` et `pseudo` complètent un `.gitignore`
-existant auquel il en manque un.
-Voir [Le fichier de verrouillage](/docs/the-lock-file).
-
-Commite aussi `verbatra.provenance.json` dès qu'une exécution l'a écrit : il enregistre si chaque
-valeur vient d'un fournisseur, de la mémoire de traduction, d'une personne ou d'un import, et se
-partage de la même façon.
+Commite tes fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` ; jamais `.env`,
+`.env.local`, `.verbatra-local/` ni `verbatra.cache.json`, que `verbatra init` ajoute au
+`.gitignore`. Voir [Le fichier de verrouillage](/docs/the-lock-file).
 
 ## Comment je retraduis tout ?
 
-Supprimer le fichier de verrouillage ne le fait pas : sans référence, les clés qui existent à la
-fois dans la source et la cible comptent comme à jour, donc une exécution après suppression du
-fichier de verrouillage ne traduit rien. Pour reconstruire une locale de zéro, supprime le fichier
-de cette locale et lance `verbatra translate` : chaque clé est alors manquante et se fait traduire
-à neuf. Pour une seule clé, utilise l'action de retraduction de Studio ou le `retranslateEntry` du
-SDK. Pour retraduire les clés dont le texte source a changé, lance simplement `translate` : c'est
-le chemin incrémental normal.
+Supprime le fichier de locale et lance `verbatra translate` : chaque clé manque alors et est
+retraduite. Supprimer le fichier de verrouillage ne suffit pas, car sans référence les traductions
+existantes comptent comme à jour. Pour une seule clé, utilise l'action de retraduction de Studio ou
+`retranslateEntry`.
 
 ## Utiliser la CLI implique-t-il d'installer le SDK ?
 
-`@verbatra/cli` dépend de `@verbatra/sdk`, donc installer la CLI amène le SDK automatiquement ; il
-n'y a rien de plus à installer. L'inverse tient aussi : le SDK fonctionne seul dans tes propres
-scripts, sans CLI. Seuls `@verbatra/studio` et `@verbatra/mcp` sont des installations
-séparées, optionnelles, chargées dynamiquement par les commandes `studio` et `mcp`.
+Aucune étape de plus : `@verbatra/cli` dépend de `@verbatra/sdk`, donc il vient avec. Seuls
+`@verbatra/studio` et `@verbatra/mcp` sont des installations séparées et facultatives.
 
 ## Où vivent les clés d'API ?
 
-Uniquement dans des variables d'environnement : `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
-`GEMINI_API_KEY`, `DEEPL_API_KEY` ou `GOOGLE_TRANSLATE_API_KEY`, plus la variable que tu nommes
-pour `openai-compatible` et la variable facultative `LIBRETRANSLATE_API_KEY`. `translate`, `watch`, `doctor`, `studio` et `mcp` chargent `.env` et
-`.env.local` depuis le répertoire de
-travail (les vraies variables d'environnement gagnent). Le schéma de configuration rejette les clés
-inconnues précisément pour qu'un secret ne puisse pas finir dans un fichier commité, et les
-messages d'erreur nomment la variable mais jamais une valeur. Voir [Fournisseurs](/docs/providers).
+Uniquement dans des variables d'environnement, que `translate`, `watch`, `doctor`, `studio` et
+`mcp` lisent aussi depuis `.env` et `.env.local`. La config rejette les clés inconnues pour qu'aucun
+secret ne finisse dans un fichier commité. Voir [Fournisseurs](/docs/providers).
 
 ## verbatra envoie-t-il mes textes quelque part ?
 
-Seulement au fournisseur de traduction que tu configures, et seulement quand une commande traduit.
-verbatra n'a ni télémétrie, ni analytics, ni vérification de mise à jour. Avec
-`provider: { id: "none" }`, rien ne quitte la machine, et un modèle `openai-compatible`
-ou un serveur `libretranslate` auto-hébergé garde les textes sur ton réseau. Voir
-[Traitement des données et confidentialité](/docs/data-handling) pour ce que reçoit chaque
-fournisseur, les conditions de conservation des éditeurs et une liste de contrôle pour une revue
-DPA ou NDA.
+Uniquement au fournisseur que tu configures, et uniquement quand une commande traduit ; il n'y a
+aucune télémétrie. Avec `provider: { id: "none" }`, rien ne quitte la machine. Voir
+[Traitement des données et confidentialité](/docs/data-handling).
 
 ## Que vérifie réellement verbatra doctor ?
 
 <AvailableFrom version="0.9.0" />
 
-Onze choses, toutes sans appel au fournisseur, sans requête réseau et sans lire la valeur d'une
-clé d'API. Sept peuvent échouer ; Plural rules, Plural completeness, Locale codes et Locale state sont
-informatives et n'échouent jamais :
-
-- Configuration : un fichier de config a été trouvé et passe la validation.
-- Format adapter : le `format` configuré se résout en un adaptateur de fichier.
-- Provider : le `provider.id` configuré se résout en une fabrique de fournisseur.
-- API key environment variable : la variable d'environnement dans laquelle ce fournisseur lit sa
-  clé est définie (vérifiée seulement par son nom, jamais par sa valeur).
-- Network policy : la [politique réseau](/docs/network-policy) effective autorise l'hôte auquel se
-  connecte le fournisseur configuré, et tout proxy qu'il utiliserait.
-- Source locale file : le fichier de la locale source existe à son chemin résolu, est un fichier
-  ordinaire et s'analyse correctement avec le format configuré.
-- Plural rules, Plural completeness, Locale codes et Locale state : les versions d'ICU et de CLDR
-  d'où viennent les catégories de pluriel, les pluriels d'un fichier de locale cible auxquels il
-  manque une catégorie que leur langue utilise, les codes de locale configurés qui ne sont pas en forme BCP 47 canonique, et
-  l'état laissé pour une locale que la configuration ne liste plus. Voir
-  [verbatra doctor](/docs/cli/doctor).
-- Locale support : le fournisseur prend en charge la locale source et chaque locale cible, jugé
-  d'après la table de langues que verbatra embarque pour DeepL et Google Cloud Translation (depuis
-  0.12.0). `verbatra doctor --locales` liste le verdict par locale. Voir
-  [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution).
-
-Chaque vérification s'exécute même si une précédente a échoué, une exécution rapporte donc tous
-les problèmes indépendants à la fois ; l'exception est la configuration elle-même : si elle échoue
-au chargement, les dix vérifications qui en ont besoin sont sautées.
-
-```bash
-verbatra doctor
-```
-
-Utilise-le sur un checkout tout frais, juste après `verbatra init`, ou chaque fois qu'une autre
-commande a échoué et que tu veux la liste complète plutôt que la première erreur seulement. Voir
-[`verbatra doctor`](/docs/cli/doctor) pour le tableau complet des vérifications et les codes de
-sortie.
+L'installation en une seule passe, sans appel au fournisseur ni lecture de la valeur d'une clé : la
+config, le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier
+source et la prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes
+de locale et l'état de locale restant. [`verbatra doctor`](/docs/cli/doctor) a le tableau complet
+des vérifications.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 
-Quatre surfaces différentes pour quatre tâches différentes. [Configure verbatra avec un agent
-IA](/docs/start-with-ai) est un prompt prêt à copier-coller pour Claude Code, Cursor ou tout agent
-de code capable de lire ton projet et d'exécuter des commandes shell : il inspecte une
-configuration i18n existante, installe la CLI, génère une configuration adaptée, exécute
-`doctor`, `check`, `diff` et `translate --dry-run` pour prévisualiser le travail, puis s'arrête pour
-demander confirmation à un humain avant d'appeler pour de vrai un fournisseur. [Recettes pour
-agents et scripts](/docs/agent-recipes) est la référence pour construire ta propre boucle d'agent
-sur la même enveloppe `--json` et les mêmes codes de sortie qu'utilisent ces commandes. [Piloter
-Studio avec un agent de navigateur](/docs/agent-tools-in-studio) est encore une autre surface : une
-option `--expose-agent-tools` à activer explicitement sur `verbatra studio` qui enregistre des outils WebMCP pour
-qu'un agent IA dans le navigateur puisse piloter un projet déjà configuré depuis un onglet ouvert
-et authentifié du tableau de bord ; ce n'est explicitement pas pour la configuration initiale.
-[`verbatra mcp`](/docs/cli/mcp) est la quatrième : un serveur MCP en stdio pour un client MCP
-hébergé dans un terminal ou headless (Claude Desktop, Claude Code, Cursor) qui veut les mêmes
-outils de statut, de glossaire et d'édition sans aucun navigateur.
-
-Aucune des quatre ne donne à un agent le moyen de dépenser sans un humain dans la boucle.
-`translate` lui-même n'a aucune barrière de dépense propre, donc chaque surface orientée agent
-place une étape de confirmation, ou une option `--allow-spend`, entre l'agent et un véritable appel
-au fournisseur.
+Oui, par quatre surfaces : un prompt d'installation pour les agents de code
+([Installer avec un agent IA](/docs/start-with-ai)), la sortie `--json` pour tes propres boucles
+([Recettes pour agents et scripts](/docs/agent-recipes)), des outils WebMCP dans un onglet Studio
+ouvert ([Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio)) et un serveur MCP
+en stdio ([`verbatra mcp`](/docs/cli/mcp)). Aucune ne dépense chez un fournisseur sans la
+confirmation d'une personne ou une option `--allow-spend`.
 
 ## Ce site publie-t-il quelque chose pour les agents IA et les robots d'indexation ?
 

@@ -65,7 +65,7 @@ A run that fails as a whole writes exactly one `ok: false` record to stdout and 
 
 <AvailableFrom version="0.12.0" />
 
-`hint` appears when the error has a next step: one short imperative sentence that resolves it, such as `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` for a missing key or `` "Run `verbatra check --help` to see the options and arguments it accepts." `` for a `USAGE_ERROR`. Act on it instead of parsing `message`. It names variables, flags, and paths, never a key value. Every SDK, provider, and format adapter code has one (the SDK exports the same text as [`errorHint`](/docs/sdk/exchange#errorhint)), and so does every code in the table below except `CLI_ERROR`. Without `--json`, the same text follows the error line on stderr as `next: ...`, unless `--quiet` is set.
+`hint` appears when the error has a next step: one short imperative sentence that resolves it, such as `"Set GEMINI_API_KEY in the environment or in a .env file in the project directory."` for a missing key or `` "Run `verbatra check --help` to see the options and arguments it accepts." `` for a `USAGE_ERROR`. Act on it instead of parsing `message`. It names variables, flags, and paths, never a key value. Every SDK, provider, and format adapter code has one (the SDK exports the same text as [`errorHint`](/docs/sdk/exchange#errorhint)), and so does every [CLI error code](/docs/error-codes#cli-error-codes) except `CLI_ERROR`. Without `--json`, the same text follows the error line on stderr as `next: ...`, unless `--quiet` is set.
 
 The `result` of a successful envelope is different for each command and is described under JSON output on its page: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
@@ -73,33 +73,7 @@ The `result` of a successful envelope is different for each command and is descr
 
 <AvailableFrom version="0.12.0" />
 
-The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (with the type `CliErrorCode`) from `@verbatra/cli`, so a script can check a code against it instead of copying this table. Any other code comes from the SDK, a provider, or a format adapter.
-
-| Code | Raised when |
-| --- | --- |
-| `AGENT_FILE_INVALID` | `init --agent` found a `.mcp.json` that is not a JSON object with an `mcpServers` object, or an unpaired or repeated verbatra marker in `AGENTS.md` or `CLAUDE.md`; nothing was written |
-| `CLI_ERROR` | a failure carried no code of its own (the fallback) |
-| `CONFIG_EXISTS` | `init` would overwrite a different `verbatra.config.ts` without `--force`, or another verbatra config file in the directory would be read first; reported ahead of any missing or ambiguous answer, and at a terminal before the first prompt |
-| `CONFIG_INVALID` | `init` could not scaffold a valid config from the answers it was given (the SDK raises the same code for a config that fails to load) |
-| `FORMAT_AMBIGUOUS` | `init` found several formats that read the locale files; `candidates` lists them |
-| `INIT_UNWRITABLE` | `init` could not write a file into its directory, for example because it is read-only; the message names the file, the file-system code, and the files already written |
-| `INVALID_CONCURRENCY` | `--concurrency` is not a whole number from 1 to 100 |
-| `INVALID_DEBOUNCE` | `watch --debounce` is not a whole number of milliseconds from 1 to 60000 |
-| `INVALID_DIRECTION` | `tmx` got a direction other than `import` or `export`, or `tmx export` got an import-only flag (`--dry-run`, `--overwrite`) |
-| `INVALID_FORMAT` | `--format` on `export` or `import` names no supported handoff format, or `--format` on `init` names no supported locale file format |
-| `INVALID_LOCALE` | `pseudo --locale` is not a language tag made of letters, digits, and hyphens |
-| `INVALID_LOCALES` | `--locales` was given but lists no locale |
-| `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
-| `INVALID_MAX_TOKENS` | `translate --max-tokens` is not a whole number of at least 1 |
-| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency` or `--require-reviewed` |
-| `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
-| `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
-| `INVALID_PROVIDER` | `init --provider` names no known provider |
-| `INVALID_QA_OPTION` | `check` got `--severity` or `--strict` without `--qa` or `--file`, or `--strict` together with `--severity error` |
-| `INVALID_SEVERITY` | `check --severity` is neither `error` nor `warning` |
-| `LAYOUT_AMBIGUOUS` | `init` found several file patterns that fit equally well; `candidates` lists them |
-| `MISSING_OPTIONS` | `init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag |
-| `USAGE_ERROR` | the argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept; its `hint` names the command's `--help` |
+The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (with the type `CliErrorCode`) from `@verbatra/cli`, so a script can check a code against it. Any other code comes from the SDK, a provider, or a format adapter. What each code means, which commands raise it, and its next step are on [Error codes](/docs/error-codes#cli-error-codes).
 
 ## Errors on stderr
 
