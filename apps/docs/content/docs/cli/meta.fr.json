@@ -2,6 +2,7 @@
   "title": "CLI",
   "pages": [
     "index",
+    "output",
     "---Configurer---",
     "init",
     "doctor",
