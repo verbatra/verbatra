@@ -201,30 +201,41 @@ export function DocsHomePaths({
 
 type StackLink = { label: string; href: string };
 
+type StackGroup = { title: string; links: ReadonlyArray<StackLink> };
+
 export function DocsHomeStacks({
   title,
-  links,
+  groups,
   locale,
 }: {
   title: string;
-  links: ReadonlyArray<StackLink>;
+  groups: ReadonlyArray<StackGroup>;
   locale: Locale;
 }): ReactNode {
   return (
     <nav
       aria-label={title}
-      className="not-prose mt-8 flex flex-col gap-3 border-t border-fd-border pt-[18px] sm:flex-row sm:items-baseline sm:gap-6"
+      className="not-prose mt-8 flex flex-col gap-4 border-t border-fd-border pt-[18px]"
     >
-      <span className="vk-label shrink-0">{title}</span>
-      <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        {links.map((link) => (
-          <li key={link.href}>
-            <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
-              {link.label}
-            </Link>
-          </li>
+      <span className="vk-label">{title}</span>
+      <div className="flex flex-col gap-5 md:flex-row md:flex-wrap md:gap-x-12">
+        {groups.map((group) => (
+          <div key={group.title} className="flex flex-col gap-2 md:flex-none">
+            <span className="text-xs font-medium text-[color:var(--text-faint)]">
+              {group.title}
+            </span>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              {group.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </nav>
   );
 }

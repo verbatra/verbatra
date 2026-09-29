@@ -42,9 +42,15 @@ describe("DocsHomeStacks", () => {
     const markup = renderToStaticMarkup(
       <DocsHomeStacks
         title="Pick your stack"
-        links={[
-          { label: "React", href: "/docs/pick-your-stack#react-with-i18next" },
-          { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
+        groups={[
+          {
+            title: "Frameworks",
+            links: [{ label: "React", href: "/docs/pick-your-stack#react-with-i18next" }],
+          },
+          {
+            title: "Platforms",
+            links: [{ label: "Flutter", href: "/docs/pick-your-stack#flutter" }],
+          },
         ]}
         locale={locale}
       />,
@@ -58,6 +64,20 @@ describe("DocsHomeStacks", () => {
     const links = [...(nav?.querySelectorAll("a") ?? [])];
     expect(links.map((link) => link.textContent)).toEqual(["React", "Flutter"]);
     expect(links.every((link) => link.querySelector("img, svg") === null)).toBe(true);
+  });
+
+  it("puts the title above the groups and each group label above its own list", () => {
+    const nav = renderStacks("en").querySelector("nav");
+    expect(nav?.classList.contains("flex-col")).toBe(true);
+    expect(nav?.className).not.toMatch(/(^|\s)\w+:flex-row/);
+    const groups = [...(nav?.querySelectorAll("ul") ?? [])].map((list) => [
+      list.previousElementSibling?.textContent,
+      [...list.querySelectorAll("a")].map((link) => link.textContent),
+    ]);
+    expect(groups).toEqual([
+      ["Frameworks", ["React"]],
+      ["Platforms", ["Flutter"]],
+    ]);
   });
 
   it("keeps the section anchor and prefixes the reader's locale", () => {
