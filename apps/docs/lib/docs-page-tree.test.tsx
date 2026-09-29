@@ -1,4 +1,5 @@
 import type * as PageTree from "fumadocs-core/page-tree";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl/server", () => ({
@@ -89,9 +90,9 @@ describe("withShortCommandLabels", () => {
   it("names each command page by its command, in every locale", () => {
     const [cli] = withShortCommandLabels(commands).children;
     if (cli?.type !== "folder") throw new Error("expected the CLI folder");
-    expect(cli.children.map((child) => child.name)).toEqual([
-      "translate",
-      "tmx",
+    expect(cli.children.map((child) => renderToStaticMarkup(child.name))).toEqual([
+      '<span class="vk-sidebar-command">translate</span>',
+      '<span class="vk-sidebar-command">tmx</span>',
       "verbatra doctor",
       "Servers",
     ]);

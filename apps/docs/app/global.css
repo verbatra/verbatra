@@ -539,6 +539,10 @@ samp {
   }
 }
 
+.vk-sidebar-command {
+  font-family: var(--font-mono);
+}
+
 .vk-sidebar-group {
   font-size: var(--text-xs);
   font-weight: 500;

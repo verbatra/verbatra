@@ -250,6 +250,9 @@ comes from:
   tab has no page of its own. The header's "Reference" link opens the same tab.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
+- **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI
+  page as its bare command (`translate`) wrapped in `.vk-sidebar-command`, which sets it in
+  `--font-mono`; the page `<h1>` keeps `verbatra translate`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on
   Fumadocs' scroll wrapper (`div:has(> table)`), not the table, so a wide table scrolls inside
   a visible frame at phone width, with a thin scrollbar. Short inline code (up to

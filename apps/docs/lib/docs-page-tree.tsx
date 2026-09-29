@@ -29,7 +29,14 @@ const COMMAND_PAGE = /\/docs\/cli\/([a-z-]+)$/;
 function shortCommandLabel(page: PageTree.Item): PageTree.Item {
   const command = COMMAND_PAGE.exec(page.url)?.[1];
   if (command === undefined || page.name !== `verbatra ${command}`) return page;
-  return { ...page, name: command };
+  return {
+    ...page,
+    name: (
+      <span key="command" className="vk-sidebar-command">
+        {command}
+      </span>
+    ),
+  };
 }
 
 function withShortLabels(node: PageTree.Node): PageTree.Node {
