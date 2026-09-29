@@ -1,77 +1,135 @@
 ---
-title: Le cache
+title: Le cache de traduction
 description: Ce que verbatra.cache.json réutilise, comment une empreinte le délimite, et pourquoi il ne fait jamais échouer une exécution.
+type: concept
 ---
-verbatra tient un cache local de mémoire de traduction, `verbatra.cache.json`, pour qu'une chaîne déjà traduite ne soit jamais envoyée deux fois à un fournisseur, même quand sa clé change. Là où [le fichier de verrouillage](/docs/the-lock-file) suit si une clé est à jour, le cache est indexé par contenu : il retient la traduction d'un morceau de texte source, indépendamment de la clé qui le porte.
+Le cache de traduction, `verbatra.cache.json`, est une mémoire de traduction locale indexée par
+contenu : il retient la traduction d'un texte source, quelle que soit la clé qui le porte, pour que
+le même texte ne soit jamais payé deux fois. [Le fichier de verrouillage](/docs/the-lock-file)
+répond à « cette clé est-elle à jour ? » ; le cache répond à « avons-nous déjà traduit ce texte ? ».
 
 ## Ce qu'il réutilise
 
-Lors d'une exécution, avant qu'une clé parte au fournisseur, verbatra la cherche dans le cache par le hash de son contenu source actuel. Un succès est servi gratuitement, tu ne le paies donc jamais deux fois. Comme la recherche se fait par contenu, la réutilisation survit à des cas que le fichier de verrouillage ne couvre pas :
+Avant qu'une clé parte vers le fournisseur, verbatra cherche le hash de son texte source actuel. Un
+succès est gratuit. Comme la recherche se fait par contenu, la réutilisation survit à ce que le
+fichier de verrouillage ne voit pas :
 
-- **Une clé renommée.** Déplace une chaîne de `home.title` vers `landing.title` et sa traduction est réutilisée, pas retraduite.
-- **Contenu en double.** Deux clés au même contenu source partagent une traduction ; la seconde est un succès de cache.
+- **Une clé renommée.** Déplace `home.title` vers `landing.title` et sa traduction est réutilisée.
+- **Du contenu en double.** Deux clés au même texte source partagent une traduction.
 
-Une valeur réutilisée n'est pas acceptée aveuglément. Elle passe toujours les mêmes [contrôles d'intégrité](/docs/translation-safety) face à la source actuelle avant d'être écrite, donc une valeur en cache qui ne convient plus à sa clé est écartée et la clé est traduite à neuf. Les succès de cache sont signalés par locale dans le résumé de l'exécution, séparément des clés traduites lors de cette exécution.
+Une valeur réutilisée n'est pas acceptée aveuglément. Elle passe la même
+[barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) contre la source actuelle
+qu'une traduction fraîche, et une valeur qui ne convient plus est écartée puis traduite à nouveau.
+Les succès du cache sont signalés par locale, à part des clés traduites pendant l'exécution.
 
-Une valeur qu'une personne a [rejetée](/docs/review-in-studio) en relecture n'est jamais réutilisée non plus pour cette clé. Le rejet garde dans `verbatra.provenance.json` un hash du texte refusé, et une exécution ignore tout succès exact ou approximatif dont le texte y correspond, si bien que le cache d'un coéquipier ne peut pas remettre ce texte. La clé part au fournisseur, ou, avec le fournisseur `none`, reste non remplie jusqu'à ce que quelqu'un écrive une valeur. La seule exception est un fichier de provenance que l'exécution ne peut pas lire : un fichier écrit par une version plus récente de verbatra, ou un fichier corrompu avec `humanEdits: "overwrite"`, qui ne fait pas échouer l'exécution. L'exécution ne connaît alors aucun rejet, donc le texte rejeté peut revenir.
+Une valeur qu'un relecteur a [rejetée](/docs/the-lock-file#décisions-de-revue) n'est jamais
+réutilisée pour cette clé : le fichier de provenance garde un hash du texte refusé, et une exécution
+saute tout succès qui y correspond. La seule faille est un fichier de provenance que l'exécution ne
+peut pas lire (écrit par un verbatra plus récent, ou corrompu sous `humanEdits: "overwrite"`) ;
+l'exécution ne connaît alors aucun rejet.
+
+## L'empreinte
+
+Chaque entrée est rattachée au contexte dans lequel elle a été produite : une empreinte sur le
+fournisseur, le modèle, le ton, les termes du glossaire de cette locale, et le
+[`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur quand il a
+des entrées. Change l'un d'eux et les entrées précédentes ne correspondent plus, donc un nouveau ton
+ou un glossaire modifié retraduit au lieu de servir un résultat périmé. Chaque locale a sa propre
+empreinte, donc modifier seulement la traduction allemande d'un terme laisse les entrées françaises
+correspondre.
+
+Le format ne fait pas partie de l'empreinte ; la barrière d'intégrité sur chaque succès attrape une
+valeur qui ne convient plus. Avec le fournisseur `none`, chaque entrée va dans un seul compartiment
+humain que le ton et le glossaire n'affectent pas.
 
 ## Réutilisation approximative
 
 <AvailableFrom version="0.11.0" />
 
-Tout ce qui précède est une correspondance exacte : le texte source produit le même hash qu'avant. Modifie un seul caractère et ce hash change, la chaîne est donc un échec et repart au fournisseur. La réutilisation approximative est un repli optionnel pour exactement ce cas, et elle est désactivée tant que tu ne la demandes pas :
-
-```ts title="verbatra.config.ts"
-export default defineConfig({
-  // ...
-  fuzzyCache: { enabled: true, threshold: 0.9 },
-});
-```
-
-Quand une clé est un échec de cache, verbatra compare sa source actuelle au texte source de chaque entrée de la même locale sous la même empreinte, et note chacune de `0` à `1` : un moins la distance d'édition en caractères divisée par la longueur de la plus longue des deux chaînes, si bien que `1` est une correspondance exacte. L'entrée la plus proche qui atteint `threshold` est réutilisée ; tout ce qui est en dessous part au fournisseur comme un échec de cache ordinaire. `threshold` va de `0.5` à `1` et vaut `0.9` par défaut, délibérément strict : sur une phrase de 70 caractères il tolère une poignée de caractères modifiés, et sur un libellé de bouton de cinq caractères il n'en tolère aucun. Ne l'abaisse qu'après avoir regardé ce qu'il commence à laisser passer.
+Un succès exact exige que le texte source donne le même hash qu'avant, donc modifier un seul
+caractère en fait un échec. [`fuzzyCache`](/docs/config-file#fuzzycache) est un repli facultatif
+pour ce cas : quand une clé échoue, verbatra compare sa source aux autres entrées de la même locale
+et de la même empreinte, et réutilise la plus proche à `threshold` ou au-dessus. Le score vaut un
+moins la distance d'édition en caractères divisée par la longueur de la chaîne la plus longue, donc
+`1` signifie identique.
 
 ### Le seuil n'est pas un réglage de sûreté
 
-Sois au clair sur ce que le score peut te dire et ne peut pas te dire. Il mesure des caractères, et le sens n'est pas une fonction de la distance entre caractères. Supprimer le "ne pas" d'une longue phrase, transformer "ne peut pas" en "peut", remplacer Google par Apple ou mettre un nom au pluriel sont autant de petites modifications qui obtiennent un score *supérieur* à `0.9` et renversent ou détournent ce que la phrase dit. Relever le seuil n'y change rien : une seule lettre modifiée à la fin d'une chaîne de quatre-vingts caractères obtient le score `0.987`, au-delà de n'importe quel seuil que tu pourrais définir.
+La distance en caractères n'est pas le sens. Supprimer un « not », changer « cannot » en « can » ou
+remplacer un nom de marque par un autre sont de petites modifications qui dépassent `0.9` et
+inversent ce que dit la phrase. Le seuil décide combien de dépense fournisseur tu évites, pas à quel
+point une réutilisation est sûre. La sûreté vient de règles qui ne dépendent pas du chiffre :
 
-Le seuil décide donc combien de dépense fournisseur tu évites, pas à quel point la réutilisation est sûre. La sûreté vient de cinq choses qui ne dépendent pas du nombre :
-
-- **La fonction est désactivée tant que tu ne l'actives pas.**
-- **Toute réutilisation approximative est signalée pour révision**, à chaque exécution, quel que soit son score. La clé porte la raison `FUZZY_CACHE_REUSE` dans la liste `needsReview` du résumé d'exécution et dans [la file de révision de Studio](/docs/review-in-studio), étiquetée "Reused after source edit". Si tu ne comptes pas traiter cette file, n'active pas cela.
-- **Une réutilisation dont les caractères numériques ont changé est refusée d'emblée.** Si les caractères numériques de la source actuelle diffèrent en quoi que ce soit de ceux de la source en cache, en nombre, en valeur ou en ordre, l'entrée n'est pas candidate, quel que soit son score. Cela couvre tout caractère numérique Unicode, pas seulement `0` à `9` : chiffres arabo-indiens, exposants (pour que `m²` ne devienne pas `m³`), fractions (pour que `½` ne devienne pas `¼`) et caractères de numération romaine. Un nombre modifié est toujours un fait modifié, et c'est la seule modification de sens reconnaissable sans connaître la langue. Cela n'attrape pas un nombre écrit en toutes lettres : `quatre` devenu `six` relève du signalement de révision comme tout autre changement de formulation.
-- **Une réutilisation ne solde pas la clé.** Le texte réutilisé est écrit dans le fichier de locale, mais le fichier de verrouillage conserve la référence que la clé avait déjà : la clé reste donc *modifiée*. Chaque exécution ultérieure la propose et la signale à nouveau, sans coût fournisseur, jusqu'à ce qu'une vraie traduction arrive et se verrouille normalement. Cela veut dire aussi que [`check`](/docs/cli/check) continue de signaler la clé comme périmée, ce qui est exact : sa traduction a été produite pour un texte qui n'est plus la source. Si un `check` vert en CI compte plus pour toi que le rappel, traduis la clé plutôt que de la laisser sur une réutilisation approximative.
-- **Une source dont le texte n'a pas changé ne concerne jamais la couche approximative.** Ne modifier que la description, le sens ou l'indicateur de pluriel d'une entrée laisse le texte source identique : la clé part au fournisseur exactement comme avec `fuzzyCache` désactivé, et le fournisseur voit la nouvelle consigne.
+- **C'est désactivé tant que tu ne l'actives pas.**
+- **Chaque réutilisation approximative est signalée pour révision** avec
+  [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), à chaque exécution, quel que soit son
+  score. Si personne ne traite la [file de révision](/docs/review-in-studio), laisse-la désactivée.
+- **Des nombres modifiés refusent la réutilisation.** Si les nombres des deux sources diffèrent en
+  quantité, en valeur ou en ordre, l'entrée n'est pas candidate. Cela couvre tout caractère
+  numérique Unicode (`m²` vers `m³`, `½` vers `¼`), mais pas les nombres écrits en toutes lettres.
+- **Une réutilisation ne règle pas la clé.** Le fichier de verrouillage garde l'ancienne référence
+  de la clé, qui reste donc modifiée : chaque exécution suivante la propose à nouveau sans coût
+  fournisseur, et [`check`](/docs/cli/check) continue de la signaler, jusqu'à ce qu'une vraie
+  traduction arrive.
+- **Un texte source inchangé n'atteint jamais la couche approximative.** Modifier seulement une
+  description ou un indicateur de pluriel envoie la clé au fournisseur comme d'habitude.
 
 ### Ce qu'une réutilisation approximative n'est toujours pas
 
-Une réutilisation approximative est la traduction d'un texte qui n'est plus le texte source, elle n'est donc jamais présentée comme un succès exact :
+Une réutilisation approximative est la traduction d'un texte qui n'est plus la source, donc elle
+n'est jamais présentée comme un succès exact :
 
-- Elle passe les mêmes [contrôles d'intégrité](/docs/translation-safety) que n'importe quelle autre valeur candidate. Une correspondance proche dont les placeholders ne conviennent plus à la source modifiée est refusée d'emblée plutôt que rafistolée, et la clé part au fournisseur.
-- Elle est comptée et affichée à part des succès exacts, sous `fuzzy-reused`, avec la clé, le score et le texte source antérieur derrière chacune. `LocaleSummary.fuzzyHits` porte ces trois mêmes informations pour les appels depuis le SDK ou avec `--json`, et `runStatus` les conserve, si bien qu'un outil ouvert après l'exécution peut encore montrer ce qui a été réutilisé et à partir de quoi.
-- Elle n'est jamais réécrite dans le cache. La valeur réutilisée reste classée sous la source pour laquelle elle a réellement été produite, une exécution ultérieure ne peut donc pas la prendre pour un succès exact.
+- Elle passe la barrière d'intégrité comme toute autre candidate ; une correspondance proche dont
+  les placeholders ne conviennent plus est refusée, et la clé part vers le fournisseur.
+- Elle est signalée à part des succès exacts, comme `fuzzy-reused`, avec la clé, le score et
+  l'ancien texte source ; le SDK porte la même chose dans `LocaleSummary.fuzzyHits`.
+- Elle n'est jamais réécrite dans le cache, donc une exécution suivante ne peut pas la prendre pour
+  un succès exact.
 
-La notation reste à l'intérieur d'un seul groupe d'empreinte, si bien qu'un fournisseur, un modèle, un ton, un glossaire ou une `localeMap` du fournisseur changés ne se remettent pas à correspondre par une porte dérobée. Elle est aussi bornée : les entrées dont la seule longueur met le seuil hors d'atteinte sont écartées sans être notées, tout comme celles dont les caractères numériques diffèrent, au plus 256 de celles qui subsistent sont notées pour une clé donnée, et un texte source de plus de 2000 caractères est entièrement ignoré. La notation abandonne une comparaison dès qu'elle ne peut plus atteindre le seuil, ce qui maintient même le pire cas à ces bornes (256 candidats de 2000 caractères, tous à la limite du seuil) autour de 0,4 seconde de CPU pour une seule clé sur un portable actuel, et à des millisecondes quand les candidats ne se ressemblent que par la longueur.
-
-## L'empreinte
-
-Chaque valeur en cache est rattachée au contexte de traduction dans lequel elle a été produite : une courte empreinte sur le fournisseur, le modèle, le ton, les termes du glossaire de cette locale et, si elle a des entrées, la [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur) du fournisseur. Change l'un d'eux et les entrées précédentes cessent de correspondre, donc un nouveau ton ou un glossaire modifié retraduit au lieu de servir un résultat périmé. Chaque locale a sa propre empreinte, tirée de ses propres termes de glossaire : modifier seulement la traduction allemande d'un terme laisse les entrées françaises correspondre. Le format est délibérément hors de l'empreinte ; un changement de format est plutôt rattrapé par le contrôle d'intégrité à chaque succès. Avec le fournisseur `none`, chaque entrée va dans un seul groupe 100 % humain que le ton et le glossaire n'affectent pas, et une correspondance approximative n'est jamais appliquée.
+Le calcul reste dans une seule empreinte et il est borné : au plus 256 candidates par clé, et un
+texte source de plus de 2 000 caractères est ignoré. Avec le fournisseur `none`, une correspondance
+approximative n'est jamais appliquée.
 
 ## Le fichier
 
-`verbatra.cache.json` est un fichier compagnon local et régénérable, à côté de ton fichier de verrouillage. `verbatra init` l'ajoute au `.gitignore`, et `translate`, `watch`, `import`, `tmx import` et `pseudo` complètent un `.gitignore` existant auquel l'entrée manque et nomment sur stderr les entrées ajoutées (`verbatra: updated .gitignore (added ...)`), de sorte qu'un projet créé avec une version plus ancienne récupère l'entrée à l'exécution suivante. Garde-le hors du contrôle de version : contrairement au fichier de verrouillage, c'est une optimisation de coût, pas une base de référence partagée. Il ne fait jamais échouer une exécution. Un fichier absent, corrompu ou trop volumineux se dégrade en un cache vide et est simplement reconstruit à l'exécution suivante. Un fichier dont la `version` n'est pas reconnue par ce build a été écrit par une version plus récente de verbatra : il se dégrade lui aussi en un cache vide pour l'exécution, mais il est laissé intact sur le disque au lieu d'être reconstruit, de sorte qu'une mise à niveau ne détruit rien. L'exécution signale un avis et se poursuit normalement. Pour le reconstruire de zéro, supprime le fichier.
+`verbatra.cache.json` est un fichier local et régénérable à côté de ton fichier de verrouillage.
+Garde-le hors du contrôle de version : c'est une optimisation de coût, pas une référence partagée.
+`verbatra init` l'ajoute au `.gitignore`, et `translate`, `watch`, `import`, `tmx import` et
+`pseudo` ajoutent l'entrée à un `.gitignore` existant qui ne l'a pas et le disent sur stderr.
 
-La réutilisation approximative a besoin du texte source lui-même, parce qu'on ne peut pas mesurer la similarité d'un hash, le fichier enregistre donc chaque chaîne source à côté de ses traductions. C'est ce que porte la version 2 du schéma, et elle rend le fichier à peu près aussi gros que tes chaînes sources, et non de la taille d'une liste de hashs. Un fichier en version 1 écrit par une version plus ancienne de verbatra est repris plutôt que rejeté : ses traductions continuent de fonctionner immédiatement comme des succès exacts, et leur texte source se remplit à mesure que des exécutions ultérieures y touchent.
+Le cache ne fait jamais échouer une exécution. Un fichier absent, corrompu ou trop gros devient un
+cache vide et est reconstruit. Un fichier écrit par un verbatra plus récent est aussi traité comme
+vide pour l'exécution, mais laissé intact sur le disque, avec un avis. Pour repartir de zéro,
+supprime le fichier. Pour le calcul approximatif, le fichier stocke chaque chaîne source à côté de
+ses traductions, donc il grossit à peu près jusqu'à la taille de ton texte source.
 
 ## Déplacer une mémoire entre outils
 
 <AvailableFrom version="0.11.0" />
 
-Le cache ne se remplit pas uniquement avec tes propres exécutions : [`verbatra tmx`](/docs/cli/tmx) y lit un fichier TMX produit par un autre outil de traduction, et le réécrit sous forme de fichier TMX que ces outils savent lire. Les unités importées sont stockées sous la même empreinte de configuration qu'écrit une vraie exécution, un fournisseur, un modèle, un ton, un glossaire ou une `localeMap` du fournisseur changé les empêche donc de correspondre, exactement comme tout le reste du fichier. Cela nuance le "supprime-le et il se reconstruit" plus haut : supprimer reste sans risque pour tout ce que le projet a déjà payé et peut repayer, mais une mémoire importée n'est récupérable que dans la mesure où le fichier TMX dont elle provient l'est encore : garde donc ce fichier.
+[`verbatra tmx`](/docs/cli/tmx) importe dans le cache un fichier TMX venant d'un autre outil de
+traduction et exporte le cache en TMX. Les unités importées sont stockées sous l'empreinte actuelle,
+donc elles cessent de correspondre quand le fournisseur, le modèle, le ton, le glossaire ou
+`localeMap` change, comme tout le reste. Une réserve à « supprime-le et il se reconstruit » : une
+mémoire importée n'est récupérable que tant que tu as le fichier TMX d'origine, alors garde-le.
 
 ## Le contourner
 
-Passe `--no-cache` à [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) pour sauter le cache le temps d'une exécution : verbatra fait exactement les appels au fournisseur qu'il ferait sans cache présent, et laisse intact tout fichier de cache existant. Depuis le SDK, mets `cache: false` sur l'entrée de `translate` ou `watch`. Un dry run n'écrit jamais le cache de toute façon ; avec un fournisseur automatique il ne le lit pas non plus, alors qu'avec le fournisseur `none` il le lit, pour que le plan corresponde à une vraie exécution. `--no-cache` couvre aussi la réutilisation approximative. Pour garder la réutilisation exacte et ne désactiver que le repli approximatif, laisse `fuzzyCache` hors de la configuration ou mets `enabled: false`.
+`--no-cache` sur [`translate`](/docs/cli/translate) ou [`watch`](/docs/cli/watch) (`cache: false`
+dans le SDK) fait exactement les appels fournisseur qu'une exécution sans cache ferait, réutilisation
+approximative comprise, et laisse le fichier intact. Pour garder la réutilisation exacte et ne
+retirer que le repli approximatif, laisse `fuzzyCache` hors de la configuration. Une exécution à
+blanc n'écrit jamais le cache, et ne le lit qu'avec le fournisseur `none`, pour que ce plan
+corresponde à une vraie exécution.
 
 ## Limite
 
-Les formes plurielles synthétisées ne sont pas mises en cache. Quand `generatePlurals` remplit une catégorie plurielle CLDR absente de la source, cette valeur générée n'est pas enregistrée pour réutilisation, donc quand une exécution la synthétise, la valeur vient du fournisseur, jamais du cache.
+Les formes plurielles synthétisées par `generatePlurals` ne sont pas mises en cache, donc elles
+viennent toujours du fournisseur.
+
+## Voir aussi
+
+- [`fuzzyCache`](/docs/config-file#fuzzycache) : la clé de configuration et sa plage.
+- [`verbatra tmx`](/docs/cli/tmx) : importer et exporter la mémoire en TMX.
+- [Comment se déroule une exécution](/docs/how-it-works) : où se place la recherche dans le cache.
+- [Estimer le coût avant une exécution](/docs/estimating-cost) : ce que le cache économise avant que tu dépenses.
