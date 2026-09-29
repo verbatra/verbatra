@@ -205,12 +205,13 @@ comes from:
   remains only for the footer's watermark. Neither hero carries an eyebrow, and no card or
   button on the docs home appends an arrow to its label: the hover border is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
-  landing footer uses for its column titles. The sidebar's top-level entries (group triggers,
-  group links such as "CLI reference", the "Introduction" page, the `For AI agents`
-  separator), the TOC's "On this page" title, table headers, and the tags on
-  `DocsHomePaths` cards all use this treatment. The sidebar gets it from
-  `lib/docs-group-labels.tsx`, which wraps every top-level page-tree name in the class before
-  the tree reaches `DocsLayout`; do not target Fumadocs' or Radix's internal DOM for it.
+  landing footer uses for its column titles. The sidebar's top-level entries inside each tab
+  (group triggers such as "CLI", the "Introduction" page, the `For AI agents` separator), the
+  TOC's "On this page" title, table headers, and the tags on `DocsHomePaths` cards all use this
+  treatment. The sidebar gets it from `lib/docs-group-labels.tsx`, which wraps every name directly
+  under a root folder (the Docs and Reference tabs) in the class before the tree reaches
+  `DocsLayout`, and leaves the tab names themselves plain; do not target Fumadocs' or Radix's
+  internal DOM for it.
   Use the class for a new label rather than restating the four declarations.
 - **Owned hooks, not library internals**: callouts carry `.vk-callout` (added by the `Callout`
   mapping in `components/mdx.tsx` and passed explicitly by `available-from.tsx` and the locale
@@ -238,6 +239,10 @@ comes from:
   landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
   and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
   `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
+- **Sidebar tabs**: the Docs and Reference root folders render Fumadocs' sidebar tab switcher
+  (the default dropdown) at the top of the sidebar and the phone drawer. `rootTabs` in
+  `lib/docs-page-tree.ts` builds the tabs, opening each on its first real page, since the
+  Reference tab has no page of its own. The header's "Reference" link opens the same tab.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on

@@ -24,8 +24,9 @@ the interface strings with `pnpm i18n` (see below).
 ## Where content lives
 
 - `content/docs/**` is the documentation itself. English source is `page.mdx`; a translation is a
-  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. Route groups carry a
-  `meta.json` plus `meta.de.json`, `meta.es.json`, and `meta.fr.json`. An AI agent translates these in the
+  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. The sidebar's Docs and
+  Reference tabs are the `(docs)` and `(reference)` folders, which hold only meta files that list
+  the route groups; each meta file has `meta.de.json`, `meta.es.json`, and `meta.fr.json` siblings. An AI agent translates these in the
   same change as the English page; `lib/docs-locale-parity.test.ts` keeps the four locales
   structurally in sync.
 - `messages/en.json` is the source of the site's own interface strings, with `de.json`, `es.json`,

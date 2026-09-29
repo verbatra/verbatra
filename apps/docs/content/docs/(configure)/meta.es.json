@@ -1,4 +1,4 @@
 {
-  "title": "Configuraci\u00f3n",
-  "pages": ["config-file", "providers", "network-policy", "formats"]
+  "title": "Configuración",
+  "pages": ["config-file", "formats", "providers"]
 }

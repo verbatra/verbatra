@@ -8,6 +8,8 @@ const TRANSLATIONS = i18n.languages.filter((locale) => locale !== i18n.defaultLa
 const LOCALE_SUFFIX = new RegExp(`\\.(${TRANSLATIONS.join("|")})\\.(mdx|json)$`);
 const FENCE = /^\s*(`{3,}|~{3,})/;
 const AVAILABLE_FROM = /<AvailableFrom\b([^>]*)\/>/g;
+const META_LINK = /^(external:)?\[[^\]]+\]\(([^)]+)\)$/;
+const LOCALE_PREFIX = new RegExp(`^/(${TRANSLATIONS.join("|")})(?=/)`);
 
 type PageShape = {
   h2: number;
@@ -76,7 +78,14 @@ function readContent(file: string): string {
 
 function metaPages(file: string): string[] {
   const meta = JSON.parse(readContent(file)) as { pages?: string[] };
-  return (meta.pages ?? []).map((page) => (page.startsWith("---") ? "---" : page));
+  return (meta.pages ?? []).map(comparableMetaItem);
+}
+
+function comparableMetaItem(item: string): string {
+  if (item.startsWith("---")) return "---";
+  const link = META_LINK.exec(item);
+  if (!link) return item;
+  return `${link[1] ?? ""}link:${link[2]?.replace(LOCALE_PREFIX, "")}`;
 }
 
 const PAGES = sourceFiles(".mdx");
@@ -139,5 +148,17 @@ describe("pageShape", () => {
     expect(pageShape(page.replace("### Flags", "Flags"))).not.toEqual(shape);
     expect(pageShape(page.replace("```bash", "bash").replace("\n```\n", "\n"))).not.toEqual(shape);
     expect(pageShape(page.replace('version="0.12.0"', 'version="0.11.0"'))).not.toEqual(shape);
+  });
+});
+
+describe("comparableMetaItem", () => {
+  it("lets a translation rename a sidebar link and prefix its locale, but not retarget it", () => {
+    const english = comparableMetaItem("[MCP server tools](/docs/cli/mcp#tools)");
+    expect(comparableMetaItem("[MCP-Server-Tools](/de/docs/cli/mcp#tools)")).toBe(english);
+    expect(comparableMetaItem("[MCP-Server-Tools](/de/docs/cli/mcp)")).not.toBe(english);
+    expect(comparableMetaItem("external:[Notes](https://example.com)")).toBe(
+      "external:link:https://example.com",
+    );
+    expect(comparableMetaItem("---Alltag---")).toBe("---");
   });
 });
