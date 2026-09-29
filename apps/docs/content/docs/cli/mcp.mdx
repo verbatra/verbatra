@@ -24,7 +24,7 @@ Both forms take the same three flags and start the same server, but the wrappers
 - `verbatra mcp` loads `.env.local` and then `.env` from the working directory before it starts; `verbatra-mcp` loads neither, so pass any API key in the environment the MCP client spawns it with.
 - Both reject an unknown flag (a typo such as `--allowspend`, or `--json`), a flag missing its value, or a stray argument as a usage error on stderr and exit `2`. `verbatra-mcp` does so from `@verbatra/mcp` 0.3.0 on; earlier versions ignore unknown flags.
 - `--help` prints the usage and `--version` prints the version, and both exit `0` without starting the server or waiting on stdin. `verbatra-mcp --version` prints the `@verbatra/mcp` version, `verbatra mcp --version` the CLI version. `verbatra-mcp` also takes `-h` and `-V`, from `@verbatra/mcp` 0.3.0 on.
-- A startup or config error exits `2` from `verbatra mcp` and `1` from `verbatra-mcp`.
+- A startup error exits `2` from `verbatra mcp` and `1` from `verbatra-mcp`. From `@verbatra/mcp` 0.3.0 a missing or invalid config is not one: the server starts without it (see [Without a config](#without-a-config)), and only a `--config` path that does not exist stops it.
 - Both stop within a few seconds of an interrupt, even while a tool call waits on the provider, and release any locale lock they hold. A second interrupt during shutdown force-stops `verbatra mcp` with exit code `130`; from `@verbatra/mcp` 0.3.0 on it force-stops `verbatra-mcp` with `130` after Ctrl-C and `143` after SIGTERM.
 
 ## Flags
@@ -60,7 +60,7 @@ Point your MCP client at `npx -y @verbatra/mcp`: npx fetches the package on dema
 
 `verbatra mcp` works as the command too, but only when both `@verbatra/cli` and `@verbatra/mcp` are installed in the project. The CLI loads `@verbatra/mcp` on demand and never installs it, so `npx -y @verbatra/cli mcp` on its own exits `2` with the message shown under [Installation](#installation).
 
-Leave the key and `--allow-spend` out for a read-only and local-editing-only server: `project.snapshot`, the status and glossary tools, `translation.estimate`, and `translation.editEntry` never call a provider or need a key. Add `--allow-spend` to the `args` array once you also want `translation.retranslateEntry` and `translation.translatePending` available, and hand the server the API key environment variable your configured provider reads (see [Providers](/docs/providers)) through the client's environment, never written into a config file you commit.
+Leave the key and `--allow-spend` out for a read-only and local-editing-only server: `project.snapshot`, `project.doctor`, the status and glossary tools, `translation.estimate`, and `translation.editEntry` never call a provider or need a key. Add `--allow-spend` to the `args` array once you also want `translation.retranslateEntry` and `translation.translatePending` available, and hand the server the API key environment variable your configured provider reads (see [Providers](/docs/providers)) through the client's environment, never written into a config file you commit.
 
 [Connect an MCP client](/docs/connect-an-mcp-client) has the exact setup for Claude Code (`claude mcp add` and a committed `.mcp.json`), Cursor, VS Code, Windsurf, and Claude Desktop, including which directory each client starts the server in and how each one passes it a key.
 
@@ -71,6 +71,7 @@ Leave the key and `--allow-spend` out for a read-only and local-editing-only ser
 The server answers the MCP `initialize` handshake with `instructions`, a fixed text most clients hand to the model before it calls any tool. It tells the agent how to work with the project:
 
 - read before writing: `project.snapshot` first, then `status.check` for counts and `status.diff` for key names;
+- when `project.snapshot` reports `configured: false`, call `project.doctor` and follow each failed check's fix first; the server loads the config on the next call once it is valid, and sends `notifications/tools/list_changed` when its tool list changes (from `@verbatra/mcp` 0.3.0);
 - fix one key with `key.value`, `key.integrity`, and then `translation.editEntry`, which is free and passes the integrity gate;
 - read `review.queue` and `usage.summary` after a run;
 - the two spend tools bill the provider, are listed only with `--allow-spend` and a provider other than `none`, and need the user's explicit yes even then;
@@ -85,7 +86,8 @@ The text is the same for every project and every start of the server, so it hold
 
 | Tool | What it does | Read-only | Calls a provider |
 | --- | --- | --- | --- |
-| `project.snapshot` | resolved config: source locale, target locales, format, file pattern (`files.pattern`), provider id, config source, glossary indicator, `humanEdits` policy, `prune` setting | yes | no |
+| `project.snapshot` | resolved config: whether a usable config is loaded (`configured`), source locale, target locales, format, file pattern (`files.pattern`), provider id, config source, glossary indicator, `humanEdits` policy, `prune` setting | yes | no |
+| `project.doctor` | every setup check (config, format adapter, provider, API key variable by name, network policy, source file, and the informational ones) with its `status`, `detail`, and, when it failed, a `fix`; works without a usable config | yes | no |
 | `status.check` | per-locale count of missing, stale, and up-to-date keys | yes | no |
 | `status.diff` | per-locale list of keys that would be added, re-translated, or orphaned | yes | no |
 | `glossary.get` | every glossary term with its per-locale translations, forbidden renderings and context, the terms kept untranslated, and optionally what one locale is held to, secret-redacted | yes | no |
@@ -146,7 +148,7 @@ Each `key.integrity` entry also carries `icuArmsMatch` and `icuArmDetails`: whet
 
 Every tool now declares an `outputSchema`, including the five that had none before:
 
-- `project.snapshot` returns `sourceLocale`, `targetLocales`, `format`, `files.pattern`, `provider.id`, `configSource`, `glossary` (`source` is `none`, `inline`, or `file` with its `path`), `humanEdits` (`protect`, `suggest`, or `overwrite`; `protect` when unset), and `prune` (`false` when unset).
+- `project.snapshot` returns `configured` and, when it is `true`, `sourceLocale`, `targetLocales`, `format`, `files.pattern`, `provider.id`, `configSource`, `glossary` (`source` is `none`, `inline`, or `file` with its `path`), `humanEdits` (`protect`, `suggest`, or `overwrite`; `protect` when unset), and `prune` (`false` when unset).
 - `status.check` returns `inSync` and, per locale, `missing`, `stale`, `upToDate`, `inSync`, and the optional `provenance` and `protected`.
 - `status.diff` returns `hasPendingChanges` and, per locale, the `missing`, `changed`, and `orphaned` key lists, `hasPendingChanges`, and the optional `changedOrigins` and `protected`.
 - `review.queue` returns `available` and, when a run status exists, its `version`, `generatedAt`, optional `usage` and `budget`, and per-locale `status`, `needsReview` entries (`key`, `reasons`, optional `provenance`), and optional `fuzzyHits`.
@@ -167,13 +169,45 @@ Output schemas name the fields a client can rely on but allow extra properties, 
 
 A sensible sequence is `status.diff`, then `translation.estimate` with the locales you mean to translate, then the user's yes, then `translation.translatePending` with the same `locales` and a `maxTokens` a little above the estimate.
 
+## Without a config
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+The server starts even when it finds no config, or finds one that does not load, so a client that adds it to a project not set up yet still gets a working server instead of one that exited. In that state:
+
+- `project.snapshot` returns `configured: false`, `configProblem` (the error `code`, `CONFIG_NOT_FOUND` or `CONFIG_INVALID`, and its `message`), and a `nextStep` that points at `project.doctor`. The other fields are left out.
+- `project.doctor` reports the failed `config` check with the load error and its `fix`, and the checks that need a config as `skipped`.
+- Every other tool stays listed, since an agent may hold a cached tool list, and refuses with the config error: the text starts with `CONFIG_NOT_FOUND:` or `CONFIG_INVALID:`, names the tool, and ends with a `Next step:` line.
+- The spend tools are not listed, even with `--allow-spend`, until a config with a provider other than `none` loads.
+- stderr says why, followed by the ready line and how to set the project up:
+
+```text
+Running without a usable project config: CONFIG_NOT_FOUND: No verbatra configuration found. ...
+verbatra MCP server running on stdio (project ., spend tools off)
+No usable verbatra config: project.snapshot and project.doctor work, every other tool refuses until one loads.
+  set it up:  npx verbatra init in the project, or fix the config project.doctor names
+  no restart needed: the server loads the config on the next call once it is valid
+```
+
+With `--allow-spend`, the ready line says `spend tools off until a config loads` instead. `verbatra mcp --quiet` leaves out the ready line and the setup hint, but not the line that says why. A `--config` path that does not exist still stops the server at startup, since a typo there should not go unnoticed.
+
+`project.doctor` is listed in every state, runs the same checks as [`verbatra doctor`](/docs/cli/doctor), and never spends: it builds no provider, makes no network request, reads no key value, and writes nothing.
+
+### After a config change
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+The server picks up a config change without a restart. Before each call it compares the modification time and size of the config file, of every file the config search would try, and of the glossary file the config points at, and loads the config again when one of them changed. A JavaScript or TypeScript config is evaluated afresh; a module it imports is not watched, so restart the server after editing one. A call already running keeps the config it started with. A change that leaves the config invalid puts the server back in the state above, and fixing it recovers on the next call. Each reload writes a line to stderr: `Loaded the project config from verbatra.config.ts`, or the new error.
+
+`--allow-spend` is read once, at startup, and a config change never widens it: a change can hide the spend tools (a provider of `none`, an invalid config) or bring them back, but never list them when spending was not allowed. When the tool list changes, the server sends `notifications/tools/list_changed`, so a client that honours it lists the tools again.
+
 ## Secret redaction
 
 Every tool result and every log line passes through the same secret-redaction pass Studio uses: a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it ever reaches the client or stderr. `glossary.get` and `glossary.write` also report which terms were redacted, so you can tell a scrubbed placeholder apart from the real text and never write it back.
 
 ## Stdout is the protocol channel
 
-The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra mcp` and `verbatra-mcp` never print a banner, a log line, or anything else to stdout; every log and diagnostic goes to stderr instead. The server loads the config before it connects the transport, so a config error is written to stderr immediately and the process exits without ever speaking the protocol. Once it is running, per-call diagnostics (a failed call, a call rejected because a matching one is in progress, an unknown tool) also go to stderr. For the same reason `verbatra mcp` takes no `--json`: passing it exits `2` with `USAGE_ERROR` explained on stderr and nothing on stdout, since a JSON envelope there would corrupt the protocol stream.
+The MCP stdio transport uses stdout exclusively for protocol messages. `verbatra mcp` and `verbatra-mcp` never print a banner, a log line, or anything else to stdout; every log and diagnostic goes to stderr instead. The server loads the config before it connects the transport, so a `--config` path that does not exist is written to stderr and the process exits without ever speaking the protocol. A missing or invalid config is written to stderr as well, and the server starts anyway (see [Without a config](#without-a-config)). Once it is running, per-call diagnostics (a failed call, a call rejected because a matching one is in progress, an unknown tool) and a line for each config reload also go to stderr. For the same reason `verbatra mcp` takes no `--json`: passing it exits `2` with `USAGE_ERROR` explained on stderr and nothing on stdout, since a JSON envelope there would corrupt the protocol stream.
 
 ### What it prints on stderr
 
@@ -223,7 +257,7 @@ These are the exit codes of `verbatra mcp`; the standalone `verbatra-mcp` differ
 | --- | --- |
 | `0` | stopped cleanly by a single interrupt (Ctrl-C, or SIGTERM), or because the client closed stdin |
 | `1` | stopping failed: closing the server threw during shutdown |
-| `2` | could not start: a config error, `@verbatra/mcp` not installed, or a usage error |
+| `2` | could not start: a `--config` file that does not exist (any config error before `@verbatra/mcp` 0.3.0), `@verbatra/mcp` not installed, or a usage error |
 | `130` | force-stopped by a second interrupt while shutdown was in flight |
 
 ## Related

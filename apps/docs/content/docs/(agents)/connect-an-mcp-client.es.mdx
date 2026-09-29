@@ -124,9 +124,9 @@ claude plugin marketplace add verbatra/skills
 claude plugin install verbatra@verbatra --scope project
 ```
 
-`--scope project` registra el plugin en el `.claude/settings.json` del proyecto y lo mantiene fuera de tus otros proyectos. Cada persona del equipo lo instala igualmente una vez: hasta entonces, Claude Code lo marca como no instalado y muestra el comando `claude plugin install` que hay que ejecutar. El servidor necesita una configuración de verbatra para arrancar, así que con el scope `user` por defecto arrancaría en cada proyecto que abras y fallaría en todos los que no usan verbatra. Dentro de Claude Code, `/plugin marketplace add verbatra/skills` y `/plugin install verbatra@verbatra` hacen lo mismo; elige **Project scope** cuando [la instalación te pida un scope](https://code.claude.com/docs/en/discover-plugins#install-plugins).
+`--scope project` registra el plugin en el `.claude/settings.json` del proyecto y lo mantiene fuera de tus otros proyectos. Cada persona del equipo lo instala igualmente una vez: hasta entonces, Claude Code lo marca como no instalado y muestra el comando `claude plugin install` que hay que ejecutar. Con el scope `user` por defecto arrancaría en cada proyecto que abras, y en todos los que no usan verbatra funcionaría sin configuración, donde solo `project.snapshot` y `project.doctor` hacen algo. Dentro de Claude Code, `/plugin marketplace add verbatra/skills` y `/plugin install verbatra@verbatra` hacen lo mismo; elige **Project scope** cuando [la instalación te pida un scope](https://code.claude.com/docs/en/discover-plugins#install-plugins).
 
-- **El servidor.** El plugin arranca `npx -y @verbatra/mcp` en la versión que fija, con `--cwd` apuntando al proyecto que tienes abierto en Claude Code. Si el proyecto aún no tiene configuración, ejecuta primero `npx verbatra init` ahí.
+- **El servidor.** El plugin arranca `npx -y @verbatra/mcp` en la versión que fija, con `--cwd` apuntando al proyecto que tienes abierto en Claude Code. Si el proyecto aún no tiene configuración, el servidor arranca igualmente: ejecuta `npx verbatra init` ahí, y la siguiente llamada a una herramienta recoge la configuración sin reiniciar.
 - **El gasto está desactivado.** Las herramientas de gasto siguen ocultas hasta que activas la opción `allowSpend` del plugin, que este le pasa al servidor como `VERBATRA_MCP_ALLOW_SPEND`, así que arrancar `claude` con esa variable no activa el gasto en el servidor del plugin. Defínela con `--config allowSpend=true` en `claude plugin install`, o más tarde en `/config`. Claude Code ignora las opciones de plugins del `.claude/settings.json` de un proyecto, así que un archivo subido al repositorio nunca activa el gasto para el equipo. Los scopes y las opciones están en la [referencia de plugins de Claude Code](https://code.claude.com/docs/en/plugins-reference).
 - **La clave sale de tu entorno.** El plugin no tiene ninguna opción para una clave. El servidor lee la variable de tu proveedor del entorno con el que arrancaste `claude`, igual que arriba.
 - **El hook de archivos de locale.** Después de que Claude edite o escriba un archivo que puede ser de locale, el hook ejecuta el `verbatra check --qa` del propio proyecto. Cuando una traducción ya guardada rompe un placeholder, el marcado en línea o ICU, le devuelve los hallazgos a Claude para que los corrija. Solo usa la `@verbatra/cli` instalada en el `node_modules` del proyecto, desde la versión 0.12.0, no descarga nada y no llama a ningún proveedor. En un proyecto sin `@verbatra/cli` local, no hace nada.
@@ -298,6 +298,7 @@ El cloud agent trabaja en GitHub, no en tu máquina. Una persona con permisos de
       "args": ["-y", "@verbatra/mcp"],
       "tools": [
         "project.snapshot",
+        "project.doctor",
         "status.check",
         "status.diff",
         "lock.state",
@@ -319,7 +320,7 @@ Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribi
 - `"env": { "ANTHROPIC_API_KEY": "$COPILOT_MCP_ANTHROPIC_API_KEY" }` y `--allow-spend` en `args`, para que la configuración contenga una referencia, nunca el valor;
 - `translation.translatePending` o `translation.retranslateEntry` en `tools`. Si no están en la lista permitida, el agente no puede llamarlas ni siquiera con `--allow-spend`.
 
-GitHub no documenta en qué directorio arranca el servidor. Para comprobar la configuración, asigna un issue a Copilot, abre **View session** y despliega **Start MCP Servers**: ahí aparecen las herramientas de verbatra cuando arrancó, y un error de configuración termina el servidor antes de que liste ninguna. Consulta [ampliar el cloud agent con MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) y [secretos y variables del cloud agent](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables).
+GitHub no documenta en qué directorio arranca el servidor. Para comprobar la configuración, asigna un issue a Copilot, abre **View session** y despliega **Start MCP Servers**: ahí aparecen las herramientas de verbatra cuando arrancó. Una configuración ausente o no válida no lo detiene: `project.snapshot` indica entonces `configured: false`, y `project.doctor` dice qué corregir. Consulta [ampliar el cloud agent con MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers) y [secretos y variables del cloud agent](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/configure-secrets-and-variables).
 
 ### Copilot CLI
 
@@ -414,11 +415,19 @@ Cualquier cliente que pueda iniciar un servidor stdio local funciona igual. Dale
 - `--config <path>` si el archivo de configuración no está donde lo encuentra la búsqueda hacia arriba;
 - `--allow-spend` y la variable de clave del proveedor solo si el agente debe gastar, con la clave entregada mediante el propio mecanismo de secretos o de entorno del cliente.
 
-El servidor escribe solo mensajes de protocolo en stdout y cada línea de log en stderr, así que el log de servidor del cliente es donde mirar cuando no se conecta. Un error de configuración aparece ahí antes de que el servidor llegue a responder, y el proceso termina.
+El servidor escribe solo mensajes de protocolo en stdout y cada línea de log en stderr, así que el log de servidor del cliente es donde mirar cuando no se conecta. Una configuración ausente o no válida también aparece ahí, pero el servidor sigue en marcha (consulta [Solución de problemas](#solución-de-problemas)); solo una ruta de `--config` que no existe lo detiene antes de responder.
 
 ## Comprueba la conexión
 
 Pídele al agente que llame a `project.snapshot`. Lee la configuración, no llama a ningún proveedor y devuelve el locale de origen, los locales de destino, el formato y el id del proveedor, así que un directorio de trabajo equivocado o una configuración ausente se ven al instante. Si las herramientas de gasto deberían estar y no están, revisa el interruptor de gasto y si el proveedor de la configuración es `none`.
+
+## Solución de problemas
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- **`project.snapshot` indica `configured: false`.** El servidor no encontró ninguna configuración, o encontró una que no se carga. Arrancó igualmente, así que el cliente sigue conectado: `configProblem` nombra el error (`CONFIG_NOT_FOUND` o `CONFIG_INVALID`), y todas las herramientas salvo `project.snapshot` y `project.doctor` se niegan con ese error y una línea `Next step:`. Pídele al agente que llame a `project.doctor`: lista cada comprobación con su estado, y cada una fallida con un `fix`. En un proyecto sin verbatra, ejecuta `npx verbatra init`; con un directorio de trabajo equivocado, corrige `--cwd`.
+- **La configuración cambió.** No hace falta reiniciar el servidor. Antes de cada llamada comprueba si cambió el archivo de configuración, un archivo de configuración que la búsqueda encontraría ahora o el archivo de glosario, y vuelve a cargar la configuración. Una llamada que ya está en curso termina con la configuración con la que empezó. Si el cambio deja la configuración no válida, el servidor vuelve al estado sin configuración hasta que se corrija. `--allow-spend` queda fijado al arrancar: un cambio de configuración puede ocultar las herramientas de gasto (un proveedor `none`) o recuperarlas, pero nunca activar el gasto. Cuando cambia su lista de herramientas, el servidor avisa al cliente con `notifications/tools/list_changed`.
+- **Una configuración en JavaScript o TypeScript importa otros archivos.** Solo se vigilan el propio archivo de configuración y su archivo de glosario, así que reinicia el servidor después de editar un módulo que la configuración importa.
 
 ## Siguiente
 
