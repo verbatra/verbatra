@@ -186,6 +186,7 @@ describe("segmentValue", () => {
     ["a printf zero-flag flood", (n: number) => `%${"0".repeat(n)}`],
     ["a positional printf digit flood", (n: number) => `%${"1".repeat(n)}`],
     ["nested simple placeholders", (n: number) => `{n, plural, other {${"{x}".repeat(n / 4)}}}`],
+    ["a selector run with no arm brace", (n: number) => `{n, plural, ${"!".repeat(n)}}`],
   ])("segments %s in linear time", (_label, build) => {
     const small = build(LINEAR_BASE_SIZE);
     const large = build(LINEAR_BASE_SIZE * LINEAR_SCALE);

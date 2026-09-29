@@ -6,8 +6,8 @@ export const PRINTF_TOKEN =
   /%(?:\d+\$)?[-+0#]*(?:[1-9]\d*)?(?:\.\d+)?(?:hh|h|ll|l|q|z|j|t|L)?[A-Za-z@]/y;
 const MARKUP_TOKEN = /<\/?(?:[A-Za-z][\w:.-]*|\d+)(?:\s[^<>]*)?\/?>/y;
 const ICU_HEAD = /\{\s*[^\s{},]+\s*,\s*(plural|selectordinal|select)\s*,(?:\s*offset:\s*\d+)?/y;
-const ICU_SELECTOR = /[^\s{}]+\s*\{/y;
 const WHITESPACE = /\s*/y;
+const WHITESPACE_CHAR = /\s/;
 const BRACE_SIGILS = new Set(["#", "$", "%", "@"]);
 const QUOTABLE = new Set(["{", "}", "#", "|"]);
 
@@ -47,6 +47,22 @@ function matchBraceEnds(value: string): Int32Array {
 function stickyTokenEnd(pattern: RegExp, value: string, start: number): number {
   pattern.lastIndex = start;
   return pattern.test(value) ? pattern.lastIndex : -1;
+}
+
+function isSelectorChar(char: string): boolean {
+  return char !== "{" && char !== "}" && !WHITESPACE_CHAR.test(char);
+}
+
+function icuSelectorEnd(value: string, start: number): number {
+  let index = start;
+  while (index < value.length && isSelectorChar(value[index] ?? "")) {
+    index += 1;
+  }
+  if (index === start) {
+    return -1;
+  }
+  const brace = stickyTokenEnd(WHITESPACE, value, index);
+  return value[brace] === "{" ? brace + 1 : -1;
 }
 
 function balancedBraceEnd(scan: Scan, start: number): number {
@@ -199,7 +215,7 @@ function stepSelectors(scan: Scan, frame: IcuFrame): boolean {
   if (scan.value[next] === "}") {
     return closeIcu(scan, frame, next);
   }
-  const selectorEnd = stickyTokenEnd(ICU_SELECTOR, scan.value, next);
+  const selectorEnd = icuSelectorEnd(scan.value, next);
   if (selectorEnd === -1) {
     return false;
   }
