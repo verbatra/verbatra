@@ -117,7 +117,7 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 | `INVALID_LOCALES` | `--locales` a été donné mais ne liste aucune locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` n'est pas un nombre entier de secondes de 1 à 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` n'est pas un nombre entier d'au moins 1 |
-| `INVALID_OPTION` | une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `init --cwd` ne nomme aucun répertoire existant, ou `doctor` a reçu `--locales` ou `--live` avec `--literals` |
+| `INVALID_OPTION` | une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `init --cwd` ne nomme aucun répertoire existant, ou `doctor` a reçu `--locales` ou `--live` avec `--literals` |
 | `INVALID_OUT` | `--out` sur `types` ou `pseudo` a été donné mais ne nomme aucun chemin |
 | `INVALID_PORT` | `studio --port` n'est pas un entier de 1 à 65535 |
 | `INVALID_PROVIDER` | `init --provider` ne nomme aucun fournisseur connu |

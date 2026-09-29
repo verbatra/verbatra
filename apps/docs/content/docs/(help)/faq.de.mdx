@@ -62,8 +62,8 @@ Kalibrieren an einem echten gemessenen Lauf.
 Gemini: Es hat ein kostenloses API-Kontingent, du kannst also ein ganzes Projekt kostenlos
 übersetzen, und ein späterer Wechsel heißt, eine `id` in der Konfiguration zu ändern. Anthropic
 und OpenAI sind die Qualitätswahl unter den bezahlten LLMs, DeepL und Google Cloud Translation
-sind die dedizierten Maschinenübersetzungsoptionen, und `openai-compatible` behält alles auf
-deiner eigenen Hardware. Siehe [Provider](/docs/providers) für den vollständigen Vergleich. Halte vertrauliche Strings
+sind die dedizierten Maschinenübersetzungsoptionen, und `openai-compatible` oder `libretranslate`
+behält alles auf deiner eigenen Hardware. Siehe [Provider](/docs/providers) für den vollständigen Vergleich. Halte vertrauliche Strings
 von Geminis kostenlosem Kontingent fern: Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf
 Google Anfragen darin zur Verbesserung seiner Produkte nutzen. Siehe
 [Datenverarbeitung und Datenschutz](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter).
@@ -75,6 +75,10 @@ Server, der die OpenAI-Chat-API spricht, etwa LM Studio, Ollama oder vLLM. Die m
 Server brauchen keinen API-Schlüssel: Wenn weder eine über `apiKeyEnvVar` benannte Variable noch
 `OPENAI_COMPATIBLE_API_KEY` gesetzt ist, sendet verbatra den festen Platzhalter `"local"`. Braucht
 dein Server doch einen API-Schlüssel, benenne seine Umgebungsvariable mit `apiKeyEnvVar`.
+
+Wenn deine Richtlinie Sprachmodelle ganz verbietet, richtet der `libretranslate`-Provider verbatra
+stattdessen auf einen selbst gehosteten LibreTranslate-Server: klassische Maschinenübersetzung auf
+deiner eigenen Hardware, ganz ohne Sprachmodell. Siehe [LibreTranslate](/docs/providers#libretranslate).
 
 ## Welche Sprachen unterstützt verbatra?
 
@@ -148,7 +152,7 @@ und `mcp`.
 
 Nur in Umgebungsvariablen: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
 `DEEPL_API_KEY` oder `GOOGLE_TRANSLATE_API_KEY`, plus die Variable, die du für
-`openai-compatible` benennst. `translate`, `watch`,
+`openai-compatible` benennst, und die optionale `LIBRETRANSLATE_API_KEY`. `translate`, `watch`,
 `doctor`, `studio` und `mcp` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (echte
 Umgebungsvariablen gewinnen). Das Konfigurationsschema lehnt unbekannte Keys genau deshalb ab, damit ein Secret
 nicht in einer committeten Datei landen kann, und Fehlermeldungen nennen die Variable, aber nie
@@ -159,7 +163,7 @@ einen Wert. Siehe [Provider](/docs/providers).
 Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt.
 verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check. Mit
 `provider: { id: "none" }` verlässt gar nichts den Rechner, und ein selbst gehostetes
-`openai-compatible`-Modell hält die Strings in deinem Netz. Unter
+`openai-compatible`-Modell oder ein `libretranslate`-Server hält die Strings in deinem Netz. Unter
 [Datenverarbeitung und Datenschutz](/docs/data-handling) findest du, was jeder Provider bekommt,
 die Aufbewahrungsbedingungen der Anbieter und eine Checkliste für ein AVV- oder NDA-Review.
 

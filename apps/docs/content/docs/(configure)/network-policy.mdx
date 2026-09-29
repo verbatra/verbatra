@@ -4,7 +4,7 @@ description: Restrict which hosts a translation provider may connect to, so a lo
 ---
 <AvailableFrom version="0.12.0" />
 
-A self-hosted model behind `openai-compatible` keeps your strings on your own network, but only as long as every setting stays right. A mistyped `baseUrl`, a stray `OPENAI_BASE_URL` in someone's shell, or a teammate switching the provider to a hosted one is enough to send strings to a public endpoint. A network policy makes the rule explicit: verbatra refuses to talk to a host the policy does not permit, and says so before any request leaves the machine. For what a request contains and everything else verbatra keeps local, see [Data handling and privacy](/docs/data-handling).
+A self-hosted model behind `openai-compatible`, or a self-hosted LibreTranslate server behind `libretranslate`, keeps your strings on your own network, but only as long as every setting stays right. A mistyped `baseUrl`, a stray `OPENAI_BASE_URL` in someone's shell, or a teammate switching the provider to a hosted one is enough to send strings to a public endpoint. A network policy makes the rule explicit: verbatra refuses to talk to a host the policy does not permit, and says so before any request leaves the machine. For what a request contains and everything else verbatra keeps local, see [Data handling and privacy](/docs/data-handling).
 
 ## Set it up
 
@@ -32,6 +32,8 @@ network: {
 Write no scheme, port or path: `https://llm.internal:8443` is rejected when the config loads.
 
 `local-only` deliberately leaves out link-local addresses (`169.254.0.0/16`, which includes the cloud metadata address, and `fe80::/10`), the carrier-grade NAT range `100.64.0.0/10`, and the unspecified addresses `0.0.0.0` and `::`. Point a server that listens on `0.0.0.0` at `127.0.0.1` instead, and list a VPN range in `allowedHosts` if you need it. An IPv6 address with a zone id, such as `fe80::1%en0`, is judged without the zone, so a link-local address stays refused.
+
+The self-hosted providers, `openai-compatible` and `libretranslate`, connect to the `baseUrl` in their `options`, so under `local-only` a loopback or private-network `baseUrl` such as `http://127.0.0.1:5000` is permitted and a public one is refused before anything is sent.
 
 ## Hosted providers
 
@@ -63,7 +65,7 @@ A value verbatra does not recognize, such as `local_only`, fails the run with `C
 
 Before a provider is built, verbatra works out the host it would connect to and checks it against the policy. A refused host stops `translate`, `watch` (at startup), `retranslate` in Studio and MCP, and the SDK's `retranslateEntry` with `NETWORK_POLICY_VIOLATION` and exit code `2`. No API key is read and nothing is sent. A dry run and `--estimate` call no provider, so they are not refused; use [`verbatra doctor`](/docs/cli/doctor) to check the policy without translating anything.
 
-Because this first check resolves no names, a host name it cannot classify on its own, such as `llm.internal` under `local-only`, passes it. So does `localhost`, which is resolved like any other name and must answer with loopback addresses only. Every request from `anthropic`, `openai`, `gemini`, `google-translate` and `openai-compatible` is then checked again right before it is sent:
+Because this first check resolves no names, a host name it cannot classify on its own, such as `llm.internal` under `local-only`, passes it. So does `localhost`, which is resolved like any other name and must answer with loopback addresses only. Every request from `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` and `libretranslate` is then checked again right before it is sent:
 
 - a host name is resolved, and every address it resolves to must be permitted;
 - a redirect is not followed automatically. Only a `307` or `308` to the same origin (the same scheme, host and port) is followed, up to five times in a row; a sixth same-origin `307` or `308` is handed back to the provider unfollowed, which reports it as an error. A redirect to any other origin fails the request, whether or not that origin would be permitted, and that includes a switch from `https` to `http` on the same host, so a request and its credentials never reach a second origin. A same-origin redirect with another status is handed back to the provider unfollowed, which reports it as an error.

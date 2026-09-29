@@ -34,7 +34,7 @@ wird in der [Datenschutzerklärung](/privacy) der Website behandelt.
  | Glossar         -- gelesen von verbatra-|------------>| Anthropic / OpenAI /     |
  |                                         |  geänderte  | Gemini / DeepL / Google  |
  | verbatra.lock.json, Provenance-Datei,   |  Strings    | oder dein eigener Server |
- | verbatra.cache.json, .verbatra-local/   |<------------| (openai-compatible)      |
+ | verbatra.cache.json, .verbatra-local/   |<------------| (self-hosted)            |
  |              -- geschrieben von verbatra| Ergebnisse  +--------------------------+
  +-----------------------------------------+
         |                        |
@@ -54,8 +54,9 @@ Aktionen zum Neu-Übersetzen und zum Übersetzen offener Keys in Studio und im M
 der MCP-Server bieten diese Aktionen nur an, wenn du sie mit `--allow-spend` startest. Alles andere,
 darunter `check`, `diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`,
 `translate --dry-run` und `translate --estimate`, arbeitet mit lokalen Dateien und sendet nichts. Die eine Ausnahme ist
-`verbatra doctor --live`, das DeepL oder Google Cloud Translation nach der aktuellen Sprachliste fragt,
-dabei deinen API-Schlüssel und nichts aus deinem Projekt sendet und kein Übersetzungskontingent verbraucht.
+`verbatra doctor --live`, das DeepL, Google Cloud Translation oder deinen LibreTranslate-Server nach
+der aktuellen Sprachliste fragt, dabei deinen API-Schlüssel (an LibreTranslate keinen) und nichts aus
+deinem Projekt sendet und kein Übersetzungskontingent verbraucht.
 
 Ein `translate`-Lauf sendet nur die Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file)
 fehlen oder geändert sind, abzüglich aller Keys, die das
@@ -80,6 +81,7 @@ Schätzungen lösen nichts auf.
 | `anthropic`, `openai`, `gemini`, `openai-compatible` | Für jeden zu übersetzenden Key: der Key-Name, der Quelltext und die Beschreibung oder Bedeutung, die deine Quelldatei dafür mitführt (zum Beispiel eine ARB-`description`, eine XLIFF-Notiz oder ein gettext-Kommentar). Pro Request: die Quell- und Ziel-Locale-Codes (nach deiner [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes)) und ihre englischen Sprachnamen, dein `tone`, die Glossarbegriffe dieser Ziel-Locale (Übersetzungen, verbotene Wiedergaben, nicht zu übersetzende Begriffe und Notizen), die Pluralkategorien der Zielsprache, wenn der Batch Plural-Keys enthält, die festen Anweisungen von verbatra, der Modellname und ein Limit für Output-Tokens. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com` oder die `baseUrl`, die du für `openai-compatible` konfiguriert hast. Eine `*_BASE_URL`-Variable leitet die gehosteten um, siehe [Netzwerkrichtlinie](/docs/network-policy#gehostete-provider). |
 | `deepl` | Der Quelltext jedes Keys ohne Platzhalter, die Quell- und Zielsprachcodes, eine Formalitätsstufe, wenn dein `tone` bei einem bezahlten Key eine verlangt, und deine `glossaryId`, falls gesetzt. Keine Key-Namen, keine Beschreibungen und keine Glossar-Begriffe: DeepL-Glossare liegen in deinem DeepL-Konto. | `api.deepl.com`, oder `api-free.deepl.com` für einen Key, der auf `:fx` endet. |
 | `google-translate` | Der Quelltext jedes Keys ohne Platzhalter und die Quell- und Zielsprachcodes. Keine Key-Namen, keine Beschreibungen, kein Glossar. | `translation.googleapis.com` |
+| `libretranslate` | Den Quelltext jedes Keys, wobei jeder Platzhalter durch eine nummerierte Markierung wie `{0}` ersetzt ist, und die Quell- und Ziel-Sprachcodes. Ein Wert, der noch ICU-Syntax enthält, wird nicht gesendet. `LIBRETRANSLATE_API_KEY` als `api_key` im Request-Body, nur wenn sie gesetzt ist. Keine Key-Namen, keine Beschreibungen, kein Glossar. | Die `baseUrl`, die du konfiguriert hast. |
 | `none` | Nichts. Es wird kein Provider gebaut und kein Key gelesen. | Nirgendwohin. |
 
 `maxLength`-Grenzen werden auf deinem Rechner geprüft und nie gesendet. Die Provider, die auf dem
@@ -87,7 +89,8 @@ SDK eines Anbieters aufbauen (`anthropic`, `openai`, `openai-compatible`, `gemin
 schicken außerdem die üblichen Request-Header dieses SDK mit, die die Bibliothek und ihre Version
 nennen und, bei den meisten, dein Betriebssystem und deine Node.js-Version. Dein API-Key geht nur an
 den Endpunkt, den dieser Provider nutzen soll: seinen Standard-Host, eine `*_BASE_URL`-Überschreibung
-oder die `baseUrl` von `openai-compatible`, und durch jeden Proxy, über den der Request läuft.
+oder die `baseUrl` von `openai-compatible` oder `libretranslate`, und durch jeden Proxy, über den
+der Request läuft.
 `google-translate` schickt ihn im Query-String `?key=` der Request-URL.
 
 Behandle alles in einem Quell-String, einer Beschreibung oder dem Glossar als an den Provider
@@ -109,6 +112,7 @@ geht vor, also nimm diese Tabelle als Ausgangspunkt für dein Review und lies di
 | DeepL | Für DeepL API Free wendet die [Datenschutzerklärung](https://www.deepl.com/en/privacy) die Regel des kostenlosen Dienstes an: "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Für Pro gilt: "your texts will not be used to improve the quality of our services", und "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auf das die [DeepL-Pro-Bedingungen](https://www.deepl.com/en/pro-license) verweisen |
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", und "Google does not use the content you send to train and improve our Google Translation features" ([Data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
 | openai-compatible | Was auch immer dein eigener Server tut. Ein Modell, das du selbst hostest, hält die Strings auf Hardware, die du kontrollierst. | Deine eigene |
+| LibreTranslate | Was auch immer dein eigener Server tut. Ein LibreTranslate-Server, den du selbst betreibst, hält die Strings auf Hardware, die du kontrollierst; verbatra ruft nur seine HTTP-API auf. | Deine eigene |
 
 Zwei Folgen, klar gesagt: Die kostenlosen Kontingente von Gemini (außerhalb von EWR, Schweiz und
 Vereinigtem Königreich) und von DeepL dürfen das, was du sendest, zur Verbesserung der Modelle des
@@ -128,12 +132,48 @@ braucht, deinen eigenen Server oder gar keine maschinelle Übersetzung.
 - **Dein eigenes Modell.** `openai-compatible` schickt Requests an die `baseUrl`, die du setzt,
   etwa Ollama, LM Studio oder vLLM auf deinem Rechner oder in deinem Netz. Siehe
   [Provider](/docs/providers).
+- **Deine eigene Maschinenübersetzung, ohne Sprachmodell.** `libretranslate` schickt Requests an
+  einen LibreTranslate-Server, den du betreibst. Siehe das Rezept unten und
+  [LibreTranslate](/docs/providers#libretranslate).
+
+  <AvailableFrom version="0.12.0" />
+
 - **Erzwing es.** Eine [Netzwerkrichtlinie](/docs/network-policy) wie `local-only` lässt verbatra
   jeden Provider-Host außerhalb deines Netzes ablehnen, bevor ein Request rausgeht, und
   `VERBATRA_NETWORK_POLICY` legt sie aus der Umgebung fest, sodass die Config eines Repositorys sie
   nicht lockern kann.
 
   <AvailableFrom version="0.12.0" />
+
+### Rezept: Maschinenübersetzung, wenn Sprachmodelle verboten sind
+
+Manche NDAs und Firmenrichtlinien verbieten Sprachmodelle rundheraus (wegen Halluzinationen, Training
+auf Eingaben oder aus Gründen des AI Act), akzeptieren aber klassische Maschinenübersetzung, die auf
+deiner eigenen Hardware läuft. LibreTranslate ist genau das: ein Open-Source-Server mit
+Argos-Translate-Modellen und keinem Sprachmodell dahinter. Betreib ihn auf deinem Rechner oder in
+deinem Netz mit den Sprachen, die du brauchst:
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+Richte verbatra darauf und beschränk das Netz auf deine eigenen Hosts:
+
+```ts
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+Führ dann `verbatra doctor --locales --live` aus: Es bestätigt, dass die Netzwerkrichtlinie den
+Server erlaubt, und prüft jede Ziel-Locale gegen die Modelle, die der Server installiert hat. Setz in
+der CI zusätzlich `VERBATRA_NETWORK_POLICY=local-only`, damit eine geänderte Config sie nicht lockern
+kann. Für einen Server auf einem anderen Host in deinem Netz trag ihn stattdessen in
+`network.allowedHosts` ein. Jeder Wert, den LibreTranslate erzeugt, wird weiterhin mit Herkunft
+`machine` in der Provenance-Datei festgehalten, damit ein Reviewer ihn von menschlicher Arbeit
+unterscheiden kann.
 
 ## Was lokal geschrieben wird
 
@@ -199,7 +239,8 @@ Ausgaben enthalten kann, lies sie also nicht als menschliche Arbeit. Siehe
 ## Checkliste für ein AVV- oder NDA-Review
 
 1. Entscheide, ob Strings dein Netz überhaupt verlassen dürfen. Wenn nicht, nimm
-   `provider: { id: "none" }` oder einen selbst gehosteten `openai-compatible`-Server und leg
+   `provider: { id: "none" }`, einen selbst gehosteten `openai-compatible`-Server oder, wo auch
+   Sprachmodelle verboten sind, einen selbst gehosteten `libretranslate`-Server und leg
    `VERBATRA_NETWORK_POLICY=local-only` in der CI fest.
 2. Ist ein gehosteter Provider erlaubt, wähl ihn und sein Kontingent anhand der Tabelle oben: für
    alles Vertrauliche ein bezahltes, kein kostenloses.

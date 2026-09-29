@@ -73,6 +73,7 @@ verbatra deliberately publishes no prices. Look up the current rate for your mod
 | DeepL | source **characters**, not tokens | [DeepL Pro pricing](https://www.deepl.com/pro) |
 | Google Cloud Translation | source **characters**, not tokens | [Cloud Translation pricing](https://cloud.google.com/translate/pricing) |
 | openai-compatible | nothing: your own hardware | no API cost |
+| LibreTranslate | nothing: your own server, counted in source characters | no API cost |
 
 ## Step 5: let verbatra do the arithmetic
 
@@ -95,7 +96,7 @@ verbatra translate (dry run)
 3 succeeded, 0 partial, 0 failed (dry run: nothing written)
 ```
 
-It implies `--dry-run`: no provider is constructed, no API key is read, no network call is made, and nothing is written. A machine-translation provider is counted in source characters rather than tokens, and a self-hosted `openai-compatible` endpoint is reported as carrying no API cost at all.
+It implies `--dry-run`: no provider is constructed, no API key is read, no network call is made, and nothing is written. A machine-translation provider is counted in source characters rather than tokens, and a self-hosted `openai-compatible` endpoint or `libretranslate` server is reported as carrying no API cost at all.
 
 The quantity comes for free. The money does not: verbatra still publishes no prices, so a currency figure appears only once you put the rates you looked up in Step 4 into your config, under a `rates` block that records the date you read them:
 

@@ -88,7 +88,7 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Sechs, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) sowie openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
+          "answer": "Sieben, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
         },
         "languages": {
           "question": "Welche Sprachen unterstützt verbatra?",
@@ -348,7 +348,7 @@
       "label": "Unterstützte Frameworks und Formate"
     },
     "providers": {
-      "heading": "Sechs Provider, eine Schnittstelle.",
+      "heading": "Sieben Provider, eine Schnittstelle.",
       "hint": "Fahr mit der Maus über die Karten oder geh sie mit Tab durch.",
       "kinds": {
         "anthropic": "Claude-Modelle",
@@ -356,7 +356,8 @@
         "gemini": "kostenloses Kontingent verfügbar",
         "googleTranslate": "maschinelle Übersetzung",
         "openai": "GPT-Modelle",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+        "openaiCompatible": "Ollama, vLLM, LM Studio",
+        "libretranslate": "selbst gehostet, ohne LLM"
       },
       "lead": "Wechsle, indem du eine Zeile in der Konfiguration änderst, oder setze ihn auf none und lass jeden String in menschlicher Hand."
     }

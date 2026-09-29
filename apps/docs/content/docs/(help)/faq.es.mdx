@@ -60,7 +60,7 @@ automática y cómo calibrar contra una ejecución real medida.
 Gemini: tiene un nivel de API gratuito, así que puedes traducir un proyecto entero sin coste, y
 cambiar más tarde es editar un solo `id` en la configuración. Anthropic y OpenAI son las opciones de
 calidad de LLM de pago, DeepL y Google Cloud Translation son las opciones dedicadas de traducción
-automática, y `openai-compatible` mantiene todo en tu propio hardware. Consulta
+automática, y `openai-compatible` o `libretranslate` mantiene todo en tu propio hardware. Consulta
 [Proveedores](/docs/providers) para la comparación completa. No pongas textos confidenciales en el
 nivel gratuito de Gemini: fuera del EEE, Suiza y el Reino Unido, Google puede usar sus peticiones
 para mejorar sus productos. Consulta
@@ -73,6 +73,10 @@ de OpenAI, como LM Studio, Ollama o vLLM, a través de su opción `baseUrl`. La 
 servidores locales no necesitan clave de API: cuando ni una variable nombrada por `apiKeyEnvVar` ni
 `OPENAI_COMPATIBLE_API_KEY` están definidas, verbatra envía el placeholder fijo `"local"`. Si tu
 servidor sí necesita una clave, nombra su variable de entorno con `apiKeyEnvVar`.
+
+Si tu política prohíbe por completo los modelos de lenguaje, el proveedor `libretranslate` apunta
+verbatra a un servidor LibreTranslate autoalojado en su lugar: traducción automática clásica en tu
+propio hardware, sin modelo de lenguaje. Consulta [LibreTranslate](/docs/providers#libretranslate).
 
 ## ¿Qué idiomas admite verbatra?
 
@@ -146,7 +150,7 @@ instalaciones aparte y opcionales, cargadas dinámicamente por los comandos `stu
 
 Solo en variables de entorno: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
 `DEEPL_API_KEY` o `GOOGLE_TRANSLATE_API_KEY`, más la variable que tú nombres para
-`openai-compatible`. `translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env` y `.env.local`
+`openai-compatible` y la opcional `LIBRETRANSLATE_API_KEY`. `translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env` y `.env.local`
 desde el directorio de trabajo (las variables del entorno real ganan). El esquema de configuración
 rechaza las claves desconocidas precisamente para que un secreto no pueda acabar en un archivo
 confirmado, y los mensajes de error nombran la variable pero nunca un valor. Consulta
@@ -156,8 +160,8 @@ confirmado, y los mensajes de error nombran la variable pero nunca un valor. Con
 
 Solo al proveedor de traducción que configures, y solo cuando un comando traduce. verbatra no
 tiene telemetría, ni analítica, ni comprobación de actualizaciones. Con `provider: { id: "none" }`
-no sale nada de la máquina, y un modelo `openai-compatible` autoalojado mantiene los textos en tu
-red. Consulta [Tratamiento de datos y privacidad](/docs/data-handling) para ver qué recibe cada
+no sale nada de la máquina, y un modelo `openai-compatible` o un servidor `libretranslate`
+autoalojado mantiene los textos en tu red. Consulta [Tratamiento de datos y privacidad](/docs/data-handling) para ver qué recibe cada
 proveedor, las condiciones de retención de cada empresa y una lista de comprobación para una
 revisión de DPA o NDA.
 

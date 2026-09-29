@@ -57,7 +57,7 @@ against a real measured run.
 Gemini: it has a free API tier, so you can translate a whole project at no cost, and switching
 later means editing one `id` in the config. Anthropic and OpenAI are the paid-LLM quality picks,
 DeepL and Google Cloud Translation are the dedicated machine-translation options, and
-`openai-compatible` keeps everything on your own hardware. See [Providers](/docs/providers) for
+`openai-compatible` or `libretranslate` keeps everything on your own hardware. See [Providers](/docs/providers) for
 the full comparison. Keep confidential strings off Gemini's free tier: outside the EEA, Switzerland
 and the UK, Google may use free-tier requests to improve its products. See
 [Data handling and privacy](/docs/data-handling#vendor-retention-and-data-processing-terms).
@@ -69,6 +69,10 @@ API, such as LM Studio, Ollama, or vLLM, via its `baseUrl` option. Most local se
 key: when neither an `apiKeyEnvVar`-named variable nor `OPENAI_COMPATIBLE_API_KEY` is set,
 verbatra sends the fixed placeholder `"local"`. If your server does need a key, name its
 environment variable with `apiKeyEnvVar`.
+
+If your policy bans language models altogether, the `libretranslate` provider points verbatra at a
+self-hosted LibreTranslate server instead: classic machine translation on your own hardware, with
+no language model. See [LibreTranslate](/docs/providers#libretranslate).
 
 ## Which languages does verbatra support?
 
@@ -138,7 +142,7 @@ installs, loaded dynamically by the `studio` and `mcp` commands.
 
 Only in environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`,
 `DEEPL_API_KEY`, or `GOOGLE_TRANSLATE_API_KEY`, plus whatever variable you name for
-`openai-compatible`. `translate`, `watch`,
+`openai-compatible` and the optional `LIBRETRANSLATE_API_KEY`. `translate`, `watch`,
 `doctor`, `studio`, and `mcp` load `.env` and `.env.local` from the working directory (real
 environment variables win). The config schema rejects unknown keys precisely so a secret cannot end up in a committed
 file, and error messages name the variable but never a value. See [Providers](/docs/providers).
@@ -147,7 +151,8 @@ file, and error messages name the variable but never a value. See [Providers](/d
 
 Only to the translation provider you configure, and only when a command translates. verbatra has
 no telemetry, analytics, or update check. With `provider: { id: "none" }` nothing leaves the
-machine at all, and a self-hosted `openai-compatible` model keeps strings on your network. See
+machine at all, and a self-hosted `openai-compatible` model or `libretranslate` server keeps strings
+on your network. See
 [Data handling and privacy](/docs/data-handling) for what each provider receives, the vendors'
 retention terms, and a checklist for a DPA or NDA review.
 

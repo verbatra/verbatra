@@ -4,7 +4,7 @@ description: Limita a qué hosts puede conectarse un proveedor de traducción, p
 ---
 <AvailableFrom version="0.12.0" />
 
-Un modelo autoalojado detrás de `openai-compatible` mantiene tus strings dentro de tu propia red, pero solo mientras cada ajuste siga siendo correcto. Una `baseUrl` mal escrita, un `OPENAI_BASE_URL` olvidado en la shell de alguien o un compañero que cambia el proveedor por uno alojado basta para enviar strings a un endpoint público. Una política de red hace explícita la regla: verbatra se niega a hablar con un host que la política no permite, y lo dice antes de que ninguna petición salga de la máquina. Qué contiene una petición y todo lo que verbatra mantiene en local está en [Tratamiento de datos y privacidad](/docs/data-handling).
+Un modelo autoalojado detrás de `openai-compatible`, o un servidor LibreTranslate autoalojado detrás de `libretranslate`, mantiene tus strings dentro de tu propia red, pero solo mientras cada ajuste siga siendo correcto. Una `baseUrl` mal escrita, un `OPENAI_BASE_URL` olvidado en la shell de alguien o un compañero que cambia el proveedor por uno alojado basta para enviar strings a un endpoint público. Una política de red hace explícita la regla: verbatra se niega a hablar con un host que la política no permite, y lo dice antes de que ninguna petición salga de la máquina. Qué contiene una petición y todo lo que verbatra mantiene en local está en [Tratamiento de datos y privacidad](/docs/data-handling).
 
 ## Configúrala
 
@@ -32,6 +32,8 @@ network: {
 No escribas esquema, puerto ni ruta: `https://llm.internal:8443` se rechaza al cargar la configuración.
 
 `local-only` deja fuera a propósito las direcciones de enlace local (`169.254.0.0/16`, que incluye la dirección de metadatos de la nube, y `fe80::/10`), el rango NAT de operador `100.64.0.0/10` y las direcciones sin especificar `0.0.0.0` y `::`. Apunta a `127.0.0.1` un servidor que escucha en `0.0.0.0`, y añade un rango de VPN a `allowedHosts` si lo necesitas. Una dirección IPv6 con identificador de zona, como `fe80::1%en0`, se evalúa sin la zona, así que una dirección de enlace local sigue rechazada.
+
+Los proveedores autoalojados, `openai-compatible` y `libretranslate`, se conectan a la `baseUrl` de sus `options`, así que con `local-only` se permite una `baseUrl` de loopback o de red privada como `http://127.0.0.1:5000` y se rechaza una pública antes de enviar nada.
 
 ## Proveedores alojados
 
@@ -63,7 +65,7 @@ Un valor que verbatra no reconoce, como `local_only`, hace fallar la ejecución 
 
 Antes de construir un proveedor, verbatra averigua el host al que se conectaría y lo comprueba contra la política. Un host rechazado detiene `translate`, `watch` (al arrancar), `retranslate` en Studio y MCP, y `retranslateEntry` del SDK con `NETWORK_POLICY_VIOLATION` y código de salida `2`. No se lee ninguna clave de API y no se envía nada. Una ejecución de prueba y `--estimate` no llaman a ningún proveedor, así que no se rechazan; usa [`verbatra doctor`](/docs/cli/doctor) para comprobar la política sin traducir nada.
 
-Como esta primera comprobación no resuelve nombres, un nombre de host que no puede clasificar por sí sola, como `llm.internal` con `local-only`, la supera. Lo mismo pasa con `localhost`, que se resuelve como cualquier otro nombre y tiene que responder solo con direcciones loopback. Cada petición de `anthropic`, `openai`, `gemini`, `google-translate` y `openai-compatible` se vuelve a comprobar justo antes de enviarse:
+Como esta primera comprobación no resuelve nombres, un nombre de host que no puede clasificar por sí sola, como `llm.internal` con `local-only`, la supera. Lo mismo pasa con `localhost`, que se resuelve como cualquier otro nombre y tiene que responder solo con direcciones loopback. Cada petición de `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` y `libretranslate` se vuelve a comprobar justo antes de enviarse:
 
 - se resuelve el nombre de host, y cada dirección a la que resuelve tiene que estar permitida;
 - una redirección no se sigue automáticamente. Solo se sigue un `307` o `308` hacia el mismo origen (mismo esquema, host y puerto), hasta cinco veces seguidas; un sexto `307` o `308` al mismo origen se devuelve sin seguir al proveedor, que lo informa como error. Una redirección hacia cualquier otro origen hace fallar la petición, esté o no permitido ese origen, y eso incluye pasar de `https` a `http` en el mismo host, para que una petición y sus credenciales nunca lleguen a un segundo origen. Una redirección al mismo origen con otro estado se devuelve sin seguir al proveedor, que la informa como error.
