@@ -1,8 +1,8 @@
 ---
 title: Proveedores
-description: Los siete proveedores de traducción, sus opciones y claves de API, y el comportamiento que todos comparten.
+description: Todos los proveedores de traducción, sus opciones y claves de API, y el comportamiento que todos comparten.
 ---
-verbatra incluye siete proveedores detrás de una sola interfaz: Anthropic, OpenAI, Gemini y openai-compatible (un servidor local o autoalojado compatible con OpenAI) son grandes modelos de lenguaje, y DeepL, Google Cloud Translation y LibreTranslate (un servidor autoalojado) son servicios de traducción automática. Un octavo valor, `none`, desactiva la traducción automática por política; consulta [none](#none). Seleccionas uno en el bloque `provider` de tu [configuración](/docs/config-file), por `id`. Cada id de modelo en esta página es un ejemplo, no una recomendación: los catálogos de modelos cambian, así que consulta la lista actual de tu proveedor. Qué idiomas cubre cada proveedor y cómo le pasa verbatra tus códigos de locale lo tienes en [Soporte de idiomas](/docs/language-support).
+verbatra incluye sus proveedores detrás de una sola interfaz: Anthropic, OpenAI, Gemini y openai-compatible (un servidor local o autoalojado compatible con OpenAI) son grandes modelos de lenguaje, y DeepL, Google Cloud Translation y LibreTranslate (un servidor autoalojado) son servicios de traducción automática. Un valor más, `none`, desactiva la traducción automática por política; consulta [none](#none). Seleccionas uno en el bloque `provider` de tu [configuración](/docs/config-file), por `id`. Cada id de modelo en esta página es un ejemplo, no una recomendación: los catálogos de modelos cambian, así que consulta la lista actual de tu proveedor. Qué idiomas cubre cada proveedor y cómo le pasa verbatra tus códigos de locale lo tienes en [Soporte de idiomas](/docs/language-support).
 
 ## ¿Cuál elijo?
 
@@ -276,7 +276,7 @@ Los fallos transitorios (una respuesta de límite de tasa o un error de servidor
 
 ### Tiempo de espera de petición
 
-Cada proveedor acota cada petición saliente, para que un servidor que acepta la conexión pero nunca responde no pueda atascar una ejecución ni mantener abierto el bloqueo de escritura de un locale. Ese límite es `requestTimeoutMs`, un entero positivo opcional en milisegundos que se acepta en las `options` de los siete proveedores (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` y `libretranslate`):
+Cada proveedor acota cada petición saliente, para que un servidor que acepta la conexión pero nunca responde no pueda atascar una ejecución ni mantener abierto el bloqueo de escritura de un locale. Ese límite es `requestTimeoutMs`, un entero positivo opcional en milisegundos que se acepta en las `options` de todos los proveedores (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible` y `libretranslate`):
 
 ```ts
 provider: {

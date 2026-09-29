@@ -1,8 +1,8 @@
 ---
 title: Providers
-description: The seven translation providers, their options and API keys, and the behavior they all share.
+description: Every translation provider, its options and API key, and the behavior they all share.
 ---
-verbatra ships seven providers behind one interface: Anthropic, OpenAI, Gemini, and openai-compatible (a local or self-hosted OpenAI-compatible server) are large language models, and DeepL, Google Cloud Translation, and LibreTranslate (a self-hosted server) are machine-translation services. An eighth setting, `none`, switches machine translation off by policy; see [none](#none). You select one in the `provider` block of your [config](/docs/config-file), by `id`. Every model id on this page is an example, not a recommendation: model catalogs change, so check your provider's current list. Which languages each provider covers, and how verbatra hands it your locale codes, is on [Language support](/docs/language-support).
+verbatra ships its providers behind one interface: Anthropic, OpenAI, Gemini, and openai-compatible (a local or self-hosted OpenAI-compatible server) are large language models, and DeepL, Google Cloud Translation, and LibreTranslate (a self-hosted server) are machine-translation services. One more setting, `none`, switches machine translation off by policy; see [none](#none). You select one in the `provider` block of your [config](/docs/config-file), by `id`. Every model id on this page is an example, not a recommendation: model catalogs change, so check your provider's current list. Which languages each provider covers, and how verbatra hands it your locale codes, is on [Language support](/docs/language-support).
 
 ## Which one should I pick?
 
@@ -276,7 +276,7 @@ Transient failures (a rate-limit response or a server error) are retried automat
 
 ### Request timeout
 
-Every provider bounds each outbound request, so a server that accepts the connection but never answers cannot stall a run and hold a locale's write lock open. The bound is `requestTimeoutMs`, an optional positive integer of milliseconds accepted in the `options` of all seven providers (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, and `libretranslate`):
+Every provider bounds each outbound request, so a server that accepts the connection but never answers cannot stall a run and hold a locale's write lock open. The bound is `requestTimeoutMs`, an optional positive integer of milliseconds accepted in the `options` of every provider (`anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, and `libretranslate`):
 
 ```ts
 provider: {

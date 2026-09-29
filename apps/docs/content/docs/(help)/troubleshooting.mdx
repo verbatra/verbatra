@@ -71,7 +71,7 @@ full schema. If the message is `No verbatra configuration found...` (`CONFIG_NOT
 
 **Symptom**: `No adapter is registered for format "..."` followed by the supported list.
 
-**Cause**: the config's `format` is not one of the fourteen registered format ids. This is checked
+**Cause**: the config's `format` is not one of the registered format ids listed on [Formats](/docs/formats). This is checked
 before any file is read. For a `custom:` identifier the message names the third-party format
 instead: the registry the run was handed holds no adapter for it. The `verbatra` command line loads
 no plugin, so a `custom:` format cannot run there.
