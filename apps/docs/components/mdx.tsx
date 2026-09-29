@@ -1,6 +1,6 @@
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
-import { CodeBlockTabs } from "fumadocs-ui/components/codeblock";
+import { CodeBlock, CodeBlockTabs, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
@@ -30,6 +30,8 @@ export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
 export const CODE_TABS_CLASS = "vk-code-tabs";
 export const SHORT_CODE_CLASS = "vk-code-short";
+export const OUTPUT_CODE_CLASS = "vk-code-output";
+export const OUTPUT_BLOCK_TITLE = "Output";
 
 const NO_NEIGHBOURS: ReadonlySet<string> = new Set();
 
@@ -49,6 +51,19 @@ export function getMDXComponents(
         {children}
       </code>
     ),
+    pre: ({ title, className, children, ...rest }: ComponentProps<typeof CodeBlock>) => {
+      const isOutput = title === OUTPUT_BLOCK_TITLE;
+      return (
+        <CodeBlock
+          title={title}
+          allowCopy={!isOutput}
+          className={cn(isOutput && OUTPUT_CODE_CLASS, className)}
+          {...rest}
+        >
+          <Pre>{children}</Pre>
+        </CodeBlock>
+      );
+    },
     Callout: ({ className, ...rest }: ComponentProps<typeof Callout>) => (
       <Callout className={cn(CALLOUT_CLASS, className)} {...rest} />
     ),
