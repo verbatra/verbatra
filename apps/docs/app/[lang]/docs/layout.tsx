@@ -8,7 +8,7 @@ import { withExpandedNewGroups, withLlmsLinks, withShortCommandLabels } from "@/
 import { withStatusBadges } from "@/lib/docs-status-badges";
 import { toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
-import { rootTabs } from "@/lib/root-tabs";
+import { rootTabs, withNavOnlyTabLinks } from "@/lib/root-tabs";
 import { source } from "@/lib/source";
 
 export default async function Layout({
@@ -28,11 +28,13 @@ export default async function Layout({
       ),
     ),
   );
-  const { nav, ...base } = await baseOptions(locale);
+  const { nav, links = [], ...base } = await baseOptions(locale);
+  const tabs = rootTabs(tree);
   return (
-    <RootTabsProvider tabs={rootTabs(tree)}>
+    <RootTabsProvider tabs={tabs}>
       <DocsLayout
         {...base}
+        links={withNavOnlyTabLinks(links, tabs)}
         nav={{ ...nav, mode: "top" }}
         slots={{ ...base.slots, header: DocsSiteHeader }}
         sidebar={{ banner: <SidebarTabs key="root-tabs" /> }}

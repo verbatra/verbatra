@@ -55,3 +55,15 @@ export function headerActiveTab(
   );
   return moreSpecific ? undefined : active;
 }
+
+export function withNavOnlyTabLinks(
+  links: ReadonlyArray<LinkItemType>,
+  tabs: ReadonlyArray<RootTab>,
+): LinkItemType[] {
+  const tabUrls = new Set(tabs.map((tab) => tab.url));
+  return links.map((item) =>
+    "url" in item && item.url !== undefined && tabUrls.has(item.url)
+      ? { ...item, on: "nav" }
+      : item,
+  );
+}

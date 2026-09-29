@@ -1,6 +1,12 @@
 import type * as PageTree from "fumadocs-core/page-tree";
 import { describe, expect, it } from "vitest";
-import { activeRootTab, headerActiveTab, isRootTabLinkActive, rootTabs } from "./root-tabs";
+import {
+  activeRootTab,
+  headerActiveTab,
+  isRootTabLinkActive,
+  rootTabs,
+  withNavOnlyTabLinks,
+} from "./root-tabs";
 
 const docsTab: PageTree.Folder = {
   $id: "docs",
@@ -126,5 +132,20 @@ describe("headerActiveTab", () => {
     const onStartWithAi = (item: (typeof links)[number] | object) =>
       "url" in item && item.url === "/docs/start-with-ai";
     expect(headerActiveTab(links, tabs, docs, onStartWithAi)).toBeUndefined();
+  });
+});
+
+describe("withNavOnlyTabLinks", () => {
+  it("keeps the links that open a tab out of the drawer, since the tabs already offer them", () => {
+    const links = withNavOnlyTabLinks(
+      [
+        { text: "Docs", url: "/docs" },
+        { text: "Reference", url: "/docs/cli" },
+        { text: "Start with AI", url: "/docs/start-with-ai" },
+        { type: "custom", children: null },
+      ],
+      rootTabs(tabbed),
+    );
+    expect(links.map((item) => item.on)).toEqual(["nav", "nav", undefined, undefined]);
   });
 });
