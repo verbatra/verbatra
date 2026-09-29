@@ -247,7 +247,8 @@ comes from:
   snapshot written earlier or writes an empty one, and an empty one shows no outdated notice.
 - **Pills**: `.vk-pill` is the one badge shape: an outline pill in `--accent` text with the
   glow-tinted border, mono, `--text-xs`, no fill. The sidebar and footer NEW badge
-  (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase); the
+  (`components/new-badge.tsx`) adds `.vk-pill-status` (smaller, uppercase) and is hidden in the
+  breadcrumb (`.vk-breadcrumb`, set on `DocsPage`), which shares the sidebar's tree; the
   `<AvailableFrom>` badge adds `.vk-available-from`, which sits after the heading text when it is
   inside a heading. Do not bring back a filled purple pill.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at

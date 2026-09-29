@@ -32,6 +32,7 @@ import {
 import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
 
 const CODE_HEADINGS_CLASS = "vk-code-headings";
+const BREADCRUMB_CLASS = "vk-breadcrumb";
 
 function breadcrumbTrail(pageUrl: string, lang: Locale): BreadcrumbLdItem[] {
   const items = getBreadcrumbItems(pageUrl, source.getPageTree(lang), { includePage: true });
@@ -135,7 +136,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
       tableOfContentPopover={{ trigger: { "aria-label": onThisPageLabel(lang) } }}
       full={isHome}
-      breadcrumb={{ enabled: !isHome, includePage: true }}
+      breadcrumb={{ enabled: !isHome, includePage: true, className: BREADCRUMB_CLASS }}
       footer={{ enabled: !isHome, className: "vk-docs-footer" }}
       className={isHome ? "max-w-none p-0 md:p-0 xl:p-0" : undefined}
     >

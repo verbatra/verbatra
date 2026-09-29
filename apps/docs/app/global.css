@@ -459,6 +459,10 @@ samp {
   display: none;
 }
 
+.vk-breadcrumb .vk-pill-status {
+  display: none;
+}
+
 #nd-toc a,
 [data-toc-popover-content] a {
   overflow-wrap: normal;
