@@ -97,8 +97,9 @@ parity tests (`pnpm test:scripts`):
   `SUPPORTED_FORMATS` id in order, `providers*.mdx` opens one `##` section per `providerFactories`
   id plus `none`, the `cli/doctor*.mdx` check table follows the setup checks in `doctor.ts`, and
   every `.command(...)` in `run.ts` appears in `cli/meta*.json` and the `cli/index*.mdx` table, with
-  its page's flags table naming exactly its `.option(...)` flags and the `--json` list in
-  `ci-and-exit-codes*.mdx` naming exactly the commands that take `--json`.
+  its page's flags table naming exactly its own `.option(...)` flags, and the global flags table in
+  `cli/index*.mdx` naming, per shared flag (`--cwd`, `--config`, `--json`), exactly the commands
+  that do not take it.
 - `verify-docs-registry-counts.test.mjs`: no MDX page spells out a count of formats, providers,
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
