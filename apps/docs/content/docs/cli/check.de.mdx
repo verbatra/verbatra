@@ -53,7 +53,7 @@ Ein veralteter Key, den eine Person geschrieben, importiert oder außerhalb von 
 
 Jedes `check` listet die Plurale, denen eine CLDR-Pluralkategorie ihrer Zielsprache fehlt, etwa ein polnisches Android-`<plurals>` mit nur `one` und `other`:
 
-```text title="Output"
+```text output
 plural categories (warning: exit 1 only under --qa --strict)
   pl: 2 plurals missing CLDR categories
     cart {count} plural: missing few, many
@@ -91,7 +91,7 @@ interface IncompletePlural {
 - **error**: Der Wert fällt durch das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate), mit `placeholder`, `markup`, `icu`, `degenerate` oder `empty`. Die Details listen entfernte Tokens als `-{{name}}` und hinzugefügte als `+{{nom}}`.
 - **warning**: Der Wert trägt einen [Review-Grund](/docs/translation-safety#review-flags): `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM` oder `INTEGRITY_REORDERED`. Ein Wert mit Fehler bekommt keine Warnungen.
 
-```text title="Output"
+```text output
 qa: 1 error, 1 warning
   de: 1 error, 1 warning in 42 values checked
     greeting: error placeholder (-{{name}}, +{{nme}})
@@ -114,7 +114,7 @@ type QaFinding =
 
 `--require-reviewed` schlägt mit Exit `1` fehl, solange ein Wert mit [Herkunft](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) `machine`, `memory`, `fuzzy` oder `agent` in der committeten `verbatra.provenance.json` nicht freigegeben ist; dort speichern [Studio](/docs/review-in-studio) und die [MCP-Tools](/docs/cli/mcp) ihre Entscheidungen. Eine Freigabe von vor der Änderung des Quelltexts oder des Werts zählt nicht.
 
-```text title="Output"
+```text output
 review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
   de: 2 unreviewed: checkout.title, checkout.total
 ```

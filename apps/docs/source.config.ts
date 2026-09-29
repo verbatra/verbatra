@@ -2,6 +2,7 @@ import { pageSchema } from "fumadocs-core/source/schema";
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 import { z } from "zod";
 import { rehypeAvailableFromInHeading } from "./lib/available-from-heading";
+import { rehypeCodeOptions } from "./lib/code-block-meta";
 import { remarkIntroducedIn } from "./lib/introduced-in";
 import { rehypeStackedTables } from "./lib/stacked-tables";
 
@@ -16,6 +17,7 @@ export const docs = defineDocs({
 export default defineConfig({
   mdxOptions: {
     remarkNpmOptions: { persist: { id: "package-manager" } },
+    rehypeCodeOptions,
     remarkPlugins: [remarkIntroducedIn],
     rehypePlugins: (plugins) => [...plugins, rehypeAvailableFromInHeading, rehypeStackedTables],
   },

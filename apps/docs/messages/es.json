@@ -494,6 +494,9 @@
       "heading": "Para agentes de IA",
       "index": "llms.txt (índice)"
     },
+    "codeBlock": {
+      "output": "Salida"
+    },
     "availableFrom": {
       "title": "Disponible a partir de {version}",
       "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con <code>verbatra --version</code> y actualiza si es más antigua.",

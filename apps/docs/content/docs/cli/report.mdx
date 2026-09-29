@@ -27,7 +27,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 ### Output
 
-```text title="Output"
+```text output
 verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z)
   locale  machine, unreviewed  machine, reviewed  human  import  external  unrecorded  unknown  total
   de      12                   40                 3      85      1         0           0        141
@@ -50,7 +50,7 @@ A report built without a readable provenance file would list every value as `unr
 
 The command shows one line while it reads the files. When machine translations wait for review, it suggests Studio:
 
-```text title="Output"
+```text output
 verbatra: reading the provenance record... done (0.1s)
 next: verbatra studio (approve or reject the 12 machine translations no person has reviewed yet)
 ```
