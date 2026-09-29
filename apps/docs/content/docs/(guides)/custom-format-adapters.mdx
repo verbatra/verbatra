@@ -1,26 +1,20 @@
 ---
-title: Custom format adapters
+title: Write a custom format adapter
 description: "Ship a format verbatra does not: name it with a custom: identifier, build it on one of the two adapter factories, and hand verbatra the registry. Includes what you are trusting when you install one."
+type: how-to
 status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-verbatra reads and writes the formats on [Formats](/docs/formats) out of the box. If yours is not one of them, you do not have to wait for it to be added: build an adapter in your own package, name the format with a `custom:` identifier, and hand verbatra a registry that holds it. Nothing is published to verbatra, nothing is reviewed by us, and no release is involved.
+Use this when your locale files are in a format verbatra does not read out of the box (see [Formats](/docs/formats)). You build the adapter in your own package, name the format with a `custom:` identifier, and hand verbatra a registry that holds it. Nothing is published to verbatra and no release is involved.
 
-This is a programmatic API. The `verbatra` command line loads no plugin of its own, by design (see [What you are trusting](#what-you-are-trusting)), so a project using a custom format drives verbatra through `@verbatra/sdk`.
+You need `@verbatra/sdk` in the project. The `verbatra` command line loads no plugin by design (see [What you are trusting](#what-you-are-trusting)), so a project with a custom format runs verbatra through the SDK.
 
 ## Name the format
 
-A format supplied from outside verbatra is named `custom:` followed by a lowercase, hyphen-separated name:
+A format from outside verbatra is `custom:` followed by a lowercase, hyphen-separated name, such as `custom:toml` or `custom:my-format`. No built-in name contains a colon, so it can never shadow one. Put it in the config like any built-in name:
 
-```
-custom:toml
-custom:my-format
-```
-
-No built-in format name contains a colon, so a `custom:` identifier can never shadow one, and a registry refuses a second adapter for an identifier it already holds. Put it in your config exactly like a built-in name:
-
-```json
+```json title=".verbatrarc.json"
 {
   "sourceLocale": "en",
   "targetLocales": ["de"],
@@ -30,17 +24,15 @@ No built-in format name contains a colon, so a `custom:` identifier can never sh
 }
 ```
 
-A config naming a format that is neither a built-in name nor a well-formed `custom:` identifier is still rejected when it loads. What changes is when the adapter itself is checked: a built-in name is checked at compile time, while a `custom:` identifier is only checked for shape, because the adapter behind it lives in your package. If nothing supplies an adapter for it, the run fails with a structured `UNKNOWN_FORMAT` naming the format rather than doing nothing.
-
-The identifier travels onward unchanged. Studio's project snapshot and the MCP server's `project.snapshot` tool both report the loaded config's `format` field verbatim, so a project on a third-party adapter reads `custom:toml` there rather than a built-in name or a blank, and an agent orienting itself can tell the two apart.
+The config only checks the identifier's shape, because the adapter lives in your package. If nothing supplies an adapter for it, the run fails with [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format). Studio and the MCP server's `project.snapshot` report the identifier verbatim, so an agent can tell a custom format from a built-in one.
 
 ## Build the adapter
 
-Do not implement the adapter contract by hand. Two factories do the bounded read, the atomic write, extension detection and the structured error handling for you, and leave you only your format's own parsing.
+Do not implement the adapter contract by hand. Two factories supply the bounded read, the atomic write, extension detection and structured errors, and leave you only your format's parsing.
 
-Use `createFlatFileAdapter` when every entry is addressed by one key with no nesting:
+If every entry is addressed by one key with no nesting, use [`createFlatFileAdapter`](/docs/sdk/extend#createflatfileadapter):
 
-```ts
+```ts title="toml-adapter.ts"
 import { createFlatFileAdapter, type FormatAdapter } from "@verbatra/sdk";
 
 const TOKEN = /\{[a-z]+\}/g;
@@ -57,33 +49,21 @@ export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
 });
 ```
 
-Both callbacks receive more than the text. `parseEntries(content, namespace, filePath, fs, locale)` also gets the file's path, the `fs` port and the locale the file is read as, for a format whose one file holds both source and target text. `serializeEntries(entries, filePath, fs, context, locale)` gets the destination path, the port, the caller's write context, whose optional `sourcePath` names the source-locale file, and, from 0.12.0, the locale being written as its fifth argument, for a format that records its locale inside the file:
+If entries live at paths through nested objects, use [`createTreeFileAdapter`](/docs/sdk/extend#createtreefileadapter), which takes `parse` and `serialize` over a tree plus a `deriveEntry` for each leaf.
 
-```ts
-export const tomlAdapter: FormatAdapter = createFlatFileAdapter({
-  format: "custom:toml",
-  extensions: [".toml"],
-  parseEntries: (content, namespace, _filePath, _fs, locale) =>
-    parseToml(content, namespace, locale),
-  serializeEntries: (entries, _filePath, _fs, _context, locale) =>
-    `# locale = "${locale}"\n${serializeToml(entries)}`,
-  extractPlaceholders: tokensIn,
-});
-```
+Then, as your format needs:
 
-Use `createTreeFileAdapter` when entries live at paths through nested objects. It takes `parse` and `serialize` over a tree plus a `deriveEntry` that reports each leaf's placeholders and whether it is a plural form.
-
-Both factories take an optional `comparePlaceholders` for a format whose structure a flat token list would lose, and an optional `compareBranchArms` for a format with plural and select branches: it receives the source value, the candidate and a lookup of the target language's CLDR plural categories, and returns one readable problem per wrong arm, which the integrity gate reports when it refuses the candidate. If your format marks some content untranslatable, report it rather than dropping it: a flat `parseEntries` returns `{ entries, excludedLeafPaths }` instead of a bare map, and a tree adapter reports its non-string leaves automatically.
-
-Both factories accept an optional `sniff`, a check on a leading content sample. Give it one whenever your extension is a generic one: without it, your adapter claims every file with that extension, and detection reports an ambiguity instead of choosing.
-
-Both also accept an `fs` port, typed `AdapterFs`, defaulting to `nodeAdapterFs`. Read and write through it rather than reaching for `node:fs` yourself: it is the supported path, it gives you the size-bounded read and the atomic write for free, and it is what lets your adapter be tested without touching a disk.
+- If your extension is a generic one, give the factory a `sniff` that checks a content sample. Without it your adapter claims every file with that extension, and detection reports an ambiguity.
+- If one file holds both source and target text, or records its locale, read the extra `locale` argument that `parseEntries` and `serializeEntries` receive.
+- If a flat token list would lose your placeholder structure, add `comparePlaceholders`; if your format has plural or select branches, add `compareBranchArms`.
+- If your format marks content untranslatable, return `{ entries, excludedLeafPaths }` from `parseEntries` rather than dropping it.
+- Read and write through the `fs` port the factory hands you, [`nodeAdapterFs`](/docs/sdk/extend#nodeadapterfs) by default, never `node:fs` directly. That keeps the bounded read and the atomic write, and lets you test the adapter without a disk.
 
 ## Register it and run
 
-Start from the built-in registry so your format joins the fourteen rather than replacing them, then pass it as the `adapterRegistry` dependency any flow accepts:
+Start from the built-in registry so your format joins the others, then pass it as the `adapterRegistry` dependency that every SDK flow accepts:
 
-```ts
+```ts title="translate.ts"
 import { createDefaultRegistry, translate, loadConfig } from "@verbatra/sdk";
 import { tomlAdapter } from "./toml-adapter.js";
 
@@ -93,20 +73,29 @@ const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
 
-`register` returns the registry, so registrations chain. It raises an `AdapterError` with code `DUPLICATE_FORMAT` if the registry already holds that format, so two plugins that picked the same name fail loudly at startup instead of one silently winning. An adapter whose format starts with `custom:` but is not a well-formed identifier (for example `custom:TOML` or `custom:my_format`) is refused with code `INVALID_FORMAT_ID` rather than registered.
+`register` returns the registry, so registrations chain. It refuses a format the registry already holds with [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) and a malformed identifier such as `custom:TOML` with [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id), so two plugins that picked the same name fail at startup.
 
-## How your failures are reported
+## Raise the right errors
 
-An adapter with a `custom:` identifier is wrapped when it is registered. An unexpected throw from `read`, `write`, `extractPlaceholders`, `validateMessage`, `canHandle`, `comparePlaceholders` or `compareBranchArms` surfaces as an `AdapterError` with code `ADAPTER_FAILED`, whose message names your format, so a defect in your adapter is never reported as a verbatra defect. That includes a throw from a function you hand one of the shared factories, such as `parse` or `parseEntries`: it is attributed to your format rather than reported as `INVALID_STRUCTURE`. Its message names your format and the method that failed but never repeats your error's message, which can quote the file being parsed; the `AdapterError`'s `cause` is your original error, so read the details from there. Through the SDK, a source file your adapter fails to read surfaces as an `SdkError` with code `SOURCE_INVALID`, whose message quotes the attributed one and whose `cause` is the `AdapterError`.
+A `custom:` adapter is wrapped when it is registered, so an unexpected throw from it surfaces as [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed), naming your format and the method rather than blaming verbatra. The message never repeats yours, which could quote the file; read your original error from `cause`.
 
-Two kinds of error travel unchanged, because they already mean something precise. An `AdapterError` you raise yourself keeps its own code, so raise one (`INVALID_STRUCTURE` fits most cases) for content your format cannot represent. An error carrying an errno code (`ENOENT`, `EACCES`) keeps it too, so a missing file is still reported as a missing file. Everything else is attributed to your adapter, including a Node misuse error such as `ERR_INVALID_ARG_TYPE`, which is the likeliest thing a buggy adapter throws and must not be mistaken for a filesystem failure. That errno rule is a check on the error's shape, not on where it came from: if your own validation code throws an error carrying `ENOENT`, it is reported as a filesystem condition, because nothing can tell the two apart.
+Two kinds of error pass through unchanged:
+
+- An `AdapterError` you raise yourself keeps its code. Raise [`INVALID_STRUCTURE`](/docs/error-codes#invalid_structure) for content your format cannot represent.
+- An error carrying an errno code such as `ENOENT` keeps it, so a missing file is still reported as one. The check looks at the error's shape only, so do not put an errno code on your own validation errors.
 
 ## What you are trusting
 
-**A format adapter is fully trusted code, at exactly the trust level of any other package you install. verbatra does not sandbox it.**
+**A format adapter is fully trusted code, at the same trust level as any package you install. verbatra does not sandbox it.**
 
-An adapter you install and register can do everything any dependency can do: read `process.env`, which is where every provider API key lives; read and write any file the process can, not only the ones your config points at; and open a network connection. The `AdapterFs` port is the supported path and the one verbatra hands your adapter, but it is a convention, not a boundary: nothing stops third-party code from reaching the file system another way.
+An adapter can read `process.env`, where every provider key lives, read and write any file the process can, and open network connections. The `fs` port is a convention, not a boundary.
 
-One consequence is specific to adapters and worth stating on its own. The adapter is what decides what counts as a placeholder. An adapter that reports no placeholders makes the [placeholder integrity check](/docs/translation-safety) pass vacuously for its format, so a translation that dropped or mangled an interpolation ships silently. A buggy adapter does this as readily as a hostile one.
+The adapter also decides what counts as a placeholder. One that reports none makes the [placeholder integrity check](/docs/translation-safety) pass for its format, so a translation that mangled an interpolation ships silently, whether the adapter is buggy or hostile.
 
-There is no honest mitigation to offer here, so we do not pretend to one. What verbatra does guarantee is that loading is never implicit: it discovers no plugin on its own, scans no directory, installs nothing, and follows no naming convention. An adapter runs only because your own code imported it and handed verbatra the registry. Treat installing one the way you would treat any dependency that reads your secrets and writes your files: read it, pin it, and review what changes when it updates.
+What verbatra does guarantee is that loading is never implicit: it discovers no plugin, scans no directory, installs nothing and follows no naming convention. An adapter runs only because your code imported it and handed verbatra the registry. Treat one like any dependency that reads your secrets: read it, pin it, and review each update.
+
+## Related
+
+- [Adapters, providers, redaction](/docs/sdk/extend): every factory option and export.
+- [Format adapter error codes](/docs/error-codes#adapter-error-codes): what each refusal means.
+- [Formats](/docs/formats): the formats verbatra ships.
