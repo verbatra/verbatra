@@ -95,6 +95,16 @@ const PROVIDER_ERROR_HINTS = {
   PROVIDER_ERROR: "Try again; if it keeps failing, check the provider configuration.",
 } as const satisfies Record<ProviderErrorCode, string>;
 
+const MODULE_RESOLUTION_CODES: ReadonlySet<string> = new Set([
+  "MODULE_NOT_FOUND",
+  "ERR_MODULE_NOT_FOUND",
+  "ERR_PACKAGE_PATH_NOT_EXPORTED",
+  "ERR_UNSUPPORTED_DIR_IMPORT",
+]);
+
+const CONFIG_IMPORT_UNRESOLVED_HINT =
+  "Install the package the config file imports, or fix the import so it resolves from the config file's directory.";
+
 const MALFORMED_FILE_HINT = "Fix the syntax error the message names in that file.";
 
 const ADAPTER_ERROR_HINTS = {
@@ -143,10 +153,28 @@ function hintOfCode(code: string): string | undefined {
   return Object.hasOwn(HINTS_BY_CODE, code) ? HINTS_BY_CODE[code] : undefined;
 }
 
+function causeOf(error: unknown): unknown {
+  return error instanceof Error ? error.cause : undefined;
+}
+
 function causeHint(error: unknown): string | undefined {
-  const cause = error instanceof Error ? error.cause : undefined;
+  const cause = causeOf(error);
   const code = codeOf(cause);
   return missingKeyHint(cause) ?? (code === undefined ? undefined : hintOfCode(code));
+}
+
+function configLoadHint(error: unknown): string | undefined {
+  const code = codeOf(causeOf(error));
+  return code !== undefined && MODULE_RESOLUTION_CODES.has(code)
+    ? CONFIG_IMPORT_UNRESOLVED_HINT
+    : undefined;
+}
+
+function wrappedErrorHint(code: string, error: unknown): string | undefined {
+  if (code === "PROVIDER_CONSTRUCTION_FAILED") {
+    return causeHint(error);
+  }
+  return code === "CONFIG_INVALID" ? configLoadHint(error) : undefined;
 }
 
 /**
@@ -158,7 +186,8 @@ function causeHint(error: unknown): string | undefined {
  * has a hint. The error is matched by its `code` property, so a plain `{ code, message }` object,
  * such as the error of a failed watch run, gets the same hint as the error it was built from. A
  * `PROVIDER_CONSTRUCTION_FAILED` error takes the hint of the provider error it wraps, so a missing
- * key names the exact environment variable to set. A code verbatra does not know, or a value with
+ * key names the exact environment variable to set, and a `CONFIG_INVALID` error caused by a config
+ * file whose import could not be resolved says to install or fix that import. A code verbatra does not know, or a value with
  * no string `code`, has no hint.
  *
  * A hint is built from fixed text and, for a missing key, the name of the environment variable
@@ -187,6 +216,5 @@ export function errorHint(error: unknown): string | undefined {
   if (code === undefined) {
     return undefined;
   }
-  const fromCause = code === "PROVIDER_CONSTRUCTION_FAILED" ? causeHint(error) : undefined;
-  return fromCause ?? missingKeyHint(error) ?? hintOfCode(code);
+  return wrappedErrorHint(code, error) ?? missingKeyHint(error) ?? hintOfCode(code);
 }

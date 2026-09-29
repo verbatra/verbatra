@@ -868,7 +868,10 @@ imperative sentence, or `undefined` when there is none. Every `SdkError` code, e
 without parsing its message. It reads the error's `code`, so a plain `{ code, message }` object,
 such as a failed `watch` run's `error`, gets the same hint. A `PROVIDER_CONSTRUCTION_FAILED` error
 takes the hint of the provider error it wraps, so a missing key names the exact variable to set,
-read from the `envVar` a `MISSING_API_KEY` `ProviderError` carries. A hint is fixed text plus, at
+read from the `envVar` a `MISSING_API_KEY` `ProviderError` carries. A `CONFIG_INVALID` error from a
+config file whose import could not be resolved (its `causeCode` is `MODULE_NOT_FOUND`,
+`ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_UNSUPPORTED_DIR_IMPORT`) says to
+install or fix that import instead. A hint is fixed text plus, at
 most, a variable name: it never contains a key value or quotes the message. The CLI's `--json`
 error envelope carries it as `hint`, and `verbatra mcp` ends a failed call's text with it.
 

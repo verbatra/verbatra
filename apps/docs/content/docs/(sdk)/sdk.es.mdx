@@ -921,7 +921,10 @@ puede actuar ante un fallo sin analizar su mensaje. Lee el `code` del error, as�
 simple `{ code, message }`, como el `error` de una ejecución fallida de `watch`, recibe la misma
 pista. Un error `PROVIDER_CONSTRUCTION_FAILED` toma la pista del error del proveedor que envuelve,
 así que una clave ausente nombra la variable exacta que tienes que definir, leída del `envVar` que
-lleva un `ProviderError` con `MISSING_API_KEY`. Una pista es texto fijo más, como mucho, el nombre
+lleva un `ProviderError` con `MISSING_API_KEY`. Un error `CONFIG_INVALID` de un archivo de
+configuración cuyo import no se pudo resolver (su `causeCode` es `MODULE_NOT_FOUND`,
+`ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` o `ERR_UNSUPPORTED_DIR_IMPORT`) te dice en
+cambio que instales o corrijas ese import. Una pista es texto fijo más, como mucho, el nombre
 de una variable: nunca contiene el valor de una clave ni cita el mensaje. El sobre de error
 `--json` de la CLI la lleva como `hint`, y `verbatra mcp` termina con ella el texto de una llamada
 fallida.

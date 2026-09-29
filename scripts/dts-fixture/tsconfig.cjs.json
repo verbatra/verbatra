@@ -8,8 +8,9 @@
     "skipLibCheck": true,
     "types": [],
     "paths": {
-      "@verbatra/sdk": ["../../packages/sdk/dist/index.d.cts"]
+      "@verbatra/sdk": ["../../packages/sdk/dist/index.d.cts"],
+      "@verbatra/cli": ["../../packages/cli/dist/lib.d.cts"]
     }
   },
-  "include": ["cjs-consumer.cts"]
+  "include": ["cjs-consumer.cts", "cli-cjs-consumer.cts"]
 }

@@ -113,6 +113,34 @@ describe("errorHint: how the error is read", () => {
   });
 });
 
+describe("errorHint: a config that fails to load", () => {
+  function loadFailure(cause?: unknown): SdkError {
+    return new SdkError("CONFIG_INVALID", "Failed to load the verbatra configuration.", {
+      cause,
+    });
+  }
+
+  it.each([
+    "MODULE_NOT_FOUND",
+    "ERR_MODULE_NOT_FOUND",
+    "ERR_PACKAGE_PATH_NOT_EXPORTED",
+    "ERR_UNSUPPORTED_DIR_IMPORT",
+  ])("points at the unresolved import when the cause is %s", (code) => {
+    const hint = errorHint(loadFailure(Object.assign(new Error("not found"), { code })));
+
+    expectSentence(hint);
+    expect(hint).toContain("the config file imports");
+    expect(hint).not.toBe(sdkErrorHint("CONFIG_INVALID"));
+  });
+
+  it("keeps the config-field hint for any other cause, or none", () => {
+    const other = Object.assign(new Error("denied"), { code: "EACCES" });
+
+    expect(errorHint(loadFailure(other))).toBe(sdkErrorHint("CONFIG_INVALID"));
+    expect(errorHint(loadFailure())).toBe(sdkErrorHint("CONFIG_INVALID"));
+  });
+});
+
 describe("errorHint: a hint never contains a key value", () => {
   it("names the variable of a real missing-key failure, never a value of another set key", () => {
     for (const name of Object.values(PROVIDER_ENV)) {

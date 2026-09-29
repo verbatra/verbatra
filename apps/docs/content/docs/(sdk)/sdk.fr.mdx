@@ -613,7 +613,10 @@ agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l
 simple objet `{ code, message }`, comme l'`error` d'une exécution de `watch` en échec, reçoit la
 même indication. Une erreur `PROVIDER_CONSTRUCTION_FAILED` reprend l'indication de l'erreur de
 fournisseur qu'elle enveloppe, donc une clé manquante nomme exactement la variable à définir, lue
-dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une indication est un texte fixe
+dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une erreur `CONFIG_INVALID` venant
+d'un fichier de configuration dont un import n'a pas pu être résolu (son `causeCode` vaut
+`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` ou
+`ERR_UNSUPPORTED_DIR_IMPORT`) te dit plutôt d'installer ou de corriger cet import. Une indication est un texte fixe
 plus, au plus, un nom de variable : elle ne contient jamais la valeur d'une clé et ne cite jamais
 le message. L'enveloppe d'erreur `--json` de la CLI la porte sous `hint`, et `verbatra mcp`
 termine avec elle le texte d'un appel en échec.

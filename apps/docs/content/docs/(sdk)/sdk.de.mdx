@@ -941,7 +941,10 @@ bekommt auch ein einfaches `{ code, message }`-Objekt, etwa der `error` eines fe
 `watch`-Laufs, denselben Hinweis. Ein `PROVIDER_CONSTRUCTION_FAILED`-Fehler übernimmt den Hinweis
 des Provider-Fehlers, den er umhüllt, sodass ein fehlender Key genau die Variable nennt, die du
 setzen musst, gelesen aus dem `envVar`, das ein `ProviderError` mit `MISSING_API_KEY` trägt. Ein
-Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
+`CONFIG_INVALID`-Fehler aus einer Konfigurationsdatei, deren Import sich nicht auflösen ließ (ihr
+`causeCode` ist `MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` oder
+`ERR_UNSUPPORTED_DIR_IMPORT`), sagt stattdessen, dass du diesen Import installieren oder korrigieren
+sollst. Ein Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
 zitiert nie die Meldung. Der `--json`-Fehlerumschlag der CLI trägt ihn als `hint`, und
 `verbatra mcp` beendet den Text eines fehlgeschlagenen Aufrufs damit.
 

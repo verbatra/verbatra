@@ -46,9 +46,34 @@ function describeFailure(error: unknown): string {
   return `${location}: ${describeCause(loaderError)}`;
 }
 
+const WRAPPED_RESOLUTION_FAILURES: readonly (readonly [RegExp, string])[] = [
+  [/^Cannot find (?:module|package) '/, "MODULE_NOT_FOUND"],
+  [/^No "exports" main defined in /, "ERR_PACKAGE_PATH_NOT_EXPORTED"],
+  [/^Package subpath '.*' is not defined by "exports" in /, "ERR_PACKAGE_PATH_NOT_EXPORTED"],
+];
+
+function hasStringCode(error: unknown): boolean {
+  return error instanceof Error && typeof (error as { readonly code?: unknown }).code === "string";
+}
+
+function wrappedResolutionCause(error: unknown): Error | undefined {
+  if (!(error instanceof Error) || !TYPESCRIPT_LOADER_PREFIX.test(error.message)) {
+    return undefined;
+  }
+  const line = firstLine(error.message);
+  const match = WRAPPED_RESOLUTION_FAILURES.find(([pattern]) => pattern.test(line));
+  return match === undefined ? undefined : Object.assign(new Error(line), { code: match[1] });
+}
+
+function loaderCause(error: unknown): unknown {
+  return hasStringCode(error) ? error : wrappedResolutionCause(error);
+}
+
 export function configLoadFailure(error: unknown): SdkError {
+  const cause = loaderCause(error);
   return new SdkError(
     "CONFIG_INVALID",
     redact(`Failed to load the verbatra configuration${describeFailure(error)}.`),
+    cause === undefined ? undefined : { cause },
   );
 }
