@@ -2,7 +2,7 @@
 title: verbatra import
 description: Importa una entrega rellenada (libro, CSV, TSV o XLIFF) de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de seguridad.
 ---
-Lee de vuelta en tus archivos de locale un libro que un traductor ha rellenado. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que pasan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza; los valores que fallan se retienen y se informan en lugar de escribirse, así que una celda mala nunca acaba en un archivo de locale.
+Lee una entrega que rellenó un traductor de vuelta a tus archivos de locale. Cada valor pasa por las mismas comprobaciones de integridad que una ejecución automática: los valores que las superan se escriben y [el archivo de bloqueo](/docs/the-lock-file) se actualiza, y los que fallan se retienen y se informan, así que una celda rota nunca llega a un archivo de locale.
 
 ## Sinopsis
 
@@ -10,19 +10,73 @@ Lee de vuelta en tus archivos de locale un libro que un traductor ha rellenado. 
 verbatra import <workbook> [flags]
 ```
 
-`<workbook>` es la ruta a la entrega producida por [`verbatra export`](/docs/cli/export) y rellenada por el traductor: el archivo del libro para `xlsx`, y para `csv`, `tsv`, `xliff2` y `xliff12` un solo archivo `<locale>.csv`, `<locale>.tsv` o `<locale>.xlf` o el directorio que contiene un archivo por locale.
+- `<workbook>`: la entrega que escribió [`verbatra export`](/docs/cli/export) y rellenó el traductor. Para `xlsx` es el archivo del libro; para `csv`, `tsv`, `xliff2` y `xliff12` es un solo archivo `<locale>.csv`, `<locale>.tsv` o `<locale>.xlf`, o el directorio que contiene un archivo por locale.
 
 ## Flags
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
-| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
 | `--dry-run` | ninguno | desactivado | valida e informa sin escribir archivos de locale ni actualizar el bloqueo |
-| `--format` | `<format>` | `xlsx`, o `xliff2` para una ruta que termina en `.xlf` o `.xliff` | lee un libro de Excel (`xlsx`), archivos delimitados (`csv`, `tsv`) o archivos XLIFF (`xliff2` y `xliff12` leen las dos versiones, desde 0.12.0) |
-| `--reviewer` | `<name>` | ninguno | el nombre que se registra en cada unidad XLIFF que la entrega marca como `reviewed` o `final` (1.2: `signed-off`, `final` o `approved="yes"`); como máximo 64 caracteres sin caracteres de control, guardado en el archivo de procedencia versionado (desde 0.12.0) |
-| `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos, no mayor que `3600` (un valor como `60s`, `0`, `-1` o `7200` es un error de uso, salida `2`) |
-| `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la ejecución bajo `result` (la misma [forma `RunSummary`](/docs/sdk) que `translate`), o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
+| `--format` | `<format>` | `xlsx`, o `xliff2` para una ruta que termina en `.xlf` o `.xliff` | `xlsx`, `csv`, `tsv`, `xliff2` o `xliff12`; cualquiera de los dos formatos XLIFF lee ambas versiones |
+| `--reviewer` | `<name>` | ninguno | nombre que se registra en cada unidad XLIFF marcada como revisada o final; como máximo 64 caracteres, guardado en el archivo de procedencia versionado |
+| `--lock-timeout` | `<seconds>` | `600` | cuánto esperar a un bloqueo de escritura por locale ya tomado; un número entero de `1` a `3600`, si no es un error de uso, salida `2` |
+
+También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
+
+## Comportamiento
+
+### Archivos de locale y restos
+
+Con `csv` o `tsv` el locale sale del nombre del archivo, así que mantén cada archivo con el nombre exacto con el que se exportó. Un locale de destino configurado sin archivo (o, en un libro, sin hoja) falla con `WORKBOOK_SHEET_MISSING`; nunca se omite en silencio.
+
+Un archivo que quedó de una exportación anterior con una selección de `--locales` más amplia nunca se aplica. El import compara el directorio con el manifiesto de la exportación más reciente y hace fallar ese locale con `HANDOFF_FILE_STALE`. Vuelve a exportar ese locale o borra el archivo. Un directorio sin manifiesto legible (montado a mano o recortado por un archivo comprimido) se lee tal cual, igual que un archivo suelto que nombras directamente.
+
+### Bloqueos de escritura
+
+<AvailableFrom version="0.12.0" />
+
+`--lock-timeout` fija cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura) ocupado antes de fallar con `LOCK_CONTENDED`, igual que en [`verbatra translate`](/docs/cli/translate). La espera ocurre antes de escribir el archivo del locale: un locale que agota el tiempo queda intacto mientras los demás se importan, y el comando sale con `1`. Una vez escrito un archivo, registrarlo en el archivo de bloqueo espera hasta los diez minutos por defecto, diga lo que diga `--lock-timeout`. Una espera de más de un segundo muestra una línea con el bloqueo y quién lo tiene (un registro `lock-wait` con `--json`). `--dry-run` no toma ningún bloqueo, así que nunca espera.
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+Un archivo XLIFF se lee con la versión que declara, y un archivo suelto cuyo nombre no es un locale configurado se asigna por el idioma de destino que declara. Una unidad cuyo destino es igual al valor actual no cambia nada; cualquier otro destino pasa por la puerta de integridad como una fila del libro. Una unidad marcada como `reviewed` o `final` (en 1.2 también `signed-off` o `approved="yes"`) se registra como aprobada, con `--reviewer` como nombre, y se informa con el aviso `HANDOFF_REVIEWS_RECORDED`. Una unidad cuyo id no nombra ninguna clave de origen se informa como fila mal formada. Consulta [Entregar a una agencia de traducción](/docs/translation-agency).
+
+### Filas vacías y rotas
+
+Una celda `Translation` vacía nunca hace fallar un locale: la fila se omite, se conserva su línea base del bloqueo y la clave se informa como `unfilled` mientras siga necesitando traducción. Importar una entrega que nadie ha rellenado todavía tiene por tanto éxito y lista cada clave pendiente.
+
+Una sola fila ilegible se informa como fila mal formada, y el resto del locale se importa igualmente. Una entrega demasiado grande o que no se puede analizar en absoluto (por ejemplo, que no es un contenedor xlsx legible) es un error `SOURCE_INVALID` de toda la ejecución cuyo mensaje dice qué le pasaba.
+
+### Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`import` muestra una línea mientras lee y aplica el archivo. Tras un import limpio sugiere `verbatra check`, y tras `--dry-run` el mismo import sin el flag:
+
+```text
+verbatra: importing verbatra-translations.xlsx... done (0.4s)
+next: verbatra check (confirm every locale is in sync)
+```
+
+Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+
+### Salida JSON
+
+Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva un `RunSummary`, la misma forma que imprime [`verbatra translate`](/docs/cli/translate):
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // whether this was a dry run (nothing written)
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales imported completely
+  partial: string[];        // locales written with keys still missing; these exit 1 too
+  failed: string[];         // locales whose import failed
+}
+```
+
+Cada `LocaleSummary` lista las claves por locale (escritas, `unfilled`, retenidas y más); consulta [la referencia del SDK](/docs/sdk).
 
 ## Ejemplos
 
@@ -40,50 +94,19 @@ verbatra import handoff --format csv
 verbatra import handoff/de.xlf --reviewer "Agency GmbH"
 ```
 
-Con `csv` o `tsv` el locale viene del nombre del archivo, no del nombre de una hoja, así que mantén cada archivo con el nombre exacto con el que se exportó. Un locale de destino configurado sin archivo (o, en un libro, sin hoja) se informa como fallo de ese locale con `WORKBOOK_SHEET_MISSING`, nunca se omite en silencio.
-
-Un archivo que quedó de una exportación anterior con una selección `--locales` más amplia nunca se aplica. La importación coteja el directorio con el manifiesto que escribió allí la exportación más reciente e informa ese locale como fallido con `HANDOFF_FILE_STALE`, de modo que una traducción desactualizada no puede colarse sin que nadie lo note. Vuelve a exportar ese locale para refrescar su archivo, o borra el archivo. Un directorio sin manifiesto legible (montado a mano, o que perdió el archivo oculto al pasar por un archivo comprimido) se lee como siempre: se importa todo archivo presente. Nombrar un único archivo directamente también se toma al pie de la letra.
-
-<AvailableFrom version="0.12.0" />
-
-`--lock-timeout` ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura) ocupado antes de fallar con `LOCK_CONTENDED`, exactamente como en [`verbatra translate`](/docs/cli/translate). La espera ocurre antes de escribir el archivo del locale, así que un locale que agota el tiempo queda intacto mientras los demás locales se importan igualmente, y el comando sale con `1`. Una vez escrito el archivo de un locale, registrarlo en el archivo de bloqueo espera hasta el valor predeterminado de diez minutos, diga lo que diga `--lock-timeout`. Mientras una espera dura más de un segundo, una línea en stderr nombra el archivo de bloqueo y quién lo tiene, o un registro JSON `lock-wait` con `--json`. `--dry-run` no toma ningún bloqueo, así que nunca espera.
-
-## XLIFF
-
-<AvailableFrom version="0.12.0" />
-
-Un archivo XLIFF se lee con la versión que declara, y un único archivo cuyo nombre no es un locale configurado se asigna por el idioma de destino que declara. Una unidad cuyo destino es exactamente el valor actual no cambia nada, cualquier otro destino pasa por la puerta de integridad como una fila del libro, y una unidad marcada como `reviewed` o `final` se registra como aprobada, con `--reviewer` como nombre, y se informa con el aviso `HANDOFF_REVIEWS_RECORDED`. Una unidad cuyo id no nombra ninguna clave de origen se informa como fila mal formada en lugar de hacer fallar el locale. Los detalles están en [Entregar a una agencia de traducción](/docs/translation-agency).
-
-## Información en el terminal
-
-<AvailableFrom version="0.12.0" />
-
-`import` muestra una línea mientras lee y aplica el archivo. Tras una importación limpia sugiere `verbatra check`, y tras `--dry-run` sugiere la misma importación sin el flag:
-
-```text
-verbatra: importing verbatra-translations.xlsx... done (0.4s)
-next: verbatra check (confirm every locale is in sync)
-```
-
-Estas líneas van a stderr, así que stdout y la salida `--json` quedan exactamente como se describe arriba, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli#salida-en-el-terminal) para el color, el spinner y las variables que los controlan.
-
 ## Códigos de salida
 
 | Código | Significado |
 | --- | --- |
-| `0` | todos los locales de destino quedaron completos |
-| `1` | la ejecución terminó pero uno o más locales fallaron o quedaron parciales |
-| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, libro, formato o bloqueo) o un error de uso |
-| `130` | interrumpido con Ctrl-C (SIGINT); antes se liberan los bloqueos de escritura de la ejecución, y stderr termina con `verbatra: interrupted (SIGINT), released locks`, o con `--json` con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}` |
-| `143` | detenido con SIGTERM; antes se liberan los bloqueos de escritura de la ejecución, y stderr termina con `verbatra: interrupted (SIGTERM), released locks`, o con `--json` con el registro `{"type":"interrupted","signal":"SIGTERM","locksReleased":true}` |
-
-Una entrega demasiado grande o que no se puede analizar en absoluto (por ejemplo, un archivo que no es un contenedor xlsx legible) es un error `SOURCE_INVALID` de toda la ejecución cuyo mensaje dice qué le pasaba. Una sola fila ilegible no lo es: se informa como fila mal formada y el resto del locale se importa igualmente.
+| `0` | cada locale de destino salió completo |
+| `1` | la ejecución terminó, pero uno o más locales fallaron o quedaron parciales |
+| `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, entrega, formato o un archivo de bloqueo corrupto) o un error de uso |
+| `130` | interrumpido con Ctrl-C (SIGINT) tras liberar los bloqueos de escritura de la ejecución |
+| `143` | detenido con SIGTERM tras liberar los bloqueos de escritura de la ejecución |
 
 <AvailableFrom version="0.9.0" />
 
-El contrato coincide con el de [`verbatra translate`](/docs/cli/translate), así que una entrega manual se bifurca igual en CI. Eso incluye los locales parciales: un locale escrito con claves aún faltantes sale con `1`, no con `0`. También incluye el archivo de bloqueo: un archivo de bloqueo corrupto, o que se corrompe mientras el import está en marcha, detiene toda la ejecución con `2` en lugar de informar de un único locale fallido, así que los locales que quedaban por procesar no se tocan. Los locales aplicados antes del corte siguen escritos: repara el archivo de bloqueo y vuelve a importar.
-
-Una celda `Translation` vacía nunca hace fallar un locale: la fila se omite, se conserva su línea base anterior del bloqueo, y la clave se informa como `unfilled` siempre que todavía necesite traducción, tanto si la fila se exportó como `new` como si se exportó como `changed`. Importar un libro que nadie ha rellenado todavía tiene por tanto éxito y devuelve el inventario completo de claves pendientes.
+El contrato coincide con el de [`verbatra translate`](/docs/cli/translate), así que una entrega manual se bifurca igual en CI: un locale parcial sale con `1`, y un archivo de bloqueo corrupto, o que se corrompe durante el import, detiene toda la ejecución con `2` y deja intactos los locales restantes (los ya aplicados siguen escritos). El contrato que sigue cada comando está en [Códigos de salida](/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 

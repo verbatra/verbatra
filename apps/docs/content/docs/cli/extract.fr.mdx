@@ -5,9 +5,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Toutes les autres commandes partent d'un fichier de locale qui existe déjà. `extract` est la seule qui part de ton code : elle parcourt les racines de code que tu configures, y trouve les appels de traduction et ajoute chaque clé qui ne figure pas encore dans le fichier de la locale source. C'est ce qui rend verbatra utilisable sur un projet qui n'est pas encore internationalisé, là où le catalogue est précisément ce qui te manque.
-
-Elle ne dépense rien. Aucun fournisseur n'est construit, aucune variable d'environnement contenant une clé d'API n'est lue et aucune requête réseau n'est faite : une exécution sans clé configurée fonctionne donc.
+Pars de ton code plutôt que d'un fichier de locale. `extract` parcourt les racines de sources que tu configures, y trouve les appels de traduction et ajoute chaque clé que le fichier de la locale source n'a pas encore. verbatra devient ainsi utilisable sur un projet pas encore internationalisé, sans rien dépenser : ni fournisseur, ni clé d'API, ni requête réseau.
 
 ## Synopsis
 
@@ -15,11 +13,21 @@ Elle ne dépense rien. Aucun fournisseur n'est construit, aucune variable d'envi
 verbatra extract [flags]
 ```
 
-## Configuration
+## Options
 
-`extract` est pilotée par le [bloc `extract`](/docs/config-file#extract) de ta config. Une exécution sans ce bloc échoue avec `EXTRACT_NOT_CONFIGURED` et le code de sortie `2`.
+| Option | Argument | Défaut | Effet |
+| --- | --- | --- | --- |
+| `--dry-run` | aucun | désactivé | signale ce qui serait ajouté et n'écrit rien |
 
-```ts
+Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json` ; `--cwd` sert aussi de base aux racines de sources.
+
+## Comportement
+
+### Configuration
+
+`extract` est piloté par le [bloc `extract`](/docs/config-file#extract) de ta configuration. Une exécution sans lui échoue avec `EXTRACT_NOT_CONFIGURED` et la sortie `2`.
+
+```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/sdk";
 
 export default defineConfig({
@@ -35,18 +43,9 @@ export default defineConfig({
 });
 ```
 
-## Options
+### Ce qu'elle trouve
 
-| Option | Argument | Défaut | Effet |
-| --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config, les racines de code et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--dry-run` | aucun | désactivé | signale ce qui serait ajouté sans rien écrire |
-| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat sous `result` |
-
-## Ce qu'elle trouve
-
-Le framework `i18next` lit les formes d'appel `t(...)`, `$t(...)` et `<object>.t(...)` dans les fichiers `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` et `.cts`, chacune aussi en appel optionnel et avec une liste explicite d'arguments de type. La clé est le premier argument. Une valeur par défaut est soit le deuxième argument, soit un champ `defaultValue` sur l'objet d'options :
+Le framework `i18next` lit les formes d'appel `t(...)`, `$t(...)` et `<object>.t(...)` dans les fichiers `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` et `.cts`, chacune aussi en appel optionnel et avec une liste explicite d'arguments de type. La clé est le premier argument ; une valeur par défaut est le deuxième argument ou un champ `defaultValue` de l'objet d'options :
 
 ```ts
 t("nav.home");                              // key only, written with an empty value
@@ -56,47 +55,78 @@ t?.("nav.back");                            // optional call
 t<string>("nav.next");                      // explicit type argument
 ```
 
-Les commentaires, les chaînes et les expressions régulières sont compris : un appel écrit dans un commentaire n'est pas repris, et un `t(` entre guillemets dans une chaîne ne devient pas une clé.
-
-La clé et la valeur par défaut doivent toutes deux être un littéral complet. `t("user." + id)` est signalé comme dynamique plutôt qu'écrit sous la clé `user.`, et `t("nav.home", { defaultValue: "Home" + suffix })` ajoute la clé sans valeur par défaut plutôt qu'avec une valeur tronquée.
-
-La clé doit aussi nommer un chemin adressable. `t("user.")`, `t(".lead")` et `t("a..b")` sont des littéraux complets, mais chacun porte un segment vide, et les formats en arbre découpent une clé sur le `.` : la clé atterrirait donc sous un enfant sans nom que ton application ne lit jamais. Celles-là sont signalées comme dynamiques elles aussi.
+Les commentaires, les chaînes et les expressions régulières sont compris : un appel dans un commentaire ou un `t(` entre guillemets dans une chaîne n'est pas retenu. La clé et la valeur par défaut doivent chacune être un littéral complet : `t("user." + id)` est signalé comme dynamique, et une valeur par défaut concaténée ajoute la clé sans valeur par défaut plutôt qu'avec une valeur tronquée. Une clé avec un segment de chemin vide (`t("user.")`, `t(".lead")`, `t("a..b")`) atterrirait sous un enfant sans nom que ton application ne lit jamais, elle est donc aussi signalée comme dynamique.
 
 ### Les espaces de noms ne sont pas encore résolus
 
-Une clé qualifiée par un espace de noms, la forme `t("common:nav.home")`, est signalée comme dynamique et n'est jamais écrite. Une config verbatra s'adresse à un seul fichier de catalogue : il n'y a donc nulle part où mettre `common:nav.home` qui veuille dire ce que ta configuration i18next entend par là.
+Une clé avec espace de noms comme `t("common:nav.home")` est signalée comme dynamique et jamais écrite : une configuration verbatra adresse un seul fichier de catalogue, il n'existe donc aucun endroit qui signifie ce que ta configuration i18next entend par là. Si ton projet nomme un espace de noms à chaque appel, l'exécution n'ajoute rien. Aujourd'hui, `extract` est utile sur un projet qui garde un seul espace de noms et écrit ses clés sans préfixe.
 
-Sache ce que cela coûte avant de la lancer : si ton projet nomme un espace de noms à chaque appel, chaque appel est dynamique et l'exécution n'ajoute rien. C'est volontaire pour cette première version. `extract` est utile aujourd'hui sur un projet qui s'en tient à un seul espace de noms et écrit ses clés sans le préfixe ; lever cette limite est la première chose prévue après le deuxième framework.
+### Ce qu'elle écrit
 
-## Ce qu'elle écrit
+Uniquement le fichier de la locale source, et uniquement des clés vraiment nouvelles :
 
-Uniquement le fichier de la locale source, et uniquement les clés réellement nouvelles :
+- Une clé déjà présente dans le catalogue garde sa valeur telle quelle ; une valeur par défaut dans un appel n'écrase jamais une modification.
+- Une clé du catalogue qu'aucun appel ne mentionne reste en place. `extract` ne supprime jamais rien ; [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées) liste ces clés.
+- Une exécution qui ne trouve rien de nouveau n'écrit rien, le fichier reste donc identique à l'octet près.
+- Aucun fichier de locale cible n'est écrit. Lance ensuite [`verbatra translate`](/docs/cli/translate) pour remplir les nouvelles clés.
 
-- Une clé déjà présente dans le catalogue conserve sa valeur telle quelle. Une valeur par défaut laissée sur un appel n'écrase jamais une valeur que toi ou un traducteur avez modifiée.
-- Une clé du catalogue qu'aucun appel ne mentionne reste intacte. `extract` ajoute et signale ; elle ne supprime jamais. [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées) liste ces clés.
-- Une exécution qui ne trouve rien de nouveau n'écrit rien du tout : le fichier reste identique octet pour octet et sa date de modification ne change pas.
-- Un fichier de locale cible n'est jamais écrit. Lance [`verbatra translate`](/docs/cli/translate) après `extract` pour remplir les nouvelles clés.
+Les catalogues `xliff` et `apple-xcstrings` ne sont jamais créés à partir de rien : crée d'abord le catalogue source (celui en `.xcstrings` dans Xcode), puis `extract` le complète.
 
-Deux formats ne sont jamais créés à partir de rien, ni ici ni ailleurs dans verbatra : `xliff` a besoin d'un fichier de destination existant, et `apple-xcstrings` d'un catalogue créé dans Xcode. Pour ces deux-là, crée d'abord le catalogue source ; `extract` y ajoute ensuite.
+### Ce qu'elle signale plutôt que de deviner
 
-## Ce qu'elle signale plutôt que de deviner
-
-Tout ce que l'analyse ne peut pas résoudre revient sous forme de données, pour qu'un fichier récalcitrant n'interrompe jamais l'exécution :
+Tout ce que l'analyse ne peut pas résoudre revient sous forme de données, donc un fichier récalcitrant n'interrompt jamais une exécution. Rien de tout cela ne change le code de sortie.
 
 | Signalé comme | Quand |
 | --- | --- |
-| `dynamic` | l'argument de la clé n'est pas une seule chaîne statique complète, ou il nomme un chemin que verbatra ne peut pas adresser : une variable, un accès à une propriété, un template literal contenant une expression, une concaténation, une clé qualifiée par un espace de noms ou une clé avec un segment de chemin vide. Elle n'est jamais écrite avec une clé devinée, tronquée ou non adressable. |
-| `conflicts` | une clé est trouvée sur deux appels qui ne s'accordent pas sur sa valeur par défaut. Aucune des deux valeurs n'est écrite, car en choisir une ferait dépendre ton catalogue de l'ordre de parcours des répertoires. |
-| `withoutDefault` | une clé a été ajoutée avec une valeur vide, parce que son appel ne fournissait aucune valeur par défaut. Remplis-la, puis traduis. |
-| `diagnostics` | un fichier ou un répertoire n'a pas pu être lu jusqu'au bout : il a disparu, il dépasse la limite de taille, l'analyse a échoué dessus, un commentaire de bloc ou un template literal non fermé a abandonné le reste, ou, dans un fichier `.tsx`, `.jsx` ou `.js`, un élément JSX n'est jamais fermé ou une chaîne entre guillemets dans le code atteint la fin de sa ligne. Ce qui a été lu avant ce point est tout de même signalé. |
+| `dynamic` | la clé n'est pas une seule chaîne statique complète, ou désigne un chemin que verbatra ne peut pas adresser : une variable, une expression membre, un littéral de gabarit avec une expression, une concaténation, une clé avec espace de noms ou un segment de chemin vide. Elle n'est jamais écrite. |
+| `conflicts` | une clé apparaît dans deux appels avec des valeurs par défaut différentes. Aucune valeur n'est écrite, pour que le catalogue ne dépende jamais de l'ordre de parcours. |
+| `withoutDefault` | une clé a été ajoutée avec une valeur vide parce que son appel n'avait pas de valeur par défaut. Remplis-la, puis traduis. |
+| `diagnostics` | un fichier ou un répertoire n'a pas pu être lu jusqu'au bout : il a disparu, dépasse la limite de 2 000 000 octets, l'analyse a échoué dessus, ou un commentaire, littéral de gabarit, élément JSX ou chaîne non fermé a abandonné la suite. Ce qui a été lu avant ce point est quand même signalé. |
 
-Rien de tout cela ne change le code de sortie. Ce sont des constats, pas des échecs.
+### Limites de l'analyse
 
-## Limites de l'analyse
+Rien en dehors des `roots` configurées n'est lu. `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` et `coverage` sont toujours ignorés, `extract.exclude` ajoute tes propres noms de répertoires, et les liens symboliques ne sont pas suivis. Le résultat ne porte que des clés, des valeurs et des emplacements de fichier et de ligne, jamais le contenu d'un fichier source.
 
-Rien en dehors des `roots` configurées n'est jamais lu. `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` et `coverage` sont toujours ignorés, et `extract.exclude` ajoute tes propres noms de répertoire à cet ensemble. Les liens symboliques ne sont pas suivis : un lien ne peut donc pas faire sortir l'analyse d'une racine.
+### Sortie JSON
 
-Le résultat ne porte que des clés, des valeurs et des emplacements fichier et ligne. Le contenu d'un fichier source n'y voyage jamais.
+Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un résultat :
+
+```ts
+interface ExtractResult {
+  sourcePath: string;          // the source locale file, relative to the working directory
+  scannedFiles: number;
+  added: { key: string; value: string; file: string; line: number }[];
+  existingKeys: number;        // keys found that were already in the catalog
+  withoutDefault: string[];
+  dynamic: { file: string; line: number }[];
+  conflicts: { key: string; values: string[]; locations: { file: string; line: number }[] }[];
+  diagnostics: { file: string; reason: "unreadable" | "too-large" | "unparseable" | "unreadable-directory" }[];
+  written: boolean;            // false for a dry run and for a run that added nothing
+  dryRun: boolean;
+}
+```
+
+### Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+Le résumé va sur stdout. Sur stderr, une ligne de spinner compte les fichiers analysés ; si des clés ont été ajoutées, une suggestion propose `verbatra translate`, ou après `--dry-run` le même extract sans l'option. `--quiet` supprime les lignes de stderr :
+
+```text
+verbatra: scanning the source... done (0.6s)
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+  dynamic keys (1):
+    src/routes/product.tsx:88
+next: verbatra translate (translate the new keys)
+```
+
+Vois [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
 
 ## Exemples
 
@@ -111,33 +141,6 @@ verbatra extract --dry-run
 verbatra extract --json
 ```
 
-Une exécution ressemble à ceci :
-
-```text
-verbatra extract
-  42 files scanned, 18 keys already present
-  added 3 keys to locales/en.json
-  new keys (3):
-    nav.home  src/components/Nav.tsx:14
-    nav.away  src/components/Nav.tsx:15
-    cart.empty  src/routes/cart.tsx:31
-  dynamic keys (1):
-    src/routes/product.tsx:88
-```
-
-## Retour dans le terminal
-
-<AvailableFrom version="0.12.0" />
-
-`extract` affiche une ligne pendant qu'il analyse, avec un décompte des fichiers en cours dans un terminal interactif. S'il a ajouté des clés, il suggère `verbatra translate`, et après `--dry-run` le même extract sans le flag :
-
-```text
-verbatra: scanning the source... done (0.6s)
-next: verbatra translate (translate the new keys)
-```
-
-Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
-
 ## Codes de sortie
 
 | Code | Signification |
@@ -145,11 +148,12 @@ Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement
 | `0` | l'analyse s'est exécutée, quoi qu'elle ait trouvé |
 | `2` | exécution impossible : une erreur d'utilisation, aucun bloc `extract`, un format qui ne résout pas, un catalogue source illisible ou un catalogue source qui n'a pas pu être écrit |
 
-Il n'y a pas de code de sortie `1`. Les appels dynamiques et les valeurs par défaut en conflit sont signalés, pas traités comme une exécution en échec : `extract` en CI n'échoue donc que lorsqu'elle n'a vraiment pas pu faire son travail.
+Il n'y a pas de sortie `1` : les appels dynamiques et les valeurs par défaut en conflit sont des constats, pas des échecs. Vois [Codes de sortie](/docs/cli/output#codes-de-sortie) pour le contrat que suit chaque commande.
 
 ## Voir aussi
 
 - [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract`.
 - [`verbatra translate`](/docs/cli/translate) remplit les locales cibles une fois les nouvelles clés en place.
+- [`verbatra types`](/docs/cli/types) déclare les clés pour TypeScript.
 - [`verbatra check`](/docs/cli/check) signale l'écart que les nouvelles clés créent.
 - [Le SDK](/docs/sdk#extract) expose la même capacité sous le nom `extract()`.

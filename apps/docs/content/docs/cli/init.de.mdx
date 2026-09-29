@@ -2,7 +2,7 @@
 title: verbatra init
 description: Lege eine verbatra-Konfiguration und ein .env-Beispiel für dieses Projekt an, erkannt aus deinen Locale-Dateien, interaktiv oder vollständig unbeaufsichtigt.
 ---
-Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts` und eine `.env.example`, die die API-Key-Variable deines Providers nennt (nie einen Key-Wert), und stellt sicher, dass `.gitignore` die Einträge `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json` abdeckt. Der Befehl sieht sich zuerst die Locale-Dateien an, die schon im Projekt liegen, deshalb ist der Provider in den meisten Projekten das Einzige, was du ihm sagen musst.
+Setze ein Projekt auf: `init` schreibt eine `verbatra.config.ts`, eine `.env.example`, die die API-Key-Variable deines Providers nennt (nie einen Key-Wert), und die `.gitignore`-Einträge für `.env`, `.env.local`, `.verbatra-local/` und `verbatra.cache.json`. Es liest zuerst die Locale-Dateien im Projekt, meist musst du ihm also nur den Provider sagen.
 
 ## Synopsis
 
@@ -14,67 +14,58 @@ verbatra init [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | dieses Verzeichnis durchsuchen und die Konfigurations- und Env-Dateien hineinschreiben |
 | `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` oder `none` |
 | `--format` | `<id>` | erkannt, sonst `i18next-json` | das Format der Locale-Dateien, eine der IDs unter [Formate](/docs/formats) |
 | `--source` | `<locale>` | erkannt, sonst `en` | das Quell-Locale, in dem deine Strings geschrieben sind |
 | `--targets` | `<locales>` | erkannt, sonst `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
-| `--path` | `<pattern>` | erkannt, sonst das übliche Layout des Formats (siehe [Erkennung](#erkennung)) | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
+| `--path` | `<pattern>` | erkannt, sonst das übliche Layout des Formats ([Erkennung](#erkennung)) | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
 | `--model` | `<name>` | der Standard des Scaffolds | das Modell; erforderlich für `openai-compatible`, optional für `anthropic`, `openai` und `gemini` |
 | `--base-url` | `<url>` | keiner | die Server-URL; nur für `openai-compatible` und `libretranslate` und dort erforderlich |
-| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | die Umgebungsvariable, aus der `openai-compatible` seinen Key liest; nur für `openai-compatible` |
-| `--yes` | keins | aus | nie nachfragen und für alles, was weder übergeben noch erkannt wurde, den Standardwert nehmen |
+| `--api-key-env-var` | `<name>` | `OPENAI_COMPATIBLE_API_KEY` | die Variable, aus der `openai-compatible` seinen Key liest; nur für `openai-compatible` |
+| `--yes` | keins | aus | nie nachfragen; für alles, was weder übergeben noch erkannt wurde, den Standardwert nehmen |
 | `--force` | keins | aus | eine bestehende `verbatra.config.ts` mit abweichendem Inhalt überschreiben |
-| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) ausgeben, der beschreibt, was geschrieben wurde; fragt nie nach |
-| `--agent` | keins | aus | zusätzlich den verbatra-Abschnitt für Coding-Agenten in `AGENTS.md` oder `CLAUDE.md` schreiben und den verbatra-MCP-Server, mit abgeschaltetem Geldausgeben, in `.mcp.json` (siehe [Coding-Agenten einrichten](#coding-agenten-einrichten)) |
+| `--agent` | keins | aus | zusätzlich den Abschnitt für Coding-Agenten in `AGENTS.md` oder `CLAUDE.md` und den verbatra-MCP-Server in `.mcp.json` schreiben ([Coding-Agenten einrichten](#coding-agenten-einrichten)) |
 
-Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen. Im Terminal übernimmt Enter den vorgeschlagenen Wert, und das zählt als deine Antwort. Ein Flag mit leerem Wert, etwa `--targets ''`, ist ein Verwendungsfehler (`INVALID_OPTION`) und nie eine Bitte um den Standardwert. Im Terminal wird jede Antwort sofort geprüft: Ein unbekannter Provider oder ein unbekanntes Format, ein fehlerhafter Locale-Code, eine Liste von Ziel-Locales, die die Quell-Locale oder gar keine Locale nennt, ein Muster ohne `{locale}` oder eine Base-URL, die keine URL ist oder Zugangsdaten enthält, wird auf stderr erklärt und bis zu dreimal neu abgefragt, sodass deine bisherigen Antworten erhalten bleiben. Nach der dritten ungültigen Antwort bricht `init` mit dem Fehlercode dieser Antwort ab (etwa `INVALID_LOCALE` oder `INVALID_OPTION`), nennt die Frage und das Flag, das du stattdessen übergeben kannst, und schreibt nichts.
+Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--json`, aber nicht `--config`. Hier ist `--cwd` das Verzeichnis, das durchsucht und beschrieben wird, und es muss schon existieren. `--json` fragt nie nach.
+
+## Verhalten
+
+### Rückfragen
 
 <AvailableFrom version="0.12.0" />
 
-## Erkennung
+Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen. Enter übernimmt den vorgeschlagenen Wert. Ein Flag mit leerem Wert, etwa `--targets ''`, ist ein Verwendungsfehler (`INVALID_OPTION`) und nie eine Bitte um den Standardwert.
 
-`init` durchsucht das Verzeichnis nach Dateien, die ein Format-Adapter beansprucht, überspringt dabei versteckte Verzeichnisse, `node_modules` und übliche Build-Ausgabe und findet den Teil jedes Pfads, der ein Locale ausschreibt: einen Dateinamen wie `de.json`, `messages_pt_BR.properties` oder `app_en.arb` oder ein Verzeichnis wie `locales/de/`, `de.lproj/` oder Androids `values-de/`. Das Dateimuster, das die meisten Locales abdeckt, gewinnt, und daraus ergeben sich:
+Jede Antwort wird sofort geprüft. Eine ungültige wird auf stderr erklärt und bis zu dreimal neu abgefragt, deine bisherigen Antworten bleiben erhalten; nach der dritten ungültigen Antwort bricht `init` mit dem Fehlercode dieser Antwort ab (etwa `INVALID_LOCALE`), nennt das Flag, das du stattdessen übergeben kannst, und schreibt nichts.
+
+### Erkennung
+
+`init` durchsucht das Verzeichnis nach Dateien, die ein Format-Adapter beansprucht, überspringt versteckte Verzeichnisse, `node_modules` und Build-Ausgabe und findet den Teil jedes Pfads, der ein Locale ausschreibt, etwa `de.json`, `messages_pt_BR.properties`, `de.lproj/` oder Androids `values-de/`. Das Dateimuster, das die meisten Locales abdeckt, gewinnt, und daraus ergeben sich:
 
 - `format`: das eine Format, dessen Adapter jede gefundene Datei liest. Jeder JSON-Adapter liest `.json`, deshalb entscheidet bei JSON-Dateien eine einzelne passende Dependency in `package.json` (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`).
 - `files.pattern` und `files.localeStyle`: `posix`, wenn die Dateien `pt_BR` schreiben, `android` für `values-*`-Verzeichnisse, sonst `literal`.
 - `sourceLocale`: die Quellsprache eines `.xcstrings`-Katalogs, sonst `en` oder das einzige gefundene `en-*`-Locale, sonst das einzige gefundene Locale.
 - `targetLocales`: jedes andere gefundene Locale.
 
-Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` neben `messages_de.properties`, `Strings.resx` neben `Strings.de.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra liest die Quelle aus der Datei, die das Muster für das Quell-Locale benennt, und kann nicht auf eine solche Datei zeigen. Deshalb rät `init` das Quell-Locale in diesem Fall nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte sagen dir, in welche Datei du die Basisdatei umbenennen oder kopieren sollst.
+Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties`, `Strings.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra kann die Quelle nicht aus so einer Datei lesen, deshalb rät `init` das Quell-Locale nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte nennen die Datei, in die du die Basisdatei umbenennen oder kopieren sollst.
 
-Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format, und `files.pattern` und `files.localeStyle` folgen dem üblichen Layout des gewählten Formats:
-
-| Format | `files.pattern` | `files.localeStyle` |
-| --- | --- | --- |
-| `i18next-json` | `locales/{locale}.json` | keiner (`literal`) |
-| `vue-i18n-json` | `src/locales/{locale}.json` | keiner (`literal`) |
-| `next-intl-json` | `messages/{locale}.json` | keiner (`literal`) |
-| `ngx-translate-json` | `src/assets/i18n/{locale}.json` | keiner (`literal`) |
-| `xliff` | `locales/{locale}.xlf` | keiner (`literal`) |
-| `yaml` | `locales/{locale}.yml` | keiner (`literal`) |
-| `arb` | `lib/l10n/app_{locale}.arb` | `posix` |
-| `properties` | `src/main/resources/messages_{locale}.properties` | `posix` |
-| `apple-strings` | `{locale}.lproj/Localizable.strings` | keiner (`literal`) |
-| `apple-xcstrings` | `{locale}Localizable.xcstrings` | keiner (`literal`) |
-| `android-xml` | `app/src/main/res/{locale}/strings.xml` | `android` |
-| `gettext-po` | `locales/{locale}/LC_MESSAGES/messages.po` | `posix` |
-| `ini` | `locales/{locale}.ini` | keiner (`literal`) |
-| `resx` | `Resources/Strings.{locale}.resx` | keiner (`literal`) |
+Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format, und das Muster folgt dem üblichen Layout des Formats, wie es für jedes Format unter [Wähle deinen Stack](/docs/pick-your-stack) steht.
 
 Ein `apple-xcstrings`-Katalog ist eine einzige Datei für alle Locales, und verbatra legt ihn nie an: Erstelle ihn zuerst in Xcode. `--format`, `--path` und `--source` grenzen die Erkennung ein, statt von ihr überschrieben zu werden, `--format yaml` sieht sich also nur YAML-Dateien an.
 
-`init` rät nie zwischen Gleichwertigen. Lesen mehrere Formate die Dateien (zum Beispiel reines JSON ohne i18n-Dependency), endet es mit `2` und `FORMAT_AMBIGUOUS`, und liegen mehrere Dateimuster gleichauf (eine Datei pro Namespace, etwa `locales/{locale}/common.json` und `locales/{locale}/auth.json`), endet es mit `2` und `LAYOUT_AMBIGUOUS`. Beide listen die Kandidaten auf; übergib `--format` oder `--path`, um einen zu wählen. Am Terminal fragt es stattdessen nach und schlägt den ersten Kandidaten vor.
+`init` rät nie zwischen Gleichwertigen. Lesen mehrere Formate die Dateien (reines JSON ohne i18n-Dependency), endet es mit `2` und `FORMAT_AMBIGUOUS`, und liegen mehrere Dateimuster gleichauf (eine Datei pro Namespace), mit `2` und `LAYOUT_AMBIGUOUS`. Beide listen die Kandidaten auf; übergib `--format` oder `--path`, um einen zu wählen. Am Terminal fragt es stattdessen nach.
 
-## Unbeaufsichtigte Läufe
+### Unbeaufsichtigte Läufe
 
-Ohne Terminal oder mit `--json` fragt `init` nie nach. Ein Wert, der weder übergeben noch erkannt noch durch `--yes` mit einem Standardwert gefüllt wird, ist ein Fehler: `init` endet mit `2` und `MISSING_OPTIONS` und nennt alle fehlenden Flags auf einmal. Ein Fehler wegen einer Mehrdeutigkeit oder eines ungültigen Flags listet zusätzlich die noch fehlenden Flags auf, sodass ein einziger Lauf einem Agenten alles sagt, was er übergeben muss. `--provider` hat keinen Standardwert, und für `openai-compatible` haben auch `--base-url` und `--model` keinen, für `libretranslate` `--base-url` ebenso wenig, die brauchst du also immer. Diesen Befehl führt ein Agent aus:
+Ohne Terminal oder mit `--json` fragt `init` nie nach. Ein Wert, der weder übergeben noch erkannt noch durch `--yes` gefüllt wird, ist ein Fehler: `init` endet mit `2` und `MISSING_OPTIONS` und nennt alle fehlenden Flags auf einmal. Eine Mehrdeutigkeit oder ein ungültiges Flag listet zusätzlich die noch fehlenden Flags auf, sodass ein einziger Lauf einem Agenten alles sagt, was er übergeben muss. `--provider` hat keinen Standardwert, ebenso wenig `--base-url` und `--model` für `openai-compatible` oder `--base-url` für `libretranslate`. Diesen Befehl führt ein Agent aus:
 
 ```bash
 npx verbatra init --provider gemini --yes --json
 ```
 
-Mit `--json` steht auf stdout genau ein Envelope. Sein `result`:
+### JSON-Ausgabe
+
+Mit `--json` steht auf stdout genau ein [Envelope](/docs/cli/output#json-ausgabe). Sein `result`:
 
 ```ts
 interface InitResult {
@@ -109,7 +100,7 @@ interface InitResult {
     confidence: "high" | "medium" | "low" | "none";
     reasons: string[];                 // one sentence per decision or doubt
   } | null;
-  agent: {                             // null ohne --agent
+  agent: {                             // null without --agent
     instructionsFile: "AGENTS.md" | "CLAUDE.md";
     mcpServer: "added" | "present" | "differs";
     configKept: boolean;               // true when --agent kept an existing config
@@ -118,40 +109,40 @@ interface InitResult {
 }
 ```
 
-`confidence` ist `high`, wenn allein die Dateien alles entschieden haben, `medium`, wenn eine Konvention oder eine Dependency eine Lücke gefüllt hat (etwa `en` als Quelle anzunehmen) oder eine Lücke offen blieb (etwa die Quell-Locale von Androids unqualifiziertem `values`-Verzeichnis, das keine nennt), `low`, wenn keine Locale-Datei das Format gestützt hat, und `none`, wenn nichts erkannt wurde. Ein `default` in `sources` ist der Wert, den du noch einmal prüfen solltest. `nextSteps` endet mit den genauen Befehlen, die als Nächstes auszuführen sind, etwa `npx verbatra doctor`.
+`confidence` ist `high`, wenn allein die Dateien alles entschieden haben, `medium`, wenn eine Konvention oder eine Dependency eine Lücke gefüllt hat (etwa `en` als Quelle) oder eine Lücke offen blieb (etwa das Quell-Locale von Androids unqualifiziertem `values`-Verzeichnis), `low`, wenn keine Locale-Datei das Format gestützt hat, und `none`, wenn nichts erkannt wurde. Ein `default` in `sources` ist der Wert, den du noch einmal prüfen solltest. `nextSteps` endet mit den genauen nächsten Befehlen, etwa `npx verbatra doctor`.
 
-Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` oder `INVALID_FORMAT` trägt zusätzlich ein `candidates`-Array mit den Werten, aus denen du wählst. Jeder Verwendungsfehler, der Flags unbeantwortet lässt, trägt außerdem ein `missing`-Array, das sie nennt, etwa `"--source <locale>"`.
+Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` oder `INVALID_FORMAT` trägt zusätzlich `candidates`, die Werte zur Auswahl. Jeder Verwendungsfehler, der Flags unbeantwortet lässt, trägt `missing` mit ihren Namen, etwa `"--source <locale>"`.
 
-## Provider
-
-`--provider none` legt eine [rein menschliche](/docs/human-only-workflow) Konfiguration ohne `options` an und schreibt keine `.env.example`, weil nie ein API-Schlüssel gelesen wird.
-
-`--provider openai-compatible` setzt einen lokalen oder selbst gehosteten Server aus `--base-url` und `--model` auf, mit `maxOutputTokens: 4096`. Sein Key ist optional: Ein Server, der keinen braucht, lässt `OPENAI_COMPATIBLE_API_KEY` ungesetzt, und für einen, der einen braucht, nennt `--api-key-env-var` eine andere Variable. `init` schreibt den Namen dieser Variable in die Konfiguration und in `.env.example`, nie einen Wert, und lehnt eine Basis-URL mit Zugangsdaten, Query-String oder Fragment ab, etwa `https://user:key@host` oder `https://host/v1?api-key=...`, über die ein Key in der eingecheckten Konfiguration landen könnte. `--api-key-env-var` erwartet einen Namen in Großbuchstaben wie `LLM_API_KEY`, und ein abgelehnter Wert wird nie wiederholt, falls es der Key selbst war.
+### Provider
 
 <AvailableFrom version="0.12.0" />
 
-`--provider libretranslate` setzt einen selbst gehosteten [LibreTranslate](/docs/providers#libretranslate)-Server allein aus `--base-url` auf, etwa `http://localhost:5000`; er nimmt kein Modell und lehnt `--model` und `--api-key-env-var` ab. Auch sein Key ist optional: `.env.example` nennt `LIBRETRANSLATE_API_KEY` für einen Server, der mit `--api-keys` gestartet wurde, und ein Server ohne lässt sie ungesetzt. Für die Basis-URL gelten dieselben Regeln.
+- `--provider none` legt eine [rein menschliche](/docs/human-only-workflow) Konfiguration ohne `options` an und schreibt keine `.env.example`, weil nie ein API-Key gelesen wird.
+- `--provider openai-compatible` setzt einen lokalen oder selbst gehosteten Server aus `--base-url` und `--model` auf, mit `maxOutputTokens: 4096`. Sein Key ist optional: Ein Server, der keinen braucht, lässt `OPENAI_COMPATIBLE_API_KEY` ungesetzt, und `--api-key-env-var` nennt eine andere Variable, in Großbuchstaben wie `LLM_API_KEY`. Ein abgelehnter Wert wird nie wiederholt, falls es der Key selbst war.
+- `--provider libretranslate` setzt einen selbst gehosteten [LibreTranslate](/docs/providers#libretranslate)-Server allein aus `--base-url` auf, etwa `http://localhost:5000`, und lehnt `--model` und `--api-key-env-var` ab. `.env.example` nennt `LIBRETRANSLATE_API_KEY` für einen Server, der mit `--api-keys` gestartet wurde.
 
-## Bestehende Dateien
+`init` schreibt den Namen einer Variable in die Konfiguration und in `.env.example`, nie einen Wert, und lehnt eine Base-URL mit Zugangsdaten, Query-String oder Fragment ab (`https://user:key@host`, `https://host/v1?api-key=...`), über die ein Key in der eingecheckten Konfiguration landen könnte.
 
-Ein erneutes `init` mit denselben Antworten ändert nichts und ist erfolgreich, du kannst es also gefahrlos wiederholen. Eine `verbatra.config.ts` mit anderem Inhalt wird mit `CONFIG_EXISTS` abgelehnt, außer du übergibst `--force`. Eine andere verbatra-Konfiguration im selben Verzeichnis (zum Beispiel eine `.verbatrarc.json` oder eine `verbatra`-Property in `package.json`) wird auch unter `--force` mit `CONFIG_EXISTS` abgelehnt, weil sie vor `verbatra.config.ts` gelesen würde. Wenn `init` ablehnt, wird nichts geschrieben. Gibt es `verbatra.config.ts` schon und du hast `--force` nicht übergeben, kommt `CONFIG_EXISTS` vor allem anderen: im Terminal vor der ersten Frage und sonst anstelle einer fehlenden, mehrdeutigen oder ungültigen Antwort, sodass ein erneuter Lauf dich zuerst auf die vorhandene Konfiguration hinweist. `init --cwd` lehnt einen Pfad, der kein vorhandenes Verzeichnis ist, mit `INVALID_OPTION` ab und ein Verzeichnis, in das es nicht schreiben kann, etwa ein schreibgeschütztes, mit `INIT_UNWRITABLE`; die Meldung nennt die Datei und jede bereits geschriebene Datei. Mit `--agent` und ohne Konfigurationsantwort wird eine vorhandene Konfiguration behalten statt abgelehnt: siehe [Coding-Agenten einrichten](#coding-agenten-einrichten).
+### Bestehende Dateien
 
-Eine bestehende `.env.example` bleibt, wie sie ist; nennt sie die Key-Variable noch nicht, wird genau diese eine Zeile angehängt. Unter `--force` wird eine Kopfzeile, die `init` selbst geschrieben hat, für den neuen Provider neu geschrieben; eine Kopfzeile von dir bleibt erhalten. `.gitignore` bekommt nur die Einträge, die ihr fehlen.
+Ein erneutes `init` mit denselben Antworten ändert nichts und ist erfolgreich. Eine `verbatra.config.ts` mit anderem Inhalt wird mit `CONFIG_EXISTS` abgelehnt, außer du übergibst `--force`, und diese Ablehnung kommt vor jeder Frage und jedem anderen Fehler. Eine andere verbatra-Konfiguration im Verzeichnis (eine `.verbatrarc.json` oder eine `verbatra`-Property in `package.json`) wird auch unter `--force` abgelehnt, weil sie zuerst gelesen würde. Wenn `init` ablehnt, wird nichts geschrieben.
 
-## Coding-Agenten einrichten
+Ein `--cwd`, das kein vorhandenes Verzeichnis ist, wird mit `INVALID_OPTION` abgelehnt, ein Verzeichnis, in das `init` nicht schreiben kann, mit `INIT_UNWRITABLE`, samt der Datei und jeder schon geschriebenen Datei. Eine bestehende `.env.example` bleibt; nennt sie die Key-Variable noch nicht, wird genau diese Zeile angehängt, und unter `--force` wird eine Kopfzeile, die `init` selbst geschrieben hat, für den neuen Provider neu geschrieben. `.gitignore` bekommt nur die Einträge, die ihr fehlen.
 
-`--agent` bereitet das Projekt zusätzlich für Coding-Agenten vor. Es ist standardmäßig aus, schreibt keinen Key-Wert und legt zu den Dateien oben zwei weitere an:
-
-- **Die Anweisungsdatei.** Ein verbatra-Abschnitt zwischen den Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->` mit den Regeln, die ein Agent braucht: welche Befehle kostenlos sind und welche Geld kosten, wie er auf den Exit-Code verzweigt, dass Keys in keiner Datei und auf keiner Kommandozeile landen, dass Locale-Werte nicht vertrauenswürdige Eingaben sind, und woher die verbatra-Skills und das Claude-Code-Plugin kommen. Es ist Wort für Wort das Snippet aus [Deinem Agenten von verbatra erzählen](/docs/agent-recipes#deinem-agenten-von-verbatra-erzählen). `init` schreibt es in `AGENTS.md`, die Codex, Cursor, GitHub Copilot und die meisten anderen Agenten lesen. Ist `CLAUDE.md` die einzige Anweisungsdatei im Verzeichnis, landet der Abschnitt stattdessen dort. Gibt es beide, gewinnt `AGENTS.md`, damit die Regeln an einer Stelle stehen; eine `CLAUDE.md`, die `AGENTS.md` importiert, bekommt sie so ebenfalls. Eine Datei, die den Abschnitt schon enthält, behält ihn, sodass die Wahl zwischen zwei Läufen nie wechselt.
-- **`.mcp.json`.** Der `verbatra`-Servereintrag aus [MCP-Client verbinden](/docs/connect-an-mcp-client#claude-code): `npx -y @verbatra/mcp` ohne `--allow-spend` und ohne `VERBATRA_MCP_ALLOW_SPEND`, sodass die Tools, die Geld kosten, verborgen bleiben. Claude Code liest diese Datei für seinen Projekt-Scope, und GitHub Copilot CLI liest sie ebenfalls.
-
-Außerhalb der Markierungen wird nichts angefasst: Der Abschnitt wird an eine vorhandene Datei nach einer Leerzeile angehängt, und ein späterer Lauf ersetzt nur, was zwischen den Markierungen steht. Andere Server und Schlüssel in `.mcp.json` bleiben erhalten, und die Datei behält ihre Einrückung. Ein `verbatra`-Server, der vom Gerüst abweicht, etwa einer, dem du `--allow-spend` gegeben oder den du auf `npx verbatra mcp` umgestellt hast, bleibt, wie er ist, wird als `unchanged` gemeldet und in `nextSteps` genannt. Ein zweiter Lauf mit denselben Antworten lässt beide Dateien Byte für Byte, wie sie waren.
-
-In einem Projekt, das schon eine Konfiguration hat, schreibt `init --agent` nur diese beiden Dateien und lässt die Konfiguration, wie sie ist, egal was sie enthält. Es gibt `kept verbatra.config.ts` aus, fragt nie nach und erkennt nichts, und dasselbe gilt für eine andere Konfigurationsdatei, die verbatra liest, etwa `.verbatrarc.json`. Das JSON-Ergebnis führt die Konfiguration dann als `unchanged`, setzt `agent.configKept` auf `true` und enthält `null` für `config`, `sources`, `apiKeyEnvVar` und `detection`, weil nichts geplant wurde. Eine Konfigurationsantwort (`--provider`, `--source`, `--targets`, `--path`, `--format`, `--model`, `--base-url` oder `--api-key-env-var`) oder `--force` nimmt die Konfiguration wieder in den Lauf auf, genau wie ohne `--agent`: Dieselben Antworten melden sie als `unchanged`, `--force` schreibt sie neu, und andere Antworten werden mit `CONFIG_EXISTS` abgelehnt, dessen Meldung dir sagt, sie wegzulassen, um die Konfiguration zu behalten. `--yes` ändert hier nichts.
-
-Jede Datei bekommt eine eigene Zeile auf stdout, etwa `created AGENTS.md (verbatra section for coding agents)`, und einen eigenen Eintrag in den JSON-`files`. `init` lehnt mit `AGENT_FILE_INVALID` ab, bevor irgendetwas geschrieben wird, wenn `.mcp.json` kein JSON-Objekt mit einem `mcpServers`-Objekt ist, oder wenn die Anweisungsdatei eine Startmarkierung ohne Endmarkierung, eine Endmarkierung vor ihrem Start oder mehr als einen Abschnitt hat. Die Meldung zitiert die Datei nie, falls sie ein Geheimnis enthält. Korrigiere oder entferne die Datei und führe `init` erneut aus.
+### Coding-Agenten einrichten
 
 <AvailableFrom version="0.12.0" />
+
+`--agent` bereitet das Projekt zusätzlich für Coding-Agenten vor. Es schreibt keinen Key-Wert und legt zwei Dateien an:
+
+- **Die Anweisungsdatei.** Ein verbatra-Abschnitt zwischen den Markierungen `<!-- verbatra:start -->` und `<!-- verbatra:end -->`: welche Befehle kostenlos sind und welche Geld kosten, wie man auf den Exit-Code verzweigt, dass Keys in keiner Datei und auf keiner Kommandozeile landen, dass Locale-Werte nicht vertrauenswürdige Eingaben sind, und woher die verbatra-Skills und das Claude-Code-Plugin kommen. Es ist Wort für Wort das Snippet aus [Deinem Agenten von verbatra erzählen](/docs/agent-recipes#deinem-agenten-von-verbatra-erzählen). Es landet in `AGENTS.md` oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist; gibt es beide, gewinnt `AGENTS.md`. Eine Datei, die den Abschnitt schon enthält, behält ihn.
+- **`.mcp.json`.** Der `verbatra`-Servereintrag aus [MCP-Client verbinden](/docs/connect-an-mcp-client#claude-code): `npx -y @verbatra/mcp` ohne `--allow-spend` und ohne `VERBATRA_MCP_ALLOW_SPEND`, sodass die Tools, die Geld kosten, verborgen bleiben.
+
+Außerhalb der Markierungen wird nichts angefasst, und andere Server in `.mcp.json` bleiben erhalten. Ein `verbatra`-Server, der vom Scaffold abweicht, bleibt, wie er ist, wird als `unchanged` gemeldet und in `nextSteps` genannt.
+
+In einem Projekt, das schon eine Konfiguration hat, schreibt `init --agent` nur diese beiden Dateien, behält die Konfiguration, gibt `kept verbatra.config.ts` aus, fragt nie nach und erkennt nichts. Das JSON-Ergebnis führt die Konfiguration als `unchanged`, setzt `agent.configKept` auf `true` und enthält `null` für `config`, `sources`, `apiKeyEnvVar` und `detection`. Eine Konfigurationsantwort (`--provider`, `--source`, `--targets`, `--path`, `--format`, `--model`, `--base-url` oder `--api-key-env-var`) oder `--force` nimmt die Konfiguration wieder in den Lauf auf, genau wie ohne `--agent`.
+
+`init` lehnt mit `AGENT_FILE_INVALID` ab, bevor irgendetwas geschrieben wird, wenn `.mcp.json` kein JSON-Objekt mit einem `mcpServers`-Objekt ist oder die Anweisungsdatei eine ungepaarte, falsch geordnete oder doppelte Markierung hat. Die Meldung zitiert die Datei nie, falls sie ein Geheimnis enthält.
 
 ## Beispiele
 
@@ -183,7 +174,9 @@ verbatra init --provider gemini --yes --agent
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Dateien geschrieben oder schon auf dem aktuellen Stand |
-| `2` | ein Verwendungsfehler: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID` oder `CONFIG_INVALID`, wenn die Antworten keine gültige Konfiguration ergeben würden |
+| `2` | ein Verwendungsfehler: `MISSING_OPTIONS`, `INVALID_PROVIDER`, `INVALID_FORMAT`, `INVALID_OPTION`, `INVALID_LOCALE`, `INVALID_LOCALES`, `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `CONFIG_EXISTS`, `INIT_UNWRITABLE`, `AGENT_FILE_INVALID` oder `CONFIG_INVALID`, wenn die Antworten keine gültige Konfiguration ergeben würden |
+
+Wie jeder Befehl diese Codes nutzt, steht im [Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 
 ## Siehe auch
 

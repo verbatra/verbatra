@@ -241,6 +241,30 @@ describe("the doctor page lists every check doctor runs", () => {
   });
 });
 
+const SHARED_COMMAND_FLAGS = ["--config", "--cwd", "--json"];
+
+const CLI_REFERENCE_PAGES = ["index", "output"];
+
+const GLOBAL_FLAGS_ANCHOR = {
+  "": "global-flags",
+  ".de": "globale-flags",
+  ".es": "flags-globales",
+  ".fr": "options-globales",
+};
+
+const COMMAND_PAGE_SECTIONS = {
+  "": ["Synopsis", "Flags", "Behavior", "Examples", "Exit codes", "Related"],
+  ".de": ["Synopsis", "Flags", "Verhalten", "Beispiele", "Exit-Codes", "Siehe auch"],
+  ".es": ["Sinopsis", "Flags", "Comportamiento", "Ejemplos", "Códigos de salida", "Relacionado"],
+  ".fr": ["Synopsis", "Options", "Comportement", "Exemples", "Codes de sortie", "Voir aussi"],
+};
+
+const OPTIONAL_SECTION_INDEX = 2;
+
+const MAX_COMMAND_PAGE_WORDS = 2000;
+
+const MAX_EFFECT_WORDS = 25;
+
 function commandBlocks() {
   const source = readRepoFile("packages/cli/src/run.ts");
   const starts = [...source.matchAll(/\.command\("([a-z]+)"\)/g)];
@@ -250,37 +274,86 @@ function commandBlocks() {
   });
 }
 
+function programFlags() {
+  const source = readRepoFile("packages/cli/src/run.ts");
+  const body = /function buildProgram\([\s\S]*?\n {2}const settings/.exec(source)?.[0];
+  if (body === undefined) {
+    throw new Error("buildProgram could not be located in run.ts");
+  }
+  const version = body.includes(".version(") ? ["--version"] : [];
+  return [...commandFlags(body), "--help", ...version].sort();
+}
+
 function commandFlags(body) {
   return [...body.matchAll(/\.option\(\s*"(?:-[a-zA-Z], )?(--[a-z][a-z-]*)/g)]
     .map((match) => match[1])
     .sort();
 }
 
+function flagsTable(page, firstFlag) {
+  return tableStartingWith(page, (line) => line.startsWith(`| \`${firstFlag}`));
+}
+
+function longFlagsIn(row) {
+  return codeSpans(firstCell(row)).filter((span) => span.startsWith("--"));
+}
+
 function documentedFlags(page) {
-  const table = tableStartingWith(page, (line) => line.startsWith("| `--"));
-  return table
-    .flatMap((row) => codeSpans(firstCell(row)).filter((span) => span.startsWith("--")))
-    .sort();
+  return flagsTable(page, "--").flatMap(longFlagsIn).sort();
+}
+
+function globalFlagRows(page) {
+  return new Map(
+    flagsTable(page, "--cwd").flatMap((row) => {
+      const cells = row.replace(/^\| /, "").replace(/ \|$/, "").split(" | ");
+      const commands = codeSpans(cells.at(-1) ?? "").filter((span) => /^[a-z]+$/.test(span));
+      return longFlagsIn(row).map((flag) => [flag, commands.sort()]);
+    }),
+  );
+}
+
+function effectWordCounts(page) {
+  return flagsTable(page, "--").map((row) => {
+    const effect = row.replace(/ \|$/, "").split(" | ").at(-1) ?? "";
+    return effect
+      .replace(/\]\([^)]*\)/g, "]")
+      .split(/\s+/)
+      .filter(Boolean).length;
+  });
+}
+
+function h2Headings(page) {
+  return outsideCodeFences(page)
+    .filter((line) => line.startsWith("## "))
+    .map((line) => line.slice(3).trim());
+}
+
+function expectedSections(page, suffix) {
+  const sections = COMMAND_PAGE_SECTIONS[suffix];
+  const optional = sections[OPTIONAL_SECTION_INDEX];
+  return h2Headings(page).includes(optional)
+    ? sections
+    : sections.filter((section) => section !== optional);
+}
+
+function proseWordCount(page) {
+  return page
+    .replace(/^---\n[\s\S]*?\n---\n/, "")
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
 
 function cliMetaCommands(suffix) {
   const meta = JSON.parse(readRepoFile(`apps/docs/content/docs/cli/meta${suffix}.json`));
-  return meta.pages.filter((page) => page !== "index" && !page.startsWith("---")).sort();
+  return meta.pages
+    .filter((page) => !CLI_REFERENCE_PAGES.includes(page) && !page.startsWith("---"))
+    .sort();
 }
 
 function cliOverviewCommands(suffix) {
   const page = readDocPage("cli/index", suffix);
   return [...page.matchAll(/^\| \[`([a-z]+)`\]\(\/docs\/cli\/\1\) \|/gm)]
     .map((match) => match[1])
-    .sort();
-}
-
-function jsonCommandList(suffix) {
-  const line = readDocPage("(guides)/ci-and-exit-codes", suffix)
-    .split("\n")
-    .find((text) => /`--json`/.test(text) && /`studio`/.test(text) && /`init`/.test(text));
-  return codeSpans(line ?? "")
-    .filter((span) => /^[a-z]+$/.test(span) && span !== "studio" && span !== "mcp")
     .sort();
 }
 
@@ -292,43 +365,112 @@ describe("the CLI reference covers every command", () => {
     expect(names.length).toBeGreaterThanOrEqual(10);
     expect(names).toContain("translate");
     expect(blocks.find(({ name }) => name === "translate")?.body).toContain('"--dry-run"');
+    expect(programFlags()).toEqual(["--help", "--no-color", "--quiet", "--version"]);
   });
 
-  it.each(LOCALE_SUFFIXES)("lists every command in cli/meta%s.json", (suffix) => {
-    expect(cliMetaCommands(suffix)).toEqual(names);
-  });
+  it.each(LOCALE_SUFFIXES)(
+    "lists every command and the reference pages in cli/meta%s.json",
+    (suffix) => {
+      const meta = JSON.parse(readRepoFile(`apps/docs/content/docs/cli/meta${suffix}.json`));
+
+      expect(cliMetaCommands(suffix)).toEqual(names);
+      expect(meta.pages).toEqual(expect.arrayContaining(CLI_REFERENCE_PAGES));
+    },
+  );
 
   it.each(LOCALE_SUFFIXES)("links every command from the table in cli/index%s.mdx", (suffix) => {
     expect(cliOverviewCommands(suffix)).toEqual(names);
   });
 
-  it.each(LOCALE_SUFFIXES)("names every --json command in ci-and-exit-codes%s.mdx", (suffix) => {
-    const withJson = blocks
-      .filter(({ body }) => commandFlags(body).includes("--json"))
-      .map(({ name }) => name)
-      .sort();
+  it.each(LOCALE_SUFFIXES)(
+    "documents each shared and program flag once in the global flags of cli/index%s.mdx",
+    (suffix) => {
+      const rows = globalFlagRows(readDocPage("cli/index", suffix));
+      const expected = new Map([
+        ...SHARED_COMMAND_FLAGS.map((flag) => [
+          flag,
+          blocks
+            .filter(({ body }) => !commandFlags(body).includes(flag))
+            .map(({ name }) => name)
+            .sort(),
+        ]),
+        ...programFlags().map((flag) => [flag, []]),
+      ]);
 
-    expect(jsonCommandList(suffix)).toEqual(withJson);
-  });
+      expect(Object.fromEntries(rows)).toEqual(Object.fromEntries(expected));
+    },
+  );
 
   describe.each(blocks.map(({ name, body }) => [name, commandFlags(body)]))(
     "verbatra %s",
     (name, flags) => {
-      it.each(LOCALE_SUFFIXES)(`documents exactly its flags in cli/${name}%s.mdx`, (suffix) => {
-        expect(documentedFlags(readDocPage(`cli/${name}`, suffix))).toEqual(flags);
+      const own = flags.filter((flag) => !SHARED_COMMAND_FLAGS.includes(flag));
+
+      it.each(LOCALE_SUFFIXES)(
+        `documents exactly its own flags and links the global flags in cli/${name}%s.mdx`,
+        (suffix) => {
+          const page = readDocPage(`cli/${name}`, suffix);
+
+          expect(documentedFlags(page)).toEqual(own);
+          expect(page).toContain(`](/docs/cli#${GLOBAL_FLAGS_ANCHOR[suffix]})`);
+        },
+      );
+
+      it.each(LOCALE_SUFFIXES)(
+        `follows the command page template in cli/${name}%s.mdx`,
+        (suffix) => {
+          const page = readDocPage(`cli/${name}`, suffix);
+
+          expect(h2Headings(page)).toEqual(expectedSections(page, suffix));
+        },
+      );
+
+      it(`keeps cli/${name}.mdx short, with a short effect per flag`, () => {
+        const page = readDocPage(`cli/${name}`, "");
+
+        expect(proseWordCount(page)).toBeLessThanOrEqual(MAX_COMMAND_PAGE_WORDS);
+        expect(Math.max(...effectWordCounts(page))).toBeLessThanOrEqual(MAX_EFFECT_WORDS);
       });
     },
   );
 
-  it("sees an undocumented flag and a documented flag the command lost", () => {
+  it("sees an undocumented flag, a documented flag the command lost, and a repeated shared flag", () => {
     const page = readDocPage("cli/translate", "");
-    const flags = commandFlags(blocks.find(({ name }) => name === "translate")?.body ?? "");
+    const flags = commandFlags(blocks.find(({ name }) => name === "translate")?.body ?? "").filter(
+      (flag) => !SHARED_COMMAND_FLAGS.includes(flag),
+    );
 
+    expect(documentedFlags(page)).toEqual(flags);
     expect(documentedFlags(page.replace(/^\| `--prune` \|.*\n/m, ""))).not.toEqual(flags);
     expect(
       documentedFlags(
         page.replace(/^(\| `--prune` \|.*\n)/m, "$1| `--retired` | none | off | gone |\n"),
       ),
     ).not.toEqual(flags);
+    expect(
+      documentedFlags(page.replace(/^(\| `--prune` \|.*\n)/m, "$1| `--cwd` | x | x | x |\n")),
+    ).not.toEqual(flags);
+  });
+
+  it("sees a global flag row that is missing or names the wrong commands", () => {
+    const page = readDocPage("cli/index", "");
+    const rows = globalFlagRows(page);
+
+    expect(globalFlagRows(page.replace(/^\| `--no-color` \|.*\n/m, "")).has("--no-color")).toBe(
+      false,
+    );
+    expect(rows.get("--json")).toEqual(["mcp", "studio"]);
+    expect(
+      globalFlagRows(page.replace(/^(\| `--json` \|.*)`studio`/m, "$1`init`")).get("--json"),
+    ).not.toEqual(rows.get("--json"));
+  });
+
+  it("sees a page that drops a template section or reorders two", () => {
+    const page = "## Synopsis\n## Flags\n## Examples\n## Exit codes\n## Related\n";
+
+    expect(h2Headings(page)).toEqual(expectedSections(page, ""));
+    expect(h2Headings(page.replace("## Examples\n", ""))).not.toEqual(expectedSections(page, ""));
+    const swapped = "## Synopsis\n## Examples\n## Flags\n## Exit codes\n## Related\n";
+    expect(h2Headings(swapped)).not.toEqual(expectedSections(swapped, ""));
   });
 });

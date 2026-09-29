@@ -4,7 +4,7 @@ description: "Drive verbatra from an agent loop or a shell script: which command
 ---
 An agent or a script needs three things from a CLI: a stable way to ask, a parseable answer, and an unambiguous signal about what happened. verbatra gives you all three through `--json` and the exit code. This page is the worked version of that: real captured payloads, and short recipes that run, parse, decide, and act.
 
-It does not restate the contract. The [`--json` envelope and every `result` shape](/docs/ci-and-exit-codes#json-output) are documented in the CI guide, the [CLI overview](/docs/cli) states the convention, and each command page carries its own exit-code table. Read those for what a field means; read this for what to do with it.
+It does not restate the contract. The [`--json` envelope and every `result` shape](/docs/cli/output#json-output) are documented in the CI guide, the [CLI overview](/docs/cli) states the convention, and each command page carries its own exit-code table. Read those for what a field means; read this for what to do with it.
 
 If you want an agent that drives the dashboard in a browser rather than a process in a shell, that is a different surface: see [Operate Studio with a browser agent](/docs/agent-tools-in-studio).
 

@@ -5,9 +5,7 @@ status: new
 ---
 <AvailableFrom version="0.11.0" />
 
-Lance ton application dans une langue qui n'existe pas. `pseudo` construit une locale factice à partir de tes seules chaînes source : chaque valeur est accentuée, allongée et entourée de marqueurs de délimitation visibles, si bien qu'un bouton tronqué, une phrase recollée à partir de deux fragments et un libellé que personne n'a jamais extrait pour la traduction sautent aux yeux à l'écran. Cela ne dépense rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite et aucune clé d'API n'est lue, donc cela marche sur un dépôt fraîchement cloné, avant même qu'une clé existe.
-
-Utilise-le dès le premier jour, avant d'avoir un compte chez un fournisseur, puis de nouveau chaque fois que tu changes une mise en page. [`verbatra translate --dry-run`](/docs/cli/translate) te dit ce qu'une vraie exécution traduirait ; `pseudo` te donne quelque chose avec quoi tu peux vraiment lancer l'application.
+Fais tourner ton app dans une langue qui n'existe pas. `pseudo` construit une fausse locale à partir de tes chaînes source : chaque valeur est accentuée, allongée et entourée de marqueurs visibles, si bien que les boutons tronqués, les phrases recollées en morceaux et les libellés jamais extraits sautent aux yeux. La commande ne construit aucun fournisseur, ne lit aucune clé d'API et ne fait aucune requête réseau, elle fonctionne donc avant qu'une clé existe.
 
 ## Synopsis
 
@@ -19,109 +17,95 @@ verbatra pseudo [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--locale` | `<code>` | `en-XA` | la pseudo-locale à générer |
+| `--locale` | `<code>` | `en-XA` | la pseudo-locale à générer ; lettres, chiffres et tirets uniquement (sinon `INVALID_LOCALE`) |
 | `--out` | `<path>` | `.verbatra-local/pseudo` | répertoire où écrire la pseudo-locale, relatif au répertoire de travail et à l'intérieur de celui-ci |
-| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résultat sous `result` |
 
-## Ce que fait la transformation
+La commande accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
+
+## Comportement
+
+### Ce que fait la transformation
 
 | Étape | Ce que tu vois |
 | --- | --- |
-| Accentuer | chaque lettre ASCII devient un sosie accentué, `Save` se lit donc `Śáṽé` |
+| Accentuer | chaque lettre ASCII devient un sosie accentué, donc `Save` se lit `Śáṽé` |
 | Allonger | la valeur grandit d'environ un tiers de sa longueur traduisible, à peu près ce dont l'allemand a besoin face à l'anglais |
-| Marquer | la valeur est entourée de `[` et `]`, une chaîne tronquée ou concaténée se voit donc d'un coup d'œil |
+| Marquer | la valeur est entourée de `[` et `]`, donc une chaîne tronquée ou concaténée se voit tout de suite |
 
-`Hello {{name}}, you have {{count}} unread messages` ressort en
+`Hello {{name}}, you have {{count}} unread messages` devient
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
 
-Rien qui ne soit du texte traduisible n'est touché. Les placeholders survivent dans toutes les syntaxes que reconnaissent les [adaptateurs de format](/docs/formats) : jetons à double accolade, références imbriquées d'i18next, arguments à simple accolade et ICU, conversions printf et variables de pluriel d'Apple, balises de balisage, entités XML, messages liés de vue-i18n et séquences d'échappement. Dans un message ICU, les noms d'argument, les mots-clés `plural` et `select` et chaque sélecteur de branche restent exactement tels qu'ils sont écrits, et seul le texte à l'intérieur d'une branche est accentué.
+Seul le texte traduisible change. Les placeholders survivent dans toutes les syntaxes que reconnaissent les [adaptateurs de format](/docs/formats), et dans un message ICU les noms d'arguments, les mots-clés `plural` et `select` et les sélecteurs de branche restent tels quels. Les formes plurielles vue-i18n séparées par des barres verticales sont transformées une à une : `car | cars` devient `[ćáŕ··] | [ćáŕś··]`. La transformation est déterministe, donc le fichier produit des diffs propres.
 
-vue-i18n regroupe les formes plurielles dans une seule valeur séparée par des barres verticales, donc chaque forme est accentuée, allongée et marquée pour elle-même : `car | cars` ressort en `[ćáŕ··] | [ćáŕś··]` plutôt qu'en un seul bloc entre crochets, et c'est justement sur les pluriels que la mise en page est la plus délicate.
+### Rien de cassé n'atteint jamais le fichier
 
-La transformation est déterministe : la même source produit toujours la même pseudo-locale et le diff du fichier reste propre.
+Chaque valeur générée passe le même contrôle d'intégrité que la traduction d'un fournisseur : les mêmes placeholders que la source, une syntaxe de message valide, pas de dégénérescence, pas de vide. Une valeur qui échouerait est copiée telle quelle depuis la source et nommée sous `copied verbatim` ; c'est un signalement, pas un échec.
 
-## Rien de cassé n'atteint jamais le fichier
+### Où va la sortie
 
-Chaque valeur générée est soumise à la même barrière d'intégrité que la traduction d'un fournisseur doit franchir : les mêmes placeholders que la source, valide selon la syntaxe de messages du format, non dégénérée et non vide. Une valeur qui ne la franchirait pas est copiée telle quelle depuis la source et nommée sous `copied verbatim` dans la sortie, l'entrée reste donc présente et continue de s'afficher. C'est un constat, pas un échec, et la commande se termine tout de même avec `0`.
+La pseudo-locale est écrite hors de tes vrais fichiers de locale, par défaut sous `.verbatra-local/pseudo`, que [`verbatra init`](/docs/cli/init) ajoute au `.gitignore` (`pseudo` complète l'entrée si elle manque). Ton `files.pattern` est développé dans ce répertoire, donc avec `locales/{locale}.json` l'exécution par défaut écrit `.verbatra-local/pseudo/locales/en-XA.json`. Pointe ton serveur de dev dessus, ou passe `--out` pour écrire là où ton build sert déjà des fichiers.
 
-## Où va la sortie
+`PSEUDO_OUTPUT_CONFLICT` refuse, avant toute lecture ou écriture :
 
-La pseudo-locale est écrite en dehors de tes vrais fichiers de locale, sous `.verbatra-local/pseudo` par défaut. [`verbatra init`](/docs/cli/init) ajoute déjà `.verbatra-local/` à `.gitignore`, le fichier généré n'est donc pas commité par accident, et `pseudo` complète un `.gitignore` existant avec cette entrée si elle manque.
+- une pseudo-locale qui nomme ta locale source ou une locale cible,
+- un `--out` qui place le fichier dans le même répertoire qu'un fichier de locale configuré,
+- un `--out` absolu, qui sort du répertoire de travail ou qui, une fois les liens symboliques résolus, aboutit hors du projet, à sa racine ou sur un fichier dont dépend le projet.
 
-Ton `files.pattern` configuré est développé dans ce répertoire, le fichier garde donc la disposition qu'attend ton application : avec `locales/{locale}.json`, l'exécution par défaut écrit `.verbatra-local/pseudo/locales/en-XA.json`. Pointe ton serveur de développement ou ta bibliothèque i18n vers ce répertoire pour la charger. Passe `--out` pour l'écrire là où ton build sert déjà des fichiers.
-
-Trois règles l'empêchent de jamais tenir lieu de vraie traduction :
-
-- Une pseudo-locale qui nomme ta locale source ou l'une de tes locales cibles est refusée avec `PSEUDO_OUTPUT_CONFLICT`, avant que quoi que ce soit ne soit lu ou écrit.
-- Un `--out` qui poserait le fichier dans le même répertoire qu'un fichier de locale configuré est refusé de la même façon, pas seulement un `--out` qui écraserait un fichier de locale.
-- Un `--out` absolu, ou qui sort du répertoire de travail avec `..`, est refusé lui aussi, pour qu'une pseudo-locale générée n'atterrisse jamais en dehors du projet dont elle vient. Les mêmes contrôles sont refaits sur la destination réelle de `--out` une fois les liens symboliques résolus : un répertoire lié qui pointe hors du projet, vers la racine du projet ou vers le répertoire qui contient tes fichiers de locale, ou un fichier lié qui pointe vers un fichier de locale, le fichier de verrouillage ou un autre fichier dont le projet dépend, est aussi refusé avec `PSEUDO_OUTPUT_CONFLICT`, et rien n'est écrit.
-
-Comme le fichier vit en dehors de `files.pattern`, [`verbatra translate`](/docs/cli/translate) ne le voit jamais et ne dépense jamais pour lui, et [`verbatra check`](/docs/cli/check) et [`verbatra diff`](/docs/cli/diff) ne le signalent jamais comme manquant ou obsolète. Il n'y a rien à ajouter à `targetLocales` et rien à exclure de la CI.
+Comme le fichier est hors de `files.pattern`, [`translate`](/docs/cli/translate) ne dépense jamais rien pour lui, et [`check`](/docs/cli/check) et [`diff`](/docs/cli/diff) ne le signalent jamais.
 
 ### Formats écrits en retouchant un fichier existant
 
-`xliff` et `apple-xcstrings` ne sont pas réécrits de zéro : leur écriture retouche des unités déjà présentes dans le document de destination. Le fichier de la pseudo-locale est donc recopié depuis ton fichier source à chaque écriture, pour qu'une clé ajoutée à la source après la première exécution parvienne quand même à la pseudo-locale au lieu de disparaître en silence. Un XLIFF copié voit aussi son attribut `target-language` réécrit vers la pseudo-locale, si bien que le fichier ne prétend jamais contenir une langue qu'il ne contient pas.
+Les writers de `xliff` et `apple-xcstrings` retouchent des unités déjà présentes dans le document cible : le fichier de la pseudo-locale est donc recopié depuis ton fichier source à chaque écriture, et une clé ajoutée plus tard à la source arrive quand même. Dans un XLIFF copié, `target-language` est réécrit vers la pseudo-locale.
 
-## Exemples
+### Sortie JSON
 
-```bash
-# generate en-XA under .verbatra-local/pseudo
-verbatra pseudo
+Avec `--json`, l'[enveloppe JSON](/docs/cli/output#sortie-json) porte `locale`, `path`, `entries` (entrées source), `transformed` (pseudo-localisées), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
 
-# generate a second pseudolocale alongside it
-verbatra pseudo --locale en-XB
+### Retour dans le terminal
 
-# write it where the dev server already serves static files
-verbatra pseudo --out public/locales-pseudo
+<AvailableFrom version="0.12.0" />
 
-# machine-readable result for a script
-verbatra pseudo --json
-```
-
-Une exécution ressemble à ceci :
+Le résultat va sur stdout ; la ligne de progression et l'étape suivante vont sur stderr :
 
 ```text
+verbatra: pseudolocalizing the source... done (0.1s)
 verbatra pseudo
   en-XA: 118 of 120 entries pseudolocalized
     copied verbatim: legal.disclaimer, brand.name
   wrote .verbatra-local/pseudo/locales/en-XA.json
-```
-
-Relance-la sans changer la source et elle ne réécrit rien :
-
-```text
-verbatra pseudo
-  en-XA: 120 of 120 entries pseudolocalized
-  unchanged .verbatra-local/pseudo/locales/en-XA.json
-```
-
-## Retour dans le terminal
-
-<AvailableFrom version="0.12.0" />
-
-`pseudo` affiche une ligne pendant qu'il écrit la pseudolocale, puis t'indique quel fichier charger dans ton serveur de développement :
-
-```text
-verbatra: pseudolocalizing the source... done (0.1s)
 next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
 ```
 
-Ces lignes vont sur stderr, donc stdout et la sortie `--json` restent exactement comme décrit plus haut, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli#sortie-dans-le-terminal) pour la couleur, le spinner et les variables qui les contrôlent.
+Une deuxième exécution sur une source inchangée rapporte `unchanged` au lieu de `wrote`. `--quiet` supprime les lignes stderr. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+
+## Exemples
+
+```bash
+# générer en-XA sous .verbatra-local/pseudo
+verbatra pseudo
+
+# générer une seconde pseudo-locale à côté
+verbatra pseudo --locale en-XB
+
+# l'écrire là où le serveur de dev sert déjà des fichiers statiques
+verbatra pseudo --out public/locales-pseudo
+
+# résultat lisible par une machine pour un script
+verbatra pseudo --json
+```
 
 ## Codes de sortie
 
 | Code | Signification |
 | --- | --- |
-| `0` | la pseudo-locale a été générée, que le fichier ait changé ou non |
-| `2` | n'a pas pu s'exécuter : une erreur d'utilisation, un problème de configuration ou de source, ou une pseudo-locale ou un chemin de sortie refusés |
+| `0` | la pseudo-locale a été générée, que le fichier ait changé ou non ; les valeurs copiées telles quelles n'y changent rien |
+| `2` | exécution impossible : une erreur d'utilisation, un problème de config ou de source, ou une pseudo-locale ou un chemin de sortie refusé |
 
-Il n'y a pas de code de sortie `1` : une valeur copiée telle quelle est signalée, pas traitée comme un échec.
+Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
 - [`verbatra translate`](/docs/cli/translate) fait le vrai travail, dès que tu as une clé.
-- [`verbatra doctor`](/docs/cli/doctor) est l'autre commande qui valide un projet sans rien dépenser.
-- [Formats](/docs/formats) liste la syntaxe de placeholders de chaque format.
-- [Le fichier de configuration](/docs/config-file) documente `files.pattern`, qui décide de la disposition du fichier généré.
+- [`verbatra doctor`](/docs/cli/doctor) valide aussi un projet sans rien dépenser.
+- [Formats](/docs/formats) liste la syntaxe des placeholders de chaque format.
+- [Le fichier de config](/docs/config-file) documente `files.pattern`, qui fixe la structure du fichier généré.
