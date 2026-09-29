@@ -54,12 +54,30 @@ A change to `messages/en.json` or to an English `page.mdx` is not complete until
 `de`, `es`, and `fr` files are updated in the *same* change, whether by an AI agent (MDX content)
 or by re-running `pnpm i18n` (UI strings, `messages/*.json`). Do not land an English-only update and
 leave the other three locales to catch up later. `docs-i18n-check.yml` only backstops the
-`messages/*.json` half of this (see above); a stale or missing `.de.mdx`/`.es.mdx`/`.fr.mdx` is
-not caught by CI, so treat this as an authoring discipline, not a check you can rely on to fail.
-The one exception is the reference tables `scripts/verify-docs-reference-parity.test.mjs`
-(`pnpm test:scripts`) asserts in all four locales against the code: one `sdk*.mdx` section per SDK
-entry point, the `ProviderErrorCode` table in `providers*.mdx`, the CLI error codes in
-`ci-and-exit-codes*.mdx`, and the `generateTypes` refusals in `cli/types*.mdx`.
+`messages/*.json` half of this (see above). For MDX, `apps/docs/lib/docs-locale-parity.test.ts`
+fails when a locale misses a page or a `meta` file, when a translated `meta` file lists other
+pages, or when a translated page's `##` and `###` heading counts, code block count, or
+`<AvailableFrom>` versions differ from the English page. It cannot tell whether the prose itself
+is current, so keeping the wording in step stays an authoring discipline.
+
+The reference tables are asserted in all four locales against the code by the `scripts/*.test.mjs`
+parity tests (`pnpm test:scripts`):
+
+- `verify-docs-reference-parity.test.mjs`: one `sdk*.mdx` section per SDK entry point, the
+  `SdkErrorCode` table in `sdk*.mdx`, the `ProviderErrorCode` table in `providers*.mdx`, the CLI
+  error codes in `ci-and-exit-codes*.mdx`, and the `generateTypes` refusals in `cli/types*.mdx`.
+- `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in
+  `packages/mcp/README.md` follows `ALL_TOOLS_IN_ORDER`, with exactly the spend-gated tools marked
+  as calling a provider, and the client allowlists name only registered, non-spend tools.
+- `verify-docs-registry-parity.test.mjs`: the overview table in `formats*.mdx` lists every
+  `SUPPORTED_FORMATS` id in order, `providers*.mdx` opens one `##` section per `providerFactories`
+  id plus `none`, the `cli/doctor*.mdx` check table follows the setup checks in `doctor.ts`, and
+  every `.command(...)` in `run.ts` appears in `cli/meta*.json` and the `cli/index*.mdx` table, with
+  its page's flags table naming exactly its `.option(...)` flags and the `--json` list in
+  `ci-and-exit-codes*.mdx` naming exactly the commands that take `--json`.
+- `verify-docs-registry-counts.test.mjs`: no MDX page spells out a count of formats, providers,
+  or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
+  items.
 
 ## The `<AvailableFrom />` callout
 
