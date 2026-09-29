@@ -73,6 +73,7 @@ export {
   type ReadResult,
   type ResolveOptions,
   type Sniff,
+  type SyntaxPosition,
   type TreeFileAdapterOptions,
   type ValidateMessage,
   type ValidateTree,
@@ -171,6 +172,17 @@ export {
   type LocaleCheckSummary,
   type LocaleReviewReport,
 } from "./flow/check.js";
+export {
+  type CheckFileDeps,
+  type CheckFileFinding,
+  type CheckFileInput,
+  type CheckFileRole,
+  type CheckFileSummary,
+  checkFile,
+  type FileQaReport,
+  type LocaleFileCheck,
+  type QaSyntaxFinding,
+} from "./flow/check-file.js";
 export {
   type DiffDeps,
   type DiffInput,

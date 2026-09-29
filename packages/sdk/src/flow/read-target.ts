@@ -18,6 +18,7 @@ function attributeTargetRead(error: unknown, locale: string, path: string): unkn
   return new AdapterError(
     error.code,
     `The ${locale} locale file at ${path} could not be read: ${error.message}`,
+    error.position === undefined ? undefined : { position: error.position },
   );
 }
 

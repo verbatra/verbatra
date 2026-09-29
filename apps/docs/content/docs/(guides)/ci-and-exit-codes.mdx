@@ -55,7 +55,7 @@ Use `check` when the exit code is all you need. Use `diff` when you want the exa
 
 <AvailableFrom version="0.12.0" />
 
-Drift is not the only thing worth gating on. `verbatra check --qa` also runs the integrity gate and the review flags over every committed translation, so a hand-edited value with a broken placeholder, broken markup, or ICU plural arms that do not fit its language fails the job with exit `1`. Add `--strict` to fail on review warnings such as `EQUALS_SOURCE` too. It calls no provider either, so it needs no key. See [the quality check](/docs/cli/check#quality-check).
+Drift is not the only thing worth gating on. `verbatra check --qa` also runs the integrity gate and the review flags over every committed translation, so a hand-edited value with a broken placeholder, broken markup, or ICU plural arms that do not fit its language fails the job with exit `1`. Add `--strict` to fail on review warnings such as `EQUALS_SOURCE` too. It calls no provider either, so it needs no key. See [the quality check](/docs/cli/check#quality-check). To check just the one file an editor or agent changed, `verbatra check --file <path>` runs the same checks on that file alone, reports a file that does not parse as a `syntax` finding, and exits `2` with `NOT_A_LOCALE_FILE` for a path that is not a locale file; see [One file](/docs/cli/check#one-file).
 
 <AvailableFrom version="0.12.0" />
 
@@ -123,11 +123,11 @@ The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (wit
 | `INVALID_LOCALES` | `--locales` was given but lists no locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` is not a whole number of seconds from 1 to 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` is not a whole number of at least 1 |
-| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals` |
+| `INVALID_OPTION` | an `init` flag does not fit the provider (`--base-url` without `openai-compatible`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency` or `--require-reviewed` |
 | `INVALID_OUT` | `--out` on `types` or `pseudo` was given but names no path |
 | `INVALID_PORT` | `studio --port` is not an integer from 1 to 65535 |
 | `INVALID_PROVIDER` | `init --provider` names no known provider |
-| `INVALID_QA_OPTION` | `check` got `--severity` or `--strict` without `--qa`, or `--strict` together with `--severity error` |
+| `INVALID_QA_OPTION` | `check` got `--severity` or `--strict` without `--qa` or `--file`, or `--strict` together with `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` is neither `error` nor `warning` |
 | `LAYOUT_AMBIGUOUS` | `init` found several file patterns that fit equally well; `candidates` lists them |
 | `MISSING_OPTIONS` | `init` could not prompt (no terminal, or `--json`) and a value was neither passed, detected, nor defaulted by `--yes`; the message names every missing flag |

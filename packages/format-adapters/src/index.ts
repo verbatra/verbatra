@@ -4,7 +4,7 @@ export { androidPluralBaseKey, androidPluralCategoryOf } from "./android-xml/plu
 export { createAppleStringsAdapter } from "./apple-strings/apple-strings-adapter.js";
 export { createArbAdapter } from "./arb/arb-adapter.js";
 export { createDefaultRegistry } from "./default-registry.js";
-export { AdapterError, type AdapterErrorCode } from "./errors.js";
+export { AdapterError, type AdapterErrorCode, type SyntaxPosition } from "./errors.js";
 export {
   createFlatFileAdapter,
   type FlatFileAdapterOptions,

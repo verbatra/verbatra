@@ -72,6 +72,8 @@ const SDK_ERROR_HINTS = {
     "Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.",
   LOCALE_UNSUPPORTED_BY_PROVIDER:
     "Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.",
+  NOT_A_LOCALE_FILE:
+    "Pass the path of an existing locale file that `files.pattern` maps to a configured locale.",
   LOCALE_FAILED: "Fix the cause the locale's message names, then try again.",
 } as const satisfies Record<SdkErrorCode, string>;
 

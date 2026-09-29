@@ -7,6 +7,8 @@ import {
   projectLabel,
 } from "@verbatra/mcp";
 import type {
+  CheckFileInput,
+  CheckFileSummary,
   CheckInput,
   CheckSummary,
   ConfigSource,
@@ -90,6 +92,22 @@ export function makeExportResult(
 
 export function makeCheckSummary(overrides: Partial<CheckSummary> = {}): CheckSummary {
   return { inSync: true, locales: [], ...overrides };
+}
+
+export function makeCheckFileSummary(overrides: Partial<CheckFileSummary> = {}): CheckFileSummary {
+  return {
+    file: "locales/de.json",
+    role: "target",
+    locales: [
+      {
+        locale: "de",
+        incompletePlurals: [],
+        qa: { checked: 1, errors: 0, warnings: 0, findings: [] },
+      },
+    ],
+    qa: { errors: 0, warnings: 0, invalidSourceKeys: [] },
+    ...overrides,
+  };
 }
 
 export function makeDiffSummary(overrides: Partial<DiffSummary> = {}): DiffSummary {
@@ -269,6 +287,7 @@ export interface DepCalls {
   exportWorkbook: ExportWorkbookInput[];
   importWorkbook: ImportWorkbookInput[];
   check: CheckInput[];
+  checkFile: CheckFileInput[];
   diff: DiffInput[];
   doctor: DoctorInput[];
   loadConfigWithMeta: LoadConfigOptions[];
@@ -289,6 +308,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     exportWorkbook: [],
     importWorkbook: [],
     check: [],
+    checkFile: [],
     diff: [],
     doctor: [],
     loadConfigWithMeta: [],
@@ -324,6 +344,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     check: async (input) => {
       calls.check.push(input);
       return impl.check ? impl.check(input) : makeCheckSummary();
+    },
+    checkFile: async (input) => {
+      calls.checkFile.push(input);
+      return impl.checkFile ? impl.checkFile(input) : makeCheckFileSummary();
     },
     diff: async (input) => {
       calls.diff.push(input);

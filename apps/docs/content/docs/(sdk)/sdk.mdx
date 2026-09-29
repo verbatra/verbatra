@@ -416,6 +416,25 @@ or `REVIEW_STATE_UNREADABLE` when the provenance file is corrupt or from a newer
 fails the gate rather than passing it. The report never changes `inSync`; a CI gate reads
 `review.reviewed`. See [Require reviewed translations](/docs/cli/check#require-reviewed-translations).
 
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+Checks one locale file, the fast path for validating a file right after a person or an agent edited
+it. It reads that file and, for a target locale, the source locale file, and nothing else: no other
+locale, no lock file, no source code, no provider, no API key, and it writes nothing.
+
+Input: `{ config, cwd?, file, qaSeverity? }`, where `file` is absolute or relative to `cwd`. Returns a
+`CheckFileSummary` of `{ file, role, locales, qa }`: `role` is `"source"`, `"target"`, or
+`"catalogue"` (the one file of `apple-xcstrings`), each entry of `locales` is a `LocaleFileCheck` of
+`{ locale, incompletePlurals, qa }` whose `qa` has the shape of the `qa` report `check` returns with
+`qa: true`, and `qa` holds the totals. A file that does not parse is not thrown: its locale carries
+one `QaSyntaxFinding` of `{ severity: "error", reason: "syntax", code, message, line?, column? }`,
+with the format adapter's code and, for JSON and YAML, the position `AdapterError.position` reports.
+A target file that parses is checked against the source like `check` with `qa: true`; the source
+file is checked for syntax alone. A path that is no configured locale's file, or a file that does not
+exist, throws `NOT_A_LOCALE_FILE`. See [One file](/docs/cli/check#one-file).
+
 ### diff
 
 The detailed sibling of `check`: the same computation, but it returns the key lists per locale
@@ -1610,6 +1629,7 @@ are surfaced as data on the `RunSummary`, never thrown.
 | `EXPORT_UNWRITABLE` | the handoff `exportWorkbook` produces could not be written (its directory is not writable, a directory or file is in the way, or the disk is out of space); the message names the file and the file-system code, and the file-system error is the `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | thrown by `editEntry`, `retranslateEntry`, `approveEntry`, and `rejectEntry`, which write nothing then, and otherwise recorded on the `error` of a locale `translate`, `watch`, or `importWorkbook` did not run because its state under a respelled code such as `pt_BR` could not be moved to it in the lock file or the provenance file; the next run tries again ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)) |
 | `LOCALE_UNSUPPORTED_BY_PROVIDER` | the configured DeepL or Google Cloud Translation provider does not list the source locale or a selected target locale in the language table verbatra ships; thrown by `translate` (a dry run and an estimate too), `watch` at startup, and `retranslateEntry`, before any provider is built, any key read, or any locale started; a locale mapped explicitly in `localeMap` is trusted instead ([Language support](/docs/language-support#checking-support-before-a-run)) |
+| `NOT_A_LOCALE_FILE` | `checkFile` was given a path that is not the file of any configured locale, or no file exists there |
 | `LOCALE_FAILED` | never thrown: the fallback `code` recorded on a failed locale's `error` |
 
 A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a

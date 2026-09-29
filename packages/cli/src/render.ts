@@ -3,6 +3,7 @@ import process from "node:process";
 import {
   type BudgetStanding,
   budgetStanding,
+  type CheckFileSummary,
   type CheckSummary,
   type DiffSummary,
   type DoctorCheckStatus,
@@ -25,6 +26,7 @@ import {
   type LocaleCapabilityWarning,
   type LocaleCheckSummary,
   type LocaleDiff,
+  type LocaleFileCheck,
   type LocaleQaReport,
   type LocaleSummary,
   type LockWaitEvent,
@@ -33,6 +35,7 @@ import {
   type PseudolocalizeResult,
   projectRelativeMessage,
   type QaFinding,
+  type QaSyntaxFinding,
   type RunBudget,
   type RunEstimate,
   type RunSummary,
@@ -411,7 +414,7 @@ export function renderCheckHuman(summary: CheckSummary): string {
     "verbatra check",
     ...localeLines,
     overall,
-    ...renderIncompletePlurals(summary),
+    ...renderIncompletePlurals(summary, "--qa --strict"),
     ...renderConsistencyReport(summary),
     ...renderQaReport(summary),
     ...renderReviewReport(summary),
@@ -488,17 +491,20 @@ function renderLocaleQa(locale: string, report: LocaleQaReport): readonly string
   ];
 }
 
+function renderSkippedSourceKeys(invalidSourceKeys: readonly string[]): readonly string[] {
+  return invalidSourceKeys.length > 0
+    ? [
+        `  skipped, source is not valid ICU: ${invalidSourceKeys.map(neutralizeControlCharacters).join(", ")}`,
+      ]
+    : [];
+}
+
 function renderQaReport(summary: CheckSummary): readonly string[] {
   const totals = summary.qa;
   if (totals === undefined) {
     return [];
   }
-  const skipped =
-    totals.invalidSourceKeys.length > 0
-      ? [
-          `  skipped, source is not valid ICU: ${totals.invalidSourceKeys.map(neutralizeControlCharacters).join(", ")}`,
-        ]
-      : [];
+  const skipped = renderSkippedSourceKeys(totals.invalidSourceKeys);
   return [
     `qa: ${plural(totals.errors, "error")}, ${plural(totals.warnings, "warning")}`,
     ...summary.locales.flatMap((locale) =>
@@ -506,6 +512,33 @@ function renderQaReport(summary: CheckSummary): readonly string[] {
     ),
     ...skipped,
   ];
+}
+
+function renderSyntaxFinding(locale: string, finding: QaSyntaxFinding): string {
+  return `  ${locale}: syntax error [${finding.code}] ${neutralizeControlCharacters(finding.message)}`;
+}
+
+function renderLocaleFileCheck(entry: LocaleFileCheck): readonly string[] {
+  const syntax = entry.qa.findings.find(
+    (finding): finding is QaSyntaxFinding => finding.reason === "syntax",
+  );
+  if (syntax !== undefined) {
+    return [renderSyntaxFinding(entry.locale, syntax)];
+  }
+  const findings = entry.qa.findings.filter(
+    (finding): finding is QaFinding => finding.reason !== "syntax",
+  );
+  return renderLocaleQa(entry.locale, { ...entry.qa, findings });
+}
+
+export function renderCheckFileHuman(summary: CheckFileSummary): string {
+  return [
+    `verbatra check --file ${neutralizeControlCharacters(summary.file)} (${summary.role})`,
+    `qa: ${plural(summary.qa.errors, "error")}, ${plural(summary.qa.warnings, "warning")}`,
+    ...summary.locales.flatMap(renderLocaleFileCheck),
+    ...renderSkippedSourceKeys(summary.qa.invalidSourceKeys),
+    ...renderIncompletePlurals(summary, "--strict"),
+  ].join("\n");
 }
 
 function describePluralKind(gap: IncompletePlural): string {
@@ -520,7 +553,15 @@ function renderIncompletePlural(gap: IncompletePlural): string {
   return `    ${neutralizeControlCharacters(gap.key)}${describePluralKind(gap)}: missing ${gap.missing.join(", ")}`;
 }
 
-function renderIncompletePlurals(summary: CheckSummary): readonly string[] {
+interface PluralReportingLocale {
+  readonly locale: string;
+  readonly incompletePlurals?: readonly IncompletePlural[] | undefined;
+}
+
+function renderIncompletePlurals(
+  summary: { readonly locales: readonly PluralReportingLocale[] },
+  strictFlags: string,
+): readonly string[] {
   const affected = summary.locales.flatMap((locale) =>
     locale.incompletePlurals !== undefined && locale.incompletePlurals.length > 0
       ? [{ locale: locale.locale, gaps: locale.incompletePlurals }]
@@ -530,7 +571,7 @@ function renderIncompletePlurals(summary: CheckSummary): readonly string[] {
     return [];
   }
   return [
-    "plural categories (warning: exit 1 only under --qa --strict)",
+    `plural categories (warning: exit 1 only under ${strictFlags})`,
     ...affected.flatMap(({ locale, gaps }) => [
       `  ${locale}: ${plural(gaps.length, "plural")} missing CLDR categories`,
       ...gaps.map(renderIncompletePlural),

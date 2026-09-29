@@ -231,6 +231,9 @@
  *   constructed, any API key is read, or anything is spent, so no locale of the run is started. The
  *   message names every unsupported locale and the code it would be sent as. An LLM provider never
  *   raises it, and a locale mapped explicitly in `provider.options.localeMap` is trusted instead.
+ * - `NOT_A_LOCALE_FILE`: {@link checkFile} was given a path that is not the file of any configured
+ *   locale under the config's `files.pattern` and `files.localeStyle`, or no file exists at it.
+ *   Thrown before any locale file is read.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -277,6 +280,7 @@ export type SdkErrorCode =
   | "EXPORT_UNWRITABLE"
   | "LOCALE_STATE_NOT_CARRIED_OVER"
   | "LOCALE_UNSUPPORTED_BY_PROVIDER"
+  | "NOT_A_LOCALE_FILE"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

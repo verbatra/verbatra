@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
 import { ExchangeError } from "./errors.js";
 import { unescapeFormulaLead } from "./formula-guard.js";
 import { COLUMN, HEADER_ROW, HEADERS, INSTRUCTIONS_SHEET_NAME } from "./layout.js";
@@ -10,6 +10,7 @@ import type {
   WorkbookRowProblem,
   WorkbookSheet,
 } from "./types.js";
+import { loadExcelJs } from "./xlsx-libraries.js";
 import { guardWorkbookBytes } from "./zip-guard.js";
 
 export interface ReadWorkbookOptions {
@@ -103,7 +104,7 @@ function readDataSheet(sheet: ExcelJS.Worksheet, limits: WorkbookLimits): DataSh
 }
 
 async function loadWorkbook(bytes: Uint8Array): Promise<ExcelJS.Workbook> {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = new (await loadExcelJs()).Workbook();
   try {
     const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);

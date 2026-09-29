@@ -55,7 +55,7 @@ Usa `check` cuando el código de salida sea todo lo que necesitas. Usa `diff` cu
 
 <AvailableFrom version="0.12.0" />
 
-La deriva no es lo único que merece una puerta. `verbatra check --qa` también ejecuta la puerta de integridad y las señales de revisión sobre cada traducción confirmada, así que un valor editado a mano con un marcador roto, marcado roto o ramas de plural ICU que no encajan con su idioma hace fallar el job con la salida `1`. Añade `--strict` para fallar también con advertencias de revisión como `EQUALS_SOURCE`. Tampoco llama a ningún proveedor, así que no necesita clave. Consulta [el control de calidad](/docs/cli/check#control-de-calidad).
+La deriva no es lo único que merece una puerta. `verbatra check --qa` también ejecuta la puerta de integridad y las señales de revisión sobre cada traducción confirmada, así que un valor editado a mano con un marcador roto, marcado roto o ramas de plural ICU que no encajan con su idioma hace fallar el job con la salida `1`. Añade `--strict` para fallar también con advertencias de revisión como `EQUALS_SOURCE`. Tampoco llama a ningún proveedor, así que no necesita clave. Consulta [el control de calidad](/docs/cli/check#control-de-calidad). Para comprobar solo el archivo que un editor o agente acaba de cambiar, `verbatra check --file <path>` ejecuta las mismas comprobaciones solo en ese archivo, informa de un archivo que no se puede analizar como un hallazgo `syntax` y sale con `2` y `NOT_A_LOCALE_FILE` para una ruta que no es un archivo de locale; consulta [Un solo archivo](/docs/cli/check#un-solo-archivo).
 
 <AvailableFrom version="0.12.0" />
 
@@ -123,11 +123,11 @@ La CLI lanza estos códigos por sí misma. La misma lista se publica como `CLI_E
 | `INVALID_LOCALES` | se dio `--locales` pero no lista ningún locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` no es un número entero de segundos de 1 a 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` no es un número entero de al menos 1 |
-| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals` |
+| `INVALID_OPTION` | un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency` o `--require-reviewed` |
 | `INVALID_OUT` | se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta |
 | `INVALID_PORT` | `studio --port` no es un entero de 1 a 65535 |
 | `INVALID_PROVIDER` | `init --provider` no nombra ningún proveedor conocido |
-| `INVALID_QA_OPTION` | `check` recibió `--severity` o `--strict` sin `--qa`, o `--strict` junto con `--severity error` |
+| `INVALID_QA_OPTION` | `check` recibió `--severity` o `--strict` sin `--qa` ni `--file`, o `--strict` junto con `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` no es ni `error` ni `warning` |
 | `LAYOUT_AMBIGUOUS` | `init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista |
 | `MISSING_OPTIONS` | `init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta |
