@@ -1,6 +1,6 @@
 ---
 title: verbatra export
-description: Exportiere unübersetzte Strings in eine Übergabe für Übersetzerinnen, als formatierte Excel-Arbeitsmappe oder als CSV- bzw. TSV-Datei pro Locale.
+description: Exportiere unübersetzte Strings in eine Übergabe für Übersetzerinnen, als formatierte Excel-Arbeitsmappe, als CSV- bzw. TSV-Datei pro Locale oder als XLIFF-Datei pro Locale für ein CAT-Tool.
 ---
 Schreibe die zu übersetzenden Strings in eine formatierte Excel-Arbeitsmappe, die ein Mensch ausfüllen und für [`verbatra import`](/docs/cli/import) zurückschicken kann. Standardmäßig enthält die Arbeitsmappe nur die fehlenden und geänderten Strings: dieselben Keys, die ein automatischer Lauf an einen Provider schicken würde. `export` ruft nie einen Provider auf und braucht keinen API-Key.
 
@@ -16,8 +16,8 @@ verbatra export [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
 | `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--out` | `<path>` | `verbatra-translations.xlsx`, bei `csv` und `tsv` stattdessen `verbatra-translations` | die Übergabe hierhin schreiben: ein Dateipfad bei `xlsx`, ein Verzeichnis bei `csv` und `tsv` |
-| `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`) oder je eine Datei mit Trennzeichen pro Locale (`csv`, `tsv`) schreiben |
+| `--out` | `<path>` | `verbatra-translations.xlsx`, bei den anderen Formaten stattdessen `verbatra-translations` | die Übergabe hierhin schreiben: ein Dateipfad bei `xlsx`, ein Verzeichnis bei `csv`, `tsv`, `xliff2` und `xliff12` |
+| `--format` | `<format>` | `xlsx` | eine Excel-Arbeitsmappe (`xlsx`), je eine Datei mit Trennzeichen pro Locale (`csv`, `tsv`) oder je eine XLIFF-2.0- bzw. 1.2-Datei pro Locale (`xliff2`, `xliff12`, ab 0.12.0) schreiben |
 | `--locales` | `<list>` | alle konfigurierten Ziele | kommagetrennte Teilmenge der Ziel-Locales, die exportiert wird |
 | `--include-unchanged` | keins | aus | auch bereits aktuelle Strings exportieren |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der das Export-Ergebnis (Pfad und Zeilenzahlen pro Locale) unter `result` trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
@@ -35,6 +35,9 @@ verbatra export --locales de,fr --out handoff/round-2.xlsx
 
 # one de.csv and fr.csv under handoff/
 verbatra export --format csv --out handoff
+
+# one de.xlf and fr.xlf in XLIFF 2.0 for a CAT tool
+verbatra export --format xliff2 --out handoff
 ```
 
 ## CSV und TSV
@@ -45,9 +48,15 @@ Eine Datei mit Trennzeichen lässt sich diffen und überall öffnen, hat aber ke
 
 Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest in das Verzeichnis, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die soeben geschriebenen Locales benennt. Nur dadurch kann ein erneuter Export mit einer engeren `--locales`-Auswahl die weggefallenen Locales stilllegen: deren Dateien bleiben auf der Platte, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück, statt eine veraltete Übersetzung anzuwenden. Der Export löscht nichts aus dem Ausgabeverzeichnis, eine eigene Datei darin ist also nie in Gefahr.
 
+## XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+`--format xliff2` schreibt XLIFF 2.0 und `--format xliff12` XLIFF 1.2, eine `<locale>.xlf` pro exportierter Locale in das `--out`-Verzeichnis, mit einem Manifest `.verbatra-export-xliff.json`, das wie das CSV-Manifest funktioniert. Jeder Key wird zu einer Unit mit dem Key als Namen, Platzhalter und Markup werden zu geschützten Inline-Codes, Beschreibung und Bedeutung des Keys werden zu Notizen, und der Segmentstatus folgt dem Lock- und Review-Status (`initial` für einen fehlenden oder veralteten Key, `translated` wenn aktuell, `reviewed` wenn freigegeben). [An eine Übersetzungsagentur übergeben](/docs/translation-agency) beschreibt die Datei vollständig.
+
 ## Wohin die Übergabe geschrieben wird
 
-Die Übergabe wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor irgendetwas gelesen wird, weist verbatra ein `--out`, das aus dem Arbeitsverzeichnis hinausführt, mit `EXPORT_OUTPUT_CONFLICT` zurück, ebenso eines, das selbst oder über eine Datei, die der Export hineinschreiben würde, eine Datei benennt, von der das Projekt abhängt: eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die Konfigurationsdatei des Laufs oder die Glossardatei, auf die `glossary` in deiner Konfiguration zeigt. Bei `xlsx` wird außerdem ein Pfad abgelehnt, der keine Datei benennt (auch einer, der auf ein Pfadtrennzeichen endet, etwa `out/`) oder das Arbeitsverzeichnis selbst benennt; ein `csv`- oder `tsv`-Verzeichnis darf das Arbeitsverzeichnis sein. Namen werden ohne Beachtung der Groß- und Kleinschreibung verglichen, und dieselben Prüfungen laufen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links wirklich landet, sodass ein verlinktes Verzeichnis oder eine verlinkte Datei die Übergabe weder aus dem Arbeitsverzeichnis hinaus noch auf eine geschützte Datei tragen kann, und es wird nichts geschrieben.
+Die Übergabe wird nur innerhalb des Arbeitsverzeichnisses geschrieben. Bevor irgendetwas gelesen wird, weist verbatra ein `--out`, das aus dem Arbeitsverzeichnis hinausführt, mit `EXPORT_OUTPUT_CONFLICT` zurück, ebenso eines, das selbst oder über eine Datei, die der Export hineinschreiben würde, eine Datei benennt, von der das Projekt abhängt: eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die Konfigurationsdatei des Laufs oder die Glossardatei, auf die `glossary` in deiner Konfiguration zeigt. Bei `xlsx` wird außerdem ein Pfad abgelehnt, der keine Datei benennt (auch einer, der auf ein Pfadtrennzeichen endet, etwa `out/`) oder das Arbeitsverzeichnis selbst benennt; ein `csv`-, `tsv`-, `xliff2`- oder `xliff12`-Verzeichnis darf das Arbeitsverzeichnis sein. Namen werden ohne Beachtung der Groß- und Kleinschreibung verglichen, und dieselben Prüfungen laufen noch einmal auf dem Ziel, auf dem der Pfad nach dem Auflösen symbolischer Links wirklich landet, sodass ein verlinktes Verzeichnis oder eine verlinkte Datei die Übergabe weder aus dem Arbeitsverzeichnis hinaus noch auf eine geschützte Datei tragen kann, und es wird nichts geschrieben.
 
 Ein Pfad, der diese Prüfungen besteht, kann beim Schreiben trotzdem scheitern: Ist das Verzeichnis nicht schreibbar, liegt ein Verzeichnis oder eine Datei im Weg oder ist die Platte voll, bricht der Lauf mit `EXPORT_UNWRITABLE` ab, nennt die Datei und den Dateisystem-Code und endet mit `2`.
 
@@ -73,9 +82,10 @@ Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also gena
 
 `export` hat keinen Fehlermodus pro Locale und endet deshalb nie mit `1`.
 
-Eine Ziel-Locale, die ihr Blatt oder ihre Datei nicht benennen kann, stoppt den Export mit `WORKBOOK_INVALID`. Ein xlsx-Blattname muss 1 bis 31 Zeichen lang sein, darf keines der Zeichen `: \ / ? * [ ]` enthalten und darf, ohne Beachtung der Groß- und Kleinschreibung, weder `Instructions` noch dem Blattnamen einer anderen Ziel-Locale entsprechen. Ein `csv`- oder `tsv`-Dateiname darf nicht leer, `.` oder `..` sein und darf kein Pfadtrennzeichen, kein Steuerzeichen und keines der Zeichen `: * ? " < > |` enthalten. Derselbe Code gilt für eine Arbeitsmappe, die sich nicht serialisieren ließ.
+Eine Ziel-Locale, die ihr Blatt oder ihre Datei nicht benennen kann, stoppt den Export mit `WORKBOOK_INVALID`. Ein xlsx-Blattname muss 1 bis 31 Zeichen lang sein, darf keines der Zeichen `: \ / ? * [ ]` enthalten und darf, ohne Beachtung der Groß- und Kleinschreibung, weder `Instructions` noch dem Blattnamen einer anderen Ziel-Locale entsprechen. Ein `csv`-, `tsv`- oder `xlf`-Dateiname darf nicht leer, `.` oder `..` sein und darf kein Pfadtrennzeichen, kein Steuerzeichen und keines der Zeichen `: * ? " < > |` enthalten. Derselbe Code gilt für eine Arbeitsmappe, die sich nicht serialisieren ließ.
 
 ## Siehe auch
 
 - [Menschliche Übersetzung](/docs/manual-translation) behandelt den Aufbau der Arbeitsmappe, die CSV- und TSV-Variante, die Review-Spalten und den vollständigen Roundtrip.
+- [An eine Übersetzungsagentur übergeben](/docs/translation-agency) behandelt die XLIFF-Übergabe für ein CAT-Tool.
 - [`verbatra import`](/docs/cli/import) liest die ausgefüllte Übergabe zurück.

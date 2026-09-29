@@ -97,11 +97,17 @@ Was sich gegenüber der Arbeitsmappe unterscheidet:
 - **Ein engerer erneuter Export stellt die weggefallenen Locales außer Dienst.** Jeder Export hält die geschriebenen Locales in einem versteckten Manifest im Ausgabeverzeichnis fest. Dateien aus einer früheren, breiteren Auswahl bleiben auf der Platte, werden beim Import aber zurückgewiesen (`HANDOFF_FILE_STALE`), statt als frisch angewendet zu werden. Gelöscht wird nie etwas, eine fremde Datei in diesem Verzeichnis ist also sicher.
 - **Alles andere ist identisch.** Derselbe Diff wählt die Zeilen, und jede zurückgegebene Zeile läuft durch dasselbe Integritäts-Gate. Eine Textübergabe und eine Arbeitsmappe liefern für dieselben Werte also dasselbe Ergebnis.
 
+## XLIFF für ein CAT-Tool
+
+<AvailableFrom version="0.12.0" />
+
+Eine Übersetzungsagentur, die in einem CAT-Tool wie Trados, memoQ oder OmegaT arbeitet, will XLIFF statt einer Tabelle. `--format xliff2` und `--format xliff12` schreiben eine `<locale>.xlf` pro Locale mit Segmentstatus, Notizen und geschützten Platzhaltern, und der Import liest sie mit denselben Prüfungen wie eine Arbeitsmappe zurück und hält ein Segment, das die Agentur als geprüft markiert hat, als freigegeben fest. Siehe [An eine Übersetzungsagentur übergeben](/docs/translation-agency).
+
 ## TMX ist ein anderer Weg
 
 <AvailableFrom version="0.11.0" />
 
-Eine Übergabe trägt einen Ausschnitt des offenen Deltas pro Locale an eine menschliche Übersetzerin; [`verbatra tmx`](/docs/cli/tmx) trägt den gesamten Übersetzungsspeicher als eine einzige mehrsprachige Datei, um ihn zwischen Tools zu bewegen, statt um Strings übersetzen zu lassen. TMX ist kein `--format`-Wert: `xlsx`, `csv` und `tsv` sind die Übergabeformen, greife also zu `verbatra tmx export` und `verbatra tmx import` statt zu `verbatra export --format tmx`.
+Eine Übergabe trägt einen Ausschnitt des offenen Deltas pro Locale an eine menschliche Übersetzerin; [`verbatra tmx`](/docs/cli/tmx) trägt den gesamten Übersetzungsspeicher als eine einzige mehrsprachige Datei, um ihn zwischen Tools zu bewegen, statt um Strings übersetzen zu lassen. TMX ist kein `--format`-Wert: `xlsx`, `csv`, `tsv`, `xliff2` und `xliff12` sind die Übergabeformen, greife also zu `verbatra tmx export` und `verbatra tmx import` statt zu `verbatra export --format tmx`.
 
 ## Auswählen, was exportiert wird
 

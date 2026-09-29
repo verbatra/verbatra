@@ -1,6 +1,6 @@
 ---
 title: verbatra export
-description: Export untranslated strings into a translator handoff, as a styled Excel workbook or one CSV or TSV file per locale.
+description: Export untranslated strings into a translator handoff, as a styled Excel workbook, one CSV or TSV file per locale, or one XLIFF file per locale for a CAT tool.
 ---
 Write the strings that need translating into a styled Excel workbook a human can fill in and send back for [`verbatra import`](/docs/cli/import). By default the workbook carries only the missing and changed strings: the same keys an automated run would send to a provider. `export` never calls a provider and needs no API key.
 
@@ -16,8 +16,8 @@ verbatra export [flags]
 | --- | --- | --- | --- |
 | `--cwd` | `<path>` | current directory | resolve config and locale files from this directory |
 | `--config` | `<path>` | search for one | load this config file instead of searching for one |
-| `--out` | `<path>` | `verbatra-translations.xlsx`, or `verbatra-translations` for `csv` and `tsv` | write the handoff here: a file path for `xlsx`, a directory for `csv` and `tsv` |
-| `--format` | `<format>` | `xlsx` | write an Excel workbook (`xlsx`) or one delimited file per locale (`csv`, `tsv`) |
+| `--out` | `<path>` | `verbatra-translations.xlsx`, or `verbatra-translations` for the other formats | write the handoff here: a file path for `xlsx`, a directory for `csv`, `tsv`, `xliff2` and `xliff12` |
+| `--format` | `<format>` | `xlsx` | write an Excel workbook (`xlsx`), one delimited file per locale (`csv`, `tsv`), or one XLIFF 2.0 or 1.2 file per locale (`xliff2`, `xliff12`, from 0.12.0) |
 | `--locales` | `<list>` | all configured targets | comma-separated subset of target locales to export |
 | `--include-unchanged` | none | off | also export already up-to-date strings |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the export result (path and per-locale row counts) under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
@@ -35,6 +35,9 @@ verbatra export --locales de,fr --out handoff/round-2.xlsx
 
 # one de.csv and fr.csv under handoff/
 verbatra export --format csv --out handoff
+
+# one de.xlf and fr.xlf in XLIFF 2.0 for a CAT tool
+verbatra export --format xliff2 --out handoff
 ```
 
 ## CSV and TSV
@@ -45,9 +48,15 @@ A delimited file is diffable and opens anywhere, but it carries no cell protecti
 
 Each delimited export also writes a hidden manifest into the directory, `.verbatra-export-csv.json` or `.verbatra-export-tsv.json`, naming the locales it just wrote. It is what lets a re-export with a narrower `--locales` selection retire the locales it dropped: their files stay on disk, and [`verbatra import`](/docs/cli/import) refuses them as leftovers rather than applying an outdated translation. The export deletes nothing from the output directory, so a file you put there yourself is never at risk.
 
+## XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+`--format xliff2` writes XLIFF 2.0 and `--format xliff12` XLIFF 1.2, one `<locale>.xlf` per exported locale into the `--out` directory, with a `.verbatra-export-xliff.json` manifest that works like the CSV one. Each key becomes a unit named by the key, placeholders and markup become protected inline codes, the key's description and meaning become notes, and the segment state follows the lock and review state (`initial` for a missing or stale key, `translated` when up to date, `reviewed` when approved). [Hand off to a translation agency](/docs/translation-agency) covers the file in full.
+
 ## Where the handoff is written
 
-The handoff is only written inside the working directory. Before anything is read, an `--out` that climbs out of the working directory is refused with `EXPORT_OUTPUT_CONFLICT`, and so is one that, or a file the export would write into it, names a file the project depends on: a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file your config points `glossary` at. For `xlsx`, a path that names no file (including one ending in a path separator, such as `out/`) or names the working directory itself is refused too; a `csv` or `tsv` directory may be the working directory. Names are compared case-insensitively, and the same checks run again on where the path really lands once symbolic links are resolved, so a linked directory or file cannot carry the handoff outside the working directory or onto a protected file, and nothing is written.
+The handoff is only written inside the working directory. Before anything is read, an `--out` that climbs out of the working directory is refused with `EXPORT_OUTPUT_CONFLICT`, and so is one that, or a file the export would write into it, names a file the project depends on: a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file your config points `glossary` at. For `xlsx`, a path that names no file (including one ending in a path separator, such as `out/`) or names the working directory itself is refused too; a `csv`, `tsv`, `xliff2` or `xliff12` directory may be the working directory. Names are compared case-insensitively, and the same checks run again on where the path really lands once symbolic links are resolved, so a linked directory or file cannot carry the handoff outside the working directory or onto a protected file, and nothing is written.
 
 A path that passes those checks can still fail at the moment of writing: when the directory is not writable, a directory or file is in the way, or the disk is full, the run stops with `EXPORT_UNWRITABLE`, naming the file and the file-system code, and exits `2`.
 
@@ -73,9 +82,10 @@ These lines go to stderr, so stdout and `--json` output stay exactly as describe
 
 `export` has no per-locale failure mode, so it never exits `1`.
 
-A target locale that cannot name its sheet or file stops the export with `WORKBOOK_INVALID`. An xlsx sheet name must be 1 to 31 characters, must not contain any of `: \ / ? * [ ]`, and must not match `Instructions` or another target locale's sheet name, ignoring case. A `csv` or `tsv` file name must not be empty, `.` or `..`, and must not contain a path separator, a control character, or any of `: * ? " < > |`. The same code covers a workbook that could not be serialized.
+A target locale that cannot name its sheet or file stops the export with `WORKBOOK_INVALID`. An xlsx sheet name must be 1 to 31 characters, must not contain any of `: \ / ? * [ ]`, and must not match `Instructions` or another target locale's sheet name, ignoring case. A `csv`, `tsv` or `xlf` file name must not be empty, `.` or `..`, and must not contain a path separator, a control character, or any of `: * ? " < > |`. The same code covers a workbook that could not be serialized.
 
 ## Related
 
 - [Manual translation](/docs/manual-translation) covers the workbook layout, the CSV and TSV variant, the review columns, and the full round-trip.
+- [Hand off to a translation agency](/docs/translation-agency) covers the XLIFF handoff for a CAT tool.
 - [`verbatra import`](/docs/cli/import) reads the filled handoff back.
