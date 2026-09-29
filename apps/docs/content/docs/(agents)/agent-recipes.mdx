@@ -40,7 +40,7 @@ verbatra translate --dry-run --json 2>/dev/null \
   | jq -c '.result | {dryRun, succeeded, partial, failed, translated: [.locales[].translated[]]}'
 ```
 
-```text title="Output"
+```text output
 {"dryRun":true,"succeeded":["de"],"partial":[],"failed":[],"translated":["app.greeting"]}
 ```
 
@@ -60,7 +60,7 @@ A locale can fail inside a run that itself completed. The envelope stays `ok: tr
 verbatra translate --json 2>/dev/null | jq -c '{ok, succeeded: .result.succeeded, partial: .result.partial, failed: .result.failed}'
 ```
 
-```text title="Output"
+```text output
 {"ok":true,"succeeded":[],"partial":[],"failed":["de"]}
 ```
 
@@ -93,7 +93,7 @@ esac
 
 On the same project, the three branches print:
 
-```text title="Output"
+```text output
 de: 1 missing, 0 stale
 every locale is in sync
 cannot run [CONFIG_INVALID] The verbatra configuration is invalid: provider.options.maxOutputTokens: Invalid input: expected number, received undefined
@@ -116,7 +116,7 @@ verbatra watch --json 2>/dev/null \
   | jq -c --unbuffered '{ok, code, failed: (.result.failed // null), translated: [(.result.locales // [])[].translated[]]}'
 ```
 
-```text title="Output"
+```text output
 {"ok":true,"code":null,"failed":[],"translated":["app.greeting"]}
 {"ok":true,"code":null,"failed":[],"translated":["app.logout"]}
 {"ok":false,"code":"SOURCE_INVALID","failed":null,"translated":[]}
