@@ -127,7 +127,7 @@ describe("createLibreTranslateProvider: translation", () => {
     );
     expect(result.values.size).toBe(0);
     expect(result.integrity.size).toBe(0);
-    expect(result.notices.map((notice) => notice.code)).toEqual(["PLACEHOLDER_UNSUPPORTED"]);
+    expect(result.notices?.map((notice) => notice.code)).toEqual(["PLACEHOLDER_UNSUPPORTED"]);
   });
 
   it("sends nothing when every entry is withheld", async () => {
@@ -144,7 +144,7 @@ describe("createLibreTranslateProvider: translation", () => {
     const result = await createLibreTranslateProvider(config, { client }).translateBatch(
       request({ tone: "formal", glossary: termGlossary({ Save: "Speichern" }) }),
     );
-    expect(result.notices.map((notice) => notice.code)).toEqual([
+    expect(result.notices?.map((notice) => notice.code)).toEqual([
       "FORMALITY_DOWNGRADED",
       "GLOSSARY_IGNORED",
     ]);
