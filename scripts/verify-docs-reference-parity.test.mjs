@@ -40,9 +40,10 @@ function cliErrorCodes() {
   return [...list[1].matchAll(/"([A-Z_]+)"/g)].map((match) => match[1]);
 }
 
-function documentedCliErrorCodes(suffix) {
-  const page = readDocPage("(guides)/ci-and-exit-codes", suffix);
-  return [...page.matchAll(/^\| `([A-Z_]+)` \|/gm)].map((match) => match[1]);
+function documentedCliErrorCodes(page, firstCode) {
+  return tableRowsFrom(page, new RegExp(`^\\| \`${firstCode}\` \\|`)).map(
+    (row) => /^\| `([A-Z_]+)` \|/.exec(row)?.[1],
+  );
 }
 
 function sdkErrorCodes() {
@@ -133,7 +134,7 @@ describe("the providers page documents every provider error code", () => {
   });
 });
 
-describe("the CI guide documents every code the CLI raises itself", () => {
+describe("the CLI output reference documents every code the CLI raises itself", () => {
   const codes = cliErrorCodes();
 
   it("extracts a non-trivial list, so the comparisons cannot pass vacuously", () => {
@@ -142,11 +143,19 @@ describe("the CI guide documents every code the CLI raises itself", () => {
   });
 
   it.each(LOCALE_SUFFIXES)(
-    "has one table row per code, in list order, in ci-and-exit-codes%s.mdx",
+    "has one table row per code, in list order, in cli/output%s.mdx",
     (suffix) => {
-      expect(documentedCliErrorCodes(suffix)).toEqual(codes);
+      expect(documentedCliErrorCodes(readDocPage("cli/output", suffix), codes[0])).toEqual(codes);
     },
   );
+
+  it("sees a dropped code row and a row outside the code table", () => {
+    const page = readDocPage("cli/output", "");
+    const dropped = page.replace(/^\| `USAGE_ERROR` \|.*\n/m, "");
+
+    expect(documentedCliErrorCodes(dropped, codes[0])).not.toEqual(codes);
+    expect(documentedCliErrorCodes(`${page}\n| \`FORCE_COLOR\` | x |\n`, codes[0])).toEqual(codes);
+  });
 });
 
 describe("the SDK reference documents every SdkError code", () => {
