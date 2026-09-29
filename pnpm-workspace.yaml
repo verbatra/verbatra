@@ -120,9 +120,9 @@ overrides:
   sharp@<0.35.0: ">=0.35.0"
   # Next.js highs patched in 16.2.11: App Router middleware/proxy bypass, App Router DoS, Server
   # Actions SSRF, and rewrites SSRF (all >=16.0.0 <16.2.11, apps/docs only, private). The direct pin in
-  # apps/docs/package.json is bumped to 16.2.11; this override lifts any transitive fumadocs copy too,
-  # bounded to the 16.2 line to avoid an unintended minor jump.
-  "next@>=16.0.0 <16.2.11": ">=16.2.11 <16.3"
+  # apps/docs/package.json is at or above 16.2.11; this override lifts any transitive fumadocs copy too,
+  # bounded to the 16 major so a patched minor like 16.3 still satisfies the peer ranges it rewrites.
+  "next@>=16.0.0 <16.2.11": ">=16.2.11 <17"
   # GHSA-2v37-7h3g-55p8 (CVE-2026-67213, high): customAlphabet and customRandom loop forever when
   # called with a size of 0, hanging the calling thread. Vulnerable <3.3.17 on the v3 line; lifts the
   # 3.3.16 copy postcss pulls (dev-only, via tsup and @tailwindcss/postcss) to the patched release.
