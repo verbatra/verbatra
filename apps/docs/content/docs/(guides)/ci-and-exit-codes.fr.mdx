@@ -54,7 +54,7 @@ Utilise `check` quand le code de sortie te suffit. Utilise `diff` quand tu veux 
 
 <AvailableFrom version="0.12.0" />
 
-La dérive n'est pas la seule chose qui mérite un contrôle. `verbatra check --qa` passe aussi la barrière d'intégrité et les signalements de révision sur chaque traduction commitée : une valeur modifiée à la main avec un placeholder cassé, un balisage cassé ou des branches plurielles ICU qui ne conviennent pas à sa langue fait échouer le job avec la sortie `1`. Ajoute `--strict` pour échouer aussi sur des avertissements de révision comme `EQUALS_SOURCE`. Aucun fournisseur n'est appelé non plus, donc aucune clé n'est nécessaire. Voir [le contrôle qualité](/docs/cli/check#contrôle-qualité).
+La dérive n'est pas la seule chose qui mérite un contrôle. `verbatra check --qa` passe aussi la barrière d'intégrité et les signalements de révision sur chaque traduction commitée : une valeur modifiée à la main avec un placeholder cassé, un balisage cassé ou des branches plurielles ICU qui ne conviennent pas à sa langue fait échouer le job avec la sortie `1`. Ajoute `--strict` pour échouer aussi sur des avertissements de révision comme `EQUALS_SOURCE`. Aucun fournisseur n'est appelé non plus, donc aucune clé n'est nécessaire. Voir [le contrôle qualité](/docs/cli/check#contrôle-qualité). Pour vérifier seulement le fichier qu'un éditeur ou un agent vient de modifier, `verbatra check --file <path>` exécute les mêmes contrôles sur ce seul fichier, signale un fichier qui ne s'analyse pas comme un constat `syntax` et sort avec `2` et `NOT_A_LOCALE_FILE` pour un chemin qui n'est pas un fichier de locale ; vois [Un seul fichier](/docs/cli/check#un-seul-fichier).
 
 <AvailableFrom version="0.12.0" />
 
@@ -116,11 +116,11 @@ La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_
 | `INVALID_LOCALES` | `--locales` a été donné mais ne liste aucune locale |
 | `INVALID_LOCK_TIMEOUT` | `--lock-timeout` n'est pas un nombre entier de secondes de 1 à 3600 |
 | `INVALID_MAX_TOKENS` | `translate --max-tokens` n'est pas un nombre entier d'au moins 1 |
-| `INVALID_OPTION` | une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, ou `init --cwd` ne nomme aucun répertoire existant |
+| `INVALID_OPTION` | une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, ou `init --cwd` ne nomme aucun répertoire existant, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales` ou `--consistency` |
 | `INVALID_OUT` | `--out` sur `types` ou `pseudo` a été donné mais ne nomme aucun chemin |
 | `INVALID_PORT` | `studio --port` n'est pas un entier de 1 à 65535 |
 | `INVALID_PROVIDER` | `init --provider` ne nomme aucun fournisseur connu |
-| `INVALID_QA_OPTION` | `check` a reçu `--severity` ou `--strict` sans `--qa`, ou `--strict` avec `--severity error` |
+| `INVALID_QA_OPTION` | `check` a reçu `--severity` ou `--strict` sans `--qa` ni `--file`, ou `--strict` avec `--severity error` |
 | `INVALID_SEVERITY` | `check --severity` n'est ni `error` ni `warning` |
 | `LAYOUT_AMBIGUOUS` | `init` a trouvé plusieurs motifs de fichiers qui conviennent aussi bien les uns que les autres ; `candidates` les liste |
 | `MISSING_OPTIONS` | `init` n'a pas pu poser de question (pas de terminal, ou `--json`) et une valeur n'a été ni passée, ni détectée, ni fixée par défaut par `--yes` ; le message nomme chaque option manquante |

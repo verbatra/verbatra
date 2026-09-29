@@ -105,6 +105,10 @@ Watch the source locale file and re-translate on every change until the returned
 
 Count missing, stale, and up-to-date keys per locale. Calls no provider and writes nothing. See [`verbatra check`](https://verbatra.kreitz-webdev.de/docs/cli/check).
 
+### `checkFile(input, deps?): Promise<CheckFileSummary>`
+
+Check one locale file after an edit: its syntax, then its values against the source, reading no other locale. Calls no provider and writes nothing. See [`verbatra check --file`](https://verbatra.kreitz-webdev.de/docs/cli/check#one-file).
+
 ### `diff(input, deps?): Promise<DiffSummary>`
 
 Name the keys that would be added, re-translated, or orphaned per locale. Calls no provider and writes nothing. See [`verbatra diff`](https://verbatra.kreitz-webdev.de/docs/cli/diff).

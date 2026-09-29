@@ -427,6 +427,27 @@ leer, wenn jeder Plural vollständig ist. Abgedeckt sind `i18next-json`, `androi
 eine Kategorie, die die Sprache nicht verwendet, wird nicht gemeldet. Es ist eine Warnung: Sie ändert
 nie `inSync` oder eine Zahl. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien).
 
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+Prüft eine einzelne Locale-Datei, der schnelle Weg, eine Datei direkt nach einer Änderung durch eine
+Person oder einen Agenten zu validieren. Es liest diese Datei und, für ein Ziel-Locale, die Datei des
+Quell-Locales, und sonst nichts: kein anderes Locale, keine Lock-Datei, keinen Quellcode, keinen
+Provider, keinen API-Key, und es schreibt nichts.
+
+Eingabe: `{ config, cwd?, file, qaSeverity? }`, wobei `file` absolut oder relativ zu `cwd` ist. Gibt
+eine `CheckFileSummary` aus `{ file, role, locales, qa }` zurück: `role` ist `"source"`, `"target"`
+oder `"catalogue"` (die eine Datei von `apple-xcstrings`), jeder Eintrag in `locales` ist ein
+`LocaleFileCheck` aus `{ locale, incompletePlurals, qa }`, dessen `qa` die Form des `qa`-Berichts hat,
+den `check` mit `qa: true` liefert, und `qa` enthält die Summen. Eine Datei, die sich nicht parsen
+lässt, wird nicht geworfen: Ihr Locale trägt einen `QaSyntaxFinding` aus
+`{ severity: "error", reason: "syntax", code, message, line?, column? }` mit dem Code des
+Format-Adapters und, bei JSON und YAML, der Position, die `AdapterError.position` meldet. Eine
+Zieldatei, die sich parsen lässt, wird wie bei `check` mit `qa: true` gegen die Quelle geprüft; die
+Quelldatei nur auf ihre Syntax. Ein Pfad, der zu keinem konfigurierten Locale gehört, oder eine
+Datei, die es nicht gibt, wirft `NOT_A_LOCALE_FILE`. Siehe [Eine Datei](/docs/cli/check#eine-datei).
+
 ### diff
 
 Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
@@ -1680,6 +1701,7 @@ geworfen.
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` hat seinen Ausgabepfad abgelehnt: einen, der außerhalb von `cwd` landet, und einen, der selbst oder über eine Datei, die der Export hineinschreiben würde, eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein `xlsx`-Pfad, der keine Datei oder `cwd` selbst benennt, wird ebenfalls abgelehnt; wird abgelehnt, bevor irgendetwas gelesen wird |
 | `EXPORT_UNWRITABLE` | die von `exportWorkbook` erzeugte Übergabe konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, ein Verzeichnis oder eine Datei liegt im Weg, oder die Platte ist voll); die Message nennt die Datei und den Dateisystem-Code, und der Dateisystem-Fehler ist die `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | geworfen von `editEntry`, `retranslateEntry`, `approveEntry` und `rejectEntry`, die dann nichts schreiben, sonst steht er auf dem `error` einer Locale, die `translate`, `watch` oder `importWorkbook` nicht ausgeführt hat, weil ihr Zustand unter einem umgeschriebenen Code wie `pt_BR` in der Lock-Datei oder der Provenance-Datei nicht zu ihr verschoben werden konnte; der nächste Lauf versucht es erneut ([Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)) |
+| `NOT_A_LOCALE_FILE` | `checkFile` hat einen Pfad bekommen, der zu keinem konfigurierten Locale gehört, oder dort gibt es keine Datei |
 | `LOCALE_FAILED` | wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale |
 
 Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:

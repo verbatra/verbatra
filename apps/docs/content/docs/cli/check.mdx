@@ -19,8 +19,9 @@ verbatra check [flags]
 | `--locales` | `<list>` | all configured targets | comma-separated subset of target locales to check |
 | `--consistency` | none | off | also report, per locale, every source string translated more than one way under different keys; report only, it never changes the exit code |
 | `--qa` | none | off | also run the [quality check](#quality-check) over every committed translation; exit `1` on an error |
-| `--severity` | `error` or `warning` | `warning` | with `--qa`, the lowest severity to report; `error` skips the review reasons entirely |
-| `--strict` | none | off | with `--qa`, also exit `1` when the quality check reports a warning or a plural lacks [plural categories](#plural-categories); not allowed together with `--severity error` |
+| `--file` | `<path>` | off | check only this one locale file: its syntax, then its values against the source, reading no other locale (see [One file](#one-file)); not allowed together with `--locales` or `--consistency` |
+| `--severity` | `error` or `warning` | `warning` | with `--qa` or `--file`, the lowest severity to report; `error` skips the review reasons entirely |
+| `--strict` | none | off | with `--qa` or `--file`, also exit `1` when the quality check reports a warning or a plural lacks [plural categories](#plural-categories); not allowed together with `--severity error` |
 | `--json` | none | off | print one [JSON envelope](/docs/ci-and-exit-codes#json-output) on stdout carrying the check summary under `result`, or the error code on a failed run; the human-readable error line still goes to stderr |
 
 A key is missing when the source has it and the target does not; stale when the source string changed since it was last translated. A locale is in sync when it has neither. An empty or unknown `--locales` value is rejected with exit `2` rather than silently checking nothing, so a typo in a locale name never lets a CI gate pass. Want the actual key lists behind the counts? That is [`verbatra diff`](/docs/cli/diff).
@@ -67,6 +68,9 @@ verbatra check --qa
 
 # fail on quality warnings and incomplete plurals too
 verbatra check --qa --strict
+
+# check the one file an editor or agent just changed
+verbatra check --file locales/de.json --json
 ```
 
 ## Protected keys
@@ -168,6 +172,60 @@ type QaFinding =
 
 A few things the check leaves alone: a key only the target has (it is orphaned, and [`verbatra diff`](/docs/cli/diff) lists it), a missing key (there is no value to check), and a key whose source is not valid ICU, which no translation can be judged against; those are listed once under `invalidSourceKeys`. [Protected](/docs/protecting-human-translations) and pinned keys are checked like any other, since their values ship all the same, and so are values a reviewer rejected. `--consistency` stays a separate, report-only flag; combine the two to get both reports.
 
+## One file
+
+<AvailableFrom version="0.12.0" />
+
+`--file <path>` checks a single locale file, the one you or a coding agent just edited, and nothing else. It is built for editor and agent hooks that run after every edit: it reads that file and, for a target locale, the source locale file, and no other locale, no [lock file](/docs/the-lock-file) and no source code. Like the rest of `check`, it calls no provider, needs no API key, and writes nothing.
+
+The path is resolved against `--cwd` and matched against your config's `files.pattern` and `files.localeStyle` to find the locale the file holds. Then:
+
+- A file that does not parse is a finding, not a crash: one `syntax` error that carries the format adapter's code (`INVALID_JSON`, `INVALID_YAML`, `INVALID_XML`, `INVALID_STRUCTURE`, ...) and, for JSON and YAML, the line and column of the mistake.
+- A target locale file that parses is checked against the source exactly like [`--qa`](#quality-check) checks every locale: placeholders, inline markup and ICU as errors, review reasons as warnings, and plurals that lack [plural categories](#plural-categories).
+- The source locale file is checked for syntax only, since there is nothing to hold it against. Its keys that are not valid ICU are listed under `invalidSourceKeys`.
+- For `apple-xcstrings`, which keeps every locale in one catalogue, the catalogue is checked for every target locale.
+
+A path that is no configured locale's file, or a file that does not exist, fails with `NOT_A_LOCALE_FILE` and exit `2`. `--severity` and `--strict` work as with `--qa`; `--locales` and `--consistency` are refused, because the file already decides the locale.
+
+```text
+verbatra check --file locales/de.json (target)
+qa: 1 error, 0 warnings
+  de: 1 error, 0 warnings in 42 values checked
+    greeting: error placeholder (-{name}, +{nom})
+```
+
+```text
+verbatra check --file locales/de.json (target)
+qa: 1 error, 0 warnings
+  de: syntax error [INVALID_JSON] The file is not valid JSON (line 3, column 3).
+```
+
+With `--json`, `result` reuses the per-locale report of `--qa`, so a hook parses one shape for both commands. A syntax finding joins the other findings:
+
+```ts
+interface CheckFileSummary {
+  file: string;                          // relative to --cwd
+  role: "source" | "target" | "catalogue";
+  locales: {
+    locale: string;
+    incompletePlurals: IncompletePlural[];
+    qa: { checked: number; errors: number; warnings: number; findings: (QaFinding | QaSyntaxFinding)[] };
+  }[];
+  qa: CheckQaSummary;                    // the totals, as with --qa
+}
+
+interface QaSyntaxFinding {
+  severity: "error";
+  reason: "syntax";
+  code: string;                          // the format adapter's code, such as INVALID_JSON
+  message: string;
+  line?: number;                         // JSON and YAML only, counted from 1
+  column?: number;
+}
+```
+
+The exit code follows `--qa`: `1` on an error finding, a syntax error included, and on a warning or an incomplete plural under `--strict`; `0` otherwise. Missing and stale keys are not part of a file check, so they never set it.
+
 ## Terminal feedback
 
 <AvailableFrom version="0.12.0" />
@@ -178,15 +236,17 @@ A few things the check leaves alone: a key only the target has (it is orphaned, 
 verbatra: checking the locales... done (0.1s)
 ```
 
+With `--file`, the line names the file instead: `verbatra: checking locales/de.json... done (0.0s)`.
+
 These lines go to stderr, so stdout and `--json` output stay exactly as described above, and `--quiet` drops them. See [Terminal output](/docs/cli#terminal-output) for color, the spinner and the variables that control them.
 
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
-| `0` | in sync: no locale has a missing or stale key, and with `--qa` no committed value has an error (nor a warning or an incomplete plural, with `--strict`) |
-| `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning or an incomplete plural, with `--strict`); the report is still printed |
-| `2` | could not run: a whole-run error, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, `--severity` or `--strict` without `--qa`, or `--strict` with `--severity error`) |
+| `0` | in sync: no locale has a missing or stale key, and with `--qa` no committed value has an error (nor a warning or an incomplete plural, with `--strict`); with `--file`, the file has no error finding |
+| `1` | out of sync: at least one locale has a missing or stale key, or with `--qa` the quality check found an error (or a warning or an incomplete plural, with `--strict`); with `--file`, the file has an error finding, a syntax error included; the report is still printed |
+| `2` | could not run: a whole-run error such as `NOT_A_LOCALE_FILE` for a `--file` path, or a usage error (including an empty or unknown `--locales` value, an unknown `--severity`, `--severity` or `--strict` without `--qa` or `--file`, `--strict` with `--severity error`, or `--file` with `--locales` or `--consistency`) |
 
 Exit `1` means "out of sync", not a failure: the run itself succeeded, the result just is not all green.
 

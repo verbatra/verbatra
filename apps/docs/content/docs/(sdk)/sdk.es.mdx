@@ -419,6 +419,28 @@ vacío cuando todos los plurales están completos. Cubre `i18next-json`, `androi
 una categoría que el idioma no usa no se informa. Es una advertencia: nunca cambia `inSync` ni un
 recuento. Consulta [categorías de plural](/docs/cli/check#categorías-de-plural).
 
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+Comprueba un solo archivo de locale, la vía rápida para validar un archivo justo después de que una
+persona o un agente lo edite. Lee ese archivo y, para un locale de destino, el archivo del locale de
+origen, y nada más: ningún otro locale, ni el archivo de bloqueo, ni código fuente, ni proveedor, ni
+clave de API, y no escribe nada.
+
+Entrada: `{ config, cwd?, file, qaSeverity? }`, donde `file` es absoluto o relativo a `cwd`. Devuelve
+un `CheckFileSummary` de `{ file, role, locales, qa }`: `role` es `"source"`, `"target"` o
+`"catalogue"` (el único archivo de `apple-xcstrings`), cada entrada de `locales` es un
+`LocaleFileCheck` de `{ locale, incompletePlurals, qa }` cuyo `qa` tiene la forma del informe `qa`
+que devuelve `check` con `qa: true`, y `qa` contiene los totales. Un archivo que no se puede analizar
+no se lanza: su locale lleva un `QaSyntaxFinding` de
+`{ severity: "error", reason: "syntax", code, message, line?, column? }`, con el código del
+adaptador de formato y, en JSON y YAML, la posición que informa `AdapterError.position`. Un archivo
+de destino que se puede analizar se comprueba frente al origen como `check` con `qa: true`; el
+archivo de origen solo en su sintaxis. Una ruta que no es el archivo de ningún locale configurado, o
+un archivo que no existe, lanza `NOT_A_LOCALE_FILE`. Consulta
+[Un solo archivo](/docs/cli/check#un-solo-archivo).
+
 ### diff
 
 El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de claves por locale
@@ -1645,6 +1667,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada |
 | `EXPORT_UNWRITABLE` | el archivo de entrega que produce `exportWorkbook` no se pudo escribir (su directorio no es escribible, hay un directorio o un archivo en medio, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos, y el error del sistema de archivos es la `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)) |
+| `NOT_A_LOCALE_FILE` | `checkFile` recibió una ruta que no es el archivo de ningún locale configurado, o allí no existe ningún archivo |
 | `LOCALE_FAILED` | nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido |
 
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando

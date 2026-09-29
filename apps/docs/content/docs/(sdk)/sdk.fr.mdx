@@ -290,6 +290,28 @@ remplace jamais une catégorie, et une catégorie que la langue n'utilise pas n'
 C'est un avertissement : il ne change jamais `inSync` ni un compteur. Voir
 [catégories de pluriel](/docs/cli/check#catégories-de-pluriel).
 
+### checkFile
+
+<AvailableFrom version="0.12.0" />
+
+Vérifie un seul fichier de locale, la voie rapide pour valider un fichier juste après qu'une personne
+ou un agent l'a modifié. Il lit ce fichier et, pour une locale cible, le fichier de la locale source,
+et rien d'autre : aucune autre locale, ni le fichier de verrouillage, ni le code source, ni
+fournisseur, ni clé d'API, et il n'écrit rien.
+
+Entrée : `{ config, cwd?, file, qaSeverity? }`, où `file` est absolu ou relatif à `cwd`. Renvoie un
+`CheckFileSummary` de `{ file, role, locales, qa }` : `role` vaut `"source"`, `"target"` ou
+`"catalogue"` (l'unique fichier de `apple-xcstrings`), chaque entrée de `locales` est un
+`LocaleFileCheck` de `{ locale, incompletePlurals, qa }` dont le `qa` a la forme du rapport `qa` que
+renvoie `check` avec `qa: true`, et `qa` contient les totaux. Un fichier qui ne s'analyse pas n'est
+pas levé : sa locale porte un `QaSyntaxFinding` de
+`{ severity: "error", reason: "syntax", code, message, line?, column? }`, avec le code de
+l'adaptateur de format et, pour JSON et YAML, la position que signale `AdapterError.position`. Un
+fichier cible qui s'analyse est vérifié par rapport à la source comme `check` avec `qa: true` ; le
+fichier source seulement pour sa syntaxe. Un chemin qui n'est le fichier d'aucune locale configurée,
+ou un fichier qui n'existe pas, lève `NOT_A_LOCALE_FILE`. Vois
+[Un seul fichier](/docs/cli/check#un-seul-fichier).
+
 ### diff
 
 Le pendant détaillé de `check` : le même calcul, mais il renvoie les listes de clés par locale (`missing`, `changed`, `orphaned`) au lieu de comptes. Les clés orphelines ne font l'objet que d'un rapport et ne font jamais basculer `hasPendingChanges`, puisqu'une exécution par défaut ne les supprime pas.
@@ -1128,6 +1150,7 @@ Les échecs globaux lèvent une `SdkError` : une seule classe, un `code` stable 
 | `EXPORT_OUTPUT_CONFLICT` | `exportWorkbook` a refusé son chemin de sortie : un chemin qui tombe hors de `cwd`, et un chemin qui, lui-même ou par un fichier que l'export écrirait dedans, nomme un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire de la configuration, y compris une fois les liens symboliques résolus ; un chemin `xlsx` qui ne nomme aucun fichier ou nomme `cwd` lui-même est aussi refusé ; refusé avant toute lecture |
 | `EXPORT_UNWRITABLE` | le livrable que produit `exportWorkbook` n'a pas pu être écrit (son répertoire n'est pas inscriptible, un répertoire ou un fichier gêne, ou le disque est plein) ; le message nomme le fichier et le code du système de fichiers, et l'erreur du système de fichiers est la `cause` |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | levé par `editEntry`, `retranslateEntry`, `approveEntry` et `rejectEntry`, qui n'écrivent alors rien ; sinon enregistré sur l'`error` d'une locale que `translate`, `watch` ou `importWorkbook` n'a pas exécutée parce que son état sous un code réécrit comme `pt_BR` n'a pas pu lui être déplacé dans le fichier de verrou ou le fichier de provenance ; l'exécution suivante réessaie ([Un code de locale réécrit](/docs/the-lock-file#un-code-de-locale-réécrit)) |
+| `NOT_A_LOCALE_FILE` | `checkFile` a reçu un chemin qui n'est le fichier d'aucune locale configurée, ou aucun fichier n'existe à cet endroit |
 | `LOCALE_FAILED` | jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée |
 
 Quelques codes portent aussi l'erreur qu'ils enveloppent comme `cause` standard : `SOURCE_INVALID`

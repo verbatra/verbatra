@@ -19,8 +19,9 @@ verbatra check [flags]
 | `--locales` | `<list>` | alle konfigurierten Ziele | kommagetrennte Teilmenge der Ziel-Locales, die geprüft wird |
 | `--consistency` | keins | aus | zusätzlich pro Locale jeden Quellstring melden, der unter verschiedenen Keys unterschiedlich übersetzt ist; nur ein Bericht, der Exit-Code ändert sich nie |
 | `--qa` | keins | aus | zusätzlich die [Qualitätsprüfung](#qualitätsprüfung) über jede eingecheckte Übersetzung laufen lassen; Exit `1` bei einem Fehler |
-| `--severity` | `error` oder `warning` | `warning` | mit `--qa` der niedrigste gemeldete Schweregrad; `error` lässt die Review-Gründe ganz weg |
-| `--strict` | keins | aus | mit `--qa` auch dann Exit `1`, wenn die Qualitätsprüfung eine Warnung meldet oder einem Plural [Pluralkategorien](#pluralkategorien) fehlen; nicht zusammen mit `--severity error` erlaubt |
+| `--file` | `<path>` | aus | nur diese eine Locale-Datei prüfen: ihre Syntax, dann ihre Werte gegen die Quelle, ohne ein anderes Locale zu lesen (siehe [Eine Datei](#eine-datei)); nicht zusammen mit `--locales` oder `--consistency` erlaubt |
+| `--severity` | `error` oder `warning` | `warning` | mit `--qa` oder `--file` der niedrigste gemeldete Schweregrad; `error` lässt die Review-Gründe ganz weg |
+| `--strict` | keins | aus | mit `--qa` oder `--file` auch dann Exit `1`, wenn die Qualitätsprüfung eine Warnung meldet oder einem Plural [Pluralkategorien](#pluralkategorien) fehlen; nicht zusammen mit `--severity error` erlaubt |
 | `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Prüf-Zusammenfassung unter `result` trägt, oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
 
 Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht; er ist veraltet, wenn sich der Quellstring seit der letzten Übersetzung geändert hat. Ein Locale ist synchron, wenn es keines von beidem hat. Ein leerer oder unbekannter `--locales`-Wert wird mit Exit `2` abgelehnt, statt stillschweigend nichts zu prüfen; ein Tippfehler in einem Locale-Namen lässt ein CI-Gate also nie durch. Du willst die konkreten Key-Listen hinter den Zählern? Das ist [`verbatra diff`](/docs/cli/diff).
@@ -67,6 +68,9 @@ verbatra check --qa
 
 # fail on quality warnings and incomplete plurals too
 verbatra check --qa --strict
+
+# check the one file an editor or agent just changed
+verbatra check --file locales/de.json --json
 ```
 
 ## Geschützte Keys
@@ -168,6 +172,60 @@ type QaFinding =
 
 Ein paar Dinge lässt die Prüfung aus: einen Key, den nur das Ziel hat (er ist verwaist, und [`verbatra diff`](/docs/cli/diff) listet ihn), einen fehlenden Key (es gibt keinen Wert zu prüfen) und einen Key, dessen Quelle kein gültiges ICU ist, weil sich daran keine Übersetzung messen lässt; solche Keys stehen einmal unter `invalidSourceKeys`. [Geschützte](/docs/protecting-human-translations) und gepinnte Keys werden wie alle anderen geprüft, denn ihre Werte werden genauso ausgeliefert, und das gilt auch für Werte, die jemand im Review abgelehnt hat. `--consistency` bleibt ein eigenes Flag, das nur berichtet; kombiniere beide, um beide Berichte zu bekommen.
 
+## Eine Datei
+
+<AvailableFrom version="0.12.0" />
+
+`--file <path>` prüft eine einzelne Locale-Datei, nämlich die, die du oder ein Coding-Agent gerade bearbeitet habt, und sonst nichts. Das ist für Editor- und Agent-Hooks gedacht, die nach jeder Änderung laufen: Es liest diese Datei und, für ein Ziel-Locale, die Datei des Quell-Locales, aber kein anderes Locale, keine [Lock-Datei](/docs/the-lock-file) und keinen Quellcode. Wie der Rest von `check` ruft es keinen Provider auf, braucht keinen API-Key und schreibt nichts.
+
+Der Pfad wird gegen `--cwd` aufgelöst und mit `files.pattern` und `files.localeStyle` aus deiner Config abgeglichen, um das Locale der Datei zu finden. Danach gilt:
+
+- Eine Datei, die sich nicht parsen lässt, ist ein Befund, kein Absturz: ein `syntax`-Fehler mit dem Code des Format-Adapters (`INVALID_JSON`, `INVALID_YAML`, `INVALID_XML`, `INVALID_STRUCTURE`, ...) und, bei JSON und YAML, der Zeile und Spalte des Fehlers.
+- Eine Ziel-Locale-Datei, die sich parsen lässt, wird genau so gegen die Quelle geprüft, wie [`--qa`](#qualitätsprüfung) jedes Locale prüft: Platzhalter, Inline-Markup und ICU als Fehler, Review-Gründe als Warnungen und Plurale, denen [Pluralkategorien](#pluralkategorien) fehlen.
+- Die Datei des Quell-Locales wird nur auf ihre Syntax geprüft, weil es nichts gibt, womit man sie vergleichen könnte. Ihre Keys, die kein gültiges ICU sind, stehen unter `invalidSourceKeys`.
+- Bei `apple-xcstrings`, das alle Locales in einem Katalog hält, wird der Katalog für jedes Ziel-Locale geprüft.
+
+Ein Pfad, der zu keinem konfigurierten Locale gehört, oder eine Datei, die es nicht gibt, scheitert mit `NOT_A_LOCALE_FILE` und Exit `2`. `--severity` und `--strict` funktionieren wie bei `--qa`; `--locales` und `--consistency` werden abgelehnt, weil die Datei das Locale schon festlegt.
+
+```text
+verbatra check --file locales/de.json (target)
+qa: 1 error, 0 warnings
+  de: 1 error, 0 warnings in 42 values checked
+    greeting: error placeholder (-{name}, +{nom})
+```
+
+```text
+verbatra check --file locales/de.json (target)
+qa: 1 error, 0 warnings
+  de: syntax error [INVALID_JSON] The file is not valid JSON (line 3, column 3).
+```
+
+Mit `--json` verwendet `result` den Bericht pro Locale von `--qa` wieder, sodass ein Hook für beide Befehle eine einzige Form parst. Ein Syntax-Befund steht zwischen den anderen Befunden:
+
+```ts
+interface CheckFileSummary {
+  file: string;                          // relative to --cwd
+  role: "source" | "target" | "catalogue";
+  locales: {
+    locale: string;
+    incompletePlurals: IncompletePlural[];
+    qa: { checked: number; errors: number; warnings: number; findings: (QaFinding | QaSyntaxFinding)[] };
+  }[];
+  qa: CheckQaSummary;                    // the totals, as with --qa
+}
+
+interface QaSyntaxFinding {
+  severity: "error";
+  reason: "syntax";
+  code: string;                          // the format adapter's code, such as INVALID_JSON
+  message: string;
+  line?: number;                         // JSON and YAML only, counted from 1
+  column?: number;
+}
+```
+
+Der Exit-Code folgt `--qa`: `1` bei einem Fehler-Befund, auch einem Syntaxfehler, und unter `--strict` bei einer Warnung oder einem unvollständigen Plural; sonst `0`. Fehlende und veraltete Keys gehören nicht zur Prüfung einer Datei und setzen ihn deshalb nie.
+
 ## Rückmeldung im Terminal
 
 <AvailableFrom version="0.12.0" />
@@ -178,15 +236,17 @@ Ein paar Dinge lässt die Prüfung aus: einen Key, den nur das Ziel hat (er ist 
 verbatra: checking the locales... done (0.1s)
 ```
 
+Mit `--file` nennt die Zeile stattdessen die Datei: `verbatra: checking locales/de.json... done (0.0s)`.
+
 Diese Zeilen gehen auf stderr, stdout und die `--json`-Ausgabe bleiben also genau wie oben beschrieben, und `--quiet` lässt sie weg. Farbe, Spinner und die Variablen dazu findest du unter [Terminalausgabe](/docs/cli#terminalausgabe).
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | synchron: kein Locale hat einen fehlenden oder veralteten Key, und mit `--qa` hat kein eingecheckter Wert einen Fehler (mit `--strict` auch keine Warnung und kein unvollständiger Plural) |
-| `1` | nicht synchron: mindestens ein Locale hat einen fehlenden oder veralteten Key, oder mit `--qa` hat die Qualitätsprüfung einen Fehler gefunden (mit `--strict` auch eine Warnung oder einen unvollständigen Plural); der Bericht wird trotzdem ausgegeben |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts, eines unbekannten `--severity`-Werts, `--severity` bzw. `--strict` ohne `--qa` oder `--strict` zusammen mit `--severity error`) |
+| `0` | synchron: kein Locale hat einen fehlenden oder veralteten Key, und mit `--qa` hat kein eingecheckter Wert einen Fehler (mit `--strict` auch keine Warnung und kein unvollständiger Plural); mit `--file` hat die Datei keinen Fehler-Befund |
+| `1` | nicht synchron: mindestens ein Locale hat einen fehlenden oder veralteten Key, oder mit `--qa` hat die Qualitätsprüfung einen Fehler gefunden (mit `--strict` auch eine Warnung oder einen unvollständigen Plural); mit `--file` hat die Datei einen Fehler-Befund, auch einen Syntaxfehler; der Bericht wird trotzdem ausgegeben |
+| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs wie `NOT_A_LOCALE_FILE` für einen `--file`-Pfad oder ein Verwendungsfehler (einschließlich eines leeren oder unbekannten `--locales`-Werts, eines unbekannten `--severity`-Werts, `--severity` bzw. `--strict` ohne `--qa` oder `--file`, `--strict` zusammen mit `--severity error` oder `--file` zusammen mit `--locales` oder `--consistency`) |
 
 Exit `1` heißt "nicht synchron", nicht Fehlschlag: der Lauf selbst war erfolgreich, das Ergebnis ist nur nicht komplett grün.
 
