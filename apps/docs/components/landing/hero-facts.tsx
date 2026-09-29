@@ -8,7 +8,7 @@ export function HeroFacts({ className }: { className?: string }): ReactNode {
   return (
     <dl
       className={cn(
-        "grid grid-cols-2 gap-x-6 gap-y-[18px] pt-[22px] text-left text-sm md:grid-cols-4",
+        "grid grid-cols-2 gap-x-6 gap-y-[18px] pt-[22px] text-left text-sm lg:grid-cols-4",
         className,
       )}
       style={{
