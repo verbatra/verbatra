@@ -1,12 +1,8 @@
 import type * as PageTree from "fumadocs-core/page-tree";
 import type { Node as StatusNode } from "fumadocs-core/source/plugins/status-badges";
-import type { LayoutTab } from "fumadocs-ui/layouts/shared";
 import { getTranslations } from "next-intl/server";
 import type { Locale } from "@/lib/i18n";
-
-function isRootFolder(node: PageTree.Node): node is PageTree.Folder {
-  return node.type === "folder" && node.root !== undefined && node.root !== false;
-}
+import { isRootFolder } from "@/lib/root-tabs";
 
 function appendToRoots(tree: PageTree.Root, trailer: PageTree.Node[]): PageTree.Root {
   if (!tree.children.some(isRootFolder)) {
@@ -29,18 +25,6 @@ export async function withLlmsLinks(tree: PageTree.Root, locale: Locale): Promis
   ]);
 }
 
-function firstPageUrl(folder: PageTree.Folder): string | undefined {
-  if (folder.index) return folder.index.url;
-  for (const child of folder.children) {
-    if (child.type === "page" && !child.external && !child.url.includes("#")) return child.url;
-    if (child.type === "folder") {
-      const url = firstPageUrl(child);
-      if (url) return url;
-    }
-  }
-  return undefined;
-}
-
 const COMMAND_PAGE = /\/docs\/cli\/([a-z-]+)$/;
 
 function shortCommandLabel(page: PageTree.Item): PageTree.Item {
@@ -61,13 +45,6 @@ function withShortLabels(node: PageTree.Node): PageTree.Node {
 
 export function withShortCommandLabels(tree: PageTree.Root): PageTree.Root {
   return { ...tree, children: tree.children.map(withShortLabels) };
-}
-
-export function rootTabs(tree: PageTree.Root): LayoutTab[] {
-  return tree.children.filter(isRootFolder).flatMap((folder) => {
-    const url = firstPageUrl(folder);
-    return url ? [{ url, title: folder.name, $folder: folder }] : [];
-  });
 }
 
 function markExpanded(node: StatusNode): { node: StatusNode; hasNew: boolean } {

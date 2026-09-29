@@ -1,17 +1,14 @@
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import type { ReactNode } from "react";
 import { LegalFooter } from "@/components/legal-footer";
+import { RootTabsProvider, SidebarTabs } from "@/components/root-tabs";
 import { DocsSiteHeader } from "@/components/site-header";
 import { withGroupLabels } from "@/lib/docs-group-labels";
-import {
-  rootTabs,
-  withExpandedNewGroups,
-  withLlmsLinks,
-  withShortCommandLabels,
-} from "@/lib/docs-page-tree";
+import { withExpandedNewGroups, withLlmsLinks, withShortCommandLabels } from "@/lib/docs-page-tree";
 import { withStatusBadges } from "@/lib/docs-status-badges";
 import { toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
+import { rootTabs } from "@/lib/root-tabs";
 import { source } from "@/lib/source";
 
 export default async function Layout({
@@ -33,15 +30,18 @@ export default async function Layout({
   );
   const { nav, ...base } = await baseOptions(locale);
   return (
-    <DocsLayout
-      {...base}
-      nav={{ ...nav, mode: "top" }}
-      slots={{ ...base.slots, header: DocsSiteHeader }}
-      tabs={rootTabs(tree)}
-      tree={tree}
-    >
-      {children}
-      <LegalFooter locale={locale} />
-    </DocsLayout>
+    <RootTabsProvider tabs={rootTabs(tree)}>
+      <DocsLayout
+        {...base}
+        nav={{ ...nav, mode: "top" }}
+        slots={{ ...base.slots, header: DocsSiteHeader }}
+        sidebar={{ banner: <SidebarTabs key="root-tabs" /> }}
+        tabs={false}
+        tree={tree}
+      >
+        {children}
+        <LegalFooter locale={locale} />
+      </DocsLayout>
+    </RootTabsProvider>
   );
 }

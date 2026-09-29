@@ -241,10 +241,12 @@ comes from:
   landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
   and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
   `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
-- **Sidebar tabs**: the Docs and Reference root folders render Fumadocs' sidebar tab switcher
-  (the default dropdown) at the top of the sidebar and the phone drawer. `rootTabs` in
-  `lib/docs-page-tree.ts` builds the tabs, opening each on its first real page, since the
-  Reference tab has no page of its own. The header's "Reference" link opens the same tab.
+- **Sidebar tabs**: the Docs and Reference root folders render as two inline `.vk-label` links
+  (`SidebarTabs` in `components/root-tabs.tsx`, the `.vk-sidebar-tabs` hook) in the sidebar banner
+  slot of the sidebar and the phone drawer, with a `--accent` underline and `aria-current` on the
+  tab of the current root folder; Fumadocs' dropdown switcher is off (`tabs={false}`). `rootTabs`
+  in `lib/root-tabs.ts` builds the tabs, opening each on its first real page, since the Reference
+  tab has no page of its own. The header's "Reference" link opens the same tab.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Tables**: the header row is a `.vk-label` on `--surface-card`; the border and radius sit on

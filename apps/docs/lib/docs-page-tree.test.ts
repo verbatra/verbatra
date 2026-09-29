@@ -5,7 +5,7 @@ vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
 }));
 
-const { rootTabs, withLlmsLinks, withShortCommandLabels } = await import("./docs-page-tree");
+const { withLlmsLinks, withShortCommandLabels } = await import("./docs-page-tree");
 
 const docsTab: PageTree.Folder = {
   $id: "docs",
@@ -41,27 +41,6 @@ const flat: PageTree.Root = {
   name: "Documentation",
   children: [{ type: "page", name: "Introduction", url: "/docs" }],
 };
-
-describe("rootTabs", () => {
-  it("offers one tab per root folder, bound to that folder", () => {
-    const tabs = rootTabs(tabbed);
-    expect(tabs.map((tab) => tab.title)).toEqual(["Docs", "Reference"]);
-    expect(tabs.map((tab) => tab.$folder)).toEqual([docsTab, referenceTab]);
-  });
-
-  it("opens each tab on its first real page, skipping anchor and external links", () => {
-    expect(rootTabs(tabbed).map((tab) => tab.url)).toEqual(["/docs", "/docs/cli"]);
-  });
-
-  it("offers no tabs for a sidebar without root folders", () => {
-    expect(rootTabs(flat)).toEqual([]);
-  });
-
-  it("drops a root folder that holds no page to open", () => {
-    const empty: PageTree.Folder = { type: "folder", name: "Empty", root: true, children: [] };
-    expect(rootTabs({ name: "Documentation", children: [empty, docsTab] })).toHaveLength(1);
-  });
-});
 
 describe("withLlmsLinks", () => {
   it("ends every tab with the llms.txt links, so both tabs show them", async () => {
