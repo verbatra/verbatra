@@ -1,0 +1,93 @@
+---
+title: Extraire les clés du code source
+description: Rassemble dans le fichier de locale source les clés de traduction que ton code appelle déjà, remplis leur texte et passe-les à translate.
+type: how-to
+---
+<AvailableFrom version="0.11.0" />
+
+Utilise ceci quand ton code est en avance sur ton catalogue : tu écris `t("cart.empty", "Your cart is empty")` dans un composant et tu veux la clé dans le fichier de locale source sans la recopier à la main. Cela permet aussi de lancer un projet jamais internationalisé à partir de son code plutôt que d'un fichier JSON vide.
+
+`verbatra extract` lit ton code source et n'écrit que le fichier de locale source. Il n'appelle aucun fournisseur, n'a besoin d'aucune clé d'API et ne fait aucune requête réseau.
+
+Il te faut :
+
+- une configuration verbatra (lance [`verbatra init`](/docs/cli/init) si tu n'en as pas) ;
+- du code qui appelle `t(...)`, `$t(...)` ou `i18n.t(...)` d'i18next, le seul framework que `extract` lit aujourd'hui ;
+- un namespace par fichier de catalogue. Une clé avec namespace comme `t("common:nav.home")` est signalée et jamais écrite, car une configuration vise un seul fichier.
+
+## Indique à verbatra où se trouve ton code
+
+Ajoute un bloc `extract` avec les répertoires à parcourir :
+
+```ts title="verbatra.config.ts"
+export default defineConfig({
+  // ...
+  extract: {
+    framework: "i18next",
+    roots: ["src"], // [!code highlight]
+  },
+});
+```
+
+Rien n'est lu en dehors de `roots`, et les sorties de build comme `node_modules` et `dist` sont toujours ignorées. Si du code généré se trouve sous une racine, ajoute le nom de son répertoire à `exclude`. Tous les champs sont décrits dans [`extract`](/docs/config-file#extract).
+
+## Prévisualise ce qui serait ajouté
+
+```bash
+verbatra extract --dry-run
+```
+
+Le résumé liste les nouvelles clés avec le fichier et la ligne qui les nomment, et n'écrit rien. Lis-en trois parties avant de continuer :
+
+- **new keys** : ce qu'une vraie exécution ajouterait au fichier source.
+- **dynamic keys** : les appels dont la clé n'est pas une chaîne complète, comme `t("user." + id)` ou `` t(`nav.${page}`) ``. Ils ne sont jamais écrits. Ajoute ces clés au catalogue à la main, ou réécris l'appel avec une clé littérale.
+- **conflicts** : une clé avec deux valeurs par défaut différentes à deux appels. Aucune des deux n'est écrite, alors choisis un texte et accorde les appels.
+
+## Ajoute les clés
+
+```bash
+verbatra extract
+```
+
+```text output
+verbatra extract
+  42 files scanned, 18 keys already present
+  added 3 keys to locales/en.json
+  new keys (3):
+    nav.home  src/components/Nav.tsx:14
+    nav.away  src/components/Nav.tsx:15
+    cart.empty  src/routes/cart.tsx:31
+next: verbatra translate (translate the new keys)
+```
+
+La valeur par défaut de l'appel devient le texte source de la clé. Une clé déjà présente dans le catalogue garde sa valeur, donc relancer `extract` n'écrase jamais tes modifications, et une exécution qui ne trouve rien de nouveau laisse le fichier identique à l'octet près.
+
+Une clé dont l'appel n'avait pas de valeur par défaut est ajoutée avec une valeur vide et listée sous `withoutDefault` dans le résultat `--json`. Écris son texte source dans le fichier de locale source avant de traduire.
+
+Si ton format est `xliff` ou `apple-xcstrings`, crée d'abord le catalogue source (celui en `.xcstrings` dans Xcode) : `extract` y ajoute des entrées, mais ne le crée jamais.
+
+## Traduis les nouvelles clés
+
+```bash
+verbatra translate
+```
+
+Les nouvelles clés manquent dans chaque locale cible, donc l'exécution les traduit elles et rien d'autre. Si le lot est grand, vérifie d'abord la dépense avec [`--estimate`](/docs/estimating-cost).
+
+Si tu utilises TypeScript, régénère tes déclarations de clés avec [`verbatra types`](/docs/cli/types) pour qu'une faute de frappe dans une nouvelle clé fasse échouer la compilation.
+
+## Garde le code et le catalogue alignés
+
+`extract` ne fait qu'ajouter. Deux vérifications en lecture seule couvrent les autres sens :
+
+- `verbatra diff --unused` liste les clés source qu'aucun appel ne nomme plus. Il reprend les racines de `extract` et ne supprime rien ; retirer une clé reste ton choix. Voir [Clés source inutilisées](/docs/cli/diff#clés-source-inutilisées) pour savoir quand la liste est assez complète pour s'y fier.
+- `verbatra doctor --literals` liste les chaînes visibles par l'utilisateur qui ne sont jamais passées par `t(...)`, comme du texte JSX ou un `aria-label`. Voir [Littéraux non traduits](/docs/cli/doctor#littéraux-non-traduits) pour ce qui compte et comment en écarter un.
+
+Relance `verbatra extract` chaque fois que tu ajoutes des appels. Tu peux le répéter sans risque, et il se termine avec `0` quoi qu'il trouve : une étape de CI qui doit échouer sur de nouvelles clés lit donc la liste `added` de `--json` plutôt que le code de sortie.
+
+## Voir aussi
+
+- [`verbatra extract`](/docs/cli/extract) : les formes d'appel qu'il lit, le rapport complet et le résultat JSON.
+- [Le fichier de configuration](/docs/config-file#extract) : le bloc `extract`.
+- [`verbatra translate`](/docs/cli/translate) : remplit les locales cibles.
+- [Codes d'erreur](/docs/error-codes#extract_not_configured) : `EXTRACT_NOT_CONFIGURED` quand le bloc manque.

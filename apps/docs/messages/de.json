@@ -494,6 +494,9 @@
       "heading": "Für KI-Agenten",
       "index": "llms.txt (Index)"
     },
+    "codeBlock": {
+      "output": "Ausgabe"
+    },
     "availableFrom": {
       "title": "Verfügbar ab {version}",
       "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit <code>verbatra --version</code> und aktualisiere, falls sie älter ist.",

@@ -1,19 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { proseWords } from "./page-type";
 
 const GET_STARTED = join(import.meta.dirname, "../content/docs/(get-started)");
 const QUICKSTART = join(GET_STARTED, "quickstart.mdx");
 const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const WORD_CEILING = 800;
-
-function proseWords(source: string): number {
-  const body = source
-    .replace(/^---\n[\s\S]*?\n---\n/, "")
-    .replace(/^```[\s\S]*?^```$/gm, "")
-    .replace(/<[^>]+>/g, " ");
-  return body.split(/\s+/).filter((word) => /[A-Za-z0-9]/.test(word)).length;
-}
 
 describe("the quickstart", () => {
   const source = readFileSync(QUICKSTART, "utf8");

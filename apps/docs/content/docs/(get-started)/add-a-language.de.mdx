@@ -1,48 +1,41 @@
 ---
 title: Eine Sprache hinzufügen
 description: "Füge einem bestehenden verbatra-Projekt eine neue Ziel-Locale hinzu: eine Zeile Konfiguration und ein translate-Lauf, während deine bestehenden Locales unangetastet bleiben."
+type: how-to
 ---
-Eine Sprache hinzuzufügen ist eine einzeilige Konfigurationsänderung plus ein Lauf. verbatra behandelt die neue Locale, als fehle ihr alles, und füllt sie vollständig; deine bestehenden Locales kosten nichts, weil die Lock-Datei sie weiterhin als aktuell verzeichnet.
+Nutze das, wenn ein Projekt schon in einige Sprachen übersetzt und du eine weitere willst. Es braucht eine Zeile Konfiguration und einen Lauf. verbatra behandelt die neue Locale so, als fehle ihr jeder Key, und füllt sie; deine bestehenden Locales kosten nichts, weil die Lock-Datei sie weiterhin als aktuell verzeichnet.
+
+Du brauchst ein funktionierendes Projekt: eine Konfiguration, eine Quell-Locale-Datei und einen Provider-Key. Wenn du noch keins hast, fang mit dem [Quickstart](/docs/quickstart) an.
 
 ## Füge die Locale zu deiner Konfiguration hinzu
 
-Trage sie in `targetLocales` in `verbatra.config.ts` ein:
+Trage den Code in `targetLocales` in `verbatra.config.ts` ein:
 
-```ts
+```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",
-  targetLocales: ["de", "fr"], // "fr" added
+  targetLocales: ["de", "fr"], // [!code highlight]
   format: "i18next-json",
-  files: {
-    pattern: "locales/{locale}.json",
-  },
-  provider: {
-    id: "gemini",
-    options: {
-      model: "gemini-2.5-flash",
-      maxOutputTokens: 4096,
-    },
-  },
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
 });
 ```
 
-Zwei Regeln, beide beim Laden der Konfiguration erzwungen: Eine Ziel-Locale darf nicht die `sourceLocale` sein, und zwei Einträge dürfen sich nicht nur in der Groß- und Kleinschreibung unterscheiden (kein `de` und `DE` in derselben Liste).
-
 <AvailableFrom version="0.12.0" />
 
-Ein Locale-Code muss außerdem gültiges BCP 47 sein, etwa `fr`, `pt-BR`, `zh-Hant-TW` oder `es-419`, und ein ungültiger lässt das Laden der Konfiguration mit einer Meldung scheitern, die ihn nennt. Nimm einen Bindestrich, keinen Unterstrich: Heißen deine Dateien `pt_BR.json`, schreib `pt-BR` und setz `files.localeStyle` auf `posix`, dann schreibt verbatra weiterhin `pt_BR.json`. Ein gültiger, aber nicht kanonischer Code wie `zh-hant-tw` oder das veraltete `iw` funktioniert weiter so, wie er dasteht; [`verbatra doctor`](/docs/cli/doctor) schlägt die kanonische Form vor. Siehe [Locale-Codes](/docs/config-file#locale-codes).
+Schreib den Code in BCP-47-Form, mit Bindestrich: `pt-BR`, nicht `pt_BR`. Wenn deine Dateien Unterstriche verwenden, schreib trotzdem `pt-BR` und setz `files.localeStyle` auf `posix`; verbatra behält den Dateinamen `pt_BR.json`. Beim Laden der Konfiguration werden ein ungültiger Code, die Quell-Locale und zwei Codes, die sich nur in der Groß- und Kleinschreibung unterscheiden, abgelehnt. Die vollständigen Regeln stehen unter [Locale-Codes](/docs/config-file#locale-codes); mit [`verbatra doctor`](/docs/cli/doctor) siehst du, ob ein Provider die neue Sprache unterstützt.
 
 ## Sieh dir die Arbeit vorab an
 
-Bevor du einen Token ausgibst, sieh dir an, was ein Lauf tun würde. `diff` liest nur und listet die ausstehenden Keys pro Locale:
+Schau dir an, was ein Lauf tun würde, bevor du etwas ausgibst:
 
 ```bash
-verbatra diff
+verbatra diff --locales fr
 ```
 
-Die neue Locale hat noch keine Zieldatei, also behandelt verbatra sie als leer, und jeder Quell-Key erscheint als fehlend; deine bestehenden Locales listen nichts, sofern sich ihre Quellstrings nicht geändert haben. `diff` endet mit `1`, solange Änderungen ausstehen, und mit `0`, sobald keine mehr da sind. `verbatra translate --dry-run` liefert dieselbe Vorschau in Form einer Lauf-Zusammenfassung, ohne Provider-Aufruf und ohne Schreibvorgänge.
+Die neue Locale hat noch keine Datei, also wird jeder Quell-Key als fehlend aufgeführt. Lass `--locales` weg, um zu prüfen, dass deine anderen Locales nichts auflisten. `diff` ruft keinen Provider auf und schreibt nichts. Für eine Kostenschätzung führ `verbatra translate --estimate` aus; siehe [Kosten vor einem Lauf schätzen](/docs/estimating-cost).
 
 ## Übersetze
 
@@ -50,42 +43,36 @@ Die neue Locale hat noch keine Zieldatei, also behandelt verbatra sie als leer, 
 verbatra translate
 ```
 
-Der Lauf übersetzt jeden Quell-Key in die neue Locale und schreibt die Datei an dein `files.pattern` (hier `locales/fr.json`). Eine große Quelle wird in Sub-Batches von höchstens 50 Keys pro Provider-Anfrage aufgeteilt (konfigurierbar über `maxBatchSize`), damit eine übergroße Anfrage nicht die ganze Locale mit sich reißt. Behält der Lauf für die neue Locale nichts, weil jeder Key die Integritätsprüfung nicht bestanden hat, seine Provider-Anfragen fehlgeschlagen sind oder das Token-Budget ihn zurückgehalten hat, wird keine Datei angelegt: Eine leere Datei würde nur verbergen, dass die Locale noch keine Übersetzungen hat. Die Keys bleiben fehlend, und der nächste Lauf versucht sie erneut.
+Der Lauf übersetzt jeden Quell-Key in die neue Locale und schreibt die Datei an dein `files.pattern`, hier `locales/fr.json`. Nur die neue Locale löst Provider-Aufrufe aus: Die anderen Locales haben gegenüber ihrer Lock-Baseline keine fehlenden oder geänderten Keys, also wird für sie nichts gesendet.
 
-Das ist das inkrementelle Verhalten in Aktion: Nur die neue Locale löst Provider-Aufrufe aus. Für jede bestehende Locale vergleicht verbatra die Quelle mit der Baseline dieser Locale in `verbatra.lock.json`, findet keine fehlenden oder geänderten Keys und sendet nichts. Danach endet `verbatra check` mit `0`: Jede Locale, einschließlich der neuen, ist synchron.
+Wenn der Lauf für die neue Locale nichts behält, weil jeder Key eine Prüfung nicht bestanden hat, ihre Provider-Anfragen gescheitert sind oder ein Token-Budget sie zurückgehalten hat, wird keine Datei angelegt. Die Keys bleiben fehlend, und der nächste Lauf versucht sie erneut.
+
+Danach endet `verbatra check` mit `0`, wenn jede Locale, die neue eingeschlossen, synchron ist.
 
 ## Sprachen mit mehr Pluralkategorien
 
-Manche Sprachen brauchen mehr CLDR-Pluralkategorien, als deine Quelle hat. Englisch hat zwei (`one` und `other`); Polnisch und Tschechisch haben vier, Arabisch und Walisisch sechs, und Französisch, Spanisch, Italienisch und Portugiesisch brauchen zusätzlich `many`. Japanisch, Chinesisch und Koreanisch brauchen nur `other`. Standardmäßig übersetzt verbatra die Pluralformen, die es in der Quelle findet, und erfindet die zusätzlichen nicht: Der Lauf gelingt trotzdem und gibt pro Locale einen Hinweis aus (Code `PLURAL_CATEGORIES_INCOMPLETE`), der die fehlenden Kategorien nennt.
+Manche Sprachen brauchen mehr Pluralformen, als deine Quelle hat. Englisch hat `one` und `other`; Polnisch braucht vier, Arabisch sechs, und Französisch ergänzt `many`. Standardmäßig übersetzt verbatra die Formen, die deine Quelle hat, und erfindet die übrigen nicht: Der Lauf gelingt und meldet einen Hinweis `PLURAL_CATEGORIES_INCOMPLETE`, der nennt, was fehlt.
 
 <AvailableFrom version="0.12.0" />
 
-Welche Kategorien eine Sprache braucht, liest verbatra aus den CLDR-Pluralregeln in den ICU-Daten, die in Node.js eingebaut sind. So ist jede Sprache abgedeckt, die CLDR kennt, immer in CLDR-Reihenfolge (`zero`, `one`, `two`, `few`, `many`, `other`). [`verbatra doctor`](/docs/cli/doctor) zeigt dir die verwendeten ICU- und CLDR-Versionen. i18next-Ordinal-Keys (`<key>_ordinal_<category>`) werden stattdessen gegen die CLDR-Ordinalregeln geprüft und generiert, französische Ordinalzahlen brauchen also nur `one` und `other`. Für eine Ziel-Locale, für die ICU keine Pluralregeln hat, nimmt verbatra bei Kardinal-Keys `one` und `other` an, bei Ordinal-Keys nur `other`, und `doctor` nennt die Locale.
+Wenn du i18next-JSON mit einem LLM-Provider nutzt, kann verbatra die fehlenden Formen schreiben:
 
-Damit verbatra die fehlenden Formen stattdessen synthetisiert, setze `generatePlurals: true` in deiner Konfiguration:
-
-```ts
+```ts title="verbatra.config.ts"
 export default defineConfig({
   // ...
   generatePlurals: true,
 });
 ```
 
-Die Generierung wird nur für i18next-JSON-Projekte unterstützt, die ein LLM-Provider übersetzt; DeepL und Google Cloud Translation, die anderen Formate und Ziel-Locales ohne Pluralregeln in ICU fallen auf den Hinweis zurück und lassen den Lauf nie fehlschlagen. Generierte Formen werden wie jede Übersetzung auf Integrität geprüft und in der Lauf-Zusammenfassung getrennt von übersetzten Keys ausgewiesen.
+Erzeugte Formen durchlaufen dieselben Integritätsprüfungen wie jede Übersetzung. Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert und brauchen deshalb keine Erzeugung: Der Provider wird genau nach den Zweigen gefragt, die die Zielsprache verwendet. Unter [`generatePlurals`](/docs/config-file#generateplurals) steht, was auf den Hinweis zurückfällt, und unter [Plurale](/docs/language-support#plurale), wie verbatra entscheidet, welche Formen eine Sprache braucht.
 
-<AvailableFrom version="0.12.0" />
+## Pflege weiter nur die Quelle
 
-Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert, dort muss also nichts generiert werden: Ein LLM-Provider wird um genau die Zweige der Zielsprache gebeten, und eine russische Übersetzung von `{n, plural, one {# file} other {# files}}` bekommt die Zweige `one`, `few`, `many` und `other`, eine japanische nur `other`. Ein Wert, dessen Zweige nicht zur Zielsprache passen, wird abgelehnt, egal wer ihn geschrieben hat. Siehe [Plural-Zweige je Zielsprache](/docs/translation-safety#plural-zweige-je-zielsprache).
+Ab jetzt bearbeitest du nur noch die Quell-Locale. Füg dort einen String hinzu und führ `translate` erneut aus: verbatra trägt ihn in jedes Ziel ein, auch in das gerade hinzugefügte.
 
-## Die Quell-Locale pflegen
+## Siehe auch
 
-Du pflegst immer nur die Quell-Locale von Hand. Um Strings hinzuzufügen, trage sie in die Quelldatei ein und führe `translate` erneut aus: verbatra füllt sie in jedes Ziel, auch in das gerade hinzugefügte.
-
-## Nächste Schritte
-
-<Cards>
-  <Card title="Die Lock-Datei" href="/docs/the-lock-file" description="Warum erneute Läufe günstig sind und was du committen solltest." />
-  <Card title="Konfigurationsdatei" href="/docs/config-file" description="Das vollständige Konfigurationsschema, einschließlich glossary und tone." />
-  <Card title="Provider" href="/docs/providers" description="Provider-Optionen und wo du einen API-Schlüssel bekommst." />
-  <Card title="Sprachunterstützung" href="/docs/language-support" description="Welche Sprachen jeder Provider abdeckt und wie Plurale, Schriften, regionale Varianten und Rechts-nach-links-Text behandelt werden." />
-</Cards>
+- [`verbatra translate`](/docs/cli/translate) und [`verbatra diff`](/docs/cli/diff): jedes Flag, das auf dieser Seite vorkommt.
+- [Die Konfigurationsdatei](/docs/config-file#locales-und-dateien): `targetLocales`, `files.pattern` und `files.localeStyle`.
+- [Sprachen und Locales](/docs/language-support): welche Sprachen jeder Provider abdeckt, Schriften, regionale Varianten und Rechts-nach-links-Text.
+- [Die Lock-Datei](/docs/the-lock-file): warum bestehende Locales bei einem erneuten Lauf nichts kosten.

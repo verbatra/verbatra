@@ -48,7 +48,7 @@ npx verbatra init --format i18next-json --provider gemini --yes
 
 `--format` nennt dein Dateiformat: [Wähle deinen Stack](/docs/pick-your-stack) hat die ID für jedes Framework. `--yes` übernimmt, was `init` erkannt hat, statt nachzufragen; lässt du es weg, beantwortest du die Fragen, die [`verbatra init`](/docs/cli/init) auflistet.
 
-```text title="Output"
+```text output
 created verbatra.config.ts
 created .env.example
 created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
@@ -70,7 +70,7 @@ Die neue `verbatra.config.ts` übersetzt von `en` nach `de`. Für weitere Sprach
 npx verbatra translate --dry-run
 ```
 
-```text title="Output"
+```text output
 verbatra: dry run over 1 locale, no provider call
 verbatra: de done, 2 would translate
 verbatra translate (dry run)
@@ -122,7 +122,7 @@ verbatra schickt die zwei fehlenden Schlüssel an Gemini, prüft jedes Ergebnis 
 npx verbatra check
 ```
 
-```text title="Output"
+```text output
 [ok] checking the locales (0.0s)
 verbatra check
   de: 0 missing, 0 stale, 2 up-to-date (in sync)

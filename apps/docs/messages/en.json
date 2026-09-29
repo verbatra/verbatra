@@ -13,6 +13,9 @@
       "title": "Not available in your language",
       "text": "This page has not been translated yet, so it is shown in English."
     },
+    "codeBlock": {
+      "output": "Output"
+    },
     "availableFrom": {
       "title": "Available from {version}",
       "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with <code>verbatra --version</code> and upgrade if it is older.",
