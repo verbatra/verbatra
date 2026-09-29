@@ -5,7 +5,7 @@ vi.mock("next-intl/server", () => ({
   getTranslations: async () => (key: string) => key,
 }));
 
-const { rootTabs, withLlmsLinks } = await import("./docs-page-tree");
+const { rootTabs, withLlmsLinks, withShortCommandLabels } = await import("./docs-page-tree");
 
 const docsTab: PageTree.Folder = {
   $id: "docs",
@@ -85,5 +85,45 @@ describe("withLlmsLinks", () => {
       "index",
       "full",
     ]);
+  });
+});
+
+describe("withShortCommandLabels", () => {
+  const commands: PageTree.Root = {
+    name: "Documentation",
+    children: [
+      {
+        type: "folder",
+        name: "CLI",
+        index: { type: "page", name: "Overview", url: "/docs/cli" },
+        children: [
+          { type: "page", name: "verbatra translate", url: "/docs/cli/translate" },
+          { type: "page", name: "verbatra tmx", url: "/de/docs/cli/tmx" },
+          { type: "page", name: "verbatra doctor", url: "/docs/cli/check" },
+          { type: "separator", name: "Servers" },
+        ],
+      },
+      { type: "page", name: "verbatra translate", url: "/docs/quickstart" },
+    ],
+  };
+
+  it("names each command page by its command, in every locale", () => {
+    const [cli] = withShortCommandLabels(commands).children;
+    if (cli?.type !== "folder") throw new Error("expected the CLI folder");
+    expect(cli.children.map((child) => child.name)).toEqual([
+      "translate",
+      "tmx",
+      "verbatra doctor",
+      "Servers",
+    ]);
+    expect(cli.index?.name).toBe("Overview");
+  });
+
+  it("leaves pages outside the CLI reference and the source tree untouched", () => {
+    const shortened = withShortCommandLabels(commands);
+    expect(shortened.children[1]).toBe(commands.children[1]);
+    const [cli] = commands.children;
+    if (cli?.type !== "folder") throw new Error("expected the CLI folder");
+    expect(cli.children[0]?.name).toBe("verbatra translate");
   });
 });
