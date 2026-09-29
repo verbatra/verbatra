@@ -28,6 +28,7 @@ import { duplicatesFooter } from "@/lib/docs-neighbours";
 import { type Locale, localizeHref } from "@/lib/i18n";
 import { isShortInlineCode } from "@/lib/inline-code";
 import { cn } from "@/lib/utils";
+import { breakAfterUnderscores } from "@/lib/word-breaks";
 
 export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
@@ -49,7 +50,7 @@ export function getMDXComponents(
     ),
     code: ({ className, children, ...rest }: ComponentProps<"code">) => (
       <code className={cn(isShortInlineCode(children) && SHORT_CODE_CLASS, className)} {...rest}>
-        {children}
+        {breakAfterUnderscores(children)}
       </code>
     ),
     pre: ({

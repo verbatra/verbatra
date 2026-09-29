@@ -612,9 +612,6 @@ samp {
 }
 
 #nd-page .prose :where(thead th):not(:where(.not-prose, .not-prose *)) {
-  position: sticky;
-  top: var(--fd-docs-row-3, 0px);
-  z-index: 1;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 400;
@@ -659,6 +656,12 @@ samp {
   #nd-page .prose :where(div:has(> table)):not(:where(.not-prose, .not-prose *)) {
     overflow: visible;
   }
+
+  #nd-page .prose :where(thead th):not(:where(.not-prose, .not-prose *)) {
+    position: sticky;
+    top: var(--fd-docs-row-3, 0px);
+    z-index: 1;
+  }
 }
 
 .vk-type-table {
@@ -699,8 +702,8 @@ samp {
   line-height: 1.5;
 }
 
-@container vk-article (max-width: 24rem) {
-  #nd-page .prose :where(td .vk-code-short):not(:where(.not-prose, .not-prose *)) {
+@container vk-article (max-width: 29.99rem) {
+  #nd-page .prose :where(td code, th code, td .vk-pill):not(:where(.not-prose, .not-prose *)) {
     white-space: normal;
     overflow-wrap: anywhere;
   }

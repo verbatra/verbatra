@@ -301,7 +301,7 @@ comes from:
   (`components/sdk-reference.tsx`), one card per page naming its entry points.
 - **Table of contents**: TOC entries never break inside a word (`overflow-wrap: normal` on
   `#nd-toc` and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each
-  underscore with `<wbr>`, so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A page
+  underscore with `<wbr>` (`breakAfterUnderscores`), so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A page
   whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
   locales) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
   `.vk-code-headings` to the page body, which sets its H3s (one code name each) in `--font-mono`.
@@ -315,20 +315,22 @@ comes from:
 - **Tables**: the frame is Fumadocs' scroll wrapper (`div:has(> table)`): border, radius and a
   `--surface-bg` fill sit on it, the table itself is transparent, and only the `thead th` row is
   filled (`--surface-card`, a `.vk-label`), the same header treatment `.vk-type-table` gets, so a
-  Markdown table and a generated type table read as one component. The header row is sticky
-  below the header (`top: var(--fd-docs-row-3)`). `#nd-page .prose` is the `vk-article` size
-  container, and every table rule keys on its width, never on the viewport. From 45rem up the
-  wrapper is `overflow: visible`, because a sticky cell inside a scroll container sticks to that
-  container and would never follow the page; below 45rem it scrolls sideways with the end-edge
-  fade `.vk-terminal-scroll` uses. Cells are compact (0.5rem by 0.75rem, top-aligned). A table of
-  three or more columns gets `.vk-table-stack` and a `data-label` per body cell from
-  `lib/stacked-tables.ts` at build time; while the article column is under 45rem each row stacks
-  into a card, the first cell as its title and every other cell behind its column name, and under
-  30rem the column name moves above its value. Under 24rem short inline code in a cell may wrap
-  too, so a two-column table fits a phone. The header row stays in the DOM for assistive
-  technology. Short inline code (up to `SHORT_INLINE_CODE_MAX` characters in
-  `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never wraps
-  elsewhere; longer inline code wraps, in cells and in prose alike.
+  Markdown table and a generated type table read as one component. `#nd-page .prose` is the
+  `vk-article` size container, and every table rule keys on its width, never on the viewport.
+  From 45rem up the wrapper is `overflow: visible` and the header row is sticky below the header
+  (`top: var(--fd-docs-row-3)`); below 45rem the wrapper scrolls sideways with the end-edge fade
+  `.vk-terminal-scroll` uses, and the header is not sticky, because a sticky cell inside a
+  scroll container is offset against that container, not the page. Cells are compact (0.5rem by
+  0.75rem, top-aligned). A table of three or more columns gets `.vk-table-stack` and a
+  `data-label` per body cell from `lib/stacked-tables.ts` at build time; while the article column
+  is under 45rem each row stacks into a card, the first cell as its title and every other cell
+  behind its column name, and under 30rem the column name moves above its value. Under 30rem,
+  code and pills in a cell may wrap too, so a two-column table fits a phone. The header row stays
+  in the DOM for assistive technology. Short inline code (up to `SHORT_INLINE_CODE_MAX`
+  characters in `lib/inline-code.ts`) gets `.vk-code-short` from the MDX `code` mapping and never
+  wraps elsewhere; longer inline code wraps, in cells and in prose alike, and the mapping offers a
+  break after every underscore (`breakAfterUnderscores`, `lib/word-breaks.tsx`) so
+  `verbatra_project_snapshot` wraps at `_` before anywhere else.
 - **SDK type tables**: `<SdkTypeTable name="..." />` in `content/docs/sdk/*.mdx` becomes Fumadocs'
   `TypeTable`, generated at MDX compile time by `fumadocs-typescript`'s `remarkAutoTypeTable` from
   the built `packages/sdk/dist/index.d.ts` (`lib/sdk-type-table.ts`, wired in `source.config.ts`).
