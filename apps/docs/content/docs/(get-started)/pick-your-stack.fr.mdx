@@ -4,6 +4,23 @@ description: L'id de format, l'organisation de fichiers habituelle et la command
 ---
 Trouve ton framework ci-dessous et utilise sa commande `init` à la place de celle du [Démarrage rapide](/docs/quickstart). Chaque organisation de fichiers est le motif qu'écrit `init` quand il ne trouve aucun fichier de locale ; si tes fichiers existent déjà, `init` détecte où ils se trouvent, et `--path` te permet de fixer le motif toi-même. Le comportement complet de chaque format est sur [Formats](/docs/formats).
 
+| Stack | id `--format` | Organisation des fichiers |
+| --- | --- | --- |
+| [React avec i18next](#react-avec-i18next) | `i18next-json` | `locales/{locale}.json` |
+| [Next.js avec next-intl](#nextjs-avec-next-intl) | `next-intl-json` | `messages/{locale}.json` |
+| [Vue et Nuxt avec vue-i18n](#vue-et-nuxt-avec-vue-i18n) | `vue-i18n-json` | `src/locales/{locale}.json` |
+| [Angular avec ngx-translate](#angular-avec-ngx-translate) | `ngx-translate-json` | `src/assets/i18n/{locale}.json` |
+| [Flutter](#flutter) | `arb` | `lib/l10n/app_{locale}.arb` |
+| [Android](#android) | `android-xml` | `app/src/main/res/{locale}/strings.xml` |
+| [iOS et macOS](#ios-et-macos) | `apple-strings` | `{locale}.lproj/Localizable.strings` |
+| [iOS et macOS](#ios-et-macos) | `apple-xcstrings` | `{locale}Localizable.xcstrings` |
+| [gettext](#gettext) | `gettext-po` | `locales/{locale}/LC_MESSAGES/messages.po` |
+| [Java et Spring](#java-et-spring) | `properties` | `src/main/resources/messages_{locale}.properties` |
+| [.NET](#net) | `resx` | `Resources/Strings.{locale}.resx` |
+| [YAML](#yaml) | `yaml` | `locales/{locale}.yml` |
+| [XLIFF](#xliff) | `xliff` | `locales/{locale}.xlf` |
+| [INI](#ini) | `ini` | `locales/{locale}.ini` |
+
 ## React avec i18next
 
 Pour les projets i18next, react-i18next et next-i18next.
