@@ -229,7 +229,10 @@ export type LocaleEstimate = PricedLocaleEstimate | UnpricedLocaleEstimate;
 export interface EstimateIdentity {
   /** The provider the estimate was computed for. */
   readonly provider: ProviderId;
-  /** The configured model, absent for a provider that takes none (`deepl`, `google-translate`). */
+  /**
+   * The configured model, absent for a provider that takes none (`deepl`, `google-translate`,
+   * `libretranslate`).
+   */
   readonly model?: string;
   /**
    * The key a rate is filed under in the config's `rates.table`: `provider/model` for a provider
