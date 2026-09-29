@@ -275,7 +275,8 @@ Devuelve un `GenerateTypesResult`: el `path` absoluto, el `sourcePath` del que s
 `keys` se declararon y cuántas de ellas toman al menos un argumento que verbatra pudo determinar
 (`withArguments`, que nunca cuenta una clave de `unresolved`), las claves `unresolved` y las
 `excluded` y `plural`, si se escribió algo (`written`), si el archivo en disco estaba `stale` al
-arrancar la ejecución, y si esta fue una ejecución de `check`.
+arrancar la ejecución, si faltaba del todo (`missing`, un archivo que falta también está `stale`), y
+si esta fue una ejecución de `check`.
 
 ## Inspecciona el estado sin escribir
 

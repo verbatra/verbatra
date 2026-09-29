@@ -259,7 +259,8 @@ Returns a `GenerateTypesResult`: the absolute `path`, the `sourcePath` it was bu
 `keys` were declared and how many of those take at least one argument verbatra could determine
 (`withArguments`, which never counts an `unresolved` key), the `unresolved` keys and the `excluded`
 and `plural` ones, whether anything was `written`, whether the file on disk was `stale` when the run
-started, and whether this was a `check` run.
+started, whether it was `missing` altogether (a missing file is also `stale`), and whether this was a
+`check` run.
 
 ## Inspect state without writing
 

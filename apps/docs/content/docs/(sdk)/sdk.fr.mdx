@@ -205,7 +205,8 @@ Renvoie un `GenerateTypesResult` : le `path` absolu, le `sourcePath` dont il a �
 combien de `keys` ont été déclarées et combien d'entre elles prennent au moins un argument que
 verbatra a pu déterminer (`withArguments`, qui ne compte jamais une clé de `unresolved`), les clés
 `unresolved` ainsi que les `excluded` et `plural`, si quelque chose a été `written`, si le fichier
-sur disque était `stale` au démarrage de l'exécution, et s'il s'agissait d'une exécution `check`.
+sur disque était `stale` au démarrage de l'exécution, s'il manquait tout à fait (`missing`, un fichier
+manquant est aussi `stale`), et s'il s'agissait d'une exécution `check`.
 
 ## Inspecter l'état sans écrire
 

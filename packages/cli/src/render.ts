@@ -975,12 +975,19 @@ export function renderExtractHuman(result: ExtractResult): string {
   return ["verbatra extract", ...lines, ...(trailer === undefined ? [] : [trailer])].join("\n");
 }
 
+function checkedTypesLine(result: GenerateTypesResult, path: string): string {
+  if (result.missing) {
+    return `  ${path} is missing, run verbatra types to create it`;
+  }
+  return result.stale
+    ? `  ${path} is out of date, re-run verbatra types`
+    : `  ${path} is up to date`;
+}
+
 function renderTypesOutcome(result: GenerateTypesResult, base: string | undefined): string {
   const path = displayPath(result.path, base);
   if (result.check) {
-    return result.stale
-      ? `  ${path} is out of date, re-run verbatra types`
-      : `  ${path} is up to date`;
+    return checkedTypesLine(result, path);
   }
   return result.written ? `  wrote ${path}` : `  unchanged ${path}`;
 }

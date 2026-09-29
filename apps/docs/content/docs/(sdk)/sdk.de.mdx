@@ -282,7 +282,8 @@ Gibt ein `GenerateTypesResult` zurück: den absoluten `path`, den `sourcePath`, 
 wurde, wie viele `keys` deklariert wurden und wie viele davon mindestens ein Argument nehmen, das
 verbatra bestimmen konnte (`withArguments`, das einen Key aus `unresolved` nie mitzählt), die
 `unresolved` Keys sowie die `excluded` und `plural` Keys, ob etwas `written` wurde, ob die Datei auf
-der Platte beim Start `stale` war und ob dies ein `check`-Lauf war.
+der Platte beim Start `stale` war, ob sie ganz fehlte (`missing`, eine fehlende Datei ist auch
+`stale`) und ob dies ein `check`-Lauf war.
 
 ## Zustand inspizieren, ohne zu schreiben
 

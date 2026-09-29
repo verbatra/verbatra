@@ -115,6 +115,11 @@ export interface GenerateTypesResult {
   readonly written: boolean;
   /** Whether the file on disk differed from the freshly generated declaration when the run started. */
   readonly stale: boolean;
+  /**
+   * Whether no declaration file existed at {@link GenerateTypesResult.path} when the run started.
+   * A missing file is always {@link GenerateTypesResult.stale} too.
+   */
+  readonly missing: boolean;
   /** Whether this was a `check` run. */
   readonly check: boolean;
 }
@@ -413,6 +418,7 @@ export async function generateTypes(
     plural: messages.filter((message) => message.isPlural).map((message) => message.key),
     written: stale && !check,
     stale,
+    missing: onDisk.kind === "missing",
     check,
   };
 }

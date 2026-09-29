@@ -93,6 +93,7 @@ describe("displayPath: paths relative to the working directory", () => {
           plural: [],
           check: true,
           stale: true,
+          missing: false,
           written: false,
         },
         base,

@@ -173,6 +173,7 @@ export function makeTypesResult(overrides: Partial<GenerateTypesResult> = {}): G
     plural: [],
     written: true,
     stale: true,
+    missing: false,
     check: false,
     ...overrides,
   };
