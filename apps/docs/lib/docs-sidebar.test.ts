@@ -64,6 +64,16 @@ describe("docs sidebar", () => {
       expect(referenceTab ? pageUrls(referenceTab)[0] : undefined).toBe(`${prefix}/docs/cli`);
     });
 
+    it("opens Get started by default and leaves the other groups closed", () => {
+      const [docsTab] = rootFolders(tree);
+      const prefix = locale === i18n.defaultLanguage ? "" : `/${locale}`;
+      const groups = (docsTab?.children ?? []).filter(
+        (node): node is Folder => node.type === "folder",
+      );
+      const open = groups.filter((group) => group.defaultOpen === true);
+      expect(open.map((group) => pageUrls(group)[0])).toEqual([`${prefix}/docs/quickstart`]);
+    });
+
     it("keeps every link in the sidebar inside this locale", () => {
       const prefix = locale === i18n.defaultLanguage ? "/docs" : `/${locale}/docs`;
       const internal = flattenTree(tree.children).filter((item) => !item.external);
