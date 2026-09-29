@@ -1,6 +1,7 @@
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
 import { CodeBlockTabs } from "fumadocs-ui/components/codeblock";
+import { Step, Steps } from "fumadocs-ui/components/steps";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
@@ -66,6 +67,8 @@ export function getMDXComponents(
     ),
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
     DiffPanel,
+    Step,
+    Steps,
     StudioScreenshot,
     CommandLine,
     Badge,
