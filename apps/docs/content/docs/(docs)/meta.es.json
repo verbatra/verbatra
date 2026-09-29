@@ -1,0 +1,5 @@
+{
+  "title": "Docs",
+  "root": true,
+  "pages": ["../index", "../(get-started)", "../(guides)", "../(concepts)", "../(help)"]
+}

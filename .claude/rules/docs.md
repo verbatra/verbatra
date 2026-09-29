@@ -22,12 +22,29 @@ Markdown/MDX.
 - **MDX documentation content**: `apps/docs/content/docs/**`. English source is `page.mdx`; a
   translation is a locale-suffixed sibling: `page.de.mdx`, `page.es.mdx`, `page.fr.mdx` (confirmed
   by the `(agents)`, `(concepts)`, `(configure)`, `(get-started)`, `(guides)`, `(help)`, and `(sdk)`
-  route groups and the `cli` folder, each with a `meta.json` plus `meta.de.json`/`meta.es.json`/`meta.fr.json`). These are translated by an AI agent
+  route groups and the `cli` folder). These are translated by an AI agent
   in the same change as the English page, following the tone rules below; verbatra's
   `next-intl-json` adapter only covers `messages/*.json`, not MDX. Every non-English page renders
   the "Machine-translated page" notice (`docs.machineTranslated` in `messages/*.json`), which is the
   honest state and stays. The FAQ answer "Is this site's content translated by AI?" says the same
   in all four locales, pinned by `apps/docs/lib/extract-faq.translation-claims.test.ts`.
+
+## Sidebar: two tabs, built from meta files only
+
+The sidebar has two tabs, **Docs** and **Reference**. They are Fumadocs root folders
+(`"root": true`) whose folders `content/docs/(docs)/` and `content/docs/(reference)/` hold only a
+`meta.json` and its `meta.de.json`/`meta.es.json`/`meta.fr.json` siblings. They list the existing
+route groups with relative paths (`"../(guides)"`), and a group's `meta.json` may pull a page from
+another route group the same way (`"../(configure)/network-policy"`). A page's URL never contains
+a parenthesized folder, so regrouping the sidebar or moving a page between tabs changes no URL;
+only renaming a file does. `(agents)` has no `meta.json`: its pages are listed by `(get-started)`
+and `(guides)`. A link entry in a translated meta file (`[Label](/de/docs/...)`) carries its
+locale prefix. `apps/docs/lib/docs-sidebar.test.ts` builds the real page tree and fails when a
+page is missing from both tabs, listed twice, or a link leaves its locale.
+
+A renamed page gets a permanent redirect for every locale and for its `.md` form: add the
+`old: "new"` pair to `MOVED_DOCS_PAGES` in `apps/docs/next.config.mjs`, and
+`apps/docs/next.config.test.ts` checks the four redirects and that the old file is gone.
 
 ## Source of truth: what's actually shipped
 

@@ -50,6 +50,20 @@ describe("withGroupLabels", () => {
     expect(folder.children[1]).toBe(child);
   });
 
+  it("labels the groups inside a root folder and keeps the tab name plain", () => {
+    const tabbed: PageTree.Root = {
+      name: "Documentation",
+      children: [{ type: "folder", name: "Docs", root: true, children: tree.children }],
+    };
+    const [tab] = withGroupLabels(tabbed).children;
+    if (tab?.type !== "folder") throw new Error("expected a root folder");
+    expect(tab.name).toBe("Docs");
+    expect(markup(tab.children[1]?.name)).toBe('<span class="vk-label">Get started</span>');
+    const guides = tab.children[2];
+    if (guides?.type !== "folder") throw new Error("expected a folder");
+    expect(markup(guides.children[0]?.name)).toBe('<span class="vk-sidebar-group">Automate</span>');
+  });
+
   it("does not mutate the source tree", () => {
     withGroupLabels(tree);
     expect(tree.children[1]?.name).toBe("Get started");

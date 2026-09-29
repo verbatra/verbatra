@@ -21,6 +21,13 @@ function withLabel(node: PageTree.Node): PageTree.Node {
     : labelled;
 }
 
+function withRootLabels(node: PageTree.Node): PageTree.Node {
+  if (node.type === "folder" && node.root) {
+    return { ...node, children: node.children.map(withLabel) };
+  }
+  return withLabel(node);
+}
+
 export function withGroupLabels(tree: PageTree.Root): PageTree.Root {
-  return { ...tree, children: tree.children.map(withLabel) };
+  return { ...tree, children: tree.children.map(withRootLabels) };
 }

@@ -167,6 +167,7 @@
     },
     "nav": {
       "docs": "Docs",
+      "reference": "Referencia",
       "providers": "Proveedores",
       "formats": "Formatos",
       "contributing": "Contribuir",

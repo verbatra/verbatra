@@ -1,5 +1,5 @@
 {
-  "title": "CLI reference",
+  "title": "CLI",
   "pages": [
     "index",
     "---Set up---",
@@ -19,7 +19,7 @@
     "export",
     "import",
     "tmx",
-    "---Studio and agents---",
+    "---Servers---",
     "studio",
     "mcp"
   ]

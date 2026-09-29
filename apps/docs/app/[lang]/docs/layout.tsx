@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { LegalFooter } from "@/components/legal-footer";
 import { DocsSiteHeader } from "@/components/site-header";
 import { withGroupLabels } from "@/lib/docs-group-labels";
-import { withExpandedNewGroups, withLlmsLinks } from "@/lib/docs-page-tree";
+import { rootTabs, withExpandedNewGroups, withLlmsLinks } from "@/lib/docs-page-tree";
 import { withStatusBadges } from "@/lib/docs-status-badges";
 import { toLocale } from "@/lib/i18n";
 import { baseOptions } from "@/lib/layout.shared";
@@ -29,6 +29,7 @@ export default async function Layout({
       {...base}
       nav={{ ...nav, mode: "top" }}
       slots={{ ...base.slots, header: DocsSiteHeader }}
+      tabs={rootTabs(tree)}
       tree={tree}
     >
       {children}

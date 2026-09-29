@@ -15,6 +15,21 @@ function pageLine(info: PageInfo): string {
   return `- [${info.title}](${url})${desc}`;
 }
 
+function folderPages(folder: PageTree.Folder): PageTree.Item[] {
+  const pages: PageTree.Item[] = folder.index ? [folder.index] : [];
+  for (const child of folder.children) {
+    if (child.type === "page") pages.push(child);
+    if (child.type === "folder") pages.push(...folderPages(child));
+  }
+  return pages;
+}
+
+function sectionNodes(nodes: PageTree.Node[]): PageTree.Node[] {
+  return nodes.flatMap((node) =>
+    node.type === "folder" && node.root ? sectionNodes(node.children) : [node],
+  );
+}
+
 function renderSections(): string {
   const byUrl = new Map<string, PageInfo>();
   for (const page of source.getPages(i18n.defaultLanguage)) {
@@ -28,7 +43,7 @@ function renderSections(): string {
   const lookup = (node: PageTree.Item): PageInfo | undefined => byUrl.get(node.url);
 
   const sections: string[] = [];
-  for (const node of source.getPageTree(i18n.defaultLanguage).children) {
+  for (const node of sectionNodes(source.getPageTree(i18n.defaultLanguage).children)) {
     if (node.type === "page") {
       const info = lookup(node);
       if (info) sections.push(`## ${info.title}\n\n${pageLine(info)}`);
@@ -37,8 +52,7 @@ function renderSections(): string {
     if (node.type !== "folder") continue;
     const heading = typeof node.name === "string" ? node.name : "Documentation";
     const seen = new Set<string>();
-    const children = [node.index, ...node.children]
-      .filter((child): child is PageTree.Item => child?.type === "page")
+    const children = folderPages(node)
       .filter((child) => {
         if (seen.has(child.url)) return false;
         seen.add(child.url);

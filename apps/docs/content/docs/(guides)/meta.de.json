@@ -1,18 +1,27 @@
 {
   "title": "Anleitungen",
   "pages": [
-    "---Automatisieren---",
+    "---Alltag---",
+    "../(get-started)/add-a-language",
     "estimating-cost",
+    "protecting-human-translations",
+    "../(help)/recovery-and-rollback",
+    "---Automatisieren---",
     "ci-and-exit-codes",
     "github-action",
+    "../(agents)/agent-recipes",
     "---Mit Übersetzern arbeiten---",
     "manual-translation",
     "translation-agency",
-    "human-only-workflow",
-    "protecting-human-translations",
     "review-in-studio",
+    "human-only-workflow",
     "provenance-evidence",
+    "---KI-Agenten---",
+    "../(agents)/connect-an-mcp-client",
+    "../(agents)/agent-tools-in-studio",
     "---Erweitern---",
-    "custom-format-adapters"
+    "../(sdk)/programmatic-api",
+    "custom-format-adapters",
+    "../(configure)/network-policy"
   ]
 }
