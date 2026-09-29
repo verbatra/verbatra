@@ -1,8 +1,8 @@
 ---
 title: Vista general
-description: "El comando verbatra: sus catorce subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
+description: "El comando verbatra: sus quince subcomandos, los flags compartidos, cómo lee tu entorno y el contrato de códigos de salida."
 ---
-`@verbatra/cli` incluye el binario `verbatra`, una capa fina sobre [`@verbatra/sdk`](/docs/sdk). Catorce comandos hacen el trabajo:
+`@verbatra/cli` incluye el binario `verbatra`, una capa fina sobre [`@verbatra/sdk`](/docs/sdk). Quince comandos hacen el trabajo:
 
 | Comando | Qué hace |
 | --- | --- |
@@ -12,6 +12,7 @@ description: "El comando verbatra: sus catorce subcomandos, los flags compartido
 | [`watch`](/docs/cli/watch) | retraduce en cada cambio del origen hasta que lo interrumpas |
 | [`check`](/docs/cli/check) | informa de qué claves faltan o están obsoletas por locale, solo lectura |
 | [`diff`](/docs/cli/diff) | lista las claves exactas que se añadirían, se retraducirían o están huérfanas por locale, solo lectura |
+| [`report`](/docs/cli/report) | imprime un informe de solo lectura: `report provenance` lista qué traducciones escribió una máquina y cuáles revisó una persona |
 | [`doctor`](/docs/cli/doctor) | valida la configuración del proyecto e informa de todos los problemas a la vez, sin llamar a un proveedor |
 | [`pseudo`](/docs/cli/pseudo) | genera un pseudolocale a partir de las cadenas de origen, sin llamar a un proveedor |
 | [`types`](/docs/cli/types) | genera declaraciones de TypeScript para las claves de tu catálogo y los argumentos de sus mensajes, sin llamar a un proveedor |
@@ -42,7 +43,7 @@ Necesitas Node.js `>=22.14.0`.
 - `--config <path>` carga ese archivo de configuración en lugar de buscar uno. Todos los comandos excepto `init` lo aceptan; el orden de búsqueda se describe en [Archivo de configuración](/docs/config-file).
 - `--json` imprime un [envoltorio](/docs/ci-and-exit-codes#salida-json) legible por máquina en stdout, una línea por registro, manteniendo stdout limpio para usarlo con pipes.
   - Decide según su campo `ok`: un éxito lleva los datos del comando bajo `result`, y una ejecución fallida lleva el mismo código de error estable que nombra la línea de stderr. La línea de error legible por humanos va a stderr en ambos casos.
-  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx` e `init`; `studio` y `mcp` no.
+  - Lo admiten `extract`, `translate`, `watch`, `check`, `diff`, `report`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx` e `init`; `studio` y `mcp` no.
   - `mcp` no escribe nada en stdout en absoluto, porque stdout es el canal del protocolo MCP; consulta [`verbatra mcp`](/docs/cli/mcp).
 - `--help` y `--version` imprimen y salen con `0`. Un comando o flag desconocido sale con `2`.
 
@@ -68,7 +69,7 @@ Las palabras de estado son ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), 
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`, `report`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Códigos de salida
 
@@ -77,7 +78,7 @@ El código de salida es el contrato sobre el que un paso de CI o un script toma 
 | Código | Significado |
 | --- | --- |
 | `0` | éxito (también `--help` y `--version`) |
-| `1` | `translate` o `import` terminó pero algunos locales fallaron o quedaron parciales, `check` encontró un locale desincronizado, `diff` encontró cambios pendientes (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `doctor` encontró un problema de configuración (como un locale que el proveedor no admite) o, con `--literals`, un literal sin traducir, o `types --check` encontró que la declaración confirmada está desactualizada |
+| `1` | `translate` o `import` terminó pero algunos locales fallaron o quedaron parciales, `check` encontró un locale desincronizado, `diff` encontró cambios pendientes (o, con `--unused`, un análisis completo encontró una clave de origen sin uso), `report provenance` no pudo leer `verbatra.provenance.json`, `doctor` encontró un problema de configuración (como un locale que el proveedor no admite) o, con `--literals`, un literal sin traducir, o `types --check` encontró que la declaración confirmada está desactualizada |
 | `2` | no se pudo ejecutar: un error de toda la ejecución (configuración, origen, proveedor, bloqueo) o un error de uso |
 | `3` | `translate` en un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) terminó sin errores, pero dejó claves para una traducción humana |
 | `130` | `translate` o `import` se interrumpió con Ctrl-C (SIGINT) tras liberar sus bloqueos de escritura, o `watch`, `studio` o `mcp` fue detenido a la fuerza por una segunda interrupción |

@@ -1,8 +1,8 @@
 ---
 title: Übersicht
-description: "Der Befehl verbatra: seine vierzehn Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest, und der Exit-Code-Vertrag."
+description: "Der Befehl verbatra: seine fünfzehn Unterbefehle, die gemeinsamen Flags, wie er deine Umgebung liest, und der Exit-Code-Vertrag."
 ---
-`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Vierzehn Befehle erledigen die Arbeit:
+`@verbatra/cli` liefert das `verbatra`-Binary, einen dünnen Wrapper über [`@verbatra/sdk`](/docs/sdk). Fünfzehn Befehle erledigen die Arbeit:
 
 | Befehl | Was er tut |
 | --- | --- |
@@ -12,6 +12,7 @@ description: "Der Befehl verbatra: seine vierzehn Unterbefehle, die gemeinsamen 
 | [`watch`](/docs/cli/watch) | bei jeder Quelländerung neu übersetzen, bis unterbrochen wird |
 | [`check`](/docs/cli/check) | melden, welche Keys pro Locale fehlen oder veraltet sind, nur lesend |
 | [`diff`](/docs/cli/diff) | die genauen Keys pro Locale listen, die hinzugefügt oder neu übersetzt würden oder verwaist sind, nur lesend |
+| [`report`](/docs/cli/report) | einen nur lesenden Bericht ausgeben: `report provenance` listet, welche Übersetzungen eine Maschine geschrieben und welche eine Person geprüft hat |
 | [`doctor`](/docs/cli/doctor) | die Projekteinrichtung prüfen und alle Probleme auf einmal melden, ohne einen Provider aufzurufen |
 | [`pseudo`](/docs/cli/pseudo) | aus den Quellstrings eine Pseudo-Locale erzeugen, ohne einen Provider aufzurufen |
 | [`types`](/docs/cli/types) | TypeScript-Deklarationen für deine Katalog-Keys und ihre Nachrichtenargumente erzeugen, ohne einen Provider aufzurufen |
@@ -42,7 +43,7 @@ Willst du einen Befehl vor der Installation ausprobieren? `npx @verbatra/cli <co
 - `--config <path>` lädt diese Konfigurationsdatei, statt eine zu suchen. Jeder Befehl außer `init` akzeptiert es; die Suchreihenfolge steht in [Konfigurationsdatei](/docs/config-file).
 - `--json` gibt einen maschinenlesbaren [Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout aus, eine Zeile pro Datensatz, und hält stdout sauber zum Weiterleiten.
   - Verzweige auf sein `ok`-Feld: ein Erfolg trägt die Daten des Befehls unter `result`, ein fehlgeschlagener Lauf trägt denselben stabilen Fehlercode, den auch die stderr-Zeile nennt. Die menschenlesbare Fehlerzeile geht in beiden Fällen auf stderr.
-  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx` und `init` unterstützen es; `studio` und `mcp` nicht.
+  - `extract`, `translate`, `watch`, `check`, `diff`, `report`, `doctor`, `pseudo`, `types`, `export`, `import`, `tmx` und `init` unterstützen es; `studio` und `mcp` nicht.
   - `mcp` schreibt überhaupt nichts auf stdout, da stdout der MCP-Protokollkanal ist; siehe [`verbatra mcp`](/docs/cli/mcp).
 - `--help` und `--version` geben ihre Ausgabe aus und beenden sich mit `0`. Ein unbekannter Befehl oder ein unbekanntes Flag beendet sich mit `2`.
 
@@ -68,7 +69,7 @@ Statuswörter sind reines ASCII (`[ok]`, `[warn]`, `[fail]`, `[skip]`), damit di
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Exit-Codes
 
@@ -77,7 +78,7 @@ Der Exit-Code ist der Vertrag, auf den ein CI-Schritt oder Skript verzweigt:
 | Code | Bedeutung |
 | --- | --- |
 | `0` | Erfolg (auch `--help` und `--version`) |
-| `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben unvollständig, `check` fand ein Locale, das nicht synchron ist, `diff` fand ausstehende Änderungen (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `doctor` fand ein Einrichtungsproblem (etwa ein Locale, das der Provider nicht unterstützt) oder mit `--literals` ein unübersetztes Literal, oder `types --check` fand die committete Deklaration veraltet |
+| `1` | `translate` oder `import` lief durch, aber einige Locales schlugen fehl oder blieben unvollständig, `check` fand ein Locale, das nicht synchron ist, `diff` fand ausstehende Änderungen (oder mit `--unused` fand ein vollständiger Scan einen ungenutzten Quell-Key), `report provenance` konnte `verbatra.provenance.json` nicht lesen, `doctor` fand ein Einrichtungsproblem (etwa ein Locale, das der Provider nicht unterstützt) oder mit `--literals` ein unübersetztes Literal, oder `types --check` fand die committete Deklaration veraltet |
 | `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Provider, Lock) oder ein Verwendungsfehler |
 | `3` | `translate` in einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) lief sauber durch, hat aber Keys für eine menschliche Übersetzung übrig gelassen |
 | `130` | `translate` oder `import` wurde mit Ctrl-C (SIGINT) abgebrochen, nachdem die Schreibsperren freigegeben waren, oder `watch`, `studio` oder `mcp` wurde durch einen zweiten Interrupt zwangsbeendet |

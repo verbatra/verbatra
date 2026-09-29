@@ -54,6 +54,12 @@ El estado de cada segmento sale del archivo de bloqueo y del [estado de revisió
 
 El origen de un valor actualizado no cambia su estado: una traducción automática, un acierto de la memoria de traducción y un valor que escribió una persona son todos `translated` hasta que alguien los aprueba.
 
+### Marcas de traducción automática
+
+<AvailableFrom version="0.12.0" />
+
+El origen viaja junto al estado, así que la agencia puede ver qué destinos escribió una máquina. En XLIFF 1.2, un destino que escribió un proveedor, la memoria de traducción o un agente de IA, y que nadie aprobó, lleva `state-qualifier="mt-suggestion"`, el valor que las herramientas TAO muestran como sugerencia de traducción automática. Uno aprobado no lleva calificador. En XLIFF 2.0, el grupo de metadatos `verbatra` de la unidad lleva `<mda:meta type="origin">` y `<mda:meta type="review-state">`. La importación ignora ambos: lo que devuelve el traductor se registra como `import`, y un valor confirmado conserva el origen que tenía. Consulta [Evidencia de traducción automática](/docs/provenance-evidence#xliff).
+
 ## Qué acepta la importación
 
 Cada unidad devuelta pasa exactamente por las comprobaciones que aplica una [importación de libro](/docs/manual-translation#qué-acepta-la-importación): la puerta de integridad para marcadores de posición, marcado y sintaxis ICU, la protección contra orígenes desactualizados, `[[CLEAR]]` para vaciar una traducción a propósito y un destino vacío que significa «todavía sin traducir». Lo que añade XLIFF:

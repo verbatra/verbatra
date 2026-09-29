@@ -52,7 +52,7 @@ KI-Agent darüber liest, geht dorthin, wohin dieser Agent es schickt.
 Einen Provider aufrufen können: `translate` und `watch`, das `retranslateEntry` des SDK und die
 Aktionen zum Neu-Übersetzen und zum Übersetzen offener Keys in Studio und im MCP-Server. Studio und
 der MCP-Server bieten diese Aktionen nur an, wenn du sie mit `--allow-spend` startest. Alles andere,
-darunter `check`, `diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`,
+darunter `check`, `diff`, `report`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`,
 `translate --dry-run` und `translate --estimate`, arbeitet mit lokalen Dateien und sendet nichts. Die eine Ausnahme ist
 `verbatra doctor --live`, das DeepL, Google Cloud Translation oder deinen LibreTranslate-Server nach
 der aktuellen Sprachliste fragt, dabei deinen API-Schlüssel (an LibreTranslate keinen) und nichts aus
@@ -236,6 +236,15 @@ Werte mit `memory` und `fuzzy` stammen aus dem Translation Memory, das auch frü
 Ausgaben enthalten kann, lies sie also nicht als menschliche Arbeit. Siehe
 [Herkunft: wer welchen Wert geschrieben hat](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
 
+<AvailableFrom version="0.12.0" />
+
+Um diesen Nachweis weiterzugeben, führ `verbatra report provenance --json` aus: Du bekommst eine
+Audit-Datei pro Key mit maschinell geschriebenen, geprüften, menschlichen und importierten Werten,
+versehen mit Datum, verbatra-Version und Quell-Locale. XLIFF- und TMX-Exporte tragen dieselbe
+Kennzeichnung, sodass ein CAT-Tool oder ein anderer Übersetzungsspeicher maschinelle Ausgabe von
+menschlicher Arbeit unterscheiden kann. Beides ist ein unterstützender Nachweis, keine
+Rechtsberatung; siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence).
+
 ## Checkliste für ein AVV- oder NDA-Review
 
 1. Entscheide, ob Strings dein Netz überhaupt verlassen dürfen. Wenn nicht, nimm
@@ -253,4 +262,5 @@ Ausgaben enthalten kann, lies sie also nicht als menschliche Arbeit. Siehe
 6. Entscheide, welche KI-Agenten sich, wenn überhaupt, mit Studio oder dem MCP-Server verbinden
    dürfen, zu den Bedingungen ihres Anbieters.
 7. Committe `verbatra.provenance.json`, damit der Nachweis maschinell erzeugter Werte mit deinem
-   Code mitreist.
+   Code mitreist, und archiviere `verbatra report provenance --json` mit jedem Release, wenn du ihn
+   später vorzeigen musst.

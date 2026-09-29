@@ -222,6 +222,11 @@ the file past that size, the previous file is kept and the run reports
 `PROVENANCE_FILE_TOO_LARGE`; a single-key edit keeps it silently. The record says which verbatra write path produced a value; it
 is not tamper-proof, since anyone who can edit the locale files can edit it too.
 
+`verbatra report provenance` turns the file into a per-locale report of machine-written, reviewed,
+human and imported values, and exports carry the same marking. Unlike the other reports, it exits
+`1` on a corrupt or newer file instead of leaving its fields out, since the file is all it reports.
+See [Machine-translation evidence](/docs/provenance-evidence).
+
 ### Review decisions
 
 <AvailableFrom version="0.12.0" />

@@ -59,6 +59,8 @@ Un archivo de otra herramienta es entrada no confiable, y una unidad que llega a
 
 Además, una unidad con el segmento de origen en blanco no identifica ninguna cadena, así que también se rechaza. El marcado en línea (`bpt`, `ept`, `ph`, `it`) se aplana a su texto, y la comprobación de placeholders lo detecta si ese marcado llevaba algo que importaba. Un elemento `sub` dentro de ese marcado es un flujo de texto aparte, como un tooltip o un texto alternativo, y no forma parte de la cadena del segmento, así que su texto se deja fuera en vez de aplanarse.
 
+Las propiedades de un segmento, incluidas las `x-origin` y `x-review` que escribe una exportación de verbatra, se ignoran: una unidad importada llega a la memoria, que no registra ningún origen.
+
 Nada desaparece en silencio. Cada rechazo se cuenta por motivo, igual que cada unidad que el lector no pudo aprovechar, cada unidad sin segmento en tu locale de origen, cada unidad cuyo marcado se aplanó y cada unidad cuyo texto `sub` se dejó fuera.
 
 <AvailableFrom version="0.12.0" />
@@ -116,6 +118,10 @@ Las etiquetas de idioma se escriben en forma BCP 47, las escriba como las escrib
 Un carácter que XML 1.0 no puede representar en absoluto, como un carácter de control o un sustituto aislado, se elimina del texto del segmento para que un parser conforme pueda leer el archivo. Cuántos se eliminaron se indica en el resumen y en el resultado de `--json`.
 
 Una memoria vacía produce un archivo TMX válido y vacío, no un error.
+
+<AvailableFrom version="0.12.0" />
+
+Cada segmento de destino lleva `<prop type="x-origin">` con `machine`, `human`, `import` o `unknown`, leído de `verbatra.provenance.json`, y un segmento `machine` lleva además `<prop type="x-review">` con `approved`, `unreviewed` o `rejected`. Una entrada de la memoria puede servir a varias claves, así que un segmento es `machine` cuando lo escribió una máquina en alguna de las claves cuyo registro describe exactamente ese texto, y `approved` solo cuando lo está en todas ellas. Cuando no se puede leer el archivo de procedencia o el archivo de bloqueo, no se escribe ninguna propiedad, el resumen lo indica y el resultado de `--json` lleva `provenanceMarkers: "unavailable"`. Consulta [Evidencia de traducción automática](/docs/provenance-evidence#tmx).
 
 El archivo solo se escribe dentro del directorio de trabajo. Antes de leer la memoria, una ruta de exportación que no nombra ningún archivo (también cuando termina en un separador de ruta, como `out/`), que sale del directorio de trabajo o que nombra el propio directorio de trabajo se rechaza con `TMX_OUTPUT_CONFLICT`, igual que una que nombra un archivo del que depende el proyecto: un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario al que apunta `glossary` en tu configuración. Los nombres se comparan sin distinguir mayúsculas de minúsculas, las mismas comprobaciones se repiten sobre el sitio donde la ruta cae de verdad una vez resueltos los enlaces simbólicos, así que un directorio enlazado no puede llevar el archivo fuera del directorio de trabajo ni sobre un archivo protegido, y no se escribe nada. Una ruta que supera esas comprobaciones todavía puede fallar en el momento de escribir: cuando el directorio no es escribible, ya hay un directorio en esa ruta o el disco está lleno, la ejecución se detiene con `TMX_UNWRITABLE`, nombra el archivo y el código del sistema de archivos, y sale con `2`.
 

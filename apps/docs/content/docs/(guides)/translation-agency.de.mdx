@@ -54,6 +54,12 @@ Der Status jedes Segments kommt aus der Lock-Datei und dem [Review-Status](/docs
 
 Die Herkunft eines aktuellen Werts ändert seinen Status nicht: eine maschinelle Übersetzung, ein Treffer aus dem Übersetzungsspeicher und ein von einer Person getippter Wert sind alle `translated`, bis jemand sie freigibt.
 
+### Markierungen für maschinelle Übersetzung
+
+<AvailableFrom version="0.12.0" />
+
+Die Herkunft reist neben dem Status mit, sodass die Agentur sieht, welche Ziele eine Maschine geschrieben hat. In XLIFF 1.2 trägt ein Ziel, das ein Provider, der Übersetzungsspeicher oder ein KI-Agent geschrieben und niemand freigegeben hat, `state-qualifier="mt-suggestion"`, den Wert, den CAT-Tools als Vorschlag einer maschinellen Übersetzung anzeigen. Ein freigegebenes Ziel trägt keinen Qualifier. In XLIFF 2.0 trägt die `verbatra`-Metagruppe der Unit `<mda:meta type="origin">` und `<mda:meta type="review-state">`. Der Import ignoriert beides: Was die übersetzende Person zurückschickt, wird als `import` festgehalten, und ein bestätigter Wert behält die Herkunft, die er hatte. Siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#xliff).
+
 ## Was der Import annimmt
 
 Jede zurückgeschickte Unit durchläuft genau die Prüfungen, die ein [Arbeitsmappen-Import](/docs/manual-translation#was-der-import-akzeptiert) anwendet: das Integritäts-Gate für Platzhalter, Markup und ICU-Syntax, den Schutz vor veralteten Quellen, `[[CLEAR]]` zum absichtlichen Leeren einer Übersetzung und ein leeres Ziel mit der Bedeutung „noch nicht übersetzt“. Was XLIFF hinzufügt:

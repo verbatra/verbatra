@@ -248,6 +248,12 @@ Keys behält sie stillschweigend. Der Eintrag sagt, welcher Schreibweg
 von verbatra einen Wert erzeugt hat; fälschungssicher ist er nicht, denn wer die Locale-Dateien
 bearbeiten kann, kann auch ihn bearbeiten.
 
+`verbatra report provenance` macht aus der Datei einen Bericht pro Locale mit maschinell
+geschriebenen, geprüften, menschlichen und importierten Werten, und Exporte tragen dieselbe
+Kennzeichnung. Anders als die anderen Berichte endet er bei einer beschädigten oder neueren Datei mit
+Exit `1`, statt seine Felder wegzulassen, denn die Datei ist alles, worüber er berichtet. Siehe
+[Nachweis maschineller Übersetzungen](/docs/provenance-evidence).
+
 ### Review-Entscheidungen
 
 <AvailableFrom version="0.12.0" />

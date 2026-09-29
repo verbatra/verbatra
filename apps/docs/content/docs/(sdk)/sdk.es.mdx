@@ -611,6 +611,28 @@ nueva de verbatra, devuelve `{ available: false, reason: "provenance-unreadable"
 origen, de destino o de bloqueo que no se puede leer hace fallar la llamada igual que en `check`.
 Hasta la 0.11 la cola eran solo las marcas de la última ejecución.
 
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+Construye el informe por locale que imprime `verbatra report provenance`: cada clave con un valor
+tanto en el origen como en un locale de destino, en el orden del origen, con su origen, estado de
+revisión, proveedor, modelo y revisor, contada en uno de siete grupos (`machine-unreviewed`,
+`machine-reviewed`, `human`, `import`, `external`, `unrecorded`, `unknown`, publicados en ese orden
+como la tupla `PROVENANCE_BUCKETS`). Lee los archivos de locale, `verbatra.lock.json` y
+`verbatra.provenance.json`, no llama a ningún proveedor y no escribe nada.
+
+Entrada: `{ config, cwd?, locales?, toolVersion? }`; `deps` acepta además `now`, el reloj del que se
+lee `generatedAt`. Devuelve `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`,
+cada locale como `{ locale, total, counts, entries }` y cada entrada como
+`{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` vale `unknown`
+por defecto. Cuando el archivo de procedencia está dañado o viene de una versión más nueva de
+verbatra, devuelve `{ available: false, reason: "provenance-unreadable" }`, porque un informe sin él
+listaría cada valor como `unrecorded`. Un archivo de origen, de destino o de bloqueo que no se puede
+leer hace fallar la llamada igual que en `check`. El informe es evidencia de apoyo, no asesoramiento
+jurídico; el esquema completo está en
+[Evidencia de traducción automática](/docs/provenance-evidence#el-esquema-json).
+
 ## Operaciones de una sola clave
 
 Estos son los puntos de integración que usa Verbatra Studio; úsalos para construir tu propia herramienta
@@ -944,6 +966,8 @@ mensaje, y el error del sistema de archivos como `cause`.
 
 `format: "xliff2"` y `format: "xliff12"` escriben para una herramienta TAO un `<locale>.xlf` en XLIFF 2.0 o 1.2 por locale en el directorio `out`: una unidad por clave, los marcadores de posición y el marcado como códigos en línea `<ph>` protegidos, la descripción y el significado de la clave como notas, el hash de origen en los metadatos de la unidad y un estado de segmento según el estado de bloqueo y de revisión (`initial` para una clave ausente o desactualizada, `translated` si está al día, `reviewed` si está aprobada). Se exportan los dos tipos, y `XliffFormat` nombra los dos miembros XLIFF de `ExchangeFormat`. Consulta [Entregar a una agencia de traducción](/docs/translation-agency).
 
+Cada unidad con destino lleva además su origen: XLIFF 1.2 califica un destino de clase máquina sin aprobar con `state-qualifier="mt-suggestion"`, y XLIFF 2.0 añade las entradas `origin` y `review-state` al grupo de metadatos `verbatra` de la unidad. El resultado lleva entonces también `provenanceMarkers`: `"written"`, o `"unavailable"` cuando no se pudo leer el archivo de procedencia y no se escribió ninguna marca. Consulta [Evidencia de traducción automática](/docs/provenance-evidence#marcas-en-las-exportaciones).
+
 ### importWorkbook
 
 Lee un libro rellenado de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de
@@ -1069,10 +1093,19 @@ archivos en el mensaje. Solo se escriben las entradas bajo la huella de configur
 el mismo conjunto que reutilizaría una ejecución. Las etiquetas de idioma se escriben en forma BCP
 47 (`en_US` pasa a `en-US`), lo que no cambia cómo se indexa la memoria. Una memoria vacía produce
 un archivo válido y vacío, no un error. Devuelve `{ path, units, locales, withoutSource,
-illegalCharactersRemoved }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no
+illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no
 tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché escrita
 antes de que la memoria guardase el texto de origen, e `illegalCharactersRemoved` cuenta los
 caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los segmentos.
+
+<AvailableFrom version="0.12.0" />
+
+Cada segmento de destino lleva `<prop type="x-origin">` (`machine`, `human`, `import` o `unknown`,
+el tipo `TmxOrigin`) y uno `machine` lleva además `<prop type="x-review">` (`approved`, `unreviewed`
+o `rejected`, el tipo `TmxReview`), derivados de cada clave cuya entrada de bloqueo nombra el origen
+del segmento y cuyo registro describe exactamente su texto. `provenanceMarkers` vale `"unavailable"`
+cuando no se pudo leer el archivo de procedencia o el archivo de bloqueo, y en ese caso ningún
+segmento lleva una propiedad.
 
 ## Configuración
 

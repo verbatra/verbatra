@@ -622,6 +622,28 @@ neueren verbatra-Version, gibt sie `{ available: false, reason: "provenance-unre
 Eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei
 `check`. Bis 0.11 bestand die Warteschlange nur aus den Markierungen des letzten Laufs.
 
+### provenanceReport
+
+<AvailableFrom version="0.12.0" />
+
+Erstellt den Bericht pro Locale, den `verbatra report provenance` ausgibt: jeden Key mit einem Wert
+sowohl in der Quelle als auch in einer Ziel-Locale, in der Reihenfolge der Quelle, mit Herkunft,
+Review-Status, Provider, Modell und Reviewer, gezählt in einer von sieben Kategorien
+(`machine-unreviewed`, `machine-reviewed`, `human`, `import`, `external`, `unrecorded`, `unknown`,
+in dieser Reihenfolge veröffentlicht als Tupel `PROVENANCE_BUCKETS`). Er liest die Locale-Dateien,
+`verbatra.lock.json` und `verbatra.provenance.json`, ruft keinen Provider auf und schreibt nichts.
+
+Eingabe: `{ config, cwd?, locales?, toolVersion? }`; `deps` nimmt außerdem `now`, die Uhr, aus der
+`generatedAt` gelesen wird. Gibt `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`
+zurück, jede Locale als `{ locale, total, counts, entries }` und jeden Eintrag als
+`{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` fällt auf
+`unknown` zurück. Ist die Herkunftsdatei beschädigt oder stammt sie von einer neueren
+verbatra-Version, gibt er `{ available: false, reason: "provenance-unreadable" }` zurück, denn ein
+Bericht ohne sie würde jeden Wert als `unrecorded` aufführen. Eine Quell-, Ziel- oder Lock-Datei,
+die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei `check`. Der Bericht ist ein
+unterstützender Nachweis, keine Rechtsberatung; das vollständige Schema steht unter
+[Nachweis maschineller Übersetzungen](/docs/provenance-evidence#das-json-schema).
+
 ## Operationen auf einzelnen Keys
 
 Das sind die Nahtstellen, an denen Verbatra Studio ansetzt; nutze sie, um dein eigenes
@@ -965,6 +987,8 @@ Dateisystem-Code in der Message und dem Dateisystem-Fehler als `cause`.
 
 `format: "xliff2"` und `format: "xliff12"` schreiben für ein CAT-Tool eine XLIFF-2.0- bzw. 1.2-Datei `<locale>.xlf` pro Locale in das Verzeichnis `out`: eine Unit pro Key, Platzhalter und Markup als geschützte `<ph>`-Inline-Codes, Beschreibung und Bedeutung des Keys als Notizen, den Quell-Hash in den Metadaten der Unit und einen Segmentstatus aus dem Lock- und Review-Status (`initial` für einen fehlenden oder veralteten Key, `translated` wenn aktuell, `reviewed` wenn freigegeben). Beide Typen werden exportiert, `XliffFormat` benennt die zwei XLIFF-Mitglieder von `ExchangeFormat`. Siehe [An eine Übersetzungsagentur übergeben](/docs/translation-agency).
 
+Jede Unit mit einem Ziel trägt außerdem ihre Herkunft: XLIFF 1.2 kennzeichnet ein nicht freigegebenes Ziel der maschinellen Klasse mit `state-qualifier="mt-suggestion"`, und XLIFF 2.0 ergänzt die `verbatra`-Metagruppe der Unit um die Einträge `origin` und `review-state`. Das Ergebnis trägt dann auch `provenanceMarkers`: `"written"`, oder `"unavailable"`, wenn sich die Herkunftsdatei nicht lesen ließ und keine Markierung geschrieben wurde. Siehe [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#markierungen-in-exporten).
+
 ### importWorkbook
 
 Liest eine ausgefüllte Arbeitsmappe zurück in die Locale-Dateien und führt dieselben Prüfungen auf
@@ -1096,11 +1120,20 @@ Einträge unter dem aktuellen Konfigurations-Fingerprint, also dieselbe Menge, d
 wiederverwenden würde. Sprach-Tags werden in BCP-47-Form geschrieben (`en_US` wird zu `en-US`), was
 nichts daran ändert, woraus der Key des Übersetzungsspeichers gebildet wird. Ein leerer
 Übersetzungsspeicher ergibt eine gültige, leere Datei statt eines Fehlers. Gibt `{ path, units,
-locales, withoutSource, illegalCharactersRemoved }` zurück; `withoutSource` zählt Einträge, die
+locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die
 ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei
 Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, und
 `illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem
 Segmenttext entfernt wurden.
+
+<AvailableFrom version="0.12.0" />
+
+Jedes Zielsegment trägt `<prop type="x-origin">` (`machine`, `human`, `import` oder `unknown`, der
+Typ `TmxOrigin`) und ein `machine`-Segment zusätzlich `<prop type="x-review">` (`approved`,
+`unreviewed` oder `rejected`, der Typ `TmxReview`), abgeleitet aus jedem Key, dessen Lock-Eintrag die
+Quelle des Segments nennt und dessen Eintrag genau seinen Text beschreibt. `provenanceMarkers` ist
+`"unavailable"`, wenn sich die Herkunftsdatei oder die Lock-Datei nicht lesen ließ; dann trägt kein
+Segment eine Property.
 
 ## Konfiguration
 

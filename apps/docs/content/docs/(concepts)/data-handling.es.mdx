@@ -52,7 +52,7 @@ a través de ellas va adonde ese agente lo envíe.
 Pueden llamar a un proveedor: `translate` y `watch`, el `retranslateEntry` del SDK, y las acciones
 de retraducir y de traducir pendientes en Studio y en el servidor MCP. Studio y el servidor MCP
 solo ofrecen esas acciones si los arrancas con `--allow-spend`. Todo lo demás, incluidos `check`,
-`diff`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`, `translate --dry-run` y
+`diff`, `report`, `doctor`, `export`, `import`, `tmx`, `extract`, `pseudo`, `types`, `translate --dry-run` y
 `translate --estimate`, trabaja con archivos locales y no envía nada. La única excepción es
 `verbatra doctor --live`, que pide a DeepL, a Google Cloud Translation o a tu servidor LibreTranslate
 su lista de idiomas actual, enviando tu clave de API (ninguna a LibreTranslate) y nada de tu
@@ -232,6 +232,15 @@ valores `memory` y `fuzzy` vienen de la memoria de traducción, que puede conten
 anterior, así que no los leas como trabajo humano. Consulta
 [Procedencia: quién escribió cada valor](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 
+<AvailableFrom version="0.12.0" />
+
+Para entregar ese registro a alguien, ejecuta `verbatra report provenance --json` y obtendrás un
+archivo de auditoría por clave con los valores escritos por máquina, revisados, humanos e
+importados, con la fecha, la versión de verbatra y el locale de origen. Las exportaciones XLIFF y TMX
+llevan la misma marca, así que una herramienta TAO u otra memoria de traducción puede distinguir la
+salida automática del trabajo humano. Ambas cosas son evidencia de apoyo, no asesoramiento jurídico;
+consulta [Evidencia de traducción automática](/docs/provenance-evidence).
+
 ## Lista de comprobación para una revisión de DPA o NDA
 
 1. Decide si los textos pueden salir de tu red. Si no, usa `provider: { id: "none" }`, un
@@ -249,4 +258,5 @@ anterior, así que no los leas como trabajo humano. Consulta
 6. Decide qué agentes de IA, si alguno, pueden conectarse a Studio o al servidor MCP, bajo las
    condiciones de su proveedor.
 7. Confirma `verbatra.provenance.json` en el repositorio para que el registro de los valores
-   producidos por máquina viaje con tu código.
+   producidos por máquina viaje con tu código, y archiva `verbatra report provenance --json` con
+   cada versión si más adelante necesitas mostrarlo.
