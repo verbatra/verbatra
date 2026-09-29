@@ -2,6 +2,8 @@
 title: Codes d'erreur
 description: "Chaque code d'erreur, de résultat et d'avis que signale verbatra : ce qu'il signifie, quelles commandes le lèvent, le code de sortie et l'étape suivante."
 type: reference
+tocDepth: 2
+codeHeadings: true
 ---
 Chaque échec que signale verbatra porte un code stable : dans la ligne `verbatra: error [CODE] message` sur stderr, comme `code` ou `causeCode` d'une enveloppe `--json`, comme `error.code` d'une locale en échec, ou comme avis dans le résumé de l'exécution. Branche-toi sur le code, jamais sur le message. Chaque code a sa propre ancre, `/docs/error-codes#` suivi du code en minuscules, comme [`#config_not_found`](#config_not_found).
 

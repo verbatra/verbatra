@@ -2,6 +2,8 @@
 title: Códigos de error
 description: "Cada código de error, de resultado y de aviso que informa verbatra: qué significa, qué comandos lo lanzan, el código de salida y el siguiente paso."
 type: reference
+tocDepth: 2
+codeHeadings: true
 ---
 Cada fallo que informa verbatra lleva un código estable: en la línea `verbatra: error [CODE] message` de stderr, como `code` o `causeCode` de un sobre `--json`, como `error.code` de un locale fallido o como aviso en el resumen de la ejecución. Ramifica según el código, nunca según el mensaje. Cada código tiene su propio ancla, `/docs/error-codes#` seguido del código en minúsculas, como [`#config_not_found`](#config_not_found).
 

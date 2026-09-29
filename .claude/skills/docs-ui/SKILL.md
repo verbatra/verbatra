@@ -285,6 +285,12 @@ comes from:
   (localized) so no two pages share a title, and listed as "Overview" in their folder. Both
   overview pages list their pages as `<Cards>`; the SDK one comes from `<SdkEntryPoints />`
   (`components/sdk-reference.tsx`), one card per page naming its entry points.
+- **Table of contents**: TOC entries never break inside a word (`overflow-wrap: normal` on
+  `#nd-toc` and the phone popover); `pageToc` (`lib/page-toc.tsx`) offers a break after each
+  underscore with `<wbr>`, so `AGENT_FILE_INVALID` wraps as `AGENT_ / FILE_ / INVALID`. A page
+  whose TOC would be taller than the viewport sets `tocDepth: 2` in its frontmatter (all four
+  locales) to list only its H2 families; `error-codes` does. `codeHeadings: true` adds
+  `.vk-code-headings` to the page body, which sets its H3s (one code name each) in `--font-mono`.
 - **Sidebar subgroups**: a `---Label---` entry in a folder's `meta.json` (and each locale's
   `meta.<lang>.json`) is a separator; `lib/docs-group-labels.tsx` wraps it in `.vk-sidebar-group`.
 - **Sidebar command labels**: `withShortCommandLabels` in `lib/docs-page-tree.tsx` shows a CLI

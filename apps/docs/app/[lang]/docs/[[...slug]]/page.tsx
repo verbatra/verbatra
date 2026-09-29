@@ -20,6 +20,7 @@ import { footerNeighbourUrls } from "@/lib/docs-neighbours";
 import { extractFaqItems } from "@/lib/extract-faq";
 import { i18n, type Locale, localizedPath, toLocale } from "@/lib/i18n";
 import { markdownUrl } from "@/lib/markdown-route";
+import { pageToc } from "@/lib/page-toc";
 import { socialMetadata } from "@/lib/social-metadata";
 import { source } from "@/lib/source";
 import {
@@ -29,6 +30,8 @@ import {
   techArticleLd,
 } from "@/lib/structured-data";
 import { contentCommitTimes, isTranslationOutdated } from "@/lib/translation-freshness";
+
+const CODE_HEADINGS_CLASS = "vk-code-headings";
 
 function breadcrumbTrail(pageUrl: string, lang: Locale): BreadcrumbLdItem[] {
   const items = getBreadcrumbItems(pageUrl, source.getPageTree(lang), { includePage: true });
@@ -129,7 +132,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
 
   return (
     <DocsPage
-      toc={isHome ? [] : page.data.toc}
+      toc={isHome ? [] : pageToc(page.data.toc, page.data.tocDepth)}
       full={isHome}
       breadcrumb={{ enabled: !isHome, includePage: true }}
       footer={{ enabled: !isHome, className: "vk-docs-footer" }}
@@ -148,7 +151,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
           </div>
         </>
       )}
-      <DocsBody>
+      <DocsBody className={page.data.codeHeadings ? CODE_HEADINGS_CLASS : undefined}>
         <LocaleNotice page={page} slug={params.slug} lang={lang} />
         <MDX
           components={getMDXComponents(

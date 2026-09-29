@@ -459,6 +459,11 @@ samp {
   display: none;
 }
 
+#nd-toc a,
+[data-toc-popover-content] a {
+  overflow-wrap: normal;
+}
+
 #nd-page h1 {
   font-size: clamp(2.1rem, 1.6rem + 1.6vw, 2.75rem);
   line-height: var(--leading-heading);
@@ -483,6 +488,13 @@ samp {
   font-size: var(--text-h4);
   line-height: var(--leading-snug);
   letter-spacing: var(--tracking-snug);
+}
+
+#nd-page .vk-code-headings :where(h3):not(:where(.not-prose, .not-prose *)) {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 #nd-page .prose :where(h4):not(:where(.not-prose, .not-prose *)) {
