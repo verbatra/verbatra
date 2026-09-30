@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-Glossary version 2: per-locale translations, forbidden renderings and do-not-translate terms, plus
-`glossaryHits` and the redaction helpers.
+Glossary version 2: per-locale translations, forbidden renderings and do-not-translate terms.
 
 **Glossary file**
 - `{ "version": 2, "terms": [...], "doNotTranslate": [...] }`: each term takes a `target`,

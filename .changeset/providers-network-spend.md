@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-LibreTranslate provider, a `network` policy, per-run `--max-tokens`, per-attempt request
-timeouts, and a strict `provider` block.
+LibreTranslate, a `network` policy, `--max-tokens`, per-attempt timeouts, strict `provider`.
 
 **LibreTranslate**
 - `provider: { id: "libretranslate", options: { baseUrl } }` translates through a self-hosted

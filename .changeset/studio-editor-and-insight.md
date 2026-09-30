@@ -2,8 +2,7 @@
 "@verbatra/studio": minor
 ---
 
-Side-by-side editor with context and a glossary check, state and integrity filters, provenance
-badges, protected keys, per-locale glossary editing, and right-to-left display.
+Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL display.
 
 **Upgrading from 0.5**
 - Retranslating a protected key is refused and offers **Replace anyway**.

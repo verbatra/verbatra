@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-Non-interactive `init` (detection, `--json`, `--agent`) and machine-actionable errors (`hint`,
-`causeCode`, `CLI_ERROR_CODES`, project-relative paths).
+Non-interactive `init` for agents, and errors with a `hint` and a `causeCode`.
 
 **init**
 - `init` detects the format, file pattern, locale style and locales from the project's files.

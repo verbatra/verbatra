@@ -3,8 +3,7 @@
 "@verbatra/cli": patch
 ---
 
-CommonJS entry and types, `./package.json` export, lazy spreadsheet libraries, exported
-`ProviderError` and provider contract types, and `loadConfig({ fresh })`.
+CommonJS entry and types, `./package.json` export, and new SDK exports.
 
 **Packaging**
 - A `verbatra.config.cjs` can `require("@verbatra/cli")`, and `@verbatra/sdk` gives `require` its

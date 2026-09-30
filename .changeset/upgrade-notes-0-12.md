@@ -3,15 +3,17 @@
 "@verbatra/cli": minor
 ---
 
-Upgrading from 0.11: config that now fails to load, files rewritten on the first run, new exit
-codes, changed result shapes, and SDK type breaks.
+Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK type breaks.
 
 **Config that loaded in 0.11 and now fails with `CONFIG_INVALID`**
-- Locale codes must be BCP 47. An underscore spelling (`pt_BR`), a gettext spelling (`sr@latin`),
-  a language subtag of five to eight letters (`german`) and malformed tags are rejected. Write
-  `pt-BR` (or `sr-Latn` in a `gettext-po` project) and set `files.localeStyle: "posix"`: the files
-  keep their paths, and the next `translate` carries the lock-file, translation-memory and
-  provenance state over to the new code. In `apple-xcstrings`, the new code adds a `pt-BR` block.
+- Locale codes must be BCP 47. For an underscore spelling such as `pt_BR`, write `pt-BR` and set
+  `files.localeStyle: "posix"`: files keep their paths, and the next `translate` carries the
+  lock-file, memory and provenance state over. In `apple-xcstrings` this adds a `pt-BR` block.
+- A gettext spelling such as `sr@latin` becomes `sr-Latn` with `posix` in a `gettext-po` project,
+  keeping its path. A code whose script the region implies, such as `zh_Hant_TW`, becomes
+  `zh-Hant-TW`, which a `gettext-po` project spells `zh_TW`: rename that file to `zh_TW`.
+- A language subtag of five to eight letters (`german`) or a malformed tag is rejected: use a
+  two- or three-letter language code such as `de`.
 - Unknown keys in the `provider` block beside `id` and `options`, such as a misplaced `localeMap`,
   are rejected. Move a provider option under `provider.options`, or remove the key.
 - An invalid `VERBATRA_NETWORK_POLICY` or `VERBATRA_NETWORK_ALLOWED_HOSTS` value fails
@@ -37,8 +39,11 @@ codes, changed result shapes, and SDK type breaks.
 - Plural categories come from CLDR. French, Spanish, Italian and Portuguese now need `many`, and
   Japanese, Chinese, Korean, Thai and Vietnamese no longer need `one`. `generatePlurals` creates
   the extra forms, and i18next ordinals follow ordinal rules.
-- The integrity gate checks ICU plural and select arms. A stored value that kept the source's arms
-  (translation memory, fuzzy match, import) is withheld and its key is paid for again.
+- For next-intl and ARB, the integrity gate checks ICU plural and select arms. A stored value that
+  kept the source's arms (memory, fuzzy match, import) is withheld and paid for again. Values
+  already in a locale file stay until their source changes.
+- An LLM run into a language outside the well-tested list carries a `LOCALE_NOT_WELL_TESTED`
+  notice. The locale is still translated.
 - Estimates and token budgets reserve 550 system-rule tokens per LLM request instead of 250.
 - DeepL and Google receive normalized language codes (`en-US` as `EN`, `zh-Hant` as `ZH-HANT`,
   `nb` as `no`). Override them with `provider.options.localeMap`.
@@ -66,9 +71,8 @@ codes, changed result shapes, and SDK type breaks.
   `TMX_UNWRITABLE`, `PSEUDO_OUTPUT_CONFLICT`.
 - A failed `watch` run's error line moves from stdout to stderr, human output prints paths
   relative to the working directory, and dry runs read `would translate`.
-- Every command writes progress lines to stderr, with a spinner and color on a terminal, and an
-  error line is followed by a `next:` line. stdout and `--json` are unchanged. Use `--quiet` and
-  `--no-color` to trim stderr.
+- Every command writes progress and `next:` lines to stderr (trim them with `--quiet` and
+  `--no-color`). stdout and `--json` are unchanged.
 - The `--json` envelope gains the optional `hint`, `causeCode`, `candidates` and `missing` fields
   and stays at version 1. New records: `lock-wait` on `import`, and `{"type":"interrupted"}`.
 - `check` lists `incompletePlurals` warnings (only `check --qa --strict` exits 1 on them), and
@@ -83,14 +87,14 @@ codes, changed result shapes, and SDK type breaks.
 - `readGlossaryFile` and `updateGlossaryTerm` return a `Glossary`, and `translation: null` removes
   only the shared translation. `TranslateRequest.glossary`, seen by a custom provider, is a
   `LocaleGlossary`.
-- `ProviderId` includes `"none"`, so an exhaustive `switch` or `Record` breaks.
+- `ProviderId` includes `"none"`, so an exhaustive `switch` or `Record` breaks, and
   `VerbatraConfigInput` is the schema's input shape.
 - `LocaleSummary.protected` is a new required field. `RunBudget.supported` is `true` for a run
   that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
 - `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
   deep-frozen.
-- `onProgress` has new event kinds, so an exhaustive `switch` breaks.
-- An invalid `lockAcquireTimeoutMs` throws `LOCK_TIMEOUT_INVALID` instead of being accepted.
+- `onProgress` has new event kinds, so an exhaustive `switch` breaks. An invalid
+  `lockAcquireTimeoutMs` throws `LOCK_TIMEOUT_INVALID` instead of being accepted.
 - Adapter plugins: `BuildWriteTree` gets a fourth argument, `serializeEntries` a fifth (the
   locale), `parseEntries` receives the locale, and `write` takes a `WriteContext`. A throw from a
   `custom:` parser is `ADAPTER_FAILED` with the original error as `cause`, and a malformed

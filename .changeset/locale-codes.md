@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-BCP 47 locale validation, provider language tables with `localeMap` and a pre-spend check,
-gettext script spellings, and state carry-over when a locale is respelled.
+BCP 47 locale codes, provider language tables and `localeMap`, and gettext script names.
 
 **Locale codes**
 - Locale codes must be well-formed BCP 47 tags, and an invalid one fails with `CONFIG_INVALID`
@@ -19,5 +18,8 @@ gettext script spellings, and state carry-over when a locale is respelled.
   Google otherwise receive normalized codes.
 - DeepL and Google ship a dated language table, and an unsupported locale is refused with
   `LOCALE_UNSUPPORTED_BY_PROVIDER` before anything is spent. An explicit `localeMap` is trusted.
+- Notices name a glossary or tone the provider cannot apply (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`,
+  `FORMALITY_UNSUPPORTED_BY_PROVIDER`) and a language outside the LLM well-tested list
+  (`LOCALE_NOT_WELL_TESTED`).
 - `doctor --locales` reports each locale's support, and `--live` fetches the provider's list.
 - LLM providers receive the language, script and region names, so `sr-Latn` comes back in Latin.

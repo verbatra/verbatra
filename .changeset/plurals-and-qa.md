@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-CLDR plural rules for every language, ICU arm checks in the integrity gate and in reports, and
-`check --qa` and `check --file` for committed translations.
+CLDR plural rules, ICU arm checks, and `check --qa` and `check --file` for committed files.
 
 **Plurals and ICU arms**
 - Plural categories come from CLDR through `Intl.PluralRules` for every language, and i18next
@@ -22,7 +21,8 @@ CLDR plural rules for every language, ICU arm checks in the integrity gate and i
 
 **Checking committed translations**
 - `verbatra check --qa` runs the integrity and review checks over every committed value, keyless
-  and read-only. It exits 1 on an error, and on a warning with `--strict`.
+  and read-only. It exits 1 on an error, and on a warning with `--strict`. `--severity error`
+  reports errors only.
 - `verbatra check --file <path>` (SDK: `checkFile`) checks one locale file and reports a parse
   failure as a `syntax` finding with line and column. `AdapterError` gains a `position`.
 - `localeIntegrity` judges every key of a locale, and `glossaryDraftCheck` checks a draft.

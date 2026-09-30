@@ -2,8 +2,7 @@
 "@verbatra/mcp": minor
 ---
 
-Starts without a config and reloads it, review and glossary v2 tools, `translation.estimate` and
-spend limits, structured output, and a strict, bounded binary.
+Config-less start and reload, review and glossary v2 tools, spend limits, structured output.
 
 **Upgrading from 0.2**
 - `glossary.get` no longer returns `entries`: it returns `version`, `terms` and `doNotTranslate`.

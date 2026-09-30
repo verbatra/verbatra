@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-Persisted review decisions: a review queue built from committed files, approve and reject for one
-entry, many entries or a whole locale, and `check --require-reviewed` as a CI gate.
+Persisted review decisions, a queue from committed files, and a `--require-reviewed` gate.
 
 **Review queue**
 - `reviewQueue` lists every machine-written value (`MACHINE_CLASS_ORIGINS`) nobody has approved,

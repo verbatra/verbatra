@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-Progress and spinners, `next:` hints, `--quiet` and `--no-color`, session banners for `watch`,
-`studio` and `mcp`, and finer SDK `onProgress` events.
+Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `onProgress`.
 
 **Progress and hints**
 - Every command shows what it is doing on stderr, as a spinner on a terminal and plain lines in
@@ -21,8 +20,10 @@ Progress and spinners, `next:` hints, `--quiet` and `--no-color`, session banner
 
 **Output fixes**
 - Errors go to stderr, paths print relative to the working directory, dry runs read
-  `would translate`, and counts of one read in the singular.
+  `would translate`, `--estimate` is headed `(estimate)`, `watch --help` has examples,
+  `types --check` says a missing declaration is missing, and counts of one read in the singular.
 
 **SDK**
 - `onProgress` gains retry, repair, write and `watch` events, and `extract`, `diff` and `doctor`
-  report `files-scanned`. `watch` takes an `onReady` callback.
+  report `files-scanned`. `watch` takes an `onReady` callback, and
+  `GenerateTypesResult` carries `missing`.

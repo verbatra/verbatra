@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-XLIFF 1.2 and 2.0 agency handoff for every format, spec-accurate XLIFF reading and writing, and
-writes that keep the file's layout.
+XLIFF 1.2 and 2.0 agency handoff, spec-accurate XLIFF, and layout-keeping writes.
 
 **XLIFF handoff**
 - `verbatra export --format xliff2` (or `xliff12`) writes one `<locale>.xlf` per target locale for
@@ -14,8 +13,8 @@ writes that keep the file's layout.
   reviewed or final is recorded as approved under `--reviewer <name>`.
 
 **XLIFF files**
-- An empty, missing or `new` target counts as missing and is translated, and a key missing from
-  the target document gets its own unit.
+- An empty, missing, `new` or `needs-translation` target counts as missing and is translated, and
+  a key missing from the target document gets its own unit.
 - Text is escaped exactly once, and each version keeps its own inline elements and attributes.
 
 **Other formats and writes**

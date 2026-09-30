@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-Record who wrote every translation (`verbatra.provenance.json`), protect human translations from
-machine overwrite, and run without machine translation (`provider: none`).
+Provenance for every translation, protected human edits, and a human-only `provider: none`.
 
 **Provenance**
 - Every write records its origin in a committed `verbatra.provenance.json`: `machine` (with

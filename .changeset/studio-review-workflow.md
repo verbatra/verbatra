@@ -2,8 +2,7 @@
 "@verbatra/studio": minor
 ---
 
-Saved Approve and Reject decisions, a queue built from committed files, bulk and keyboard review,
-and rate-limit feedback.
+Saved review decisions from committed files, bulk and keyboard review, rate-limit feedback.
 
 **Upgrading from 0.5**
 - The Review queue is built from the committed files. Approve and Reject now write files (Reject
