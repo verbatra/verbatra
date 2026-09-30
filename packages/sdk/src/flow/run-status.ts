@@ -40,7 +40,9 @@ export type RunStatusResult =
  * The read is deliberately total: a missing, oversized, unparseable, schema-invalid, or
  * wrong-version file all report `available: false` rather than throwing, and so does an injected
  * `deps.fs` whose read rejects, because stale or unreachable local status should never break the
- * tool reading it. This call throws nothing.
+ * tool reading it. This call throws nothing. A review reason written by a newer verbatra that this
+ * version does not know is ignored rather than making the whole file unusable, and an entry left
+ * with no known reason is dropped.
  *
  * @param input - The optional working directory.
  * @param deps - Optional file-system override.
