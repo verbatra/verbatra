@@ -422,7 +422,8 @@ and is not approved, per target locale, in source order. It reads the locale fil
 the same queue. A key leaves it once its value is approved or rejected, or a person writes or
 imports a new value; a value an agent rewrote stays, and so does an approval given before the key's
 source changed. The last run's `runStatus` snapshot only adds detail: each entry's `reasons` (empty
-when the run did not flag it), the locale's `fuzzyHits`, and `lastRunAt`.
+when the run did not flag it, or flagged it only with reasons from a newer release this one does
+not know), the locale's `fuzzyHits`, and `lastRunAt`.
 
 ```ts title="Signature"
 function reviewQueue(
