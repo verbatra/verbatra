@@ -423,6 +423,10 @@ un servidor de agentes más antiguo ignora, así que un lector más antiguo sigu
 revisión y el uso. Hasta que lo actualices, puede mostrar un presupuesto estimado como no
 registrado.
 
+Un motivo de revisión de una versión más reciente que esta no conoce se ignora en lugar de volver
+inutilizable toda la instantánea: la entrada conserva sus motivos conocidos, y una entrada que
+se queda sin ninguno se omite.
+
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />

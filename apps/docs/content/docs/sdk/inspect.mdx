@@ -407,6 +407,10 @@ its `tokensUsed: 0` is not a count. Snapshots written now keep the same `version
 marker field that an older Studio or agent server ignores, so an older reader keeps showing the
 review queue and usage. Until it is upgraded, it may show an estimated budget as not tracked.
 
+A review reason from a newer release that this one does not know is ignored rather than making
+the whole snapshot unavailable: the entry keeps its known reasons, and an entry left with none is
+dropped.
+
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />

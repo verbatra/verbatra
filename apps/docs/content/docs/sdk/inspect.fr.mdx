@@ -310,6 +310,8 @@ Aucune config requise. Renvoie `{ available: false }` ou `{ available: true, ver
 
 Un instantané écrit par une version antérieure à l'application du budget de tokens est toujours lu, mais son `budget` est omis quand il indique `supported: false` : à l'époque, cela voulait dire que rien n'était compté, donc son `tokensUsed: 0` n'est pas un décompte. Les instantanés écrits désormais gardent la même `version` et ajoutent seulement un champ marqueur qu'un Studio ou un serveur d'agents plus ancien ignore : un lecteur plus ancien continue donc d'afficher la file de révision et l'usage. Tant qu'il n'est pas mis à jour, il peut afficher un budget estimé comme non suivi.
 
+Un motif de révision issu d'une version plus récente que celle-ci ne connaît pas est ignoré au lieu de rendre tout l'instantané indisponible : l'entrée garde ses motifs connus, et une entrée qui n'en a plus aucun est retirée.
+
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />
