@@ -112,6 +112,11 @@ Describe the change and select the affected package(s) and bump type. Changes
 that do not affect published packages (for example internal tooling) do not need
 one.
 
+Until 0.12.0 is released, `.changeset/` holds one file per release theme: extend
+the matching theme file instead of adding a new one, and add nothing for a
+test-only, docs-only or internal change or for a fix to an unreleased feature.
+The full policy is the changeset bullet in `.claude/rules/git-conventions.md`.
+
 ## Pull requests
 
 1. Branch from `main`.
@@ -122,7 +127,8 @@ one.
    bundle guards, the build config typecheck, and the root script tests). A test
    fails if the two ever drift apart.
 4. Use Conventional Commit messages.
-5. Add a changeset if a publishable package changed.
+5. Add a changeset if a publishable package changed in a user-observable way,
+   following the policy in `.claude/rules/git-conventions.md`.
 6. Open a pull request with the template, describing what changed and how you
    tested it. Keep the pull request scoped and make sure CI is green.
 
@@ -267,8 +273,11 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
     missing-key error, and upstream failures mapped to `ProviderError` codes.
 
-11. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
-    published and version-locked together, so a change here ships in a release.
+11. **A changeset.** Extend the matching theme file in `.changeset/`; run
+    `pnpm changeset` for a new file only when no theme covers the change.
+    `@verbatra/sdk` and `@verbatra/cli` are published and version-locked
+    together, so a change here ships in a release. The full policy is in
+    `.claude/rules/git-conventions.md`.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
@@ -347,7 +356,9 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    read a fixture, write it back, and assert the output is byte-identical.
    Key order and structure must survive the round trip.
 
-6. **A changeset** (`pnpm changeset`).
+6. **A changeset.** Extend the matching theme file in `.changeset/`; run
+   `pnpm changeset` for a new file only when no theme covers the change. The
+   full policy is in `.claude/rules/git-conventions.md`.
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update

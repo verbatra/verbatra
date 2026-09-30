@@ -106,8 +106,9 @@ extending any test.
   translatable strings as untrusted.
 - Publishing is npm Trusted Publishing via OIDC (no `NPM_TOKEN`), with automatic
   provenance and a least-privilege `GITHUB_TOKEN`.
-- Any publishable `src` change (including `@verbatra/studio` and `@verbatra/mcp`)
-  ships a changeset with the correct bump level.
+- A user-observable change to a publishable package (including `@verbatra/studio` and
+  `@verbatra/mcp`) ships a changeset with the correct bump level, following the policy in
+  `.claude/rules/git-conventions.md`.
 
 ## Git and commits
 

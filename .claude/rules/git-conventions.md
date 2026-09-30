@@ -58,16 +58,37 @@ commit message for commitlint.
   `.source/`, `node_modules/`, or `.verbatra/` (all already in `.gitignore`).
 - Never commit secrets or `.env*` files. API keys are read from environment variables only (see the
   Security section of the root `CLAUDE.md`); one never belongs in a diff.
-- A `src` change to a publishable package (`@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`,
-  `@verbatra/mcp`) needs an accompanying changeset. `.changeset/config.json` fixes `@verbatra/sdk`
-  and `@verbatra/cli` to the same version; `@verbatra/studio` and `@verbatra/mcp` version
-  independently. The mechanics of adding one (`pnpm changeset`, bump level, wording) are covered
-  by the `changesets` skill at `.claude/skills/changesets/`; this file only states that the commit
-  needs one, not how to write it.
-- A `src` change to a private package that `@verbatra/sdk` bundles (`@verbatra/core`,
-  `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
+- A user-observable `src` change to a publishable package (`@verbatra/sdk`, `@verbatra/cli`,
+  `@verbatra/studio`, `@verbatra/mcp`) needs an accompanying changeset. `.changeset/config.json`
+  fixes `@verbatra/sdk` and `@verbatra/cli` to the same version; `@verbatra/studio` and
+  `@verbatra/mcp` version independently. The mechanics of adding one (`pnpm changeset`, bump level)
+  are covered by the `changesets` skill at `.claude/skills/changesets/`; this file states when a
+  change needs one and, for the rest of the 0.12.0 cycle, where it goes:
+  1. **Extend a theme, do not add a file.** `.changeset/` holds one file per release theme. When a
+     change touches something a theme file covers, add or reword bullets in that file. A modified
+     file counts for `check:dependency-changeset` (`--diff-filter=AM`), so the guard stays green.
+  2. **At most one new file per change**, and only for a capability no theme covers. Name it after
+     the capability (`<capability>.md`), never after the branch that adds it.
+  3. **No changeset for a fix to something not yet released.** If the feature is new in 0.12, reword
+     its theme bullet when the fix changes what the bullet says; otherwise add nothing.
+  4. **No changeset for test-only, docs-only, README-only, type-doc-only or internal refactor
+     changes.** No empty changeset is needed either: the only changeset gate in CI is
+     `check:dependency-changeset`, and it fires only on a runtime dependency change.
+  5. **Anything that changes 0.11 behavior** (config rejected, output or result shape, exit code,
+     provider behavior, files rewritten) also gets a line in `upgrade-notes-0-12.md`, or in the
+     upgrade bullets that open the `@verbatra/mcp` and `@verbatra/studio` files, naming the old
+     behavior, the new one, and the fix.
+  6. **Dependency bumps that reach consumers** go into `dependencies-0-12.md` as `name from -> to`.
+  7. **Shape:** one headline line, then short bullets grouped under bold lead-ins (no `##`
+     headings), at most about eight bullets per change. Each bullet says what the user gets or must
+     do, not how it was implemented, and carries no internal history.
+  8. After the 0.12.0 release, one changeset per change returns for patch releases, but rules 3
+     and 4 stay.
+- A user-observable `src` change to a private package that `@verbatra/sdk` bundles
+  (`@verbatra/core`, `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
   `@verbatra/extract`) needs a changeset too, naming `@verbatra/sdk` itself, not the private
-  package. tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
+  package, and follows the rules above (extend a theme file, nothing for a fix to an unreleased
+  feature). tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
   `packages/sdk/tsup.config.ts`, passed to both `noExternal` and `dts.resolve`), and the sdk
   build always runs from the current checkout (`.github/workflows/release.yml`: the
   `Version or publish` job runs its own `Build` step rather than transferring an artifact from the
@@ -84,5 +105,5 @@ commit message for commitlint.
 
 `.github/PULL_REQUEST_TEMPLATE.md` expects three sections: "What changed" (the change and why),
 "How it was tested" (commands run, cases covered), and a checklist confirming Conventional Commits,
-`pnpm verify` passing locally, and a changeset added if a publishable package changed. Fill in the
-template rather than replacing it with free-form text.
+`pnpm verify` passing locally, and a changeset added or extended if a publishable package changed
+in a user-observable way. Fill in the template rather than replacing it with free-form text.
