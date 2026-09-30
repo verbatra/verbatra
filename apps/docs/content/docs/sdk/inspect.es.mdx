@@ -423,6 +423,10 @@ un servidor de agentes más antiguo ignora, así que un lector más antiguo sigu
 revisión y el uso. Hasta que lo actualices, puede mostrar un presupuesto estimado como no
 registrado.
 
+Un motivo de revisión de una versión más reciente que esta no conoce se ignora en lugar de volver
+inutilizable toda la instantánea: la entrada conserva sus motivos conocidos, y una entrada que
+se queda sin ninguno se omite.
+
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />
@@ -435,7 +439,7 @@ equipo con el mismo commit ve la misma cola. Una clave sale de ella en cuanto su
 se rechaza, o una persona escribe o importa un valor nuevo; un valor que reescribió un agente se
 queda, y también una aprobación anterior a un cambio del origen de la clave. La instantánea de la
 última ejecución de `runStatus` solo añade detalle: las `reasons` de cada entrada (vacías si la
-ejecución no la marcó), los `fuzzyHits` del locale y `lastRunAt`.
+ejecución no la marcó, o solo la marcó con motivos de una versión más reciente que esta no conoce), los `fuzzyHits` del locale y `lastRunAt`.
 
 ```ts title="Firma"
 function reviewQueue(

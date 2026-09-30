@@ -95,4 +95,40 @@ describe("runStatus", () => {
     expect(result).toEqual({ available: false });
     expect(writeCalled).toBe(false);
   });
+
+  it("stays available when a newer version recorded a review reason this one does not know", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(
+      runStatusFilePath(dir),
+      JSON.stringify({
+        version: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        locales: [
+          {
+            locale: "de",
+            status: "succeeded",
+            needsReview: [
+              { key: "greeting", reasons: ["FUTURE_REASON_FROM_A_LATER_VERSION", "EQUALS_SOURCE"] },
+              { key: "farewell", reasons: ["FUTURE_REASON_FROM_A_LATER_VERSION"] },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    expect(await runStatus({ cwd: dir })).toEqual({
+      available: true,
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview: [{ key: "greeting", reasons: ["EQUALS_SOURCE"] }],
+        },
+      ],
+    });
+  });
 });

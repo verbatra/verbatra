@@ -435,3 +435,114 @@ describe("readRunStatusFile: every review reason code survives a round trip", ()
     expect(file?.locales[0]?.needsReview).toEqual([{ key: "greeting", reasons: [reason] }]);
   });
 });
+
+describe("readRunStatusFile: a review reason from a newer version", () => {
+  const FUTURE_REASON = "FUTURE_REASON_FROM_A_LATER_VERSION";
+
+  async function writeRaw(content: unknown): Promise<string> {
+    const dir = await makeTempDir();
+    const path = runStatusFilePath(dir);
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(path, JSON.stringify(content), "utf8");
+    return path;
+  }
+
+  function fileWith(needsReview: readonly unknown[]): unknown {
+    return {
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      usage: { inputTokens: 120, outputTokens: 80 },
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview,
+          fuzzyHits: [{ key: "billing", previousSource: "Your plan renews", similarity: 0.94 }],
+          usage: { inputTokens: 70, outputTokens: 50 },
+        },
+        {
+          locale: "fr",
+          status: "partial",
+          needsReview: [{ key: "title", reasons: ["MAX_LENGTH_EXCEEDED"] }],
+          usage: { inputTokens: 50, outputTokens: 30 },
+        },
+      ],
+    };
+  }
+
+  it("keeps the entry with only its known reasons and leaves the rest of the file intact", async () => {
+    const path = await writeRaw(
+      fileWith([{ key: "greeting", reasons: [FUTURE_REASON, "EQUALS_SOURCE"] }]),
+    );
+
+    const file = await readRunStatusFile(path, defaultFs);
+
+    expect(file).toEqual({
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      usage: { inputTokens: 120, outputTokens: 80 },
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview: [{ key: "greeting", reasons: ["EQUALS_SOURCE"] }],
+          fuzzyHits: [{ key: "billing", previousSource: "Your plan renews", similarity: 0.94 }],
+          usage: { inputTokens: 70, outputTokens: 50 },
+        },
+        {
+          locale: "fr",
+          status: "partial",
+          needsReview: [{ key: "title", reasons: ["MAX_LENGTH_EXCEEDED"] }],
+          usage: { inputTokens: 50, outputTokens: 30 },
+        },
+      ],
+    });
+  });
+
+  it("drops an entry whose only reasons are unknown", async () => {
+    const path = await writeRaw(
+      fileWith([
+        { key: "greeting", reasons: [FUTURE_REASON] },
+        { key: "billing", reasons: ["FUZZY_CACHE_REUSE"] },
+      ]),
+    );
+
+    const file = await readRunStatusFile(path, defaultFs);
+
+    expect(file?.locales[0]?.needsReview).toEqual([
+      { key: "billing", reasons: ["FUZZY_CACHE_REUSE"] },
+    ]);
+  });
+
+  it("still rejects a reason that is not a string", async () => {
+    const path = await writeRaw(fileWith([{ key: "greeting", reasons: [42] }]));
+
+    expect(await readRunStatusFile(path, defaultFs)).toBeUndefined();
+  });
+
+  it("still rejects an unknown locale status", async () => {
+    const path = await writeRaw({
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      locales: [{ locale: "de", status: "FUTURE_STATUS", needsReview: [] }],
+    });
+
+    expect(await readRunStatusFile(path, defaultFs)).toBeUndefined();
+  });
+
+  it("still rejects a file at another version", async () => {
+    const path = await writeRaw({
+      version: 2,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview: [{ key: "a", reasons: [FUTURE_REASON] }],
+        },
+      ],
+    });
+
+    expect(await readRunStatusFile(path, defaultFs)).toBeUndefined();
+  });
+});

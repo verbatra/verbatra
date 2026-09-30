@@ -424,6 +424,10 @@ Studio oder ein älterer Agent-Server ignoriert, ein älterer Leser zeigt die Re
 den Verbrauch also weiter an. Bis zum Upgrade kann er ein geschätztes Budget als nicht erfasst
 anzeigen.
 
+Ein Review-Grund aus einer neueren Version, den diese Version nicht kennt, wird ignoriert, statt
+den ganzen Schnappschuss unbrauchbar zu machen: der Eintrag behält seine bekannten Gründe, und ein
+Eintrag ohne bekannten Grund entfällt.
+
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />
@@ -436,7 +440,8 @@ Person in deinem Team mit demselben Commit dieselbe Warteschlange. Ein Key verl�
 Wert freigegeben oder abgelehnt ist oder eine Person einen neuen Wert schreibt oder importiert; ein
 Wert, den ein Agent neu geschrieben hat, bleibt, ebenso eine Freigabe von vor einer Änderung am
 Quelltext des Keys. Der Schnappschuss des letzten Laufs aus `runStatus` ergänzt nur Details: die
-`reasons` jedes Eintrags (leer, wenn der Lauf ihn nicht markiert hat), die `fuzzyHits` der Locale
+`reasons` jedes Eintrags (leer, wenn der Lauf ihn nicht
+markiert hat oder nur mit Gründen aus einer neueren Version, die diese Version nicht kennt), die `fuzzyHits` der Locale
 und `lastRunAt`.
 
 ```ts title="Signatur"

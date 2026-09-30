@@ -140,6 +140,43 @@ describe("reviewQueue", () => {
     });
   });
 
+  it("keeps the last run's known flags when a newer version recorded a reason it does not know", async () => {
+    const dir = await translatedProject();
+    await writeFile(
+      runStatusFilePath(dir),
+      JSON.stringify({
+        version: 1,
+        generatedAt: "2026-09-23T10:00:00.000Z",
+        locales: [
+          {
+            locale: "de",
+            status: "succeeded",
+            needsReview: [
+              { key: "greeting", reasons: ["FUTURE_REASON_FROM_A_LATER_VERSION", "EQUALS_SOURCE"] },
+              { key: "farewell", reasons: ["FUTURE_REASON_FROM_A_LATER_VERSION"] },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    expect(await reviewQueue({ config: cfg(), cwd: dir })).toEqual({
+      available: true,
+      lastRunAt: "2026-09-23T10:00:00.000Z",
+      locales: [
+        {
+          locale: "de",
+          needsReview: [
+            { key: "greeting", reasons: ["EQUALS_SOURCE"], provenance: MACHINE },
+            { key: "farewell", reasons: [], provenance: MACHINE },
+            { key: "title", reasons: [], provenance: MACHINE },
+          ],
+        },
+      ],
+    });
+  });
+
   it("drops a value once it is approved, rejected, or rewritten by a person", async () => {
     const dir = await translatedProject();
     const base = { config: cfg(), cwd: dir, locale: "de" };

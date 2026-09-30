@@ -407,6 +407,10 @@ its `tokensUsed: 0` is not a count. Snapshots written now keep the same `version
 marker field that an older Studio or agent server ignores, so an older reader keeps showing the
 review queue and usage. Until it is upgraded, it may show an estimated budget as not tracked.
 
+A review reason from a newer release that this one does not know is ignored rather than making
+the whole snapshot unavailable: the entry keeps its known reasons, and an entry left with none is
+dropped.
+
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />
@@ -418,7 +422,8 @@ and is not approved, per target locale, in source order. It reads the locale fil
 the same queue. A key leaves it once its value is approved or rejected, or a person writes or
 imports a new value; a value an agent rewrote stays, and so does an approval given before the key's
 source changed. The last run's `runStatus` snapshot only adds detail: each entry's `reasons` (empty
-when the run did not flag it), the locale's `fuzzyHits`, and `lastRunAt`.
+when the run did not flag it, or flagged it only with reasons from a newer release this one does
+not know), the locale's `fuzzyHits`, and `lastRunAt`.
 
 ```ts title="Signature"
 function reviewQueue(

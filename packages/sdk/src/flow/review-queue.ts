@@ -37,9 +37,10 @@ export interface ReviewQueueDeps {
 export interface ReviewQueueEntry extends NeedsReviewEntry {
   /**
    * The review reasons the last recorded {@link translate} or {@link watch} run flagged the key
-   * with, from `.verbatra-local/run-status.json`. Empty when that run did not flag the key, or no
-   * run status is available on this machine: the entry is in the queue because nobody approved
-   * its value, not because of a flag.
+   * with, from `.verbatra-local/run-status.json`. Empty when that run did not flag the key, flagged
+   * it only with reasons this version does not know (written by a newer verbatra), or no run status
+   * is available on this machine: the entry is in the queue because nobody approved its value, not
+   * because of a flag.
    */
   readonly reasons: readonly ReviewReasonCode[];
   /** The provenance of the key's current value. Its origin is always a {@link MachineClassOrigin}. */
