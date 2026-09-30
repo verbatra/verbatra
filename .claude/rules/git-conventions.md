@@ -84,10 +84,11 @@ commit message for commitlint.
      do, not how it was implemented, and carries no internal history.
   8. After the 0.12.0 release, one changeset per change returns for patch releases, but rules 3
      and 4 stay.
-- A `src` change to a private package that `@verbatra/sdk` bundles (`@verbatra/core`,
-  `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
+- A user-observable `src` change to a private package that `@verbatra/sdk` bundles
+  (`@verbatra/core`, `@verbatra/format-adapters`, `@verbatra/ai-providers`, `@verbatra/exchange`,
   `@verbatra/extract`) needs a changeset too, naming `@verbatra/sdk` itself, not the private
-  package. tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
+  package, and follows the rules above (extend a theme file, nothing for a fix to an unreleased
+  feature). tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
   `packages/sdk/tsup.config.ts`, passed to both `noExternal` and `dts.resolve`), and the sdk
   build always runs from the current checkout (`.github/workflows/release.yml`: the
   `Version or publish` job runs its own `Build` step rather than transferring an artifact from the
@@ -104,5 +105,5 @@ commit message for commitlint.
 
 `.github/PULL_REQUEST_TEMPLATE.md` expects three sections: "What changed" (the change and why),
 "How it was tested" (commands run, cases covered), and a checklist confirming Conventional Commits,
-`pnpm verify` passing locally, and a changeset added if a publishable package changed. Fill in the
-template rather than replacing it with free-form text.
+`pnpm verify` passing locally, and a changeset added or extended if a publishable package changed
+in a user-observable way. Fill in the template rather than replacing it with free-form text.

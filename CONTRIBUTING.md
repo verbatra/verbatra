@@ -273,9 +273,11 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
     missing-key error, and upstream failures mapped to `ProviderError` codes.
 
-11. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
-    published and version-locked together, so a change here ships in a release.
-    Follow the changeset policy in `.claude/rules/git-conventions.md`.
+11. **A changeset.** Extend the matching theme file in `.changeset/`; run
+    `pnpm changeset` for a new file only when no theme covers the change.
+    `@verbatra/sdk` and `@verbatra/cli` are published and version-locked
+    together, so a change here ships in a release. The full policy is in
+    `.claude/rules/git-conventions.md`.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
@@ -354,8 +356,9 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    read a fixture, write it back, and assert the output is byte-identical.
    Key order and structure must survive the round trip.
 
-6. **A changeset** (`pnpm changeset`), following the changeset policy in
-   `.claude/rules/git-conventions.md`.
+6. **A changeset.** Extend the matching theme file in `.changeset/`; run
+   `pnpm changeset` for a new file only when no theme covers the change. The
+   full policy is in `.claude/rules/git-conventions.md`.
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
