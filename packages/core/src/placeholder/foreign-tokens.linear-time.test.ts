@@ -41,3 +41,24 @@ describe("foreignPlaceholderTokens on a long value without whitespace", () => {
     expect(foreignPlaceholderTokens(`${value} {id}`, [])).toEqual(["{id}"]);
   });
 });
+
+describe("foreignPlaceholderTokens on an unclosed placeholder followed by whitespace", () => {
+  it.each([
+    ["{{a,", " "],
+    ["{{a, ", " "],
+    ["{{a,", "\n"],
+    ["{{a,\n", "\t"],
+    ["{{ a ,", " "],
+    ["{{-a,", " "],
+    ["{{a,", " ,"],
+    ["{{a", " "],
+    ["{ a,", " "],
+    ["{a, ", " "],
+  ])("stays linear on %j followed by %j up to 200k characters", (prefix, filler) => {
+    const small = prefix + repeatedTo(filler, LENGTH / LINEAR_SCALE);
+    const large = prefix + repeatedTo(filler, LENGTH);
+    const scanForeign = (value: string) => foreignPlaceholderTokens(value, []);
+
+    expect(cpuScalingRatio(scanForeign, small, large)).toBeLessThan(LINEAR_MAX_RATIO);
+  });
+});
