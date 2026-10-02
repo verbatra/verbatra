@@ -127,14 +127,14 @@ Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code`
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` ejecuta la revisión de la [protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData`, o sin el bloque con los detectores por defecto. Informa de claves y detectores, nunca del texto encontrado salvo cuando forma parte del nombre de una clave, y sale con `1` ante cualquier hallazgo, diga lo que diga `sensitiveData.mode`.
+`--sensitive` ejecuta la revisión de la [protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData`, o sin el bloque con los detectores por defecto. Informa de claves y detectores, nunca del texto encontrado salvo cuando forma parte del nombre de una clave, y sale con `1` ante cualquier hallazgo.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
   support.contact: email in value
 ```
 
-Con `--json`, `result.sensitive` es `{ findings, glossaryTerms }`, y cada hallazgo `{ key, fields, detectors }`.
+Con `--json`, `result.sensitive` es `{ findings, glossaryTerms }`, y cada hallazgo `{ key, fields, detectors }`; `detectors` puede incluir `pattern-timeout-<n>`.
 
 ### Un solo archivo
 
