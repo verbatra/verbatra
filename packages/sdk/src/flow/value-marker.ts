@@ -7,8 +7,9 @@ import { normalizeText } from "@verbatra/core";
  */
 export interface ValueMarker {
   /**
-   * Returns `[redacted length=<n> hash=<h>]` for `value`, where `n` counts its characters and `h`
-   * is {@link ValueMarker.hash} of it.
+   * Returns `[redacted length=<n> hash=<h>]` for `value`, where `n` counts the characters of its
+   * Unicode-normalized form and `h` is {@link ValueMarker.hash} of it, so two normalizations of one
+   * value get the same marker.
    */
   mark(value: string): string;
   /**
@@ -33,10 +34,13 @@ const SALT_BYTES = 32;
  * @returns The marker.
  */
 export function createValueMarker(salt: Uint8Array = randomBytes(SALT_BYTES)): ValueMarker {
-  const hash = (value: string): string =>
-    createHmac("sha256", salt).update(normalizeText(value)).digest("hex").slice(0, HASH_HEX_DIGITS);
+  const digest = (normalized: string): string =>
+    createHmac("sha256", salt).update(normalized).digest("hex").slice(0, HASH_HEX_DIGITS);
   return {
-    hash,
-    mark: (value) => `[redacted length=${[...value].length} hash=${hash(value)}]`,
+    hash: (value) => digest(normalizeText(value)),
+    mark: (value) => {
+      const normalized = normalizeText(value);
+      return `[redacted length=${[...normalized].length} hash=${digest(normalized)}]`;
+    },
   };
 }

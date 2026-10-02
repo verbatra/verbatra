@@ -21,9 +21,11 @@ describe("createValueMarker", () => {
     expect(first.hash("Hallo")).not.toBe(second.hash("Hallo"));
   });
 
-  it("hashes two Unicode normalizations of one value alike", () => {
+  it("hashes and marks two Unicode normalizations and line endings of one value alike", () => {
     const marker = createValueMarker(new Uint8Array([9]));
 
+    expect(marker.mark("Cafe\u0301")).toBe(marker.mark("Caf\u00e9"));
+    expect(marker.mark("a\r\nb")).toBe(marker.mark("a\nb"));
     expect(marker.hash("Café")).toBe(marker.hash("Café"));
   });
 
