@@ -334,7 +334,15 @@ describe("the SDK reference catalogs the whole public surface", () => {
   it("reads the whole reference folder, not only its overview", () => {
     expect(sdkReferencePages()).toEqual(expect.arrayContaining(["index", "run", "errors"]));
     expect(sdkReferencePages().length).toBeGreaterThanOrEqual(9);
-    expect(sdkReferencePages().filter((page) => page.startsWith("["))).toEqual([]);
+  });
+
+  it("skips the sidebar link entries and keeps every page that has a file", () => {
+    const entries = JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages;
+    const pages = sdkReferencePages();
+    expect(entries.length).toBeGreaterThan(pages.length);
+    for (const page of pages) {
+      expect(() => readDocPage(`sdk/${page}`, "")).not.toThrow();
+    }
   });
 
   it.each(LOCALE_SUFFIXES)(
