@@ -76,13 +76,13 @@ un texto de origen, una descripción o el glosario como enviado.
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` revisa, antes de cada petición, exactamente lo que según la tabla anterior recibe un proveedor. Los detectores por defecto encuentran claves de API, direcciones de correo, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos, como nombres en clave.
+`sensitiveData` revisa, antes de cada petición, exactamente lo que según la tabla anterior recibe un proveedor. Los detectores por defecto encuentran claves de API, direcciones de correo, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos, como nombres en clave; se rechaza un patrón que repite un grupo con una repetición o una alternativa, y un patrón lee los primeros 2.000 caracteres de un campo.
 
 | `mode` | Efecto |
 | --- | --- |
 | `warn` | Envía como siempre; un aviso nombra las claves. |
 | `block` | Retiene la clave, así que el locale termina `partial`. |
-| `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. |
+| `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia; una coincidencia en una descripción o un significado se envía como `[redacted]`. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. |
 
 `block` y `redact` además dejan fuera un término del glosario que coincide. La protección está desactivada por defecto; `verbatra init` escribe `warn`. Ante un falso positivo, añade el texto a `allow` o quita su detector. `verbatra check --sensitive` ejecuta la misma revisión sin clave. Los nombres en texto libre no se detectan.
 

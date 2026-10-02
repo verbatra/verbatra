@@ -127,7 +127,7 @@ Avec `--json`, `result.review` vaut `{ reviewed, unreviewed, code? }`, où `code
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` lance l'analyse de la [protection des contenus sensibles](/docs/data-handling#protection-des-contenus-sensibles) sur chaque clé source (nom de clé, valeur, description et sens) et le glossaire de chaque locale vérifiée, avec les détecteurs, motifs et la liste `allow` de `sensitiveData`, ou sans le bloc avec les détecteurs par défaut. Il signale les clés et les détecteurs, jamais le texte trouvé, et sort avec `1` à la moindre trouvaille, quoi que dise `sensitiveData.mode`.
+`--sensitive` lance l'analyse de la [protection des contenus sensibles](/docs/data-handling#protection-des-contenus-sensibles) sur chaque clé source (nom de clé, valeur, description et sens) et le glossaire de chaque locale vérifiée, avec les détecteurs, motifs et la liste `allow` de `sensitiveData`, ou sans le bloc avec les détecteurs par défaut. Il signale les clés et les détecteurs, jamais le texte trouvé sauf s'il fait partie d'un nom de clé, et sort avec `1` à la moindre trouvaille, quoi que dise `sensitiveData.mode`.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive

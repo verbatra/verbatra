@@ -76,13 +76,13 @@ comme envoyé tout ce qui se trouve dans une chaîne source, une description ou 
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, exactement ce qu'un fournisseur reçoit selon le tableau ci-dessus. Les détecteurs par défaut trouvent les clés d'API, adresses e-mail, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes, comme des noms de code.
+`sensitiveData` analyse, avant chaque requête, exactement ce qu'un fournisseur reçoit selon le tableau ci-dessus. Les détecteurs par défaut trouvent les clés d'API, adresses e-mail, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes, comme des noms de code ; un motif qui répète un groupe contenant une répétition ou une alternative est refusé, et un motif lit les 2 000 premiers caractères d'un champ.
 
 | `mode` | Effet |
 | --- | --- |
 | `warn` | Envoie comme d'habitude ; un avis nomme les clés. |
 | `block` | Retient la clé, donc la locale se termine `partial`. |
-| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. |
+| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. |
 
 `block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. La protection est désactivée par défaut ; `verbatra init` écrit `warn`. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. `verbatra check --sensitive` lance la même analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 

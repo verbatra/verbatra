@@ -1181,7 +1181,7 @@ Nothing keeps such a token intact during translation, so a translation that drop
 
 ### SENSITIVE_CONTENT_SENT
 
-Under `sensitiveData.mode: "warn"`, keys or glossary terms this locale sent hold content a detector or pattern matched. They were sent unchanged. The message names the detectors and the first keys, never the matched text.
+Under `sensitiveData.mode: "warn"`, keys or glossary terms this locale sent hold content a detector or pattern matched. They were sent unchanged. The message names the detectors and the first keys, never the matched text unless it is part of a key name.
 
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: none

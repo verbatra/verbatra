@@ -221,9 +221,10 @@ maxLength: {
 Le décompte sous `"stop"` :
 
 - Chaque requête est vérifiée, y compris chaque moitié d'une requête redécoupée après une réponse tronquée.
-- Après chaque requête, le total est réconcilié avec l'usage que le fournisseur a remonté. Une requête qui coûte plus que projeté reporte l'écart après coup : une exécution peut donc finir au-dessus de `maxTokens` de l'écart de cette seule requête, et plus rien n'est envoyé.
+- Après chaque requête, le total est réconcilié avec l'usage remonté par le fournisseur : une exécution peut donc finir au-dessus de `maxTokens` de l'écart de la dernière requête, et plus rien n'est envoyé.
 - Une requête admise peut coûter jusqu'à près du double de sa projection à cause de la requête de réparation que la couche fournisseur envoie elle-même pour les clés manquantes ; cela aussi arrive à la réconciliation.
 - Une requête échouée ou tronquée reste entièrement comptée.
+- Une exécution arrêtée ne laisse aucun fichier à moitié écrit ni aucune entrée de verrouillage pour du travail retenu.
 - La projection inclut une allocation fixe pour le prompt LLM (règles système et schéma de réponse), ajoutée aussi pour les fournisseurs de traduction automatique. Une requête est projetée comme un lot entier, donc un `maxTokens` inférieur à la projection d'un lot le refuse à chaque exécution ; l'avis dit alors de baisser `maxBatchSize` ou d'augmenter `maxTokens`.
 - Les fournisseurs de traduction automatique ne remontent aucun usage de tokens et sont budgétés à partir de la projection (`budget.supported: false`).
 

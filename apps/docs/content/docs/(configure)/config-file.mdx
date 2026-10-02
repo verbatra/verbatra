@@ -221,9 +221,10 @@ maxLength: {
 Counting under `"stop"`:
 
 - Every request is checked, including each half of a request re-split after a truncated response.
-- After each request the total is reconciled to the usage the provider reported. A request that costs more than projected lands the difference afterwards, so a run can end above `maxTokens` by that one request's difference, and nothing more is sent.
+- After each request the total is reconciled to the provider's reported usage, so a run can end above `maxTokens` by the last request's difference; nothing more is sent.
 - An admitted request can cost up to about twice its projection through the provider layer's own repair call for missing keys; that too lands at reconciliation.
 - A failed or truncated request stays charged in full.
+- A stopped run leaves no half-written file and no lock entry for withheld work.
 - The projection includes a fixed allowance for the LLM prompt (system rules and response schema), added for the machine-translation providers too. A request is projected as a whole batch, so a `maxTokens` below one batch's projection refuses it every run; the notice then says to lower `maxBatchSize` or raise `maxTokens`.
 - Machine-translation providers report no token usage and are budgeted from the projection (`budget.supported: false`).
 

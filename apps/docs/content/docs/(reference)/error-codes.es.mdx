@@ -1196,7 +1196,7 @@ Nada mantiene intacto ese token durante la traducción, así que una traducción
 
 ### SENSITIVE_CONTENT_SENT
 
-Con `sensitiveData.mode: "warn"`, claves o términos del glosario que este locale envió contienen contenido que un detector o patrón encontró. Se enviaron sin cambios. El mensaje nombra los detectores y las primeras claves, nunca el texto encontrado.
+Con `sensitiveData.mode: "warn"`, claves o términos del glosario que este locale envió contienen contenido que un detector o patrón encontró. Se enviaron sin cambios. El mensaje nombra los detectores y las primeras claves, nunca el texto encontrado salvo si forma parte del nombre de una clave.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno

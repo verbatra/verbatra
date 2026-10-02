@@ -1196,7 +1196,7 @@ Nichts hält ein solches Token beim Übersetzen intakt, daher wird eine Überset
 
 ### SENSITIVE_CONTENT_SENT
 
-Unter `sensitiveData.mode: "warn"` enthalten Keys oder Glossarbegriffe, die diese Locale gesendet hat, Inhalt, den ein Detektor oder Muster getroffen hat. Sie wurden unverändert gesendet. Die Meldung nennt die Detektoren und die ersten Keys, nie den gefundenen Text.
+Unter `sensitiveData.mode: "warn"` enthalten Keys oder Glossarbegriffe, die diese Locale gesendet hat, Inhalt, den ein Detektor oder Muster getroffen hat. Sie wurden unverändert gesendet. Die Meldung nennt die Detektoren und die ersten Keys, nie den gefundenen Text, außer er steht im Key-Namen.
 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: keiner

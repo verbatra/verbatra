@@ -74,13 +74,13 @@ Quell-String, einer Beschreibung oder dem Glossar als gesendet.
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` durchsucht vor jedem Request genau das, was ein Provider laut der Tabelle oben bekommt. Die Standard-Detektoren finden API-Keys, E-Mail-Adressen, IBANs und Kartennummern; `phone`, `ip` und `private-host` schaltest du bei Bedarf zu, und `patterns` ergänzt eigene Begriffe, etwa Codenamen.
+`sensitiveData` durchsucht vor jedem Request genau das, was ein Provider laut der Tabelle oben bekommt. Die Standard-Detektoren finden API-Keys, E-Mail-Adressen, IBANs und Kartennummern; `phone`, `ip` und `private-host` schaltest du bei Bedarf zu, und `patterns` ergänzt eigene Begriffe, etwa Codenamen; ein Muster, das eine Gruppe mit einer Wiederholung oder einer Alternative wiederholt, wird abgelehnt, und ein Muster liest die ersten 2.000 Zeichen eines Felds.
 
 | `mode` | Wirkung |
 | --- | --- |
 | `warn` | Sendet wie gewohnt; ein Hinweis nennt die Keys. |
 | `block` | Hält den Key zurück, die Locale endet also `partial`. |
-| `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. |
+| `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. |
 
 `block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. Standardmäßig ist der Schutz aus; `verbatra init` schreibt `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. `verbatra check --sensitive` führt dieselbe Prüfung ohne Key aus. Namen in freiem Text werden nicht gefunden.
 

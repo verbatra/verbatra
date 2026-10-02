@@ -221,9 +221,10 @@ maxLength: {
 Zählung unter `"stop"`:
 
 - Jede Anfrage wird geprüft, auch jede Hälfte einer Anfrage, die nach einer abgeschnittenen Antwort neu aufgeteilt wird.
-- Nach jeder Anfrage wird die Summe auf den Verbrauch abgeglichen, den der Provider gemeldet hat. Eine Anfrage, die mehr kostet als projiziert, bringt die Differenz im Nachhinein ein, ein Lauf kann also um die Differenz dieser einen Anfrage über `maxTokens` enden, und um nicht mehr: Danach wird nichts weiter gesendet.
+- Nach jeder Anfrage wird die Summe auf den vom Provider gemeldeten Verbrauch abgeglichen, ein Lauf kann also um die Differenz der letzten Anfrage über `maxTokens` enden; danach wird nichts mehr gesendet.
 - Eine zugelassene Anfrage kann durch die eigene Reparatur-Anfrage der Provider-Schicht für fehlende Keys bis zu etwa das Doppelte ihrer Projektion kosten; auch das landet beim Abgleich.
 - Eine fehlgeschlagene oder abgeschnittene Anfrage bleibt voll belastet.
+- Ein gestoppter Lauf hinterlässt keine halb geschriebene Datei und keinen Lock-Eintrag für zurückgehaltene Arbeit.
 - Die Projektion enthält einen festen Aufschlag für den LLM-Prompt (Systemregeln und Antwortschema), der auch für die Maschinenübersetzungs-Provider angerechnet wird. Eine Anfrage wird als ganzer Batch projiziert, ein `maxTokens` unterhalb der Projektion eines Batches lehnt ihn also bei jedem Lauf ab; der Hinweis sagt dann, `maxBatchSize` zu senken oder `maxTokens` zu erhöhen.
 - Maschinenübersetzungs-Provider melden keinen Token-Verbrauch und werden über die Projektion budgetiert (`budget.supported: false`).
 

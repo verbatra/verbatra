@@ -1197,7 +1197,7 @@ Rien ne garde un tel jeton intact pendant la traduction, donc une traduction qui
 
 ### SENSITIVE_CONTENT_SENT
 
-Avec `sensitiveData.mode: "warn"`, des clés ou des termes du glossaire envoyés par cette locale contiennent un contenu trouvé par un détecteur ou un motif. Ils ont été envoyés tels quels. Le message nomme les détecteurs et les premières clés, jamais le texte trouvé.
+Avec `sensitiveData.mode: "warn"`, des clés ou des termes du glossaire envoyés par cette locale contiennent un contenu trouvé par un détecteur ou un motif. Ils ont été envoyés tels quels. Le message nomme les détecteurs et les premières clés, jamais le texte trouvé sauf s'il fait partie d'un nom de clé.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : aucun

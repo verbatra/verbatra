@@ -221,9 +221,10 @@ maxLength: {
 Cómo cuenta `"stop"`:
 
 - Se comprueba cada petición, incluida cada mitad de una petición que se vuelve a dividir tras una respuesta truncada.
-- Después de cada petición el total se reconcilia con el uso que informó el proveedor. Una petición que cuesta más de lo proyectado aporta la diferencia a posteriori, así que una ejecución puede terminar por encima de `maxTokens` por la diferencia de esa única petición, y no se envía nada más.
+- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar por encima de `maxTokens` por la diferencia de la última petición; no se envía nada más.
 - Una petición admitida puede costar hasta cerca del doble de su proyección por la propia petición de reparación de la capa de proveedor para claves que faltan; eso también llega en la reconciliación.
 - Una petición fallida o truncada sigue cargada por completo.
+- Una ejecución detenida no deja ningún archivo a medio escribir ni ninguna entrada de bloqueo para trabajo retenido.
 - La proyección incluye una asignación fija para el prompt del LLM (reglas de sistema y esquema de respuesta), que se suma también para los proveedores de traducción automática. Una petición se proyecta como un lote entero, así que un `maxTokens` por debajo de la proyección de un lote lo rechaza en cada ejecución; el aviso indica entonces que bajes `maxBatchSize` o subas `maxTokens`.
 - Los proveedores de traducción automática no informan de uso de tokens y se presupuestan a partir de la proyección (`budget.supported: false`).
 
