@@ -34,7 +34,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 | Mark | the value is wrapped in `[` and `]`, so a clipped or concatenated string is obvious |
 
 `Hello {{name}}, you have {{count}} unread messages` becomes
-`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Only translatable text changes. Placeholders survive in every syntax the [format adapters](/docs/formats) recognise, and inside an ICU message the argument names, `plural` and `select` keywords and branch selectors stay as written. vue-i18n pipe-separated plural forms are transformed one by one: `car | cars` becomes `[ćáŕ··] | [ćáŕś··]`. The transform is deterministic, so the file diffs cleanly.
 

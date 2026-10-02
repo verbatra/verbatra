@@ -142,7 +142,7 @@ Mit `--json` ist `result.sensitive` gleich `{ findings, glossaryTerms }`, jeder 
 
 `--file <path>` prüft eine einzelne Locale-Datei, gedacht für Editor- und Agent-Hooks nach einer Änderung. Es liest diese Datei und, bei einem Ziel-Locale, die Quelldatei, sonst nichts. Der Pfad wird gegen `--cwd` aufgelöst und über `files.pattern` einem Locale zugeordnet.
 
-- Eine Datei, die sich nicht parsen lässt, ergibt einen `syntax`-Fehler mit dem Code des Adapters (`INVALID_JSON`, `INVALID_YAML`, ...) und bei JSON und YAML Zeile und Spalte.
+- Eine Datei, die sich nicht parsen lässt, ergibt einen `syntax`-Fehler mit dem Code des Adapters (`INVALID_JSON`, `INVALID_YAML`, ...) und Zeile und Spalte, wenn der Parser eine Position meldet.
 - Eine Zieldatei wird wie bei [`--qa`](#qualitätsprüfung) geprüft, Pluralkategorien eingeschlossen, eine Quelldatei nur auf Syntax. Ein `apple-xcstrings`-Katalog wird für jedes Ziel-Locale geprüft.
 - Ein Pfad, der keine konfigurierte Locale-Datei ist, schlägt mit `NOT_A_LOCALE_FILE` und Exit `2` fehl.
 
@@ -161,7 +161,7 @@ interface CheckFileSummary {
 }
 interface QaSyntaxFinding {
   severity: "error"; reason: "syntax"; code: string; message: string;
-  line?: number; column?: number;       // nur JSON und YAML, ab 1 gezählt
+  line?: number; column?: number;       // wenn der Parser eine Position meldet, ab 1 gezählt
 }
 ```
 

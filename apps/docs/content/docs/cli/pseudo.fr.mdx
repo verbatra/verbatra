@@ -34,7 +34,7 @@ La commande accepte aussi les [options globales](/docs/cli#options-globales) `--
 | Marquer | la valeur est entourée de `[` et `]`, donc une chaîne tronquée ou concaténée se voit tout de suite |
 
 `Hello {{name}}, you have {{count}} unread messages` devient
-`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Seul le texte traduisible change. Les placeholders survivent dans toutes les syntaxes que reconnaissent les [adaptateurs de format](/docs/formats), et dans un message ICU les noms d'arguments, les mots-clés `plural` et `select` et les sélecteurs de branche restent tels quels. Les formes plurielles vue-i18n séparées par des barres verticales sont transformées une à une : `car | cars` devient `[ćáŕ··] | [ćáŕś··]`. La transformation est déterministe, donc le fichier produit des diffs propres.
 

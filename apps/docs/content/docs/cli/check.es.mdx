@@ -142,7 +142,7 @@ Con `--json`, `result.sensitive` es `{ findings, glossaryTerms }`, y cada hallaz
 
 `--file <path>` comprueba un único archivo de locale, pensado para hooks de editor y de agente tras una edición. Lee ese archivo y, para un locale de destino, el archivo de origen, nada más. La ruta se resuelve respecto a `--cwd` y se asocia a su locale mediante `files.pattern`.
 
-- Un archivo que no se puede analizar da un error `syntax` con el código del adaptador (`INVALID_JSON`, `INVALID_YAML`, ...) y, en JSON y YAML, la línea y la columna.
+- Un archivo que no se puede analizar da un error `syntax` con el código del adaptador (`INVALID_JSON`, `INVALID_YAML`, ...) y la línea y la columna cuando el analizador informa de una posición.
 - Un archivo de destino se comprueba como con [`--qa`](#control-de-calidad), categorías de plural incluidas; un archivo de origen, solo la sintaxis. Un catálogo `apple-xcstrings` se comprueba para cada locale de destino.
 - Una ruta que no es el archivo de ningún locale configurado falla con `NOT_A_LOCALE_FILE` y sale con `2`.
 
@@ -161,7 +161,7 @@ interface CheckFileSummary {
 }
 interface QaSyntaxFinding {
   severity: "error"; reason: "syntax"; code: string; message: string;
-  line?: number; column?: number;       // solo JSON y YAML, contando desde 1
+  line?: number; column?: number;       // si el analizador informa de una posición, contando desde 1
 }
 ```
 

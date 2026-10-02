@@ -142,7 +142,7 @@ With `--json`, `result.sensitive` is `{ findings, glossaryTerms }`, each finding
 
 `--file <path>` checks one locale file, for editor and agent hooks after an edit. It reads that file and, for a target locale, the source file, nothing else. The path is resolved against `--cwd` and matched against `files.pattern` to find its locale.
 
-- A file that does not parse is one `syntax` error with the adapter's code (`INVALID_JSON`, `INVALID_YAML`, ...) and, for JSON and YAML, the line and column.
+- A file that does not parse is one `syntax` error with the adapter's code (`INVALID_JSON`, `INVALID_YAML`, ...) and the line and column when the parser reports a position.
 - A target file is checked like [`--qa`](#quality-check), plural categories included; a source file for syntax only. An `apple-xcstrings` catalogue is checked for every target locale.
 - A path that is no configured locale's file fails with `NOT_A_LOCALE_FILE` and exit `2`.
 
@@ -161,7 +161,7 @@ interface CheckFileSummary {
 }
 interface QaSyntaxFinding {
   severity: "error"; reason: "syntax"; code: string; message: string;
-  line?: number; column?: number;       // JSON and YAML only, counted from 1
+  line?: number; column?: number;       // when the parser reports a position, counted from 1
 }
 ```
 
