@@ -17,7 +17,7 @@ export const PLACEHOLDER_SYNTAXES = [
 
 export type PlaceholderSyntax = (typeof PLACEHOLDER_SYNTAXES)[number];
 
-const IDENTIFIER = "(?:\\d+|[A-Za-z_$][\\w$.-]*)";
+const IDENTIFIER = "(?:\\p{Nd}+|[\\p{L}_$][\\p{L}\\p{M}\\p{N}_$.-]*)";
 
 const ICU_ARGUMENT_TYPES =
   "(?:plural|selectordinal|select|number|date|time|spellout|ordinal|duration|choice)";
@@ -49,7 +49,7 @@ const PLACEHOLDER_TOKEN = new RegExp(
     `(?<icuArgument>\\{\\s*${IDENTIFIER}\\s*,\\s*${ICU_ARGUMENT_TYPES}\\s*[,}])`,
     `(?<singleBrace>\\{${IDENTIFIER}\\})`,
   ].join("|"),
-  "y",
+  "uy",
 );
 
 const TOKEN_START = /[{%$]/g;

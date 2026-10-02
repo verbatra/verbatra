@@ -65,6 +65,32 @@ describe("foreignPlaceholderTokens", () => {
     expect(foreignPlaceholderTokens(value, [syntax])).toEqual([]);
   });
 
+  it.each<[PlaceholderSyntax, string, readonly string[]]>([
+    ["single-brace", "Hallo {名前}, Datei {٣}", ["{名前}", "{٣}"]],
+    ["single-brace", "{नाम} und {café_2}", ["{नाम}", "{café_2}"]],
+    ["single-brace", "{件数, plural, one {# 件} other {# 件}}", ["{件数, plural,"]],
+    [
+      "double-brace",
+      "Hallo {{名前}} und {{ użytkownik.imię }}",
+      ["{{名前}}", "{{ użytkownik.imię }}"],
+    ],
+    ["ruby", "%{件数} Artikel", ["%{件数}"]],
+    ["dollar-brace", "Hallo ${名前}", ["${名前}"]],
+  ])(
+    "reports a %s token whose name uses non-ASCII letters or digits: %s",
+    (syntax, value, expected) => {
+      expect(foreignPlaceholderTokens(value, allExcept(syntax))).toEqual(expected);
+      expect(foreignPlaceholderTokens(value, [syntax])).toEqual([]);
+    },
+  );
+
+  it.each(["{名 前}", "{·名}", "{̈a}", "%(名前)s", "%名"])(
+    "keeps a non-ASCII run that is no identifier quiet: %s",
+    (value) => {
+      expect(foreignPlaceholderTokens(value, NONE)).toEqual([]);
+    },
+  );
+
   it("does not read %(name)s as a printf token", () => {
     expect(foreignPlaceholderTokens("Hi %(name)s", ["python-named"])).toEqual([]);
   });
