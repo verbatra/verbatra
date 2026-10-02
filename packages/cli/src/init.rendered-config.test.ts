@@ -105,7 +105,7 @@ describe("the scaffolded verbatra.config.ts", () => {
     expect(verbatraConfigSchema.parse(rendered).sensitiveData).toBe(undefined);
   });
 
-  it.each(["gemini", "none"])(
+  it.each(["gemini", "deepl", "none"])(
     "reports in --json exactly the config it wrote for %s",
     async (provider) => {
       const cap = captureStreams();
