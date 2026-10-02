@@ -96,15 +96,15 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets.
+`pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets, ou une locale d'`init --source` ou `--targets` n'est pas un code BCP 47.
 
-- **Levé par** : `pseudo`
+- **Levé par** : `pseudo`, `init`
 - **Code de sortie** : `2`
 - **Étape suivante** : Pass --locale as a language tag of letters, digits and hyphens, such as en-XA.
 
 ### INVALID_LOCALES
 
-`--locales` a été donné mais ne liste aucune locale.
+`--locales` a été donné mais ne liste aucune locale, ou les locales cibles d'`init` incluent la locale source.
 
 - **Levé par** : `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Code de sortie** : `2`
@@ -128,7 +128,7 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_OPTION
 
-Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `init --cwd` ne nomme aucun répertoire existant, ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency` ou `--require-reviewed`.
+Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `init --cwd` ne nomme aucun répertoire existant, ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`.
 
 - **Levé par** : `init`, `doctor`, `check`
 - **Code de sortie** : `2`
@@ -1213,7 +1213,7 @@ Avec `sensitiveData.mode: "warn"`, des clés ou des termes du glossaire envoyés
 
 ### SENSITIVE_CONTENT_REDACTED
 
-Avec `"redact"`, les correspondances dans les valeurs de ces clés ont été remplacées par des jetons avant l'envoi puis restaurées dans la traduction.
+Avec `"redact"`, les correspondances dans les valeurs de ces clés ont été remplacées par des jetons avant l'envoi puis restaurées dans la traduction. Le message nomme les premières clés en entier, donc une correspondance dans un nom de clé y apparaît.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : aucun
@@ -1221,7 +1221,7 @@ Avec `"redact"`, les correspondances dans les valeurs de ces clés ont été rem
 
 ### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
 
-Avec `"block"` ou `"redact"`, des clés n'ont pas été envoyées à cause d'une correspondance et figurent dans `sensitiveWithheld`, ou des termes du glossaire avec une correspondance ont été laissés hors de la requête. Avec `"redact"`, une clé est retenue quand la correspondance est dans son nom ou chevauche un placeholder, ou quand un jeton n'est pas revenu exactement une fois.
+Avec `"block"` ou `"redact"`, des clés n'ont pas été envoyées à cause d'une correspondance et figurent dans `sensitiveWithheld`, ou des termes du glossaire avec une correspondance ont été laissés hors de la requête. Avec `"redact"`, une clé est retenue quand la correspondance est dans son nom ou chevauche un placeholder, ou quand un jeton n'est pas revenu exactement une fois. Le message nomme les premières clés en entier, donc une correspondance dans un nom de clé y apparaît.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : `1`, puisqu'une clé retenue laisse la locale `partial` ou `failed`

@@ -96,15 +96,15 @@ Un fallo no traía código propio (el código de reserva).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones.
+`pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones, o un locale de `init --source` o `--targets` no es un código BCP 47.
 
-- **Lo lanza**: `pseudo`
+- **Lo lanza**: `pseudo`, `init`
 - **Código de salida**: `2`
 - **Siguiente paso**: Pass --locale as a language tag of letters, digits and hyphens, such as en-XA.
 
 ### INVALID_LOCALES
 
-Se dio `--locales` pero no lista ningún locale.
+Se dio `--locales` pero no lista ningún locale, o los locales de destino de `init` incluyen el locale de origen.
 
 - **Lo lanza**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Código de salida**: `2`
@@ -128,7 +128,7 @@ Se dio `--locales` pero no lista ningún locale.
 
 ### INVALID_OPTION
 
-Un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible` ni `libretranslate`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency` o `--require-reviewed`.
+Un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible` ni `libretranslate`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive`.
 
 - **Lo lanza**: `init`, `doctor`, `check`
 - **Código de salida**: `2`
@@ -1212,7 +1212,7 @@ Con `sensitiveData.mode: "warn"`, claves o términos del glosario que este local
 
 ### SENSITIVE_CONTENT_REDACTED
 
-Con `"redact"`, las coincidencias en los valores de estas claves se sustituyeron por tokens antes de enviarlas y se restauraron en la traducción.
+Con `"redact"`, las coincidencias en los valores de estas claves se sustituyeron por tokens antes de enviarlas y se restauraron en la traducción. El mensaje nombra las primeras claves completas, así que una coincidencia dentro del nombre de una clave aparece en él.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno
@@ -1220,7 +1220,7 @@ Con `"redact"`, las coincidencias en los valores de estas claves se sustituyeron
 
 ### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
 
-Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y aparecen en `sensitiveWithheld`, o unos términos del glosario con coincidencia quedaron fuera de la petición. Con `"redact"` se retiene una clave cuando la coincidencia está en su nombre o se solapa con un marcador, o cuando un token no volvió exactamente una vez.
+Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y aparecen en `sensitiveWithheld`, o unos términos del glosario con coincidencia quedaron fuera de la petición. Con `"redact"` se retiene una clave cuando la coincidencia está en su nombre o se solapa con un marcador, o cuando un token no volvió exactamente una vez. El mensaje nombra las primeras claves completas, así que una coincidencia dentro del nombre de una clave aparece en él.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: `1`, ya que una clave retenida deja el locale `partial` o `failed`
