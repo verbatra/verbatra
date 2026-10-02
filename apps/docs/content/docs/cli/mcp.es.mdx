@@ -83,14 +83,22 @@ El servidor responde al handshake MCP `initialize` con unas `instructions` fijas
 
 <AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
 
-- `status.check`, `status.diff`, `key.integrity` y `translation.estimate` aceptan un array opcional `locales`; `key.integrity` también recibe la `key`, y una clave desconocida falla con `UNKNOWN_KEY`.
-- `key.integrity` devuelve `{ locales: [{ locale, entries }] }`, cada entrada con `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `markupMatches` y sus detalles; `verbatra_key_integrity` de Studio es más plano (consulta [Herramientas de agente en Studio](/docs/agent-tools-in-studio)).
+- `status.check`, `status.diff` y `key.integrity` aceptan un array opcional `locales`; `key.integrity` también recibe la `key`.
+- `key.integrity` devuelve `{ locales: [{ locale, entries }] }`, cada entrada con `matches`, `missing`, `extra`, `icuValid`, `markupMatches` y sus detalles; `verbatra_key_integrity` de Studio es más plano (consulta [Herramientas de agente en Studio](/docs/agent-tools-in-studio)).
 - `translation.editEntry` recibe `locale`, `key` y un `value` de hasta 20.000 caracteres. Tanto ella como `translation.retranslateEntry` devuelven `{ accepted, value, reason?, details? }`, donde `reason` es `placeholder`, `markup`, `icu`, `degenerate` o `empty`.
-- `glossary.get` acepta un `locale` opcional y entonces añade `effective`, los términos a los que se atiene ese locale. `glossary.write` necesita un glosario en archivo; si no, falla con `GLOSSARY_NOT_FILE_BACKED`.
-- <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> `key.value`, `lock.state`, `status.check` y `status.diff` incluyen la procedencia, que falta cuando `verbatra.provenance.json` no se puede leer.
-- <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> Las herramientas que escriben aceptan un `lockTimeoutMs` opcional, de `0` a `600000`, por defecto `30000`: cuánto esperan un bloqueo de escritura ocupado antes de fallar con `LOCK_CONTENDED`, sin haber escrito nada.
-- Las entradas y salidas son JSON Schemas; una entrada inválida devuelve un resultado que nombra el campo. <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> Un resultado que no encaja con su `outputSchema` falla con `OUTPUT_SCHEMA_MISMATCH`; en una herramienta que escribe, el cambio ya se aplicó, así que no la repitas.
-- El texto de una llamada fallida empieza por su código de error, como `UNKNOWN_KEY: ...`. <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> Termina con una línea `Next step: ...` cuando el error tiene un siguiente paso, el mismo texto que el `hint` de la CLI.
+- `glossary.write` necesita un glosario en archivo; si no, falla con `GLOSSARY_NOT_FILE_BACKED`.
+
+### Más entradas y resultados
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+- `translation.estimate` acepta el mismo array opcional `locales`, y `key.integrity` falla con `UNKNOWN_KEY` para una clave desconocida.
+- Cada entrada de `key.integrity` incluye además `icuArmsMatch` y sus detalles.
+- `glossary.get` acepta un `locale` opcional y entonces añade `effective`, los términos a los que se atiene ese locale.
+- `key.value`, `lock.state`, `status.check` y `status.diff` incluyen la procedencia, que falta cuando `verbatra.provenance.json` no se puede leer.
+- Las herramientas que escriben aceptan un `lockTimeoutMs` opcional, de `0` a `600000`, por defecto `30000`: cuánto esperan un bloqueo de escritura ocupado antes de fallar con `LOCK_CONTENDED`, sin haber escrito nada.
+- Las entradas y salidas son JSON Schemas; una entrada inválida devuelve un resultado que nombra el campo. Un resultado que no encaja con su `outputSchema` falla con `OUTPUT_SCHEMA_MISMATCH`; en una herramienta que escribe, el cambio ya se aplicó, así que no la repitas.
+- El texto de una llamada fallida empieza por su código de error, como `UNKNOWN_KEY: ...`, y termina con una línea `Next step: ...` cuando el error tiene un siguiente paso, el mismo texto que el `hint` de la CLI.
 
 ### Estimar y luego gastar
 
