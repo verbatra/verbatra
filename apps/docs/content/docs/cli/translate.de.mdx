@@ -71,7 +71,7 @@ Ein veralteter Key, dessen Wert ein Mensch geschrieben, importiert oder außerha
 
 <AvailableFrom version="0.12.0" />
 
-In einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) wird kein Provider aufgerufen. Keys, die das Translation Memory abdeckt, werden geschrieben; jeder andere fehlende oder geänderte Key steht unter `unfilled` und führt zu Exit `3`; eine fehlgeschlagene oder partielle Locale gewinnt weiterhin mit `1`. Ein Dry Run liest hier das Memory, sodass sein Plan dieselben `cacheHits`- und `unfilled`-Keys zeigt, und `--estimate` meldet nichts Abgerechnetes. Übergib die `unfilled`-Keys mit [`verbatra export`](/docs/cli/export).
+In einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) wird kein Provider aufgerufen. Keys, die das Translation Memory abdeckt, werden geschrieben; jeder andere fehlende oder geänderte Key steht unter `unfilled` und führt zu Exit `3`; eine fehlgeschlagene oder partielle Locale gewinnt weiterhin mit `1`. Ein Dry Run liest hier das Memory, sodass sein Plan dieselben `cacheHits`- und `unfilled`-Keys zeigt, und `--estimate` meldet nichts Abgerechnetes; beide enden genauso mit Exit `3`. Übergib die `unfilled`-Keys mit [`verbatra export`](/docs/cli/export).
 
 ### Fehlgeschlagene und partielle Locales
 
@@ -156,7 +156,7 @@ verbatra translate --include-human
 | `0` | jede Ziel-Locale ist vollständig |
 | `1` | der Lauf wurde fertig, aber eine Locale ist fehlgeschlagen oder partiell |
 | `2` | konnte nicht laufen: ein Fehler in Konfiguration, Quelle, Format, Provider, Locale-Unterstützung oder Lock-Datei, oder ein Verwendungsfehler |
-| `3` | rein menschliches Projekt: der Lauf war sauber, aber Keys warten auf eine menschliche Übersetzung |
+| `3` | rein menschliches Projekt: der Lauf (auch als Dry Run oder mit `--estimate`) war sauber, aber Keys warten auf eine menschliche Übersetzung |
 | `130` | mit Strg-C (SIGINT) unterbrochen, nachdem die Schreibsperren freigegeben wurden |
 | `143` | mit SIGTERM gestoppt, nachdem die Schreibsperren freigegeben wurden |
 

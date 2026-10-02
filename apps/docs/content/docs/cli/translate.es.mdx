@@ -71,7 +71,7 @@ Una clave obsoleta cuyo valor escribió, importó o cambió una persona fuera de
 
 <AvailableFrom version="0.12.0" />
 
-En un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) no se llama a ningún proveedor. Las claves que cubre la memoria de traducción se escriben, y cualquier otra clave ausente o modificada aparece como `unfilled` y da salida `3`; un locale fallido o parcial sigue ganando con `1`. Aquí una ejecución de prueba sí lee la memoria, así que su plan muestra las mismas claves `cacheHits` y `unfilled`, y `--estimate` no informa de nada facturado. Pasa las claves `unfilled` a una persona con [`verbatra export`](/docs/cli/export).
+En un proyecto [solo humano](/docs/human-only-workflow) (`provider: { id: "none" }`) no se llama a ningún proveedor. Las claves que cubre la memoria de traducción se escriben, y cualquier otra clave ausente o modificada aparece como `unfilled` y da salida `3`; un locale fallido o parcial sigue ganando con `1`. Aquí una ejecución de prueba sí lee la memoria, así que su plan muestra las mismas claves `cacheHits` y `unfilled`, y `--estimate` no informa de nada facturado; ambos salen con `3` igual. Pasa las claves `unfilled` a una persona con [`verbatra export`](/docs/cli/export).
 
 ### Locales fallidos y parciales
 
@@ -156,7 +156,7 @@ verbatra translate --include-human
 | `0` | todos los locales de destino quedaron completos |
 | `1` | la ejecución terminó, pero un locale falló o quedó parcial |
 | `2` | no pudo ejecutarse: un error de configuración, origen, formato, proveedor, locale no admitido o archivo de bloqueo, o un error de uso |
-| `3` | proyecto solo humano: la ejecución terminó limpia, pero quedan claves para una traducción humana |
+| `3` | proyecto solo humano: la ejecución (también de prueba o con `--estimate`) terminó limpia, pero quedan claves para una traducción humana |
 | `130` | interrumpido con Ctrl-C (SIGINT) tras liberar los bloqueos de escritura |
 | `143` | detenido con SIGTERM tras liberar los bloqueos de escritura |
 
