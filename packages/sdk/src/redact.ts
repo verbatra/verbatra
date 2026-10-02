@@ -12,10 +12,8 @@ import { redactKeys } from "@verbatra/ai-providers";
  * JSON-escaped as `\u001b`, counts as a boundary, so `sk-SK` or `sk-banner_headline` stays
  * readable while a long Slovak-like key such as `sk-SK_settings_notifications_email_digest` or a
  * long camelCase key such as `sk-onboardingWelcomeScreenPrimaryButton` is redacted;
- * Gemini-style `AIza` keys; GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`,
- * `github_pat_`), Stripe live keys (`sk_live_`, `rk_live_`) and Slack tokens (`xoxa-`, `xoxb-`,
- * `xoxp-`, `xoxr-`) followed by enough letters and digits; a DeepL free key's hex UUID with its
- * `:fx` suffix anywhere; and a bare hex UUID only in a key context, a `DeepL-Auth-Key` header or an
+ * Gemini-style `AIza` keys; a DeepL free key's hex UUID with its `:fx`
+ * suffix anywhere; and a bare hex UUID only in a key context, a `DeepL-Auth-Key` header or an
  * `auth_key`, `authKey`, `auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`, or `DEEPL_AUTH_KEY`
  * name followed by `:`, `=`, URL-encoded `%3D`, or whitespace, quoted or with JSON-escaped quotes,
  * so an unrelated UUID in a path or an id stays readable), and an exact-value scrub, in raw and in

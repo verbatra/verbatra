@@ -22,6 +22,12 @@ const CARD_BRANDS: readonly CardBrand[] = [
 const PHONE = /(?<![\w+])\+\d(?:[ .()-]{0,2}\d){6,14}(?!\d)/g;
 const CARD = /(?<![\d.-])\d(?:[ -]?\d){12,18}(?![\d.-])/g;
 const AWS_KEY = /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g;
+const SERVICE_TOKENS: readonly RegExp[] = [
+  /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g,
+  /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
+  /\b[rs]k_live_[A-Za-z0-9]{16,}\b/g,
+  /\bxox[abpr]-[A-Za-z0-9-]{10,}\b/g,
+];
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g;
 const PRIVATE_KEY = /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g;
 const OCTET = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
@@ -76,6 +82,7 @@ const DETECTORS: Readonly<Record<SensitiveDetectorId, Detector>> = {
   secret: (text) => [
     ...findKeyShapes(text),
     ...matchSpans(AWS_KEY, text),
+    ...SERVICE_TOKENS.flatMap((pattern) => matchSpans(pattern, text)),
     ...matchSpans(JWT, text),
     ...matchSpans(PRIVATE_KEY, text),
   ],

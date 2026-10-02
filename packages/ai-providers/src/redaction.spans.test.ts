@@ -38,26 +38,6 @@ describe("findKeyShapes", () => {
     expect(spanTexts("token plain-secret-value here")).toEqual(["plain-secret-value"]);
   });
 
-  it.each([
-    ["a GitHub token", `ghp_${"a1".repeat(18)}`],
-    ["a fine-grained GitHub token", `github_pat_${"A1_b".repeat(10)}`],
-    ["a Stripe secret key", `sk_live_${"x9".repeat(12)}`],
-    ["a Stripe restricted key", `rk_live_${"x9".repeat(12)}`],
-    ["a Slack token", "xoxb-1234567890-abcdefghij"],
-  ])("finds and redacts %s", (_name, token) => {
-    const text = `use ${token} now`;
-
-    expect(spanTexts(text)).toEqual([token]);
-    expect(redactKeys(text)).toBe("use [REDACTED] now");
-  });
-
-  it.each(["ghp_short", "sk_live_short", "xoxb-short", "github_pat_short"])(
-    "leaves the short look-alike %s alone",
-    (text) => {
-      expect(findKeyShapes(text)).toEqual([]);
-    },
-  );
-
   it("leaves a short sk- key name and an unrelated UUID alone", () => {
     expect(findKeyShapes(`sk-SK and /orders/${UUID}`)).toEqual([]);
   });

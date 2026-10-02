@@ -18,6 +18,11 @@ describe("the secret detector", () => {
     ],
     ["a private key header", "-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----"],
     ["a bare private key header", "-----BEGIN PRIVATE KEY-----", "-----BEGIN PRIVATE KEY-----"],
+    ["a GitHub token", `use ghp_${"a1".repeat(18)} now`, `ghp_${"a1".repeat(18)}`],
+    ["a fine-grained GitHub token", `github_pat_${"A1_b".repeat(10)}`, "github_pat_A1_b"],
+    ["a Stripe secret key", `key sk_live_${"x9".repeat(12)}`, "sk_live_x9"],
+    ["a Stripe restricted key", `key rk_live_${"x9".repeat(12)}`, "rk_live_x9"],
+    ["a Slack token", "token xoxb-1234567890-abcdefghij", "xoxb-1234567890-abcdefghij"],
   ])("finds %s", (_name, text, expected) => {
     expect(found("secret", text).join(" ")).toContain(expected);
   });
@@ -27,6 +32,7 @@ describe("the secret detector", () => {
     "The AKIA prefix marks an AWS key",
     "eyJ alone is not a token",
     "-----BEGIN CERTIFICATE-----",
+    "ghp_short sk_live_short xoxb-short github_pat_short",
   ])("ignores %s", (text) => {
     expect(found("secret", text)).toEqual([]);
   });

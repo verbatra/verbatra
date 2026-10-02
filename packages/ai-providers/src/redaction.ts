@@ -9,10 +9,6 @@ const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 const KEY_PATTERNS: readonly RegExp[] = [
   /AIza[0-9A-Za-z_-]{35}/g,
   new RegExp(`${UUID}:fx\\b`, "g"),
-  /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g,
-  /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
-  /\b[rs]k_live_[A-Za-z0-9]{16,}\b/g,
-  /\bxox[abpr]-[A-Za-z0-9-]{10,}\b/g,
 ];
 
 const SK_TOKEN =
