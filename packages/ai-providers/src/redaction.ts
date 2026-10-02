@@ -93,3 +93,38 @@ function scrubPatterns(text: string): string {
 export function redactKeys(text: string): string {
   return scrubPatterns(scrubValues(text));
 }
+
+export interface KeyShapeSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
+function wholeMatchSpans(pattern: RegExp, text: string): KeyShapeSpan[] {
+  return [...text.matchAll(pattern)].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+}
+
+function skTokenSpans(text: string): KeyShapeSpan[] {
+  return [...text.matchAll(SK_TOKEN)]
+    .filter((match) => redactSkToken(match[0]) === REDACTED)
+    .map((match) => ({ start: match.index, end: match.index + match[0].length }));
+}
+
+function deeplContextSpans(text: string): KeyShapeSpan[] {
+  return [...text.matchAll(DEEPL_KEY_IN_CONTEXT)].map((match) => ({
+    start: match.index + (match[1] ?? "").length,
+    end: match.index + match[0].length,
+  }));
+}
+
+export function findKeyShapes(text: string): readonly KeyShapeSpan[] {
+  const valuePattern = configuredValuePattern();
+  return [
+    ...(valuePattern === undefined ? [] : wholeMatchSpans(valuePattern, text)),
+    ...deeplContextSpans(text),
+    ...skTokenSpans(text),
+    ...KEY_PATTERNS.flatMap((pattern) => wholeMatchSpans(pattern, text)),
+  ];
+}
