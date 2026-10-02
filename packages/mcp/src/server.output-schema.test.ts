@@ -192,6 +192,11 @@ describe("createMcpServer: instructions", () => {
     expect(MCP_SERVER_INSTRUCTIONS).toContain("[REDACTED]");
   });
 
+  it("points to the glossary and lock file reads", () => {
+    expect(MCP_SERVER_INSTRUCTIONS).toContain("glossary.get lists the glossary terms");
+    expect(MCP_SERVER_INSTRUCTIONS).toContain("lock.state shows what the lock file records");
+  });
+
   it("recommends the free estimate before a spend call", () => {
     expect(MCP_SERVER_INSTRUCTIONS).toContain("Estimate before you spend: translation.estimate");
   });
