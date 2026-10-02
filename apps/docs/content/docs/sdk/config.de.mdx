@@ -338,10 +338,11 @@ Ein Identitätshelfer zum Schreiben einer typisierten `verbatra.config.ts`: er g
 unverändert zurück und existiert rein für Typinferenz und Editor-Autovervollständigung,
 einschließlich der Vervollständigung der bekannten Modell-IDs des gewählten Providers. Die
 Modell-Einschränkung gilt nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String die
-Validierung. Jeder Provider, dessen Modell-IDs das SDK kennt, bekommt
-zusätzlich eine Überladung mit `AuthoringConfigFor<"<id>">`, etwa `AuthoringConfigFor<"anthropic">`,
-die `provider.options.model` auf die Modelle dieses Providers einschränkt; die Form mit
-`AuthoringConfig` unten ist der Rückfall für jeden anderen Provider.
+Validierung. Jeder Provider außer `openai-compatible`, `libretranslate` und
+`none` bekommt zusätzlich eine Überladung mit `AuthoringConfigFor<"<id>">`, etwa
+`AuthoringConfigFor<"anthropic">`, die den `provider`-Block auf die Optionen dieses Providers
+einschränkt (und bei einem Sprachmodell auf seine bekannten Modell-IDs); diese drei nutzen den
+Rückfall mit `AuthoringConfig` unten.
 
 ```ts title="Signatur"
 function defineConfig(

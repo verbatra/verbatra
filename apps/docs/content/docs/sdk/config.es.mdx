@@ -334,10 +334,11 @@ function editConfiguredGlossaryTerm(
 Un ayudante de identidad para escribir un `verbatra.config.ts` tipado: devuelve su argumento sin cambios y
 existe puramente para la inferencia de tipos y el autocompletado del editor, incluido el completado de
 los IDs de modelo conocidos del proveedor seleccionado. La restricción de modelos es solo al escribir;
-en tiempo de ejecución cualquier cadena no vacía pasa la validación. Cada proveedor cuyos IDs de modelo conoce el SDK tiene
-además una sobrecarga que recibe `AuthoringConfigFor<"<id>">`, como `AuthoringConfigFor<"anthropic">`,
-que restringe `provider.options.model` a los modelos de ese proveedor; la forma con
-`AuthoringConfig` de abajo es la alternativa que usa cualquier otro proveedor.
+en tiempo de ejecución cualquier cadena no vacía pasa la validación. Cada proveedor salvo `openai-compatible`, `libretranslate` y
+`none` tiene además una sobrecarga que recibe `AuthoringConfigFor<"<id>">`, como
+`AuthoringConfigFor<"anthropic">`, que restringe el bloque `provider` a las opciones de ese
+proveedor (y, en un modelo de lenguaje, a sus IDs de modelo conocidos); esos tres usan la
+alternativa con `AuthoringConfig` de abajo.
 
 ```ts title="Firma"
 function defineConfig(

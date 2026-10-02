@@ -245,7 +245,7 @@ function editConfiguredGlossaryTerm(
 
 ### defineConfig
 
-Une fonction identité pour écrire un `verbatra.config.ts` typé : elle renvoie son argument inchangé et n'existe que pour l'inférence de types et l'autocomplétion de l'éditeur, y compris la complétion des IDs de modèles connus du fournisseur sélectionné. La restriction de modèle ne vaut qu'à l'écriture ; à l'exécution, toute chaîne non vide passe la validation. Chaque fournisseur dont le SDK connaît les IDs de modèles a aussi une surcharge qui prend `AuthoringConfigFor<"<id>">`, comme `AuthoringConfigFor<"anthropic">`, et restreint `provider.options.model` aux modèles de ce fournisseur ; la forme avec `AuthoringConfig` ci-dessous est le repli qu'utilise tout autre fournisseur.
+Une fonction identité pour écrire un `verbatra.config.ts` typé : elle renvoie son argument inchangé et n'existe que pour l'inférence de types et l'autocomplétion de l'éditeur, y compris la complétion des IDs de modèles connus du fournisseur sélectionné. La restriction de modèle ne vaut qu'à l'écriture ; à l'exécution, toute chaîne non vide passe la validation. Chaque fournisseur sauf `openai-compatible`, `libretranslate` et `none` a aussi une surcharge qui prend `AuthoringConfigFor<"<id>">`, comme `AuthoringConfigFor<"anthropic">`, et restreint le bloc `provider` aux options de ce fournisseur (et, pour un modèle de langage, à ses IDs de modèles connus) ; ces trois-là utilisent le repli avec `AuthoringConfig` ci-dessous.
 
 ```ts title="Signature"
 function defineConfig(
