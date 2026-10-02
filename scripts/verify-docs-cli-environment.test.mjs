@@ -28,49 +28,102 @@ function cliSource(file) {
   return readRepoFile(`packages/cli/src/${file}`);
 }
 
+const DECLARATION = /^(?:export )?(?:(?:async )?function (\w+)\(|const (\w+) = (?:async )?\()/gm;
+
 function topLevelFunctions(sources) {
   const functions = new Map();
   for (const source of sources) {
-    const starts = [...source.matchAll(/^(?:export )?(?:async )?function (\w+)\(/gm)];
+    const starts = [...source.matchAll(DECLARATION)];
     starts.forEach((match, index) => {
-      functions.set(match[1], source.slice(match.index, starts[index + 1]?.index ?? source.length));
+      const end = starts[index + 1]?.index ?? source.length;
+      functions.set(match[1] ?? match[2], { source, start: match.index, end });
     });
   }
   return functions;
 }
 
-function callsAny(body, names) {
-  return [...names].some((name) => new RegExp(`(?<![.\\w])${name}\\(`).test(body));
+function bodyOf({ source, start, end }) {
+  return source.slice(start, end);
 }
 
-function functionsReaching(callee, functions) {
-  const reaching = new Set(
-    [...functions].filter(([, body]) => body.includes(`${callee}(`)).map(([name]) => name),
-  );
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const [name, body] of functions) {
-      if (!reaching.has(name) && callsAny(body, reaching)) {
-        reaching.add(name);
-        grew = true;
-      }
+function calledNames(body, functions) {
+  return [...functions.keys()].filter((name) => new RegExp(`(?<![.\\w])${name}\\(`).test(body));
+}
+
+function closure(body, functions) {
+  const reached = new Set();
+  const pending = calledNames(body, functions);
+  while (pending.length > 0) {
+    const name = pending.pop();
+    if (!reached.has(name)) {
+      reached.add(name);
+      pending.push(...calledNames(bodyOf(functions.get(name)), functions));
     }
   }
-  return reaching;
+  return reached;
 }
 
 function commandRegistrations(source) {
   return [...source.matchAll(/\.command\("([a-z]+)"\)/g)].map((match) => ({
     name: match[1],
+    index: match.index,
     body: source.slice(match.index, source.indexOf("\n}\n", match.index)),
   }));
 }
 
+function unattributedReferences(callee, sources, functions) {
+  const problems = [];
+  for (const source of sources) {
+    for (const match of source.matchAll(new RegExp(`\\b${callee}\\b`, "g"))) {
+      const line = source.slice(
+        source.lastIndexOf("\n", match.index) + 1,
+        source.indexOf("\n", match.index),
+      );
+      if (/^import\b|^\s*\}? ?from\b|^\s*\w+,?$/.test(line.trim()) && !line.includes("(")) {
+        continue;
+      }
+      const inFunction = [...functions.values()].some(
+        (span) => span.source === source && span.start <= match.index && match.index < span.end,
+      );
+      if (!inFunction || source[match.index + callee.length] !== "(") {
+        problems.push(line.trim());
+      }
+    }
+  }
+  return problems;
+}
+
 function commandsCalling(callee, sources = CLI_SOURCES.map(cliSource)) {
-  const reaching = functionsReaching(callee, topLevelFunctions(sources));
-  return commandRegistrations(sources[0])
-    .filter(({ body }) => callsAny(body, new Set([callee, ...reaching])))
+  const functions = topLevelFunctions(sources);
+  const unattributed = unattributedReferences(callee, sources, functions);
+  if (unattributed.length > 0) {
+    throw new Error(
+      `${callee} is referenced in a way no command can be traced through: ${unattributed.join(" | ")}`,
+    );
+  }
+  const direct = [...functions]
+    .filter(([, span]) => bodyOf(span).includes(`${callee}(`))
+    .map(([name]) => name);
+  const registrations = commandRegistrations(sources[0]).map(({ name, index, body }) => ({
+    index,
+    name,
+    reached: closure(body, functions),
+    direct: body.includes(`${callee}(`),
+  }));
+  const reachedByAnyCommand = new Set(registrations.flatMap(({ reached }) => [...reached]));
+  const registeredIn = (span) =>
+    registrations.some(
+      ({ index, direct: calls }) =>
+        calls && span.source === sources[0] && span.start <= index && index < span.end,
+    );
+  const orphaned = direct.filter(
+    (name) => !reachedByAnyCommand.has(name) && !registeredIn(functions.get(name)),
+  );
+  if (orphaned.length > 0) {
+    throw new Error(`${callee} is called from ${orphaned.join(", ")}, which no command reaches`);
+  }
+  return registrations
+    .filter(({ reached, direct: calls }) => calls || direct.some((name) => reached.has(name)))
     .map(({ name }) => name)
     .sort();
 }
@@ -92,13 +145,22 @@ function commandSpans(text, commands) {
 }
 
 function environmentFilesLists(suffix, commands) {
-  const sentences = section(readDocPage("cli/index", suffix), ENVIRONMENT_FILES_HEADING[suffix])
-    .split(/(?<=[.!?])\s+(?=[`A-Z])/)
-    .filter((sentence) => sentence.length > 0);
-  return {
-    loading: commandSpans(sentences[0] ?? "", commands),
-    notLoading: commandSpans(sentences.at(-1) ?? "", commands),
-  };
+  return environmentFilesListsOf(readDocPage("cli/index", suffix), suffix, commands);
+}
+
+function environmentFilesListsOf(page, suffix, commands) {
+  const sentences = section(page, ENVIRONMENT_FILES_HEADING[suffix])
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => ({ sentence, names: commandSpans(sentence, commands) }))
+    .filter(({ names }) => names.length > 0);
+  const loading = sentences.filter(({ sentence }) => sentence.includes("`.env.local`"));
+  const notLoading = sentences.filter(({ sentence }) => !sentence.includes("`.env.local`"));
+  if (loading.length !== 1 || notLoading.length !== 1) {
+    throw new Error(
+      `cli/index${suffix}.mdx: expected one sentence naming the commands that load \`.env.local\` and one naming the rest, found ${loading.length} and ${notLoading.length}`,
+    );
+  }
+  return { loading: loading[0].names, notLoading: notLoading[0].names };
 }
 
 describe("the environment files section names exactly the commands that load .env files", () => {
@@ -129,6 +191,42 @@ describe("the environment files section names exactly the commands that load .en
 
     expect(patched).not.toBe(run);
     expect(commandsCalling("loadEnvFiles", [patched, ...rest])).toContain("check");
+  });
+
+  it("follows a call through an arrow-const helper", () => {
+    const [run, ...rest] = CLI_SOURCES.map(cliSource);
+    const patched = `${run.replace(
+      /(\.command\("check"\)[\s\S]*?\.action\(async \(opts: unknown\) => \{)/,
+      "$1\n      loadForCheck(process.cwd());",
+    )}\nconst loadForCheck = (cwd: string): void => {\n  loadEnvFiles(cwd);\n};\n`;
+
+    expect(commandsCalling("loadEnvFiles", [patched, ...rest])).toContain("check");
+  });
+
+  it("fails loudly on a reference it cannot trace to a command", () => {
+    const [run, ...rest] = CLI_SOURCES.map(cliSource);
+    const aliased = `${run}\nexport const envLoader = { load: loadEnvFiles };\n`;
+    const orphaned = `${run}\nfunction unusedLoader(cwd: string): void {\n  loadEnvFiles(cwd);\n}\n`;
+
+    expect(() => commandsCalling("loadEnvFiles", [aliased, ...rest])).toThrow(/traced/);
+    expect(() => commandsCalling("loadEnvFiles", [orphaned, ...rest])).toThrow(
+      /no command reaches/,
+    );
+  });
+
+  it("ignores a harmless extra sentence and rejects a second command list", () => {
+    const page = readDocPage("cli/index", "");
+    const heading = ENVIRONMENT_FILES_HEADING[""];
+    const extra = page.replace(`${heading}\n\n`, `${heading}\n\nThese files are optional. `);
+
+    expect(environmentFilesListsOf(extra, "", commands).loading).toEqual(loading);
+    expect(() =>
+      environmentFilesListsOf(
+        page.replace(`${heading}\n\n`, `${heading}\n\n\`check\` is fast. `),
+        "",
+        commands,
+      ),
+    ).toThrow(/expected one sentence/);
   });
 });
 
@@ -181,14 +279,15 @@ function acceptedValues(text) {
   return [...sentence.matchAll(/`([a-z0-9]+)`/g)].map((match) => match[1]);
 }
 
-function sessionVariablesInDocs() {
+function docPages() {
   const contentDir = resolve(REPO_ROOT, "apps/docs/content/docs");
-  const names = readdirSync(contentDir, { recursive: true, encoding: "utf8" })
+  return readdirSync(contentDir, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
-    .flatMap(
-      (file) => readFileSync(resolve(contentDir, file), "utf8").match(SESSION_VARIABLE) ?? [],
-    );
-  return [...new Set(names)].sort();
+    .map((file) => readFileSync(resolve(contentDir, file), "utf8"));
+}
+
+function sessionVariablesIn(pages) {
+  return [...new Set(pages.flatMap((page) => page.match(SESSION_VARIABLE) ?? []))].sort();
 }
 
 describe("the spend switches are documented with the names and values the source reads", () => {
@@ -231,13 +330,16 @@ describe("the spend switches are documented with the names and values the source
   );
 
   it("names no Studio or MCP variable the source does not read, on any page", () => {
-    expect(sessionVariablesInDocs()).toEqual([...studio, mcp].sort());
+    expect(sessionVariablesIn(docPages())).toEqual([...studio, mcp].sort());
   });
 
   it("sees a dropped value and a renamed variable", () => {
     const text = subsection(readDocPage("cli/mcp", ""), SPEND_SECTION_HEADING.mcp[""]);
 
     expect(acceptedValues(text.replace("`yes` or ", ""))).not.toEqual(truthy);
-    expect("VERBATRA_MCP_SPEND=1".match(SESSION_VARIABLE)).toEqual(["VERBATRA_MCP_SPEND"]);
+    const renamed = [...docPages(), "Set `VERBATRA_MCP_SPEND=1` first."];
+
+    expect(sessionVariablesIn(renamed)).not.toEqual([...studio, mcp].sort());
+    expect(sessionVariablesIn(renamed)).toContain("VERBATRA_MCP_SPEND");
   });
 });
