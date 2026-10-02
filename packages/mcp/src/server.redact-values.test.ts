@@ -73,6 +73,7 @@ async function canaryProject(): Promise<string> {
     farewell: `${CANARY}-bye`,
     long: `${CANARY}-long text`,
     count: `{n, plural, one {${CANARY}-one} other {${CANARY}-other}}`,
+    contact: `Mail ${CANARY}@verbatra-canary.dev`,
   });
   await writeJsonFile(join(dir, "locales", "de.arb"), {
     "@@locale": "de",
@@ -123,6 +124,7 @@ async function redactedClient(dir: string, logs: string[]): Promise<Client> {
           files: { pattern: "locales/{locale}.arb" },
           humanEdits: "suggest",
           fuzzyCache: { enabled: true },
+          sensitiveData: { mode: "block" },
         }),
         glossary: { source: "file", path: join(dir, "glossary.json") },
       }),
@@ -327,6 +329,23 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
     expect(second).toMatch(/"suggestion":"\[redacted length=\d+ hash=/);
     expect(second).toMatch(/"previousSource":"\[redacted length=\d+ hash=/);
     expect(second).toMatch(/"code":"FORMALITY_DOWNGRADED","message":"\[redacted length=\d+ hash=/);
+  });
+
+  it("withholds the flagged value and reports it by key name only", () => {
+    const firstRun = answers.find((answer) => answer.call.name === "translation.translatePending");
+    const locales = structuredOf(firstRun as Answer).locales as readonly {
+      readonly locale: string;
+      readonly sensitiveWithheld: readonly string[];
+      readonly notices: readonly { readonly code: string; readonly message: string }[];
+    }[];
+
+    for (const locale of locales) {
+      expect(locale.sensitiveWithheld).toEqual(["contact"]);
+      const withheld = locale.notices.find(
+        (notice) => notice.code === "SENSITIVE_CONTENT_WITHHELD",
+      );
+      expect(withheld?.message).toMatch(MARKER);
+    }
   });
 
   it("sends progress and log lines with no canary", () => {
