@@ -170,7 +170,7 @@ function reviewCandidateValue(
     glossary: params.glossary,
     maxLength: params.maxLength?.get(source.key),
   });
-  return withForeignPlaceholderReason(flag, params.format, source.value, candidate);
+  return withForeignPlaceholderReason(flag, params.adapter.format, source.value, candidate);
 }
 
 function reviewCachedValue(
@@ -947,7 +947,7 @@ function sourceNoticesFor(
   params: LocaleRunParams,
   pendingKeys: readonly string[],
 ): readonly LocaleNotice[] {
-  const notice = sourceForeignPlaceholderNotice(params.format, params.source, pendingKeys);
+  const notice = sourceForeignPlaceholderNotice(params.adapter.format, params.source, pendingKeys);
   return notice === undefined ? [] : [notice];
 }
 
@@ -1232,7 +1232,7 @@ function flagForeignPlaceholders(
     }
     const flag = withForeignPlaceholderReason(
       outcome.reviewFlags.get(entry.key),
-      params.format,
+      params.adapter.format,
       entry.value,
       accepted.value,
     );

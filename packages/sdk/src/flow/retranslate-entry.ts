@@ -177,7 +177,7 @@ async function translateOne(context: UnderLockContext) {
   }
   const flag = withForeignPlaceholderReason(
     result.reviewFlags?.get(context.key),
-    config.format,
+    adapter.format,
     sourceEntry.value,
     value,
   );
