@@ -39,12 +39,19 @@ function dynamicImportPattern(packageName) {
   return new RegExp(`import\\(\\s*['"]${packageName}['"]\\s*\\)`);
 }
 
+function specifierPattern(packageName) {
+  return `['"]${packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:/[^'"]*)?['"]`;
+}
+
 function staticImportPattern(packageName) {
-  return new RegExp(`(?:^|\\s)(?:import|export)[^\\n]*?from\\s*['"]${packageName}['"]`, "m");
+  return new RegExp(
+    `(?:^|[\\s;}])(?:import|export)(?:[^'"\\n;]*?\\bfrom)?\\s*${specifierPattern(packageName)}`,
+    "m",
+  );
 }
 
 function staticRequirePattern(packageName) {
-  return new RegExp(`(?<![\\w$.])require\\(\\s*['"]${packageName}['"]\\s*\\)`);
+  return new RegExp(`(?<![\\w$.])require\\(\\s*${specifierPattern(packageName)}\\s*\\)`);
 }
 
 function findEagerProviderImports(text, relativePath) {

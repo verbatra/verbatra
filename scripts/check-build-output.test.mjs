@@ -97,6 +97,27 @@ describe("staticImportPattern", () => {
     const pattern = staticImportPattern("@verbatra/studio");
     expect(pattern.test('import { runServer } from "@verbatra/mcp";')).toBe(false);
   });
+
+  it("matches a minified static import", () => {
+    expect(staticImportPattern("openai").test('let a=1;import x from"openai";')).toBe(true);
+    expect(staticImportPattern("openai").test('}import{a as b}from"openai";')).toBe(true);
+  });
+
+  it("matches a side-effect import", () => {
+    expect(staticImportPattern("openai").test('import "openai";')).toBe(true);
+    expect(staticImportPattern("openai").test('a();import"openai";')).toBe(true);
+  });
+
+  it("matches a static import of a subpath", () => {
+    expect(staticImportPattern("openai").test('import x from "openai/resources";')).toBe(true);
+    expect(staticImportPattern("@google/genai").test('import{a}from"@google/genai/node"')).toBe(
+      true,
+    );
+  });
+
+  it("does not match a package that only shares a prefix", () => {
+    expect(staticImportPattern("openai").test('import x from "openai-compatible";')).toBe(false);
+  });
 });
 
 describe("staticRequirePattern", () => {
@@ -106,6 +127,19 @@ describe("staticRequirePattern", () => {
 
   it("does not match a require resolved through createRequire", () => {
     expect(staticRequirePattern("loglevel").test('createRequire(entry)("loglevel")')).toBe(false);
+  });
+
+  it("matches a minified require", () => {
+    expect(staticRequirePattern("openai").test('var a=1,b=require("openai");')).toBe(true);
+  });
+
+  it("matches a require of a subpath", () => {
+    expect(staticRequirePattern("openai").test("require('openai/resources')")).toBe(true);
+    expect(staticRequirePattern("@google/genai").test('require("@google/genai/node")')).toBe(true);
+  });
+
+  it("matches a side-effect require", () => {
+    expect(staticRequirePattern("loglevel").test('require("loglevel");')).toBe(true);
   });
 
   it("does not match a method named require or a different package", () => {
@@ -138,6 +172,13 @@ describe("findEagerProviderImports", () => {
     const text = `var deepl = require('deepl-node');\n${LAZY_ENTRY}`;
     expect(findEagerProviderImports(text, "index.cjs")).toEqual([
       "index.cjs: loads deepl-node at startup",
+    ]);
+  });
+
+  it("reports a minified side-effect import of a provider SDK subpath", () => {
+    const text = `${LAZY_ENTRY};import"@google/genai/node";`;
+    expect(findEagerProviderImports(text, "index.js")).toEqual([
+      "index.js: loads @google/genai at startup",
     ]);
   });
 
