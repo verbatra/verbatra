@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasUnsafeRepeat } from "../sensitive/pattern-safety.js";
 
 /** The built-in `sensitiveData` detectors, by id. */
 export const SENSITIVE_DETECTORS = [
@@ -34,16 +35,25 @@ function compilesAsPattern(source: string): boolean {
   }
 }
 
+function checkPattern(source: string, context: z.RefinementCtx): void {
+  if (!compilesAsPattern(source)) {
+    context.addIssue({
+      code: "custom",
+      message: "sensitiveData.patterns entries must be valid regular expressions",
+    });
+  } else if (hasUnsafeRepeat(source)) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "sensitiveData.patterns entries must not repeat a group that holds a repeat or an alternative, such as (a+)+ or (a|aa)*, which can take exponential time",
+    });
+  }
+}
+
 export const sensitiveDataSchema = z.strictObject({
   mode: z.enum(SENSITIVE_MODES),
   detectors: z.array(z.enum(SENSITIVE_DETECTORS)).optional(),
-  patterns: z
-    .array(
-      z.string().min(1).refine(compilesAsPattern, {
-        message: "sensitiveData.patterns entries must be valid regular expressions",
-      }),
-    )
-    .optional(),
+  patterns: z.array(z.string().min(1).superRefine(checkPattern)).optional(),
   allow: z.array(z.string().min(1)).optional(),
 });
 

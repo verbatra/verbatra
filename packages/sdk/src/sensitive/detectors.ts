@@ -1,19 +1,26 @@
-import { findKeyShapes } from "@verbatra/ai-providers";
+import { findKeyShapes, matchSpans, type TextSpan } from "@verbatra/ai-providers";
 import type { SensitiveDetectorId } from "../config/sensitive-config.js";
+import { emailSpans } from "./email.js";
+import { ibanSpans } from "./iban.js";
 
-export interface TextSpan {
-  readonly start: number;
-  readonly end: number;
-}
+export type { TextSpan } from "@verbatra/ai-providers";
 
 type Detector = (text: string) => readonly TextSpan[];
 
-const EMAIL = /[A-Za-z0-9._%+-]+@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})(?![A-Za-z0-9-])/g;
-const RESERVED_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|example|test|invalid|localhost)$/i;
+interface CardBrand {
+  readonly prefix: RegExp;
+  readonly lengths: readonly number[];
+}
+
+const CARD_BRANDS: readonly CardBrand[] = [
+  { prefix: /^4/, lengths: [13, 16, 19] },
+  { prefix: /^(?:5[1-5]|222[1-9]|22[3-9]\d|2[3-6]\d\d|27[01]\d|2720)/, lengths: [16] },
+  { prefix: /^3[47]/, lengths: [15] },
+  { prefix: /^(?:6011|65|64[4-9])/, lengths: [16, 17, 18, 19] },
+];
+
 const PHONE = /(?<![\w+])\+\d(?:[ .()-]{0,2}\d){6,14}(?!\d)/g;
-const IBAN = /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]){11,30}\b/g;
 const CARD = /(?<![\d.-])\d(?:[ -]?\d){12,18}(?![\d.-])/g;
-const CARD_PREFIX = /^(?:4|5[1-5]|2[2-7]|3[47]|6011|65)/;
 const AWS_KEY = /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g;
 const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g;
 const PRIVATE_KEY = /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g;
@@ -24,15 +31,10 @@ const IPV6 = new RegExp(
   `(?<![\\w:])(?:(?:${HEX}:){3,7}${HEX}|(?:${HEX}:){1,6}:(?:${HEX}(?::${HEX}){0,5})?|::${HEX}(?::${HEX}){1,6})(?![\\w:])`,
   "g",
 );
-const LOOPBACK = /^(?:127\.|0\.0\.0\.0$|::1$)/;
+const NOT_REPORTED_IP =
+  /^(?:127\.|0\.0\.0\.0$|::1$|192\.0\.2\.|198\.51\.100\.|203\.0\.113\.|2001:0{0,3}db8:)/i;
 const PRIVATE_IPV4 = /^(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/;
 const PRIVATE_HOST = /(?<![\w.-])(?:[A-Za-z0-9-]+\.)+(?:internal|local|corp)(?![\w-])(?!\.\w)/gi;
-
-function spansOf(pattern: RegExp, text: string, accept?: (match: string) => boolean): TextSpan[] {
-  return [...text.matchAll(pattern)]
-    .filter((match) => accept === undefined || accept(match[0]))
-    .map((match) => ({ start: match.index, end: match.index + match[0].length }));
-}
 
 function digitsOf(text: string): string {
   return text.replace(/\D/g, "");
@@ -51,42 +53,10 @@ export function passesLuhn(digits: string): boolean {
   return sum % 10 === 0;
 }
 
-export function isValidIban(candidate: string): boolean {
-  const compact = candidate.replace(/ /g, "");
-  if (compact.length < 15 || compact.length > 34) {
-    return false;
-  }
-  const rearranged = `${compact.slice(4)}${compact.slice(0, 4)}`;
-  let remainder = 0;
-  for (const character of rearranged) {
-    const value = Number.parseInt(character, 36);
-    remainder = Number(`${remainder}${value}`) % 97;
-  }
-  return remainder === 1;
-}
-
-function ibanSpans(text: string): TextSpan[] {
-  const spans: TextSpan[] = [];
-  for (const match of text.matchAll(IBAN)) {
-    let candidate = match[0];
-    while (!isValidIban(candidate) && candidate.includes(" ")) {
-      candidate = candidate.slice(0, candidate.lastIndexOf(" "));
-    }
-    if (isValidIban(candidate)) {
-      spans.push({ start: match.index, end: match.index + candidate.length });
-    }
-  }
-  return spans;
-}
-
-function isCardNumber(match: string): boolean {
+export function isCardNumber(match: string): boolean {
   const digits = digitsOf(match);
-  return CARD_PREFIX.test(digits) && passesLuhn(digits);
-}
-
-function isPublicEmail(match: string): boolean {
-  const domain = match.slice(match.lastIndexOf("@") + 1);
-  return !RESERVED_DOMAIN.test(domain);
+  const brand = CARD_BRANDS.find((candidate) => candidate.prefix.test(digits));
+  return brand?.lengths.includes(digits.length) === true && passesLuhn(digits);
 }
 
 function phoneDigitsInRange(match: string): boolean {
@@ -94,33 +64,32 @@ function phoneDigitsInRange(match: string): boolean {
   return count >= 8 && count <= 15;
 }
 
+function isReportedIp(match: string): boolean {
+  return !NOT_REPORTED_IP.test(match);
+}
+
+function isPrivateIpv4(match: string): boolean {
+  return PRIVATE_IPV4.test(match);
+}
+
 const DETECTORS: Readonly<Record<SensitiveDetectorId, Detector>> = {
   secret: (text) => [
     ...findKeyShapes(text),
-    ...spansOf(AWS_KEY, text),
-    ...spansOf(JWT, text),
-    ...spansOf(PRIVATE_KEY, text),
+    ...matchSpans(AWS_KEY, text),
+    ...matchSpans(JWT, text),
+    ...matchSpans(PRIVATE_KEY, text),
   ],
-  email: (text) => spansOf(EMAIL, text, isPublicEmail),
+  email: emailSpans,
   iban: ibanSpans,
-  "credit-card": (text) => spansOf(CARD, text, isCardNumber),
-  phone: (text) => spansOf(PHONE, text, phoneDigitsInRange),
-  ip: (text) => [
-    ...spansOf(IPV4, text, (match) => !LOOPBACK.test(match)),
-    ...spansOf(IPV6, text, (match) => !LOOPBACK.test(match)),
-  ],
+  "credit-card": (text) => matchSpans(CARD, text, isCardNumber),
+  phone: (text) => matchSpans(PHONE, text, phoneDigitsInRange),
+  ip: (text) => [...matchSpans(IPV4, text, isReportedIp), ...matchSpans(IPV6, text, isReportedIp)],
   "private-host": (text) => [
-    ...spansOf(PRIVATE_HOST, text),
-    ...spansOf(IPV4, text, (match) => PRIVATE_IPV4.test(match)),
+    ...matchSpans(PRIVATE_HOST, text),
+    ...matchSpans(IPV4, text, isPrivateIpv4),
   ],
 };
 
 export function detectorSpans(id: SensitiveDetectorId, text: string): readonly TextSpan[] {
   return DETECTORS[id](text);
-}
-
-export function patternSpans(pattern: RegExp, text: string): readonly TextSpan[] {
-  return [...text.matchAll(pattern)]
-    .filter((match) => match[0].length > 0)
-    .map((match) => ({ start: match.index, end: match.index + match[0].length }));
 }

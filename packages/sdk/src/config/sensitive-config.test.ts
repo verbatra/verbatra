@@ -40,6 +40,17 @@ describe("the sensitiveData config block", () => {
     expect(result.error?.issues[0]?.message).toContain("valid regular expressions");
   });
 
+  it.each(["(a+)+$", "(a|aa)*b"])(
+    "rejects the catastrophic pattern %s before it ever runs, naming the key",
+    (pattern) => {
+      const result = parse({ mode: "warn", patterns: [pattern] });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.path).toEqual(["sensitiveData", "patterns", 0]);
+      expect(result.error?.issues[0]?.message).toContain("exponential time");
+    },
+  );
+
   it("rejects an empty pattern or allow entry", () => {
     expect(parse({ mode: "warn", patterns: [""] }).success).toBe(false);
     expect(parse({ mode: "warn", allow: [""] }).success).toBe(false);

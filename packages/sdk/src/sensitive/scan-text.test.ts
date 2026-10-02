@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type SensitiveRules, scanText } from "./scan-text.js";
+import { MAX_PATTERN_SCAN_LENGTH, type SensitiveRules, scanText } from "./scan-text.js";
 
 const RULES: SensitiveRules = {
   detectors: ["email", "private-host"],
@@ -46,5 +46,17 @@ describe("scanText", () => {
 
   it("runs only the detectors it is given", () => {
     expect(matched({ detectors: ["iban"], patterns: [], allow: [] }, "a@acme.io")).toEqual([]);
+  });
+
+  it("runs a configured pattern on the first characters of a field only, so a slow one stays bounded", () => {
+    const rules: SensitiveRules = { detectors: [], patterns: [/\w*x/gu], allow: [] };
+    const text = `${"a".repeat(100_000)}x`;
+    const started = performance.now();
+
+    expect(scanText(rules, text)).toEqual([]);
+    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(
+      scanText(rules, `${"a".repeat(MAX_PATTERN_SCAN_LENGTH - 1)}x`).map((span) => span.end),
+    ).toEqual([MAX_PATTERN_SCAN_LENGTH]);
   });
 });

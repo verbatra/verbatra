@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SensitiveDetectorId } from "../config/sensitive-config.js";
-import { detectorSpans, isValidIban, passesLuhn, patternSpans } from "./detectors.js";
+import { detectorSpans, isCardNumber, passesLuhn } from "./detectors.js";
+import { isValidIban } from "./iban.js";
 
 function found(id: SensitiveDetectorId, text: string): string[] {
   return detectorSpans(id, text).map((span) => text.slice(span.start, span.end));
@@ -43,8 +44,23 @@ describe("the email detector", () => {
     "Hello {{email}}, your login is {{user}}@{{domain}}",
     "{email, select, other {Mail us}}",
     "See https://acme.io/help?ref=docs",
+    "Use logo@2x.png on retina screens",
+    "Use icon@3x.webp and hero@1.5x.jpg",
+    "Version pkg@1.2.34",
+    "Mention @acme.io alone",
   ])("ignores %s", (text) => {
     expect(found("email", text)).toEqual([]);
+  });
+
+  it("drops trailing sentence punctuation and finds each of several addresses", () => {
+    expect(found("email", "Mail a@acme.io. Or b.c@mail.acme.co.uk-")).toEqual([
+      "a@acme.io",
+      "b.c@mail.acme.co.uk",
+    ]);
+  });
+
+  it("does not let one address reach across another @", () => {
+    expect(found("email", "x@y@acme.io")).toEqual(["y@acme.io"]);
   });
 });
 
@@ -65,10 +81,17 @@ describe("the iban detector", () => {
     expect(found("iban", "Ref DE00370400440532013000")).toEqual([]);
   });
 
-  it("checks the mod-97 checksum and the length", () => {
+  it("checks the mod-97 checksum and the country's length", () => {
     expect(isValidIban("DE89370400440532013000")).toBe(true);
     expect(isValidIban("DE88370400440532013000")).toBe(false);
     expect(isValidIban("DE8937")).toBe(false);
+    expect(isValidIban("NO9386011117947")).toBe(true);
+    expect(isValidIban("ZZ89370400440532013000")).toBe(false);
+  });
+
+  it("stops at the country's length and ignores one that runs on", () => {
+    expect(found("iban", "NO93 8601 1117 947 is the account")).toEqual(["NO93 8601 1117 947"]);
+    expect(found("iban", "DE8937040044053201300012")).toEqual([]);
   });
 });
 
@@ -88,6 +111,15 @@ describe("the credit-card detector", () => {
     ["a short number", "Code 41111111"],
   ])("ignores %s", (_name, text) => {
     expect(found("credit-card", text)).toEqual([]);
+  });
+
+  it("requires a length the card brand issues", () => {
+    expect(isCardNumber("4111111111111111")).toBe(true);
+    expect(isCardNumber("411111111111111")).toBe(false);
+    expect(isCardNumber("378282246310005")).toBe(true);
+    expect(isCardNumber("3782822463100050")).toBe(false);
+    expect(isCardNumber("2221000000000009")).toBe(true);
+    expect(isCardNumber("6011111111111117")).toBe(true);
   });
 
   it("applies the Luhn checksum", () => {
@@ -114,9 +146,9 @@ describe("the phone detector", () => {
 
 describe("the ip detector", () => {
   it.each([
-    ["IPv4", "Server 203.0.113.7 is down", "203.0.113.7"],
-    ["IPv6", "Server 2001:db8:85a3:0:0:8a2e:370:7334 is down", "2001:db8:85a3:0:0:8a2e:370:7334"],
-    ["compressed IPv6", "Server 2001:db8::1 is down", "2001:db8::1"],
+    ["IPv4", "Server 151.101.1.69 is down", "151.101.1.69"],
+    ["IPv6", "Server 2a00:1450:4001:82a:0:0:0:200e is down", "2a00:1450:4001:82a:0:0:0:200e"],
+    ["compressed IPv6", "Server 2a00:1450::200e is down", "2a00:1450::200e"],
   ])("finds an %s address", (_name, text, expected) => {
     expect(found("ip", text)).toEqual([expected]);
   });
@@ -128,6 +160,8 @@ describe("the ip detector", () => {
     "Local 127.0.0.1 and ::1",
     "At 12:30:45",
     "Use std::vector",
+    "Docs use 192.0.2.10, 198.51.100.7 and 203.0.113.7",
+    "Docs use 2001:db8::1 and 2001:0db8:85a3::7334",
   ])("ignores %s", (text) => {
     expect(found("ip", text)).toEqual([]);
   });
@@ -151,11 +185,26 @@ describe("the private-host detector", () => {
   );
 });
 
-describe("patternSpans", () => {
-  it("finds every match of a configured pattern and skips empty matches", () => {
-    const text = "Project Falcon and project falcon";
-    const spans = patternSpans(/falcon|x*/giu, text);
+describe("every default and opt-in detector on a 100k-character adversarial input", () => {
+  const ADVERSARIAL = [
+    "a.".repeat(50_000),
+    "a".repeat(100_000),
+    "a@".repeat(50_000),
+    "a-.".repeat(33_334),
+    "1-".repeat(50_000),
+    "1.".repeat(50_000),
+    "+1 ".repeat(33_334),
+    "a:".repeat(50_000),
+    "AB12 ".repeat(20_000),
+    `${"x.".repeat(50_000)}local`,
+  ];
+  const IDS = ["secret", "email", "iban", "credit-card", "phone", "ip", "private-host"] as const;
 
-    expect(spans.map((span) => text.slice(span.start, span.end))).toEqual(["Falcon", "falcon"]);
+  it.each(IDS)("%s stays linear", (id) => {
+    for (const text of ADVERSARIAL) {
+      const started = performance.now();
+      detectorSpans(id, text);
+      expect(performance.now() - started, text.slice(0, 8)).toBeLessThan(1_000);
+    }
   });
 });

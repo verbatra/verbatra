@@ -1,6 +1,9 @@
+import { matchSpans } from "@verbatra/ai-providers";
 import type { SensitiveDetectorId } from "../config/sensitive-config.js";
 import { matchesKeyGlob } from "../flow/key-glob.js";
-import { detectorSpans, patternSpans, type TextSpan } from "./detectors.js";
+import { detectorSpans, type TextSpan } from "./detectors.js";
+
+export const MAX_PATTERN_SCAN_LENGTH = 2_000;
 
 /**
  * What matched: one of the `sensitiveData.detectors` (`secret`, `email`, `iban`, `credit-card`,
@@ -33,7 +36,9 @@ function taggedSpans(rules: SensitiveRules, text: string): TaggedSpan[] {
       detectorSpans(id, text).map((span) => ({ ...span, source: id })),
     ),
     ...rules.patterns.flatMap((pattern) =>
-      patternSpans(pattern, text).map((span): TaggedSpan => ({ ...span, source: "pattern" })),
+      matchSpans(pattern, text.slice(0, MAX_PATTERN_SCAN_LENGTH)).map(
+        (span): TaggedSpan => ({ ...span, source: "pattern" }),
+      ),
     ),
   ];
 }
