@@ -962,7 +962,7 @@ El candidato está vacío o solo tiene espacios aunque su fuente no lo esté. Va
 
 ## Motivos de revisión [#review-reason-codes]
 
-Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave. `translate` y `watch` listan las claves marcadas en `needsReview`, y `check --qa` informa de seis de estos motivos como avisos, que solo hacen fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`. Cada entrada dice cómo se mide su motivo; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión en conjunto.
+Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave. `translate` y `watch` listan las claves marcadas en `needsReview`, y `check --qa` informa de siete de estos motivos como avisos, que solo hacen fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`. Cada entrada dice cómo se mide su motivo; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión en conjunto.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1039,6 +1039,16 @@ El valor se reutilizó de la caché para una fuente anterior casi idéntica que 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`)
 - **Código de salida**: ninguno
 - **Siguiente paso**: Comprueba que el valor reutilizado sigue encajando con la fuente editada.
+
+### FOREIGN_PLACEHOLDER_CHANGED
+
+La traducción perdió o cambió un token con forma de marcador de posición que el formato del proyecto no protege, como `{name}` en un valor de i18next o `%{count}` en un valor de YAML.
+
+Se activa cuando ese token aparece en la fuente más veces que, literalmente, en la traducción. Los marcadores propios del formato quedan para la puerta de integridad, un token que la traducción solo añade no se marca, y un argumento ICU cuenta una vez, por su cabecera como `{n, plural,`, así que las ramas traducidas nunca lo activan. Los formatos de adaptadores de terceros no se comprueban. Qué sintaxis protege cada formato se indica en [Formatos](/docs/formats).
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso, que nombra cada token que falta en `details`, como `-{name}`)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Restaura el token en la traducción si tu biblioteca lo interpola.
 
 ## Avisos de ejecución [#sdk-notice-codes]
 
@@ -1155,6 +1165,16 @@ El proveedor no puede aplicar el tono configurado para este locale.
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
 - **Código de salida**: ninguno
 - **Siguiente paso**: Revisa el tono en la revisión, o elige un proveedor que aplique formalidad para el locale.
+
+### SOURCE_FOREIGN_PLACEHOLDERS
+
+Valores de origen que este locale va a traducir contienen un token con forma de marcador de posición que el formato del proyecto no protege. El mensaje da el número de esos valores y nombra las primeras claves.
+
+Nada mantiene intacto ese token durante la traducción, así que una traducción que lo pierde o lo cambia se marca con [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). El aviso se emite por locale, solo cuando ese locale tiene una clave así que traducir, y nunca para formatos de adaptadores de terceros.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa las traducciones de las claves nombradas, o cambia la sintaxis si tu biblioteca no interpola estos tokens.
 
 ## Avisos del proveedor [#provider-notice-codes]
 

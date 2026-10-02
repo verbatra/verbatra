@@ -642,9 +642,13 @@ describe("the review flag table on translation-safety lists exactly REVIEW_REASO
       firstRow,
       `${firstRow}\n| [\`RETIRED_REASON\`](/docs/error-codes#retired_reason) | was retired |`,
     );
+    const lastRow = page
+      .split("\n")
+      .filter((line) => REVIEW_FLAG_ROW.test(line))
+      .at(-1);
     const reordered = page
       .replace(`${firstRow}\n`, "")
-      .replace(/(\n\| \[`FUZZY_CACHE_REUSE`[^\n]*)/, `$1\n${firstRow}`);
+      .replace(`${lastRow}\n`, `${lastRow}\n${firstRow}\n`);
 
     expect(reviewFlagTable(dropped).codes).toEqual(reviewReasons.slice(1));
     expect(reviewFlagTable(extra).codes).toEqual([

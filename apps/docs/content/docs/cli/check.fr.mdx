@@ -90,7 +90,7 @@ interface IncompletePlural {
 `--qa` applique les vérifications qu'une traduction fait sur la sortie du fournisseur aux valeurs déjà présentes dans tes fichiers de locale, obsolètes ou non, y compris les formes plurielles supplémentaires dont la langue cible a besoin. Les résultats ont deux gravités :
 
 - **error** : la valeur échoue à la [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité), avec `placeholder`, `markup`, `icu`, `degenerate` ou `empty`. Les détails listent les tokens perdus en `-{{name}}` et les ajoutés en `+{{nom}}`.
-- **warning** : la valeur porte un [motif de relecture](/docs/translation-safety#signalements-de-révision) calculé à partir de la valeur, de sa source et de ta configuration (glossaire, `maxLength`), donc aucun qui dépende du fournisseur ou du cache. Une valeur en erreur ne reçoit pas d'avertissement.
+- **warning** : la valeur porte un [motif de relecture](/docs/translation-safety#signalements-de-révision) calculé à partir de la valeur, de sa source et de ta configuration (glossaire, `maxLength`), donc aucun qui dépende du fournisseur ou du cache ; les `details` du constat nomment chaque jeton que la valeur a perdu, comme `-{name}`. Une valeur en erreur ne reçoit pas d'avertissement.
 
 ```text output
 qa: 1 error, 1 warning
@@ -106,7 +106,7 @@ interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: 
 interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
-  | { key: string; severity: "warning"; reason: string }; // un des motifs de relecture ci-dessus
+  | { key: string; severity: "warning"; reason: string; details?: string[] }; // un des motifs de relecture ci-dessus
 ```
 
 ### Exiger des traductions relues
