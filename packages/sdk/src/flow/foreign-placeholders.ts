@@ -76,21 +76,23 @@ function keysWithForeignPlaceholders(
   });
 }
 
-const MACHINE_TRANSLATION_ADVICE =
-  "These tokens are not protected during translation, so review the translations";
+export type ForeignPlaceholderTranslation = "machine" | "human-only";
 
-const HUMAN_ONLY_ADVICE =
-  "Machine translation is off, so keep these tokens unchanged when you translate the values";
+const TRANSLATION_ADVICE: Readonly<Record<ForeignPlaceholderTranslation, string>> = {
+  machine: "These tokens are not protected during translation, so review the translations",
+  "human-only":
+    "Machine translation is off, so keep these tokens unchanged when you translate the values",
+};
 
 function noticeMessage(
   format: SupportedFormat,
   keys: readonly string[],
-  machineTranslation: boolean,
+  translation: ForeignPlaceholderTranslation,
 ): string {
   const shown = keys.slice(0, NOTICE_KEY_LIMIT).map((key) => JSON.stringify(key));
   const more = keys.length > shown.length ? `, and ${keys.length - shown.length} more` : "";
   const count = keys.length === 1 ? "1 source value holds" : `${keys.length} source values hold`;
-  const advice = machineTranslation ? MACHINE_TRANSLATION_ADVICE : HUMAN_ONLY_ADVICE;
+  const advice = TRANSLATION_ADVICE[translation];
   return (
     `${count} a placeholder-like token that ${format} does not protect: ` +
     `${shown.join(", ")}${more}. ${advice}, ` +
@@ -102,7 +104,7 @@ export function sourceForeignPlaceholderNotice(
   format: FormatId,
   source: LocaleResource,
   pendingKeys: readonly string[],
-  machineTranslation: boolean,
+  translation: ForeignPlaceholderTranslation,
 ): SdkNotice | undefined {
   if (isCustomFormatId(format)) {
     return undefined;
@@ -116,6 +118,6 @@ export function sourceForeignPlaceholderNotice(
     ? undefined
     : {
         code: "SOURCE_FOREIGN_PLACEHOLDERS",
-        message: noticeMessage(format, keys, machineTranslation),
+        message: noticeMessage(format, keys, translation),
       };
 }

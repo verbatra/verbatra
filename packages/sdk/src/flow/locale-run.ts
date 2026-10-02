@@ -1039,7 +1039,7 @@ function sourceNoticesFor(
     params.adapter.format,
     params.source,
     pendingKeys,
-    params.mode.kind !== "memory-only",
+    params.mode.kind === "memory-only" ? "human-only" : "machine",
   );
   return notice === undefined ? [] : [notice];
 }
