@@ -66,7 +66,7 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
   `project.snapshot` reports `valuesRedacted`, and the exported `MCP_CAPABILITIES` lets a host
   check support first.
 - In that mode `review.approve` and `review.reject` take only the marker's hash as `expectedHash`,
-  `glossary.write` answers with counts, quoted text in config, glossary and file errors is marked,
-  `translation.editEntry` still writes, and `locale.values` refuses `query` and `key.context`
-  refuses `draft`. Spend tools still need `--allow-spend`. It does not stop an agent that probes
+  `glossary.write` answers with counts, `translation.editEntry` still writes, and `locale.values`
+  refuses `query` and `key.context` refuses `draft`. The message of an error that can carry values
+  is replaced by a marker; its code and next step stay. Spend tools still need `--allow-spend`. It does not stop an agent that probes
   on purpose.
