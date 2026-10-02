@@ -9,6 +9,16 @@ import { z } from "zod";
 import type { McpToolCallContext, McpUnconfiguredContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
 
+export class McpInvalidParamsError extends Error {
+  readonly field: string;
+
+  constructor(field: string, message: string) {
+    super(`Invalid input for field "${field}": ${message}`);
+    this.name = "McpInvalidParamsError";
+    this.field = field;
+  }
+}
+
 export interface McpToolAnnotations {
   readonly readOnlyHint: boolean;
   readonly destructiveHint: boolean;
@@ -132,6 +142,9 @@ function createExecutor<
     try {
       result = await handler(parsed.data, context);
     } catch (error) {
+      if (error instanceof McpInvalidParamsError) {
+        return { kind: "invalid", message: error.message };
+      }
       return { kind: "error", message: describeToolError(error, context.cwd) };
     }
     const mismatch = outputMismatch(config.outputSchema, result);

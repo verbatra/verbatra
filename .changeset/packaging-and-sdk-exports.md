@@ -16,3 +16,7 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
   `TranslateRequest`, `TranslateResult` and more) for a custom `createProvider`.
 - `loadConfig({ fresh })` evaluates an edited JavaScript or TypeScript config again, and
   `configCandidatePaths` lists the files a config could come from.
+- `keyContext` reads what is needed to write one key: its values, the glossary terms that apply,
+  `maxLength` and a check of a draft. `localeHistory` lists the git commits that touched the locale
+  files, with the author name and never the email, or a `reason` when it cannot read them.
+- `localeValues` lists each locale's keys in source order under `keys`.

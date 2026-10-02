@@ -10,6 +10,7 @@ import {
 const DATA: LocaleValuesData = [
   {
     locale: "de",
+    keys: ["greeting.hello", "greeting.bye"],
     values: {
       "greeting.hello": { source: "Hello", target: "Hallo" },
       "greeting.bye": { source: "Bye" },
@@ -17,6 +18,7 @@ const DATA: LocaleValuesData = [
   },
   {
     locale: "fr",
+    keys: ["greeting.hello"],
     values: {
       "greeting.hello": { source: "Hello", target: "Bonjour" },
     },

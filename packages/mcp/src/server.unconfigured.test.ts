@@ -149,6 +149,23 @@ describe("createMcpServer without a usable config", () => {
     expect(text.split("\n").at(-1)).toMatch(/^Next step: Run `verbatra init`.*project\.doctor/);
   });
 
+  it.each([
+    ["history.list", {}],
+    ["locale.values", {}],
+    ["locale.integrity", {}],
+    ["key.context", { locale: "de", key: "greeting" }],
+    ["report.provenance", {}],
+  ])("refuses %s with the config error", async (name, args) => {
+    const project = switchableProject({ kind: "unconfigured", error: NOT_FOUND });
+    const { client } = await connect(project.session, false);
+
+    const result = await client.callTool({ name, arguments: args });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result).startsWith("CONFIG_NOT_FOUND: ")).toBe(true);
+    expect(textOf(result)).toContain(`${name} needs a usable project config`);
+  });
+
   it("still validates input before refusing", async () => {
     const project = switchableProject({ kind: "unconfigured", error: NOT_FOUND });
     const { client } = await connect(project.session, false);

@@ -39,3 +39,7 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
 - New: `verbatra_translation_estimate`, `verbatra_key_context` and `verbatra_locale_integrity`.
   `verbatra_translation_translatePending` takes `locales` and `maxTokens`, and
   `verbatra_key_integrity` reports ICU arms.
+- The history list and `verbatra_history_list` show each commit's author name, never the email,
+  and the list says why history is unavailable, including a git run that took too long.
+- `verbatra_locale_values` reads through the `fs` and `adapterRegistry` passed to
+  `startStudioServer`.

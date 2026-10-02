@@ -73,6 +73,7 @@ const KEY_VALUE: KeyContextResult = {
 const LOCALE_VALUES: LocaleValuesResult = [
   {
     locale: "de",
+    keys: ["checkout.title", "checkout.subtitle"],
     values: {
       "checkout.title": { source: "Checkout", target: "Kasse" },
       "checkout.subtitle": { source: "Review your order", target: "Bestellung prüfen" },
@@ -80,6 +81,7 @@ const LOCALE_VALUES: LocaleValuesResult = [
   },
   {
     locale: "fr",
+    keys: ["cart.badge"],
     values: {
       "cart.badge": { source: "Cart", target: "Panier" },
     },
@@ -531,12 +533,17 @@ describe("ReviewPanel", () => {
     const changed: LocaleValuesResult = [
       {
         locale: "de",
+        keys: ["checkout.title", "checkout.subtitle"],
         values: {
           "checkout.title": { source: "Checkout", target: "Zur Kasse" },
           "checkout.subtitle": { source: "Review your order", target: "Bestellung prüfen" },
         },
       },
-      { locale: "fr", values: { "cart.badge": { source: "Cart", target: "Panier" } } },
+      {
+        locale: "fr",
+        keys: ["cart.badge"],
+        values: { "cart.badge": { source: "Cart", target: "Panier" } },
+      },
     ];
     stubRpc({
       "review.approve": rpcError("REVIEW_VALUE_CHANGED", "changed"),
@@ -606,6 +613,7 @@ describe("ReviewPanel", () => {
     const arValues: LocaleValuesResult = [
       {
         locale: "ar",
+        keys: ["order.ready"],
         values: {
           "order.ready": {
             source: "Order #{orderId}",

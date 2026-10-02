@@ -69,6 +69,8 @@ describe("historyListHandler", () => {
 
       expect(execFileImpl).toHaveBeenCalledWith("git", expect.any(Array), {
         cwd: project.root,
+        timeout: expect.any(Number),
+        maxBuffer: expect.any(Number),
       });
     } finally {
       await project.cleanup();
@@ -108,7 +110,7 @@ describe("historyListHandler", () => {
     try {
       const result = await historyListHandler({}, deps(project));
 
-      expect(result).toEqual({ available: false });
+      expect(result).toEqual({ available: false, reason: "not-a-repository" });
     } finally {
       await project.cleanup();
     }
@@ -158,6 +160,8 @@ describe("historyListHandler against a git repository rooted above the project r
       }
       expect(result.commits).toHaveLength(1);
       expect(result.commits[0]?.subject).toBe("add locale files");
+      expect(result.commits[0]?.author).toBe("Test User");
+      expect(JSON.stringify(result)).not.toContain("test@example.com");
       expect(result.commits[0]?.touchedPaths).toEqual([
         "project/locales/de.json",
         "project/locales/en.json",
