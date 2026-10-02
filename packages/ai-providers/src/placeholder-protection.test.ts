@@ -225,6 +225,8 @@ describe("decodeMaskedFromXml", () => {
     ["a surrogate code point", "&#xD800;<x>{0}</x>"],
     ["a code point beyond Unicode", "&#1114112;<x>{0}</x>"],
     ["a null character reference", "&#0;<x>{0}</x>"],
+    ["a malformed decimal reference", "&#12a;<x>{0}</x>"],
+    ["a malformed hex reference", "&#xZZ;<x>{0}</x>"],
   ])("rejects %s", (_case, text) => {
     expect(decodeMaskedFromXml(text)).toBeUndefined();
   });

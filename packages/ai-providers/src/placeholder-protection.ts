@@ -221,7 +221,9 @@ const XML_WRAPPED_MARKER = /<x>(\{(?:0|[1-9]\d*)\})<\/x>/;
 const HTML_WRAPPED_MARKER = /<span\b[^<>]*>(\{(?:0|[1-9]\d*)\})<\/span>/;
 const OUTSIDE_A_WRAPPER = /[<>{}]/;
 const COLLAPSIBLE_WHITESPACE = /[\r\n\t]| {2}/;
-const ENTITY = /&(?:#(\d+)|#[xX]([0-9A-Fa-f]+)|([A-Za-z]+));/g;
+const ENTITY = /&(#[xX]?)?([0-9A-Za-z]+);/g;
+const DECIMAL_DIGITS = /^\d+$/;
+const HEX_DIGITS = /^[0-9A-Fa-f]+$/;
 const NAMED_ENTITIES: ReadonlyMap<string, string> = new Map([
   ["amp", "&"],
   ["lt", "<"],
@@ -248,16 +250,15 @@ export function encodeMaskedForHtml(masked: MaskedValue): string | undefined {
   return encodeMasked(masked, (marker) => `<span translate="no">${marker}</span>`);
 }
 
-function characterOf(
-  decimal: string | undefined,
-  hex: string | undefined,
-  name: string | undefined,
-): string | undefined {
-  if (name !== undefined) {
-    return NAMED_ENTITIES.get(name);
+function characterOf(prefix: string | undefined, body: string): string | undefined {
+  if (prefix === undefined) {
+    return NAMED_ENTITIES.get(body);
   }
-  const code =
-    decimal === undefined ? Number.parseInt(hex ?? "", 16) : Number.parseInt(decimal, 10);
+  const decimal = prefix === "#";
+  if (!(decimal ? DECIMAL_DIGITS : HEX_DIGITS).test(body)) {
+    return undefined;
+  }
+  const code = Number.parseInt(body, decimal ? 10 : 16);
   const valid =
     code > 0 && code <= MAX_CODE_POINT && (code < SURROGATE_FIRST || code > SURROGATE_LAST);
   return valid ? String.fromCodePoint(code) : undefined;
@@ -265,17 +266,14 @@ function characterOf(
 
 function decodeEntities(text: string): string | undefined {
   let known = true;
-  const decoded = text.replace(
-    ENTITY,
-    (_entity, decimal: string | undefined, hex: string | undefined, name: string | undefined) => {
-      const character = characterOf(decimal, hex, name);
-      if (character === undefined) {
-        known = false;
-        return "";
-      }
-      return character;
-    },
-  );
+  const decoded = text.replace(ENTITY, (_entity, prefix: string | undefined, body: string) => {
+    const character = characterOf(prefix, body);
+    if (character === undefined) {
+      known = false;
+      return "";
+    }
+    return character;
+  });
   const bareAmpersand = text.replace(ENTITY, "").includes("&");
   return known && !bareAmpersand ? decoded : undefined;
 }
