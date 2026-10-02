@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import type { McpToolCallContext, McpUnconfiguredContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
+import { presentError } from "./value-redaction.js";
 
 export class McpInvalidParamsError extends Error {
   readonly field: string;
@@ -183,7 +184,7 @@ function describeFailure(
     const described = `${error.code}: ${WITHHELD_PROVIDER_MESSAGE}.`;
     return hint === undefined ? described : `${described}\nNext step: ${hint}`;
   }
-  return describeToolError(error, context.cwd);
+  return presentError(error, describeToolError(error, context.cwd), context.valueMarker);
 }
 
 function createExecutor<

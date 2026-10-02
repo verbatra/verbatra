@@ -208,6 +208,8 @@ const READS: readonly Call[] = [
     arguments: { locale: "de", key: "greeting", value: `${CANARY}-dropped-placeholder` },
   },
   { name: "translation.retranslateEntry", arguments: { locale: "de", key: "long" } },
+  { name: "key.value", arguments: { locale: "xx-unknown", key: "greeting" } },
+  { name: "key.value", arguments: { locale: "de", key: "missing.key" } },
 ];
 
 describe("createMcpServer with redactValues: no value reaches the client", () => {
@@ -421,6 +423,21 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
       reason: "placeholder",
     });
     expect(structuredOf(refused as Answer)).not.toHaveProperty("details");
+  });
+
+  it("keeps key names and locale codes readable in the errors that name them", () => {
+    const failed = answers.filter((answer) => answer.isError);
+    const unknownLocale = failed.find((answer) => answer.call.arguments.locale === "xx-unknown");
+    const unknownKey = failed.find((answer) => answer.call.arguments.key === "missing.key");
+    const stale = answers.find(
+      (answer) =>
+        answer.call.name === "review.approve" &&
+        answer.call.arguments.expectedHash === "0".repeat(16),
+    );
+
+    expect(unknownLocale?.text).toContain("xx-unknown");
+    expect(unknownKey?.text).toContain('"missing.key"');
+    expect(stale?.text).toContain('REVIEW_VALUE_CHANGED: The translation of "farewell" in fr');
   });
 
   it("records an approval from the marker's hash and refuses a stale one", () => {

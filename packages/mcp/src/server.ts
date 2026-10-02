@@ -22,7 +22,7 @@ import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
 import { translatePendingTool } from "./tools/translate-pending.js";
 import { describeUnconfiguredRefusal } from "./tools/unconfigured-refusal.js";
-import { redactQuoted } from "./tools/value-redaction.js";
+import { presentError } from "./tools/value-redaction.js";
 import type { McpCallScope, McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -94,7 +94,11 @@ function executeFor(
   }
   return Promise.resolve({
     kind: "error",
-    message: describeUnconfiguredRefusal(tool.name, state.error, seams.cwd),
+    message: presentError(
+      state.error,
+      describeUnconfiguredRefusal(tool.name, state.error, seams.cwd),
+      seams.valueMarker,
+    ),
   });
 }
 
@@ -128,9 +132,6 @@ export function createMcpServer(options: McpServerOptions): Server {
   }
   const manifest = readPackageManifest();
   const seams = seamsOf(options);
-  const marker = options.valueMarker;
-  const presentFailure = (message: string): string =>
-    marker === undefined ? message : redactQuoted(message, marker);
   const allowSpend = options.allowSpend ?? false;
   const inFlightGuard = createMcpInFlightGuard(GUARDED_TOOL_NAMES);
   let advertised: string | undefined;
@@ -188,9 +189,8 @@ export function createMcpServer(options: McpServerOptions): Server {
       if (outcome.kind === "ok") {
         return toOkResult(outcome);
       }
-      const message = outcome.kind === "error" ? presentFailure(outcome.message) : outcome.message;
-      options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${message}`));
-      return toFailureResult(message);
+      options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${outcome.message}`));
+      return toFailureResult(outcome.message);
     } finally {
       progress?.close();
       inFlightGuard.leave(tool.name, dedupeKey);

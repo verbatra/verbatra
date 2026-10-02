@@ -1,4 +1,4 @@
-import type { ValueMarker } from "@verbatra/sdk";
+import { AdapterError, SdkError, type ValueMarker } from "@verbatra/sdk";
 
 type StringField<T> = {
   [K in keyof T]-?: NonNullable<T[K]> extends string ? K : never;
@@ -55,4 +55,21 @@ export function redactWriteResult<
 
 export function redactQuoted(text: string, marker: ValueMarker): string {
   return text.replace(/"([^"\n]*)"/g, (_quoted, inner: string) => marker.mark(inner));
+}
+
+const VALUE_BEARING_SDK_CODES: ReadonlySet<string> = new Set(["CONFIG_INVALID", "SOURCE_INVALID"]);
+
+export function carriesValues(error: unknown): boolean {
+  return (
+    error instanceof AdapterError ||
+    (error instanceof SdkError && VALUE_BEARING_SDK_CODES.has(error.code))
+  );
+}
+
+export function presentError(
+  error: unknown,
+  message: string,
+  marker: ValueMarker | undefined,
+): string {
+  return marker !== undefined && carriesValues(error) ? redactQuoted(message, marker) : message;
 }
