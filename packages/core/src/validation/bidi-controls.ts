@@ -30,11 +30,12 @@ interface ScanState {
 }
 
 function closeEmbedding(state: ScanState): void {
-  if (state.stack.at(-1) === "embedding") {
+  const innermost = state.stack.at(-1);
+  if (innermost === "embedding") {
     state.stack.pop();
-    return;
+  } else if (innermost === undefined) {
+    state.balanced = false;
   }
-  state.balanced = false;
 }
 
 function closeIsolate(state: ScanState): void {

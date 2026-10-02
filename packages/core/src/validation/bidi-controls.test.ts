@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { assessBidiControls } from "./bidi-controls.js";
 
-const LRE = "‪";
-const RLE = "‫";
-const PDF = "‬";
-const LRO = "‭";
-const RLO = "‮";
-const LRI = "⁦";
-const RLI = "⁧";
-const FSI = "⁨";
-const PDI = "⁩";
-const LRM = "‎";
-const RLM = "‏";
-const ALM = "؜";
+const LRE = "\u202a";
+const RLE = "\u202b";
+const PDF = "\u202c";
+const LRO = "\u202d";
+const RLO = "\u202e";
+const LRI = "\u2066";
+const RLI = "\u2067";
+const FSI = "\u2068";
+const PDI = "\u2069";
+const LRM = "\u200e";
+const RLM = "\u200f";
+const ALM = "\u061c";
 
 describe("assessBidiControls: balanced values", () => {
   it.each([
@@ -27,6 +27,15 @@ describe("assessBidiControls: balanced values", () => {
     ["an embedding inside an isolate, closed by the PDI", `${RLI}a ${LRE}b ${RLO}c${PDI}`],
     ["an isolate inside an embedding", `${RLE}a ${LRI}b${PDI}${PDF}`],
     ["closed controls on each line", `${RLI}a${PDI}\n${LRE}b${PDF}`],
+    ["a PDF inside an isolate, which it cannot close", `${RLI}a${PDF}${PDI}`],
+    [
+      "a PDF inside an isolate that sits in an embedding the PDF cannot reach",
+      `${RLE}${LRI}a${PDF}${PDI}${PDF}`,
+    ],
+    [
+      "embeddings past the maximum depth of 125, closed in order",
+      `${RLE.repeat(130)}${RLI}a${PDF}${PDI}${PDF.repeat(130)}`,
+    ],
   ])("accepts %s", (_name, value) => {
     expect(assessBidiControls(value).balanced).toBe(true);
   });
@@ -39,10 +48,9 @@ describe("assessBidiControls: unbalanced values", () => {
     ["an unclosed isolate", `${RLI}مرحبا {name}`],
     ["a stray PDF", `text${PDF}`],
     ["a stray PDI", `text${PDI}`],
-    ["a PDF that would close an embedding outside its isolate", `${RLE}${LRI}a${PDF}${PDI}${PDF}`],
     ["a PDI closing an isolate twice", `${RLI}a${PDI}${PDI}`],
     ["an isolate opened on one line and closed on the next", `${RLI}a\n${PDI}`],
-    ["an embedding left open at a paragraph separator", `${RLE}a b`],
+    ["an embedding left open at a paragraph separator", `${RLE}a\u2029b`],
     ["an embedding left open at a carriage return", `${LRE}a\rb`],
   ])("rejects %s", (_name, value) => {
     expect(assessBidiControls(value).balanced).toBe(false);
