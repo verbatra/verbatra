@@ -140,15 +140,13 @@ retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la f
 | Motif | Signale une traduction qui |
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | est bien plus courte ou plus longue que sa source, pondérée selon l'écriture |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | est plus longue que le budget [`maxLength`](/docs/config-file#maxlength) de la clé |
+| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | est plus longue que le budget [`maxLength`](/docs/config-file#maxlength) de la clé <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | est identique à son texte source |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | manque la traduction d'un terme du glossaire, ou altère un terme à ne pas traduire |
 | [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | utilise une forme que le glossaire interdit |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | garde chaque placeholder mais dans un autre ordre |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | vient d'un lot que le fournisseur a dégradé, comme une formalité abandonnée |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | a été [réutilisée depuis une source proche et modifiée](/docs/the-cache#réutilisation-approximative) |
-
-<AvailableFrom version="0.11.0" />
+| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | a été [réutilisée depuis une source proche et modifiée](/docs/the-cache#réutilisation-approximative) <AvailableFrom version="0.11.0" /> |
 
 <AvailableFrom version="0.12.0" />
 

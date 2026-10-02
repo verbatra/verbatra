@@ -138,15 +138,13 @@ una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 | Motivo | Marca una traducción que |
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | es mucho más corta o más larga que su origen, ponderada por escritura |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/docs/config-file#maxlength) de la clave |
+| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/docs/config-file#maxlength) de la clave <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | es idéntica a su texto de origen |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | omite la traducción de un término del glosario, o altera un término que no se traduce |
 | [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | usa una forma que el glosario prohíbe |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | conserva cada placeholder pero en otro orden |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) |
-
-<AvailableFrom version="0.11.0" />
+| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
 
 <AvailableFrom version="0.12.0" />
 

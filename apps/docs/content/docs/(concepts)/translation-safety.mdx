@@ -129,15 +129,13 @@ locked, and put on the needs-review queue.
 | Reason | Flags a translation that |
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | is far shorter or longer than its source, weighted by script |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | is longer than the key's [`maxLength`](/docs/config-file#maxlength) budget |
+| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | is longer than the key's [`maxLength`](/docs/config-file#maxlength) budget <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | is identical to its source text |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | misses a glossary term's translation, or alters a do-not-translate term |
 | [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | uses a rendering the glossary forbids |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | keeps every placeholder but in another order |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | came from a batch the provider degraded, such as a dropped formality |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) |
-
-<AvailableFrom version="0.11.0" />
+| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) <AvailableFrom version="0.11.0" /> |
 
 <AvailableFrom version="0.12.0" />
 
