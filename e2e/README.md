@@ -171,6 +171,21 @@ LIBRETRANSLATE_URL=http://127.0.0.1:5000 npx vitest run tests/libretranslate.liv
 `LIBRETRANSLATE_TARGET` picks another target language (default `de`); the server must have its
 model loaded. Use a loopback URL, since the test pins the `local-only` network policy.
 
+## Running the placeholder-masking live test
+
+`tests/translate.live.e2e.test.ts` holds one case that only runs when `E2E_PROVIDER` is `deepl` or
+`google-translate`: it translates a value with two `{{...}}` placeholders and an ampersand, then
+expects both placeholders back byte-exact, no `<x>`, `<span` or `&amp;` left in the result, and
+the project in sync. The nightly workflow runs `gemini`, so this case runs only locally:
+
+```sh
+cd e2e
+E2E_PROVIDER=deepl DEEPL_API_KEY=... npx vitest run tests/translate.live.e2e.test.ts
+E2E_PROVIDER=google-translate GOOGLE_TRANSLATE_API_KEY=... npx vitest run tests/translate.live.e2e.test.ts
+```
+
+Without the key, every case in the file skips.
+
 ## Choosing the live provider
 
 `E2E_PROVIDER` is one of `gemini`, `anthropic`, `openai`, `deepl`, `google-translate`.
