@@ -61,11 +61,9 @@ listet jede weitere Option.
 
 <AvailableFrom version="0.11.0" />
 
-`estimate: true` impliziert `dryRun`, der Lauf konstruiert also keinen Provider, liest keinen
-API-Key und schreibt nichts. Die Zahl landet auf `RunSummary.estimate`. Verzweige über `unit`
-für die abgerechnete Dimension und über `pricing` dafür, ob eine Währungszahl verfügbar war:
-verbatra liefert keine eigenen Raten mit, ein Preis erscheint also nur, wenn die Konfiguration
-einen `rates`-Block für diesen Provider und dieses Modell trägt.
+`estimate: true` impliziert `dryRun`. Die Zahl landet auf `RunSummary.estimate`: Verzweige über
+`unit` für die abgerechnete Dimension und über `pricing` dafür, ob ein
+[`rates`](/docs/config-file#rates)-Block sie bepreist hat.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -95,12 +93,8 @@ if (estimate !== undefined) {
 }
 ```
 
-Es begrenzt den Plan, nicht die Rechnung: Ein echter Lauf gibt meist weniger aus, weil er den
-[Übersetzungsspeicher-Cache](/docs/the-cache) befragt und identische Quellstrings zusammenfasst,
-und er kann aus jedem Grund mehr ausgeben, den `caveats` nennt. Die Methode hinter den Zahlen steht in
-[Kosten abschätzen](/docs/estimating-cost).
-
-`caveats` ist nie leer; [RunSummary](/docs/sdk/run-summary) listet, was jeder `EstimateCaveatCode`
+Es begrenzt den Plan, nicht die Rechnung; [Kosten abschätzen](/docs/estimating-cost) erklärt die
+Methode, und [RunSummary](/docs/sdk/run-summary) listet, was jeder `EstimateCaveatCode` in `caveats`
 auslässt.
 
 ## In CI prüfen, ohne zu schreiben
@@ -302,18 +296,14 @@ if (retry.accepted) {
 }
 ```
 
-Eine unbekannte Locale oder ein unbekannter Key wirft `UNKNOWN_LOCALE` oder `UNKNOWN_KEY`, und
-`retranslateEntry` wirft den eigenen `ProviderError` des Providers (zum Beispiel `RATE_LIMITED`),
-wenn der Aufruf selbst fehlschlägt; den Rest listet
-[`retranslateEntry`](/docs/sdk/review#retranslateentry). Dieselben Nahtstellen hinter einer
-Oberfläche zeigt [Review in Studio](/docs/review-in-studio).
+Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry). Dieselben
+Nahtstellen hinter einer Oberfläche zeigt [Review in Studio](/docs/review-in-studio).
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` wirft `KEY_PROTECTED` für einen Wert, den ein Mensch geschrieben, importiert oder
-außerhalb von verbatra geändert hat, außer du übergibst `includeHuman: true`, und `KEY_PINNED` für
-einen Key, der auf die `pinnedKeys` der Konfiguration passt; `editEntry` wirft das auch bei
-`actor: "agent"`. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+`retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, ab, außer du übergibst
+`includeHuman: true`, und einen gepinnten Key immer; siehe
+[Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 ## Alle Werte auf einmal lesen
 
@@ -417,8 +407,7 @@ const exported = await exportTmx({ config, out: "out/memory.tmx" });
 console.log(`${exported.units} units to ${exported.path}`);
 ```
 
-Keines von beiden konstruiert einen Provider, liest einen API-Key oder macht einen
-Netzwerkaufruf. `importTmx` meldet beschädigte Daten, statt bei ihnen zu werfen: Eine abgelehnte
+`importTmx` meldet beschädigte Daten, statt bei ihnen zu werfen: Eine abgelehnte
 Datei löst `SOURCE_INVALID` aus, und `tmxErrorLocation` liest die Stelle aus diesem Fehler, ohne
 ihn oder sein `cause` zu casten. Exportiert werden nur Einträge unter dem aktuellen
 Konfigurations-Fingerprint, also genau die Menge, die ein Lauf wiederverwenden würde.

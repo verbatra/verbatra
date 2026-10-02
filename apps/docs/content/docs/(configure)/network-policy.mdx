@@ -75,6 +75,26 @@ A request refused here fails its sub-batch with the provider error [`NETWORK_POL
 - **Proxies.** Under a restrictive policy, every proxy the provider would use must itself be permitted, as an IP address or a listed name. DeepL uses `HTTPS_PROXY`, `HTTP_PROXY` and `ALL_PROXY`; the other providers use them only on Node 24 with `NODE_USE_ENV_PROXY=1` or `--use-env-proxy`. `NO_PROXY` is ignored.
 - **Custom providers.** A provider passed through the SDK's `createProvider` is checked before it is built and receives the effective policy; applying it to its own requests is up to that code.
 
+## Machine translation without a language model
+
+Some NDAs forbid language models but accept classic machine translation on your own hardware. [LibreTranslate](/docs/providers#libretranslate) is that: an open-source server with Argos Translate models. Run it with the languages you need:
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+Then point verbatra at it and pin the network:
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` checks each target locale against the installed models. Its values are still recorded as `machine` origin.
+
 ## Related
 
 - [`network`](/docs/config-file#network): the config key.

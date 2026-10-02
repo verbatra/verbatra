@@ -48,14 +48,12 @@ interface LocaleSummary {
 Die Teile, die du kennen solltest:
 
 - **needsReview** listet akzeptierte, geschriebene Keys, die die Review-Heuristiken markiert
-  haben, jeder mit seinen Grund-Codes: `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`,
-  `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM`, `INTEGRITY_REORDERED`, `PROVIDER_DEGRADED` und
-  `FUZZY_CACHE_REUSE`. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; baue jedes
-  Laufzeitschema und jede vollständige Zuordnung daraus, statt die Mitglieder abzutippen. Ein
-  Review-Flag ist nur ein Hinweis und hält nie einen Key zurück; ein Key erscheint also nie in
-  `needsReview` und `integrityMismatches` zugleich. Was jeder Code bedeutet, steht in
-  [Übersetzungssicherheit](/docs/translation-safety), das Abarbeiten der Warteschlange in
-  [Review in Studio](/docs/review-in-studio).
+  haben, jeder mit seinen Grund-Codes, aufgeführt und erklärt unter
+  [Review-Flags](/docs/translation-safety#review-flags). Die Menge wird als Tupel
+  `REVIEW_REASON_CODES` ausgeliefert; baue jedes Laufzeitschema und jede vollständige Zuordnung
+  daraus, statt die Mitglieder abzutippen. Ein Review-Flag ist nur ein Hinweis und hält nie einen
+  Key zurück; ein Key erscheint also nie in `needsReview` und `integrityMismatches` zugleich. Das
+  Abarbeiten der Warteschlange steht in [Review in Studio](/docs/review-in-studio).
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
   DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
   `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED` (ab 0.12.0: Keys, die eine XLIFF-Übergabe als geprüft oder final markiert hat, wurden als freigegeben festgehalten), `BUDGET_TOKENS_EXCEEDED`,

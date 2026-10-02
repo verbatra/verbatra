@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -581,5 +581,80 @@ describe("the types page lists exactly the output paths generateTypes refuses", 
     const page = readDocPage("cli/types", suffix);
 
     expect(names.filter((name) => !mentionsCodeSpan(page, name))).toEqual([]);
+  });
+});
+
+const REVIEW_FLAG_ROW = /^\| \[`([A-Z_]+)`\]\(\/docs\/error-codes#[a-z_]+\) \|/;
+
+function reviewFlagTable(page) {
+  const lines = page.split("\n");
+  const rows = lines.flatMap((line, index) => {
+    const code = REVIEW_FLAG_ROW.exec(line)?.[1];
+    return code === undefined ? [] : [{ code, index }];
+  });
+  const contiguous = rows.every(
+    (row, position) => position === 0 || row.index === rows[position - 1].index + 1,
+  );
+  return { codes: rows.map(({ code }) => code), contiguous };
+}
+
+function docPagesCarryingEveryCode(codes, suffix) {
+  const contentDir = resolve(REPO_ROOT, "apps/docs/content/docs");
+  return readdirSync(contentDir, { recursive: true, encoding: "utf8" })
+    .filter(
+      (file) =>
+        file.endsWith(`${suffix}.mdx`) && (suffix !== "" || !/\.(de|es|fr)\.mdx$/.test(file)),
+    )
+    .filter((file) => {
+      const page = readFileSync(resolve(contentDir, file), "utf8");
+      return codes.every((code) => new RegExp(`\\b${code}\\b`).test(page));
+    })
+    .sort();
+}
+
+describe("the review flag table on translation-safety lists exactly REVIEW_REASON_CODES", () => {
+  const reviewReasons = constCodes("packages/ai-providers/src/provider.ts", "REVIEW_REASON_CODES");
+
+  it("extracts a non-trivial reason list, so the comparison cannot pass vacuously", () => {
+    expect(reviewReasons.length).toBeGreaterThanOrEqual(8);
+    expect(reviewReasons).toContain("EQUALS_SOURCE");
+  });
+
+  it.each(LOCALE_SUFFIXES)("in translation-safety%s.mdx, in source order", (suffix) => {
+    const table = reviewFlagTable(readDocPage("(concepts)/translation-safety", suffix));
+
+    expect(table.codes).toEqual(reviewReasons);
+    expect(table.contiguous).toBe(true);
+  });
+
+  it.each(LOCALE_SUFFIXES)("leaves the full set to its two owners in locale '%s'", (suffix) => {
+    expect(docPagesCarryingEveryCode(reviewReasons, suffix)).toEqual([
+      `(concepts)/translation-safety${suffix}.mdx`,
+      `(reference)/error-codes${suffix}.mdx`,
+    ]);
+  });
+
+  it("sees a dropped, an extra and a reordered reason", () => {
+    const page = readDocPage("(concepts)/translation-safety", "");
+    const firstRow = page.split("\n").find((line) => REVIEW_FLAG_ROW.test(line));
+    const dropped = page.replace(`${firstRow}\n`, "");
+    const extra = page.replace(
+      firstRow,
+      `${firstRow}\n| [\`RETIRED_REASON\`](/docs/error-codes#retired_reason) | was retired |`,
+    );
+    const reordered = page
+      .replace(`${firstRow}\n`, "")
+      .replace(/(\n\| \[`FUZZY_CACHE_REUSE`[^\n]*)/, `$1\n${firstRow}`);
+
+    expect(reviewFlagTable(dropped).codes).toEqual(reviewReasons.slice(1));
+    expect(reviewFlagTable(extra).codes).toEqual([
+      reviewReasons[0],
+      "RETIRED_REASON",
+      ...reviewReasons.slice(1),
+    ]);
+    expect(reviewFlagTable(reordered).codes).toEqual([...reviewReasons.slice(1), reviewReasons[0]]);
+    expect([...reviewFlagTable(reordered).codes].sort()).toEqual([...reviewReasons].sort());
+    expect(reviewFlagTable(reordered).codes).not.toEqual(reviewReasons);
+    expect(reviewFlagTable(page.replace(firstRow, `${firstRow}\n`)).contiguous).toBe(false);
   });
 });

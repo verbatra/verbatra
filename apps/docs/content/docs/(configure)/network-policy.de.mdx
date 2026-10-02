@@ -75,6 +75,26 @@ Eine hier abgelehnte Anfrage lässt ihren Teil-Batch mit dem Provider-Fehler [`N
 - **Proxys.** Unter einer einschränkenden Richtlinie muss jeder Proxy, den der Provider nutzen würde, selbst erlaubt sein, als IP-Adresse oder als aufgelisteter Name. DeepL nutzt `HTTPS_PROXY`, `HTTP_PROXY` und `ALL_PROXY`; die anderen Provider nutzen sie nur unter Node 24 mit `NODE_USE_ENV_PROXY=1` oder `--use-env-proxy`. `NO_PROXY` wird ignoriert.
 - **Eigene Provider.** Ein Provider, den du über `createProvider` im SDK übergibst, wird vor dem Bau geprüft und erhält die wirksame Richtlinie; sie auf seine eigenen Anfragen anzuwenden, liegt bei diesem Code.
 
+## Maschinelle Übersetzung ohne Sprachmodell
+
+Manche NDAs verbieten Sprachmodelle, akzeptieren aber klassische maschinelle Übersetzung auf deiner eigenen Hardware. [LibreTranslate](/docs/providers#libretranslate) ist genau das: ein Open-Source-Server mit Argos-Translate-Modellen. Starte ihn mit den Sprachen, die du brauchst:
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+Dann richte verbatra darauf aus und leg das Netzwerk fest:
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` prüft jede Ziel-Locale gegen die installierten Modelle. Seine Werte werden trotzdem mit der Herkunft `machine` festgehalten.
+
 ## Siehe auch
 
 - [`network`](/docs/config-file#network): der Konfigurationsschlüssel.

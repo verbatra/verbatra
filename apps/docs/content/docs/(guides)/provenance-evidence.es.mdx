@@ -9,11 +9,9 @@ type: how-to
 Usa esto cuando alguien pregunta qué parte de tu texto publicado tradujo un proveedor o un agente de IA, y si una persona lo revisó. verbatra lo registra por clave en `verbatra.provenance.json`; lo sacas como un informe para archivar, o como marcas en los archivos XLIFF y TMX que entregas a otras herramientas.
 
 <Callout type="warn" title="Evidencia de apoyo, no asesoramiento jurídico">
-El artículo 50 del Reglamento de IA de la UE (AI Act) fija obligaciones de transparencia para el
-texto generado por IA, y el texto que una persona revisó bajo responsabilidad editorial se trata de
-forma distinta del que no se revisó. Cómo se aplican esas normas a la traducción, y a tu producto,
-no es algo que verbatra pueda decidir por ti. El informe y las marcas son evidencia de apoyo para
-quien tome esa decisión. No son asesoramiento jurídico, y usarlos no hace que un producto cumpla
+Según el [artículo 50 del Reglamento de IA de la UE](/docs/data-handling#traducciones-generadas-por-ia-y-procedencia), el texto que una
+persona revisó bajo responsabilidad editorial se trata de forma distinta del que no se revisó. El
+informe y las marcas son evidencia de apoyo para quien decida cómo se aplica eso a tu producto. No son asesoramiento jurídico, y usarlos no hace que un producto cumpla
 con nada.
 </Callout>
 
@@ -24,7 +22,7 @@ Cada valor que escribe verbatra se registra con su origen (la ruta de escritura 
 - **Clase máquina**: `machine`, `memory`, `fuzzy` y `agent`. La memoria cuenta como máquina porque no registra quién escribió una entrada.
 - **Personas**: `human` (una edición desde Studio o el SDK) e `import` (la entrega de un traductor).
 
-`external` (cambiado fuera de verbatra desde que se registró), `unrecorded` (sin registro) y `unknown` (registrado sin autor conocido) no son ninguna de las dos. Una aprobación dada antes de que cambiara el texto de origen se lee como no revisada.
+`external`, `unrecorded` y `unknown` no son ninguna de las dos. Una aprobación dada antes de que cambiara el texto de origen se lee como no revisada.
 
 Ten en cuenta los límites cuando entregues el registro a alguien:
 
@@ -34,7 +32,7 @@ Ten en cuenta los límites cuando entregues el registro a alguien:
 
 ## El informe de procedencia
 
-[`verbatra report provenance`](/docs/cli/report) imprime, por locale de destino, cuántos valores caen en cada categoría. Solo lee los archivos confirmados, no llama a ningún proveedor y no escribe nada.
+[`verbatra report provenance`](/docs/cli/report) imprime, por locale de destino, cuántos valores caen en cada categoría.
 
 ```bash
 verbatra report provenance

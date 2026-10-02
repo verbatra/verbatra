@@ -113,9 +113,8 @@ is not set.` (o la variable de tu proveedor).
 **Causa**: la variable que nombra el mensaje no está definida o está vacía. Las claves solo vienen
 del entorno, nunca de la config ni de un flag.
 
-**Solución**: define la variable y confírmala con `verbatra doctor`. `translate`, `watch`, `doctor`,
-`studio` y `mcp` cargan `.env` y `.env.local` del directorio de trabajo (consulta
-[Proveedores](/docs/providers#las-claves-vienen-del-entorno)); el SDK no, así que usa
+**Solución**: define la variable y confírmala con `verbatra doctor`. La CLI también la lee de
+[`.env.local` y `.env`](/docs/cli#archivos-de-entorno); el SDK no, así que usa
 `node --env-file=.env` en tu propio script. Códigos:
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).
@@ -238,11 +237,12 @@ misma puerta juzga ambos. Qué se compara y qué rechazos son intencionados est�
 **Síntoma**: editar funciona, pero las acciones de retraducir y de traducir claves pendientes no
 aparecen.
 
-**Causa**: el gasto en el proveedor se concede al arrancar, y sin ese permiso las acciones de gasto
-no se registran. Un proyecto [solo humano](/docs/human-only-workflow) las retiene incluso entonces.
+**Causa**: el gasto en el proveedor se concede al arrancar, según las reglas de
+[Gasto y herramientas de agente](/docs/cli/studio#gasto-y-herramientas-de-agente), y sin ese permiso
+las acciones de gasto no se registran.
 
-**Solución**: reinicia con `verbatra studio --allow-spend`, o define
-`VERBATRA_STUDIO_ALLOW_SPEND=1`. Consulta [Revisar en Studio](/docs/review-in-studio).
+**Solución**: reinicia con `verbatra studio --allow-spend`, salvo que el proyecto sea
+[solo humano](/docs/human-only-workflow). Consulta [Revisar en Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp no está instalado
 
@@ -261,12 +261,12 @@ ejecutar `verbatra mcp`. Con pnpm, lee antes
 **Síntoma**: las herramientas locales funcionan, pero faltan las dos herramientas de gasto, y
 llamar a una por su nombre falla como herramienta desconocida.
 
-**Causa**: el gasto se concede al arrancar, y la lista de herramientas no puede cambiar según la
-conexión, así que las herramientas de gasto quedan fuera por completo. Un proyecto
-[solo humano](/docs/human-only-workflow) las deja fuera incluso con `--allow-spend`.
+**Causa**: el gasto se concede al arrancar, según las reglas de
+[Herramientas de gasto](/docs/cli/mcp#herramientas-de-gasto), y la lista de herramientas no puede
+cambiar según la conexión, así que las herramientas de gasto quedan fuera por completo.
 
-**Solución**: reinicia con `verbatra mcp --allow-spend`, o define `VERBATRA_MCP_ALLOW_SPEND=1`.
-Consulta [`verbatra mcp`](/docs/cli/mcp).
+**Solución**: reinicia con `verbatra mcp --allow-spend`, salvo que el proyecto sea
+[solo humano](/docs/human-only-workflow).
 
 ## Deshacer una ejecución (sin código de error)
 

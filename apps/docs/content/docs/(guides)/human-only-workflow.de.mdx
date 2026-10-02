@@ -73,7 +73,7 @@ Schritt 1 ist optional, denn `verbatra diff` und `verbatra check` zeigen dieselb
 
 ## In CI
 
-Exit `3` heißt "sauber fertig, aber Keys warten auf einen Menschen". Er unterscheidet sich von `1` (eine fehlgeschlagene oder unvollständige Locale, die weiterhin Vorrang hat), sodass eine Pipeline den Build scheitern lassen, eine Übersetzungsanfrage anlegen oder nur berichten kann. Die [GitHub Action](/docs/github-action#rein-menschlicher-modus) lässt den Schritt bei Exit `3` bestehen und setzt ihre Ausgabe `needs-human` auf `"true"`, damit ein späterer Schritt darauf reagieren kann.
+`translate` endet mit `3`, wenn Keys auf einen Menschen warten ([Exit-Codes](/docs/cli/output#exit-codes)), sodass eine Pipeline den Build scheitern lassen, eine Übersetzungsanfrage anlegen oder nur berichten kann. Die [GitHub Action](/docs/github-action#rein-menschlicher-modus) lässt den Schritt bei Exit `3` bestehen und setzt ihre Ausgabe `needs-human` auf `"true"`, damit ein späterer Schritt darauf reagieren kann.
 
 ## Siehe auch
 

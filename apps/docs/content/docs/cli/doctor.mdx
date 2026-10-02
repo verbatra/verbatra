@@ -70,7 +70,7 @@ verbatra doctor
 - `openai-compatible` falls back to a placeholder key, so it fails only when the config names its own `provider.options.apiKeyEnvVar` and that variable is unset. `libretranslate` never fails the check, since its key is optional.
 - With [`provider: { id: "none" }`](/docs/human-only-workflow), the Provider, API key and Network policy checks pass and Locale support is skipped.
 - A missing **target** file is fine: `translate` creates it. The **source** file is parsed, so a directory, an empty file or malformed content fails it.
-- `doctor` loads `.env.local` and then `.env` first, so a key in a dotenv file counts as set. With `--literals` it loads neither.
+- `doctor` loads the [environment files](/docs/cli#environment-files) first, so a key in a dotenv file counts as set; with `--literals` it loads neither.
 
 ### Locale support
 

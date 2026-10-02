@@ -90,7 +90,7 @@ interface IncompletePlural {
 `--qa` aplica las comprobaciones que una ejecución de traducción hace sobre la salida del proveedor a los valores que ya están en tus archivos de locale, obsoletos o no, incluidas las formas de plural extra que necesita el idioma de destino. Los hallazgos tienen dos gravedades:
 
 - **error**: el valor no pasa la [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad), con `placeholder`, `markup`, `icu`, `degenerate` o `empty`. Los detalles listan los tokens perdidos como `-{{name}}` y los añadidos como `+{{nom}}`.
-- **warning**: el valor lleva un [motivo de revisión](/docs/translation-safety#señales-de-revisión): `LENGTH_RATIO_OUTLIER`, `MAX_LENGTH_EXCEEDED`, `EQUALS_SOURCE`, `GLOSSARY_TERM_MISSED`, `GLOSSARY_FORBIDDEN_TERM` o `INTEGRITY_REORDERED`. Un valor con error no recibe avisos.
+- **warning**: el valor lleva un [motivo de revisión](/docs/translation-safety#señales-de-revisión) calculado a partir del valor, su origen y tu configuración (glosario, `maxLength`), así que ninguno que dependa del proveedor o de la caché. Un valor con error no recibe avisos.
 
 ```text output
 qa: 1 error, 1 warning

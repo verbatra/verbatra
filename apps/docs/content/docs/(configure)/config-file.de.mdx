@@ -99,11 +99,11 @@ Eine Schrift, die Sprache und Region bereits vorgeben, fällt weg, deshalb schei
 
 <AvailableFrom version="0.12.0" />
 
-Jeder Locale-Code muss ein Tag sein, den `Intl.getCanonicalLocales` akzeptiert, mit einem Sprach-Subtag aus zwei oder drei Buchstaben; sonst scheitert das Laden mit `CONFIG_INVALID` und nennt Feld und Code. `pt_BR` wird abgelehnt (schreib `pt-BR` und setz `localeStyle: "posix"`), ebenso ein Sprachname wie `german`. Ein gültiger, aber nicht kanonischer Code wie `zh-hant-tw` oder das veraltete `iw` funktioniert so, wie er dasteht, und [`verbatra doctor`](/docs/cli/doctor) schlägt die kanonische Form vor. verbatra benennt nie eine Datei um; schreibst du einen Code um, übernimmt der nächste Lauf von `translate` seinen Zustand aus Lock-Datei, Translation Memory und Provenance ([Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)).
+Jeder Locale-Code muss ein Tag sein, den `Intl.getCanonicalLocales` akzeptiert, mit einem Sprach-Subtag aus zwei oder drei Buchstaben; sonst scheitert das Laden mit `CONFIG_INVALID` und nennt Feld und Code. `pt_BR` wird abgelehnt (schreib `pt-BR` und setz `localeStyle: "posix"`), ebenso ein Sprachname wie `german`. Ein gültiger, aber nicht kanonischer Code wie `zh-hant-tw` oder das veraltete `iw` funktioniert so, wie er dasteht, und [`verbatra doctor`](/docs/cli/doctor) schlägt die kanonische Form vor. verbatra benennt nie eine Datei um, und ein umgeschriebener Code behält seinen Zustand ([Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)).
 
 ### provider
 
-`provider.id` wählt `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` (ab 0.12.0) oder `none`. Unter `provider` sind nur `id` und `options` erlaubt; ab 0.12.0 scheitert jeder andere Key, etwa ein falsch platziertes `localeMap`, mit `CONFIG_INVALID`. Jeder Provider außer `none` akzeptiert `options.localeMap` und `options.requestTimeoutMs` ([Provider](/docs/providers#an-den-provider-gesendete-locale-codes)). Bei `none` darf `options` fehlen und muss sonst `{}` sein ([Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow)).
+`provider.id` wählt einen der [Provider](/docs/providers) oder `none`. Unter `provider` sind nur `id` und `options` erlaubt; ab 0.12.0 scheitert jeder andere Key, etwa ein falsch platziertes `localeMap`, mit `CONFIG_INVALID`. Jeder Provider außer `none` akzeptiert `options.localeMap` und `options.requestTimeoutMs` ([Provider](/docs/providers#an-den-provider-gesendete-locale-codes)). Bei `none` darf `options` fehlen und muss sonst `{}` sein ([Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -165,28 +165,21 @@ Wenn true, synthetisiert verbatra die CLDR-Pluralformen, die ein Ziel braucht, d
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelle sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, wenn beide mindestens `threshold` ähnlich sind, statt den Provider aufzurufen. Eine Wiederverwendung:
-
-- wird getrennt von exakten Cache-Treffern gemeldet und immer als `FUZZY_CACHE_REUSE` zum Review markiert;
-- durchläuft dieselben Integritätsprüfungen wie jeder andere Kandidat und wird nie in den Cache zurückgeschrieben;
-- wird abgelehnt, ganz gleich wie sie bewertet wird, wenn ihre Zahlzeichen von der aktuellen Quelle abweichen;
-- wird geschrieben, aber nicht gelockt, der Key bleibt also geändert und wird bei jedem Lauf erneut angeboten, bis eine echte Übersetzung landet.
-
-`threshold` steuert, wie viel du beim Provider sparst, nicht wie sicher die Wiederverwendung ist ([warum](/docs/the-cache)), schalte das also nur ein, wenn jemand die Review-Warteschlange abarbeitet. Es gibt kein CLI-Flag; `--no-cache` umgeht es zusammen mit dem restlichen Cache.
+`fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelle sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, wenn beide mindestens `threshold` ähnlich sind, immer als `FUZZY_CACHE_REUSE` markiert; die Sicherheitsregeln stehen unter [Unscharfe Wiederverwendung](/docs/the-cache#unscharfe-wiederverwendung). Es gibt kein CLI-Flag; `--no-cache` umgeht es zusammen mit dem restlichen Cache.
 
 ### humanEdits und pinnedKeys
 
-`humanEdits` betrifft einen veralteten Key, dessen Wert aus Studio oder einer SDK-Bearbeitung (`human`), aus einem importierten Handoff (`import`) oder aus einer Bearbeitung außerhalb von verbatra (`external`) stammt, so wie es die [Provenance](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) festhält:
+`humanEdits` betrifft einen veralteten Key, dessen Wert ein Mensch geschrieben hat (Provenance `human`, `import` oder `external`, siehe [Provenance](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)):
 
-- `"protect"` behält den Wert; der Key wird nicht gesendet, bleibt in `check` veraltet und wird als geschützt gelistet.
-- `"suggest"` behält den Wert, fragt aber den Provider; die Antwort ist ein Vorschlag, der im Translation Memory landet und nie geschrieben wird.
-- `"overwrite"` übersetzt ihn neu wie jeden veralteten Key; `translate --include-human` macht das für einen Lauf.
+- `"protect"` behält den Wert und sendet den Key nicht.
+- `"suggest"` behält den Wert und fragt den Provider nach einem Vorschlag, der nie geschrieben wird.
+- `"overwrite"` übersetzt ihn neu; `translate --include-human` macht das für einen Lauf.
 
-Ein Key, der auf `pinnedKeys` passt (zum Beispiel `["legal.*", "brand.name"]`), wird nie übersetzt, vorgeschlagen oder neu übersetzt, egal was `humanEdits` sagt, und ein KI-Agent kann ihn nicht bearbeiten; ein Mensch weiterhin schon. Ein Wert ohne Provenance-Eintrag (`unrecorded`) ist nicht geschützt. Siehe [Menschliche Übersetzungen behalten](/docs/protecting-human-translations).
+Ein Key, der auf `pinnedKeys` passt (zum Beispiel `["legal.*", "brand.name"]`), wird nie maschinell geschrieben, egal was `humanEdits` sagt. Siehe [Menschliche Übersetzungen behalten](/docs/protecting-human-translations).
 
 ### network
 
-`"local-only"` erlaubt Loopback-, private und Unique-Local-Adressen plus `allowedHosts`; `"allowlist"` erlaubt nur `allowedHosts`. `VERBATRA_NETWORK_POLICY` kann in der CI eine strengere Richtlinie festlegen. Siehe [Netzwerkzugriff einschränken](/docs/network-policy).
+Die Richtlinie und ihre Hosts; was jede erlaubt und wie du sie aus der Umgebung festlegst, steht unter [Netzwerkzugriff einschränken](/docs/network-policy).
 
 ```ts title="verbatra.config.ts"
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
@@ -244,7 +237,7 @@ Das Top-Level-`maxTokens` ist dieses Budget für den ganzen Lauf. Anthropics `pr
 
 ### rates
 
-Wird nur von [`verbatra translate --estimate`](/docs/estimating-cost) gelesen; ein echter Lauf ignoriert es. verbatra liefert keine Preise mit, du gibst sie also zusammen mit dem Datum an, an dem du sie gelesen hast.
+Wird nur von [`verbatra translate --estimate`](/docs/estimating-cost) gelesen, wo auch steht, wie aus Raten Geld wird; ein echter Lauf ignoriert es.
 
 ```ts title="verbatra.config.ts"
 rates: {
@@ -257,7 +250,7 @@ rates: {
 }
 ```
 
-Ein `table`-Key ist `provider/model` für einen Provider mit Modell und die blanke Id für einen ohne (`deepl`, `google-translate`). Ein Eintrag wird entweder nach Tokens abgerechnet (`inputPerMillionTokens` und `outputPerMillionTokens`) oder nach Zeichen (`perMillionCharacters`), nie beides; eine negative Rate wird abgelehnt. `openai-compatible` und `libretranslate` stellen keine Rechnung, deshalb wird ihre Menge ohne Rate gemeldet. Ein fehlender Raten-Key wird als fehlend gemeldet, nie als null, und ein Eintrag in der falschen Einheit wird abgelehnt.
+Ein `table`-Key ist `provider/model` für einen Provider mit Modell und die blanke Id für einen ohne (`deepl`, `google-translate`). Ein Eintrag wird entweder nach Tokens abgerechnet (`inputPerMillionTokens` und `outputPerMillionTokens`) oder nach Zeichen (`perMillionCharacters`), nie beides; eine negative Rate wird abgelehnt. `openai-compatible` und `libretranslate` stellen keine Rechnung, deshalb wird ihre Menge ohne Rate gemeldet. Ein Eintrag in der falschen Einheit wird abgelehnt.
 
 ### extract
 
@@ -356,7 +349,7 @@ Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nu
 
 ## Das Arbeitsverzeichnis und .env
 
-Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Anker für alles: Die Konfigurationssuche startet dort, Locale-Pfade werden dagegen aufgelöst, und `translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und `.env` von dort. Eine Variable, die schon in der Umgebung gesetzt ist, gewinnt gegen `.env.local`, das gegen `.env` gewinnt.
+Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Anker für die Konfigurationssuche und die Locale-Pfade; welche Befehle `.env.local` und `.env` von dort laden, steht unter [Umgebungsdateien](/docs/cli#umgebungsdateien).
 
 ## Wenn das Laden fehlschlägt
 

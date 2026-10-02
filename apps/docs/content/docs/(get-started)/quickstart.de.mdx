@@ -92,7 +92,7 @@ Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nicht
 cp .env.example .env
 ```
 
-Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung: verbatra lädt `.env.local` und `.env` aus dem Arbeitsverzeichnis, und eine Variable, die in deiner Shell schon gesetzt ist, hat Vorrang. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/docs/providers).
+Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/docs/cli#umgebungsdateien) hinein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/docs/providers).
 
 </Step>
 <Step>

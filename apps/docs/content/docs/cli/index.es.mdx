@@ -57,7 +57,7 @@ Un comando o flag desconocido sale con `2`. `mcp` nunca escribe en stdout, porqu
 
 ## Archivos de entorno
 
-`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`, `report`), los comandos de entrega (`export`, `import`), `extract`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
+`translate`, `watch`, `doctor`, `studio` y `mcp` cargan `.env.local` y luego `.env` desde el directorio de trabajo antes de ejecutarse. `doctor --literals` es la excepción: no lee ninguna clave de API, así que no carga ninguno de los dos archivos. Una variable ya definida en tu entorno real siempre gana, y un valor en `.env.local` gana a la misma variable en `.env`. Las claves de API se leen solo del entorno, nunca del archivo de configuración ni de un flag: consulta [Proveedores](/docs/providers). Los comandos de solo lectura (`check`, `diff`, `report`), los comandos de entrega (`export`, `import`), `extract`, `init`, `pseudo`, `types` y `tmx` nunca llaman a un proveedor y no cargan archivos `.env`.
 
 ## Salida en el terminal
 

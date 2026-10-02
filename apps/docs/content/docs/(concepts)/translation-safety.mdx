@@ -129,17 +129,13 @@ locked, and put on the needs-review queue.
 | Reason | Flags a translation that |
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | is far shorter or longer than its source, weighted by script |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | is longer than the key's [`maxLength`](/docs/config-file#maxlength) budget |
+| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | is longer than the key's [`maxLength`](/docs/config-file#maxlength) budget <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | is identical to its source text |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | misses a glossary term's translation, or alters a do-not-translate term |
 | [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | uses a rendering the glossary forbids |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | keeps every placeholder but in another order |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | came from a batch the provider degraded, such as a dropped formality |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) |
-
-<AvailableFrom version="0.11.0" />
-
-`MAX_LENGTH_EXCEEDED` and `FUZZY_CACHE_REUSE` first appear in 0.11.0.
+| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) <AvailableFrom version="0.11.0" /> |
 
 <AvailableFrom version="0.12.0" />
 
@@ -154,43 +150,34 @@ approves, rejects or rewrites its value; see
 ## The token budget
 
 Provider spend should have a ceiling you set, not one you find on the invoice. With `maxTokens`
-configured, verbatra counts a run's tokens across every call and locale. With
-`budgetBehavior: "warn"` (the default) it only flags an overrun. With `"stop"` it projects every
-request before sending it and withholds the one that would pass the ceiling, with every remaining
-candidate after it; those keys keep their baseline and are retried next run.
+configured, verbatra counts a run's tokens across every call and locale. `budgetBehavior: "warn"`
+(the default) only flags an overrun; `"stop"` withholds the request that would pass the ceiling and
+every candidate after it, to be retried next run.
 
 What the budget guarantees: work done before the ceiling stays written and locked, and nothing is
-left half-written. A provider that reports no usage of its own is counted from the projection, so
-the ceiling holds there too.
-
-What it does not: a request already in flight can cost more than projected, so the total can end
-above `maxTokens` by that one request's difference. The ceiling bounds one run, not a `watch`
-session, and does not cover single-entry retranslations from Studio or the agent tools. The exact
-rules, and how `--max-tokens` tightens them, are under
+left half-written. What it does not: a request in flight can cost more than projected, the ceiling
+bounds one run (not a `watch` session), and Studio or agent retranslations are not covered. The
+exact rules are under
 [`maxTokens` and `budgetBehavior`](/docs/config-file#maxtokens-and-budgetbehavior).
 
 ## Errors never leak
 
-API keys come only from environment variables, never from config or arguments. When a provider call
-fails, the raw SDK error (which can carry request headers or credentials) is discarded, never bound,
-logged or re-thrown. In its place verbatra raises a structured error with a stable code and a fixed,
-secret-free message; the codes are under
+When a provider call fails, the raw SDK error (which can carry request headers or credentials) is
+discarded, never bound, logged or re-thrown. In its place verbatra raises a structured error with a
+stable code and a fixed, secret-free message; the codes are under
 [Provider error codes](/docs/error-codes#provider-error-codes). Notices and summaries carry codes and
-counts, never secrets. How keys are redacted from output is on
+counts, never secrets. Where keys come from and how they are redacted is on
 [Data handling](/docs/data-handling#api-keys).
 
 ## Where you see it
 
-Everything above is data on the run summary, per locale: translated keys, integrity mismatches,
-provider failures, budget-withheld keys, invalid-ICU source keys, review flags and notices. One
-locale's failure never stops the others.
+Everything above is data on the [run summary](/docs/sdk/run-summary), per locale, and one locale's
+failure never stops the others.
 
 <AvailableFrom version="0.12.0" />
 
-The gate and the review flags also run over what is already committed:
-[`verbatra check --qa`](/docs/cli/check#quality-check) checks every target value, however it got
-there, and exits `1` on a gate refusal, so a hand-edited translation can gate a pull request without
-a provider call.
+[`verbatra check --qa`](/docs/cli/check#quality-check) runs the gate and the review flags over
+committed values without a provider call.
 
 ## Related
 

@@ -32,7 +32,7 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektwurzel. Claude Code setzt diese Variable für jeden stdio-Server, den es startet, sodass eine Sitzung aus einem Unterverzeichnis trotzdem die Konfiguration findet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann `.env.local` und `.env` aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil die Wurzel vorher feststeht.
+Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektwurzel. Claude Code setzt diese Variable für jeden stdio-Server, den es startet, sodass eine Sitzung aus einem Unterverzeichnis trotzdem die Konfiguration findet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil die Wurzel vorher feststeht.
 
 Wie du den Server in einem Client einträgst, steht unter [MCP-Client verbinden](/docs/connect-an-mcp-client).
 
@@ -40,7 +40,7 @@ Wie du den Server in einem Client einträgst, steht unter [MCP-Client verbinden]
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.retranslateEntry` und `translation.translatePending` werden nur mit `--allow-spend` angeboten, oder, wenn das Flag fehlt, mit `VERBATRA_MCP_ALLOW_SPEND` auf `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal). Das Flag gewinnt gegen die Variable. `verbatra mcp` liest vorher `.env.local` und `.env`, die Variable darf also dort stehen; `verbatra-mcp` nimmt sie nur aus seiner eigenen Umgebung.
+`translation.retranslateEntry` und `translation.translatePending` werden nur mit `--allow-spend` angeboten, oder, wenn das Flag fehlt, mit `VERBATRA_MCP_ALLOW_SPEND` auf `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal). Das Flag gewinnt gegen die Variable. `verbatra mcp` liest vorher `.env.local` und `.env`, die Variable darf also dort stehen; `verbatra-mcp` nimmt sie nur aus seiner eigenen Umgebung.
 
 Ohne den Schalter tauchen die beiden nie in der Liste auf, und ein Aufruf mit ihrem Namen scheitert als unbekanntes Tool. Eine Konfiguration mit `provider: { id: "none" }` listet sie nie, auch nicht mit `--allow-spend`. Alle anderen Tools rufen keinen Provider auf und brauchen keinen Schlüssel; gib dem Server den Schlüssel über die Umgebung des Clients erst, wenn du Ausgaben erlaubst (siehe [Provider](/docs/providers)).
 

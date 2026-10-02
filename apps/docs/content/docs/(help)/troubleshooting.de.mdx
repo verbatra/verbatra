@@ -115,9 +115,8 @@ is not set.` (oder die Variable deines Providers).
 **Ursache**: Die Variable, die die Meldung nennt, ist nicht gesetzt oder leer. Schlüssel kommen nur
 aus der Umgebung, nie aus der Konfiguration oder einem Flag.
 
-**Lösung**: Setz die Variable und bestätige sie mit `verbatra doctor`. `translate`, `watch`,
-`doctor`, `studio` und `mcp` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (siehe
-[Provider](/docs/providers#keys-kommen-aus-der-umgebung)); das SDK nicht, also nutze in deinem
+**Lösung**: Setz die Variable und bestätige sie mit `verbatra doctor`. Die CLI liest sie auch aus
+[`.env.local` und `.env`](/docs/cli#umgebungsdateien); das SDK nicht, also nutze in deinem
 eigenen Skript `node --env-file=.env`. Codes:
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).
@@ -243,12 +242,12 @@ sind, steht unter [Inline-Markup-Parität](/docs/translation-safety#inline-marku
 **Symptom**: Bearbeiten funktioniert, aber die Aktionen zum Neuübersetzen und zum Übersetzen
 offener Keys erscheinen nicht.
 
-**Ursache**: Ausgaben beim Provider werden beim Start erlaubt, und ohne diese Erlaubnis werden die
-Ausgabe-Aktionen nicht registriert. Ein Projekt [nur mit Menschen](/docs/human-only-workflow)
-hält sie selbst dann zurück.
+**Ursache**: Ausgaben beim Provider werden beim Start erlaubt, nach den Regeln unter
+[Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools), und ohne diese Erlaubnis
+werden die Ausgabe-Aktionen nicht registriert.
 
-**Lösung**: Starte neu mit `verbatra studio --allow-spend`, oder setz
-`VERBATRA_STUDIO_ALLOW_SPEND=1`. Siehe [Review in Studio](/docs/review-in-studio).
+**Lösung**: Starte neu mit `verbatra studio --allow-spend`, außer das Projekt ist
+[nur mit Menschen](/docs/human-only-workflow). Siehe [Review in Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp ist nicht installiert
 
@@ -267,12 +266,12 @@ starte `verbatra mcp` erneut. Mit pnpm lies vorher
 **Symptom**: Die lokalen Tools funktionieren, aber die beiden Ausgabe-Tools fehlen, und ein Aufruf
 per Name scheitert als unbekanntes Tool.
 
-**Ursache**: Ausgaben werden beim Start erlaubt, und die Tool-Liste darf sich nicht pro Verbindung
-ändern, also bleiben die Ausgabe-Tools ganz draußen. Ein Projekt
-[nur mit Menschen](/docs/human-only-workflow) lässt sie selbst mit `--allow-spend` draußen.
+**Ursache**: Ausgaben werden beim Start erlaubt, nach den Regeln unter
+[Kostenpflichtige Tools](/docs/cli/mcp#kostenpflichtige-tools), und die Tool-Liste darf sich nicht
+pro Verbindung ändern, also bleiben die Ausgabe-Tools ganz draußen.
 
-**Lösung**: Starte neu mit `verbatra mcp --allow-spend`, oder setz `VERBATRA_MCP_ALLOW_SPEND=1`.
-Siehe [`verbatra mcp`](/docs/cli/mcp).
+**Lösung**: Starte neu mit `verbatra mcp --allow-spend`, außer das Projekt ist
+[nur mit Menschen](/docs/human-only-workflow).
 
 ## Einen Lauf rückgängig machen (kein Fehlercode)
 

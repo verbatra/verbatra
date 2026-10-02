@@ -28,7 +28,7 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--c
 
 ### L'URL affichée
 
-Avant de démarrer, `studio` charge `.env.local` puis `.env` depuis le répertoire de travail et résout ta config une fois ; une erreur de config sort avec `2` avant qu'un serveur ne démarre. Studio écoute uniquement sur `127.0.0.1` et, dès qu'il écoute, affiche une ligne sur stdout :
+Avant de démarrer, `studio` charge les [fichiers d'environnement](/docs/cli#fichiers-denvironnement) et résout ta config une fois ; une erreur de config sort avec `2` avant qu'un serveur ne démarre. Studio écoute uniquement sur `127.0.0.1` et, dès qu'il écoute, affiche une ligne sur stdout :
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
@@ -55,7 +55,7 @@ Avec `--allow-spend` et le fournisseur `none`, la première ligne devient `verba
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Sans `--allow-spend`, Studio lit `VERBATRA_STUDIO_ALLOW_SPEND` ; `--expose-agent-tools` se rabat de la même façon sur `VERBATRA_STUDIO_AGENT_TOOLS`. Pour les deux, `1`, `true`, `yes` ou `on` (sans tenir compte de la casse) vaut activé, et l'option l'emporte toujours sur la variable. Sans l'un ni l'autre, Studio ne contacte jamais de fournisseur.
+Sans `--allow-spend`, Studio lit `VERBATRA_STUDIO_ALLOW_SPEND` ; `--expose-agent-tools` se rabat de la même façon sur `VERBATRA_STUDIO_AGENT_TOOLS`. Pour les deux, `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour) vaut activé, et l'option l'emporte toujours sur la variable. Sans l'un ni l'autre, Studio ne contacte jamais de fournisseur.
 
 Une dépense lancée par un agent exige les deux options ; aucune n'implique l'autre. Une config avec `provider: { id: "none" }` désactive la traduction automatique par politique : Studio retient alors les dépenses même avec `--allow-spend`, et la page Settings le signale. Voir [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) pour le catalogue d'outils et le modèle de sécurité.
 

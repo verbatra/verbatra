@@ -138,17 +138,13 @@ una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 | Motivo | Marca una traducción que |
 | --- | --- |
 | [`LENGTH_RATIO_OUTLIER`](/docs/error-codes#length_ratio_outlier) | es mucho más corta o más larga que su origen, ponderada por escritura |
-| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/docs/config-file#maxlength) de la clave |
+| [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | supera el presupuesto [`maxLength`](/docs/config-file#maxlength) de la clave <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | es idéntica a su texto de origen |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | omite la traducción de un término del glosario, o altera un término que no se traduce |
 | [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | usa una forma que el glosario prohíbe |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | conserva cada placeholder pero en otro orden |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
-| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) |
-
-<AvailableFrom version="0.11.0" />
-
-`MAX_LENGTH_EXCEEDED` y `FUZZY_CACHE_REUSE` aparecen por primera vez en 0.11.0.
+| [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
 
 <AvailableFrom version="0.12.0" />
 
@@ -165,44 +161,34 @@ aprueba, rechaza o reescribe su valor; consulta
 
 El gasto en el proveedor debería tener un techo que fijas tú, no uno que descubres en la factura.
 Con `maxTokens` configurado, verbatra cuenta los tokens de una ejecución en todas las llamadas y
-todos los locales. Con `budgetBehavior: "warn"` (el valor por defecto) solo marca el exceso. Con
-`"stop"` proyecta cada petición antes de enviarla y retiene la que superaría el techo, junto con
-todos los candidatos que quedan después; esas claves conservan su línea base y se reintentan en la
-siguiente ejecución.
+todos los locales. `budgetBehavior: "warn"` (el valor por defecto) solo marca el exceso; `"stop"`
+retiene la petición que superaría el techo y todos los candidatos posteriores, para reintentarlos en
+la siguiente ejecución.
 
 Lo que garantiza el presupuesto: el trabajo hecho antes del techo queda escrito y bloqueado, y nada
-se queda a medio escribir. Un proveedor que no informa de su propio uso se cuenta a partir de la
-proyección, así que el techo también se cumple ahí.
-
-Lo que no: una petición ya en curso puede costar más de lo proyectado, así que el total puede acabar
-por encima de `maxTokens` en la diferencia de esa única petición. El techo acota una ejecución, no
-una sesión de `watch`, y no cubre las nuevas traducciones de una sola entrada desde Studio o las
-herramientas de agente. Las reglas exactas, y cómo las endurece `--max-tokens`, están en
+se queda a medio escribir. Lo que no: una petición en curso puede costar más de lo proyectado, el
+techo acota una ejecución (no una sesión de `watch`), y no cubre las retraducciones desde Studio o
+de agentes. Las reglas exactas están en
 [`maxTokens` y `budgetBehavior`](/docs/config-file#maxtokens-y-budgetbehavior).
 
 ## Los errores nunca filtran nada
 
-Las claves de API solo vienen de variables de entorno, nunca de la configuración ni de argumentos.
 Cuando una llamada al proveedor falla, el error bruto del SDK (que puede llevar cabeceras de la
 petición o credenciales) se descarta: nunca se enlaza, se registra ni se vuelve a lanzar. En su
 lugar, verbatra lanza un error estructurado con un código estable y un mensaje fijo sin secretos;
-los códigos están en
-[Códigos de error de proveedor](/docs/error-codes#provider-error-codes). Los avisos y los resúmenes
-llevan códigos y recuentos, nunca secretos. Cómo se ocultan las claves en la salida está en
-[Tratamiento de datos](/docs/data-handling#claves-de-api).
+los códigos están en [Códigos de error de proveedor](/docs/error-codes#provider-error-codes). Los
+avisos y los resúmenes llevan códigos y recuentos, nunca secretos. De dónde vienen las claves y cómo
+se ocultan en la salida está en [Tratamiento de datos](/docs/data-handling#claves-de-api).
 
 ## Dónde lo ves
 
-Todo lo anterior son datos en el resumen de la ejecución, por locale: claves traducidas,
-discrepancias de integridad, fallos del proveedor, claves retenidas por presupuesto, claves de origen
-con ICU no válido, señales de revisión y avisos. El fallo de un locale nunca detiene a los demás.
+Todo lo anterior son datos en el [resumen de la ejecución](/docs/sdk/run-summary), por locale, y el
+fallo de un locale nunca detiene a los demás.
 
 <AvailableFrom version="0.12.0" />
 
-La puerta y las señales de revisión también se aplican a lo que ya está confirmado:
-[`verbatra check --qa`](/docs/cli/check#control-de-calidad) comprueba cada valor de destino, llegara
-como llegara, y sale con `1` ante un rechazo de la puerta, así que una traducción editada a mano
-puede bloquear una pull request sin llamar al proveedor.
+[`verbatra check --qa`](/docs/cli/check#control-de-calidad) aplica la puerta y las señales de
+revisión a los valores confirmados sin llamar al proveedor.
 
 ## Relacionado
 

@@ -59,10 +59,9 @@ provider one language at a time. [`translate`](/docs/sdk/run#translate) lists ev
 
 <AvailableFrom version="0.11.0" />
 
-`estimate: true` implies `dryRun`, so the run constructs no provider, reads no API key, and writes
-nothing. The figure lands on `RunSummary.estimate`. Branch on `unit` for the billed dimension and
-on `pricing` for whether a currency figure was available: verbatra ships no rates of its own, so a
-cost appears only when the config carries a `rates` block for this provider and model.
+`estimate: true` implies `dryRun`. The figure lands on `RunSummary.estimate`: branch on `unit` for
+the billed dimension and on `pricing` for whether a [`rates`](/docs/config-file#rates) block priced
+it.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -92,13 +91,9 @@ if (estimate !== undefined) {
 }
 ```
 
-It bounds the plan, not the invoice: a live run usually spends less, because it consults the
-[translation-memory cache](/docs/the-cache) and collapses identical source strings, and it can
-spend more for every reason `caveats` names. For the method
-behind the numbers, see [Estimating cost](/docs/estimating-cost).
-
-`caveats` is never empty; [RunSummary](/docs/sdk/run-summary) lists what each `EstimateCaveatCode`
-leaves out.
+It bounds the plan, not the invoice; [Estimating cost](/docs/estimating-cost) explains the method,
+and [RunSummary](/docs/sdk/run-summary) lists what each `EstimateCaveatCode` in `caveats` leaves
+out.
 
 ## Check in CI without writing
 
@@ -293,17 +288,13 @@ if (retry.accepted) {
 }
 ```
 
-An unknown locale or key throws `UNKNOWN_LOCALE` or `UNKNOWN_KEY`, and `retranslateEntry` throws
-the provider's own `ProviderError` (for example `RATE_LIMITED`) when the call itself fails;
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists the rest. See
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists what each of them throws. See
 [Review in Studio](/docs/review-in-studio) for the same seams behind a UI.
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` throws `KEY_PROTECTED` for a value a person wrote, imported, or changed outside
-verbatra, unless you pass `includeHuman: true`, and `KEY_PINNED` for a key matching the config's
-`pinnedKeys`, which `editEntry` also throws for `actor: "agent"`. See
-[Protecting human translations](/docs/protecting-human-translations).
+`retranslateEntry` refuses a value a person wrote unless you pass `includeHuman: true`, and a
+pinned key always; see [Protecting human translations](/docs/protecting-human-translations).
 
 ## Read every value in bulk
 
@@ -404,7 +395,7 @@ const exported = await exportTmx({ config, out: "out/memory.tmx" });
 console.log(`${exported.units} units to ${exported.path}`);
 ```
 
-Neither constructs a provider, reads an API key, nor makes a network call. `importTmx` reports
+`importTmx` reports
 damaged data rather than throwing on it: a refused file raises `SOURCE_INVALID`, and
 `tmxErrorLocation` reads the place out of that error without casting it or its `cause`. Only entries
 under the current configuration fingerprint are exported, which is the same set a run would reuse.

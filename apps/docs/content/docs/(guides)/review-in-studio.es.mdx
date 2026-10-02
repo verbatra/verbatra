@@ -38,11 +38,11 @@ También muestra **ICU arms mismatch** cuando las ramas plural o select de un va
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Una insignia de origen muestra quién escribió cada valor, leída de [`verbatra.provenance.json`](/docs/the-lock-file#procedencia-quién-escribió-cada-valor), por ejemplo **Machine**, **Human** o **Edited outside verbatra**. Una edición que guardas en Studio se registra como **Human**.
+Una insignia de origen muestra quién escribió cada valor, leída de [`verbatra.provenance.json`](/docs/the-lock-file#procedencia-quién-escribió-cada-valor), por ejemplo **Machine**, **Human** o **Edited outside verbatra**.
 
 ### Edita con la puerta de integridad
 
-**Edit** abre el editor. Guardar pasa el valor por la puerta de integridad: un valor que falla se rechaza con el motivo y no se escribe nada, y un valor vacío también se rechaza. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
+**Edit** abre el editor. Guardar pasa el valor por la [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad); un valor rechazado no se escribe, y se muestra el motivo. Una edición aceptada escribe el archivo de locale y actualiza el archivo de bloqueo. Editar no necesita ninguna opción y nunca llama a un proveedor.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -72,15 +72,13 @@ Filtra por locale o por texto en la clave, el origen o la traducción, y luego t
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Ambas decisiones se guardan en [`verbatra.provenance.json`](/docs/the-lock-file#decisiones-de-revisión) y se aplican exactamente al texto de la pantalla: si el valor cambió desde que se cargó la página, la decisión se rechaza. Una aprobación además necesita que el valor esté al día con su origen.
-
-Un valor rechazado se elimina del archivo de locale, así que la clave cuenta como ausente hasta que la siguiente `verbatra translate` la rellena, y ninguna ejecución reutiliza el texto rechazado para esa clave. Confirma juntos el archivo de locale, el archivo de bloqueo y el archivo de procedencia. En un proyecto XLIFF, rechazar no está permitido; edita el valor en su lugar.
+Ambas decisiones se guardan en `verbatra.provenance.json` según las reglas de [Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión), incluido lo que quita un rechazo. Una aprobación además necesita que el valor esté al día con su origen. Confirma juntos el archivo de locale, el archivo de bloqueo y el archivo de procedencia; en un proyecto XLIFF, edita en lugar de rechazar.
 
 ### Una cola para todo el equipo
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-La cola se lee de los archivos confirmados, así que un compañero que descarga los archivos de locale, el archivo de bloqueo y `verbatra.provenance.json` ve la misma cola. Un valor sale de ella en cuanto una persona lo aprueba, lo rechaza, lo escribe o lo importa; un valor aprobado que una máquina reescribe vuelve a entrar.
+La cola se lee de los archivos confirmados, así que un compañero que los descarga ve la misma cola. Un valor sale de ella en cuanto una persona lo aprueba, lo rechaza, lo escribe o lo importa; un valor aprobado que una máquina reescribe vuelve a entrar.
 
 La barra de filtros cambia entre **Needs review** y **Approved** y acota por origen; con un locale elegido, **Approve all in** lo aprueba entero tras una confirmación. Para que un pull request falle mientras haya traducciones automáticas esperando, ejecuta [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas) en la CI.
 
@@ -111,7 +109,7 @@ Marca filas (o la casilla de la cabecera para todo lo que muestra el filtro) y e
 
 ## Retraduce una clave marcada
 
-Arranca Studio con el gasto permitido (o define `VERBATRA_STUDIO_ALLOW_SPEND=1`); la clave de API del proveedor sigue viniendo del entorno:
+Arranca Studio con el gasto permitido ([cómo se concede el gasto](/docs/cli/studio#gasto-y-herramientas-de-agente)):
 
 ```bash
 verbatra studio --allow-spend
@@ -141,7 +139,6 @@ Una edición del glosario cambia lo que se le indica a la siguiente ejecución, 
 
 ## Relacionado
 
-- [`verbatra studio`](/docs/cli/studio): cada opción y el contrato de arranque.
 - [Maneja Studio con un agente del navegador](/docs/agent-tools-in-studio): el mismo flujo desde un agente de IA en el navegador.
 - [Registrar evidencia de traducción automática](/docs/provenance-evidence): convierte las decisiones de revisión en un archivo de auditoría.
-- [Editar y revisar desde el SDK](/docs/sdk/review): `approveEntry`, `rejectEntry` y las funciones por lotes detrás de estos botones.
+- [Editar y revisar desde el SDK](/docs/sdk/review): las funciones detrás de estos botones.

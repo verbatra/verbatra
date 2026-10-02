@@ -57,7 +57,7 @@ An unknown command or flag exits `2`. `mcp` never writes to stdout, since stdout
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins, and a value in `.env.local` wins over the same variable in `.env`. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `init`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
 
 ## Terminal output
 
