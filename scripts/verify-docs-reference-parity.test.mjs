@@ -18,7 +18,9 @@ function readDocPage(prefix, suffix) {
 }
 
 function sdkReferencePages() {
-  return JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages;
+  return JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages.filter(
+    (page) => !page.startsWith("["),
+  );
 }
 
 function readSdkReference(suffix) {
@@ -332,6 +334,7 @@ describe("the SDK reference catalogs the whole public surface", () => {
   it("reads the whole reference folder, not only its overview", () => {
     expect(sdkReferencePages()).toEqual(expect.arrayContaining(["index", "run", "errors"]));
     expect(sdkReferencePages().length).toBeGreaterThanOrEqual(9);
+    expect(sdkReferencePages().filter((page) => page.startsWith("["))).toEqual([]);
   });
 
   it.each(LOCALE_SUFFIXES)(
