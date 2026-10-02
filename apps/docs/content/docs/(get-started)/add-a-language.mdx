@@ -57,7 +57,7 @@ Some languages need more plural forms than your source has. English has `one` an
 
 ### Generate the missing forms
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.3.0" />
 
 If you use i18next JSON with an LLM provider, you can let verbatra write the missing forms:
 
@@ -68,7 +68,13 @@ export default defineConfig({
 });
 ```
 
-Generated forms pass the same integrity checks as any translation. The ICU formats (next-intl and ARB) keep a whole plural in one value, so they need no generation: the provider is asked for exactly the arms the target language uses. See [`generatePlurals`](/docs/config-file#generateplurals) for what falls back to the notice, and [Plurals](/docs/language-support#plurals) for how verbatra decides which forms a language needs.
+Generated forms pass the same integrity checks as any translation.
+
+### Forms from CLDR
+
+<AvailableFrom version="0.12.0" />
+
+Which forms a language needs comes from the CLDR plural rules built into Node.js, for every language, ordinals included. The ICU formats (next-intl and ARB) keep a whole plural in one value, so they need no generation: the provider is asked for exactly the arms the target language uses. See [`generatePlurals`](/docs/config-file#generateplurals) for what falls back to the notice, and [Plurals](/docs/language-support#plurals) for how verbatra decides which forms a language needs.
 
 ## Keep maintaining the source only
 

@@ -57,7 +57,7 @@ Manche Sprachen brauchen mehr Pluralformen, als deine Quelle hat. Englisch hat `
 
 ### Fehlende Formen erzeugen
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.3.0" />
 
 Wenn du i18next-JSON mit einem LLM-Provider nutzt, kann verbatra die fehlenden Formen schreiben:
 
@@ -68,7 +68,13 @@ export default defineConfig({
 });
 ```
 
-Erzeugte Formen durchlaufen dieselben Integritätsprüfungen wie jede Übersetzung. Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert und brauchen deshalb keine Erzeugung: Der Provider wird genau nach den Zweigen gefragt, die die Zielsprache verwendet. Unter [`generatePlurals`](/docs/config-file#generateplurals) steht, was auf den Hinweis zurückfällt, und unter [Plurale](/docs/language-support#plurale), wie verbatra entscheidet, welche Formen eine Sprache braucht.
+Erzeugte Formen durchlaufen dieselben Integritätsprüfungen wie jede Übersetzung.
+
+### Formen aus CLDR
+
+<AvailableFrom version="0.12.0" />
+
+Welche Formen eine Sprache braucht, kommt aus den CLDR-Pluralregeln, die in Node.js eingebaut sind, für jede Sprache, Ordinalzahlen eingeschlossen. Die ICU-Formate (next-intl und ARB) halten einen ganzen Plural in einem Wert und brauchen deshalb keine Erzeugung: Der Provider wird genau nach den Zweigen gefragt, die die Zielsprache verwendet. Unter [`generatePlurals`](/docs/config-file#generateplurals) steht, was auf den Hinweis zurückfällt, und unter [Plurale](/docs/language-support#plurale), wie verbatra entscheidet, welche Formen eine Sprache braucht.
 
 ## Pflege weiter nur die Quelle
 

@@ -57,7 +57,7 @@ Algunos idiomas necesitan más formas de plural de las que tiene tu origen. El i
 
 ### Generar las formas que faltan
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.3.0" />
 
 Si usas JSON de i18next con un proveedor LLM, verbatra puede escribir las formas que faltan:
 
@@ -68,7 +68,13 @@ export default defineConfig({
 });
 ```
 
-Las formas generadas pasan las mismas comprobaciones de integridad que cualquier traducción. Los formatos ICU (next-intl y ARB) guardan un plural completo en un solo valor, así que no necesitan generación: al proveedor se le piden exactamente las ramas que usa el idioma de destino. En [`generatePlurals`](/docs/config-file#generateplurals) verás qué recurre al aviso, y en [Plurales](/docs/language-support#plurales) cómo decide verbatra qué formas necesita un idioma.
+Las formas generadas pasan las mismas comprobaciones de integridad que cualquier traducción.
+
+### Formas a partir de CLDR
+
+<AvailableFrom version="0.12.0" />
+
+Qué formas necesita un idioma sale de las reglas de plural de CLDR integradas en Node.js, para cada idioma, ordinales incluidos. Los formatos ICU (next-intl y ARB) guardan un plural completo en un solo valor, así que no necesitan generación: al proveedor se le piden exactamente las ramas que usa el idioma de destino. En [`generatePlurals`](/docs/config-file#generateplurals) verás qué recurre al aviso, y en [Plurales](/docs/language-support#plurales) cómo decide verbatra qué formas necesita un idioma.
 
 ## Sigue manteniendo solo el origen
 
