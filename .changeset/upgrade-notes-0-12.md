@@ -83,6 +83,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - All CLI output is redacted. A bare UUID is no longer redacted outside a key context, an `sk-`
   token followed by 32 or more letters and digits is redacted even when it is not a key, and a
   value shorter than eight characters is no longer scrubbed by value.
+- Studio 0.5 and MCP server 0.2 show no last run (an empty review queue, no usage) once a 0.12
+  run records one of the new review reasons in `.verbatra-local/run-status.json`. Upgrade them
+  with the CLI, or delete that file to read it with the old versions again.
 - `verbatra mcp` exits 0 when the client closes stdin (it exited 13). `verbatra mcp --json` is
   refused with a stderr line only, so stdout stays clean for the client.
 
@@ -97,8 +100,11 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
 - `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
   deep-frozen.
-- `onProgress` has new event kinds, so an exhaustive `switch` breaks. An invalid
-  `lockAcquireTimeoutMs` throws `LOCK_TIMEOUT_INVALID` instead of being accepted.
+- `onProgress` has new event kinds, `ReviewReasonCode` gains `GLOSSARY_FORBIDDEN_TERM`,
+  `FOREIGN_PLACEHOLDER_CHANGED` and `BIDI_CONTROLS_CHANGED`, and `SdkNoticeCode` gains codes
+  such as `SOURCE_FOREIGN_PLACEHOLDERS`, `LOCALE_STATE_CARRIED_OVER` and the `SENSITIVE_CONTENT_*`
+  notices, so an exhaustive `switch` or `Record` breaks. An invalid `lockAcquireTimeoutMs` throws
+  `LOCK_TIMEOUT_INVALID` instead of being accepted.
 - Adapter plugins: `BuildWriteTree` gets a fourth argument, `serializeEntries` a fifth (the
   locale), `parseEntries` receives the locale, and `write` takes a `WriteContext`. A throw from a
   `custom:` parser is `ADAPTER_FAILED` with the original error as `cause`, and a malformed

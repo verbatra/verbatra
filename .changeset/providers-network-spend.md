@@ -3,7 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-LibreTranslate, placeholder masking for DeepL and Google, a `network` policy, a sensitive-data guard, `--max-tokens`, per-attempt timeouts, strict `provider`.
+LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--max-tokens`, timeouts.
 
 **LibreTranslate**
 - `provider: { id: "libretranslate", options: { baseUrl } }` translates through a self-hosted
