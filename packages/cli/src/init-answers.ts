@@ -10,7 +10,6 @@ import { z } from "zod";
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import {
-  buildProviderOptions,
   type ConfigDraft,
   DEFAULT_LAYOUTS,
   type DefaultLayout,
@@ -21,6 +20,7 @@ import {
   LIBRETRANSLATE_PROVIDER,
   OPENAI_COMPATIBLE_PROVIDER,
   type ProviderChoice,
+  scaffoldedConfig,
   takesModel,
 } from "./init-config.js";
 import { readPackageManifest } from "./package-manifest.js";
@@ -635,20 +635,6 @@ function combinedError(session: Session): CliUsageError | undefined {
   );
 }
 
-function candidateConfig(draft: ConfigDraft): Record<string, unknown> {
-  const localeStyle =
-    draft.localeStyle === undefined || draft.localeStyle === "literal"
-      ? {}
-      : { localeStyle: draft.localeStyle };
-  return {
-    sourceLocale: draft.sourceLocale,
-    targetLocales: draft.targetLocales,
-    format: draft.format,
-    files: { pattern: draft.pattern, ...localeStyle },
-    provider: { id: draft.provider.id, options: buildProviderOptions(draft.provider) },
-  };
-}
-
 function assertValid(candidate: Record<string, unknown>): void {
   const validated = verbatraConfigSchema.safeParse(candidate);
   if (!validated.success) {
@@ -696,7 +682,7 @@ export async function planInit(
     localeStyle: localeStyleFor(detection, answers.pattern, defaultLayout),
     provider: provider.choice,
   };
-  const candidate = candidateConfig(draft);
+  const candidate = scaffoldedConfig(draft);
   assertValid(candidate);
   return {
     draft,

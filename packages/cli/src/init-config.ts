@@ -200,13 +200,44 @@ function renderLocaleStyle(localeStyle: LocaleStyle | undefined): string[] {
   ];
 }
 
+interface ScaffoldedSensitiveData {
+  readonly mode: "warn";
+}
+
+function scaffoldedSensitiveData(choice: ProviderChoice): ScaffoldedSensitiveData | undefined {
+  return choice.id === HUMAN_ONLY_PROVIDER ? undefined : { mode: "warn" };
+}
+
+function scaffoldedProvider(choice: ProviderChoice): Record<string, unknown> {
+  return choice.id === HUMAN_ONLY_PROVIDER
+    ? { id: choice.id }
+    : { id: choice.id, options: buildProviderOptions(choice) };
+}
+
+export function scaffoldedConfig(draft: ConfigDraft): Record<string, unknown> {
+  const localeStyle =
+    draft.localeStyle === undefined || draft.localeStyle === "literal"
+      ? {}
+      : { localeStyle: draft.localeStyle };
+  const sensitiveData = scaffoldedSensitiveData(draft.provider);
+  return {
+    sourceLocale: draft.sourceLocale,
+    targetLocales: draft.targetLocales,
+    format: draft.format,
+    files: { pattern: draft.pattern, ...localeStyle },
+    provider: scaffoldedProvider(draft.provider),
+    ...(sensitiveData === undefined ? {} : { sensitiveData }),
+  };
+}
+
 function renderSensitiveData(choice: ProviderChoice): string[] {
-  if (choice.id === HUMAN_ONLY_PROVIDER) {
+  const sensitiveData = scaffoldedSensitiveData(choice);
+  if (sensitiveData === undefined) {
     return [];
   }
   return [
     "  // Report emails, API keys, IBANs and card numbers before they are sent to the provider.",
-    '  sensitiveData: { mode: "warn" },',
+    `  sensitiveData: { mode: ${JSON.stringify(sensitiveData.mode)} },`,
   ];
 }
 
