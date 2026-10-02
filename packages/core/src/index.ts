@@ -60,6 +60,10 @@ export { type ProtectedRun, protectedRuns } from "./placeholder/protected-runs.j
 export type { PlaceholderIntegrityResult } from "./placeholder/types.js";
 export { pseudolocalizeValue } from "./pseudo/pseudo-transform.js";
 export {
+  assessBidiControls,
+  type BidiControlsAssessment,
+} from "./validation/bidi-controls.js";
+export {
   assessValueDegeneracy,
   type ValueDegeneracyAssessment,
 } from "./validation/value-degeneracy.js";

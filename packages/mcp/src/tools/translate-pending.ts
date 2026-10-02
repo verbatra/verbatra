@@ -1,6 +1,6 @@
 import { assertMachineTranslationEnabled, translate } from "@verbatra/sdk";
 import { z } from "zod";
-import type { McpToolContext } from "../types.js";
+import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { lockAcquireTimeoutMs, lockTimeoutMsSchema } from "./lock-timeout.js";
 import { runSummarySchema } from "./run-schema.js";
@@ -15,7 +15,7 @@ type TranslatePendingResult = z.infer<typeof runSummarySchema>;
 
 async function translatePending(
   params: z.infer<typeof paramsSchema>,
-  context: McpToolContext,
+  context: McpToolCallContext,
 ): Promise<TranslatePendingResult> {
   assertMachineTranslationEnabled(context.config.config, "translating every pending key");
   return translate(
@@ -25,6 +25,7 @@ async function translatePending(
       ...(params.locales !== undefined ? { locales: params.locales } : {}),
       ...(params.maxTokens !== undefined ? { maxTokens: params.maxTokens } : {}),
       lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
+      ...(context.onProgress !== undefined ? { onProgress: context.onProgress } : {}),
     },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),

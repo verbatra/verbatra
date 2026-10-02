@@ -148,6 +148,7 @@ retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la f
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | vient d'un lot que le fournisseur a dégradé, comme une formalité abandonnée |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | a été [réutilisée depuis une source proche et modifiée](/docs/the-cache#réutilisation-approximative) <AvailableFrom version="0.11.0" /> |
 | [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | perd ou modifie un jeton en forme de placeholder que son [format](/docs/formats) ne protège pas, comme `{name}` dans i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | laisse un contrôle de direction ouvert, ou ajoute un forçage qui inverse le texte <AvailableFrom version="0.12.0" /> |
 
 Les succès du cache et les valeurs partagées entre clés passent par les mêmes heuristiques que les
 traductions fraîches. Les clés signalées apparaissent par locale sous `needsReview` dans le résumé

@@ -1,4 +1,10 @@
-import type { CheckDeps, CreateProvider, LoadedConfig, SdkFs } from "@verbatra/sdk";
+import type {
+  CheckDeps,
+  CreateProvider,
+  LoadedConfig,
+  ProgressListener,
+  SdkFs,
+} from "@verbatra/sdk";
 import type { McpProjectSession } from "./project-session.js";
 
 /** What every MCP tool call runs against: the loaded project and the injected SDK seams. */
@@ -14,6 +20,12 @@ export interface McpToolContext {
   /** Builds the provider for the provider-spending tools. Defaults to the configured provider. */
   readonly createProvider?: CreateProvider;
 }
+
+export interface McpCallScope {
+  readonly onProgress?: ProgressListener;
+}
+
+export type McpToolCallContext = McpToolContext & McpCallScope;
 
 export interface McpUnconfiguredContext extends Omit<McpToolContext, "config"> {
   readonly configError: unknown;

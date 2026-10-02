@@ -1,4 +1,8 @@
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import {
+  assessBidiControls,
+  type PlaceholderIntegrityResult,
+  type TranslationEntry,
+} from "@verbatra/core";
 import { type DoNotTranslateTerm, foldGlossaryCase, type LocaleGlossary } from "./glossary.js";
 import {
   forbiddenRenderingUsed,
@@ -171,6 +175,16 @@ function isIntegrityReordered(integrity: PlaceholderIntegrityResult): boolean {
   return integrity.matches && integrity.reordered;
 }
 
+function isBidiControlsChanged(sourceValue: string, translatedValue: string): boolean {
+  const target = assessBidiControls(translatedValue);
+  const source = assessBidiControls(sourceValue);
+  return (
+    (!target.balanced && source.balanced) ||
+    target.leftOverrides > source.leftOverrides ||
+    target.rightOverrides > source.rightOverrides
+  );
+}
+
 export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
   const reasons: ReviewReasonCode[] = [];
   if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
@@ -190,6 +204,9 @@ export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefin
   }
   if (isIntegrityReordered(input.integrity)) {
     reasons.push("INTEGRITY_REORDERED");
+  }
+  if (isBidiControlsChanged(input.sourceValue, input.translatedValue)) {
+    reasons.push("BIDI_CONTROLS_CHANGED");
   }
   return reasons.length > 0 ? { status: "review", reasons } : undefined;
 }

@@ -4,7 +4,7 @@ description: Démarre le serveur MCP en stdio qui expose les outils de verbatra 
 status: new
 type: reference
 ---
-Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport local qu'utilisent des clients MCP comme Claude Code, Cursor ou Claude Desktop pour lancer un serveur d'outils. Un agent dans le terminal ou sans interface obtient ainsi les outils d'état, de glossaire, de relecture et d'édition qu'offrent les outils d'agent de Studio, sans navigateur ni port.
+Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport local qu'utilisent des clients MCP comme Claude Code, Cursor ou Claude Desktop pour lancer un serveur d'outils. Un agent dans le terminal ou sans interface obtient ainsi les outils d'état, de glossaire, de relecture et d'édition qu'offrent les outils d'agent de Studio, sans navigateur ni port. Il n'y a pas de transport HTTP : le serveur travaille sur les fichiers locaux d'un seul projet, et un listener réseau exposerait ses outils d'écriture et ses outils payants sur un port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -105,6 +105,12 @@ Le serveur répond à la poignée de main MCP `initialize` avec des `instruction
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `translation.estimate` renvoie le même résumé que [`verbatra translate --estimate --json`](/docs/cli/translate) et ne dépense rien, il est donc toujours listé. `translation.translatePending` prend une liste `locales` optionnelle (une locale non configurée échoue avec `UNKNOWN_LOCALE` avant toute dépense) et un `maxTokens` optionnel, un plafond strict qui peut resserrer le `maxTokens` de la config mais jamais l'assouplir. L'ordre raisonnable : `status.diff`, `translation.estimate`, le oui de l'utilisateur, puis `translation.translatePending` avec les mêmes `locales` et un `maxTokens` un peu au-dessus de l'estimation. Voir [Estimer le coût](/docs/estimating-cost).
+
+### Progression
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Quand un appel à `translation.translatePending` porte un `progressToken`, le serveur envoie `notifications/progress` à la fin de chaque lot : `progress` compte les lots terminés, `total` grandit avec chaque locale planifiée, et `message` nomme la locale et le lot (`de: batch 3/7`). Il en envoie au plus une toutes les 250 ms, plus une dernière à la fin de l'exécution.
 
 ### Sans config
 

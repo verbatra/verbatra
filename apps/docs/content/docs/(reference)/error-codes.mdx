@@ -1035,6 +1035,16 @@ It fires when such a token occurs in the source more often than, verbatim, in th
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Restore the token in the translation if your library interpolates it.
 
+### BIDI_CONTROLS_CHANGED
+
+The translation holds invisible direction controls that can reorder the text around it: an embedding, override or isolate it never closes, or an override the source does not have.
+
+It fires when the translation's embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each paragraph while the source's do, or when it holds more left-to-right or right-to-left overrides than the source. An unclosed control leaks its direction into the text your app puts after the value, and an override visually reverses text. Directional marks such as U+200F never raise it, and neither does a translation that drops balanced controls the source has.
+
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
+- **Exit code**: none from `translate`; `1` from `check --qa --strict`
+- **Next step**: Close or remove the direction controls in the translation.
+
 ## Run notices [#sdk-notice-codes]
 
 A notice is data on a locale's `notices`, never thrown. It reports a condition the run handled, and it changes the exit code only where the entry says so. [RunSummary](/docs/sdk/run-summary) shows where notices sit on the summary.

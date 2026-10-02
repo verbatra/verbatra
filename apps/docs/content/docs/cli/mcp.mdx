@@ -4,7 +4,7 @@ description: Start the stdio MCP server that exposes verbatra's tools to any MCP
 status: new
 type: reference
 ---
-Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the local transport MCP clients such as Claude Code, Cursor or Claude Desktop use to launch a tool server. It gives a terminal or headless agent the translation-status, glossary, review and editing tools Studio's browser agent tools expose, without a browser or a port.
+Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the local transport MCP clients such as Claude Code, Cursor or Claude Desktop use to launch a tool server. It gives a terminal or headless agent the translation-status, glossary, review and editing tools Studio's browser agent tools expose, without a browser or a port. There is no HTTP transport: the server works on one project's local files, and a network listener would put its write and spend tools on a port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -105,6 +105,12 @@ The server answers the MCP `initialize` handshake with fixed `instructions`, the
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `translation.estimate` returns the same summary as [`verbatra translate --estimate --json`](/docs/cli/translate) and spends nothing, so it is always listed. `translation.translatePending` takes an optional `locales` list (an unconfigured locale fails with `UNKNOWN_LOCALE` before anything is spent) and an optional `maxTokens`, a hard ceiling that can tighten the config's `maxTokens` but never loosen it. The sensible order: `status.diff`, `translation.estimate`, the user's yes, then `translation.translatePending` with the same `locales` and a `maxTokens` a little above the estimate. See [Estimating cost](/docs/estimating-cost).
+
+### Progress
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+When a `translation.translatePending` call carries a `progressToken`, verbatra sends `notifications/progress` as batches finish: `progress` counts finished batches, `total` grows per planned locale, and `message` names locale and batch (`de: batch 3/7`). It sends at most one every 250 ms, plus a final one when the run ends.
 
 ### Without a config
 

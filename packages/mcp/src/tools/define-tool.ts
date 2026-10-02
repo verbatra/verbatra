@@ -6,7 +6,7 @@ import {
   SdkError,
 } from "@verbatra/sdk";
 import { z } from "zod";
-import type { McpToolContext, McpUnconfiguredContext } from "../types.js";
+import type { McpToolCallContext, McpUnconfiguredContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
 
 export interface McpToolAnnotations {
@@ -27,7 +27,7 @@ export interface RegisteredMcpTool {
   readonly inputSchema: Readonly<Record<string, unknown>>;
   readonly outputSchema: Readonly<Record<string, unknown>>;
   readonly annotations: McpToolAnnotations;
-  execute(rawParams: unknown, context: McpToolContext): Promise<McpToolOutcome>;
+  execute(rawParams: unknown, context: McpToolCallContext): Promise<McpToolOutcome>;
   executeUnconfigured?(
     rawParams: unknown,
     context: McpUnconfiguredContext,
@@ -40,7 +40,7 @@ export interface McpToolConfig<Params, Result extends Readonly<Record<string, un
   readonly paramsSchema: z.ZodType<Params>;
   readonly outputSchema: z.ZodObject & z.ZodType<Result>;
   readonly annotations: McpToolAnnotations;
-  readonly handler: (params: Params, context: McpToolContext) => Promise<Result>;
+  readonly handler: (params: Params, context: McpToolCallContext) => Promise<Result>;
   readonly unconfiguredHandler?: (
     params: Params,
     context: McpUnconfiguredContext,

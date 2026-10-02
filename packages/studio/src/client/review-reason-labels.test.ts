@@ -42,3 +42,12 @@ describe("reviewReasonLabel: FOREIGN_PLACEHOLDER_CHANGED", () => {
     });
   });
 });
+
+describe("reviewReasonLabel: BIDI_CONTROLS_CHANGED", () => {
+  it("reads as a warning about direction controls", () => {
+    expect(reviewReasonLabel("BIDI_CONTROLS_CHANGED")).toEqual({
+      label: "Direction controls changed",
+      tone: "warning",
+    });
+  });
+});

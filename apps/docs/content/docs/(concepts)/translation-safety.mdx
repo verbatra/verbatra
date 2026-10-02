@@ -137,6 +137,7 @@ locked, and put on the needs-review queue.
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | came from a batch the provider degraded, such as a dropped formality |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) <AvailableFrom version="0.11.0" /> |
 | [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | drops or changes a placeholder-like token its [format](/docs/formats) does not protect, such as `{name}` in i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | leaves a direction control unclosed, or adds an override that reverses text <AvailableFrom version="0.12.0" /> |
 
 Cache hits and values shared between keys go through the same heuristics as fresh translations.
 Flagged keys appear per locale as `needsReview` on the run summary, in the workbook's review

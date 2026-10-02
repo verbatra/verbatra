@@ -4,7 +4,7 @@ description: Arranca el servidor MCP por stdio que expone las herramientas de ve
 status: new
 type: reference
 ---
-Arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio, el transporte local que usan clientes MCP como Claude Code, Cursor o Claude Desktop para lanzar un servidor de herramientas. Da a un agente en el terminal o sin interfaz las herramientas de estado, glosario, revisión y edición que ofrecen las herramientas de agente de Studio, sin navegador ni puerto.
+Arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio, el transporte local que usan clientes MCP como Claude Code, Cursor o Claude Desktop para lanzar un servidor de herramientas. Da a un agente en el terminal o sin interfaz las herramientas de estado, glosario, revisión y edición que ofrecen las herramientas de agente de Studio, sin navegador ni puerto. No hay transporte HTTP: el servidor trabaja sobre los archivos locales de un proyecto, y un listener de red expondría sus herramientas de escritura y de gasto en un puerto.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -105,6 +105,12 @@ El servidor responde al handshake MCP `initialize` con unas `instructions` fijas
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 `translation.estimate` devuelve el mismo resumen que [`verbatra translate --estimate --json`](/docs/cli/translate) y no gasta nada, así que siempre está en la lista. `translation.translatePending` acepta una lista opcional `locales` (un locale sin configurar falla con `UNKNOWN_LOCALE` antes de gastar nada) y un `maxTokens` opcional, un techo estricto que puede endurecer el `maxTokens` de la configuración pero nunca relajarlo. El orden sensato: `status.diff`, `translation.estimate`, el sí del usuario y luego `translation.translatePending` con los mismos `locales` y un `maxTokens` algo por encima de la estimación. Consulta [Estimar el coste](/docs/estimating-cost).
+
+### Progreso
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Si una llamada a `translation.translatePending` lleva un `progressToken`, el servidor envía `notifications/progress` al terminar cada lote: `progress` cuenta los lotes terminados, `total` crece con cada locale planificado y `message` nombra locale y lote (`de: batch 3/7`). Envía como mucho una cada 250 ms, más una final al acabar la ejecución.
 
 ### Sin configuración
 

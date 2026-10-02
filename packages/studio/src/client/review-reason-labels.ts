@@ -17,6 +17,7 @@ const REVIEW_REASON_LABELS: Readonly<Record<ReviewReasonCode, ReviewReasonLabelV
   PROVIDER_DEGRADED: { label: "Provider degraded", tone: "neutral" },
   FUZZY_CACHE_REUSE: { label: "Reused after source edit", tone: "warning" },
   FOREIGN_PLACEHOLDER_CHANGED: { label: "Other-syntax placeholder changed", tone: "warning" },
+  BIDI_CONTROLS_CHANGED: { label: "Direction controls changed", tone: "warning" },
 };
 
 export function reviewReasonLabel(code: ReviewReasonCode): ReviewReasonLabelView {
