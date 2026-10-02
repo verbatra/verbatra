@@ -45,7 +45,7 @@ const exchangeFormatMembers: { [K in ExchangeFormat]: K } = {
 export const EXCHANGE_FORMATS: readonly ExchangeFormat[] = Object.values(exchangeFormatMembers);
 
 /** The {@link ExchangeFormat} {@link exportWorkbook} and {@link importWorkbook} use when the caller names none. */
-export const DEFAULT_EXCHANGE_FORMAT: ExchangeFormat = "xlsx";
+export const DEFAULT_EXCHANGE_FORMAT = "xlsx" satisfies ExchangeFormat;
 
 export type DirectoryFormat = DelimitedFormat | XliffFormat;
 

@@ -23,17 +23,10 @@ import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js"
  * - `unrecorded`: no record, for example a value written before the provenance file existed.
  * - `unknown`: recorded without a known author, or with an origin this release does not know.
  */
-export type ProvenanceBucket =
-  | "machine-unreviewed"
-  | "machine-reviewed"
-  | "human"
-  | "import"
-  | "external"
-  | "unrecorded"
-  | "unknown";
+export type ProvenanceBucket = (typeof PROVENANCE_BUCKETS)[number];
 
 /** Every {@link ProvenanceBucket}, in the order reports list them. */
-export const PROVENANCE_BUCKETS: readonly ProvenanceBucket[] = Object.freeze([
+export const PROVENANCE_BUCKETS = Object.freeze([
   "machine-unreviewed",
   "machine-reviewed",
   "human",
@@ -41,7 +34,7 @@ export const PROVENANCE_BUCKETS: readonly ProvenanceBucket[] = Object.freeze([
   "external",
   "unrecorded",
   "unknown",
-]);
+] as const);
 
 /** Input for {@link provenanceReport}. */
 export interface ProvenanceReportInput {
