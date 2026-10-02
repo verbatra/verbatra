@@ -12,6 +12,12 @@ describe("unsafePatternReason", () => {
     ["(?<word>x+){2,}", "nested-repeat"],
     ["(a{1,3})+", "nested-repeat"],
     ["(?:a|b)*", "nested-repeat"],
+    ["(?:a?){20}x", "nested-repeat"],
+    ["(?:a?){30}x", "nested-repeat"],
+    ["(?:\\w?){12}\\w*x", "nested-repeat"],
+    ["(?:\\w{0,1}){30}x", "nested-repeat"],
+    ["(?:a{2}){3}", "nested-repeat"],
+    ["(?:\\u{41}?){2}", "nested-repeat"],
     ["\\w*\\w*x", "several-unbounded"],
     ["[a-z]*[a-z]*[a-z]*[a-z]*!", "several-unbounded"],
     ["\\w+?x\\w*?", "several-unbounded"],
@@ -41,6 +47,12 @@ describe("unsafePatternReason", () => {
     "[\\s\\S]*?x",
     "x??y",
     "{literal",
+    "(\\u{41})+",
+    "\\u{41}{2}",
+    "[\\u{41}-\\u{5A}]+",
+    "\\p{Lu}+",
+    "(?<n>a)\\k<n>+",
+    "(?:a|b)?",
   ])("accepts %s", (source) => {
     expect(unsafePatternReason(source)).toBe(undefined);
   });

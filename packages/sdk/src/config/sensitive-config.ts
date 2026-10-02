@@ -42,7 +42,7 @@ function compilesAsPattern(source: string): boolean {
 
 const UNSAFE_PATTERN_MESSAGES: Readonly<Record<UnsafePatternReason, string>> = {
   "nested-repeat":
-    "sensitiveData.patterns entries must not repeat a group that holds a repeat or an alternative, such as (a+)+ or (a|aa)*",
+    "sensitiveData.patterns entries must not repeat more than once a group that holds a quantifier or an alternative, such as (a+)+, (a|aa)* or (?:a?){30}",
   "several-unbounded":
     "sensitiveData.patterns entries may hold at most one unbounded repeat (*, + or {n,}, lazy forms included); use a bounded {m,n} for the others",
   "too-many-paths": `sensitiveData.patterns entries may branch at most ${MAX_PATHS_WITH_UNBOUNDED} ways beside an unbounded repeat, or ${MAX_PATHS} ways without one, counting ?, {m,n} and | alternatives together`,

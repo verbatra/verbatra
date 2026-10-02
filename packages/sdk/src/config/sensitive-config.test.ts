@@ -41,8 +41,15 @@ describe("the sensitiveData config block", () => {
   });
 
   it.each([
-    ["(a+)+$", "must not repeat a group that holds a repeat or an alternative"],
-    ["(a|aa)*b", "must not repeat a group that holds a repeat or an alternative"],
+    ["(a+)+$", "must not repeat more than once a group that holds a quantifier or an alternative"],
+    [
+      "(a|aa)*b",
+      "must not repeat more than once a group that holds a quantifier or an alternative",
+    ],
+    [
+      "(?:a?){30}x",
+      "must not repeat more than once a group that holds a quantifier or an alternative",
+    ],
     ["\\w*\\w*x", "at most one unbounded repeat"],
     ["\\w{0,64}\\w*x", "may branch at most 4 ways beside an unbounded repeat"],
   ])(
