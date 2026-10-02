@@ -311,8 +311,12 @@ import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@v
 const config = await loadConfig();
 const queue = await reviewQueue({ config });
 
-if (!queue.available || queue.lastRunAt === undefined) {
-  console.error("no review queue with run flags on this machine: run translate here first");
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
   process.exit(1);
 }
 
