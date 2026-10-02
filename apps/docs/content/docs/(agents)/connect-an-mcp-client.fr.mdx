@@ -17,6 +17,8 @@ Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des v
 
 Les exemples utilisent `npx -y @verbatra/mcp`, qui fonctionne dans n'importe quel projet. Évite `npx -y @verbatra/cli mcp`, qui sort avec `2` parce que la CLI n'installe jamais `@verbatra/mcp`. Pointe le serveur vers le répertoire qui contient la config ; chaque section explique comment, et la règle est dans [Répertoire du projet](/docs/cli/mcp#répertoire-du-projet).
 
+### Registre MCP
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 Le serveur figure aussi dans le [registre MCP officiel](https://registry.modelcontextprotocol.io) sous le nom `io.github.verbatra/verbatra`.
@@ -28,13 +30,15 @@ Le serveur démarre en lecture seule : les deux outils payants restent masqués 
 - `--allow-spend` dans les arguments, ou `VERBATRA_MCP_ALLOW_SPEND=1` dans l'environnement ([Outils payants](/docs/cli/mcp#outils-payants)) ;
 - la variable de clé de ton fournisseur, par exemple `ANTHROPIC_API_KEY` ([Fournisseurs](/docs/providers)).
 
-<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
-
-Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'attendre ton oui avant de dépenser.
-
 <Callout type="warn">
 N'écris jamais une clé dans un fichier versionné comme `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` ou `.vscode/mcp.json`. Chaque section ci-dessous passe la clé par référence ou depuis ton environnement.
 </Callout>
+
+### Estimer d'abord
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'attendre ton oui avant de dépenser.
 
 ## Claude Code
 
@@ -58,10 +62,6 @@ Les options de Claude Code vont avant `--`, les arguments du serveur après. `--
 }
 ```
 
-<AvailableFrom version="0.12.0" />
-
-[`verbatra init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit la même entrée.
-
 Claude Code définit `CLAUDE_PROJECT_DIR` sur la racine du projet, donc pas besoin de `--cwd`, et transmet l'environnement de ton shell. Pour dépenser le temps d'une session, exporte la clé et lance :
 
 ```bash
@@ -69,6 +69,12 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
 Ne combine pas `--env KEY=value` avec `--scope project` : la valeur finirait dans `.mcp.json`. `claude mcp list` vérifie la connexion. Voir la [documentation MCP de Claude Code](https://code.claude.com/docs/en/mcp).
+
+### Laisser init l'écrire
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra init --agent`](/docs/cli/init#préparer-les-agents-de-code) écrit la même entrée.
 
 ### Le plugin verbatra
 

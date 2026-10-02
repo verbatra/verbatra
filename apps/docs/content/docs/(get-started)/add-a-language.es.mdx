@@ -23,6 +23,8 @@ export default defineConfig({
 });
 ```
 
+### Reglas de los códigos de locale
+
 <AvailableFrom version="0.12.0" />
 
 Escribe el código en forma BCP 47, con guion: `pt-BR`, no `pt_BR`. Si tus archivos usan guiones bajos, escribe igualmente `pt-BR` y pon `files.localeStyle` en `posix`; verbatra conserva el nombre de archivo `pt_BR.json`. Al cargar la configuración se rechazan un código no válido, el locale de origen y dos códigos que solo difieren en mayúsculas. Las reglas completas están en [Códigos de locale](/docs/config-file#códigos-de-locale), y con [`verbatra doctor`](/docs/cli/doctor) ves si un proveedor admite el nuevo idioma.
@@ -52,6 +54,8 @@ Después, `verbatra check` sale con `0` cuando todos los locales, incluido el nu
 ## Idiomas con más categorías de plural
 
 Algunos idiomas necesitan más formas de plural de las que tiene tu origen. El inglés tiene `one` y `other`; el polaco necesita cuatro, el árabe seis y el francés añade `many`. Por defecto, verbatra traduce las formas que tiene tu origen y no inventa las demás: la ejecución tiene éxito e informa de un aviso `PLURAL_CATEGORIES_INCOMPLETE` que nombra lo que falta.
+
+### Generar las formas que faltan
 
 <AvailableFrom version="0.12.0" />
 

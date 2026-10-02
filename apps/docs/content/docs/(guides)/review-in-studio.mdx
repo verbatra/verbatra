@@ -22,27 +22,25 @@ Open the URL it prints, token included, and stop Studio with Ctrl+C. [`verbatra 
 
 Translations lists every missing, changed and orphaned key, as a **List** per locale with a text filter or as a key-by-locale **Grid**, above a table of each locale's coverage and [lock file](/docs/the-lock-file) state.
 
+Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax. Also shown:
+
+| Detail | Shows |
+| --- | --- |
+| **Inline markup mismatch** | each tag the translation dropped (`-`) or added (`+`) <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch** | plural or select arms that do not fit the target language; right-to-left values render right to left ([Language support](/docs/language-support#right-to-left-languages)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| Origin badge | who wrote each value, read from [`verbatra.provenance.json`](/docs/the-lock-file#provenance-who-wrote-each-value), such as **Machine**, **Human** or **Edited outside verbatra** <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### Filter by state
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 The List view also filters by locale and by state, including **Review queue** and **Integrity problems** (any value that fails the placeholder, markup or ICU checks). **Copy as review report** copies the pending keys as Markdown for a pull request.
 
-Click a key to see every locale's value with an integrity indicator: placeholders match, a placeholder mismatch with the tokens named, or invalid message syntax.
-
-<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
-
-The indicator also shows **Inline markup mismatch**, naming each tag the translation dropped (`-`) or added (`+`).
-
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
-
-It also shows **ICU arms mismatch** when a value's plural or select arms do not fit the target language. Right-to-left values render right to left; see [Language support](/docs/language-support#right-to-left-languages).
-
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
-
-An origin badge shows who wrote each value, read from [`verbatra.provenance.json`](/docs/the-lock-file#provenance-who-wrote-each-value), such as **Machine**, **Human** or **Edited outside verbatra**.
-
 ### Edit with integrity gating
 
 **Edit** opens the editor. Saving runs the value through the [integrity gate](/docs/translation-safety#the-integrity-gate); a value it refuses is not written, and the reason is shown. An accepted edit writes the locale file and updates the lock file. Editing needs no flag and never calls a provider.
+
+#### Side-by-side editor
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -52,23 +50,29 @@ The editor shows the source and your draft side by side, with the key's descript
 
 The Review page lists every value a machine wrote that nobody has approved: one row per locale and key, with its origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
 
-<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
-
-Two of those flags read **Over length budget** and **Reused after source edit**.
-
 <StudioScreenshot
   shot="review"
   alt="The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
   caption="The Review queue after a run. Studio ships in light and dark; switch the screenshot to compare."
 />
 
+### Flag labels
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+Two review flags read **Over length budget** and **Reused after source edit**.
+
+### Row actions
+
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filter by locale or by text in the key, source or translation, then work each row:
+Filter by locale or by text in the key, source or translation:
 
 - **Edit** opens the integrity-gated editor. An accepted edit clears the row.
 - **Approve** accepts the value as it stands.
 - **Reject** removes the value so it gets replaced, after a confirmation.
+
+### Saved decisions
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -131,11 +135,13 @@ Activity shows the git history of your locale files and the token usage of the l
 
 Settings shows the configuration Studio started with and the glossary. If the glossary is a JSON file, you can add, edit and remove terms; each change is written straight to the file. An inline glossary in `verbatra.config.ts` stays read-only.
 
+A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
+
+### Per-locale view
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 **Show translations for** switches to one locale's [glossary](/docs/config-file#glossary) view, with its translation, forbidden renderings and note. The **Do not translate** list keeps brand names as written.
-
-A glossary edit changes what the next run is told, never text already written; restart Studio for its own retranslations to use it.
 
 ## Related
 

@@ -22,27 +22,25 @@ Ouvre l'URL qu'il affiche, token compris, et arrête Studio avec Ctrl+C. [`verba
 
 Translations liste chaque clé manquante, modifiée et orpheline, sous forme de **List** par locale avec un filtre texte ou de **Grid** clé par locale, au-dessus d'un tableau de la couverture de chaque locale et de son état dans le [fichier de verrouillage](/docs/the-lock-file).
 
+Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide. Également affiché :
+
+| Détail | Affiche |
+| --- | --- |
+| **Inline markup mismatch** | chaque balise que la traduction a perdue (`-`) ou ajoutée (`+`) <AvailableFrom version="0.5.1" pkg="@verbatra/studio" /> |
+| **ICU arms mismatch** | les branches plural ou select qui ne conviennent pas à la langue cible ; les valeurs de droite à gauche s'affichent de droite à gauche ([Prise en charge des langues](/docs/language-support#langues-de-droite-à-gauche)) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+| Badge d'origine | qui a écrit chaque valeur, lu depuis [`verbatra.provenance.json`](/docs/the-lock-file#la-provenance-de-chaque-valeur), par exemple **Machine**, **Human** ou **Edited outside verbatra** <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### Filtrer par état
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 La vue List filtre aussi par locale et par état, notamment **Review queue** et **Integrity problems** (toute valeur qui échoue aux contrôles de placeholders, de balisage ou ICU). **Copy as review report** copie les clés en attente en Markdown pour une pull request.
 
-Clique sur une clé pour voir la valeur de chaque locale avec un indicateur d'intégrité : placeholders conformes, placeholders divergents avec les tokens nommés, ou syntaxe de message invalide.
-
-<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
-
-L'indicateur affiche aussi **Inline markup mismatch**, en nommant chaque balise que la traduction a perdue (`-`) ou ajoutée (`+`).
-
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
-
-Il affiche aussi **ICU arms mismatch** quand les branches plural ou select d'une valeur ne conviennent pas à la langue cible. Les valeurs de droite à gauche s'affichent de droite à gauche ; voir [Prise en charge des langues](/docs/language-support#langues-de-droite-à-gauche).
-
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
-
-Un badge d'origine montre qui a écrit chaque valeur, lu depuis [`verbatra.provenance.json`](/docs/the-lock-file#la-provenance-de-chaque-valeur), par exemple **Machine**, **Human** ou **Edited outside verbatra**.
-
 ### Modifier avec la barrière d'intégrité
 
 **Edit** ouvre l'éditeur. L'enregistrement fait passer la valeur par la [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) ; une valeur refusée n'est pas écrite, et la raison s'affiche. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage. Modifier ne demande aucune option et n'appelle jamais de fournisseur.
+
+#### Éditeur côte à côte
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -52,23 +50,29 @@ L'éditeur montre la source et ton brouillon côte à côte, avec la description
 
 La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec son origine et les éventuels [signalements de révision](/docs/translation-safety#signalements-de-révision) de la dernière exécution sur cette machine.
 
-<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
-
-Deux de ces signalements s'affichent comme **Over length budget** et **Reused after source edit**.
-
 <StudioScreenshot
   shot="review"
   alt="La page Review de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr, chaque ligne montrant la clé, ses raisons de révision et les actions Edit, Approve et Reject."
   caption="La file de révision après une exécution. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
+### Libellés des signalements
+
+<AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
+
+Deux signalements de révision s'affichent comme **Over length budget** et **Reused after source edit**.
+
+### Actions par ligne
+
 <AvailableFrom version="0.5.0" pkg="@verbatra/studio" />
 
-Filtre par locale ou par texte dans la clé, la source ou la traduction, puis traite chaque ligne :
+Filtre par locale ou par texte dans la clé, la source ou la traduction :
 
 - **Edit** ouvre l'éditeur soumis à la barrière d'intégrité. Une modification acceptée retire la ligne.
 - **Approve** accepte la valeur telle quelle.
 - **Reject** supprime la valeur pour qu'elle soit remplacée, après une confirmation.
+
+### Décisions enregistrées
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -131,11 +135,13 @@ Activity montre l'historique git de tes fichiers de locale et la consommation de
 
 Settings montre la configuration avec laquelle Studio a démarré, et le glossaire. Si le glossaire est un fichier JSON, tu peux ajouter, modifier et supprimer des termes ; chaque changement est écrit directement dans le fichier. Un glossaire inline dans `verbatra.config.ts` reste en lecture seule.
 
+Une modification du glossaire change ce que la prochaine exécution reçoit comme consigne, jamais un texte déjà écrit ; redémarre Studio pour que ses propres retraductions l'utilisent.
+
+### Vue par locale
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 **Show translations for** bascule vers la vue du [glossaire](/docs/config-file#glossary) d'une locale, avec sa traduction, ses rendus interdits et sa note. La liste **Do not translate** garde les noms de marque tels quels.
-
-Une modification du glossaire change ce que la prochaine exécution reçoit comme consigne, jamais un texte déjà écrit ; redémarre Studio pour que ses propres retraductions l'utilisent.
 
 ## Voir aussi
 

@@ -69,6 +69,8 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 
 Cada llamada pasa por el RPC de loopback autenticado del propio panel, con la misma validación de entrada y el mismo [control de integridad](/docs/translation-safety): un valor que falla una comprobación se rechaza y no se escribe nada.
 
+### Reglas por llamada
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Procedencia**: una edición del agente se registra con el origen `agent` y sigue en la cola de revisión; una edición desde el panel es `human`. Las herramientas de lectura indican quién escribió cada valor ([El archivo de bloqueo](/docs/the-lock-file#procedencia-quién-escribió-cada-valor)).

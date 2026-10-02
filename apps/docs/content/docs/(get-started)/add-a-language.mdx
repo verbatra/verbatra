@@ -23,6 +23,8 @@ export default defineConfig({
 });
 ```
 
+### Locale code rules
+
 <AvailableFrom version="0.12.0" />
 
 Write the code in BCP 47 form, with a hyphen: `pt-BR`, not `pt_BR`. If your files use underscores, keep writing `pt-BR` and set `files.localeStyle` to `posix`; verbatra keeps the `pt_BR.json` file name. The config load rejects an invalid code, the source locale, and two codes that differ only in case. See [Locale codes](/docs/config-file#locale-codes) for the full rules, and run [`verbatra doctor`](/docs/cli/doctor) to see whether a provider supports the new language.
@@ -52,6 +54,8 @@ Afterwards, `verbatra check` exits `0` when every locale, the new one included, 
 ## Languages with more plural categories
 
 Some languages need more plural forms than your source has. English has `one` and `other`; Polish needs four, Arabic six, and French adds `many`. By default verbatra translates the forms your source has and does not invent the others: the run succeeds and reports a `PLURAL_CATEGORIES_INCOMPLETE` notice naming what is missing.
+
+### Generate the missing forms
 
 <AvailableFrom version="0.12.0" />
 

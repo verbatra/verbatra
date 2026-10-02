@@ -14,11 +14,13 @@ Ein `translate`-, `watch`- oder `import`-Lauf schreibt die Dateien, um die sich 
 - die Ziel-Locale-Dateien unter deinem `files.pattern`;
 - `verbatra.lock.json`, ein Hash des Quellinhalts pro übersetztem Key.
 
+`verbatra.cache.json` und `.verbatra-local/` sind neu erzeugbarer, von git ignorierter Zustand; stell sie nie wieder her. Jede versionierte Datei wird atomar geschrieben, also gibt es nie eine halb geschriebene Datei zu reparieren.
+
+### Die Provenance-Datei
+
 <AvailableFrom version="0.12.0" />
 
-Außerdem schreibt er `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her. Wenn du sie vergisst, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, gilt als `external`, also verliert ein Abweichen nur Information und schreibt nie den falschen Autor zu.
-
-`verbatra.cache.json` und `.verbatra-local/` sind neu erzeugbarer, von git ignorierter Zustand; stell sie nie wieder her. Jede versionierte Datei wird atomar geschrieben, also gibt es nie eine halb geschriebene Datei zu reparieren.
+Außerdem schreibt ein Lauf `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her. Wenn du sie vergisst, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, gilt als `external`, also verliert ein Abweichen nur Information und schreibt nie den falschen Autor zu.
 
 ## Einen abgeschlossenen Lauf zurückrollen
 
