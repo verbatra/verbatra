@@ -1,15 +1,16 @@
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { supportsFormality } from "../language-support.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import {
+  decodeMaskedFromXml,
+  encodeMaskedForXml,
+  type OutgoingText,
   PLACEHOLDER_UNSUPPORTED_MESSAGE,
-  partitionByPlaceholders,
+  partitionForMasking,
+  restoreTranslations,
 } from "../placeholder-protection.js";
 import {
-  type PlaceholderComparator,
-  type PlaceholderExtractor,
   type TranslateRequest,
   type TranslationProvider,
   type ValidatedRequestData,
@@ -39,6 +40,20 @@ interface DeepLLanguages {
   readonly sourceLang: string;
   readonly targetLang: string;
 }
+
+interface Call {
+  readonly client: DeepLTranslateClient;
+  readonly languages: DeepLLanguages;
+  readonly timeoutMs: number;
+  readonly signal: AbortSignal | undefined;
+}
+
+const MASKED_OPTIONS: DeepLTranslateOptions = {
+  tagHandling: "xml",
+  tagHandlingVersion: "v2",
+  ignoreTags: ["x"],
+  outlineDetection: false,
+};
 
 export interface DeepLDeps {
   readonly client?: DeepLTranslateClient;
@@ -74,32 +89,47 @@ async function translate(
 ): Promise<DeepLTranslateResult> {
   const data = validateRequest(request);
   const languages = resolveDeepLLanguages(config, data);
-  const { protectable, unprotectable } = partitionByPlaceholders(data.entries);
-  const genericGlossarySupplied = appliesTerms(data.glossary);
+  const { plain, masked, unprotectable } = partitionForMasking(data.entries, {
+    withholdMarkup: true,
+  });
   const { options, notices } = buildTranslateOptions({
     freeAccount: bundle.freeAccount,
     formalityAvailable: supportsFormality(DEEPL_LANGUAGE_TABLE, languages.targetLang),
-    genericGlossarySupplied,
+    genericGlossarySupplied: appliesTerms(data.glossary),
     ...(data.tone !== undefined ? { tone: data.tone } : {}),
     ...(config.glossaryId !== undefined ? { glossaryId: config.glossaryId } : {}),
   });
-  const { values, integrity } = await translateProtectable(
-    bundle.client,
+  const call: Call = {
+    client: bundle.client,
     languages,
-    protectable,
-    options,
+    timeoutMs: config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+    signal: request.signal,
+  };
+  const plainOut = plain.map((entry): OutgoingText => ({ entry, text: entry.value }));
+  const maskedOut = masked.map(
+    (item): OutgoingText => ({
+      entry: item.entry,
+      text: encodeMaskedForXml(item.masked),
+      masked: item.masked,
+    }),
+  );
+  const pairs = [
+    ...zipResults(plainOut, await sendGroup(call, plainOut, options)),
+    ...zipResults(maskedOut, await sendGroup(call, maskedOut, { ...options, ...MASKED_OPTIONS })),
+  ];
+  const restored = restoreTranslations(pairs, decodeMaskedFromXml);
+  const integrity = checkBatchIntegrity(
+    restored.integrityInputs,
     request.extractPlaceholders,
     request.comparePlaceholders,
-    config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
-    request.signal,
   );
-  if (unprotectable.length > 0) {
+  if (unprotectable.length + restored.lost > 0) {
     notices.push({ code: "PLACEHOLDER_UNSUPPORTED", message: PLACEHOLDER_UNSUPPORTED_MESSAGE });
   }
   const reviewFlags = applyProviderDegraded(
     buildEntryReviewFlags(
-      protectable,
-      values,
+      restored.translated,
+      restored.values,
       integrity,
       data.sourceLocale,
       data.targetLocale,
@@ -107,9 +137,9 @@ async function translate(
       data.maxLength,
     ),
     notices,
-    [...values.keys()],
+    [...restored.values.keys()],
   );
-  return { values, integrity, notices, reviewFlags };
+  return { values: restored.values, integrity, notices, reviewFlags };
 }
 
 function resolveDeepLLanguages(config: DeepLConfig, data: ValidatedRequestData): DeepLLanguages {
@@ -120,70 +150,20 @@ function resolveDeepLLanguages(config: DeepLConfig, data: ValidatedRequestData):
   return { sourceLang, targetLang };
 }
 
-async function translateProtectable(
-  client: DeepLTranslateClient,
-  languages: DeepLLanguages,
-  protectable: readonly TranslationEntry[],
+async function sendGroup(
+  call: Call,
+  outgoing: readonly OutgoingText[],
   options: DeepLTranslateOptions,
-  extract: PlaceholderExtractor,
-  compare: PlaceholderComparator | undefined,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
-): Promise<{
-  values: Map<string, string>;
-  integrity: Map<string, PlaceholderIntegrityResult>;
-}> {
-  if (protectable.length === 0) {
-    return { values: new Map(), integrity: new Map() };
-  }
-  const texts = protectable.map((entry) => entry.value);
-  const results = await callClientChunked(
-    client,
-    texts,
-    languages.sourceLang,
-    languages.targetLang,
-    options,
-    timeoutMs,
-    signal,
-  );
-  const { values, integrityInputs } = zipResults(protectable, results);
-  const integrity = checkBatchIntegrity(integrityInputs, extract, compare);
-  return { values, integrity };
-}
-
-function callClient(
-  client: DeepLTranslateClient,
-  texts: readonly string[],
-  sourceLang: string,
-  targetLang: string,
-  options: DeepLTranslateOptions,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
-): Promise<DeepLTextResult[]> {
-  return withSdkAttemptTimeout(timeoutMs, signal, () =>
-    client.translateText(texts, sourceLang, targetLang, options),
-  );
-}
-
-async function callClientChunked(
-  client: DeepLTranslateClient,
-  texts: readonly string[],
-  sourceLang: string,
-  targetLang: string,
-  options: DeepLTranslateOptions,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
 ): Promise<DeepLTextResult[]> {
   const results: DeepLTextResult[] = [];
-  for (const chunk of chunkTextsForDeepL(texts)) {
-    const chunkResults = await callClient(
-      client,
-      chunk,
-      sourceLang,
-      targetLang,
-      options,
-      timeoutMs,
-      signal,
+  for (const chunk of chunkTextsForDeepL(outgoing.map((item) => item.text))) {
+    const chunkResults = await withSdkAttemptTimeout(call.timeoutMs, call.signal, () =>
+      call.client.translateText(
+        chunk,
+        call.languages.sourceLang,
+        call.languages.targetLang,
+        options,
+      ),
     );
     results.push(...chunkResults);
   }
