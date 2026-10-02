@@ -235,7 +235,9 @@ export interface ProviderNotice {
  *
  * This tuple is the single source of truth for the set. {@link ReviewReasonCode} is derived from
  * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
- * members; a hand-copied list silently falls behind the next addition.
+ * members; a hand-copied list silently falls behind the next addition. A later verbatra version
+ * may add a reason, so when reading persisted data such as a review queue written by a newer
+ * version, filter out the codes you do not know rather than rejecting the whole record.
  *
  * @example
  * ```ts
@@ -243,6 +245,8 @@ export interface ProviderNotice {
  * import { z } from "zod";
  *
  * const reasonSchema = z.enum(REVIEW_REASON_CODES);
+ * const knownReasons = (stored: readonly string[]) =>
+ *   stored.filter((code) => reasonSchema.safeParse(code).success);
  * ```
  */
 export const REVIEW_REASON_CODES = [
