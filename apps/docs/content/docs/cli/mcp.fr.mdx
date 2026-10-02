@@ -101,9 +101,9 @@ Le serveur répond à la poignée de main MCP `initialize` avec des `instruction
 - Chaque entrée de `key.integrity` porte aussi `icuArmsMatch` et ses détails.
 - `glossary.get` prend une `locale` optionnelle et ajoute alors `effective`, les termes auxquels cette locale est tenue.
 - `key.value`, `lock.state`, `status.check` et `status.diff` portent la provenance, absente quand `verbatra.provenance.json` est illisible.
-- `locale.values` et `report.provenance` renvoient leurs entrées par pages : `limit` (200 par défaut, 1 000 au plus), puis le `nextCursor` de la page précédente comme `cursor`. Un curseur issu d'autres filtres, ou auquel les fichiers ne correspondent plus, échoue comme entrée invalide.
+- `locale.values` et `report.provenance` renvoient leurs entrées par pages dans l'ordre des clés source : `limit` (200 par défaut, 1 000 au plus), puis le `nextCursor` de la page précédente comme `cursor`. Une page ne nomme que les locales dont elle contient des entrées, et un curseur périmé échoue comme entrée invalide.
 - `locale.values` prend `keys` ou une `query` insensible à la casse et renvoie des tableaux d'entrées, pas la map par clé de Studio. `report.provenance` renvoie toujours des comptes complets ; `includeEntries` ajoute les clés, si tu veux seulement pour certains `buckets`.
-- `history.list` nomme l'auteur de chaque commit, jamais l'e-mail ; consulte [Studio et MCP](/docs/data-handling#studio-et-mcp).
+- `history.list` nomme l'auteur de chaque commit, jamais l'e-mail, et donne une `reason` avec `available: false` ; consulte [Studio et MCP](/docs/data-handling#studio-et-mcp).
 - Les outils qui écrivent prennent un `lockTimeoutMs` optionnel, de `0` à `600000`, par défaut `30000` : la durée d'attente d'un verrou d'écriture occupé avant d'échouer avec `LOCK_CONTENDED`, sans rien avoir écrit.
 - Les entrées et sorties sont des JSON Schemas ; une entrée invalide renvoie un résultat qui nomme le champ. Un résultat qui ne correspond pas à son `outputSchema` échoue avec `OUTPUT_SCHEMA_MISMATCH` ; pour un outil qui écrit, la modification a été appliquée, donc ne relance pas l'appel.
 - Le texte d'un appel en échec commence par son code d'erreur, comme `UNKNOWN_KEY: ...`, et se termine par une ligne `Next step: ...` quand l'erreur en a une, le même texte que le `hint` de la CLI.

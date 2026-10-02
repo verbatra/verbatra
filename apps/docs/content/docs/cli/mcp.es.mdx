@@ -101,9 +101,9 @@ El servidor responde al handshake MCP `initialize` con unas `instructions` fijas
 - Cada entrada de `key.integrity` incluye además `icuArmsMatch` y sus detalles.
 - `glossary.get` acepta un `locale` opcional y entonces añade `effective`, los términos a los que se atiene ese locale.
 - `key.value`, `lock.state`, `status.check` y `status.diff` incluyen la procedencia, que falta cuando `verbatra.provenance.json` no se puede leer.
-- `locale.values` y `report.provenance` devuelven sus entradas por páginas: `limit` (por defecto 200, como máximo 1.000) y después el `nextCursor` de la página anterior como `cursor`. Un cursor de otros filtros, o uno con el que los archivos ya no coinciden, falla como entrada inválida.
+- `locale.values` y `report.provenance` devuelven sus entradas por páginas en el orden de las claves de origen: `limit` (por defecto 200, como máximo 1.000) y después el `nextCursor` de la página anterior como `cursor`. Una página solo nombra los locales de los que contiene entradas, y un cursor obsoleto falla como entrada inválida.
 - `locale.values` acepta `keys` o una `query` sin distinguir mayúsculas y devuelve arrays de entradas, no el mapa por clave de Studio. `report.provenance` siempre devuelve recuentos completos; `includeEntries` añade las claves, si quieres solo para algunos `buckets`.
-- `history.list` nombra al autor de cada commit, nunca el correo; consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
+- `history.list` nombra al autor de cada commit, nunca el correo, y da un `reason` con `available: false`; consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
 - Las herramientas que escriben aceptan un `lockTimeoutMs` opcional, de `0` a `600000`, por defecto `30000`: cuánto esperan un bloqueo de escritura ocupado antes de fallar con `LOCK_CONTENDED`, sin haber escrito nada.
 - Las entradas y salidas son JSON Schemas; una entrada inválida devuelve un resultado que nombra el campo. Un resultado que no encaja con su `outputSchema` falla con `OUTPUT_SCHEMA_MISMATCH`; en una herramienta que escribe, el cambio ya se aplicó, así que no la repitas.
 - El texto de una llamada fallida empieza por su código de error, como `UNKNOWN_KEY: ...`, y termina con una línea `Next step: ...` cuando el error tiene un siguiente paso, el mismo texto que el `hint` de la CLI.

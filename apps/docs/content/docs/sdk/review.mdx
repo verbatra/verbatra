@@ -79,7 +79,7 @@ function localeHistory(
 
 **Throws:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-Each commit carries `hash`, `author`, `authorDate`, `subject` and `touchedPaths`. `author` is the name after `.mailmap`, never the email. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) and is capped at `LOCALE_HISTORY_LIMIT_CAP` (`200`). Without git, or outside a repository, the result is `{ available: false }`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
+Each commit carries `hash`, `author`, `authorDate`, `subject` and `touchedPaths`. `author` is the name after `.mailmap`, never the email. `limit` defaults to `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) and is capped at `LOCALE_HISTORY_LIMIT_CAP` (`200`). Control and bidirectional formatting characters are removed from `author` and `subject`, and a commit whose metadata does not parse is left out. When git is missing, the project is not a repository, or `git log` runs past `LOCALE_HISTORY_TIMEOUT_MS` or writes more than `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, the result is `{ available: false, reason }`. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ### editEntry
 
