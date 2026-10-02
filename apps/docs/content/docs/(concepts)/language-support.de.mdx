@@ -51,8 +51,9 @@ Was das in der Praxis heißt:
   also ein menschliches Review. [Review-Flags](/docs/translation-safety#review-flags) zeigen auf die
   verdächtigsten Ergebnisse.
 - **DeepL und Google Cloud Translation** haben eine geschlossene Liste, die vor einem Lauf geprüft
-  wird. Wie LibreTranslate [maskieren sie Platzhalter](/docs/providers#deepl) und halten Werte
-  mit ICU-Plural oder -Select zurück.
+  wird. Wie LibreTranslate [maskieren sie Platzhalter](/docs/providers#deepl) und halten einen Wert
+  zurück, den sie nicht schützen können, etwa ICU-Plural-, -Select- oder -Number-Syntax oder Markup
+  neben einem Platzhalter.
 - **LibreTranslate** bedient die Modelle, die dein Server installiert hat.
 - Einen `tone` oder ein Glossar, das ein Provider nicht umsetzen kann, meldet verbatra als Hinweis,
   nie stillschweigend. Siehe

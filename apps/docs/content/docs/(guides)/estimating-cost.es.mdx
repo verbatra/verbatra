@@ -119,7 +119,7 @@ Multiplica por el número de locales que quedan. Con `--json`, las cifras son `u
 
 ## Proveedores de traducción automática
 
-DeepL, Google Cloud Translation y LibreTranslate facturan caracteres de origen, no tokens. verbatra solo les envía el texto de origen, sin reglas de sistema, nombres de clave ni JSON alrededor, así que no hay coste fijo por petición. Las cadenas con sintaxis de plural o select de ICU, y con marcado en DeepL y Google, se retienen en lugar de arriesgarlas, así que los caracteres enviados pueden ser menos que el total bruto.
+DeepL, Google Cloud Translation y LibreTranslate facturan caracteres de origen, no tokens. verbatra les envía el texto de origen con los placeholders como marcadores numerados cortos, sin reglas de sistema, nombres de clave ni JSON alrededor. La estimación solo cuenta caracteres de origen. DeepL no factura las etiquetas alrededor de sus marcadores; si Google factura el marcado `span` que los rodea no está documentado. Un valor que estos proveedores retienen ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) no se envía, así que los caracteres enviados pueden ser menos que el total bruto.
 
 ### Google Cloud Translation
 

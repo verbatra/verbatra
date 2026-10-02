@@ -119,7 +119,7 @@ Multipliziere mit der Zahl der übrigen Locales. Mit `--json` heißen die Werte 
 
 ## Maschinelle Übersetzungsdienste
 
-DeepL, Google Cloud Translation und LibreTranslate rechnen Quellzeichen ab, keine Tokens. verbatra schickt ihnen nur den Quelltext, ohne Systemregeln, Key-Namen oder JSON drumherum, also gibt es keinen festen Aufschlag pro Anfrage. Strings mit ICU-Plural- oder -Select-Syntax, und bei DeepL und Google mit Markup, werden zurückgehalten statt riskiert, sodass weniger Zeichen gesendet werden können als die Rohsumme.
+DeepL, Google Cloud Translation und LibreTranslate rechnen Quellzeichen ab, keine Tokens. verbatra schickt ihnen den Quelltext mit Platzhaltern als kurzen nummerierten Markierungen, ohne Systemregeln, Key-Namen oder JSON drumherum. Die Schätzung zählt nur Quellzeichen. DeepL rechnet die Tags um seine Markierungen nicht ab; ob Google das Span-Markup um sie abrechnet, ist nicht dokumentiert. Ein Wert, den diese Provider zurückhalten ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)), wird nicht gesendet, sodass weniger Zeichen gesendet werden können als die Rohsumme.
 
 ### Google Cloud Translation
 

@@ -51,8 +51,9 @@ Lo que significa en la práctica:
   una revisión humana. Las [señales de revisión](/docs/translation-safety#señales-de-revisión)
   señalan los resultados más sospechosos.
 - **DeepL y Google Cloud Translation** tienen una lista cerrada, que se comprueba antes de una
-  ejecución. Como LibreTranslate, [enmascaran los placeholders](/docs/providers#deepl) y retienen
-  los valores con plural o select de ICU.
+  ejecución. Como LibreTranslate, [enmascaran los placeholders](/docs/providers#deepl) y retienen un
+  valor que no pueden proteger, como la sintaxis ICU de plural, select o number, o el marcado junto
+  a un placeholder.
 - **LibreTranslate** sirve los modelos que haya instalado tu servidor.
 - Un `tone` o un glosario que un proveedor no puede respetar se informa como aviso, nunca se descarta
   en silencio. Consulta

@@ -119,7 +119,7 @@ Multiply by the number of remaining locales. With `--json`, the figures are `usa
 
 ## Machine-translation providers
 
-DeepL, Google Cloud Translation and LibreTranslate bill source characters, not tokens. verbatra sends them only the source text, with no system rules, key names or JSON around it, so there is no per-request overhead. Strings with ICU plural or select syntax, and with markup on DeepL and Google, are withheld rather than risked, so the characters sent can be fewer than the raw total.
+DeepL, Google Cloud Translation and LibreTranslate bill source characters, not tokens. verbatra sends them the source text with placeholders as short numbered markers, and no system rules, key names or JSON around it. The estimate counts source characters only. DeepL does not bill the tags around its markers; whether Google bills the span markup around them is not documented. A value these providers withhold ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) is not sent, so the characters sent can be fewer than the raw total.
 
 ### Google Cloud Translation
 

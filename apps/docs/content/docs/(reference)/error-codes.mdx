@@ -1193,7 +1193,7 @@ A glossary with required translations or terms to keep was not applied: DeepL ap
 
 ### PLACEHOLDER_UNSUPPORTED
 
-At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate: it holds ICU plural or select syntax or (DeepL, Google) markup, or its placeholder markers did not all come back exactly once.
+At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate. A value is withheld when a placeholder is not literal in it, or when its text outside the placeholders holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a placeholder, or a comparison sign (LibreTranslate keeps markup, so only braces count there). Google also withholds a value with a line break, tab or double space. A result is dropped when a marker comes back lost, duplicated, rewritten or bare, or with an unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: `1`: the keys are listed under `providerFailures`, and the locale ends `partial` or `failed`
