@@ -144,7 +144,7 @@ file, and the provider's support for every configured locale. The other four (pl
 rules, plural completeness, locale codes, locale state) are informational and never
 fail. It makes no network
 call and reads no key value, only the variable's name, from the environment or from
-`.env` and `.env.local`. Fix any other failing check by editing
+`.env.local` and `.env`. Fix any other failing check by editing
 `verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
 or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
 it again. Repeat until the only failure left, if any, is the `api-key` check. That
