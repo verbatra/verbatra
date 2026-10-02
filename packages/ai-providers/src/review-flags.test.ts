@@ -594,11 +594,11 @@ describe("computeReviewFlags: INTEGRITY_REORDERED", () => {
 });
 
 describe("computeReviewFlags: BIDI_CONTROLS_CHANGED", () => {
-  const RLI = "⁧";
-  const PDI = "⁩";
-  const LRO = "‭";
-  const RLO = "‮";
-  const PDF = "‬";
+  const RLI = "\u2067";
+  const PDI = "\u2069";
+  const LRO = "\u202d";
+  const RLO = "\u202e";
+  const PDF = "\u202c";
 
   function bidiFlag(sourceValue: string, translatedValue: string): ReviewFlag | undefined {
     return computeReviewFlags(
@@ -623,7 +623,7 @@ describe("computeReviewFlags: BIDI_CONTROLS_CHANGED", () => {
   });
 
   it("does not flag directional marks the translator adds", () => {
-    expect(bidiFlag("Order 42 shipped", "‏تم شحن الطلب؜ 42‎")).toBeUndefined();
+    expect(bidiFlag("Order 42 shipped", "\u200fتم شحن الطلب\u061c 42\u200e")).toBeUndefined();
   });
 
   it("does not flag a balanced isolate the translator adds", () => {
