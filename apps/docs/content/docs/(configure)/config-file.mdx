@@ -99,11 +99,11 @@ A script the language and region imply is left out, so configuring both `zh-TW` 
 
 <AvailableFrom version="0.12.0" />
 
-Every locale code must be a tag `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag; otherwise the load fails with `CONFIG_INVALID`, naming the field and the code. `pt_BR` is rejected (write `pt-BR` and set `localeStyle: "posix"`), and so is a language name such as `german`. A valid but non-canonical code, such as `zh-hant-tw` or the deprecated `iw`, works as written, and [`verbatra doctor`](/docs/cli/doctor) suggests the canonical form. verbatra never renames a file; when you respell a code, the next `translate` carries its lock, memory and provenance state over ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)).
+Every locale code must be a tag `Intl.getCanonicalLocales` accepts, with a two- or three-letter language subtag; otherwise the load fails with `CONFIG_INVALID`, naming the field and the code. `pt_BR` is rejected (write `pt-BR` and set `localeStyle: "posix"`), and so is a language name such as `german`. A valid but non-canonical code, such as `zh-hant-tw` or the deprecated `iw`, works as written, and [`verbatra doctor`](/docs/cli/doctor) suggests the canonical form. verbatra never renames a file, and a respelled code keeps its state ([A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)).
 
 ### provider
 
-`provider.id` selects `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` (from 0.12.0), or `none`. Only `id` and `options` are allowed under `provider`; from 0.12.0 any other key, such as a misplaced `localeMap`, fails with `CONFIG_INVALID`. Every provider except `none` accepts `options.localeMap` and `options.requestTimeoutMs` ([Providers](/docs/providers#locale-codes-sent-to-the-provider)). For `none`, `options` may be omitted and must otherwise be `{}` ([Run without machine translation](/docs/human-only-workflow)).
+`provider.id` selects one of the [providers](/docs/providers), or `none`. Only `id` and `options` are allowed under `provider`; from 0.12.0 any other key, such as a misplaced `localeMap`, fails with `CONFIG_INVALID`. Every provider except `none` accepts `options.localeMap` and `options.requestTimeoutMs` ([Providers](/docs/providers#locale-codes-sent-to-the-provider)). For `none`, `options` may be omitted and must otherwise be `{}` ([Run without machine translation](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -165,28 +165,21 @@ When true, verbatra synthesizes the CLDR plural forms a target needs but the sou
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` lets a key whose source changed reuse the translation of its earlier form when the two are at least `threshold` alike, instead of calling the provider. A reuse:
-
-- is reported apart from exact cache hits and always flagged for review as `FUZZY_CACHE_REUSE`;
-- passes the same integrity checks as any other candidate, and is never written back into the cache;
-- is refused whatever it scores when its numerals differ from the current source;
-- is written but not locked, so the key stays changed and is offered again every run until a real translation lands.
-
-`threshold` tunes how much spend you avoid, not how safe the reuse is ([why](/docs/the-cache)), so enable this only if someone works the review queue. There is no CLI flag; `--no-cache` bypasses it with the rest of the cache.
+`fuzzyCache: { enabled: true }` lets a key whose source changed reuse the translation of its earlier form when the two are at least `threshold` alike, always flagged `FUZZY_CACHE_REUSE`; the safety rules are under [Fuzzy reuse](/docs/the-cache#fuzzy-reuse). There is no CLI flag; `--no-cache` bypasses it with the rest of the cache.
 
 ### humanEdits and pinnedKeys
 
-`humanEdits` covers a stale key whose value came from Studio or an SDK edit (`human`), an imported handoff (`import`), or an edit outside verbatra (`external`), as recorded in [provenance](/docs/the-lock-file#provenance-who-wrote-each-value):
+`humanEdits` covers a stale key whose value a person wrote (`human`, `import` or `external` [provenance](/docs/the-lock-file#provenance-who-wrote-each-value)):
 
-- `"protect"` keeps the value; the key is not sent, stays stale in `check`, and is listed as protected.
-- `"suggest"` keeps the value but asks the provider; the answer is a suggestion kept in the memory, never written.
-- `"overwrite"` retranslates it like any stale key; `translate --include-human` does this for one run.
+- `"protect"` keeps the value and does not send the key.
+- `"suggest"` keeps the value and asks the provider for a suggestion that is never written.
+- `"overwrite"` retranslates it; `translate --include-human` does this for one run.
 
-A key matching `pinnedKeys` (for example `["legal.*", "brand.name"]`) is never translated, suggested or retranslated, whatever `humanEdits` says, and an AI agent cannot edit it; a person still can. A value with no provenance record (`unrecorded`) is not protected. See [Keep human translations](/docs/protecting-human-translations).
+A key matching `pinnedKeys` (for example `["legal.*", "brand.name"]`) is never machine-written, whatever `humanEdits` says. See [Keep human translations](/docs/protecting-human-translations).
 
 ### network
 
-`"local-only"` permits loopback, private and unique-local addresses plus `allowedHosts`; `"allowlist"` permits `allowedHosts` only. `VERBATRA_NETWORK_POLICY` can pin a stricter policy in CI. See [Restrict network access](/docs/network-policy).
+The policy and its hosts; what each permits, and pinning it from the environment, are on [Restrict network access](/docs/network-policy).
 
 ```ts title="verbatra.config.ts"
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
@@ -244,7 +237,7 @@ The top-level `maxTokens` is this whole-run budget. Anthropic's `provider.option
 
 ### rates
 
-Read only by [`verbatra translate --estimate`](/docs/estimating-cost); a live run ignores it. verbatra ships no prices, so you supply them with the date you read them.
+Read only by [`verbatra translate --estimate`](/docs/estimating-cost), which explains how rates turn into money; a live run ignores it.
 
 ```ts title="verbatra.config.ts"
 rates: {
@@ -257,7 +250,7 @@ rates: {
 }
 ```
 
-A `table` key is `provider/model` for a provider with a model and the bare id for one without (`deepl`, `google-translate`). An entry is either token-billed (`inputPerMillionTokens` and `outputPerMillionTokens`) or character-billed (`perMillionCharacters`), never both; a negative rate is rejected. `openai-compatible` and `libretranslate` send no invoice, so their quantity is reported without a rate. A missing rate key is reported as absent, never as zero, and an entry in the wrong unit is refused.
+A `table` key is `provider/model` for a provider with a model and the bare id for one without (`deepl`, `google-translate`). An entry is either token-billed (`inputPerMillionTokens` and `outputPerMillionTokens`) or character-billed (`perMillionCharacters`), never both; a negative rate is rejected. `openai-compatible` and `libretranslate` send no invoice, so their quantity is reported without a rate. An entry in the wrong unit is refused.
 
 ### extract
 
@@ -356,7 +349,7 @@ These rules have no JSON Schema expression, so only loading the config checks th
 
 ## The working directory and .env
 
-The working directory (where you run verbatra, or `--cwd`) anchors everything: the config search starts there, locale paths resolve against it, and `translate`, `watch`, `doctor`, `studio` and `mcp` load `.env.local` and `.env` from it. A variable already set in the environment wins over `.env.local`, which wins over `.env`.
+The working directory (where you run verbatra, or `--cwd`) anchors the config search and locale paths; which commands load `.env.local` and `.env` from it is under [Environment files](/docs/cli#environment-files).
 
 ## When loading fails
 
