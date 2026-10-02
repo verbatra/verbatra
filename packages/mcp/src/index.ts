@@ -1,3 +1,4 @@
+export { MCP_CAPABILITIES, type McpCapabilities } from "./capabilities.js";
 export { resolveServerCwd } from "./server-cwd.js";
 export type { McpLaunchArgs, McpSpendState, McpStopCause } from "./session-banner.js";
 export {
