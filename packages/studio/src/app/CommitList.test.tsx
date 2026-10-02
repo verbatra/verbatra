@@ -106,10 +106,13 @@ describe("CommitList", () => {
     expect(dateLabel.getAttribute("title")).toBe("2026-07-18T09:41:12+02:00");
   });
 
-  it("names the commit author next to the date", () => {
+  it("names the commit author after the date, so only the name wraps", () => {
     const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+    const spans = [...view.get("li p + p").querySelectorAll("span")].map(
+      (span) => span.textContent,
+    );
 
-    expect(view.getByText("span", "Ada Lovelace")).not.toBeNull();
+    expect(spans).toEqual(["0123456", "2026-07-18", "Ada Lovelace"]);
   });
 
   it("writes the author name as text, so a name shaped like markup never becomes markup", () => {

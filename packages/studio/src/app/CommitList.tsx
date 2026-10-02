@@ -50,19 +50,19 @@ function CommitRow({ commit }: { readonly commit: HistoryCommit }): ReactNode {
           }}
         />
         <span
-          className="text-xs text-foreground"
-          ref={(element) => {
-            if (element !== null) {
-              renderText(element, parts.author);
-            }
-          }}
-        />
-        <span
           className="text-xs text-muted-foreground"
           title={parts.authorDate}
           ref={(element) => {
             if (element !== null) {
               renderText(element, parts.dateLabel);
+            }
+          }}
+        />
+        <span
+          className="min-w-0 break-words text-xs font-medium text-muted-foreground"
+          ref={(element) => {
+            if (element !== null) {
+              renderText(element, parts.author);
             }
           }}
         />
