@@ -140,10 +140,11 @@ descriptive only, nothing branches on it), `supportsGlossary`, and `translateBat
   `machine-translation` providers and implement `translateBatch` directly
   (`packages/ai-providers/src/deepl/deepl-provider.ts`, `packages/ai-providers/src/google-translate/`,
   `packages/ai-providers/src/libretranslate/`), since they take strings and return strings with no
-  prompt. How a placeholder-blind engine is kept away from placeholders lives in one place,
-  `packages/ai-providers/src/placeholder-protection.ts`: DeepL and Google withhold every
-  placeholder-bearing entry, LibreTranslate masks placeholders as numbered markers and restores
-  them.
+  prompt. How a placeholder-blind engine is kept away from placeholders lives in one place:
+  `translateMaskedBatch` in `packages/ai-providers/src/masked-batch.ts`, which masks with
+  `placeholder-protection.ts` and encodes markers for the wire with `masked-wire-codec.ts`. All
+  three mask placeholders as numbered markers and restore them (DeepL inside an ignored `<x>` tag,
+  Google inside a `translate="no"` span, LibreTranslate as bare markers with markup kept).
 
 Resolution is a factory table, not the exported `ProviderRegistry`:
 `packages/sdk/src/config/provider-config.ts` defines `providerFactories`, a `ProviderFactories`
