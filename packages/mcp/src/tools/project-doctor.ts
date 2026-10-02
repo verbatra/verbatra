@@ -9,7 +9,6 @@ import {
 import { z } from "zod";
 import type { McpToolContext, McpUnconfiguredContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { redactQuoted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({});
 
@@ -87,8 +86,7 @@ export const projectDoctorTool = defineTool({
       ...result,
       checks: result.checks.map((check) => ({
         ...check,
-        detail: redactQuoted(check.detail, marker),
-        ...(check.fix !== undefined ? { fix: redactQuoted(check.fix, marker) } : {}),
+        detail: check.status === "fail" ? marker.mark(check.detail) : check.detail,
       })),
     }),
   },

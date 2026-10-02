@@ -146,6 +146,7 @@ async function writeResource(
     throw new SdkError(
       "SOURCE_UNWRITABLE",
       `The source locale file at ${sourcePath} could not be written: ${errorMessage(error)}`,
+      { cause: error },
     );
   }
 }

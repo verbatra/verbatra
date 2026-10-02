@@ -53,6 +53,8 @@ console.log(
 );
 ```
 
+The [SDK quickstart](https://verbatra.kreitz-webdev.de/docs/sdk-quickstart) walks through the first run step by step, from a keyless dry run to a CI gate, and [SDK recipes](https://verbatra.kreitz-webdev.de/docs/programmatic-api) has complete examples for the other entry points.
+
 ## Defining config
 
 `defineConfig` is an identity helper that gives you full type inference while authoring `verbatra.config.ts`:

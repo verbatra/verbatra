@@ -19,8 +19,8 @@ Persisted review decisions, a queue from committed files, and a `--require-revie
   value from memory. XLIFF fails with `REVIEW_REJECT_UNSUPPORTED`.
 - `approveLocale` approves a whole locale's queue in one write. Decisions take an optional
   `reviewer`.
-- `approveEntry` and `rejectEntry` accept `expectedValueHash` instead of `expectedValue`, checked
-  with the `valueMarker` from `createValueMarker` that hashed the value the reviewer saw.
+- `approveEntry` and `rejectEntry` take either `expectedValue` or `expectedValueHash`, the hash
+  checked with the `valueMarker` from `createValueMarker` that hashed the value the reviewer saw.
 
 **Batches**
 - `approveEntries`, `rejectEntries` and `retranslateEntries` return one outcome per entry and stop

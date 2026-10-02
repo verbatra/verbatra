@@ -16,7 +16,7 @@ const HOST_NAME = `${HOST_LABEL}(?:\\.${HOST_LABEL})*`;
 
 const WILDCARD = `\\*\\.${HOST_LABEL}(?:\\.${HOST_LABEL})+`;
 
-const IPV6_LITERAL = "[0-9a-fA-F:.]*:[0-9a-fA-F:.]*(?:/\\d{1,3})?";
+const IPV6_LITERAL = "[0-9a-fA-F.]*:[0-9a-fA-F:.]*(?:/\\d{1,3})?";
 
 const IPV4_LITERAL = "\\d{1,3}(?:\\.\\d{1,3}){3}(?:/\\d{1,2})?";
 
