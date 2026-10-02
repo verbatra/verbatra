@@ -115,48 +115,68 @@ function submessageAt(value: string, open: number, close: number): IcuSubmessage
   return SUBMESSAGE_TYPES.has(argument.type) ? { styleStart: argument.styleStart } : null;
 }
 
-function markArms(scan: Scan, start: number, end: number): void {
-  let i = start;
-  while (i < end) {
-    const closeIndex = scan.value.charAt(i) === "{" ? closingBrace(scan, i) : -1;
-    scan.mask[i] = 1;
-    if (closeIndex === -1) {
-      i += 1;
-      continue;
-    }
-    markRange(scan, i + 1, closeIndex);
-    scan.mask[closeIndex] = 1;
-    i = closeIndex + 1;
-  }
+interface Frame {
+  readonly arms: boolean;
+  index: number;
+  readonly end: number;
 }
 
-function markBrace(scan: Scan, open: number): number {
+function enterBrace(scan: Scan, frame: Frame, open: number, inner: Frame[]): void {
   const closeIndex = closingBrace(scan, open);
   if (closeIndex === -1) {
     scan.mask[open] = 1;
-    return open + 1;
+    frame.index = open + 1;
+    return;
   }
   const submessage = submessageAt(scan.value, open, closeIndex);
   if (submessage === null) {
     scan.mask.fill(1, open, closeIndex + 1);
-    return closeIndex + 1;
+  } else {
+    scan.mask.fill(1, open, submessage.styleStart);
+    scan.mask[closeIndex] = 1;
+    inner.push({ arms: true, index: submessage.styleStart, end: closeIndex });
   }
-  scan.mask.fill(1, open, submessage.styleStart);
-  markArms(scan, submessage.styleStart, closeIndex);
-  scan.mask[closeIndex] = 1;
-  return closeIndex + 1;
+  frame.index = closeIndex + 1;
 }
 
-function markRange(scan: Scan, start: number, end: number): void {
-  let i = start;
-  while (i < end) {
-    const tokenEnd = matchToken(scan.value, i, end);
-    if (tokenEnd > i) {
-      scan.mask.fill(1, i, tokenEnd);
-      i = tokenEnd;
-      continue;
+function stepRange(scan: Scan, frame: Frame, frames: Frame[]): void {
+  const i = frame.index;
+  const tokenEnd = matchToken(scan.value, i, frame.end);
+  if (tokenEnd > i) {
+    scan.mask.fill(1, i, tokenEnd);
+    frame.index = tokenEnd;
+  } else if (scan.value.charAt(i) === "{") {
+    enterBrace(scan, frame, i, frames);
+  } else {
+    frame.index = i + 1;
+  }
+}
+
+function stepArms(scan: Scan, frame: Frame, frames: Frame[]): void {
+  const i = frame.index;
+  const closeIndex = scan.value.charAt(i) === "{" ? closingBrace(scan, i) : -1;
+  scan.mask[i] = 1;
+  if (closeIndex === -1) {
+    frame.index = i + 1;
+    return;
+  }
+  scan.mask[closeIndex] = 1;
+  frame.index = closeIndex + 1;
+  frames.push({ arms: false, index: i + 1, end: closeIndex });
+}
+
+function markAll(scan: Scan): void {
+  const frames: Frame[] = [{ arms: false, index: 0, end: scan.value.length }];
+  let frame = frames.at(-1);
+  while (frame !== undefined) {
+    if (frame.index >= frame.end) {
+      frames.pop();
+    } else if (frame.arms) {
+      stepArms(scan, frame, frames);
+    } else {
+      stepRange(scan, frame, frames);
     }
-    i = scan.value.charAt(i) === "{" ? markBrace(scan, i) : i + 1;
+    frame = frames.at(-1);
   }
 }
 
@@ -166,7 +186,7 @@ export function protectedMask(value: string): Uint8Array {
     close: matchingBraces(value),
     mask: new Uint8Array(value.length),
   };
-  markRange(scan, 0, value.length);
+  markAll(scan);
   return scan.mask;
 }
 
