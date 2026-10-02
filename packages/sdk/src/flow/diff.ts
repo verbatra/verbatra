@@ -154,6 +154,7 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
  */
 export async function diff(input: DiffInput, deps: DiffDeps = {}): Promise<DiffSummary> {
   const { source, results } = await diffLocalesWithSource(input, deps);

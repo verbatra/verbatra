@@ -114,6 +114,82 @@ describe("guardProvider", () => {
     expect(result.integrity.has("contact")).toBe(true);
   });
 
+  it("redact keeps the provider's other review reasons beside the recomputed length flags", async () => {
+    const source = "Mail jane.doe.from.accounting@example-corporation.com";
+    const inner: TranslationProvider = {
+      id: "stub",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async (sent) => {
+        const value = sent.entries[0]?.value ?? "";
+        return {
+          values: new Map([["contact", value]]),
+          integrity: new Map([
+            ["contact", { matches: true, missing: [], extra: [], reordered: false }],
+          ]),
+          reviewFlags: new Map([
+            ["contact", { status: "review", reasons: ["EQUALS_SOURCE"] } as const],
+          ]),
+        };
+      },
+    };
+    const sent: TranslateRequest = {
+      ...request([entry("contact", source)]),
+      maxLength: new Map([["contact", 20]]),
+    };
+
+    const result = await guardProvider(inner, guard({ mode: "redact" })).translateBatch(sent);
+
+    expect(result.values.get("contact")).toBe(source);
+    expect(result.reviewFlags?.get("contact")).toEqual({
+      status: "review",
+      reasons: ["MAX_LENGTH_EXCEEDED", "EQUALS_SOURCE"],
+    });
+  });
+
+  it("redact drops a length review flag the tokens caused once the value is restored", async () => {
+    const inner: TranslationProvider = {
+      id: "stub",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async (sent) => ({
+        values: new Map([["contact", sent.entries[0]?.value ?? ""]]),
+        integrity: new Map([
+          ["contact", { matches: true, missing: [], extra: [], reordered: false }],
+        ]),
+        reviewFlags: new Map([
+          ["contact", { status: "review", reasons: ["LENGTH_RATIO_OUTLIER"] } as const],
+        ]),
+      }),
+    };
+
+    const result = await guardProvider(inner, guard({ mode: "redact" })).translateBatch(
+      request([entry("contact", "Write to a@acme.io")]),
+    );
+
+    expect(result.values.get("contact")).toBe("Write to a@acme.io");
+    expect(result.reviewFlags?.has("contact")).toBe(false);
+  });
+
+  it("redact adds a max length flag the restored value earns although the tokens fit", async () => {
+    const source = "Mail jane.doe.from.accounting@example-corporation.com";
+    const stub = makeStubProvider({ translate: (value) => value });
+    const sent: TranslateRequest = {
+      ...request([entry("contact", source)]),
+      maxLength: new Map([["contact", 30]]),
+    };
+
+    const result = await guardProvider(stub.provider, guard({ mode: "redact" })).translateBatch(
+      sent,
+    );
+
+    expect(stub.calls[0]?.request.entries[0]?.value.length).toBeLessThanOrEqual(30);
+    expect(result.reviewFlags?.get("contact")).toEqual({
+      status: "review",
+      reasons: ["MAX_LENGTH_EXCEEDED"],
+    });
+  });
+
   it.each([
     ["dropped", (value: string) => value.replace("__VBR0__", "")],
     ["duplicated", (value: string) => `${value} ${value}`],

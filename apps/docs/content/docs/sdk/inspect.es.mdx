@@ -16,8 +16,7 @@ valor de una clave de API y no hace ninguna petición de red salvo que `live` pi
 comprobación devuelve su propio veredicto `pass`, `fail` o `skipped`, y todas se ejecutan aunque una
 anterior haya fallado, así que una sola llamada informa de cada problema independiente.
 [`verbatra doctor`](/docs/cli/doctor#qué-comprueba) enumera las comprobaciones. La clave de API se
-comprueba solo por nombre, y la comprobación del archivo de origen lo parsea, así que un directorio
-en su lugar, un archivo vacío y contenido malformado se informan todos.
+comprueba solo por nombre; el archivo de origen se analiza, no solo se localiza.
 
 ```ts title="Firma"
 function doctor(
@@ -69,8 +68,7 @@ Devuelve un `DoctorResult` cuyo `ok` es true exactamente cuando ninguna comproba
 
 <AvailableFrom version="0.12.0" />
 
-Cada comprobación fallida lleva `fix`, un siguiente paso breve en imperativo como "Set
-ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.". Una
+Cada comprobación fallida lleva `fix`, un siguiente paso breve en imperativo. Una
 comprobación que pasó o se omitió no tiene `fix`. Igual que `detail`, nombra variables y rutas,
 nunca el valor de una clave.
 
@@ -79,9 +77,8 @@ nunca el valor de una clave.
 <AvailableFrom version="0.11.0" />
 
 Analiza el código de tu aplicación en busca de llamadas de traducción y fusiona lo que encuentra en
-el catálogo del locale de origen. Es el único punto de entrada que lee código de aplicación en lugar
-de un archivo de locale, y eso es lo que hace que verbatra sirva en un proyecto que todavía no tiene
-catálogo. No gasta nada: no construye ningún proveedor, no lee ninguna variable de entorno con una
+el catálogo del locale de origen, así que sirve en un proyecto que todavía no tiene catálogo. No
+gasta nada: no construye ningún proveedor, no lee ninguna variable de entorno con una
 clave de API y no hace ninguna petición de red.
 
 ```ts title="Firma"
@@ -135,8 +132,7 @@ exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 Con `consistency: true`, cada `LocaleCheckSummary` lleva además `inconsistencies`: un
 `InconsistencyGroup` por cada cadena de origen que el locale traduce de más de una forma bajo claves
 distintas, con el `source`, cada traducción distinta como `{ value, keys }` y el `context`, la
-`description`, el `meaning`, `isPlural` y `pluralForm` que comparten las claves agrupadas. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo, y
-no llama a ningún proveedor.
+`description`, el `meaning`, `isPlural` y `pluralForm` que comparten las claves agrupadas. Es solo un informe: nunca cambia `inSync`, un contador ni un archivo.
 
 <AvailableFrom version="0.12.0" />
 
@@ -181,6 +177,14 @@ origen de máquina y no está aprobado, y el resumen lleva `review: { reviewed, 
 archivo de procedencia está dañado o viene de una versión más nueva de verbatra, lo que hace fallar
 la puerta en vez de dejarla pasar. El informe nunca cambia `inSync`; una puerta de CI lee
 `review.reviewed`. Consulta [`verbatra check`](/docs/cli/check).
+
+<AvailableFrom version="0.12.0" />
+
+Con `sensitive: true`, `check` también examina el archivo de origen y el glosario de cada locale
+informado con las reglas `sensitiveData` de la configuración, sea cual sea el proveedor y el modo,
+sin clave y sin escribir: el resumen lleva `sensitive: { findings, glossaryTerms }`, un
+`{ key, fields, detectors }` por clave señalada, nunca el texto encontrado. Una puerta de CI falla
+con cualquiera de los dos.
 
 ### checkFile
 
@@ -504,9 +508,8 @@ jurídico; el esquema completo está en
 ### localeValues
 
 Lee el texto de origen y de destino actual de cada clave, en cada locale de destino solicitado, en
-una sola pasada sobre los archivos que ya están en disco. Es la contraparte en bloque de `keyValue`:
-úsala cuando necesites contenido de traducción en bloque, por ejemplo para buscar o recorrer
-valores en lugar de solo nombres de clave, ya que `keyValue` solo responde para una clave a la vez.
+una sola pasada sobre los archivos que ya están en disco, por ejemplo para buscar valores en lugar de
+nombres de clave: la contraparte en bloque de `keyValue`, que responde para una clave a la vez.
 Solo lectura.
 
 ```ts title="Firma"
@@ -523,8 +526,9 @@ function localeValues(
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
 Un `locales` omitido cubre cada locale de destino
-configurado. Devuelve un array de `{ locale, values }`, una entrada por locale, donde `values`
-asigna cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
+configurado. Devuelve un array de `{ locale, keys, values }`, una entrada por locale: `keys`
+lista cada clave en el orden de origen, luego las que solo están en el destino, y `values` asigna
+cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
 se ha traducido en ese locale; un `source` ausente significa que la clave está huérfana, presente
 en el locale de destino pero ya no en el origen. `values` no tiene prototipo: cada clave, incluida
 una llamada `__proto__` o `constructor`, es una propiedad propia, y una clave que no está en el

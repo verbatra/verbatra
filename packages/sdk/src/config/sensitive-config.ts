@@ -17,7 +17,7 @@ export const SENSITIVE_DETECTORS = [
   "private-host",
 ] as const;
 
-/** One of {@link SENSITIVE_DETECTORS}. */
+/** One built-in `sensitiveData` detector id. */
 export type SensitiveDetectorId = (typeof SENSITIVE_DETECTORS)[number];
 
 export const DEFAULT_SENSITIVE_DETECTORS: readonly SensitiveDetectorId[] = [

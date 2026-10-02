@@ -83,9 +83,10 @@ voulant qu'`estimate` implique `dryRun` est décidée : utilise-la dès que quel
 exécution doit le savoir à l'avance, plutôt que de redire l'implication et de t'en écarter.
 
 ```ts title="Signature"
-function resolveDryRun(
-  input: { dryRun?: boolean; estimate?: boolean },
-): boolean;
+function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean;
 ```
 
 **Renvoie :** `boolean`

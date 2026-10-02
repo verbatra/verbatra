@@ -15,8 +15,7 @@ Validates the project setup and spends nothing: it constructs no provider, never
 value, and makes no network request unless `live` asks for one. Each check returns its own `pass`,
 `fail`, or `skipped` verdict, and every check runs even when an earlier one failed, so one call
 reports every independent problem. [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
-checks. The API key is checked by name only, and the source-file check parses the file, so a
-directory in its place, an empty file, and malformed content are all reported.
+checks. The API key is checked by name only; the source file is parsed, not just found.
 
 ```ts title="Signature"
 function doctor(
@@ -65,17 +64,15 @@ check failed. It throws `CONFIG_NOT_FOUND` only for an explicit `configPath` tha
 
 <AvailableFrom version="0.12.0" />
 
-Every failed check carries `fix`, a next step such as "Set ANTHROPIC_API_KEY in the environment,
-or, with the CLI, in a .env file in the project directory.". A passed or skipped check has no `fix`.
-Like `detail`, it names variables and paths, never a key value.
+Every failed check carries `fix`, one short imperative next step. A check that passed or was skipped
+has no `fix`. Like `detail`, it names variables and paths, never a key value.
 
 ### extract
 
 <AvailableFrom version="0.11.0" />
 
 Scans your application source for translation call sites and merges what it finds into the source
-locale catalog. It is the one entry point that reads application code rather than a locale file,
-which is what makes verbatra usable on a project that has no catalog yet. It spends nothing: no
+locale catalog, so it works on a project that has no catalog yet. It spends nothing: no
 provider is constructed, no API key environment variable is read, and no network request is made.
 
 ```ts title="Signature"
@@ -129,7 +126,7 @@ With `consistency: true`, each `LocaleCheckSummary` also carries `inconsistencie
 `InconsistencyGroup` per source string the locale translates more than one way under different
 keys, naming the `source`, every distinct translation as `{ value, keys }`, and the `context`,
 `description`, `meaning`, `isPlural`, and `pluralForm` the grouped keys share. It is a report only: it never changes
-`inSync`, a count, or any file, and it calls no provider.
+`inSync`, a count, or any file.
 
 <AvailableFrom version="0.12.0" />
 
@@ -174,6 +171,13 @@ machine-class origin and is not approved, and the summary carries
 or `REVIEW_STATE_UNREADABLE` when the provenance file is corrupt or from a newer verbatra, which
 fails the gate rather than passing it. The report never changes `inSync`; a CI gate reads
 `review.reviewed`. See [Require reviewed translations](/docs/cli/check#require-reviewed-translations).
+
+<AvailableFrom version="0.12.0" />
+
+With `sensitive: true`, `check` also scans the source file and each reported locale's glossary with
+the config's `sensitiveData` rules, whatever the provider and mode, keyless and without writing:
+the summary carries `sensitive: { findings, glossaryTerms }`, one `{ key, fields, detectors }` per
+flagged key, never the matched text. A CI gate fails on either.
 
 ### checkFile
 
@@ -486,9 +490,8 @@ fails `check`. The report is supporting evidence, not legal advice; the full sch
 ### localeValues
 
 Reads every key's current source and target text, across every requested target locale, in one
-pass over the files already on disk. It is the bulk counterpart to `keyValue`: use it when a
-caller needs translation content in bulk, for instance to search or scan values rather than key
-names, since `keyValue` only answers for one key at a time. Read-only.
+pass over the files already on disk, for instance to search values rather than key names: the bulk
+counterpart to `keyValue`, which answers for one key at a time. Read-only.
 
 ```ts title="Signature"
 function localeValues(
@@ -504,8 +507,8 @@ function localeValues(
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
 An omitted `locales` covers every configured target locale.
-Returns an array of `{ locale, values }`, one entry per locale, where `values` maps each key to
-`{ source?, target? }`. An absent `target` means the key has not been translated in that locale
+Returns an array of `{ locale, keys, values }`, one entry per locale: `keys` lists every key in
+source order, then the target-only ones, and `values` maps each key to `{ source?, target? }`. An absent `target` means the key has not been translated in that locale
 yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
 the source. `values` has no prototype, so every key, including one named `__proto__` or
 `constructor`, is an own property, and a key absent from the catalog reads as `undefined`.

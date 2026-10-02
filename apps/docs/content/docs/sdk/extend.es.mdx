@@ -69,10 +69,10 @@ Acota un identificador de formato a uno externo: true para un identificador `cus
 ```ts title="Firma"
 function isCustomFormatId(
   format: string,
-): format is CustomFormatId$1;
+): format is CustomFormatId;
 ```
 
-**Devuelve:** `format is CustomFormatId$1`
+**Devuelve:** `format is CustomFormatId`
 
 ## Redacción de secretos
 
@@ -144,7 +144,10 @@ function declareProviderKeyEnvVar(
 
 Un proveedor que el SDK no incluye se conecta mediante `deps.createProvider`, un `CreateProvider`
 que devuelve un `TranslationProvider`. El SDK exporta el contrato completo como tipos, así que tu
-proveedor se comprueba contra la misma interfaz que implementan los integrados.
+proveedor se comprueba contra la misma interfaz que implementan los integrados. Eso incluye los
+tipos de sus campos: `Tone`, `PluralCategories`, `PlaceholderExtractor` y `PlaceholderComparator`
+en la petición, `Usage`, `ProviderNotice`, `ProviderNoticeCode` y `ReviewFlag` en el resultado, y
+`NetworkPolicy` y `NetworkRule` en `ProviderNetwork`.
 
 ```ts
 import {

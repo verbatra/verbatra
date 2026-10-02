@@ -1035,7 +1035,12 @@ function sourceNoticesFor(
   params: LocaleRunParams,
   pendingKeys: readonly string[],
 ): readonly LocaleNotice[] {
-  const notice = sourceForeignPlaceholderNotice(params.adapter.format, params.source, pendingKeys);
+  const notice = sourceForeignPlaceholderNotice(
+    params.adapter.format,
+    params.source,
+    pendingKeys,
+    params.mode.kind === "memory-only" ? "human-only" : "machine",
+  );
   return notice === undefined ? [] : [notice];
 }
 

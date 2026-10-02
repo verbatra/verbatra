@@ -197,6 +197,8 @@ describe("translate reports pending source values that hold a foreign placeholde
     const summary = await translate({ config, cwd: dir });
 
     expect(sourceNotices(summary.locales)).toHaveLength(1);
+    expect(sourceNotices(summary.locales)[0]?.message).toContain("Machine translation is off");
+    expect(sourceNotices(summary.locales)[0]?.message).not.toContain("during translation");
   });
 
   it("is absent when no source value holds a foreign token", async () => {

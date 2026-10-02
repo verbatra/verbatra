@@ -16,6 +16,11 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
 **SDK exports**
 - `ProviderError`, `ProviderErrorCode` and the provider contract types (`TranslationProvider`,
   `TranslateRequest`, `TranslateResult` and more) for a custom `createProvider`.
+- The rest of that contract is exported too: `ProviderNotice`, `ProviderNoticeCode`, `Usage`,
+  `ReviewFlag`, `Tone`, `PluralCategories`, `PlaceholderExtractor`, `PlaceholderComparator`,
+  `NetworkPolicy` and `NetworkRule`, plus `SourceExtractor`, `BoundedFileRead`,
+  `BoundedBytesRead`, `AuthoringConfig` and `AuthoringConfigFor`. The published types name
+  `TranslationEntry`, `LocaleResource` and the other core types once, under their exported names.
 - `loadConfig({ fresh })` evaluates an edited JavaScript or TypeScript config again, and
   `configCandidatePaths` lists the files a config could come from.
 - `keyContext` reads what is needed to write one key: its values, the glossary terms that apply,

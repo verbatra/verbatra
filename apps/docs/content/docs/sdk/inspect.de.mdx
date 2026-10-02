@@ -16,8 +16,7 @@ API-Key-Wert und stellt keine Netzwerkanfrage, außer `live` fordert eine an. Je
 eigenes Urteil `pass`, `fail` oder `skipped`, und jede läuft auch dann, wenn eine frühere
 fehlgeschlagen ist; ein Aufruf meldet also jedes unabhängige Problem.
 [`verbatra doctor`](/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf. Der API-Key wird nur
-über den Namen geprüft, und die Quelldatei-Prüfung parst die Datei: Ein Verzeichnis an ihrer Stelle,
-eine leere Datei und fehlerhafter Inhalt werden alle gemeldet.
+über den Namen geprüft; die Quelldatei wird geparst, nicht nur gefunden.
 
 ```ts title="Signatur"
 function doctor(
@@ -69,8 +68,7 @@ einen explizit angegebenen `configPath`, der nicht existiert.
 
 <AvailableFrom version="0.12.0" />
 
-Jede fehlgeschlagene Prüfung trägt `fix`, einen kurzen nächsten Schritt im Imperativ wie "Set
-ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.". Eine bestandene
+Jede fehlgeschlagene Prüfung trägt `fix`, einen kurzen nächsten Schritt im Imperativ. Eine bestandene
 oder übersprungene Prüfung hat kein `fix`. Wie `detail` nennt es Variablen und Pfade, nie den Wert
 eines Keys.
 
@@ -79,8 +77,7 @@ eines Keys.
 <AvailableFrom version="0.11.0" />
 
 Durchsucht deinen Anwendungscode nach Übersetzungsaufrufen und führt die Funde in den
-Quell-Locale-Katalog zusammen. Es ist der eine Einstiegspunkt, der Anwendungscode statt einer
-Locale-Datei liest, und genau das macht verbatra in einem Projekt nutzbar, das noch keinen Katalog
+Quell-Locale-Katalog zusammen, funktioniert also auch in einem Projekt, das noch keinen Katalog
 hat. Der Lauf kostet nichts: Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable
 gelesen und keine Netzwerkanfrage gestellt.
 
@@ -136,8 +133,7 @@ Mit `consistency: true` trägt jede `LocaleCheckSummary` zusätzlich `inconsiste
 `InconsistencyGroup` pro Quellstring, den die Locale unter verschiedenen Keys unterschiedlich
 übersetzt, mit der `source`, jeder abweichenden Übersetzung als `{ value, keys }` sowie dem
 `context`, der `description`, der `meaning`, `isPlural` und `pluralForm`, die die gruppierten Keys
-teilen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei und ruft
-keinen Provider auf.
+teilen. Es ist nur ein Bericht: Er ändert nie `inSync`, einen Zähler oder eine Datei.
 
 <AvailableFrom version="0.12.0" />
 
@@ -182,6 +178,14 @@ maschinelle Herkunft hat und nicht freigegeben ist, und die Zusammenfassung trä
 freigegeben ist, oder `REVIEW_STATE_UNREADABLE`, wenn die Herkunftsdatei beschädigt ist oder von
 einer neueren verbatra-Version stammt; dann scheitert das Gate, statt durchzulassen. Der Bericht
 ändert `inSync` nie; ein CI-Gate liest `review.reviewed`. Siehe [`verbatra check`](/docs/cli/check).
+
+<AvailableFrom version="0.12.0" />
+
+Mit `sensitive: true` durchsucht `check` außerdem die Quelldatei und das Glossar jeder gemeldeten
+Locale mit den `sensitiveData`-Regeln der Config, unabhängig von Provider und Modus, ohne Key und
+ohne zu schreiben: Die Zusammenfassung trägt `sensitive: { findings, glossaryTerms }`, ein
+`{ key, fields, detectors }` pro gemeldetem Key, nie den gefundenen Text. Ein CI-Gate scheitert an
+beidem.
 
 ### checkFile
 
@@ -507,10 +511,9 @@ unterstützender Nachweis, keine Rechtsberatung; das vollständige Schema steht 
 ### localeValues
 
 Liest den aktuellen Quell- und Zielwert jedes Keys, über jede angefragte Ziel-Locale hinweg, in
-einem einzigen Durchgang über die bereits auf der Platte liegenden Dateien. Es ist das Gegenstück
-zu `keyValue` für große Mengen: nutze es, wenn du Übersetzungsinhalte in großer Menge brauchst,
-etwa um Werte statt nur Key-Namen zu durchsuchen oder zu scannen, denn `keyValue` beantwortet
-immer nur einen Key auf einmal. Nur lesend.
+einem einzigen Durchgang über die bereits auf der Platte liegenden Dateien, etwa um Werte statt
+Key-Namen zu durchsuchen: das Gegenstück zu `keyValue` für große Mengen, das immer nur einen Key
+beantwortet. Nur lesend.
 
 ```ts title="Signatur"
 function localeValues(
@@ -526,8 +529,9 @@ function localeValues(
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
 Ein weggelassenes `locales` deckt jedes konfigurierte
-Ziel-Locale ab. Gibt ein Array von `{ locale, values }` zurück, ein Eintrag pro Locale, wobei
-`values` jeden Key auf `{ source?, target? }` abbildet. Ein fehlendes `target` bedeutet, dass der
+Ziel-Locale ab. Gibt ein Array von `{ locale, keys, values }` zurück, ein Eintrag pro Locale:
+`keys` listet jeden Key in Quellreihenfolge, danach die nur im Ziel vorhandenen, und `values` bildet
+jeden Key auf `{ source?, target? }` ab. Ein fehlendes `target` bedeutet, dass der
 Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key
 verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle. `values` hat
 keinen Prototyp: Jeder Key, auch einer namens `__proto__` oder `constructor`, ist eine eigene

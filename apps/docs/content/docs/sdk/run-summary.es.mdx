@@ -56,13 +56,12 @@ Las partes que conviene conocer:
   orientativa y nunca retiene una clave, así que una clave nunca aparece a la vez en `needsReview` y
   en `integrityMismatches`. Consulta [Revisión en Studio](/docs/review-in-studio) para trabajar la
   cola.
-- **notices** vive por locale, nunca en el nivel superior. Cubre avisos del proveedor (por ejemplo, una
-  degradación de DeepL) y avisos del SDK con los códigos `PLURAL_CATEGORIES_INCOMPLETE`,
-  `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED` (desde 0.12.0: claves que una entrega XLIFF marcó como revisadas o finales se registraron como aprobadas), `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (el estado guardado bajo una grafía con guion bajo como `pt_BR` se trasladó al `pt-BR` configurado; consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (ese traslado queda para la siguiente ejecución porque el guard del archivo de bloqueo siguió ocupado o no se pudo leer ni crear, o no se pudo escribir un archivo; salvo que solo quedara atrás la memoria de traducción, el locale no se ejecutó y falló con `LOCALE_STATE_NOT_CARRIED_OVER`) `PROVENANCE_FILE_TOO_LARGE`
-  (registrar un locale habría hecho crecer `verbatra.provenance.json` por encima de lo que verbatra
-  vuelve a leer, así que el archivo se dejó como estaba) y, desde 0.12.0, los cuatro avisos de la comprobación de soporte de locales, generados antes de gastar nada y también en una ejecución en seco: `LOCALE_UNVERIFIED_BY_PROVIDER` (el código enviado no está en la tabla del proveedor, solo su idioma base lo está o viene de `localeMap`), `LOCALE_NOT_WELL_TESTED` (un destino LLM fuera de la lista de idiomas bien probados), `GLOSSARY_UNSUPPORTED_BY_PROVIDER` y `FORMALITY_UNSUPPORTED_BY_PROVIDER` (un glosario o un tono que el proveedor no puede aplicar para el locale). El aviso de caché es de toda la ejecución (un solo archivo, compartido
-  por cada locale), así que se adjunta a cada locale de la ejecución.
+- **notices** vive por locale, nunca en el nivel superior. Cubre avisos del proveedor (por ejemplo,
+  una degradación de DeepL), listados en [Avisos del proveedor](/docs/error-codes#provider-notice-codes),
+  y avisos del SDK, cuyos códigos forman la unión `SdkNoticeCode` y se explican en
+  [Avisos de ejecución](/docs/error-codes#sdk-notice-codes). Un aviso de toda la ejecución, como el
+  de la caché (un solo archivo, compartido por cada locale), se adjunta a cada locale de la
+  ejecución.
 - **usage** es `undefined`, nunca un cero inventado, siempre que nada en ese ámbito informara de uso:
   un dry run nunca llama a un proveedor, y DeepL nunca informa de tokens. `RunSummary.usage`
   es la suma sobre los locales.
@@ -116,7 +115,7 @@ Las partes que conviene conocer:
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada
   cuya primera aparición ganó. El `line` opcional de las dos últimas es la línea del archivo en la
   que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`). La única excepción es un proyecto [solo humano](/docs/human-only-workflow): ahí `translate` y `watch` listan en **unfilled** cada clave para la que la memoria de traducción no tenía una entrada exacta, y **fuzzyHits** queda vacía porque ahí nunca se aplica una reutilización aproximada.
-- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Una sugerencia fallida nunca cambia el estado de un locale. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Una sugerencia fallida nunca cambia el estado de un locale. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
 
 ### budgetStanding
 

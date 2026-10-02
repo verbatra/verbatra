@@ -77,8 +77,8 @@ const execFileAsync = promisify(execFileCb);
 
 /** How long {@link localeHistory} lets `git log` run before stopping it, in milliseconds. */
 export const LOCALE_HISTORY_TIMEOUT_MS = 10_000;
-/** The most output {@link localeHistory} accepts from `git log`, in bytes. */
-export const LOCALE_HISTORY_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
+/** The most output {@link localeHistory} accepts from `git log`, in bytes: 8 MiB. */
+export const LOCALE_HISTORY_MAX_OUTPUT_BYTES = 8_388_608;
 
 export const defaultGitExecFile: GitExecFile = async (file, args, options) => {
   const { stdout, stderr } = await execFileAsync(file, args as string[], {

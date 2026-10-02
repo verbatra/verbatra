@@ -315,11 +315,6 @@ sits at that path, or the disk is full, throws `TMX_UNWRITABLE` naming the file 
 code. Only entries under the current configuration fingerprint are written, which is the same set a
 run would reuse. Language tags are written in BCP 47 form (`en_US` becomes `en-US`), which does not
 change how the memory is keyed. An empty memory produces a valid, empty file rather than an error.
-Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts
-entries left out because the memory holds no source text for them, which happens only for entries
-carried forward from a cache written before the memory stored source text, and
-`illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from
-segment text.
 
 ```ts title="Signature"
 function exportTmx(
@@ -333,6 +328,8 @@ function exportTmx(
 **Returns:** `ExportTmxResult`
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts entries left out because the memory holds no source text for them, which happens only for entries carried forward from a cache written before the memory stored source text, and `illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from segment text.
 
 <AvailableFrom version="0.12.0" />
 

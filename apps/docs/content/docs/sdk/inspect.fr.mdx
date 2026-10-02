@@ -11,7 +11,7 @@ Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modi
 
 <AvailableFrom version="0.9.0" />
 
-Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne lit jamais la valeur d'une clé d'API et ne fait aucune requête réseau sauf si `live` en demande une. Chaque vérification rend son propre verdict `pass`, `fail` ou `skipped`, et toutes s'exécutent même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. [`verbatra doctor`](/docs/cli/doctor#ce-quil-vérifie) liste les vérifications. La clé d'API est vérifiée par son nom uniquement, et la vérification du fichier source l'analyse : un répertoire à sa place, un fichier vide et un contenu malformé sont tous signalés.
+Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne lit jamais la valeur d'une clé d'API et ne fait aucune requête réseau sauf si `live` en demande une. Chaque vérification rend son propre verdict `pass`, `fail` ou `skipped`, et toutes s'exécutent même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. [`verbatra doctor`](/docs/cli/doctor#ce-quil-vérifie) liste les vérifications. La clé d'API est vérifiée par son nom uniquement ; le fichier source est analysé, pas seulement trouvé.
 
 ```ts title="Signature"
 function doctor(
@@ -42,13 +42,13 @@ Avec `literals` activé, `doctor` n'exécute que la vérification `config` et, �
 
 <AvailableFrom version="0.12.0" />
 
-Chaque vérification en échec porte `fix`, une prochaine étape courte à l'impératif comme « Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory. ». Une vérification réussie ou ignorée n'a pas de `fix`. Comme `detail`, il nomme des variables et des chemins, jamais la valeur d'une clé.
+Chaque vérification en échec porte `fix`, une prochaine étape courte à l'impératif. Une vérification réussie ou ignorée n'a pas de `fix`. Comme `detail`, il nomme des variables et des chemins, jamais la valeur d'une clé.
 
 ### extract
 
 <AvailableFrom version="0.11.0" />
 
-Analyse le code de ton application à la recherche des sites d'appel de traduction et fusionne ce qu'il trouve dans le catalogue de la locale source. C'est le seul point d'entrée qui lit du code applicatif plutôt qu'un fichier de locale, et c'est ce qui rend verbatra utilisable sur un projet qui n'a pas encore de catalogue. Il ne dépense rien : aucun fournisseur n'est construit, aucune variable d'environnement contenant une clé d'API n'est lue et aucune requête réseau n'est faite.
+Analyse le code de ton application à la recherche des sites d'appel de traduction et fusionne ce qu'il trouve dans le catalogue de la locale source : il fonctionne donc sur un projet qui n'a pas encore de catalogue. Il ne dépense rien : aucun fournisseur n'est construit, aucune variable d'environnement contenant une clé d'API n'est lue et aucune requête réseau n'est faite.
 
 ```ts title="Signature"
 function extract(
@@ -88,7 +88,7 @@ Renvoie un `CheckSummary` dont `inSync` est vrai exactement quand chaque locale 
 
 <AvailableFrom version="0.11.0" />
 
-Avec `consistency: true`, chaque `LocaleCheckSummary` porte aussi `inconsistencies` : un `InconsistencyGroup` par chaîne source que la locale traduit de plusieurs façons sous des clés différentes, avec la `source`, chaque traduction distincte sous forme `{ value, keys }` et le `context`, la `description`, le `meaning`, `isPlural` et `pluralForm` que partagent les clés regroupées. Ce n'est qu'un rapport : il ne change jamais `inSync`, un compte ou un fichier, et n'appelle aucun fournisseur.
+Avec `consistency: true`, chaque `LocaleCheckSummary` porte aussi `inconsistencies` : un `InconsistencyGroup` par chaîne source que la locale traduit de plusieurs façons sous des clés différentes, avec la `source`, chaque traduction distincte sous forme `{ value, keys }` et le `context`, la `description`, le `meaning`, `isPlural` et `pluralForm` que partagent les clés regroupées. Ce n'est qu'un rapport : il ne change jamais `inSync`, un compte ou un fichier.
 
 <AvailableFrom version="0.12.0" />
 
@@ -124,6 +124,10 @@ C'est un avertissement : il ne change jamais `inSync` ni un compteur. Voir
 [catégories de pluriel](/docs/cli/check#catégories-de-pluriel).
 
 Avec `requireReviewed: true`, `check` exécute aussi la barrière de relecture, sans clé et sans rien écrire : chaque `LocaleCheckSummary` porte `review: { unreviewed }`, les clés dont la valeur a une origine de machine et n'est pas approuvée, et le résumé porte `review: { reviewed, unreviewed, code? }`. `code` vaut `REVIEW_REQUIRED` quand une valeur n'est pas approuvée, ou `REVIEW_STATE_UNREADABLE` quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, ce qui fait échouer la barrière au lieu de la laisser passer. Le rapport ne change jamais `inSync` ; une barrière de CI lit `review.reviewed`. Voir [`verbatra check`](/docs/cli/check).
+
+<AvailableFrom version="0.12.0" />
+
+Avec `sensitive: true`, `check` examine aussi le fichier source et le glossaire de chaque locale rapportée avec les règles `sensitiveData` de la config, quels que soient le fournisseur et le mode, sans clé et sans rien écrire : le résumé porte `sensitive: { findings, glossaryTerms }`, un `{ key, fields, detectors }` par clé signalée, jamais le texte trouvé. Une barrière de CI échoue sur l'un ou l'autre.
 
 ### checkFile
 
@@ -360,7 +364,7 @@ function provenanceReport(
 
 ### localeValues
 
-Lit le texte source et cible actuel de chaque clé, sur chaque locale cible demandée, en un seul passage sur les fichiers déjà présents sur le disque. C'est le pendant en masse de `keyValue` : utilise-le quand tu as besoin de contenu de traduction en masse, par exemple pour chercher ou parcourir des valeurs plutôt que de simples noms de clé, puisque `keyValue` ne répond que pour une clé à la fois. En lecture seule.
+Lit le texte source et cible actuel de chaque clé, sur chaque locale cible demandée, en un seul passage sur les fichiers déjà présents sur le disque, par exemple pour chercher des valeurs plutôt que des noms de clé : le pendant en masse de `keyValue`, qui ne répond que pour une clé à la fois. En lecture seule.
 
 ```ts title="Signature"
 function localeValues(
@@ -375,6 +379,6 @@ function localeValues(
 
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
-Un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, values }`, une entrée par locale, où `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source. `values` n'a pas de prototype : chaque clé, y compris une clé nommée `__proto__` ou `constructor`, est une propriété propre, et une clé absente du catalogue se lit comme `undefined`.
+Un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, keys, values }`, une entrée par locale : `keys` liste chaque clé dans l'ordre de la source, puis celles présentes seulement dans la cible, et `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source. `values` n'a pas de prototype : chaque clé, y compris une clé nommée `__proto__` ou `constructor`, est une propriété propre, et une clé absente du catalogue se lit comme `undefined`.
 
 Chaque paire avec une `target` porte aussi `provenance`, la même `KeyProvenance` que rapporte `keyValue`.

@@ -25,6 +25,8 @@ const LAZY_PROVIDER_PACKAGES = [
   "loglevel",
 ];
 
+const SDK_DECLARATIONS = ["packages/sdk/dist/index.d.ts", "packages/sdk/dist/index.d.cts"];
+
 const SDK_ENTRIES = ["packages/sdk/dist/index.js", "packages/sdk/dist/index.cjs"];
 
 const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
@@ -98,6 +100,67 @@ function findForbiddenSpecifiers(relativePath) {
     relativePath,
     PUBLISHED_PACKAGES,
   );
+}
+
+const RENAMED_DECLARATION =
+  /\b(?:type|interface|class|function|enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*\$\d+)\b/g;
+
+function findRenamedDeclarations(text, relativePath) {
+  const lines = text.split("\n");
+  const hits = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    for (const match of (lines[index] ?? "").matchAll(RENAMED_DECLARATION)) {
+      hits.push(`${relativePath}:${index + 1}: ${match[1]}`);
+    }
+  }
+  return hits;
+}
+
+const EXPORT_LIST = /^export\s*(?:type\s*)?\{([^}]*)\}/gm;
+
+const TOP_LEVEL_DECLARATION =
+  /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:type|interface|class|function|enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*)/gm;
+
+const MEMBER_DECLARATION = /^\s+(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*[:(<]/gm;
+
+const LINK_TARGET = /\{@link(?:code|plain)?\s+([A-Za-z_$][\w$]*)/g;
+
+function exportedNames(text) {
+  const names = new Set();
+  for (const match of text.matchAll(EXPORT_LIST)) {
+    for (const specifier of (match[1] ?? "").split(",")) {
+      const [local, alias] = specifier
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/);
+      const name = (alias ?? local ?? "").trim();
+      if (name !== "") {
+        names.add(name);
+      }
+    }
+  }
+  return names;
+}
+
+function namesMatching(text, pattern) {
+  return new Set([...text.matchAll(pattern)].map((match) => match[1]));
+}
+
+function findUnexportedLinks(text, relativePath) {
+  const exported = exportedNames(text);
+  const topLevel = namesMatching(text, TOP_LEVEL_DECLARATION);
+  const members = namesMatching(text, MEMBER_DECLARATION);
+  const isUnreachable = (name) => !exported.has(name) && (topLevel.has(name) || !members.has(name));
+  const lines = text.split("\n");
+  const hits = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    for (const match of (lines[index] ?? "").matchAll(LINK_TARGET)) {
+      if (isUnreachable(match[1])) {
+        hits.push(`${relativePath}:${index + 1}: ${match[1]}`);
+      }
+    }
+  }
+  return hits;
 }
 
 function moduleFormat(path, packageType) {
@@ -179,7 +242,28 @@ function checkDts() {
   if (hits.length > 0) {
     throw new Error(
       `published declarations reference ${hits.length} unpublished @verbatra/* package(s); ` +
-        `check dts.resolve in the owning tsup config:\n  ${hits.join("\n  ")}`,
+        `check the dts options in the owning tsup config:\n  ${hits.join("\n  ")}`,
+    );
+  }
+
+  const renamed = SDK_DECLARATIONS.flatMap((relativePath) =>
+    findRenamedDeclarations(readBuildOutput(relativePath), relativePath),
+  );
+  if (renamed.length > 0) {
+    throw new Error(
+      `the sdk declarations bundle a workspace type more than once, so the duplicate is renamed; ` +
+        `check dts.compilerOptions.paths in packages/sdk/tsup.config.ts:\n  ${renamed.join("\n  ")}`,
+    );
+  }
+
+  const unexportedLinks = findUnexportedLinks(
+    readBuildOutput(SDK_DECLARATIONS[0]),
+    SDK_DECLARATIONS[0],
+  );
+  if (unexportedLinks.length > 0) {
+    throw new Error(
+      "published JSDoc links to a name the sdk does not export; export it from " +
+        `packages/sdk/src/index.ts or write it as code:\n  ${unexportedLinks.join("\n  ")}`,
     );
   }
 
@@ -187,7 +271,7 @@ function checkDts() {
   runTsc("scripts/dts-fixture/tsconfig.json");
   runTsc("scripts/dts-fixture/tsconfig.cjs.json");
   return (
-    "declarations reference no unpublished package, every exports condition pairs matching " +
+    "declarations reference no unpublished package and bundle each type once, every JSDoc link names an export, every exports condition pairs matching " +
     "module formats, and the ESM and CommonJS consumer fixtures typecheck."
   );
 }
@@ -326,6 +410,8 @@ export {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findRenamedDeclarations,
+  findUnexportedLinks,
   getConfigSchemaFilesPattern,
   getConfigSchemaProviderRequired,
   hasZodJitlessConfig,

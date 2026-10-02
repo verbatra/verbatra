@@ -69,10 +69,10 @@ Affine le type d'un identifiant de format en un identifiant tiers : true pour un
 ```ts title="Signature"
 function isCustomFormatId(
   format: string,
-): format is CustomFormatId$1;
+): format is CustomFormatId;
 ```
 
-**Renvoie :** `format is CustomFormatId$1`
+**Renvoie :** `format is CustomFormatId`
 
 ## Expurgation des secrets
 
@@ -144,7 +144,10 @@ function declareProviderKeyEnvVar(
 
 Un fournisseur que le SDK ne livre pas se branche via `deps.createProvider`, un `CreateProvider`
 qui renvoie un `TranslationProvider`. Le SDK exporte tout le contrat sous forme de types, donc ton
-fournisseur est vérifié contre la même interface que celle des fournisseurs intégrés.
+fournisseur est vérifié contre la même interface que celle des fournisseurs intégrés. Cela
+inclut les types de ses champs : `Tone`, `PluralCategories`, `PlaceholderExtractor` et
+`PlaceholderComparator` dans la requête, `Usage`, `ProviderNotice`, `ProviderNoticeCode` et
+`ReviewFlag` dans le résultat, et `NetworkPolicy` et `NetworkRule` dans `ProviderNetwork`.
 
 ```ts
 import {

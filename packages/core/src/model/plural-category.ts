@@ -4,7 +4,7 @@
  */
 export const PLURAL_CATEGORIES = ["zero", "one", "two", "few", "many", "other"] as const;
 
-/** One CLDR plural category keyword, a member of {@link PLURAL_CATEGORIES}. */
+/** One CLDR plural category keyword: `zero`, `one`, `two`, `few`, `many`, or `other`. */
 export type PluralCategory = (typeof PLURAL_CATEGORIES)[number];
 
 /**

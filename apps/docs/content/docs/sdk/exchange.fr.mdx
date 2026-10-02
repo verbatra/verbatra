@@ -297,12 +297,7 @@ déjà ce chemin ou que le disque est plein, lève `TMX_UNWRITABLE` avec le fich
 système de fichiers dans le message. Seules les entrées sous l'empreinte de configuration actuelle
 sont écrites, c'est-à-dire l'ensemble qu'une exécution réutiliserait. Les étiquettes de langue sont
 écrites sous forme BCP 47 (`en_US` devient `en-US`), ce qui ne change pas l'indexation de la
-mémoire. Une mémoire vide produit un fichier valide et vide, pas une erreur. Renvoie `{ path, units,
-locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de
-côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées
-héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et
-`illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été
-retirés du texte des segments.
+mémoire. Une mémoire vide produit un fichier valide et vide, pas une erreur.
 
 ```ts title="Signature"
 function exportTmx(
@@ -316,6 +311,8 @@ function exportTmx(
 **Renvoie :** `ExportTmxResult`
 
 **Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Renvoie `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
 
 <AvailableFrom version="0.12.0" />
 

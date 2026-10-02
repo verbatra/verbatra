@@ -5,17 +5,27 @@ export {
   type GlossaryDraftTermCheck,
   type LocaleGlossary,
   type LocaleGlossaryTerm,
+  type NetworkPolicy,
+  type NetworkRule,
+  type PlaceholderComparator,
+  type PlaceholderExtractor,
+  type PluralCategories,
   ProviderError,
   type ProviderErrorCode,
   type ProviderKind,
   type ProviderNetwork,
+  type ProviderNotice,
+  type ProviderNoticeCode,
   type ProviderRetry,
   type ProviderRetryListener,
   REVIEW_REASON_CODES,
+  type ReviewFlag,
   type ReviewReasonCode,
+  type Tone,
   type TranslateRequest,
   type TranslateResult,
   type TranslationProvider,
+  type Usage,
 } from "@verbatra/ai-providers";
 export {
   type CustomFormatId,
@@ -37,6 +47,7 @@ export type {
   LiteralSuppressionReason,
   ScanDiagnostic,
   ScanDiagnosticReason,
+  SourceExtractor,
   SourceFramework,
   SourceLocation,
   SuppressedLiteral,
@@ -81,6 +92,7 @@ export {
 } from "@verbatra/format-adapters";
 export { CACHE_FILE_NAME } from "./cache/translation-memory.js";
 export type { TranslationMemory } from "./cache/types.js";
+export type { AuthoringConfig, AuthoringConfigFor } from "./config/authoring.js";
 export { defineConfig } from "./config/define-config.js";
 export type { ExtractionConfig } from "./config/extraction-config.js";
 export {
@@ -461,7 +473,7 @@ export {
   type ImportWorkbookInput,
   importWorkbook,
 } from "./flow/workbook/import-workbook.js";
-export type { DirectoryEntry, SdkFs } from "./fs.js";
+export type { BoundedBytesRead, BoundedFileRead, DirectoryEntry, SdkFs } from "./fs.js";
 export {
   createLocalePathResolver,
   type LocalePathResolver,

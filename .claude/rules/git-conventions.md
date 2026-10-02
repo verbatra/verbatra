@@ -89,7 +89,8 @@ commit message for commitlint.
   `@verbatra/extract`) needs a changeset too, naming `@verbatra/sdk` itself, not the private
   package, and follows the rules above (extend a theme file, nothing for a fix to an unreleased
   feature). tsup inlines that source straight into `packages/sdk/dist` (`WORKSPACE_INTERNALS` in
-  `packages/sdk/tsup.config.ts`, passed to both `noExternal` and `dts.resolve`), and the sdk
+  `packages/sdk/tsup.config.ts`, passed to `noExternal`, and each package's built
+  `dist/index.d.ts`, mapped through `dts.compilerOptions.paths`), and the sdk
   build always runs from the current checkout (`.github/workflows/release.yml`: the
   `Version or publish` job runs its own `Build` step rather than transferring an artifact from the
   `Verify build` job), so the change ships inside sdk's published bytes either way. Changesets

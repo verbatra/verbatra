@@ -26,23 +26,23 @@ export type KeyOrigin = ProvenanceOrigin | "unrecorded" | "external";
 export type KeyReviewState = "unreviewed" | "approved" | "rejected";
 
 /**
- * The origins whose values a person is asked to review: every write path a person did not write
- * through. `memory` counts because the translation memory records no author, so an exact hit can
- * be a provider's answer; `agent` counts because an AI agent's edit still needs a person's review.
- */
-export type MachineClassOrigin = "machine" | "memory" | "fuzzy" | "agent";
-
-/**
  * Every {@link MachineClassOrigin}, in the order reports list them. A value with one of these
  * origins that is not approved is in the review queue (see {@link reviewQueue}) and fails
  * `check --require-reviewed` (see {@link CheckInput.requireReviewed}).
  */
-export const MACHINE_CLASS_ORIGINS: readonly MachineClassOrigin[] = Object.freeze([
+export const MACHINE_CLASS_ORIGINS = Object.freeze([
   "machine",
   "memory",
   "fuzzy",
   "agent",
-]);
+] as const);
+
+/**
+ * The origins whose values a person is asked to review: every write path a person did not write
+ * through. `memory` counts because the translation memory records no author, so an exact hit can
+ * be a provider's answer; `agent` counts because an AI agent's edit still needs a person's review.
+ */
+export type MachineClassOrigin = (typeof MACHINE_CLASS_ORIGINS)[number];
 
 const MACHINE_CLASS: ReadonlySet<KeyOrigin> = new Set<KeyOrigin>(MACHINE_CLASS_ORIGINS);
 

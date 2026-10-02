@@ -156,5 +156,10 @@ export { REVIEW_REASON_CODES } from "./provider.js";
 export type { ProviderRetry, ProviderRetryListener } from "./provider-retry.js";
 export { findKeyShapes, matchSpans, redactKeys, type TextSpan } from "./redaction.js";
 export { ProviderRegistry, type ProviderResolution } from "./registry.js";
-export { computeReviewFlags, type ReviewFlagInput } from "./review-flags.js";
+export {
+  computeReviewFlags,
+  LENGTH_REVIEW_REASONS,
+  lengthReviewReasons,
+  type ReviewFlagInput,
+} from "./review-flags.js";
 export { SCAFFOLD_MODELS, SCAFFOLD_TOKEN_LIMIT_KEYS } from "./scaffold.js";
