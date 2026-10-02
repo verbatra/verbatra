@@ -96,7 +96,7 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist oder ein Locale bei `init --source` oder `--targets` kein BCP-47-Code ist.
+`pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist oder ein Locale, das bei einer interaktiven `init`-Abfrage eingegeben wurde, kein BCP-47-Code ist (die Flags `--source` und `--targets` scheitern stattdessen mit `CONFIG_INVALID`).
 
 - **Ausgelöst von**: `pseudo`, `init`
 - **Exit-Code**: `2`
@@ -104,7 +104,7 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 ### INVALID_LOCALES
 
-`--locales` angegeben wurde, aber kein Locale auflistet, oder die Ziel-Locales von `init` das Quell-Locale enthalten.
+`--locales` angegeben wurde, aber kein Locale auflistet, oder die bei einer interaktiven `init`-Abfrage eingegebenen Ziel-Locales das Quell-Locale enthalten.
 
 - **Ausgelöst von**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Exit-Code**: `2`

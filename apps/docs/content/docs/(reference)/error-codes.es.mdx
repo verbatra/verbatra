@@ -96,7 +96,7 @@ Un fallo no traía código propio (el código de reserva).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones, o un locale de `init --source` o `--targets` no es un código BCP 47.
+`pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones, o un locale respondido en una pregunta interactiva de `init` no es un código BCP 47 (los flags `--source` y `--targets` fallan en su lugar con `CONFIG_INVALID`).
 
 - **Lo lanza**: `pseudo`, `init`
 - **Código de salida**: `2`
@@ -104,7 +104,7 @@ Un fallo no traía código propio (el código de reserva).
 
 ### INVALID_LOCALES
 
-Se dio `--locales` pero no lista ningún locale, o los locales de destino de `init` incluyen el locale de origen.
+Se dio `--locales` pero no lista ningún locale, o los locales de destino respondidos en una pregunta interactiva de `init` incluyen el locale de origen.
 
 - **Lo lanza**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Código de salida**: `2`

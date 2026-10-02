@@ -96,7 +96,7 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` is not a language tag made of letters, digits, and hyphens, or an `init --source` or `--targets` locale is not a BCP 47 code.
+`pseudo --locale` is not a language tag made of letters, digits, and hyphens, or a locale answered at an interactive `init` prompt is not a BCP 47 code (the `--source` and `--targets` flags fail with `CONFIG_INVALID` instead).
 
 - **Raised by**: `pseudo`, `init`
 - **Exit code**: `2`
@@ -104,7 +104,7 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_LOCALES
 
-`--locales` was given but lists no locale, or the `init` target locales include the source locale.
+`--locales` was given but lists no locale, or the target locales answered at an interactive `init` prompt include the source locale.
 
 - **Raised by**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Exit code**: `2`

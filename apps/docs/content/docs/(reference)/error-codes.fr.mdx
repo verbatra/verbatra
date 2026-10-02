@@ -96,7 +96,7 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets, ou une locale d'`init --source` ou `--targets` n'est pas un code BCP 47.
+`pseudo --locale` n'est pas une étiquette de langue composée de lettres, de chiffres et de tirets, ou une locale saisie à une question interactive d'`init` n'est pas un code BCP 47 (les options `--source` et `--targets` échouent à la place avec `CONFIG_INVALID`).
 
 - **Levé par** : `pseudo`, `init`
 - **Code de sortie** : `2`
@@ -104,7 +104,7 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_LOCALES
 
-`--locales` a été donné mais ne liste aucune locale, ou les locales cibles d'`init` incluent la locale source.
+`--locales` a été donné mais ne liste aucune locale, ou les locales cibles saisies à une question interactive d'`init` incluent la locale source.
 
 - **Levé par** : `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Code de sortie** : `2`
