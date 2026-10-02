@@ -40,9 +40,9 @@ Hard rules a linter cannot enforce:
   regresses, not a comment.
 - JSDoc belongs only on the published API surface. The test is whether the
   declaration appears in the package's built `.d.ts`, not whether the package itself
-  is marked private: tsup's `dts.resolve` inlines types from private workspace
-  packages (e.g. `@verbatra/core`) into `packages/sdk/dist/index.d.ts`, so a
-  declaration there can be published API. Check the built output.
+  is marked private: tsup's `dts.compilerOptions.paths` inlines types from private
+  workspace packages (e.g. `@verbatra/core`) into `packages/sdk/dist/index.d.ts`,
+  so a declaration there can be published API. Check the built output.
 - A short list of comments are functional, not prose, and must survive any cleanup
   pass regardless: coverage directives, `biome-ignore` reason text, `@ts-expect-error`,
   `@vitest-environment jsdom` pragmas, shebangs, SHA-pin version comments in workflow
