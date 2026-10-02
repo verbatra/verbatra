@@ -1,15 +1,16 @@
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
+import type { PlaceholderIntegrityResult } from "@verbatra/core";
 import { endpointContextOf } from "../base-url.js";
 import { appliesTerms } from "../glossary.js";
 import type { ProviderCallContext } from "../guard.js";
-import { checkBatchIntegrity, type IntegrityInput } from "../integrity.js";
+import { checkBatchIntegrity } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import {
   containsMarkupTag,
-  type MaskedValue,
+  type OutgoingText,
   partitionForMasking,
-  unmaskPlaceholders,
+  type RestoredBatch,
+  restoreTranslations,
 } from "../placeholder-protection.js";
 import {
   type TranslateRequest,
@@ -33,12 +34,6 @@ import type {
 
 const PROVIDER_ID = "libretranslate";
 
-interface OutgoingText {
-  readonly entry: TranslationEntry;
-  readonly text: string;
-  readonly masked?: MaskedValue;
-}
-
 interface Call {
   readonly bundle: LibreTranslateClientBundle;
   readonly sourceLang: string;
@@ -46,13 +41,6 @@ interface Call {
   readonly timeoutMs: number;
   readonly context: ProviderCallContext | undefined;
   readonly signal: AbortSignal | undefined;
-}
-
-interface Restored {
-  readonly values: Map<string, string>;
-  readonly integrityInputs: IntegrityInput[];
-  readonly translated: TranslationEntry[];
-  readonly lost: number;
 }
 
 export interface LibreTranslateDeps {
@@ -111,7 +99,7 @@ async function translate(
     context,
     signal: request.signal,
   };
-  const restored = restore(outgoing, await send(call, outgoing));
+  const restored = restoreTranslations(zipTexts(outgoing, await send(call, outgoing)));
   const integrity = checkBatchIntegrity(
     restored.integrityInputs,
     request.extractPlaceholders,
@@ -162,31 +150,9 @@ async function send(call: Call, outgoing: readonly OutgoingText[]): Promise<read
   return translated;
 }
 
-function restore(outgoing: readonly OutgoingText[], translated: readonly string[]): Restored {
-  const values = new Map<string, string>();
-  const integrityInputs: IntegrityInput[] = [];
-  const kept: TranslationEntry[] = [];
-  let lost = 0;
-  for (const [item, text] of zipTexts(outgoing, translated)) {
-    const value = item.masked === undefined ? text : unmaskPlaceholders(text, item.masked);
-    if (value === undefined) {
-      lost += 1;
-      continue;
-    }
-    values.set(item.entry.key, value);
-    integrityInputs.push({
-      key: item.entry.key,
-      sourceValue: item.entry.value,
-      translatedValue: value,
-    });
-    kept.push(item.entry);
-  }
-  return { values, integrityInputs, translated: kept, lost };
-}
-
 function assembleResult(
   data: ValidatedRequestData,
-  restored: Restored,
+  restored: RestoredBatch,
   integrity: ReadonlyMap<string, PlaceholderIntegrityResult>,
   withheld: number,
 ): LibreTranslateResult {
