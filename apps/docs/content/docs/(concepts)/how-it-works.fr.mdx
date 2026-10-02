@@ -77,8 +77,8 @@ est retenue au lieu d'être écrite. Les vérifications sont sur
 ## Écrire via l'adaptateur
 
 Les traductions acceptées sont fusionnées dans la cible et écrites par l'adaptateur de format, de
-façon atomique et dans l'ordre des clés du document : une clé déjà présente dans la cible garde sa
-position, et une nouvelle clé arrive là où la source la place. Une écriture interrompue ne laisse
+façon atomique et dans un ordre de clés stable : une clé déjà présente dans la cible garde sa
+position, et les nouvelles clés sont ajoutées après les clés existantes, dans l'ordre de la source. Une écriture interrompue ne laisse
 jamais de fichier à moitié écrit, et les relecteurs voient des diffs petits et stables.
 
 ## Mettre à jour le fichier de verrouillage

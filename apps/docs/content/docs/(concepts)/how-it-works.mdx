@@ -75,8 +75,8 @@ instead of written. The checks are on [Translation safety](/docs/translation-saf
 ## Write through the adapter
 
 Accepted translations are merged into the target and written by the format adapter, atomically and
-in document key order: a key already in the target keeps its position, and a new key lands where
-the source puts it. An interrupted write never leaves a half-written file, and reviewers see small,
+in a stable key order: a key already in the target keeps its position, and new keys are appended
+after the existing ones, in source order. An interrupted write never leaves a half-written file, and reviewers see small,
 stable diffs.
 
 ## Update the lock
