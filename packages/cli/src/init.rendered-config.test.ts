@@ -105,6 +105,24 @@ describe("the scaffolded verbatra.config.ts", () => {
     expect(verbatraConfigSchema.parse(rendered).sensitiveData).toBe(undefined);
   });
 
+  it.each(["gemini", "deepl", "none"])(
+    "reports in --json exactly the config it wrote for %s",
+    async (provider) => {
+      const cap = captureStreams();
+      const code = await runInit(
+        { cwd: dir, yes: true, json: true, provider },
+        cap.streams,
+        nonInteractive,
+      );
+      expect(code).toBe(0);
+
+      const envelope = JSON.parse(cap.out()) as { result: { config: unknown } };
+      const written = evaluateRenderedConfig(readFileSync(join(dir, "verbatra.config.ts"), "utf8"));
+
+      expect(envelope.result.config).toEqual(written);
+    },
+  );
+
   it("names the token limit option each language model provider actually accepts", async () => {
     const cap = captureStreams();
     await runInit({ cwd: dir, yes: true, provider: "anthropic" }, cap.streams, nonInteractive);
