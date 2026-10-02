@@ -17,7 +17,7 @@ export const PLACEHOLDER_SYNTAXES = [
 
 export type PlaceholderSyntax = (typeof PLACEHOLDER_SYNTAXES)[number];
 
-const IDENTIFIER = "(?:\\p{Nd}+|[\\p{L}_$][\\p{L}\\p{M}\\p{N}_$.-]*)";
+const IDENTIFIER = "(?:\\p{Nd}+|[\\p{L}_$][\\p{L}\\p{M}\\p{Nd}_$.-]*)";
 
 const ICU_ARGUMENT_TYPES =
   "(?:plural|selectordinal|select|number|date|time|spellout|ordinal|duration|choice)";

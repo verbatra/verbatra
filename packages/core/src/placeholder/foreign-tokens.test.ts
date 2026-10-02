@@ -84,12 +84,16 @@ describe("foreignPlaceholderTokens", () => {
     },
   );
 
-  it.each(["{名 前}", "{·名}", "{̈a}", "%(名前)s", "%名"])(
+  it.each(["{名 前}", "{·名}", "{̈a}", "{a½}", "%名"])(
     "keeps a non-ASCII run that is no identifier quiet: %s",
     (value) => {
       expect(foreignPlaceholderTokens(value, NONE)).toEqual([]);
     },
   );
+
+  it("keeps python-named names ASCII-only, so %(名前)s stays quiet", () => {
+    expect(foreignPlaceholderTokens("Hi %(名前)s", NONE)).toEqual([]);
+  });
 
   it("does not read %(name)s as a printf token", () => {
     expect(foreignPlaceholderTokens("Hi %(name)s", ["python-named"])).toEqual([]);
