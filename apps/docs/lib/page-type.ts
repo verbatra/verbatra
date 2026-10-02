@@ -18,6 +18,15 @@ export const CLI_REFERENCE_PAGES: readonly string[] = ["index", "output"];
 
 export const COMMAND_PAGE_CEILING = 2000;
 
+export const HEADROOM_WARNING_RATIO = 0.9;
+
+export type PageBudget = {
+  readonly file: string;
+  readonly type: PageType;
+  readonly words: number;
+  readonly ceiling: number;
+};
+
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
 
 export function proseWords(source: string): number {
@@ -46,4 +55,32 @@ export function wordCeiling(file: string, type: PageType): number {
   if (LOOKUP_REFERENCE_PAGES.has(file)) return LOOKUP_REFERENCE_CEILING;
   if (isCommandPage(file)) return Math.min(WORD_CEILING[type], COMMAND_PAGE_CEILING);
   return WORD_CEILING[type];
+}
+
+export function pageBudget(file: string, source: string): PageBudget | undefined {
+  const type = pageType(source);
+  if (type === undefined || !isPageType(type)) return undefined;
+  return { file, type, words: proseWords(source), ceiling: wordCeiling(file, type) };
+}
+
+export function pagesNearCeiling(budgets: readonly PageBudget[]): PageBudget[] {
+  return budgets
+    .filter(({ words, ceiling }) => words >= ceiling * HEADROOM_WARNING_RATIO)
+    .sort((a, b) => b.words / b.ceiling - a.words / a.ceiling || a.file.localeCompare(b.file));
+}
+
+export function formatBudgetReport(budgets: readonly PageBudget[]): string {
+  const near = pagesNearCeiling(budgets);
+  const percent = Math.round(HEADROOM_WARNING_RATIO * 100);
+  if (near.length === 0) return `No page is at or above ${percent}% of its ceiling.`;
+  const rows = near.map(({ file, type, words, ceiling }) =>
+    [
+      file.padEnd(48),
+      type.padEnd(9),
+      `${words}/${ceiling}`.padStart(11),
+      `${Math.round((words / ceiling) * 100)}%`.padStart(5),
+      `${ceiling - words} left`.padStart(10),
+    ].join(" "),
+  );
+  return [`Pages at or above ${percent}% of their ceiling: ${near.length}`, ...rows].join("\n");
 }

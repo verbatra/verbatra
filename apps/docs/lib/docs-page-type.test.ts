@@ -5,10 +5,14 @@ import { englishDocsPages } from "./docs-pages";
 import { i18n } from "./i18n";
 import {
   COMMAND_PAGE_CEILING,
+  formatBudgetReport,
   isPageType,
   LOOKUP_REFERENCE_CEILING,
   LOOKUP_REFERENCE_PAGES,
+  type PageBudget,
   type PageType,
+  pageBudget,
+  pagesNearCeiling,
   pageType,
   proseWords,
   WORD_CEILING,
@@ -102,5 +106,44 @@ describe("page type frontmatter", () => {
   it("fails a page that runs past its ceiling, so the check is not vacuous", () => {
     const padded = `---\ntype: how-to\n---\n${"word ".repeat(WORD_CEILING["how-to"] + 1)}`;
     expect(proseWords(padded)).toBeGreaterThan(WORD_CEILING["how-to"]);
+  });
+});
+
+describe("the headroom report", () => {
+  const budget = (file: string, words: number): PageBudget => ({
+    file,
+    type: "how-to",
+    words,
+    ceiling: WORD_CEILING["how-to"],
+  });
+
+  it("lists a page from 90 percent of its ceiling, fullest first, and nothing below", () => {
+    const near = pagesNearCeiling([
+      budget("a.mdx", 1079),
+      budget("b.mdx", 1080),
+      budget("c.mdx", 1199),
+    ]);
+    expect(near.map(({ file }) => file)).toEqual(["c.mdx", "b.mdx"]);
+  });
+
+  it("prints each listed page with its words, ceiling, share and room left", () => {
+    const report = formatBudgetReport([budget("(guides)/x.mdx", 1150)]);
+    expect(report).toMatch(
+      /^Pages at or above 90% of their ceiling: 1\n\(guides\)\/x\.mdx +how-to +1150\/1200 +96% +50 left$/,
+    );
+    expect(formatBudgetReport([budget("y.mdx", 10)])).toBe(
+      "No page is at or above 90% of its ceiling.",
+    );
+  });
+
+  it("measures every typed page with the same counter and ceiling as the ceiling test", () => {
+    for (const [file, type] of typedPages()) {
+      expect(pageBudget(file, readPage(file))).toEqual({
+        file,
+        type,
+        words: proseWords(readPage(file)),
+        ceiling: wordCeiling(file, type),
+      });
+    }
   });
 });
