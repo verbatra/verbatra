@@ -157,6 +157,28 @@ describe("run check --qa: rendering", () => {
     );
   });
 
+  it("names each dropped other-syntax placeholder of a warning finding", async () => {
+    const summary = qaSummary({
+      checked: 1,
+      errors: 0,
+      warnings: 1,
+      findings: [
+        {
+          key: "greeting",
+          severity: "warning",
+          reason: "FOREIGN_PLACEHOLDER_CHANGED",
+          details: ["-{name}"],
+        },
+      ],
+    });
+    const { deps } = recordingDeps({ check: async () => summary });
+    const cap = captureStreams();
+
+    await run(["check", "--qa"], deps, cap.streams);
+
+    expect(cap.out()).toContain("    greeting: warning FOREIGN_PLACEHOLDER_CHANGED (-{name})");
+  });
+
   it("reports a clean locale and the skipped invalid source keys", async () => {
     const summary = qaSummary(
       { checked: 1, errors: 0, warnings: 0, findings: [] },

@@ -3,7 +3,8 @@
 "@verbatra/cli": minor
 ---
 
-CLDR plural rules, ICU arm checks, and `check --qa` and `check --file` for committed files.
+CLDR plural rules, ICU arm checks, other-syntax placeholder warnings, and `check --qa` and
+`check --file` for committed files.
 
 **Plurals and ICU arms**
 - Plural categories come from CLDR through `Intl.PluralRules` for every language, and i18next
@@ -18,6 +19,16 @@ CLDR plural rules, ICU arm checks, and `check --qa` and `check --file` for commi
 - Each locale carries `integrityRefusals` with the reason and details per withheld key.
 - `LENGTH_RATIO_OUTLIER` counts graphemes weighted by script, so correct Chinese, Japanese or
   Korean is no longer flagged.
+
+**Placeholders of another syntax**
+- A translation that drops or changes a token shaped like a placeholder the format does not
+  protect, such as `{name}` in an i18next value or `%{count}` in YAML, is flagged
+  `FOREIGN_PLACEHOLDER_CHANGED` by translation runs, `retranslateEntry`, exports and `check --qa`.
+  The value is still written, and translated ICU arms are never flagged.
+- `check --qa` names each missing token in the warning's `details`, as `-{name}`.
+- Each locale reports `SOURCE_FOREIGN_PLACEHOLDERS` naming its pending keys that hold such a
+  token, on a dry run too, so you can review them or change the syntax before anything is spent.
+  Formats from third-party adapters are not checked.
 
 **Checking committed translations**
 - `verbatra check --qa` runs the integrity and review checks over every committed value, keyless

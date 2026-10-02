@@ -487,7 +487,7 @@ function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
 
 function renderFindingReason(finding: QaFinding): string {
   const details =
-    finding.severity === "error" && finding.details !== undefined
+    finding.details !== undefined
       ? ` (${finding.details.map(neutralizeControlCharacters).join(", ")})`
       : "";
   return `${finding.reason}${details}`;

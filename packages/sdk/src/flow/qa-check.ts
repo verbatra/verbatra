@@ -4,6 +4,10 @@ import type { FormatAdapter } from "@verbatra/format-adapters";
 import { glossaryForLocale } from "../config/glossary.js";
 import { toMaxLengthMap } from "../config/max-length.js";
 import type { VerbatraConfig } from "../config/schema.js";
+import {
+  droppedForeignPlaceholders,
+  withDroppedPlaceholderReason,
+} from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
 import { planPluralGeneration } from "./plural-categories.js";
 
@@ -41,7 +45,8 @@ export interface QaIntegrityFinding {
 /**
  * A committed translation that passes the integrity gate but carries a review reason: a length
  * far from the source's, a value over its `maxLength` budget, an untranslated copy of the source, a
- * glossary term the value does not use, or placeholders in a different order.
+ * glossary term the value does not use, placeholders in a different order, or a placeholder of
+ * another syntax than the project's format that the value dropped or changed.
  */
 export interface QaReviewFinding {
   /** The key whose committed value is flagged. */
@@ -50,6 +55,12 @@ export interface QaReviewFinding {
   readonly severity: "warning";
   /** The review reason, one of the {@link REVIEW_REASON_CODES} computed from the two values alone. */
   readonly reason: ReviewReasonCode;
+  /**
+   * What is behind a `FOREIGN_PLACEHOLDER_CHANGED` warning: each placeholder of another syntax
+   * than the project's format that the value dropped or changed, prefixed with `-`, the notation a
+   * `placeholder` error uses. Absent for every other reason.
+   */
+  readonly details?: readonly string[];
 }
 
 /** One finding of a quality check, told apart by its `severity`. */
@@ -170,7 +181,23 @@ function findingsFor(context: QaContext, locale: string, pair: QaPair): readonly
     glossary: glossaryForLocale(context.config.glossary, locale),
     maxLength: context.maxLength?.get(pair.sourceEntry.key),
   });
-  return (flag?.reasons ?? []).map((reason) => ({ key: pair.key, severity: "warning", reason }));
+  const dropped = droppedForeignPlaceholders(
+    context.adapter.format,
+    pair.sourceEntry.value,
+    pair.value,
+  );
+  const reasons = withDroppedPlaceholderReason(flag, dropped)?.reasons ?? [];
+  return reasons.map((reason) => reviewFinding(pair.key, reason, dropped));
+}
+
+function reviewFinding(
+  key: string,
+  reason: ReviewReasonCode,
+  dropped: readonly string[],
+): QaReviewFinding {
+  return reason === "FOREIGN_PLACEHOLDER_CHANGED"
+    ? { key, severity: "warning", reason, details: dropped.map((token) => `-${token}`) }
+    : { key, severity: "warning", reason };
 }
 
 function byKey(a: QaPair, b: QaPair): number {

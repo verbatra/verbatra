@@ -597,3 +597,90 @@ describe("runLocale: which keys a budget actually reaches", () => {
     expect(result.summary.needsReview).toEqual([]);
   });
 });
+
+describe("runLocale: a dropped placeholder of a foreign syntax", () => {
+  it("flags a cached value that drops it", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {name}, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(sourceResource, "greeting", "Hallo, willkommen zurück!"),
+            fingerprint: FINGERPRINT,
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["greeting"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["FOREIGN_PLACEHOLDER_CHANGED"] },
+    ]);
+  });
+
+  it("flags a provider value and every content duplicate that reuses it", async () => {
+    const { dir, sourceResource } = await setup({
+      a: "Hello {name}, welcome back!",
+      b: "Hello {name}, welcome back!",
+    });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "a", value: "Hallo, willkommen zurück!" }]),
+            providerKind: "llm",
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.translated).toEqual(["a", "b"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "a", reasons: ["FOREIGN_PLACEHOLDER_CHANGED"] },
+      { key: "b", reasons: ["FOREIGN_PLACEHOLDER_CHANGED"] },
+    ]);
+  });
+
+  it("keeps the provider's own reasons ahead of it", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {name}, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: {
+            kind: "translate",
+            provider: stubProvider([{ key: "greeting", value: "Hallo" }]),
+            providerKind: "llm",
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["LENGTH_RATIO_OUTLIER", "FOREIGN_PLACEHOLDER_CHANGED"] },
+    ]);
+  });
+
+  it("stays quiet when the provider keeps it", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello {name}, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          mode: {
+            kind: "translate",
+            provider: stubProvider([
+              { key: "greeting", value: "Hallo {name}, willkommen zurück!" },
+            ]),
+            providerKind: "llm",
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.needsReview).toEqual([]);
+  });
+});

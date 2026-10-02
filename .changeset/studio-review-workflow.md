@@ -13,7 +13,8 @@ Saved review decisions from committed files, bulk and keyboard review, rate-limi
 **Review queue**
 - The queue lists every value a provider, the translation memory, a fuzzy match or an agent wrote
   that nobody has approved, so every teammate who pulls the files sees the same queue. Each row
-  shows its current translation, origin and the last run's flags.
+  shows its current translation, origin and the last run's flags, including **Other-syntax
+  placeholder changed** for a translation that dropped or changed such a placeholder.
 - Filters narrow the queue by origin and review state. **Approve all in <locale>** approves a whole
   locale after a confirmation.
 - Reject asks for confirmation and removes the translation so the next run replaces it.

@@ -5,22 +5,22 @@ type: reference
 ---
 A format adapter reads a locale file into one format-neutral shape for the diff, hashing and integrity checks, then writes it back in the file's own shape. Set the `format` key of your [config](/docs/config-file) to one of these ids:
 
-| `format` | Files | Placeholders | Plurals | Missing target file |
-| --- | --- | --- | --- | --- |
-| `i18next-json` | i18next JSON (`.json`) | `{{name}}`, `$t(...)` | CLDR key suffix | created |
-| `vue-i18n-json` | vue-i18n JSON (`.json`) | `{name}`, `{0}` | pipe in the value | created |
-| `next-intl-json` | next-intl JSON (`.json`) | ICU arguments and tags | ICU `plural`, `selectordinal` | created |
-| `ngx-translate-json` | ngx-translate JSON (`.json`) | `{{name}}` | none | created |
-| `xliff` | XLIFF 1.2 and 2.0 (`.xlf`, `.xliff`) | inline elements, `{name}` | none | refused |
-| `yaml` | YAML (`.yml`, `.yaml`) | `{{name}}` | none | created |
-| `arb` | Flutter ARB (`.arb`) | ICU arguments and tags | ICU `plural`, `selectordinal` | created |
-| `properties` | Java/Spring properties (`.properties`) | MessageFormat `{0}`, `{count}` | none | created |
-| `apple-strings` | Apple `.strings`, with its `.stringsdict` | printf `%@`, `%d` | `.stringsdict` categories | created |
-| `apple-xcstrings` | Xcode String Catalogs (`.xcstrings`) | printf `%@`, `%lld` | `variations.plural` | refused |
-| `android-xml` | Android `strings.xml` | printf `%s`, `%1$s` | `<plurals>` quantities | created |
-| `gettext-po` | gettext (`.po`, `.pot`) | printf, `%(name)s` | `msgstr[n]` | created |
-| `ini` | INI (`.ini`) | `{name}`, `{0}` | none | created |
-| `resx` | .NET resources (`.resx`) | composite `{0}`, `{1:C}` | none | created |
+| `format` | Files | Placeholders | Plurals | Missing target file | [Native placeholder syntax](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| --- | --- | --- | --- | --- | --- |
+| `i18next-json` | i18next JSON (`.json`) | `{{name}}`, `$t(...)` | CLDR key suffix | created | `{{name}}` |
+| `vue-i18n-json` | vue-i18n JSON (`.json`) | `{name}`, `{0}` | pipe in the value | created | `{name}`, `%{name}`, `${name}` |
+| `next-intl-json` | next-intl JSON (`.json`) | ICU arguments and tags | ICU `plural`, `selectordinal` | created | `{name}`, `%{name}`, `${name}` |
+| `ngx-translate-json` | ngx-translate JSON (`.json`) | `{{name}}` | none | created | `{{name}}` |
+| `xliff` | XLIFF 1.2 and 2.0 (`.xlf`, `.xliff`) | inline elements, `{name}` | none | refused | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `yaml` | YAML (`.yml`, `.yaml`) | `{{name}}` | none | created | `{{name}}` |
+| `arb` | Flutter ARB (`.arb`) | ICU arguments and tags | ICU `plural`, `selectordinal` | created | `{name}`, `%{name}`, `${name}` |
+| `properties` | Java/Spring properties (`.properties`) | MessageFormat `{0}`, `{count}` | none | created | `{name}`, `%{name}`, `${name}` |
+| `apple-strings` | Apple `.strings`, with its `.stringsdict` | printf `%@`, `%d` | `.stringsdict` categories | created | printf `%s` |
+| `apple-xcstrings` | Xcode String Catalogs (`.xcstrings`) | printf `%@`, `%lld` | `variations.plural` | refused | printf `%s` |
+| `android-xml` | Android `strings.xml` | printf `%s`, `%1$s` | `<plurals>` quantities | created | printf `%s` |
+| `gettext-po` | gettext (`.po`, `.pot`) | printf, `%(name)s` | `msgstr[n]` | created | printf `%s`, `%(name)s` |
+| `ini` | INI (`.ini`) | `{name}`, `{0}` | none | created | `{name}`, `%{name}`, `${name}` |
+| `resx` | .NET resources (`.resx`) | composite `{0}`, `{1:C}` | none | created | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
 The format decides which placeholders the [integrity check](/docs/translation-safety) compares and, for the ICU formats, which values are validated, so match it to your i18n library.
 

@@ -1,3 +1,10 @@
+import {
+  PRINTF_ANY_CONVERSION,
+  PRINTF_FLAGS_WIDTH_PRECISION,
+  PRINTF_LENGTH,
+  PRINTF_POSITION,
+} from "./printf-syntax.js";
+
 const SUBMESSAGE_TYPES = new Set(["plural", "select", "selectordinal", "choice"]);
 
 const ARGUMENT_NAME = /^(?:\d+|[A-Za-z_$][\w$-]*)$/;
@@ -8,8 +15,8 @@ const PROTECTED_TOKEN = new RegExp(
     "\\$t\\([^()]*\\)",
     "%#@\\w+@",
     "%%",
-    "%\\(\\w+\\)[-+0#]*(?:[1-9]\\d*)?(?:\\.\\d+)?[A-Za-z@]",
-    "%(?:\\d+\\$)?[-+0#]*(?:[1-9]\\d*)?(?:\\.\\d+)?(?:hh|h|ll|l|q|z|j|t|L)?[A-Za-z@]",
+    `%\\(\\w+\\)${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_ANY_CONVERSION}`,
+    `%${PRINTF_POSITION}${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_LENGTH}${PRINTF_ANY_CONVERSION}`,
     "</?[A-Za-z0-9][^<>]*>",
     "&#?[A-Za-z0-9]+;",
     "@(?:\\.[A-Za-z]+)?:(?:\\([^()]*\\)|[A-Za-z0-9_.-]+)",

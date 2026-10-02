@@ -30,6 +30,7 @@ import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { readTarget } from "./diff-locales.js";
+import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
 import { assertConfiguredLocalesSupported } from "./locale-capabilities.js";
 import { carryOverBeforeWrite } from "./locale-carry-over.js";
@@ -99,11 +100,12 @@ export type RetranslateEntryResult =
       /** The newly translated value now stored for the key. */
       readonly value: string;
       /**
-       * Quality signals the provider layer raised for this value, such as a length-ratio outlier,
-       * a value identical to the source, or `MAX_LENGTH_EXCEEDED` for a value over the key's
-       * configured `maxLength` budget. Never `FUZZY_CACHE_REUSE`, since this path always calls the
-       * provider and never consults the translation memory. Empty when nothing was flagged. The
-       * value is written either way; these are advisory.
+       * Quality signals raised for this value, such as a length-ratio outlier, a value identical
+       * to the source, `MAX_LENGTH_EXCEEDED` for a value over the key's configured `maxLength`
+       * budget, or `FOREIGN_PLACEHOLDER_CHANGED` for a placeholder of another syntax than the
+       * project's format that the value dropped or changed. Never `FUZZY_CACHE_REUSE`, since
+       * this path always calls the provider and never consults the translation memory. Empty
+       * when nothing was flagged. The value is written either way; these are advisory.
        */
       readonly reviewReasons: readonly ReviewReasonCode[];
     }
@@ -173,7 +175,13 @@ async function translateOne(context: UnderLockContext) {
       `The provider returned no translated value for key "${context.key}".`,
     );
   }
-  return { value, reviewReasons: result.reviewFlags?.get(context.key)?.reasons ?? [] };
+  const flag = withForeignPlaceholderReason(
+    result.reviewFlags?.get(context.key),
+    adapter.format,
+    sourceEntry.value,
+    value,
+  );
+  return { value, reviewReasons: flag?.reasons ?? [] };
 }
 
 async function saveAccepted(

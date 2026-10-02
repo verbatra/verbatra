@@ -95,6 +95,81 @@ describe("the formats page lists every built-in format", () => {
   });
 });
 
+const SYNTAX_SAMPLES = new Map([
+  ["{{name}}", "double-brace"],
+  ["{name}", "single-brace"],
+  ["%s", "printf"],
+  ["%(name)s", "python-named"],
+  ["%{name}", "ruby"],
+  ["$" + "{name}", "dollar-brace"],
+]);
+
+function syntaxList(text, named) {
+  const inner = text.trim().replace(/^\[|\]$/g, "");
+  return inner
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item !== "")
+    .flatMap((item) => {
+      const reference = /^(?:\.\.\.)?([A-Z_]+)$/.exec(item)?.[1];
+      return reference === undefined ? [item.replace(/"/g, "")] : (named.get(reference) ?? []);
+    });
+}
+
+function nativePlaceholderSyntaxes() {
+  const source = readRepoFile("packages/sdk/src/flow/foreign-placeholders.ts");
+  const named = new Map(
+    [...source.matchAll(/^const ([A-Z_]+): readonly PlaceholderSyntax\[\] = (\[[^\]]*\]);/gm)].map(
+      (match) => [match[1], syntaxList(match[2], new Map())],
+    ),
+  );
+  const body = /NATIVE_PLACEHOLDER_SYNTAXES[\s\S]*?= \{([\s\S]*?)\n\};/.exec(source)?.[1];
+  if (body === undefined) {
+    throw new Error("NATIVE_PLACEHOLDER_SYNTAXES could not be located in foreign-placeholders.ts");
+  }
+  return new Map(
+    [...body.matchAll(/^\s+"?([a-z0-9-]+)"?: (.+),$/gm)].map((match) => [
+      match[1],
+      syntaxList(match[2], named).sort(),
+    ]),
+  );
+}
+
+function documentedNativeSyntaxes(page) {
+  const table = tableStartingWith(page, (line) => line.startsWith("|"));
+  return new Map(
+    table.slice(2).map((row) => {
+      const cells = row.split(" | ");
+      const lastCell = cells[cells.length - 1] ?? "";
+      const syntaxes = codeSpans(lastCell).map((span) => SYNTAX_SAMPLES.get(span) ?? span);
+      return [codeSpans(firstCell(row))[0], syntaxes.sort()];
+    }),
+  );
+}
+
+describe("the formats overview names the placeholder syntaxes each format never flags", () => {
+  const native = nativePlaceholderSyntaxes();
+
+  it("reads one native syntax list per built-in format", () => {
+    expect([...native.keys()].sort()).toEqual([...supportedFormats()].sort());
+    expect(native.get("gettext-po")).toEqual(["printf", "python-named"]);
+    expect(native.get("ini")).toEqual(["dollar-brace", "ruby", "single-brace"]);
+  });
+
+  it.each(LOCALE_SUFFIXES)("formats%s.mdx matches NATIVE_PLACEHOLDER_SYNTAXES", (suffix) => {
+    expect(documentedNativeSyntaxes(readDocPage("(configure)/formats", suffix))).toEqual(native);
+  });
+
+  it("sees a dropped syntax in a row", () => {
+    const page = readDocPage("(configure)/formats", "").replace(
+      /^(\| `gettext-po` \|.*), `%\(name\)s` \|$/m,
+      "$1 |",
+    );
+
+    expect(documentedNativeSyntaxes(page).get("gettext-po")).toEqual(["printf"]);
+  });
+});
+
 function initDefaultPatterns() {
   const source = readRepoFile("packages/cli/src/init-config.ts");
   const table = /export const DEFAULT_LAYOUTS[^=]*= \{([\s\S]*?)\n\};/.exec(source)?.[1];
