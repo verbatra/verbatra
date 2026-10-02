@@ -239,10 +239,11 @@ même barrière juge les deux. Ce qui est comparé et quels refus sont voulus es
 attente n'apparaissent pas.
 
 **Cause** : la dépense chez le fournisseur s'accorde au démarrage, selon les règles de
-[Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation les actions de dépense ne sont
-pas enregistrées.
+[Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation
+les actions de dépense ne sont pas enregistrées.
 
-**Solution** : redémarre avec `verbatra studio --allow-spend`. Voir [Réviser dans Studio](/docs/review-in-studio).
+**Solution** : redémarre avec `verbatra studio --allow-spend`. Voir
+[Réviser dans Studio](/docs/review-in-studio).
 
 ## MCP : @verbatra/mcp n'est pas installé
 
@@ -260,9 +261,9 @@ pas enregistrées.
 **Symptôme** : les outils locaux fonctionnent, mais les deux outils de dépense manquent, et en
 appeler un par son nom échoue comme outil inconnu.
 
-**Cause** : la dépense s'accorde au démarrage, selon les règles des [Outils payants](/docs/cli/mcp#outils-payants),
-et la liste d'outils ne doit pas changer selon la connexion, donc les outils de dépense sont
-entièrement laissés de côté.
+**Cause** : la dépense s'accorde au démarrage, selon les règles des
+[Outils payants](/docs/cli/mcp#outils-payants), et la liste d'outils ne doit pas changer selon la
+connexion, donc les outils de dépense sont entièrement laissés de côté.
 
 **Solution** : redémarre avec `verbatra mcp --allow-spend`.
 

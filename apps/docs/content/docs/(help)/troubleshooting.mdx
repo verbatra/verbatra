@@ -230,9 +230,11 @@ first.
 **Symptom**: editing works, but the retranslate and translate-pending actions do not appear.
 
 **Cause**: provider spend is granted at startup, under the rules in
-[Spend and agent tools](/docs/cli/studio#spend-and-agent-tools), and without it the spend actions are not registered.
+[Spend and agent tools](/docs/cli/studio#spend-and-agent-tools), and without it the spend actions
+are not registered.
 
-**Fix**: restart with `verbatra studio --allow-spend`. See [Review in Studio](/docs/review-in-studio).
+**Fix**: restart with `verbatra studio --allow-spend`. See
+[Review in Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp is not installed
 
@@ -251,8 +253,8 @@ first.
 **Symptom**: the local tools work, but the two spend tools are absent, and calling one fails as an
 unknown tool.
 
-**Cause**: spend is granted at startup, under the rules in [Spend tools](/docs/cli/mcp#spend-tools), and the
-tool list must not change per connection, so the spend tools are left out entirely.
+**Cause**: spend is granted at startup, under the rules in [Spend tools](/docs/cli/mcp#spend-tools),
+and the tool list must not change per connection, so the spend tools are left out entirely.
 
 **Fix**: restart with `verbatra mcp --allow-spend`.
 

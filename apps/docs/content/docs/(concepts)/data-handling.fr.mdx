@@ -44,9 +44,9 @@ ce qu'il lit, vois [Studio et MCP](#studio-et-mcp).
 
 Seuls `translate`, `watch`, `retranslateEntry` du SDK, et les actions de retraduction et de
 traduction en attente de Studio et du serveur MCP (avec `--allow-spend`) appellent un fournisseur.
-Tout le reste, exécutions à blanc et estimations comprises, est local, sauf `verbatra doctor --live` :
-il récupère la liste des langues de DeepL, Google Cloud Translation ou LibreTranslate, en envoyant ta
-clé d'API et rien d'autre.
+Tout le reste, exécutions à blanc et estimations comprises, est local, sauf `verbatra doctor --live`
+: il récupère la liste des langues de DeepL, Google Cloud Translation ou LibreTranslate, en envoyant
+ta clé d'API et rien d'autre.
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un
@@ -94,12 +94,15 @@ payant avec les conditions qu'il te faut, ton propre serveur, ou aucune traducti
 
 ## Garder les textes en interne
 
-- **Pas de traduction automatique** : [Travailler sans traduction automatique](/docs/human-only-workflow).
+- **Pas de traduction automatique** :
+  [Travailler sans traduction automatique](/docs/human-only-workflow).
 
   <AvailableFrom version="0.12.0" />
 
-- **Ton propre modèle** : [`openai-compatible`](/docs/providers#openai-compatible) avec Ollama, LM Studio ou vLLM.
-- **Ta propre traduction automatique, sans modèle de langage** : [`libretranslate`](/docs/providers#libretranslate).
+- **Ton propre modèle** : [`openai-compatible`](/docs/providers#openai-compatible) avec Ollama, LM
+  Studio ou vLLM.
+- **Ta propre traduction automatique, sans modèle de langage** :
+  [`libretranslate`](/docs/providers#libretranslate).
 
   <AvailableFrom version="0.12.0" />
 
@@ -109,7 +112,8 @@ payant avec les conditions qu'il te faut, ton propre serveur, ou aucune traducti
 
 ### Recette : traduction automatique quand les modèles de langage sont interdits
 
-Déplacée vers [Politique réseau](/docs/network-policy#traduction-automatique-sans-modèle-de-langage).
+Déplacée vers
+[Politique réseau](/docs/network-policy#traduction-automatique-sans-modèle-de-langage).
 
 ## Ce qui est écrit en local
 

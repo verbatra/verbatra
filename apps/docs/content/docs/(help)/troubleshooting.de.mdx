@@ -243,10 +243,11 @@ sind, steht unter [Inline-Markup-Parität](/docs/translation-safety#inline-marku
 offener Keys erscheinen nicht.
 
 **Ursache**: Ausgaben beim Provider werden beim Start erlaubt, nach den Regeln unter
-[Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools), und ohne diese Erlaubnis werden die Ausgabe-Aktionen nicht
-registriert.
+[Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools), und ohne diese Erlaubnis
+werden die Ausgabe-Aktionen nicht registriert.
 
-**Lösung**: Starte neu mit `verbatra studio --allow-spend`. Siehe [Review in Studio](/docs/review-in-studio).
+**Lösung**: Starte neu mit `verbatra studio --allow-spend`. Siehe
+[Review in Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp ist nicht installiert
 
@@ -266,8 +267,8 @@ starte `verbatra mcp` erneut. Mit pnpm lies vorher
 per Name scheitert als unbekanntes Tool.
 
 **Ursache**: Ausgaben werden beim Start erlaubt, nach den Regeln unter
-[Kostenpflichtige Tools](/docs/cli/mcp#kostenpflichtige-tools), und die Tool-Liste darf sich nicht pro Verbindung ändern,
-also bleiben die Ausgabe-Tools ganz draußen.
+[Kostenpflichtige Tools](/docs/cli/mcp#kostenpflichtige-tools), und die Tool-Liste darf sich nicht
+pro Verbindung ändern, also bleiben die Ausgabe-Tools ganz draußen.
 
 **Lösung**: Starte neu mit `verbatra mcp --allow-spend`.
 

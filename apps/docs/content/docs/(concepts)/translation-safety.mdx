@@ -159,7 +159,8 @@ every candidate after it, to be retried next run.
 What the budget guarantees: work done before the ceiling stays written and locked, and nothing is
 left half-written. What it does not: a request in flight can cost more than projected, the ceiling
 bounds one run (not a `watch` session), and Studio or agent retranslations are not covered. The
-exact rules are under [`maxTokens` and `budgetBehavior`](/docs/config-file#maxtokens-and-budgetbehavior).
+exact rules are under
+[`maxTokens` and `budgetBehavior`](/docs/config-file#maxtokens-and-budgetbehavior).
 
 ## Errors never leak
 

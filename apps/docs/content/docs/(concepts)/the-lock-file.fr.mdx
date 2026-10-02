@@ -47,7 +47,8 @@ L'adoption se décide par la présence d'une clé, jamais par sa valeur, ce qui 
   la première exécution.
 
 La même règle garde les formes plurielles écrites à la main, donc `generatePlurals` est sans risque
-pendant l'adoption. Pour voir tout cela à l'avance, lance [`verbatra diff`](/docs/cli/diff) ou `verbatra translate --dry-run`.
+pendant l'adoption. Pour voir tout cela à l'avance, lance [`verbatra diff`](/docs/cli/diff) ou
+`verbatra translate --dry-run`.
 
 ## Comment il est mis à jour
 
@@ -65,8 +66,9 @@ triées, donc ses diffs restent petits et faciles à relire.
 
 Deux exécutions qui touchent la même locale en même temps pourraient toutes deux comparer avec une
 référence périmée et payer deux fois. Chaque écriture dans une locale prend donc un verrou
-inter-processus propre à cette locale, gardé sous `.verbatra-local/`. Un second écrivain attend, puis relit le fichier de verrouillage et compare avec une
-référence qui contient déjà le résultat du premier. Des locales différentes ne se bloquent jamais.
+inter-processus propre à cette locale, gardé sous `.verbatra-local/`. Un second écrivain attend,
+puis relit le fichier de verrouillage et compare avec une référence qui contient déjà le résultat du
+premier. Des locales différentes ne se bloquent jamais.
 
 Ce que le verrou garantit :
 
@@ -117,18 +119,18 @@ jamais écrasé. Si le report ne peut pas être écrit, cette locale ne tourne p
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), pour que
 l'exécution suivante réessaie ; les autres locales tournent normalement.
 
-Tant qu'une exécution ne l'a pas déplacé, chaque lecture traite l'ancien état comme celui de `pt-BR` sans rien écrire, donc une clé
-périmée est signalée comme périmée. Une écriture sur une seule clé (une modification, une
-retraduction, une décision de revue) et `verbatra import` déplacent d'abord l'état, de la même
-façon. Le contrôle `locale-state` de [`verbatra doctor`](/docs/cli/doctor) nomme tout état resté
-en arrière.
+Tant qu'une exécution ne l'a pas déplacé, chaque lecture traite l'ancien état comme celui de `pt-BR`
+sans rien écrire, donc une clé périmée est signalée comme périmée. Une écriture sur une seule clé
+(une modification, une retraduction, une décision de revue) et `verbatra import` déplacent d'abord
+l'état, de la même façon. Le contrôle `locale-state` de [`verbatra doctor`](/docs/cli/doctor) nomme
+tout état resté en arrière.
 
 ## Absent ou corrompu
 
-Un fichier de verrouillage absent est une [première exécution](#adopter-un-projet-existant), pas une erreur. Un fichier de verrouillage illisible, mal structuré, trop gros ou dans une
-version non prise en charge fait échouer l'exécution avec
-[`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) au lieu d'être écrasé, pour que tu
-puisses le restaurer plutôt que perdre la référence.
+Un fichier de verrouillage absent est une [première exécution](#adopter-un-projet-existant), pas une
+erreur. Un fichier de verrouillage illisible, mal structuré, trop gros ou dans une version non prise
+en charge fait échouer l'exécution avec [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+au lieu d'être écrasé, pour que tu puisses le restaurer plutôt que perdre la référence.
 
 ## La provenance de chaque valeur
 
@@ -136,7 +138,8 @@ puisses le restaurer plutôt que perdre la référence.
 
 Là où le fichier de verrouillage enregistre de quel texte source vient une traduction,
 `verbatra.provenance.json` enregistre quel chemin d'écriture a produit la valeur présente dans le
-fichier de locale, et si quelqu'un l'a relue. Fichier séparé, il est ignoré par un verbatra plus ancien, par exemple épinglé dans la CI.
+fichier de locale, et si quelqu'un l'a relue. Fichier séparé, il est ignoré par un verbatra plus
+ancien, par exemple épinglé dans la CI.
 
 | Origine | Écrite par |
 | --- | --- |
@@ -167,8 +170,8 @@ Ce que le fichier garantit :
   inchangées le garde.
 - **Pas d'écrasement silencieux.** Un fichier corrompu arrête chaque écriture avec
   [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) avant qu'un fichier de
-  locale ne change ; les rapports omettent plutôt leurs champs de provenance. Un fichier écrit par un verbatra plus
-  récent est laissé intact, et un fichier trop gros pour être relu n'est pas écrit
+  locale ne change ; les rapports omettent plutôt leurs champs de provenance. Un fichier écrit par
+  un verbatra plus récent est laissé intact, et un fichier trop gros pour être relu n'est pas écrit
   ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
 Ce qu'il n'est pas : infalsifiable. Quiconque peut modifier les fichiers de locale peut le modifier
@@ -180,10 +183,10 @@ aussi. Pour en faire un rapport, voir
 <AvailableFrom version="0.12.0" />
 
 Un enregistrement peut porter une décision de revue, `approved` ou `rejected`, avec un nom de
-relecteur `reviewer` facultatif. La page Review de Studio, les [fonctions de revue du SDK](/docs/sdk/review) et les
-[outils MCP de revue](/docs/cli/mcp) les écrivent ; les outils MCP relaient la décision d'une
-personne et exigent son nom. Une décision s'applique à la valeur exacte
-que le relecteur a vue et est refusée si cette valeur a changé depuis.
+relecteur `reviewer` facultatif. La page Review de Studio, les
+[fonctions de revue du SDK](/docs/sdk/review) et les [outils MCP de revue](/docs/cli/mcp) les
+écrivent ; les outils MCP relaient la décision d'une personne et exigent son nom. Une décision
+s'applique à la valeur exacte que le relecteur a vue et est refusée si cette valeur a changé depuis.
 
 - **Une approbation** ne change que le fichier de provenance. Elle stocke le hash source par rapport
   auquel elle a été donnée, donc elle se relit comme non relue dès que le texte source change.

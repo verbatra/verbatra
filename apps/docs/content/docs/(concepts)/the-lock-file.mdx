@@ -101,10 +101,10 @@ cannot be written, that locale does not run and fails with
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), so the next run
 tries again; the other locales run as usual.
 
-Until a run moves it, every read treats the old state as `pt-BR`'s without writing anything, so a stale key is reported as stale. A
-single-key write (an edit, a retranslate, a review decision) and `verbatra import` move the state
-first, the same way. The `locale-state` check of [`verbatra doctor`](/docs/cli/doctor) names any
-state left behind.
+Until a run moves it, every read treats the old state as `pt-BR`'s without writing anything, so a
+stale key is reported as stale. A single-key write (an edit, a retranslate, a review decision) and
+`verbatra import` move the state first, the same way. The `locale-state` check of
+[`verbatra doctor`](/docs/cli/doctor) names any state left behind.
 
 ## Missing or corrupt
 

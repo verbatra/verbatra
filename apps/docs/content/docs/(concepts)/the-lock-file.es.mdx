@@ -47,7 +47,8 @@ La adopción se basa en la presencia de la clave, nunca en su valor, lo que tien
   primera ejecución.
 
 La misma regla conserva las formas de plural escritas a mano, así que `generatePlurals` es seguro
-durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](/docs/cli/diff) o `verbatra translate --dry-run`.
+durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](/docs/cli/diff) o
+`verbatra translate --dry-run`.
 
 ## Cómo se actualiza
 
@@ -64,9 +65,10 @@ las claves ordenadas, así que sus diffs se mantienen pequeños y revisables.
 ## El bloqueo de escritura
 
 Dos ejecuciones que tocan el mismo locale a la vez podrían comparar con una línea base desfasada y
-pagar dos veces. Por eso cada escritura en un locale toma un bloqueo entre procesos para ese
-locale, guardado en `.verbatra-local/`. Un segundo escritor espera, luego vuelve a leer el archivo de bloqueo y compara con una
-línea base que ya incluye el resultado del primero. Locales distintos nunca se bloquean entre sí.
+pagar dos veces. Por eso cada escritura en un locale toma un bloqueo entre procesos para ese locale,
+guardado en `.verbatra-local/`. Un segundo escritor espera, luego vuelve a leer el archivo de
+bloqueo y compara con una línea base que ya incluye el resultado del primero. Locales distintos
+nunca se bloquean entre sí.
 
 Lo que garantiza el bloqueo:
 
@@ -117,16 +119,17 @@ sobrescribe. Si el traslado no se puede escribir, ese locale no se ejecuta y fal
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), para que la
 siguiente ejecución lo intente de nuevo; los demás locales se ejecutan como siempre.
 
-Hasta que una ejecución lo traslade, cada lectura trata el estado antiguo como el de `pt-BR` sin escribir nada, así que una
-clave desfasada se informa como desfasada. Una escritura de una sola clave (una edición, una nueva
-traducción, una decisión de revisión) y `verbatra import` trasladan antes el estado, del mismo modo.
-La comprobación `locale-state` de [`verbatra doctor`](/docs/cli/doctor) nombra cualquier estado que
-quede atrás.
+Hasta que una ejecución lo traslade, cada lectura trata el estado antiguo como el de `pt-BR` sin
+escribir nada, así que una clave desfasada se informa como desfasada. Una escritura de una sola
+clave (una edición, una nueva traducción, una decisión de revisión) y `verbatra import` trasladan
+antes el estado, del mismo modo. La comprobación `locale-state` de
+[`verbatra doctor`](/docs/cli/doctor) nombra cualquier estado que quede atrás.
 
 ## Ausente o corrupto
 
-Un archivo de bloqueo ausente es una [primera ejecución](#adoptar-un-proyecto-existente), no un error. Un archivo de bloqueo que no se puede analizar, con una estructura incorrecta,
-demasiado grande o con una versión no soportada hace fallar la ejecución con
+Un archivo de bloqueo ausente es una [primera ejecución](#adoptar-un-proyecto-existente), no un
+error. Un archivo de bloqueo que no se puede analizar, con una estructura incorrecta, demasiado
+grande o con una versión no soportada hace fallar la ejecución con
 [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) en lugar de sobrescribirse, para que
 puedas restaurarlo en vez de perder la línea base.
 
@@ -134,9 +137,9 @@ puedas restaurarlo en vez de perder la línea base.
 
 <AvailableFrom version="0.12.0" />
 
-Mientras el bloqueo registra de qué texto de origen salió una traducción,
-`verbatra.provenance.json` registra qué vía de escritura produjo el valor que hay ahora en el
-archivo de locale, y si alguien lo revisó. Como archivo aparte, un verbatra más antiguo, por ejemplo uno fijado en CI, lo ignora.
+Mientras el bloqueo registra de qué texto de origen salió una traducción, `verbatra.provenance.json`
+registra qué vía de escritura produjo el valor que hay ahora en el archivo de locale, y si alguien
+lo revisó. Como archivo aparte, un verbatra más antiguo, por ejemplo uno fijado en CI, lo ignora.
 
 | Origen | Lo escribe |
 | --- | --- |
@@ -164,9 +167,9 @@ Lo que garantiza el archivo:
   por uno nuevo y sin revisar; una escritura que deja igual el valor y el origen lo conserva.
 - **Ninguna sobrescritura silenciosa.** Un archivo corrupto detiene cada escritura con
   [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) antes de que cambie ningún
-  archivo de locale; los informes omiten en su lugar sus campos de procedencia. Un archivo de un verbatra más nuevo se
-  deja intacto, y uno que crecería demasiado para volver a leerlo no se escribe
-  ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+  archivo de locale; los informes omiten en su lugar sus campos de procedencia. Un archivo de un
+  verbatra más nuevo se deja intacto, y uno que crecería demasiado para volver a leerlo no se
+  escribe ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
 Lo que no es: a prueba de manipulaciones. Cualquiera que pueda editar los archivos de locale puede
 editarlo. Para convertirlo en un informe, consulta
@@ -177,10 +180,11 @@ editarlo. Para convertirlo en un informe, consulta
 <AvailableFrom version="0.12.0" />
 
 Un registro puede llevar una decisión de revisión, `approved` o `rejected`, con un nombre de
-`reviewer` opcional. Las escriben la página Review de Studio, las [funciones de revisión del SDK](/docs/sdk/review) y
-las [herramientas MCP de revisión](/docs/cli/mcp); las herramientas MCP transmiten la decisión de
-una persona y exigen su nombre. Una decisión se aplica al valor exacto que vio el
-revisor y se rechaza si ese valor cambió desde entonces.
+`reviewer` opcional. Las escriben la página Review de Studio, las
+[funciones de revisión del SDK](/docs/sdk/review) y las
+[herramientas MCP de revisión](/docs/cli/mcp); las herramientas MCP transmiten la decisión de una
+persona y exigen su nombre. Una decisión se aplica al valor exacto que vio el revisor y se rechaza
+si ese valor cambió desde entonces.
 
 - **Una aprobación** solo cambia el archivo de procedencia. Guarda el hash de origen con el que se
   dio, así que vuelve a leerse como sin revisar en cuanto cambia el texto de origen.

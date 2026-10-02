@@ -176,12 +176,12 @@ ou par un agent ne sont pas couvertes. Les règles exactes sont sous
 
 ## Les erreurs ne fuient jamais
 
-Quand un appel fournisseur échoue, l'erreur brute du SDK (qui peut contenir des
-en-têtes de requête ou des identifiants) est jetée, jamais conservée, journalisée ni relancée. À sa
-place, verbatra lève une erreur structurée avec un code stable et un message fixe sans secret ; les
-codes sont sous [Codes d'erreur des fournisseurs](/docs/error-codes#provider-error-codes). Avis et
-résumés portent des codes et des compteurs, jamais de secrets. D'où viennent les clés et comment elles
-sont masquées dans la sortie est sur [Traitement des données](/docs/data-handling#clés-dapi).
+Quand un appel fournisseur échoue, l'erreur brute du SDK (qui peut contenir des en-têtes de requête
+ou des identifiants) est jetée, jamais conservée, journalisée ni relancée. À sa place, verbatra lève
+une erreur structurée avec un code stable et un message fixe sans secret ; les codes sont sous
+[Codes d'erreur des fournisseurs](/docs/error-codes#provider-error-codes). Avis et résumés portent
+des codes et des compteurs, jamais de secrets. D'où viennent les clés et comment elles sont masquées
+dans la sortie est sur [Traitement des données](/docs/data-handling#clés-dapi).
 
 ## Où tu vois tout ça
 
