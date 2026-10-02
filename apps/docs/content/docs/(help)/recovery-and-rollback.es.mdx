@@ -1,9 +1,9 @@
 ---
 title: Deshaz una ejecución
-description: Cómo deshacer una ejecución de translate, por qué los archivos de locale y el archivo de bloqueo deben revertirse juntos, y qué deja atrás una ejecución interrumpida.
+description: Cómo deshacer una ejecución de translate, por qué los archivos de locale, el archivo de bloqueo y el archivo de procedencia deben revertirse juntos, y qué deja atrás una ejecución interrumpida.
 type: how-to
 ---
-Usa esto cuando una ejecución produjo traducciones que no quieres: el tono equivocado, el modelo equivocado, un glosario que olvidaste. verbatra no tiene comando de deshacer ni guarda copias de seguridad. El control de versiones es el mecanismo de recuperación, y por eso se confirman los archivos de locale y el archivo de bloqueo: juntos son la instantánea a la que vuelves.
+Usa esto cuando una ejecución produjo traducciones que no quieres: el tono equivocado, el modelo equivocado, un glosario que olvidaste. verbatra no tiene comando de deshacer ni guarda copias de seguridad. El control de versiones es el mecanismo de recuperación, y por eso se confirman los archivos de locale, el archivo de bloqueo y el archivo de procedencia: juntos son la instantánea a la que vuelves.
 
 Necesitas el proyecto en git, con el estado anterior a la ejecución confirmado.
 
@@ -24,7 +24,7 @@ Una ejecución también escribe `verbatra.provenance.json`, que registra quién 
 
 ## Revertir una ejecución terminada
 
-Si la ejecución aún no está confirmada, descarta los archivos de locale y el archivo de bloqueo juntos:
+Si la ejecución aún no está confirmada, descarta los archivos de locale y el archivo de bloqueo juntos, y después el archivo de procedencia:
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
@@ -45,15 +45,17 @@ git revert <commit>
 
 En ambos casos, restaura los archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json` en la misma operación. La siguiente sección explica por qué.
 
-## Por qué los dos archivos o ninguno
+## Por qué los tres archivos o ninguno
 
-El archivo de bloqueo registra un hash del valor de **origen** detrás de cada traducción, y nada sobre el valor traducido. Si reviertes un archivo sin el otro, describen momentos distintos.
+El archivo de bloqueo registra un hash del valor de **origen** detrás de cada traducción, y nada sobre el valor traducido; el archivo de procedencia registra quién escribió cada valor, ligado a un hash de ese valor. Si reviertes un archivo sin los otros, describen momentos distintos.
 
 **Solo los archivos de locale.** El archivo de bloqueo sigue diciendo que todas las claves están al día. En la siguiente ejecución, una clave restaurada está presente y su hash coincide con el origen, así que nunca se vuelve a enviar: el valor antiguo se queda para siempre. Solo las claves que la ejecución creó vuelven como faltantes. `check` y `diff` comparan con la misma referencia, así que informan del locale como limpio, y nada te dice que esas traducciones están desactualizadas.
 
 **Solo el archivo de bloqueo.** Los hashes restaurados son más antiguos que el origen actual, así que las claves afectadas se leen como cambiadas. La siguiente ejecución las vuelve a traducir y sobrescribe los archivos de locale, incluidas las correcciones a mano hechas desde entonces. Pagas dos veces y pierdes las ediciones.
 
-**Los dos.** Los hashes y las traducciones vuelven al mismo momento, y la siguiente ejecución se comporta como si la ejecución fallida nunca hubiera ocurrido.
+**Sin el archivo de procedencia.** Los valores revertidos ya no coinciden con sus registros, así que se leen como `external` y, con el valor por defecto `humanEdits: protect`, nunca se vuelven a traducir.
+
+**Los tres.** Los hashes, los registros y las traducciones vuelven al mismo momento, y la siguiente ejecución se comporta como si la ejecución fallida nunca hubiera ocurrido.
 
 ## Vuelve a ejecutar tras una reversión
 
