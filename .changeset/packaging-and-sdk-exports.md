@@ -9,7 +9,9 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
 - A `verbatra.config.cjs` can `require("@verbatra/cli")`, and `@verbatra/sdk` gives `require` its
   own declarations (`index.d.cts`).
 - Every published package exports `./package.json`.
-- The spreadsheet libraries load only for an `xlsx` handoff, so other commands start faster.
+- The spreadsheet libraries load only for an `xlsx` handoff, and each provider SDK only on its
+  first provider call, so commands that call no provider (`check`, `diff`, `--version`) start
+  faster.
 
 **SDK exports**
 - `ProviderError`, `ProviderErrorCode` and the provider contract types (`TranslationProvider`,

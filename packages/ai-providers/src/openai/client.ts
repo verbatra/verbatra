@@ -1,5 +1,5 @@
-import OpenAI from "openai";
 import { requireOpenAiKey } from "../env.js";
+import { loadSdkModule, memoizeAsync } from "../lazy-sdk.js";
 import { toMutableRequest } from "../llm/mutable.js";
 import { openAiStyleTransport, type ProviderNetwork } from "../network/transport.js";
 import type { ProviderRetryListener } from "../provider-retry.js";
@@ -11,10 +11,10 @@ export function createDefaultClient(
   onRetry?: ProviderRetryListener,
 ): OpenAiClient {
   const transport = openAiStyleTransport({ id: "openai" }, network, onRetry);
-  const sdk = new OpenAI({
-    apiKey: requireOpenAiKey(),
-    logLevel: "off",
-    ...transport.options,
+  const apiKey = requireOpenAiKey();
+  const sdk = memoizeAsync(async () => {
+    const { default: OpenAI } = await loadSdkModule("openai", () => import("openai"));
+    return new OpenAI({ apiKey, logLevel: "off", ...transport.options });
   });
   return {
     chat: {
@@ -22,7 +22,9 @@ export function createDefaultClient(
         create: (body: OpenAiRequest, options?: OpenAiCallOptions): Promise<OpenAiCompletion> =>
           transport.run(
             async () =>
-              (await sdk.chat.completions.create(
+              (await (
+                await sdk()
+              ).chat.completions.create(
                 toMutableRequest(body),
                 options,
               )) as unknown as OpenAiCompletion,
