@@ -18,7 +18,8 @@ branches on which one is configured.
   (`src/llm/run.ts`) by implementing an `LlmMechanism` that performs one HTTP call, sharing one
   response schema and one set of compile-time system rules. The three machine-translation providers
   implement `translateBatch` directly, taking strings and returning strings with no prompt.
-- **Key handling.** `src/env.ts` owns `PROVIDER_ENV` and the `require<Name>Key()` helpers.
+- **Key handling.** `src/key-env-vars.ts` owns `PROVIDER_ENV`, the variable each provider reads its
+  key from; `src/env.ts` owns the `require<Name>Key()` helpers.
 - **Structured failure.** Every provider failure surfaces as a `ProviderError` with a stable code,
   classified in `src/error-classification.ts`, never as a raw vendor SDK error.
 - **Redaction, timeouts, review flags.** `src/redaction.ts` keeps a key value out of error text,
@@ -41,7 +42,9 @@ deliberately not on the path: registering a provider there alone compiles and is
 `providerFactories` in `packages/sdk/src/config/provider-config.ts` is a mapped type over
 `MachineProviderId` (every `ProviderId` except the human-only `none`), so a provider in the config union but missing from the table fails to compile. Adding one means a config schema in
 `<provider>/config.ts`, a factory in `<provider>/<provider>-provider.ts`, key handling in
-`src/env.ts`, an export from `src/index.ts`, then the two `provider-config.ts` steps. Ordered steps
+`src/key-env-vars.ts` (`PROVIDER_ENV`) and `src/env.ts` (a `require<Name>Key()` helper), an export
+from `src/index.ts`, then the two `provider-config.ts` steps and the `PROVIDER_BILLING` entry in
+`packages/sdk/src/config/provider-billing.ts`. Ordered steps
 are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md); binding rules in
 [`.claude/rules/architecture.md`](../../.claude/rules/architecture.md).
 
