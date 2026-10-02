@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -129,5 +129,115 @@ describe("the environment files section names exactly the commands that load .en
 
     expect(patched).not.toBe(run);
     expect(commandsCalling("loadEnvFiles", [patched, ...rest])).toContain("check");
+  });
+});
+
+const SPEND_SECTION_HEADING = {
+  studio: {
+    "": "### Spend and agent tools",
+    ".de": "### Ausgaben und Agent-Tools",
+    ".es": "### Gasto y herramientas de agente",
+    ".fr": "### Dépenses et outils d'agent",
+  },
+  mcp: {
+    "": "### Spend tools",
+    ".de": "### Kostenpflichtige Tools",
+    ".es": "### Herramientas de gasto",
+    ".fr": "### Outils payants",
+  },
+};
+
+const SESSION_VARIABLE = /\bVERBATRA_(?:STUDIO|MCP)_[A-Z_]+\b/g;
+
+function stringConstant(relativePath, name) {
+  const value = new RegExp(`const ${name} = "([^"]+)";`).exec(readRepoFile(relativePath))?.[1];
+  if (value === undefined) {
+    throw new Error(`${name} could not be located in ${relativePath}`);
+  }
+  return value;
+}
+
+function truthyValues(relativePath) {
+  const list = /const TRUTHY_ENV_VALUES = new Set\(\[([^\]]*)\]\)/.exec(
+    readRepoFile(relativePath),
+  )?.[1];
+  if (list === undefined) {
+    throw new Error(`TRUTHY_ENV_VALUES could not be located in ${relativePath}`);
+  }
+  return [...list.matchAll(/"([^"]*)"/g)].map((match) => match[1]);
+}
+
+function subsection(page, heading) {
+  const start = page.indexOf(`${heading}\n`);
+  if (start === -1) {
+    throw new Error(`"${heading}" could not be located`);
+  }
+  const end = page.slice(start + heading.length).search(/\n#{2,3} /);
+  return end === -1 ? page.slice(start) : page.slice(start, start + heading.length + end);
+}
+
+function acceptedValues(text) {
+  const sentence = text.split(/(?<=[.;])\s/).find((part) => part.includes("`true`")) ?? "";
+  return [...sentence.matchAll(/`([a-z0-9]+)`/g)].map((match) => match[1]);
+}
+
+function sessionVariablesInDocs() {
+  const contentDir = resolve(REPO_ROOT, "apps/docs/content/docs");
+  const names = readdirSync(contentDir, { recursive: true, encoding: "utf8" })
+    .filter((file) => file.endsWith(".mdx"))
+    .flatMap(
+      (file) => readFileSync(resolve(contentDir, file), "utf8").match(SESSION_VARIABLE) ?? [],
+    );
+  return [...new Set(names)].sort();
+}
+
+describe("the spend switches are documented with the names and values the source reads", () => {
+  const truthy = truthyValues("packages/cli/src/session-command-support.ts");
+  const studio = [
+    stringConstant("packages/cli/src/studio-command.ts", "ALLOW_SPEND_ENV_VAR"),
+    stringConstant("packages/cli/src/studio-command.ts", "AGENT_TOOLS_ENV_VAR"),
+  ];
+  const mcp = stringConstant("packages/cli/src/mcp-command.ts", "ALLOW_SPEND_ENV_VAR");
+
+  it("reads the same names and values from the CLI and the verbatra-mcp binary", () => {
+    expect(truthy).toEqual(expect.arrayContaining(["1", "true"]));
+    expect(truthyValues("packages/mcp/src/bin-args.ts")).toEqual(truthy);
+    expect(stringConstant("packages/mcp/src/bin-args.ts", "ALLOW_SPEND_ENV_VAR")).toBe(mcp);
+  });
+
+  it.each(LOCALE_SUFFIXES)(
+    "states both Studio variables and every accepted value in cli/studio%s.mdx",
+    (suffix) => {
+      const text = subsection(
+        readDocPage("cli/studio", suffix),
+        SPEND_SECTION_HEADING.studio[suffix],
+      );
+
+      for (const name of studio) {
+        expect(text).toContain(`\`${name}\``);
+      }
+      expect(acceptedValues(text)).toEqual(truthy);
+    },
+  );
+
+  it.each(LOCALE_SUFFIXES)(
+    "states the MCP variable and every accepted value in cli/mcp%s.mdx",
+    (suffix) => {
+      const text = subsection(readDocPage("cli/mcp", suffix), SPEND_SECTION_HEADING.mcp[suffix]);
+
+      expect(text).toContain(`\`${mcp}\``);
+      expect(acceptedValues(text)).toEqual(truthy);
+    },
+  );
+
+  it("names no Studio or MCP variable the source does not read, on any page", () => {
+    expect(sessionVariablesInDocs()).toEqual([...studio, mcp].sort());
+  });
+
+  it("sees a dropped value and a renamed variable", () => {
+    const text = subsection(readDocPage("cli/mcp", ""), SPEND_SECTION_HEADING.mcp[""]);
+
+    expect(acceptedValues(text.replace("`yes` or ", ""))).not.toEqual(truthy);
+    expect("VERBATRA_MCP_SPEND=1".match(SESSION_VARIABLE)).toEqual(["VERBATRA_MCP_SPEND"]);
   });
 });
