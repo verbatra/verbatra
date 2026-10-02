@@ -25,7 +25,7 @@ const retranslateEntryResultSchema = z.object({
   details: z.array(z.string()).readonly().optional(),
 });
 
-type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema>;
+export type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema>;
 
 async function retranslateKeyEntry(
   params: z.infer<typeof paramsSchema>,

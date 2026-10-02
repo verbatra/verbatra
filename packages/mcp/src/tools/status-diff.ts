@@ -23,7 +23,7 @@ const statusDiffResultSchema = z.object({
   locales: z.array(localeDiffSchema).readonly(),
 });
 
-type StatusDiffResult = z.infer<typeof statusDiffResultSchema>;
+export type StatusDiffResult = z.infer<typeof statusDiffResultSchema>;
 
 async function statusDiff(
   params: z.infer<typeof paramsSchema>,

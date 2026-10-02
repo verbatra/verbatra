@@ -10,7 +10,7 @@ const paramsSchema = z.strictObject({
 
 const estimateResultSchema = runSummarySchema.extend({ estimate: runEstimateSchema });
 
-type EstimateResult = z.infer<typeof estimateResultSchema>;
+export type EstimateResult = z.infer<typeof estimateResultSchema>;
 
 async function estimateTranslation(
   params: z.infer<typeof paramsSchema>,

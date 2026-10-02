@@ -37,7 +37,7 @@ const reviewDecisionResultSchema = z.object({
 });
 
 type ReviewDecisionParams = z.infer<typeof paramsSchema>;
-type ReviewDecisionResult = z.infer<typeof reviewDecisionResultSchema>;
+export type ReviewDecisionResult = z.infer<typeof reviewDecisionResultSchema>;
 
 function decisionInput(params: ReviewDecisionParams, context: McpToolContext): ReviewDecisionInput {
   return {

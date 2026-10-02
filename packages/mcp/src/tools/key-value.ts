@@ -17,7 +17,7 @@ const keyValueResultSchema = z.object({
   provenance: keyProvenanceSchema.optional(),
 });
 
-type KeyValueResult = z.infer<typeof keyValueResultSchema>;
+export type KeyValueResult = z.infer<typeof keyValueResultSchema>;
 
 async function readKeyValue(
   params: z.infer<typeof paramsSchema>,

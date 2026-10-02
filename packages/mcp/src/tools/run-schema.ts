@@ -104,7 +104,7 @@ type FuzzyCacheHit = z.infer<typeof fuzzyCacheHitSchema>;
 
 type LocaleSummary = z.infer<typeof localeSummarySchema>;
 
-type RunSummary = z.infer<typeof runSummarySchema>;
+export type RunSummary = z.infer<typeof runSummarySchema>;
 
 export function redactFuzzyHit(hit: FuzzyCacheHit, marker: ValueMarker): FuzzyCacheHit {
   return markFields(hit, ["previousSource"], marker);

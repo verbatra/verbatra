@@ -45,7 +45,7 @@ const keyContextResultSchema = z.object({
   glossaryNotice: z.object({ code: z.string(), message: z.string() }).optional(),
 });
 
-type KeyContextResult = z.infer<typeof keyContextResultSchema>;
+export type KeyContextResult = z.infer<typeof keyContextResultSchema>;
 
 function redactKeyContext(result: KeyContextResult, marker: ValueMarker): KeyContextResult {
   const { draftCheck: _draftCheck, ...rest } = result;
