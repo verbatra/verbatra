@@ -110,7 +110,7 @@ Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`,
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Wenn ein Aufruf von `translation.translatePending` ein `progressToken` mitschickt, sendet der Server `notifications/progress`, sobald Übersetzungs-Batches fertig sind: `progress` zählt die fertigen Batches über alle Locales, `total` wächst, sobald eine Locale geplant ist, und `message` nennt Locale und Batch (`de: batch 3/7`). Er sendet höchstens eine Meldung alle 250 ms.
+Schickt ein Aufruf von `translation.translatePending` ein `progressToken` mit, sendet der Server `notifications/progress` pro fertigem Batch: `progress` zählt fertige Batches, `total` wächst mit jeder geplanten Locale, und `message` nennt Locale und Batch (`de: batch 3/7`). Er sendet höchstens eine alle 250 ms, dazu eine letzte am Ende des Laufs.
 
 ### Ohne Konfiguration
 
