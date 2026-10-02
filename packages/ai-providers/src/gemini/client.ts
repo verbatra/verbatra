@@ -8,7 +8,7 @@ import type { GeminiClient, GeminiResponse } from "./types.js";
 export function createDefaultClient(network?: ProviderNetwork): GeminiClient {
   const transport = geminiTransport(network);
   const apiKey = requireGeminiKey();
-  const ai = memoizeAsync(async () => {
+  const loadClient = memoizeAsync(async () => {
     const { GoogleGenAI } = await loadSdkModule("@google/genai", () => import("@google/genai"));
     return new GoogleGenAI({ apiKey, ...transport.options });
   });
@@ -18,7 +18,7 @@ export function createDefaultClient(network?: ProviderNetwork): GeminiClient {
         transport.run(
           async () =>
             (await (
-              await ai()
+              await loadClient()
             ).models.generateContent(toMutableRequest(request))) as unknown as GeminiResponse,
         ),
     },

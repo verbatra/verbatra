@@ -12,7 +12,7 @@ export function createDefaultClient(
 ): OpenAiClient {
   const transport = openAiStyleTransport({ id: "openai" }, network, onRetry);
   const apiKey = requireOpenAiKey();
-  const sdk = memoizeAsync(async () => {
+  const loadClient = memoizeAsync(async () => {
     const { default: OpenAI } = await loadSdkModule("openai", () => import("openai"));
     return new OpenAI({ apiKey, logLevel: "off", ...transport.options });
   });
@@ -23,7 +23,7 @@ export function createDefaultClient(
           transport.run(
             async () =>
               (await (
-                await sdk()
+                await loadClient()
               ).chat.completions.create(
                 toMutableRequest(body),
                 options,

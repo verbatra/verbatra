@@ -18,7 +18,7 @@ export function createDefaultClient(
     onRetry,
   );
   const apiKey = resolveOpenAiCompatibleKey(config.apiKeyEnvVar);
-  const sdk = memoizeAsync(async () => {
+  const loadClient = memoizeAsync(async () => {
     const { default: OpenAI } = await loadSdkModule("openai", () => import("openai"));
     return new OpenAI({
       apiKey,
@@ -34,7 +34,7 @@ export function createDefaultClient(
           transport.run(
             async () =>
               (await (
-                await sdk()
+                await loadClient()
               ).chat.completions.create(
                 toMutableRequest(body),
                 options,

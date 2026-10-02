@@ -12,7 +12,7 @@ export function createDefaultClient(
 ): MessagesClient {
   const transport = openAiStyleTransport({ id: "anthropic" }, network, onRetry);
   const apiKey = requireAnthropicKey();
-  const sdk = memoizeAsync(async () => {
+  const loadClient = memoizeAsync(async () => {
     const { default: Anthropic } = await loadSdkModule(
       "@anthropic-ai/sdk",
       () => import("@anthropic-ai/sdk"),
@@ -25,7 +25,7 @@ export function createDefaultClient(
         transport.run(
           async () =>
             (await (
-              await sdk()
+              await loadClient()
             ).messages.create(toMutableRequest(body), options)) as unknown as AnthropicMessage,
         ),
     },

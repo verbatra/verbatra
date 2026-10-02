@@ -7,7 +7,7 @@ import type { DeepLClientBundle, DeepLTextResult, DeepLTranslateClient } from ".
 export function createDefaultClient(timeoutMs: number): DeepLClientBundle {
   const authKey = requireDeepLKey();
   const freeAccount = authKey.endsWith(":fx");
-  const translator = memoizeAsync(async () => {
+  const loadTranslator = memoizeAsync(async () => {
     await silenceSdkLogging();
     const { Translator } = await loadSdkModule("deepl-node", () => import("deepl-node"));
     return new Translator(authKey, { minTimeout: timeoutMs });
@@ -15,7 +15,7 @@ export function createDefaultClient(timeoutMs: number): DeepLClientBundle {
   const client: DeepLTranslateClient = {
     translateText: async (texts, sourceLang, targetLang, options): Promise<DeepLTextResult[]> =>
       (await (
-        await translator()
+        await loadTranslator()
       ).translateText(
         texts as string[],
         sourceLang as deepl.SourceLanguageCode | null,
