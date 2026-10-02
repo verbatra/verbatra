@@ -29,7 +29,7 @@ const MANY = Array.from({ length: 7 }, (_unused, index) =>
 describe("planSensitive", () => {
   it("plans nothing without a guard", () => {
     expect(planSensitive(undefined, MANY, GLOSSARY)).toBe(NO_SENSITIVE_PLAN);
-    expect(sensitiveNotices(undefined, NO_SENSITIVE_PLAN, [])).toEqual([]);
+    expect(sensitiveNotices(undefined, NO_SENSITIVE_PLAN, { withheld: [] })).toEqual([]);
   });
 
   it("sorts each key into withheld or redacted by the guard's verdict", () => {
@@ -49,7 +49,7 @@ describe("planSensitive", () => {
 describe("sensitiveNotices", () => {
   it("names at most five keys and counts the rest", () => {
     const warn = guard({ mode: "warn" });
-    const [notice] = sensitiveNotices(warn, planSensitive(warn, MANY, undefined), []);
+    const [notice] = sensitiveNotices(warn, planSensitive(warn, MANY, undefined), { withheld: [] });
 
     expect(notice?.message).toMatch(/^7 keys sent to the provider/);
     expect(notice?.message).toContain('"k4", and 2 more');
@@ -57,8 +57,10 @@ describe("sensitiveNotices", () => {
 
   it("counts glossary terms, alone or beside keys", () => {
     const warn = guard({ mode: "warn", patterns: ["Falcon"] });
-    const termOnly = sensitiveNotices(warn, planSensitive(warn, [], GLOSSARY), []);
-    const both = sensitiveNotices(warn, planSensitive(warn, MANY.slice(0, 1), GLOSSARY), []);
+    const termOnly = sensitiveNotices(warn, planSensitive(warn, [], GLOSSARY), { withheld: [] });
+    const both = sensitiveNotices(warn, planSensitive(warn, MANY.slice(0, 1), GLOSSARY), {
+      withheld: [],
+    });
 
     expect(termOnly[0]?.message).toMatch(/^1 glossary term sent to the provider holds/);
     expect(both[0]?.message).toMatch(/^1 key and 1 glossary term sent/);
@@ -67,15 +69,15 @@ describe("sensitiveNotices", () => {
   it("is silent under warn when nothing matched", () => {
     const warn = guard({ mode: "warn" });
 
-    expect(sensitiveNotices(warn, planSensitive(warn, [entry("a", "Hi")], undefined), [])).toEqual(
-      [],
-    );
+    expect(
+      sensitiveNotices(warn, planSensitive(warn, [entry("a", "Hi")], undefined), { withheld: [] }),
+    ).toEqual([]);
   });
 
   it("reports redacted keys apart from those finally withheld", () => {
     const redact = guard({ mode: "redact", patterns: ["Falcon"] });
     const plan = planSensitive(redact, MANY.slice(0, 2), GLOSSARY);
-    const notices = sensitiveNotices(redact, plan, ["k1"]);
+    const notices = sensitiveNotices(redact, plan, { withheld: ["k1"] });
 
     expect(notices.map((notice) => notice.code)).toEqual([
       "SENSITIVE_CONTENT_REDACTED",
@@ -89,7 +91,7 @@ describe("sensitiveNotices", () => {
 
   it("reports a glossary term dropped under block with no key withheld", () => {
     const block = guard({ mode: "block", patterns: ["Falcon"] });
-    const notices = sensitiveNotices(block, planSensitive(block, [], GLOSSARY), []);
+    const notices = sensitiveNotices(block, planSensitive(block, [], GLOSSARY), { withheld: [] });
 
     expect(notices).toEqual([
       {
@@ -103,6 +105,8 @@ describe("sensitiveNotices", () => {
   it("is silent under block when nothing matched", () => {
     const block = guard({ mode: "block" });
 
-    expect(sensitiveNotices(block, planSensitive(block, [], undefined), [])).toEqual([]);
+    expect(sensitiveNotices(block, planSensitive(block, [], undefined), { withheld: [] })).toEqual(
+      [],
+    );
   });
 });

@@ -32,7 +32,14 @@ import {
 } from "../lock/provenance-file.js";
 import type { ProgressListener } from "../progress/types.js";
 import type { SensitiveGuard } from "../sensitive/guard.js";
-import { NO_SENSITIVE_PLAN, planSensitive, sensitiveNotices } from "../sensitive/locale-plan.js";
+import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
+import {
+  NO_SENSITIVE_PLAN,
+  planSensitive,
+  type SensitivePlan,
+  sensitiveNotices,
+  withDuplicates,
+} from "../sensitive/locale-plan.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import {
   type BudgetTracker,
@@ -347,7 +354,6 @@ interface TranslationOutcome {
   readonly providerFailures: string[];
   readonly budgetWithheld: string[];
   readonly sensitiveWithheld: string[];
-  readonly sensitiveRedacted: ReadonlySet<string>;
   readonly reviewFlags: Map<string, ReviewFlag>;
 }
 
@@ -527,14 +533,14 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       new Set(target.entries.keys()),
       protection.heldForms,
     );
-    const candidates = toTranslate.filter((key) => !protection.suggest.has(key));
-    const sensitivePlan = planSensitive(
-      sensitiveGuardOf(params.mode),
-      sourceEntriesOf(params, candidates),
-      params.glossary,
+    const misses = partitionCacheHits(params, toTranslate, protection.suggest).misses;
+    const sensitivePlan = withDuplicates(...sensitivePlanFor(params, misses));
+    const sensitiveWithheld = [...sensitivePlan.withheld]
+      .filter((key) => !protection.suggest.has(key))
+      .sort();
+    const translated = toTranslate.filter(
+      (key) => !protection.suggest.has(key) && !sensitivePlan.withheld.has(key),
     );
-    const sensitiveWithheld = [...sensitivePlan.withheld].sort();
-    const translated = candidates.filter((key) => !sensitivePlan.withheld.has(key));
     const projected = [...target.entries.keys(), ...translated, ...planned].filter(
       (key) => !pruned.includes(key),
     );
@@ -557,7 +563,9 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         notices: [
           ...(generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices),
           ...sourceNotices,
-          ...sensitiveNotices(sensitiveGuardOf(params.mode), sensitivePlan, sensitiveWithheld),
+          ...sensitiveNotices(sensitiveGuardOf(params.mode), sensitivePlan, {
+            withheld: sensitiveWithheld,
+          }),
         ],
         protected: protectedEntries(protection.reasons, plannedSuggestions(protection.suggest)),
       }),
@@ -571,15 +579,11 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const cacheHitKeys = new Set(partition.hits.keys());
   const fuzzyKeys = new Set(partition.fuzzy.keys());
   const missGroups = groupMissesByContent(params, partition.misses);
-  const representatives = sourceEntriesOf(
+  const [sensitivePlan, duplicatesOf] = sensitivePlanFor(params, partition.misses);
+  const entries = sourceEntriesOf(
     params,
     missGroups.map((group) => group.representative),
-  );
-  const sensitivePlan =
-    params.mode.kind === "translate"
-      ? planSensitive(sensitiveGuardOf(params.mode), representatives, params.glossary)
-      : NO_SENSITIVE_PLAN;
-  const entries = representatives.filter((entry) => !sensitivePlan.withheld.has(entry.key));
+  ).filter((entry) => !sensitivePlan.withheld.has(entry.key));
 
   const startedStopped = params.budget.stopped;
   const accepted = new Map<string, Accepted>(partition.hits);
@@ -599,7 +603,6 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     providerFailures,
     budgetWithheld,
     sensitiveWithheld,
-    sensitiveRedacted: sensitivePlan.redacted,
     reviewFlags,
   });
   const cacheAdditions = collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys);
@@ -638,6 +641,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       providerFailures.length +
       budgetWithheld.length +
       sensitiveWithheld.length +
+      generation.sensitiveWithheld.length +
       generation.withheld.length +
       generation.providerFailures.length +
       generation.budgetWithheld.length +
@@ -673,8 +677,12 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...budgetLocaleNotices(params.budget, startedStopped, translation, generation),
     ...sensitiveNotices(
       sensitiveGuardOf(params.mode),
-      sensitivePlan,
-      [...sensitiveWithheld].sort(),
+      withDuplicates(sensitivePlan, duplicatesOf),
+      {
+        withheld: [...sensitiveWithheld, ...generation.sensitiveWithheld].sort(),
+        keptBack: new Set(budgetWithheld),
+        sources: generation.sensitiveSources,
+      },
     ),
   ];
 
@@ -686,6 +694,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...generation.providerFailures,
     ...budgetWithheld,
     ...sensitiveWithheld,
+    ...generation.sensitiveWithheld,
     ...fuzzyKeys,
     ...unfilled,
     ...protection.reasons.keys(),
@@ -709,7 +718,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       integrityRefusals: refusalsFor(integrityMismatches, integrityRefusals, generation.refusals),
       providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
       budgetWithheld: [...budgetWithheld, ...generation.budgetWithheld].sort(),
-      sensitiveWithheld: [...sensitiveWithheld].sort(),
+      sensitiveWithheld: [...sensitiveWithheld, ...generation.sensitiveWithheld].sort(),
       pruned,
       notices,
       unfilled,
@@ -901,6 +910,8 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
   refusals: [],
   providerFailures: [],
   budgetWithheld: [],
+  sensitiveWithheld: [],
+  sensitiveSources: [],
   notices: [],
   usage: undefined,
   withheldByBudget: false,
@@ -985,6 +996,26 @@ function budgetLocaleNotices(
   return startedStopped || main.withheldByBudget || generation.withheldByBudget
     ? [budgetAlreadyStoppedNotice(budget)]
     : [];
+}
+
+function sensitivePlanFor(
+  params: LocaleRunParams,
+  misses: readonly string[],
+): readonly [SensitivePlan, (key: string) => readonly string[]] {
+  const guard = sensitiveGuardOf(params.mode);
+  if (guard === undefined) {
+    return [NO_SENSITIVE_PLAN, () => []];
+  }
+  const groups = groupMissesByContent(params, misses);
+  const duplicates = new Map(groups.map((group) => [group.representative, group.duplicates]));
+  const representatives = sourceEntriesOf(
+    params,
+    groups.map((group) => group.representative),
+  );
+  return [
+    planSensitive(guard, representatives, params.glossary),
+    (key) => duplicates.get(key) ?? [],
+  ];
 }
 
 function sensitiveGuardOf(mode: LocaleRunMode): SensitiveGuard | undefined {
@@ -1309,7 +1340,7 @@ function foldEntryResult(
 ): void {
   const value = result.values.get(entry.key);
   if (value === undefined) {
-    const bucket = outcome.sensitiveRedacted.has(entry.key)
+    const bucket = sensitiveWithheldOf(result).has(entry.key)
       ? outcome.sensitiveWithheld
       : outcome.providerFailures;
     bucket.push(entry.key);

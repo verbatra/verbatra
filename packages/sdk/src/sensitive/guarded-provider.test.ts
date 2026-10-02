@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import type { SensitiveDataConfig } from "../config/sensitive-config.js";
 import { makeStubProvider } from "../test-support.js";
 import { createSensitiveGuard, type SensitiveGuard } from "./guard.js";
-import { guardProvider } from "./guarded-provider.js";
+import { guardProvider, sensitiveWithheldOf } from "./guarded-provider.js";
 
 function entry(
   key: string,
@@ -162,5 +162,26 @@ describe("guardProvider", () => {
     const result = await guardProvider(inner, guard({ mode: "redact" })).translateBatch(bare);
 
     expect(result.values.get("plain")).toBe("Hello");
+  });
+
+  it("records the keys it withheld or could not restore, and nothing else", async () => {
+    const stub = makeStubProvider({
+      missingValues: new Set(["plain"]),
+      translate: (value) => value.replace("__VBR0__", ""),
+    });
+    const result = await guardProvider(stub.provider, guard({ mode: "redact" })).translateBatch(
+      request([...ENTRIES, entry("other", "Mail b@acme.io")]),
+    );
+
+    expect([...sensitiveWithheldOf(result).entries()]).toEqual([
+      ["a@acme.io", ["email"]],
+      ["contact", ["email"]],
+      ["other", ["email"]],
+    ]);
+    expect(result.values.has("plain")).toBe(false);
+  });
+
+  it("records nothing for a result it did not produce", () => {
+    expect(sensitiveWithheldOf({ values: new Map(), integrity: new Map() }).size).toBe(0);
   });
 });

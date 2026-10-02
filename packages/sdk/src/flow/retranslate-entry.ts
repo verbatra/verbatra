@@ -30,6 +30,7 @@ import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
+import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
 import { readTarget } from "./diff-locales.js";
 import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -151,7 +152,6 @@ interface UnderLockContext {
   readonly sourceEntry: TranslationEntry;
   readonly policy: ProtectionPolicy;
   readonly provider: TranslationProvider;
-  readonly sensitive: SensitiveGuard | undefined;
   readonly recordLock: LocaleWriteLockOptions;
 }
 
@@ -171,7 +171,7 @@ async function translateOne(context: UnderLockContext) {
     ),
   );
   const value = result.values.get(context.key);
-  if (value === undefined && context.sensitive?.entry(sourceEntry).action === "redact") {
+  if (value === undefined && sensitiveWithheldOf(result).has(context.key)) {
     throw sensitiveWithheldError(context.key, locale);
   }
   if (value === undefined) {
@@ -410,7 +410,6 @@ export async function retranslateEntry(
         sourceEntry,
         policy,
         provider,
-        sensitive,
         recordLock: recordLockOptions(input),
       }),
     writeLockOptions(input),

@@ -156,6 +156,96 @@ describe("translate with sensitiveData", () => {
   });
 });
 
+describe("translate with sensitiveData: what the guard records", () => {
+  it("keeps a redacted key the provider simply did not return a provider failure", async () => {
+    const dir = await project();
+    const stub = makeStubProvider({ missingValues: new Set(["contact"]) });
+    const summary = await translate(
+      { config: cfg({ sensitiveData: { mode: "redact" } }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+    const locale = summary.locales[0] as LocaleSummary;
+
+    expect(locale.providerFailures).toEqual(["contact", "copy"]);
+    expect(locale.sensitiveWithheld).toEqual([]);
+    expect(codes(locale)).not.toContain("SENSITIVE_CONTENT_WITHHELD");
+  });
+
+  it("does not count keys the budget kept back as sent", async () => {
+    const { locale } = await run(
+      cfg({ sensitiveData: { mode: "warn" }, maxTokens: 1, budgetBehavior: "stop" }),
+    );
+
+    expect(locale.budgetWithheld).toEqual(["contact", "copy", "greeting"]);
+    expect(codes(locale)).not.toContain("SENSITIVE_CONTENT_SENT");
+  });
+
+  it("a dry run and a live run name the same keys", async () => {
+    const config = cfg({ sensitiveData: { mode: "warn" } });
+    const dry = await run(config, { dryRun: true });
+    const live = await run(config);
+    const sentNotice = (locale: LocaleSummary) =>
+      locale.notices.find((notice) => notice.code === "SENSITIVE_CONTENT_SENT")?.message;
+
+    expect(sentNotice(dry.locale)).toBe(sentNotice(live.locale));
+    expect(sentNotice(live.locale)).toContain('"contact", "copy"');
+  });
+});
+
+describe("translate with sensitiveData: plural generation", () => {
+  const PLURALS = {
+    items_one: "{{count}} item for ops@acme.io",
+    items_other: "{{count}} items for ops@acme.io",
+  };
+
+  async function generate(
+    config: VerbatraConfig,
+    transform?: (value: string, key: string) => string,
+  ) {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.json"), PLURALS);
+    await writeJsonFile(join(dir, "locales", "pl.json"), {});
+    const stub = makeStubProvider(
+      transform === undefined ? {} : { translate: (value, key) => transform(value, key) },
+    );
+    const summary = await translate(
+      { config: { ...config, targetLocales: ["pl"] }, cwd: dir, generatePlurals: true },
+      { createProvider: () => stub.provider },
+    );
+    return { locale: summary.locales[0] as LocaleSummary, sent: JSON.stringify(stub.calls) };
+  }
+
+  it("block keeps every form away from the provider and lists the generated ones as withheld", async () => {
+    const { locale, sent } = await generate(cfg({ sensitiveData: { mode: "block" } }));
+
+    expect(sent).not.toContain("ops@acme.io");
+    expect(locale.sensitiveWithheld).toEqual([
+      "items_few",
+      "items_many",
+      "items_one",
+      "items_other",
+    ]);
+    expect(locale.providerFailures).toEqual([]);
+    expect(codes(locale)).toContain("SENSITIVE_CONTENT_WITHHELD");
+  });
+
+  it("redact lists a generated form whose token did not come back, not as a provider failure", async () => {
+    const { locale, sent } = await generate(
+      cfg({ sensitiveData: { mode: "redact" } }),
+      (value, key) => (key === "items_few" ? value.replace("__VBR0__", "") : `[pl] ${value}`),
+    );
+
+    expect(sent).not.toContain("ops@acme.io");
+    expect(locale.generated).toEqual(["items_many"]);
+    expect(locale.sensitiveWithheld).toEqual(["items_few"]);
+    expect(locale.providerFailures).toEqual([]);
+    expect(
+      locale.notices.find((notice) => notice.code === "SENSITIVE_CONTENT_WITHHELD")?.message,
+    ).toContain("(email)");
+  });
+});
+
 describe("retranslateEntry with sensitiveData", () => {
   async function retranslate(config: VerbatraConfig, transform?: (value: string) => string) {
     const dir = await project({ contact: "Alt" });
@@ -198,6 +288,23 @@ describe("retranslateEntry with sensitiveData", () => {
           cwd: dir,
           locale: "de",
           key: "greeting",
+        },
+        { createProvider: () => stub.provider },
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  });
+
+  it("a redacted key the provider did not return stays INVALID_RESPONSE", async () => {
+    const dir = await project({ contact: "Alt" });
+    const stub = makeStubProvider({ missingValues: new Set(["contact"]) });
+
+    await expect(
+      retranslateEntry(
+        {
+          config: cfg({ sensitiveData: { mode: "redact" } }),
+          cwd: dir,
+          locale: "de",
+          key: "contact",
         },
         { createProvider: () => stub.provider },
       ),

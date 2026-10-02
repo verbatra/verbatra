@@ -5,30 +5,47 @@ import type {
   TranslationProvider,
 } from "@verbatra/ai-providers";
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
-import type { SensitiveGuard } from "./guard.js";
+import type { SensitiveFinding, SensitiveGuard } from "./guard.js";
+import type { SensitiveFindingSource } from "./scan-text.js";
 import { restoreTokens } from "./tokens.js";
+
+export type SensitiveWithheld = ReadonlyMap<string, readonly SensitiveFindingSource[]>;
+
+const WITHHELD_BY_RESULT = new WeakMap<TranslateResult, SensitiveWithheld>();
+
+const NONE_WITHHELD: SensitiveWithheld = new Map();
+
+export function sensitiveWithheldOf(result: TranslateResult): SensitiveWithheld {
+  return WITHHELD_BY_RESULT.get(result) ?? NONE_WITHHELD;
+}
+
+interface Redaction {
+  readonly originals: readonly string[];
+  readonly finding: SensitiveFinding;
+}
 
 interface GuardedBatch {
   readonly entries: readonly TranslationEntry[];
-  readonly originals: ReadonlyMap<string, readonly string[]>;
+  readonly redactions: ReadonlyMap<string, Redaction>;
+  readonly withheld: Map<string, readonly SensitiveFindingSource[]>;
 }
 
 function guardBatch(guard: SensitiveGuard, entries: readonly TranslationEntry[]): GuardedBatch {
   const sent: TranslationEntry[] = [];
-  const originals = new Map<string, readonly string[]>();
+  const redactions = new Map<string, Redaction>();
+  const withheld = new Map<string, readonly SensitiveFindingSource[]>();
   for (const entry of entries) {
     const verdict = guard.entry(entry);
     if (verdict.action === "withhold") {
-      continue;
-    }
-    if (verdict.action === "redact") {
+      withheld.set(entry.key, verdict.finding.sources);
+    } else if (verdict.action === "redact") {
       sent.push(verdict.entry);
-      originals.set(entry.key, verdict.originals);
+      redactions.set(entry.key, { originals: verdict.originals, finding: verdict.finding });
     } else {
       sent.push(entry);
     }
   }
-  return { entries: sent, originals };
+  return { entries: sent, redactions, withheld };
 }
 
 function guardedRequest(
@@ -45,25 +62,29 @@ function keepKeys<T>(map: ReadonlyMap<string, T> | undefined, keys: ReadonlySet<
   return new Map([...(map ?? [])].filter(([key]) => keys.has(key)));
 }
 
-function restoreResult(
-  result: TranslateResult,
-  originals: ReadonlyMap<string, readonly string[]>,
-): TranslateResult {
+function restoreResult(result: TranslateResult, batch: GuardedBatch): TranslateResult {
   const values = new Map<string, string>();
   for (const [key, value] of result.values) {
-    const tokens = originals.get(key);
-    const restored = tokens === undefined ? value : restoreTokens(value, tokens);
+    const redaction = batch.redactions.get(key);
+    const restored = redaction === undefined ? value : restoreTokens(value, redaction.originals);
     if (restored !== undefined) {
       values.set(key, restored);
+    } else if (redaction !== undefined) {
+      batch.withheld.set(key, redaction.finding.sources);
     }
   }
   const kept = new Set(values.keys());
   const integrity: Map<string, PlaceholderIntegrityResult> = keepKeys(result.integrity, kept);
   const reviewFlags: Map<string, ReviewFlag> = keepKeys(result.reviewFlags, kept);
-  return { ...result, values, integrity, reviewFlags };
+  return recorded({ ...result, values, integrity, reviewFlags }, batch.withheld);
 }
 
-const NOTHING_SENT: TranslateResult = { values: new Map(), integrity: new Map(), notices: [] };
+function recorded(result: TranslateResult, withheld: SensitiveWithheld): TranslateResult {
+  if (withheld.size > 0) {
+    WITHHELD_BY_RESULT.set(result, withheld);
+  }
+  return result;
+}
 
 export function guardProvider(
   inner: TranslationProvider,
@@ -76,10 +97,10 @@ export function guardProvider(
     async translateBatch(request) {
       const batch = guardBatch(guard, request.entries);
       if (batch.entries.length === 0) {
-        return NOTHING_SENT;
+        return recorded({ values: new Map(), integrity: new Map(), notices: [] }, batch.withheld);
       }
       const result = await inner.translateBatch(guardedRequest(guard, request, batch.entries));
-      return restoreResult(result, batch.originals);
+      return restoreResult(result, batch);
     },
   };
 }

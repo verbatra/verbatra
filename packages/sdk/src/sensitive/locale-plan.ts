@@ -58,6 +58,20 @@ export function planSensitive(
   return { withheld, redacted, flagged, sources: [...sources].sort(), glossary: glossaryVerdict };
 }
 
+export function withDuplicates(
+  plan: SensitivePlan,
+  duplicatesOf: (key: string) => readonly string[],
+): SensitivePlan {
+  const expand = (keys: Iterable<string>): string[] =>
+    [...keys].flatMap((key) => [key, ...duplicatesOf(key)]);
+  return {
+    ...plan,
+    withheld: new Set(expand(plan.withheld)),
+    redacted: new Set(expand(plan.redacted)),
+    flagged: expand(plan.flagged),
+  };
+}
+
 function keyList(keys: readonly string[]): string {
   const shown = keys.slice(0, NOTICE_KEY_LIMIT).map((key) => JSON.stringify(key));
   const more = keys.length > shown.length ? `, and ${keys.length - shown.length} more` : "";
@@ -108,7 +122,11 @@ function redactedNotice(redacted: readonly string[]): SdkNotice | undefined {
   };
 }
 
-function withheldNotice(withheld: readonly string[], plan: SensitivePlan): SdkNotice | undefined {
+function withheldNotice(
+  withheld: readonly string[],
+  plan: SensitivePlan,
+  sources: readonly SensitiveFindingSource[],
+): SdkNotice | undefined {
   const terms = plan.glossary.flagged;
   if (withheld.length === 0 && terms === 0) {
     return undefined;
@@ -120,25 +138,36 @@ function withheldNotice(withheld: readonly string[], plan: SensitivePlan): SdkNo
     code: "SENSITIVE_CONTENT_WITHHELD",
     message:
       `${counted(withheld, terms)} ${reason} content that looks sensitive ` +
-      `(${plan.sources.join(", ")})${named(withheld)}. Remove it, or allow it in ` +
+      `(${sources.join(", ")})${named(withheld)}. Remove it, or allow it in ` +
       "sensitiveData.allow.",
   };
+}
+
+export interface SensitiveOutcome {
+  readonly withheld: readonly string[];
+  readonly keptBack?: ReadonlySet<string>;
+  readonly sources?: readonly SensitiveFindingSource[];
 }
 
 export function sensitiveNotices(
   guard: SensitiveGuard | undefined,
   plan: SensitivePlan,
-  withheld: readonly string[],
+  outcome: SensitiveOutcome,
 ): readonly SdkNotice[] {
   if (guard === undefined) {
     return [];
   }
+  const keptBack = outcome.keptBack ?? new Set<string>();
   if (guard.mode === "warn") {
-    return [sentNotice(plan)].filter((notice) => notice !== undefined);
+    const sent = { ...plan, flagged: plan.flagged.filter((key) => !keptBack.has(key)) };
+    return [sentNotice(sent)].filter((notice) => notice !== undefined);
   }
-  const withheldSet = new Set(withheld);
-  const redacted = [...plan.redacted].filter((key) => !withheldSet.has(key)).sort();
-  return [redactedNotice(redacted), withheldNotice(withheld, plan)].filter(
+  const withheldSet = new Set(outcome.withheld);
+  const redacted = [...plan.redacted]
+    .filter((key) => !withheldSet.has(key) && !keptBack.has(key))
+    .sort();
+  const sources = [...new Set([...plan.sources, ...(outcome.sources ?? [])])].sort();
+  return [redactedNotice(redacted), withheldNotice(outcome.withheld, plan, sources)].filter(
     (notice) => notice !== undefined,
   );
 }
