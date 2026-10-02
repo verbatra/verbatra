@@ -65,9 +65,9 @@ check failed. It throws `CONFIG_NOT_FOUND` only for an explicit `configPath` tha
 
 <AvailableFrom version="0.12.0" />
 
-Every failed check carries `fix`, one short imperative next step such as "Set ANTHROPIC_API_KEY in
-the environment or in a .env file in the project directory.". A check that passed or was skipped
-has no `fix`. Like `detail`, it names variables and paths, never a key value.
+Every failed check carries `fix`, a next step such as "Set ANTHROPIC_API_KEY in the environment,
+or, with the CLI, in a .env file in the project directory.". A passed or skipped check has no `fix`.
+Like `detail`, it names variables and paths, never a key value.
 
 ### extract
 
