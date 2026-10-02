@@ -69,10 +69,10 @@ Grenzt einen Format-Bezeichner auf einen von einem Drittanbieter ein: true für 
 ```ts title="Signatur"
 function isCustomFormatId(
   format: string,
-): format is CustomFormatId$1;
+): format is CustomFormatId;
 ```
 
-**Rückgabe:** `format is CustomFormatId$1`
+**Rückgabe:** `format is CustomFormatId`
 
 ## Secrets schwärzen
 
@@ -145,7 +145,10 @@ function declareProviderKeyEnvVar(
 Einen Provider, den das SDK nicht mitbringt, hängst du über `deps.createProvider` an: eine
 `CreateProvider`-Fabrik, die einen `TranslationProvider` zurückgibt. Das SDK exportiert den ganzen
 Vertrag als Typen, also prüft TypeScript deinen Provider gegen dasselbe Interface, das die
-eingebauten Provider implementieren.
+eingebauten Provider implementieren. Dazu gehören die Typen seiner Felder: `Tone`,
+`PluralCategories`, `PlaceholderExtractor` und `PlaceholderComparator` in der Anfrage, `Usage`,
+`ProviderNotice`, `ProviderNoticeCode` und `ReviewFlag` im Ergebnis sowie `NetworkPolicy` und
+`NetworkRule` in `ProviderNetwork`.
 
 ```ts
 import {

@@ -245,11 +245,11 @@ function editConfiguredGlossaryTerm(
 
 ### defineConfig
 
-Une fonction identité pour écrire un `verbatra.config.ts` typé : elle renvoie son argument inchangé et n'existe que pour l'inférence de types et l'autocomplétion de l'éditeur, y compris la complétion des IDs de modèles connus du fournisseur sélectionné. La restriction de modèle ne vaut qu'à l'écriture ; à l'exécution, toute chaîne non vide passe la validation.
+Une fonction identité pour écrire un `verbatra.config.ts` typé : elle renvoie son argument inchangé et n'existe que pour l'inférence de types et l'autocomplétion de l'éditeur, y compris la complétion des IDs de modèles connus du fournisseur sélectionné. La restriction de modèle ne vaut qu'à l'écriture ; à l'exécution, toute chaîne non vide passe la validation. Chaque fournisseur dont le SDK connaît les IDs de modèles a aussi une surcharge qui prend `AuthoringConfigFor<"<id>">`, comme `AuthoringConfigFor<"anthropic">`, et restreint `provider.options.model` aux modèles de ce fournisseur ; la forme avec `AuthoringConfig` ci-dessous est le repli qu'utilise tout autre fournisseur.
 
 ```ts title="Signature"
 function defineConfig(
-  config: AuthoringConfigFor<"anthropic">,
+  config: AuthoringConfig,
 ): VerbatraConfigInput;
 ```
 
@@ -259,9 +259,26 @@ function defineConfig(
 
 Le schéma zod avec lequel `loadConfig` valide, exporté pour que ton propre outillage puisse valider un objet de config de la même façon que le SDK. Les clés de premier niveau inconnues sont rejetées, donc un secret égaré ne peut pas se cacher dans la config. La seule exception est `$schema`, une chaîne optionnelle acceptée pour qu'une config JSON ou YAML puisse pointer un éditeur vers le document JSON Schema que le paquet livre sous `@verbatra/sdk/config-schema.json`. Elle est ignorée à l'exécution.
 
+```ts title="Signature"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
 ### scaffoldingMetadata
 
 Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL et Google Cloud Translation n'ont pas d'entrée car ils ne prennent aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` et couvre donc chaque fournisseur qui n'a besoin que de son id ; `openai-compatible` et `libretranslate` en sont exclus parce que chacun a besoin d'une `baseUrl` que toi seul connais et qu'aucun n'a de variable d'environnement requise.
+
+```ts title="Signature"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
 
 `scaffoldingMetadata.humanOnlyProviderId` vaut `"none"`, l'id qui désactive la traduction automatique. Il n'a pas d'entrée dans `providerEnv`, puisqu'il ne lit aucune clé.
 

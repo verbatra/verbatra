@@ -56,12 +56,11 @@ Die Teile, die du kennen solltest:
   Key zurück; ein Key erscheint also nie in `needsReview` und `integrityMismatches` zugleich. Das
   Abarbeiten der Warteschlange steht in [Review in Studio](/docs/review-in-studio).
 - **notices** leben pro Locale, nie auf oberster Ebene. Dazu zählen Provider-Notices (etwa eine
-  DeepL-Degradation) und SDK-Notices mit den Codes `PLURAL_CATEGORIES_INCOMPLETE`,
-  `SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED` (ab 0.12.0: Keys, die eine XLIFF-Übergabe als geprüft oder final markiert hat, wurden als freigegeben festgehalten), `BUDGET_TOKENS_EXCEEDED`,
-  `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (Zustand unter einer Unterstrich-Schreibweise wie `pt_BR` wurde zum konfigurierten `pt-BR` verschoben; siehe [Ein umgeschriebener Locale-Code](/docs/the-lock-file#ein-umgeschriebener-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (dieses Verschieben bleibt dem nächsten Lauf überlassen, weil der Guard der Lock-Datei belegt blieb oder sich nicht lesen oder anlegen ließ oder eine Datei nicht geschrieben werden konnte; blieb nicht nur das Translation Memory zurück, lief die Locale nicht und scheiterte mit `LOCALE_STATE_NOT_CARRIED_OVER`), `PROVENANCE_FILE_TOO_LARGE`
-  (das Festhalten einer Locale hätte `verbatra.provenance.json` über die Größe wachsen lassen,
-  die verbatra zurückliest, daher blieb die Datei, wie sie war) und ab 0.12.0 die vier Warnungen der Prüfung der Locale-Unterstützung, erhoben, bevor irgendetwas ausgegeben wird, und auch bei einem Dry-Run: `LOCALE_UNVERIFIED_BY_PROVIDER` (der gesendete Code steht nicht in der Tabelle des Providers, nur seine Grundsprache, oder er stammt aus `localeMap`), `LOCALE_NOT_WELL_TESTED` (ein LLM-Ziel außerhalb der gut getesteten Liste), `GLOSSARY_UNSUPPORTED_BY_PROVIDER` und `FORMALITY_UNSUPPORTED_BY_PROVIDER` (ein Glossar oder Tonfall, den der Provider für die Locale nicht anwenden kann). Die Cache-Notice gilt für den gesamten Lauf (eine Datei, die
-  sich alle Locales teilen) und wird deshalb an jede Locale des Laufs gehängt.
+  DeepL-Degradation), aufgeführt unter [Provider-Hinweise](/docs/error-codes#provider-notice-codes),
+  und SDK-Notices, deren Codes die Union `SdkNoticeCode` bilden und unter
+  [Laufhinweise](/docs/error-codes#sdk-notice-codes) erklärt sind. Eine Notice für den gesamten
+  Lauf, etwa die Cache-Notice (eine Datei, die sich alle Locales teilen), wird an jede Locale des
+  Laufs gehängt.
 - **usage** ist `undefined`, nie eine erfundene Null, wann immer nichts in diesem Bereich einen
   Verbrauch gemeldet hat: ein Dry-Run ruft nie einen Provider auf, und DeepL meldet nie Tokens.
   `RunSummary.usage` ist die Summe über die Locales.
@@ -116,7 +115,7 @@ Die Teile, die du kennen solltest:
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
   (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
-- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 ### budgetStanding
 

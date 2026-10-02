@@ -338,11 +338,14 @@ Ein Identitätshelfer zum Schreiben einer typisierten `verbatra.config.ts`: er g
 unverändert zurück und existiert rein für Typinferenz und Editor-Autovervollständigung,
 einschließlich der Vervollständigung der bekannten Modell-IDs des gewählten Providers. Die
 Modell-Einschränkung gilt nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String die
-Validierung.
+Validierung. Jeder Provider, dessen Modell-IDs das SDK kennt, bekommt
+zusätzlich eine Überladung mit `AuthoringConfigFor<"<id>">`, etwa `AuthoringConfigFor<"anthropic">`,
+die `provider.options.model` auf die Modelle dieses Providers einschränkt; die Form mit
+`AuthoringConfig` unten ist der Rückfall für jeden anderen Provider.
 
 ```ts title="Signatur"
 function defineConfig(
-  config: AuthoringConfigFor<"anthropic">,
+  config: AuthoringConfig,
 ): VerbatraConfigInput;
 ```
 
@@ -357,6 +360,10 @@ Ausnahme ist `$schema`, ein optionaler String, der akzeptiert wird, damit eine J
 YAML-Konfiguration einen Editor auf das JSON-Schema-Dokument zeigen lassen kann, das das Paket als
 `@verbatra/sdk/config-schema.json` ausliefert. Zur Laufzeit wird es ignoriert.
 
+```ts title="Signatur"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
 ### scaffoldingMetadata
 
 Nur lesbare Metadaten, aus denen der CLI-Befehl `init` seine Abfragen ableitet:
@@ -370,6 +377,19 @@ Translation haben keinen Eintrag, weil sie kein Token-Limit entgegennehmen. Der 
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` und deckt damit jeden Provider ab, der nur
 seine Id braucht; `openai-compatible` und `libretranslate` sind ausgenommen, weil beide eine `baseUrl`
 brauchen, die nur du kennst, und keiner eine verpflichtende Umgebungsvariable hat.
+
+```ts title="Signatur"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
 
 `scaffoldingMetadata.humanOnlyProviderId` ist `"none"`, die ID, die Maschinenübersetzung abschaltet. Sie hat keinen Eintrag in `providerEnv`, weil sie keinen Key liest.
 

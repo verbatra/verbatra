@@ -69,10 +69,10 @@ Narrows a format identifier to a third-party one: true for a well-formed `custom
 ```ts title="Signature"
 function isCustomFormatId(
   format: string,
-): format is CustomFormatId$1;
+): format is CustomFormatId;
 ```
 
-**Returns:** `format is CustomFormatId$1`
+**Returns:** `format is CustomFormatId`
 
 ## Secret redaction
 
@@ -140,7 +140,10 @@ function declareProviderKeyEnvVar(
 
 A provider the SDK does not ship plugs in through `deps.createProvider`, a `CreateProvider` that
 returns a `TranslationProvider`. The SDK exports the whole contract as types, so such a provider
-type-checks against the same interface the built-in ones implement.
+type-checks against the same interface the built-in ones implement. That includes the types its
+fields use: `Tone`, `PluralCategories`, `PlaceholderExtractor` and `PlaceholderComparator` in the
+request, `Usage`, `ProviderNotice`, `ProviderNoticeCode` and `ReviewFlag` in the result, and
+`NetworkPolicy` and `NetworkRule` in `ProviderNetwork`.
 
 ```ts
 import {
