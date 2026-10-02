@@ -236,7 +236,7 @@ importers:
         version: 0.128.0(zod@4.6.5)
       '@google/genai':
         specifier: catalog:bundled
-        version: 2.24.0(@modelcontextprotocol/sdk@1.30.1(zod@4.6.5))
+        version: 2.24.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))
       '@verbatra/core':
         specifier: workspace:*
         version: link:../core
@@ -448,8 +448,8 @@ importers:
   packages/mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: 1.30.1
-        version: 1.30.1(zod@4.6.5)
+        specifier: 1.31.0
+        version: 1.31.0(zod@4.6.5)
       '@verbatra/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -495,7 +495,7 @@ importers:
         version: 3.5.20
       '@google/genai':
         specifier: catalog:bundled
-        version: 2.24.0(@modelcontextprotocol/sdk@1.30.1(zod@4.6.5))
+        version: 2.24.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))
       '@xmldom/xmldom':
         specifier: catalog:bundled
         version: 0.9.12
@@ -1650,8 +1650,8 @@ packages:
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
 
-  '@modelcontextprotocol/sdk@1.30.1':
-    resolution: {integrity: sha512-H2HxLvC3HDNybePJaLdSrU1hhUK5iQw+WvV1b01myFyI7sdVGe1u/IPTE5D9fGCiJDVtgMV/lmFkQXLmQyIFYA==}
+  '@modelcontextprotocol/sdk@1.31.0':
+    resolution: {integrity: sha512-UvTMgnNlnIBO/22ob2RcVGDlcvOslQs8T59+FTGdA0L27a39fdGF/EDETNtDVK4DZGpwomlsYpRdA8UXcVL/pw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -6532,14 +6532,14 @@ snapshots:
 
   '@fumari/image-size@0.1.1': {}
 
-  '@google/genai@2.24.0(@modelcontextprotocol/sdk@1.30.1(zod@4.6.5))':
+  '@google/genai@2.24.0(@modelcontextprotocol/sdk@1.31.0(zod@4.6.5))':
     dependencies:
       google-auth-library: 10.7.0
       p-retry: 4.6.2
       protobufjs: 7.6.5
       ws: 8.21.0
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.30.1(zod@4.6.5)
+      '@modelcontextprotocol/sdk': 1.31.0(zod@4.6.5)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -6723,7 +6723,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/sdk@1.30.1(zod@4.6.5)':
+  '@modelcontextprotocol/sdk@1.31.0(zod@4.6.5)':
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.5)
       ajv: 8.20.0

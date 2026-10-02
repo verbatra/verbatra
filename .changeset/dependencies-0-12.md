@@ -13,4 +13,4 @@ Runtime dependency updates that reach consumers of the published packages.
 - `openai` 7.19.0 -> 7.23.0
 
 **`@verbatra/mcp`**
-- `@modelcontextprotocol/sdk` 1.30.0 -> 1.30.1
+- `@modelcontextprotocol/sdk` 1.30.0 -> 1.31.0
