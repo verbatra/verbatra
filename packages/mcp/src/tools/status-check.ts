@@ -46,6 +46,7 @@ async function statusCheck(
 
 export const statusCheckTool = defineTool({
   name: "status.check",
+  values: "none",
   description:
     "Reports, per target locale, how many keys are missing, stale, or up to date against " +
     "the source, and whether the locale is in sync, as counts only. Use it for a fast " +

@@ -182,7 +182,7 @@ function approveEntry(
 **Throws:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
 
 `expectedValue` is the text the
-reviewer saw: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
+reviewer saw, or pass `expectedValueHash` with the `valueMarker` that produced it: the call throws `REVIEW_VALUE_CHANGED` when the key has no value or a different one,
 and `REVIEW_SOURCE_CHANGED` when the source changed since the value was written. `reviewer` is
 optional free text of at most 64 characters with no control characters (`REVIEWER_INVALID`
 otherwise), stored in the committed file and never filled in by verbatra. Returns
@@ -229,6 +229,22 @@ decision, which always allows the ten-minute default.
 Both calls check the provenance file before anything is written and never report a decision they
 could not save: a file from a newer verbatra, or one the decision would grow past the size verbatra
 reads back, throws `PROVENANCE_FILE_UNWRITABLE`.
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+Creates the marker a surface uses to show a value without its text: `mark(value)` returns
+`[redacted length=<n> hash=<h>]`, and `hash(value)` returns `h`, a 16-digit hex HMAC keyed with a
+random salt (or the given `salt`), so a hash matches only under the same marker. Pass that marker as
+`valueMarker` to `approveEntry` or `rejectEntry` to accept `expectedValueHash` in place of
+`expectedValue`. `verbatra mcp --redact-values` creates one per server start.
+
+```ts title="Signature"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**Returns:** `ValueMarker`
 
 ## Batch review and retranslation
 

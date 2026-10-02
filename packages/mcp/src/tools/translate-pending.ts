@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { lockAcquireTimeoutMs, lockTimeoutMsSchema } from "./lock-timeout.js";
-import { runSummarySchema } from "./run-schema.js";
+import { redactRunSummary, runSummarySchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
@@ -39,6 +39,7 @@ async function translatePending(
 
 export const translatePendingTool = defineTool({
   name: "translation.translatePending",
+  values: { redact: redactRunSummary },
   description:
     "Translates every missing or stale key across the configured target locales in one run, " +
     "calling the configured translation provider and writing the resulting locale files, lock " +

@@ -37,8 +37,7 @@ para una revisión de seguridad o legal. Este sitio web se rige por su
   Studio en tu navegador   cliente MCP (tu agente de IA)
 ```
 
-Solo la flecha del proveedor cruza el límite de tu red; para ver qué hace un agente de IA con lo que
-lee, consulta [Studio y MCP](#studio-y-mcp).
+Solo la flecha del proveedor cruza el límite de tu red.
 
 ## Cuándo se hace una petición
 
@@ -54,8 +53,7 @@ el texto compartido una sola vez. Una clave desactualizada que escribió una per
 para una sugerencia de `humanEdits: "suggest"`; una clave fijada, nunca
 ([Conserva las traducciones humanas](/docs/protecting-human-translations)).
 
-Cada petición empieza con una consulta DNS del host del proveedor a través del resolutor de tu
-sistema, así que el resolutor ve ese nombre.
+Cada petición empieza con una consulta DNS del host del proveedor, así que tu resolutor ve ese nombre.
 
 ## Qué recibe cada proveedor
 
@@ -67,8 +65,7 @@ sistema, así que el resolutor ve ese nombre.
 | `libretranslate` | El texto de origen de cada clave con los placeholders sustituidos por marcadores numerados (un valor con sintaxis ICU no se envía), los códigos de idioma y `LIBRETRANSLATE_API_KEY` si está definida. | La `baseUrl` que configuraste. |
 | `none` | Nada. | A ninguna parte. |
 
-Los SDK de los proveedores también envían sus cabeceras estándar, que nombran la biblioteca y
-normalmente tu sistema operativo y tu versión de Node.js. Tu clave de API solo va al endpoint
+Los SDK también envían cabeceras con la biblioteca, tu sistema operativo y Node.js. Tu clave de API solo va al endpoint
 configurado (`google-translate` la envía en la cadena de consulta `?key=`). Trata todo lo que haya en
 un texto de origen, una descripción o el glosario como enviado.
 
@@ -76,7 +73,7 @@ un texto de origen, una descripción o el glosario como enviado.
 
 Lo que pasa con tus textos una vez llegan lo deciden el proveedor y tu contrato, no verbatra. Las
 citas vienen de la página de cada proveedor a septiembre de 2026, en su inglés original; las
-condiciones cambian y tu contrato manda, así que lee las páginas enlazadas.
+condiciones cambian y tu contrato manda.
 
 | Proveedor | Qué dice el proveedor | Tratamiento de datos |
 | --- | --- | --- |
@@ -119,24 +116,27 @@ Se ha movido a [Política de red](/docs/network-policy#traducción-automática-s
 ## Claves de API
 
 Las claves solo vienen de [variables de entorno](/docs/providers#las-claves-vienen-del-entorno).
-Cada error de proveedor, y todo lo que imprime la CLI, pasa por un filtro que sustituye por
-`[REDACTED]` el valor de cada variable de clave conocida y todo lo que tenga forma de clave de API.
+Los errores del proveedor y la salida de la CLI sustituyen por `[REDACTED]` el valor de cada
+variable de clave conocida y todo lo que tenga forma de clave de API.
 
 ## Studio y MCP
 
 **Studio** solo escucha en `127.0.0.1`, rechaza otro `Host` u `Origin`, exige el token que imprime
 al arrancar, y su Content-Security-Policy bloquea las cargas desde internet.
 
-**El servidor MCP** habla con su cliente por stdio y no abre ningún puerto. Sus herramientas de
-lectura devuelven tus textos, tu glosario y tu estado al cliente conectado.
+**El servidor MCP** habla por stdio sin abrir puertos. Sus herramientas de lectura devuelven textos,
+glosario y estado, salvo que se ejecute con
+[`--redact-values`](/docs/cli/mcp#redacted-values): entonces cada valor es una marca. Nombres de
+clave, asuntos de commit y rutas no se ocultan, y un agente que sondea a propósito, por ejemplo con
+escrituras en el glosario, aún puede deducir algo de los valores.
 
-**Historial de los archivos de locale.** `history.list`, en Studio y en el servidor MCP, devuelve de
-cada commit el hash, la fecha, el nombre del autor, el asunto y las rutas cambiadas. Nunca lee el
-correo del autor.
+**Historial de los archivos de locale.** `history.list` devuelve de cada commit el hash, la fecha,
+el nombre del autor (omitido con `--redact-values`), el asunto y las rutas cambiadas, nunca el
+correo.
 
 Sopésalo: un cliente MCP, o un agente de navegador que usa `--expose-agent-tools` de Studio, suele
-ser un asistente de IA, y lo que lee va a su modelo bajo las condiciones de ese proveedor, algo que
-verbatra no puede restringir.
+ser un asistente de IA, y lo que lee va a su modelo bajo las condiciones de ese proveedor. Las
+herramientas de agente de Studio nunca se ocultan: un agente que maneja la pestaña ya lee la página.
 
 ## Traducciones generadas por IA y procedencia
 
@@ -164,7 +164,8 @@ consulta [Registrar evidencia de traducción automática](/docs/provenance-evide
 4. Comprueba qué envían tus archivos de origen: nombres de clave, descripciones y el glosario.
 5. Guarda las claves de API en un almacén de secretos o en un `.env` ignorado por git, y ejecuta
    `verbatra doctor`.
-6. Decide qué agentes de IA pueden conectarse a Studio o al servidor MCP.
+6. Decide qué agentes de IA pueden usar Studio o el servidor MCP, y si este necesita
+   `--redact-values`.
 7. Confirma `verbatra.provenance.json` y archiva `verbatra report provenance --json` en cada
    versión.
 

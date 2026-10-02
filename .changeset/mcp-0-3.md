@@ -54,3 +54,15 @@ Config-less start and reload, review and glossary v2 tools, spend limits, struct
   use project-relative paths.
 - An `apiKeyEnvVar` value is redacted from every result, and `startMcpServer` reads the glossary
   through an injected `fs`.
+
+**Values redacted**
+- `--redact-values` (also `verbatra mcp --redact-values`, or `VERBATRA_MCP_REDACT_VALUES`) replaces
+  every source text, translation, description, glossary term, and reviewer or author name in a
+  result with a marker carrying the value's length and a per-session hash. Key names, counts,
+  statuses, integrity verdicts, commit subjects and paths stay; `project.snapshot` reports
+  `valuesRedacted`, and the exported `MCP_CAPABILITIES` lets a host check support first.
+- In that mode `review.approve` and `review.reject` take only the marker's hash as `expectedHash`,
+  `glossary.write` answers with counts, quoted text in config, glossary and file errors is marked,
+  `translation.editEntry` still writes, and `locale.values` refuses `query` and `key.context`
+  refuses `draft`. Spend tools still need `--allow-spend`. It does not stop an agent that probes
+  on purpose.

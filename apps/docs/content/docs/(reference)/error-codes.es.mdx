@@ -190,6 +190,14 @@ Se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta.
 - **Código de salida**: `2`
 - **Siguiente paso**: Pass every flag the message names, or add --yes to accept the defaults.
 
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` cargó un `@verbatra/mcp` más antiguo que no confirma que oculta valores; el servidor se detuvo antes de servir nada.
+
+- **Lo lanza**: `mcp`
+- **Código de salida**: `2`
+- **Siguiente paso**: Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
 ### USAGE_ERROR
 
 El analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar; su `hint` nombra el `--help` del comando.

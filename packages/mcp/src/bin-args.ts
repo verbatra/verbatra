@@ -2,12 +2,15 @@ export const BIN_NAME = "verbatra-mcp";
 
 export const ALLOW_SPEND_ENV_VAR = "VERBATRA_MCP_ALLOW_SPEND";
 
+export const REDACT_VALUES_ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
+
 const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
 
 export interface BinOptions {
   readonly cwd?: string;
   readonly configPath?: string;
   readonly allowSpend: boolean;
+  readonly redactValues: boolean;
 }
 
 export type BinInvocation =
@@ -28,7 +31,7 @@ const VALUE_FLAGS = ["--cwd", "--config"] as const;
 
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
-const KNOWN_FLAGS = [...VALUE_FLAGS, "--allow-spend", "--help", "--version"];
+const KNOWN_FLAGS = [...VALUE_FLAGS, "--allow-spend", "--redact-values", "--help", "--version"];
 
 export const HELP_TEXT = [
   `Usage: ${BIN_NAME} [options]`,
@@ -39,6 +42,7 @@ export const HELP_TEXT = [
   "  --cwd <path>     resolve config and locale files from this directory",
   "  --config <path>  load this config file instead of searching for one",
   `  --allow-spend    advertise the tools that call a translation provider (also: ${ALLOW_SPEND_ENV_VAR})`,
+  `  --redact-values  replace translation values in every tool result with a marker (also: ${REDACT_VALUES_ENV_VAR})`,
   "  -V, --version    print the version and exit",
   "  -h, --help       print this help and exit",
   "",
@@ -80,6 +84,7 @@ interface ParseState {
   cwd?: string;
   configPath?: string;
   allowSpend: boolean;
+  redactValues: boolean;
 }
 
 function assignValue(state: ParseState, flag: ValueFlag, value: string | undefined): void {
@@ -127,6 +132,10 @@ function consume(state: ParseState, argv: readonly string[], index: number): num
     state.allowSpend = true;
     return 1;
   }
+  if (arg === "--redact-values") {
+    state.redactValues = true;
+    return 1;
+  }
   throw unexpectedArgument(arg);
 }
 
@@ -135,6 +144,7 @@ function toOptions(state: ParseState): BinOptions {
     ...(state.cwd !== undefined ? { cwd: state.cwd } : {}),
     ...(state.configPath !== undefined ? { configPath: state.configPath } : {}),
     allowSpend: state.allowSpend,
+    redactValues: state.redactValues,
   };
 }
 
@@ -142,7 +152,10 @@ export function parseArgs(
   argv: readonly string[],
   env: NodeJS.ProcessEnv = process.env,
 ): BinInvocation {
-  const state: ParseState = { allowSpend: isEnvValueTruthy(env[ALLOW_SPEND_ENV_VAR]) };
+  const state: ParseState = {
+    allowSpend: isEnvValueTruthy(env[ALLOW_SPEND_ENV_VAR]),
+    redactValues: isEnvValueTruthy(env[REDACT_VALUES_ENV_VAR]),
+  };
   let index = 0;
   while (index < argv.length) {
     const shortcut = SHORTCUTS.get(argv[index] ?? "");

@@ -9,6 +9,7 @@ import {
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
 import { reviewReasonCodeSchema } from "./run-schema.js";
+import { redactWriteResult } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
@@ -50,6 +51,7 @@ async function retranslateKeyEntry(
 
 export const retranslateEntryTool = defineTool({
   name: "translation.retranslateEntry",
+  values: { redact: redactWriteResult },
   description:
     "Asks the configured translation provider for a fresh translation of one key in one " +
     "target locale, and writes it over the current value when it passes the integrity gate. " +

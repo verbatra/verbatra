@@ -19,7 +19,7 @@ const historyListResultSchema = z.object({
     .array(
       z.object({
         hash: z.string(),
-        author: z.string(),
+        author: z.string().optional(),
         authorDate: z.string(),
         subject: z.string(),
         touchedPaths: z.array(z.string()).readonly(),
@@ -47,6 +47,15 @@ async function listHistory(
 
 export const historyListTool = defineTool({
   name: "history.list",
+  values: {
+    redact: (result) =>
+      result.commits === undefined
+        ? result
+        : {
+            ...result,
+            commits: result.commits.map(({ author: _author, ...commit }) => commit),
+          },
+  },
   description:
     "Lists the recent git commits that touched the source locale file or any configured target " +
     "locale file, newest first, each with its hash, author name (never the email address), " +

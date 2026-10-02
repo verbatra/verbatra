@@ -282,6 +282,7 @@ export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServ
     close: async () => {},
     closed: new Promise<void>(() => {}),
     spend: "off",
+    valuesRedacted: false,
     configured: true,
     ...overrides,
   };
@@ -289,6 +290,7 @@ export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServ
 
 export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
   return {
+    MCP_CAPABILITIES: { valuesRedaction: true },
     startMcpServer: async () => makeMcpHandle(),
     projectLabel,
     mcpReadyLine,

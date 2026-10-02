@@ -28,6 +28,8 @@ export const CLI_ERROR_HINTS = {
   INVALID_SEVERITY: "Pass --severity error or --severity warning.",
   LAYOUT_AMBIGUOUS: "Pass --path with one of the candidates.",
   MISSING_OPTIONS: "Pass every flag the message names, or add --yes to accept the defaults.",
+  REDACTION_UNSUPPORTED:
+    "Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.",
   USAGE_ERROR: "Run the command with --help to see the options and arguments it accepts.",
 } as const satisfies Record<CliErrorCode, string | undefined>;
 

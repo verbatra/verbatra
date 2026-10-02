@@ -24,6 +24,8 @@ verbatra studio --expose-agent-tools
 
 Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent)).
 
+L'agent lit chaque valeur sans masquage, comme la page l'affiche ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
+
 ## Savoir ce que l'agent peut appeler
 
 Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de lecture sont marqués en lecture seule, les outils d'écriture ne modifient que tes fichiers locaux, et les outils payants ne s'enregistrent qu'avec `--allow-spend`.

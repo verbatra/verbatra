@@ -1,9 +1,15 @@
-import { keyContext } from "@verbatra/sdk";
+import { keyContext, type ValueMarker } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { doNotTranslateSchema, localeTermSchema } from "./glossary.js";
+import {
+  doNotTranslateSchema,
+  localeTermSchema,
+  redactDoNotTranslate,
+  redactLocaleTerm,
+} from "./glossary.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
+import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
@@ -41,6 +47,22 @@ const keyContextResultSchema = z.object({
 
 type KeyContextResult = z.infer<typeof keyContextResultSchema>;
 
+function redactKeyContext(result: KeyContextResult, marker: ValueMarker): KeyContextResult {
+  const { draftCheck: _draftCheck, ...rest } = result;
+  return {
+    ...withProvenanceRedacted(markFields(rest, ["source", "target", "description"], marker)),
+    glossary: {
+      terms: result.glossary.terms.map((term) => redactLocaleTerm(term, marker)),
+      doNotTranslate: result.glossary.doNotTranslate.map((entry) =>
+        redactDoNotTranslate(entry, marker),
+      ),
+    },
+    ...(result.glossaryNotice !== undefined
+      ? { glossaryNotice: markFields(result.glossaryNotice, ["message"], marker) }
+      : {}),
+  };
+}
+
 async function readKeyContext(
   params: z.infer<typeof paramsSchema>,
   context: McpToolContext,
@@ -64,6 +86,7 @@ async function readKeyContext(
 
 export const keyContextTool = defineTool({
   name: "key.context",
+  values: { redact: redactKeyContext, refusedParams: ["draft"] },
   description:
     "Reads what you need to write one key in one target locale: what key.value returns, plus " +
     "the glossary entries that apply (every term whose source occurs in the source text, with " +

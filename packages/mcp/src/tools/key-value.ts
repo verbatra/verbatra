@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
+import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
@@ -35,6 +36,10 @@ async function readKeyValue(
 
 export const keyValueTool = defineTool({
   name: "key.value",
+  values: {
+    redact: (result, marker) =>
+      withProvenanceRedacted(markFields(result, ["source", "target", "description"], marker)),
+  },
   description:
     "Reads one key's current source text and, when it exists, its current text in one " +
     "target locale. Use it to see the text before changing it with translation.editEntry, " +

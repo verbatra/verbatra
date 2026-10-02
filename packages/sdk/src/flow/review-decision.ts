@@ -39,6 +39,7 @@ import { readTarget } from "./diff-locales.js";
 import { carryOverBeforeWrite } from "./locale-carry-over.js";
 import { selectLocales } from "./select-locales.js";
 import { readSource } from "./source.js";
+import type { ValueMarker } from "./value-marker.js";
 import { writeTargetResource } from "./write-target.js";
 
 /** Input for {@link approveEntry} and {@link rejectEntry}. */
@@ -53,9 +54,16 @@ export interface ReviewDecisionInput {
   readonly key: string;
   /**
    * The translation the reviewer saw. The decision is refused when the key's current value is a
-   * different one, so a value nobody looked at is never approved or rejected.
+   * different one, so a value nobody looked at is never approved or rejected. Pass exactly one of
+   * `expectedValue` and `expectedValueHash`.
    */
-  readonly expectedValue: string;
+  readonly expectedValue?: string;
+  /**
+   * The hash of the translation the reviewer saw, as the `valueMarker` dependency's
+   * {@link ValueMarker.hash} produced it, for a caller that only ever saw the value's redaction
+   * marker. The decision is refused when the key's current value hashes differently.
+   */
+  readonly expectedValueHash?: string;
   /**
    * Free text naming the reviewer, at most 64 characters with no control characters. It is stored
    * in the committed provenance file, so it is public; nothing is recorded when it is left out.
@@ -80,6 +88,11 @@ export interface ReviewDecisionDeps {
   readonly adapterRegistry?: AdapterRegistry;
   /** File-system port. Defaults to the real file system. */
   readonly fs?: SdkFs;
+  /**
+   * The marker whose hashes `expectedValueHash` is compared against. Required with
+   * `expectedValueHash`, ignored otherwise.
+   */
+  readonly valueMarker?: ValueMarker;
 }
 
 /** The outcome of {@link approveEntry} or {@link rejectEntry}: the decision as it was recorded. */
@@ -109,6 +122,7 @@ interface ReviewContext {
   readonly sourceEntry: TranslationEntry;
   readonly writeLock: LocaleWriteLockOptions;
   readonly recordLock: LocaleWriteLockOptions;
+  readonly matchesExpected: ExpectedValue;
 }
 
 interface ReviewedValue {
@@ -138,13 +152,37 @@ export function assertReviewer(reviewer: string | undefined): void {
   }
 }
 
-function assertExpectedValue(expectedValue: unknown): void {
+type ExpectedValue = (current: string) => boolean;
+
+function refuseExpectation(message: string): never {
+  throw new SdkError("REVIEW_VALUE_CHANGED", `${message}, so nothing was recorded.`);
+}
+
+function expectedHashMatcher(hash: unknown, marker: ValueMarker | undefined): ExpectedValue {
+  if (typeof hash !== "string") {
+    return refuseExpectation("The expectedValueHash must be a string");
+  }
+  if (marker === undefined) {
+    return refuseExpectation("An expectedValueHash needs the value marker that produced it");
+  }
+  return (current) => marker.hash(current) === hash;
+}
+
+function expectedValueMatcher(input: ReviewDecisionInput, deps: ReviewDecisionDeps): ExpectedValue {
+  const { expectedValue, expectedValueHash } = input;
+  if (expectedValue !== undefined && expectedValueHash !== undefined) {
+    return refuseExpectation("Pass expectedValue or expectedValueHash, not both");
+  }
+  if (expectedValueHash !== undefined) {
+    return expectedHashMatcher(expectedValueHash, deps.valueMarker);
+  }
   if (typeof expectedValue !== "string") {
-    throw new SdkError(
-      "REVIEW_VALUE_CHANGED",
-      "The expectedValue must be the translation the reviewer saw, as a string, so nothing was recorded.",
+    return refuseExpectation(
+      "The expectedValue must be the translation the reviewer saw, as a string",
     );
   }
+  const expectedHash = valueHash(expectedValue);
+  return (current) => valueHash(current) === expectedHash;
 }
 
 async function reviewContext(
@@ -152,7 +190,7 @@ async function reviewContext(
   deps: ReviewDecisionDeps,
 ): Promise<ReviewContext> {
   assertReviewer(input.reviewer);
-  assertExpectedValue(input.expectedValue);
+  const matchesExpected = expectedValueMatcher(input, deps);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const config = input.config;
   const cwd = input.cwd ?? process.cwd();
@@ -183,10 +221,11 @@ async function reviewContext(
     sourceEntry,
     writeLock,
     recordLock: recordLockOptions(input),
+    matchesExpected,
   };
 }
 
-async function reviewedValue(context: ReviewContext, expected: string): Promise<ReviewedValue> {
+async function reviewedValue(context: ReviewContext): Promise<ReviewedValue> {
   const target = await readTarget(
     context.cwd,
     context.config,
@@ -195,7 +234,7 @@ async function reviewedValue(context: ReviewContext, expected: string): Promise<
     context.locale,
   );
   const current = target.entries.get(context.key);
-  if (current === undefined || valueHash(current.value) !== valueHash(expected)) {
+  if (current === undefined || !context.matchesExpected(current.value)) {
     throw new SdkError(
       "REVIEW_VALUE_CHANGED",
       `The translation of "${context.key}" in ${context.locale} is no longer the value that was reviewed. Reload it and review it again.`,
@@ -514,7 +553,9 @@ function reviewerOf(input: ReviewDecisionInput): { reviewer?: string } {
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
- * not `expectedValue`. Also thrown, before anything is read, when `expectedValue` is not a string.
+ * not `expectedValue` (or does not hash to `expectedValueHash`). Also thrown, before anything is
+ * read, when `expectedValue` is not a string, when both are given, or when a hash comes without a
+ * `valueMarker`.
  * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
  * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
  * written.
@@ -535,7 +576,7 @@ export async function approveEntry(
 ): Promise<ReviewDecisionResult> {
   const context = await reviewContext(input, deps);
   return withLocaleLock(context, async () => {
-    const { value } = await reviewedValue(context, input.expectedValue);
+    const { value } = await reviewedValue(context);
     return withLockFileGuard(
       context.cwd,
       context.fs,
@@ -612,7 +653,9 @@ export async function approveEntry(
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock or the lock-file guard could
  * not be acquired before the timeout elapsed.
  * @throws {@link SdkError} `REVIEW_VALUE_CHANGED`: the key has no translation, or its translation is
- * not `expectedValue`. Also thrown, before anything is read, when `expectedValue` is not a string.
+ * not `expectedValue` (or does not hash to `expectedValueHash`). Also thrown, before anything is
+ * read, when `expectedValue` is not a string, when both are given, or when a hash comes without a
+ * `valueMarker`.
  * @throws {@link SdkError} `LOCALE_STATE_NOT_CARRIED_OVER`: state recorded under a respelled code
  * of the locale, such as `pt_BR` for `pt-BR`, could not be moved to it first, so nothing was
  * written.
@@ -642,7 +685,7 @@ export async function rejectEntry(
   const context = await reviewContext(input, deps);
   const decision: Decision = { reviewState: "rejected", ...reviewerOf(input) };
   return withLocaleLock(context, async () => {
-    const reviewed = await reviewedValue(context, input.expectedValue);
+    const reviewed = await reviewedValue(context);
     const record = await rejectUnderGuard(context, reviewed, decision);
     const rejectedHash = valueHash(reviewed.value);
     await evictMemoryValue(

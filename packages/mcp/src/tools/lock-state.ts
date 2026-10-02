@@ -40,6 +40,7 @@ async function readLockState(
 
 export const lockStateTool = defineTool({
   name: "lock.state",
+  values: "none",
   description:
     "Reads the translation lock file: whether it exists and, when it does, its version and " +
     "the per-locale count of keys that are missing, stale, or up to date against the " +

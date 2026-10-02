@@ -14,7 +14,7 @@ import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import { createProgressReporter, type ProgressReporter } from "./progress-reporter.js";
 import type { McpProjectState } from "./project-session.js";
-import { MCP_SERVER_INSTRUCTIONS } from "./server-instructions.js";
+import { serverInstructions } from "./server-instructions.js";
 import type { McpToolOutcome, RegisteredMcpTool } from "./tools/define-tool.js";
 import { editEntryTool } from "./tools/edit-entry.js";
 import { createMcpInFlightGuard } from "./tools/in-flight-guard.js";
@@ -22,6 +22,7 @@ import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
 import { translatePendingTool } from "./tools/translate-pending.js";
 import { describeUnconfiguredRefusal } from "./tools/unconfigured-refusal.js";
+import { presentError } from "./tools/value-redaction.js";
 import type { McpCallScope, McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -46,6 +47,7 @@ function seamsOf(options: McpServerOptions): Omit<McpToolContext, "config"> {
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
     ...(options.createProvider !== undefined ? { createProvider: options.createProvider } : {}),
+    ...(options.valueMarker !== undefined ? { valueMarker: options.valueMarker } : {}),
   };
 }
 
@@ -92,7 +94,11 @@ function executeFor(
   }
   return Promise.resolve({
     kind: "error",
-    message: describeUnconfiguredRefusal(tool.name, state.error, seams.cwd),
+    message: presentError(
+      state.error,
+      describeUnconfiguredRefusal(tool.name, state.error, seams.cwd),
+      seams.valueMarker,
+    ),
   });
 }
 
@@ -132,7 +138,10 @@ export function createMcpServer(options: McpServerOptions): Server {
 
   const server = new Server(
     { name: manifest.name, version: manifest.version },
-    { capabilities: { tools: { listChanged: true } }, instructions: MCP_SERVER_INSTRUCTIONS },
+    {
+      capabilities: { tools: { listChanged: true } },
+      instructions: serverInstructions({ valuesRedacted: options.valueMarker !== undefined }),
+    },
   );
 
   function announceIfChanged(tools: readonly RegisteredMcpTool[]): void {

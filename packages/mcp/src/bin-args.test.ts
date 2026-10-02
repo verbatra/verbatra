@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ALLOW_SPEND_ENV_VAR, BinUsageError, HELP_TEXT, parseArgs } from "./bin-args.js";
+import {
+  ALLOW_SPEND_ENV_VAR,
+  BinUsageError,
+  HELP_TEXT,
+  parseArgs,
+  REDACT_VALUES_ENV_VAR,
+} from "./bin-args.js";
 
 function usageError(argv: readonly string[]): BinUsageError {
   try {
@@ -17,34 +23,65 @@ describe("parseArgs: serving", () => {
   it("reads --cwd and --config values", () => {
     expect(parseArgs(["--cwd", "/tmp/project", "--config", "verbatra.config.ts"], {})).toEqual({
       kind: "serve",
-      options: { cwd: "/tmp/project", configPath: "verbatra.config.ts", allowSpend: false },
+      options: {
+        cwd: "/tmp/project",
+        configPath: "verbatra.config.ts",
+        allowSpend: false,
+        redactValues: false,
+      },
     });
   });
 
   it("reads --cwd=<path> and --config=<path> inline values", () => {
     expect(parseArgs(["--cwd=/tmp/project", "--config=a.ts"], {})).toEqual({
       kind: "serve",
-      options: { cwd: "/tmp/project", configPath: "a.ts", allowSpend: false },
+      options: { cwd: "/tmp/project", configPath: "a.ts", allowSpend: false, redactValues: false },
     });
   });
 
   it("sets allowSpend when --allow-spend is present", () => {
     expect(parseArgs(["--allow-spend"], {})).toEqual({
       kind: "serve",
-      options: { allowSpend: true },
+      options: { allowSpend: true, redactValues: false },
     });
   });
 
   it.each(["1", "true", " YES ", "on"])("sets allowSpend from %j in the environment", (value) => {
     expect(parseArgs([], { [ALLOW_SPEND_ENV_VAR]: value })).toEqual({
       kind: "serve",
-      options: { allowSpend: true },
+      options: { allowSpend: true, redactValues: false },
     });
   });
 
   it.each([undefined, "0", "false", ""])("leaves allowSpend off for %j", (value) => {
     const env = value === undefined ? {} : { [ALLOW_SPEND_ENV_VAR]: value };
-    expect(parseArgs([], env)).toEqual({ kind: "serve", options: { allowSpend: false } });
+    expect(parseArgs([], env)).toEqual({
+      kind: "serve",
+      options: { allowSpend: false, redactValues: false },
+    });
+  });
+});
+
+describe("parseArgs: --redact-values", () => {
+  it("sets redactValues when --redact-values is present", () => {
+    expect(parseArgs(["--redact-values"], {})).toEqual({
+      kind: "serve",
+      options: { allowSpend: false, redactValues: true },
+    });
+  });
+
+  it.each(["1", "true", " YES ", "on"])("sets redactValues from %j in the environment", (value) => {
+    expect(parseArgs([], { [REDACT_VALUES_ENV_VAR]: value })).toEqual({
+      kind: "serve",
+      options: { allowSpend: false, redactValues: true },
+    });
+  });
+
+  it.each(["0", "false", ""])("leaves redactValues off for %j", (value) => {
+    expect(parseArgs([], { [REDACT_VALUES_ENV_VAR]: value })).toEqual({
+      kind: "serve",
+      options: { allowSpend: false, redactValues: false },
+    });
   });
 });
 
@@ -68,12 +105,14 @@ describe("parseArgs: help and version", () => {
       "--cwd <path>",
       "--config <path>",
       "--allow-spend",
+      "--redact-values",
       "--version",
       "--help",
     ]) {
       expect(HELP_TEXT).toContain(flag);
     }
     expect(HELP_TEXT).toContain(ALLOW_SPEND_ENV_VAR);
+    expect(HELP_TEXT).toContain(REDACT_VALUES_ENV_VAR);
   });
 });
 
