@@ -5,7 +5,7 @@ type: reference
 ---
 Un adaptador de formato lee un archivo de locale y lo convierte en una forma neutral respecto al formato para el diff, el hashing y las comprobaciones de integridad, y luego lo escribe de vuelta con la forma propia del archivo. Pon en la clave `format` de tu [configuración](/docs/config-file) uno de estos ids:
 
-| `format` | Archivos | Placeholders | Plurales | Archivo de destino ausente | [Nunca marcado como ajeno](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| `format` | Archivos | Placeholders | Plurales | Archivo de destino ausente | [Sintaxis de placeholder nativa](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
 | `i18next-json` | JSON de i18next (`.json`) | `{{name}}`, `$t(...)` | sufijo CLDR en la clave | se crea | `{{name}}` |
 | `vue-i18n-json` | JSON de vue-i18n (`.json`) | `{name}`, `{0}` | pipe en el valor | se crea | `{name}`, `%{name}`, `${name}` |

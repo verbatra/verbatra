@@ -947,7 +947,7 @@ The candidate is empty or only whitespace although its source is not. Clearing a
 
 ## Review reasons [#review-reason-codes]
 
-A review flag marks an accepted translation as worth a second look; it never withholds a key. `translate` and `watch` list flagged keys under `needsReview`, and `check --qa` reports seven of these reasons as warnings, which fail the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple. Each entry says how its reason is measured; [Translation safety](/docs/translation-safety#review-flags) explains the review layer as a whole.
+A review flag marks an accepted translation as worth a second look; it never withholds a key. `translate` and `watch` list flagged keys under `needsReview`, and `check --qa` reports the reasons computed from the value, its source and the config as warnings, which fail the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple. Each entry says how its reason is measured; [Translation safety](/docs/translation-safety#review-flags) explains the review layer as a whole.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1029,9 +1029,9 @@ The value was reused from the cache for an earlier, near-identical source that h
 
 The translation dropped or changed a token shaped like a placeholder that the project's format does not protect, such as `{name}` in an i18next value or `%{count}` in a YAML value.
 
-It fires when such a token occurs in the source more often than, verbatim, in the translation. The format's own placeholders are left to the integrity gate, a token the translation only adds is not flagged, and an ICU argument counts once, by its head such as `{n, plural,`, so translated arms never raise it. Formats from third-party adapters are not checked. Which syntaxes each format protects is listed under [Formats](/docs/formats).
+It fires when such a token occurs in the source more often than, verbatim, in the translation. The format's own placeholders are left to the integrity gate, a token the translation only adds is not flagged, and an ICU argument counts once, by its head such as `{n, plural,`, so translated arms never raise it. Tokens inside ICU arms, a printf token glued to a letter or digit, percent-encoded bytes such as `%2F` and anything inside a URL are never checked, and neither are formats from third-party adapters. Which syntaxes each format protects is listed under [Formats](/docs/formats).
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning, naming each missing token in `details`, such as `-{name}`)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning, naming each missing token in `details`, such as `-{name}`)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Restore the token in the translation if your library interpolates it.
 

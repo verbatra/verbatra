@@ -90,7 +90,7 @@ interface IncompletePlural {
 `--qa` runs the checks a translate run applies to provider output over the values already in your locale files, stale or not, including extra plural forms the target language needs. Findings come in two severities:
 
 - **error**: the value fails the [integrity gate](/docs/translation-safety#the-integrity-gate) with `placeholder`, `markup`, `icu`, `degenerate`, or `empty`. Details list dropped tokens as `-{{name}}` and added ones as `+{{nom}}`.
-- **warning**: the value carries a [review reason](/docs/translation-safety#review-flags) computed from the value, its source and your config (glossary, `maxLength`), so none that depends on the provider or the cache; the finding's `details` name any token the value dropped, such as `-{name}`. A value with an error gets no warnings.
+- **warning**: the value carries a [review reason](/docs/translation-safety#review-flags) computed from the value, its source and your config (glossary, `maxLength`), so none that depends on the provider or the cache; for `FOREIGN_PLACEHOLDER_CHANGED`, the finding's `details` name each dropped or changed token, such as `-{name}`. A value with an error gets no warnings.
 
 ```text output
 qa: 1 error, 1 warning

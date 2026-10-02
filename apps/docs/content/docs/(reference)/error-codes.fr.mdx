@@ -963,7 +963,7 @@ La candidate est vide ou ne contient que des espaces alors que sa source ne l'es
 
 ## Motifs de révision [#review-reason-codes]
 
-Un signalement de révision marque une traduction acceptée comme méritant un second regard ; il ne retient jamais une clé. `translate` et `watch` listent les clés signalées sous `needsReview`, et `check --qa` signale sept de ces motifs comme avertissements, qui ne font échouer le job qu'avec `--strict`. L'ensemble est publié sous la forme du tuple `REVIEW_REASON_CODES`. Chaque entrée dit comment son motif est mesuré ; [Sécurité des traductions](/docs/translation-safety#signalements-de-révision) explique la couche de révision dans son ensemble.
+Un signalement de révision marque une traduction acceptée comme méritant un second regard ; il ne retient jamais une clé. `translate` et `watch` listent les clés signalées sous `needsReview`, et `check --qa` signale comme avertissements les motifs calculés à partir de la valeur, de sa source et de la config, qui ne font échouer le job qu'avec `--strict`. L'ensemble est publié sous la forme du tuple `REVIEW_REASON_CODES`. Chaque entrée dit comment son motif est mesuré ; [Sécurité des traductions](/docs/translation-safety#signalements-de-révision) explique la couche de révision dans son ensemble.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1045,9 +1045,9 @@ La valeur a été réutilisée depuis le cache pour une source antérieure presq
 
 La traduction a perdu ou modifié un jeton qui ressemble à un placeholder que le format du projet ne protège pas, comme `{name}` dans une valeur i18next ou `%{count}` dans une valeur YAML.
 
-Il se déclenche quand un tel jeton apparaît dans la source plus souvent que, mot pour mot, dans la traduction. Les placeholders propres au format relèvent du contrôle d'intégrité, un jeton que la traduction ne fait qu'ajouter n'est pas signalé, et un argument ICU compte une fois, par sa tête comme `{n, plural,`, si bien que des branches traduites ne le déclenchent jamais. Les formats d'adaptateurs tiers ne sont pas vérifiés. La syntaxe que protège chaque format est indiquée dans [Formats](/docs/formats).
+Il se déclenche quand un tel jeton apparaît dans la source plus souvent que, mot pour mot, dans la traduction. Les placeholders propres au format relèvent du contrôle d'intégrité, un jeton que la traduction ne fait qu'ajouter n'est pas signalé, et un argument ICU compte une fois, par sa tête comme `{n, plural,`, si bien que des branches traduites ne le déclenchent jamais. Les jetons dans des branches ICU, un jeton printf collé à une lettre ou un chiffre, les octets encodés en pourcentage comme `%2F` et tout ce qui se trouve dans une URL ne sont jamais vérifiés, pas plus que les formats d'adaptateurs tiers. La syntaxe que protège chaque format est indiquée dans [Formats](/docs/formats).
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement, qui nomme chaque jeton manquant dans `details`, comme `-{name}`)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement, qui nomme chaque jeton manquant dans `details`, comme `-{name}`)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Rétablis le jeton dans la traduction si ta bibliothèque l'interpole.
 

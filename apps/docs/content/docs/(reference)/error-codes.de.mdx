@@ -962,7 +962,7 @@ Der Kandidat ist leer oder besteht nur aus Leerraum, obwohl seine Quelle es nich
 
 ## Review-Gründe [#review-reason-codes]
 
-Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück. `translate` und `watch` führen markierte Keys unter `needsReview`, und `check --qa` meldet sieben dieser Gründe als Warnungen, die den Job nur mit `--strict` scheitern lassen. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. Jeder Eintrag sagt, wie sein Grund gemessen wird; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht als Ganzes.
+Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück. `translate` und `watch` führen markierte Keys unter `needsReview`, und `check --qa` meldet die Gründe, die sich aus dem Wert, seiner Quelle und der Konfiguration ergeben, als Warnungen, die den Job nur mit `--strict` scheitern lassen. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. Jeder Eintrag sagt, wie sein Grund gemessen wird; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht als Ganzes.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1044,9 +1044,9 @@ Der Wert wurde aus dem Cache für eine frühere, fast gleiche Quelle wiederverwe
 
 Die Übersetzung hat ein Token verloren oder verändert, das wie ein Platzhalter aussieht, den das Format des Projekts nicht schützt, etwa `{name}` in einem i18next-Wert oder `%{count}` in einem YAML-Wert.
 
-Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, in der Übersetzung. Die eigenen Platzhalter des Formats prüft das Integritäts-Gate, ein Token, das die Übersetzung nur hinzufügt, wird nicht markiert, und ein ICU-Argument zählt einmal, über seinen Kopf wie `{n, plural,`, sodass übersetzte Zweige ihn nie auslösen. Formate aus Adaptern von Drittanbietern werden nicht geprüft. Welche Syntax jedes Format schützt, steht unter [Formate](/docs/formats).
+Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, in der Übersetzung. Die eigenen Platzhalter des Formats prüft das Integritäts-Gate, ein Token, das die Übersetzung nur hinzufügt, wird nicht markiert, und ein ICU-Argument zählt einmal, über seinen Kopf wie `{n, plural,`, sodass übersetzte Zweige ihn nie auslösen. Tokens in ICU-Zweigen, ein printf-Token direkt an einem Buchstaben oder einer Ziffer, prozentkodierte Bytes wie `%2F` und alles in einer URL werden nie geprüft, ebenso wenig Formate aus Adaptern von Drittanbietern. Welche Syntax jedes Format schützt, steht unter [Formate](/docs/formats).
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung, die jedes fehlende Token in `details` nennt, etwa `-{name}`)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung, die jedes fehlende Token in `details` nennt, etwa `-{name}`)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Stelle das Token in der Übersetzung wieder her, wenn deine Bibliothek es interpoliert.
 

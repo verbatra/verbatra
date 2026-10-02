@@ -5,7 +5,7 @@ type: reference
 ---
 Ein Format-Adapter liest eine Locale-Datei in eine formatneutrale Form für Vergleich, Hashing und Integritätsprüfungen und schreibt sie dann in der eigenen Form der Datei zurück. Setze den `format`-Key deiner [Konfiguration](/docs/config-file) auf eine dieser Ids:
 
-| `format` | Dateien | Platzhalter | Plurale | Fehlende Zieldatei | [Nie als fremd markiert](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| `format` | Dateien | Platzhalter | Plurale | Fehlende Zieldatei | [Native Platzhaltersyntax](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
 | `i18next-json` | i18next-JSON (`.json`) | `{{name}}`, `$t(...)` | CLDR-Suffix am Key | angelegt | `{{name}}` |
 | `vue-i18n-json` | vue-i18n-JSON (`.json`) | `{name}`, `{0}` | Pipe im Wert | angelegt | `{name}`, `%{name}`, `${name}` |

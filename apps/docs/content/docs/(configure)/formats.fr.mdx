@@ -5,7 +5,7 @@ type: reference
 ---
 Un adaptateur de format lit un fichier de locale vers une forme unique, neutre vis-à-vis du format, pour la comparaison, le hachage et les contrôles d'intégrité, puis le réécrit dans la forme propre au fichier. Règle le champ `format` de ta [configuration](/docs/config-file) sur l'un de ces identifiants :
 
-| `format` | Fichiers | Placeholders | Pluriels | Fichier cible manquant | [Jamais signalé comme étranger](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
+| `format` | Fichiers | Placeholders | Pluriels | Fichier cible manquant | [Syntaxe de placeholder native](/docs/error-codes#foreign_placeholder_changed) <AvailableFrom version="0.12.0" /> |
 | --- | --- | --- | --- | --- | --- |
 | `i18next-json` | JSON i18next (`.json`) | `{{name}}`, `$t(...)` | suffixe CLDR sur la clé | créé | `{{name}}` |
 | `vue-i18n-json` | JSON vue-i18n (`.json`) | `{name}`, `{0}` | pipe dans la valeur | créé | `{name}`, `%{name}`, `${name}` |
