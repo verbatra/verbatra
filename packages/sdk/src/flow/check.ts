@@ -180,7 +180,8 @@ export interface CheckInput {
    * Also scan the source file and the glossary of every reported locale for content that looks
    * sensitive (see {@link CheckSummary.sensitive}), with the config's `sensitiveData` detectors,
    * patterns and allow list, or the default detectors when the block is absent. It scans every
-   * field a language model would receive, whatever the configured provider and `sensitiveData.mode`.
+   * field a language model would receive, whatever the configured provider and
+   * `sensitiveData.mode`.
    * Keyless: no provider is called and nothing is written. Defaults to false.
    */
   readonly sensitive?: boolean;

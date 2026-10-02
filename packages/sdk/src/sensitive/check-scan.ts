@@ -14,7 +14,9 @@ import type { SensitiveFindingSource, SensitiveRules } from "./scan-text.js";
 
 /** One source key whose content a `sensitiveData` detector or pattern matched. */
 export interface SensitiveKeyFinding {
-  /** The source key. The matched text itself is never reported. */
+  /**
+   * The source key. The matched text is never reported, except where it is part of the key name.
+   */
   readonly key: string;
   /** Where in the key the match was found. */
   readonly fields: readonly SensitiveField[];

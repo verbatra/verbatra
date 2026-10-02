@@ -69,14 +69,15 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  * - `SENSITIVE_CONTENT_SENT`: under `sensitiveData.mode: "warn"`, keys this locale sent to the
  *   provider, or glossary terms sent with them, hold content a configured detector or pattern
  *   matched, such as an email address or an API key. They were sent unchanged. The message names
- *   the detectors and the first keys, never the matched text. Raised on a dry run too.
+ *   the detectors and the first keys, never the matched text, except where it is part of a key
+ *   name. Raised on a dry run too.
  * - `SENSITIVE_CONTENT_REDACTED`: under `sensitiveData.mode: "redact"`, the matched content of
  *   these keys was replaced before sending and restored in the translation. The message names the
  *   first keys. Raised on a dry run too.
  * - `SENSITIVE_CONTENT_WITHHELD`: under `sensitiveData.mode: "block"` or `"redact"`, keys were not
- *   sent because of a match, and are listed in {@link LocaleSummary.sensitiveWithheld}, or glossary
- *   terms with a match were left out of the request. Under `redact` a key is withheld when the match
- *   is in its key name, overlaps a placeholder, or did not come back exactly once.
+ *   sent because of a match, and are listed in {@link LocaleSummary.sensitiveWithheld}, or
+ *   glossary terms with a match were left out of the request. Under `redact` a key is withheld
+ *   when the match is in its key name, overlaps a placeholder, or did not come back exactly once.
  *
  * `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`
  * and `FORMALITY_UNSUPPORTED_BY_PROVIDER` are raised before anything is spent, from the same
@@ -556,8 +557,8 @@ export interface LocaleSummary {
   readonly locale: string;
   /**
    * `succeeded` when no key was withheld by the integrity gate, a provider failure, the token
-   * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed` when keys were
-   * withheld and none landed, or when the locale threw. Keys skipped for invalid ICU source and
+   * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed`
+   * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU source and
    * handoff rows left blank do not change the status.
    */
   readonly status: "succeeded" | "partial" | "failed";
@@ -654,8 +655,8 @@ export interface LocaleSummary {
    *
    * Absent unless `status` is `failed`, but a `failed` locale does not always carry it: a locale
    * whose every key was withheld by the integrity gate, a provider failure, the token budget, or
-   * `sensitiveData` is `failed` with nothing thrown, so this stays undefined and the withheld keys are the account of
-   * what went wrong. Treat it as an optional detail on a failure, never as the failure test.
+   * `sensitiveData` is `failed` with nothing thrown, so this stays undefined and the withheld keys
+   * are the account of what went wrong. Treat it as an optional detail on a failure, never as the failure test.
    */
   readonly error?: {
     /** The failure's own code where it had one, and `LOCALE_FAILED` otherwise. */
