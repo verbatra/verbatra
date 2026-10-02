@@ -89,20 +89,12 @@ machine translation.
 
 ## Keeping strings in-house
 
-- **No machine translation**: [Human-only workflow](/docs/human-only-workflow).
-
-  <AvailableFrom version="0.12.0" />
-
-- **Your own model**: [`openai-compatible`](/docs/providers#openai-compatible) with Ollama, LM
-  Studio or vLLM.
-- **Your own machine translation, no language model**:
-  [`libretranslate`](/docs/providers#libretranslate).
-
-  <AvailableFrom version="0.12.0" />
-
-- **Enforce it**: a `local-only` [network policy](/docs/network-policy), pinned in CI.
-
-  <AvailableFrom version="0.12.0" />
+| Option | Use |
+| --- | --- |
+| No machine translation | [Human-only workflow](/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| Your own model | [`openai-compatible`](/docs/providers#openai-compatible) with Ollama, LM Studio or vLLM |
+| Your own machine translation, no language model | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| Enforce it | a `local-only` [network policy](/docs/network-policy), pinned in CI <AvailableFrom version="0.12.0" /> |
 
 ### Recipe: machine translation when language models are banned
 
@@ -145,6 +137,8 @@ Article 50 of the EU AI Act sets transparency obligations for AI systems that ge
 Whether it applies to your product is a question for your legal counsel. verbatra gives you a
 record: every value a provider produced is marked `machine` origin, with provider and model; see
 [Provenance: who wrote each value](/docs/the-lock-file#provenance-who-wrote-each-value).
+
+### Audit file
 
 <AvailableFrom version="0.12.0" />
 

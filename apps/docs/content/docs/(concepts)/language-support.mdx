@@ -141,12 +141,14 @@ How a plural is kept correct depends on the format:
 - **Apple, Android and gettext** round-trip exactly the forms each locale has, and a missing form has
   to be added by hand. gettext keeps its `Plural-Forms` header as written.
 
+### Plural warnings
+
 <AvailableFrom version="0.12.0" />
 
 [`verbatra check`](/docs/cli/check#plural-categories) and `verbatra doctor` warn about every plural
 that lacks a category its language uses, in every plural-aware format except gettext, whose forms
-follow its own header. DeepL, Google Cloud Translation and LibreTranslate translate the forms that
-exist but never generate new ones.
+follow its own header. DeepL, Google Cloud Translation and LibreTranslate translate existing forms
+but never generate new ones.
 
 ## Right-to-left languages
 

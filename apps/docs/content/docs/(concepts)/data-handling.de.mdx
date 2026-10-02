@@ -93,22 +93,12 @@ oder gar keine maschinelle Übersetzung.
 
 ## Strings im Haus behalten
 
-- **Keine maschinelle Übersetzung**:
-  [Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow).
-
-  <AvailableFrom version="0.12.0" />
-
-- **Dein eigenes Modell**: [`openai-compatible`](/docs/providers#openai-compatible) mit Ollama, LM
-  Studio oder vLLM.
-- **Deine eigene maschinelle Übersetzung, ohne Sprachmodell**:
-  [`libretranslate`](/docs/providers#libretranslate).
-
-  <AvailableFrom version="0.12.0" />
-
-- **Erzwing es**: eine [Netzwerkrichtlinie](/docs/network-policy) `local-only`, in der CI
-  festgelegt.
-
-  <AvailableFrom version="0.12.0" />
+| Option | Weg |
+| --- | --- |
+| Keine maschinelle Übersetzung | [Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| Dein eigenes Modell | [`openai-compatible`](/docs/providers#openai-compatible) mit Ollama, LM Studio oder vLLM |
+| Deine eigene maschinelle Übersetzung, ohne Sprachmodell | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| Erzwing es | eine [Netzwerkrichtlinie](/docs/network-policy) `local-only`, in der CI festgelegt <AvailableFrom version="0.12.0" /> |
 
 ### Rezept: Maschinenübersetzung, wenn Sprachmodelle verboten sind
 
@@ -152,6 +142,8 @@ Ob er für dein Produkt gilt, ist eine Frage für deine Rechtsberatung. verbatra
 Protokoll: Jeder Wert, den ein Provider erzeugt hat, trägt die Herkunft `machine`, mit Provider und
 Modell; siehe
 [Herkunft: wer welchen Wert geschrieben hat](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+
+### Prüfdatei
 
 <AvailableFrom version="0.12.0" />
 
