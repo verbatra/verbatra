@@ -9,11 +9,16 @@ const EXPECTED_READ_ONLY_ORDER = [
   "glossary.get",
   "glossary.write",
   "lock.state",
+  "history.list",
   "key.integrity",
+  "locale.integrity",
   "key.value",
+  "key.context",
+  "locale.values",
   "translation.editEntry",
   "translation.estimate",
   "review.queue",
+  "report.provenance",
   "review.approve",
   "review.reject",
   "usage.summary",
@@ -32,11 +37,11 @@ describe("buildToolRegistry", () => {
     }
   });
 
-  it("includes all 17 tools, with the two spend tools present, when spending is allowed", () => {
+  it("includes all 22 tools, with the two spend tools present, when spending is allowed", () => {
     const tools = buildToolRegistry(true);
     const names = tools.map((tool) => tool.name);
 
-    expect(names).toHaveLength(17);
+    expect(names).toHaveLength(22);
     for (const spendTool of SPEND_TOOL_NAMES) {
       expect(names).toContain(spendTool);
     }

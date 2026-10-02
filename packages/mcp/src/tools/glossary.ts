@@ -23,16 +23,16 @@ const MAX_GLOSSARY_PART_OF_SPEECH_LENGTH = 50;
 const MAX_FORBIDDEN_RENDERINGS = 50;
 const MAX_LOCALE_LENGTH = 64;
 
-const localeTermSchema = z.object({
+export const localeTermSchema = z.object({
   source: z.string(),
   target: z.string().optional(),
-  forbidden: z.array(z.string()),
+  forbidden: z.array(z.string()).readonly(),
   caseSensitive: z.boolean(),
   note: z.string().optional(),
   partOfSpeech: z.string().optional(),
 });
 
-const doNotTranslateSchema = z.object({ term: z.string(), caseSensitive: z.boolean() });
+export const doNotTranslateSchema = z.object({ term: z.string(), caseSensitive: z.boolean() });
 
 const glossaryResultSchema = z.object({
   indicator: glossaryProvenanceSchema,

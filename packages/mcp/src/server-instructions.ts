@@ -7,10 +7,13 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "If it reports configured: false, call project.doctor and follow the fix of each failed check before anything else. " +
     "2. status.check for missing, stale, and up-to-date counts per locale, then status.diff for the exact key names. " +
     "Both are read-only and call no provider. " +
-    "3. To fix one key, read it with key.value, check placeholder and ICU drift with key.integrity, " +
-    "then write the corrected text with translation.editEntry. That call is free and passes the same integrity gate as a provider result; " +
+    "3. To fix one key, read it with key.context (its text, applying glossary terms, and maxLength; pass your draft to check it), " +
+    "check placeholder and ICU drift with key.integrity, then write the corrected text with translation.editEntry. " +
+    "To find every broken translation at once, use locale.integrity; to search values, use locale.values. " +
+    "translation.editEntry is free and passes the same integrity gate as a provider result; " +
     "a rejection comes back as accepted: false with a reason, and sending the identical value again is rejected again. " +
-    "4. Afterwards, review.queue lists every machine-written value no person has approved yet, and usage.summary reports what the last run consumed.",
+    "4. Afterwards, review.queue lists every machine-written value no person has approved yet, and usage.summary reports what the last run consumed. " +
+    "report.provenance counts who wrote each value, and history.list shows who last committed a change to a locale file.",
   "Review decisions: review.approve and review.reject record a person's decision on one value in the committed " +
     "verbatra.provenance.json, under the reviewer name you pass. Call them only when the user has read the value " +
     "and told you which decision to record; never approve or reject your own translations or edits on your own " +
