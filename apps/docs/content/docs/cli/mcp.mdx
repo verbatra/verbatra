@@ -63,13 +63,18 @@ The server answers the MCP `initialize` handshake with fixed `instructions`, the
 | `glossary.get` | every glossary term with its translations, forbidden renderings and context, secret-redacted | yes | no |
 | `glossary.write` | change one glossary term: a translation, per-locale data, context, or whether it stays untranslated | no | no |
 | `lock.state` | the lock file's version and, per target locale, its key count plus missing, stale, and up-to-date counts | yes | no |
+| `history.list` | recent git commits that touched a locale file, with author name, date, subject and touched paths | yes | no |
 | `key.integrity` | one key's placeholder, markup, ICU syntax and ICU arm drift against the lock baseline, per locale | yes | no |
+| `locale.integrity` | every translation that fails the placeholder, markup or ICU checks right now, per locale | yes | no |
 | `key.value` | one key's current source and target text, with provenance and translator context | yes | no |
+| `key.context` | what `key.value` returns, plus the glossary terms that apply, `maxLength`, and a check of an optional `draft` | yes | no |
+| `locale.values` | source and target text of many keys, filtered by `keys` or `query`, page by page | yes | no |
 | `translation.editEntry` | write a manual translation for one key in one locale, gated by the integrity checks | no | no |
 | `translation.estimate` | what `translation.translatePending` would send and cost, as `translate --estimate --json` reports it | yes | no |
 | `translation.retranslateEntry` | ask the configured provider to retranslate one key in one locale | no | yes |
 | `translation.translatePending` | translate every missing or stale key, optionally only for some `locales` and within a `maxTokens` ceiling | no | yes |
 | `review.queue` | every machine-written value nobody has approved yet, with the last run's flags | yes | no |
+| `report.provenance` | per-locale counts by provenance bucket, as `verbatra report provenance` gives them, and the keys on request, paged | yes | no |
 | `review.approve` | record, on the user's instruction, that a named person approves one key's current translation | no | no |
 | `review.reject` | record, on the user's instruction, that a named person rejects one key's translation, removing it so it gets replaced | no | no |
 | `usage.summary` | token usage and budget status from the last run | yes | no |
@@ -96,6 +101,9 @@ The server answers the MCP `initialize` handshake with fixed `instructions`, the
 - Each `key.integrity` entry also carries `icuArmsMatch` and its details.
 - `glossary.get` takes an optional `locale` and then adds `effective`, the terms that locale is held to.
 - `key.value`, `lock.state`, `status.check` and `status.diff` carry provenance, left out when `verbatra.provenance.json` is unreadable.
+- `locale.values` and `report.provenance` page their entries in source key order: `limit` (default 200, at most 1,000), then the previous page's `nextCursor` as `cursor`. A page lists only the locales it holds entries for, and a stale cursor fails as invalid input.
+- `locale.values` takes `keys` or a case-insensitive `query` and returns entry arrays, not Studio's key map. `report.provenance` always returns complete counts; `includeEntries` adds the keys, optionally for some `buckets`.
+- `history.list` names each commit's author, never the email, and gives a `reason` with `available: false`; see [Studio and MCP](/docs/data-handling#studio-and-mcp).
 - The writing tools take an optional `lockTimeoutMs`, `0` to `600000`, default `30000`: how long to wait for a held write lock before failing with `LOCK_CONTENDED`, having written nothing.
 - Inputs and outputs are JSON Schemas; bad input returns a result naming the field. A result that does not match its `outputSchema` fails with `OUTPUT_SCHEMA_MISMATCH`; from a writing tool the change was applied, so do not retry.
 - A failed call's text starts with its error code, such as `UNKNOWN_KEY: ...`, and ends with a `Next step: ...` line when the error has one, the same text as the CLI's `hint`.

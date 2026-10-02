@@ -37,7 +37,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_status_diff` | fehlende, geänderte und verwaiste Keys pro Locale |
 | `verbatra_glossary_get` | das aufgelöste Glossar, mit geschwärzten Secrets |
 | `verbatra_lock_state` | den Zustand der Lock-Datei pro Locale |
-| `verbatra_history_list` | die letzten Commits an den Locale-Dateien |
+| `verbatra_history_list` | die letzten Commits an den Locale-Dateien, mit dem Namen des Autors ([nie die E-Mail](/docs/data-handling#studio-und-mcp)) |
 | `verbatra_key_integrity` | Platzhalter-, Markup- und ICU-Prüfung für einen Key, in den Locales, in denen sich seine Quelle geändert hat |
 | `verbatra_review_queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, aus den committeten Dateien <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | Quelle und Ziel eines Keys, samt Angabe, wer das Ziel geschrieben hat |
@@ -63,7 +63,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_translation_retranslateEntry` | einen Key in einer Locale neu übersetzen |
 | `verbatra_translation_translatePending` | alles Ausstehende übersetzen, optional nur für bestimmte `locales` und unter einer `maxTokens`-Obergrenze <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server.
+`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Der MCP-Server hat die Tools für Historie, Werte, Integrität und Key-Kontext ebenfalls; sein `locale.values` liefert Seiten, siehe [Weitere Eingaben und Ergebnisse](/docs/cli/mcp#weitere-eingaben-und-ergebnisse).
 
 ## Die Regeln der Tools kennen
 

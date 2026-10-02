@@ -199,8 +199,12 @@ describe("filter state", () => {
 
 describe("key status filter: search", () => {
   const values = [
-    { locale: "de", values: { "a.missing": { source: "Cart" }, "a.changed": { target: "Korb" } } },
-    { locale: "fr", values: { "a.old": { target: "Panier" } } },
+    {
+      locale: "de",
+      keys: ["a.missing", "a.changed"],
+      values: { "a.missing": { source: "Cart" }, "a.changed": { target: "Korb" } },
+    },
+    { locale: "fr", keys: ["a.old"], values: { "a.old": { target: "Panier" } } },
   ];
 
   it("matches keys, source and target text per locale, and everything for an empty query", () => {

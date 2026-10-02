@@ -2,11 +2,16 @@ import type { RegisteredMcpTool } from "./define-tool.js";
 import { editEntryTool } from "./edit-entry.js";
 import { estimateTool } from "./estimate.js";
 import { glossaryGetTool, glossaryWriteTool } from "./glossary.js";
+import { historyListTool } from "./history-list.js";
+import { keyContextTool } from "./key-context.js";
 import { keyIntegrityTool } from "./key-integrity.js";
 import { keyValueTool } from "./key-value.js";
+import { localeIntegrityTool } from "./locale-integrity.js";
+import { localeValuesTool } from "./locale-values.js";
 import { lockStateTool } from "./lock-state.js";
 import { projectDoctorTool } from "./project-doctor.js";
 import { projectSnapshotTool } from "./project-snapshot.js";
+import { reportProvenanceTool } from "./report-provenance.js";
 import { retranslateEntryTool } from "./retranslate-entry.js";
 import { reviewApproveTool, reviewRejectTool } from "./review-decision.js";
 import { reviewQueueTool } from "./review-queue.js";
@@ -28,13 +33,18 @@ const ALL_TOOLS_IN_ORDER: readonly RegisteredMcpTool[] = [
   glossaryGetTool,
   glossaryWriteTool,
   lockStateTool,
+  historyListTool,
   keyIntegrityTool,
+  localeIntegrityTool,
   keyValueTool,
+  keyContextTool,
+  localeValuesTool,
   editEntryTool,
   estimateTool,
   retranslateEntryTool,
   translatePendingTool,
   reviewQueueTool,
+  reportProvenanceTool,
   reviewApproveTool,
   reviewRejectTool,
   usageSummaryTool,

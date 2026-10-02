@@ -36,6 +36,12 @@ Config-less start and reload, review and glossary v2 tools, spend limits, struct
   required `reviewer`. They write local files only and are always listed.
 - `glossary.get` and `glossary.write` read and edit per-locale translations, forbidden renderings
   and do-not-translate terms. An unknown locale fails with `UNKNOWN_LOCALE`.
+- New read tools: `history.list` (locale file commits with the author name, never the email),
+  `locale.values` (search values in bulk), `locale.integrity` (every broken translation),
+  `key.context` (glossary terms, `maxLength` and a draft check for one key) and
+  `report.provenance` (provenance counts, with the keys on request).
+- `locale.values` and `report.provenance` return at most 1,000 entries per call and page with
+  `cursor` and `nextCursor`.
 - `translation.estimate` prices a run without calling a provider, and
   `translation.translatePending` takes `locales` and a `maxTokens` ceiling.
 - `translation.translatePending` sends `notifications/progress` as batches finish when the call

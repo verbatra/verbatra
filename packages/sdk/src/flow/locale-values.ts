@@ -29,6 +29,12 @@ export interface LocaleValues {
   /** The target locale these values were read for. */
   readonly locale: string;
   /**
+   * Every key in {@link LocaleValues.values}, in source key order, followed by the keys present only
+   * in this target locale in that file's order. Use it to iterate in a stable, meaningful order:
+   * the object's own key order puts integer-like keys first.
+   */
+  readonly keys: readonly string[];
+  /**
    * Source and target text per key, keyed by key name. Covers missing, changed, orphaned, and
    * in-sync keys alike. The object has no prototype, so every key, including `__proto__` or
    * `constructor`, is an own property and a key absent from the catalog reads as `undefined`.
@@ -154,7 +160,12 @@ export async function localeValues(
         adapter,
         fs,
       });
-      return { locale, values: mergeValues(source.resource, target, provenanceFor?.(locale)) };
+      const keys = [...new Set([...source.resource.entries.keys(), ...target.entries.keys()])];
+      return {
+        locale,
+        keys,
+        values: mergeValues(source.resource, target, provenanceFor?.(locale)),
+      };
     }),
   );
 }

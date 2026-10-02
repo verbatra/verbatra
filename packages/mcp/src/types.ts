@@ -1,6 +1,7 @@
 import type {
   CheckDeps,
   CreateProvider,
+  GitExecFile,
   LoadedConfig,
   ProgressListener,
   SdkFs,
@@ -19,6 +20,8 @@ export interface McpToolContext {
   readonly adapterRegistry?: NonNullable<CheckDeps["adapterRegistry"]>;
   /** Builds the provider for the provider-spending tools. Defaults to the configured provider. */
   readonly createProvider?: CreateProvider;
+  /** Runs git for history.list. Defaults to a real `child_process.execFile`. */
+  readonly execFile?: GitExecFile;
 }
 
 export interface McpCallScope {

@@ -73,13 +73,18 @@ Every tool, listed here in the order the server advertises them.
 | `glossary.get` | Every glossary term with its translation for all locales, per-locale translations, forbidden renderings, case sensitivity, note and part of speech, the terms kept untranslated, the glossary version and where it comes from; with `locale`, also the terms that locale is held to |
 | `glossary.write` | Change one glossary term (a translation for all locales or one `locale`, `forbidden` renderings, `note`, `partOfSpeech`, `caseSensitive`, or `doNotTranslate`) and return the glossary afterward |
 | `lock.state` | The lock file's version and its per-locale key counts, or `exists: false` before the first run |
+| `history.list` | Recent git commits that touched a locale file, with hash, author name (never the email), date, subject and touched paths |
 | `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
+| `locale.integrity` | Every translation that fails the placeholder, markup or ICU checks right now, per target locale |
 | `key.value` | One key's current source text, its source file description, and, if translated, its current text in one target locale with who wrote it |
+| `key.context` | What `key.value` returns plus the glossary terms that apply, the key's `maxLength`, and a check of an optional `draft` |
+| `locale.values` | Source and target text of many keys, filtered by `keys` or a `query`, in pages of up to 1,000 entries |
 | `translation.editEntry` | Write a manual translation for one key in one locale, accepted only if it passes the integrity gate |
 | `translation.estimate` | Estimate what `translation.translatePending` would send and cost, optionally for a subset of locales, without calling a provider |
 | `translation.retranslateEntry` | Ask the configured provider for a fresh translation of one key in one locale |
 | `translation.translatePending` | Translate every missing or stale key across the configured target locales, or a named subset, in one run, within an optional `maxTokens` ceiling |
 | `review.queue` | Every machine-written translation nobody has approved yet, read from the committed files, with the last run's flags |
+| `report.provenance` | Per locale, how many values fall into each provenance bucket; with `includeEntries`, the keys, paged |
 | `review.approve` | Record, on the user's instruction, that a named person approves one key's current translation |
 | `review.reject` | Record, on the user's instruction, that a named person rejects one key's current translation, removing it so it gets replaced |
 | `usage.summary` | Token usage and budget status left behind by the last run |

@@ -96,6 +96,11 @@ const CALLS_IN_ORDER: readonly { name: string; arguments: Record<string, unknown
   { name: "usage.summary", arguments: {} },
   { name: "key.value", arguments: { locale: "de", key: "greeting" } },
   { name: "key.integrity", arguments: { key: "greeting" } },
+  { name: "locale.integrity", arguments: {} },
+  { name: "locale.values", arguments: { limit: 2 } },
+  { name: "key.context", arguments: { locale: "de", key: "greeting", draft: "Hallo API" } },
+  { name: "report.provenance", arguments: { includeEntries: true, limit: 2 } },
+  { name: "history.list", arguments: {} },
   { name: "translation.editEntry", arguments: { locale: "de", key: "greeting", value: "Hallo" } },
   {
     name: "translation.editEntry",
@@ -157,7 +162,7 @@ describe("createMcpServer: output schemas", () => {
 
     const { tools } = await client.listTools();
 
-    expect(tools).toHaveLength(17);
+    expect(tools).toHaveLength(22);
     for (const tool of tools) {
       expect(tool.outputSchema?.type, tool.name).toBe("object");
     }
