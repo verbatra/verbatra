@@ -3,15 +3,26 @@ import { cpuScalingRatio, LINEAR_MAX_RATIO, LINEAR_SCALE } from "@verbatra/confi
 import { describe, expect, it } from "vitest";
 import { PRINTF_TOKEN, segmentValue } from "./value-tokens.js";
 
-const CORE_PROTECTED_RUNS = new URL(
-  "../../../core/src/placeholder/protected-runs.ts",
+const CORE_PRINTF_SYNTAX = new URL(
+  "../../../core/src/placeholder/printf-syntax.ts",
   import.meta.url,
 );
 
+function corePrintfPart(name: string): string {
+  const declaration = new RegExp(`^export const ${name} = (".*");$`, "m");
+  const literal = readFileSync(CORE_PRINTF_SYNTAX, "utf8").match(declaration)?.[1];
+  expect(literal).toBeDefined();
+  return JSON.parse(literal ?? '""') as string;
+}
+
 function corePositionalPrintfSource(): string {
-  const literals = readFileSync(CORE_PROTECTED_RUNS, "utf8").match(/^\s*"%\(\?:.*",$/gm) ?? [];
-  expect(literals).toHaveLength(1);
-  return JSON.parse((literals[0] ?? "").trim().replace(/,$/, "")) as string;
+  return [
+    "%",
+    corePrintfPart("PRINTF_POSITION"),
+    corePrintfPart("PRINTF_FLAGS_WIDTH_PRECISION"),
+    corePrintfPart("PRINTF_LENGTH"),
+    corePrintfPart("PRINTF_ANY_CONVERSION"),
+  ].join("");
 }
 
 const LINEAR_BASE_SIZE = 25_000;
