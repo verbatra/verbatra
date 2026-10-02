@@ -130,6 +130,10 @@ export async function runMcp(
   }
   const allowSpend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
   const redactValues = resolveBooleanFlag(opts.redactValues, REDACT_VALUES_ENV_VAR);
+  if (redactValues && mcpModule.MCP_CAPABILITIES?.valuesRedaction !== true) {
+    ui.error(toRenderableError(redactionUnsupported()));
+    return failedSession(2);
+  }
 
   const server = await step(
     () =>

@@ -12,7 +12,7 @@ import {
   makeMcpModule,
   recordingDeps,
 } from "./test-support.js";
-import type { CliDeps, RunHooks, Session } from "./types.js";
+import type { CliDeps, McpModule, RunHooks, Session } from "./types.js";
 
 function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Error {
   return Object.assign(
@@ -645,15 +645,36 @@ describe("run mcp: --redact-values resolution", () => {
 });
 
 describe("run mcp: an @verbatra/mcp that cannot redact", () => {
-  it("stops the server and exits 2 when --redact-values is not confirmed", async () => {
+  function olderModule(startMcpServer: McpModule["startMcpServer"]): McpModule {
+    const module = { ...makeMcpModule({ startMcpServer }) } as Record<string, unknown>;
+    delete module.MCP_CAPABILITIES;
+    return module as unknown as McpModule;
+  }
+
+  function handleWithoutRedaction(close = vi.fn(async () => {})): McpServerHandle {
+    const handle = { ...makeMcpHandle({ close }) } as Record<string, unknown>;
+    delete handle.valuesRedacted;
+    return handle as unknown as McpServerHandle;
+  }
+
+  it("refuses --redact-values before starting a module without the capability", async () => {
+    const startMcpServer = vi.fn(async () => handleWithoutRedaction());
+    const { deps } = recordingDeps({ importMcp: async () => olderModule(startMcpServer) });
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--redact-values"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(startMcpServer).not.toHaveBeenCalled();
+    expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
+    expect(cap.err()).toContain("Upgrade @verbatra/mcp");
+  });
+
+  it("stops a started server whose handle does not confirm redaction", async () => {
     const close = vi.fn(async () => {});
-    const olderHandle = { ...makeMcpHandle({ close }) } as Record<string, unknown>;
-    delete olderHandle.valuesRedacted;
     const { deps } = recordingDeps({
       importMcp: async () =>
-        makeMcpModule({
-          startMcpServer: async () => olderHandle as unknown as McpServerHandle,
-        }),
+        makeMcpModule({ startMcpServer: async () => handleWithoutRedaction(close) }),
     });
     const cap = captureStreams();
 
@@ -662,18 +683,12 @@ describe("run mcp: an @verbatra/mcp that cannot redact", () => {
     expect(code).toBe(2);
     expect(close).toHaveBeenCalledOnce();
     expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
-    expect(cap.err()).toContain("Upgrade @verbatra/mcp");
     expect(cap.err()).not.toContain("running on stdio");
   });
 
-  it("serves normally from the same module when redaction was not requested", async () => {
-    const olderHandle = { ...makeMcpHandle() } as Record<string, unknown>;
-    delete olderHandle.valuesRedacted;
+  it("serves normally from an older module when redaction was not requested", async () => {
     const { deps } = recordingDeps({
-      importMcp: async () =>
-        makeMcpModule({
-          startMcpServer: async () => olderHandle as unknown as McpServerHandle,
-        }),
+      importMcp: async () => olderModule(async () => handleWithoutRedaction()),
     });
     const cap = captureStreams();
     const captured = captureMcpSession();

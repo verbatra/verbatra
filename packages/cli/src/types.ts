@@ -1,4 +1,5 @@
 import type {
+  McpCapabilities,
   McpLaunchArgs,
   McpServerHandle,
   McpSpendState,
@@ -71,6 +72,7 @@ export interface StudioModule {
 }
 
 export interface McpModule {
+  readonly MCP_CAPABILITIES?: Partial<McpCapabilities>;
   startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
   resolveServerCwd?(cwd?: string): string;
   projectLabel?(cwd: string, base: string): string;
