@@ -221,16 +221,10 @@ function badgeViolations(source: string): string[] {
   ];
 }
 
-const AWAITING_FIX: ReadonlySet<string> = new Set(["(concepts)/translation-safety"]);
-
 function allPages(): string[] {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
     .sort();
-}
-
-function awaitingFix(file: string): boolean {
-  return AWAITING_FIX.has(file.replace(/(\.[a-z]{2})?\.mdx$/, ""));
 }
 
 function page(type: PageType, body: string): string {
@@ -238,19 +232,9 @@ function page(type: PageType, body: string): string {
 }
 
 describe("AvailableFrom badge placement", () => {
-  it.each(allPages().filter((file) => !awaitingFix(file)))(
-    "places every badge by the rules in %s",
-    (file) => {
-      expect(badgeViolations(readFileSync(join(CONTENT_DIR, file), "utf8"))).toEqual([]);
-    },
-  );
-
-  it.each(allPages().filter(awaitingFix))(
-    "still finds the violation %s awaits, so the exemption is dropped once it is fixed",
-    (file) => {
-      expect(badgeViolations(readFileSync(join(CONTENT_DIR, file), "utf8"))).not.toEqual([]);
-    },
-  );
+  it.each(allPages())("places every badge by the rules in %s", (file) => {
+    expect(badgeViolations(readFileSync(join(CONTENT_DIR, file), "utf8"))).toEqual([]);
+  });
 
   it("accepts a badge at page level, under a heading, in a table row and in a header cell", () => {
     const fixture = `---\ntype: how-to\n---\n<AvailableFrom version="0.10.0" />\n\nIntro.\n\n| Id | Never flagged <AvailableFrom version="0.12.0" /> |\n| --- | --- |\n| a | b |\n\n## A\n\n<AvailableFrom version="0.11.0" />\n\nText.\n\n| Code | Effect |\n| --- | --- |\n| \`X\` | does X <AvailableFrom version="0.12.0" /> |\n\n### B <AvailableFrom version="0.12.0" pkg="@verbatra/studio" />\n\nText.\n`;
