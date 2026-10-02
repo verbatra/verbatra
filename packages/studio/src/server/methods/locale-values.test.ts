@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { AdapterRegistry, type LoadedConfig, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
@@ -105,4 +105,37 @@ describe("localeValuesHandler", () => {
       }
     },
   );
+});
+
+describe("localeValuesHandler: injected seams", () => {
+  it("reads through the injected file system", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    const fs: SdkFs = {
+      fileExists: async () => false,
+      readFileBounded: async () => ({ kind: "missing" }),
+      readBytesBounded: async () => ({ kind: "missing" }),
+      writeFile: async () => {},
+      writeBytes: async () => {},
+      createExclusive: async () => true,
+      deleteFile: async () => {},
+    };
+    try {
+      await expect(localeValuesHandler({}, { ...deps(project), fs })).rejects.toMatchObject({
+        code: "SOURCE_UNREADABLE",
+      });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("resolves the format through the injected adapter registry", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      await expect(
+        localeValuesHandler({}, { ...deps(project), adapterRegistry: new AdapterRegistry() }),
+      ).rejects.toMatchObject({ code: "UNKNOWN_FORMAT" });
+    } finally {
+      await project.cleanup();
+    }
+  });
 });
