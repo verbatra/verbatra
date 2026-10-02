@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   containsMarkupTag,
+  decodeMaskedFromHtml,
+  decodeMaskedFromXml,
+  encodeMaskedForHtml,
+  encodeMaskedForXml,
   maskPlaceholders,
   partitionByPlaceholders,
   partitionForMasking,
+  restoreTranslations,
   unmaskPlaceholders,
 } from "./placeholder-protection.js";
 import { entry } from "./test-support.js";
@@ -175,5 +180,118 @@ describe("partitionForMasking", () => {
     expect(partitionForMasking([rich], { keepMarkup: true }).masked).toEqual([
       { entry: rich, masked: { text: "Open <b>settings</b>", originals: [] } },
     ]);
+  });
+});
+
+describe("partitionForMasking with withholdMarkup", () => {
+  it("withholds a placeholder-bearing value that carries a markup tag", () => {
+    const rich = entry("rich", "Open <b>{name}</b>", ["{name}", "<b>", "</b>"]);
+    expect(partitionForMasking([rich], { withholdMarkup: true }).unprotectable).toEqual([rich]);
+    expect(partitionForMasking([rich]).masked).toHaveLength(1);
+  });
+
+  it("leaves a placeholder-free value with markup on the plain path", () => {
+    const plain = entry("plain", "Open <b>settings</b>");
+    expect(partitionForMasking([plain], { withholdMarkup: true }).plain).toEqual([plain]);
+  });
+});
+
+describe("encodeMaskedForXml", () => {
+  it("wraps each marker in an ignore tag and escapes the residual text", () => {
+    expect(encodeMaskedForXml({ text: "Tom & {0} <3 {1}", originals: ["{{a}}", "%d"] })).toBe(
+      "Tom &amp; <x>{0}</x> &lt;3 <x>{1}</x>",
+    );
+  });
+});
+
+describe("decodeMaskedFromXml", () => {
+  it("unwraps markers and decodes entities", () => {
+    expect(decodeMaskedFromXml("<x>{1}</x> &amp; <x>{0}</x> &quot;&apos;&#233;&#xE9;")).toBe(
+      "{1} & {0} \"'\u00e9\u00e9",
+    );
+  });
+
+  it("does not turn an escaped tag into a wrapper", () => {
+    expect(decodeMaskedFromXml("&lt;x&gt;{0}&lt;/x&gt;")).toBeUndefined();
+  });
+
+  it.each([
+    ["a bare marker", "Hallo {0}"],
+    ["a wrapper with whitespace inside", "Hallo <x> {0} </x>"],
+    ["an unknown tag", "Hallo <b>x</b> <x>{0}</x>"],
+    ["an unknown entity", "Hallo&nbsp;<x>{0}</x>"],
+    ["a bare ampersand", "Tom & <x>{0}</x>"],
+    ["a surrogate code point", "&#xD800;<x>{0}</x>"],
+    ["a code point beyond Unicode", "&#1114112;<x>{0}</x>"],
+    ["a null character reference", "&#0;<x>{0}</x>"],
+  ])("rejects %s", (_case, text) => {
+    expect(decodeMaskedFromXml(text)).toBeUndefined();
+  });
+});
+
+describe("encodeMaskedForHtml", () => {
+  it("wraps each marker in a translate=no span and escapes the residual text", () => {
+    expect(encodeMaskedForHtml({ text: "A & {0} > B", originals: ["%s"] })).toBe(
+      'A &amp; <span translate="no">{0}</span> &gt; B',
+    );
+  });
+
+  it.each([
+    ["a line feed", "Line {0}\nnext"],
+    ["a carriage return", "Line {0}\rnext"],
+    ["a tab", "Col {0}\tnext"],
+    ["a double space", "Wide {0}  gap"],
+  ])("declines a value with %s, which HTML would collapse", (_case, text) => {
+    expect(encodeMaskedForHtml({ text, originals: ["%s"] })).toBeUndefined();
+  });
+});
+
+describe("decodeMaskedFromHtml", () => {
+  it("unwraps a span that carries attributes the service added", () => {
+    expect(
+      decodeMaskedFromHtml(
+        '<span translate="no" dir="rtl" style="text-align:right">{0}</span> &#39;x&#39;',
+      ),
+    ).toBe("{0} 'x'");
+  });
+
+  it.each([
+    ["a bare marker", "Hallo {0}"],
+    ["an unknown entity", 'Hallo&nbsp;<span translate="no">{0}</span>'],
+    ["a stray tag", "<div>Hallo</div><span>{0}</span>"],
+  ])("rejects %s", (_case, text) => {
+    expect(decodeMaskedFromHtml(text)).toBeUndefined();
+  });
+});
+
+describe("restoreTranslations", () => {
+  const plain = entry("plain", "Save");
+  const bearing = entry("bearing", "Hi {name}", ["{name}"]);
+  const masked = { text: "Hi {0}", originals: ["{name}"] };
+
+  it("restores masked values through the decoder and passes plain values through", () => {
+    const restored = restoreTranslations(
+      [
+        [{ entry: plain, text: "Save" }, "Speichern"],
+        [{ entry: bearing, text: "Hi <x>{0}</x>", masked }, "Hallo <x>{0}</x>"],
+      ],
+      decodeMaskedFromXml,
+    );
+    expect([...restored.values]).toEqual([
+      ["plain", "Speichern"],
+      ["bearing", "Hallo {name}"],
+    ]);
+    expect(restored.translated).toEqual([plain, bearing]);
+    expect(restored.lost).toBe(0);
+  });
+
+  it("counts a value the decoder rejects as lost", () => {
+    const restored = restoreTranslations(
+      [[{ entry: bearing, text: "Hi <x>{0}</x>", masked }, "Hallo {0}"]],
+      decodeMaskedFromXml,
+    );
+    expect(restored.values.size).toBe(0);
+    expect(restored.integrityInputs).toEqual([]);
+    expect(restored.lost).toBe(1);
   });
 });
