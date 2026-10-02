@@ -3,8 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-CLDR plural rules, ICU arm checks, other-syntax placeholder and direction control warnings, and
-`check --qa` and `check --file` for committed files.
+CLDR plurals, ICU arm checks, other-syntax placeholder and direction control warnings, `check --qa`.
 
 **Plurals and ICU arms**
 - Plural categories come from CLDR through `Intl.PluralRules` for every language, and i18next

@@ -97,8 +97,10 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
 - `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
   deep-frozen.
-- `onProgress` has new event kinds, so an exhaustive `switch` breaks. An invalid
-  `lockAcquireTimeoutMs` throws `LOCK_TIMEOUT_INVALID` instead of being accepted.
+- `onProgress` has new event kinds and `ReviewReasonCode` three new codes
+  (`GLOSSARY_FORBIDDEN_TERM`, `FOREIGN_PLACEHOLDER_CHANGED`, `BIDI_CONTROLS_CHANGED`), so an
+  exhaustive `switch` breaks. An invalid `lockAcquireTimeoutMs` throws `LOCK_TIMEOUT_INVALID`
+  instead of being accepted.
 - Adapter plugins: `BuildWriteTree` gets a fourth argument, `serializeEntries` a fifth (the
   locale), `parseEntries` receives the locale, and `write` takes a `WriteContext`. A throw from a
   `custom:` parser is `ADAPTER_FAILED` with the original error as `cause`, and a malformed
