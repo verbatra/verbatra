@@ -3,7 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-LibreTranslate, placeholder masking for DeepL and Google, a `network` policy, `--max-tokens`, per-attempt timeouts, strict `provider`.
+LibreTranslate, placeholder masking for DeepL and Google, a `network` policy, a sensitive-data guard, `--max-tokens`, per-attempt timeouts, strict `provider`.
 
 **LibreTranslate**
 - `provider: { id: "libretranslate", options: { baseUrl } }` translates through a self-hosted
@@ -25,6 +25,14 @@ LibreTranslate, placeholder masking for DeepL and Google, a `network` policy, `-
 - A `network` block (`any`, `local-only`, `allowlist` with `allowedHosts`), or
   `VERBATRA_NETWORK_POLICY`, restricts where providers connect. A refused host fails with
   `NETWORK_POLICY_VIOLATION` before its key is read. `doctor` gains a `network-policy` check.
+
+**Sensitive data**
+- A `sensitiveData` block scans what a run is about to send for API keys, email addresses, IBANs
+  and card numbers (plus opt-in `phone`, `ip`, `private-host` and your own `patterns`). `warn`
+  reports it, `block` withholds the key (`sensitiveWithheld`, exit 1), and `redact` sends a token
+  and restores the match. Off unless configured; `init` writes `warn`.
+- `check --sensitive` runs the same scan without a key and exits 1 on any finding. A false
+  positive goes into `sensitiveData.allow`.
 
 **Spend and requests**
 - `translate --max-tokens <n>` (SDK: `maxTokens`) sets a hard per-run ceiling, and withheld keys

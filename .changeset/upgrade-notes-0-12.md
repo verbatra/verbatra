@@ -92,7 +92,8 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `LocaleGlossary`.
 - `ProviderId` includes `"none"`, so an exhaustive `switch` or `Record` breaks, and
   `VerbatraConfigInput` is the schema's input shape.
-- `LocaleSummary.protected` is a new required field. `RunBudget.supported` is `true` for a run
+- `LocaleSummary.protected` and `LocaleSummary.sensitiveWithheld` are new required fields, and
+  `SuggestionStatus` gains `"sensitive-withheld"`. `RunBudget.supported` is `true` for a run
   that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
 - `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
   deep-frozen.
