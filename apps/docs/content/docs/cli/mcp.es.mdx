@@ -106,6 +106,12 @@ El servidor responde al handshake MCP `initialize` con unas `instructions` fijas
 
 `translation.estimate` devuelve el mismo resumen que [`verbatra translate --estimate --json`](/docs/cli/translate) y no gasta nada, así que siempre está en la lista. `translation.translatePending` acepta una lista opcional `locales` (un locale sin configurar falla con `UNKNOWN_LOCALE` antes de gastar nada) y un `maxTokens` opcional, un techo estricto que puede endurecer el `maxTokens` de la configuración pero nunca relajarlo. El orden sensato: `status.diff`, `translation.estimate`, el sí del usuario y luego `translation.translatePending` con los mismos `locales` y un `maxTokens` algo por encima de la estimación. Consulta [Estimar el coste](/docs/estimating-cost).
 
+### Progreso
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+Cuando una llamada a `translation.translatePending` lleva un `progressToken`, el servidor envía `notifications/progress` a medida que terminan los lotes de traducción: `progress` cuenta los lotes terminados en todos los locales, `total` crece a medida que se planifica cada locale y `message` nombra el locale y el lote (`de: batch 3/7`). Envía como mucho una cada 250 ms.
+
 ### Sin configuración
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
