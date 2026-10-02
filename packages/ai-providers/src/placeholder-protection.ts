@@ -54,13 +54,44 @@ interface Scan {
   readonly originals: readonly string[];
 }
 
+interface CandidateNode {
+  readonly next: Map<string, CandidateNode>;
+  candidate?: string;
+}
+
+function candidateTrie(candidates: readonly string[]): CandidateNode {
+  const root: CandidateNode = { next: new Map() };
+  for (const candidate of candidates) {
+    let node = root;
+    for (let index = 0; index < candidate.length; index += 1) {
+      const unit = candidate.charAt(index);
+      const child = node.next.get(unit) ?? { next: new Map() };
+      node.next.set(unit, child);
+      node = child;
+    }
+    node.candidate = candidate;
+  }
+  return root;
+}
+
+function longestCandidateAt(root: CandidateNode, value: string, start: number): string | undefined {
+  let longest: string | undefined;
+  let node: CandidateNode | undefined = root;
+  for (let index = start; node !== undefined && index < value.length; index += 1) {
+    node = node.next.get(value.charAt(index));
+    longest = node?.candidate ?? longest;
+  }
+  return longest;
+}
+
 function scanPlaceholders(value: string, candidates: readonly string[]): Scan {
+  const trie = candidateTrie(candidates);
   let text = "";
   let residual = "";
   const originals: string[] = [];
   let index = 0;
   while (index < value.length) {
-    const hit = candidates.find((candidate) => value.startsWith(candidate, index));
+    const hit = longestCandidateAt(trie, value, index);
     if (hit === undefined) {
       const character = value.charAt(index);
       text += character;
