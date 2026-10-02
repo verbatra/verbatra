@@ -20,7 +20,7 @@ Une exécution de `translate`, `watch` ou `import` écrit les fichiers dont un r
 
 <AvailableFrom version="0.12.0" />
 
-Une exécution écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres. L'oublier ne casse rien : un enregistrement qui ne correspond plus à sa valeur est lu comme `external`, donc un écart fait perdre de l'information mais n'attribue jamais le mauvais auteur.
+Une exécution écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres, ou supprime-le si cette exécution l'a créé. L'oublier n'est pas anodin : une valeur restaurée ne correspond plus à son enregistrement, donc elle se lit comme `external`, compte comme une modification humaine avec la valeur par défaut `humanEdits: protect` et n'est plus jamais traduite.
 
 ## Annuler une exécution terminée
 
@@ -43,7 +43,7 @@ Si l'exécution est déjà commitée, annule ce commit :
 git revert <commit>
 ```
 
-Dans les deux cas, restaure les fichiers de locale et `verbatra.lock.json` dans la même opération. La section suivante explique pourquoi.
+Dans les deux cas, restaure les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` dans la même opération. La section suivante explique pourquoi.
 
 ## Pourquoi les deux fichiers ou aucun
 

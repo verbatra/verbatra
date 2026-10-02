@@ -163,8 +163,9 @@ Lo que garantiza el archivo:
 
 - **Diffs estables.** Sin texto traducido y sin marcas de tiempo, un registro ordenado por línea,
   así que una ejecución que no cambia nada deja el archivo idéntico byte a byte. En un conflicto de
-  fusión, quédate con cualquiera de los dos lados: un registro que no coincide con su valor se lee
-  como `external`, así que elegir mal pierde información pero nunca nombra al autor equivocado.
+  fusión, quédate con el lado que coincide con el archivo de locale que conservas: un registro que
+  no coincide se lee como `external`, que no nombra a ningún autor equivocado pero protege el valor
+  de una nueva traducción.
 - **Registros nuevos para valores nuevos.** Una escritura que cambia un valor sustituye su registro
   por uno nuevo y sin revisar; una escritura que deja igual el valor y el origen lo conserva.
 - **Ninguna sobrescritura silenciosa.** Un archivo corrupto detiene cada escritura con

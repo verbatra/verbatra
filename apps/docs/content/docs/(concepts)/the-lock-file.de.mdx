@@ -164,8 +164,8 @@ Was die Datei garantiert:
 
 - **Stabile Diffs.** Kein übersetzter Text und keine Zeitstempel, ein sortierter Eintrag pro Zeile,
   ein Lauf, der nichts ändert, lässt die Datei also Byte für Byte, wie sie war. Bei einem
-  Merge-Konflikt nimm eine beliebige Seite: Ein Eintrag, der nicht zu seinem Wert passt, liest sich
-  als `external`, eine falsche Wahl verliert also Information, nennt aber nie den falschen Autor.
+  Merge-Konflikt nimm die Seite, die zur behaltenen Locale-Datei passt: Ein abweichender Eintrag
+  liest sich als `external`, nennt keinen falschen Autor, schützt den Wert aber vor Neuübersetzung.
 - **Frische Einträge für neue Werte.** Ein Schreibvorgang, der einen Wert ändert, ersetzt seinen
   Eintrag durch einen neuen, nicht reviewten; einer, der Wert und Quelle unverändert lässt, behält
   ihn.

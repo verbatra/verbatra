@@ -20,7 +20,7 @@ Ein `translate`-, `watch`- oder `import`-Lauf schreibt die Dateien, um die sich 
 
 <AvailableFrom version="0.12.0" />
 
-Außerdem schreibt ein Lauf `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her. Wenn du sie vergisst, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, gilt als `external`, also verliert ein Abweichen nur Information und schreibt nie den falschen Autor zu.
+Außerdem schreibt ein Lauf `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her, oder lösch sie, wenn dieser Lauf sie angelegt hat. Sie zu vergessen ist nicht harmlos: Ein zurückgesetzter Wert passt nicht mehr zu seinem Eintrag, gilt also als `external`, zählt beim Standard `humanEdits: protect` als menschliche Änderung und wird nie wieder übersetzt.
 
 ## Einen abgeschlossenen Lauf zurückrollen
 
@@ -43,7 +43,7 @@ Ist der Lauf schon committet, mach den Commit rückgängig:
 git revert <commit>
 ```
 
-In beiden Fällen stellst du die Locale-Dateien und `verbatra.lock.json` im selben Schritt wieder her. Der nächste Abschnitt erklärt, warum.
+In beiden Fällen stellst du die Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json` im selben Schritt wieder her. Der nächste Abschnitt erklärt, warum.
 
 ## Warum beide Dateien oder keine
 

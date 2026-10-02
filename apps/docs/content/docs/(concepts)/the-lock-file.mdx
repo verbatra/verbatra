@@ -142,9 +142,9 @@ verbatra, or a merge. The fields each read returns are in the
 What the file guarantees:
 
 - **Stable diffs.** No translated text and no timestamps, one sorted record per line, so a run that
-  changes nothing leaves the file byte for byte as it was. In a merge conflict, take either side: a
-  record that does not match its value reads as `external`, so a wrong pick loses information but
-  never names the wrong author.
+  changes nothing leaves the file byte for byte as it was. In a merge conflict, take the side matching the
+  locale file you keep: a mismatched record reads as `external`, which names no wrong author but
+  protects the value from retranslation.
 - **Fresh records for new values.** A write that changes a value replaces its record with a new,
   unreviewed one; a write that leaves value and source unchanged keeps it.
 - **No silent overwrite.** A corrupt file stops every write with

@@ -20,7 +20,7 @@ A `translate`, `watch` or `import` run writes the files a rollback cares about:
 
 <AvailableFrom version="0.12.0" />
 
-A run also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two. Forgetting it breaks nothing: a record that no longer matches its value reads as `external`, so a mismatch loses information but never claims the wrong author.
+A run also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two, or delete it if this run created it. Forgetting it is not harmless: a reverted value no longer matches its record, so it reads as `external`, counts as a human edit under the default `humanEdits: protect`, and is never translated again.
 
 ## Roll back a completed run
 
@@ -43,7 +43,7 @@ If the run is already committed, revert that commit:
 git revert <commit>
 ```
 
-Either way, restore the locale files and `verbatra.lock.json` in the same operation. The next section is why.
+Either way, restore the locale files, `verbatra.lock.json` and `verbatra.provenance.json` in the same operation. The next section is why.
 
 ## Why both files, or neither
 
