@@ -200,6 +200,16 @@ function renderLocaleStyle(localeStyle: LocaleStyle | undefined): string[] {
   ];
 }
 
+function renderSensitiveData(choice: ProviderChoice): string[] {
+  if (choice.id === HUMAN_ONLY_PROVIDER) {
+    return [];
+  }
+  return [
+    "  // Report emails, API keys, IBANs and card numbers before they are sent to the provider.",
+    '  sensitiveData: { mode: "warn" },',
+  ];
+}
+
 export function renderConfig(draft: ConfigDraft): string {
   return [
     `import { defineConfig } from ${JSON.stringify(draft.importName)};`,
@@ -217,6 +227,7 @@ export function renderConfig(draft: ConfigDraft): string {
     ...renderLocaleStyle(draft.localeStyle),
     "  },",
     renderProviderBlock(draft.provider),
+    ...renderSensitiveData(draft.provider),
     "});",
     "",
   ].join("\n");

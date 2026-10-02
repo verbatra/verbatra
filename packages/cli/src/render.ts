@@ -43,6 +43,7 @@ import {
   type RunBudget,
   type RunEstimate,
   type RunSummary,
+  type SensitiveKeyFinding,
   scaffoldingMetadata,
   type TmxLanguageReport,
   type TmxRejectionReason,
@@ -310,6 +311,7 @@ function renderLocaleDetail(locale: LocaleSummary, labels: RunCountLabels): read
   const groups = [
     renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
+    renderDetailGroup("sensitive-withheld", locale.sensitiveWithheld),
     renderDetailGroup(
       "notices",
       locale.notices.map((notice) => `[${notice.code}] ${notice.message}`),
@@ -370,6 +372,7 @@ function renderLocaleLine(locale: LocaleSummary, labels: RunCountLabels): readon
     [locale.integrityMismatches.length, "integrity-withheld", false],
     [locale.providerFailures.length, "provider-failed", false],
     [locale.budgetWithheld.length, "budget-withheld", false],
+    [locale.sensitiveWithheld.length, "sensitive-withheld", false],
     [locale.unfilled.length, "unfilled", false],
     [locale.protected.length, "protected", false],
     [locale.malformedRows.length, "malformed-row", false, "malformed-rows"],
@@ -444,7 +447,28 @@ export function renderCheckHuman(summary: CheckSummary, machineTranslation = tru
     ...renderConsistencyReport(summary),
     ...renderQaReport(summary),
     ...renderReviewReport(summary),
+    ...renderSensitiveReport(summary),
   ].join("\n");
+}
+
+function renderSensitiveFinding(finding: SensitiveKeyFinding): string {
+  return `  ${neutralizeControlCharacters(finding.key)}: ${finding.detectors.join(", ")} in ${finding.fields.join(", ")}`;
+}
+
+function renderSensitiveReport(summary: CheckSummary): readonly string[] {
+  const sensitive = summary.sensitive;
+  if (sensitive === undefined) {
+    return [];
+  }
+  const count = sensitive.findings.length + sensitive.glossaryTerms;
+  if (count === 0) {
+    return ["sensitive: nothing found"];
+  }
+  return [
+    `sensitive: ${plural(sensitive.findings.length, "key")} and ${plural(sensitive.glossaryTerms, "glossary term")} hold content that looks sensitive`,
+    ...sensitive.findings.map(renderSensitiveFinding),
+    "  remove it, list it in sensitiveData.allow, or turn the detector off in sensitiveData.detectors",
+  ];
 }
 
 const LISTED_UNREVIEWED_KEYS = 10;
