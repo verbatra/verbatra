@@ -69,6 +69,17 @@ function schemaNodes(path) {
   return nodes;
 }
 
+const PATHS_OWNED_ELSEWHERE = new Set(["provider", "glossary"]);
+
+function schemaPaths(node, prefix) {
+  return variantsOf(node).flatMap((variant) =>
+    Object.entries(variant.properties ?? {}).flatMap(([name, child]) => {
+      const path = prefix === "" ? name : `${prefix}.${name}`;
+      return PATHS_OWNED_ELSEWHERE.has(path) ? [path] : [path, ...schemaPaths(child, path)];
+    }),
+  );
+}
+
 function enumValues(path) {
   const values = schemaNodes(path).flatMap((node) =>
     node.enum !== undefined ? node.enum : node.const !== undefined ? [node.const] : [],
@@ -115,10 +126,12 @@ describe("config-file key table", () => {
     }
   });
 
-  it("covers every top-level key of the shipped schema", () => {
-    for (const name of Object.keys(SCHEMA.properties)) {
-      const covered = ENGLISH.some(({ key }) => key === name || key.startsWith(`${name}.`));
-      expect(covered, name).toBe(true);
+  it("covers every key of the shipped schema, nested keys included", () => {
+    const paths = schemaPaths(SCHEMA, "");
+    expect(paths).toContain("extract.literals.ignore");
+    for (const path of paths) {
+      const covered = ENGLISH.some(({ key }) => key === path || key.startsWith(`${path}.`));
+      expect(covered, path).toBe(true);
     }
   });
 
