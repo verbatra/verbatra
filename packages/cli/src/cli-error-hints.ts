@@ -14,7 +14,8 @@ export const CLI_ERROR_HINTS = {
   INVALID_DIRECTION:
     "Run `verbatra tmx import` or `verbatra tmx export`, with only the flags that direction takes.",
   INVALID_FORMAT: "Pass a supported --format value; the command's --help lists them.",
-  INVALID_LOCALE: "Pass --locale as a language tag of letters, digits and hyphens, such as en-XA.",
+  INVALID_LOCALE:
+    "Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.",
   INVALID_LOCALES:
     "Pass --locales as a comma-separated list of configured target locales, or omit it.",
   INVALID_LOCK_TIMEOUT: "Pass --lock-timeout as a whole number of seconds from 1 to 3600.",
