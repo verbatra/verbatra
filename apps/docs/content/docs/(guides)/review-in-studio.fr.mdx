@@ -38,11 +38,11 @@ Il affiche aussi **ICU arms mismatch** quand les branches plural ou select d'une
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Un badge d'origine montre qui a écrit chaque valeur, lu depuis [`verbatra.provenance.json`](/docs/the-lock-file#la-provenance-de-chaque-valeur), par exemple **Machine**, **Human** ou **Edited outside verbatra**. Une modification que tu enregistres dans Studio est consignée comme **Human**.
+Un badge d'origine montre qui a écrit chaque valeur, lu depuis [`verbatra.provenance.json`](/docs/the-lock-file#la-provenance-de-chaque-valeur), par exemple **Machine**, **Human** ou **Edited outside verbatra**.
 
 ### Modifier avec la barrière d'intégrité
 
-**Edit** ouvre l'éditeur. L'enregistrement fait passer la valeur par la barrière d'intégrité : une valeur qui échoue est rejetée avec la raison et rien n'est écrit, et une valeur vide est refusée aussi. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage. Modifier ne demande aucune option et n'appelle jamais de fournisseur.
+**Edit** ouvre l'éditeur. L'enregistrement fait passer la valeur par la [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) ; une valeur refusée n'est pas écrite, et la raison s'affiche. Une modification acceptée écrit le fichier de locale et met à jour le fichier de verrouillage. Modifier ne demande aucune option et n'appelle jamais de fournisseur.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -72,15 +72,13 @@ Filtre par locale ou par texte dans la clé, la source ou la traduction, puis tr
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Les deux décisions sont enregistrées dans [`verbatra.provenance.json`](/docs/the-lock-file#décisions-de-revue) et s'appliquent exactement au texte affiché : si la valeur a changé depuis le chargement de la page, la décision est refusée. Une approbation exige aussi que la valeur soit à jour par rapport à sa source.
-
-Une valeur rejetée est retirée du fichier de locale, donc la clé compte comme manquante jusqu'à ce que le prochain `verbatra translate` la remplisse, et aucune exécution ne réutilise le texte rejeté pour cette clé. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance. Dans un projet XLIFF, le rejet est refusé ; modifie plutôt la valeur.
+Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les règles des [Décisions de revue](/docs/the-lock-file#décisions-de-revue), y compris ce qu'un rejet retire. Une approbation exige aussi que la valeur soit à jour par rapport à sa source. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance ; dans un projet XLIFF, modifie au lieu de rejeter.
 
 ### Une seule file pour toute l'équipe
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-La file est lue depuis les fichiers commités, donc un coéquipier qui récupère les fichiers de locale, le fichier de verrouillage et `verbatra.provenance.json` voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
+La file est lue depuis les fichiers commités, donc un coéquipier qui les récupère voit la même file. Une valeur la quitte dès qu'une personne l'approuve, la rejette, l'écrit ou l'importe ; une valeur approuvée qu'une machine réécrit y revient.
 
 La barre de filtres bascule entre **Needs review** et **Approved** et restreint par origine ; une locale choisie, **Approve all in** l'approuve en entier après une confirmation. Pour faire échouer une pull request tant que des traductions automatiques attendent, lance [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues) en CI.
 
@@ -111,7 +109,7 @@ Coche des lignes (ou la case d'en-tête pour tout ce que le filtre affiche), pui
 
 ## Retraduire une clé signalée
 
-Démarre Studio avec la dépense autorisée ([comment la dépense est accordée](/docs/cli/studio#dépenses-et-outils-dagent)) ; la clé d'API du fournisseur vient toujours de l'environnement :
+Démarre Studio avec la dépense autorisée ([comment la dépense est accordée](/docs/cli/studio#dépenses-et-outils-dagent))  :
 
 ```bash
 verbatra studio --allow-spend
@@ -141,7 +139,6 @@ Une modification du glossaire change ce que la prochaine exécution reçoit comm
 
 ## Voir aussi
 
-- [`verbatra studio`](/docs/cli/studio) : chaque option et le contrat de démarrage.
 - [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) : le même flux depuis un agent d'IA dans le navigateur.
 - [Consigner les preuves de traduction automatique](/docs/provenance-evidence) : transforme les décisions de revue en fichier d'audit.
-- [Modifier et relire depuis le SDK](/docs/sdk/review) : `approveEntry`, `rejectEntry` et les fonctions de lot derrière ces boutons.
+- [Modifier et relire depuis le SDK](/docs/sdk/review) : les fonctions derrière ces boutons.

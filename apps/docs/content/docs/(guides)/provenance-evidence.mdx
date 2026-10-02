@@ -9,11 +9,11 @@ type: how-to
 Use this when someone asks which of your published text a provider or an AI agent translated, and whether a person reviewed it. verbatra records that per key in `verbatra.provenance.json`; you get it out as a report to archive, or as markers in the XLIFF and TMX files you hand to other tools.
 
 <Callout type="warn" title="Supporting evidence, not legal advice">
-Article 50 of the EU AI Act sets transparency obligations for AI-generated text, and text a person
-reviewed under editorial responsibility is treated differently from text that was not. How those
-rules apply to translation, and to your product, is not something verbatra can decide for you. The
-report and the markers are supporting evidence for whoever makes that call. They are not legal
-advice, and using them does not make a product compliant with anything.
+Under [Article 50 of the EU AI Act](/docs/data-handling#ai-generated-translations-and-provenance),
+text a person reviewed under editorial responsibility is treated differently from text that was
+not. The report and the markers are supporting evidence for whoever decides how that applies to
+your product. They are not legal advice, and using them does not make a product compliant with
+anything.
 </Callout>
 
 ## What the record can and cannot tell you
@@ -23,7 +23,7 @@ Every value verbatra writes is recorded with its origin (the write path that pro
 - **Machine class**: `machine`, `memory`, `fuzzy` and `agent`. The memory counts as machine because it does not record who wrote an entry.
 - **People**: `human` (an edit through Studio or the SDK) and `import` (a translator's handoff).
 
-`external` (changed outside verbatra since it was recorded), `unrecorded` (no record) and `unknown` (recorded without a known author) are neither. An approval given before the source text changed reads as unreviewed.
+`external`, `unrecorded` and `unknown` are neither. An approval given before the source text changed reads as unreviewed.
 
 Keep the limits in mind when you hand the record to someone:
 
@@ -33,7 +33,7 @@ Keep the limits in mind when you hand the record to someone:
 
 ## The provenance report
 
-[`verbatra report provenance`](/docs/cli/report) prints, per target locale, how many values fall into each bucket. It reads only the committed files, calls no provider and writes nothing.
+[`verbatra report provenance`](/docs/cli/report) prints, per target locale, how many values fall into each bucket.
 
 ```bash
 verbatra report provenance

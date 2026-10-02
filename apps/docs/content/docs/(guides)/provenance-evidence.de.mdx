@@ -9,11 +9,10 @@ type: how-to
 Das brauchst du, wenn jemand fragt, welchen deiner veröffentlichten Texte ein Provider oder ein KI-Agent übersetzt hat und ob eine Person ihn geprüft hat. verbatra hält das pro Key in `verbatra.provenance.json` fest; du holst es als Bericht zum Archivieren heraus oder als Markierungen in den XLIFF- und TMX-Dateien, die du an andere Tools weitergibst.
 
 <Callout type="warn" title="Unterstützender Nachweis, keine Rechtsberatung">
-Artikel 50 der EU-KI-Verordnung (AI Act) legt Transparenzpflichten für KI-erzeugten Text fest, und
-Text, den eine Person unter redaktioneller Verantwortung geprüft hat, wird anders behandelt als Text,
-bei dem das nicht geschehen ist. Wie diese Regeln auf Übersetzungen und auf dein Produkt anzuwenden
-sind, kann verbatra nicht für dich entscheiden. Der Bericht und die Markierungen sind ein
-unterstützender Nachweis für die Person, die diese Entscheidung trifft. Sie sind keine
+Nach [Artikel 50 der EU-KI-Verordnung](/docs/data-handling#ki-erzeugte-übersetzungen-und-provenance) wird Text, den eine Person unter
+redaktioneller Verantwortung geprüft hat, anders behandelt als Text, bei dem das nicht geschehen
+ist. Der Bericht und die Markierungen sind ein unterstützender Nachweis für die Person, die
+entscheidet, wie das für dein Produkt gilt. Sie sind keine
 Rechtsberatung, und ihr Einsatz macht ein Produkt mit nichts konform.
 </Callout>
 
@@ -24,7 +23,7 @@ Jeder Wert, den verbatra schreibt, wird mit seiner Herkunft (dem Schreibweg, der
 - **Maschinelle Klasse**: `machine`, `memory`, `fuzzy` und `agent`. Der Speicher zählt als Maschine, weil er nicht festhält, wer einen Eintrag geschrieben hat.
 - **Menschen**: `human` (eine Bearbeitung über Studio oder das SDK) und `import` (die Übergabe einer Übersetzerin).
 
-`external` (seit dem Festhalten außerhalb von verbatra geändert), `unrecorded` (kein Eintrag) und `unknown` (ohne bekannte Urheberschaft festgehalten) gehören zu keiner der beiden. Eine Freigabe, die vor einer Änderung des Quelltexts erteilt wurde, gilt als ungeprüft.
+`external`, `unrecorded` und `unknown` gehören zu keiner der beiden. Eine Freigabe, die vor einer Änderung des Quelltexts erteilt wurde, gilt als ungeprüft.
 
 Denk an die Grenzen, wenn du den Nachweis weitergibst:
 
@@ -34,7 +33,7 @@ Denk an die Grenzen, wenn du den Nachweis weitergibst:
 
 ## Der Herkunftsbericht
 
-[`verbatra report provenance`](/docs/cli/report) gibt pro Ziel-Locale aus, wie viele Werte in jede Kategorie fallen. Er liest nur die committeten Dateien, ruft keinen Provider auf und schreibt nichts.
+[`verbatra report provenance`](/docs/cli/report) gibt pro Ziel-Locale aus, wie viele Werte in jede Kategorie fallen.
 
 ```bash
 verbatra report provenance

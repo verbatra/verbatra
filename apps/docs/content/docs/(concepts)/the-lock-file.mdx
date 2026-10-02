@@ -3,10 +3,9 @@ title: The lock file and provenance
 description: What verbatra.lock.json and verbatra.provenance.json record, how drift is detected, how concurrent runs are serialized, and why you commit both.
 type: concept
 ---
-The lock file, `verbatra.lock.json`, is the baseline every run diffs against: for each translated
-key it records which source text the translation was made from, so a run can skip what is current
-and retranslate what drifted. Next to it, `verbatra.provenance.json` records who or what wrote each
-value and whether a person reviewed it.
+`verbatra.lock.json` is the baseline every run diffs against, so a run can skip what is current and
+retranslate what drifted. Next to it, [`verbatra.provenance.json`](#provenance-who-wrote-each-value)
+records who or what wrote each value.
 
 ## What it records
 
@@ -25,9 +24,8 @@ second run with no source edits costs nothing. The whole pipeline is on
 
 <AvailableFrom version="0.12.0" />
 
-The exception is a changed key whose current value a person wrote or imported: by default it is
-protected and stays stale instead of being retranslated. See
-[Protecting human translations](/docs/protecting-human-translations).
+The exception is a changed key whose value a person wrote or imported: by default it is
+[protected](/docs/protecting-human-translations) and stays stale instead of being retranslated.
 
 ## Adopting an existing project
 
@@ -44,8 +42,7 @@ Adoption goes by key presence, never by value, which has two consequences:
 - **An outdated translation is recorded as current.** Fix or delete such keys before the first run.
 
 The same rule keeps hand-written plural forms, so `generatePlurals` is safe while adopting. To
-preview all of this, run [`verbatra diff`](/docs/cli/diff) or `verbatra translate --dry-run`;
-neither calls a provider or writes a file.
+preview all of this, run [`verbatra diff`](/docs/cli/diff) or `verbatra translate --dry-run`.
 
 ## How it is updated
 
@@ -58,9 +55,8 @@ entry. The file is written with sorted keys, so its diffs stay small and reviewa
 
 ## The write lock
 
-Two runs touching the same locale at once could both diff a stale baseline and pay twice for the
-same call. So every write to a locale happens under a
-cross-process lock for that one locale, kept under the gitignored `.verbatra-local/` directory. A
+Two runs touching the same locale at once could both diff a stale baseline and pay twice. So every
+write to a locale holds a cross-process lock for that locale, kept under `.verbatra-local/`. A
 second writer waits, then re-reads the lock file and diffs against a baseline that already includes
 the first writer's result. Different locales never block each other.
 
@@ -81,8 +77,7 @@ What the lock guarantees:
 What it does not cover:
 
 - **A lock from another machine** (a shared network drive) or from a verbatra older than 0.12.0 is
-  never reclaimed automatically. If no verbatra process runs anywhere, delete the lock file the
-  error names; [Troubleshooting](/docs/troubleshooting) has the steps.
+  never reclaimed automatically; [Troubleshooting](/docs/troubleshooting) has the steps to clear it.
 - **A long pause between check and write.** A run paused right after the token check (a sleeping
   machine, a stopped process) can still write once when it resumes.
 - **Hosts that share a name.** Outside Linux, the host name is the only machine identity recorded,
@@ -106,15 +101,14 @@ cannot be written, that locale does not run and fails with
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), so the next run
 tries again; the other locales run as usual.
 
-Until a run moves it, every read (`check`, `diff`, `export`, the SDK, the MCP tools and Studio)
-treats the old state as `pt-BR`'s without writing anything, so a stale key is reported as stale. A
+Until a run moves it, every read treats the old state as `pt-BR`'s without writing anything, so a stale key is reported as stale. A
 single-key write (an edit, a retranslate, a review decision) and `verbatra import` move the state
 first, the same way. The `locale-state` check of [`verbatra doctor`](/docs/cli/doctor) names any
 state left behind.
 
 ## Missing or corrupt
 
-A missing lock file is not an error: it is a first run, handled as described under adoption. A lock
+A missing lock file is a [first run](#adopting-an-existing-project), not an error. A lock
 file that is unparseable, structurally wrong, oversized or at an unsupported version fails the run
 with [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) instead of being overwritten, so you
 can restore it rather than lose the baseline.
@@ -125,8 +119,7 @@ can restore it rather than lose the baseline.
 
 Where the lock records which source text a translation came from, `verbatra.provenance.json`
 records which write path produced the value in the locale file now, and whether anyone reviewed it.
-It is a separate file, so an older verbatra, for example one pinned in CI, keeps reading the lock
-and ignores provenance.
+As a separate file, it is ignored by an older verbatra, such as one pinned in CI.
 
 | Origin | Written by |
 | --- | --- |
@@ -154,9 +147,9 @@ What the file guarantees:
   unreviewed one; a write that leaves value and source unchanged keeps it.
 - **No silent overwrite.** A corrupt file stops every write with
   [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) before any locale file
-  changes; reports leave their provenance fields out instead of failing. A file from a newer
-  verbatra is left untouched, and a file that would grow past the size verbatra reads back is not
-  written ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+  changes; reports leave their provenance fields out instead. A file from a newer verbatra is left
+  untouched, and one that would grow too large to read back is not written
+  ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
 What it is not: tamper-proof. Anyone who can edit the locale files can edit it. To turn it into a
 report, see [Record machine-translation evidence](/docs/provenance-evidence).
@@ -166,9 +159,9 @@ report, see [Record machine-translation evidence](/docs/provenance-evidence).
 <AvailableFrom version="0.12.0" />
 
 A record can carry a review decision, `approved` or `rejected`, with an optional `reviewer` name.
-Studio's Review page writes them, as do the SDK's `approveEntry`, `rejectEntry` and
-`approveLocale`, and the MCP tools `review.approve` and `review.reject`, which relay a person's
-decision and require their name. A decision applies to the exact value the reviewer saw and is
+Studio's Review page, the [SDK's review functions](/docs/sdk/review) and the
+[MCP review tools](/docs/cli/mcp) write them; the MCP tools relay a person's decision and require
+their name. A decision applies to the exact value the reviewer saw and is
 refused if that value changed since.
 
 - **An approval** changes only the provenance file. It stores the source hash it was given against,
@@ -179,8 +172,7 @@ refused if that value changed since.
   back. XLIFF cannot drop one translation, so a rejection there is refused with
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Any later write that changes the value starts a fresh, unreviewed record. Because decisions live in
-this committed file, the review queue and the CI gate
+Because decisions live in this committed file, the review queue and the CI gate
 [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) see the same
 state on every machine. The `reviewer` name is committed, so it is public; verbatra never fills it
 in on its own.
@@ -188,14 +180,10 @@ in on its own.
 ## Commit it
 
 Commit `verbatra.lock.json` and `verbatra.provenance.json` with your locale files, and never
-hand-edit them. They are the shared baseline your teammates and CI diff against, which is what makes
-incremental runs reproducible across machines. Committing them is also what makes a rollback work:
-reverting locale files without the lock leaves it claiming the reverted translations are current.
-See [Recovery and rollback](/docs/recovery-and-rollback).
+hand-edit them: they are the shared baseline your teammates and CI diff against, and what a
+[rollback](/docs/recovery-and-rollback) restores.
 
 ## Related
 
-- [How a run works](/docs/how-it-works): where the diff and the lock update sit.
 - [The translation cache](/docs/the-cache): content-keyed reuse next to the lock.
 - [Review in Studio](/docs/review-in-studio): record approvals and rejections.
-- [Error codes](/docs/error-codes): every lock, provenance and review code.

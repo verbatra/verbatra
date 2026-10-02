@@ -50,11 +50,9 @@ Passe `dryRun: true` pour prévisualiser sans appeler de fournisseur ni rien éc
 
 <AvailableFrom version="0.11.0" />
 
-`estimate: true` implique `dryRun` : l'exécution ne construit aucun fournisseur, ne lit aucune clé
-d'API et n'écrit rien. Le chiffre arrive sur `RunSummary.estimate`. Base ton branchement sur `unit`
-pour la dimension facturée et sur `pricing` pour savoir si un chiffre en devise était disponible :
-verbatra ne livre aucun tarif qui lui soit propre, donc un coût n'apparaît que si la configuration
-porte un bloc `rates` pour ce fournisseur et ce modèle.
+`estimate: true` implique `dryRun`. Le chiffre arrive sur `RunSummary.estimate` : base ton
+branchement sur `unit` pour la dimension facturée et sur `pricing` pour savoir si un bloc
+[`rates`](/docs/config-file#rates) l'a chiffré.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -84,14 +82,9 @@ if (estimate !== undefined) {
 }
 ```
 
-Cela borne le plan, pas la facture : une exécution réelle dépense généralement moins, parce qu'elle
-consulte le [cache de mémoire de traduction](/docs/the-cache) et regroupe les chaînes source
-identiques, et elle peut dépenser plus pour chacune des raisons que nomme `caveats`.
-Pour la méthode derrière les chiffres, voir
-[Estimer le coût](/docs/estimating-cost).
-
-`caveats` n'est jamais vide ; [RunSummary](/docs/sdk/run-summary) liste ce que chaque
-`EstimateCaveatCode` laisse de côté.
+Cela borne le plan, pas la facture ; [Estimer le coût](/docs/estimating-cost) explique la méthode,
+et [RunSummary](/docs/sdk/run-summary) liste ce que chaque `EstimateCaveatCode` de `caveats` laisse
+de côté.
 
 ## Vérifier en CI sans écrire
 
@@ -281,11 +274,12 @@ if (retry.accepted) {
 }
 ```
 
-Une locale ou une clé inconnue lève `UNKNOWN_LOCALE` ou `UNKNOWN_KEY`, et `retranslateEntry` lève la `ProviderError` du fournisseur lui-même (par exemple `RATE_LIMITED`) quand l'appel échoue ; [`retranslateEntry`](/docs/sdk/review#retranslateentry) liste le reste. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) liste ce que chacune lève. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
 
 <AvailableFrom version="0.12.0" />
 
-`retranslateEntry` lève `KEY_PROTECTED` pour une valeur écrite, importée ou modifiée hors de verbatra par une personne, sauf si tu passes `includeHuman: true`, et `KEY_PINNED` pour une clé qui correspond aux `pinnedKeys` de la config, que `editEntry` lève aussi avec `actor: "agent"`. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+`retranslateEntry` refuse une valeur écrite par une personne sauf si tu passes `includeHuman: true`,
+et une clé épinglée toujours ; voir [Protéger les traductions humaines](/docs/protecting-human-translations).
 
 ## Lire toutes les valeurs en bloc
 
@@ -383,7 +377,6 @@ const exported = await exportTmx({ config, out: "out/memory.tmx" });
 console.log(`${exported.units} units to ${exported.path}`);
 ```
 
-Ni l'un ni l'autre ne construit de fournisseur, ne lit de clé d'API ni ne fait d'appel réseau.
 `importTmx` signale les données abîmées au lieu de lever dessus : un fichier refusé lève
 `SOURCE_INVALID`, et `tmxErrorLocation` lit cet emplacement dans l'erreur sans avoir à la caster ni à caster
 son `cause`. Seules les entrées sous l'empreinte de configuration actuelle sont exportées, soit

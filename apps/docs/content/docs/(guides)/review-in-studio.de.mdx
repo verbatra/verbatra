@@ -38,11 +38,11 @@ Sie zeigt außerdem **ICU arms mismatch**, wenn die Plural- oder Select-Zweige e
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Ein Herkunfts-Badge zeigt, wer jeden Wert geschrieben hat, gelesen aus [`verbatra.provenance.json`](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat), etwa **Machine**, **Human** oder **Edited outside verbatra**. Eine in Studio gespeicherte Bearbeitung wird als **Human** festgehalten.
+Ein Herkunfts-Badge zeigt, wer jeden Wert geschrieben hat, gelesen aus [`verbatra.provenance.json`](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat), etwa **Machine**, **Human** oder **Edited outside verbatra**.
 
 ### Bearbeiten mit Integritäts-Gate
 
-**Edit** öffnet den Editor. Beim Speichern durchläuft der Wert das Integritäts-Gate: Ein Wert, der durchfällt, wird mit Begründung abgelehnt, und nichts wird geschrieben; auch ein leerer Wert wird abgelehnt. Eine angenommene Bearbeitung schreibt die Locale-Datei und aktualisiert die Lock-Datei. Bearbeiten braucht kein Flag und ruft nie einen Provider auf.
+**Edit** öffnet den Editor. Beim Speichern durchläuft der Wert das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate); ein abgelehnter Wert wird nicht geschrieben, und der Grund wird angezeigt. Eine angenommene Bearbeitung schreibt die Locale-Datei und aktualisiert die Lock-Datei. Bearbeiten braucht kein Flag und ruft nie einen Provider auf.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -72,15 +72,13 @@ Filtere nach Locale oder nach Text in Key, Quelle oder Übersetzung, dann arbeit
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Beide Entscheidungen werden in [`verbatra.provenance.json`](/docs/the-lock-file#review-entscheidungen) gespeichert und gelten genau für den Text auf dem Bildschirm: Hat sich der Wert seit dem Laden der Seite geändert, wird die Entscheidung abgelehnt. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt.
-
-Ein abgelehnter Wert wird aus der Locale-Datei entfernt, sodass der Key als fehlend zählt, bis der nächste `verbatra translate`-Lauf ihn füllt, und kein Lauf verwendet den abgelehnten Text für diesen Key wieder. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen. In einem XLIFF-Projekt wird Reject abgelehnt; bearbeite den Wert stattdessen.
+Beide Entscheidungen werden in `verbatra.provenance.json` nach den Regeln unter [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen) gespeichert, auch was eine Ablehnung entfernt. Eine Freigabe verlangt außerdem, dass der Wert zu seiner Quelle passt. Committe Locale-Datei, Lock-Datei und Herkunftsdatei zusammen; in einem XLIFF-Projekt bearbeitest du, statt abzulehnen.
 
 ### Eine Warteschlange für das ganze Team
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die Locale-Dateien, Lock-Datei und `verbatra.provenance.json` pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
+Die Warteschlange wird aus den committeten Dateien gelesen, sodass eine Teamkollegin, die sie pullt, dieselbe Warteschlange sieht. Ein Wert verlässt sie, sobald eine Person ihn freigibt, ablehnt, schreibt oder importiert; ein freigegebener Wert, den eine Maschine neu schreibt, kommt zurück.
 
 Die Filterleiste wechselt zwischen **Needs review** und **Approved** und grenzt nach Herkunft ein; mit gewählter Locale gibt **Approve all in** nach einer Bestätigung alles davon frei. Um einen Pull Request scheitern zu lassen, solange maschinelle Übersetzungen warten, führ in der CI [`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) aus.
 
@@ -111,7 +109,7 @@ Hak Zeilen an (oder das Kästchen im Tabellenkopf für alles, was der Filter zei
 
 ## Übersetze einen markierten Key neu
 
-Starte Studio mit erlaubten Ausgaben ([wie Ausgaben erlaubt werden](/docs/cli/studio#ausgaben-und-agent-tools)); der API-Key des Providers kommt weiterhin aus der Umgebung:
+Starte Studio mit erlaubten Ausgaben ([wie Ausgaben erlaubt werden](/docs/cli/studio#ausgaben-und-agent-tools)):
 
 ```bash
 verbatra studio --allow-spend
@@ -141,7 +139,6 @@ Eine Glossaränderung ändert, was dem nächsten Lauf gesagt wird, nie bereits g
 
 ## Siehe auch
 
-- [`verbatra studio`](/docs/cli/studio): jedes Flag und der Startvertrag.
 - [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio): derselbe Ablauf aus einem KI-Agenten im Browser.
 - [Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence): mach aus den Review-Entscheidungen eine Audit-Datei.
-- [Bearbeiten und prüfen aus dem SDK](/docs/sdk/review): `approveEntry`, `rejectEntry` und die Stapelfunktionen hinter diesen Buttons.
+- [Bearbeiten und prüfen aus dem SDK](/docs/sdk/review): die Funktionen hinter diesen Buttons.
