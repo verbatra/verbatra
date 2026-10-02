@@ -140,7 +140,8 @@ where it is written. Where a badge may sit at all is set by "Badge placement" un
   `pkg="@verbatra/studio"` exists.
 - It never needs removing later. Once a version ships, the badge is historically accurate
   forever; do not go back and strip it once the "from" version is old. The 1.0 baseline under
-  "Badge placement" below hides old badges at render time; it never deletes one from the source.
+  "Badge placement" below is a rule for when 1.0.0 ships, and even then it hides badges rather
+  than deleting them from the source.
 
 ## Docs budget
 
@@ -170,9 +171,9 @@ The values live in `page-type.ts` (`WORD_CEILING`, `COMMAND_PAGE_CEILING`,
 `pnpm --filter @verbatra/docs docs:budget` lists every page at or above 90 percent of its ceiling,
 so the headroom is visible in review rather than discovered on a failing test.
 
-Do not lower a ceiling before 0.12.0 ships: several concept and reference pages would fail at
-once. In the 0.13.0 cycle, lower concept to 1,600 and reference to 2,500, and split
-`sdk/inspect`, `providers` or `config-file` if one cannot fit.
+Until 0.12.0 is released, do not lower a ceiling. After the 0.12.0 release, lower concept to
+1,600 and reference to 2,500, splitting `sdk/inspect`, `providers` or `config-file` if one cannot
+fit.
 
 ### One owner per fact
 
@@ -221,8 +222,9 @@ and a link to the owner.
   has no badge.
 - Moving a badge never drops its information: the feature it dated stays dated to the same
   version.
-- 1.0 baseline: when 1.0.0 ships, badges at or below the baseline version render nothing. The
-  source keeps them, so a badge is still never removed.
+- 1.0 baseline, to apply when 1.0.0 ships (not implemented: `available-from.tsx` renders every
+  badge today): set a baseline version and make badges at or below it render nothing. The source
+  keeps them, so a badge is still never removed.
 
 ## Register and tone
 
