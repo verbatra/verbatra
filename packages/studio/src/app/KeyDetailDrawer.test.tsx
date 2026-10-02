@@ -706,6 +706,7 @@ describe("KeyDetailDrawer", () => {
           commits: [
             {
               hash: "abcdef1234567890",
+              author: "Ada Lovelace",
               authorDate: "2026-08-01T10:00:00+02:00",
               subject: "chore(i18n): sync German",
               touchedPaths: ["locales/de.json"],

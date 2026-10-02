@@ -7,16 +7,17 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildGitLogArgs,
   clampHistoryLimit,
-  defaultExecFileImpl,
-  HISTORY_LIMIT_CAP,
-  HISTORY_LIMIT_DEFAULT,
+  defaultGitExecFile,
+  type GitExecFile,
+  type GitExecFileResult,
   hasLeadingDash,
   isPathContained,
+  LOCALE_HISTORY_LIMIT_CAP,
+  LOCALE_HISTORY_LIMIT_DEFAULT,
   parseGitLogOutput,
   resolveWatchedPaths,
   runGitLog,
-} from "./git.js";
-import type { ExecFileImpl, ExecFileResult } from "./types.js";
+} from "./git-log.js";
 
 const execFileAsync = promisify(execFileCb);
 
@@ -30,7 +31,7 @@ interface TempGitRepo {
 }
 
 async function makeTempGitRepo(): Promise<TempGitRepo> {
-  const root = await mkdtemp(join(tmpdir(), "verbatra-studio-git-"));
+  const root = await mkdtemp(join(tmpdir(), "verbatra-sdk-git-"));
   await runGit(root, ["init", "-q"]);
   await runGit(root, ["config", "user.email", "test@example.com"]);
   await runGit(root, ["config", "user.name", "Test User"]);
@@ -46,7 +47,7 @@ async function commitFile(root: string, relativePath: string, content: string): 
 
 describe("clampHistoryLimit", () => {
   it("defaults to 50 when no limit is given", () => {
-    expect(clampHistoryLimit(undefined)).toBe(HISTORY_LIMIT_DEFAULT);
+    expect(clampHistoryLimit(undefined)).toBe(LOCALE_HISTORY_LIMIT_DEFAULT);
   });
 
   it("passes a limit under the cap through unchanged", () => {
@@ -54,11 +55,11 @@ describe("clampHistoryLimit", () => {
   });
 
   it("clamps a limit above the cap down to 200", () => {
-    expect(clampHistoryLimit(9999)).toBe(HISTORY_LIMIT_CAP);
+    expect(clampHistoryLimit(9999)).toBe(LOCALE_HISTORY_LIMIT_CAP);
   });
 
   it("clamps a limit exactly at the cap to itself", () => {
-    expect(clampHistoryLimit(HISTORY_LIMIT_CAP)).toBe(HISTORY_LIMIT_CAP);
+    expect(clampHistoryLimit(LOCALE_HISTORY_LIMIT_CAP)).toBe(LOCALE_HISTORY_LIMIT_CAP);
   });
 });
 
@@ -125,7 +126,7 @@ describe("buildGitLogArgs", () => {
       "--max-count=50",
       "--name-only",
       "-z",
-      "--format=\x1e%H\x1f%aI\x1f%s",
+      "--format=\x1e%H\x1f%aN\x1f%aI\x1f%s",
       "--",
       "/project/locales/de.json",
       "/project/locales/fr.json",
@@ -152,11 +153,13 @@ describe("parseGitLogOutput", () => {
   });
 
   it("parses one commit touching two files", () => {
-    const stdout = "\x1eabc123\x1f2026-01-01T00:00:00+00:00\x1ffirst commit\0\na.json\0b.json\0";
+    const stdout =
+      "\x1eabc123\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1ffirst commit\0\na.json\0b.json\0";
 
     expect(parseGitLogOutput(stdout)).toEqual([
       {
         hash: "abc123",
+        author: "Ada Lovelace",
         authorDate: "2026-01-01T00:00:00+00:00",
         subject: "first commit",
         touchedPaths: ["a.json", "b.json"],
@@ -166,18 +169,20 @@ describe("parseGitLogOutput", () => {
 
   it("parses multiple commits in newest-first order, each with its own file list", () => {
     const stdout =
-      "\x1ehash2\x1f2026-01-02T00:00:00+00:00\x1fsecond\0\na.json\0" +
-      "\x1ehash1\x1f2026-01-01T00:00:00+00:00\x1ffirst\0\na.json\0b.json\0";
+      "\x1ehash2\x1fAda Lovelace\x1f2026-01-02T00:00:00+00:00\x1fsecond\0\na.json\0" +
+      "\x1ehash1\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1ffirst\0\na.json\0b.json\0";
 
     expect(parseGitLogOutput(stdout)).toEqual([
       {
         hash: "hash2",
+        author: "Ada Lovelace",
         authorDate: "2026-01-02T00:00:00+00:00",
         subject: "second",
         touchedPaths: ["a.json"],
       },
       {
         hash: "hash1",
+        author: "Ada Lovelace",
         authorDate: "2026-01-01T00:00:00+00:00",
         subject: "first",
         touchedPaths: ["a.json", "b.json"],
@@ -186,11 +191,12 @@ describe("parseGitLogOutput", () => {
   });
 
   it("parses a commit with no touched files (no name-only block at all)", () => {
-    const stdout = "\x1eabc\x1f2026-01-01T00:00:00+00:00\x1fempty commit\0";
+    const stdout = "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1fempty commit\0";
 
     expect(parseGitLogOutput(stdout)).toEqual([
       {
         hash: "abc",
+        author: "Ada Lovelace",
         authorDate: "2026-01-01T00:00:00+00:00",
         subject: "empty commit",
         touchedPaths: [],
@@ -204,11 +210,12 @@ describe("parseGitLogOutput", () => {
   });
 
   it("parses a record with no NUL at all as a header-only commit with no touched files", () => {
-    const stdout = "\x1eabc\x1f2026-01-01T00:00:00+00:00\x1fno trailing nul";
+    const stdout = "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1fno trailing nul";
 
     expect(parseGitLogOutput(stdout)).toEqual([
       {
         hash: "abc",
+        author: "Ada Lovelace",
         authorDate: "2026-01-01T00:00:00+00:00",
         subject: "no trailing nul",
         touchedPaths: [],
@@ -217,22 +224,22 @@ describe("parseGitLogOutput", () => {
   });
 });
 
-type MockedExecFile = ExecFileImpl & { readonly mock: { readonly calls: readonly unknown[][] } };
+type MockedExecFile = GitExecFile & { readonly mock: { readonly calls: readonly unknown[][] } };
 
 function resolvedExecFile(stdout: string, stderr = ""): MockedExecFile {
   return vi.fn(
-    async (): Promise<ExecFileResult> => ({ stdout, stderr }),
+    async (): Promise<GitExecFileResult> => ({ stdout, stderr }),
   ) as unknown as MockedExecFile;
 }
 
 describe("runGitLog", () => {
   it("returns available: true with parsed commits on a successful invocation", async () => {
-    const execFileImpl = resolvedExecFile(
-      "\x1eabc\x1f2026-01-01T00:00:00+00:00\x1ffirst\0\na.json\0",
+    const execFile = resolvedExecFile(
+      "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1ffirst\0\na.json\0",
     );
 
     const result = await runGitLog({
-      execFileImpl,
+      execFile,
       projectRoot: "/project",
       watchedPaths: ["/project/locales/de.json"],
     });
@@ -242,6 +249,7 @@ describe("runGitLog", () => {
       commits: [
         {
           hash: "abc",
+          author: "Ada Lovelace",
           authorDate: "2026-01-01T00:00:00+00:00",
           subject: "first",
           touchedPaths: ["a.json"],
@@ -250,36 +258,36 @@ describe("runGitLog", () => {
     });
   });
 
-  it("runs execFileImpl with cwd set to the project root", async () => {
-    const execFileImpl = resolvedExecFile("");
+  it("runs execFile with cwd set to the project root", async () => {
+    const execFile = resolvedExecFile("");
 
     await runGitLog({
-      execFileImpl,
+      execFile,
       projectRoot: "/project",
       watchedPaths: ["/project/locales/de.json"],
     });
 
-    expect(execFileImpl).toHaveBeenCalledWith("git", expect.any(Array), { cwd: "/project" });
+    expect(execFile).toHaveBeenCalledWith("git", expect.any(Array), { cwd: "/project" });
   });
 
-  it("never invokes execFileImpl when watchedPaths is empty", async () => {
-    const execFileImpl = resolvedExecFile("");
+  it("never invokes execFile when watchedPaths is empty", async () => {
+    const execFile = resolvedExecFile("");
 
-    const result = await runGitLog({ execFileImpl, projectRoot: "/project", watchedPaths: [] });
+    const result = await runGitLog({ execFile, projectRoot: "/project", watchedPaths: [] });
 
     expect(result).toEqual({ available: true, commits: [] });
-    expect(execFileImpl).not.toHaveBeenCalled();
+    expect(execFile).not.toHaveBeenCalled();
   });
 
   it("degrades to available: false when git itself is missing (ENOENT)", async () => {
-    const execFileImpl = vi.fn(async () => {
+    const execFile = vi.fn(async () => {
       const error = new Error("spawn git ENOENT") as NodeJS.ErrnoException;
       error.code = "ENOENT";
       throw error;
-    }) as unknown as ExecFileImpl;
+    }) as unknown as GitExecFile;
 
     const result = await runGitLog({
-      execFileImpl,
+      execFile,
       projectRoot: "/project",
       watchedPaths: ["/project/locales/de.json"],
     });
@@ -288,15 +296,15 @@ describe("runGitLog", () => {
   });
 
   it("degrades to available: false when the directory is not a git repository", async () => {
-    const execFileImpl = vi.fn(async () => {
+    const execFile = vi.fn(async () => {
       const error = new Error("git log failed") as Error & { code?: number; stderr?: string };
       error.code = 128;
       error.stderr = "fatal: not a git repository (or any of the parent directories): .git\n";
       throw error;
-    }) as unknown as ExecFileImpl;
+    }) as unknown as GitExecFile;
 
     const result = await runGitLog({
-      execFileImpl,
+      execFile,
       projectRoot: "/project",
       watchedPaths: ["/project/locales/de.json"],
     });
@@ -305,15 +313,15 @@ describe("runGitLog", () => {
   });
 
   it("degrades to available: true with an empty history for any other git failure, such as an unborn branch", async () => {
-    const execFileImpl = vi.fn(async () => {
+    const execFile = vi.fn(async () => {
       const error = new Error("git log failed") as Error & { code?: number; stderr?: string };
       error.code = 128;
       error.stderr = "fatal: your current branch 'main' does not have any commits yet\n";
       throw error;
-    }) as unknown as ExecFileImpl;
+    }) as unknown as GitExecFile;
 
     const result = await runGitLog({
-      execFileImpl,
+      execFile,
       projectRoot: "/project",
       watchedPaths: ["/project/locales/de.json"],
     });
@@ -322,27 +330,27 @@ describe("runGitLog", () => {
   });
 
   it("clamps the limit before building the argument array", async () => {
-    const execFileImpl = resolvedExecFile("");
+    const execFile = resolvedExecFile("");
 
     await runGitLog({
-      execFileImpl,
+      execFile,
       projectRoot: "/project",
       watchedPaths: ["/project/locales/de.json"],
       limit: 9999,
     });
 
-    const args = execFileImpl.mock.calls[0]?.[1] as readonly string[];
-    expect(args).toContain(`--max-count=${HISTORY_LIMIT_CAP}`);
+    const args = execFile.mock.calls[0]?.[1] as readonly string[];
+    expect(args).toContain(`--max-count=${LOCALE_HISTORY_LIMIT_CAP}`);
   });
 });
 
-describe("defaultExecFileImpl", () => {
+describe("defaultGitExecFile", () => {
   it("runs a real command and returns its stdout, decoded as utf8", async () => {
     const project = await makeTempGitRepo();
     try {
       await commitFile(project.root, "a.json", '{"a":"b"}\n');
 
-      const result = await defaultExecFileImpl("git", ["log", "--max-count=1", "--format=%s"], {
+      const result = await defaultGitExecFile("git", ["log", "--max-count=1", "--format=%s"], {
         cwd: project.root,
       });
 
@@ -354,7 +362,7 @@ describe("defaultExecFileImpl", () => {
 
   it("rejects when the command does not exist", async () => {
     await expect(
-      defaultExecFileImpl("verbatra-nonexistent-binary-xyz", [], { cwd: process.cwd() }),
+      defaultGitExecFile("verbatra-nonexistent-binary-xyz", [], { cwd: process.cwd() }),
     ).rejects.toThrow();
   });
 });
@@ -368,7 +376,7 @@ describe("runGitLog against a real temporary git repository", () => {
       await commitFile(project.root, "other.txt", "unrelated\n");
 
       const result = await runGitLog({
-        execFileImpl: defaultExecFileImpl,
+        execFile: defaultGitExecFile,
         projectRoot: project.root,
         watchedPaths: [join(project.root, "locales", "de.json")],
       });
@@ -380,6 +388,8 @@ describe("runGitLog against a real temporary git repository", () => {
       expect(result.commits).toHaveLength(1);
       expect(result.commits[0]?.subject).toBe("write locales/de.json");
       expect(result.commits[0]?.touchedPaths).toEqual(["locales/de.json"]);
+      expect(result.commits[0]?.author).toBe("Test User");
+      expect(JSON.stringify(result)).not.toContain("test@example.com");
     } finally {
       await project.cleanup();
     }
@@ -393,7 +403,7 @@ describe("runGitLog against a real temporary git repository", () => {
       await writeFile(join(project.root, "locales", "de.json"), '{"greeting":"hallo"}\n', "utf8");
 
       const result = await runGitLog({
-        execFileImpl: defaultExecFileImpl,
+        execFile: defaultGitExecFile,
         projectRoot: project.root,
         watchedPaths: [join(project.root, "locales", "de.json")],
       });
@@ -405,10 +415,10 @@ describe("runGitLog against a real temporary git repository", () => {
   });
 
   it("degrades to available: false for a directory that is not a git repository at all", async () => {
-    const root = await mkdtemp(join(tmpdir(), "verbatra-studio-notrepo-"));
+    const root = await mkdtemp(join(tmpdir(), "verbatra-sdk-notrepo-"));
     try {
       const result = await runGitLog({
-        execFileImpl: defaultExecFileImpl,
+        execFile: defaultGitExecFile,
         projectRoot: root,
         watchedPaths: [join(root, "locales", "de.json")],
       });
@@ -421,7 +431,7 @@ describe("runGitLog against a real temporary git repository", () => {
 
   it("returns available: true with the truncated history of a shallow clone, never an error", async () => {
     const source = await makeTempGitRepo();
-    const cloneRoot = await mkdtemp(join(tmpdir(), "verbatra-studio-shallow-"));
+    const cloneRoot = await mkdtemp(join(tmpdir(), "verbatra-sdk-shallow-"));
     try {
       await mkdir(join(source.root, "locales"), { recursive: true });
       await commitFile(source.root, "locales/de.json", '{"a":"1"}\n');
@@ -431,7 +441,7 @@ describe("runGitLog against a real temporary git repository", () => {
       await execFileAsync("git", ["clone", "--depth", "1", `file://${source.root}`, cloneRoot]);
 
       const result = await runGitLog({
-        execFileImpl: defaultExecFileImpl,
+        execFile: defaultGitExecFile,
         projectRoot: cloneRoot,
         watchedPaths: [join(cloneRoot, "locales", "de.json")],
       });

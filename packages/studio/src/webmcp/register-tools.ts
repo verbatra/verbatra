@@ -158,7 +158,7 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [HISTORY_LIST_METHOD]: {
     description:
-      "Lists recent git commits that touched the source locale file or any configured target locale file, each with its hash, author date, subject, and touched paths. " +
+      "Lists recent git commits that touched the source locale file or any configured target locale file, each with its hash, author name (never the email address), author date, subject, and touched paths. " +
       "Use it to see who last changed a locale file and when. " +
       "Do not rely on it outside a git repository: when git is missing or the project root is not a repository the result reports itself as unavailable instead of failing, and file renames are never followed, so history before a rename is not shown. " +
       "The optional `limit` parameter asks for at most that many commits, and the server applies its own cap regardless of what you ask for. " +

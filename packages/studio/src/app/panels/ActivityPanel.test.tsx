@@ -13,12 +13,14 @@ const GENERATED_AT = "2026-05-04T10:15:00.000Z";
 const COMMITS: readonly HistoryCommit[] = [
   {
     hash: "0f3ab19c7d5e4a2b",
+    author: "Ada Lovelace",
     authorDate: "2026-05-04T09:00:00.000Z",
     subject: "chore: sync the German locale file",
     touchedPaths: ["locales/de.json", "locales/fr.json"],
   },
   {
     hash: "9c1de77a0b3f5511",
+    author: "Ada Lovelace",
     authorDate: "2026-05-02T08:30:00.000Z",
     subject: "feat: add the checkout keys",
     touchedPaths: [],

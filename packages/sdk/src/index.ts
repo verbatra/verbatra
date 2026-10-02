@@ -238,9 +238,24 @@ export {
   type UnresolvedMessage,
 } from "./flow/generate-types.js";
 export {
+  type GitExecFile,
+  type GitExecFileResult,
+  LOCALE_HISTORY_LIMIT_CAP,
+  LOCALE_HISTORY_LIMIT_DEFAULT,
+  type LocaleHistoryCommit,
+  type LocaleHistoryResult,
+} from "./flow/git-log.js";
+export {
   INTEGRITY_GATE_REASONS,
   type IntegrityGateReason,
 } from "./flow/integrity-gate.js";
+export {
+  type KeyContext,
+  type KeyContextDeps,
+  type KeyContextGlossaryNotice,
+  type KeyContextInput,
+  keyContext,
+} from "./flow/key-context.js";
 export {
   type KeyIntegrityDeps,
   type KeyIntegrityEntry,
@@ -264,6 +279,11 @@ export type {
   LocaleSupport,
   SourceLocaleCapability,
 } from "./flow/locale-capabilities.js";
+export {
+  type LocaleHistoryDeps,
+  type LocaleHistoryInput,
+  localeHistory,
+} from "./flow/locale-history.js";
 export {
   type LocaleIntegrityDeps,
   type LocaleIntegrityInput,

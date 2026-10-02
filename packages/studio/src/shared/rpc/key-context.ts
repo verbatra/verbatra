@@ -1,4 +1,4 @@
-import type { GlossaryDraftCheck, KeyProvenance, LocaleGlossary } from "@verbatra/sdk";
+import type { KeyContext } from "@verbatra/sdk";
 import { z } from "zod";
 import { MAX_EDIT_VALUE_LENGTH } from "./edit-entry.js";
 
@@ -12,18 +12,4 @@ export const keyContextParamsSchema = z.strictObject({
 
 export type KeyContextParams = z.infer<typeof keyContextParamsSchema>;
 
-export interface GlossaryNotice {
-  readonly code: string;
-  readonly message: string;
-}
-
-export interface KeyContextResult {
-  readonly source: string;
-  readonly target?: string;
-  readonly description?: string;
-  readonly provenance?: KeyProvenance;
-  readonly glossary: LocaleGlossary;
-  readonly maxLength?: number;
-  readonly draftCheck?: GlossaryDraftCheck;
-  readonly glossaryNotice?: GlossaryNotice;
-}
+export type KeyContextResult = KeyContext;
