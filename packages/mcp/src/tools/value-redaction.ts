@@ -55,9 +55,25 @@ export function redactWriteResult<
 
 const VALUE_BEARING_SDK_CODES: ReadonlySet<string> = new Set(["CONFIG_INVALID", "SOURCE_INVALID"]);
 
-export function carriesValues(error: unknown): error is AdapterError | SdkError {
+const MAX_CAUSE_DEPTH = 8;
+
+function bearsValuesItself(error: unknown): boolean {
   return (
     error instanceof AdapterError ||
     (error instanceof SdkError && VALUE_BEARING_SDK_CODES.has(error.code))
   );
+}
+
+export function carriesValues(error: unknown): error is AdapterError | SdkError {
+  if (!(error instanceof AdapterError || error instanceof SdkError)) {
+    return false;
+  }
+  let current: unknown = error;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH && current instanceof Error; depth += 1) {
+    if (bearsValuesItself(current)) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
 }

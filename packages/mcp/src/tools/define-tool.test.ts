@@ -722,6 +722,30 @@ describe("describeErrorMessage: redacted values", () => {
     );
   });
 
+  it.each([
+    ["REVIEW_RESTORE_FAILED", new AdapterError("INVALID_STRUCTURE", 'cannot write "GEHEIM"')],
+    ["SOURCE_UNWRITABLE", new SdkError("CONFIG_INVALID", 'term "GEHEIM" is invalid')],
+  ] as const)("replaces a %s message that wraps a value-carrying error", (code, cause) => {
+    const error = new SdkError(code, `failed (${cause.message})`, { cause });
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe(
+      `${code}: ${marker.mark(error.message)}`,
+    );
+  });
+
+  it("leaves a wrapping error readable when nothing in its cause chain carries values", () => {
+    const error = new SdkError("SOURCE_UNWRITABLE", "disk full", { cause: new Error("ENOSPC") });
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe("SOURCE_UNWRITABLE: disk full");
+  });
+
+  it("stops following a cause chain that loops back on itself", () => {
+    const error = new SdkError("UNKNOWN_KEY", "No key greeting");
+    Object.defineProperty(error, "cause", { value: error });
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe("UNKNOWN_KEY: No key greeting");
+  });
+
   it("leaves every message readable without a marker", () => {
     const error = new SdkError("CONFIG_INVALID", 'term "GEHEIM"');
 
