@@ -84,9 +84,10 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * or `{n,}`, lazy forms included), or branches more than 4 ways beside its unbounded repeat (1,024
  * without one), counting `?`, each `{m,n}` and `|` alternatives together. Each pattern reads only
  * the first 2,000 characters of a field, so a match beyond them is not found, and runs for at most
- * 50 ms per field: a pattern that runs out of time counts as a finding named `pattern-timeout-<n>`
- * (its index), so the key is sent under `warn` and withheld under `block` and `redact`. `allow` lists texts that are
- * never reported, where `*` matches any run of characters and case is ignored.
+ * one second per field as a backstop: a pattern that runs out of time counts as a finding named
+ * `pattern-timeout-<n>` (its index), so the key is sent under `warn` and withheld under `block` and
+ * `redact`. `allow` lists texts that are never reported, where `*` matches any run of characters
+ * and case is ignored.
  *
  * Beyond the per-field checks, three whole-config rules are enforced: `targetLocales` must not
  * contain the source locale, it must not contain two locales that differ only in case (they

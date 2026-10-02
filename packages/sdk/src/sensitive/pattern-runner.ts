@@ -1,7 +1,7 @@
 import { createContext, Script } from "node:vm";
 import type { TextSpan } from "./detectors.js";
 
-export const PATTERN_TIME_LIMIT_MS = 50;
+export const PATTERN_TIME_LIMIT_MS = 1_000;
 
 export type PatternRun =
   | { readonly kind: "matched"; readonly spans: readonly TextSpan[] }

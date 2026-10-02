@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PATTERN_TIME_LIMIT_MS, runPattern } from "./pattern-runner.js";
+import { MAX_PATTERN_SCAN_LENGTH } from "./scan-text.js";
 
 const CATASTROPHIC = /(?:a?){30}x/gu;
 
@@ -11,7 +12,13 @@ describe("runPattern", () => {
 
     expect(run).toEqual({ kind: "timed-out" });
     expect(elapsed).toBeGreaterThanOrEqual(PATTERN_TIME_LIMIT_MS - 5);
-    expect(elapsed).toBeLessThan(PATTERN_TIME_LIMIT_MS + 1_000);
+    expect(elapsed).toBeLessThan(PATTERN_TIME_LIMIT_MS * 2);
+  });
+
+  it("lets an ordinary pattern finish on CJK text at the scan cap", () => {
+    const text = "漢字".repeat(MAX_PATTERN_SCAN_LENGTH / 2);
+
+    expect(runPattern(/\p{L}+Falcon/gu, text)).toEqual({ kind: "matched", spans: [] });
   });
 
   it("stays usable after an interrupted run", () => {
