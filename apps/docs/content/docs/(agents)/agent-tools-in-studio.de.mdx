@@ -24,6 +24,8 @@ verbatra studio --expose-agent-tools
 
 Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools)).
 
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt; für ein NDA-Projekt siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
+
 ## Wissen, was der Agent aufrufen kann
 
 Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind als nur lesend markiert, Schreib-Tools ändern nur deine lokalen Dateien, und kostenpflichtige Tools werden nur mit `--allow-spend` registriert.

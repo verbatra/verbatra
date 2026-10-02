@@ -34,8 +34,7 @@ security or legal review. This website is covered by its [privacy policy](/priva
   Studio in your browser   MCP client (your AI agent)
 ```
 
-Only the provider arrow crosses your network boundary; for what an AI agent does with what it
-reads, see [Studio and MCP](#studio-and-mcp).
+Only the provider arrow crosses your network boundary.
 
 ## When a request is made
 
@@ -49,8 +48,7 @@ minus [cache](/docs/the-cache) hits, and shared text once. A stale key a person 
 for a `humanEdits: "suggest"` suggestion; a pinned key never
 ([Protecting human translations](/docs/protecting-human-translations)).
 
-Every request starts with a DNS lookup of the provider's host through your system resolver, so the
-resolver sees that name.
+Each request starts with a DNS lookup of the provider's host, so your resolver sees that name.
 
 ## What each provider receives
 
@@ -115,23 +113,24 @@ Moved to
 ## API keys
 
 Keys come only from [environment variables](/docs/providers#keys-come-from-the-environment).
-Every provider error, and everything the CLI prints, passes through a filter that replaces the
-value of each known key variable, and anything shaped like an API key, with `[REDACTED]`.
+Provider errors and CLI output replace each known key variable's value, and anything shaped like an
+API key, with `[REDACTED]`.
 
 ## Studio and MCP
 
 **Studio** binds to `127.0.0.1` only, rejects another `Host` or `Origin`, requires the token it
 prints at start, and its Content-Security-Policy blocks fetches to the internet.
 
-**The MCP server** talks to its client over stdio and opens no port. Its read tools return your
-strings, glossary and status to the connected client.
+**The MCP server** talks over stdio and opens no port. Its read tools return your strings, glossary
+and status, unless it runs with [`--redact-values`](/docs/cli/mcp#redacted-values): then each value
+is a marker with its length and a hash. Key names, commit subjects and paths are not redacted.
 
-**Locale file history.** `history.list`, in Studio and on the MCP server, returns each commit's hash,
-date, author name, subject and touched paths. It never reads the author's email address.
+**Locale file history.** `history.list` returns each commit's hash, date, author name (left out
+under `--redact-values`), subject and touched paths, never the email.
 
 Weigh this: an MCP client, or a browser agent using Studio's `--expose-agent-tools`, is usually an
-AI assistant, and what it reads goes to its model under that vendor's terms, which verbatra cannot
-restrict.
+AI assistant, and what it reads goes to its model under that vendor's terms. Studio's agent tools
+are never redacted: an agent driving the tab can read the page anyway.
 
 ## AI-generated translations and provenance
 
@@ -156,7 +155,8 @@ record: every value a provider produced is marked `machine` origin, with provide
 3. Sign the vendor's data processing terms, with zero retention if you need it.
 4. Check what your source files send: key names, descriptions and the glossary.
 5. Keep API keys in a secret store or a gitignored `.env`, and run `verbatra doctor`.
-6. Decide which AI agents may connect to Studio or the MCP server.
+6. Decide which AI agents may use Studio or the MCP server, and whether it needs
+   `--redact-values`.
 7. Commit `verbatra.provenance.json`, and archive `verbatra report provenance --json` per release.
 
 ## Related

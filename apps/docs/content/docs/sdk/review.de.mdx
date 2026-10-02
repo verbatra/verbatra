@@ -187,7 +187,7 @@ function approveEntry(
 **Wirft:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
 
 `expectedValue` ist der Text,
-den die prüfende Person gesehen hat: Der Aufruf wirft `REVIEW_VALUE_CHANGED`, wenn der Key keinen
+den die prüfende Person gesehen hat, oder du übergibst `expectedValueHash` mit dem `valueMarker`, der ihn erzeugt hat: Der Aufruf wirft `REVIEW_VALUE_CHANGED`, wenn der Key keinen
 oder einen anderen Wert hat, und `REVIEW_SOURCE_CHANGED`, wenn sich die Quelle geändert hat, seit
 der Wert geschrieben wurde. `reviewer` ist optionaler Freitext mit höchstens 64 Zeichen ohne
 Steuerzeichen (sonst `REVIEWER_INVALID`), landet in der committeten Datei und wird nie von verbatra
@@ -237,6 +237,23 @@ Beide Aufrufe prüfen die Herkunftsdatei, bevor etwas geschrieben wird, und meld
 Entscheidung, die sie nicht speichern konnten: Eine Datei aus einem neueren verbatra, oder eine, die
 durch die Entscheidung über die Größe wachsen würde, die verbatra wieder einliest, wirft
 `PROVENANCE_FILE_UNWRITABLE`.
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+Erzeugt die Markierung, mit der eine Oberfläche einen Wert ohne seinen Text zeigt: `mark(value)`
+liefert `[redacted length=<n> hash=<h>]`, und `hash(value)` liefert `h`, einen 16-stelligen
+Hex-HMAC mit zufälligem Salt (oder dem übergebenen `salt`), sodass ein Hash nur unter derselben
+Markierung passt. Übergib sie als `valueMarker` an `approveEntry` oder `rejectEntry`, damit
+`expectedValueHash` statt `expectedValue` gilt. `verbatra mcp --redact-values` erzeugt eine pro
+Serverstart.
+
+```ts title="Signatur"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**Rückgabe:** `ValueMarker`
 
 ## Review und Neuübersetzung im Stapel
 

@@ -24,6 +24,8 @@ verbatra studio --expose-agent-tools
 
 To let the agent call your provider, start Studio with `--allow-spend` as well ([Spend and agent tools](/docs/cli/studio#spend-and-agent-tools)).
 
+The agent reads every value unredacted, as the page shows it; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
+
 ## Know what the agent can call
 
 Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked read-only, write tools change only your local files, and spend tools register only with `--allow-spend`.

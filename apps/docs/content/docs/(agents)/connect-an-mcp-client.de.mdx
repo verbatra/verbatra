@@ -34,6 +34,8 @@ Der Server startet nur lesend: Die beiden kostenpflichtigen Tools bleiben verbor
 Schreib nie einen Key in eine committete Datei wie `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` oder `.vscode/mcp.json`. Jeder Abschnitt unten übergibt den Key stattdessen per Verweis oder aus deiner Umgebung.
 </Callout>
 
+Sollen Übersetzungswerte nicht beim Modell des Agenten landen, ergänze `--redact-values`; siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
+
 ### Erst schätzen
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
@@ -317,4 +319,3 @@ Bitte den Agenten, `project.snapshot` aufzurufen. Es liefert Locales, Format und
 - [`verbatra mcp`](/docs/cli/mcp): Flags, jedes Tool und die Exit-Codes.
 - [verbatra mit JSON skripten](/docs/agent-recipes#das-skills-paket): der Skill `verbatra-mcp-tools`.
 - [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai): verbatra hinzufügen, bevor du einen Client verbindest.
-- [Provider](/docs/providers): welche Key-Variable jeder Provider liest.

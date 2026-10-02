@@ -93,6 +93,8 @@ Every tool, listed here in the order the server advertises them.
 
 Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against. Every result and log line passes through a secret-redaction pass first, so a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it reaches the client or stderr.
 
+Start the server with `--redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) to keep translation values away from the client: every source text, translation, description, glossary term, and reviewer or author name in a result becomes a marker such as `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`. Key names, counts, statuses, integrity verdicts, commit subjects and paths stay. `review.approve` and `review.reject` then take the marker's hash as `expectedHash`, `locale.values` refuses `query`, and `key.context` refuses `draft`. What a provider receives does not change.
+
 The server starts even without a usable config: `project.snapshot` then reports `configured: false`, `project.doctor` says what to fix, and every other tool refuses with the config error. Before each call it checks the config file and its glossary file for changes and loads them again, so creating or editing the config needs no restart. `--allow-spend` is fixed at startup, and a config change never widens it.
 
 See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) for the full tool reference, the exit-code contract, and worked examples.

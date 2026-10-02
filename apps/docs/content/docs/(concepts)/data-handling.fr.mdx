@@ -37,8 +37,7 @@ pour une revue sécurité ou juridique. Ce site relève de sa
   Studio in your browser   MCP client (your AI agent)
 ```
 
-Seule la flèche du fournisseur franchit la frontière de ton réseau ; pour ce qu'un agent IA fait de
-ce qu'il lit, vois [Studio et MCP](#studio-et-mcp).
+Seule la flèche du fournisseur franchit la frontière de ton réseau.
 
 ## Quand une requête est faite
 
@@ -54,8 +53,7 @@ texte partagé une seule fois. Une clé obsolète écrite par une personne n'est
 suggestion `humanEdits: "suggest"` ; une clé épinglée, jamais
 ([Garder les traductions humaines](/docs/protecting-human-translations)).
 
-Chaque requête commence par une résolution DNS du nom d'hôte du fournisseur via le résolveur de ton
-système, qui voit donc ce nom.
+Chaque requête commence par une résolution DNS de l'hôte du fournisseur, que ton résolveur voit donc.
 
 ## Ce que reçoit chaque fournisseur
 
@@ -120,25 +118,27 @@ Déplacée vers
 ## Clés d'API
 
 Les clés viennent uniquement de
-[variables d'environnement](/docs/providers#les-clés-viennent-de-lenvironnement). Chaque erreur de
-fournisseur, et tout ce qu'affiche la CLI, passe par un filtre qui remplace par `[REDACTED]` la
-valeur de chaque variable de clé connue, ainsi que tout ce qui ressemble à une clé d'API.
+[variables d'environnement](/docs/providers#les-clés-viennent-de-lenvironnement). Les erreurs
+du fournisseur et la sortie de la CLI remplacent par `[REDACTED]` la valeur de chaque variable de clé
+connue, ainsi que tout ce qui ressemble à une clé d'API.
 
 ## Studio et MCP
 
 **Studio** ne s'attache qu'à `127.0.0.1`, rejette un autre `Host` ou `Origin`, exige le jeton qu'il
 affiche au démarrage, et sa Content-Security-Policy bloque les accès à Internet.
 
-**Le serveur MCP** parle à son client via stdio et n'ouvre aucun port. Ses outils de lecture
-renvoient tes textes, ton glossaire et ton statut au client connecté.
+**Le serveur MCP** parle via stdio sans ouvrir de port. Ses outils de lecture renvoient textes,
+glossaire et statut, sauf s'il tourne avec
+[`--redact-values`](/docs/cli/mcp#redacted-values) : chaque valeur devient alors un marqueur portant
+sa longueur et un hash. Noms de clés, sujets de commit et chemins ne sont pas masqués.
 
-**Historique des fichiers de locale.** `history.list`, dans Studio et sur le serveur MCP, renvoie pour
-chaque commit le hash, la date, le nom de l'auteur, le sujet et les chemins modifiés. Il ne lit jamais
-l'adresse e-mail de l'auteur.
+**Historique des fichiers de locale.** `history.list` renvoie pour chaque commit le hash, la date,
+le nom de l'auteur (omis avec `--redact-values`), le sujet et les chemins modifiés, jamais l'e-mail.
 
-Pèse ce point : un client MCP, ou un agent navigateur qui utilise `--expose-agent-tools` de Studio,
+Pèse-le : un client MCP, ou un agent navigateur qui utilise `--expose-agent-tools` de Studio,
 est en général un assistant IA, et ce qu'il lit part vers son modèle, sous les conditions de ce
-fournisseur, que verbatra ne peut pas restreindre.
+fournisseur. Les outils d'agent de Studio ne sont jamais masqués : un agent qui pilote l'onglet lit
+déjà la page.
 
 ## Traductions générées par IA et provenance
 
@@ -166,7 +166,8 @@ modèle ; voir [La provenance de chaque valeur](/docs/the-lock-file#la-provenanc
 4. Vérifie ce que tes fichiers source envoient : noms de clé, descriptions et glossaire.
 5. Garde les clés d'API dans un coffre à secrets ou un `.env` ignoré par git, et lance
    `verbatra doctor`.
-6. Décide quels agents IA peuvent se connecter à Studio ou au serveur MCP.
+6. Décide quels agents IA peuvent utiliser Studio ou le serveur MCP, et s'il a besoin de
+   `--redact-values`.
 7. Commite `verbatra.provenance.json`, et archive `verbatra report provenance --json` à chaque
    version.
 
