@@ -41,8 +41,13 @@ function resource(format: FormatId, values: Record<string, string>): LocaleResou
   return { locale: "en", namespace: "", format, entries };
 }
 
-function noticeFor(format: FormatId, values: Record<string, string>) {
-  return sourceForeignPlaceholderNotice(format, resource(format, values), Object.keys(values));
+function noticeFor(format: FormatId, values: Record<string, string>, machineTranslation = true) {
+  return sourceForeignPlaceholderNotice(
+    format,
+    resource(format, values),
+    Object.keys(values),
+    machineTranslation,
+  );
 }
 
 describe("NATIVE_PLACEHOLDER_SYNTAXES", () => {
@@ -189,6 +194,15 @@ describe("sourceForeignPlaceholderNotice", () => {
     });
   });
 
+  it("asks for a careful hand translation instead when machine translation is off", () => {
+    const notice = noticeFor("i18next-json", { greeting: "Hello {name}" }, false);
+
+    expect(notice?.message).toBe(
+      '1 source value holds a placeholder-like token that i18next-json does not protect: "greeting". Machine translation is off, so keep these tokens unchanged when you translate the values, or switch the syntax if your library does not interpolate them.',
+    );
+    expect(notice?.message).not.toContain("during translation");
+  });
+
   it("uses the singular for one value", () => {
     expect(noticeFor("yaml", { items: "%{count} items" })?.message).toContain(
       "1 source value holds a placeholder-like token that yaml does not protect",
@@ -208,9 +222,11 @@ describe("sourceForeignPlaceholderNotice", () => {
   it("only looks at the pending keys", () => {
     const source = resource("i18next-json", { greeting: "Hello {name}", plain: "Save" });
 
-    expect(sourceForeignPlaceholderNotice("i18next-json", source, ["plain"])).toBeUndefined();
-    expect(sourceForeignPlaceholderNotice("i18next-json", source, ["absent"])).toBeUndefined();
-    expect(sourceForeignPlaceholderNotice("i18next-json", source, [])).toBeUndefined();
+    expect(sourceForeignPlaceholderNotice("i18next-json", source, ["plain"], true)).toBeUndefined();
+    expect(
+      sourceForeignPlaceholderNotice("i18next-json", source, ["absent"], true),
+    ).toBeUndefined();
+    expect(sourceForeignPlaceholderNotice("i18next-json", source, [], true)).toBeUndefined();
   });
 
   it("is absent when no pending value holds a foreign token", () => {

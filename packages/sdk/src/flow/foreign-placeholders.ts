@@ -76,14 +76,25 @@ function keysWithForeignPlaceholders(
   });
 }
 
-function noticeMessage(format: SupportedFormat, keys: readonly string[]): string {
+const MACHINE_TRANSLATION_ADVICE =
+  "These tokens are not protected during translation, so review the translations";
+
+const HUMAN_ONLY_ADVICE =
+  "Machine translation is off, so keep these tokens unchanged when you translate the values";
+
+function noticeMessage(
+  format: SupportedFormat,
+  keys: readonly string[],
+  machineTranslation: boolean,
+): string {
   const shown = keys.slice(0, NOTICE_KEY_LIMIT).map((key) => JSON.stringify(key));
   const more = keys.length > shown.length ? `, and ${keys.length - shown.length} more` : "";
   const count = keys.length === 1 ? "1 source value holds" : `${keys.length} source values hold`;
+  const advice = machineTranslation ? MACHINE_TRANSLATION_ADVICE : HUMAN_ONLY_ADVICE;
   return (
     `${count} a placeholder-like token that ${format} does not protect: ` +
-    `${shown.join(", ")}${more}. These tokens are not protected during translation, so review ` +
-    "the translations, or switch the syntax if your library does not interpolate them."
+    `${shown.join(", ")}${more}. ${advice}, ` +
+    "or switch the syntax if your library does not interpolate them."
   );
 }
 
@@ -91,6 +102,7 @@ export function sourceForeignPlaceholderNotice(
   format: FormatId,
   source: LocaleResource,
   pendingKeys: readonly string[],
+  machineTranslation: boolean,
 ): SdkNotice | undefined {
   if (isCustomFormatId(format)) {
     return undefined;
@@ -102,5 +114,8 @@ export function sourceForeignPlaceholderNotice(
   );
   return keys.length === 0
     ? undefined
-    : { code: "SOURCE_FOREIGN_PLACEHOLDERS", message: noticeMessage(format, keys) };
+    : {
+        code: "SOURCE_FOREIGN_PLACEHOLDERS",
+        message: noticeMessage(format, keys, machineTranslation),
+      };
 }
