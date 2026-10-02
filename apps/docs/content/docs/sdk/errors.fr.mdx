@@ -13,15 +13,30 @@ Quelques codes portent aussi l'erreur qu'ils enveloppent comme `cause` standard 
 quand un analyseur ou un adaptateur a échoué (pas quand un fichier est refusé pour sa taille),
 `PROVIDER_CONSTRUCTION_FAILED` (l'erreur propre de la fabrique du fournisseur, dont le message est
 aussi repris, expurgé, dans le message de la `SdkError`), `EXPORT_UNWRITABLE` et
-`GLOSSARY_UNWRITABLE` (l'erreur du système de fichiers) et `REVIEW_RESTORE_FAILED` (l'échec qui a interrompu la décision). `CONFIG_NOT_FOUND`
-et `CONFIG_INVALID` n'en portent volontairement aucune, car l'erreur d'un analyseur de config peut
+`GLOSSARY_UNWRITABLE` (l'erreur du système de fichiers), `REVIEW_RESTORE_FAILED` (l'échec qui a
+interrompu la décision) et `LOCK_CONTENDED` quand le verrou a été repris par un autre processus ou
+qu'un verrou abandonné n'a pas pu être récupéré ni mis de côté (l'erreur du système de fichiers).
+`CONFIG_INVALID` n'en porte une que lorsque le fichier de config n'a pas pu être chargé à cause d'une
+erreur dotée d'un code, comme un import qui ne se résout pas. Il n'en porte aucune pour une erreur
+d'analyse ou de schéma, et `CONFIG_NOT_FOUND` jamais, car l'erreur d'un analyseur de config peut
 citer le contenu du fichier, et une clé écrite dans la config ne doit pas voyager avec l'erreur.
 Pour `PROVIDER_CONSTRUCTION_FAILED`, seul le message est expurgé : sa `cause` est l'erreur d'origine,
 intacte. Les fabriques de fournisseur intégrées lèvent des erreurs sans secret, et une erreur levée
 par un `createProvider` que tu fournis revient exactement telle que tu l'as levée : garde donc les
 secrets hors d'elle, ou expurge-la toi-même avant de journaliser la `cause`.
 
-Deux exceptions à la règle de la classe d'erreur unique : `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue, et `runStatus` ne lève jamais. Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [Codes d'erreur du SDK](/docs/error-codes#sdk-error-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).
+Les exceptions à la règle de la classe d'erreur unique :
+
+- `retranslateEntry` relance la `ProviderError` du fournisseur quand l'appel unique échoue.
+- `approveEntries`, `rejectEntries` et `retranslateEntries` lèvent une `BatchInterruptedError`, avec
+  l'erreur d'origine comme `cause`, quand une erreur inattendue arrête un lot en cours de route.
+- Un fichier de locale cible que l'adaptateur ne sait pas analyser remonte comme son `AdapterError`,
+  avec son propre `code`, depuis `check`, `diff` et les autres flux qui le lisent ; `checkFile` le
+  signale plutôt comme une anomalie de syntaxe.
+- `watch` relaie, sans l'envelopper, ce que la fabrique de l'observateur a levé.
+- `runStatus` ne lève jamais.
+
+Pour la correspondance entre ces codes et les codes de sortie de la CLI, voir [Codes d'erreur du SDK](/docs/error-codes#sdk-error-codes) ; pour de l'aide par symptôme, voir [Dépannage](/docs/troubleshooting).
 
 <AvailableFrom version="0.12.0" />
 
