@@ -646,8 +646,14 @@ describe("the review flag table on translation-safety lists exactly REVIEW_REASO
       .replace(`${firstRow}\n`, "")
       .replace(/(\n\| \[`FUZZY_CACHE_REUSE`[^\n]*)/, `$1\n${firstRow}`);
 
-    expect(reviewFlagTable(dropped).codes).not.toEqual(reviewReasons);
-    expect(reviewFlagTable(extra).codes).toContain("RETIRED_REASON");
+    expect(reviewFlagTable(dropped).codes).toEqual(reviewReasons.slice(1));
+    expect(reviewFlagTable(extra).codes).toEqual([
+      reviewReasons[0],
+      "RETIRED_REASON",
+      ...reviewReasons.slice(1),
+    ]);
+    expect(reviewFlagTable(reordered).codes).toEqual([...reviewReasons.slice(1), reviewReasons[0]]);
+    expect([...reviewFlagTable(reordered).codes].sort()).toEqual([...reviewReasons].sort());
     expect(reviewFlagTable(reordered).codes).not.toEqual(reviewReasons);
     expect(reviewFlagTable(page.replace(firstRow, `${firstRow}\n`)).contiguous).toBe(false);
   });
