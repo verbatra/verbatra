@@ -42,6 +42,7 @@ async function usageSummary(
 
 export const usageSummaryTool = defineTool({
   name: "usage.summary",
+  values: "none",
   description:
     "Reads the token usage and budget status left behind by the last translate or " +
     "translation.translatePending run: input and output tokens consumed and, when a token " +

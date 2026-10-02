@@ -441,6 +441,7 @@ export type {
   UnusedKeysUnreliability,
   UnusedKeysUnreliableReason,
 } from "./flow/unused-keys.js";
+export { createValueMarker, type ValueMarker } from "./flow/value-marker.js";
 export {
   DEFAULT_EXCHANGE_FORMAT,
   EXCHANGE_FORMATS,

@@ -60,6 +60,48 @@ describe("startMcpServer", () => {
     expect(handle.spend).toBe(expected);
   });
 
+  it.each([
+    [undefined, false],
+    [false, false],
+    [true, true],
+  ] as const)("reports valuesRedacted %s as %s", async (redactValues, expected) => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({
+      cwd: dir,
+      configPath,
+      ...(redactValues !== undefined ? { redactValues } : {}),
+    });
+    await handle.close();
+
+    expect(handle.valuesRedacted).toBe(expected);
+  });
+
+  it("redacts the quoted text of a config error it logs when values are redacted", async () => {
+    const { dir, configPath } = await makeConfiguredProject();
+    await writeJsonFile(configPath, {
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "anthropic", options: { model: "test-model", maxTokens: 256 } },
+      glossary: { version: 2, terms: [{ source: "QZXJ" }] },
+    });
+    const lines: string[] = [];
+
+    const handle = await startMcpServer({
+      cwd: dir,
+      configPath,
+      redactValues: true,
+      onLog: (line) => lines.push(line),
+    });
+    await handle.close();
+
+    expect(handle.configured).toBe(false);
+    expect(lines.join("\n")).toContain("[redacted length=4 hash=");
+    expect(lines.join("\n")).not.toContain("QZXJ");
+  });
+
   it("closes itself and settles closed when the client closes stdin", async () => {
     const { dir, configPath } = await makeConfiguredProject();
 

@@ -61,10 +61,17 @@ export function projectLabel(cwd: string, base: string): string {
  * @param project - The project label, from {@link projectLabel}.
  * @param spend - Whether the provider-spending tools are advertised, as the server handle's
  * `spend` reports it.
+ * @param valuesRedacted - Whether the server redacts translation values, as the server handle's
+ * `valuesRedacted` reports it. Defaults to `false`.
  * @returns The ready line, without a trailing newline.
  */
-export function mcpReadyLine(project: string, spend: McpSpendState): string {
-  return `verbatra MCP server running on stdio (project ${project}, ${SPEND_LABELS[spend]})`;
+export function mcpReadyLine(
+  project: string,
+  spend: McpSpendState,
+  valuesRedacted = false,
+): string {
+  const redaction = valuesRedacted ? ", values redacted" : "";
+  return `verbatra MCP server running on stdio (project ${project}, ${SPEND_LABELS[spend]}${redaction})`;
 }
 
 /**

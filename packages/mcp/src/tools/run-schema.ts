@@ -1,7 +1,8 @@
-import { REVIEW_REASON_CODES } from "@verbatra/sdk";
+import { REVIEW_REASON_CODES, type ValueMarker } from "@verbatra/sdk";
 import { z } from "zod";
 import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
+import { markFields } from "./value-redaction.js";
 
 export const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
 
@@ -98,6 +99,40 @@ export const runSummarySchema = z.object({
   usage: usageSchema.optional(),
   budget: runBudgetSchema.optional(),
 });
+
+type FuzzyCacheHit = z.infer<typeof fuzzyCacheHitSchema>;
+
+type LocaleSummary = z.infer<typeof localeSummarySchema>;
+
+type RunSummary = z.infer<typeof runSummarySchema>;
+
+export function redactFuzzyHit(hit: FuzzyCacheHit, marker: ValueMarker): FuzzyCacheHit {
+  return markFields(hit, ["previousSource"], marker);
+}
+
+function redactLocaleSummary(locale: LocaleSummary, marker: ValueMarker): LocaleSummary {
+  return {
+    ...locale,
+    fuzzyHits: locale.fuzzyHits.map((hit) => redactFuzzyHit(hit, marker)),
+    protected: locale.protected.map((entry) => markFields(entry, ["suggestion"], marker)),
+    notices: locale.notices.map((notice) => markFields(notice, ["message"], marker)),
+    ...(locale.error !== undefined ? { error: markFields(locale.error, ["message"], marker) } : {}),
+    ...(locale.integrityRefusals !== undefined
+      ? {
+          integrityRefusals: locale.integrityRefusals.map(
+            ({ details: _details, ...refusal }) => refusal,
+          ),
+        }
+      : {}),
+  };
+}
+
+export function redactRunSummary(summary: RunSummary, marker: ValueMarker): RunSummary {
+  return {
+    ...summary,
+    locales: summary.locales.map((locale) => redactLocaleSummary(locale, marker)),
+  };
+}
 
 const localeEstimateSchema = z.object({
   locale: z.string(),

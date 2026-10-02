@@ -11,6 +11,7 @@ import {
   pageLimitSchema,
 } from "./page-cursor.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
+import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z
   .strictObject({
@@ -120,6 +121,18 @@ async function readLocaleValues(
 
 export const localeValuesTool = defineTool({
   name: "locale.values",
+  values: {
+    redact: (result, marker) => ({
+      ...result,
+      locales: result.locales.map((locale) => ({
+        ...locale,
+        entries: locale.entries.map((entry) =>
+          withProvenanceRedacted(markFields(entry, ["source", "target"], marker)),
+        ),
+      })),
+    }),
+    refusedParams: ["query"],
+  },
   description:
     "Reads the current source text and, when it exists, the current target text of many keys " +
     "at once, page by page, across the target locales. Use it to search or scan translation " +

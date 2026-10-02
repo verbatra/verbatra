@@ -147,7 +147,7 @@ function approveEntry(
 
 **Lève :** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
 
-`expectedValue` est le texte que la personne a vu : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif d'au plus 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
+`expectedValue` est le texte que la personne a vu, ou passe `expectedValueHash` avec le `valueMarker` qui l'a produit : l'appel lève `REVIEW_VALUE_CHANGED` quand la clé n'a pas de valeur ou en a une autre, et `REVIEW_SOURCE_CHANGED` quand la source a changé depuis l'écriture de la valeur. `reviewer` est un texte libre facultatif d'au plus 64 caractères sans caractère de contrôle (sinon `REVIEWER_INVALID`), stocké dans le fichier commité et jamais rempli par verbatra. Renvoie `{ locale, key, provenance }`. Une valeur sans enregistrement préalable, ou modifiée hors de verbatra, est enregistrée avec l'origine `unknown`.
 
 ### rejectEntry
 
@@ -173,6 +173,22 @@ L'entrée est vérifiée comme pour `approveEntry`, sauf qu'une source périmée
 Les deux appels prennent le verrou d'écriture de la locale. `lockAcquireTimeoutMs` borne l'attente de ce verrou (dix minutes par défaut) et échoue avec `LOCK_CONTENDED` une fois écoulée, et `onLockWait` signale cette attente ; une valeur qui n'est pas un nombre entier de millisecondes d'au moins 0 lève `LOCK_TIMEOUT_INVALID` avant toute lecture. Ce délai ne borne pas le verrou du fichier de verrouillage pris pour enregistrer la décision, qui accorde toujours les dix minutes par défaut.
 
 Les deux appels vérifient le fichier de provenance avant d'écrire quoi que ce soit et ne signalent jamais une décision qu'ils n'ont pas pu enregistrer : un fichier écrit par un verbatra plus récent, ou un fichier que la décision ferait grossir au-delà de la taille que verbatra relit, lève `PROVENANCE_FILE_UNWRITABLE`.
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+Crée le marqueur avec lequel une surface montre une valeur sans son texte : `mark(value)` renvoie
+`[redacted length=<n> hash=<h>]`, et `hash(value)` renvoie `h`, un HMAC hexadécimal de 16 chiffres
+salé au hasard (ou avec le `salt` donné), donc un hash ne correspond qu'avec le même marqueur.
+Passe-le comme `valueMarker` à `approveEntry` ou `rejectEntry` pour accepter `expectedValueHash` à
+la place de `expectedValue`. `verbatra mcp --redact-values` en crée un à chaque démarrage du serveur.
+
+```ts title="Signature"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**Renvoie :** `ValueMarker`
 
 ## Révision et retraduction par lots
 

@@ -256,6 +256,13 @@ const SPEND_SECTION_HEADING = {
   },
 };
 
+const REDACT_SECTION_HEADING = {
+  "": "### Redacted values",
+  ".de": "### Geschwärzte Werte [#redacted-values]",
+  ".es": "### Valores ocultos [#redacted-values]",
+  ".fr": "### Valeurs masquées [#redacted-values]",
+};
+
 const SESSION_VARIABLE = /\bVERBATRA_(?:STUDIO|MCP)_[A-Z_]+\b/g;
 
 function stringConstant(relativePath, name) {
@@ -308,11 +315,13 @@ describe("the spend switches are documented with the names and values the source
     stringConstant("packages/cli/src/studio-command.ts", "AGENT_TOOLS_ENV_VAR"),
   ];
   const mcp = stringConstant("packages/cli/src/mcp-command.ts", "ALLOW_SPEND_ENV_VAR");
+  const mcpRedact = stringConstant("packages/cli/src/mcp-command.ts", "REDACT_VALUES_ENV_VAR");
 
   it("reads the same names and values from the CLI and the verbatra-mcp binary", () => {
     expect(truthy).toEqual(expect.arrayContaining(["1", "true"]));
     expect(truthyValues("packages/mcp/src/bin-args.ts")).toEqual(truthy);
     expect(stringConstant("packages/mcp/src/bin-args.ts", "ALLOW_SPEND_ENV_VAR")).toBe(mcp);
+    expect(stringConstant("packages/mcp/src/bin-args.ts", "REDACT_VALUES_ENV_VAR")).toBe(mcpRedact);
   });
 
   it.each(LOCALE_SUFFIXES)(
@@ -340,8 +349,18 @@ describe("the spend switches are documented with the names and values the source
     },
   );
 
+  it.each(LOCALE_SUFFIXES)(
+    "states the redaction variable and points to the spend variable's values in cli/mcp%s.mdx",
+    (suffix) => {
+      const text = subsection(readDocPage("cli/mcp", suffix), REDACT_SECTION_HEADING[suffix]);
+
+      expect(text).toContain(`\`${mcpRedact}\``);
+      expect(text).toContain(`\`${mcp}\``);
+    },
+  );
+
   it("names no Studio or MCP variable the source does not read, on any page", () => {
-    expect(sessionVariablesIn(docPages())).toEqual([...studio, mcp].sort());
+    expect(sessionVariablesIn(docPages())).toEqual([...studio, mcp, mcpRedact].sort());
   });
 
   it("sees a dropped value and a renamed variable", () => {
@@ -350,7 +369,7 @@ describe("the spend switches are documented with the names and values the source
     expect(acceptedValues(text.replace("`yes` or ", ""))).not.toEqual(truthy);
     const renamed = [...docPages(), "Set `VERBATRA_MCP_SPEND=1` first."];
 
-    expect(sessionVariablesIn(renamed)).not.toEqual([...studio, mcp].sort());
+    expect(sessionVariablesIn(renamed)).not.toEqual([...studio, mcp, mcpRedact].sort());
     expect(sessionVariablesIn(renamed)).toContain("VERBATRA_MCP_SPEND");
   });
 });

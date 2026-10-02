@@ -34,6 +34,8 @@ El servidor arranca en solo lectura: las dos herramientas de gasto quedan oculta
 Nunca escribas una clave en un archivo del repositorio como `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` o `.vscode/mcp.json`. Cada sección de abajo pasa la clave por referencia o desde tu entorno.
 </Callout>
 
+Para que los valores de traducción no lleguen al modelo del agente, añade `--redact-values`; consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
+
 ### Primero estimar
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
@@ -317,4 +319,3 @@ Pídele al agente que llame a `project.snapshot`, que devuelve los locales, el f
 - [`verbatra mcp`](/docs/cli/mcp): flags, cada herramienta y los códigos de salida.
 - [Programa verbatra con JSON](/docs/agent-recipes#el-paquete-de-skills): la skill `verbatra-mcp-tools`.
 - [Configura verbatra con un agente de IA](/docs/start-with-ai): añade verbatra antes de conectar un cliente.
-- [Proveedores](/docs/providers): la variable de clave que lee cada proveedor.

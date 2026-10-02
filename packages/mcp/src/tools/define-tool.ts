@@ -4,10 +4,12 @@ import {
   ProviderError,
   projectRelativeMessage,
   SdkError,
+  type ValueMarker,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolCallContext, McpUnconfiguredContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
+import { presentError } from "./value-redaction.js";
 
 export class McpInvalidParamsError extends Error {
   readonly field: string;
@@ -44,8 +46,14 @@ export interface RegisteredMcpTool {
   ): Promise<McpToolOutcome>;
 }
 
+export interface ValueRedaction<Params, Result> {
+  readonly redact: (result: Result, marker: ValueMarker) => Result;
+  readonly refusedParams?: readonly (keyof Params & string)[];
+}
+
 export interface McpToolConfig<Params, Result extends Readonly<Record<string, unknown>>> {
   readonly name: string;
+  readonly values: "none" | ValueRedaction<Params, Result>;
   readonly description: string;
   readonly paramsSchema: z.ZodType<Params>;
   readonly outputSchema: z.ZodObject & z.ZodType<Result>;
@@ -74,12 +82,21 @@ function allowUnknownProperties(context: {
   }
 }
 
-function outputMismatch(schema: z.ZodType, result: unknown): z.core.$ZodIssue | undefined {
+type OutputCheck<Result> =
+  | { readonly kind: "declared"; readonly declared: Result }
+  | { readonly kind: "undeclared-keys"; readonly issue: z.core.$ZodIssue }
+  | { readonly kind: "mismatch"; readonly issue: z.core.$ZodIssue };
+
+function checkOutput<Result>(schema: z.ZodType<Result>, result: Result): OutputCheck<Result> {
   const parsed = schema.safeParse(result);
   if (parsed.success) {
-    return undefined;
+    return { kind: "declared", declared: parsed.data };
   }
-  return parsed.error.issues.find((issue) => issue.code !== "unrecognized_keys");
+  const issues = parsed.error.issues;
+  const mismatch = issues.find((issue) => issue.code !== "unrecognized_keys");
+  return mismatch === undefined
+    ? { kind: "undeclared-keys", issue: issues[0] as z.core.$ZodIssue }
+    : { kind: "mismatch", issue: mismatch };
 }
 
 function formatOutputMismatch(
@@ -122,10 +139,58 @@ export function describeToolError(error: unknown, cwd: string): string {
   return hint === undefined ? described : `${described}\nNext step: ${hint}`;
 }
 
+function refusedParam<Params, Result>(
+  values: "none" | ValueRedaction<Params, Result>,
+  params: Params,
+): string | undefined {
+  if (values === "none") {
+    return undefined;
+  }
+  return values.refusedParams?.find((name) => params[name] !== undefined);
+}
+
+function refusedParamMessage(field: string): string {
+  return `Invalid input for field "${field}": this server redacts translation values, so "${field}" is not accepted. Leave it out.`;
+}
+
+function finishResult<Params, Result extends Readonly<Record<string, unknown>>>(
+  config: McpToolConfig<Params, Result>,
+  result: Result,
+  marker: ValueMarker | undefined,
+): McpToolOutcome {
+  const check = checkOutput(config.outputSchema, result);
+  if (check.kind === "mismatch" || (check.kind === "undeclared-keys" && marker !== undefined)) {
+    return { kind: "error", message: formatOutputMismatch(config, check.issue) };
+  }
+  if (marker === undefined || check.kind !== "declared") {
+    return { kind: "ok", result };
+  }
+  const declared = check.declared;
+  return {
+    kind: "ok",
+    result: config.values === "none" ? declared : config.values.redact(declared, marker),
+  };
+}
+
+const WITHHELD_PROVIDER_MESSAGE =
+  "the provider's message is withheld because this server redacts translation values";
+
+function describeFailure(
+  error: unknown,
+  context: { readonly cwd: string; readonly valueMarker?: ValueMarker },
+): string {
+  if (context.valueMarker !== undefined && error instanceof ProviderError) {
+    const hint = errorHint(error);
+    const described = `${error.code}: ${WITHHELD_PROVIDER_MESSAGE}.`;
+    return hint === undefined ? described : `${described}\nNext step: ${hint}`;
+  }
+  return presentError(error, describeToolError(error, context.cwd), context.valueMarker);
+}
+
 function createExecutor<
   Params,
   Result extends Readonly<Record<string, unknown>>,
-  Context extends { readonly cwd: string },
+  Context extends { readonly cwd: string; readonly valueMarker?: ValueMarker },
 >(
   config: McpToolConfig<Params, Result>,
   handler: (params: Params, context: Context) => Promise<Result>,
@@ -138,6 +203,11 @@ function createExecutor<
         message: formatValidationError(config.paramsSchema, parsed.error),
       };
     }
+    const refused =
+      context.valueMarker === undefined ? undefined : refusedParam(config.values, parsed.data);
+    if (refused !== undefined) {
+      return { kind: "invalid", message: refusedParamMessage(refused) };
+    }
     let result: Result;
     try {
       result = await handler(parsed.data, context);
@@ -145,13 +215,9 @@ function createExecutor<
       if (error instanceof McpInvalidParamsError) {
         return { kind: "invalid", message: error.message };
       }
-      return { kind: "error", message: describeToolError(error, context.cwd) };
+      return { kind: "error", message: describeFailure(error, context) };
     }
-    const mismatch = outputMismatch(config.outputSchema, result);
-    if (mismatch !== undefined) {
-      return { kind: "error", message: formatOutputMismatch(config, mismatch) };
-    }
-    return { kind: "ok", result };
+    return finishResult(config, result, context.valueMarker);
   };
 }
 

@@ -2,7 +2,11 @@ import { localeIntegrity } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { keyIntegrityEntrySchema, toKeyIntegrityEntry } from "./key-integrity.js";
+import {
+  keyIntegrityEntrySchema,
+  toKeyIntegrityEntry,
+  withoutIntegrityDetails,
+} from "./key-integrity.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
@@ -46,6 +50,14 @@ async function checkLocaleIntegrity(
 
 export const localeIntegrityTool = defineTool({
   name: "locale.integrity",
+  values: {
+    redact: (result) => ({
+      locales: result.locales.map((locale) => ({
+        ...locale,
+        entries: locale.entries.map(withoutIntegrityDetails),
+      })),
+    }),
+  },
   description:
     "Lists every translation in the target locales that is broken right now: a value that lost " +
     "or gained a source placeholder or inline markup, no longer parses as ICU MessageFormat, or " +

@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveServerCwd } from "@verbatra/mcp";
+import { type McpServerHandle, resolveServerCwd } from "@verbatra/mcp";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
@@ -12,7 +12,7 @@ import {
   makeMcpModule,
   recordingDeps,
 } from "./test-support.js";
-import type { CliDeps, RunHooks, Session } from "./types.js";
+import type { CliDeps, McpModule, RunHooks, Session } from "./types.js";
 
 function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Error {
   return Object.assign(
@@ -578,6 +578,126 @@ describe("run mcp: --allow-spend capability resolution", () => {
   it("the CLI flag wins when both the flag and the environment variable are given", async () => {
     process.env[ENV_VAR] = "false";
     expect(await captureResolvedAllowSpend(["mcp", "--allow-spend"])).toBe(true);
+  });
+});
+
+describe("run mcp: --redact-values resolution", () => {
+  const ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
+  let original: string | undefined;
+
+  beforeEach(() => {
+    original = process.env[ENV_VAR];
+    delete process.env[ENV_VAR];
+  });
+
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env[ENV_VAR];
+    } else {
+      process.env[ENV_VAR] = original;
+    }
+  });
+
+  async function startWith(
+    argv: readonly string[],
+  ): Promise<{ readonly redactValues: boolean | undefined; readonly err: string }> {
+    let redactValues: boolean | undefined;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async (options) => {
+            redactValues = options.redactValues;
+            return makeMcpHandle({ valuesRedacted: options.redactValues === true });
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const donePromise = run([...argv], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    return { redactValues, err: cap.err() };
+  }
+
+  it("defaults redactValues to false", async () => {
+    expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+
+  it("sets redactValues from the flag and says so in the ready line", async () => {
+    const started = await startWith(["mcp", "--redact-values"]);
+
+    expect(started.redactValues).toBe(true);
+    expect(started.err).toContain("spend tools off, values redacted)");
+  });
+
+  it("falls back to the environment variable when the flag is absent", async () => {
+    process.env[ENV_VAR] = " YES ";
+    expect((await startWith(["mcp"])).redactValues).toBe(true);
+  });
+
+  it("treats an unrecognized environment value as off", async () => {
+    process.env[ENV_VAR] = "0";
+    expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+});
+
+describe("run mcp: an @verbatra/mcp that cannot redact", () => {
+  function olderModule(startMcpServer: McpModule["startMcpServer"]): McpModule {
+    const module = { ...makeMcpModule({ startMcpServer }) } as Record<string, unknown>;
+    delete module.MCP_CAPABILITIES;
+    return module as unknown as McpModule;
+  }
+
+  function handleWithoutRedaction(close = vi.fn(async () => {})): McpServerHandle {
+    const handle = { ...makeMcpHandle({ close }) } as Record<string, unknown>;
+    delete handle.valuesRedacted;
+    return handle as unknown as McpServerHandle;
+  }
+
+  it("refuses --redact-values before starting a module without the capability", async () => {
+    const startMcpServer = vi.fn(async () => handleWithoutRedaction());
+    const { deps } = recordingDeps({ importMcp: async () => olderModule(startMcpServer) });
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--redact-values"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(startMcpServer).not.toHaveBeenCalled();
+    expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
+    expect(cap.err()).toContain("Upgrade @verbatra/mcp");
+  });
+
+  it("stops a started server whose handle does not confirm redaction", async () => {
+    const close = vi.fn(async () => {});
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({ startMcpServer: async () => handleWithoutRedaction(close) }),
+    });
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--redact-values"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(close).toHaveBeenCalledOnce();
+    expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
+    expect(cap.err()).not.toContain("running on stdio");
+  });
+
+  it("serves normally from an older module when redaction was not requested", async () => {
+    const { deps } = recordingDeps({
+      importMcp: async () => olderModule(async () => handleWithoutRedaction()),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const done = run(["mcp"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+
+    expect(await done).toBe(0);
   });
 });
 

@@ -185,7 +185,7 @@ function approveEntry(
 **Lanza:** [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`REVIEW_VALUE_CHANGED`](/docs/error-codes#review_value_changed), [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), [`REVIEW_SOURCE_CHANGED`](/docs/error-codes#review_source_changed), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid), [`PROVENANCE_FILE_UNWRITABLE`](/docs/error-codes#provenance_file_unwritable)
 
 `expectedValue` es el texto que
-vio quien revisa: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
+vio quien revisa, o pasa `expectedValueHash` con el `valueMarker` que lo generó: la llamada lanza `REVIEW_VALUE_CHANGED` cuando la clave no tiene valor o tiene
 otro, y `REVIEW_SOURCE_CHANGED` cuando el origen cambió desde que se escribió el valor. `reviewer` es
 texto libre opcional de 64 caracteres como máximo y sin caracteres de control (si no,
 `REVIEWER_INVALID`), se guarda en el archivo con commit y verbatra nunca lo rellena. Devuelve
@@ -233,6 +233,22 @@ bloqueo que se toma para registrar la decisión, que siempre admite los diez min
 Ambas llamadas comprueban el archivo de procedencia antes de escribir nada y nunca informan de una
 decisión que no pudieron guardar: un archivo de un verbatra más nuevo, o uno que la decisión haría
 crecer por encima del tamaño que verbatra vuelve a leer, lanza `PROVENANCE_FILE_UNWRITABLE`.
+
+### createValueMarker
+
+<AvailableFrom version="0.12.0" />
+
+Crea la marca con la que una superficie muestra un valor sin su texto: `mark(value)` devuelve
+`[redacted length=<n> hash=<h>]`, y `hash(value)` devuelve `h`, un HMAC hexadecimal de 16 dígitos
+con una sal aleatoria (o la `salt` indicada), así que un hash solo coincide con la misma marca.
+Pásala como `valueMarker` a `approveEntry` o `rejectEntry` para aceptar `expectedValueHash` en lugar
+de `expectedValue`. `verbatra mcp --redact-values` crea una en cada arranque del servidor.
+
+```ts title="Firma"
+function createValueMarker(salt?: Uint8Array): ValueMarker;
+```
+
+**Devuelve:** `ValueMarker`
 
 ## Revisión y retraducción por lotes
 

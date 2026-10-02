@@ -7,6 +7,7 @@ import {
   resolveGlossaryProvenance,
 } from "./config-projection.js";
 import { defineTool, describeErrorMessage } from "./define-tool.js";
+import { redactQuoted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({});
 
@@ -31,6 +32,7 @@ const projectSnapshotResultSchema = z.object({
   glossary: glossaryProvenanceSchema.optional(),
   humanEdits: z.enum(HUMAN_EDITS_POLICIES).optional(),
   prune: z.boolean().optional(),
+  valuesRedacted: z.boolean().optional(),
   configProblem: z.object({ code: z.string(), message: z.string() }).optional(),
   nextStep: z.string().optional(),
 });
@@ -53,6 +55,7 @@ async function projectSnapshot(
     glossary: resolveGlossaryProvenance(context.config.glossary, context.cwd),
     humanEdits: config.humanEdits ?? "protect",
     prune: config.prune ?? false,
+    valuesRedacted: context.valueMarker !== undefined,
   };
 }
 
@@ -68,18 +71,32 @@ async function unconfiguredSnapshot(
       message: redact(describeErrorMessage(error, context.cwd)),
     },
     nextStep: UNCONFIGURED_NEXT_STEP,
+    valuesRedacted: context.valueMarker !== undefined,
   };
 }
 
 export const projectSnapshotTool = defineTool({
   name: "project.snapshot",
+  values: {
+    redact: (result, marker) =>
+      result.configProblem === undefined
+        ? result
+        : {
+            ...result,
+            configProblem: {
+              ...result.configProblem,
+              message: redactQuoted(result.configProblem.message, marker),
+            },
+          },
+  },
   description:
     "Reads the resolved project configuration: whether a usable config is loaded (configured), " +
     "source locale, target locales, file format, " +
     "the locale-file path pattern, the configured provider id, where the config was loaded " +
     "from, where the glossary comes from, the humanEdits policy (protect, suggest, or " +
     "overwrite; protect when unset), and whether a translate run prunes orphaned keys " +
-    "(prune, false when unset). Call it first, since every other tool takes its locale " +
+    "(prune, false when unset), and whether this server replaces translation values with " +
+    "markers (valuesRedacted). Call it first, since every other tool takes its locale " +
     "codes from this project, a provider id of none means the spend tools are never listed, " +
     "humanEdits says whether a person's values are protected from machine writes, and prune " +
     "says whether translation.translatePending deletes orphaned keys. Do not use it to read " +

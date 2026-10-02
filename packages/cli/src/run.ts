@@ -2084,6 +2084,10 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
       "--allow-spend",
       "advertise the tools that call a translation provider (also: VERBATRA_MCP_ALLOW_SPEND)",
     )
+    .option(
+      "--redact-values",
+      "replace translation values in every tool result with a marker (also: VERBATRA_MCP_REDACT_VALUES)",
+    )
     .configureOutput({ outputError: writeUnlessJsonRefusal })
     .action(async (opts: unknown) => {
       ctx.setCode(await runMcpCommand(opts, ctx.deps, ctx.streams, ctx.hooks, ctx.settings()));
@@ -2095,6 +2099,7 @@ function registerMcpCommand(program: Command, ctx: ProgramContext): void {
         "Examples:",
         "  $ verbatra mcp                 start the MCP server with only local, non-spending tools",
         "  $ verbatra mcp --allow-spend    also advertise the provider-calling tools",
+        "  $ verbatra mcp --redact-values  keep translation values out of every tool result",
         "",
         "Nothing but MCP protocol messages is ever written to stdout; every log line goes to " +
           "stderr.",

@@ -31,8 +31,10 @@ The server starts read-only: the two spend tools stay hidden and no tool reads a
 - your provider's key variable, such as `ANTHROPIC_API_KEY` ([Providers](/docs/providers)).
 
 <Callout type="warn">
-Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` or `.vscode/mcp.json`. Each section below passes the key by reference or from your environment instead.
+Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` or `.vscode/mcp.json`. Each section below passes it by reference or from your environment.
 </Callout>
+
+To keep values from the agent's model, add `--redact-values`; see [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ### Estimate first
 
@@ -300,21 +302,20 @@ To spend, append `"--allow-spend"` and add `"env": { "ANTHROPIC_API_KEY": "..." 
 
 ## Any other stdio client
 
-Give the client the command `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` unless it starts servers in the project root, and `--config <path>` if the config sits elsewhere. Add `--allow-spend` and the key only through the client's own secret mechanism.
+Give the client the command `npx -y @verbatra/mcp`, plus `--cwd /path/to/your/project` unless it starts servers in the project root, and `--config <path>` if the config sits elsewhere. Pass `--allow-spend` and the key only through the client's secret mechanism.
 
 ## Check the connection
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Ask the agent to call `project.snapshot`, which returns the locales, the format and the provider without calling it.
+Ask the agent to call `project.snapshot`; it returns the locales, format and provider without calling it.
 
 - **`configured: false`**: no usable config was found. Ask for `project.doctor`, then run `npx verbatra init` or fix `--cwd`. See [Without a config](/docs/cli/mcp#without-a-config).
 - **Spend tools missing**: check the spend switch and whether the provider is `none`.
-- **Config edited**: no restart is needed; see [After a config change](/docs/cli/mcp#after-a-config-change).
+- **Config edited**: no restart needed; see [After a config change](/docs/cli/mcp#after-a-config-change).
 
 ## Related
 
 - [`verbatra mcp`](/docs/cli/mcp): flags, every tool, and the exit codes.
 - [Script verbatra with JSON](/docs/agent-recipes#the-skills-pack): the `verbatra-mcp-tools` skill.
 - [Set up verbatra with an AI agent](/docs/start-with-ai): add verbatra before connecting a client.
-- [Providers](/docs/providers): the key variable each provider reads.

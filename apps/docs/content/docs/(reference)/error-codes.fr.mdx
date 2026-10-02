@@ -190,6 +190,14 @@ Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-
 - **Code de sortie** : `2`
 - **Étape suivante** : Pass every flag the message names, or add --yes to accept the defaults.
 
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` a chargé un `@verbatra/mcp` plus ancien qui ne confirme pas masquer les valeurs ; le serveur a été arrêté avant de servir quoi que ce soit.
+
+- **Levé par** : `mcp`
+- **Code de sortie** : `2`
+- **Étape suivante** : Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
 ### USAGE_ERROR
 
 L'analyseur d'arguments a rejeté la ligne de commande (une option inconnue, un argument manquant), ou `mcp` a reçu des options qu'il ne peut pas accepter ; son `hint` nomme le `--help` de la commande.

@@ -190,6 +190,14 @@ An `init` flag does not fit the provider (`--base-url` without `openai-compatibl
 - **Exit code**: `2`
 - **Next step**: Pass every flag the message names, or add --yes to accept the defaults.
 
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` loaded an older `@verbatra/mcp` that does not confirm it redacts values; the server was stopped before serving anything.
+
+- **Raised by**: `mcp`
+- **Exit code**: `2`
+- **Next step**: Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
 ### USAGE_ERROR
 
 The argument parser rejected the command line (an unknown option, a missing argument), or `mcp` received options it cannot accept; its `hint` names the command's `--help`.

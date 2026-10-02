@@ -120,6 +120,7 @@ describe("project.snapshot", () => {
             "CONFIG_INVALID: The verbatra configuration is invalid: verbatra.config.ts has a syntax error",
         },
         nextStep: expect.stringContaining("project.doctor"),
+        valuesRedacted: false,
       },
     });
   });

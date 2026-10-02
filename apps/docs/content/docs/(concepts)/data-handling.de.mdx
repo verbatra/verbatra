@@ -35,8 +35,7 @@ für ein Security- oder Legal-Review. Für diese Website gilt ihre [Datenschutze
   Studio in your browser   MCP client (your AI agent)
 ```
 
-Nur der Pfeil zum Provider überquert deine Netzwerkgrenze; was ein KI-Agent mit dem macht, was er
-liest, steht unter [Studio und MCP](#studio-und-mcp).
+Nur der Pfeil zum Provider überquert deine Netzwerkgrenze.
 
 ## Wann ein Request gemacht wird
 
@@ -52,8 +51,7 @@ einmal. Ein veralteter Key, den ein Mensch geschrieben hat, wird nur für einen 
 `humanEdits: "suggest"` gesendet, ein gepinnter Key nie
 ([Menschliche Übersetzungen behalten](/docs/protecting-human-translations)).
 
-Jeder Request beginnt mit einem DNS-Lookup des Provider-Hosts über den Resolver deines Systems, der
-Resolver sieht diesen Namen also.
+Jeder Request beginnt mit einem DNS-Lookup des Provider-Hosts, dein Resolver sieht diesen Namen also.
 
 ## Was jeder Provider bekommt
 
@@ -65,8 +63,7 @@ Resolver sieht diesen Namen also.
 | `libretranslate` | Der Quelltext jedes Keys, mit Platzhaltern durch nummerierte Markierungen ersetzt (ein Wert mit ICU-Syntax wird nicht gesendet), die Sprachcodes und `LIBRETRANSLATE_API_KEY`, wenn gesetzt. | Die `baseUrl`, die du konfiguriert hast. |
 | `none` | Nichts. | Nirgendwohin. |
 
-Die SDKs der Anbieter senden außerdem ihre üblichen Header, die die Bibliothek und meist dein
-Betriebssystem und deine Node.js-Version nennen. Dein API-Key geht nur an den konfigurierten
+Die SDKs senden außerdem Header mit Bibliothek, Betriebssystem und Node.js-Version. Dein API-Key geht nur an den konfigurierten
 Endpunkt (`google-translate` sendet ihn im Query-String `?key=`). Behandle alles in einem
 Quell-String, einer Beschreibung oder dem Glossar als gesendet.
 
@@ -88,7 +85,7 @@ Quell-String, einer Beschreibung oder dem Glossar als gesendet.
 
 Was mit deinen Strings nach ihrer Ankunft passiert, bestimmen der Anbieter und dein Vertrag, nicht
 verbatra. Die Zitate stammen von der Seite des Anbieters, Stand September 2026, im englischen
-Original; Bedingungen ändern sich und dein Vertrag geht vor, also lies die verlinkten Seiten.
+Original; Bedingungen ändern sich und dein Vertrag geht vor.
 
 | Provider | Was der Anbieter sagt | Auftragsverarbeitung |
 | --- | --- | --- |
@@ -132,24 +129,28 @@ Verschoben nach
 
 ## API-Keys
 
-Keys kommen nur aus [Umgebungsvariablen](/docs/providers#keys-kommen-aus-der-umgebung). Jeder
-Provider-Fehler und alles, was die CLI ausgibt, läuft durch einen Filter, der den Wert jeder
-bekannten Key-Variable und alles, was wie ein API-Key aussieht, durch `[REDACTED]` ersetzt.
+Keys kommen nur aus [Umgebungsvariablen](/docs/providers#keys-kommen-aus-der-umgebung). Provider-Fehler
+und CLI-Ausgaben ersetzen den Wert jeder bekannten Key-Variable und alles, was wie ein API-Key
+aussieht, durch `[REDACTED]`.
 
 ## Studio und MCP
 
 **Studio** bindet nur an `127.0.0.1`, weist anderen `Host` oder `Origin` ab, verlangt das Token, das
 es beim Start ausgibt, und seine Content-Security-Policy blockiert Abrufe aus dem Internet.
 
-**Der MCP-Server** spricht über stdio mit seinem Client und öffnet keinen Port. Seine Lese-Tools
-geben deine Strings, dein Glossar und deinen Status an den verbundenen Client.
+**Der MCP-Server** spricht über stdio und öffnet keinen Port. Seine Lese-Tools geben deine Strings,
+dein Glossar und deinen Status heraus, außer er läuft mit
+[`--redact-values`](/docs/cli/mcp#redacted-values): Dann ist jeder Wert eine Markierung. Key-Namen,
+Commit-Betreffs und Pfade werden nicht geschwärzt, und ein Agent, der gezielt sondiert, etwa über
+Glossar-Schreibvorgänge, kann weiter etwas über Werte erfahren.
 
-**Historie der Locale-Dateien.** `history.list` liefert in Studio und im MCP-Server für jeden Commit
-Hash, Datum, Autorname, Betreff und geänderte Pfade. Die E-Mail-Adresse des Autors liest es nie.
+**Historie der Locale-Dateien.** `history.list` liefert für jeden Commit Hash, Datum, Autorname
+(fehlt unter `--redact-values`), Betreff und geänderte Pfade, nie die E-Mail.
 
 Wäg das ab: Ein MCP-Client oder ein Browser-Agent, der Studios `--expose-agent-tools` nutzt, ist
 meist ein KI-Assistent, und was er liest, geht an sein Modell, unter den Bedingungen dieses
-Anbieters, die verbatra nicht einschränken kann.
+Anbieters. Studios Agent-Tools werden nie geschwärzt: Ein Agent, der den Tab steuert, kann die
+Seite ohnehin lesen.
 
 ## KI-erzeugte Übersetzungen und Provenance
 
@@ -176,7 +177,8 @@ Modell; siehe
    brauchst.
 4. Prüf, was deine Quelldateien senden: Key-Namen, Beschreibungen und das Glossar (`verbatra check --sensitive`).
 5. Halte API-Keys in einem Secret Store oder einer ignorierten `.env` und führ `verbatra doctor` aus.
-6. Entscheide, welche KI-Agenten sich mit Studio oder dem MCP-Server verbinden dürfen.
+6. Entscheide, welche KI-Agenten Studio oder den MCP-Server nutzen dürfen und ob er
+   `--redact-values` braucht.
 7. Committe `verbatra.provenance.json` und archiviere `verbatra report provenance --json` pro
    Release.
 

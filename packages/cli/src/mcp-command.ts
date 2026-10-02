@@ -28,11 +28,14 @@ const mcpOptsSchema = z.object({
   cwd: z.string().optional(),
   config: z.string().optional(),
   allowSpend: z.boolean().optional(),
+  redactValues: z.boolean().optional(),
 });
 
 type McpOpts = z.infer<typeof mcpOptsSchema>;
 
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_MCP_ALLOW_SPEND";
+
+const REDACT_VALUES_ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
 
 const CLI_LAUNCH_ARGS = ["verbatra", "mcp"] as const;
 
@@ -49,7 +52,9 @@ function announceReady(ui: Ui, mcpModule: McpModule, cwd: string, server: McpSer
     ui.line(FALLBACK_READY_LINE);
     return;
   }
-  ui.line(mcpReadyLine(projectLabel(cwd, process.cwd()), server.spend));
+  ui.line(
+    mcpReadyLine(projectLabel(cwd, process.cwd()), server.spend, server.valuesRedacted === true),
+  );
   if (server.configured === false && mcpUnconfiguredHint !== undefined) {
     for (const line of mcpUnconfiguredHint()) {
       ui.line(line);
@@ -67,6 +72,13 @@ function stoppedReporter(ui: Ui, mcpModule: McpModule): ((cause: StopCause) => v
   return mcpStoppedLine === undefined
     ? undefined
     : (cause) => ui.line(mcpStoppedLine(MCP_STOP_CAUSES[cause]));
+}
+
+function redactionUnsupported(): CliUsageError {
+  return new CliUsageError(
+    "REDACTION_UNSUPPORTED",
+    "--redact-values was requested, but the installed @verbatra/mcp does not confirm that it redacts values, so the server was stopped before serving anything.",
+  );
 }
 
 function parseMcpOpts(rawOpts: unknown): McpOpts {
@@ -117,12 +129,18 @@ export async function runMcp(
     return failedSession(2);
   }
   const allowSpend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
+  const redactValues = resolveBooleanFlag(opts.redactValues, REDACT_VALUES_ENV_VAR);
+  if (redactValues && mcpModule.MCP_CAPABILITIES?.valuesRedaction !== true) {
+    ui.error(toRenderableError(redactionUnsupported()));
+    return failedSession(2);
+  }
 
   const server = await step(
     () =>
       mcpModule.startMcpServer({
         cwd,
         allowSpend,
+        redactValues,
         onLog: (line) => streams.err(`${line}\n`),
         ...(opts.config !== undefined ? { configPath: opts.config } : {}),
       }),
@@ -130,6 +148,12 @@ export async function runMcp(
     () => undefined,
   );
   if (server === undefined) {
+    return failedSession(2);
+  }
+
+  if (redactValues && server.valuesRedacted !== true) {
+    await server.close().catch(() => undefined);
+    ui.error(toRenderableError(redactionUnsupported()));
     return failedSession(2);
   }
 

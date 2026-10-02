@@ -111,6 +111,7 @@ describe("createMcpServer without a usable config", () => {
         message: `CONFIG_NOT_FOUND: ${NOT_FOUND.message}`,
       },
       nextStep: expect.stringContaining("project.doctor"),
+      valuesRedacted: false,
     });
   });
 

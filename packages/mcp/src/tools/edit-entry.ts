@@ -8,6 +8,7 @@ import {
   lockAcquireTimeoutMs,
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
+import { redactWriteResult } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({
   locale: z.string().min(1),
@@ -50,6 +51,7 @@ async function editKeyEntry(
 
 export const editEntryTool = defineTool({
   name: "translation.editEntry",
+  values: { redact: redactWriteResult },
   description:
     "Writes one caller-supplied translation for one key in one target locale. Use it " +
     "whenever you already know the correct text: it never calls a provider and costs " +

@@ -17,6 +17,7 @@ import {
   pageLimitSchema,
 } from "./page-cursor.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
+import { withoutReviewer } from "./value-redaction.js";
 
 const bucketSchema = z.enum(PROVENANCE_BUCKETS as [ProvenanceBucket, ...ProvenanceBucket[]]);
 
@@ -136,6 +137,20 @@ async function readProvenanceReport(
 
 export const reportProvenanceTool = defineTool({
   name: "report.provenance",
+  values: {
+    redact: (result) =>
+      result.locales === undefined
+        ? result
+        : {
+            ...result,
+            locales: result.locales.map(({ entries, ...locale }) => ({
+              ...locale,
+              ...(entries !== undefined
+                ? { entries: entries.map((entry) => withoutReviewer(entry)) }
+                : {}),
+            })),
+          },
+  },
   description:
     "Reports, per target locale, where each current translation came from and whether a person " +
     "reviewed it, as verbatra report provenance does: counts per bucket (machine-unreviewed, " +
