@@ -51,6 +51,7 @@ interface WithheldLocale {
   readonly integrityMismatches: readonly string[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
+  readonly sensitiveWithheld: readonly string[];
 }
 
 function localeSummary(overrides: Partial<WithheldLocale> = {}): WithheldLocale {
@@ -59,6 +60,7 @@ function localeSummary(overrides: Partial<WithheldLocale> = {}): WithheldLocale 
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     ...overrides,
   };
 }

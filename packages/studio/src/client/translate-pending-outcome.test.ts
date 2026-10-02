@@ -81,14 +81,20 @@ describe("deriveTranslatePendingOutcome", () => {
           integrityMismatches: ["b", "c"],
           providerFailures: ["d"],
           budgetWithheld: ["e", "f", "g"],
+          sensitiveWithheld: ["h"],
         }),
       ],
     });
     expect(deriveTranslatePendingOutcome(response)).toEqual({
       kind: "withheld",
-      withheldCount: 6,
+      withheldCount: 7,
       partialLocales: ["fr"],
-      breakdown: { integrityMismatches: 2, providerFailures: 1, budgetWithheld: 3 },
+      breakdown: {
+        integrityMismatches: 2,
+        providerFailures: 1,
+        budgetWithheld: 3,
+        sensitiveWithheld: 1,
+      },
     });
   });
 
@@ -117,7 +123,12 @@ describe("deriveTranslatePendingOutcome", () => {
       kind: "withheld",
       withheldCount: 4,
       partialLocales: ["fr", "es"],
-      breakdown: { integrityMismatches: 1, providerFailures: 2, budgetWithheld: 1 },
+      breakdown: {
+        integrityMismatches: 1,
+        providerFailures: 2,
+        budgetWithheld: 1,
+        sensitiveWithheld: 0,
+      },
     });
   });
 
