@@ -241,12 +241,14 @@ export interface ProviderNotice {
  *
  * @example
  * ```ts
- * import { REVIEW_REASON_CODES } from "@verbatra/sdk";
+ * import { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/sdk";
  * import { z } from "zod";
  *
  * const reasonSchema = z.enum(REVIEW_REASON_CODES);
- * const knownReasons = (stored: readonly string[]) =>
- *   stored.filter((code) => reasonSchema.safeParse(code).success);
+ * const isKnownReason = (code: string): code is ReviewReasonCode =>
+ *   reasonSchema.safeParse(code).success;
+ * const knownReasons = (stored: readonly string[]): ReviewReasonCode[] =>
+ *   stored.filter(isKnownReason);
  * ```
  */
 export const REVIEW_REASON_CODES = [
