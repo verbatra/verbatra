@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveServerCwd } from "@verbatra/mcp";
+import { type McpServerHandle, resolveServerCwd } from "@verbatra/mcp";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
@@ -641,6 +641,48 @@ describe("run mcp: --redact-values resolution", () => {
   it("treats an unrecognized environment value as off", async () => {
     process.env[ENV_VAR] = "0";
     expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+});
+
+describe("run mcp: an @verbatra/mcp that cannot redact", () => {
+  it("stops the server and exits 2 when --redact-values is not confirmed", async () => {
+    const close = vi.fn(async () => {});
+    const olderHandle = { ...makeMcpHandle({ close }) } as Record<string, unknown>;
+    delete olderHandle.valuesRedacted;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async () => olderHandle as unknown as McpServerHandle,
+        }),
+    });
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--redact-values"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(close).toHaveBeenCalledOnce();
+    expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
+    expect(cap.err()).toContain("Upgrade @verbatra/mcp");
+    expect(cap.err()).not.toContain("running on stdio");
+  });
+
+  it("serves normally from the same module when redaction was not requested", async () => {
+    const olderHandle = { ...makeMcpHandle() } as Record<string, unknown>;
+    delete olderHandle.valuesRedacted;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async () => olderHandle as unknown as McpServerHandle,
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const done = run(["mcp"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+
+    expect(await done).toBe(0);
   });
 });
 

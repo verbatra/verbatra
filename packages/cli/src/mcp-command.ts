@@ -74,6 +74,13 @@ function stoppedReporter(ui: Ui, mcpModule: McpModule): ((cause: StopCause) => v
     : (cause) => ui.line(mcpStoppedLine(MCP_STOP_CAUSES[cause]));
 }
 
+function redactionUnsupported(): CliUsageError {
+  return new CliUsageError(
+    "REDACTION_UNSUPPORTED",
+    "--redact-values was requested, but the installed @verbatra/mcp does not confirm that it redacts values, so the server was stopped before serving anything.",
+  );
+}
+
 function parseMcpOpts(rawOpts: unknown): McpOpts {
   const result = mcpOptsSchema.safeParse(rawOpts);
   if (!result.success) {
@@ -137,6 +144,12 @@ export async function runMcp(
     () => undefined,
   );
   if (server === undefined) {
+    return failedSession(2);
+  }
+
+  if (redactValues && server.valuesRedacted !== true) {
+    await server.close().catch(() => undefined);
+    ui.error(toRenderableError(redactionUnsupported()));
     return failedSession(2);
   }
 
