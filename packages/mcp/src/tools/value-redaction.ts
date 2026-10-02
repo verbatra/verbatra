@@ -52,3 +52,7 @@ export function redactWriteResult<
   const { details: _details, ...rest } = result;
   return { ...rest, value: marker.mark(result.value) } as T;
 }
+
+export function redactQuoted(text: string, marker: ValueMarker): string {
+  return text.replace(/"([^"\n]*)"/g, (_quoted, inner: string) => marker.mark(inner));
+}

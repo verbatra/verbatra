@@ -41,7 +41,7 @@ export interface McpServerOptions {
   readonly project: McpProjectSession;
   readonly cwd: string;
   readonly allowSpend?: boolean;
-  readonly redactValues?: boolean;
+  readonly valueMarker?: ValueMarker;
   readonly fs?: McpToolContext["fs"];
   readonly adapterRegistry?: McpToolContext["adapterRegistry"];
   readonly createProvider?: CreateProvider;

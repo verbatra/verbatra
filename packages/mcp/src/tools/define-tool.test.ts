@@ -1,4 +1,4 @@
-import { AdapterError, errorHint, ProviderError, SdkError } from "@verbatra/sdk";
+import { AdapterError, createValueMarker, errorHint, ProviderError, SdkError } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { makeContext } from "../test-support.js";
@@ -545,5 +545,89 @@ describe("defineTool", () => {
 
     const outcome = await tool.execute("not an object", makeContext());
     expect(outcome).toMatchObject({ kind: "invalid", message: expect.stringContaining("(root)") });
+  });
+});
+
+describe("defineTool: redacted values", () => {
+  const annotations = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  };
+  const marker = createValueMarker(new Uint8Array([3]));
+  const redacted = makeContext({ valueMarker: marker });
+
+  function valueTool(handler: () => Promise<{ greeting: string }>) {
+    return defineTool({
+      name: "test.values",
+      values: {
+        redact: (result, valueMarker) => ({ greeting: valueMarker.mark(result.greeting) }),
+        refusedParams: ["name"],
+      },
+      description: "test",
+      paramsSchema: z.strictObject({ name: z.string().optional() }),
+      outputSchema,
+      annotations,
+      handler,
+    });
+  }
+
+  it("drops a field the output schema does not declare before redacting", async () => {
+    const tool = valueTool(
+      async () => ({ greeting: "Hallo", leaked: "Hallo" }) as { greeting: string },
+    );
+
+    const outcome = await tool.execute({}, redacted);
+
+    expect(outcome).toEqual({ kind: "ok", result: { greeting: marker.mark("Hallo") } });
+  });
+
+  it("keeps an undeclared field when values are not redacted", async () => {
+    const tool = valueTool(async () => ({ greeting: "Hallo", extra: 1 }) as { greeting: string });
+
+    expect(await tool.execute({}, makeContext())).toEqual({
+      kind: "ok",
+      result: { greeting: "Hallo", extra: 1 },
+    });
+  });
+
+  it("refuses a result a strict schema cannot strip, rather than pass it through", async () => {
+    const tool = defineTool({
+      name: "test.strict",
+      values: "none",
+      description: "test",
+      paramsSchema: z.strictObject({}),
+      outputSchema: z.strictObject({ greeting: z.string() }),
+      annotations,
+      handler: async () => ({ greeting: "Hallo", leaked: "Hallo" }) as { greeting: string },
+    });
+
+    const outcome = await tool.execute({}, redacted);
+
+    expect(outcome.kind).toBe("error");
+    expect(JSON.stringify(outcome)).not.toContain("Hallo");
+  });
+
+  it("refuses a value-bearing parameter", async () => {
+    const handler = vi.fn(async () => ({ greeting: "Hallo" }));
+    const tool = valueTool(handler);
+
+    const outcome = await tool.execute({ name: "Ada" }, redacted);
+
+    expect(outcome).toMatchObject({ kind: "invalid" });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("withholds a provider's message and keeps its code and next step", async () => {
+    const tool = valueTool(async () => {
+      throw new ProviderError("PROVIDER_ERROR", "upstream echoed Hallo Welt");
+    });
+
+    const outcome = await tool.execute({}, redacted);
+
+    expect(outcome.kind).toBe("error");
+    expect(JSON.stringify(outcome)).not.toContain("Hallo Welt");
+    expect(JSON.stringify(outcome)).toContain("PROVIDER_ERROR");
   });
 });

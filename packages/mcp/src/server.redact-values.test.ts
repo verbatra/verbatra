@@ -8,6 +8,7 @@ import type {
   TranslateResult,
   TranslationProvider,
 } from "@verbatra/ai-providers";
+import { createValueMarker, SdkError } from "@verbatra/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createMcpServer } from "./server.js";
 import { MCP_SERVER_INSTRUCTIONS, serverInstructions } from "./server-instructions.js";
@@ -21,9 +22,13 @@ import {
 } from "./test-support.js";
 import { buildToolRegistry } from "./tools/registry.js";
 
-const CANARY = "CANARY";
+const CANARY = "QZXJ";
 
 const MARKER = /^\[redacted length=\d+ hash=([0-9a-f]{16})\]$/;
+
+function translated(key: string, value: string): string {
+  return key === "greeting" ? `[x] ${CANARY}-placeholder-dropped` : `[x] ${value}`;
+}
 
 function echoingProvider(): TranslationProvider {
   return {
@@ -32,8 +37,11 @@ function echoingProvider(): TranslationProvider {
     supportsGlossary: true,
     async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
       return {
-        values: new Map(request.entries.map((entry) => [entry.key, `[x] ${entry.value}`])),
+        values: new Map(
+          request.entries.map((entry) => [entry.key, translated(entry.key, entry.value)]),
+        ),
         integrity: new Map(),
+        notices: [{ code: "FORMALITY_DOWNGRADED", message: `${CANARY} provider notice` }],
       };
     },
   };
@@ -61,7 +69,7 @@ async function canaryProject(): Promise<string> {
     greeting: `${CANARY}-greet {name} with ${CANARY}term`,
     "@greeting": { description: `${CANARY}-description` },
     farewell: `${CANARY}-bye`,
-    long: `${CANARY}-long`,
+    long: `${CANARY}-long text`,
     count: `{n, plural, one {${CANARY}-one} other {${CANARY}-other}}`,
   });
   await writeJsonFile(join(dir, "locales", "de.arb"), {
@@ -78,7 +86,7 @@ async function canaryProject(): Promise<string> {
         targets: { de: `${CANARY}-de-target` },
         forbidden: { de: [`${CANARY}-forbidden`] },
         note: `${CANARY}-note`,
-        partOfSpeech: "noun",
+        partOfSpeech: `${CANARY}-pos`,
       },
     ],
     doNotTranslate: [`${CANARY}keep`],
@@ -89,16 +97,21 @@ async function canaryProject(): Promise<string> {
   return dir;
 }
 
-async function editSource(dir: string): Promise<void> {
-  const path = join(dir, "locales", "en.arb");
-  const source = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
-  await writeJsonFile(path, {
-    ...source,
-    count: `{n, plural, one {${CANARY}-one <b>y</b>} other {${CANARY}-more <b>y</b>}}`,
-  });
+async function rewrite(path: string, changes: Record<string, unknown>): Promise<void> {
+  const current = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+  await writeJsonFile(path, { ...current, ...changes });
 }
 
-async function redactedClient(dir: string): Promise<Client> {
+async function editOutsideVerbatra(dir: string): Promise<void> {
+  await rewrite(join(dir, "locales", "en.arb"), {
+    count: `{n, plural, one {${CANARY}-one <b>y</b>} other {${CANARY}-more <b>y</b>}}`,
+    farewell: `${CANARY}-bye-changed`,
+    long: `${CANARY}-long text.`,
+  });
+  await rewrite(join(dir, "locales", "de.arb"), { farewell: `${CANARY}-hand-edited` });
+}
+
+async function redactedClient(dir: string, logs: string[]): Promise<Client> {
   const server = createMcpServer({
     project: staticProject(
       baseLoadedConfig({
@@ -106,15 +119,18 @@ async function redactedClient(dir: string): Promise<Client> {
           targetLocales: ["de", "fr"],
           format: "arb",
           files: { pattern: "locales/{locale}.arb" },
+          humanEdits: "suggest",
+          fuzzyCache: { enabled: true },
         }),
         glossary: { source: "file", path: join(dir, "glossary.json") },
       }),
     ),
     cwd: dir,
     allowSpend: true,
-    redactValues: true,
+    valueMarker: createValueMarker(),
     fs: nodeFs,
     createProvider: echoingProvider,
+    onLog: (line) => logs.push(line),
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -158,7 +174,7 @@ function hashOf(marker: unknown): string {
   return match[1];
 }
 
-const READS: readonly Call[] = [
+const FIRST_RUN: readonly Call[] = [
   { name: "project.snapshot", arguments: {} },
   { name: "project.doctor", arguments: {} },
   { name: "lock.state", arguments: {} },
@@ -166,10 +182,11 @@ const READS: readonly Call[] = [
   { name: "status.diff", arguments: {} },
   { name: "translation.estimate", arguments: {} },
   { name: "translation.translatePending", arguments: {} },
+];
+
+const READS: readonly Call[] = [
   { name: "review.queue", arguments: {} },
   { name: "usage.summary", arguments: {} },
-  { name: "key.integrity", arguments: { key: "count" } },
-  { name: "locale.integrity", arguments: {} },
   { name: "locale.values", arguments: {} },
   { name: "locale.values", arguments: { query: CANARY } },
   { name: "key.context", arguments: { locale: "de", key: "greeting" } },
@@ -178,6 +195,10 @@ const READS: readonly Call[] = [
   { name: "history.list", arguments: {} },
   { name: "glossary.get", arguments: { locale: "de" } },
   { name: "glossary.write", arguments: { term: `${CANARY}new`, translation: `${CANARY}-new` } },
+  {
+    name: "glossary.write",
+    arguments: { term: `${CANARY}term`, locale: "de", forbidden: [`${CANARY}-de-target`] },
+  },
   {
     name: "translation.editEntry",
     arguments: { locale: "de", key: "farewell", value: `${CANARY}-edited` },
@@ -191,22 +212,41 @@ const READS: readonly Call[] = [
 
 describe("createMcpServer with redactValues: no value reaches the client", () => {
   const answers: Answer[] = [];
+  const logs: string[] = [];
+  const progress: string[] = [];
+  let secondRun: Answer | undefined;
   let approvedReviewer: Answer | undefined;
   let instructions: string | undefined;
 
   beforeAll(async () => {
     const dir = await canaryProject();
-    const client = await redactedClient(dir);
+    const client = await redactedClient(dir, logs);
     instructions = client.getInstructions();
+    for (const call of FIRST_RUN) {
+      answers.push(await ask(client, call));
+    }
+    await editOutsideVerbatra(dir);
+    answers.push(await ask(client, { name: "key.integrity", arguments: { key: "count" } }));
+    answers.push(await ask(client, { name: "locale.integrity", arguments: {} }));
+    const pending = { name: "translation.translatePending", arguments: {} };
+    const result = await client.callTool(pending, undefined, {
+      onprogress: (update) => progress.push(JSON.stringify(update)),
+    });
+    secondRun = {
+      call: pending,
+      isError: result.isError === true,
+      text: (result.content as readonly { readonly text?: string }[])
+        .map((part) => part.text ?? "")
+        .join("\n"),
+      structured: result.structuredContent,
+    };
+    answers.push(secondRun);
     for (const call of READS) {
       answers.push(await ask(client, call));
-      if (call.name === "translation.translatePending") {
-        await editSource(dir);
-      }
     }
     const read = await ask(client, {
       name: "key.value",
-      arguments: { locale: "fr", key: "long" },
+      arguments: { locale: "fr", key: "farewell" },
     });
     answers.push(read);
     const expectedHash = hashOf(structuredOf(read).target);
@@ -214,18 +254,24 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
     answers.push(
       await ask(client, {
         name: "review.approve",
-        arguments: { locale: "fr", key: "long", expectedHash: "0".repeat(16), reviewer },
+        arguments: { locale: "fr", key: "farewell", expectedValue: "anything", reviewer },
       }),
     );
     answers.push(
       await ask(client, {
         name: "review.approve",
-        arguments: { locale: "fr", key: "long", expectedHash, reviewer },
+        arguments: { locale: "fr", key: "farewell", expectedHash: "0".repeat(16), reviewer },
+      }),
+    );
+    answers.push(
+      await ask(client, {
+        name: "review.approve",
+        arguments: { locale: "fr", key: "farewell", expectedHash, reviewer },
       }),
     );
     approvedReviewer = await ask(client, {
       name: "key.value",
-      arguments: { locale: "fr", key: "long" },
+      arguments: { locale: "fr", key: "farewell" },
     });
     answers.push(approvedReviewer);
     answers.push(
@@ -233,12 +279,12 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
         name: "review.reject",
         arguments: {
           locale: "fr",
-          key: "farewell",
+          key: "long",
           expectedHash: hashOf(
             structuredOf(
               await ask(client, {
                 name: "key.value",
-                arguments: { locale: "fr", key: "farewell" },
+                arguments: { locale: "fr", key: "long" },
               }),
             ).target,
           ),
@@ -265,6 +311,39 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
         CANARY,
       );
     }
+  });
+
+  it("reaches every value-bearing field a run summary carries, and marks it", () => {
+    const firstRun = answers.find((answer) => answer.call.name === "translation.translatePending");
+    const firstLocales = JSON.stringify(structuredOf(firstRun as Answer).locales);
+    const second = JSON.stringify(structuredOf(secondRun as Answer).locales);
+
+    expect(firstLocales).toContain('{"key":"greeting","reason":"placeholder"}');
+    expect(firstLocales).not.toContain('"details"');
+    expect(second).toMatch(/"suggestion":"\[redacted length=\d+ hash=/);
+    expect(second).toMatch(/"previousSource":"\[redacted length=\d+ hash=/);
+    expect(second).toMatch(/"code":"FORMALITY_DOWNGRADED","message":"\[redacted length=\d+ hash=/);
+  });
+
+  it("sends progress and log lines with no canary", () => {
+    expect(progress.length).toBeGreaterThan(0);
+    expect(logs.length).toBeGreaterThan(0);
+    expect(progress.join("\n")).not.toContain(CANARY);
+    expect(logs.join("\n")).not.toContain(CANARY);
+  });
+
+  it("answers glossary.write with counts, and redacts the text of a refused write", () => {
+    const writes = answers.filter((answer) => answer.call.name === "glossary.write");
+
+    expect(structuredOf(writes[0] as Answer)).toMatchObject({
+      terms: [],
+      doNotTranslate: [],
+      redactedTerms: [],
+      termCount: 2,
+      doNotTranslateCount: 1,
+    });
+    expect(writes[1]?.isError).toBe(true);
+    expect(writes[1]?.text).toContain("CONFIG_INVALID");
   });
 
   it("tells the agent about the markers and the hash in its instructions", () => {
@@ -348,13 +427,56 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
     const approvals = answers.filter((answer) => answer.call.name === "review.approve");
 
     expect(approvals[0]?.isError).toBe(true);
-    expect(approvals[0]?.text).toContain("REVIEW_VALUE_CHANGED");
-    expect(approvals[1]?.isError).toBe(false);
-    expect(structuredOf(approvals[1] as Answer).provenance).toMatchObject({
+    expect(approvals[0]?.text).toContain('Invalid input for field "expectedValue"');
+    expect(approvals[1]?.isError).toBe(true);
+    expect(approvals[1]?.text).toContain("REVIEW_VALUE_CHANGED");
+    expect(approvals[2]?.isError).toBe(false);
+    expect(structuredOf(approvals[2] as Answer).provenance).toMatchObject({
       reviewState: "approved",
     });
     expect(structuredOf(approvedReviewer as Answer).provenance).toMatchObject({
       reviewState: "approved",
     });
+  });
+});
+
+describe("createMcpServer with redactValues and no usable config", () => {
+  it("keeps a value quoted in the config error out of every answer and log line", async () => {
+    const dir = await makeTempDir();
+    const error = new SdkError(
+      "CONFIG_INVALID",
+      `The verbatra configuration is invalid: glossary.terms.1: repeats the term "${CANARY}-dup"`,
+    );
+    const state = { kind: "unconfigured", error } as const;
+    const logs: string[] = [];
+    const server = createMcpServer({
+      project: { current: async () => state, latest: () => state },
+      cwd: dir,
+      valueMarker: createValueMarker(),
+      fs: nodeFs,
+      onLog: (line) => logs.push(line),
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test-client", version: "1.0.0" });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const answers = [
+      await ask(client, { name: "project.snapshot", arguments: {} }),
+      await ask(client, { name: "project.doctor", arguments: {} }),
+      await ask(client, { name: "key.value", arguments: { locale: "de", key: "greeting" } }),
+    ];
+
+    expect(structuredOf(answers[0] as Answer)).toMatchObject({
+      configured: false,
+      valuesRedacted: true,
+      configProblem: { code: "CONFIG_INVALID" },
+    });
+    expect(answers[2]?.isError).toBe(true);
+    expect(logs.length).toBeGreaterThan(0);
+    for (const answer of answers) {
+      expect(`${answer.text} ${JSON.stringify(answer.structured ?? null)}`).not.toContain(CANARY);
+    }
+    expect(logs.join("\n")).not.toContain(CANARY);
   });
 });

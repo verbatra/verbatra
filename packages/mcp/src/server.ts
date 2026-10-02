@@ -9,12 +9,7 @@ import {
   type ServerNotification,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import {
-  createValueMarker,
-  declareProviderKeyEnvVar,
-  isMachineTranslationEnabled,
-  redact,
-} from "@verbatra/sdk";
+import { declareProviderKeyEnvVar, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import { createProgressReporter, type ProgressReporter } from "./progress-reporter.js";
@@ -27,6 +22,7 @@ import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
 import { translatePendingTool } from "./tools/translate-pending.js";
 import { describeUnconfiguredRefusal } from "./tools/unconfigured-refusal.js";
+import { redactQuoted } from "./tools/value-redaction.js";
 import type { McpCallScope, McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -51,7 +47,7 @@ function seamsOf(options: McpServerOptions): Omit<McpToolContext, "config"> {
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
     ...(options.createProvider !== undefined ? { createProvider: options.createProvider } : {}),
-    ...(options.redactValues === true ? { valueMarker: createValueMarker() } : {}),
+    ...(options.valueMarker !== undefined ? { valueMarker: options.valueMarker } : {}),
   };
 }
 
@@ -132,6 +128,9 @@ export function createMcpServer(options: McpServerOptions): Server {
   }
   const manifest = readPackageManifest();
   const seams = seamsOf(options);
+  const marker = options.valueMarker;
+  const presentFailure = (message: string): string =>
+    marker === undefined ? message : redactQuoted(message, marker);
   const allowSpend = options.allowSpend ?? false;
   const inFlightGuard = createMcpInFlightGuard(GUARDED_TOOL_NAMES);
   let advertised: string | undefined;
@@ -140,7 +139,7 @@ export function createMcpServer(options: McpServerOptions): Server {
     { name: manifest.name, version: manifest.version },
     {
       capabilities: { tools: { listChanged: true } },
-      instructions: serverInstructions({ valuesRedacted: options.redactValues === true }),
+      instructions: serverInstructions({ valuesRedacted: options.valueMarker !== undefined }),
     },
   );
 
@@ -189,8 +188,9 @@ export function createMcpServer(options: McpServerOptions): Server {
       if (outcome.kind === "ok") {
         return toOkResult(outcome);
       }
-      options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${outcome.message}`));
-      return toFailureResult(outcome.message);
+      const message = outcome.kind === "error" ? presentFailure(outcome.message) : outcome.message;
+      options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${message}`));
+      return toFailureResult(message);
     } finally {
       progress?.close();
       inFlightGuard.leave(tool.name, dedupeKey);

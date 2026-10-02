@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import type { McpToolContext, McpUnconfiguredContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
+import { redactQuoted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({});
 
@@ -81,7 +82,16 @@ async function unconfiguredProjectDoctor(
 
 export const projectDoctorTool = defineTool({
   name: "project.doctor",
-  values: "none",
+  values: {
+    redact: (result, marker) => ({
+      ...result,
+      checks: result.checks.map((check) => ({
+        ...check,
+        detail: redactQuoted(check.detail, marker),
+        ...(check.fix !== undefined ? { fix: redactQuoted(check.fix, marker) } : {}),
+      })),
+    }),
+  },
   description:
     "Checks the project setup and says how to fix what fails: whether the config loads and " +
     "validates, the format resolves to an adapter, the provider id is supported, the API key " +

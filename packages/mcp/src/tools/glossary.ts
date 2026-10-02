@@ -52,6 +52,8 @@ const glossaryResultSchema = z.object({
   ),
   doNotTranslate: z.array(doNotTranslateSchema),
   redactedTerms: z.array(z.string()),
+  termCount: z.number().optional(),
+  doNotTranslateCount: z.number().optional(),
   effective: z
     .object({
       locale: z.string(),
@@ -69,7 +71,7 @@ type DoNotTranslate = z.infer<typeof doNotTranslateSchema>;
 
 export function redactLocaleTerm(term: LocaleTerm, marker: ValueMarker): LocaleTerm {
   return {
-    ...markFields(term, ["source", "target", "note"], marker),
+    ...markFields(term, ["source", "target", "note", "partOfSpeech"], marker),
     forbidden: markAll(term.forbidden, marker),
   };
 }
@@ -78,12 +80,24 @@ export function redactDoNotTranslate(entry: DoNotTranslate, marker: ValueMarker)
   return markFields(entry, ["term"], marker);
 }
 
+function acknowledgeGlossaryWrite(result: GlossaryResult): GlossaryResult {
+  return {
+    indicator: result.indicator,
+    version: result.version,
+    terms: [],
+    doNotTranslate: [],
+    redactedTerms: [],
+    termCount: result.terms.length,
+    doNotTranslateCount: result.doNotTranslate.length,
+  };
+}
+
 function redactGlossaryResult(result: GlossaryResult, marker: ValueMarker): GlossaryResult {
   const { effective } = result;
   return {
     ...result,
     terms: result.terms.map((term) => ({
-      ...markFields(term, ["source", "target", "note"], marker),
+      ...markFields(term, ["source", "target", "note", "partOfSpeech"], marker),
       targets: markRecord(term.targets, (value) => marker.mark(value)),
       forbidden: markRecord(term.forbidden, (values) => markAll(values, marker)),
     })),
@@ -229,10 +243,11 @@ export const glossaryGetTool = defineTool({
 
 export const glossaryWriteTool = defineTool({
   name: "glossary.write",
-  values: { redact: redactGlossaryResult },
+  values: { redact: acknowledgeGlossaryWrite },
   description:
     "Changes one glossary term and returns the whole glossary afterwards, in the shape " +
-    "glossary.get returns. Pass term plus any of: translation (a string sets it, null clears " +
+    "glossary.get returns; on a server that redacts values it returns only termCount and " +
+    "doNotTranslateCount with empty lists. Pass term plus any of: translation (a string sets it, null clears " +
     "it; without locale it is the translation for all locales, and clearing it leaves the " +
     "term's per-locale data in place, the term being removed once nothing else is left), locale " +
     "(a configured target locale that translation and forbidden apply to), forbidden (the " +

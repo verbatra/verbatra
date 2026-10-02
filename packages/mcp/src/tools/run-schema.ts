@@ -107,6 +107,8 @@ function redactLocaleSummary(locale: LocaleSummary, marker: ValueMarker): Locale
     ...locale,
     fuzzyHits: locale.fuzzyHits.map((hit) => redactFuzzyHit(hit, marker)),
     protected: locale.protected.map((entry) => markFields(entry, ["suggestion"], marker)),
+    notices: locale.notices.map((notice) => markFields(notice, ["message"], marker)),
+    ...(locale.error !== undefined ? { error: markFields(locale.error, ["message"], marker) } : {}),
     ...(locale.integrityRefusals !== undefined
       ? {
           integrityRefusals: locale.integrityRefusals.map(

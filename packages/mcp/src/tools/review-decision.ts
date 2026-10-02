@@ -62,6 +62,7 @@ function decisionDeps(context: McpToolContext) {
 
 const REDACT_REVIEWER: ValueRedaction<ReviewDecisionParams, ReviewDecisionResult> = {
   redact: (result) => ({ ...result, provenance: withoutReviewer(result.provenance) }),
+  refusedParams: ["expectedValue"],
 };
 
 const PERSON_ONLY =
@@ -73,7 +74,8 @@ const SHARED_PARAMS =
   "The required locale parameter must be a configured target locale and the required key " +
   "parameter must exist in the source. Pass exactly one of expectedValue, the translation the " +
   "user reviewed as read with key.value, and expectedHash, the 16-digit hash from that value's " +
-  "marker when the server redacts values; the call is refused with REVIEW_VALUE_CHANGED, " +
+  "marker when the server redacts values, which then refuses expectedValue; the call is " +
+  "refused with REVIEW_VALUE_CHANGED, " +
   "writing nothing, when the current value is a different one. The required reviewer parameter " +
   "names the person who made the decision, 1 to 64 characters with no control characters; it is " +
   "stored in the committed verbatra.provenance.json, so it is public. ";

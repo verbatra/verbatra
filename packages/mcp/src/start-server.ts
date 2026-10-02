@@ -1,10 +1,17 @@
 import type { Readable } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { type CreateProvider, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
+import {
+  type CreateProvider,
+  createValueMarker,
+  isMachineTranslationEnabled,
+  redact,
+  type ValueMarker,
+} from "@verbatra/sdk";
 import { type McpProjectState, openProjectSession } from "./project-session.js";
 import { connectMcpServer } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
 import type { McpSpendState } from "./session-banner.js";
+import { redactQuoted } from "./tools/value-redaction.js";
 import type { McpToolContext } from "./types.js";
 
 /** Everything {@link startMcpServer} accepts. Every field is optional. */
@@ -128,11 +135,13 @@ export async function startMcpServer(
   options: StartMcpServerOptions = {},
 ): Promise<McpServerHandle> {
   const cwd = resolveServerCwd(options.cwd);
+  const valueMarker = options.redactValues === true ? createValueMarker() : undefined;
+  const sessionLog = presentedLog(options.onLog, valueMarker);
   const project = await openProjectSession({
     cwd,
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
-    ...(options.onLog !== undefined ? { onLog: options.onLog } : {}),
+    ...(sessionLog !== undefined ? { onLog: sessionLog } : {}),
   });
   const initial = project.latest();
 
@@ -143,7 +152,7 @@ export async function startMcpServer(
       project,
       cwd,
       allowSpend: options.allowSpend ?? false,
-      redactValues: options.redactValues ?? false,
+      ...(valueMarker !== undefined ? { valueMarker } : {}),
       ...(options.fs !== undefined ? { fs: options.fs } : {}),
       ...(options.adapterRegistry !== undefined
         ? { adapterRegistry: options.adapterRegistry }
@@ -162,6 +171,16 @@ export async function startMcpServer(
     valuesRedacted: options.redactValues ?? false,
     configured: initial.kind === "configured",
   };
+}
+
+function presentedLog(
+  onLog: ((line: string) => void) | undefined,
+  marker: ValueMarker | undefined,
+): ((line: string) => void) | undefined {
+  if (onLog === undefined || marker === undefined) {
+    return onLog;
+  }
+  return (line) => onLog(redactQuoted(line, marker));
 }
 
 function spendState(allowSpend: boolean, state: McpProjectState): McpSpendState {

@@ -63,8 +63,9 @@ const VALUES_REDACTED_INSTRUCTIONS =
   "only. Key names, counts, statuses, origins, integrity verdicts, commit subjects, and file paths are not " +
   "redacted. Never write a marker back through translation.editEntry or glossary.write: it is not the text. " +
   "To record a review decision the user asked for, pass the marker's hash as expectedHash to review.approve or " +
-  "review.reject instead of expectedValue. locale.values does not take query and key.context does not take " +
-  "draft while values are redacted. Do not try to work out a redacted value; report keys and statuses instead.";
+  "review.reject; expectedValue is refused. locale.values does not take query, key.context does not take " +
+  "draft, and glossary.write answers with counts only. Do not try to work out a redacted value; report keys " +
+  "and statuses instead.";
 
 export function serverInstructions(options: { readonly valuesRedacted: boolean }): string {
   return options.valuesRedacted

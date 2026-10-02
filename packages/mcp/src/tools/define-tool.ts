@@ -81,12 +81,21 @@ function allowUnknownProperties(context: {
   }
 }
 
-function outputMismatch(schema: z.ZodType, result: unknown): z.core.$ZodIssue | undefined {
+type OutputCheck<Result> =
+  | { readonly kind: "declared"; readonly declared: Result }
+  | { readonly kind: "undeclared-keys"; readonly issue: z.core.$ZodIssue }
+  | { readonly kind: "mismatch"; readonly issue: z.core.$ZodIssue };
+
+function checkOutput<Result>(schema: z.ZodType<Result>, result: Result): OutputCheck<Result> {
   const parsed = schema.safeParse(result);
   if (parsed.success) {
-    return undefined;
+    return { kind: "declared", declared: parsed.data };
   }
-  return parsed.error.issues.find((issue) => issue.code !== "unrecognized_keys");
+  const issues = parsed.error.issues;
+  const mismatch = issues.find((issue) => issue.code !== "unrecognized_keys");
+  return mismatch === undefined
+    ? { kind: "undeclared-keys", issue: issues[0] as z.core.$ZodIssue }
+    : { kind: "mismatch", issue: mismatch };
 }
 
 function formatOutputMismatch(
@@ -143,12 +152,38 @@ function refusedParamMessage(field: string): string {
   return `Invalid input for field "${field}": this server redacts translation values, so "${field}" is not accepted. Leave it out.`;
 }
 
-function redactedResult<Params, Result>(
-  values: "none" | ValueRedaction<Params, Result>,
+function finishResult<Params, Result extends Readonly<Record<string, unknown>>>(
+  config: McpToolConfig<Params, Result>,
   result: Result,
   marker: ValueMarker | undefined,
-): Result {
-  return values === "none" || marker === undefined ? result : values.redact(result, marker);
+): McpToolOutcome {
+  const check = checkOutput(config.outputSchema, result);
+  if (check.kind === "mismatch" || (check.kind === "undeclared-keys" && marker !== undefined)) {
+    return { kind: "error", message: formatOutputMismatch(config, check.issue) };
+  }
+  if (marker === undefined || check.kind !== "declared") {
+    return { kind: "ok", result };
+  }
+  const declared = check.declared;
+  return {
+    kind: "ok",
+    result: config.values === "none" ? declared : config.values.redact(declared, marker),
+  };
+}
+
+const WITHHELD_PROVIDER_MESSAGE =
+  "the provider's message is withheld because this server redacts translation values";
+
+function describeFailure(
+  error: unknown,
+  context: { readonly cwd: string; readonly valueMarker?: ValueMarker },
+): string {
+  if (context.valueMarker !== undefined && error instanceof ProviderError) {
+    const hint = errorHint(error);
+    const described = `${error.code}: ${WITHHELD_PROVIDER_MESSAGE}.`;
+    return hint === undefined ? described : `${described}\nNext step: ${hint}`;
+  }
+  return describeToolError(error, context.cwd);
 }
 
 function createExecutor<
@@ -179,13 +214,9 @@ function createExecutor<
       if (error instanceof McpInvalidParamsError) {
         return { kind: "invalid", message: error.message };
       }
-      return { kind: "error", message: describeToolError(error, context.cwd) };
+      return { kind: "error", message: describeFailure(error, context) };
     }
-    const mismatch = outputMismatch(config.outputSchema, result);
-    if (mismatch !== undefined) {
-      return { kind: "error", message: formatOutputMismatch(config, mismatch) };
-    }
-    return { kind: "ok", result: redactedResult(config.values, result, context.valueMarker) };
+    return finishResult(config, result, context.valueMarker);
   };
 }
 

@@ -57,6 +57,9 @@ function redactKeyContext(result: KeyContextResult, marker: ValueMarker): KeyCon
         redactDoNotTranslate(entry, marker),
       ),
     },
+    ...(result.glossaryNotice !== undefined
+      ? { glossaryNotice: markFields(result.glossaryNotice, ["message"], marker) }
+      : {}),
   };
 }
 
