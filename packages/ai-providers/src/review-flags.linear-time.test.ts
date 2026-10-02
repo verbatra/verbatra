@@ -32,6 +32,15 @@ describe("computeReviewFlags: fixed terms in an untranslated value", () => {
     ]);
   });
 
+  it("flags letters left over beyond overlapping fixed terms that leave a gap", () => {
+    expect(computeReviewFlags(untranslated("名名名名x", ["名名名"]))?.reasons).toEqual([
+      "EQUALS_SOURCE",
+    ]);
+    expect(computeReviewFlags(untranslated("-a-a-a-a-xy", ["-a-a-"]))?.reasons).toEqual([
+      "EQUALS_SOURCE",
+    ]);
+  });
+
   it.each([
     ["名", "名"],
     ["-a", "a"],
