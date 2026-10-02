@@ -227,9 +227,9 @@ describe("restoreTranslations", () => {
 });
 
 describe("PLACEHOLDER_UNSUPPORTED_MESSAGE", () => {
-  it("is one static message that names no provider, key or content", () => {
+  it("is one static message with a next step that names no provider, key or content", () => {
     expect(PLACEHOLDER_UNSUPPORTED_MESSAGE).toBe(
-      "Some entries contain ICU plural or select syntax, markup, or placeholders the provider did not return intact; they were left untranslated.",
+      "Some entries were left untranslated: their placeholders could not be protected (ICU syntax or reserved characters next to them) or did not come back intact. Translate them by hand or with an LLM provider.",
     );
   });
 });

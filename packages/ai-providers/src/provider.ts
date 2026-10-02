@@ -132,14 +132,16 @@ export interface Usage {
  *   untranslated was not applied (DeepL only applies a native glossary id, never verbatra's glossary,
  *   and Google Cloud Translation Basic supports no glossary). A glossary that only lists forbidden
  *   renderings does not raise it, since those are checked after translation rather than applied.
- * - `PLACEHOLDER_UNSUPPORTED`: at least one entry was left untranslated because the provider could
- *   not be trusted to preserve its tokens; such entries are withheld (absent from the result maps)
- *   rather than written mangled. DeepL, Google Cloud Translation and LibreTranslate send a value's
- *   placeholders as numbered markers (DeepL inside an ignored `<x>` tag, Google inside a
- *   `translate="no"` span) and restore them, so they raise this for a value with ICU plural or
- *   select syntax, which they never send, for a value with markup on DeepL and Google, for a
- *   Google value whose line breaks, tabs or double spaces HTML would collapse, and for a value
- *   whose markers did not all come back exactly once, which they drop instead of writing.
+ * - `PLACEHOLDER_UNSUPPORTED`: at least one entry was left untranslated (absent from the result
+ *   maps) rather than written with damaged placeholders. DeepL, Google Cloud Translation and
+ *   LibreTranslate send a value's placeholders as numbered markers (DeepL inside an ignored `<x>`
+ *   tag, Google inside a `translate="no"` span) and restore them. They withhold a value with a
+ *   placeholder that is not literal in it, and a value whose text outside the placeholders still
+ *   holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a
+ *   placeholder, or a comparison sign (LibreTranslate keeps markup, so only braces count there).
+ *   Google also withholds a value with a line break, tab or double space. A result is dropped
+ *   instead of written when a marker comes back lost, duplicated, rewritten or bare, or carries an
+ *   unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked.
  */
 export type ProviderNoticeCode =
   | "FORMALITY_DOWNGRADED"

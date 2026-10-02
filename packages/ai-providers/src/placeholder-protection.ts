@@ -2,8 +2,9 @@ import type { TranslationEntry } from "@verbatra/core";
 import type { IntegrityInput } from "./integrity.js";
 
 export const PLACEHOLDER_UNSUPPORTED_MESSAGE =
-  "Some entries contain ICU plural or select syntax, markup, or placeholders the provider did " +
-  "not return intact; they were left untranslated.";
+  "Some entries were left untranslated: their placeholders could not be protected (ICU syntax or " +
+  "reserved characters next to them) or did not come back intact. Translate them by hand or " +
+  "with an LLM provider.";
 
 export interface PlaceholderPartition {
   readonly protectable: readonly TranslationEntry[];
