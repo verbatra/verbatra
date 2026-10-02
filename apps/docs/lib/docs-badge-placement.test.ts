@@ -1,10 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { type PageType, pageType } from "./page-type";
+import { FRONTMATTER, type PageType, pageType } from "./page-type";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
-const FRONTMATTER = /^---\n[\s\S]*?\n---\n/;
 const FENCE = /^\s*(`{3,}|~{3,})/;
 const HEADING = /^(#{2,4}) /;
 const BADGE = /<AvailableFrom\b([^>]*)\/>/g;

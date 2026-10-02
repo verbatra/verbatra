@@ -27,7 +27,7 @@ export type PageBudget = {
   readonly ceiling: number;
 };
 
-const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
+export const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
 
 export function proseWords(source: string): number {
   const body = source
