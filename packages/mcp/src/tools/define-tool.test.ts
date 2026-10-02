@@ -583,6 +583,32 @@ describe("defineTool: redacted values", () => {
     expect(outcome).toEqual({ kind: "ok", result: { greeting: marker.mark("Hallo") } });
   });
 
+  it("drops undeclared fields inside nested objects and array elements", async () => {
+    const tool = defineTool({
+      name: "test.nested",
+      values: { redact: (result) => result },
+      description: "test",
+      paramsSchema: z.strictObject({}),
+      outputSchema: z.object({
+        meta: z.object({ count: z.number() }),
+        items: z.array(z.object({ key: z.string() })),
+      }),
+      annotations,
+      handler: async () =>
+        ({
+          meta: { count: 1, leaked: "Hallo" },
+          items: [{ key: "greeting", leaked: "Hallo" }],
+        }) as unknown as { meta: { count: number }; items: { key: string }[] },
+    });
+
+    const outcome = await tool.execute({}, redacted);
+
+    expect(outcome).toEqual({
+      kind: "ok",
+      result: { meta: { count: 1 }, items: [{ key: "greeting" }] },
+    });
+  });
+
   it("keeps an undeclared field when values are not redacted", async () => {
     const tool = valueTool(async () => ({ greeting: "Hallo", extra: 1 }) as { greeting: string });
 
