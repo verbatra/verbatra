@@ -1198,7 +1198,7 @@ Ein Glossar mit vorgeschriebenen Übersetzungen oder beizubehaltenden Begriffen 
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Mindestens ein Wert mit Platzhaltern oder ICU-Syntax blieb unübersetzt, weil der Provider diese Tokens nicht erhalten kann.
+Mindestens ein Wert blieb bei DeepL, Google Cloud Translation oder LibreTranslate unübersetzt: Er enthält ICU-Plural- oder -Select-Syntax oder (DeepL, Google) Markup, oder seine Platzhalter-Markierungen kamen nicht alle genau einmal zurück.
 
 - **Ausgelöst von**: `translate`, `watch`
 - **Exit-Code**: `1`: die Keys stehen unter `providerFailures`, und das Locale endet `partial` oder `failed`

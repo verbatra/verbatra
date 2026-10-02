@@ -13,8 +13,8 @@ Cualquier proveedor funciona con cualquier formato y comando, y cambiar más tar
 | --- | --- |
 | Gratis, para un proyecto pequeño con cadenas no confidenciales | **Gemini**: un nivel de API gratuito, con claves de [Google AI Studio](https://aistudio.google.com/apikey). Fuera del EEE, Suiza y el Reino Unido, Google puede usar las peticiones del nivel gratuito y hacer que las revisen personas ([condiciones](/docs/data-handling#retención-y-tratamiento-de-datos-del-proveedor)). |
 | La mejor calidad para una app de producción | **Anthropic** u **OpenAI**, ambos de pago. |
-| Alto volumen, un glosario nativo, sin LLM | **DeepL**, nivel gratuito o de pago. Omite las cadenas con placeholders. |
-| La cobertura más amplia con una clave de API en Google Cloud | **Google Cloud Translation** (Basic, v2). Omite las cadenas con placeholders. |
+| Alto volumen, un glosario nativo, sin LLM | **DeepL**, nivel gratuito o de pago. |
+| La cobertura más amplia con una clave de API en Google Cloud | **Google Cloud Translation** (Basic, v2). |
 | Sin conexión, sin coste, sin que nada salga de tu red | **openai-compatible** con LM Studio, Ollama o vLLM. |
 | Sin modelo de lenguaje, pero autoalojado | **LibreTranslate** en tu propio servidor. |
 | Nada de traducción automática | **none**: solo memoria y personas. |
@@ -121,7 +121,7 @@ Lee `DEEPL_API_KEY`; `options` puede ser `{}`. DeepL no tiene modelo ni límite 
 
 - **Glosario.** Las traducciones y los términos que no se traducen del glosario de tu configuración no se aplican (`GLOSSARY_IGNORED`); las traducciones prohibidas solo se comprueban después.
 - **El tono** se asigna a la formalidad (`formal` más, `informal` menos, `neutral` se omite). Una clave del nivel gratuito, o un idioma sin formalidad como el sueco, vuelve al registro predeterminado con `FORMALITY_DOWNGRADED`; desde 0.12.0 verbatra la pide con `prefer_more` y `prefer_less` para que la petición no falle.
-- **Placeholders.** Una cadena con placeholders o ICU se retiene con `PLACEHOLDER_UNSUPPORTED`; usa un proveedor LLM para esas.
+- **Los placeholders** viajan como marcadores numerados en una etiqueta ignorada (`Hello {{name}}` como `Hello <x>{0}</x>`) y se restauran. Un valor con plurales ICU o marcado, o cuyos marcadores no vuelven todos exactamente una vez, se retiene con `PLACEHOLDER_UNSUPPORTED`. <AvailableFrom version="0.12.0" />
 
 <AvailableFrom version="0.12.0" />
 
@@ -146,7 +146,7 @@ provider: {
 Lee `GOOGLE_TRANSLATE_API_KEY`, una clave de API simple de un proyecto de Google Cloud con la Cloud Translation API activada. Usa el nivel Basic (v2); el Advanced (v3) necesita una cuenta de servicio, que no encaja con una clave en una variable de entorno.
 
 - **Sin formalidad, sin glosario.** Un tono `formal` o `informal` notifica `FORMALITY_DOWNGRADED`; una traducción de glosario o un término que no se traduce notifica `GLOSSARY_IGNORED`.
-- **Placeholders.** Una cadena con placeholders o ICU se retiene con `PLACEHOLDER_UNSUPPORTED`.
+- **Los placeholders** se enmascaran como en DeepL, dentro de `<span translate="no">`. Los valores con saltos de línea, tabuladores o dobles espacios también se retienen. <AvailableFrom version="0.12.0" />
 - **Códigos.** Cada código enviado se comprueba como BCP 47 bien formado antes de cualquier llamada (`en_US` falla con `INVALID_REQUEST`). Se permiten códigos regionales; un par que Google rechaza falla con `INVALID_REQUEST` desde la API.
 
 <AvailableFrom version="0.12.0" />
@@ -240,7 +240,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 
 - **Clave.** `LIBRETRANSLATE_API_KEY` se envía como `api_key` solo cuando está definida. Un servidor arrancado con `--api-keys` hace fallar la ejecución con `MISSING_API_KEY` cuando no está definida, y con `AUTH_FAILED` cuando la rechaza.
 - **Sin formalidad, sin glosario**: `FORMALITY_DOWNGRADED` y `GLOSSARY_IGNORED`, como con Google; la salida se sigue comprobando contra el glosario.
-- **Los placeholders** se enmascaran como marcadores numerados (`Hello {{name}}` viaja como `Hello {0}`) y se restauran. Un valor solo vuelve cuando cada marcador regresa una vez; si no, se retiene con `PLACEHOLDER_UNSUPPORTED`; un valor con sintaxis ICU nunca se envía.
+- **Los placeholders** se enmascaran como en DeepL, como marcadores `{0}` sin etiqueta; un valor con sintaxis ICU nunca se envía.
 - **Marcado.** Un valor con etiquetas de estilo HTML se envía en formato `html`, así que el texto dentro de las etiquetas se traduce y las etiquetas se quedan; una frase que cruza una etiqueta puede resentirse, y las etiquetas cambiadas se rechazan.
 - **Comprobación de idiomas.** Cada destino es `unverified` con un aviso `LOCALE_UNVERIFIED_BY_PROVIDER` en cada ejecución; `verbatra doctor --locales --live` los comprueba contra el `/languages` del servidor.
 

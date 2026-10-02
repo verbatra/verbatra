@@ -1199,7 +1199,7 @@ Un glossaire avec des traductions imposées ou des termes à garder n'a pas ét�
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Au moins une valeur avec des placeholders ou une syntaxe ICU est restée non traduite, parce que le fournisseur ne peut pas préserver ces tokens.
+Au moins une valeur est restée non traduite par DeepL, Google Cloud Translation ou LibreTranslate : elle contient une syntaxe ICU de plural ou de select ou (DeepL, Google) du balisage, ou ses marqueurs de placeholder ne sont pas tous revenus exactement une fois.
 
 - **Levé par** : `translate`, `watch`
 - **Code de sortie** : `1` : les clés figurent sous `providerFailures`, et la locale se termine en `partial` ou `failed`

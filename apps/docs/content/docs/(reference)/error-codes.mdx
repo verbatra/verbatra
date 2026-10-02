@@ -1183,7 +1183,7 @@ A glossary with required translations or terms to keep was not applied: DeepL ap
 
 ### PLACEHOLDER_UNSUPPORTED
 
-At least one value with placeholders or ICU syntax was left untranslated, because the provider cannot preserve those tokens.
+At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate: it holds ICU plural or select syntax or (DeepL, Google) markup, or its placeholder markers did not all come back exactly once.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: `1`: the keys are listed under `providerFailures`, and the locale ends `partial` or `failed`

@@ -13,8 +13,8 @@ Jeder Provider funktioniert mit jedem Format und jedem Befehl, und ein späterer
 | --- | --- |
 | Kostenlos, für ein kleines Projekt mit nicht vertraulichen Strings | **Gemini**: ein kostenloses API-Kontingent, Keys aus dem [Google AI Studio](https://aistudio.google.com/apikey). Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent nutzen und von Menschen prüfen lassen ([Bedingungen](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter)). |
 | Die beste Qualität für eine Produktions-App | **Anthropic** oder **OpenAI**, beide bezahlt. |
-| Hohes Volumen, ein natives Glossar, kein LLM | **DeepL**, kostenloses oder bezahltes Kontingent. Strings mit Platzhaltern überspringt es. |
-| Die breiteste Abdeckung mit einem API-Schlüssel auf Google Cloud | **Google Cloud Translation** (Basic, v2). Strings mit Platzhaltern überspringt es. |
+| Hohes Volumen, ein natives Glossar, kein LLM | **DeepL**, kostenloses oder bezahltes Kontingent. |
+| Die breiteste Abdeckung mit einem API-Schlüssel auf Google Cloud | **Google Cloud Translation** (Basic, v2). |
 | Offline, kostenfrei, nichts verlässt dein Netzwerk | **openai-compatible** mit LM Studio, Ollama oder vLLM. |
 | Kein Sprachmodell, aber selbst gehostet | **LibreTranslate** auf deinem eigenen Server. |
 | Gar keine maschinelle Übersetzung | **none**: nur Translation Memory und Menschen. |
@@ -121,7 +121,7 @@ Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein 
 
 - **Glossar.** Die Übersetzungen und `doNotTranslate`-Begriffe deines Konfigurations-Glossars werden nicht angewendet (`GLOSSARY_IGNORED`); verbotene Wiedergaben werden nur danach geprüft.
 - **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent oder eine Sprache ohne Formalität wie Schwedisch fällt mit `FORMALITY_DOWNGRADED` auf das Standardregister zurück; ab 0.12.0 fragt verbatra mit `prefer_more` und `prefer_less` an, damit die Anfrage nicht scheitert.
-- **Platzhalter.** Ein String mit Platzhaltern oder ICU wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten; nimm dafür einen LLM-Provider.
+- **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. Ein Wert mit ICU-Plural oder Markup, oder dessen Markierungen nicht alle genau einmal zurückkommen, wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten. <AvailableFrom version="0.12.0" />
 
 <AvailableFrom version="0.12.0" />
 
@@ -146,7 +146,7 @@ provider: {
 Liest `GOOGLE_TRANSLATE_API_KEY`, einen einfachen API-Schlüssel für ein Google-Cloud-Projekt, in dem die Cloud Translation API aktiviert ist. Verwendet wird die Basic-Stufe (v2); Advanced (v3) braucht einen Service-Account, der nicht zu einem Key aus einer Umgebungsvariable passt.
 
 - **Keine Formalität, kein Glossar.** Ein Tonfall `formal` oder `informal` meldet `FORMALITY_DOWNGRADED`; eine Glossarübersetzung oder ein `doNotTranslate`-Begriff meldet `GLOSSARY_IGNORED`.
-- **Platzhalter.** Ein String mit Platzhaltern oder ICU wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten.
+- **Platzhalter** werden wie bei DeepL maskiert, in `<span translate="no">`. Werte mit Zeilenumbrüchen, Tabs oder doppelten Leerzeichen werden ebenfalls zurückgehalten. <AvailableFrom version="0.12.0" />
 - **Codes.** Jeder gesendete Code wird vor jedem Aufruf als wohlgeformtes BCP 47 geprüft (`en_US` scheitert mit `INVALID_REQUEST`). Regionale Codes sind erlaubt; ein Paar, das Google ablehnt, scheitert mit `INVALID_REQUEST` von der API.
 
 <AvailableFrom version="0.12.0" />
@@ -240,7 +240,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 
 - **Key.** `LIBRETRANSLATE_API_KEY` wird nur als `api_key` gesendet, wenn sie gesetzt ist. Ein mit `--api-keys` gestarteter Server lässt den Lauf mit `MISSING_API_KEY` scheitern, wenn sie nicht gesetzt ist, und mit `AUTH_FAILED`, wenn er sie ablehnt.
 - **Keine Formalität, kein Glossar**: `FORMALITY_DOWNGRADED` und `GLOSSARY_IGNORED`, wie bei Google; die Ausgabe wird trotzdem gegen das Glossar geprüft.
-- **Platzhalter** werden als nummerierte Markierungen maskiert (`Hello {{name}}` geht als `Hello {0}` hinaus) und wieder eingesetzt. Ein Wert kommt nur zurück, wenn jede Markierung genau einmal zurückkehrt, sonst wird er mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten; ein Wert mit ICU-Syntax wird nie gesendet.
+- **Platzhalter** werden wie bei DeepL maskiert, als bloße `{0}`-Markierungen; ein Wert mit ICU-Syntax wird nie gesendet.
 - **Markup.** Ein Wert mit HTML-artigen Tags wird im `html`-Format gesendet, sodass der Text innerhalb der Tags übersetzt wird und die Tags bleiben; eine Formulierung über ein Tag hinweg kann leiden, und veränderte Tags werden abgelehnt.
 - **Sprachprüfung.** Jedes Ziel ist bei jedem Lauf `unverified` mit einer `LOCALE_UNVERIFIED_BY_PROVIDER`-Warnung; `verbatra doctor --locales --live` prüft sie gegen das `/languages` des Servers.
 

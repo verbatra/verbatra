@@ -51,11 +51,9 @@ Was das in der Praxis heißt:
   also ein menschliches Review. [Review-Flags](/docs/translation-safety#review-flags) zeigen auf die
   verdächtigsten Ergebnisse.
 - **DeepL und Google Cloud Translation** haben eine geschlossene Liste, die vor einem Lauf geprüft
-  wird. Beide halten außerdem Strings mit Platzhaltern oder ICU-Syntax zurück
-  (`PLACEHOLDER_UNSUPPORTED`), ein Katalog voller Platzhalter braucht also einen LLM-Provider.
-- **LibreTranslate** bedient die Modelle, die dein Server installiert hat. Platzhalter reisen als
-  nummerierte Markierungen und werden danach wiederhergestellt; ein Wert mit ICU-Syntax wird
-  zurückgehalten.
+  wird. Wie LibreTranslate [maskieren sie Platzhalter](/docs/providers#deepl) und halten Werte
+  mit ICU-Plural oder -Select zurück.
+- **LibreTranslate** bedient die Modelle, die dein Server installiert hat.
 - Einen `tone` oder ein Glossar, das ein Provider nicht umsetzen kann, meldet verbatra als Hinweis,
   nie stillschweigend. Siehe
   [Tonfall und Glossar über die Provider hinweg](/docs/providers#tonfall-und-glossar-über-die-provider-hinweg).
