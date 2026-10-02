@@ -37,7 +37,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 | `verbatra_status_diff` | missing, changed and orphaned keys per locale |
 | `verbatra_glossary_get` | the resolved glossary, secret-redacted |
 | `verbatra_lock_state` | the lock file's state per locale |
-| `verbatra_history_list` | recent commits to the locale files |
+| `verbatra_history_list` | recent commits to the locale files, with the author's name ([never the email](/docs/data-handling#studio-and-mcp)) |
 | `verbatra_key_integrity` | placeholder, markup and ICU checks for one key, in the locales where its source changed |
 | `verbatra_review_queue` | every machine-written value nobody has approved, from the committed files <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | one key's source and target, with who wrote the target |
@@ -63,7 +63,7 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 | `verbatra_translation_retranslateEntry` | retranslate one key in one locale |
 | `verbatra_translation_translatePending` | translate everything pending, optionally for some `locales` under a `maxTokens` ceiling <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` returns only the locales where the key's source changed, so an empty list means nothing needed checking. Its rows are flatter than the MCP server's [`key.integrity`](/docs/cli/mcp#inputs-and-results).
+`verbatra_key_integrity` returns only the locales where the key's source changed, so an empty list means nothing needed checking. Its rows are flatter than the MCP server's [`key.integrity`](/docs/cli/mcp#inputs-and-results). The MCP server also has the history, values, integrity and key context tools; its `locale.values` returns pages, see [More inputs and results](/docs/cli/mcp#more-inputs-and-results).
 
 ## Know the rules the tools follow
 

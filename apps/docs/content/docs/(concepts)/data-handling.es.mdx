@@ -130,6 +130,10 @@ al arrancar, y su Content-Security-Policy bloquea las cargas desde internet.
 **El servidor MCP** habla con su cliente por stdio y no abre ningún puerto. Sus herramientas de
 lectura devuelven tus textos, tu glosario y tu estado al cliente conectado.
 
+**Historial de los archivos de locale.** `history.list`, en Studio y en el servidor MCP, devuelve de
+cada commit el hash, la fecha, el nombre del autor, el asunto y las rutas cambiadas. Nunca lee el
+correo del autor.
+
 Sopésalo: un cliente MCP, o un agente de navegador que usa `--expose-agent-tools` de Studio, suele
 ser un asistente de IA, y lo que lee va a su modelo bajo las condiciones de ese proveedor, algo que
 verbatra no puede restringir.

@@ -130,6 +130,9 @@ es beim Start ausgibt, und seine Content-Security-Policy blockiert Abrufe aus de
 **Der MCP-Server** spricht über stdio mit seinem Client und öffnet keinen Port. Seine Lese-Tools
 geben deine Strings, dein Glossar und deinen Status an den verbundenen Client.
 
+**Historie der Locale-Dateien.** `history.list` liefert in Studio und im MCP-Server für jeden Commit
+Hash, Datum, Autorname, Betreff und geänderte Pfade. Die E-Mail-Adresse des Autors liest es nie.
+
 Wäg das ab: Ein MCP-Client oder ein Browser-Agent, der Studios `--expose-agent-tools` nutzt, ist
 meist ein KI-Assistent, und was er liest, geht an sein Modell, unter den Bedingungen dieses
 Anbieters, die verbatra nicht einschränken kann.

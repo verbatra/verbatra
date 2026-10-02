@@ -32,6 +32,48 @@ Quand `target` est présent, le résultat porte aussi `provenance`, la `KeyProve
 
 Le résultat porte aussi `description` quand le fichier de la locale source en donne une pour la clé : une `@key.description` ARB, une note XLIFF, un commentaire gettext, un commentaire `.strings` d'Apple ou un commentaire `.resx` .NET.
 
+### keyContext
+
+<AvailableFrom version="0.12.0" />
+
+Lit ce dont un traducteur a besoin pour écrire une clé dans une locale cible : tout ce que renvoie `keyValue`, plus les termes du glossaire qui s'appliquent au texte source et le `maxLength` de la clé. Passe un `draft` pour le vérifier par rapport à ces termes. En lecture seule.
+
+```ts title="Signature"
+function keyContext(
+  input: KeyContextInput,
+  deps?: KeyContextDeps,
+): Promise<KeyContext>;
+```
+
+<SdkTypeTable name="KeyContextInput" />
+
+**Renvoie :** `KeyContext`
+
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+
+Un glossaire illisible ne lève pas d'erreur : `glossary` est vide et `glossaryNotice` porte le code et le message expurgé de l'erreur. `draftCheck` indique, pour chaque terme applicable, si le brouillon utilise la traduction exigée et quelles variantes interdites il emploie.
+
+### localeHistory
+
+<AvailableFrom version="0.12.0" />
+
+Liste les commits git récents qui ont modifié le fichier source ou un fichier de locale cible, du plus récent au plus ancien. En lecture seule ; il lance `git log` via l'`execFile` injectable.
+
+```ts title="Signature"
+function localeHistory(
+  input: LocaleHistoryInput,
+  deps?: LocaleHistoryDeps,
+): Promise<LocaleHistoryResult>;
+```
+
+<SdkTypeTable name="LocaleHistoryInput" />
+
+**Renvoie :** `LocaleHistoryResult`
+
+**Lève :** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Chaque commit porte `hash`, `author`, `authorDate`, `subject` et `touchedPaths`. `author` est le nom après `.mailmap`, jamais l'e-mail. `limit` vaut `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) par défaut et `LOCALE_HISTORY_LIMIT_CAP` (`200`) au plus. Sans git, ou hors d'un dépôt, le résultat est `{ available: false }`. Consulte [Studio et MCP](/docs/data-handling#studio-et-mcp).
+
 ### editEntry
 
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.

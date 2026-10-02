@@ -63,13 +63,18 @@ El servidor responde al handshake MCP `initialize` con unas `instructions` fijas
 | `glossary.get` | cada término del glosario con sus traducciones, formas prohibidas y contexto, con los secretos ocultos | sí | no |
 | `glossary.write` | cambia un término del glosario: una traducción, datos por locale, contexto, o si se queda sin traducir | no | no |
 | `lock.state` | la versión del archivo de bloqueo y, por locale de destino, su número de claves más las que faltan, desactualizadas y al día | sí | no |
+| `history.list` | los últimos commits de git que cambiaron un archivo de locale, con nombre del autor, fecha, asunto y rutas cambiadas | sí | no |
 | `key.integrity` | la desviación de una clave en marcadores, markup, sintaxis ICU y ramas ICU respecto a la base del bloqueo, por locale | sí | no |
+| `locale.integrity` | cada traducción que ahora mismo no pasa las comprobaciones de marcadores, markup o ICU, por locale | sí | no |
 | `key.value` | el texto de origen y de destino de una clave, con su procedencia y el contexto para traductores | sí | no |
+| `key.context` | lo que devuelve `key.value`, más los términos del glosario que aplican, `maxLength` y una comprobación de un `draft` opcional | sí | no |
+| `locale.values` | el texto de origen y de destino de muchas claves, filtradas por `keys` o `query`, página a página | sí | no |
 | `translation.editEntry` | escribe una traducción manual para una clave en un locale, validada por las comprobaciones de integridad | no | no |
 | `translation.estimate` | lo que `translation.translatePending` enviaría y costaría, como lo informa `translate --estimate --json` | sí | no |
 | `translation.retranslateEntry` | pide al proveedor configurado que vuelva a traducir una clave en un locale | no | sí |
 | `translation.translatePending` | traduce cada clave que falta o está desactualizada, opcionalmente solo para algunos `locales` y bajo un techo `maxTokens` | no | sí |
 | `review.queue` | cada valor escrito por máquina que nadie ha aprobado todavía, con las marcas de la última ejecución | sí | no |
+| `report.provenance` | por locale, los recuentos por grupo de procedencia como los da `verbatra report provenance`, y las claves si las pides, paginadas | sí | no |
 | `review.approve` | registra, por instrucción del usuario, que una persona con nombre aprueba la traducción actual de una clave | no | no |
 | `review.reject` | registra, por instrucción del usuario, que una persona con nombre rechaza la traducción de una clave, que se elimina para reemplazarla | no | no |
 | `usage.summary` | el uso de tokens y el estado del presupuesto de la última ejecución | sí | no |
@@ -96,6 +101,9 @@ El servidor responde al handshake MCP `initialize` con unas `instructions` fijas
 - Cada entrada de `key.integrity` incluye además `icuArmsMatch` y sus detalles.
 - `glossary.get` acepta un `locale` opcional y entonces añade `effective`, los términos a los que se atiene ese locale.
 - `key.value`, `lock.state`, `status.check` y `status.diff` incluyen la procedencia, que falta cuando `verbatra.provenance.json` no se puede leer.
+- `locale.values` y `report.provenance` devuelven sus entradas por páginas: `limit` (por defecto 200, como máximo 1.000) y después el `nextCursor` de la página anterior como `cursor`. Un cursor de otros filtros, o uno con el que los archivos ya no coinciden, falla como entrada inválida.
+- `locale.values` acepta `keys` o una `query` sin distinguir mayúsculas y devuelve arrays de entradas, no el mapa por clave de Studio. `report.provenance` siempre devuelve recuentos completos; `includeEntries` añade las claves, si quieres solo para algunos `buckets`.
+- `history.list` nombra al autor de cada commit, nunca el correo; consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
 - Las herramientas que escriben aceptan un `lockTimeoutMs` opcional, de `0` a `600000`, por defecto `30000`: cuánto esperan un bloqueo de escritura ocupado antes de fallar con `LOCK_CONTENDED`, sin haber escrito nada.
 - Las entradas y salidas son JSON Schemas; una entrada inválida devuelve un resultado que nombra el campo. Un resultado que no encaja con su `outputSchema` falla con `OUTPUT_SCHEMA_MISMATCH`; en una herramienta que escribe, el cambio ya se aplicó, así que no la repitas.
 - El texto de una llamada fallida empieza por su código de error, como `UNKNOWN_KEY: ...`, y termina con una línea `Next step: ...` cuando el error tiene un siguiente paso, el mismo texto que el `hint` de la CLI.

@@ -126,6 +126,9 @@ prints at start, and its Content-Security-Policy blocks fetches to the internet.
 **The MCP server** talks to its client over stdio and opens no port. Its read tools return your
 strings, glossary and status to the connected client.
 
+**Locale file history.** `history.list`, in Studio and on the MCP server, returns each commit's hash,
+date, author name, subject and touched paths. It never reads the author's email address.
+
 Weigh this: an MCP client, or a browser agent using Studio's `--expose-agent-tools`, is usually an
 AI assistant, and what it reads goes to its model under that vendor's terms, which verbatra cannot
 restrict.

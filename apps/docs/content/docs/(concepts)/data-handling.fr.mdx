@@ -132,6 +132,10 @@ affiche au démarrage, et sa Content-Security-Policy bloque les accès à Intern
 **Le serveur MCP** parle à son client via stdio et n'ouvre aucun port. Ses outils de lecture
 renvoient tes textes, ton glossaire et ton statut au client connecté.
 
+**Historique des fichiers de locale.** `history.list`, dans Studio et sur le serveur MCP, renvoie pour
+chaque commit le hash, la date, le nom de l'auteur, le sujet et les chemins modifiés. Il ne lit jamais
+l'adresse e-mail de l'auteur.
+
 Pèse ce point : un client MCP, ou un agent navigateur qui utilise `--expose-agent-tools` de Studio,
 est en général un assistant IA, et ce qu'il lit part vers son modèle, sous les conditions de ce
 fournisseur, que verbatra ne peut pas restreindre.
