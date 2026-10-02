@@ -60,7 +60,6 @@ What that means in practice:
 DeepL gets its own variants (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) and drops any other region or
 script; it has no generic English or Portuguese target, so a bare `en` or `pt` target fails before
 any request. Google Cloud Translation gets Chinese as `zh-CN` or `zh-TW` and `nb` as `no`.
-LibreTranslate gets the language alone, except Brazilian Portuguese and the two Chinese scripts.
 LLM providers get the code as written, plus the English name of the language, script and region,
 and are told to write in that script and variant; see
 [Language, script and region names](/docs/translation-safety#language-script-and-region-names).
@@ -125,7 +124,8 @@ term in a script without spaces between words is matched by containment.
 verbatra reads which plural categories a language needs from the CLDR rules in the ICU data built
 into Node.js, ordinals included, so every language CLDR covers is handled: English has two cardinal
 categories, Russian and Polish four, Arabic and Welsh six, Japanese only `other`. For a locale
-Node.js has no rules for, cardinals are assumed to need `one` and `other`. The `plural-rules` check
+Node.js has no rules for, the run notice assumes cardinals need `one` and `other`; the integrity
+gate, `check` and `doctor` require only `other`. The `plural-rules` check
 of [`verbatra doctor`](/docs/cli/doctor) names such a locale.
 
 How a plural is kept correct depends on the format:

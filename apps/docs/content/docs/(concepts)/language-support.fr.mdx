@@ -66,8 +66,7 @@ Ce que cela veut dire en pratique :
 DeepL reçoit ses propres variantes (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) et abandonne toute autre
 région ou écriture ; il n'a pas de cible anglaise ou portugaise générique, donc une cible `en` ou
 `pt` nue échoue avant toute requête. Google Cloud Translation reçoit le chinois comme `zh-CN` ou
-`zh-TW` et `nb` comme `no`. LibreTranslate reçoit la langue seule, sauf le portugais du Brésil et
-les deux écritures du chinois. Les fournisseurs LLM reçoivent le code tel qu'écrit, plus le nom
+`zh-TW` et `nb` comme `no`. Les fournisseurs LLM reçoivent le code tel qu'écrit, plus le nom
 anglais de la langue, de l'écriture et de la région, avec la consigne d'écrire dans cette écriture
 et cette variante ; voir
 [Noms de langue, d'écriture et de région](/docs/translation-safety#noms-de-langue-décriture-et-de-région).
@@ -136,8 +135,9 @@ comparé par inclusion.
 verbatra lit les catégories de pluriel dont une langue a besoin dans les règles CLDR des données ICU
 intégrées à Node.js, ordinaux compris, donc chaque langue que couvre CLDR est prise en charge :
 l'anglais a deux catégories cardinales, le russe et le polonais quatre, l'arabe et le gallois six,
-le japonais seulement `other`. Pour une locale dont Node.js n'a pas les règles, les cardinaux sont
-supposés avoir besoin de `one` et `other`. Le contrôle `plural-rules` de
+le japonais seulement `other`. Pour une locale dont Node.js n'a pas les règles, l'avis de
+l'exécution suppose que les cardinaux ont besoin de `one` et `other` ; la barrière d'intégrité,
+`check` et `doctor` n'exigent que `other`. Le contrôle `plural-rules` de
 [`verbatra doctor`](/docs/cli/doctor) nomme une telle locale.
 
 La façon dont un pluriel reste correct dépend du format :
