@@ -63,7 +63,7 @@ const reportProvenanceResultSchema = z.object({
   nextCursor: z.string().optional(),
 });
 
-type ReportProvenanceResult = z.infer<typeof reportProvenanceResultSchema>;
+export type ReportProvenanceResult = z.infer<typeof reportProvenanceResultSchema>;
 
 function pagedEntries(
   report: ProvenanceReport,

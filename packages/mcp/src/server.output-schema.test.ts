@@ -19,6 +19,79 @@ import {
 } from "./test-support.js";
 import type { McpServerOptions } from "./types.js";
 
+interface JsonSchemaNode {
+  readonly properties?: Readonly<Record<string, JsonSchemaNode>>;
+  readonly items?: JsonSchemaNode;
+  readonly anyOf?: readonly JsonSchemaNode[];
+  readonly oneOf?: readonly JsonSchemaNode[];
+  readonly additionalProperties?: unknown;
+  readonly allOf?: unknown;
+  readonly $ref?: unknown;
+}
+
+function assertWalkable(schema: JsonSchemaNode, path: string): void {
+  const unsupported = [
+    schema.$ref !== undefined ? "$ref" : undefined,
+    schema.allOf !== undefined ? "allOf" : undefined,
+    schema.additionalProperties === true ? "additionalProperties: true" : undefined,
+    schema.anyOf?.length === 0 || schema.oneOf?.length === 0 ? "an empty union" : undefined,
+  ].filter((name) => name !== undefined);
+  if (unsupported.length > 0) {
+    throw new Error(`The schema walk cannot check ${unsupported.join(", ")} at "${path}".`);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function undeclaredInVariants(
+  variants: readonly JsonSchemaNode[],
+  value: unknown,
+  path: string,
+): string[] {
+  const candidates = variants.map((variant) => undeclaredPaths(variant, value, path));
+  const [first = [], ...rest] = candidates;
+  return rest.reduce((best, next) => (next.length < best.length ? next : best), first);
+}
+
+function undeclaredInObject(
+  schema: JsonSchemaNode,
+  value: Record<string, unknown>,
+  path: string,
+): string[] {
+  if (schema.properties === undefined) {
+    const values = isRecord(schema.additionalProperties)
+      ? Object.entries(value).flatMap(([key, entry]) =>
+          undeclaredPaths(schema.additionalProperties as JsonSchemaNode, entry, `${path}.${key}`),
+        )
+      : [];
+    return values;
+  }
+  const properties = schema.properties;
+  return Object.entries(value).flatMap(([key, entry]) => {
+    const declared = properties[key];
+    return declared === undefined
+      ? [`${path}.${key}`]
+      : undeclaredPaths(declared, entry, `${path}.${key}`);
+  });
+}
+
+function undeclaredPaths(schema: JsonSchemaNode, value: unknown, path = ""): string[] {
+  assertWalkable(schema, path);
+  const variants = schema.anyOf ?? schema.oneOf;
+  if (variants !== undefined) {
+    return undeclaredInVariants(variants, value, path);
+  }
+  if (Array.isArray(value)) {
+    const items = schema.items;
+    return items === undefined
+      ? []
+      : value.flatMap((entry, index) => undeclaredPaths(items, entry, `${path}[${index}]`));
+  }
+  return isRecord(value) ? undeclaredInObject(schema, value, path) : [];
+}
+
 async function connectedClient(options: McpServerOptions): Promise<Client> {
   const server = createMcpServer(options);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -135,6 +208,11 @@ describe("createMcpServer: instructions", () => {
     expect(MCP_SERVER_INSTRUCTIONS).toContain("[REDACTED]");
   });
 
+  it("points to the glossary and lock file reads", () => {
+    expect(MCP_SERVER_INSTRUCTIONS).toContain("glossary.get lists the glossary terms");
+    expect(MCP_SERVER_INSTRUCTIONS).toContain("lock.state shows what the lock file records");
+  });
+
   it("recommends the free estimate before a spend call", () => {
     expect(MCP_SERVER_INSTRUCTIONS).toContain("Estimate before you spend: translation.estimate");
   });
@@ -183,6 +261,32 @@ describe("createMcpServer: output schemas", () => {
     }
 
     expect([...called].sort()).toEqual(tools.map((tool) => tool.name).sort());
+  });
+
+  it("declares every field the SDK returns, so a redacting server strips none of them", async () => {
+    const client = await connectedClient(await richProjectOptions());
+    const { tools } = await client.listTools();
+    const schemas = new Map(tools.map((tool) => [tool.name, tool.outputSchema]));
+    const undeclared: string[] = [];
+
+    for (const call of CALLS_IN_ORDER) {
+      const result = await client.callTool(call);
+      const schema = schemas.get(call.name) as JsonSchemaNode;
+      undeclared.push(
+        ...undeclaredPaths(schema, result.structuredContent).map((at) => `${call.name}${at}`),
+      );
+    }
+
+    expect(undeclared).toEqual([]);
+  });
+
+  it.each([
+    ["$ref", { $ref: "#/$defs/x" }],
+    ["allOf", { allOf: [] }],
+    ["additionalProperties: true", { additionalProperties: true }],
+    ["an empty union", { anyOf: [] }],
+  ] as const)("refuses to walk a schema node with %s", (name, schema) => {
+    expect(() => undeclaredPaths(schema, {})).toThrow(name);
   });
 
   it("reports the rich shapes a completed run leaves behind", async () => {

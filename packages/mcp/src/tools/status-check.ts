@@ -1,4 +1,4 @@
-import { check } from "@verbatra/sdk";
+import { check, type PluralCategory, type PluralRuleType } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -6,6 +6,25 @@ import { provenanceSummarySchema } from "./provenance-schema.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
+});
+
+const PLURAL_CATEGORY_NAMES = [
+  "zero",
+  "one",
+  "two",
+  "few",
+  "many",
+  "other",
+] as const satisfies readonly PluralCategory[];
+
+const PLURAL_RULE_TYPES = ["cardinal", "ordinal"] as const satisfies readonly PluralRuleType[];
+
+const incompletePluralSchema = z.object({
+  code: z.literal("PLURAL_CATEGORIES_INCOMPLETE"),
+  key: z.string(),
+  argument: z.string().optional(),
+  ruleType: z.enum(PLURAL_RULE_TYPES),
+  missing: z.array(z.enum(PLURAL_CATEGORY_NAMES)).readonly(),
 });
 
 const localeCheckSchema = z.object({
@@ -16,6 +35,7 @@ const localeCheckSchema = z.object({
   inSync: z.boolean(),
   provenance: provenanceSummarySchema.optional(),
   protected: z.number().optional(),
+  incompletePlurals: z.array(incompletePluralSchema).readonly().optional(),
 });
 
 const statusCheckResultSchema = z.object({
@@ -23,7 +43,7 @@ const statusCheckResultSchema = z.object({
   locales: z.array(localeCheckSchema).readonly(),
 });
 
-type StatusCheckResult = z.infer<typeof statusCheckResultSchema>;
+export type StatusCheckResult = z.infer<typeof statusCheckResultSchema>;
 
 async function statusCheck(
   params: z.infer<typeof paramsSchema>,
@@ -60,7 +80,9 @@ export const statusCheckTool = defineTool({
     "verbatra. protected counts the missing and stale keys a translate run would leave for " +
     "a person (values a person wrote or imported, or pinned keys); they stay stale until a " +
     "person resolves them, and only pinned keys are counted when that file is unreadable. " +
-    "Read-only: it calls no provider and writes nothing.",
+    "incompletePlurals lists each plural whose forms in that locale lack CLDR plural categories " +
+    "the target language uses, with the missing categories; it is a warning and never changes " +
+    "the counts or inSync. Read-only: it calls no provider and writes nothing.",
   paramsSchema,
   outputSchema: statusCheckResultSchema,
   annotations: {

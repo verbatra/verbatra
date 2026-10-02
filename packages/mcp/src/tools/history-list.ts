@@ -29,7 +29,7 @@ const historyListResultSchema = z.object({
     .optional(),
 });
 
-type HistoryListResult = z.infer<typeof historyListResultSchema>;
+export type HistoryListResult = z.infer<typeof historyListResultSchema>;
 
 async function listHistory(
   params: z.infer<typeof paramsSchema>,

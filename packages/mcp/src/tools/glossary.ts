@@ -63,9 +63,9 @@ const glossaryResultSchema = z.object({
     .optional(),
 });
 
-type GlossaryResult = z.infer<typeof glossaryResultSchema>;
+export type GlossaryResult = z.infer<typeof glossaryResultSchema>;
 
-type LocaleTerm = z.infer<typeof localeTermSchema>;
+export type LocaleTerm = z.infer<typeof localeTermSchema>;
 
 type DoNotTranslate = z.infer<typeof doNotTranslateSchema>;
 

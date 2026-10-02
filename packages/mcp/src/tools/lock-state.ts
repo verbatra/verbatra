@@ -21,7 +21,7 @@ const lockStateResultSchema = z.object({
   locales: z.array(lockLocaleStateSchema).readonly().optional(),
 });
 
-type LockStateResult = z.infer<typeof lockStateResultSchema>;
+export type LockStateResult = z.infer<typeof lockStateResultSchema>;
 
 async function readLockState(
   _params: z.infer<typeof paramsSchema>,

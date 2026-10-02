@@ -6,10 +6,11 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "1. project.snapshot first, to learn the source locale, the target locales, the format, and the provider. " +
     "If it reports configured: false, call project.doctor and follow the fix of each failed check before anything else. " +
     "2. status.check for missing, stale, and up-to-date counts per locale, then status.diff for the exact key names. " +
-    "Both are read-only and call no provider. " +
+    "Both are read-only and call no provider; lock.state shows what the lock file records per locale. " +
     "3. To fix one key, read it with key.context (its text, applying glossary terms, and maxLength; pass your draft to check it), " +
     "check placeholder and ICU drift with key.integrity, then write the corrected text with translation.editEntry. " +
     "To find every broken translation at once, use locale.integrity; to search values, use locale.values. " +
+    "glossary.get lists the glossary terms, narrowed to one target locale when you pass locale. " +
     "translation.editEntry is free and passes the same integrity gate as a provider result; " +
     "a rejection comes back as accepted: false with a reason, and sending the identical value again is rejected again. " +
     "4. Afterwards, review.queue lists every machine-written value no person has approved yet, and usage.summary reports what the last run consumed. " +
