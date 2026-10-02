@@ -54,7 +54,7 @@ Open the printed URL; the token is required. Add `--verbose` to also print one s
 - **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
 - **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here, with the new state shown as soon as the write lands.
 
-Every page refreshes live over a server-sent event stream as your locale files change; only a `verbatra.config.ts` change needs a manual restart. Studio follows its own theme preference, independently of any site you opened it from.
+Every page refreshes live over a server-sent event stream as your locale files change. The config and its glossary are loaded once at startup, so any change to either needs a restart: a glossary edit, from Settings or on disk, shows at once in Settings and in a key's glossary hits, but translating and integrity checks use it only after the restart. Studio follows its own theme preference, independently of any site you opened it from.
 
 ## Editing and provider spend
 
@@ -62,7 +62,7 @@ Local editing is always on: an edit, approval, or rejection from the Review queu
 
 Actions that spend provider budget, retranslating one key or a selection and translating every pending change, exist only when Studio is started with `--allow-spend` or with `VERBATRA_STUDIO_ALLOW_SPEND` set. Without that flag those methods are not registered on the server at all, so Studio never calls a provider.
 
-`--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS`) additionally registers Studio's RPC methods as WebMCP tools on the browser's `document.modelContext`, so a browser agent can drive the same surface. It is off by default, and each tool is a 1:1 wrapper over the same authenticated call the dashboard makes, travelling the same validation and the same capability gate, so it confers no authority the open, authenticated tab does not already hold.
+`--expose-agent-tools` (or `VERBATRA_STUDIO_AGENT_TOOLS`) additionally registers Studio's RPC methods as WebMCP tools on the browser's `document.modelContext`, so a browser agent can drive the same surface. It is off by default. The bulk review methods (approving or rejecting a selection, approving a whole locale, retranslating a selection) and the in-flight query stay with the person at the dashboard and never become tools. Each tool is a 1:1 wrapper over the same authenticated call the dashboard makes, travelling the same validation and the same capability gate, so it confers no authority the open, authenticated tab does not already hold: the two spend tools register only when spending is granted, and a config with `provider: { id: "none" }` withholds them even with `--allow-spend`.
 
 ## Security model
 

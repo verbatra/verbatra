@@ -77,7 +77,7 @@ describe("startMcpServer", () => {
     expect(handle.valuesRedacted).toBe(expected);
   });
 
-  it("redacts the quoted text of a config error it logs when values are redacted", async () => {
+  it("replaces the message of a config error it logs when values are redacted", async () => {
     const { dir, configPath } = await makeConfiguredProject();
     await writeJsonFile(configPath, {
       sourceLocale: "en",
@@ -98,7 +98,7 @@ describe("startMcpServer", () => {
     await handle.close();
 
     expect(handle.configured).toBe(false);
-    expect(lines.join("\n")).toContain("[redacted length=4 hash=");
+    expect(lines.join("\n")).toMatch(/CONFIG_INVALID: \[redacted length=\d+ hash=[0-9a-f]{16}\]/);
     expect(lines.join("\n")).not.toContain("QZXJ");
   });
 

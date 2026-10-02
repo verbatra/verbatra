@@ -7,7 +7,6 @@ import {
   resolveGlossaryProvenance,
 } from "./config-projection.js";
 import { defineTool, describeErrorMessage } from "./define-tool.js";
-import { redactQuoted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({});
 
@@ -68,7 +67,7 @@ async function unconfiguredSnapshot(
     configured: false,
     configProblem: {
       code: error instanceof SdkError ? error.code : "CONFIG_INVALID",
-      message: redact(describeErrorMessage(error, context.cwd)),
+      message: redact(describeErrorMessage(error, context.cwd, context.valueMarker)),
     },
     nextStep: UNCONFIGURED_NEXT_STEP,
     valuesRedacted: context.valueMarker !== undefined,
@@ -77,18 +76,7 @@ async function unconfiguredSnapshot(
 
 export const projectSnapshotTool = defineTool({
   name: "project.snapshot",
-  values: {
-    redact: (result, marker) =>
-      result.configProblem === undefined
-        ? result
-        : {
-            ...result,
-            configProblem: {
-              ...result.configProblem,
-              message: redactQuoted(result.configProblem.message, marker),
-            },
-          },
-  },
+  values: "none",
   description:
     "Reads the resolved project configuration: whether a usable config is loaded (configured), " +
     "source locale, target locales, file format, " +

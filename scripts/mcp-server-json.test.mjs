@@ -110,13 +110,18 @@ describe("packages/mcp/server.json: official MCP Registry constraints", () => {
 });
 
 describe("packages/mcp/server.json: alignment with packages/mcp/src/bin-args.ts", () => {
-  it("declares exactly one non-secret variable, the allow-spend variable the bin reads", () => {
-    const binVariable = /const ALLOW_SPEND_ENV_VAR = "([A-Z0-9_]+)";/.exec(MCP_BIN_SOURCE)?.[1];
-    expect(binVariable).toBeDefined();
+  it("declares as non-secret exactly the variables the bin reads", () => {
+    const constants = new Map(
+      [...MCP_BIN_SOURCE.matchAll(/const ([A-Z_]+) = "([A-Z0-9_]+)";/g)].map((m) => [m[1], m[2]]),
+    );
+    const binVariables = [...MCP_BIN_SOURCE.matchAll(/env\[([A-Z_]+)\]/g)].map((match) =>
+      constants.get(match[1]),
+    );
+    expect(binVariables).toEqual(["VERBATRA_MCP_ALLOW_SPEND", "VERBATRA_MCP_REDACT_VALUES"]);
     const nonSecret = SERVER_JSON.packages[0].environmentVariables
       .filter((variable) => !variable.isSecret)
       .map((variable) => variable.name);
-    expect(nonSecret).toEqual([binVariable]);
+    expect(nonSecret.sort()).toEqual([...binVariables].sort());
   });
 });
 

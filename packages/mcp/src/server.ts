@@ -22,7 +22,6 @@ import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
 import { translatePendingTool } from "./tools/translate-pending.js";
 import { describeUnconfiguredRefusal } from "./tools/unconfigured-refusal.js";
-import { presentError } from "./tools/value-redaction.js";
 import type { McpCallScope, McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -94,11 +93,7 @@ function executeFor(
   }
   return Promise.resolve({
     kind: "error",
-    message: presentError(
-      state.error,
-      describeUnconfiguredRefusal(tool.name, state.error, seams.cwd),
-      seams.valueMarker,
-    ),
+    message: describeUnconfiguredRefusal(tool.name, state.error, seams.cwd, seams.valueMarker),
   });
 }
 

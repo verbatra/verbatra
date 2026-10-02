@@ -59,13 +59,15 @@ export const MCP_SERVER_INSTRUCTIONS = [
 
 const VALUES_REDACTED_INSTRUCTIONS =
   "Values redacted: the operator started this server with --redact-values. Every source text, translation, " +
-  "description, glossary term, and reviewer or author name in a result is replaced by a marker such as " +
+  "description, and glossary term in a result is replaced by a marker such as " +
   "[redacted length=12 hash=0123456789abcdef], which keeps the length and a hash valid for this server session " +
-  "only. Key names, counts, statuses, origins, integrity verdicts, commit subjects, and file paths are not " +
+  "only. Reviewer and commit author names are left out of results entirely. Key names, counts, statuses, " +
+  "origins, integrity verdicts, commit subjects, and file paths are not " +
   "redacted. Never write a marker back through translation.editEntry or glossary.write: it is not the text. " +
   "To record a review decision the user asked for, pass the marker's hash as expectedHash to review.approve or " +
   "review.reject; expectedValue is refused. locale.values does not take query, key.context does not take " +
-  "draft, and glossary.write answers with counts only. Do not try to work out a redacted value; report keys " +
+  "draft, and glossary.write answers with counts only. An error message that can carry values is replaced " +
+  "by a marker; its error code and Next step stay. Do not try to work out a redacted value; report keys " +
   "and statuses instead.";
 
 export function serverInstructions(options: { readonly valuesRedacted: boolean }): string {

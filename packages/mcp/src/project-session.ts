@@ -1,4 +1,11 @@
-import { type LoadedConfig, loadConfigWithMeta, redact, SdkError, type SdkFs } from "@verbatra/sdk";
+import {
+  type LoadedConfig,
+  loadConfigWithMeta,
+  redact,
+  SdkError,
+  type SdkFs,
+  type ValueMarker,
+} from "@verbatra/sdk";
 import {
   configFilesStamp,
   type FingerprintInput,
@@ -21,6 +28,7 @@ export interface OpenProjectSessionOptions {
   readonly configPath?: string;
   readonly fs?: SdkFs;
   readonly onLog?: (line: string) => void;
+  readonly valueMarker?: ValueMarker;
 }
 
 interface Snapshot {
@@ -49,9 +57,9 @@ async function loadState(options: OpenProjectSessionOptions): Promise<McpProject
   }
 }
 
-function stateLine(state: McpProjectState, cwd: string): string {
+function stateLine(state: McpProjectState, cwd: string, marker: ValueMarker | undefined): string {
   if (state.kind === "unconfigured") {
-    return `${UNCONFIGURED_LOG_PREFIX} ${redact(describeErrorMessage(state.error, cwd))}`;
+    return `${UNCONFIGURED_LOG_PREFIX} ${redact(describeErrorMessage(state.error, cwd, marker))}`;
   }
   return `Loaded the project config from ${resolveConfigSource(state.loaded.source, cwd)}`;
 }
@@ -86,7 +94,7 @@ export async function openProjectSession(
   ) {
     throw snapshot.state.error;
   }
-  let lastLine = stateLine(snapshot.state, options.cwd);
+  let lastLine = stateLine(snapshot.state, options.cwd, options.valueMarker);
   if (snapshot.state.kind === "unconfigured") {
     options.onLog?.(lastLine);
   }
@@ -96,7 +104,7 @@ export async function openProjectSession(
       return snapshot.state;
     }
     snapshot = await takeSnapshot();
-    const line = stateLine(snapshot.state, options.cwd);
+    const line = stateLine(snapshot.state, options.cwd, options.valueMarker);
     if (line !== lastLine || snapshot.state.kind === "configured") {
       options.onLog?.(line);
     }
