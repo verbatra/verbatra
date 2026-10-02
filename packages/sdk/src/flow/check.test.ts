@@ -42,7 +42,7 @@ describe("check", () => {
 
     await expect(check({ config: cfg(), cwd: dir })).rejects.toMatchObject({
       name: "AdapterError",
-      code: expect.any(String),
+      code: "INVALID_JSON",
     });
   });
 
