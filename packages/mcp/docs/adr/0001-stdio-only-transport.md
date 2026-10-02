@@ -13,16 +13,17 @@ the provenance file and the glossary. With `--allow-spend` it also calls the con
 translation provider and bills it.
 
 The MCP specification defines a second transport, Streamable HTTP, and its 2026-07-28 revision
-keeps it. Several translation-management vendors now offer remote HTTP MCP servers, but those
+keeps it (https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http). Several translation-management vendors now offer remote HTTP MCP servers, but those
 front a hosted SaaS backend. verbatra has no backend: the project lives on the user's disk.
 
 Streamable HTTP has its own security requirements. The server MUST validate the `Origin` header
 of every connection against DNS rebinding, SHOULD bind to localhost only, and authentication is
 strongly recommended. verbatra implements that hardening once, for Studio
 (`packages/studio/src/server/host-origin.ts`, `token.ts`, `rate-limiter.ts`,
-`security-headers.ts`). `@verbatra/mcp` cannot import `@verbatra/studio`
-(`.claude/rules/architecture.md`), so an HTTP transport would first need that code extracted into
-a package both can depend on.
+`security-headers.ts`). `@verbatra/mcp` must not depend on `@verbatra/studio` to reuse it:
+studio versions independently and ships a prebuilt single-page app, so the MCP server would pull
+a dashboard and its release cycle into every install. An HTTP transport would first need that
+hardening extracted into a shared package both can depend on.
 
 ## Decision
 
