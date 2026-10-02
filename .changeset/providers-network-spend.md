@@ -3,7 +3,7 @@
 "@verbatra/cli": minor
 ---
 
-LibreTranslate, a `network` policy, `--max-tokens`, per-attempt timeouts, strict `provider`.
+LibreTranslate, placeholder masking for DeepL and Google, a `network` policy, `--max-tokens`, per-attempt timeouts, strict `provider`.
 
 **LibreTranslate**
 - `provider: { id: "libretranslate", options: { baseUrl } }` translates through a self-hosted
@@ -11,6 +11,14 @@ LibreTranslate, a `network` policy, `--max-tokens`, per-attempt timeouts, strict
   kept, and an ICU plural or select is withheld with `PLACEHOLDER_UNSUPPORTED`.
 - `init --provider libretranslate --base-url <url>` scaffolds it, and `doctor --locales --live`
   checks its languages.
+
+**DeepL and Google placeholders**
+- Placeholders travel as numbered markers the engine leaves alone (an ignored `<x>` tag for DeepL,
+  a `translate="no"` span for Google) and are restored byte-exact, so `Hello {{name}}` is
+  translated instead of withheld.
+- A value with ICU plural or select syntax or markup, a Google value with line breaks, tabs or
+  double spaces, and a value whose markers do not all come back once are still withheld with
+  `PLACEHOLDER_UNSUPPORTED`. Values without placeholders are sent exactly as before.
 
 **Network policy**
 - A `network` block (`any`, `local-only`, `allowlist` with `allowedHosts`), or

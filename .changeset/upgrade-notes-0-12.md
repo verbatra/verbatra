@@ -47,6 +47,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - Estimates and token budgets reserve 550 system-rule tokens per LLM request instead of 250.
 - DeepL and Google receive normalized language codes (`en-US` as `EN`, `zh-Hant` as `ZH-HANT`,
   `nb` as `no`). Override them with `provider.options.localeMap`.
+- DeepL and Google translate values with placeholders that 0.11 withheld with
+  `PLACEHOLDER_UNSUPPORTED`: the next run bills them and writes machine translations, flagged for
+  review as usual. To keep such a key human-only, write its value by hand before the run.
 - DeepL and Google: a locale missing from the shipped language table refuses the whole run with
   `LOCALE_UNSUPPORTED_BY_PROVIDER` (exit 2) before anything is spent. DeepL formality uses
   `prefer_`, so an unsupported register gives a `FORMALITY_DOWNGRADED` notice instead of failing.
