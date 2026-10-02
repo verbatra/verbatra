@@ -2,7 +2,7 @@ import type { TextSpan } from "@verbatra/ai-providers";
 
 const LOCAL_CHARACTER = /[A-Za-z0-9._%+-]/;
 const DOMAIN_CHARACTER = /[A-Za-z0-9.-]/;
-const TRAILING_PUNCTUATION = /[.-]+$/;
+const DOMAIN_PUNCTUATION = /[.-]/;
 const LABEL = /^[A-Za-z0-9-]+$/;
 const TOP_LEVEL = /^[A-Za-z]{2,}$/;
 const RESERVED_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|example|test|invalid|localhost)$/i;
@@ -33,8 +33,10 @@ function domainEnd(text: string, at: number): number {
   while (end < text.length && DOMAIN_CHARACTER.test(text.charAt(end))) {
     end += 1;
   }
-  const domain = text.slice(at + 1, end);
-  return end - (domain.length - domain.replace(TRAILING_PUNCTUATION, "").length);
+  while (end > at + 1 && DOMAIN_PUNCTUATION.test(text.charAt(end - 1))) {
+    end -= 1;
+  }
+  return end;
 }
 
 export function emailSpans(text: string): TextSpan[] {
