@@ -54,7 +54,7 @@ Open the printed URL; the token is required. Add `--verbose` to also print one s
 - **Activity**: the git commit history of the source and target locale files, plus the last run's token usage and budget.
 - **Settings**: the resolved config, the glossary, and the session's capabilities. A glossary the project keeps in a JSON file is editable here, with the new state shown as soon as the write lands.
 
-Every page refreshes live over a server-sent event stream as your locale files change. The config and its glossary are loaded once at startup, so any change to either needs a restart: a glossary edit, from Settings or on disk, shows at once in Settings and in a key's glossary hits, but translating and integrity checks use it only after the restart. Studio follows its own theme preference, independently of any site you opened it from.
+Every page refreshes live over a server-sent event stream as your locale files change. The config and its glossary are loaded once at startup, so a config change needs a restart. A glossary edit, from Settings or on disk, shows at once in Settings and in a key's glossary hits, but translating pending changes, retranslating, and the cost estimate use it only after a restart; integrity checks and the edit gate never read the glossary. Studio follows its own theme preference, independently of any site you opened it from.
 
 ## Editing and provider spend
 
