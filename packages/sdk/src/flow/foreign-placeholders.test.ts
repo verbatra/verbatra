@@ -26,6 +26,13 @@ const SAMPLES: Readonly<Record<PlaceholderSyntax, string>> = {
   "dollar-brace": "Hi ${name}!",
 };
 
+const UNICODE_SAMPLES: readonly (readonly [PlaceholderSyntax, string])[] = [
+  ["double-brace", "Hi {{名前}}!"],
+  ["single-brace", "Hi {名前}!"],
+  ["ruby", "Hi %{名前}!"],
+  ["dollar-brace", "Hi ${名前}!"],
+];
+
 function resource(format: FormatId, values: Record<string, string>): LocaleResource {
   const entries = new Map<string, TranslationEntry>();
   for (const [key, value] of Object.entries(values)) {
@@ -54,6 +61,23 @@ describe("NATIVE_PLACEHOLDER_SYNTAXES", () => {
 
     expect(extracted.length > 0).toBe(NATIVE_PLACEHOLDER_SYNTAXES[format].includes(syntax));
   });
+
+  it.each(
+    SUPPORTED_FORMATS.flatMap((format) =>
+      UNICODE_SAMPLES.map(([syntax, sample]) => [format, syntax, sample] as const),
+    ),
+  )(
+    "%s: a non-ASCII %s name is flagged exactly when the syntax is foreign",
+    (format, syntax, sample) => {
+      const native = NATIVE_PLACEHOLDER_SYNTAXES[format].includes(syntax);
+      const dropped = droppedForeignPlaceholders(format, sample, "Hallo");
+
+      expect(dropped.length > 0).toBe(!native);
+      if (!native) {
+        expect(selectAdapter(format).extractPlaceholders(sample)).toEqual([]);
+      }
+    },
+  );
 
   it("treats the resx brace escapes as native", () => {
     expect(droppedForeignPlaceholders("resx", "Use {{x}} and {0}", "Nutze {0}")).toEqual([]);

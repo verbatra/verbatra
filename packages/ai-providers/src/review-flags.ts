@@ -80,11 +80,15 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
 }
 
 function removeWholeTerms(text: string, term: string): string {
-  let remaining = text;
-  for (const index of wholeTermIndices(text, term).reverse()) {
-    remaining = `${remaining.slice(0, index)} ${remaining.slice(index + term.length)}`;
+  let remaining = "";
+  let covered = 0;
+  for (const index of wholeTermIndices(text, term)) {
+    if (index >= covered) {
+      remaining += `${text.slice(covered, index)} `;
+    }
+    covered = index + term.length;
   }
-  return remaining;
+  return remaining + text.slice(covered);
 }
 
 function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
