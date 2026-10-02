@@ -6,6 +6,7 @@ import {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findRenamedDeclarations,
   getConfigSchemaFilesPattern,
   hasZodJitlessConfig,
   staticImportPattern,
@@ -217,6 +218,35 @@ describe("findForbiddenSpecifiersInText", () => {
       "dist/index.d.ts:1: @verbatra/core",
       "dist/index.d.ts:2: @verbatra/ai-providers",
     ]);
+  });
+});
+
+describe("findRenamedDeclarations", () => {
+  it("returns no hits for declarations that keep their own name", () => {
+    const text = [
+      "type TranslationEntry = Readonly<Entry>;",
+      "declare const PLURAL_CATEGORIES: readonly string[];",
+      "interface LocaleResource {}",
+    ].join("\n");
+    expect(findRenamedDeclarations(text, "dist/index.d.ts")).toEqual([]);
+  });
+
+  it("reports every declaration the bundler renamed with a numeric suffix", () => {
+    const text = [
+      "type TranslationEntry$2 = Readonly<Entry>;",
+      "declare const PLURAL_CATEGORIES$1: readonly string[];",
+      "interface PlaceholderIntegrityResult$1 {}",
+    ].join("\n");
+    expect(findRenamedDeclarations(text, "dist/index.d.ts")).toEqual([
+      "dist/index.d.ts:1: TranslationEntry$2",
+      "dist/index.d.ts:2: PLURAL_CATEGORIES$1",
+      "dist/index.d.ts:3: PlaceholderIntegrityResult$1",
+    ]);
+  });
+
+  it("ignores a dollar sign that is not a numeric rename suffix", () => {
+    const text = "type Strip = z.core.$strip;\ndeclare const $schema: string;";
+    expect(findRenamedDeclarations(text, "dist/index.d.ts")).toEqual([]);
   });
 });
 

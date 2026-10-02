@@ -25,6 +25,8 @@ const LAZY_PROVIDER_PACKAGES = [
   "loglevel",
 ];
 
+const SDK_DECLARATIONS = ["packages/sdk/dist/index.d.ts", "packages/sdk/dist/index.d.cts"];
+
 const SDK_ENTRIES = ["packages/sdk/dist/index.js", "packages/sdk/dist/index.cjs"];
 
 const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
@@ -98,6 +100,20 @@ function findForbiddenSpecifiers(relativePath) {
     relativePath,
     PUBLISHED_PACKAGES,
   );
+}
+
+const RENAMED_DECLARATION =
+  /\b(?:type|interface|class|function|enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*\$\d+)\b/g;
+
+function findRenamedDeclarations(text, relativePath) {
+  const lines = text.split("\n");
+  const hits = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    for (const match of (lines[index] ?? "").matchAll(RENAMED_DECLARATION)) {
+      hits.push(`${relativePath}:${index + 1}: ${match[1]}`);
+    }
+  }
+  return hits;
 }
 
 function moduleFormat(path, packageType) {
@@ -179,7 +195,17 @@ function checkDts() {
   if (hits.length > 0) {
     throw new Error(
       `published declarations reference ${hits.length} unpublished @verbatra/* package(s); ` +
-        `check dts.resolve in the owning tsup config:\n  ${hits.join("\n  ")}`,
+        `check the dts options in the owning tsup config:\n  ${hits.join("\n  ")}`,
+    );
+  }
+
+  const renamed = SDK_DECLARATIONS.flatMap((relativePath) =>
+    findRenamedDeclarations(readBuildOutput(relativePath), relativePath),
+  );
+  if (renamed.length > 0) {
+    throw new Error(
+      `the sdk declarations bundle a workspace type more than once, so the duplicate is renamed; ` +
+        `check dts.compilerOptions.paths in packages/sdk/tsup.config.ts:\n  ${renamed.join("\n  ")}`,
     );
   }
 
@@ -187,7 +213,7 @@ function checkDts() {
   runTsc("scripts/dts-fixture/tsconfig.json");
   runTsc("scripts/dts-fixture/tsconfig.cjs.json");
   return (
-    "declarations reference no unpublished package, every exports condition pairs matching " +
+    "declarations reference no unpublished package and bundle each type once, every exports condition pairs matching " +
     "module formats, and the ESM and CommonJS consumer fixtures typecheck."
   );
 }
@@ -309,6 +335,7 @@ export {
   findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
+  findRenamedDeclarations,
   getConfigSchemaFilesPattern,
   hasZodJitlessConfig,
   staticImportPattern,
