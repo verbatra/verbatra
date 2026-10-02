@@ -51,7 +51,7 @@ The part that matters when a run goes wrong is the integrity gate. Every candida
 - **Fourteen locale formats.** JSON for i18next, vue-i18n, next-intl, and ngx-translate, plus XLIFF, YAML, Flutter ARB, Java/Spring `.properties`, Apple `.strings`/`.stringsdict`, Xcode String Catalogs, Android `strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx`.
 - **Seven providers behind one interface.** Anthropic, OpenAI, Gemini, and any openai-compatible local or self-hosted server as LLMs, plus DeepL, Google Cloud Translation, and a self-hosted LibreTranslate server as machine translation, or `none` for a human-only project that never calls one.
 - **Incremental by default.** The lock file makes every run diff-driven, so a run over an unchanged project calls no provider at all.
-- **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift; `verbatra check --require-reviewed` also fails while a machine-written translation is not approved.
+- **Read-only CI gates.** `verbatra check`, `diff`, and `doctor` call no provider, need no API key, write no file, and exit non-zero on drift (`doctor --live` is the exception: for a machine-translation provider it fetches the current language list, sending the API key DeepL and Google need); `verbatra check --require-reviewed` also fails while a machine-written translation is not approved.
 - **Manual translation handoff.** Export the strings that need a human into an Excel workbook, CSV, TSV, or XLIFF 2.0 or 1.2 for a CAT tool, import the filled file back through the same integrity gate, and move the whole memory in or out as TMX.
 - **Machine-translation evidence.** Every value is recorded with the write path that produced it and whether a person reviewed it; `verbatra report provenance --json` turns that into a per-key audit file, and XLIFF and TMX exports mark machine-translated text. Supporting evidence, not legal advice.
 - **Source-code extraction.** `verbatra extract` finds translation call sites in your application source and adds the new keys to the source locale; `diff --unused` names the keys nothing references any more.
@@ -111,7 +111,7 @@ API keys are read only from environment variables, never from the config file, a
 
 `verbatra init` adds the local files a verbatra project must not commit to your `.gitignore`, `.env` and `.env.local` among them, and later runs top up an existing `.gitignore` that is missing one.
 
-verbatra has no telemetry, analytics, or update check. The only network requests it makes go to the translation provider you configure, and only when a command translates. [Data handling and privacy](https://verbatra.kreitz-webdev.de/docs/data-handling) lists what each provider receives, what stays local, and each vendor's retention terms.
+verbatra has no telemetry, analytics, or update check. The only network requests it makes go to the translation provider you configure, and only when a command translates or `verbatra doctor --live` fetches a machine-translation provider's language list. [Data handling and privacy](https://verbatra.kreitz-webdev.de/docs/data-handling) lists what each provider receives, what stays local, and each vendor's retention terms.
 
 To report a vulnerability, see [SECURITY.md](./SECURITY.md).
 

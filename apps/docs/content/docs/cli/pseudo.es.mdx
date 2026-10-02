@@ -34,7 +34,7 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--confi
 | Marcar | el valor se envuelve entre `[` y `]`, así que una cadena recortada o concatenada se ve enseguida |
 
 `Hello {{name}}, you have {{count}} unread messages` se convierte en
-`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Solo cambia el texto traducible. Los placeholders sobreviven en cualquier sintaxis que reconozcan los [adaptadores de formato](/docs/formats), y dentro de un mensaje ICU los nombres de argumento, las palabras clave `plural` y `select` y los selectores de rama se quedan como están. Las formas plurales de vue-i18n separadas por barras se transforman una a una: `car | cars` pasa a `[ćáŕ··] | [ćáŕś··]`. La transformación es determinista, así que el archivo produce diffs limpios.
 

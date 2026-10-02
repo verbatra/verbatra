@@ -76,8 +76,8 @@ zurückkommt oder entartet, wird zurückgehalten statt geschrieben. Die Prüfung
 ## Über den Adapter schreiben
 
 Angenommene Übersetzungen werden ins Ziel gemergt und vom Format-Adapter geschrieben, atomar und in
-der Key-Reihenfolge des Dokuments: Ein Key, der schon im Ziel steht, behält seine Position, und ein
-neuer Key landet dort, wo die Quelle ihn hat. Ein unterbrochener Schreibvorgang hinterlässt nie eine
+einer stabilen Key-Reihenfolge: Ein Key, der schon im Ziel steht, behält seine Position, und neue
+Keys werden in der Reihenfolge der Quelle hinter den vorhandenen angehängt. Ein unterbrochener Schreibvorgang hinterlässt nie eine
 halb geschriebene Datei, und Reviewer sehen kleine, stabile Diffs.
 
 ## Die Lock-Datei aktualisieren

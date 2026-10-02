@@ -74,7 +74,7 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 | `verbatra studio` | Start Verbatra Studio, the local translation dashboard |
 | `verbatra mcp` | Start a stdio MCP server exposing verbatra's tools to an MCP client |
 
-`check`, `diff`, `report`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `pseudo` and `types` call no provider either.
+`check`, `diff`, `report`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `doctor --live` is the exception for a machine-translation provider (DeepL, Google Cloud Translation, LibreTranslate): it fetches the provider's current language list, which uses no translation quota, sending the API key DeepL and Google need (without it, the request is skipped); for an LLM provider or `none` it sends nothing. `pseudo` and `types` call no provider either.
 
 Two flags apply to every command: `-q, --quiet` prints only results (their notices included), warnings, and errors, with no progress lines, `next:` hints, or informational lines, and `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`).
 

@@ -116,7 +116,7 @@ describe("run: the hint on a whole-run error", () => {
     await run(["translate"], deps, human.streams);
 
     expect(hintedEnvelope(json.out()).hint).toBe(
-      "Set GEMINI_API_KEY in the environment or in a .env file in the project directory.",
+      "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.",
     );
     expect(human.err()).toContain("next: Set GEMINI_API_KEY");
     expect(`${json.out()}${json.err()}${human.err()}`).not.toContain(KEY_SENTINEL);

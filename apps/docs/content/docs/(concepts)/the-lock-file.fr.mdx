@@ -164,9 +164,9 @@ Ce que le fichier garantit :
 
 - **Des diffs stables.** Aucun texte traduit et aucun horodatage, un enregistrement trié par ligne,
   donc une exécution qui ne change rien laisse le fichier identique octet pour octet. En cas de
-  conflit de fusion, prends l'un ou l'autre côté : un enregistrement qui ne correspond pas à sa
-  valeur se lit comme `external`, donc un mauvais choix perd de l'information mais ne nomme jamais
-  le mauvais auteur.
+  conflit de fusion, prends le côté qui correspond au fichier de locale que tu gardes : un
+  enregistrement qui ne correspond pas se lit comme `external`, qui ne nomme aucun mauvais auteur
+  mais protège la valeur d'une nouvelle traduction.
 - **Des enregistrements neufs pour les nouvelles valeurs.** Une écriture qui change une valeur
   remplace son enregistrement par un nouveau, non relu ; une écriture qui laisse valeur et source
   inchangées le garde.

@@ -30,7 +30,7 @@ LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--ma
 - A `sensitiveData` block scans what a run is about to send for API keys, email addresses, IBANs
   and card numbers (plus opt-in `phone`, `ip`, `private-host` and your own `patterns`). `warn`
   reports it, `block` withholds the key (`sensitiveWithheld`, exit 1), and `redact` sends a token
-  and restores the match. Off unless configured; `init` writes `warn`.
+  and restores the match. Off unless configured; `init` writes `warn` for a machine provider.
 - `check --sensitive` runs the same scan without a key and exits 1 on any finding. A false
   positive goes into `sensitiveData.allow`.
 

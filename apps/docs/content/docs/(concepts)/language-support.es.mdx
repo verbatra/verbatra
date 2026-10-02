@@ -52,8 +52,8 @@ Lo que significa en la práctica:
   señalan los resultados más sospechosos.
 - **DeepL y Google Cloud Translation** tienen una lista cerrada, que se comprueba antes de una
   ejecución. Como LibreTranslate, [enmascaran los placeholders](/docs/providers#deepl) y retienen un
-  valor que no pueden proteger, como la sintaxis ICU de plural, select o number, o el marcado junto
-  a un placeholder.
+  valor que no pueden proteger, como la sintaxis ICU de plural, select o number, el marcado junto
+  a un placeholder o, en Google, un salto de línea, un tabulador o un espacio doble.
 - **LibreTranslate** sirve los modelos que haya instalado tu servidor.
 - Un `tone` o un glosario que un proveedor no puede respetar se informa como aviso, nunca se descarta
   en silencio. Consulta
@@ -66,8 +66,7 @@ Lo que significa en la práctica:
 DeepL recibe sus propias variantes (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) y descarta cualquier otra
 región o escritura; no tiene destino genérico para inglés ni portugués, así que un destino `en` o
 `pt` sin más falla antes de cualquier petición. Google Cloud Translation recibe el chino como
-`zh-CN` o `zh-TW` y `nb` como `no`. LibreTranslate recibe solo el idioma, salvo el portugués de
-Brasil y las dos escrituras del chino. Los proveedores LLM reciben el código tal como está escrito,
+`zh-CN` o `zh-TW` y `nb` como `no`. Los proveedores LLM reciben el código tal como está escrito,
 más el nombre en inglés del idioma, la escritura y la región, y se les pide escribir en esa
 escritura y esa variante; consulta
 [Nombres de idioma, escritura y región](/docs/translation-safety#nombres-de-idioma-escritura-y-región).
@@ -136,8 +135,9 @@ inclusión.
 verbatra lee qué categorías de plural necesita un idioma de las reglas CLDR de los datos ICU
 integrados en Node.js, ordinales incluidos, así que se trata cada idioma que cubre CLDR: el inglés
 tiene dos categorías cardinales, el ruso y el polaco cuatro, el árabe y el galés seis, el japonés
-solo `other`. Para un locale del que Node.js no tiene reglas, se asume que los cardinales necesitan
-`one` y `other`. La comprobación `plural-rules` de [`verbatra doctor`](/docs/cli/doctor) nombra ese
+solo `other`. Para un locale del que Node.js no tiene reglas, el aviso de la ejecución asume que los
+cardinales necesitan `one` y `other`; la puerta de integridad, `check` y `doctor` solo exigen
+`other`. La comprobación `plural-rules` de [`verbatra doctor`](/docs/cli/doctor) nombra ese
 locale.
 
 Cómo se mantiene correcto un plural depende del formato:

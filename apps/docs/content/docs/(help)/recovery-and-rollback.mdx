@@ -1,9 +1,9 @@
 ---
 title: Undo a run
-description: How to undo a translate run, why the locale files and the lock file must be reverted together, and what an interrupted run leaves behind.
+description: How to undo a translate run, why the locale files, the lock file and the provenance file must be reverted together, and what an interrupted run leaves behind.
 type: how-to
 ---
-Use this when a run produced translations you do not want: the wrong tone, the wrong model, a glossary you forgot. verbatra has no undo command and keeps no backups. Version control is the recovery mechanism, which is why the locale files and the lock file are committed: together they are the snapshot you go back to.
+Use this when a run produced translations you do not want: the wrong tone, the wrong model, a glossary you forgot. verbatra has no undo command and keeps no backups. Version control is the recovery mechanism, which is why the locale files, the lock file and the provenance file are committed: together they are the snapshot you go back to.
 
 You need the project in git, with the state before the run committed.
 
@@ -20,11 +20,11 @@ A `translate`, `watch` or `import` run writes the files a rollback cares about:
 
 <AvailableFrom version="0.12.0" />
 
-A run also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two. Forgetting it breaks nothing: a record that no longer matches its value reads as `external`, so a mismatch loses information but never claims the wrong author.
+A run also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two, or delete it if this run created it. Forgetting it is not harmless: a reverted value no longer matches its record, so it reads as `external`, counts as a human edit under the default `humanEdits: protect`, and is never translated again.
 
 ## Roll back a completed run
 
-If the run is not committed yet, discard the locale files and the lock file together:
+If the run is not committed yet, discard the locale files and the lock file together, then the provenance file:
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
@@ -43,17 +43,19 @@ If the run is already committed, revert that commit:
 git revert <commit>
 ```
 
-Either way, restore the locale files and `verbatra.lock.json` in the same operation. The next section is why.
+Either way, restore the locale files, `verbatra.lock.json` and `verbatra.provenance.json` in the same operation. The next section is why.
 
-## Why both files, or neither
+## Why all three files, or none
 
-The lock file records a hash of the **source** value behind each translation, and nothing about the translated value itself. Reverting one file without the other leaves them describing different points in time.
+The lock file records a hash of the **source** value behind each translation, and nothing about the translated value itself; the provenance file records who wrote each value, keyed to a hash of that value. Reverting one file without the others leaves them describing different points in time.
 
 **Only the locale files.** The lock still says every key is current. On the next run, a key the revert restored is present and its hash matches the source, so it is never sent again: the old value stays in place for good. Only keys the run newly created come back as missing. `check` and `diff` compare against the same baseline, so they report the locale as clean, and nothing tells you those translations are out of date.
 
 **Only the lock file.** The restored hashes are older than the current source, so the affected keys read as changed. The next run translates them again and overwrites the locale files, including hand corrections made since. You pay twice and lose the edits.
 
-**Both.** The hashes and the translations go back to the same point, and the next run behaves as if the bad run never happened.
+**Without the provenance file.** The reverted values no longer match their records, so they read as `external`, and under the default `humanEdits: protect` they are never translated again.
+
+**All three.** The hashes, the records and the translations go back to the same point, and the next run behaves as if the bad run never happened.
 
 ## Re-run after a rollback
 

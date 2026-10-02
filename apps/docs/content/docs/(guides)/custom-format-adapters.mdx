@@ -20,7 +20,7 @@ A format from outside verbatra is `custom:` followed by a lowercase, hyphen-sepa
   "targetLocales": ["de"],
   "format": "custom:toml",
   "files": { "pattern": "locales/{locale}.toml" },
-  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash" } }
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash", "maxOutputTokens": 4096 } }
 }
 ```
 

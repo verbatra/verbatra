@@ -34,7 +34,7 @@ Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`
 | Markieren | der Wert steht zwischen `[` und `]`, ein abgeschnittener oder zusammengesetzter String fällt also sofort auf |
 
 Aus `Hello {{name}}, you have {{count}} unread messages` wird
-`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś······]`.
+`[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Nur übersetzbarer Text ändert sich. Platzhalter überleben in jeder Syntax, die die [Format-Adapter](/docs/formats) kennen, und in einer ICU-Nachricht bleiben Argumentnamen, die Schlüsselwörter `plural` und `select` und die Zweig-Selektoren unverändert. Durch Pipes getrennte Pluralformen von vue-i18n werden einzeln umgewandelt: `car | cars` wird zu `[ćáŕ··] | [ćáŕś··]`. Die Transformation ist deterministisch, die Datei lässt sich also sauber diffen.
 

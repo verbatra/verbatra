@@ -96,15 +96,15 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist.
+`pseudo --locale` kein Sprach-Tag aus Buchstaben, Ziffern und Bindestrichen ist oder ein Locale, das bei einer interaktiven `init`-Abfrage eingegeben wurde, kein BCP-47-Code ist (die Flags `--source` und `--targets` scheitern stattdessen mit `CONFIG_INVALID`).
 
-- **Ausgelöst von**: `pseudo`
+- **Ausgelöst von**: `pseudo`, `init`
 - **Exit-Code**: `2`
-- **Nächster Schritt**: Pass --locale as a language tag of letters, digits and hyphens, such as en-XA.
+- **Nächster Schritt**: Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
 
 ### INVALID_LOCALES
 
-`--locales` angegeben wurde, aber kein Locale auflistet.
+`--locales` angegeben wurde, aber kein Locale auflistet, oder die bei einer interaktiven `init`-Abfrage eingegebenen Ziel-Locales das Quell-Locale enthalten.
 
 - **Ausgelöst von**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Exit-Code**: `2`
@@ -128,7 +128,7 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 ### INVALID_OPTION
 
-Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `init --cwd` kein vorhandenes Verzeichnis nennt oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency` oder `--require-reviewed` kommt.
+Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `init --cwd` kein vorhandenes Verzeichnis nennt oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` kommt.
 
 - **Ausgelöst von**: `init`, `doctor`, `check`
 - **Exit-Code**: `2`
@@ -268,7 +268,7 @@ Der Key passt auf die `pinnedKeys` der Konfiguration, also wurde ein maschinelle
 
 ### PROVIDER_CONSTRUCTION_FAILED
 
-Der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys.
+Der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys. Bei einem fehlenden Key nennt der Hinweis statt des nächsten Schritts unten die Variable, etwa `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` Das SDK liest keine `.env`-Datei.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server
 - **Exit-Code**: `2`
@@ -1212,7 +1212,7 @@ Unter `sensitiveData.mode: "warn"` enthalten Keys oder Glossarbegriffe, die dies
 
 ### SENSITIVE_CONTENT_REDACTED
 
-Unter `"redact"` wurden die Treffer in den Werten dieser Keys vor dem Senden durch Tokens ersetzt und in der Übersetzung wieder eingesetzt.
+Unter `"redact"` wurden die Treffer in den Werten dieser Keys vor dem Senden durch Tokens ersetzt und in der Übersetzung wieder eingesetzt. Die Meldung nennt die ersten Keys vollständig, ein Treffer in einem Key-Namen steht also darin.
 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: keiner
@@ -1220,7 +1220,7 @@ Unter `"redact"` wurden die Treffer in den Werten dieser Keys vor dem Senden dur
 
 ### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
 
-Unter `"block"` oder `"redact"` wurden Keys wegen eines Treffers nicht gesendet und stehen in `sensitiveWithheld`, oder Glossarbegriffe mit einem Treffer blieben aus dem Request. Unter `"redact"` wird ein Key zurückgehalten, wenn der Treffer in seinem Key-Namen liegt oder einen Platzhalter überlappt, oder wenn ein Token nicht genau einmal zurückkam.
+Unter `"block"` oder `"redact"` wurden Keys wegen eines Treffers nicht gesendet und stehen in `sensitiveWithheld`, oder Glossarbegriffe mit einem Treffer blieben aus dem Request. Unter `"redact"` wird ein Key zurückgehalten, wenn der Treffer in seinem Key-Namen liegt oder einen Platzhalter überlappt, oder wenn ein Token nicht genau einmal zurückkam. Die Meldung nennt die ersten Keys vollständig, ein Treffer in einem Key-Namen steht also darin.
 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: `1`, da ein zurückgehaltener Key die Locale `partial` oder `failed` lässt

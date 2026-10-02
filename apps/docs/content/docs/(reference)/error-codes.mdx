@@ -96,15 +96,15 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_LOCALE
 
-`pseudo --locale` is not a language tag made of letters, digits, and hyphens.
+`pseudo --locale` is not a language tag made of letters, digits, and hyphens, or a locale answered at an interactive `init` prompt is not a BCP 47 code (the `--source` and `--targets` flags fail with `CONFIG_INVALID` instead).
 
-- **Raised by**: `pseudo`
+- **Raised by**: `pseudo`, `init`
 - **Exit code**: `2`
-- **Next step**: Pass --locale as a language tag of letters, digits and hyphens, such as en-XA.
+- **Next step**: Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
 
 ### INVALID_LOCALES
 
-`--locales` was given but lists no locale.
+`--locales` was given but lists no locale, or the target locales answered at an interactive `init` prompt include the source locale.
 
 - **Raised by**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
 - **Exit code**: `2`
@@ -128,7 +128,7 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_OPTION
 
-An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency` or `--require-reviewed`.
+An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`.
 
 - **Raised by**: `init`, `doctor`, `check`
 - **Exit code**: `2`
@@ -268,7 +268,7 @@ The key matches the config's `pinnedKeys`, so a machine write was refused (`retr
 
 ### PROVIDER_CONSTRUCTION_FAILED
 
-The provider could not be built; wraps the provider's own error, including a missing API key.
+The provider could not be built; wraps the provider's own error, including a missing API key. For a missing key the hint names the variable instead of the next step below, such as `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` The SDK reads no `.env` file.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server
 - **Exit code**: `2`
@@ -1197,7 +1197,7 @@ Under `sensitiveData.mode: "warn"`, keys or glossary terms this locale sent hold
 
 ### SENSITIVE_CONTENT_REDACTED
 
-Under `"redact"`, the matches in these keys' values were replaced by tokens before sending and restored in the translation.
+Under `"redact"`, the matches in these keys' values were replaced by tokens before sending and restored in the translation. The message names the first keys in full, so a match inside a key name appears in it.
 
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: none
@@ -1205,7 +1205,7 @@ Under `"redact"`, the matches in these keys' values were replaced by tokens befo
 
 ### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
 
-Under `"block"` or `"redact"`, keys were not sent because of a match and are listed in `sensitiveWithheld`, or glossary terms with a match were left out of the request. Under `"redact"` a key is withheld when the match is in its key name or overlaps a placeholder, or a token did not come back exactly once.
+Under `"block"` or `"redact"`, keys were not sent because of a match and are listed in `sensitiveWithheld`, or glossary terms with a match were left out of the request. Under `"redact"` a key is withheld when the match is in its key name or overlaps a placeholder, or a token did not come back exactly once. The message names the first keys in full, so a match inside a key name appears in it.
 
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: `1`, since a withheld key leaves the locale `partial` or `failed`

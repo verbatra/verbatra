@@ -89,7 +89,7 @@ Die Seite Translations markiert einen geschützten Key als **Protected** und fü
 
 ## Sonderfälle
 
-- **Eine Herkunftsdatei aus einer neueren verbatra-Version.** Keine Herkunft lässt sich lesen, also ist jeder veraltete Key mit Wert geschützt, bis du aktualisierst.
+- **Eine Herkunftsdatei aus einer neueren verbatra-Version.** Keine Herkunft lässt sich lesen, also schützt `translate` jeden veralteten Key mit Wert, bis du aktualisierst, während `check` und `diff` nur gepinnte Keys als geschützt auflisten.
 - **Eine beschädigte Herkunftsdatei.** `translate` scheitert, auch als Dry Run, mit [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid). `check` und `diff` funktionieren weiter und führen nur gepinnte Keys als geschützt.
 - **Rein menschliche Projekte.** Geschützte Keys zählen zum Exit-Code `3`, wie Keys, die das Übersetzungsgedächtnis nicht füllen konnte: Beide brauchen einen Menschen.
 

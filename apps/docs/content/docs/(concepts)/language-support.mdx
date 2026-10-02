@@ -48,7 +48,8 @@ What that means in practice:
   [Review flags](/docs/translation-safety#review-flags) point at the most suspicious results.
 - **DeepL and Google Cloud Translation** have a closed list, checked before a run. Like
   LibreTranslate, they [mask placeholders](/docs/providers#deepl) and withhold a value they cannot
-  protect, such as ICU plural, select or number syntax, or markup beside a placeholder.
+  protect, such as ICU plural, select or number syntax, markup beside a placeholder, or, on Google,
+  a line break, tab or double space.
 - **LibreTranslate** serves whatever models your server installed.
 - A `tone` or glossary a provider cannot honor is reported as a notice, never dropped silently. See
   [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
@@ -60,7 +61,6 @@ What that means in practice:
 DeepL gets its own variants (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) and drops any other region or
 script; it has no generic English or Portuguese target, so a bare `en` or `pt` target fails before
 any request. Google Cloud Translation gets Chinese as `zh-CN` or `zh-TW` and `nb` as `no`.
-LibreTranslate gets the language alone, except Brazilian Portuguese and the two Chinese scripts.
 LLM providers get the code as written, plus the English name of the language, script and region,
 and are told to write in that script and variant; see
 [Language, script and region names](/docs/translation-safety#language-script-and-region-names).
@@ -125,7 +125,8 @@ term in a script without spaces between words is matched by containment.
 verbatra reads which plural categories a language needs from the CLDR rules in the ICU data built
 into Node.js, ordinals included, so every language CLDR covers is handled: English has two cardinal
 categories, Russian and Polish four, Arabic and Welsh six, Japanese only `other`. For a locale
-Node.js has no rules for, cardinals are assumed to need `one` and `other`. The `plural-rules` check
+Node.js has no rules for, the run notice assumes cardinals need `one` and `other`; the integrity
+gate, `check` and `doctor` require only `other`. The `plural-rules` check
 of [`verbatra doctor`](/docs/cli/doctor) names such a locale.
 
 How a plural is kept correct depends on the format:
@@ -181,13 +182,13 @@ For a language your hosted provider covers poorly, there are three routes:
   [TranslateGemma](https://huggingface.co/google/translategemma-4b-it) (55 languages, Gemma terms of
   use), and [NLLB-200](https://huggingface.co/facebook/nllb-200-distilled-600M) (about 200
   languages, but CC-BY-NC-4.0, so not for a commercial product). Check each model's license
-  yourself before relying on it.
+  yourself.
 - **Have a person translate.** The [human-only workflow](/docs/human-only-workflow) works for any
   language.
 
 ## Related
 
 - [Add a language](/docs/add-a-language): the config change and the first run.
-- [Providers](/docs/providers): options, keys and the full locale code mapping.
+- [Providers](/docs/providers): the full locale code mapping.
 - [`verbatra doctor`](/docs/cli/doctor): the locale support and plural checks.
 - [Translation safety](/docs/translation-safety): the checks every translation passes.

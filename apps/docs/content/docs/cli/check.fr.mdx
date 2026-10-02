@@ -142,7 +142,7 @@ Avec `--json`, `result.sensitive` vaut `{ findings, glossaryTerms }`, chaque tro
 
 `--file <path>` vérifie un seul fichier de locale, pour les hooks d'éditeur et d'agent après une modification. Il lit ce fichier et, pour une locale cible, le fichier source, rien d'autre. Le chemin est résolu par rapport à `--cwd` et associé à sa locale via `files.pattern`.
 
-- Un fichier illisible donne une erreur `syntax` avec le code de l'adaptateur (`INVALID_JSON`, `INVALID_YAML`, ...) et, pour JSON et YAML, la ligne et la colonne.
+- Un fichier illisible donne une erreur `syntax` avec le code de l'adaptateur (`INVALID_JSON`, `INVALID_YAML`, ...) et la ligne et la colonne quand l'analyseur signale une position.
 - Un fichier cible est vérifié comme avec [`--qa`](#contrôle-qualité), catégories de pluriel comprises ; un fichier source, pour sa syntaxe seulement. Un catalogue `apple-xcstrings` est vérifié pour chaque locale cible.
 - Un chemin qui n'est le fichier d'aucune locale configurée échoue avec `NOT_A_LOCALE_FILE` et la sortie `2`.
 
@@ -161,7 +161,7 @@ interface CheckFileSummary {
 }
 interface QaSyntaxFinding {
   severity: "error"; reason: "syntax"; code: string; message: string;
-  line?: number; column?: number;       // JSON et YAML seulement, compté à partir de 1
+  line?: number; column?: number;       // si l'analyseur signale une position, compté à partir de 1
 }
 ```
 

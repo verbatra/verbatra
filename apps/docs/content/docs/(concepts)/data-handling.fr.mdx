@@ -12,7 +12,7 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
 - **Une seule destination sortante : ton fournisseur**, seulement quand une commande traduit ;
   aucune avec `provider: { id: "none" }`.
 - **Seul ce qui doit être traduit est envoyé** : ni clés inchangées, ni succès du cache, ni clés
-  protégées.
+  protégées (sauf les modifications humaines obsolètes avec `humanEdits: "suggest"`).
 - **Tout le reste reste local** : Studio sur `127.0.0.1`, le serveur MCP via stdio.
 - **Les clés d'API viennent uniquement de variables d'environnement** et n'apparaissent jamais dans
   un message.
@@ -56,7 +56,7 @@ le nom d'hôte du fournisseur.
 | --- | --- | --- |
 | `anthropic`, `openai`, `gemini`, `openai-compatible` | Par clé : le nom de la clé, le texte source, et la description ou le sens que porte ton fichier source (une `description` ARB, une note XLIFF, un commentaire gettext). Par requête : les codes source et cible (après [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms anglais, ton `tone`, les termes du glossaire de la locale cible, les catégories de pluriel de la cible quand un lot contient des pluriels, les instructions fixes de verbatra, le nom du modèle et une limite de tokens de sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée. Une variable `*_BASE_URL` redirige les fournisseurs hébergés, voir [Politique réseau](/docs/network-policy#fournisseurs-hébergés). |
 | `deepl` | Le texte source de chaque clé, avec les placeholders en marqueurs numérotés dans une balise `<x>` ignorée (une valeur dont les placeholders ne peuvent pas être protégés n'est pas envoyée) <AvailableFrom version="0.12.0" />, les codes de langue, un réglage de formalité quand ton `tone` en demande un avec une clé payante, et ton `glossaryId`. Ni noms de clé, ni descriptions, ni termes de glossaire. | `api.deepl.com`, ou `api-free.deepl.com` pour une clé qui finit par `:fx`. |
-| `google-translate` | Le texte source de chaque clé, avec les placeholders en marqueurs numérotés dans un `span` `translate="no"` (une valeur dont les placeholders ne peuvent pas être protégés n'est pas envoyée) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
+| `google-translate` | Le texte source de chaque clé, avec les placeholders en marqueurs numérotés dans un `span` `translate="no"` (une valeur avec placeholders n'est pas envoyée s'ils ne peuvent pas être protégés ou si elle contient aussi un saut de ligne, une tabulation ou un double espace) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
 | `libretranslate` | Le texte source de chaque clé avec ses placeholders remplacés par des marqueurs numérotés (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
 | `none` | Rien. | Nulle part. |
 
@@ -73,9 +73,9 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 | --- | --- |
 | `warn` | Envoie comme d'habitude ; un avis nomme les clés. |
 | `block` | Retient la clé, donc la locale se termine `partial`. |
-| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. |
+| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL et Google, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
 
-`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. La protection est désactivée par défaut ; `verbatra init` écrit `warn`. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
+`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. La protection est désactivée par défaut ; `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 
 ## Conservation et traitement des données chez le fournisseur
 
@@ -84,7 +84,7 @@ anglais d'origine, en septembre 2026 ; les conditions changent et ton contrat pr
 
 | Fournisseur | Ce que dit le fournisseur | Traitement des données |
 | --- | --- | --- |
-| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([conservation](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products (e.g. Claude for Work, Anthropic API, Claude Gov, etc.) to train our models" ([entraînement](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). La conservation zéro se négocie par organisation avec l'équipe commerciale d'Anthropic ([conservation zéro](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([conservation](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products [...] to train our models" ([entraînement](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). La conservation zéro se négocie par organisation avec l'équipe commerciale d'Anthropic ([conservation zéro](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
 | OpenAI | "data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)"; "abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law". Zero Data Retention et Modified Abuse Monitoring "are subject to prior approval by OpenAI", et `/v1/chat/completions`, le endpoint qu'appelle verbatra, y figure comme éligible ([your data](https://developers.openai.com/api/docs/guides/your-data)). | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
 | Gemini | Sur le niveau gratuit (Unpaid Services), "human reviewers may read, annotate, and process your API input and output", et les conditions disent "Do not submit sensitive, confidential, or personal information to the Unpaid Services". Sur les Paid Services, "Google doesn't use your prompts [...] or responses to improve our products" et les journalise "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy". Dans l'EEE, en Suisse et au Royaume-Uni, les conditions des Paid Services s'appliquent à tout usage, niveau gratuit compris ([Gemini API terms](https://ai.google.dev/gemini-api/terms)). verbatra n'utilise ni le grounding ni le cache explicite, que la page de [conservation zéro](https://ai.google.dev/gemini-api/docs/zdr) de Google exclut. | [Processor terms](https://business.safety.google/processorterms/), que les Gemini API terms citent pour les Paid Services |
 | DeepL | Pour DeepL API Free, la [politique de confidentialité](https://www.deepl.com/en/privacy) applique la règle du service gratuit : "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Pour Pro, "your texts will not be used to improve the quality of our services", et "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auquel renvoient les [conditions DeepL Pro](https://www.deepl.com/en/pro-license) |
@@ -123,7 +123,7 @@ Déplacée vers
 ## Clés d'API
 
 Les erreurs du fournisseur et la sortie de la CLI remplacent par `[REDACTED]` la valeur de chaque
-[variable de clé](/docs/providers#les-clés-viennent-de-lenvironnement) connue, ainsi que tout ce qui
+[variable de clé](/docs/providers#les-clés-viennent-de-lenvironnement) connue, si elle compte 8 caractères ou plus, ainsi que tout ce qui
 ressemble à une clé d'API.
 
 ## Studio et MCP

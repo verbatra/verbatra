@@ -71,7 +71,7 @@ A stale key whose value a person wrote, imported, or changed outside verbatra is
 
 <AvailableFrom version="0.12.0" />
 
-In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) no provider is called. Keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and exits `3`; a failed or partial locale still wins with `1`. A dry run reads the memory here, so its plan shows the same `cacheHits` and `unfilled` keys, and `--estimate` reports nothing billed. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
+In a [human-only](/docs/human-only-workflow) project (`provider: { id: "none" }`) no provider is called. Keys the translation memory covers are written, and every other missing or changed key is listed as `unfilled` and exits `3`; a failed or partial locale still wins with `1`. A dry run reads the memory here, so its plan shows the same `cacheHits` and `unfilled` keys, and `--estimate` reports nothing billed; both exit `3` the same way. Hand the `unfilled` keys off with [`verbatra export`](/docs/cli/export).
 
 ### Failed and partial locales
 
@@ -156,7 +156,7 @@ verbatra translate --include-human
 | `0` | every target locale came out complete |
 | `1` | the run finished, but a locale failed or came out partial |
 | `2` | could not run: a config, source, format, provider, unsupported-locale, or lock-file error, or a usage error |
-| `3` | human-only project: the run finished cleanly, but keys are left for a human translation |
+| `3` | human-only project: the run (a dry run or `--estimate` included) finished cleanly, but keys are left for a human translation |
 | `130` | interrupted with Ctrl-C (SIGINT) after releasing the write locks |
 | `143` | stopped with SIGTERM after releasing the write locks |
 

@@ -119,7 +119,7 @@ import { errorHint, translate } from "@verbatra/sdk";
 try {
   await translate({ config });
 } catch (error) {
-  console.error(errorHint(error)); // p. ex. "Set GEMINI_API_KEY in the environment or in a .env file in the project directory."
+  console.error(errorHint(error)); // p. ex. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
 }
 ```
 

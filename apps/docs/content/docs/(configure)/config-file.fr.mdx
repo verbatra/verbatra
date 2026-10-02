@@ -31,7 +31,7 @@ export default defineConfig({
 
 ## Chaque clé
 
-Les clés inconnues sont rejetées à chaque niveau, à la seule exception de `$schema`, et c'est aussi pourquoi une clé d'API ne peut pas se trouver dans la configuration.
+Les clés inconnues sont rejetées à chaque niveau sauf `$schema`, et c'est aussi pourquoi une clé d'API ne peut pas se trouver dans la configuration.
 
 | Clé | Type | Défaut | Depuis | Rôle |
 | --- | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ Chaque code de locale doit être une étiquette qu'accepte `Intl.getCanonicalLoc
 
 ### provider
 
-`provider.id` sélectionne l'un des [fournisseurs](/docs/providers) ou `none`. Depuis 0.12.0, toute clé sous `provider` autre que `id` et `options`, comme un `localeMap` mal placé, échoue avec `CONFIG_INVALID`. Tous les fournisseurs sauf `none` acceptent `options.localeMap` et `options.requestTimeoutMs` ([Fournisseurs](/docs/providers#codes-de-locale-envoyés-au-fournisseur)). Pour `none`, `options` peut être omis et doit sinon valoir `{}` ([Travailler sans traduction automatique](/docs/human-only-workflow)).
+`provider.id` sélectionne l'un des [fournisseurs](/docs/providers) ou `none`. Depuis 0.12.0, une clé mal placée sous `provider`, comme `localeMap`, échoue avec `CONFIG_INVALID`. Tous les fournisseurs sauf `none` acceptent `options.localeMap` et `options.requestTimeoutMs` ([Fournisseurs](/docs/providers#codes-de-locale-envoyés-au-fournisseur)). Pour `none`, `options` peut être omis et doit sinon valoir `{}` ([Travailler sans traduction automatique](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -278,7 +278,7 @@ extract: {
 
 ## Ordre de découverte
 
-verbatra cherche vers le haut depuis le répertoire de travail et utilise la première source qu'il trouve, en s'arrêtant au répertoire le plus proche qui contient `.git` (ou à ton répertoire personnel), donc il ne prend jamais une configuration située au-dessus de ton dépôt :
+verbatra cherche vers le haut depuis le répertoire de travail et utilise la première source qu'il trouve, en s'arrêtant au répertoire le plus proche qui contient `.git`, sinon à ton répertoire personnel, ou au répertoire de travail lui-même quand ton répertoire personnel n'est pas au-dessus, donc il ne prend jamais une configuration située au-dessus de ton dépôt :
 
 1. `package.json` (une propriété `"verbatra"`)
 2. `.verbatrarc`
@@ -336,6 +336,14 @@ Une configuration YAML prend un commentaire pour le YAML Language Server :
 # yaml-language-server: $schema=./node_modules/@verbatra/sdk/dist/config-schema.json
 sourceLocale: en
 targetLocales: [de, fr]
+format: i18next-json
+files:
+  pattern: "locales/{locale}.json"
+provider:
+  id: gemini
+  options:
+    model: gemini-2.5-flash
+    maxOutputTokens: 4096
 ```
 
 La propriété du `package.json` ne peut pas recevoir de schéma ; les formes exécutables sont typées par `defineConfig` à la place.
@@ -345,11 +353,11 @@ La propriété du `package.json` ne peut pas recevoir de schéma ; les formes ex
 Ces règles n'ont aucune expression en JSON Schema, donc seul le chargement de la configuration les vérifie :
 
 - `targetLocales` ne doit pas inclure `sourceLocale`, ni deux locales qui ne diffèrent que par la casse.
-- Un code de locale doit passer `Intl.getCanonicalLocales` (la grammaire ne voit pas une variante répétée comme `de-1996-1996`).
+- Un code de locale doit passer `Intl.getCanonicalLocales`.
 - Chaque clé de `provider.options.localeMap` doit être `sourceLocale` ou une locale cible.
 - `apiKeyEnvVar` (openai-compatible) ne doit pas nommer la variable de clé d'un fournisseur hébergé.
 - Une entrée de `network.allowedHosts` doit être une adresse ou une plage valide (pas un octet au-delà de 255, un préfixe CIDR trop long ni un IPv6 mal formé).
-- Une entrée de `sensitiveData.patterns` doit être une expression régulière valide.
+- Une entrée de `sensitiveData.patterns` doit être une expression régulière valide qui respecte les [règles de sécurité des motifs](/docs/data-handling#protection-des-contenus-sensibles).
 - Un glossaire version 2 en ligne doit respecter les règles des termes décrites sous [glossary](#glossaire-par-locale-version-2).
 
 ## Le répertoire de travail et .env
@@ -359,6 +367,6 @@ Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) ancre la rech
 ## Quand le chargement échoue
 
 - [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found) : aucune configuration à aucun des endroits cherchés, ou le chemin `--config` n'existe pas.
-- [`CONFIG_INVALID`](/docs/error-codes#config_invalid) : une configuration a été trouvée mais n'est pas utilisable : elle ne s'analyse pas, échoue à la validation ou nomme un fichier de glossaire illisible. Le message liste chaque problème avec son chemin de clé, et une clé de premier niveau inconnue ajoute l'indice que les clés d'API viennent de l'environnement. Un échec d'analyse nomme le fichier (avec la ligne et la colonne pour YAML) mais ne cite jamais son contenu, et chaque message passe par la rédaction des clés.
+- [`CONFIG_INVALID`](/docs/error-codes#config_invalid) : une configuration a été trouvée mais n'est pas utilisable : elle ne s'analyse pas, échoue à la validation ou nomme un fichier de glossaire illisible. Le message liste chaque problème avec son chemin de clé, et une clé inconnue à n'importe quel niveau ajoute l'indice que les clés d'API viennent de l'environnement. Un échec d'analyse nomme le fichier (avec la ligne et la colonne pour YAML) mais ne cite jamais son contenu, et chaque message passe par la rédaction des clés.
 
 La CLI sort avec `2` dans les deux cas.

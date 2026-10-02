@@ -1,9 +1,9 @@
 ---
 title: Einen Lauf rückgängig machen
-description: Wie du einen translate-Lauf rückgängig machst, warum Locale-Dateien und Lock-Datei gemeinsam zurückgesetzt werden müssen und was ein unterbrochener Lauf hinterlässt.
+description: Wie du einen translate-Lauf rückgängig machst, warum Locale-Dateien, Lock-Datei und Herkunftsdatei gemeinsam zurückgesetzt werden müssen und was ein unterbrochener Lauf hinterlässt.
 type: how-to
 ---
-Nutze das, wenn ein Lauf Übersetzungen erzeugt hat, die du nicht willst: den falschen Ton, das falsche Modell, ein vergessenes Glossar. verbatra hat keinen Rückgängig-Befehl und legt keine Sicherungen an. Die Versionsverwaltung ist der Wiederherstellungsweg, und deshalb werden die Locale-Dateien und die Lock-Datei committet: Zusammen sind sie der Stand, zu dem du zurückkehrst.
+Nutze das, wenn ein Lauf Übersetzungen erzeugt hat, die du nicht willst: den falschen Ton, das falsche Modell, ein vergessenes Glossar. verbatra hat keinen Rückgängig-Befehl und legt keine Sicherungen an. Die Versionsverwaltung ist der Wiederherstellungsweg, und deshalb werden die Locale-Dateien, die Lock-Datei und die Herkunftsdatei committet: Zusammen sind sie der Stand, zu dem du zurückkehrst.
 
 Du brauchst das Projekt in git, mit dem Stand vor dem Lauf committet.
 
@@ -20,11 +20,11 @@ Ein `translate`-, `watch`- oder `import`-Lauf schreibt die Dateien, um die sich 
 
 <AvailableFrom version="0.12.0" />
 
-Außerdem schreibt ein Lauf `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her. Wenn du sie vergisst, geht nichts kaputt: Ein Eintrag, der nicht mehr zu seinem Wert passt, gilt als `external`, also verliert ein Abweichen nur Information und schreibt nie den falschen Autor zu.
+Außerdem schreibt ein Lauf `verbatra.provenance.json`, das festhält, wer welchen Wert geschrieben hat. Stell sie zusammen mit den anderen beiden wieder her, oder lösch sie, wenn dieser Lauf sie angelegt hat. Sie zu vergessen ist nicht harmlos: Ein zurückgesetzter Wert passt nicht mehr zu seinem Eintrag, gilt also als `external`, zählt beim Standard `humanEdits: protect` als menschliche Änderung und wird nie wieder übersetzt.
 
 ## Einen abgeschlossenen Lauf zurückrollen
 
-Ist der Lauf noch nicht committet, verwirf die Locale-Dateien und die Lock-Datei gemeinsam:
+Ist der Lauf noch nicht committet, verwirf die Locale-Dateien und die Lock-Datei gemeinsam, danach die Herkunftsdatei:
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
@@ -43,17 +43,19 @@ Ist der Lauf schon committet, mach den Commit rückgängig:
 git revert <commit>
 ```
 
-In beiden Fällen stellst du die Locale-Dateien und `verbatra.lock.json` im selben Schritt wieder her. Der nächste Abschnitt erklärt, warum.
+In beiden Fällen stellst du die Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json` im selben Schritt wieder her. Der nächste Abschnitt erklärt, warum.
 
-## Warum beide Dateien oder keine
+## Warum alle drei Dateien oder keine
 
-Die Lock-Datei hält einen Hash des **Quell**werts hinter jeder Übersetzung fest und nichts über den übersetzten Wert selbst. Setzt du eine Datei ohne die andere zurück, beschreiben die beiden verschiedene Zeitpunkte.
+Die Lock-Datei hält einen Hash des **Quell**werts hinter jeder Übersetzung fest und nichts über den übersetzten Wert selbst; die Herkunftsdatei hält fest, wer jeden Wert geschrieben hat, verknüpft mit einem Hash dieses Werts. Setzt du eine Datei ohne die anderen zurück, beschreiben sie verschiedene Zeitpunkte.
 
 **Nur die Locale-Dateien.** Die Lock-Datei sagt weiter, dass jeder Key aktuell ist. Beim nächsten Lauf ist ein zurückgesetzter Key vorhanden und sein Hash passt zur Quelle, also wird er nie wieder gesendet: Der alte Wert bleibt dauerhaft stehen. Nur Keys, die der Lauf neu angelegt hat, kommen als fehlend zurück. `check` und `diff` vergleichen mit derselben Baseline, melden die Locale also als sauber, und nichts sagt dir, dass diese Übersetzungen veraltet sind.
 
 **Nur die Lock-Datei.** Die wiederhergestellten Hashes sind älter als die aktuelle Quelle, also gelten die betroffenen Keys als geändert. Der nächste Lauf übersetzt sie erneut und überschreibt die Locale-Dateien, samt Korrekturen von Hand, die seitdem gemacht wurden. Du zahlst doppelt und verlierst die Änderungen.
 
-**Beide.** Hashes und Übersetzungen gehen auf denselben Zeitpunkt zurück, und der nächste Lauf verhält sich, als hätte es den missglückten Lauf nie gegeben.
+**Ohne die Herkunftsdatei.** Die zurückgesetzten Werte passen nicht mehr zu ihren Einträgen, gelten also als `external` und werden beim Standard `humanEdits: protect` nie wieder übersetzt.
+
+**Alle drei.** Hashes, Einträge und Übersetzungen gehen auf denselben Zeitpunkt zurück, und der nächste Lauf verhält sich, als hätte es den missglückten Lauf nie gegeben.
 
 ## Nach einem Rollback neu laufen lassen
 

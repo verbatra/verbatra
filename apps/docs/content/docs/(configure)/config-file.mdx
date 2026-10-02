@@ -31,7 +31,7 @@ export default defineConfig({
 
 ## Every key
 
-Unknown keys are rejected at every level, with `$schema` as the single exception, which is also why an API key cannot live in the config.
+Unknown keys are rejected at every level except `$schema`, which is also why an API key cannot live in the config.
 
 | Key | Type | Default | Since | Effect |
 | --- | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ Every locale code must be a tag `Intl.getCanonicalLocales` accepts, with a two- 
 
 ### provider
 
-`provider.id` selects one of the [providers](/docs/providers), or `none`. From 0.12.0 any key under `provider` besides `id` and `options`, such as a misplaced `localeMap`, fails with `CONFIG_INVALID`. Every provider except `none` accepts `options.localeMap` and `options.requestTimeoutMs` ([Providers](/docs/providers#locale-codes-sent-to-the-provider)). For `none`, `options` may be omitted and must otherwise be `{}` ([Run without machine translation](/docs/human-only-workflow)).
+`provider.id` selects one of the [providers](/docs/providers), or `none`. From 0.12.0 a misplaced key under `provider`, such as `localeMap`, fails with `CONFIG_INVALID`. Every provider except `none` accepts `options.localeMap` and `options.requestTimeoutMs` ([Providers](/docs/providers#locale-codes-sent-to-the-provider)). For `none`, `options` may be omitted and must otherwise be `{}` ([Run without machine translation](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -278,7 +278,7 @@ extract: {
 
 ## Discovery order
 
-verbatra searches upward from the working directory and uses the first source it finds, stopping at the nearest directory containing `.git` (or your home directory), so it never picks up a config above your repository:
+verbatra searches upward from the working directory and uses the first source it finds, stopping at the nearest directory containing `.git`, else at your home directory, or at the working directory when home is not above it, so it never picks up a config above your repository:
 
 1. `package.json` (a `"verbatra"` property)
 2. `.verbatrarc`
@@ -336,6 +336,14 @@ A YAML config takes a comment for the YAML Language Server:
 # yaml-language-server: $schema=./node_modules/@verbatra/sdk/dist/config-schema.json
 sourceLocale: en
 targetLocales: [de, fr]
+format: i18next-json
+files:
+  pattern: "locales/{locale}.json"
+provider:
+  id: gemini
+  options:
+    model: gemini-2.5-flash
+    maxOutputTokens: 4096
 ```
 
 The `package.json` property cannot get a schema; the executable forms are typed by `defineConfig` instead.
@@ -345,11 +353,11 @@ The `package.json` property cannot get a schema; the executable forms are typed 
 These rules have no JSON Schema expression, so only loading the config checks them:
 
 - `targetLocales` must not include `sourceLocale`, or two locales differing only in case.
-- A locale code must pass `Intl.getCanonicalLocales` (the grammar misses a repeated variant such as `de-1996-1996`).
+- A locale code must pass `Intl.getCanonicalLocales`.
 - Every `provider.options.localeMap` key must be `sourceLocale` or a target locale.
 - `apiKeyEnvVar` (openai-compatible) must not name a hosted provider's key variable.
 - A `network.allowedHosts` entry must be a valid address or range (not an octet above 255, an oversized CIDR prefix, or malformed IPv6).
-- A `sensitiveData.patterns` entry must be a valid regular expression.
+- A `sensitiveData.patterns` entry must be a valid regular expression within the [safety rules](/docs/data-handling#sensitive-content-guard).
 - An inline version 2 glossary must satisfy the term rules under [glossary](#per-locale-glossary-version-2).
 
 ## The working directory and .env
@@ -359,6 +367,6 @@ The working directory (where you run verbatra, or `--cwd`) anchors the config se
 ## When loading fails
 
 - [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found): no config in any searched place, or the `--config` path does not exist.
-- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): a config was found but is unusable: it fails to parse, fails validation, or names an unreadable glossary file. The message lists every issue with its key path, and an unknown top-level key adds the hint that API keys come from the environment. A parse failure names the file (with line and column for YAML) but never quotes its content, and every message passes through key redaction.
+- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): a config was found but is unusable: it fails to parse, fails validation, or names an unreadable glossary file. The message lists every issue with its key path, and an unknown key at any level adds the hint that API keys come from the environment. A parse failure names the file (with line and column for YAML) but never quotes its content, and every message passes through key redaction.
 
 The CLI exits `2` for both.

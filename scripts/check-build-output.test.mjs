@@ -9,6 +9,7 @@ import {
   findRenamedDeclarations,
   findUnexportedLinks,
   getConfigSchemaFilesPattern,
+  getConfigSchemaProviderRequired,
   hasZodJitlessConfig,
   staticImportPattern,
   staticRequirePattern,
@@ -368,6 +369,37 @@ describe("getConfigSchemaFilesPattern", () => {
     };
 
     expect(getConfigSchemaFilesPattern(document)).toBeUndefined();
+  });
+});
+
+describe("getConfigSchemaProviderRequired", () => {
+  const document = {
+    properties: {
+      provider: {
+        oneOf: [
+          {
+            type: "object",
+            properties: { id: { type: "string", const: "gemini" }, options: { type: "object" } },
+            required: ["id", "options"],
+          },
+          {
+            type: "object",
+            properties: { id: { type: "string", const: "none" }, options: { type: "object" } },
+            required: ["id"],
+          },
+        ],
+      },
+    },
+  };
+
+  it("returns the required keys of the provider variant with the given id", () => {
+    expect(getConfigSchemaProviderRequired(document, "none")).toEqual(["id"]);
+    expect(getConfigSchemaProviderRequired(document, "gemini")).toEqual(["id", "options"]);
+  });
+
+  it("returns undefined, not a throw, for an unknown id or a document without providers", () => {
+    expect(getConfigSchemaProviderRequired(document, "deepl")).toBeUndefined();
+    expect(getConfigSchemaProviderRequired({ properties: {} }, "none")).toBeUndefined();
   });
 });
 

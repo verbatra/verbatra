@@ -119,9 +119,9 @@ export interface DoctorCheck {
   readonly detail: string;
   /**
    * The next step that resolves a failed check: one short imperative sentence, such as "Set
-   * GEMINI_API_KEY in the environment or in a .env file in the project directory.". Present only
-   * when {@link DoctorCheck.status} is `fail`. Like `detail`, it names environment variables and
-   * paths, never an API key value.
+   * GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project
+   * directory.". Present only when {@link DoctorCheck.status} is `fail`. Like `detail`, it names
+   * environment variables and paths, never an API key value.
    */
   readonly fix?: string;
 }

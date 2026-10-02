@@ -137,7 +137,7 @@ describe("doctor: the fix of each failing check", () => {
     const result = await doctor({ cwd: projectDir });
 
     expect(fixOf(result, "api-key")).toBe(
-      "Set ANTHROPIC_API_KEY in the environment or in a .env file in the project directory.",
+      "Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.",
     );
   });
 

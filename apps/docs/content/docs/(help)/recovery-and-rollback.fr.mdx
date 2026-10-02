@@ -1,9 +1,9 @@
 ---
 title: Annuler une exécution
-description: Comment annuler une exécution de translate, pourquoi les fichiers de locale et le fichier de verrouillage doivent être restaurés ensemble, et ce que laisse une exécution interrompue.
+description: Comment annuler une exécution de translate, pourquoi les fichiers de locale, le fichier de verrouillage et le fichier de provenance doivent être restaurés ensemble, et ce que laisse une exécution interrompue.
 type: how-to
 ---
-Utilise ceci quand une exécution a produit des traductions dont tu ne veux pas : le mauvais ton, le mauvais modèle, un glossaire oublié. verbatra n'a pas de commande d'annulation et ne garde aucune sauvegarde. Le contrôle de version est le mécanisme de récupération, et c'est pour ça que les fichiers de locale et le fichier de verrouillage sont commités : ensemble, ils forment l'instantané vers lequel tu reviens.
+Utilise ceci quand une exécution a produit des traductions dont tu ne veux pas : le mauvais ton, le mauvais modèle, un glossaire oublié. verbatra n'a pas de commande d'annulation et ne garde aucune sauvegarde. Le contrôle de version est le mécanisme de récupération, et c'est pour ça que les fichiers de locale, le fichier de verrouillage et le fichier de provenance sont commités : ensemble, ils forment l'instantané vers lequel tu reviens.
 
 Il te faut le projet dans git, avec l'état d'avant l'exécution commité.
 
@@ -20,11 +20,11 @@ Une exécution de `translate`, `watch` ou `import` écrit les fichiers dont un r
 
 <AvailableFrom version="0.12.0" />
 
-Une exécution écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres. L'oublier ne casse rien : un enregistrement qui ne correspond plus à sa valeur est lu comme `external`, donc un écart fait perdre de l'information mais n'attribue jamais le mauvais auteur.
+Une exécution écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres, ou supprime-le si cette exécution l'a créé. L'oublier n'est pas anodin : une valeur restaurée ne correspond plus à son enregistrement, donc elle se lit comme `external`, compte comme une modification humaine avec la valeur par défaut `humanEdits: protect` et n'est plus jamais traduite.
 
 ## Annuler une exécution terminée
 
-Si l'exécution n'est pas encore commitée, jette ensemble les fichiers de locale et le fichier de verrouillage :
+Si l'exécution n'est pas encore commitée, jette ensemble les fichiers de locale et le fichier de verrouillage, puis le fichier de provenance :
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
@@ -43,17 +43,19 @@ Si l'exécution est déjà commitée, annule ce commit :
 git revert <commit>
 ```
 
-Dans les deux cas, restaure les fichiers de locale et `verbatra.lock.json` dans la même opération. La section suivante explique pourquoi.
+Dans les deux cas, restaure les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` dans la même opération. La section suivante explique pourquoi.
 
-## Pourquoi les deux fichiers ou aucun
+## Pourquoi les trois fichiers ou aucun
 
-Le fichier de verrouillage enregistre un hash de la valeur **source** derrière chaque traduction, et rien sur la valeur traduite elle-même. Si tu restaures un fichier sans l'autre, ils décrivent deux moments différents.
+Le fichier de verrouillage enregistre un hash de la valeur **source** derrière chaque traduction, et rien sur la valeur traduite elle-même ; le fichier de provenance enregistre qui a écrit chaque valeur, lié à un hash de cette valeur. Si tu restaures un fichier sans les autres, ils décrivent des moments différents.
 
 **Seulement les fichiers de locale.** Le fichier de verrouillage dit toujours que chaque clé est à jour. À l'exécution suivante, une clé restaurée est présente et son hash correspond à la source, elle n'est donc jamais renvoyée : l'ancienne valeur reste en place pour de bon. Seules les clés que l'exécution a créées reviennent comme manquantes. `check` et `diff` comparent avec la même référence, ils signalent donc la locale comme propre, et rien ne te dit que ces traductions sont périmées.
 
 **Seulement le fichier de verrouillage.** Les hashes restaurés sont plus anciens que la source actuelle, donc les clés concernées apparaissent comme modifiées. L'exécution suivante les retraduit et écrase les fichiers de locale, y compris les corrections faites à la main depuis. Tu paies deux fois et tu perds les modifications.
 
-**Les deux.** Les hashes et les traductions reviennent au même moment, et l'exécution suivante se comporte comme si la mauvaise exécution n'avait jamais eu lieu.
+**Sans le fichier de provenance.** Les valeurs restaurées ne correspondent plus à leurs enregistrements, elles se lisent donc comme `external` et, avec la valeur par défaut `humanEdits: protect`, ne sont plus jamais traduites.
+
+**Les trois.** Les hashes, les enregistrements et les traductions reviennent au même moment, et l'exécution suivante se comporte comme si la mauvaise exécution n'avait jamais eu lieu.
 
 ## Relancer après un retour arrière
 

@@ -89,7 +89,7 @@ La page Translations marque une clé protégée comme **Protected** et la range 
 
 ## Cas particuliers
 
-- **Un fichier de provenance d'un verbatra plus récent.** Aucune origine ne peut être lue, donc chaque clé obsolète qui a une valeur est protégée jusqu'à ta mise à jour.
+- **Un fichier de provenance d'un verbatra plus récent.** Aucune origine ne peut être lue, donc `translate` protège chaque clé obsolète qui a une valeur jusqu'à ta mise à jour, tandis que `check` et `diff` ne listent comme protégées que les clés épinglées.
 - **Un fichier de provenance corrompu.** `translate`, y compris en dry run, échoue avec [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid). `check` et `diff` continuent de fonctionner et ne listent comme protégées que les clés épinglées.
 - **Projets 100 % humains.** Les clés protégées comptent pour le code de sortie `3`, comme les clés que la mémoire de traduction n'a pas pu remplir : les deux demandent une personne.
 

@@ -20,7 +20,7 @@ Un format venu de l'extérieur s'écrit `custom:` suivi d'un nom en minuscules s
   "targetLocales": ["de"],
   "format": "custom:toml",
   "files": { "pattern": "locales/{locale}.toml" },
-  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash" } }
+  "provider": { "id": "gemini", "options": { "model": "gemini-2.5-flash", "maxOutputTokens": 4096 } }
 }
 ```
 

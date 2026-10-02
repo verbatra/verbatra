@@ -57,7 +57,7 @@ Certaines langues ont besoin de plus de formes de pluriel que ta source. L'angla
 
 ### Générer les formes manquantes
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.3.0" />
 
 Si tu utilises du JSON i18next avec un fournisseur LLM, verbatra peut écrire les formes manquantes :
 
@@ -68,7 +68,13 @@ export default defineConfig({
 });
 ```
 
-Les formes générées passent les mêmes contrôles d'intégrité que toute traduction. Les formats ICU (next-intl et ARB) gardent un pluriel entier dans une seule valeur, ils n'ont donc besoin d'aucune génération : on demande au fournisseur exactement les branches qu'utilise la langue cible. Voir [`generatePlurals`](/docs/config-file#generateplurals) pour ce qui retombe sur l'avis, et [Pluriels](/docs/language-support#pluriels) pour la façon dont verbatra décide des formes dont une langue a besoin.
+Les formes générées passent les mêmes contrôles d'intégrité que toute traduction.
+
+### Formes issues de CLDR
+
+<AvailableFrom version="0.12.0" />
+
+Les formes dont une langue a besoin viennent des règles de pluriel CLDR intégrées à Node.js, pour chaque langue, ordinaux compris. Les formats ICU (next-intl et ARB) gardent un pluriel entier dans une seule valeur, ils n'ont donc besoin d'aucune génération : on demande au fournisseur exactement les branches qu'utilise la langue cible. Voir [`generatePlurals`](/docs/config-file#generateplurals) pour ce qui retombe sur l'avis, et [Pluriels](/docs/language-support#pluriels) pour la façon dont verbatra décide des formes dont une langue a besoin.
 
 ## Continue à maintenir seulement la source
 

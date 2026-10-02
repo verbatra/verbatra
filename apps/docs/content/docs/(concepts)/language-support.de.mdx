@@ -52,8 +52,8 @@ Was das in der Praxis heißt:
   verdächtigsten Ergebnisse.
 - **DeepL und Google Cloud Translation** haben eine geschlossene Liste, die vor einem Lauf geprüft
   wird. Wie LibreTranslate [maskieren sie Platzhalter](/docs/providers#deepl) und halten einen Wert
-  zurück, den sie nicht schützen können, etwa ICU-Plural-, -Select- oder -Number-Syntax oder Markup
-  neben einem Platzhalter.
+  zurück, den sie nicht schützen können, etwa ICU-Plural-, -Select- oder -Number-Syntax, Markup
+  neben einem Platzhalter oder, bei Google, einen Zeilenumbruch, einen Tab oder doppelte Leerzeichen.
 - **LibreTranslate** bedient die Modelle, die dein Server installiert hat.
 - Einen `tone` oder ein Glossar, das ein Provider nicht umsetzen kann, meldet verbatra als Hinweis,
   nie stillschweigend. Siehe
@@ -66,8 +66,7 @@ Was das in der Praxis heißt:
 DeepL bekommt seine eigenen Varianten (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) und lässt jede andere
 Region oder Schrift weg; es hat kein generisches Englisch- oder Portugiesisch-Ziel, ein reines `en`-
 oder `pt`-Ziel scheitert also vor jedem Request. Google Cloud Translation bekommt Chinesisch als
-`zh-CN` oder `zh-TW` und `nb` als `no`. LibreTranslate bekommt nur die Sprache, außer brasilianischem
-Portugiesisch und den beiden chinesischen Schriften. LLM-Provider bekommen den Code wie geschrieben,
+`zh-CN` oder `zh-TW` und `nb` als `no`. LLM-Provider bekommen den Code wie geschrieben,
 plus den englischen Namen von Sprache, Schrift und Region, und werden angewiesen, in dieser Schrift
 und Variante zu schreiben; siehe
 [Namen von Sprache, Schrift und Region](/docs/translation-safety#namen-von-sprache-schrift-und-region).
@@ -136,8 +135,9 @@ Wörtern wird als bloßes Enthaltensein abgeglichen.
 verbatra liest, welche Pluralkategorien eine Sprache braucht, aus den CLDR-Regeln in den in Node.js
 eingebauten ICU-Daten, Ordinalzahlen eingeschlossen, damit ist jede Sprache abgedeckt, die CLDR
 kennt: Englisch hat zwei Kardinalkategorien, Russisch und Polnisch vier, Arabisch und Walisisch
-sechs, Japanisch nur `other`. Für eine Locale, für die Node.js keine Regeln hat, wird für
-Kardinalzahlen `one` und `other` angenommen. Die Prüfung `plural-rules` von
+sechs, Japanisch nur `other`. Für eine Locale, für die Node.js keine Regeln hat, nimmt der
+Hinweis des Laufs für Kardinalzahlen `one` und `other` an; Integritäts-Gate, `check` und `doctor`
+verlangen nur `other`. Die Prüfung `plural-rules` von
 [`verbatra doctor`](/docs/cli/doctor) nennt so eine Locale.
 
 Wie ein Plural korrekt bleibt, hängt vom Format ab:
