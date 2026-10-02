@@ -330,7 +330,7 @@ provider: {
 }
 ```
 
-- **Las claves** deben ser `sourceLocale` o un locale de destino, escritas como en la configuración; cualquier otra cosa falla con `CONFIG_INVALID`. Va bajo `options` (directamente bajo `provider` falla desde 0.12.0), en todos los proveedores salvo `none`.
+- **Las claves** deben ser `sourceLocale` o un locale de destino, escritas como en la configuración; cualquier otra cosa falla con `CONFIG_INVALID`. Va bajo `options` (directamente bajo `provider` falla), en todos los proveedores salvo `none`.
 - **Los valores** son cadenas no vacías de 64 caracteres como máximo, enviadas sin cambios: como código de idioma a un proveedor de traducción automática, en lugar del código a un LLM (`"pt-BR (Brazilian Portuguese)"` funciona). Los nombres de idioma para el LLM siguen saliendo de la clave. Un valor que siga enviando a DeepL un `EN` o `PT` escueto falla con `INVALID_REQUEST`; un valor que el proveedor rechace hace fallar su sublote.
 - **Efecto en la memoria.** Solo las cadenas nuevas y cambiadas se envían con un código nuevo. Un mapa no vacío forma parte de la huella de la [memoria](/docs/the-cache), así que cambiarlo abre un compartimento aparte.
 

@@ -330,7 +330,7 @@ provider: {
 }
 ```
 
-- **Les clés** doivent être `sourceLocale` ou une locale cible, écrites comme dans la configuration ; toute autre clé échoue avec `CONFIG_INVALID`. Elle se place sous `options` (directement sous `provider`, elle échoue depuis 0.12.0), pour tous les fournisseurs sauf `none`.
+- **Les clés** doivent être `sourceLocale` ou une locale cible, écrites comme dans la configuration ; toute autre clé échoue avec `CONFIG_INVALID`. Elle se place sous `options` (directement sous `provider`, elle échoue), pour tous les fournisseurs sauf `none`.
 - **Les valeurs** sont des chaînes non vides de 64 caractères au plus, envoyées telles quelles : comme code de langue à un fournisseur de traduction automatique, à la place du code pour un LLM (`"pt-BR (Brazilian Portuguese)"` fonctionne). Les noms de langue pour un LLM viennent toujours de la clé. Une valeur qui envoie encore à DeepL un `EN` ou `PT` nu échoue avec `INVALID_REQUEST` ; une valeur que le fournisseur rejette fait échouer son sous-lot.
 - **Effet sur la mémoire.** Seules les chaînes nouvelles et modifiées partent avec un nouveau code. Une table non vide fait partie de l'empreinte de la [mémoire](/docs/the-cache), donc la modifier ouvre un compartiment séparé.
 
