@@ -75,8 +75,6 @@ la CLI en CI en su lugar? Consulta [CI y códigos de salida](/docs/ci-and-exit-c
 
 ## Prueba tu integración sin clave
 
-<AvailableFrom version="0.12.0" />
-
 Un proveedor falso pasado como `createProvider` ejecuta todo el flujo, archivos y control de
 integridad incluidos, sin clave, sin llamada de red y con una salida determinista: justo lo que
 necesita una prueba unitaria de tus propias herramientas.
@@ -303,7 +301,9 @@ una clave fijada siempre; consulta [Proteger traducciones humanas](/docs/protect
 `reviewQueue` enumera cada valor escrito por máquina que nadie ha aprobado todavía, con los motivos
 por los que la última ejecución lo marcó. Este script aprueba los valores sin marcar y rechaza el
 resto, lo que los elimina para que el siguiente `translate` los vuelva a rellenar. `expectedValue` hace
-que una llamada lance `REVIEW_VALUE_CHANGED` si el valor cambió entretanto.
+que una llamada lance `REVIEW_VALUE_CHANGED` si el valor cambió entretanto. Sin registro de la última ejecución en esta
+máquina, como en un clon recién hecho o en un runner de CI, `reasons` también está vacío, así que el
+script se detiene si falta `lastRunAt`.
 
 ```ts title="review.ts"
 import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
@@ -311,8 +311,9 @@ import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@v
 const config = await loadConfig();
 const queue = await reviewQueue({ config });
 
-if (!queue.available) {
-  throw new Error(`no review queue: ${queue.reason}`);
+if (!queue.available || queue.lastRunAt === undefined) {
+  console.error("no review queue with run flags on this machine: run translate here first");
+  process.exit(1);
 }
 
 for (const { locale, needsReview } of queue.locales) {
@@ -333,7 +334,6 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-Ambas llamadas escriben la decisión en `verbatra.provenance.json` y no llaman a ningún proveedor.
 [Edita y revisa](/docs/sdk/review#approveentry) tiene las variantes por lotes y cada código que lanzan.
 
 ## Lee todos los valores de golpe

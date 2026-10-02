@@ -75,8 +75,6 @@ instead? See [CI and exit codes](/docs/ci-and-exit-codes).
 
 ## Test your integration without a key
 
-<AvailableFrom version="0.12.0" />
-
 A fake provider passed as `createProvider` runs the whole flow, files and integrity gate
 included, with no key, no network call and deterministic output: what a unit test of your own
 tooling needs.
@@ -296,7 +294,8 @@ pinned key always; see [Protecting human translations](/docs/protecting-human-tr
 `reviewQueue` lists every machine-written value nobody has approved yet, with the reasons the last
 run flagged it for. This script approves the unflagged values and rejects the rest, which removes
 them so the next `translate` fills them again. `expectedValue` makes a call throw
-`REVIEW_VALUE_CHANGED` if the value changed in between.
+`REVIEW_VALUE_CHANGED` if the value changed in between. On a machine with no record of the last run,
+like a fresh clone or CI runner, `reasons` is empty too, so the script stops without `lastRunAt`.
 
 ```ts title="review.ts"
 import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
@@ -304,8 +303,9 @@ import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@v
 const config = await loadConfig();
 const queue = await reviewQueue({ config });
 
-if (!queue.available) {
-  throw new Error(`no review queue: ${queue.reason}`);
+if (!queue.available || queue.lastRunAt === undefined) {
+  console.error("no review queue with run flags on this machine: run translate here first");
+  process.exit(1);
 }
 
 for (const { locale, needsReview } of queue.locales) {
@@ -326,7 +326,6 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-Both calls write the decision to `verbatra.provenance.json` and call no provider.
 [Review](/docs/sdk/review#approveentry) has the batch variants and every code they throw.
 
 ## Read every value in bulk

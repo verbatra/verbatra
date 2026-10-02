@@ -68,8 +68,6 @@ Besoin des noms de clés plutôt que des comptes ? Remplace par `diff`, qui renv
 
 ## Tester ton intégration sans clé
 
-<AvailableFrom version="0.12.0" />
-
 Un faux fournisseur passé en `createProvider` exécute tout le flux, fichiers et contrôle d'intégrité compris, sans clé, sans appel réseau et avec une sortie déterministe : ce dont un test unitaire de ton propre outillage a besoin.
 
 ```ts title="fake-provider.ts"
@@ -280,7 +278,7 @@ et une clé épinglée toujours ; voir [Protéger les traductions humaines](/doc
 
 <AvailableFrom version="0.12.0" />
 
-`reviewQueue` liste chaque valeur écrite par une machine que personne n'a encore approuvée, avec les raisons pour lesquelles la dernière exécution l'a signalée. Ce script approuve les valeurs non signalées et rejette les autres, ce qui les retire pour que le prochain `translate` les remplisse à nouveau. `expectedValue` fait lever `REVIEW_VALUE_CHANGED` à un appel si la valeur a changé entre-temps.
+`reviewQueue` liste chaque valeur écrite par une machine que personne n'a encore approuvée, avec les raisons pour lesquelles la dernière exécution l'a signalée. Ce script approuve les valeurs non signalées et rejette les autres, ce qui les retire pour que le prochain `translate` les remplisse à nouveau. `expectedValue` fait lever `REVIEW_VALUE_CHANGED` à un appel si la valeur a changé entre-temps. Sans trace de la dernière exécution sur cette machine, comme dans un clone tout neuf ou sur un runner de CI, `reasons` est vide aussi : le script s'arrête donc si `lastRunAt` manque.
 
 ```ts title="review.ts"
 import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
@@ -288,8 +286,9 @@ import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@v
 const config = await loadConfig();
 const queue = await reviewQueue({ config });
 
-if (!queue.available) {
-  throw new Error(`no review queue: ${queue.reason}`);
+if (!queue.available || queue.lastRunAt === undefined) {
+  console.error("no review queue with run flags on this machine: run translate here first");
+  process.exit(1);
 }
 
 for (const { locale, needsReview } of queue.locales) {
@@ -310,7 +309,7 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-Les deux appels écrivent la décision dans `verbatra.provenance.json` et n'appellent aucun fournisseur. [Modifier et relire](/docs/sdk/review#approveentry) présente les variantes par lot et chaque code qu'elles lèvent.
+[Modifier et relire](/docs/sdk/review#approveentry) présente les variantes par lot et chaque code qu'elles lèvent.
 
 ## Lire toutes les valeurs en bloc
 

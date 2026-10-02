@@ -76,8 +76,6 @@ stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes
 
 ## Deine Integration ohne Schlüssel testen
 
-<AvailableFrom version="0.12.0" />
-
 Ein als `createProvider` übergebener Fake-Provider durchläuft den ganzen Flow, Dateien und
 Integritätsprüfung eingeschlossen, ohne Schlüssel, ohne Netzwerkaufruf und mit deterministischer
 Ausgabe: genau das, was ein Unit-Test deiner eigenen Tools braucht.
@@ -304,7 +302,9 @@ Nahtstellen hinter einer Oberfläche zeigt [Review in Studio](/docs/review-in-st
 Gründen, aus denen der letzte Lauf ihn markiert hat. Dieses Skript gibt die unmarkierten Werte frei
 und lehnt den Rest ab; abgelehnte Werte werden entfernt, sodass das nächste `translate` sie neu
 füllt. Mit `expectedValue` wirft ein Aufruf `REVIEW_VALUE_CHANGED`, wenn sich der Wert
-zwischendurch geändert hat.
+zwischendurch geändert hat. Ohne Aufzeichnung des letzten Laufs auf dieser Maschine, etwa in einem
+frischen Klon oder auf einem CI-Runner, ist `reasons` ebenfalls leer, deshalb bricht das Skript ab,
+wenn `lastRunAt` fehlt.
 
 ```ts title="review.ts"
 import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
@@ -312,8 +312,9 @@ import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@v
 const config = await loadConfig();
 const queue = await reviewQueue({ config });
 
-if (!queue.available) {
-  throw new Error(`no review queue: ${queue.reason}`);
+if (!queue.available || queue.lastRunAt === undefined) {
+  console.error("no review queue with run flags on this machine: run translate here first");
+  process.exit(1);
 }
 
 for (const { locale, needsReview } of queue.locales) {
@@ -334,8 +335,7 @@ for (const { locale, needsReview } of queue.locales) {
 }
 ```
 
-Beide Aufrufe schreiben die Entscheidung in `verbatra.provenance.json` und rufen keinen Provider
-auf. [Review](/docs/sdk/review#approveentry) zeigt die Batch-Varianten und jeden Code, den sie werfen.
+[Review](/docs/sdk/review#approveentry) zeigt die Batch-Varianten und jeden Code, den sie werfen.
 
 ## Alle Werte auf einmal lesen
 
