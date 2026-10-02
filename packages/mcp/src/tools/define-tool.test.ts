@@ -320,7 +320,7 @@ describe("defineTool", () => {
     expect(outcome).toEqual({
       kind: "error",
       message:
-        "PROVIDER_CONSTRUCTION_FAILED: Failed to construct provider\nNext step: Set GEMINI_API_KEY in the environment or in a .env file in the project directory.",
+        "PROVIDER_CONSTRUCTION_FAILED: Failed to construct provider\nNext step: Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.",
     });
     expect(JSON.stringify(outcome)).not.toContain(sentinel);
     vi.unstubAllEnvs();

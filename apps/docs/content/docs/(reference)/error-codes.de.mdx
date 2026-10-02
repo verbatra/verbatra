@@ -268,7 +268,7 @@ Der Key passt auf die `pinnedKeys` der Konfiguration, also wurde ein maschinelle
 
 ### PROVIDER_CONSTRUCTION_FAILED
 
-Der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys.
+Der Provider konnte nicht gebaut werden; umhüllt den eigenen Fehler des Providers, einschließlich eines fehlenden API-Keys. Bei einem fehlenden Key nennt der Hinweis statt des nächsten Schritts unten die Variable, etwa `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` Das SDK liest keine `.env`-Datei.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server
 - **Exit-Code**: `2`

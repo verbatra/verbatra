@@ -268,7 +268,7 @@ La clave coincide con los `pinnedKeys` de la configuración, así que se rechaz�
 
 ### PROVIDER_CONSTRUCTION_FAILED
 
-El proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente.
+El proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente. Con una clave ausente, la pista nombra la variable en lugar del siguiente paso de abajo, como `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` El SDK no lee ningún archivo `.env`.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
 - **Código de salida**: `2`

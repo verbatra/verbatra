@@ -268,7 +268,7 @@ La clé correspond aux `pinnedKeys` de la config, donc une écriture automatique
 
 ### PROVIDER_CONSTRUCTION_FAILED
 
-Le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante.
+Le fournisseur n'a pas pu être construit ; enveloppe l'erreur du fournisseur lui-même, y compris une clé d'API manquante. Pour une clé manquante, l'indication nomme la variable au lieu de l'étape suivante ci-dessous, comme `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` Le SDK ne lit aucun fichier `.env`.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP
 - **Code de sortie** : `2`

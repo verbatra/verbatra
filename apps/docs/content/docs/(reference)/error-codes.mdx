@@ -268,7 +268,7 @@ The key matches the config's `pinnedKeys`, so a machine write was refused (`retr
 
 ### PROVIDER_CONSTRUCTION_FAILED
 
-The provider could not be built; wraps the provider's own error, including a missing API key.
+The provider could not be built; wraps the provider's own error, including a missing API key. For a missing key the hint names the variable instead of the next step below, such as `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` The SDK reads no `.env` file.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server
 - **Exit code**: `2`

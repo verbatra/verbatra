@@ -133,7 +133,7 @@ export function sdkErrorHint(code: SdkErrorCode): string {
 }
 
 export function apiKeyHint(envVar: string): string {
-  return `Set ${envVar} in the environment or in a .env file in the project directory.`;
+  return `Set ${envVar} in the environment, or, with the CLI, in a .env file in the project directory.`;
 }
 
 function codeOf(error: unknown): string | undefined {
@@ -181,7 +181,8 @@ function wrappedErrorHint(code: string, error: unknown): string | undefined {
 
 /**
  * Returns the next step that resolves an error verbatra raised: one short imperative sentence,
- * such as "Set GEMINI_API_KEY in the environment or in a .env file in the project directory." or
+ * such as "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project
+ * directory." or
  * "Run `verbatra init` to create a config, or pass the path of an existing config file.".
  *
  * Every {@link SdkErrorCode}, every {@link ProviderErrorCode}, and every {@link AdapterErrorCode}
