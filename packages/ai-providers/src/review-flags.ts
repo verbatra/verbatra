@@ -79,12 +79,32 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
-function removeWholeTerms(text: string, term: string): string {
-  let remaining = text;
-  for (const index of wholeTermIndices(text, term).reverse()) {
-    remaining = `${remaining.slice(0, index)} ${remaining.slice(index + term.length)}`;
+function dropLeading(pieces: string[], count: number): void {
+  let left = count;
+  let front = pieces.pop();
+  while (front !== undefined && front.length <= left) {
+    left -= front.length;
+    front = pieces.pop();
   }
-  return remaining;
+  if (front !== undefined) {
+    pieces.push(front.slice(left));
+  }
+}
+
+function removeWholeTerms(text: string, term: string): string {
+  const reversedTail: string[] = [];
+  let kept = text.length;
+  for (const index of wholeTermIndices(text, term).reverse()) {
+    const after = index + term.length;
+    if (after <= kept) {
+      reversedTail.push(text.slice(after, kept));
+    } else {
+      dropLeading(reversedTail, after - kept);
+    }
+    reversedTail.push(" ");
+    kept = index;
+  }
+  return text.slice(0, kept) + reversedTail.reverse().join("");
 }
 
 function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
