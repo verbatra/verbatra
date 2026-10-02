@@ -42,10 +42,8 @@ function markerFor(index: number): string {
   return `{${index}}`;
 }
 
-function distinctByLength(placeholders: readonly string[]): readonly string[] {
-  return [...new Set(placeholders)]
-    .filter((placeholder) => placeholder.length > 0)
-    .sort((a, b) => b.length - a.length);
+function distinctPlaceholders(placeholders: readonly string[]): readonly string[] {
+  return [...new Set(placeholders)].filter((placeholder) => placeholder.length > 0);
 }
 
 interface Scan {
@@ -120,7 +118,7 @@ export function maskPlaceholders(
   options: MaskOptions = {},
 ): MaskedValue | undefined {
   const keepMarkup = options.keepMarkup === true;
-  const candidates = distinctByLength(placeholders).filter(
+  const candidates = distinctPlaceholders(placeholders).filter(
     (candidate) => !(keepMarkup && WHOLE_MARKUP_TAG.test(candidate)),
   );
   if (candidates.length === 0 && !keepMarkup) {
