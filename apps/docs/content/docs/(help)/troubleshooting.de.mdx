@@ -242,12 +242,11 @@ sind, steht unter [Inline-Markup-Parität](/docs/translation-safety#inline-marku
 **Symptom**: Bearbeiten funktioniert, aber die Aktionen zum Neuübersetzen und zum Übersetzen
 offener Keys erscheinen nicht.
 
-**Ursache**: Ausgaben beim Provider werden beim Start erlaubt, und ohne diese Erlaubnis werden die
-Ausgabe-Aktionen nicht registriert. Ein Projekt [nur mit Menschen](/docs/human-only-workflow)
-hält sie selbst dann zurück.
+**Ursache**: Ausgaben beim Provider werden beim Start erlaubt, nach den Regeln unter
+[Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools), und ohne diese Erlaubnis werden die Ausgabe-Aktionen nicht
+registriert.
 
-**Lösung**: Starte neu mit `verbatra studio --allow-spend`, oder setz
-`VERBATRA_STUDIO_ALLOW_SPEND=1`. Siehe [Review in Studio](/docs/review-in-studio).
+**Lösung**: Starte neu mit `verbatra studio --allow-spend`. Siehe [Review in Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp ist nicht installiert
 
@@ -266,12 +265,11 @@ starte `verbatra mcp` erneut. Mit pnpm lies vorher
 **Symptom**: Die lokalen Tools funktionieren, aber die beiden Ausgabe-Tools fehlen, und ein Aufruf
 per Name scheitert als unbekanntes Tool.
 
-**Ursache**: Ausgaben werden beim Start erlaubt, und die Tool-Liste darf sich nicht pro Verbindung
-ändern, also bleiben die Ausgabe-Tools ganz draußen. Ein Projekt
-[nur mit Menschen](/docs/human-only-workflow) lässt sie selbst mit `--allow-spend` draußen.
+**Ursache**: Ausgaben werden beim Start erlaubt, nach den Regeln unter
+[Kostenpflichtige Tools](/docs/cli/mcp#kostenpflichtige-tools), und die Tool-Liste darf sich nicht pro Verbindung ändern,
+also bleiben die Ausgabe-Tools ganz draußen.
 
-**Lösung**: Starte neu mit `verbatra mcp --allow-spend`, oder setz `VERBATRA_MCP_ALLOW_SPEND=1`.
-Siehe [`verbatra mcp`](/docs/cli/mcp).
+**Lösung**: Starte neu mit `verbatra mcp --allow-spend`.
 
 ## Einen Lauf rückgängig machen (kein Fehlercode)
 

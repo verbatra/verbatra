@@ -55,7 +55,7 @@ Mit `--allow-spend` unter dem Provider `none` lautet die erste Zeile `verbatra: 
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Ohne `--allow-spend` liest Studio `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` greift auf dieselbe Weise auf `VERBATRA_STUDIO_AGENT_TOOLS` zurück. Bei beiden zählt `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung egal) als an, und das Flag gewinnt immer gegen die Variable. Ohne beides kontaktiert Studio nie einen Provider.
+Ohne `--allow-spend` liest Studio `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` greift auf dieselbe Weise auf `VERBATRA_STUDIO_AGENT_TOOLS` zurück. Bei beiden zählt `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal) als an, und das Flag gewinnt immer gegen die Variable. Ohne beides kontaktiert Studio nie einen Provider.
 
 Ausgaben durch einen Agenten brauchen beide Flags; keines impliziert das andere. Eine Konfiguration mit `provider: { id: "none" }` schaltet Maschinenübersetzung per Richtlinie ab, dann hält Studio Ausgaben auch mit `--allow-spend` zurück, und die Settings-Seite sagt das. Den Tool-Katalog und das Sicherheitsmodell findest du unter [Studio mit einem Browser-Agenten steuern](/docs/agent-tools-in-studio).
 
