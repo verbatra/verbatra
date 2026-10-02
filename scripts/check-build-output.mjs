@@ -253,6 +253,12 @@ function getConfigSchemaFilesPattern(document) {
   return document.properties?.files?.properties?.pattern?.pattern;
 }
 
+function getConfigSchemaProviderRequired(document, providerId) {
+  const variants = document.properties?.provider?.oneOf ?? [];
+  const variant = variants.find((entry) => entry.properties?.id?.const === providerId);
+  return variant?.required;
+}
+
 function checkConfigSchema() {
   const relativePath = "packages/sdk/dist/config-schema.json";
   const document = JSON.parse(readBuildOutput(relativePath));
@@ -270,7 +276,18 @@ function checkConfigSchema() {
         "packages/sdk/src/config/schema.ts rather than a whole-config .refine().",
     );
   }
-  return `the shipped config schema keeps its $schema key and the files.pattern rule (${pattern}).`;
+  const noneRequired = getConfigSchemaProviderRequired(document, "none");
+  if (noneRequired === undefined || noneRequired.includes("options")) {
+    throw new Error(
+      `${relativePath} requires provider options for provider none, which loadConfig does not. ` +
+        "Check that packages/sdk/scripts/emit-config-schema.mjs emits the input schema " +
+        '({ io: "input" }), so a defaulted key stays optional.',
+    );
+  }
+  return (
+    `the shipped config schema keeps its $schema key, the files.pattern rule (${pattern}), ` +
+    "and an optional options key for provider none."
+  );
 }
 
 const TARGETS = {
@@ -310,6 +327,7 @@ export {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
+  getConfigSchemaProviderRequired,
   hasZodJitlessConfig,
   staticImportPattern,
   staticRequirePattern,
