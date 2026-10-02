@@ -198,7 +198,7 @@ describe("createGoogleTranslateProvider: placeholder masking", () => {
 
   it("decodes the html entities the service returns", async () => {
     const { client, calls } = googleMappingClient((text) =>
-      text.replace("&amp;", "&#38;").replace("'", "&#39;"),
+      text.replaceAll("&amp;", "&#38;").replaceAll("'", "&#39;"),
     );
     const value = entry("amp", "Tom & Jerry's {{name}}", ["{{name}}"]);
     const result = await createGoogleTranslateProvider(config, { client }).translateBatch(
