@@ -150,8 +150,6 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 
 <AvailableFrom version="0.11.0" />
 
-`MAX_LENGTH_EXCEEDED` und `FUZZY_CACHE_REUSE` gibt es ab 0.11.0.
-
 <AvailableFrom version="0.12.0" />
 
 `GLOSSARY_FORBIDDEN_TERM` gibt es ab 0.12.0.
@@ -166,43 +164,34 @@ siehe [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
 
 Provider-Ausgaben sollten eine Obergrenze haben, die du setzt, nicht eine, die du auf der Rechnung
 entdeckst. Mit konfiguriertem `maxTokens` zählt verbatra die Tokens eines Laufs über jeden Aufruf
-und jede Locale. Mit `budgetBehavior: "warn"` (dem Standard) markiert es eine Überschreitung nur.
-Mit `"stop"` schätzt es jeden Request vor dem Senden und hält den zurück, der die Obergrenze
-überschreiten würde, samt jedem übrigen Kandidaten danach; diese Keys behalten ihre Baseline und
-werden im nächsten Lauf erneut versucht.
+und jede Locale. `budgetBehavior: "warn"` (der Standard) markiert eine Überschreitung nur; `"stop"`
+hält den Request zurück, der die Obergrenze überschreiten würde, samt jedem Kandidaten danach, für
+den nächsten Lauf.
 
 Was das Budget garantiert: Arbeit, die vor der Obergrenze erledigt wurde, bleibt geschrieben und
-gelockt, und nichts bleibt halb geschrieben zurück. Ein Provider, der keinen eigenen Verbrauch
-meldet, wird aus der Schätzung gezählt, sodass die Obergrenze auch dort hält.
-
-Was es nicht garantiert: Ein Request, der schon unterwegs ist, kann mehr kosten als geschätzt, die
-Summe kann also um die Differenz dieses einen Requests über `maxTokens` enden. Die Obergrenze
-begrenzt einen Lauf, keine `watch`-Sitzung, und deckt keine Retranslates einzelner Einträge aus
-Studio oder den Agent-Tools ab. Die genauen Regeln, und wie `--max-tokens` sie verschärft, stehen
-unter [`maxTokens` und `budgetBehavior`](/docs/config-file#maxtokens-und-budgetbehavior).
+gelockt, und nichts bleibt halb geschrieben zurück. Was es nicht garantiert: Ein Request unterwegs
+kann mehr kosten als geschätzt, die Obergrenze begrenzt einen Lauf (keine `watch`-Sitzung), und
+Retranslates aus Studio oder von Agenten sind nicht abgedeckt. Die genauen Regeln stehen unter
+[`maxTokens` und `budgetBehavior`](/docs/config-file#maxtokens-und-budgetbehavior).
 
 ## Fehler geben nichts preis
 
-API-Keys kommen nur aus Umgebungsvariablen, nie aus Konfiguration oder Argumenten. Scheitert ein
-Provider-Aufruf, wird der rohe SDK-Fehler (der Request-Header oder Zugangsdaten tragen kann)
+Scheitert ein Provider-Aufruf, wird der rohe SDK-Fehler (der Request-Header oder Zugangsdaten tragen kann)
 verworfen, nie gebunden, geloggt oder erneut geworfen. An seiner Stelle erzeugt verbatra einen
 strukturierten Fehler mit stabilem Code und fester, geheimnisfreier Meldung; die Codes stehen unter
 [Provider-Fehlercodes](/docs/error-codes#provider-error-codes). Hinweise und Zusammenfassungen
-tragen Codes und Zahlen, nie Secrets. Wie Keys aus der Ausgabe entfernt werden, steht unter
+tragen Codes und Zahlen, nie Secrets. Woher Keys kommen und wie sie aus der Ausgabe entfernt werden, steht unter
 [Datenverarbeitung](/docs/data-handling#api-keys).
 
 ## Wo du das siehst
 
-Alles oben ist Daten in der Lauf-Zusammenfassung, pro Locale: übersetzte Keys,
-Integritätsabweichungen, Provider-Fehlschläge, wegen des Budgets zurückgehaltene Keys, Quell-Keys mit
-ungültigem ICU, Review-Flags und Hinweise. Das Scheitern einer Locale hält die anderen nie auf.
+Alles oben ist Daten in der [Lauf-Zusammenfassung](/docs/sdk/run-summary), pro Locale, und das
+Scheitern einer Locale hält die anderen nie auf.
 
 <AvailableFrom version="0.12.0" />
 
-Das Gate und die Review-Flags laufen auch über das, was schon committet ist:
-[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) prüft jeden Zielwert, egal wie er dahin
-kam, und endet bei einer Gate-Ablehnung mit `1`, sodass eine von Hand bearbeitete Übersetzung einen
-Pull Request ohne Provider-Aufruf blockieren kann.
+[`verbatra check --qa`](/docs/cli/check#qualitätsprüfung) lässt das Gate und die Review-Flags ohne
+Provider-Aufruf über committete Werte laufen.
 
 ## Siehe auch
 
