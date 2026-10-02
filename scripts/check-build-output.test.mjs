@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   DECLARATION_SPECIFIER,
   dynamicImportPattern,
+  findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
   hasZodJitlessConfig,
   staticImportPattern,
+  staticRequirePattern,
 } from "./check-build-output.mjs";
 
 function matchSpecifiers(text) {
@@ -94,6 +96,56 @@ describe("staticImportPattern", () => {
   it("does not match a static import of a different package", () => {
     const pattern = staticImportPattern("@verbatra/studio");
     expect(pattern.test('import { runServer } from "@verbatra/mcp";')).toBe(false);
+  });
+});
+
+describe("staticRequirePattern", () => {
+  it("matches a CommonJS require of the package", () => {
+    expect(staticRequirePattern("openai").test("var OpenAI = require('openai');")).toBe(true);
+  });
+
+  it("does not match a require resolved through createRequire", () => {
+    expect(staticRequirePattern("loglevel").test('createRequire(entry)("loglevel")')).toBe(false);
+  });
+
+  it("does not match a method named require or a different package", () => {
+    expect(staticRequirePattern("openai").test("requireFn.require('openai')")).toBe(false);
+    expect(staticRequirePattern("openai").test("require('@scope/openai')")).toBe(false);
+  });
+});
+
+const LAZY_ENTRY = [
+  "await import('@anthropic-ai/sdk');",
+  "await import('openai');",
+  "await import('@google/genai');",
+  "await import('deepl-node');",
+  "await import('loglevel');",
+].join("\n");
+
+describe("findEagerProviderImports", () => {
+  it("accepts an entry that loads every provider SDK through import()", () => {
+    expect(findEagerProviderImports(LAZY_ENTRY, "index.js")).toEqual([]);
+  });
+
+  it("reports a static ESM import of a provider SDK", () => {
+    const text = `import OpenAI from 'openai';\n${LAZY_ENTRY}`;
+    expect(findEagerProviderImports(text, "index.js")).toEqual([
+      "index.js: loads openai at startup",
+    ]);
+  });
+
+  it("reports a CommonJS require of a provider SDK", () => {
+    const text = `var deepl = require('deepl-node');\n${LAZY_ENTRY}`;
+    expect(findEagerProviderImports(text, "index.cjs")).toEqual([
+      "index.cjs: loads deepl-node at startup",
+    ]);
+  });
+
+  it("reports a provider SDK that is no longer imported at all", () => {
+    const text = LAZY_ENTRY.replace("await import('loglevel');", "");
+    expect(findEagerProviderImports(text, "index.js")).toEqual([
+      'index.js: has no import("loglevel")',
+    ]);
   });
 });
 
