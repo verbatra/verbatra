@@ -1,5 +1,5 @@
-import { mkdir, rename } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, rename, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { PassThrough } from "node:stream";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SdkError } from "@verbatra/sdk";
@@ -160,6 +160,22 @@ describe("startMcpServer", () => {
       ]);
     },
   );
+
+  it("resolves a relative cwd once, so a logged config error names the file relative to the project", async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, ".verbatrarc.json"), "{ not json");
+    const lines: string[] = [];
+
+    const handle = await startMcpServer({
+      cwd: relative(process.cwd(), dir),
+      onLog: (line) => lines.push(line),
+    });
+    await handle.close();
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).not.toContain(dir);
+    expect(lines[0]).toContain(".verbatrarc.json");
+  });
 
   it("reports configured: true when the config loads", async () => {
     const { dir, configPath } = await makeConfiguredProject();

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import type { McpServerHandle, McpStopCause } from "@verbatra/mcp";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
@@ -121,7 +122,7 @@ export async function runMcp(
     return failedSession(2);
   }
 
-  const cwd = mcpModule.resolveServerCwd?.(opts.cwd) ?? opts.cwd ?? process.cwd();
+  const cwd = mcpModule.resolveServerCwd?.(opts.cwd) ?? resolve(opts.cwd ?? process.cwd());
   try {
     loadEnvFiles(cwd);
   } catch (error) {

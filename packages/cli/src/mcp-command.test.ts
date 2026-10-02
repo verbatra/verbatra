@@ -177,9 +177,12 @@ describe("run mcp: project directory resolution", () => {
     await startAndStop(["mcp", "--cwd", "/explicit"], withFlag.deps);
     const withoutFlag = recordStartCwd();
     await startAndStop(["mcp"], withoutFlag.deps);
+    const withRelativeFlag = recordStartCwd();
+    await startAndStop(["mcp", "--cwd", "app/web"], withRelativeFlag.deps);
 
     expect(withFlag.startCwds).toEqual(["/explicit"]);
     expect(withoutFlag.startCwds).toEqual([process.cwd()]);
+    expect(withRelativeFlag.startCwds).toEqual([join(process.cwd(), "app/web")]);
   });
 });
 
