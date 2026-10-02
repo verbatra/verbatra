@@ -2,6 +2,11 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  CLI_REFERENCE_PAGES,
+  COMMAND_PAGE_CEILING,
+  proseWords,
+} from "../apps/docs/lib/page-type.ts";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -274,8 +279,6 @@ describe("the doctor page lists every check doctor runs", () => {
 
 const SHARED_COMMAND_FLAGS = ["--config", "--cwd", "--json"];
 
-const CLI_REFERENCE_PAGES = ["index", "output"];
-
 const GLOBAL_FLAGS_ANCHOR = {
   "": "global-flags",
   ".de": "globale-flags",
@@ -291,8 +294,6 @@ const COMMAND_PAGE_SECTIONS = {
 };
 
 const OPTIONAL_SECTION_INDEX = 2;
-
-const MAX_COMMAND_PAGE_WORDS = 2000;
 
 const MAX_EFFECT_WORDS = 25;
 
@@ -365,13 +366,6 @@ function expectedSections(page, suffix) {
   return h2Headings(page).includes(optional)
     ? sections
     : sections.filter((section) => section !== optional);
-}
-
-function proseWordCount(page) {
-  return page
-    .replace(/^---\n[\s\S]*?\n---\n/, "")
-    .split(/\s+/)
-    .filter(Boolean).length;
 }
 
 function cliMetaCommands(suffix) {
@@ -459,7 +453,7 @@ describe("the CLI reference covers every command", () => {
       it(`keeps cli/${name}.mdx short, with a short effect per flag`, () => {
         const page = readDocPage(`cli/${name}`, "");
 
-        expect(proseWordCount(page)).toBeLessThanOrEqual(MAX_COMMAND_PAGE_WORDS);
+        expect(proseWords(page)).toBeLessThanOrEqual(COMMAND_PAGE_CEILING);
         expect(Math.max(...effectWordCounts(page))).toBeLessThanOrEqual(MAX_EFFECT_WORDS);
       });
     },
