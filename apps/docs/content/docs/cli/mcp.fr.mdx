@@ -83,16 +83,14 @@ Le serveur répond à la poignée de main MCP `initialize` avec des `instruction
 
 <AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
 
-<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
-
 - `status.check`, `status.diff`, `key.integrity` et `translation.estimate` prennent un tableau `locales` optionnel ; `key.integrity` prend aussi la `key`, et une clé inconnue échoue avec `UNKNOWN_KEY`.
 - `key.integrity` renvoie `{ locales: [{ locale, entries }] }`, chaque entrée avec `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `markupMatches` et leurs détails ; `verbatra_key_integrity` dans Studio est plus plat (voir [Les outils d'agent dans Studio](/docs/agent-tools-in-studio)).
 - `translation.editEntry` prend `locale`, `key` et une `value` de 20 000 caractères au plus. Lui et `translation.retranslateEntry` renvoient `{ accepted, value, reason?, details? }`, où `reason` vaut `placeholder`, `markup`, `icu`, `degenerate` ou `empty`.
 - `glossary.get` prend une `locale` optionnelle et ajoute alors `effective`, les termes auxquels cette locale est tenue. `glossary.write` exige un glossaire dans un fichier, sinon il échoue avec `GLOSSARY_NOT_FILE_BACKED`.
-- `key.value`, `lock.state`, `status.check` et `status.diff` portent la provenance, absente quand `verbatra.provenance.json` est illisible.
-- Les outils qui écrivent prennent un `lockTimeoutMs` optionnel, de `0` à `600000`, par défaut `30000` : la durée d'attente d'un verrou d'écriture occupé avant d'échouer avec `LOCK_CONTENDED`, sans rien avoir écrit.
-- Les entrées et sorties sont des JSON Schemas ; une entrée invalide renvoie un résultat qui nomme le champ. Un résultat qui ne correspond pas à son `outputSchema` échoue avec `OUTPUT_SCHEMA_MISMATCH` ; pour un outil qui écrit, la modification a été appliquée, donc ne relance pas l'appel.
-- Le texte d'un appel en échec commence par son code d'erreur, comme `UNKNOWN_KEY: ...`, et se termine par une ligne `Next step: ...` quand l'erreur en a une, le même texte que le `hint` de la CLI.
+- <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> `key.value`, `lock.state`, `status.check` et `status.diff` portent la provenance, absente quand `verbatra.provenance.json` est illisible.
+- <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> Les outils qui écrivent prennent un `lockTimeoutMs` optionnel, de `0` à `600000`, par défaut `30000` : la durée d'attente d'un verrou d'écriture occupé avant d'échouer avec `LOCK_CONTENDED`, sans rien avoir écrit.
+- Les entrées et sorties sont des JSON Schemas ; une entrée invalide renvoie un résultat qui nomme le champ. <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> Un résultat qui ne correspond pas à son `outputSchema` échoue avec `OUTPUT_SCHEMA_MISMATCH` ; pour un outil qui écrit, la modification a été appliquée, donc ne relance pas l'appel.
+- Le texte d'un appel en échec commence par son code d'erreur, comme `UNKNOWN_KEY: ...`. <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> Il se termine par une ligne `Next step: ...` quand l'erreur en a une, le même texte que le `hint` de la CLI.
 
 ### Estimer avant de payer
 
