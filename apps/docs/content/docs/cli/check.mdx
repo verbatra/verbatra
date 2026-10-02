@@ -127,7 +127,7 @@ With `--json`, `result.review` is `{ reviewed, unreviewed, code? }`, where `code
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` runs the [sensitive content guard](/docs/data-handling#sensitive-content-guard) scan over each source key (key name, value, description, meaning) and the glossary of each checked locale, with the detectors, patterns and allow list of `sensitiveData`, or the default detectors without the block, even when `mode` is `"off"`. It reports keys and detectors, never matched text outside a key name, and fails with exit `1` on any finding.
+`--sensitive` runs the [sensitive content guard](/docs/data-handling#sensitive-content-guard) scan over each source key (key name, value, description, meaning) and the glossary of each checked locale, with the detectors, patterns and allow list of `sensitiveData`, even when its `mode` is `"off"`, or the default detectors without the block. It reports keys and detectors, never matched text outside a key name, and fails with exit `1` on any finding.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
