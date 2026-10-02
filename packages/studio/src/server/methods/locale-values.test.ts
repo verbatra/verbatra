@@ -38,6 +38,7 @@ describe("localeValuesHandler", () => {
       expect(result).toEqual([
         {
           locale: "de",
+          keys: ["greeting"],
           values: {
             greeting: {
               source: "hello",
@@ -98,7 +99,7 @@ describe("localeValuesHandler", () => {
         const result = await localeValuesHandler({}, deps(project));
 
         expect(JSON.stringify(result)).toBe(
-          `[{"locale":"de","values":{${JSON.stringify(key)}:{"source":"source","target":"target","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]`,
+          `[{"locale":"de","keys":[${JSON.stringify(key)}],"values":{${JSON.stringify(key)}:{"source":"source","target":"target","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]`,
         );
       } finally {
         await project.cleanup();

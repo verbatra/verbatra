@@ -9,11 +9,11 @@ import { useLocaleValues } from "./use-locale-values.js";
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
 const DATA: LocaleValuesData = [
-  { locale: "de", values: { greeting: { source: "Hello", target: "Hallo" } } },
+  { locale: "de", keys: ["greeting"], values: { greeting: { source: "Hello", target: "Hallo" } } },
 ];
 
 const OTHER_DATA: LocaleValuesData = [
-  { locale: "de", values: { greeting: { source: "Hi", target: "Hi" } } },
+  { locale: "de", keys: ["greeting"], values: { greeting: { source: "Hi", target: "Hi" } } },
 ];
 
 function valuesAnswer(result: LocaleValuesData): { readonly ok: true; readonly result: unknown } {
