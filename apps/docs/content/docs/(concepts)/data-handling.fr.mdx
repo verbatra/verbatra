@@ -12,7 +12,7 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
 - **Une seule destination sortante : ton fournisseur**, seulement quand une commande traduit ;
   aucune avec `provider: { id: "none" }`.
 - **Seul ce qui doit être traduit est envoyé** : ni clés inchangées, ni succès du cache, ni clés
-  protégées (sauf avec `humanEdits: "suggest"`).
+  protégées (sauf les modifications humaines obsolètes avec `humanEdits: "suggest"`).
 - **Tout le reste reste local** : Studio sur `127.0.0.1`, le serveur MCP via stdio.
 - **Les clés d'API viennent uniquement de variables d'environnement** et n'apparaissent jamais dans
   un message.
@@ -56,7 +56,7 @@ le nom d'hôte du fournisseur.
 | --- | --- | --- |
 | `anthropic`, `openai`, `gemini`, `openai-compatible` | Par clé : le nom de la clé, le texte source, et la description ou le sens que porte ton fichier source (une `description` ARB, une note XLIFF, un commentaire gettext). Par requête : les codes source et cible (après [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur)) et leurs noms anglais, ton `tone`, les termes du glossaire de la locale cible, les catégories de pluriel de la cible quand un lot contient des pluriels, les instructions fixes de verbatra, le nom du modèle et une limite de tokens de sortie. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, ou la `baseUrl` que tu as configurée. Une variable `*_BASE_URL` redirige les fournisseurs hébergés, voir [Politique réseau](/docs/network-policy#fournisseurs-hébergés). |
 | `deepl` | Le texte source de chaque clé, avec les placeholders en marqueurs numérotés dans une balise `<x>` ignorée (une valeur dont les placeholders ne peuvent pas être protégés n'est pas envoyée) <AvailableFrom version="0.12.0" />, les codes de langue, un réglage de formalité quand ton `tone` en demande un avec une clé payante, et ton `glossaryId`. Ni noms de clé, ni descriptions, ni termes de glossaire. | `api.deepl.com`, ou `api-free.deepl.com` pour une clé qui finit par `:fx`. |
-| `google-translate` | Le texte source de chaque clé, avec les placeholders en marqueurs numérotés dans un `span` `translate="no"` (une valeur dont les placeholders ne peuvent pas être protégés, ou qui contient un saut de ligne, une tabulation ou un double espace, n'est pas envoyée) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
+| `google-translate` | Le texte source de chaque clé, avec les placeholders en marqueurs numérotés dans un `span` `translate="no"` (une valeur avec placeholders n'est pas envoyée s'ils ne peuvent pas être protégés ou si elle contient aussi un saut de ligne, une tabulation ou un double espace) <AvailableFrom version="0.12.0" />, et les codes de langue. | `translation.googleapis.com` |
 | `libretranslate` | Le texte source de chaque clé avec ses placeholders remplacés par des marqueurs numérotés (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
 | `none` | Rien. | Nulle part. |
 

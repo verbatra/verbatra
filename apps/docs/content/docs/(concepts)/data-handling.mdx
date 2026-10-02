@@ -11,7 +11,7 @@ covered by its [privacy policy](/privacy).
 - **No telemetry**, no update check, and no verbatra server to contact.
 - **One outbound destination: your provider**, only when a command translates; none with
   `provider: { id: "none" }`.
-- **Only what needs translating is sent**: no unchanged keys, cache hits or protected keys (unless `humanEdits: "suggest"`).
+- **Only what needs translating is sent**: no unchanged keys, cache hits or protected keys (except stale human edits under `humanEdits: "suggest"`).
 - **Everything else stays local**: Studio on `127.0.0.1`, the MCP server over stdio.
 - **API keys come from environment variables only** and never appear in a message.
 
@@ -52,7 +52,7 @@ provider's host name.
 | --- | --- | --- |
 | `anthropic`, `openai`, `gemini`, `openai-compatible` | Per key: the key name, the source text, and the description or meaning your source file carries (an ARB `description`, an XLIFF note, a gettext comment). Per request: the source and target codes (after [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider)) and their English names, your `tone`, the target locale's glossary terms, the target's plural categories when a batch has plurals, verbatra's fixed instructions, the model name and an output token limit. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, or the `baseUrl` you configured. A `*_BASE_URL` variable redirects the hosted ones, see [Network policy](/docs/network-policy#hosted-providers). |
 | `deepl` | The source text of each key with placeholders replaced by numbered markers inside an ignored `<x>` tag (a value whose placeholders cannot be protected is not sent) <AvailableFrom version="0.12.0" />, the language codes, a formality setting when your `tone` asks for one on a paid key, and your `glossaryId`. No key names, descriptions or glossary terms. | `api.deepl.com`, or `api-free.deepl.com` for a key ending in `:fx`. |
-| `google-translate` | The source text of each key with placeholders replaced by numbered markers inside a `translate="no"` span (a value whose placeholders cannot be protected, or with a line break, tab or double space, is not sent) <AvailableFrom version="0.12.0" />, and the language codes. | `translation.googleapis.com` |
+| `google-translate` | The source text of each key with placeholders replaced by numbered markers inside a `translate="no"` span (a value with placeholders is not sent when they cannot be protected or it also holds a line break, tab or double space) <AvailableFrom version="0.12.0" />, and the language codes. | `translation.googleapis.com` |
 | `libretranslate` | The source text of each key with placeholders replaced by numbered markers (a value with ICU syntax is not sent), the language codes, and `LIBRETRANSLATE_API_KEY` when set. | The `baseUrl` you configured. |
 | `none` | Nothing. | Nowhere. |
 
@@ -129,8 +129,8 @@ prints at start, and its Content-Security-Policy blocks fetches to the internet.
 
 **The MCP server** talks over stdio and opens no port. Its read tools return your strings, glossary
 and status; [`--redact-values`](/docs/cli/mcp#redacted-values) turns each value into a marker, with
-the limits listed there. `history.list` gives commit metadata and the author name (not under
-`--redact-values`), never the email.
+the limits listed there. `history.list` gives each commit's hash, date, author name (not under
+`--redact-values`), subject and paths, never the email.
 
 An MCP client, or a browser agent using Studio's `--expose-agent-tools`, is usually an AI assistant,
 and what it reads goes to its model under that vendor's terms. Studio's agent tools are never
@@ -138,9 +138,9 @@ redacted: an agent driving the tab can read the page anyway.
 
 ## AI-generated translations and provenance
 
-Article 50 of the EU AI Act sets transparency obligations for AI systems that generate text
+The EU AI Act sets transparency obligations for AI-generated text
 ([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Whether it applies to your product is for your legal counsel. verbatra keeps a
+Whether they apply is for your legal counsel. verbatra keeps a
 [record](/docs/the-lock-file#provenance-who-wrote-each-value): every value a provider produced is
 marked `machine` origin, with provider and model.
 
