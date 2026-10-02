@@ -21,6 +21,7 @@ import { editEntry } from "./edit-entry.js";
 import { keyValue } from "./key-value.js";
 import { approveEntry, rejectEntry } from "./review-decision.js";
 import { translate } from "./translate-project.js";
+import { createValueMarker } from "./value-marker.js";
 
 const cfg = (overrides: Partial<VerbatraConfig> = {}): VerbatraConfig =>
   baseConfig({ targetLocales: ["de"], ...overrides });
@@ -275,6 +276,112 @@ describe("approveEntry", () => {
       (await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "greeting" })).provenance,
     ).toEqual({ origin: "human", reviewState: "unreviewed" });
   });
+});
+
+describe("approveEntry and rejectEntry: a hash in place of the value", () => {
+  it("approves when the current value hashes to expectedValueHash under the given marker", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const marker = createValueMarker();
+    const value = await currentValue(dir, "greeting");
+
+    const result = await approveEntry(
+      {
+        config: cfg(),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+        expectedValueHash: marker.hash(value),
+      },
+      { valueMarker: marker },
+    );
+
+    expect(result.provenance.reviewState).toBe("approved");
+  });
+
+  it("rejects when the current value hashes to expectedValueHash", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const marker = createValueMarker();
+    const value = await currentValue(dir, "greeting");
+
+    const result = await rejectEntry(
+      {
+        config: cfg(),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+        expectedValueHash: marker.hash(value),
+      },
+      { valueMarker: marker },
+    );
+
+    expect(result.provenance.reviewState).toBe("rejected");
+    expect((await targetValues(dir)).greeting).toBeUndefined();
+  });
+
+  it("refuses a stale hash with REVIEW_VALUE_CHANGED, writing nothing", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const marker = createValueMarker();
+    const before = await readTextFile(join(dir, "locales", "de.json"));
+
+    await expect(
+      approveEntry(
+        {
+          config: cfg(),
+          cwd: dir,
+          locale: "de",
+          key: "greeting",
+          expectedValueHash: marker.hash("an older value"),
+        },
+        { valueMarker: marker },
+      ),
+    ).rejects.toMatchObject({ code: "REVIEW_VALUE_CHANGED" });
+    expect(await readTextFile(join(dir, "locales", "de.json"))).toBe(before);
+    expect(await recordOf(dir, "greeting")).not.toHaveProperty("reviewState");
+  });
+
+  it("refuses a hash made by another marker with REVIEW_VALUE_CHANGED", async () => {
+    const dir = await translated({ greeting: "Hello" });
+    const value = await currentValue(dir, "greeting");
+
+    await expect(
+      approveEntry(
+        {
+          config: cfg(),
+          cwd: dir,
+          locale: "de",
+          key: "greeting",
+          expectedValueHash: createValueMarker().hash(value),
+        },
+        { valueMarker: createValueMarker() },
+      ),
+    ).rejects.toMatchObject({ code: "REVIEW_VALUE_CHANGED" });
+  });
+
+  it.each([
+    ["both a value and a hash", { expectedValue: "x", expectedValueHash: "0" }, true],
+    ["a hash without a marker", { expectedValueHash: "0" }, false],
+    ["a hash that is not a string", { expectedValueHash: 7 }, true],
+  ])(
+    "refuses %s with REVIEW_VALUE_CHANGED before anything is read",
+    async (_label, expectation, withMarker) => {
+      const dir = await makeTempDir();
+      const input = {
+        config: cfg(),
+        cwd: dir,
+        locale: "de",
+        key: "greeting",
+        ...expectation,
+      } as unknown as Parameters<typeof approveEntry>[0];
+      const deps = withMarker ? { valueMarker: createValueMarker() } : {};
+
+      await expect(approveEntry(input, deps)).rejects.toMatchObject({
+        code: "REVIEW_VALUE_CHANGED",
+      });
+      await expect(rejectEntry(input, deps)).rejects.toMatchObject({
+        code: "REVIEW_VALUE_CHANGED",
+      });
+    },
+  );
 });
 
 describe("approveEntry and rejectEntry: boundary checks", () => {
