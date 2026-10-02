@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "../placeholder-protection.js";
 import type { ProviderNotice, TranslateRequest } from "../provider.js";
 import { ProviderRegistry } from "../registry.js";
 import type { DeepLCall } from "../test-support.js";
@@ -14,7 +15,6 @@ import {
 import type { DeepLConfig } from "./config.js";
 import { createDeepLProvider } from "./deepl-provider.js";
 import { DEEPL_MAX_TEXTS_PER_REQUEST } from "./limits.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
 import type { DeepLTranslateClient, DeepLTranslateResult } from "./types.js";
 
 function deeplEchoStubClient(): { client: DeepLTranslateClient; calls: DeepLCall[] } {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "../placeholder-protection.js";
 import type { TranslateRequest } from "../provider.js";
 import { entry, regexExtractor, termGlossary } from "../test-support.js";
 import { createLibreTranslateProvider } from "./libretranslate-provider.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./notices.js";
 import type {
   LibreTranslateClient,
   LibreTranslateHttpResponse,

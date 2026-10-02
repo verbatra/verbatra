@@ -6,6 +6,7 @@ import {
   encodeMaskedForHtml,
   encodeMaskedForXml,
   maskPlaceholders,
+  PLACEHOLDER_UNSUPPORTED_MESSAGE,
   partitionByPlaceholders,
   partitionForMasking,
   restoreTranslations,
@@ -293,5 +294,13 @@ describe("restoreTranslations", () => {
     expect(restored.values.size).toBe(0);
     expect(restored.integrityInputs).toEqual([]);
     expect(restored.lost).toBe(1);
+  });
+});
+
+describe("PLACEHOLDER_UNSUPPORTED_MESSAGE", () => {
+  it("is one static message that names no provider, key or content", () => {
+    expect(PLACEHOLDER_UNSUPPORTED_MESSAGE).toBe(
+      "Some entries contain ICU plural or select syntax, markup, or placeholders the provider did not return intact; they were left untranslated.",
+    );
   });
 });

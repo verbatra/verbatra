@@ -8,6 +8,7 @@ import type { ProviderNetwork } from "../network/transport.js";
 import {
   containsMarkupTag,
   type OutgoingText,
+  PLACEHOLDER_UNSUPPORTED_MESSAGE,
   partitionForMasking,
   type RestoredBatch,
   restoreTranslations,
@@ -23,7 +24,7 @@ import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js
 import { createDefaultClient } from "./client.js";
 import { type LibreTranslateConfig, libreTranslateConfigSchema } from "./config.js";
 import { toLibreTranslateCode } from "./locale-codes.js";
-import { buildTranslateNotices, PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./notices.js";
+import { buildTranslateNotices } from "./notices.js";
 import { parseLibreTranslateHttpResult, zipTexts } from "./response.js";
 import type {
   LibreTranslateClient,

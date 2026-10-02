@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "../placeholder-protection.js";
 import type { ProviderNotice, TranslateRequest } from "../provider.js";
 import { ProviderRegistry } from "../registry.js";
 import {
@@ -13,7 +14,6 @@ import {
 } from "../test-support.js";
 import { createGoogleTranslateProvider } from "./google-translate-provider.js";
 import { GOOGLE_TRANSLATE_MAX_TEXT_PAYLOAD_BYTES } from "./limits.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
 import type { GoogleTranslateClient, GoogleTranslateResult } from "./types.js";
 
 const config = {};
