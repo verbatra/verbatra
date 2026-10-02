@@ -36,6 +36,16 @@ function entry(value: string, placeholders: readonly string[] = []): Translation
 }
 
 describe("check", () => {
+  it("passes a malformed target locale file's AdapterError through with its own code", async () => {
+    const dir = await project({ a: "A" }, {});
+    await writeFile(join(dir, "locales", "de.json"), "{ not json");
+
+    await expect(check({ config: cfg(), cwd: dir })).rejects.toMatchObject({
+      name: "AdapterError",
+      code: "INVALID_JSON",
+    });
+  });
+
   it("reports all up-to-date locales as in sync", async () => {
     const dir = await project(
       { a: "A", b: "B" },

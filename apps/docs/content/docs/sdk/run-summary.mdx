@@ -55,12 +55,10 @@ The parts worth knowing:
   never appears in both `needsReview` and `integrityMismatches`. See
   [Review in Studio](/docs/review-in-studio) for working the queue.
 - **notices** live per locale, never at the top level. They cover provider notices (say, a DeepL
-  degradation) and SDK notices with the codes `PLURAL_CATEGORIES_INCOMPLETE`, `SUB_BATCH_FAILED`,
-  `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED` (from 0.12.0: keys an XLIFF handoff marked reviewed or final were recorded as approved), `BUDGET_TOKENS_EXCEEDED`, `CACHE_VERSION_UNRECOGNIZED`,
-  `PROVENANCE_VERSION_UNRECOGNIZED`, `LOCALE_STATE_CARRIED_OVER` (state recorded under an underscore spelling such as `pt_BR` was moved to the configured `pt-BR`; see [A respelled locale code](/docs/the-lock-file#a-respelled-locale-code)), `LOCALE_STATE_CARRY_OVER_SKIPPED` (that move was left for the next run because the lock-file guard stayed contended or could not be read or created, or a file could not be written; unless only the translation memory stayed behind, the locale did not run and failed with `LOCALE_STATE_NOT_CARRIED_OVER`), `PROVENANCE_FILE_TOO_LARGE` (recording a locale would have
-  grown `verbatra.provenance.json` past what verbatra reads back, so the file was kept as it was), and, from 0.12.0, the four warnings of the locale support check, raised before anything is spent and on a dry run too: `LOCALE_UNVERIFIED_BY_PROVIDER` (the code sent is not on the provider's table, only its base language is or it comes from `localeMap`), `LOCALE_NOT_WELL_TESTED` (an LLM target outside the well-tested list), `GLOSSARY_UNSUPPORTED_BY_PROVIDER`, and `FORMALITY_UNSUPPORTED_BY_PROVIDER` (a glossary or tone the provider cannot apply for the locale). The
-  cache notice is run-wide (one file, shared by every locale), so it is attached to each locale in
-  the run.
+  degradation), listed under [Provider notices](/docs/error-codes#provider-notice-codes), and SDK
+  notices, whose codes form the `SdkNoticeCode` union and are explained under
+  [Run notices](/docs/error-codes#sdk-notice-codes). A run-wide notice, such as the cache notice
+  (one file, shared by every locale), is attached to each locale in the run.
 - **usage** is `undefined`, never a fabricated zero, whenever nothing in that scope reported usage:
   a dry run never calls a provider, and DeepL never reports tokens. `RunSummary.usage` is the sum
   over the locales.
@@ -111,7 +109,7 @@ The parts worth knowing:
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
   the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
   import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no exact entry for, and **fuzzyHits** stays empty because fuzzy reuse is never applied there.
-- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, a `suggestion` (the provider's answer or an exact translation-memory entry, never a fuzzy match), which was not written, and a `suggestionStatus`: `planned` on a dry run, `suggested`, or why not (`integrity-mismatch`, `provider-failure`, `budget-withheld`). A failed suggestion never changes the locale's status. They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
+- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, a `suggestion` (the provider's answer or an exact translation-memory entry, never a fuzzy match), which was not written, and a `suggestionStatus`: `planned` on a dry run, `suggested`, or why not (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). A failed suggestion never changes the locale's status. They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
 
 ### budgetStanding
 

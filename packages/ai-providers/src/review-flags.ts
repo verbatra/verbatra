@@ -189,14 +189,39 @@ function isBidiControlsChanged(sourceValue: string, translatedValue: string): bo
   );
 }
 
+type LengthCheck = (
+  sourceValue: string,
+  translatedValue: string,
+  maxLength: number | undefined,
+) => boolean;
+
+const LENGTH_CHECKS: readonly (readonly [ReviewReasonCode, LengthCheck])[] = [
+  [
+    "LENGTH_RATIO_OUTLIER",
+    (sourceValue, translatedValue) => isLengthRatioOutlier(sourceValue, translatedValue),
+  ],
+  [
+    "MAX_LENGTH_EXCEEDED",
+    (_sourceValue, translatedValue, maxLength) => exceedsMaxLength(translatedValue, maxLength),
+  ],
+];
+
+export const LENGTH_REVIEW_REASONS: ReadonlySet<ReviewReasonCode> = new Set(
+  LENGTH_CHECKS.map(([reason]) => reason),
+);
+
+export function lengthReviewReasons(
+  sourceValue: string,
+  translatedValue: string,
+  maxLength: number | undefined,
+): ReviewReasonCode[] {
+  return LENGTH_CHECKS.filter(([, flags]) => flags(sourceValue, translatedValue, maxLength)).map(
+    ([reason]) => reason,
+  );
+}
+
 export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
-  const reasons: ReviewReasonCode[] = [];
-  if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
-    reasons.push("LENGTH_RATIO_OUTLIER");
-  }
-  if (exceedsMaxLength(input.translatedValue, input.maxLength)) {
-    reasons.push("MAX_LENGTH_EXCEEDED");
-  }
+  const reasons = lengthReviewReasons(input.sourceValue, input.translatedValue, input.maxLength);
   if (isEqualsSource(input)) {
     reasons.push("EQUALS_SOURCE");
   }

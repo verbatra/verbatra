@@ -334,11 +334,15 @@ function editConfiguredGlossaryTerm(
 Un ayudante de identidad para escribir un `verbatra.config.ts` tipado: devuelve su argumento sin cambios y
 existe puramente para la inferencia de tipos y el autocompletado del editor, incluido el completado de
 los IDs de modelo conocidos del proveedor seleccionado. La restricción de modelos es solo al escribir;
-en tiempo de ejecución cualquier cadena no vacía pasa la validación.
+en tiempo de ejecución cualquier cadena no vacía pasa la validación. Cada proveedor salvo `openai-compatible`, `libretranslate` y
+`none` tiene además una sobrecarga que recibe `AuthoringConfigFor<"<id>">`, como
+`AuthoringConfigFor<"anthropic">`, que restringe el bloque `provider` a las opciones de ese
+proveedor (y, en un modelo de lenguaje, a sus IDs de modelo conocidos); esos tres usan la
+alternativa con `AuthoringConfig` de abajo.
 
 ```ts title="Firma"
 function defineConfig(
-  config: AuthoringConfigFor<"anthropic">,
+  config: AuthoringConfig,
 ): VerbatraConfigInput;
 ```
 
@@ -353,6 +357,10 @@ así que un secreto extraviado no puede esconderse en la configuración. La úni
 un editor hacia el documento JSON Schema que el paquete publica como
 `@verbatra/sdk/config-schema.json`. Se ignora en tiempo de ejecución.
 
+```ts title="Firma"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
 ### scaffoldingMetadata
 
 Metadatos de solo lectura de los que el comando `init` de la CLI deriva sus preguntas: `providerEnv` (de
@@ -365,6 +373,19 @@ opciones de cada proveedor, y DeepL y Google Cloud Translation no tienen entrada
 tipo `ScaffoldableProviderId` es `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`, así que cubre todos los
 proveedores que solo necesitan su id; `openai-compatible` y `libretranslate` quedan excluidos porque
 ambos necesitan una `baseUrl` que solo tú conoces y ninguno tiene una variable de entorno obligatoria.
+
+```ts title="Firma"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
 
 `scaffoldingMetadata.humanOnlyProviderId` es `"none"`, el id que desactiva la traducción automática. No tiene entrada en `providerEnv`, porque no lee ninguna clave.
 

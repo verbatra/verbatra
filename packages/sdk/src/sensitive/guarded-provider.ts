@@ -1,8 +1,10 @@
-import type {
-  ReviewFlag,
-  TranslateRequest,
-  TranslateResult,
-  TranslationProvider,
+import {
+  LENGTH_REVIEW_REASONS,
+  lengthReviewReasons,
+  type ReviewFlag,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
 } from "@verbatra/ai-providers";
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import type { SensitiveFinding, SensitiveGuard } from "./guard.js";
@@ -20,6 +22,7 @@ export function sensitiveWithheldOf(result: TranslateResult): SensitiveWithheld 
 }
 
 interface Redaction {
+  readonly source: string;
   readonly originals: readonly string[];
   readonly finding: SensitiveFinding;
 }
@@ -40,7 +43,11 @@ function guardBatch(guard: SensitiveGuard, entries: readonly TranslationEntry[])
       withheld.set(entry.key, verdict.finding.sources);
     } else if (verdict.action === "redact") {
       sent.push(verdict.entry);
-      redactions.set(entry.key, { originals: verdict.originals, finding: verdict.finding });
+      redactions.set(entry.key, {
+        source: entry.value,
+        originals: verdict.originals,
+        finding: verdict.finding,
+      });
     } else {
       sent.push(entry);
     }
@@ -62,7 +69,45 @@ function keepKeys<T>(map: ReadonlyMap<string, T> | undefined, keys: ReadonlySet<
   return new Map([...(map ?? [])].filter(([key]) => keys.has(key)));
 }
 
-function restoreResult(result: TranslateResult, batch: GuardedBatch): TranslateResult {
+function restoredReviewFlag(
+  flag: ReviewFlag | undefined,
+  redaction: Redaction,
+  restored: string,
+  maxLength: number | undefined,
+): ReviewFlag | undefined {
+  const reasons = [
+    ...lengthReviewReasons(redaction.source, restored, maxLength),
+    ...(flag?.reasons ?? []).filter((reason) => !LENGTH_REVIEW_REASONS.has(reason)),
+  ];
+  return reasons.length > 0 ? { status: "review", reasons } : undefined;
+}
+
+function restoreReviewFlags(
+  result: TranslateResult,
+  batch: GuardedBatch,
+  values: ReadonlyMap<string, string>,
+  request: TranslateRequest,
+): Map<string, ReviewFlag> {
+  const reviewFlags = new Map<string, ReviewFlag>();
+  for (const [key, value] of values) {
+    const flag = result.reviewFlags?.get(key);
+    const redaction = batch.redactions.get(key);
+    const restored =
+      redaction === undefined
+        ? flag
+        : restoredReviewFlag(flag, redaction, value, request.maxLength?.get(key));
+    if (restored !== undefined) {
+      reviewFlags.set(key, restored);
+    }
+  }
+  return reviewFlags;
+}
+
+function restoreResult(
+  result: TranslateResult,
+  batch: GuardedBatch,
+  request: TranslateRequest,
+): TranslateResult {
   const values = new Map<string, string>();
   for (const [key, value] of result.values) {
     const redaction = batch.redactions.get(key);
@@ -75,7 +120,7 @@ function restoreResult(result: TranslateResult, batch: GuardedBatch): TranslateR
   }
   const kept = new Set(values.keys());
   const integrity: Map<string, PlaceholderIntegrityResult> = keepKeys(result.integrity, kept);
-  const reviewFlags: Map<string, ReviewFlag> = keepKeys(result.reviewFlags, kept);
+  const reviewFlags = restoreReviewFlags(result, batch, values, request);
   return recorded({ ...result, values, integrity, reviewFlags }, batch.withheld);
 }
 
@@ -100,7 +145,7 @@ export function guardProvider(
         return recorded({ values: new Map(), integrity: new Map(), notices: [] }, batch.withheld);
       }
       const result = await inner.translateBatch(guardedRequest(guard, request, batch.entries));
-      return restoreResult(result, batch);
+      return restoreResult(result, batch, request);
     },
   };
 }

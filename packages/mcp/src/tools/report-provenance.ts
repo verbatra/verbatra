@@ -19,7 +19,7 @@ import {
 import { keyProvenanceSchema } from "./provenance-schema.js";
 import { withoutReviewer } from "./value-redaction.js";
 
-const bucketSchema = z.enum(PROVENANCE_BUCKETS as [ProvenanceBucket, ...ProvenanceBucket[]]);
+const bucketSchema = z.enum(PROVENANCE_BUCKETS);
 
 const paramsSchema = z
   .strictObject({

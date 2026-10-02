@@ -321,11 +321,15 @@ function editConfiguredGlossaryTerm(
 An identity helper for authoring a typed `verbatra.config.ts`: it returns its argument unchanged,
 and exists purely for type inference and editor autocomplete, including completion of the selected
 provider's known model IDs. The model restriction is authoring-only; at runtime any non-empty
-string passes validation.
+string passes validation. Every provider except `openai-compatible`, `libretranslate`, and
+`none` also gets an overload taking `AuthoringConfigFor<"<id>">`, such as
+`AuthoringConfigFor<"anthropic">`, which narrows the `provider` block to that provider's options
+(and, for a language model, its known model IDs); those three use the `AuthoringConfig` fallback
+below.
 
 ```ts title="Signature"
 function defineConfig(
-  config: AuthoringConfigFor<"anthropic">,
+  config: AuthoringConfig,
 ): VerbatraConfigInput;
 ```
 
@@ -339,6 +343,10 @@ hide in the config. The one exception is `$schema`, an optional string accepted 
 config can point an editor at the JSON Schema document the package ships as
 `@verbatra/sdk/config-schema.json`. It is ignored at runtime.
 
+```ts title="Signature"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
 ### scaffoldingMetadata
 
 Read-only metadata the CLI `init` command derives its prompts from: `providerEnv` (provider id to
@@ -351,6 +359,19 @@ Translation have no entry because they take no token limit. The `ScaffoldablePro
 `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">`, so it covers every provider
 that needs nothing but its id; `openai-compatible` and `libretranslate` are excluded because each
 needs a `baseUrl` only you can supply and neither has a required environment variable.
+
+```ts title="Signature"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
 
 `scaffoldingMetadata.humanOnlyProviderId` is `"none"`, the id that disables machine translation. It has no `providerEnv` entry, since it reads no key.
 

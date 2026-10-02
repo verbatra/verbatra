@@ -314,8 +314,9 @@ export function describeError(
 
 /**
  * The single structured error the SDK throws. Every whole-run failure surfaces as an `SdkError`
- * carrying a stable {@link SdkErrorCode}, except the few a flow's `@throws` names as passed through
- * unwrapped (a watcher factory that throws); per-locale failures, provider notices, and integrity
+ * carrying a stable {@link SdkErrorCode}, except the few a flow's `@throws` names otherwise (a
+ * provider's `ProviderError`, a `BatchInterruptedError`, a malformed target file's `AdapterError`,
+ * or a watcher factory's own error); per-locale failures, provider notices, and integrity
  * findings are reported as data on the {@link RunSummary} instead of being thrown.
  *
  * An `SdkError` never carries a secret in its message.
@@ -330,9 +331,11 @@ export class SdkError extends Error {
    * @param options - `cause` carries the error this one wraps, such as the interchange reader's
    * error for a `SOURCE_INVALID` TMX file. Read that file's line, column and unit with
    * `tmxErrorLocation` rather than from the cause directly. Only `SOURCE_INVALID`,
-   * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE` and
-   * `REVIEW_RESTORE_FAILED` carry one; `CONFIG_NOT_FOUND` and `CONFIG_INVALID` never do, because a
-   * config parser's error can quote the file's content.
+   * `PROVIDER_CONSTRUCTION_FAILED`, `EXPORT_UNWRITABLE`, `GLOSSARY_UNWRITABLE`,
+   * `REVIEW_RESTORE_FAILED` and `LOCK_CONTENDED` carry one, and `CONFIG_INVALID` only when the
+   * config file failed to load with a coded error, such as an import that does not resolve. A
+   * config parse or schema error and `CONFIG_NOT_FOUND` carry none, because a config parser's error
+   * can quote the file's content.
    */
   constructor(code: SdkErrorCode, message: string, options?: { readonly cause?: unknown }) {
     super(message, options);

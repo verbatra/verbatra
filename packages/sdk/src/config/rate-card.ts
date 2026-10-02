@@ -31,14 +31,14 @@ export const characterRateSchema = z.strictObject({
 });
 
 /**
- * The zod schema for one `rates.table` entry: either {@link tokenRateSchema} or
- * {@link characterRateSchema}, never a mix of the two shapes.
+ * The zod schema for one `rates.table` entry: either a token rate or a character rate, never a
+ * mix of the two shapes.
  */
 export const modelRateSchema = z.union([tokenRateSchema, characterRateSchema]);
 
 /**
  * The zod schema for the optional `rates` block: the `asOf` date and `currency` printed beside
- * every priced estimate, plus a `table` of {@link modelRateSchema} entries keyed by rate key
+ * every priced estimate, plus a `table` of rate entries keyed by rate key
  * (`provider/model`, or the bare provider id for a provider without a model).
  */
 export const rateCardSchema = z.strictObject({

@@ -85,9 +85,10 @@ que `estimate` implica `dryRun`, así que recurre a él siempre que algo alreded
 que saberlo de antemano, en lugar de repetir la implicación y acabar desviándote de ella.
 
 ```ts title="Firma"
-function resolveDryRun(
-  input: { dryRun?: boolean; estimate?: boolean },
-): boolean;
+function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean;
 ```
 
 **Devuelve:** `boolean`

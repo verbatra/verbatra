@@ -4,6 +4,7 @@ import type { SdkFs } from "../../fs.js";
 import {
   isMachineClassOrigin,
   type KeyProvenance,
+  type KeyReviewState,
   keyProvenance,
   type LocaleProvenance,
 } from "../../lock/key-provenance.js";
@@ -19,8 +20,8 @@ import { readCarriedOverLock, readCarriedOverProvenance } from "../locale-carry-
  */
 export type TmxOrigin = "machine" | "human" | "import" | "unknown";
 
-/** The `x-review` value a TMX export writes next to `x-origin="machine"`. */
-export type TmxReview = "approved" | "unreviewed" | "rejected";
+/** The `x-review` value a TMX export writes next to `x-origin="machine"`: a {@link KeyReviewState}. */
+export type TmxReview = KeyReviewState;
 
 const TMX_ORIGIN_PROPERTY = "x-origin";
 

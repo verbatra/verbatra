@@ -82,9 +82,10 @@ decided, so reach for it whenever something around a run has to know in advance 
 restating the implication and drifting from it.
 
 ```ts title="Signature"
-function resolveDryRun(
-  input: { dryRun?: boolean; estimate?: boolean },
-): boolean;
+function resolveDryRun(input: {
+  readonly dryRun?: boolean | undefined;
+  readonly estimate?: boolean | undefined;
+}): boolean;
 ```
 
 **Returns:** `boolean`

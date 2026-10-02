@@ -350,6 +350,7 @@ function qaReports(
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws `AdapterError`: a target locale file is malformed. Its own code is preserved.
  */
 export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<CheckSummary> {
   const { results, adapter, source, sourceInvalidIcuKeys } = await diffLocalesWithSource(
