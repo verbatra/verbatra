@@ -37,8 +37,9 @@ const DATING_PHRASES = [
   "depuis",
   "dès",
 ];
+const RANGE_END = "(?!`?\\s+(?:to|bis|auf|nach|a|hasta|à|vers|jusqu'à)\\s+`?v?\\d)";
 const DATING = new RegExp(
-  `(?<![\\p{L}\\p{N}])(?:${DATING_PHRASES.join("|")})\\s+(?:@verbatra\\/[a-z]+\\s+)?v?(\\d+\\.\\d+(?:\\.\\d+)?)(?![\\d.]*\\d)`,
+  `(?<![\\p{L}\\p{N}])(?<!version\`?\\s)(?:${DATING_PHRASES.join("|")})\\s+(?:@verbatra\\/[a-z]+\\s+)?\`?v?(\\d+\\.\\d+(?:\\.\\d+)?)(?![\\d.]*\\d)\`?${RANGE_END}`,
   "giu",
 );
 
@@ -280,6 +281,7 @@ describe("AvailableFrom badge placement", () => {
     ["es", "`X` aparece por primera vez en 0.12.0."],
     ["fr", "`X` apparaît pour la première fois en 0.12.0."],
     ["fr", "À partir de 0.12.0, il écrit le fichier."],
+    ["en", "From `0.12.0` it also writes the file."],
   ])("rejects %s prose that restates the badge version: %s", (_locale, sentence) => {
     const body = `## A\n\n<AvailableFrom version="0.12.0" />\n\n${sentence}`;
     expect(badgeViolations(page("reference", body))).toEqual([
@@ -293,6 +295,7 @@ describe("AvailableFrom badge placement", () => {
       '<AvailableFrom version="0.12.0" />',
       "It needs a `version` of `0.12.0` or newer, and braucht eine `version` ab `0.12.0`.",
       "Up to 0.11 it returned the map; from 0.11.0 it was flat.",
+      "Upgrading from 0.12.0 to 0.13.0 keeps the file, and so does von `0.12.0` auf `0.13.0`.",
       "## B",
       "From 0.12.0 any other key fails.",
     ].join("\n\n");
