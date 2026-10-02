@@ -13,8 +13,8 @@ Jeder Provider funktioniert mit jedem Format und jedem Befehl, und ein späterer
 | --- | --- |
 | Kostenlos, für ein kleines Projekt mit nicht vertraulichen Strings | **Gemini**: ein kostenloses API-Kontingent, Keys aus dem [Google AI Studio](https://aistudio.google.com/apikey). Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent nutzen und von Menschen prüfen lassen ([Bedingungen](/docs/data-handling#aufbewahrung-und-auftragsverarbeitung-beim-anbieter)). |
 | Die beste Qualität für eine Produktions-App | **Anthropic** oder **OpenAI**, beide bezahlt. |
-| Hohes Volumen, ein natives Glossar, kein LLM | **DeepL**, kostenloses oder bezahltes Kontingent. Strings mit Platzhaltern überspringt es. |
-| Die breiteste Abdeckung mit einem API-Schlüssel auf Google Cloud | **Google Cloud Translation** (Basic, v2). Strings mit Platzhaltern überspringt es. |
+| Hohes Volumen, ein natives Glossar, kein LLM | **DeepL**, kostenloses oder bezahltes Kontingent. |
+| Die breiteste Abdeckung mit einem API-Schlüssel auf Google Cloud | **Google Cloud Translation** (Basic, v2). |
 | Offline, kostenfrei, nichts verlässt dein Netzwerk | **openai-compatible** mit LM Studio, Ollama oder vLLM. |
 | Kein Sprachmodell, aber selbst gehostet | **LibreTranslate** auf deinem eigenen Server. |
 | Gar keine maschinelle Übersetzung | **none**: nur Translation Memory und Menschen. |
@@ -97,7 +97,7 @@ provider: {
 Liest `GEMINI_API_KEY`.
 
 <Callout title="Das kostenlose Kontingent und seine Limits">
-Ein Key aus dem [Google AI Studio](https://aistudio.google.com/apikey) braucht keine Zahlungsdaten. Das kostenlose Kontingent begrenzt Anfragen pro Minute und pro Tag (pro Modell, und das ändert sich), ein erster Lauf über viele Locales kann die Grenze also erreichen. Kurze Rate-Limits werden wiederholt, eine anhaltende Grenze nicht: Übersetze eine Locale nach der anderen oder senke `maxBatchSize` und starte erneut; ein neuer Lauf greift nur auf, was noch fehlt.
+Ein Key aus dem [Google AI Studio](https://aistudio.google.com/apikey) braucht keine Zahlungsdaten. Das kostenlose Kontingent begrenzt Anfragen pro Minute und pro Tag, ein erster Lauf über viele Locales kann die Grenze also erreichen. Kurze Rate-Limits werden wiederholt, eine anhaltende Grenze nicht: Übersetze eine Locale nach der anderen oder senke `maxBatchSize` und starte erneut; ein neuer Lauf greift nur auf, was noch fehlt.
 </Callout>
 
 ## DeepL
@@ -119,9 +119,9 @@ provider: {
 
 Liest `DEEPL_API_KEY`; `options` darf `{}` sein. DeepL hat kein Modell und kein Ausgabe-Token-Limit und stuft mit einem Hinweis herab, statt fehlzuschlagen:
 
+- **Platzhalter** reisen als nummerierte Markierungen in einem ignorierten Tag (`Hello {{name}}` als `Hello <x>{0}</x>`) und werden wieder eingesetzt. `PLACEHOLDER_UNSUPPORTED` hält einen Wert zurück, dessen Platzhalter nicht wörtlich darin steht oder dessen übriger Text `<`, `>`, `{` oder `}` enthält (ICU-Argumente, Markup, Vergleichszeichen), und ein Ergebnis mit verlorener, wiederholter, geänderter oder bloßer Markierung, unbekannter Entity oder fremdem Tag. Reines Markup geht als Klartext hinaus. <AvailableFrom version="0.12.0" />
 - **Glossar.** Die Übersetzungen und `doNotTranslate`-Begriffe deines Konfigurations-Glossars werden nicht angewendet (`GLOSSARY_IGNORED`); verbotene Wiedergaben werden nur danach geprüft.
-- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent oder eine Sprache ohne Formalität wie Schwedisch fällt mit `FORMALITY_DOWNGRADED` auf das Standardregister zurück; ab 0.12.0 fragt verbatra mit `prefer_more` und `prefer_less` an, damit die Anfrage nicht scheitert.
-- **Platzhalter.** Ein String mit Platzhaltern oder ICU wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten; nimm dafür einen LLM-Provider.
+- **Tonfall** wird auf Formalität abgebildet (`formal` formeller, `informal` informeller, `neutral` weggelassen). Ein Key aus dem kostenlosen Kontingent oder eine Sprache ohne Formalität wie Schwedisch fällt mit `FORMALITY_DOWNGRADED` auf das Standardregister zurück; verbatra fragt mit `prefer_more` und `prefer_less` an, damit die Anfrage nicht scheitert.
 
 <AvailableFrom version="0.12.0" />
 
@@ -146,7 +146,7 @@ provider: {
 Liest `GOOGLE_TRANSLATE_API_KEY`, einen einfachen API-Schlüssel für ein Google-Cloud-Projekt, in dem die Cloud Translation API aktiviert ist. Verwendet wird die Basic-Stufe (v2); Advanced (v3) braucht einen Service-Account, der nicht zu einem Key aus einer Umgebungsvariable passt.
 
 - **Keine Formalität, kein Glossar.** Ein Tonfall `formal` oder `informal` meldet `FORMALITY_DOWNGRADED`; eine Glossarübersetzung oder ein `doNotTranslate`-Begriff meldet `GLOSSARY_IGNORED`.
-- **Platzhalter.** Ein String mit Platzhaltern oder ICU wird mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten.
+- **Platzhalter** werden wie bei DeepL maskiert, in `<span translate="no">`; Zeilenumbrüche, Tabs und doppelte Leerzeichen werden ebenfalls zurückgehalten. <AvailableFrom version="0.12.0" />
 - **Codes.** Jeder gesendete Code wird vor jedem Aufruf als wohlgeformtes BCP 47 geprüft (`en_US` scheitert mit `INVALID_REQUEST`). Regionale Codes sind erlaubt; ein Paar, das Google ablehnt, scheitert mit `INVALID_REQUEST` von der API.
 
 <AvailableFrom version="0.12.0" />
@@ -191,7 +191,7 @@ provider: {
 }
 ```
 
-Das Antwortformat ist dasselbe strikte Schema wie bei `openai`, aber vor der Validierung wird das erste balancierte JSON-Objekt aus umgebender Prosa oder einem Code-Fence extrahiert, weil kleinere Modelle so etwas hinzufügen. Die Ausgabe durchläuft trotzdem jede Schema- und Integritätsprüfung. `verbatra init --provider openai-compatible --base-url <url> --model <name>` schreibt diesen Block ([init](/docs/cli/init#provider)), und `--api-key-env-var <NAME>` ergänzt den Namen der Variable.
+Das Antwortformat ist dasselbe strikte Schema wie bei `openai`, aber vor der Validierung wird das erste balancierte JSON-Objekt aus umgebender Prosa oder einem Code-Fence extrahiert. Die Ausgabe durchläuft trotzdem jede Schema- und Integritätsprüfung. `verbatra init --provider openai-compatible --base-url <url> --model <name>` schreibt diesen Block ([init](/docs/cli/init#provider)), und `--api-key-env-var <NAME>` ergänzt den Namen der Variable.
 
 ### Keys sind optional
 
@@ -240,7 +240,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 
 - **Key.** `LIBRETRANSLATE_API_KEY` wird nur als `api_key` gesendet, wenn sie gesetzt ist. Ein mit `--api-keys` gestarteter Server lässt den Lauf mit `MISSING_API_KEY` scheitern, wenn sie nicht gesetzt ist, und mit `AUTH_FAILED`, wenn er sie ablehnt.
 - **Keine Formalität, kein Glossar**: `FORMALITY_DOWNGRADED` und `GLOSSARY_IGNORED`, wie bei Google; die Ausgabe wird trotzdem gegen das Glossar geprüft.
-- **Platzhalter** werden als nummerierte Markierungen maskiert (`Hello {{name}}` geht als `Hello {0}` hinaus) und wieder eingesetzt. Ein Wert kommt nur zurück, wenn jede Markierung genau einmal zurückkehrt, sonst wird er mit `PLACEHOLDER_UNSUPPORTED` zurückgehalten; ein Wert mit ICU-Syntax wird nie gesendet.
+- **Platzhalter** werden wie bei DeepL maskiert, als bloße `{0}`-Markierungen; Markup bleibt erhalten, daher zählen nur geschweifte Klammern neben einem Platzhalter.
 - **Markup.** Ein Wert mit HTML-artigen Tags wird im `html`-Format gesendet, sodass der Text innerhalb der Tags übersetzt wird und die Tags bleiben; eine Formulierung über ein Tag hinweg kann leiden, und veränderte Tags werden abgelehnt.
 - **Sprachprüfung.** Jedes Ziel ist bei jedem Lauf `unverified` mit einer `LOCALE_UNVERIFIED_BY_PROVIDER`-Warnung; `verbatra doctor --locales --live` prüft sie gegen das `/languages` des Servers.
 
@@ -366,4 +366,4 @@ verbatra teilt einen abgeschnittenen Sub-Batch zuerst in Hälften, bis hinunter 
 
 ### Review-Flags
 
-Jede akzeptierte Übersetzung durchläuft dieselben Prüfungen nach der Übersetzung, und eine verdächtige (identisch mit ihrer Quelle, oder mit fehlendem Glossarbegriff) wird zum Review markiert statt abgelehnt. Siehe [Review-Gründe](/docs/error-codes#review-reason-codes) und [In Studio prüfen](/docs/review-in-studio).
+Jede akzeptierte Übersetzung durchläuft dieselben Prüfungen nach der Übersetzung, und eine verdächtige wird zum Review markiert statt abgelehnt. Siehe [Review-Gründe](/docs/error-codes#review-reason-codes) und [In Studio prüfen](/docs/review-in-studio).

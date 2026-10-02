@@ -1209,7 +1209,7 @@ Un glossaire avec des traductions imposées ou des termes à garder n'a pas ét�
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Au moins une valeur avec des placeholders ou une syntaxe ICU est restée non traduite, parce que le fournisseur ne peut pas préserver ces tokens.
+Au moins une valeur est restée non traduite par DeepL, Google Cloud Translation ou LibreTranslate. Une valeur est retenue quand un placeholder n'y figure pas littéralement, ou quand son texte hors des placeholders contient `<`, `>`, `{` ou `}` : arguments ICU comme plural, select ou number, balisage à côté d'un placeholder ou signe de comparaison (LibreTranslate conserve le balisage, seules les accolades comptent alors). Google retient aussi une valeur avec un saut de ligne, une tabulation ou un double espace. Un résultat est écarté quand un marqueur revient perdu, dupliqué, réécrit ou nu, ou avec une entité inconnue ou une balise étrangère. Une valeur avec du balisage et sans placeholder est envoyée sans masquage.
 
 - **Levé par** : `translate`, `watch`
 - **Code de sortie** : `1` : les clés figurent sous `providerFailures`, et la locale se termine en `partial` ou `failed`

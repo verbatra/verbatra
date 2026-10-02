@@ -1208,7 +1208,7 @@ No se aplicó un glosario con traducciones obligatorias o términos que conserva
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Al menos un valor con marcadores o sintaxis ICU quedó sin traducir, porque el proveedor no puede conservar esos tokens.
+Al menos un valor quedó sin traducir con DeepL, Google Cloud Translation o LibreTranslate. Un valor se retiene cuando un placeholder no aparece literal en él, o cuando su texto fuera de los placeholders contiene `<`, `>`, `{` o `}`: argumentos ICU como plural, select o number, marcado junto a un placeholder o un signo de comparación (LibreTranslate conserva el marcado, así que allí solo cuentan las llaves). Google retiene además un valor con un salto de línea, un tabulador o un doble espacio. Un resultado se descarta cuando un marcador vuelve perdido, duplicado, reescrito o sin etiqueta, o con una entidad desconocida o una etiqueta ajena. Un valor con marcado y sin placeholders se envía sin enmascarar.
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: `1`: las claves aparecen en `providerFailures`, y el locale termina `partial` o `failed`

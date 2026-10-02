@@ -13,8 +13,8 @@ Tout fournisseur fonctionne avec tout format et toute commande, et en changer pl
 | --- | --- |
 | Gratuit, pour un petit projet aux chaînes non confidentielles | **Gemini** : une offre d'API gratuite, clés sur [Google AI Studio](https://aistudio.google.com/apikey). Hors EEE, Suisse et Royaume-Uni, Google peut utiliser les requêtes de l'offre gratuite et les faire lire par des humains ([conditions](/docs/data-handling#conservation-et-traitement-des-données-chez-le-fournisseur)). |
 | La meilleure qualité pour une appli en production | **Anthropic** ou **OpenAI**, tous deux payants. |
-| Gros volume, un glossaire natif, pas de LLM | **DeepL**, offre gratuite ou payante. Il saute les chaînes portant des placeholders. |
-| La couverture la plus large avec une clé d'API sur Google Cloud | **Google Cloud Translation** (Basic, v2). Il saute les chaînes portant des placeholders. |
+| Gros volume, un glossaire natif, pas de LLM | **DeepL**, offre gratuite ou payante. |
+| La couverture la plus large avec une clé d'API sur Google Cloud | **Google Cloud Translation** (Basic, v2). |
 | Hors ligne, sans coût, rien ne quitte ton réseau | **openai-compatible** avec LM Studio, Ollama ou vLLM. |
 | Pas de modèle de langage, mais auto-hébergé | **LibreTranslate** sur ton propre serveur. |
 | Aucune traduction automatique | **none** : mémoire et humains uniquement. |
@@ -97,7 +97,7 @@ provider: {
 Lit `GEMINI_API_KEY`.
 
 <Callout title="L'offre gratuite et ses limites">
-Une clé de [Google AI Studio](https://aistudio.google.com/apikey) ne demande aucune facturation. L'offre gratuite plafonne les requêtes par minute et par jour (par modèle, et cela change), donc une première exécution sur beaucoup de locales peut atteindre le plafond. Les brèves limites de débit sont retentées, un plafond durable ne l'est pas : traduis une locale à la fois ou baisse `maxBatchSize`, puis relance, ce qui ne reprend que ce qui manque encore.
+Une clé de [Google AI Studio](https://aistudio.google.com/apikey) ne demande aucune facturation. L'offre gratuite plafonne les requêtes par minute et par jour, donc une première exécution sur beaucoup de locales peut atteindre le plafond. Les brèves limites de débit sont retentées, un plafond durable ne l'est pas : traduis une locale à la fois ou baisse `maxBatchSize`, puis relance, ce qui ne reprend que ce qui manque encore.
 </Callout>
 
 ## DeepL
@@ -119,9 +119,9 @@ provider: {
 
 Lit `DEEPL_API_KEY` ; `options` peut valoir `{}`. DeepL n'a ni modèle ni limite de tokens de sortie, et se dégrade avec un avis plutôt que d'échouer :
 
+- **Les placeholders** voyagent comme des marqueurs numérotés dans une balise ignorée (`Hello {{name}}` comme `Hello <x>{0}</x>`) puis sont restaurés. `PLACEHOLDER_UNSUPPORTED` retient une valeur dont un placeholder n'y figure pas littéralement, ou dont le reste du texte contient `<`, `>`, `{` ou `}` (arguments ICU, balisage, signes de comparaison), et un résultat avec un marqueur perdu, répété, modifié ou nu, une entité inconnue ou une balise étrangère. Le balisage seul part en texte brut. <AvailableFrom version="0.12.0" />
 - **Glossaire.** Les traductions et les termes à ne pas traduire du glossaire de ta configuration ne sont pas appliqués (`GLOSSARY_IGNORED`) ; les traductions interdites ne sont vérifiées qu'après coup.
-- **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). Une clé de l'offre gratuite, ou une langue sans formalité comme le suédois, retombe sur le registre par défaut avec `FORMALITY_DOWNGRADED` ; depuis 0.12.0, verbatra demande avec `prefer_more` et `prefer_less` pour que la requête n'échoue pas.
-- **Placeholders.** Une chaîne portant des placeholders ou de l'ICU est retenue avec `PLACEHOLDER_UNSUPPORTED` ; utilise un fournisseur LLM pour celles-là.
+- **Le ton** se mappe sur la formalité (`formal` plus formel, `informal` moins, `neutral` omis). Une clé de l'offre gratuite, ou une langue sans formalité comme le suédois, retombe sur le registre par défaut avec `FORMALITY_DOWNGRADED` ; verbatra demande avec `prefer_more` et `prefer_less` pour que la requête n'échoue pas.
 
 <AvailableFrom version="0.12.0" />
 
@@ -146,7 +146,7 @@ provider: {
 Lit `GOOGLE_TRANSLATE_API_KEY`, une simple clé d'API d'un projet Google Cloud où l'API Cloud Translation est activée. Il utilise le niveau Basic (v2) ; le niveau Advanced (v3) exige un compte de service, qui ne rentre pas dans une clé en variable d'environnement.
 
 - **Ni formalité ni glossaire.** Un ton `formal` ou `informal` signale `FORMALITY_DOWNGRADED` ; une traduction de glossaire ou un terme à ne pas traduire signale `GLOSSARY_IGNORED`.
-- **Placeholders.** Une chaîne portant des placeholders ou de l'ICU est retenue avec `PLACEHOLDER_UNSUPPORTED`.
+- **Les placeholders** sont masqués comme pour DeepL, dans `<span translate="no">` ; les sauts de ligne, tabulations et doubles espaces sont aussi retenus. <AvailableFrom version="0.12.0" />
 - **Codes.** Chaque code envoyé est vérifié comme du BCP 47 bien formé avant tout appel (`en_US` échoue avec `INVALID_REQUEST`). Les codes régionaux sont autorisés ; une paire que Google rejette échoue avec `INVALID_REQUEST` venant de l'API.
 
 <AvailableFrom version="0.12.0" />
@@ -191,7 +191,7 @@ provider: {
 }
 ```
 
-Le format de réponse est le même schéma strict que pour `openai`, mais le premier objet JSON équilibré est extrait de toute prose ou bloc de code qui l'entoure avant la validation, puisque les modèles plus petits en ajoutent. La sortie passe quand même par tous les contrôles de schéma et d'intégrité. `verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc ([init](/docs/cli/init#fournisseurs)), et `--api-key-env-var <NAME>` ajoute le nom de la variable.
+Le format de réponse est le même schéma strict que pour `openai`, mais le premier objet JSON équilibré est extrait de toute prose ou bloc de code qui l'entoure avant la validation. La sortie passe quand même par tous les contrôles de schéma et d'intégrité. `verbatra init --provider openai-compatible --base-url <url> --model <name>` écrit ce bloc ([init](/docs/cli/init#fournisseurs)), et `--api-key-env-var <NAME>` ajoute le nom de la variable.
 
 ### Les clés sont optionnelles
 
@@ -240,7 +240,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 
 - **Clé.** `LIBRETRANSLATE_API_KEY` est envoyée comme `api_key` seulement si elle est définie. Un serveur démarré avec `--api-keys` fait échouer l'exécution avec `MISSING_API_KEY` quand elle est absente, et avec `AUTH_FAILED` quand il la rejette.
 - **Ni formalité ni glossaire** : `FORMALITY_DOWNGRADED` et `GLOSSARY_IGNORED`, comme pour Google ; la sortie est quand même vérifiée par rapport au glossaire.
-- **Les placeholders** sont masqués par des marqueurs numérotés (`Hello {{name}}` voyage comme `Hello {0}`) puis restaurés. Une valeur n'est reprise que si chaque marqueur revient exactement une fois, sinon elle est retenue avec `PLACEHOLDER_UNSUPPORTED` ; une valeur avec une syntaxe ICU n'est jamais envoyée.
+- **Les placeholders** sont masqués comme pour DeepL, par de simples marqueurs `{0}` ; le balisage est conservé, donc seules les accolades à côté d'un placeholder comptent.
 - **Balisage.** Une valeur avec des balises de style HTML est envoyée au format `html`, donc le texte à l'intérieur des balises est traduit et les balises restent ; une formulation qui traverse une balise peut en souffrir, et des balises modifiées sont refusées.
 - **Vérification des langues.** Chaque cible est `unverified` avec un avertissement `LOCALE_UNVERIFIED_BY_PROVIDER` à chaque exécution ; `verbatra doctor --locales --live` les vérifie d'après la liste `/languages` du serveur.
 
@@ -366,4 +366,4 @@ verbatra redécoupe d'abord un sous-lot tronqué en deux moitiés, en descendant
 
 ### Signalements de révision
 
-Chaque traduction acceptée passe par les mêmes contrôles post-traduction, et une traduction suspecte (identique à sa source, ou à laquelle manque un terme de glossaire) est signalée pour révision plutôt que rejetée. Voir les [raisons de révision](/docs/error-codes#review-reason-codes) et [Réviser dans Studio](/docs/review-in-studio).
+Chaque traduction acceptée passe par les mêmes contrôles post-traduction, et une traduction suspecte est signalée pour révision plutôt que rejetée. Voir les [raisons de révision](/docs/error-codes#review-reason-codes) et [Réviser dans Studio](/docs/review-in-studio).

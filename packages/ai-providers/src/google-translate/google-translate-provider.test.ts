@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderError } from "../errors.js";
+import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "../placeholder-protection.js";
 import type { ProviderNotice, TranslateRequest } from "../provider.js";
 import { ProviderRegistry } from "../registry.js";
+import type { GoogleTranslateCall } from "../test-support.js";
 import {
   entry,
   firstCallOf,
@@ -13,7 +15,6 @@ import {
 } from "../test-support.js";
 import { createGoogleTranslateProvider } from "./google-translate-provider.js";
 import { GOOGLE_TRANSLATE_MAX_TEXT_PAYLOAD_BYTES } from "./limits.js";
-import { PLACEHOLDER_UNSUPPORTED_MESSAGE } from "./placeholders.js";
 import type { GoogleTranslateClient, GoogleTranslateResult } from "./types.js";
 
 const config = {};
@@ -157,69 +158,150 @@ describe("createGoogleTranslateProvider: per-key integrity", () => {
   });
 });
 
-describe("createGoogleTranslateProvider: placeholder-bearing entries are withheld", () => {
+const ICU_PLURAL = entry("files", "{n, plural, one {# file} other {# files}}", ["{n}"]);
+const SPAN = (marker: string): string => `<span translate="no">${marker}</span>`;
+
+function googleMappingClient(translateText: (text: string) => string): {
+  client: GoogleTranslateClient;
+  calls: GoogleTranslateCall[];
+} {
+  const calls: GoogleTranslateCall[] = [];
+  const client: GoogleTranslateClient = {
+    translate: async (texts, sourceLang, targetLang, format) => {
+      calls.push({ texts, sourceLang, targetLang, format });
+      return googleTranslateSuccess(texts.map(translateText));
+    },
+  };
+  return { client, calls };
+}
+
+describe("createGoogleTranslateProvider: placeholder masking", () => {
+  const mixed = entry("mixed", "Hello {{name}}, you have %d items", ["{{name}}", "%d"]);
+
+  it("sends placeholders as translate=no spans in html format and restores them byte-exact", async () => {
+    const { client, calls } = googleMappingClient((text) =>
+      text.replace("Hello", "Hallo").replace("you have", "du hast").replace("items", "Artikel"),
+    );
+    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({ entries: [mixed] }),
+    )) as GoogleTranslateResult;
+
+    expect(calls).toHaveLength(1);
+    expect(firstCallOf(calls).format).toBe("html");
+    expect(firstCallOf(calls).texts).toEqual([
+      `Hello ${SPAN("{0}")}, you have ${SPAN("{1}")} items`,
+    ]);
+    expect(result.values.get("mixed")).toBe("Hallo {{name}}, du hast %d Artikel");
+    expect(result.integrity.get("mixed")?.matches).toBe(true);
+    expect(noticeCodes(result)).not.toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
+  it("decodes the html entities the service returns", async () => {
+    const { client, calls } = googleMappingClient((text) =>
+      text.replace("&amp;", "&#38;").replace("'", "&#39;"),
+    );
+    const value = entry("amp", "Tom & Jerry's {{name}}", ["{{name}}"]);
+    const result = await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({ entries: [value] }),
+    );
+    expect(firstCallOf(calls).texts).toEqual([`Tom &amp; Jerry's ${SPAN("{0}")}`]);
+    expect(result.values.get("amp")).toBe(value.value);
+  });
+
+  it("restores a span that came back with style and dir attributes", async () => {
+    const { client } = googleMappingClient((text) =>
+      text.replace(
+        '<span translate="no">',
+        '<span translate="no" style="text-align:right" dir="rtl">',
+      ),
+    );
+    const result = await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({ targetLocale: "ar", entries: [mixed] }),
+    );
+    expect(result.values.get("mixed")).toBe(mixed.value);
+  });
+
+  it("sends placeholder-free values in their own text-format call, exactly as before", async () => {
+    const { client, calls } = googleMappingClient((text) => text);
+    await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({ entries: [entry("free", "Free\nline"), mixed] }),
+    );
+    expect(calls.map((call) => [call.format, call.texts])).toEqual([
+      ["text", ["Free\nline"]],
+      ["html", [`Hello ${SPAN("{0}")}, you have ${SPAN("{1}")} items`]],
+    ]);
+  });
+
+  it.each([
+    ["drops a marker", (text: string) => text.replace(SPAN("{1}"), "")],
+    ["duplicates a marker", (text: string) => `${text} ${SPAN("{0}")}`],
+    ["rewrites a marker", (text: string) => text.replace(SPAN("{1}"), SPAN("{7}"))],
+    ["returns a marker without its span", (text: string) => text.replace(SPAN("{1}"), "{1}")],
+    ["returns an entity verbatra does not know", (text: string) => `${text}&nbsp;`],
+  ])("withholds the key when the service %s", async (_case, mangle) => {
+    const { client } = googleMappingClient((text) =>
+      text.includes("<span") ? mangle(text) : text,
+    );
+    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({ entries: [entry("free", "Free"), mixed] }),
+    )) as GoogleTranslateResult;
+    expect(result.values.has("mixed")).toBe(false);
+    expect(result.integrity.has("mixed")).toBe(false);
+    expect(result.values.get("free")).toBe("Free");
+    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
+  it.each([
+    ["an ICU plural", ICU_PLURAL],
+    ["markup", entry("rich", "Open <b>{{name}}</b>", ["{{name}}", "<b>", "</b>"])],
+    ["an angle bracket beside the placeholder", entry("cmp", "a < b for {{name}}", ["{{name}}"])],
+    ["a line break", entry("nl", "Hi {{name}},\nwelcome", ["{{name}}"])],
+    ["a carriage return", entry("cr", "Hi {{name}},\rwelcome", ["{{name}}"])],
+    ["a tab", entry("tab", "Hi {{name}}\twelcome", ["{{name}}"])],
+    ["a double space", entry("wide", "Hi {{name}}.  Welcome", ["{{name}}"])],
+  ])("withholds a value with %s and never sends it", async (_case, value) => {
+    const translate = vi.fn();
+    const result = (await createGoogleTranslateProvider(config, {
+      client: { translate },
+    }).translateBatch(request({ entries: [value] }))) as GoogleTranslateResult;
+    expect(translate).not.toHaveBeenCalled();
+    expect(result.values.size).toBe(0);
+    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
+  });
+
   it("withholds an ICU plural even when the request names the target's plural categories", async () => {
     const { client, calls } = googleTranslateStubClient(googleTranslateSuccess(["Frei"]));
     const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
       request({
-        entries: [
-          entry("free", "Free"),
-          entry("files", "{n, plural, one {# file} other {# files}}", ["{n}"]),
-        ],
+        entries: [entry("free", "Free"), ICU_PLURAL],
         pluralCategories: { cardinal: ["one", "few", "many", "other"], ordinal: ["other"] },
       }),
     )) as GoogleTranslateResult;
-
     expect(firstCallOf(calls).texts).toEqual(["Free"]);
     expect(result.values.has("files")).toBe(false);
-    expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
-  });
-
-  it("translates only placeholder-free entries and withholds placeholder-bearing ones", async () => {
-    const { client, calls } = googleTranslateStubClient(googleTranslateSuccess(["Frei"]));
-    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
-      request({
-        entries: [entry("free", "Free"), entry("bearing", "Hello {{name}}", ["{{name}}"])],
-      }),
-    )) as GoogleTranslateResult;
-
-    expect(firstCallOf(calls).texts).toEqual(["Free"]);
-    expect(result.values.get("free")).toBe("Frei");
-    expect(result.integrity.get("free")?.matches).toBe(true);
-    expect(result.values.has("bearing")).toBe(false);
-    expect(result.integrity.has("bearing")).toBe(false);
-    expect(noticeCodes(result).filter((c) => c === "PLACEHOLDER_UNSUPPORTED")).toHaveLength(1);
-  });
-
-  it("never calls translate when every entry is placeholder-bearing", async () => {
-    const translate = vi.fn();
-    const client: GoogleTranslateClient = { translate };
-    const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
-      request({
-        entries: [
-          entry("a", "Hello {{name}}", ["{{name}}"]),
-          entry("b", "{count, plural, one {# item} other {# items}}", ["count"]),
-        ],
-      }),
-    )) as GoogleTranslateResult;
-
-    expect(translate).not.toHaveBeenCalled();
-    expect(result.values.size).toBe(0);
-    expect(result.integrity.size).toBe(0);
     expect(noticeCodes(result)).toContain("PLACEHOLDER_UNSUPPORTED");
   });
 
   it("emits a PLACEHOLDER_UNSUPPORTED notice whose message is static and names no key", async () => {
     const { client } = googleTranslateStubClient(googleTranslateSuccess(["Frei"]));
     const result = (await createGoogleTranslateProvider(config, { client }).translateBatch(
-      request({
-        entries: [entry("free", "Free"), entry("secret-key", "Hi {{name}}", ["{{name}}"])],
-      }),
+      request({ entries: [entry("free", "Free"), { ...ICU_PLURAL, key: "secret-key" }] }),
     )) as GoogleTranslateResult;
     const notice = result.notices.find((n) => n.code === "PLACEHOLDER_UNSUPPORTED");
     expect(notice?.message).toBe(PLACEHOLDER_UNSUPPORTED_MESSAGE);
     expect(notice?.message).not.toContain("secret-key");
-    expect(notice?.message).not.toContain("{{name}}");
+  });
+
+  it("chunks masked values by their encoded wire text, not by the source value", async () => {
+    const { client, calls } = googleMappingClient((text) => text);
+    const dense = "%s".repeat(5000);
+    const entries = [entry("a", dense, ["%s"]), entry("b", dense, ["%s"])];
+    const result = await createGoogleTranslateProvider(config, { client }).translateBatch(
+      request({ entries }),
+    );
+    expect(calls).toHaveLength(2);
+    expect(result.values.get("a")).toBe(dense);
+    expect(result.values.get("b")).toBe(dense);
   });
 });
 

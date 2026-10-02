@@ -13,8 +13,8 @@ Every provider works with every format and command, and switching later means ed
 | --- | --- |
 | Free, for a small project with non-confidential strings | **Gemini**: a free API tier, keys from [Google AI Studio](https://aistudio.google.com/apikey). Outside the EEA, Switzerland and the UK, Google may use free-tier requests and have humans review them ([terms](/docs/data-handling#vendor-retention-and-data-processing-terms)). |
 | The best quality for a production app | **Anthropic** or **OpenAI**, both paid. |
-| High volume, a native glossary, no LLM | **DeepL**, free or paid tier. It skips strings with placeholders. |
-| The widest coverage from an API key on Google Cloud | **Google Cloud Translation** (Basic, v2). It skips strings with placeholders. |
+| High volume, a native glossary, no LLM | **DeepL**, free or paid tier. |
+| The widest coverage from an API key on Google Cloud | **Google Cloud Translation** (Basic, v2). |
 | Offline, no cost, nothing leaving your network | **openai-compatible** with LM Studio, Ollama or vLLM. |
 | No language model, but self-hosted | **LibreTranslate** on your own server. |
 | No machine translation at all | **none**: memory and humans only. |
@@ -97,7 +97,7 @@ provider: {
 Reads `GEMINI_API_KEY`.
 
 <Callout title="The free tier and its limits">
-A key from [Google AI Studio](https://aistudio.google.com/apikey) needs no billing. The free tier caps requests per minute and per day (per model, and it changes), so a first run over many locales can hit the cap. Brief rate limits are retried, a sustained cap is not: translate one locale at a time or lower `maxBatchSize`, then re-run, which only picks up what is still missing.
+A key from [Google AI Studio](https://aistudio.google.com/apikey) needs no billing. The free tier caps requests per minute and per day, so a first run over many locales can hit the cap. Brief rate limits are retried, a sustained cap is not: translate one locale at a time or lower `maxBatchSize`, then re-run, which only picks up what is still missing.
 </Callout>
 
 ## DeepL
@@ -119,9 +119,9 @@ provider: {
 
 Reads `DEEPL_API_KEY`; `options` may be `{}`. DeepL has no model and no output-token limit, and degrades with a notice rather than failing:
 
+- **Placeholders** travel as numbered markers in an ignored tag (`Hello {{name}}` as `Hello <x>{0}</x>`) and are restored. `PLACEHOLDER_UNSUPPORTED` withholds a value whose placeholder is not literal, or whose other text holds `<`, `>`, `{` or `}` (ICU arguments, markup, comparison signs), and a result with a lost, repeated, changed or bare marker, an unknown entity or a stray tag. Markup alone goes as plain text. <AvailableFrom version="0.12.0" />
 - **Glossary.** Your config glossary's translations and do-not-translate terms are not applied (`GLOSSARY_IGNORED`); forbidden renderings are only checked afterwards.
-- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key, or a language without formality such as Swedish, falls back to the default register with `FORMALITY_DOWNGRADED`; from 0.12.0 verbatra asks with `prefer_more` and `prefer_less` so the request does not fail.
-- **Placeholders.** A string with placeholders or ICU is withheld with `PLACEHOLDER_UNSUPPORTED`; use an LLM provider for those.
+- **Tone** maps to formality (`formal` more, `informal` less, `neutral` omitted). A free-tier key, or a language without formality such as Swedish, falls back to the default register with `FORMALITY_DOWNGRADED`; verbatra asks with `prefer_more` and `prefer_less` so the request does not fail.
 
 <AvailableFrom version="0.12.0" />
 
@@ -146,7 +146,7 @@ provider: {
 Reads `GOOGLE_TRANSLATE_API_KEY`, a plain API key for a Google Cloud project with the Cloud Translation API enabled. It uses the Basic (v2) tier; Advanced (v3) needs a service account, which does not fit an environment-variable key.
 
 - **No formality, no glossary.** A `formal` or `informal` tone reports `FORMALITY_DOWNGRADED`; a glossary translation or do-not-translate term reports `GLOSSARY_IGNORED`.
-- **Placeholders.** A string with placeholders or ICU is withheld with `PLACEHOLDER_UNSUPPORTED`.
+- **Placeholders** are masked as for DeepL, inside `<span translate="no">`; line breaks, tabs and double spaces are withheld too. <AvailableFrom version="0.12.0" />
 - **Codes.** Each code sent is checked as well-formed BCP 47 before any call (`en_US` fails with `INVALID_REQUEST`). Regional codes are allowed; a pair Google rejects fails with `INVALID_REQUEST` from the API.
 
 <AvailableFrom version="0.12.0" />
@@ -191,7 +191,7 @@ provider: {
 }
 ```
 
-The response format is the same strict schema as `openai`, but the first balanced JSON object is extracted from any surrounding prose or code fence before validation, since smaller models add them. The output still goes through every schema and integrity check. `verbatra init --provider openai-compatible --base-url <url> --model <name>` writes this block ([init](/docs/cli/init#providers)), and `--api-key-env-var <NAME>` adds the variable's name.
+The response format is the same strict schema as `openai`, but the first balanced JSON object is extracted from any surrounding prose or code fence before validation. The output still goes through every schema and integrity check. `verbatra init --provider openai-compatible --base-url <url> --model <name>` writes this block ([init](/docs/cli/init#providers)), and `--api-key-env-var <NAME>` adds the variable's name.
 
 ### Keys are optional
 
@@ -240,7 +240,7 @@ docker run -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
 
 - **Key.** `LIBRETRANSLATE_API_KEY` is sent as `api_key` only when set. A server started with `--api-keys` fails the run with `MISSING_API_KEY` when it is unset, and with `AUTH_FAILED` when it rejects it.
 - **No formality, no glossary**: `FORMALITY_DOWNGRADED` and `GLOSSARY_IGNORED`, as for Google; output is still checked against the glossary.
-- **Placeholders** are masked as numbered markers (`Hello {{name}}` travels as `Hello {0}`) and restored. A value comes back only when every marker returns once, otherwise it is withheld with `PLACEHOLDER_UNSUPPORTED`; a value with ICU syntax is never sent.
+- **Placeholders** are masked as for DeepL, as bare `{0}` markers; markup is kept, so only braces beside a placeholder count.
 - **Markup.** A value with HTML-style tags is sent in `html` format, so the text inside tags is translated and the tags stay; phrasing across a tag may suffer, and changed tags are refused.
 - **Language check.** Every target is `unverified` with a `LOCALE_UNVERIFIED_BY_PROVIDER` warning on every run; `verbatra doctor --locales --live` checks them against the server's `/languages`.
 
@@ -366,4 +366,4 @@ verbatra first re-splits a truncated sub-batch into halves, down toward one entr
 
 ### Review flags
 
-Every accepted translation goes through the same post-translation checks, and a suspicious one (identical to its source, or missing a glossary term) is flagged for review rather than rejected. See [review reasons](/docs/error-codes#review-reason-codes) and [Review in Studio](/docs/review-in-studio).
+Every accepted translation goes through the same post-translation checks, and a suspicious one is flagged for review rather than rejected. See [review reasons](/docs/error-codes#review-reason-codes) and [Review in Studio](/docs/review-in-studio).

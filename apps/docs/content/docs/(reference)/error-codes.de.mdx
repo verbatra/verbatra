@@ -1208,7 +1208,7 @@ Ein Glossar mit vorgeschriebenen Übersetzungen oder beizubehaltenden Begriffen 
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Mindestens ein Wert mit Platzhaltern oder ICU-Syntax blieb unübersetzt, weil der Provider diese Tokens nicht erhalten kann.
+Mindestens ein Wert blieb bei DeepL, Google Cloud Translation oder LibreTranslate unübersetzt. Ein Wert wird zurückgehalten, wenn ein Platzhalter nicht wörtlich darin steht oder sein Text außerhalb der Platzhalter `<`, `>`, `{` oder `}` enthält: ICU-Argumente wie plural, select oder number, Markup neben einem Platzhalter oder ein Vergleichszeichen (LibreTranslate behält Markup, dort zählen nur geschweifte Klammern). Google hält außerdem einen Wert mit Zeilenumbruch, Tab oder doppeltem Leerzeichen zurück. Ein Ergebnis wird verworfen, wenn eine Markierung verloren, doppelt, verändert oder bloß zurückkommt, oder mit unbekannter Entity oder fremdem Tag. Ein Wert mit Markup und ohne Platzhalter wird unmaskiert gesendet.
 
 - **Ausgelöst von**: `translate`, `watch`
 - **Exit-Code**: `1`: die Keys stehen unter `providerFailures`, und das Locale endet `partial` oder `failed`

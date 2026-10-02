@@ -51,11 +51,10 @@ Ce que cela veut dire en pratique :
   relecture humaine. Les [signalements de révision](/docs/translation-safety#signalements-de-révision)
   pointent vers les résultats les plus suspects.
 - **DeepL et Google Cloud Translation** ont une liste fermée, vérifiée avant une exécution. Tous
-  deux retiennent aussi les chaînes avec des placeholders ou de la syntaxe ICU
-  (`PLACEHOLDER_UNSUPPORTED`), donc un catalogue plein de placeholders a besoin d'un fournisseur LLM.
-- **LibreTranslate** sert les modèles que ton serveur a installés. Les placeholders voyagent comme
-  des marqueurs numérotés et sont remis en place ensuite ; une valeur avec de la syntaxe ICU est
-  retenue.
+  deux, comme LibreTranslate, [masquent les placeholders](/docs/providers#deepl) et retiennent une
+  valeur qu'ils ne peuvent pas protéger, comme une syntaxe ICU plural, select ou number, ou du balisage
+  à côté d'un placeholder.
+- **LibreTranslate** sert les modèles que ton serveur a installés.
 - Un `tone` ou un glossaire qu'un fournisseur ne peut pas respecter est signalé par un avis, jamais
   ignoré en silence. Voir
   [Ton et glossaire selon les fournisseurs](/docs/providers#ton-et-glossaire-selon-les-fournisseurs).

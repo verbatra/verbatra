@@ -191,8 +191,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      such providers today; see `deepl/deepl-provider.ts`,
      `google-translate/google-translate-provider.ts` and
      `libretranslate/libretranslate-provider.ts`. Keep placeholders away from
-     the engine through `placeholder-protection.ts` (withhold or mask), never
-     with a new mechanism of your own.
+     the engine through `translateMaskedBatch` (`masked-batch.ts`), which masks
+     with `placeholder-protection.ts` and encodes markers for the wire with
+     `masked-wire-codec.ts`, never with a new mechanism of your own.
 
    The `kind` field is descriptive, not dispatch. Nothing branches on it; both
    kinds satisfy the same interface. Choose by asking whether you send a prompt.

@@ -46,11 +46,10 @@ What that means in practice:
 - **LLM providers** have no closed list. They attempt any language you name, and quality falls off
   where training data is thin, so a lower-resource target deserves a human review.
   [Review flags](/docs/translation-safety#review-flags) point at the most suspicious results.
-- **DeepL and Google Cloud Translation** have a closed list, checked before a run. Both also withhold
-  strings with placeholders or ICU syntax (`PLACEHOLDER_UNSUPPORTED`), so a catalog full of
-  placeholders needs an LLM provider.
-- **LibreTranslate** serves whatever models your server installed. Placeholders travel as numbered
-  markers and are restored afterwards; a value with ICU syntax is withheld.
+- **DeepL and Google Cloud Translation** have a closed list, checked before a run. Like
+  LibreTranslate, they [mask placeholders](/docs/providers#deepl) and withhold a value they cannot
+  protect, such as ICU plural, select or number syntax, or markup beside a placeholder.
+- **LibreTranslate** serves whatever models your server installed.
 - A `tone` or glossary a provider cannot honor is reported as a notice, never dropped silently. See
   [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
 

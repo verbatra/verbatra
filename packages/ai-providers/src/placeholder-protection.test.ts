@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { decodeMaskedFromXml } from "./masked-wire-codec.js";
 import {
   containsMarkupTag,
   maskPlaceholders,
+  PLACEHOLDER_UNSUPPORTED_MESSAGE,
   partitionByPlaceholders,
   partitionForMasking,
+  restoreTranslations,
   unmaskPlaceholders,
 } from "./placeholder-protection.js";
 import { entry } from "./test-support.js";
@@ -175,5 +178,58 @@ describe("partitionForMasking", () => {
     expect(partitionForMasking([rich], { keepMarkup: true }).masked).toEqual([
       { entry: rich, masked: { text: "Open <b>settings</b>", originals: [] } },
     ]);
+  });
+});
+
+describe("partitionForMasking with withholdMarkup", () => {
+  it("withholds a placeholder-bearing value that carries a markup tag", () => {
+    const rich = entry("rich", "Open <b>{name}</b>", ["{name}", "<b>", "</b>"]);
+    expect(partitionForMasking([rich], { withholdMarkup: true }).unprotectable).toEqual([rich]);
+    expect(partitionForMasking([rich]).masked).toHaveLength(1);
+  });
+
+  it("leaves a placeholder-free value with markup on the plain path", () => {
+    const plain = entry("plain", "Open <b>settings</b>");
+    expect(partitionForMasking([plain], { withholdMarkup: true }).plain).toEqual([plain]);
+  });
+});
+
+describe("restoreTranslations", () => {
+  const plain = entry("plain", "Save");
+  const bearing = entry("bearing", "Hi {name}", ["{name}"]);
+  const masked = { text: "Hi {0}", originals: ["{name}"] };
+
+  it("restores masked values through the decoder and passes plain values through", () => {
+    const restored = restoreTranslations(
+      [
+        [{ entry: plain, text: "Save" }, "Speichern"],
+        [{ entry: bearing, text: "Hi <x>{0}</x>", masked }, "Hallo <x>{0}</x>"],
+      ],
+      decodeMaskedFromXml,
+    );
+    expect([...restored.values]).toEqual([
+      ["plain", "Speichern"],
+      ["bearing", "Hallo {name}"],
+    ]);
+    expect(restored.translated).toEqual([plain, bearing]);
+    expect(restored.lost).toBe(0);
+  });
+
+  it("counts a value the decoder rejects as lost", () => {
+    const restored = restoreTranslations(
+      [[{ entry: bearing, text: "Hi <x>{0}</x>", masked }, "Hallo {0}"]],
+      decodeMaskedFromXml,
+    );
+    expect(restored.values.size).toBe(0);
+    expect(restored.integrityInputs).toEqual([]);
+    expect(restored.lost).toBe(1);
+  });
+});
+
+describe("PLACEHOLDER_UNSUPPORTED_MESSAGE", () => {
+  it("is one static message with a next step that names no provider, key or content", () => {
+    expect(PLACEHOLDER_UNSUPPORTED_MESSAGE).toBe(
+      "Some entries were left untranslated: their placeholders could not be protected (ICU syntax or reserved characters next to them) or did not come back intact. Translate them by hand or with an LLM provider.",
+    );
   });
 });

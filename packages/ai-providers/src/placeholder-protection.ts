@@ -1,4 +1,10 @@
 import type { TranslationEntry } from "@verbatra/core";
+import type { IntegrityInput } from "./integrity.js";
+
+export const PLACEHOLDER_UNSUPPORTED_MESSAGE =
+  "Some entries were left untranslated: their placeholders could not be protected (ICU syntax or " +
+  "reserved characters next to them) or did not come back intact. Translate them by hand or " +
+  "with an LLM provider.";
 
 export interface PlaceholderPartition {
   readonly protectable: readonly TranslationEntry[];
@@ -130,6 +136,16 @@ export interface MaskingPartition {
 
 export interface MaskingOptions {
   readonly keepMarkup?: boolean;
+  readonly withholdMarkup?: boolean;
+}
+
+function maskEntry(entry: TranslationEntry, options: MaskingOptions): MaskedValue | undefined {
+  const hasMarkup = containsMarkupTag(entry.value);
+  if (options.withholdMarkup === true && hasMarkup) {
+    return undefined;
+  }
+  const keepMarkup = options.keepMarkup === true && hasMarkup;
+  return maskPlaceholders(entry.value, entry.placeholders, { keepMarkup });
 }
 
 export function partitionForMasking(
@@ -140,8 +156,7 @@ export function partitionForMasking(
   const masked: MaskedEntry[] = [];
   const unmaskable: TranslationEntry[] = [];
   for (const entry of unprotectable) {
-    const keepMarkup = options.keepMarkup === true && containsMarkupTag(entry.value);
-    const mask = maskPlaceholders(entry.value, entry.placeholders, { keepMarkup });
+    const mask = maskEntry(entry, options);
     if (mask === undefined) {
       unmaskable.push(entry);
     } else {
@@ -149,4 +164,54 @@ export function partitionForMasking(
     }
   }
   return { plain: protectable, masked, unprotectable: unmaskable };
+}
+
+export interface OutgoingText {
+  readonly entry: TranslationEntry;
+  readonly text: string;
+  readonly masked?: MaskedValue;
+}
+
+export interface RestoredBatch {
+  readonly values: Map<string, string>;
+  readonly integrityInputs: IntegrityInput[];
+  readonly translated: TranslationEntry[];
+  readonly lost: number;
+}
+
+export type WireDecoder = (text: string) => string | undefined;
+
+const passThrough: WireDecoder = (text) => text;
+
+function restoreValue(item: OutgoingText, text: string, decode: WireDecoder): string | undefined {
+  if (item.masked === undefined) {
+    return text;
+  }
+  const decoded = decode(text);
+  return decoded === undefined ? undefined : unmaskPlaceholders(decoded, item.masked);
+}
+
+export function restoreTranslations(
+  pairs: ReadonlyArray<readonly [OutgoingText, string]>,
+  decode: WireDecoder = passThrough,
+): RestoredBatch {
+  const values = new Map<string, string>();
+  const integrityInputs: IntegrityInput[] = [];
+  const kept: TranslationEntry[] = [];
+  let lost = 0;
+  for (const [item, text] of pairs) {
+    const value = restoreValue(item, text, decode);
+    if (value === undefined) {
+      lost += 1;
+      continue;
+    }
+    values.set(item.entry.key, value);
+    integrityInputs.push({
+      key: item.entry.key,
+      sourceValue: item.entry.value,
+      translatedValue: value,
+    });
+    kept.push(item.entry);
+  }
+  return { values, integrityInputs, translated: kept, lost };
 }

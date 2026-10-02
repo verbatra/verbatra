@@ -23,7 +23,13 @@ export function createDefaultClient(network?: ProviderNetwork): GoogleTranslateC
   const transport = fetchTransport({ id: "google-translate" }, network, globalFetch);
   const send = transport.options;
   const client: GoogleTranslateClient = {
-    translate: (texts, sourceLang, targetLang, signal): Promise<GoogleTranslateHttpResponse> =>
+    translate: (
+      texts,
+      sourceLang,
+      targetLang,
+      format,
+      signal,
+    ): Promise<GoogleTranslateHttpResponse> =>
       transport.run(async () => {
         const response = await send(
           `${GOOGLE_TRANSLATE_ENDPOINT}?key=${encodeURIComponent(apiKey)}`,
@@ -34,7 +40,7 @@ export function createDefaultClient(network?: ProviderNetwork): GoogleTranslateC
               q: texts,
               source: sourceLang,
               target: targetLang,
-              format: "text",
+              format,
             }),
             signal,
           },
