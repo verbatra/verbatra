@@ -374,6 +374,7 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
     expect(instructions).toContain(MCP_SERVER_INSTRUCTIONS);
     expect(instructions).toContain("--redact-values");
     expect(instructions).toContain("expectedHash");
+    expect(instructions).toContain("author names are left out of results");
     expect(serverInstructions({ valuesRedacted: false })).toBe(MCP_SERVER_INSTRUCTIONS);
   });
 
