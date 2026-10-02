@@ -53,23 +53,11 @@ export function redactWriteResult<
   return { ...rest, value: marker.mark(result.value) } as T;
 }
 
-export function redactQuoted(text: string, marker: ValueMarker): string {
-  return text.replace(/"((?:[^"\\\n]|\\.)*)"/g, (_quoted, inner: string) => marker.mark(inner));
-}
-
 const VALUE_BEARING_SDK_CODES: ReadonlySet<string> = new Set(["CONFIG_INVALID", "SOURCE_INVALID"]);
 
-export function carriesValues(error: unknown): boolean {
+export function carriesValues(error: unknown): error is AdapterError | SdkError {
   return (
     error instanceof AdapterError ||
     (error instanceof SdkError && VALUE_BEARING_SDK_CODES.has(error.code))
   );
-}
-
-export function presentError(
-  error: unknown,
-  message: string,
-  marker: ValueMarker | undefined,
-): string {
-  return marker !== undefined && carriesValues(error) ? redactQuoted(message, marker) : message;
 }

@@ -5,13 +5,11 @@ import {
   createValueMarker,
   isMachineTranslationEnabled,
   redact,
-  type ValueMarker,
 } from "@verbatra/sdk";
 import { type McpProjectState, openProjectSession } from "./project-session.js";
 import { connectMcpServer } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
 import type { McpSpendState } from "./session-banner.js";
-import { redactQuoted } from "./tools/value-redaction.js";
 import type { McpToolContext } from "./types.js";
 
 /** Everything {@link startMcpServer} accepts. Every field is optional. */
@@ -136,12 +134,12 @@ export async function startMcpServer(
 ): Promise<McpServerHandle> {
   const cwd = resolveServerCwd(options.cwd);
   const valueMarker = options.redactValues === true ? createValueMarker() : undefined;
-  const sessionLog = presentedLog(options.onLog, valueMarker);
   const project = await openProjectSession({
     cwd,
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
-    ...(sessionLog !== undefined ? { onLog: sessionLog } : {}),
+    ...(options.onLog !== undefined ? { onLog: options.onLog } : {}),
+    ...(valueMarker !== undefined ? { valueMarker } : {}),
   });
   const initial = project.latest();
 
@@ -171,16 +169,6 @@ export async function startMcpServer(
     valuesRedacted: options.redactValues ?? false,
     configured: initial.kind === "configured",
   };
-}
-
-function presentedLog(
-  onLog: ((line: string) => void) | undefined,
-  marker: ValueMarker | undefined,
-): ((line: string) => void) | undefined {
-  if (onLog === undefined || marker === undefined) {
-    return onLog;
-  }
-  return (line) => onLog(redactQuoted(line, marker));
 }
 
 function spendState(allowSpend: boolean, state: McpProjectState): McpSpendState {

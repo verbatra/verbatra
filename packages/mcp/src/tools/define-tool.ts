@@ -9,7 +9,7 @@ import {
 import { z } from "zod";
 import type { McpToolCallContext, McpUnconfiguredContext } from "../types.js";
 import { describeIssuePath } from "./issue-path.js";
-import { presentError } from "./value-redaction.js";
+import { carriesValues } from "./value-redaction.js";
 
 export class McpInvalidParamsError extends Error {
   readonly field: string;
@@ -129,12 +129,15 @@ function rawErrorMessage(error: unknown): string {
   return String(error);
 }
 
-export function describeErrorMessage(error: unknown, cwd: string): string {
+export function describeErrorMessage(error: unknown, cwd: string, marker?: ValueMarker): string {
+  if (marker !== undefined && carriesValues(error)) {
+    return `${error.code}: ${marker.mark(projectRelativeMessage(error.message, cwd))}`;
+  }
   return projectRelativeMessage(rawErrorMessage(error), cwd);
 }
 
-export function describeToolError(error: unknown, cwd: string): string {
-  const described = describeErrorMessage(error, cwd);
+export function describeToolError(error: unknown, cwd: string, marker?: ValueMarker): string {
+  const described = describeErrorMessage(error, cwd, marker);
   const hint = errorHint(error);
   return hint === undefined ? described : `${described}\nNext step: ${hint}`;
 }
@@ -184,7 +187,7 @@ function describeFailure(
     const described = `${error.code}: ${WITHHELD_PROVIDER_MESSAGE}.`;
     return hint === undefined ? described : `${described}\nNext step: ${hint}`;
   }
-  return presentError(error, describeToolError(error, context.cwd), context.valueMarker);
+  return describeToolError(error, context.cwd, context.valueMarker);
 }
 
 function createExecutor<

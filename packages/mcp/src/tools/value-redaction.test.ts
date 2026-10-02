@@ -4,7 +4,6 @@ import { redactRunSummary } from "./run-schema.js";
 import {
   markFields,
   markRecord,
-  redactQuoted,
   redactWriteResult,
   withoutReviewer,
   withProvenanceRedacted,
@@ -71,19 +70,6 @@ describe("value redaction helpers", () => {
     expect(
       redactWriteResult({ accepted: false, value: SECRET, details: [SECRET] }, marker),
     ).toEqual({ accepted: false, value: marker.mark(SECRET) });
-  });
-
-  it("marks a quoted value whole when it holds an escaped quote", () => {
-    const inner = `${SECRET} \\"Kennung\\" Ende`;
-    const redacted = redactQuoted(`Invalid term "${inner}" at line 3`, marker);
-
-    expect(redacted).toBe(`Invalid term ${marker.mark(inner)} at line 3`);
-    expect(redacted).not.toContain("Kennung");
-    expect(redacted).not.toContain("Ende");
-  });
-
-  it("marks every quoted value on a line and keeps the text around them", () => {
-    expect(redactQuoted('"a" and "b"', marker)).toBe(`${marker.mark("a")} and ${marker.mark("b")}`);
   });
 });
 

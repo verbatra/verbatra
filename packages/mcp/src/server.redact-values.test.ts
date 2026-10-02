@@ -339,6 +339,7 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
       readonly notices: readonly { readonly code: string; readonly message: string }[];
     }[];
 
+    expect(locales.map((locale) => locale.locale)).toEqual(["de", "fr"]);
     for (const locale of locales) {
       expect(locale.sensitiveWithheld).toEqual(["contact"]);
       const withheld = locale.notices.find(
