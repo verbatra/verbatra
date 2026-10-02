@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -15,12 +16,6 @@ function readRepoFile(relativePath) {
 
 function readDocPage(prefix, suffix) {
   return readRepoFile(`apps/docs/content/docs/${prefix}${suffix}.mdx`);
-}
-
-function sdkReferencePages() {
-  return JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages.filter(
-    (page) => !page.startsWith("["),
-  );
 }
 
 function readSdkReference(suffix) {

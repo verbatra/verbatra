@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -141,8 +142,7 @@ function matchesWithElision(documented, declared) {
 }
 
 function signatureBlocks(suffix) {
-  const pages = JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages;
-  return pages.flatMap((page) => {
+  return sdkReferencePages().flatMap((page) => {
     const path = `apps/docs/content/docs/sdk/${page}${suffix}.mdx`;
     return [...readRepoFile(path).matchAll(SIGNATURE_BLOCK)].map((match) => ({
       path,
