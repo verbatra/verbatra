@@ -102,11 +102,13 @@ function keylessEnv() {
 }
 
 function runScript(project, file) {
-  const result = spawnSync(
-    process.execPath,
-    ["--experimental-strip-types", "--no-warnings", file],
-    { cwd: project, encoding: "utf8", env: keylessEnv(), timeout: 60_000 },
-  );
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", file], {
+    cwd: project,
+    encoding: "utf8",
+    env: keylessEnv(),
+    timeout: 60_000,
+  });
+  expect(result.stderr, result.stderr).not.toContain("MODULE_TYPELESS_PACKAGE_JSON");
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -158,7 +160,7 @@ describe("the SDK examples run end to end without an API key", () => {
     project = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-docs-project-"));
     mkdirSync(join(project, "locales"));
     mkdirSync(join(project, "node_modules/@verbatra"), { recursive: true });
-    symlinkSync(SDK_DIR, join(project, "node_modules/@verbatra/sdk"), "dir");
+    symlinkSync(SDK_DIR, join(project, "node_modules/@verbatra/sdk"), "junction");
     writeFileSync(join(project, "package.json"), '{"type":"module","private":true}\n');
     const files = {
       [QUICKSTART]: [
@@ -182,40 +184,80 @@ describe("the SDK examples run end to end without an API key", () => {
   });
 
   it(
-    "previews, gates, reports the missing key, translates with a fake provider, and reviews",
+    "previews the run without a key, exactly as the page shows it",
     () => {
       const preview = runScript(project, "preview.ts");
       const shownOutput = fencedBlocks(readPage(QUICKSTART)).find((block) =>
         block.opening.startsWith("```text output"),
       );
-      expect(preview.status).toBe(0);
+      expect(preview.status, preview.stderr).toBe(0);
       expect(preview.stdout.trim()).toBe(shownOutput?.body.trim());
+    },
+    SLOW,
+  );
 
+  it(
+    "fails the CI gate while the target locale is missing",
+    () => {
       const outOfSync = runScript(project, "check.ts");
+      expect(outOfSync.status, outOfSync.stderr).toBe(1);
       expect(outOfSync.stdout).toContain("de: 2 missing, 0 stale");
-      expect(outOfSync.status).toBe(1);
+    },
+    SLOW,
+  );
 
+  it(
+    "refuses to review on a machine with no record of the last run",
+    () => {
+      const review = runScript(project, "review.ts");
+      expect(review.status, review.stderr).toBe(1);
+      expect(review.stderr).toContain("no review queue with run flags on this machine");
+    },
+    SLOW,
+  );
+
+  it(
+    "reports the missing key by code and hint, never by value",
+    () => {
       const noKey = runScript(project, "safe-translate.ts");
+      expect(noKey.status, noKey.stderr).toBe(2);
       expect(noKey.stderr).toContain("PROVIDER_CONSTRUCTION_FAILED");
       expect(noKey.stderr).toContain("GEMINI_API_KEY");
-      expect(noKey.status).toBe(2);
+    },
+    SLOW,
+  );
 
+  it(
+    "translates through a fake provider and leaves every locale in sync",
+    () => {
       const fake = runScript(project, "fake-provider.ts");
+      expect(fake.status, fake.stderr).toBe(0);
       expect(fake.stdout).toContain("1 locales translated, in sync: true");
-      expect(fake.status).toBe(0);
       expect(JSON.parse(readFileSync(join(project, "locales/de.json"), "utf8"))).toEqual({
         greeting: "[de] Hello, {{name}}!",
         cart: { empty: "[de] Your cart is empty." },
       });
+    },
+    SLOW,
+  );
 
+  it(
+    "approves the unflagged values once a run has been recorded",
+    () => {
       const review = runScript(project, "review.ts");
+      expect(review.status, review.stderr).toBe(0);
       expect(review.stdout).toContain("approved de/greeting");
       expect(review.stdout).toContain("approved de/cart.empty");
-      expect(review.status).toBe(0);
+    },
+    SLOW,
+  );
 
+  it(
+    "passes the CI gate after the translation",
+    () => {
       const inSync = runScript(project, "check.ts");
+      expect(inSync.status, inSync.stderr).toBe(0);
       expect(inSync.stdout).toContain("de: 0 missing, 0 stale");
-      expect(inSync.status).toBe(0);
     },
     SLOW,
   );
