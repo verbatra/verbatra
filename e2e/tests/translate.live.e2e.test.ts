@@ -23,6 +23,11 @@ const LLM_PROVIDERS: ReadonlySet<ProviderEnv["id"]> = new Set<ProviderEnv["id"]>
   "openai",
   "gemini",
 ]);
+const MACHINE_TRANSLATION_PROVIDERS: ReadonlySet<ProviderEnv["id"]> = new Set<ProviderEnv["id"]>([
+  "deepl",
+  "google-translate",
+]);
+const MASKED_TARGET: RunTarget = { locale: "de", key: "inbox" };
 const SERBIAN_LATIN_TARGET: RunTarget = { locale: "sr-Latn", key: "farewell" };
 const CYRILLIC = /\p{Script=Cyrillic}/u;
 const LATIN = /\p{Script=Latin}/u;
@@ -120,6 +125,39 @@ describe.skipIf(provider === null || !LLM_PROVIDERS.has(provider.id))(
       const farewell = serbian.farewell ?? "";
       expect(farewell).toMatch(LATIN);
       expect(farewell).not.toMatch(CYRILLIC);
+    });
+  },
+);
+
+describe.skipIf(provider === null || !MACHINE_TRANSLATION_PROVIDERS.has(provider.id))(
+  `translate a placeholder-bearing value (live: ${provider?.id ?? "skipped"})`,
+  () => {
+    let consumer: Consumer;
+
+    beforeAll(async () => {
+      consumer = await readSharedConsumer();
+    }, 180_000);
+
+    it("keeps every placeholder byte-exact", async (ctx) => {
+      if (provider === null) {
+        return;
+      }
+      const dir = await translateLive(ctx, {
+        consumer,
+        provider,
+        name: "translate-live-masked",
+        target: MASKED_TARGET,
+        files: { en: { inbox: "Hello {{name}}, you have {{count}} new messages & replies" } },
+      });
+
+      const de = await readJsonIn<Record<string, string>>(dir, "locales/de.json");
+      const inbox = de.inbox ?? "";
+      expect(inbox).toContain("{{name}}");
+      expect(inbox).toContain("{{count}}");
+      expect(inbox).not.toMatch(/<x>|<span|&amp;/);
+
+      const checked = await runVerbatra(consumer, ["check", "--cwd", dir]);
+      expect(checked.exitCode).toBe(0);
     });
   },
 );
