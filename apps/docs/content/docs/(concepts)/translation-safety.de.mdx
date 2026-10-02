@@ -143,14 +143,11 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 | [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | länger als das [`maxLength`](/docs/config-file#maxlength)-Budget des Keys ist <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | mit ihrem Quelltext identisch ist |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | die Übersetzung eines Glossarbegriffs auslässt oder einen nicht zu übersetzenden Begriff verändert |
-| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | eine Wiedergabe verwendet, die das Glossar verbietet |
+| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | eine Wiedergabe verwendet, die das Glossar verbietet <AvailableFrom version="0.12.0" /> |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | jeden Platzhalter behält, aber in anderer Reihenfolge |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | aus einem Batch stammt, den der Provider herabgestuft hat, etwa durch eine weggefallene Formalität |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | [von einer ähnlichen, bearbeiteten Quelle wiederverwendet](/docs/the-cache#unscharfe-wiederverwendung) wurde <AvailableFrom version="0.11.0" /> |
-
-<AvailableFrom version="0.12.0" />
-
-`GLOSSARY_FORBIDDEN_TERM` gibt es ab 0.12.0.
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | ein platzhalterartiges Token verliert oder ändert, das ihr [Format](/docs/formats) nicht schützt, etwa `{name}` in i18next <AvailableFrom version="0.12.0" /> |
 
 Cache-Treffer und Werte, die sich Keys teilen, durchlaufen dieselben Heuristiken wie frische
 Übersetzungen. Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung,
@@ -194,6 +191,4 @@ Provider-Aufruf über committete Werte laufen.
 ## Siehe auch
 
 - [Wie ein Lauf funktioniert](/docs/how-it-works): wo jede Prüfung in der Pipeline sitzt.
-- [Fehlercodes](/docs/error-codes): Ablehnungsgründe, Review-Gründe und Provider-Codes.
-- [In Studio prüfen](/docs/review-in-studio): die Review-Warteschlange abarbeiten.
 - [Datenverarbeitung und Datenschutz](/docs/data-handling): was deinen Rechner verlässt.

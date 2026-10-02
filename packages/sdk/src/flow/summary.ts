@@ -59,9 +59,17 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   for the languages on its glossary list), so the glossary is only checked after translation.
  * - `FORMALITY_UNSUPPORTED_BY_PROVIDER`: the config sets a `formal` or `informal` tone and the
  *   provider has no formality control for this target language, so the default register is used.
+ * - `SOURCE_FOREIGN_PLACEHOLDERS`: source values this locale is about to translate hold a token
+ *   that looks like a placeholder the configured format does not protect, such as a single-brace
+ *   `{name}` in an i18next value. Nothing keeps such a token intact during translation; a
+ *   translation that drops or changes it is flagged `FOREIGN_PLACEHOLDER_CHANGED`. The message
+ *   gives the number of affected values and names the first keys. Raised per locale, only when
+ *   that locale has such a key missing or stale, for every provider and on a dry run too. Never
+ *   raised for a format a third-party adapter supplies.
  *
- * The last four are raised before anything is spent, from the same assessment {@link doctor}
- * reports under its `locales` check, and on a dry run too.
+ * `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`
+ * and `FORMALITY_UNSUPPORTED_BY_PROVIDER` are raised before anything is spent, from the same
+ * assessment {@link doctor} reports under its `locales` check, and on a dry run too.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
@@ -77,7 +85,8 @@ export type SdkNoticeCode =
   | "LOCALE_UNVERIFIED_BY_PROVIDER"
   | "LOCALE_NOT_WELL_TESTED"
   | "GLOSSARY_UNSUPPORTED_BY_PROVIDER"
-  | "FORMALITY_UNSUPPORTED_BY_PROVIDER";
+  | "FORMALITY_UNSUPPORTED_BY_PROVIDER"
+  | "SOURCE_FOREIGN_PLACEHOLDERS";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is

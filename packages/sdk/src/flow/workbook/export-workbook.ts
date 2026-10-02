@@ -20,6 +20,7 @@ import { createLocalePathResolver } from "../../locale-path/resolver.js";
 import type { LocaleProvenance, ProvenanceMarkers } from "../../lock/key-provenance.js";
 import { baselineFor } from "../../lock/lock-file.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
+import { withForeignPlaceholderReason } from "../foreign-placeholders.js";
 import { branchArmProblems } from "../integrity-gate.js";
 import { readCarriedOverLock, readCarriedOverProvenance } from "../locale-carry-over.js";
 import { readTargetResource } from "../read-target.js";
@@ -173,7 +174,10 @@ function computeRowReview(
     glossary,
     maxLength,
   });
-  return reviewColumns(flag, branchArmProblems(sourceValue, currentTarget, adapter, targetLocale));
+  return reviewColumns(
+    withForeignPlaceholderReason(flag, adapter.format, sourceValue, currentTarget),
+    branchArmProblems(sourceValue, currentTarget, adapter, targetLocale),
+  );
 }
 
 function buildRows(

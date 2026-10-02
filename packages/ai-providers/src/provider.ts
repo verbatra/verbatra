@@ -159,8 +159,9 @@ export interface ProviderNotice {
 /**
  * Stable codes for a derived, per-key "needs review" signal. This is verbatra's own computed
  * assessment, never a raw model self-score: five are recomputable from plain source and translated
- * values, and `FUZZY_CACHE_REUSE` and `PROVIDER_DEGRADED` are layered on afterwards, the first by
- * the SDK from where the value came, the second from the batch's notices.
+ * values, and `FUZZY_CACHE_REUSE`, `PROVIDER_DEGRADED` and `FOREIGN_PLACEHOLDER_CHANGED` are
+ * layered on afterwards, the first by the SDK from where the value came, the second from the
+ * batch's notices, the third by the SDK from the project's format.
  *
  * - `LENGTH_RATIO_OUTLIER`: the translated value's length is far shorter or longer than the source's.
  *   Both trimmed values are measured in grapheme clusters, each weighted by its own script so the
@@ -212,6 +213,14 @@ export interface ProviderNotice {
  *   inverted modal or a swapped proper noun are all small edits with large consequences, and no
  *   threshold separates them from a typo fix. Every such reuse therefore carries this reason, on
  *   every run, regardless of score.
+ * - `FOREIGN_PLACEHOLDER_CHANGED`: the source holds a token that looks like a placeholder of
+ *   another syntax than the project's format interpolates, such as a single-brace `{name}` in an
+ *   i18next value or a Ruby-style `%{count}` in a YAML value, and the translated value holds that
+ *   token, verbatim, fewer times than the source: it was dropped, translated, or rewritten. The
+ *   format's own placeholders are checked by the integrity gate instead, and a token the
+ *   translation only adds is not flagged. An ICU argument such as `{n, plural, ...}` counts once,
+ *   by its head `{n, plural,`, so translated arms never raise it. Computed by the SDK, which knows
+ *   the project's format; never raised for a format a third-party adapter supplies.
  *
  * This tuple is the single source of truth for the set. {@link ReviewReasonCode} is derived from
  * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
@@ -234,6 +243,7 @@ export const REVIEW_REASON_CODES = [
   "INTEGRITY_REORDERED",
   "PROVIDER_DEGRADED",
   "FUZZY_CACHE_REUSE",
+  "FOREIGN_PLACEHOLDER_CHANGED",
 ] as const;
 
 /**

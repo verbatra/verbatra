@@ -44,6 +44,12 @@ export {
 } from "./model/supported-format.js";
 export { type TranslationEntry, translationEntrySchema } from "./model/translation-entry.js";
 export {
+  foreignPlaceholderTokens,
+  missingForeignPlaceholders,
+  PLACEHOLDER_SYNTAXES,
+  type PlaceholderSyntax,
+} from "./placeholder/foreign-tokens.js";
+export {
   compareInlineMarkup,
   type InlineMarkupComparison,
   type InlineMarkupOptions,

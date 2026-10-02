@@ -132,14 +132,11 @@ locked, and put on the needs-review queue.
 | [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) | is longer than the key's [`maxLength`](/docs/config-file#maxlength) budget <AvailableFrom version="0.11.0" /> |
 | [`EQUALS_SOURCE`](/docs/error-codes#equals_source) | is identical to its source text |
 | [`GLOSSARY_TERM_MISSED`](/docs/error-codes#glossary_term_missed) | misses a glossary term's translation, or alters a do-not-translate term |
-| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | uses a rendering the glossary forbids |
+| [`GLOSSARY_FORBIDDEN_TERM`](/docs/error-codes#glossary_forbidden_term) | uses a rendering the glossary forbids <AvailableFrom version="0.12.0" /> |
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | keeps every placeholder but in another order |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | came from a batch the provider degraded, such as a dropped formality |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) <AvailableFrom version="0.11.0" /> |
-
-<AvailableFrom version="0.12.0" />
-
-`GLOSSARY_FORBIDDEN_TERM` first appears in 0.12.0.
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | drops or changes a placeholder-like token its [format](/docs/formats) does not protect, such as `{name}` in i18next <AvailableFrom version="0.12.0" /> |
 
 Cache hits and values shared between keys go through the same heuristics as fresh translations.
 Flagged keys appear per locale as `needsReview` on the run summary, in the workbook's review
@@ -182,6 +179,4 @@ committed values without a provider call.
 ## Related
 
 - [How a run works](/docs/how-it-works): where each check sits in the pipeline.
-- [Error codes](/docs/error-codes): refusal reasons, review reasons and provider codes.
-- [Review in Studio](/docs/review-in-studio): work the needs-review queue.
 - [Data handling and privacy](/docs/data-handling): what leaves your machine.

@@ -90,7 +90,7 @@ interface IncompletePlural {
 `--qa` wendet die Prüfungen, die ein Übersetzungslauf auf Provider-Ausgaben anwendet, auf die Werte an, die schon in deinen Locale-Dateien stehen, veraltet oder nicht, samt zusätzlicher Pluralformen, die die Zielsprache braucht. Befunde gibt es in zwei Schweregraden:
 
 - **error**: Der Wert fällt durch das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate), mit `placeholder`, `markup`, `icu`, `degenerate` oder `empty`. Die Details listen entfernte Tokens als `-{{name}}` und hinzugefügte als `+{{nom}}`.
-- **warning**: Der Wert trägt einen [Review-Grund](/docs/translation-safety#review-flags), der sich aus dem Wert, seiner Quelle und deiner Konfiguration (Glossar, `maxLength`) ergibt, also keinen, der vom Provider oder vom Cache abhängt. Ein Wert mit Fehler bekommt keine Warnungen.
+- **warning**: Der Wert trägt einen [Review-Grund](/docs/translation-safety#review-flags), der sich aus dem Wert, seiner Quelle und deiner Konfiguration (Glossar, `maxLength`) ergibt, also keinen, der vom Provider oder vom Cache abhängt; bei `FOREIGN_PLACEHOLDER_CHANGED` nennen die `details` des Befunds jedes verlorene oder veränderte Token, etwa `-{name}`. Ein Wert mit Fehler bekommt keine Warnungen.
 
 ```text output
 qa: 1 error, 1 warning
@@ -106,7 +106,7 @@ interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: 
 interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
 type QaFinding =
   | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
-  | { key: string; severity: "warning"; reason: string }; // einer der Review-Gründe oben
+  | { key: string; severity: "warning"; reason: string; details?: string[] }; // einer der Review-Gründe oben
 ```
 
 ### Freigegebene Übersetzungen verlangen
