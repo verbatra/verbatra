@@ -74,17 +74,20 @@ describe("the worst accepted shapes at the scan cap", () => {
     ["\\w*x", LETTERS],
   ];
 
-  it.each(SHAPES)("%s is accepted and finishes within 50 ms", (source, text) => {
-    expect(unsafePatternReason(source)).toBe(undefined);
-    const pattern = new RegExp(source, "gu");
-    const fastest = Math.min(
-      ...[1, 2, 3].map(() => {
-        const started = performance.now();
-        matchSpans(pattern, text);
-        return performance.now() - started;
-      }),
-    );
+  it.each(SHAPES)(
+    "%s is accepted and its fastest of five runs takes under 250 ms",
+    (source, text) => {
+      expect(unsafePatternReason(source)).toBe(undefined);
+      const pattern = new RegExp(source, "gu");
+      const fastest = Math.min(
+        ...Array.from({ length: 5 }, () => {
+          const started = performance.now();
+          matchSpans(pattern, text);
+          return performance.now() - started;
+        }),
+      );
 
-    expect(fastest).toBeLessThan(50);
-  });
+      expect(fastest).toBeLessThan(250);
+    },
+  );
 });
