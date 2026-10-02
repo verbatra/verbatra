@@ -5,7 +5,7 @@ type: tutorial
 ---
 By the end of this page a TypeScript script of yours translates an English locale file into German, reports what happened, and fails a CI job when a locale falls out of sync. You need Node.js `>=22.14.0` and about ten minutes. The first three steps need no API key.
 
-Each step is a complete script you run with `node`. Node.js runs TypeScript files directly from `22.18.0`; on `22.14.0` to `22.17.x`, add `--experimental-strip-types` to every `node` command below.
+Each step is a complete script you run with `node`. Node.js runs TypeScript files directly from `22.18.0`; on `22.14.0` to `22.17.x`, add `--experimental-strip-types` to every `node` command below. The scripts use `import` and top-level `await`, so mark your project as ES modules first with `npm pkg set type=module`.
 
 ## Steps
 
@@ -86,14 +86,15 @@ const config = await loadConfig();
 const summary = await translate({
   config,
   onProgress: (event) => {
-    if (event.type === "locale-finished") {
-      console.log(`${event.locale}: ${event.translated} keys translated`);
-    }
+    if (event.type === "locale-finished") console.log(`${event.locale}: ${event.translated} keys`);
   },
 });
 
-const { succeeded, partial, failed } = summary;
+const { succeeded, partial, failed, usage } = summary;
 console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+if (usage !== undefined) {
+  console.log(`tokens: ${usage.inputTokens} in, ${usage.outputTokens} out`);
+}
 
 for (const locale of summary.locales) {
   if (locale.status === "failed") {
@@ -116,7 +117,7 @@ The provider reads its key from the environment, and unlike the CLI the SDK does
 node --env-file=.env translate.ts
 ```
 
-`locales/de.json` now holds both keys, with `{{name}}` intact. A `partial` locale was written with keys still missing, so the script fails on it just as it does on `failed`. Per-locale problems arrive as data on the summary; only a problem with the whole run throws.
+`locales/de.json` now holds both keys, with `{{name}}` intact. A `partial` locale was written with keys still missing, so the script fails on it just as it does on `failed`. Per-locale problems arrive as data on the summary; only a problem with the whole run throws. [`translate`](/docs/sdk/run#translate) lists every other option.
 
 </Step>
 <Step>
@@ -171,7 +172,7 @@ if (!summary.inSync) {
 node check.ts
 ```
 
-`check` calls no provider and writes nothing, so it needs no key in CI. It exits `1` as soon as a source string has no translation or changed since it was translated.
+`check` calls no provider and writes nothing, so it needs no key in CI. The script exits `1` when a source string has no translation or changed since it was translated.
 
 </Step>
 </Steps>

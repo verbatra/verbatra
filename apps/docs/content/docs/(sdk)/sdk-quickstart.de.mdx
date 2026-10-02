@@ -5,7 +5,7 @@ type: tutorial
 ---
 Am Ende dieser Seite übersetzt ein TypeScript-Skript von dir eine englische Locale-Datei ins Deutsche, meldet, was passiert ist, und lässt einen CI-Job scheitern, sobald eine Locale nicht mehr synchron ist. Du brauchst Node.js `>=22.14.0` und etwa zehn Minuten. Die ersten drei Schritte brauchen keinen API-Schlüssel.
 
-Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.js führt TypeScript-Dateien ab `22.18.0` direkt aus; unter `22.14.0` bis `22.17.x` ergänzt du jeden `node`-Befehl unten um `--experimental-strip-types`.
+Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.js führt TypeScript-Dateien ab `22.18.0` direkt aus; unter `22.14.0` bis `22.17.x` ergänzt du jeden `node`-Befehl unten um `--experimental-strip-types`. Die Skripte nutzen `import` und Top-Level-`await`, markiere dein Projekt also zuerst mit `npm pkg set type=module` als ES-Modul.
 
 ## Schritte
 
@@ -86,14 +86,15 @@ const config = await loadConfig();
 const summary = await translate({
   config,
   onProgress: (event) => {
-    if (event.type === "locale-finished") {
-      console.log(`${event.locale}: ${event.translated} keys translated`);
-    }
+    if (event.type === "locale-finished") console.log(`${event.locale}: ${event.translated} keys`);
   },
 });
 
-const { succeeded, partial, failed } = summary;
+const { succeeded, partial, failed, usage } = summary;
 console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+if (usage !== undefined) {
+  console.log(`tokens: ${usage.inputTokens} in, ${usage.outputTokens} out`);
+}
 
 for (const locale of summary.locales) {
   if (locale.status === "failed") {
@@ -116,7 +117,7 @@ Der Provider liest seinen Schlüssel aus der Umgebung, und anders als die CLI l�
 node --env-file=.env translate.ts
 ```
 
-`locales/de.json` enthält jetzt beide Keys, und `{{name}}` ist unversehrt. Eine Locale mit `partial` wurde geschrieben, obwohl noch Keys fehlen, deshalb scheitert das Skript daran genauso wie an `failed`. Probleme einzelner Locales kommen als Daten in der Zusammenfassung an; nur ein Problem des ganzen Laufs wirft.
+`locales/de.json` enthält jetzt beide Keys, und `{{name}}` ist unversehrt. Eine Locale mit `partial` wurde geschrieben, obwohl noch Keys fehlen, deshalb scheitert das Skript daran genauso wie an `failed`. Probleme einzelner Locales kommen als Daten in der Zusammenfassung an; nur ein Problem des ganzen Laufs wirft. [`translate`](/docs/sdk/run#translate) listet jede weitere Option.
 
 </Step>
 <Step>
@@ -171,7 +172,7 @@ if (!summary.inSync) {
 node check.ts
 ```
 
-`check` ruft keinen Provider auf und schreibt nichts, braucht in der CI also keinen Schlüssel. Es endet mit `1`, sobald ein Quelltext keine Übersetzung hat oder sich seit der Übersetzung geändert hat.
+`check` ruft keinen Provider auf und schreibt nichts, braucht in der CI also keinen Schlüssel. Das Skript endet mit `1`, wenn ein Quelltext keine Übersetzung hat oder sich seit der Übersetzung geändert hat.
 
 </Step>
 </Steps>
