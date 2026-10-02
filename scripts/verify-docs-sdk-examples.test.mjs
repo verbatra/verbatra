@@ -101,15 +101,22 @@ function keylessEnv() {
   );
 }
 
-function runScript(project, file) {
+const TYPELESS_WARNING = "MODULE_TYPELESS_PACKAGE_JSON";
+
+function spawnScript(project, file) {
   const result = spawnSync(process.execPath, ["--experimental-strip-types", file], {
     cwd: project,
     encoding: "utf8",
     env: keylessEnv(),
     timeout: 60_000,
   });
-  expect(result.stderr, result.stderr).not.toContain("MODULE_TYPELESS_PACKAGE_JSON");
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
+function runScript(project, file) {
+  const result = spawnScript(project, file);
+  expect(result.stderr, result.stderr).not.toContain(TYPELESS_WARNING);
+  return result;
 }
 
 describe("the SDK quickstart and recipes", () => {
@@ -184,6 +191,22 @@ describe("the SDK examples run end to end without an API key", () => {
   });
 
   it(
+    "sees the typeless-package warning when a script's package.json declares no type",
+    () => {
+      mkdirSync(join(project, "typeless"));
+      writeFileSync(join(project, "typeless/package.json"), "{}\n");
+      writeFileSync(
+        join(project, "typeless/preview.ts"),
+        `${blockTitled(QUICKSTART, "preview.ts")}\n`,
+      );
+      const typeless = spawnScript(project, "typeless/preview.ts");
+      expect(typeless.status, typeless.stderr).toBe(0);
+      expect(typeless.stderr).toContain(TYPELESS_WARNING);
+    },
+    SLOW,
+  );
+
+  it(
     "previews the run without a key, exactly as the page shows it",
     () => {
       const preview = runScript(project, "preview.ts");
@@ -211,7 +234,7 @@ describe("the SDK examples run end to end without an API key", () => {
     () => {
       const review = runScript(project, "review.ts");
       expect(review.status, review.stderr).toBe(1);
-      expect(review.stderr).toContain("no review queue with run flags on this machine");
+      expect(review.stderr).toContain("no run recorded on this machine");
     },
     SLOW,
   );
