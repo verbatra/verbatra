@@ -38,6 +38,8 @@ Config-less start and reload, review and glossary v2 tools, spend limits, struct
   and do-not-translate terms. An unknown locale fails with `UNKNOWN_LOCALE`.
 - `translation.estimate` prices a run without calling a provider, and
   `translation.translatePending` takes `locales` and a `maxTokens` ceiling.
+- `translation.translatePending` sends `notifications/progress` as batches finish when the call
+  carries a `progressToken`.
 - `translation.translatePending` and `translation.estimate` report `integrityRefusals`, and
   `key.integrity` reports `icuArmsMatch` and `icuArmDetails`.
 - `key.value` returns the key's `description`, and read tools return provenance fields, described
