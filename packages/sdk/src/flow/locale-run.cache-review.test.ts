@@ -684,3 +684,29 @@ describe("runLocale: a dropped placeholder of a foreign syntax", () => {
     expect(result.summary.needsReview).toEqual([]);
   });
 });
+
+describe("runLocale: bidi controls in a reused value", () => {
+  it("flags a cached value that adds a right-to-left override", async () => {
+    const { dir, sourceResource } = await setup({ greeting: "Hello there, welcome back!" });
+    const result = await runLocale(
+      makeParams(
+        { source: sourceResource, cwd: dir },
+        {
+          cache: {
+            snapshot: seededMemory(
+              sourceResource,
+              "greeting",
+              "\u202eHallo\u202c, willkommen zurück!",
+            ),
+            fingerprint: FINGERPRINT,
+          },
+        },
+      ),
+    );
+
+    expect(result.summary.cacheHits).toEqual(["greeting"]);
+    expect(result.summary.needsReview).toEqual([
+      { key: "greeting", reasons: ["BIDI_CONTROLS_CHANGED"] },
+    ]);
+  });
+});

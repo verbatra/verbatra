@@ -593,6 +593,76 @@ describe("computeReviewFlags: INTEGRITY_REORDERED", () => {
   });
 });
 
+describe("computeReviewFlags: BIDI_CONTROLS_CHANGED", () => {
+  const RLI = "\u2067";
+  const PDI = "\u2069";
+  const LRO = "\u202d";
+  const RLO = "\u202e";
+  const PDF = "\u202c";
+
+  function bidiFlag(sourceValue: string, translatedValue: string): ReviewFlag | undefined {
+    return computeReviewFlags(
+      input({ sourceValue, translatedValue, sourceLocale: "en", targetLocale: "ar" }),
+    );
+  }
+
+  it("flags a target left unbalanced while the source is balanced", () => {
+    expect(bidiFlag("Hello {name}", `مرحبا ${RLI}{name}`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("flags a target whose isolate is closed only on the next line", () => {
+    expect(bidiFlag("Hello\nthere", `${RLI}مرحبا\n${PDI}هناك`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("does not flag an unbalanced target when the source is unbalanced too", () => {
+    expect(bidiFlag(`Hello ${RLI}there`, `مرحبا ${RLI}هناك`)).toBeUndefined();
+  });
+
+  it("does not flag directional marks the translator adds", () => {
+    expect(bidiFlag("Order 42 shipped", "\u200fتم شحن الطلب\u061c 42\u200e")).toBeUndefined();
+  });
+
+  it("does not flag a balanced isolate the translator adds", () => {
+    expect(bidiFlag("Hello {name}", `مرحبا ${RLI}{name}${PDI}`)).toBeUndefined();
+  });
+
+  it("does not flag a translation that drops balanced isolates the source has", () => {
+    expect(bidiFlag(`Hello ${RLI}{name}${PDI}`, "مرحبا {name}")).toBeUndefined();
+  });
+
+  it("flags an added right-to-left override even when it is closed", () => {
+    expect(bidiFlag("Hello there", `${RLO}مرحبا${PDF} هناك`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("flags an added left-to-right override even when it is closed", () => {
+    expect(bidiFlag("Hello there", `${LRO}مرحبا${PDF} هناك`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("flags a second override of a kind the source holds once, compared by count", () => {
+    expect(bidiFlag(`${RLO}abc${PDF} there`, `${RLO}abc${PDF} ${RLO}هناك${PDF}`)?.reasons).toEqual([
+      "BIDI_CONTROLS_CHANGED",
+    ]);
+  });
+
+  it("does not flag the same controls as the source", () => {
+    expect(
+      bidiFlag(`${RLO}abc${PDF} there ${RLI}x${PDI}`, `${RLO}abc${PDF} هناك ${RLI}x${PDI}`),
+    ).toBeUndefined();
+  });
+
+  it("does not flag a translation that drops an override the source has", () => {
+    expect(bidiFlag(`${RLO}abc${PDF} there`, "abc هناك")).toBeUndefined();
+  });
+});
+
 describe("computeReviewFlags: multi-reason key", () => {
   it("includes every reason code that applies", () => {
     const flag = computeReviewFlags(

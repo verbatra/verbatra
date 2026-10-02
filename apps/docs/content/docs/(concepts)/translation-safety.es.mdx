@@ -146,6 +146,7 @@ una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
 | [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | pierde o cambia un token con forma de placeholder que su [formato](/docs/formats) no protege, como `{name}` en i18next <AvailableFrom version="0.12.0" /> |
+| [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | deja abierto un control de dirección, o añade una anulación que invierte el texto <AvailableFrom version="0.12.0" /> |
 
 Los aciertos de caché y los valores compartidos entre claves pasan por las mismas heurísticas que
 las traducciones nuevas. Las claves marcadas aparecen por locale como `needsReview` en el resumen de

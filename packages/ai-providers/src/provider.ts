@@ -158,7 +158,7 @@ export interface ProviderNotice {
 
 /**
  * Stable codes for a derived, per-key "needs review" signal. This is verbatra's own computed
- * assessment, never a raw model self-score: five are recomputable from plain source and translated
+ * assessment, never a raw model self-score: seven are recomputable from plain source and translated
  * values, and `FUZZY_CACHE_REUSE`, `PROVIDER_DEGRADED` and `FOREIGN_PLACEHOLDER_CHANGED` are
  * layered on afterwards, the first by the SDK from where the value came, the second from the
  * batch's notices, the third by the SDK from the project's format.
@@ -221,6 +221,13 @@ export interface ProviderNotice {
  *   translation only adds is not flagged. An ICU argument such as `{n, plural, ...}` counts once,
  *   by its head `{n, plural,`, so translated arms never raise it. Computed by the SDK, which knows
  *   the project's format; never raised for a format a third-party adapter supplies.
+ * - `BIDI_CONTROLS_CHANGED`: the translated value holds explicit bidirectional controls that can
+ *   reorder text around it. Either its embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and
+ *   isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each
+ *   paragraph while the source's do, so a direction leaks into whatever text follows the value; or
+ *   it holds more left-to-right or right-to-left overrides than the source, which visually reverse
+ *   text. Directional marks (U+200E, U+200F, U+061C) never raise it, and neither does a
+ *   translation that drops balanced controls the source has.
  *
  * This tuple is the single source of truth for the set. {@link ReviewReasonCode} is derived from
  * it, so build any runtime validator or exhaustive lookup from this value rather than retyping the
@@ -244,6 +251,7 @@ export const REVIEW_REASON_CODES = [
   "PROVIDER_DEGRADED",
   "FUZZY_CACHE_REUSE",
   "FOREIGN_PLACEHOLDER_CHANGED",
+  "BIDI_CONTROLS_CHANGED",
 ] as const;
 
 /**
