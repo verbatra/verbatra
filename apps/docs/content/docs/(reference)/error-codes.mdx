@@ -648,7 +648,7 @@ The [network policy](/docs/network-policy) refused the request right before it w
 
 ### PROVIDER_ERROR
 
-Anything unclassifiable. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message.
+Anything unclassifiable. When the failure is a recognizable transport problem, the message names it (connection refused, host name not resolved, connection closed, host unreachable, TLS certificate not verified) and says what to check; otherwise it falls back to a static, secret-free message. When a provider package could not be loaded, the message names the package and says to reinstall `@verbatra/sdk`.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`

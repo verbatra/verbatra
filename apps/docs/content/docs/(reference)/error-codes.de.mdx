@@ -648,7 +648,7 @@ Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Se
 
 ### PROVIDER_ERROR
 
-Alles Unklassifizierbare. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück.
+Alles Unklassifizierbare. Ist der Fehlschlag ein erkennbares Transportproblem, benennt die Meldung es (Verbindung abgelehnt, Hostname nicht aufgelöst, Verbindung geschlossen, Host nicht erreichbar, TLS-Zertifikat nicht verifiziert) und sagt, was zu prüfen ist; sonst fällt sie auf eine statische, geheimnisfreie Meldung zurück. Konnte ein Provider-Paket nicht geladen werden, nennt die Meldung das Paket und rät, `@verbatra/sdk` neu zu installieren.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
