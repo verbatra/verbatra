@@ -1,50 +1,35 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { englishDocsPages } from "./docs-pages";
 import { i18n } from "./i18n";
 import {
+  COMMAND_PAGE_CEILING,
+  formatBudgetReport,
+  isPageType,
   LOOKUP_REFERENCE_CEILING,
   LOOKUP_REFERENCE_PAGES,
-  PAGE_TYPES,
+  type PageBudget,
   type PageType,
+  pageBudget,
+  pagesNearCeiling,
+  pageType,
   proseWords,
+  WORD_CEILING,
+  wordCeiling,
 } from "./page-type";
 
 const CONTENT_DIR = join(import.meta.dirname, "../content/docs");
 const GUIDES_META = join(CONTENT_DIR, "(guides)/meta.json");
-const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
 const TRANSLATIONS = i18n.languages.filter((locale) => locale !== i18n.defaultLanguage);
 const LOCALE_SUFFIX = new RegExp(`\\.(${TRANSLATIONS.join("|")})\\.mdx$`);
-
-const WORD_CEILING: Record<PageType, number> = {
-  overview: 600,
-  tutorial: 900,
-  "how-to": 1200,
-  concept: 1800,
-  reference: 3000,
-};
-
-function wordCeiling(file: string, type: PageType): number {
-  return LOOKUP_REFERENCE_PAGES.has(file) ? LOOKUP_REFERENCE_CEILING : WORD_CEILING[type];
-}
 
 function readPage(file: string): string {
   return readFileSync(join(CONTENT_DIR, file), "utf8");
 }
 
-function pageType(source: string): string | undefined {
-  const frontmatter = FRONTMATTER.exec(source)?.[1] ?? "";
-  return /^type:\s*(\S+)\s*$/m.exec(frontmatter)?.[1];
-}
-
-function isPageType(value: string): value is PageType {
-  return (PAGE_TYPES as readonly string[]).includes(value);
-}
-
 function englishPages(): string[] {
-  return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".mdx") && !LOCALE_SUFFIX.test(file))
-    .sort();
+  return englishDocsPages(CONTENT_DIR).map(({ file }) => file);
 }
 
 function typedPages(): Array<[string, PageType]> {
@@ -62,6 +47,13 @@ function everydayGuides(): string[] {
 }
 
 describe("page type frontmatter", () => {
+  it("lists exactly the pages without a locale suffix as English pages", () => {
+    const bySuffix = readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
+      .filter((file) => file.endsWith(".mdx") && !LOCALE_SUFFIX.test(file))
+      .sort();
+    expect(englishPages()).toEqual(bySuffix);
+  });
+
   it("gives every page a type", () => {
     const untyped = englishPages().filter((file) => pageType(readPage(file)) === undefined);
     expect(untyped).toEqual([]);
@@ -97,6 +89,14 @@ describe("page type frontmatter", () => {
     }
   });
 
+  it("caps a CLI command page below the reference ceiling, and only a command page", () => {
+    expect(COMMAND_PAGE_CEILING).toBeLessThan(WORD_CEILING.reference);
+    expect(wordCeiling("cli/translate.mdx", "reference")).toBe(COMMAND_PAGE_CEILING);
+    expect(wordCeiling("cli/index.mdx", "reference")).toBe(WORD_CEILING.reference);
+    expect(wordCeiling("cli/output.mdx", "reference")).toBe(WORD_CEILING.reference);
+    expect(wordCeiling("sdk/run.mdx", "reference")).toBe(WORD_CEILING.reference);
+  });
+
   it("marks every Everyday guide as a how-to", () => {
     const guides = everydayGuides();
     expect(guides.length).toBeGreaterThan(0);
@@ -106,5 +106,44 @@ describe("page type frontmatter", () => {
   it("fails a page that runs past its ceiling, so the check is not vacuous", () => {
     const padded = `---\ntype: how-to\n---\n${"word ".repeat(WORD_CEILING["how-to"] + 1)}`;
     expect(proseWords(padded)).toBeGreaterThan(WORD_CEILING["how-to"]);
+  });
+});
+
+describe("the headroom report", () => {
+  const budget = (file: string, words: number): PageBudget => ({
+    file,
+    type: "how-to",
+    words,
+    ceiling: WORD_CEILING["how-to"],
+  });
+
+  it("lists a page from 90 percent of its ceiling, fullest first, and nothing below", () => {
+    const near = pagesNearCeiling([
+      budget("a.mdx", 1079),
+      budget("b.mdx", 1080),
+      budget("c.mdx", 1199),
+    ]);
+    expect(near.map(({ file }) => file)).toEqual(["c.mdx", "b.mdx"]);
+  });
+
+  it("prints each listed page with its words, ceiling, share and room left", () => {
+    const report = formatBudgetReport([budget("(guides)/x.mdx", 1150)]);
+    expect(report).toMatch(
+      /^Pages at or above 90% of their ceiling: 1\n\(guides\)\/x\.mdx +how-to +1150\/1200 +96% +50 left$/,
+    );
+    expect(formatBudgetReport([budget("y.mdx", 10)])).toBe(
+      "No page is at or above 90% of its ceiling.",
+    );
+  });
+
+  it("measures every typed page with the same counter and ceiling as the ceiling test", () => {
+    for (const [file, type] of typedPages()) {
+      expect(pageBudget(file, readPage(file))).toEqual({
+        file,
+        type,
+        words: proseWords(readPage(file)),
+        ceiling: wordCeiling(file, type),
+      });
+    }
   });
 });

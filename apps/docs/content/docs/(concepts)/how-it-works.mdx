@@ -31,6 +31,8 @@ record of what was translated before:
 | unchanged | the source still matches the recorded hash | leaves it alone |
 | orphaned | the key is in the target but not in the source | reports it; removes it only with `--prune` or `prune: true` |
 
+### Held-back keys
+
 <AvailableFrom version="0.12.0" />
 
 Two kinds of candidate are held back. A changed key whose current value a person wrote or imported

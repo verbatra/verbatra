@@ -69,6 +69,8 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 
 Chaque appel passe par le RPC loopback authentifié du tableau de bord, avec la même validation des entrées et le même [contrôle d'intégrité](/docs/translation-safety) : une valeur qui échoue à un contrôle est rejetée et rien n'est écrit.
 
+### Règles par appel
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Provenance** : une modification de l'agent est enregistrée avec l'origine `agent` et reste dans la file de relecture ; une modification depuis le tableau de bord est `human`. Les outils de lecture indiquent qui a écrit chaque valeur ([Le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur)).

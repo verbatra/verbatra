@@ -17,6 +17,8 @@ Use this to let a coding agent read translation status and fix values through ve
 
 The examples use `npx -y @verbatra/mcp`, which works in any project. Avoid `npx -y @verbatra/cli mcp`, which exits `2` because the CLI never installs `@verbatra/mcp`. Point the server at the directory that holds the config; each section says how, and [Project directory](/docs/cli/mcp#project-directory) has the rule.
 
+### MCP Registry
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
 The server is also listed in the [official MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.verbatra/verbatra`.
@@ -28,13 +30,15 @@ The server starts read-only: the two spend tools stay hidden and no tool reads a
 - `--allow-spend` in the arguments, or `VERBATRA_MCP_ALLOW_SPEND=1` in the environment ([Spend tools](/docs/cli/mcp#spend-tools));
 - your provider's key variable, such as `ANTHROPIC_API_KEY` ([Providers](/docs/providers)).
 
-<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
-
-The server still tells the agent to run `translation.estimate` and wait for your yes before spending.
-
 <Callout type="warn">
 Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` or `.vscode/mcp.json`. Each section below passes the key by reference or from your environment instead.
 </Callout>
+
+### Estimate first
+
+<AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
+
+The server still tells the agent to run `translation.estimate` and wait for your yes before spending.
 
 ## Claude Code
 
@@ -58,10 +62,6 @@ Claude Code's options go before `--`, the server's arguments after it. `--scope 
 }
 ```
 
-<AvailableFrom version="0.12.0" />
-
-[`verbatra init --agent`](/docs/cli/init#set-up-coding-agents) writes the same entry.
-
 Claude Code sets `CLAUDE_PROJECT_DIR` to the project root, so no `--cwd` is needed, and passes on your shell's environment. To spend for one session, export the key and run:
 
 ```bash
@@ -69,6 +69,12 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 ```
 
 Do not combine `--env KEY=value` with `--scope project`: it writes the value into `.mcp.json`. Run `claude mcp list` to check the connection. See the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+
+### Let init write it
+
+<AvailableFrom version="0.12.0" />
+
+[`verbatra init --agent`](/docs/cli/init#set-up-coding-agents) writes the same entry.
 
 ### The verbatra plugin
 

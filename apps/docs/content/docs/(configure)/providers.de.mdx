@@ -330,7 +330,7 @@ provider: {
 }
 ```
 
-- **Keys** müssen `sourceLocale` oder eine Ziel-Locale sein, so geschrieben wie konfiguriert; alles andere scheitert mit `CONFIG_INVALID`. Es gehört unter `options` (direkt unter `provider` scheitert es ab 0.12.0), bei jedem Provider außer `none`.
+- **Keys** müssen `sourceLocale` oder eine Ziel-Locale sein, so geschrieben wie konfiguriert; alles andere scheitert mit `CONFIG_INVALID`. Es gehört unter `options` (direkt unter `provider` scheitert es), bei jedem Provider außer `none`.
 - **Werte** sind nicht leere Strings mit höchstens 64 Zeichen und werden unverändert gesendet: an einen Maschinenübersetzungs-Provider als Sprachcode, an ein LLM anstelle des Codes (`"pt-BR (Brazilian Portuguese)"` funktioniert). Die Sprachnamen für ein LLM kommen trotzdem aus dem Key. Ein Wert, der DeepL weiterhin ein bloßes `EN` oder `PT` schickt, scheitert mit `INVALID_REQUEST`; ein Wert, den der Provider ablehnt, lässt seinen Sub-Batch scheitern.
 - **Wirkung auf das Translation Memory.** Nur neue und geänderte Strings gehen mit einem neuen Code hinaus. Ein nicht leeres `localeMap` ist Teil des Fingerprints im [Translation Memory](/docs/the-cache), eine Änderung beginnt also einen eigenen Bereich.
 

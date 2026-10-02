@@ -69,6 +69,8 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 
 Jeder Aufruf läuft über den eigenen, angemeldeten Loopback-RPC des Dashboards, mit derselben Eingabeprüfung und demselben [Integritäts-Gate](/docs/translation-safety): Ein Wert, der eine Prüfung nicht besteht, wird abgelehnt, und nichts wird geschrieben.
 
+### Regeln je Aufruf
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Herkunft**: Eine Änderung durch den Agenten wird mit der Herkunft `agent` festgehalten und bleibt in der Review-Warteschlange; eine Änderung im Dashboard ist `human`. Die Lese-Tools melden, wer welchen Wert geschrieben hat ([Die Lock-Datei](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat)).

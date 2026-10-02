@@ -9,6 +9,7 @@
     "start": "next start",
     "typecheck": "node scripts/sync-version.mjs && node --experimental-strip-types scripts/sync-translation-freshness.mjs && next typegen && tsc --noEmit",
     "test": "node scripts/sync-version.mjs && node --experimental-strip-types scripts/sync-translation-freshness.mjs && vitest run",
+    "docs:budget": "node --experimental-strip-types scripts/docs-budget.mjs",
     "postinstall": "fumadocs-mdx",
     "i18n": "verbatra translate",
     "studio": "verbatra studio",

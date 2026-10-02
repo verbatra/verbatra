@@ -122,8 +122,9 @@ from X.Y.Z", with the upgrade advice as its `title`) sourced from the `docs.avai
 translation namespace (`messages/*.json`), so its copy is translated like any other UI string, not
 hand-duplicated per locale MDX file. Written on its own line directly under a `##` to `####`
 heading, it is moved into that heading at build time (`lib/available-from-heading.ts`, after the
-TOC is taken, so the TOC and the heading's anchor stay clean); anywhere else it sits on its own
-line where it is written.
+TOC is taken, so the TOC and the heading's anchor stay clean); in a table cell or inline it renders
+where it is written. Where a badge may sit at all is set by "Badge placement" under
+[Docs budget](#docs-budget) below.
 
 - Usage: `<AvailableFrom version="X.Y.Z" />` for a CLI/SDK feature, or
   `<AvailableFrom version="X.Y.Z" pkg="@verbatra/studio" />` when the feature belongs to a
@@ -138,7 +139,92 @@ line where it is written.
   version; `@verbatra/studio` versions independently and needs its own number, which is why
   `pkg="@verbatra/studio"` exists.
 - It never needs removing later. Once a version ships, the badge is historically accurate
-  forever; do not go back and strip it once the "from" version is old.
+  forever; do not go back and strip it once the "from" version is old. The 1.0 baseline under
+  "Badge placement" below is a rule for when 1.0.0 ships, and even then it hides badges rather
+  than deleting them from the source.
+
+## Docs budget
+
+Every page has a word ceiling, so a page that keeps growing gets split or trimmed on purpose
+rather than by accident.
+
+### Ceilings
+
+Counted in English prose words by `proseWords` (`apps/docs/lib/page-type.ts`): frontmatter, fenced
+code and JSX tags are stripped, and only tokens with a letter or digit count. The page type comes
+from the `type` frontmatter field.
+
+| Page | Ceiling |
+| --- | --- |
+| overview | 600 |
+| tutorial | 900 |
+| how-to | 1,200 |
+| concept | 1,800 |
+| reference | 3,000 |
+| CLI command page (`cli/<command>.mdx`, not `cli/index` or `cli/output`) | 2,000 |
+| lookup reference (`LOOKUP_REFERENCE_PAGES`: `(reference)/error-codes.mdx` only) | 12,000 |
+
+The values live in `page-type.ts` (`WORD_CEILING`, `COMMAND_PAGE_CEILING`,
+`LOOKUP_REFERENCE_CEILING`), and that one counter feeds every check:
+`apps/docs/lib/docs-page-type.test.ts` holds every page to its ceiling, and
+`scripts/verify-docs-registry-parity.test.mjs` holds each command page to the command cap.
+`pnpm --filter @verbatra/docs docs:budget` lists every page at or above 90 percent of its ceiling,
+so the headroom is visible in review rather than discovered on a failing test.
+
+Until 0.12.0 is released, do not lower a ceiling. After the 0.12.0 release, lower concept to
+1,600 and reference to 2,500, splitting `sdk/inspect`, `providers` or `config-file` if one cannot
+fit.
+
+### One owner per fact
+
+A recurring fact is stated fully on one owner page; every other page gives it at most one sentence
+and a link to the owner.
+
+| Fact | Owner |
+| --- | --- |
+| `.env` loading | `cli/index#environment-files` |
+| Exit codes, the JSON envelope | `cli/output` |
+| Provider key variables | `providers#keys-come-from-the-environment` |
+| Spend gating (flag, environment fallback, accepted values) | `cli/studio`, `cli/mcp#spend-tools` |
+| Provider `none` | `human-only-workflow` |
+| Network egress | `network-policy` |
+| The integrity gate, review reasons | `translation-safety` |
+| What leaves the machine | `data-handling` |
+| Every error, notice and review code | `error-codes` |
+
+### Growth rules
+
+- **No hand-typed registry lists outside the owner.** A list that mirrors code (codes, commands,
+  flags, environment variables, tools, formats, providers) is either pinned by a parity test or
+  replaced by a link. A change that adds a registry member names the owner page and the test that
+  pins it.
+- **Budget-neutral growth.** A page at or above 90 percent of its ceiling grows only by an equal
+  cut in the same change. A feature's docs plan names the pages it touches and their headroom.
+- **New pages.** Add one only when the feature is its own task (a how-to) or its own lookup. A new
+  page carries one page-level badge.
+
+### Badge placement
+
+`apps/docs/lib/docs-badge-placement.test.ts` enforces these rules in all four locales:
+
+- A badge sits under a heading, in a table cell (a row's effect cell, or a header cell when the
+  whole column is new), or at page level (on its own line before the first heading).
+- On how-to, concept and tutorial pages a badge never stands alone before a paragraph or list item,
+  and never sits inline in one. Move it to the heading or table row it belongs to; when only part
+  of a section is new, give that part its own `###` (or `####`) and offset the heading's words.
+  Reference pages may still date a paragraph or list item in place.
+- At most one badge per heading. When a heading would need two, the second dates something
+  narrower: give it a row, a subheading, or (on a reference page) the item it dates.
+- No badge repeats the page-level badge, and a page carries at most one page-level badge. A page
+  new in a release carries that release's page badge and no section badges of the same version.
+- No prose restates a badge's version ("first appears in 0.12.0", "from 0.12.0" under a 0.12.0
+  heading). Prose may still state a requirement ("needs `0.12.0` or newer") or date a change that
+  has no badge.
+- Moving a badge never drops its information: the feature it dated stays dated to the same
+  version.
+- 1.0 baseline, to apply when 1.0.0 ships (not implemented: `available-from.tsx` renders every
+  badge today): set a baseline version and make badges at or below it render nothing. The source
+  keeps them, so a badge is still never removed.
 
 ## Register and tone
 

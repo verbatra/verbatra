@@ -83,12 +83,18 @@ Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`,
 
 <AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
 
+- `status.check`, `status.diff` und `key.integrity` nehmen ein optionales Array `locales`; `key.integrity` nimmt außerdem den `key`.
+- `key.integrity` liefert `{ locales: [{ locale, entries }] }`, jeder Eintrag mit `matches`, `missing`, `extra`, `icuValid`, `markupMatches` und den zugehörigen Details; Studios `verbatra_key_integrity` ist flacher aufgebaut (siehe [Agent-Tools in Studio](/docs/agent-tools-in-studio)).
+- `translation.editEntry` nimmt `locale`, `key` und einen `value` mit höchstens 20.000 Zeichen. Es und `translation.retranslateEntry` liefern `{ accepted, value, reason?, details? }`, wobei `reason` `placeholder`, `markup`, `icu`, `degenerate` oder `empty` ist.
+- `glossary.write` braucht ein dateibasiertes Glossar, sonst scheitert es mit `GLOSSARY_NOT_FILE_BACKED`.
+
+### Weitere Eingaben und Ergebnisse
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-- `status.check`, `status.diff`, `key.integrity` und `translation.estimate` nehmen ein optionales Array `locales`; `key.integrity` nimmt außerdem den `key`, und ein unbekannter Key scheitert mit `UNKNOWN_KEY`.
-- `key.integrity` liefert `{ locales: [{ locale, entries }] }`, jeder Eintrag mit `matches`, `missing`, `extra`, `icuValid`, `icuArmsMatch`, `markupMatches` und den zugehörigen Details; Studios `verbatra_key_integrity` ist flacher aufgebaut (siehe [Agent-Tools in Studio](/docs/agent-tools-in-studio)).
-- `translation.editEntry` nimmt `locale`, `key` und einen `value` mit höchstens 20.000 Zeichen. Es und `translation.retranslateEntry` liefern `{ accepted, value, reason?, details? }`, wobei `reason` `placeholder`, `markup`, `icu`, `degenerate` oder `empty` ist.
-- `glossary.get` nimmt eine optionale `locale` und ergänzt dann `effective`, die Begriffe, an die diese Locale gebunden ist. `glossary.write` braucht ein dateibasiertes Glossar, sonst scheitert es mit `GLOSSARY_NOT_FILE_BACKED`.
+- `translation.estimate` nimmt dasselbe optionale Array `locales`, und `key.integrity` scheitert bei einem unbekannten Key mit `UNKNOWN_KEY`.
+- Jeder Eintrag von `key.integrity` enthält außerdem `icuArmsMatch` mit den zugehörigen Details.
+- `glossary.get` nimmt eine optionale `locale` und ergänzt dann `effective`, die Begriffe, an die diese Locale gebunden ist.
 - `key.value`, `lock.state`, `status.check` und `status.diff` enthalten die Herkunft; sie fehlt, wenn `verbatra.provenance.json` nicht lesbar ist.
 - Die schreibenden Tools nehmen ein optionales `lockTimeoutMs`, `0` bis `600000`, Standard `30000`: so lange wartet der Aufruf auf eine gehaltene Schreibsperre, bevor er mit `LOCK_CONTENDED` scheitert, ohne etwas geschrieben zu haben.
 - Inputs und Outputs sind JSON-Schemas; ein falscher Input liefert ein Ergebnis, das das Feld nennt. Ein Ergebnis, das nicht zu seinem `outputSchema` passt, scheitert mit `OUTPUT_SCHEMA_MISMATCH`; bei einem schreibenden Tool wurde die Änderung trotzdem ausgeführt, also nicht wiederholen.

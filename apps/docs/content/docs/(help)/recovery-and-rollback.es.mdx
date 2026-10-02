@@ -14,11 +14,13 @@ Una ejecución de `translate`, `watch` o `import` escribe los archivos que le im
 - los archivos de locale de destino, en tu ruta `files.pattern`;
 - `verbatra.lock.json`, un hash del contenido de origen por cada clave traducida.
 
+`verbatra.cache.json` y `.verbatra-local/` son estado regenerable e ignorado por git; no los restaures nunca. Cada archivo versionado se escribe de forma atómica, así que nunca hay un archivo a medio escribir que reparar.
+
+### El archivo de procedencia
+
 <AvailableFrom version="0.12.0" />
 
-También escribe `verbatra.provenance.json`, que registra quién escribió cada valor. Restáuralo junto con los otros dos. Olvidarlo no rompe nada: un registro que ya no coincide con su valor se lee como `external`, así que un desajuste pierde información pero nunca atribuye el autor equivocado.
-
-`verbatra.cache.json` y `.verbatra-local/` son estado regenerable e ignorado por git; no los restaures nunca. Cada archivo versionado se escribe de forma atómica, así que nunca hay un archivo a medio escribir que reparar.
+Una ejecución también escribe `verbatra.provenance.json`, que registra quién escribió cada valor. Restáuralo junto con los otros dos. Olvidarlo no rompe nada: un registro que ya no coincide con su valor se lee como `external`, así que un desajuste pierde información pero nunca atribuye el autor equivocado.
 
 ## Revertir una ejecución terminada
 

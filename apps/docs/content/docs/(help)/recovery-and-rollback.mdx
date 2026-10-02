@@ -14,11 +14,13 @@ A `translate`, `watch` or `import` run writes the files a rollback cares about:
 - the target locale files, at your `files.pattern` path;
 - `verbatra.lock.json`, one source content hash per translated key.
 
+`verbatra.cache.json` and `.verbatra-local/` are regenerable, gitignored state; never restore them. Every tracked file is written atomically, so there is never a half-written file to repair.
+
+### The provenance file
+
 <AvailableFrom version="0.12.0" />
 
-It also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two. Forgetting it breaks nothing: a record that no longer matches its value reads as `external`, so a mismatch loses information but never claims the wrong author.
-
-`verbatra.cache.json` and `.verbatra-local/` are regenerable, gitignored state; never restore them. Every tracked file is written atomically, so there is never a half-written file to repair.
+A run also writes `verbatra.provenance.json`, which records who wrote each value. Restore it with the other two. Forgetting it breaks nothing: a record that no longer matches its value reads as `external`, so a mismatch loses information but never claims the wrong author.
 
 ## Roll back a completed run
 

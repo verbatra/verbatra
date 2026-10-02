@@ -129,11 +129,18 @@ Google Cloud Translation se cuenta como DeepL: caracteres de origen en la estima
 
 ## Estima desde un agente
 
+Dos herramientas de agente devuelven lo que imprime `translate --estimate --json`, para todos los locales o un subconjunto, y nunca llaman a un proveedor:
+
+| Herramienta | Dónde |
+| --- | --- |
+| `translation.estimate` | el [servidor MCP](/docs/cli/mcp) <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" /> |
+| `verbatra_translation_estimate` | [las herramientas de agente de Studio](/docs/agent-tools-in-studio) <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
+
+### Gasta dentro de lo estimado
+
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-<AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
-
-La herramienta MCP `translation.estimate`, y `verbatra_translation_estimate` en [las herramientas de agente de Studio](/docs/agent-tools-in-studio), devuelven lo que imprime `translate --estimate --json`, para todos los locales o un subconjunto, y nunca llaman a un proveedor. Después, `translation.translatePending` acepta los mismos `locales` y un tope `maxTokens`. Consulta [Estimar y luego gastar](/docs/cli/mcp#estimar-y-luego-gastar).
+Después, `translation.translatePending` acepta los mismos `locales` y un tope `maxTokens`. Consulta [Estimar y luego gastar](/docs/cli/mcp#estimar-y-luego-gastar).
 
 ## Por qué la siguiente ejecución cuesta menos
 

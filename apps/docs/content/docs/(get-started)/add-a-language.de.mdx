@@ -23,6 +23,8 @@ export default defineConfig({
 });
 ```
 
+### Regeln für Locale-Codes
+
 <AvailableFrom version="0.12.0" />
 
 Schreib den Code in BCP-47-Form, mit Bindestrich: `pt-BR`, nicht `pt_BR`. Wenn deine Dateien Unterstriche verwenden, schreib trotzdem `pt-BR` und setz `files.localeStyle` auf `posix`; verbatra behält den Dateinamen `pt_BR.json`. Beim Laden der Konfiguration werden ein ungültiger Code, die Quell-Locale und zwei Codes, die sich nur in der Groß- und Kleinschreibung unterscheiden, abgelehnt. Die vollständigen Regeln stehen unter [Locale-Codes](/docs/config-file#locale-codes); mit [`verbatra doctor`](/docs/cli/doctor) siehst du, ob ein Provider die neue Sprache unterstützt.
@@ -52,6 +54,8 @@ Danach endet `verbatra check` mit `0`, wenn jede Locale, die neue eingeschlossen
 ## Sprachen mit mehr Pluralkategorien
 
 Manche Sprachen brauchen mehr Pluralformen, als deine Quelle hat. Englisch hat `one` und `other`; Polnisch braucht vier, Arabisch sechs, und Französisch ergänzt `many`. Standardmäßig übersetzt verbatra die Formen, die deine Quelle hat, und erfindet die übrigen nicht: Der Lauf gelingt und meldet einen Hinweis `PLURAL_CATEGORIES_INCOMPLETE`, der nennt, was fehlt.
+
+### Fehlende Formen erzeugen
 
 <AvailableFrom version="0.12.0" />
 

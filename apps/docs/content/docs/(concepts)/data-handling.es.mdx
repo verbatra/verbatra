@@ -94,20 +94,12 @@ condiciones que necesites, tu propio servidor o ninguna traducción automática.
 
 ## Mantener los textos en casa
 
-- **Sin traducción automática**: [Trabajar sin traducción automática](/docs/human-only-workflow).
-
-  <AvailableFrom version="0.12.0" />
-
-- **Tu propio modelo**: [`openai-compatible`](/docs/providers#openai-compatible) con Ollama, LM
-  Studio o vLLM.
-- **Tu propia traducción automática, sin modelo de lenguaje**:
-  [`libretranslate`](/docs/providers#libretranslate).
-
-  <AvailableFrom version="0.12.0" />
-
-- **Hazlo cumplir**: una [política de red](/docs/network-policy) `local-only`, fijada en CI.
-
-  <AvailableFrom version="0.12.0" />
+| Opción | Cómo |
+| --- | --- |
+| Sin traducción automática | [Trabajar sin traducción automática](/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
+| Tu propio modelo | [`openai-compatible`](/docs/providers#openai-compatible) con Ollama, LM Studio o vLLM |
+| Tu propia traducción automática, sin modelo de lenguaje | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| Hazlo cumplir | una [política de red](/docs/network-policy) `local-only`, fijada en CI <AvailableFrom version="0.12.0" /> |
 
 ### Receta: traducción automática cuando los modelos de lenguaje están prohibidos
 
@@ -150,6 +142,8 @@ sistemas de IA que generan texto
 Si se aplica a tu producto es una pregunta para tu asesoría jurídica. verbatra te da un registro:
 cada valor que produjo un proveedor lleva el origen `machine`, con proveedor y modelo; consulta
 [Procedencia: quién escribió cada valor](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
+
+### Archivo de auditoría
 
 <AvailableFrom version="0.12.0" />
 

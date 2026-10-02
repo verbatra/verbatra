@@ -14,11 +14,13 @@ Une exécution de `translate`, `watch` ou `import` écrit les fichiers dont un r
 - les fichiers de locale cibles, au chemin de ton `files.pattern` ;
 - `verbatra.lock.json`, un hash du contenu source par clé traduite.
 
+`verbatra.cache.json` et `.verbatra-local/` sont un état régénérable, ignoré par git ; ne les restaure jamais. Chaque fichier suivi est écrit de façon atomique, il n'y a donc jamais de fichier à moitié écrit à réparer.
+
+### Le fichier de provenance
+
 <AvailableFrom version="0.12.0" />
 
-Elle écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres. L'oublier ne casse rien : un enregistrement qui ne correspond plus à sa valeur est lu comme `external`, donc un écart fait perdre de l'information mais n'attribue jamais le mauvais auteur.
-
-`verbatra.cache.json` et `.verbatra-local/` sont un état régénérable, ignoré par git ; ne les restaure jamais. Chaque fichier suivi est écrit de façon atomique, il n'y a donc jamais de fichier à moitié écrit à réparer.
+Une exécution écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres. L'oublier ne casse rien : un enregistrement qui ne correspond plus à sa valeur est lu comme `external`, donc un écart fait perdre de l'information mais n'attribue jamais le mauvais auteur.
 
 ## Annuler une exécution terminée
 

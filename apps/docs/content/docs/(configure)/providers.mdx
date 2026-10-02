@@ -330,7 +330,7 @@ provider: {
 }
 ```
 
-- **Keys** must be `sourceLocale` or a target locale, spelled as configured; anything else fails with `CONFIG_INVALID`. It belongs under `options` (directly under `provider` it fails from 0.12.0), for every provider except `none`.
+- **Keys** must be `sourceLocale` or a target locale, spelled as configured; anything else fails with `CONFIG_INVALID`. It belongs under `options` (directly under `provider` it fails), for every provider except `none`.
 - **Values** are non-empty strings of at most 64 characters, sent unchanged: as the language code to a machine-translation provider, in place of the code to an LLM (`"pt-BR (Brazilian Portuguese)"` works). LLM language names still come from the key. A value that still sends DeepL a bare `EN` or `PT` fails with `INVALID_REQUEST`; a value the provider rejects fails its sub-batch.
 - **Effect on memory.** Only new and changed strings go out with a new code. A non-empty map is part of the [memory](/docs/the-cache) fingerprint, so changing it starts a separate bucket.
 

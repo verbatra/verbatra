@@ -23,6 +23,8 @@ export default defineConfig({
 });
 ```
 
+### Règles des codes de locale
+
 <AvailableFrom version="0.12.0" />
 
 Écris le code sous forme BCP 47, avec un trait d'union : `pt-BR`, pas `pt_BR`. Si tes fichiers utilisent des tirets bas, écris quand même `pt-BR` et règle `files.localeStyle` sur `posix` ; verbatra garde le nom de fichier `pt_BR.json`. Le chargement de la configuration refuse un code invalide, la locale source et deux codes qui ne diffèrent que par la casse. Les règles complètes sont dans [Codes de locale](/docs/config-file#codes-de-locale), et [`verbatra doctor`](/docs/cli/doctor) te dit si un fournisseur prend en charge la nouvelle langue.
@@ -52,6 +54,8 @@ Ensuite, `verbatra check` se termine avec `0` quand chaque locale, la nouvelle c
 ## Langues avec plus de catégories de pluriel
 
 Certaines langues ont besoin de plus de formes de pluriel que ta source. L'anglais a `one` et `other` ; le polonais en demande quatre, l'arabe six, et le français ajoute `many`. Par défaut, verbatra traduit les formes présentes dans ta source et n'invente pas les autres : l'exécution réussit et signale un avis `PLURAL_CATEGORIES_INCOMPLETE` qui nomme ce qui manque.
+
+### Générer les formes manquantes
 
 <AvailableFrom version="0.12.0" />
 

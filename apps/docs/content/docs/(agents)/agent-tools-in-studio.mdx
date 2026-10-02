@@ -69,6 +69,8 @@ Each tool is a Studio action with a `verbatra_` prefix. Read tools are marked re
 
 Every call goes through the dashboard's own authenticated loopback RPC, with the same input validation and [integrity gate](/docs/translation-safety): a value that fails a check is rejected and nothing is written.
 
+### Per-call rules
+
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
 - **Provenance**: an agent's edit is recorded with the origin `agent` and stays in the review queue; a dashboard edit is `human`. The read tools report who wrote each value ([The lock file](/docs/the-lock-file#provenance-who-wrote-each-value)).
