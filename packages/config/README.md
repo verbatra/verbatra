@@ -15,7 +15,7 @@ strictness, formatting, build shape, and the coverage gate are defined once.
 - **Lint and format.** `biome.json` holds the rules the root `biome.json` extends, including the
   cognitive-complexity cap.
 - **Build.** `tsup.base.mjs` exports `createTsupConfig`, the shared bundler shape every package's
-  `tsup.config.ts` calls, including the `noExternal` and `dts.resolve` seams the sdk uses to inline
+  `tsup.config.ts` calls, including the `noExternal` seam and `dts` options the sdk uses to inline
   the bundled private packages.
 - **Test.** `vitest.base.mjs` exports `createVitestConfig`, which defaults tests to
   `src/**/*.test.ts`, excludes `src/index.ts` and `src/**/types.ts` from coverage, and sets the
