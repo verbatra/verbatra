@@ -558,8 +558,8 @@ export interface LocaleSummary {
   /**
    * `succeeded` when no key was withheld by the integrity gate, a provider failure, the token
    * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed`
-   * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU source and
-   * handoff rows left blank do not change the status.
+   * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU
+   * source and handoff rows left blank do not change the status.
    */
   readonly status: "succeeded" | "partial" | "failed";
   /**
@@ -656,7 +656,8 @@ export interface LocaleSummary {
    * Absent unless `status` is `failed`, but a `failed` locale does not always carry it: a locale
    * whose every key was withheld by the integrity gate, a provider failure, the token budget, or
    * `sensitiveData` is `failed` with nothing thrown, so this stays undefined and the withheld keys
-   * are the account of what went wrong. Treat it as an optional detail on a failure, never as the failure test.
+   * are the account of what went wrong. Treat it as an optional detail on a failure, never as the
+   * failure test.
    */
   readonly error?: {
     /** The failure's own code where it had one, and `LOCALE_FAILED` otherwise. */
