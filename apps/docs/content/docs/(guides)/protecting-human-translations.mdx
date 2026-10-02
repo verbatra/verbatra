@@ -89,7 +89,7 @@ The Translations page marks a protected key as **Protected** and lists it in its
 
 ## Edge cases
 
-- **A provenance file from a newer verbatra.** No origin can be read, so every stale key with a value is protected until you upgrade.
+- **A provenance file from a newer verbatra.** No origin can be read, so `translate` protects every stale key with a value until you upgrade, while `check` and `diff` list only pinned keys as protected.
 - **A corrupt provenance file.** `translate`, including a dry run, fails with [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid). `check` and `diff` keep working and list only pinned keys as protected.
 - **Human-only projects.** Protected keys count toward exit code `3`, like keys the translation memory could not fill: both need a person.
 

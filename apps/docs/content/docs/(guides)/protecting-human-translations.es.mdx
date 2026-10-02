@@ -89,7 +89,7 @@ La página Translations marca una clave protegida como **Protected** y la agrupa
 
 ## Casos especiales
 
-- **Un archivo de procedencia de un verbatra más reciente.** No se puede leer ningún origen, así que todas las claves desactualizadas con valor quedan protegidas hasta que actualices.
+- **Un archivo de procedencia de un verbatra más reciente.** No se puede leer ningún origen, así que `translate` protege todas las claves desactualizadas con valor hasta que actualices, mientras que `check` y `diff` solo listan como protegidas las claves fijadas.
 - **Un archivo de procedencia dañado.** `translate`, también en dry run, falla con [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid). `check` y `diff` siguen funcionando y solo listan como protegidas las claves fijadas.
 - **Proyectos solo humanos.** Las claves protegidas cuentan para el código de salida `3`, igual que las claves que la memoria de traducción no pudo rellenar: ambas necesitan a una persona.
 
