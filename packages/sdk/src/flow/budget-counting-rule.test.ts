@@ -275,7 +275,7 @@ describe("budget counting rule: the estimated marker on a whole run", () => {
     expect(summary.budget?.tokensUsed).toBeGreaterThan(0);
   });
 
-  it("leaves a run that sent nothing at zero and not provider-reported", async () => {
+  it("leaves a run that sent nothing at zero with nothing projected", async () => {
     const dir = await project({});
 
     const summary = await translate(
@@ -284,7 +284,7 @@ describe("budget counting rule: the estimated marker on a whole run", () => {
     );
 
     expect(summary.budget?.tokensUsed).toBe(0);
-    expect(summary.budget?.supported).toBe(false);
+    expect(summary.budget?.supported).toBe(true);
     expect(summary.budget?.exceeded).toBe(false);
   });
 });

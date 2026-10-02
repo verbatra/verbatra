@@ -39,7 +39,18 @@ describe("startStudioServer: cwd option", () => {
           expect(body.ok).toBe(true);
           expect(body.result).toEqual({
             inSync: false,
-            locales: [{ locale: "de", missing: 1, stale: 0, upToDate: 0, inSync: false }],
+            locales: [
+              {
+                locale: "de",
+                missing: 1,
+                stale: 0,
+                upToDate: 0,
+                inSync: false,
+                provenance: expect.any(Object),
+                protected: 0,
+                incompletePlurals: [],
+              },
+            ],
           });
         },
         { token: TOKEN, loader: fixtureLoader(project), cwd: project.root },

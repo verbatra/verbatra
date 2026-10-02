@@ -1,4 +1,14 @@
+import {
+  type McpServerHandle,
+  mcpReadyLine,
+  mcpStoppedLine,
+  mcpTerminalHint,
+  mcpUnconfiguredHint,
+  projectLabel,
+} from "@verbatra/mcp";
 import type {
+  CheckFileInput,
+  CheckFileSummary,
   CheckInput,
   CheckSummary,
   ConfigSource,
@@ -20,6 +30,9 @@ import type {
   LoadConfigOptions,
   LoadedConfig,
   LocaleSummary,
+  ProvenanceReport,
+  ProvenanceReportInput,
+  ProvenanceReportResult,
   PseudolocalizeInput,
   PseudolocalizeResult,
   RunSummary,
@@ -29,7 +42,10 @@ import type {
   WatchInput,
 } from "@verbatra/sdk";
 import { DEFAULT_STUDIO_PORT } from "@verbatra/studio";
+import type { SpinnerClock, TimerHandle } from "./spinner.js";
+import { NON_INTERACTIVE_FACTS, resolveTerminalMode } from "./terminal-mode.js";
 import type { CliDeps, McpModule, Streams, StudioModule } from "./types.js";
+import { createUi, type Ui } from "./ui.js";
 
 export function makeConfig(overrides: Partial<VerbatraConfig> = {}): VerbatraConfig {
   return {
@@ -56,10 +72,12 @@ export function makeLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummar
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     generated: [],
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     ...overrides,
@@ -78,6 +96,22 @@ export function makeExportResult(
 
 export function makeCheckSummary(overrides: Partial<CheckSummary> = {}): CheckSummary {
   return { inSync: true, locales: [], ...overrides };
+}
+
+export function makeCheckFileSummary(overrides: Partial<CheckFileSummary> = {}): CheckFileSummary {
+  return {
+    file: "locales/de.json",
+    role: "target",
+    locales: [
+      {
+        locale: "de",
+        incompletePlurals: [],
+        qa: { checked: 1, errors: 0, warnings: 0, findings: [] },
+      },
+    ],
+    qa: { errors: 0, warnings: 0, invalidSourceKeys: [] },
+    ...overrides,
+  };
 }
 
 export function makeDiffSummary(overrides: Partial<DiffSummary> = {}): DiffSummary {
@@ -140,6 +174,7 @@ export function makeTypesResult(overrides: Partial<GenerateTypesResult> = {}): G
     plural: [],
     written: true,
     stale: true,
+    missing: false,
     check: false,
     ...overrides,
   };
@@ -174,6 +209,51 @@ export function makeExportTmxResult(overrides: Partial<ExportTmxResult> = {}): E
     locales: [],
     withoutSource: 0,
     illegalCharactersRemoved: 0,
+    provenanceMarkers: "written",
+    ...overrides,
+  };
+}
+
+export function makeProvenanceReport(
+  overrides: Partial<ProvenanceReport> = {},
+): ProvenanceReportResult {
+  return {
+    available: true,
+    generatedAt: "2026-09-29T08:00:00.000Z",
+    toolVersion: "1.2.3",
+    sourceLocale: "en",
+    locales: [
+      {
+        locale: "de",
+        total: 3,
+        counts: {
+          "machine-unreviewed": 1,
+          "machine-reviewed": 1,
+          human: 1,
+          import: 0,
+          external: 0,
+          unrecorded: 0,
+          unknown: 0,
+        },
+        entries: [
+          {
+            key: "a",
+            bucket: "machine-unreviewed",
+            origin: "machine",
+            provider: "deepl",
+            reviewState: "unreviewed",
+          },
+          {
+            key: "b",
+            bucket: "machine-reviewed",
+            origin: "machine",
+            reviewState: "approved",
+            reviewer: "Ana",
+          },
+          { key: "c", bucket: "human", origin: "human", reviewState: "unreviewed" },
+        ],
+      },
+    ],
     ...overrides,
   };
 }
@@ -198,9 +278,26 @@ export function makeStudioModule(overrides: Partial<StudioModule> = {}): StudioM
   };
 }
 
+export function makeMcpHandle(overrides: Partial<McpServerHandle> = {}): McpServerHandle {
+  return {
+    close: async () => {},
+    closed: new Promise<void>(() => {}),
+    spend: "off",
+    valuesRedacted: false,
+    configured: true,
+    ...overrides,
+  };
+}
+
 export function makeMcpModule(overrides: Partial<McpModule> = {}): McpModule {
   return {
-    startMcpServer: async () => ({ close: async () => {} }),
+    MCP_CAPABILITIES: { valuesRedaction: true },
+    startMcpServer: async () => makeMcpHandle(),
+    projectLabel,
+    mcpReadyLine,
+    mcpTerminalHint,
+    mcpUnconfiguredHint,
+    mcpStoppedLine,
     ...overrides,
   };
 }
@@ -242,6 +339,7 @@ export interface DepCalls {
   exportWorkbook: ExportWorkbookInput[];
   importWorkbook: ImportWorkbookInput[];
   check: CheckInput[];
+  checkFile: CheckFileInput[];
   diff: DiffInput[];
   doctor: DoctorInput[];
   loadConfigWithMeta: LoadConfigOptions[];
@@ -252,6 +350,7 @@ export interface DepCalls {
   generateTypes: GenerateTypesInput[];
   importTmx: ImportTmxInput[];
   exportTmx: ExportTmxInput[];
+  provenanceReport: ProvenanceReportInput[];
 }
 
 export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; calls: DepCalls } {
@@ -262,6 +361,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     exportWorkbook: [],
     importWorkbook: [],
     check: [],
+    checkFile: [],
     diff: [],
     doctor: [],
     loadConfigWithMeta: [],
@@ -272,6 +372,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     generateTypes: [],
     importTmx: [],
     exportTmx: [],
+    provenanceReport: [],
   };
   const deps: CliDeps = {
     loadConfig: async (options) => {
@@ -284,7 +385,11 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     },
     watch: async (input) => {
       calls.watch.push(input);
-      return impl.watch ? impl.watch(input) : ({ stop: async () => {} } satisfies WatchController);
+      if (impl.watch) {
+        return impl.watch(input);
+      }
+      input.onReady?.();
+      return { stop: async () => {} } satisfies WatchController;
     },
     exportWorkbook: async (input) => {
       calls.exportWorkbook.push(input);
@@ -297,6 +402,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     check: async (input) => {
       calls.check.push(input);
       return impl.check ? impl.check(input) : makeCheckSummary();
+    },
+    checkFile: async (input) => {
+      calls.checkFile.push(input);
+      return impl.checkFile ? impl.checkFile(input) : makeCheckFileSummary();
     },
     diff: async (input) => {
       calls.diff.push(input);
@@ -338,6 +447,10 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
       calls.exportTmx.push(input);
       return impl.exportTmx ? impl.exportTmx(input) : makeExportTmxResult();
     },
+    provenanceReport: async (input) => {
+      calls.provenanceReport.push(input);
+      return impl.provenanceReport ? impl.provenanceReport(input) : makeProvenanceReport();
+    },
   };
   return { deps, calls };
 }
@@ -346,4 +459,67 @@ export async function flush(times = 8): Promise<void> {
   for (let i = 0; i < times; i += 1) {
     await Promise.resolve();
   }
+}
+
+export function plainUi(streams: Streams, json = false): Ui {
+  return createUi(
+    streams,
+    resolveTerminalMode(NON_INTERACTIVE_FACTS, { json, quiet: false, color: true }),
+  );
+}
+
+interface FakeTimer extends TimerHandle {
+  readonly callback: () => void;
+  readonly ms: number;
+  readonly repeat: boolean;
+  cleared: boolean;
+  unrefCalls: number;
+}
+
+export function fakeClock(): SpinnerClock & {
+  readonly timers: FakeTimer[];
+  fireDelay(): void;
+  tick(times?: number): void;
+} {
+  const timers: FakeTimer[] = [];
+  const add = (callback: () => void, ms: number, repeat: boolean): FakeTimer => {
+    const timer: FakeTimer = {
+      callback,
+      ms,
+      repeat,
+      cleared: false,
+      unrefCalls: 0,
+      unref() {
+        timer.unrefCalls += 1;
+      },
+    };
+    timers.push(timer);
+    return timer;
+  };
+  const live = (repeat: boolean): FakeTimer[] =>
+    timers.filter((timer) => timer.repeat === repeat && !timer.cleared);
+  return {
+    timers,
+    setTimeout: (callback, ms) => add(callback, ms, false),
+    clearTimeout: (handle) => {
+      (handle as FakeTimer).cleared = true;
+    },
+    setInterval: (callback, ms) => add(callback, ms, true),
+    clearInterval: (handle) => {
+      (handle as FakeTimer).cleared = true;
+    },
+    fireDelay: () => {
+      for (const timer of live(false)) {
+        timer.cleared = true;
+        timer.callback();
+      }
+    },
+    tick: (times = 1) => {
+      for (let index = 0; index < times; index += 1) {
+        for (const timer of live(true)) {
+          timer.callback();
+        }
+      }
+    },
+  };
 }

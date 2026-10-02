@@ -1,13 +1,17 @@
 import type { AdapterRegistry } from "@verbatra/format-adapters";
+import { assertProviderNetworkPermitted } from "../config/network-policy.js";
 import type { VerbatraConfig } from "../config/schema.js";
-import { describeError, SdkError } from "../errors.js";
+import { errorHint } from "../error-hints.js";
+import { causeCodeOf, describeError, SdkError } from "../errors.js";
+import { assertConfiguredLocalesSupported } from "../flow/locale-capabilities.js";
 import { selectLocales } from "../flow/select-locales.js";
 import type { RunSummary } from "../flow/summary.js";
 import { resolveRunConcurrency, type TranslateInput } from "../flow/translate-project.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import type { LockWaitListener } from "../lock/locale-write-lock.js";
+import { assertLockAcquireTimeout, type LockWaitListener } from "../lock/locale-write-lock.js";
 import type { ProgressListener } from "../progress/types.js";
+import { projectRelativeMessage } from "../project-relative.js";
 import type { CreateProvider } from "../selection/select-provider.js";
 import { defaultCreateWatcher, defaultRunTranslate } from "./wiring.js";
 
@@ -51,6 +55,16 @@ export type WatchRunResult =
         readonly code: string;
         /** A human-readable description of the failure. Never contains a secret. */
         readonly message: string;
+        /**
+         * The code of the error this failure wraps, such as `MISSING_API_KEY` under a
+         * `PROVIDER_CONSTRUCTION_FAILED`. Absent when the failure wraps no coded error.
+         */
+        readonly causeCode?: string;
+        /**
+         * The next step that resolves the failure, as {@link errorHint} words it. Absent when the
+         * failure has no hint, such as a `WATCH_RUN_FAILED` one.
+         */
+        readonly hint?: string;
       };
     };
 
@@ -76,13 +90,23 @@ export interface WatchInput {
    * {@link watch} itself resolves as soon as watching starts.
    */
   readonly onRun: (result: WatchRunResult) => void;
-  /** Called while waiting on another process's write lock. */
+  /**
+   * Called once when the session's startup checks have passed and the watcher is attached, right
+   * before the initial run starts, so a caller can announce the session ahead of that run's output.
+   */
+  readonly onReady?: () => void;
+  /** Called while waiting on another process's write lock, never for one this process holds. */
   readonly onLockWait?: LockWaitListener;
-  /** Called as locales and sub-batches start and finish, for progress reporting. */
+  /**
+   * Called as each run plans, sends and writes its locales, and as the watcher detects a change or
+   * goes idle, for progress reporting.
+   */
   readonly onProgress?: ProgressListener;
   /**
-   * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
-   * `LOCK_CONTENDED` on the run's summary. Defaults to ten minutes.
+   * How long, in milliseconds, to wait for a locale's write lock, before any provider call, before
+   * that locale fails with `LOCK_CONTENDED` on the run's summary. Defaults to ten minutes. The
+   * lock-file guard a locale takes to record its result after writing its target file always
+   * allows the ten-minute default instead.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
@@ -140,7 +164,12 @@ export interface WatchController {
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locales` names a locale that is not a configured
  * target. Thrown once at startup, before any watching begins.
+ * @throws {@link SdkError} `LOCALE_UNSUPPORTED_BY_PROVIDER`: the configured machine-translation
+ * provider does not support the source locale or a watched target locale, according to its
+ * language table. Thrown once at startup, before any watching begins or any API key is read.
  * @throws {@link SdkError} `CONCURRENCY_INVALID`: `concurrency` is not an integer of at least 1.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0.
  * @throws {@link SdkError} `CONCURRENCY_BUDGET_CONFLICT`: `concurrency` above 1 was combined with a
  * configured token budget.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
@@ -148,6 +177,11 @@ export interface WatchController {
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist when watching
  * starts.
+ * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
+ * the configured provider's endpoint or its proxy. Thrown once at startup, before any watching
+ * begins or any API key is read.
+ * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws Whatever the watcher factory raised, unwrapped, when it could not build a watcher over
  * the source file. It is not wrapped as an {@link SdkError}. No run has started at that point, so
  * nothing is watched and `onRun` is never called.
@@ -176,8 +210,10 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   const debounceMs = input.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const fs = deps.fs ?? defaultFs;
 
-  selectLocales(input.config, input.locales);
-  resolveRunConcurrency(input.concurrency, false, input.config);
+  assertConfiguredLocalesSupported(input.config, selectLocales(input.config, input.locales));
+  resolveRunConcurrency(input.concurrency, false, input.config.maxTokens, false);
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
+  assertProviderNetworkPermitted(input.config);
 
   const resolver = createLocalePathResolver(cwd, input.config);
   const sourcePath = resolver.pathFor(input.config.sourceLocale);
@@ -212,7 +248,18 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
     try {
       input.onRun({ status: "succeeded", summary: await runTranslate(runInput) });
     } catch (error) {
-      input.onRun({ status: "failed", error: describeError(error, "WATCH_RUN_FAILED") });
+      const described = describeError(error, "WATCH_RUN_FAILED");
+      const causeCode = causeCodeOf(error);
+      const hint = errorHint(error);
+      input.onRun({
+        status: "failed",
+        error: {
+          code: described.code,
+          message: projectRelativeMessage(described.message, cwd),
+          ...(causeCode === undefined ? {} : { causeCode }),
+          ...(hint === undefined ? {} : { hint }),
+        },
+      });
     }
   }
 
@@ -235,10 +282,12 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
     }
     state = "idle";
     inFlight = undefined;
+    input.onProgress?.({ type: "idle" });
   }
 
   function onSettledChange(): void {
     debounceTimer = undefined;
+    input.onProgress?.({ type: "change-detected", paths: [sourcePath] });
     if (state === "idle") {
       startRun();
     } else {
@@ -259,6 +308,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   const watcher = (deps.createWatcher ?? defaultCreateWatcher)([sourcePath]);
   watcher.onChange(onRawEvent);
 
+  input.onReady?.();
   startRun();
 
   async function stop(): Promise<void> {

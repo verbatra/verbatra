@@ -113,6 +113,11 @@ describe("createLocalePathResolver, posix style", () => {
     ["i18n/messages_{locale}.properties", "de", "i18n/messages_de.properties"],
     ["i18n/messages_{locale}.properties", "pt-BR", "i18n/messages_pt_BR.properties"],
     ["i18n/messages_{locale}.properties", "fil-PH", "i18n/messages_fil_PH.properties"],
+    ["i18n/messages_{locale}.properties", "zh-Hant-TW", "i18n/messages_zh_Hant_TW.properties"],
+    ["i18n/messages_{locale}.properties", "zh-Hans", "i18n/messages_zh_Hans.properties"],
+    ["i18n/messages_{locale}.properties", "sr-Latn", "i18n/messages_sr_Latn.properties"],
+    ["i18n/messages_{locale}.properties", "sr-Latn-RS", "i18n/messages_sr_Latn_RS.properties"],
+    ["locale/{locale}/LC_MESSAGES/messages.po", "es-419", "locale/es_419/LC_MESSAGES/messages.po"],
   ];
 
   it.each(posixCases)("%s spells %s as %s", (pattern, locale, expected) => {
@@ -128,9 +133,17 @@ describe("createLocalePathResolver, posix style", () => {
     expect(relativePathFor(config, "pt-br")).toBe("i18n/messages_pt_br.properties");
   });
 
-  const posixRefusals = ["zh-Hans", "sr-Latn", "sr-Latn-RS", "es-419", "de-1996", "en-POSIX"];
+  it("preserves the configured casing of a script subtag too", () => {
+    const config = makeConfig("i18n/messages_{locale}.properties", {
+      targetLocales: ["zh-hant-tw"],
+      localeStyle: "posix",
+    });
+    expect(relativePathFor(config, "zh-hant-tw")).toBe("i18n/messages_zh_hant_tw.properties");
+  });
 
-  it.each(posixRefusals)("refuses %s, which has no correct underscore form", (locale) => {
+  const posixRefusals = ["de-1996", "en-POSIX", "de-DE-1996", "sl-Latn-rozaj"];
+
+  it.each(posixRefusals)("refuses %s, whose variant has no underscore form", (locale) => {
     const config = makeConfig("locale/{locale}/LC_MESSAGES/messages.po", {
       targetLocales: [locale],
       localeStyle: "posix",
@@ -140,10 +153,100 @@ describe("createLocalePathResolver, posix style", () => {
 
   it("names the locale and the style in the refusal", () => {
     const config = makeConfig("locale/{locale}/LC_MESSAGES/messages.po", {
-      targetLocales: ["zh-Hans"],
+      targetLocales: ["de-1996"],
       localeStyle: "posix",
     });
-    expect(() => createLocalePathResolver(CWD, config)).toThrow(/zh-Hans.*posix|posix.*zh-Hans/);
+    expect(() => createLocalePathResolver(CWD, config)).toThrow(/de-1996.*posix|posix.*de-1996/);
+  });
+});
+
+describe("createLocalePathResolver, posix style for gettext-po", () => {
+  const PO_PATTERN = "locale/{locale}/LC_MESSAGES/messages.po";
+
+  function gettextConfig(locales: readonly string[]): LocalePathResolverConfig {
+    return makeConfig(PO_PATTERN, {
+      targetLocales: locales,
+      format: "gettext-po",
+      localeStyle: "posix",
+    });
+  }
+
+  function gettextSegment(locale: string): string {
+    return relativePathFor(gettextConfig([locale]), locale).split("/")[1] ?? "";
+  }
+
+  const gettextCases: ReadonlyArray<readonly [string, string]> = [
+    ["de", "de"],
+    ["pt-BR", "pt_BR"],
+    ["es-419", "es_419"],
+    ["sr-Latn", "sr@latin"],
+    ["sr-Latn-RS", "sr_RS@latin"],
+    ["sr-Cyrl-RS", "sr_RS"],
+    ["uz-Cyrl", "uz@cyrillic"],
+    ["uz-Latn-UZ", "uz_UZ"],
+    ["be-Latn", "be@latin"],
+    ["ks-Deva-IN", "ks_IN@devanagari"],
+    ["zh-Hant-TW", "zh_TW"],
+    ["zh-Hans-CN", "zh_CN"],
+    ["zh-Hant-HK", "zh_HK"],
+    ["pa-Arab-PK", "pa_PK"],
+    ["sr-latn-rs", "sr_rs@latin"],
+  ];
+
+  it.each(gettextCases)("spells %s as %s", (locale, expected) => {
+    expect(gettextSegment(locale)).toBe(expected);
+  });
+
+  it("maps every spelled path back to the configured locale", () => {
+    const locales = ["sr-Latn", "zh-Hant-TW", "es-419", "uz-Cyrl"];
+    const resolver = createLocalePathResolver(CWD, gettextConfig(locales));
+    for (const locale of locales) {
+      expect(resolver.localeFor(resolver.pathFor(locale))).toBe(locale);
+    }
+  });
+
+  it("keeps the ICU spelling for every other format", () => {
+    const config = makeConfig(PO_PATTERN, {
+      targetLocales: ["sr-Latn", "zh-Hant-TW"],
+      localeStyle: "posix",
+    });
+    expect(relativePathFor(config, "sr-Latn")).toBe("locale/sr_Latn/LC_MESSAGES/messages.po");
+    expect(relativePathFor(config, "zh-Hant-TW")).toBe("locale/zh_Hant_TW/LC_MESSAGES/messages.po");
+  });
+
+  it("reports zh-TW and zh-Hant-TW as a collision, since both are written zh_TW", () => {
+    expectSdkError(
+      () => createLocalePathResolver(CWD, gettextConfig(["zh-TW", "zh-Hant-TW"])),
+      "LOCALE_PATH_COLLISION",
+    );
+  });
+
+  it.each(["zh-Hant", "sr-Arab", "zh-Hans-TW", "mn-Mong", "de-1996"])(
+    "refuses %s, which has no gettext spelling",
+    (locale) => {
+      expectSdkError(
+        () => createLocalePathResolver(CWD, gettextConfig([locale])),
+        "LOCALE_LAYOUT_INVALID",
+      );
+    },
+  );
+
+  it("names the locale and the supported script modifiers in the refusal", () => {
+    expect(() => createLocalePathResolver(CWD, gettextConfig(["zh-Hant"]))).toThrow(
+      'The "posix" locale style has no valid path spelling for the locale "zh-Hant": gettext writes a script only as one of the modifiers @latin (Latn), @cyrillic (Cyrl), @devanagari (Deva), or leaves it out where the language and region imply it (zh-Hant-TW is written zh_TW).',
+    );
+  });
+
+  it("names the variant as the reason a variant locale is refused", () => {
+    expect(() => createLocalePathResolver(CWD, gettextConfig(["de-1996"]))).toThrow(
+      /"de-1996": a variant subtag has no posix spelling/,
+    );
+  });
+
+  it("refuses a locale with an extension, naming why", () => {
+    expect(() => createLocalePathResolver(CWD, gettextConfig(["en-u-ca-gregory"]))).toThrow(
+      /"en-u-ca-gregory": it is not a plain language, script and region tag/,
+    );
   });
 });
 

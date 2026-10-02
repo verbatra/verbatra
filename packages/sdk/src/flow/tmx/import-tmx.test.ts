@@ -65,7 +65,7 @@ function entryHash(value: string, placeholders: readonly string[] = []): string 
 }
 
 function bucket(memory: TranslationMemory, config: VerbatraConfig, locale: string) {
-  return memory.entries[computeFingerprint(config)]?.[locale] ?? {};
+  return memory.entries[computeFingerprint(config, "de")]?.[locale] ?? {};
 }
 
 describe("importTmx lands units in the translation memory", () => {
@@ -750,6 +750,59 @@ describe("importTmx holds an imported unit to the same gate a provider's output 
     });
 
     expect(result.locales[0]?.rejected.icu).toBe(1);
+    expect(result.locales[0]?.refusals).toEqual([{ unit: 1, reason: "icu" }]);
+  });
+
+  it("reports a refusal by its ordinal in the file when a skipped unit precedes it", async () => {
+    const dir = await project([
+      "    <tu></tu>",
+      tu([
+        ["en", "Save the document"],
+        ["de", "Dokument speichern {"],
+      ]),
+    ]);
+
+    const result = await importTmx({
+      config: cfg({ format: "next-intl-json" }),
+      file: "memory.tmx",
+      cwd: dir,
+    });
+
+    expect(result.locales[0]?.refusals).toEqual([{ unit: 2, reason: "icu" }]);
+  });
+
+  it("refuses a Russian plural that keeps the English arms and accepts one with the Russian arms", async () => {
+    const source = "{n, plural, one {# file} other {# files}}";
+    const dir = await project([
+      tu([
+        ["en", source],
+        ["ru", "{n, plural, one {# файл} other {# файла}}"],
+      ]),
+      tu([
+        ["en", "{n, plural, one {# folder} other {# folders}}"],
+        ["ru", "{n, plural, one {# папка} few {# папки} many {# папок} other {# папки}}"],
+      ]),
+    ]);
+
+    const result = await importTmx({
+      config: cfg({ format: "next-intl-json", targetLocales: ["ru"] }),
+      file: "memory.tmx",
+      cwd: dir,
+    });
+
+    expect(result.locales[0]?.rejected.icu).toBe(1);
+    expect(result.locales[0]?.rejected.placeholder).toBe(0);
+    expect(result.locales[0]?.added).toBe(1);
+    expect(result.locales[0]?.refusals).toEqual([
+      {
+        unit: 1,
+        reason: "icu",
+        details: [
+          '{n} plural: missing arm "few" required by the target language',
+          '{n} plural: missing arm "many" required by the target language',
+        ],
+      },
+    ]);
   });
 
   it("refuses a blank translation of a source that has text", async () => {
@@ -934,7 +987,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     ]);
     await writeJsonFile(join(dir, CACHE_FILE_NAME), {
       version: 2,
-      entries: { [computeFingerprint(config)]: { de: { [entryHash("Hello")]: "Hallo" } } },
+      entries: { [computeFingerprint(config, "de")]: { de: { [entryHash("Hello")]: "Hallo" } } },
       sources: { [entryHash("Hello")]: "Hello" },
     });
 
@@ -956,7 +1009,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     ]);
     await writeJsonFile(join(dir, CACHE_FILE_NAME), {
       version: 2,
-      entries: { [computeFingerprint(config)]: { de: { [entryHash("Hello")]: "Hallo" } } },
+      entries: { [computeFingerprint(config, "de")]: { de: { [entryHash("Hello")]: "Hallo" } } },
       sources: { [entryHash("Hello")]: "Hello" },
     });
 
@@ -995,7 +1048,7 @@ describe("importTmx is idempotent and decides collisions explicitly", () => {
     ]);
     await writeJsonFile(join(dir, CACHE_FILE_NAME), {
       version: 2,
-      entries: { [computeFingerprint(config)]: { de: { [entryHash("Hello")]: "Hallo" } } },
+      entries: { [computeFingerprint(config, "de")]: { de: { [entryHash("Hello")]: "Hallo" } } },
       sources: {},
     });
 
@@ -1039,6 +1092,26 @@ describe("importTmx refuses to touch a memory it cannot safely write", () => {
 
     expect(result.memoryWritable).toBe(false);
     expect(await readJsonFile(join(dir, CACHE_FILE_NAME))).toEqual(newer);
+  });
+
+  it("still counts what would have landed, as a dry run does, rather than zeroing the counts", async () => {
+    const config = cfg();
+    const units = [
+      tu([
+        ["en", "Hello"],
+        ["de", "Hallo"],
+      ]),
+    ];
+    const blocked = await project(units);
+    await writeJsonFile(join(blocked, CACHE_FILE_NAME), { version: 99, entries: {}, sources: {} });
+    const rehearsed = await project(units);
+
+    const result = await importTmx({ config, file: "memory.tmx", cwd: blocked });
+    const dryRun = await importTmx({ config, file: "memory.tmx", cwd: rehearsed, dryRun: true });
+
+    expect(result.memoryWritable).toBe(false);
+    expect(result.locales).toEqual(dryRun.locales);
+    expect(result.locales[0]).toMatchObject({ locale: "de", added: 1 });
   });
 });
 

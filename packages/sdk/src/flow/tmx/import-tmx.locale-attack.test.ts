@@ -57,7 +57,7 @@ function bucket(
   config: VerbatraConfig,
   locale: string,
 ): Record<string, string> {
-  return memory.entries[computeFingerprint(config)]?.[locale] ?? {};
+  return memory.entries[computeFingerprint(config, "de")]?.[locale] ?? {};
 }
 
 async function storedFor(
@@ -92,11 +92,11 @@ describe("locale resolution never attributes a translation to the wrong source t
     });
   });
 
-  it("refuses a source and target that differ only by separator, which the schema lets through", async () => {
+  it("refuses a source and target that differ only by separator in a config that bypassed the schema", async () => {
     const parsed = verbatraConfigSchema.safeParse(
       baseConfig({ sourceLocale: "pt-BR", targetLocales: ["pt_BR"] }),
     );
-    expect(parsed.success).toBe(true);
+    expect(parsed.success).toBe(false);
 
     const dir = await project([
       tu([

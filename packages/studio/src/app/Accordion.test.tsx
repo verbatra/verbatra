@@ -71,17 +71,7 @@ describe("AccordionItem", () => {
     expect(view.get("details").hasAttribute("open")).toBe(true);
   });
 
-  it("forwards the text direction to the whole section, not just the summary", () => {
-    const view = render(
-      <AccordionItem summary="app.title" dir="rtl">
-        the body
-      </AccordionItem>,
-    );
-
-    expect(view.get("details").getAttribute("dir")).toBe("rtl");
-  });
-
-  it("sets no direction attribute when the caller passes none, so the page direction wins", () => {
+  it("sets no direction attribute, so its chrome follows the page direction", () => {
     const view = render(<AccordionItem summary="app.title">the body</AccordionItem>);
 
     expect(view.get("details").hasAttribute("dir")).toBe(false);

@@ -26,32 +26,32 @@ packages:
 # pull request that moves any of them without one. Dependabot no longer proposes majors for these
 # entries either; taking one is a deliberate act that verifies the affected seam first.
 catalog:
-  "@types/node": 26.6.1
+  "@types/node": 26.6.2
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@vitest/coverage-v8": 5.0.1
+  "@vitest/coverage-v8": 5.0.2
   chokidar: 5.0.0
-  knip: 6.37.0
+  knip: 6.38.0
   parse5: 8.0.1
   playwright: 1.63.0
   react: 19.3.0
   react-dom: 19.3.0
   tsup: 8.5.1
   typescript: 6.0.3
-  vitest: 5.0.1
+  vitest: 5.0.2
   zod: 4.6.5
 
 catalogs:
   bundled:
-    "@anthropic-ai/sdk": 0.127.0
-    "@formatjs/icu-messageformat-parser": 3.5.19
-    "@google/genai": 2.23.0
+    "@anthropic-ai/sdk": 0.128.0
+    "@formatjs/icu-messageformat-parser": 3.5.20
+    "@google/genai": 2.24.0
     "@xmldom/xmldom": 0.9.12
     deepl-node: 1.28.0
     exceljs: 4.4.0
     jszip: 3.10.2
     loglevel: 1.9.2
-    openai: 7.19.0
+    openai: 7.23.0
     yaml: 2.9.1
 
 overrides:
@@ -109,17 +109,20 @@ overrides:
   brace-expansion@<1.1.17: ">=1.1.17 <2"
   "brace-expansion@>=2.0.0 <2.1.3": ">=2.1.3 <3"
   # GHSA-v2hh-gcrm-f6hx (high): fast-uri host confusion via a literal backslash as the authority
-  # delimiter. Vulnerable >=3.0.0 <=3.1.3; lifts the copy commitlint pulls through ajv (dev-only),
-  # bounded to the v3 line ajv expects.
-  "fast-uri@>=3.0.0 <3.1.4": ">=3.1.4 <4"
+  # delimiter, vulnerable >=3.0.0 <=3.1.3. GHSA-qw65-cvwx-89v3 (high) extends the vulnerable range to
+  # >=3.0.0 <3.1.7 and GHSA-58mr-gqgx-xq4g (high) names 3.1.6 itself, so the 3.1.4 floor this override
+  # used to set is vulnerable in its own right. Lifts the copies ajv pulls through commitlint (dev-only)
+  # and through @google/genai > @modelcontextprotocol/sdk (published sdk path), bounded to the v3 line
+  # ajv expects.
+  "fast-uri@>=3.0.0 <3.1.7": ">=3.1.7 <4"
   # GHSA-f88m-g3jw-g9cj (high): sharp inherits libvips vulnerabilities. Vulnerable <0.35.0; lifts the
   # copy next pulls for image optimization (apps/docs only, private, not published to npm).
   sharp@<0.35.0: ">=0.35.0"
   # Next.js highs patched in 16.2.11: App Router middleware/proxy bypass, App Router DoS, Server
   # Actions SSRF, and rewrites SSRF (all >=16.0.0 <16.2.11, apps/docs only, private). The direct pin in
-  # apps/docs/package.json is bumped to 16.2.11; this override lifts any transitive fumadocs copy too,
-  # bounded to the 16.2 line to avoid an unintended minor jump.
-  "next@>=16.0.0 <16.2.11": ">=16.2.11 <16.3"
+  # apps/docs/package.json is at or above 16.2.11; this override lifts any transitive fumadocs copy too,
+  # bounded to the 16 major so a patched minor like 16.3 still satisfies the peer ranges it rewrites.
+  "next@>=16.0.0 <16.2.11": ">=16.2.11 <17"
   # GHSA-2v37-7h3g-55p8 (CVE-2026-67213, high): customAlphabet and customRandom loop forever when
   # called with a size of 0, hanging the calling thread. Vulnerable <3.3.17 on the v3 line; lifts the
   # 3.3.16 copy postcss pulls (dev-only, via tsup and @tailwindcss/postcss) to the patched release.

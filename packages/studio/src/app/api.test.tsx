@@ -245,16 +245,6 @@ describe("the reconnect probe", () => {
 });
 
 describe("the module-scope stores the dashboard shares", () => {
-  it("hands out a review overlay that survives a page switch and starts with nothing actioned", async () => {
-    const { reviewOverlayStore } = await loadApi();
-    const entry = { locale: "de", key: "greeting" };
-
-    expect(reviewOverlayStore.isActioned(entry)).toBe(false);
-    reviewOverlayStore.markActioned(entry);
-
-    expect(reviewOverlayStore.isActioned(entry)).toBe(true);
-  });
-
   it("hands out an agent-tools store that starts empty, so nothing renders for a surface never opted in", async () => {
     const { agentToolsStatusStore } = await loadApi();
 

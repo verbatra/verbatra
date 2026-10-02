@@ -1,0 +1,117 @@
+---
+title: Codes de sortie et sortie JSON
+description: "Le contrat des codes de sortie, l'enveloppe JSON de chaque commande avec --json, les codes que la CLI lève elle-même, et la façon dont verbatra écrit sur stderr et dans le terminal."
+type: reference
+---
+Tout ce sur quoi un script ou une étape CI peut compter pour toutes les commandes : ce que signifie chaque code de sortie, l'enveloppe qu'affiche `--json`, les codes d'erreur que la CLI lève elle-même et la façon dont les erreurs et la progression arrivent sur stderr. Chaque [page de commande](/docs/cli) n'ajoute que ce qui est propre à cette commande.
+
+## Codes de sortie
+
+Le code de sortie est le contrat sur lequel ton étape CI se branche :
+
+| Code | Signification |
+| --- | --- |
+| `0` | succès, par commande comme indiqué sous le tableau |
+| `1` | l'exécution est allée au bout, mais le résultat n'est pas propre : `translate` ou `import` a terminé avec au moins une locale en échec ou partielle, `check` a trouvé une locale désynchronisée (ou, avec `--qa`, une traduction commitée avec une erreur d'intégrité ou, avec `--strict`, un avertissement de révision ou un pluriel incomplet, ou, avec `--require-reviewed`, une traduction écrite par une machine que personne n'a approuvée, ou, avec `--sensitive`, un contenu qui semble sensible dans le fichier source ou le glossaire), `check --file` a trouvé une erreur de syntaxe ou d'intégrité dans le fichier (ou, avec `--strict`, un avertissement de révision ou un pluriel incomplet), `diff` a trouvé une clé absente ou modifiée (ou, avec `--unused`, une analyse complète a trouvé une clé source inutilisée), `report provenance` a trouvé `verbatra.provenance.json` corrompu ou écrit par un verbatra plus récent, `doctor` a trouvé au moins une vérification en échec, `types --check` a trouvé la déclaration commitée obsolète, ou `studio` ou `mcp` a échoué en arrêtant son serveur |
+| `2` | impossible de s'exécuter : une erreur globale (config invalide, source illisible, fichier de verrouillage corrompu, locale que le fournisseur ne prend pas en charge), une erreur d'utilisation (une valeur `--locales` vide ou inconnue, un `--debounce` ou `--port` invalide), `init` à qui il manque une option nécessaire, qui trouve plusieurs formats ou motifs de fichiers qui conviennent, qui refuse d'écraser une config existante, ou qui est incapable de générer une config valide, un démarrage ou un arrêt de `watch` en échec, `studio` incapable de charger la config, d'importer `@verbatra/studio` ou de démarrer son serveur, ou `mcp` dont `--config` nomme un chemin inexistant, ou incapable d'importer `@verbatra/mcp` ou de démarrer son serveur (une config absente ou invalide trouvée par la recherche le démarre sans configuration) |
+| `3` | `translate` (exécution à blanc et `--estimate` compris) dans un projet [100 % humain](/docs/human-only-workflow) (`provider: { id: "none" }`) s'est terminé proprement, mais a laissé des clés pour une traduction humaine ; une locale en échec ou partielle sort toujours avec `1` |
+| `130` | `translate` ou `import` a été interrompu avec Ctrl-C (SIGINT) après avoir libéré ses verrous d'écriture, ou `watch`, `studio` ou `mcp` a été arrêté de force par une seconde interruption |
+| `143` | `translate` ou `import` a été arrêté avec SIGTERM après avoir libéré ses verrous d'écriture |
+
+Le code `0` signifie, par commande :
+
+- `translate` ou `import` : toutes les locales sont complètes
+- `check` : toutes les locales sont synchronisées
+- `diff` : aucun changement en attente
+- `report` : le rapport a été affiché
+- `doctor` : aucun problème de configuration du projet
+- `extract` : l'analyse est terminée
+- `pseudo` : la pseudolocale a été générée
+- `types` : la déclaration a été générée
+- `export` : le classeur a été écrit
+- `tmx` : la mémoire de traduction a été importée ou exportée
+- `init` : le projet a été généré ou était déjà à jour
+- `watch`, `studio` ou `mcp` : arrêt propre
+- `--help` ou `--version` : l'aide ou la version a été affichée
+
+Avec `130` et `143`, stderr se termine par `verbatra: interrupted (SIGINT), released locks` (ou `SIGTERM`), ou, avec `--json`, par l'enregistrement `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`.
+
+Quelques cas limites à connaître :
+
+<AvailableFrom version="0.9.0" />
+
+- Une locale **partielle** compte comme un échec. Cela veut dire que le fichier a été écrit mais qu'il manque encore des clés, en général parce qu'un sous-lot du fournisseur a échoué ou que la barrière d'intégrité a refusé une traduction. Elle sort avec `1` exactement comme une locale échouée, parce qu'une locale à moitié traduite sur le disque n'est pas un état qu'un pipeline devrait laisser passer. Lis `partial` sur le résumé pour distinguer les deux. Un sous-lot échoué laisse sur la locale un avis `SUB_BATCH_FAILED` qui nomme le code d'erreur du fournisseur, ou `PROVIDER_CALL_FAILED` quand l'échec n'était pas une erreur structurée du fournisseur.
+- Une **locale que le fournisseur ne prend pas en charge** est elle aussi une erreur globale, jamais une seule locale en échec. `translate` (exécution à blanc et `--estimate` compris), `watch` au démarrage et une retraduction d'une seule clé la refusent avec `LOCALE_UNSUPPORTED_BY_PROVIDER` et sortent avec `2` avant qu'aucun fournisseur ne soit construit ni que quoi que ce soit ne soit dépensé : aucune locale de l'exécution n'a démarré et rien n'a été écrit. Elle est jugée d'après la table de langues que verbatra embarque pour DeepL et Google Cloud Translation ; un fournisseur LLM accepte toutes les locales. Laisse la locale de côté avec `--locales` pour traduire les autres, et lance [`verbatra doctor --locales`](/docs/cli/doctor#prise-en-charge-des-locales) pour savoir pourquoi. Voir [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution).
+- Un **fichier de verrouillage corrompu** est une erreur globale pour `translate` comme pour `import`, jamais une seule locale en échec. C'est un fichier unique et partagé : s'il se corrompt en cours d'exécution, celle-ci s'arrête avec `2` au lieu de poursuivre avec les locales restantes. Ce qui a été écrit avant l'interruption reste sur le disque : répare le fichier de verrouillage puis relance la commande.
+- Une interruption unique est un arrêt propre, et les trois commandes de longue durée (`watch`, `studio` et `mcp`) sortent avec `0` dans ce cas. Au-delà, ne suppose pas qu'elles se comportent pareil : si l'arrêt lui-même échoue, `watch` sort avec `2` tandis que `studio` et `mcp` sortent avec `1`.
+- Une exécution échouée pendant `watch` apparaît comme un enregistrement sur le flux de sortie, jamais comme un code de sortie non nul.
+- `export` n'a pas de mode d'échec par locale : il sort avec `0` ou `2`, jamais `1`.
+- `doctor` lit une config cassée différemment de toutes les autres commandes : une config que la recherche ne trouve pas, ou une config qui ne passe pas la validation, est une vérification en échec et un code de sortie `1`, parce que signaler exactement cela est le travail de la commande. Il sort avec `2` seulement quand il ne peut pas s'exécuter du tout, par exemple avec un chemin `--config` explicite qui n'existe pas.
+- Un mode d'échec sort du contrat : une erreur d'analyse qui n'est pas une erreur d'utilisation est relancée, et le binaire ne l'attrape pas, donc le comportement par défaut de Node face à un rejet non géré s'applique au lieu de l'un des six codes.
+- Une clé [protégée](/docs/protecting-human-translations) (une valeur obsolète écrite, importée ou modifiée hors de verbatra par une personne, ou une clé épinglée) ne change pas le code de sortie de `translate` dans un projet avec fournisseur : il sort avec `0` et indique sur stderr combien de clés il a laissées. `check` sort quand même avec `1` pour elle, car la clé reste obsolète jusqu'à ce qu'une personne la résolve. Dans un projet 100 % humain, elle compte pour la sortie `3`.
+
+## Sortie JSON
+
+Toutes les commandes sauf `studio` et `mcp` acceptent `--json` pour une sortie lisible par machine sur stdout : `translate`, `watch`, `check`, `diff`, `report`, `export`, `import`, `tmx`, `doctor`, `pseudo`, `types`, `extract` et `init`. Chaque enregistrement tient sur une ligne, et chaque enregistrement est entouré de la même enveloppe : tu te branches sur un seul champ et tu n'as jamais à deviner de quelle commande viennent les données que tu tiens :
+
+```ts
+type Envelope<TResult> =
+  | { ok: true; version: 1; command: string; result: TResult }
+  | {
+      ok: false;
+      version: 1;
+      command: string | null;
+      code: string;
+      message: string;
+      causeCode?: string; // the code of the error this one wraps, when it has one
+      candidates?: string[]; // the values to choose from, on an error that has them
+      missing?: string[]; // the flags still to pass, on an init usage error
+      hint?: string; // the next step that resolves the error, when there is one
+    };
+```
+
+`version` est la version de cette forme d'enveloppe, pas la version du paquet. C'est un entier, tu le compares donc avec `===` plutôt que d'analyser une plage, et il ne change que lorsqu'un champ existant change de sens ou disparaît. De nouveaux champs peuvent apparaître sans changement de version, ignore donc ceux que tu ne reconnais pas.
+
+Une exécution qui échoue dans son ensemble écrit exactement un enregistrement `ok: false` sur stdout et sort avec `2`. Son `code` est le même code d'erreur stable que porte la ligne stderr, c'est donc sur lui que tu te branches :
+
+```json
+{ "ok": false, "version": 1, "command": "translate", "code": "CONFIG_INVALID", "message": "..." }
+```
+
+`command` vaut `null` uniquement quand l'échec s'est produit avant qu'une sous-commande soit résolue. `candidates` n'apparaît que sur une erreur qui te demande de choisir, comme `FORMAT_AMBIGUOUS` d'`init`, et liste les valeurs parmi lesquelles choisir. `missing` apparaît sur une erreur d'utilisation d'`init` qui laisse des options sans réponse, et nomme chaque option encore à passer. `causeCode` apparaît quand l'erreur en enveloppe une autre dotée d'un code, comme un `PROVIDER_CONSTRUCTION_FAILED` causé par `MISSING_API_KEY` ; la ligne stderr se termine alors par `(cause: MISSING_API_KEY)`.
+
+<AvailableFrom version="0.12.0" />
+
+`hint` apparaît quand l'erreur a une prochaine étape : une phrase courte à l'impératif qui la résout, comme `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."` pour une clé manquante ou `` "Run `verbatra check --help` to see the options and arguments it accepts." `` pour un `USAGE_ERROR`. Agis en fonction de lui plutôt que d'analyser `message`. Il nomme des variables, des options et des chemins, jamais la valeur d'une clé. Chaque code du SDK, d'un fournisseur et d'un adaptateur de format en a un (le SDK exporte le même texte sous le nom [`errorHint`](/docs/sdk/exchange#errorhint)), tout comme chaque [code d'erreur de la CLI](/docs/error-codes#cli-error-codes) sauf `CLI_ERROR`. Sans `--json`, le même texte suit la ligne d'erreur sur stderr sous la forme `next: ...`, sauf avec `--quiet`. `mcp --json` est l'exception : il est refusé avec une seule ligne `USAGE_ERROR` sur stderr, sans enveloppe et sans `next:`.
+
+Le `result` d'une enveloppe réussie diffère selon la commande et il est décrit sur sa page, sous Sortie JSON : [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
+
+## Codes d'erreur de la CLI
+
+<AvailableFrom version="0.12.0" />
+
+La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_ERROR_CODES` (avec le type `CliErrorCode`) par `@verbatra/cli`, pour qu'un script puisse vérifier un code avec elle. Tout autre code vient du SDK, d'un fournisseur ou d'un adaptateur de format. Ce que signifie chaque code, quelles commandes le lèvent et quelle est l'étape suivante se trouvent dans [Codes d'erreur](/docs/error-codes#cli-error-codes).
+
+## Erreurs sur stderr
+
+Les erreurs d'une commande déjà résolue vont sur stderr sous forme d'une ligne structurée (`verbatra: error [CODE] message`) dans les deux modes, inchangée, donc un script qui lit le code de sortie et stderr n'a rien à changer. Une classe d'échec ne suit pas cette grammaire, car elle survient avant qu'une exécution existe pour porter un code : une erreur d'analyse des arguments affiche le `error: unknown option '--nope'` propre à commander, sans préfixe et sans code, et sort avec `2`. Teste d'abord le code de sortie et traite le code d'erreur comme optionnel, sinon un analyseur écrit uniquement pour la grammaire structurée la manquera silencieusement. `init` suit la grammaire structurée depuis la 0.12.0 ; avant, un fournisseur absent affichait `verbatra: --provider is required (...)` sans code. Depuis la 0.12.0, sans `--json` une indication suit l'une ou l'autre ligne sous la forme `next: ...`, et avec `--json` une erreur d'analyse écrit sur stdout l'enveloppe `USAGE_ERROR` avec son `hint`. Sans `--json`, une exécution échouée n'écrit toujours strictement rien sur stdout. Les enregistrements de progression et d'attente de verrouillage vont toujours sur stderr, donc stdout ne porte que des enveloppes.
+
+## Sortie dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+Les résultats vont sur stdout. La progression, les avis, les suggestions, les avertissements et les erreurs vont sur stderr, et verbatra les adapte selon la destination de stderr :
+
+- Dans un terminal interactif, les libellés fixes comme `error`, `[ok]` et `next:` sont colorés, et une étape qui dure plus de 300 ms affiche un spinner ASCII (`| / - \`).
+- Quand stderr est redirigé ou envoyé dans un pipe, que `CI` a une valeur autre que `0` ou `false`, ou que `TERM` vaut `dumb`, la sortie se compose de lignes simples, uniquement ajoutées, sans couleur ni animation.
+- `--json` n'ajoute jamais de couleur, d'animation ni de nouvelles lignes : stdout et stderr restent exactement comme décrit dans [Sortie JSON](/docs/cli/output#sortie-json).
+
+| Flag ou variable | Effet |
+| --- | --- |
+| `-q`, `--quiet` | n'affiche que les résultats, les avertissements et les erreurs : supprime les lignes de progression, les suggestions `next:` et les lignes informatives sur stderr, tandis que le résumé du résultat, avis compris, reste. Il fonctionne avant ou après le nom de la commande |
+| `--no-color` | ne colore jamais la sortie |
+| `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | toute valeur non vide désactive la couleur ; `VERBATRA_NO_COLOR` l'emporte aussi sur `FORCE_COLOR` |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` ou une valeur vide active la couleur même quand stderr n'est pas un terminal, et `0` la désactive ; `--no-color` et `VERBATRA_NO_COLOR` restent prioritaires |
+| `VERBATRA_NO_SPINNER` | toute valeur non vide remplace le spinner par des lignes statiques `label... done (1.2s)`, pour les lecteurs d'écran et les enregistrements de terminal |
+
+Les mots d'état sont en ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), pour que la sortie se lise de la même façon dans tout terminal et tout journal. Chaque ligne passe par le même masquage des clés que le reste de la sortie, et seuls les libellés fixes sont colorés, jamais une clé, un chemin ni un message.

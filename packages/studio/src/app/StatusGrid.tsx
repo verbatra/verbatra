@@ -4,12 +4,10 @@ import type { StatusData } from "../client/coverage.js";
 import type { DiffLocale, KeyLocaleStatus } from "../client/diff-view.js";
 import { deriveKeyLocaleStatus, driftKeys } from "../client/diff-view.js";
 import { filterAndCapKeys, MAX_RENDERED_KEYS } from "../client/filter.js";
-import { isRtlLocale } from "../client/locale-direction.js";
 import type { GridArrowKey, GridPosition } from "../client/roving-tabindex.js";
 import { clampGridPosition, moveGridFocus } from "../client/roving-tabindex.js";
 import type { RefreshableView } from "../client/state.js";
-import { Badge } from "./Badge.js";
-import { DiffBadge } from "./DiffBadge.js";
+import { KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { ErrorMessage } from "./ErrorMessage.js";
 import { cn } from "./lib/cn.js";
 import { ProgressBar } from "./ProgressBar.js";
@@ -109,10 +107,7 @@ function GridCell({
   }
 
   return (
-    <td
-      className={cn(gridCellClassName, "px-2 py-1")}
-      dir={isRtlLocale(localeName) ? "rtl" : undefined}
-    >
+    <td className={cn(gridCellClassName, "px-2 py-1")}>
       <button
         type="button"
         ref={(element) => registerCell(row, col, element)}
@@ -123,7 +118,7 @@ function GridCell({
         onClick={() => onActivate(keyName)}
         aria-label={`${keyName} in ${localeName}: ${status}`}
       >
-        {status === "in-sync" ? <Badge tone="success">In sync</Badge> : <DiffBadge tone={status} />}
+        <KeyLocaleStatusBadge status={status} />
       </button>
     </td>
   );
@@ -241,7 +236,6 @@ export function StatusGrid({ locales, refreshToken, onSelectKey }: StatusGridPro
                   key={locale.locale}
                   scope="col"
                   className={cn(gridHeaderClassName, "min-w-[140px]")}
-                  dir={isRtlLocale(locale.locale) ? "rtl" : undefined}
                 >
                   <span className="font-mono">{locale.locale}</span>
                   <CompletenessBar

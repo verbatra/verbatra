@@ -13,6 +13,8 @@ const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
 const PANEL = "rounded-xl border border-fd-border";
 
+const HOME_FRAME = "mx-auto w-full max-w-[1100px] px-4 md:px-6 lg:px-10";
+
 const PANEL_HOVER =
   "hover:border-[color:color-mix(in_srgb,var(--v-glow)_45%,var(--border-default))]";
 
@@ -41,12 +43,12 @@ export function DocsHomeHero({
   locale: Locale;
 }): ReactNode {
   return (
-    <section className="not-prose px-2 pt-2 md:px-3">
+    <section className={cn("not-prose pt-4 md:pt-6", HOME_FRAME)}>
       <div
         className="relative overflow-hidden rounded-xl border"
         style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
       >
-        <div className="grid justify-items-center px-4 pt-16 pb-9 text-center md:px-10 md:pt-24 md:pb-10">
+        <div className="grid grid-cols-[minmax(0,1fr)] justify-items-center px-4 pt-16 pb-9 text-center md:px-10 md:pt-24 md:pb-10">
           <h1
             className="max-w-[16ch] font-semibold text-[color:var(--text-strong)]"
             style={{
@@ -59,9 +61,7 @@ export function DocsHomeHero({
           >
             {headline}
           </h1>
-          <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-fd-muted-foreground md:text-[19px]">
-            {lead}
-          </p>
+          <p className="mt-5 max-w-[54ch] vk-lead text-fd-muted-foreground">{lead}</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
             <Button
               href={localizedPath(locale, primary.href)}
@@ -78,7 +78,7 @@ export function DocsHomeHero({
               {secondary.label}
             </Link>
           </div>
-          <div className="mt-10 flex w-full justify-center text-left">
+          <div className="mt-10 flex w-full min-w-0 justify-center text-left">
             <PackageInstall />
           </div>
           <HeroFacts className="mt-14 w-full" />
@@ -89,11 +89,7 @@ export function DocsHomeHero({
 }
 
 export function DocsHomeBody({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <div className="mx-auto grid w-full max-w-[1100px] gap-[72px] px-6 pt-16 pb-20 md:px-10">
-      {children}
-    </div>
-  );
+  return <div className={cn("grid gap-[72px] pt-16 pb-20", HOME_FRAME)}>{children}</div>;
 }
 
 export function DocsHomeSection({
@@ -107,7 +103,7 @@ export function DocsHomeSection({
 }): ReactNode {
   return (
     <section>
-      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-x-16">
+      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-baseline-last lg:gap-x-16">
         <h2
           className="max-w-[16ch] font-semibold text-fd-foreground"
           style={{
@@ -121,7 +117,7 @@ export function DocsHomeSection({
           {title}
         </h2>
         {lead ? (
-          <p className="max-w-[46ch] text-[17px] leading-relaxed text-fd-muted-foreground lg:justify-self-end lg:pb-1">
+          <p className="vk-lead max-w-[46ch] text-fd-muted-foreground lg:justify-self-end">
             {lead}
           </p>
         ) : null}
@@ -133,8 +129,8 @@ export function DocsHomeSection({
 
 type PathCard = {
   href: string;
-  tag: string;
-  label: string;
+  goal: string;
+  page: string;
   body: string;
   primary?: boolean;
 };
@@ -153,7 +149,7 @@ export function DocsHomePaths({
           key={card.href}
           href={localizedPath(locale, card.href)}
           className={cn(
-            "flex flex-col gap-2 p-5 transition-[filter,border-color]",
+            "row-span-3 grid grid-rows-subgrid gap-y-2 p-5 transition-[filter,border-color]",
             card.primary ? "rounded-xl hover:brightness-110" : `${PANEL} ${PANEL_HOVER}`,
           )}
           style={
@@ -163,20 +159,17 @@ export function DocsHomePaths({
           }
         >
           <span
-            className="vk-label"
-            style={
-              card.primary
-                ? { color: "color-mix(in srgb, var(--accent-fill-fg) 78%, transparent)" }
-                : undefined
-            }
+            className="font-semibold"
+            style={{
+              ...DISPLAY,
+              fontSize: "1.1rem",
+              letterSpacing: "-0.01em",
+              lineHeight: 1.25,
+              textWrap: "balance",
+              color: card.primary ? undefined : "var(--text-strong)",
+            }}
           >
-            {card.tag}
-          </span>
-          <span
-            className={cn("font-semibold", !card.primary && "text-fd-foreground")}
-            style={{ ...DISPLAY, fontSize: "1.1rem", letterSpacing: "-0.01em" }}
-          >
-            {card.label}
+            {card.goal}
           </span>
           <span
             className="text-sm leading-relaxed"
@@ -188,9 +181,60 @@ export function DocsHomePaths({
           >
             {card.body}
           </span>
+          <span
+            className="self-end text-sm font-medium"
+            style={{
+              color: card.primary
+                ? "color-mix(in srgb, var(--accent-fill-fg) 92%, transparent)"
+                : "var(--accent)",
+            }}
+          >
+            {card.page}
+          </span>
         </Link>
       ))}
     </div>
+  );
+}
+
+type StackLink = { label: string; href: string };
+
+type StackGroup = { title: string; links: ReadonlyArray<StackLink> };
+
+export function DocsHomeStacks({
+  title,
+  groups,
+  locale,
+}: {
+  title: string;
+  groups: ReadonlyArray<StackGroup>;
+  locale: Locale;
+}): ReactNode {
+  return (
+    <nav
+      aria-label={title}
+      className="not-prose mt-8 flex flex-col gap-4 border-t border-fd-border pt-[18px]"
+    >
+      <span className="vk-label">{title}</span>
+      <div className="flex flex-col gap-5 md:flex-row md:flex-wrap md:gap-x-12">
+        {groups.map((group) => (
+          <div key={group.title} className="flex flex-col gap-2 md:flex-none">
+            <span className="text-xs font-medium text-[color:var(--text-faint)]">
+              {group.title}
+            </span>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              {group.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -230,9 +274,7 @@ export function DocsHomeFeatures({
         const content = (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-mono text-[13.5px] text-[color:var(--accent)]">
-                {feature.title}
-              </span>
+              <span className="font-mono text-sm text-[color:var(--accent)]">{feature.title}</span>
               {version ? (
                 <span className="font-mono text-xs text-[color:var(--text-faint)] tabular-nums">
                   {version}

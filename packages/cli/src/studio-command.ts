@@ -1,8 +1,10 @@
 import { randomBytes } from "node:crypto";
+import { isMachineTranslationEnabled } from "@verbatra/sdk";
 import { z } from "zod";
 import { CliUsageError } from "./cli-usage-error.js";
 import { loadEnvFiles } from "./env.js";
 import { renderError, toRenderableError } from "./render.js";
+import { PRESS_CTRL_C, studioAgentToolsLine, studioSpendLine } from "./session-banners.js";
 import {
   failedSession,
   isModuleMissing,
@@ -10,12 +12,18 @@ import {
   step,
   watchForStop,
 } from "./session-command-support.js";
+import {
+  DEFAULT_TERMINAL_SETTINGS,
+  resolveTerminalMode,
+  type TerminalSettings,
+} from "./terminal-mode.js";
 import type { CliDeps, Session, Streams } from "./types.js";
+import { createUi, type Ui } from "./ui.js";
 
 const TOKEN_BYTES = 32;
 
 const NOT_INSTALLED_HINT =
-  "Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio";
+  "Verbatra Studio requires @verbatra/studio. Install it alongside the CLI with: npm install --save-dev @verbatra/studio, or run both without installing with: npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio";
 
 const STUDIO_SPECIFIER_PATTERN = /['"]@verbatra\/studio['"]/;
 
@@ -25,13 +33,46 @@ const studioOptsSchema = z.object({
   port: z.coerce.number().int().min(1).max(65535).optional(),
   allowSpend: z.boolean().optional(),
   exposeAgentTools: z.boolean().optional(),
+  verbose: z.boolean().optional(),
 });
 
 type StudioOpts = z.infer<typeof studioOptsSchema>;
 
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_STUDIO_ALLOW_SPEND";
 
+function portInUseHint(error: unknown): string | undefined {
+  if (!(error instanceof Error) || !("code" in error) || error.code !== "PORT_IN_USE") {
+    return undefined;
+  }
+  return renderError({
+    code: String(error.code),
+    message: `${error.message}. Pass --port <n> to use another port, or stop the process that holds it.`,
+  });
+}
+
 const AGENT_TOOLS_ENV_VAR = "VERBATRA_STUDIO_AGENT_TOOLS";
+
+const REQUEST_LOG_LINE = /^[A-Z]+ \S+ \d{3}$/;
+
+const SERVER_ERROR_LINE = /^studio error: /;
+
+const TOKEN_QUERY = /token=[0-9a-fA-F]+/g;
+
+const MASKED_TOKEN = "[REDACTED]";
+
+function masked(line: string, token: string): string {
+  return line.replaceAll(token, MASKED_TOKEN).replace(TOKEN_QUERY, `token=${MASKED_TOKEN}`);
+}
+
+function serverOutputForwarder(ui: Ui, token: string, verbose: boolean): (line: string) => void {
+  return (line) => {
+    if (SERVER_ERROR_LINE.test(line)) {
+      ui.warn(masked(line, token));
+    } else if (verbose && REQUEST_LOG_LINE.test(line)) {
+      ui.line(masked(line, token));
+    }
+  };
+}
 
 const INVALID_PORT_MESSAGE = "The --port option must be an integer between 1 and 65535.";
 
@@ -47,7 +88,16 @@ export async function runStudio(
   rawOpts: unknown,
   deps: CliDeps,
   streams: Streams,
+  settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
 ): Promise<Session> {
+  const ui = createUi(
+    streams,
+    resolveTerminalMode(settings.facts, {
+      json: false,
+      quiet: settings.quiet,
+      color: settings.color,
+    }),
+  );
   let opts: StudioOpts;
   try {
     opts = parseStudioOpts(rawOpts);
@@ -95,19 +145,24 @@ export async function runStudio(
         loader: () => Promise.resolve(config),
         token,
         cwd,
-        output: () => {},
+        output: serverOutputForwarder(ui, token, opts.verbose === true),
         spend,
         exposeAgentTools,
         ...(opts.port !== undefined ? { port: opts.port } : {}),
       }),
     streams,
-    () => undefined,
+    portInUseHint,
   );
   if (server === undefined) {
     return failedSession(2);
   }
 
   streams.out(`Verbatra Studio running at ${server.url}?token=${token}\n`);
+  ui.info(studioSpendLine(spend, isMachineTranslationEnabled(config.config)));
+  ui.info(studioAgentToolsLine(exposeAgentTools));
+  if (ui.terminal.stdinIsTty) {
+    ui.info(PRESS_CTRL_C);
+  }
 
-  return watchForStop(server, streams);
+  return watchForStop(server, streams, () => ui.info("Studio stopped"));
 }

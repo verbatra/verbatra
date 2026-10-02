@@ -297,9 +297,10 @@ describe("extract failure modes", () => {
   it("reports an unparseable existing source catalog as SOURCE_INVALID", async () => {
     const cwd = await project({ "src/nav.ts": 't("nav.home");', "locales/en.json": "{ not json" });
 
-    await expect(extract({ config: config(), cwd })).rejects.toMatchObject({
-      code: "SOURCE_INVALID",
-    });
+    const failure = await extract({ config: config(), cwd }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).cause).toBeInstanceOf(Error);
   });
 });
 
@@ -386,7 +387,7 @@ describe("extract on a format that cannot create its catalog", () => {
         config: config({ format: "xliff", files: { pattern: "locales/{locale}.xlf" } }),
         cwd,
       }),
-    ).rejects.toMatchObject({ code: "SOURCE_UNWRITABLE" });
+    ).rejects.toMatchObject({ code: "SOURCE_UNWRITABLE", cause: expect.any(Error) });
   });
 });
 

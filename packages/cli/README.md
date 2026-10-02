@@ -5,7 +5,7 @@
 <h1 align="center">@verbatra/cli</h1>
 
 <p align="center">
-  Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, or an openai-compatible local or self-hosted model.
+  Command-line tool to automate i18n translation and keep your locale files in sync across languages, using OpenAI, Anthropic, Gemini, DeepL, Google Cloud Translation, a self-hosted LibreTranslate server, or an openai-compatible local or self-hosted model.
 </p>
 
 <p align="center">
@@ -30,9 +30,11 @@ Node.js `>=22.14.0`.
 ```bash
 npm install --save-dev @verbatra/cli
 # pnpm
-pnpm add -D @verbatra/cli
+pnpm add --save-dev @verbatra/cli
 # yarn
-yarn add -D @verbatra/cli
+yarn add --dev @verbatra/cli
+# bun
+bun add --dev @verbatra/cli
 ```
 
 A dev-dependency install puts the `verbatra` binary in `node_modules/.bin`, not on your PATH, so invoke it with `npx verbatra ...`, which runs the locally installed binary whichever package manager put it there. To try a command before installing, use the scoped name: `npx @verbatra/cli --help`.
@@ -50,7 +52,7 @@ export GEMINI_API_KEY=your-key-here
 npx verbatra translate
 ```
 
-Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ.
+Gemini is shown because its API has a real free tier, so you can create a key at [Google AI Studio](https://aistudio.google.com/apikey) and try verbatra without setting up billing. `anthropic`, `openai`, `deepl`, and `google-translate` work the same way; only the key variable and the config's `provider` block differ. `openai-compatible` also needs `--model` and `--base-url` for your local or self-hosted server, `libretranslate` needs `--base-url` for your LibreTranslate server, and `none` sets up a human-only project that never calls a provider.
 
 ## Commands
 
@@ -62,16 +64,19 @@ Gemini is shown because its API has a real free tier, so you can create a key at
 | `verbatra watch` | Re-translate on every source change until interrupted |
 | `verbatra check` | Report which keys are missing or stale per locale without writing files |
 | `verbatra diff` | Show the keys that would be added, re-translated, or orphaned per locale without writing files |
+| `verbatra report` | Print a read-only report: `report provenance` lists which translations a machine wrote and which a person reviewed |
 | `verbatra doctor` | Validate the project setup without calling a provider or reading an API key |
 | `verbatra pseudo` | Generate a pseudolocale from the source strings without calling a provider |
 | `verbatra types` | Generate TypeScript declarations for your catalog keys and message arguments |
-| `verbatra export` | Export untranslated strings into a translator handoff (Excel workbook, CSV, or TSV) |
+| `verbatra export` | Export untranslated strings into a translator handoff (Excel workbook, CSV, TSV, or XLIFF) |
 | `verbatra import` | Import a filled handoff back into the locale files, running the same safety checks |
 | `verbatra tmx` | Import a TMX translation memory from another tool, or export this project's memory as TMX |
 | `verbatra studio` | Start Verbatra Studio, the local translation dashboard |
 | `verbatra mcp` | Start a stdio MCP server exposing verbatra's tools to an MCP client |
 
-`check`, `diff`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `pseudo` and `types` call no provider either.
+`check`, `diff`, `report`, and `doctor` are read-only: they call no provider, need no API key, and write no file, which is what makes them safe as CI gates and on fork pull requests. `doctor --live` is the exception for a machine-translation provider (DeepL, Google Cloud Translation, LibreTranslate): it fetches the provider's current language list, which uses no translation quota, sending the API key DeepL and Google need (without it, the request is skipped); for an LLM provider or `none` it sends nothing. `pseudo` and `types` call no provider either.
+
+Two flags apply to every command: `-q, --quiet` prints only results (their notices included), warnings, and errors, with no progress lines, `next:` hints, or informational lines, and `--no-color` turns color off (so do `NO_COLOR` and `VERBATRA_NO_COLOR`).
 
 Every flag, every example, and the exit-code contract live in the [CLI reference](https://verbatra.kreitz-webdev.de/docs/cli). `verbatra <command> --help` prints the same reference at the terminal.
 

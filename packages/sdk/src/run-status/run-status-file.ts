@@ -1,7 +1,7 @@
 import { dirname, resolve } from "node:path";
-import { REVIEW_REASON_CODES } from "@verbatra/ai-providers";
+import { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-providers";
 import { z } from "zod";
-import type { LocaleSummary, RunSummary } from "../flow/summary.js";
+import type { LocaleSummary, NeedsReviewEntry, RunSummary } from "../flow/summary.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import type { RunStatusFile, RunStatusLocale } from "./types.js";
 
@@ -14,11 +14,9 @@ const RECONCILED_BUDGET_COUNTING = "reconciled";
 
 const MAX_RUN_STATUS_FILE_BYTES = 16 * 1024 * 1024;
 
-const reviewReasonCodeSchema = z.enum(REVIEW_REASON_CODES);
-
 const needsReviewEntrySchema = z.object({
   key: z.string(),
-  reasons: z.array(reviewReasonCodeSchema),
+  reasons: z.array(z.string()),
 });
 
 const usageSummarySchema = z.object({
@@ -93,6 +91,19 @@ function countedBudget(data: ParsedRunStatusFile): ParsedRunStatusFile["budget"]
   return data.budget;
 }
 
+type ParsedNeedsReviewEntry = z.infer<typeof needsReviewEntrySchema>;
+
+function isReviewReasonCode(value: string): value is ReviewReasonCode {
+  return (REVIEW_REASON_CODES as readonly string[]).includes(value);
+}
+
+function knownNeedsReview(entries: readonly ParsedNeedsReviewEntry[]): NeedsReviewEntry[] {
+  return entries.flatMap((entry) => {
+    const reasons = entry.reasons.filter(isReviewReasonCode);
+    return reasons.length > 0 ? [{ key: entry.key, reasons }] : [];
+  });
+}
+
 function fromParsed(data: ParsedRunStatusFile): RunStatusFile {
   const budget = countedBudget(data);
   return {
@@ -103,7 +114,7 @@ function fromParsed(data: ParsedRunStatusFile): RunStatusFile {
     locales: data.locales.map((locale) => ({
       locale: locale.locale,
       status: locale.status,
-      needsReview: locale.needsReview,
+      needsReview: knownNeedsReview(locale.needsReview),
       ...(locale.fuzzyHits !== undefined ? { fuzzyHits: locale.fuzzyHits } : {}),
       ...(locale.usage !== undefined ? { usage: locale.usage } : {}),
     })),

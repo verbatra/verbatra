@@ -3,6 +3,7 @@ import {
   SiDeepl,
   SiGooglegemini,
   SiGoogletranslate,
+  SiLibretranslate,
   SiOllama,
 } from "@icons-pack/react-simple-icons";
 import type { ProviderId } from "@verbatra/sdk";
@@ -16,7 +17,14 @@ import { Section } from "./section";
 const ICON = 32;
 const SI = { size: ICON, color: "currentColor", "aria-hidden": true } as const;
 
-type KindKey = "anthropic" | "openai" | "gemini" | "deepl" | "googleTranslate" | "openaiCompatible";
+type KindKey =
+  | "anthropic"
+  | "openai"
+  | "gemini"
+  | "deepl"
+  | "googleTranslate"
+  | "openaiCompatible"
+  | "libretranslate";
 
 type Provider = { id: ProviderId; kind: KindKey; name: string; icon: ReactNode };
 
@@ -37,6 +45,12 @@ const PROVIDERS: ReadonlyArray<Provider> = [
     name: "OpenAI-compatible",
     icon: <SiOllama {...SI} />,
   },
+  {
+    id: "libretranslate",
+    kind: "libretranslate",
+    name: "LibreTranslate",
+    icon: <SiLibretranslate {...SI} />,
+  },
 ];
 
 export async function Providers(): Promise<ReactNode> {
@@ -46,26 +60,15 @@ export async function Providers(): Promise<ReactNode> {
 
   return (
     <Section width="wide" rhythm="lg" id="providers">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:items-center lg:gap-14">
-        <Reveal>
-          <h2
-            className="max-w-[13ch] font-semibold text-fd-foreground"
-            style={{
-              fontFamily: "var(--font-display)",
-              letterSpacing: "-0.03em",
-              fontSize: "clamp(2rem, 4.2vw, 3.4rem)",
-              lineHeight: 1,
-              textWrap: "balance",
-            }}
-          >
-            {t("heading")}
-          </h2>
-          <p className="mt-5 max-w-[44ch] text-[17px] leading-relaxed text-fd-muted-foreground">
-            {t("lead")}
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] xl:items-center xl:gap-14">
+        <div>
+          <h2 className="vk-h2 max-w-[13ch]">{t("heading")}</h2>
+          <p className="vk-lead mt-5 max-w-[44ch]">{t("lead")}</p>
+          <p className="mt-3.5 hidden text-sm text-[color:var(--text-faint)] lg:pointer-fine:block">
+            {t("hint")}
           </p>
-          <p className="mt-3.5 text-sm text-[color:var(--text-faint)]">{t("hint")}</p>
-        </Reveal>
-        <Reveal order={1} className="vk-deck">
+        </div>
+        <Reveal order={1} className="vk-deck" style={{ "--n": PROVIDERS.length } as CSSProperties}>
           {PROVIDERS.map((provider, index) => (
             <a
               key={provider.id}

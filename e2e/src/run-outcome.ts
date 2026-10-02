@@ -37,11 +37,15 @@ export type KeyOutcome =
 
 export type SettledKeyOutcome = Exclude<KeyOutcome, { readonly kind: "pending" }>;
 
-const RATE_LIMITED_NOTICE_PATTERN = /\(RATE_LIMITED:/;
+const TRANSIENT_PROVIDER_CODES: ReadonlySet<string> = new Set([
+  "RATE_LIMITED",
+  "PROVIDER_UNAVAILABLE",
+  "TIMEOUT",
+]);
+
+const SUB_BATCH_FAILURE_CODE_PATTERN = /^A sub-batch of \d+ (?:entry|entries) failed \(([A-Z_]+):/;
 
 const WITHHELD_SUB_BATCH_CODE = "SUB_BATCH_FAILED";
-
-const RATE_LIMITED_CODE = "RATE_LIMITED";
 
 const CLEAN_EXIT_CODE = 0;
 
@@ -61,13 +65,37 @@ function describeNotices(summary: RunLocaleSummary): string {
   return (summary.notices ?? []).map((notice) => `${notice.code}: ${notice.message}`).join("; ");
 }
 
+function isTransientSubBatchFailure(notice: RunNotice): boolean {
+  const code = SUB_BATCH_FAILURE_CODE_PATTERN.exec(notice.message)?.[1];
+  return code !== undefined && TRANSIENT_PROVIDER_CODES.has(code);
+}
+
+function unrelatedWithholdingDetail(summary: RunLocaleSummary): string | undefined {
+  const integrity = summary.integrityMismatches ?? [];
+  if (integrity.length > 0) {
+    return `keys that failed the placeholder-integrity gate (${integrity.join(", ")})`;
+  }
+  const budget = summary.budgetWithheld ?? [];
+  if (budget.length > 0) {
+    return `keys withheld by the token budget (${budget.join(", ")})`;
+  }
+  return undefined;
+}
+
+function throttledUnlessUnrelatedFailure(summary: RunLocaleSummary, detail: string): KeyOutcome {
+  const unrelated = unrelatedWithholdingDetail(summary);
+  return unrelated === undefined
+    ? { kind: "throttled", detail }
+    : { kind: "failed", detail: `${detail} The same run also reported ${unrelated}.` };
+}
+
 function classifyWithheldKey(summary: RunLocaleSummary, key: string): KeyOutcome {
-  const throttled = (summary.notices ?? []).find(
-    (notice) =>
-      notice.code === WITHHELD_SUB_BATCH_CODE && RATE_LIMITED_NOTICE_PATTERN.test(notice.message),
+  const subBatchFailures = (summary.notices ?? []).filter(
+    (notice) => notice.code === WITHHELD_SUB_BATCH_CODE,
   );
-  if (throttled !== undefined) {
-    return { kind: "throttled", detail: throttled.message };
+  const [firstFailure] = subBatchFailures;
+  if (firstFailure !== undefined && subBatchFailures.every(isTransientSubBatchFailure)) {
+    return throttledUnlessUnrelatedFailure(summary, firstFailure.message);
   }
   const notices = describeNotices(summary);
   const cause = notices.length > 0 ? ` (${notices})` : " with no notice explaining why";
@@ -75,13 +103,10 @@ function classifyWithheldKey(summary: RunLocaleSummary, key: string): KeyOutcome
 }
 
 function classifyLocaleError(summary: RunLocaleSummary, error: RunNotice): KeyOutcome {
-  if (error.code === RATE_LIMITED_CODE) {
-    return { kind: "throttled", detail: `locale "${summary.locale}" was rate-limited` };
-  }
-  return {
-    kind: "failed",
-    detail: `locale "${summary.locale}" failed (${error.code}: ${error.message})`,
-  };
+  const detail = `locale "${summary.locale}" failed (${error.code}: ${error.message})`;
+  return TRANSIENT_PROVIDER_CODES.has(error.code)
+    ? throttledUnlessUnrelatedFailure(summary, detail)
+    : { kind: "failed", detail };
 }
 
 function classifyLocaleSummary(summary: RunLocaleSummary, key: string): KeyOutcome {
@@ -139,33 +164,15 @@ export interface LiveRun {
   readonly stdout: string;
 }
 
-function unrelatedWithholdingDetail(summary: RunLocaleSummary): string | undefined {
-  const integrity = summary.integrityMismatches ?? [];
-  if (integrity.length > 0) {
-    return `keys that failed the placeholder-integrity gate (${integrity.join(", ")})`;
-  }
-  const budget = summary.budgetWithheld ?? [];
-  if (budget.length > 0) {
-    return `keys withheld by the token budget (${budget.join(", ")})`;
-  }
-  return undefined;
-}
-
 function verdictForSummary(summary: RunLocaleSummary, target: RunTarget): LiveRunVerdict {
   const outcome = classifyLocaleSummary(summary, target.key);
-  if (outcome.kind === "failed") {
+  if (outcome.kind === "failed" || outcome.kind === "throttled") {
     return outcome;
   }
-  if (outcome.kind !== "throttled") {
-    return {
-      kind: "failed",
-      detail: `the run exited ${UNCLEAN_EXIT_CODE} but reported no failure for "${target.key}"`,
-    };
-  }
-  const unrelated = unrelatedWithholdingDetail(summary);
-  return unrelated === undefined
-    ? outcome
-    : { kind: "failed", detail: `${outcome.detail} The same run also reported ${unrelated}.` };
+  return {
+    kind: "failed",
+    detail: `the run exited ${UNCLEAN_EXIT_CODE} but reported no failure for "${target.key}"`,
+  };
 }
 
 function lastEnvelope(stdout: string): JsonEnvelope<RunSummary> | undefined {
@@ -184,7 +191,7 @@ export function classifyLiveRun(run: LiveRun, target: RunTarget): LiveRunVerdict
   if (run.exitCode !== UNCLEAN_EXIT_CODE) {
     return {
       kind: "failed",
-      detail: `the run exited ${run.exitCode ?? "on a signal"}, which a provider rate limit never causes`,
+      detail: `the run exited ${run.exitCode ?? "on a signal"}, which a transient provider fault never causes`,
     };
   }
   const envelope = lastEnvelope(run.stdout);

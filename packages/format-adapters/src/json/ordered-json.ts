@@ -1,5 +1,6 @@
 import { AdapterError } from "../errors.js";
 import { MAX_DEPTH } from "./limits.js";
+import { invalidJson } from "./syntax-position.js";
 
 /** A value in a locale tree about to be serialized, with key order preserved at every level. */
 export type OrderedValue =
@@ -122,7 +123,7 @@ export function parseOrderedJson(content: string): OrderedValue {
   try {
     parsed = JSON.parse(prefixed);
   } catch {
-    throw new AdapterError("INVALID_JSON", "The file is not valid JSON.");
+    throw invalidJson(content, "The file is not valid JSON.");
   }
   assertWithinDepth(parsed, MAX_DEPTH);
   return toOrdered(parsed);

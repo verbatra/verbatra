@@ -211,6 +211,9 @@ async function handlePost(
   applyNoStore(response);
   response.statusCode = result.statusCode;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
+  if (result.retryAfterSeconds !== undefined) {
+    response.setHeader("Retry-After", String(result.retryAfterSeconds));
+  }
   response.end(result.body);
   context.log(formatRequestLog({ method, path, status: result.statusCode }));
 }

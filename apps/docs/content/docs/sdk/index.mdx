@@ -1,0 +1,144 @@
+---
+title: "SDK reference"
+sidebarTitle: "Overview"
+description: "Install @verbatra/sdk, find the page for each entry point, and hand the SDK your own file system."
+type: reference
+---
+`@verbatra/sdk` is the engine the `verbatra` command runs on. The CLI is a thin wrapper, so whatever
+the command line does, you can do in code. The pages listed below catalog the whole public surface, grouped by
+the job each entry point does. New to the SDK? Start with the [SDK quickstart](/docs/sdk-quickstart); for end-to-end examples, see [SDK recipes](/docs/programmatic-api).
+
+<SdkEntryPoints />
+
+<SdkAnchorForward />
+
+## Install
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Requires Node.js `>=22.14.0`.
+
+The pnpm line installs correctly but exits `1` with `ERR_PNPM_IGNORED_BUILDS`: pnpm gates the
+install scripts of the bundled Gemini SDK and its `protobufjs`, and leaves an unanswered
+`pnpm-workspace.yaml` behind that makes every later pnpm command in the project fail the same way.
+Run `pnpm approve-builds` once and approve neither entry, or see
+[Troubleshooting](/docs/troubleshooting) for the non-interactive fix. There is no `npx` shortcut
+around this the way there is for the CLI, because you are importing a library, not running a
+binary.
+
+<Callout title="API keys and the environment">
+The SDK never reads, holds, or accepts an API key. The provider reads its key from the environment
+(for example `ANTHROPIC_API_KEY`) when it is constructed. Unlike the CLI, the SDK does not load
+`.env` files: in your own script, set the variable yourself, for example with
+`node --env-file=.env script.js`.
+</Callout>
+
+Every entry point takes one input object whose first field is the validated `config` (from
+`loadConfig`), except where noted. Most also accept an optional second `deps` argument that injects
+a registry, provider builder, or file system; you can ignore it in normal use. See
+[The dependency seam](#the-dependency-seam) for what `deps.fs` reaches.
+
+## The dependency seam
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` replaces the file-system port the SDK's own I/O travels through, typed as `SdkFs`. The
+seam is complete: the run-status file, the lock file, the glossary file tools, workbook and
+interchange I/O, and the locale files themselves all go through it, because the format adapters read and write
+through a port built from the same object. A whole run can therefore be held in memory, which is
+how the SDK's own tests avoid touching disk and how an embedding application can back part of a
+project with something other than a local disk.
+
+```ts
+import { translate, type SdkFs } from "@verbatra/sdk";
+
+const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
+```
+
+Two contract points an implementation has to honor. Reads are size-bounded, so `readFileBounded`
+and `readBytesBounded` take a byte limit and report `missing` or `too-large` as a state rather than
+throwing, which is what keeps a hostile or accidentally huge file from exhausting memory. Writes are
+expected to be atomic, so a crash mid-write never leaves a half-written file behind, and
+`createExclusive` must be atomic against other processes because it is the primitive behind the
+per-locale write lock. Directory creation is the caller's job.
+
+`readDirectory` is optional, so an implementation written before source extraction existed keeps
+compiling. [`extract`](/docs/sdk/inspect#extract) is the only entry point that needs it, and reports its absence as
+`EXTRACT_FS_UNSUPPORTED`. It lists one directory's immediate entries as `{ name, kind }`, where
+`kind` is `"file"`, `"directory"`, or `"other"`. A symbolic link belongs in `"other"`: the scan
+never follows one, which is what keeps it inside the roots it was given.
+
+`realpath` is optional too. It resolves every symbolic link in an existing path, and the output
+guards of [`generateTypes`](/docs/sdk/run#generatetypes), [`exportTmx`](/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/docs/sdk/exchange#exportworkbook), and [`pseudolocalize`](/docs/sdk/run#pseudolocalize) use it to see where an
+output path really lands, so a link cannot carry a written file outside `cwd` or onto a file the
+project depends on. Without it, those guards compare paths as written. A link at the output path
+whose target does not exist cannot be resolved, so the guards assume `writeFile` and `writeBytes`
+replace a link there rather than writing through it, as the default atomic write does.
+
+`rename` is optional as well.
+
+<AvailableFrom version="0.12.0" />
+
+It moves a file to a new name in the same directory in one atomic step, replacing any file already
+there, and rejects with an error whose `code` is `ENOENT` when the source is missing. The write lock
+uses it to remove a lock or reclaim guard left by a process that is gone, and to release its own
+lock: the file is moved aside under a unique `<name>.<pid>.<tag>.<uuid>.stale` name and deleted only
+when it is still the record the lock expected. Anything else, such as a lock another process took in
+the meantime, is put back with `createExclusive`. A rename that fails with `EPERM`, `EBUSY`, or
+`EACCES`, as Windows reports for a file another process has open, counts as "not reclaimed this
+poll", and the lock keeps polling until its timeout. When the rename that releases a lock fails for
+any reason, the release falls back to reading the lock file and deleting it while it still holds
+the holder's token, and retries an `EPERM`, `EBUSY`, or `EACCES` failure a few times, a poll apart.
+A record that should have been put back but cannot be, because a third process took the path in
+the meantime, is deleted, since its holder's token check fails from then on. Without `rename`, the lock reads the file and
+deletes it when unchanged, which leaves a wider window in which a lock another process just took is
+deleted.
+
+Moving a file aside and putting it back is two steps, so in rare interleavings two processes can
+briefly both believe they hold the same lock. Every lock therefore records a random ownership
+token, and before each write the lock protects (the locale file, the lock file, the provenance
+file, the glossary) the holder checks that the lock file still carries its token. When it does not,
+the operation stops with `LOCK_CONTENDED` and writes nothing. A lock file found missing or holding
+another token on release is reported the same way when the operation succeeded, since the other
+process may have changed the same files since; an operation that failed throws its own error. The
+check and the write are still two steps, and nothing bounds the time between them: a holder paused
+right after the check (a sleeping machine, a stopped process, a debugger, a clock step, or a long
+block of its event loop) stops its heartbeat, so once its lock is three intervals old (30 seconds
+by default) another process on the same machine takes it over, and the paused holder can still
+write once when it resumes. The token check relies on `createExclusive` creating a file that
+`readFileBounded` reads back, so a custom implementation must keep that promise.
+
+`touch` and `mtimeMs` are optional too.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` sets an existing file's modification time to now, and `mtimeMs(path)` returns it in
+milliseconds, or `undefined` when the file is missing. With `touch`, a lock holder records a
+heartbeat interval of 10 seconds in its lock and refreshes the file's modification time at that
+interval while it holds the lock. It touches the lock file right after creating it too, so the
+file's age is measured by this process's clock rather than the file server's. With `mtimeMs`, a waiting process treats a lock on its own
+machine whose recorded process is still running but whose file has not been refreshed for three of
+the recorded intervals (30 seconds by default) as abandoned. That covers a lock record that outlived
+its hold, for example one put back for a long-lived Studio, `watch`, or MCP server process that had
+already released it. A reclaim guard records no heartbeat: it is cleared once its process is
+provably gone and it has been seen unchanged across two polls. Without these members, a lock is judged abandoned
+only when its recorded process is provably gone.
+
+A process that crashes while it has a lock moved aside can leave a `.stale` file in
+`.verbatra-local/locks/`. Such files are safe to delete by hand, and the next lock acquisition
+deletes them once the process that moved them is gone or, when `touch` is implemented, once they
+are older than the stale threshold, counted from the move. A file system without `touch` keeps
+them until their mover is gone.
+
+`deps.fs` cannot reach a caller-supplied `deps.adapterRegistry`. Those adapters
+were constructed by the caller, so their file access is whatever the caller wired into them.
+Supplying both means the caller owns that wiring.
+
+Config loading sits outside the seam as well. `loadConfig` and `loadConfigWithMeta` take no `deps`:
+they read the config file itself from the real disk, and a glossary file the config names through
+their own `fs` option, so the `deps.fs` a later flow receives reaches neither read. To keep a whole
+project in memory, pass the same `SdkFs` as `loadConfig({ fs })`, and hand the config in as
+`configOverride` rather than as a file.

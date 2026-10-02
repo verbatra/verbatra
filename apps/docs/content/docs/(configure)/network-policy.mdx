@@ -1,0 +1,102 @@
+---
+title: Restrict network access
+description: Restrict which hosts a translation provider may connect to, so a local-only setup is enforced by verbatra instead of resting on convention.
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+Use this when your strings must stay on your own network, for example with a self-hosted model behind `openai-compatible` or a LibreTranslate server behind `libretranslate`. A mistyped `baseUrl`, a stray `OPENAI_BASE_URL` or a switch to a hosted provider would otherwise send strings to a public endpoint. With a network policy, verbatra refuses a host the policy does not permit before any request leaves the machine. What a request contains is covered in [Data handling and privacy](/docs/data-handling).
+
+## Set a policy
+
+Add a `network` block to the config ([`network`](/docs/config-file#network) in the reference):
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+}
+```
+
+| Policy | Permits |
+| --- | --- |
+| `any` | every host; the default without a `network` block |
+| `local-only` | loopback (`127.0.0.0/8`, `::1`, and `localhost` or `*.localhost` when they resolve only to loopback), private IPv4 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), unique-local IPv6 (`fc00::/7`), and `allowedHosts` |
+| `allowlist` | only what `allowedHosts` lists, with at least one entry |
+
+Each `allowedHosts` entry is a host name (`llm.internal`, any case), a wildcard (`*.corp.example`, subdomains only, at least two labels after `*.`), an IP address, or a CIDR range such as `100.64.0.0/10`. Write no scheme, port or path.
+
+`local-only` leaves out link-local addresses (`169.254.0.0/16`, which holds the cloud metadata address, and `fe80::/10`), the carrier-grade NAT range `100.64.0.0/10`, and `0.0.0.0` and `::`. If your server listens on `0.0.0.0`, point `baseUrl` at `127.0.0.1`; if you use a VPN range, list it in `allowedHosts`.
+
+## Hosted providers
+
+Under `local-only`, `anthropic`, `openai`, `gemini`, `deepl` and `google-translate` are refused, because their endpoints are public. To allow one, list its host:
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+  allowedHosts: ["api.deepl.com"],
+}
+```
+
+The hosts are `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` for a key ending in `:fx`) and `translation.googleapis.com`. If `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` or `GOOGLE_GEMINI_BASE_URL` is set, verbatra checks that endpoint instead. Gemini in Vertex AI mode (`GOOGLE_GENAI_USE_VERTEXAI` or `GOOGLE_GENAI_USE_ENTERPRISE` set to `true`) is always refused under a restrictive policy.
+
+## Pin a policy from the environment
+
+To enforce a policy in CI whatever the repository's config says:
+
+```bash
+export VERBATRA_NETWORK_POLICY=local-only
+export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
+```
+
+`VERBATRA_NETWORK_ALLOWED_HOSTS` is a comma-separated list of `allowedHosts` entries. When the config and the environment both set a policy, a host must satisfy both, so a config can never loosen what the environment pins.
+
+An unrecognized value, such as `local_only`, or the host list without the policy variable, fails the run with [`CONFIG_INVALID`](/docs/error-codes#config_invalid) rather than allowing every host. `translate --dry-run` and `--estimate` check these variables too, except under provider `none`.
+
+## Check the policy
+
+Run [`verbatra doctor`](/docs/cli/doctor): it reports the effective policy, where each part comes from, the provider's host, and whether that host is permitted. It resolves no names and sends nothing, and the language list that `doctor --live` fetches is held to the same policy.
+
+A refused host stops `translate`, `watch` at startup, retranslation in Studio and MCP, and the SDK's `retranslateEntry` with [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation) and exit code `2`, before any key is read. A dry run and `--estimate` call no provider, so they are not refused.
+
+## Know when requests are checked
+
+The first check resolves no names, so a host name it cannot classify on its own, such as `llm.internal`, passes it. Every request from `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` and `libretranslate` is checked again right before it is sent:
+
+- a host name is resolved, and every address it resolves to must be permitted;
+- only a `307` or `308` to the same origin is followed, up to five in a row; a redirect to any other origin, including `https` to `http`, fails the request.
+
+A request refused here fails its sub-batch with the provider error [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#provider-network_policy_violation), naming only the host, and is never retried.
+
+## Limits
+
+- **DNS rebinding.** The name is resolved once to check it and again to connect, so a DNS server that answers differently can slip past. Write an IP address, or list the name in `allowedHosts`, which is trusted without resolving it.
+- **DeepL is checked once**, before the provider is built, not per request or redirect.
+- **Proxies.** Under a restrictive policy, every proxy the provider would use must itself be permitted, as an IP address or a listed name. DeepL uses `HTTPS_PROXY`, `HTTP_PROXY` and `ALL_PROXY`; the other providers use them only on Node 24 with `NODE_USE_ENV_PROXY=1` or `--use-env-proxy`. `NO_PROXY` is ignored.
+- **Custom providers.** A provider passed through the SDK's `createProvider` is checked before it is built and receives the effective policy; applying it to its own requests is up to that code.
+
+## Machine translation without a language model
+
+Some NDAs forbid language models but accept classic machine translation on your own hardware. [LibreTranslate](/docs/providers#libretranslate) is that: an open-source server with Argos Translate models. Run it with the languages you need:
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+Then point verbatra at it and pin the network:
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` checks each target locale against the installed models. Its values are still recorded as `machine` origin.
+
+## Related
+
+- [`network`](/docs/config-file#network): the config key.
+- [`verbatra doctor`](/docs/cli/doctor): check the policy without translating.
+- [Data handling and privacy](/docs/data-handling): what leaves the machine and when.

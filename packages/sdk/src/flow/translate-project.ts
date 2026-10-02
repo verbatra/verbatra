@@ -1,16 +1,21 @@
-import type { ProviderKind, TranslationProvider } from "@verbatra/ai-providers";
+import { processEnvironment } from "@verbatra/ai-providers";
 import type { AdapterRegistry, FormatAdapter, ReadResult } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../cache/fingerprint.js";
+import { type FingerprintFor, fingerprintsFor } from "../cache/fingerprint.js";
 import {
   additionsToRecord,
   applyAdditions,
   CACHE_FILE_NAME,
   cacheFilePath,
   readTranslationMemory,
+  withMemoryLocalesMoved,
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
+import { glossaryForLocale } from "../config/glossary.js";
+import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
+import { resolveNetworkPolicy } from "../config/network-policy.js";
+import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
   DEFAULT_BUDGET_BEHAVIOR,
@@ -22,17 +27,27 @@ import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import {
+  assertLockAcquireTimeout,
   type LocaleWriteLockOptions,
   type LockWaitListener,
+  recordLockOptions,
   withLocaleWriteLock,
   writeLockKeyFor,
+  writeLockOptions,
 } from "../lock/locale-write-lock.js";
 import {
   baselineFor,
   lockFilePath,
   readLockFile,
   updateLockFileLocale,
+  withLockLocalesMoved,
 } from "../lock/lock-file.js";
+import { machineAttribution } from "../lock/machine-attribution.js";
+import {
+  isNewerProvenance,
+  withNewerProvenanceNotice,
+  withProvenanceWriteNotice,
+} from "../lock/provenance-notice.js";
 import type { LockFile } from "../lock/types.js";
 import type { ProgressListener } from "../progress/types.js";
 import {
@@ -41,12 +56,37 @@ import {
   writeRunStatusFile,
 } from "../run-status/run-status-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
+import {
+  type CreateProvider,
+  type CreateProviderHooks,
+  selectProvider,
+} from "../selection/select-provider.js";
+import { createSensitiveGuard } from "../sensitive/guard.js";
 import type { BudgetTracker } from "./budget.js";
-import { createBudgetTracker, toBudgetSummary } from "./budget.js";
+import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
-import { failureSummary, partition } from "./locale-failure.js";
-import { type LocaleRunParams, runLocale } from "./locale-run.js";
+import { assertConfiguredLocalesSupported, withCapabilityNotices } from "./locale-capabilities.js";
+import {
+  carryOverRefusal,
+  carryOverRespelledLocales,
+  type LocaleCarryOverPlan,
+  type LocaleMoves,
+  movedFrom,
+  withCarryOverNotices,
+} from "./locale-carry-over.js";
+import {
+  failureSummary,
+  isWholeRunError,
+  partition,
+  withProjectRelativeMessages,
+} from "./locale-failure.js";
+import { type LocaleRunMode, type LocaleRunParams, runLocale } from "./locale-run.js";
+import {
+  type ProtectionPolicy,
+  protectionPolicy,
+  readProvenanceView,
+  readRejectedValueHashes,
+} from "./protection.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
 import type { LocaleSummary, RunEstimate, RunSummary, SdkNotice } from "./summary.js";
@@ -76,7 +116,8 @@ export interface TranslateInput {
   /**
    * Compute the whole run but write nothing and call no provider. The returned
    * {@link RunSummary} reports what would have happened, which makes this safe to run in CI to
-   * preview work without spending anything. Defaults to false.
+   * preview work without spending anything. Defaults to false. In human-only mode (provider
+   * `none`) it reads the translation memory, so the plan matches a live run.
    */
   readonly dryRun?: boolean;
   /**
@@ -101,34 +142,56 @@ export interface TranslateInput {
   /**
    * Generate the plural categories a target language requires rather than translating each
    * category separately. Defaults to the config's `generatePlurals`, then to false. Takes effect
-   * only with an LLM provider; a machine-translation provider generates nothing.
+   * only for the `i18next-json` format with an LLM provider; any other format, a
+   * machine-translation provider, and provider `none` generate nothing.
    */
   readonly generatePlurals?: boolean;
   /**
    * Called while waiting on another process's write lock, so a CLI can explain a stall instead of
-   * appearing to hang.
+   * appearing to hang. Never called for a lock this process holds itself, such as the lock-file
+   * guard a sibling locale holds on a concurrent run.
    */
   readonly onLockWait?: LockWaitListener;
   /** Called as locales and sub-batches start and finish, for progress reporting. */
   readonly onProgress?: ProgressListener;
   /**
    * How long, in milliseconds, to wait for a locale's write lock before that locale fails with
-   * `LOCK_CONTENDED`. Defaults to ten minutes. Not used on a dry run, which takes no lock.
+   * `LOCK_CONTENDED`, and for the lock-file guard before a locale whose respelled state could not be
+   * moved fails with `LOCALE_STATE_NOT_CARRIED_OVER`. Both waits happen before any provider call.
+   * Defaults to ten minutes. It does not bound the lock-file guard a locale takes to record its
+   * result once its target file is written: that wait always allows the ten-minute default, so a
+   * written file is not left unrecorded. Not used on a dry run, which takes no lock.
    */
   readonly lockAcquireTimeoutMs?: number;
   /**
    * How many locales to run at once. Must be an integer of at least 1; defaults to 1. On a live
-   * run it cannot be combined with a configured token budget: the ceiling would still hold, but
-   * which locale loses its remaining work would depend on the order the locales interleave, so the
-   * run would not be reproducible.
+   * run it cannot be combined with a token budget, configured or passed as `maxTokens`: the
+   * ceiling would still hold, but which locale loses its remaining work would depend on the order
+   * the locales interleave, so the run would not be reproducible.
    */
   readonly concurrency?: number;
   /**
    * Consult and update the translation memory, fuzzy reuse included. Defaults to true. Turning it
    * off forces every key through the provider, which is what to do when you want to re-pay for a
-   * fresh translation. A dry run never reads the memory, whatever this says.
+   * fresh translation. A dry run never reads the memory, whatever this says, except in human-only
+   * mode (provider `none`), where the memory is all a live run would use.
    */
   readonly cache?: boolean;
+  /**
+   * Overrides the config's `humanEdits` for this run only (see {@link HumanEditsPolicy}). Set
+   * `overwrite` to retranslate stale keys a person wrote, as the CLI's `--include-human` flag does.
+   * Keys matching the config's `pinnedKeys` stay protected whatever this says.
+   */
+  readonly humanEdits?: HumanEditsPolicy;
+  /**
+   * A token ceiling for this run alone, as the CLI's `--max-tokens` flag sets it. It is always a
+   * hard stop: a provider request that would pass it is withheld rather than sent, whatever the
+   * config's `budgetBehavior` says, and its keys are listed in
+   * {@link LocaleSummary.budgetWithheld}. When the config also sets `maxTokens`, the lower of the
+   * two applies, so this can tighten the configured budget but never loosen it. Must be a whole
+   * number of at least 1. Defaults to the config's `maxTokens` and `budgetBehavior` alone.
+   */
+  readonly maxTokens?: number;
 }
 
 /** Injectable dependencies for {@link translate}. Every field has a working default. */
@@ -157,27 +220,31 @@ async function recordRunStatus(
 
 interface RunCacheState {
   readonly memory: TranslationMemory;
-  readonly fingerprint: string;
+  readonly fingerprintFor: FingerprintFor;
   readonly fuzzy?: { readonly threshold: number };
   readonly additions: Map<string, Record<string, CacheAddition>>;
   readonly writable: boolean;
 }
 
-async function createRunCacheState(
+function usesTranslationMemory(
   input: TranslateInput,
   config: VerbatraConfig,
-  cwd: string,
   dryRun: boolean,
+): boolean {
+  return !((dryRun && isMachineProvider(config.provider)) || input.cache === false);
+}
+
+async function createRunCacheState(
+  config: VerbatraConfig,
+  cwd: string,
   fs: SdkFs,
-): Promise<RunCacheState | undefined> {
-  if (dryRun || input.cache === false) {
-    return undefined;
-  }
+  carryOver: LocaleCarryOverPlan,
+): Promise<RunCacheState> {
   const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
   return {
-    memory,
+    memory: withMemoryLocalesMoved(memory, carryOver.memory),
     writable,
-    fingerprint: computeFingerprint(config),
+    fingerprintFor: fingerprintsFor(config),
     additions: new Map(),
     ...(config.fuzzyCache?.enabled === true
       ? { fuzzy: { threshold: config.fuzzyCache.threshold ?? DEFAULT_FUZZY_THRESHOLD } }
@@ -211,7 +278,7 @@ async function recordCacheAdditions(
     return;
   }
   try {
-    const merged = applyAdditions(cache.memory, cache.fingerprint, cache.additions);
+    const merged = applyAdditions(cache.memory, cache.fingerprintFor, cache.additions);
     await writeTranslationMemory(cacheFilePath(cwd), merged, fs);
   } catch {}
 }
@@ -219,8 +286,7 @@ async function recordCacheAdditions(
 interface LocaleRunContext {
   readonly source: ReadResult;
   readonly adapter: FormatAdapter;
-  readonly provider: TranslationProvider | undefined;
-  readonly providerKind: ProviderKind;
+  readonly mode: LocaleRunMode;
   readonly cwd: string;
   readonly config: VerbatraConfig;
   readonly resolver: LocalePathResolver;
@@ -230,29 +296,38 @@ interface LocaleRunContext {
   readonly fs: SdkFs;
   readonly budget: BudgetTracker;
   readonly cache: RunCacheState | undefined;
-  readonly onLockWait?: LockWaitListener;
+  readonly machine: ReturnType<typeof machineAttribution>;
+  readonly protection: ProtectionPolicy;
+  readonly provenanceMoves: LocaleMoves;
+  readonly lockOptions: LocaleWriteLockOptions;
+  readonly recordLockOptions: LocaleWriteLockOptions;
   readonly onProgress?: ProgressListener;
-  readonly lockAcquireTimeoutMs?: number;
 }
 
-function buildLocaleRunParams(
+async function buildLocaleRunParams(
   context: LocaleRunContext,
   targetLocale: string,
   baseline: ReadonlyMap<string, string>,
-): LocaleRunParams {
+): Promise<LocaleRunParams> {
+  const provenanceLocale = movedFrom(context.provenanceMoves, targetLocale);
+  const provenance = await readProvenanceView(
+    context.protection,
+    context.cwd,
+    context.fs,
+    provenanceLocale,
+  );
   return {
     source: context.source.resource,
     sourceInvalidIcuKeys: context.source.invalidIcuKeys,
     baseline,
     adapter: context.adapter,
-    provider: context.provider,
-    providerKind: context.providerKind,
+    mode: context.mode,
     cwd: context.cwd,
     resolver: context.resolver,
     sourceLocale: context.config.sourceLocale,
     targetLocale,
     format: context.config.format,
-    glossary: context.config.glossary,
+    glossary: glossaryForLocale(context.config.glossary, targetLocale),
     maxLength: toMaxLengthMap(context.config.maxLength),
     tone: context.config.tone,
     prune: context.prune,
@@ -260,11 +335,20 @@ function buildLocaleRunParams(
     maxBatchSize: context.maxBatchSize,
     fs: context.fs,
     budget: context.budget,
+    ...(context.machine !== undefined ? { machine: context.machine } : {}),
+    protection: { policy: context.protection, provenance },
+    rejected: await readRejectedValueHashes(
+      context.protection,
+      provenance,
+      context.cwd,
+      context.fs,
+      provenanceLocale,
+    ),
     ...(context.cache !== undefined
       ? {
           cache: {
             snapshot: context.cache.memory,
-            fingerprint: context.cache.fingerprint,
+            fingerprint: context.cache.fingerprintFor(targetLocale),
             ...(context.cache.fuzzy !== undefined ? { fuzzy: context.cache.fuzzy } : {}),
           },
         }
@@ -278,7 +362,7 @@ async function runDryLocale(
   targetLocale: string,
   lock: LockFile,
 ): Promise<LocaleSummary> {
-  const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
+  const params = await buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
   return (await runLocale(params)).summary;
 }
 
@@ -286,30 +370,32 @@ async function runLiveLocale(
   context: LocaleRunContext,
   targetLocale: string,
 ): Promise<LocaleSummary> {
-  const lockOptions: LocaleWriteLockOptions = {
-    ...(context.onLockWait !== undefined ? { onWait: context.onLockWait } : {}),
-    ...(context.lockAcquireTimeoutMs !== undefined
-      ? { acquireTimeoutMs: context.lockAcquireTimeoutMs }
-      : {}),
-  };
   return withLocaleWriteLock(
     context.cwd,
     writeLockKeyFor(context.config.format, targetLocale),
     context.fs,
     async () => {
       const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
-      const params = buildLocaleRunParams(context, targetLocale, baselineFor(lock, targetLocale));
+      const params = await buildLocaleRunParams(
+        context,
+        targetLocale,
+        baselineFor(lock, targetLocale),
+      );
       const result = await runLocale(params);
-      await updateLockFileLocale(context.cwd, context.fs, targetLocale, {
-        mode: "replace",
-        entries: result.lockEntries,
-      });
+      const update = await updateLockFileLocale(
+        context.cwd,
+        context.fs,
+        targetLocale,
+        { mode: "replace", entries: result.lockEntries },
+        result.provenance,
+        context.recordLockOptions,
+      );
       if (context.cache !== undefined && result.cacheAdditions.length > 0) {
         context.cache.additions.set(targetLocale, additionsToRecord(result.cacheAdditions));
       }
-      return result.summary;
+      return withProvenanceWriteNotice(result.summary, update.provenance);
     },
-    lockOptions,
+    context.lockOptions,
   );
 }
 
@@ -320,7 +406,7 @@ async function runOneLocale(
   try {
     return await run();
   } catch (error) {
-    if (error instanceof SdkError && error.code === "LOCK_FILE_INVALID") {
+    if (isWholeRunError(error)) {
       throw error;
     }
     return failureSummary(targetLocale, error);
@@ -390,16 +476,34 @@ async function runLocalesWithProgress(
   return results.filter((summary): summary is LocaleSummary => summary !== undefined);
 }
 
+function unlessWithheld(
+  carryOver: LocaleCarryOverPlan,
+  dryRun: boolean,
+  run: (targetLocale: string) => Promise<LocaleSummary>,
+): (targetLocale: string) => Promise<LocaleSummary> {
+  return async (targetLocale) => {
+    const refusal = carryOverRefusal(carryOver, targetLocale, dryRun ? "dry-run" : "run");
+    if (refusal !== undefined) {
+      throw refusal;
+    }
+    return run(targetLocale);
+  };
+}
+
 async function runAllLocalesDry(
   context: LocaleRunContext,
   targetLocales: readonly string[],
   concurrency: number,
+  carryOver: LocaleCarryOverPlan,
 ): Promise<LocaleSummary[]> {
-  const lock = await readLockFile(lockFilePath(context.cwd), context.fs);
+  const lock = withLockLocalesMoved(
+    await readLockFile(lockFilePath(context.cwd), context.fs),
+    carryOver.lock,
+  );
   return runLocalesWithProgress(
     context,
     targetLocales,
-    (targetLocale) => runDryLocale(context, targetLocale, lock),
+    unlessWithheld(carryOver, true, (targetLocale) => runDryLocale(context, targetLocale, lock)),
     concurrency,
   );
 }
@@ -408,11 +512,12 @@ async function runAllLocalesLive(
   context: LocaleRunContext,
   targetLocales: readonly string[],
   concurrency: number,
+  carryOver: LocaleCarryOverPlan,
 ): Promise<LocaleSummary[]> {
   return runLocalesWithProgress(
     context,
     targetLocales,
-    (targetLocale) => runLiveLocale(context, targetLocale),
+    unlessWithheld(carryOver, false, (targetLocale) => runLiveLocale(context, targetLocale)),
     concurrency,
   );
 }
@@ -433,16 +538,20 @@ function resolveConcurrency(value: number | undefined): number {
 export function resolveRunConcurrency(
   value: number | undefined,
   dryRun: boolean,
-  config: VerbatraConfig,
+  maxTokens: number | undefined,
+  dryRunAvailable = true,
 ): number {
   const concurrency = resolveConcurrency(value);
-  if (!dryRun && concurrency > 1 && config.maxTokens !== undefined) {
+  if (!dryRun && concurrency > 1 && maxTokens !== undefined) {
+    const remedy = dryRunAvailable
+      ? "Set concurrency to 1, remove maxTokens, or use --dry-run."
+      : "Set concurrency to 1 or remove maxTokens.";
     throw new SdkError(
       "CONCURRENCY_BUDGET_CONFLICT",
       "A token budget (maxTokens) and concurrency greater than 1 cannot be combined on a live run: " +
         "the ceiling still holds, but which locale loses its remaining work would depend on the " +
         "order the locales happen to interleave, so the same project would not produce the same " +
-        "run twice. Set concurrency to 1, remove maxTokens, or use --dry-run.",
+        `run twice. ${remedy}`,
     );
   }
   return concurrency;
@@ -476,6 +585,44 @@ export function resolveDryRun(input: {
   return input.dryRun === true || input.estimate === true;
 }
 
+function retryHooks(onProgress: ProgressListener | undefined): {
+  readonly hooks?: CreateProviderHooks;
+} {
+  return onProgress === undefined
+    ? {}
+    : { hooks: { onRetry: (retry) => onProgress({ type: "provider-retry", ...retry }) } };
+}
+
+function selectRunMode(
+  config: VerbatraConfig,
+  dryRun: boolean,
+  createProvider: CreateProvider | undefined,
+  onProgress: ProgressListener | undefined,
+): LocaleRunMode {
+  const machineProvider = isMachineProvider(config.provider) ? config.provider : undefined;
+  if (machineProvider === undefined) {
+    return { kind: "memory-only", write: !dryRun };
+  }
+  const providerKind = kindOf(machineProvider.id);
+  const sensitive = createSensitiveGuard(config.sensitiveData, providerKind);
+  const guarded = sensitive === undefined ? {} : { sensitive };
+  if (dryRun) {
+    resolveNetworkPolicy(config.network, processEnvironment());
+  }
+  return dryRun
+    ? { kind: "plan", providerKind, ...guarded }
+    : {
+        kind: "translate",
+        provider: selectProvider(machineProvider, createProvider, {
+          network: config.network,
+          ...guarded,
+          ...retryHooks(onProgress),
+        }),
+        providerKind,
+        ...guarded,
+      };
+}
+
 function estimateFields(
   requested: boolean,
   params: EstimateForRunInput,
@@ -487,7 +634,8 @@ function estimateFields(
  * Runs the one-shot translation flow over every configured target locale, or over the subset named
  * by `locales`: read the source, diff
  * each locale against the lock-file baseline, translate what is missing or stale, verify placeholder
- * and ICU integrity, write the locale files, and update the lock-file and translation memory. A
+ * and ICU integrity, write the locale files, and update the lock-file, the provenance file, and
+ * the translation memory. A
  * live run also records its summary in the run-status file that {@link runStatus} reads; a failure
  * to write that file or the translation memory is swallowed rather than failing the run.
  *
@@ -513,16 +661,68 @@ function estimateFields(
  *
  * Set `dryRun` to compute the whole plan without writing or spending anything.
  *
+ * A locale code respelled in the config, such as `pt_BR` renamed to `pt-BR`, keeps its history.
+ * When a selected target locale has no state of its own in the lock file, the translation memory,
+ * or the provenance file, and that file holds state under exactly one underscore spelling of it
+ * (compared case-insensitively), a live run moves that state to the configured code once, before
+ * any locale runs, and reports `LOCALE_STATE_CARRIED_OVER` on the locale. State the configured code
+ * already has is never overwritten, and two candidate spellings move nothing; {@link doctor} lists
+ * what is left behind. The lock-file guard is taken only when there is something to move, with the
+ * same `lockAcquireTimeoutMs` and `onLockWait` as the locale write locks. When the guard stays
+ * contended or the lock file or the provenance file cannot be written, the state stays where it
+ * is and the locale does not run: it fails with `LOCALE_STATE_NOT_CARRIED_OVER` and reports
+ * `LOCALE_STATE_CARRY_OVER_SKIPPED`, nothing is recorded under its code, and the next run tries
+ * the move again. The other locales run as usual, and neither case throws. A translation memory
+ * that cannot be written only costs the locale those cached translations; it still runs. A dry run
+ * plans with the moved lock-file, provenance, and memory state and reports it, but writes nothing,
+ * and reports the locale as failed in the same way when another process holds the lock-file guard
+ * at the time.
+ *
+ * A stale key whose current value a person wrote is protected by default: its origin in the
+ * provenance file is `human` or `import`, or its value changed outside verbatra since it was
+ * recorded. The key is not translated, keeps its value and its lock-file baseline, so it stays
+ * stale for {@link check}, and is listed in {@link LocaleSummary.protected}. The config's
+ * `humanEdits` (or {@link TranslateInput.humanEdits} for one run) changes this: `suggest` also sends
+ * the key to the provider and returns the answer as a suggestion without writing it, and
+ * `overwrite` retranslates it. A key matching `pinnedKeys` is never sent or written, whatever the
+ * setting. When the provenance file was written by a newer verbatra, every stale key with a value
+ * is protected, since its origin cannot be read. Protected keys do not change a locale's status.
+ *
+ * A translation-memory hit, exact or fuzzy, is never reused for a key whose `rejected` provenance
+ * record, left by {@link rejectEntry}, holds the hash of that same text, so another machine's memory
+ * cannot reinstate a value a reviewer refused. The key goes to the provider instead, or stays
+ * unfilled in human-only mode. This holds under every `humanEdits` setting.
+ *
+ * A config whose provider is `none` runs in human-only mode. No provider is constructed and no API
+ * key is read, whatever `deps.createProvider` says. Keys the translation memory covers are written
+ * as usual; every other missing or stale key is left untouched, keeps its lock-file baseline, and is
+ * listed in {@link LocaleSummary.unfilled} for a human to translate, through `exportWorkbook` and
+ * {@link importWorkbook} for instance. Only exact memory hits are written: fuzzy reuse is never
+ * applied in this mode, even with `fuzzyCache` on, because only a person can confirm a translation
+ * of text that has changed. Such keys do not change a locale's status.
+ * A human-only dry run reads the memory too, without writing anything, so its plan matches a live
+ * run, and an estimate reports nothing to send and nothing billed.
+ *
  * @param input - The config and the per-run options.
  * @param deps - Optional adapter registry, provider factory, and file-system overrides.
  * @returns The per-locale account of the run, including usage and budget.
  *
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: `locales` names a locale that is not a configured
  * target. Thrown before anything is read, written, or spent.
+ * @throws {@link SdkError} `LOCALE_UNSUPPORTED_BY_PROVIDER`: the configured machine-translation
+ * provider does not support the source locale or a selected target locale, according to its
+ * language table. Thrown before anything is read, written, or spent, so no locale is started, on a
+ * dry run and an estimate too. Leave the locale out with `locales` to translate the others. Warnings
+ * from the same assessment (a locale only partly verified, a glossary or tone the provider cannot
+ * apply, a language outside an LLM's well-tested list) are reported as notices on the affected
+ * {@link LocaleSummary} instead.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `CONCURRENCY_INVALID`: `concurrency` is not an integer of at least 1.
  * @throws {@link SdkError} `CONCURRENCY_BUDGET_CONFLICT`: a live run combined a `concurrency` above
- * 1 with a configured token budget. A dry run is exempt.
+ * 1 with a token budget, configured or passed as `maxTokens`. A dry run is exempt.
+ * @throws {@link SdkError} `MAX_TOKENS_INVALID`: `maxTokens` is not a whole number of at least 1.
+ * @throws {@link SdkError} `LOCK_TIMEOUT_INVALID`: `lockAcquireTimeoutMs` is not a whole number of
+ * milliseconds of at least 0.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.
  * @throws {@link SdkError} `LOCALE_PATH_COLLISION`: two configured locales resolve to the same path.
@@ -531,9 +731,19 @@ function estimateFields(
  * @throws {@link SdkError} `PROVIDER_CONSTRUCTION_FAILED`: the provider could not be constructed,
  * most often because its API key environment variable is unset. Not thrown on a dry run, which
  * never constructs a provider.
+ * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
+ * the configured provider's endpoint or its proxy. Thrown before the provider is constructed or any
+ * API key is read. Not thrown on a dry run.
+ * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
+ * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid, on a dry run too, so a dry run
+ * or estimate fails where the live run would. Not checked under the provider `none`.
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version. A dry run reads it once before any locale runs; a live run reads it per
  * locale, so this can abort the run after other locales have already been written.
+ * @throws {@link SdkError} `PROVENANCE_FILE_INVALID`: the provenance file is corrupt, oversized, or
+ * structurally wrong. A live run reads it before any locale runs and again as each locale records
+ * its result, so, like a corrupt lock-file, it can abort the run after other locales have been
+ * written. A dry run reads it too, once per locale, unless `humanEdits` resolves to `overwrite`.
  *
  * @example
  * ```ts
@@ -565,28 +775,35 @@ export async function translate(
   const cwd = input.cwd ?? process.cwd();
   const estimateRequested = input.estimate ?? false;
   const dryRun = resolveDryRun(input);
+  assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   const targetLocales = selectLocales(config, input.locales);
-  const concurrency = resolveRunConcurrency(input.concurrency, dryRun, config);
+  const capabilities = assertConfiguredLocalesSupported(config, targetLocales);
+  const runBudget = resolveRunBudget(config, DEFAULT_BUDGET_BEHAVIOR, input.maxTokens);
+  const concurrency = resolveRunConcurrency(input.concurrency, dryRun, runBudget.maxTokens);
   const prune = input.prune ?? config.prune ?? false;
   const generatePlurals = input.generatePlurals ?? config.generatePlurals ?? false;
   const maxBatchSize = config.maxBatchSize ?? DEFAULT_MAX_BATCH_SIZE;
   const fs = deps.fs ?? defaultFs;
-  const budget = createBudgetTracker(
-    config.maxTokens,
-    config.budgetBehavior ?? DEFAULT_BUDGET_BEHAVIOR,
-  );
+  const budget = createBudgetTracker(runBudget.maxTokens, runBudget.behavior, runBudget.source);
 
   const resolver = createLocalePathResolver(cwd, config);
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
-  const provider = dryRun ? undefined : selectProvider(config.provider, deps.createProvider);
+  const mode = selectRunMode(config, dryRun, deps.createProvider, input.onProgress);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const cache = await createRunCacheState(input, config, cwd, dryRun, fs);
+  const usesMemory = usesTranslationMemory(input, config, dryRun);
+  const lockOptions = writeLockOptions(input);
+  const carryOver = await carryOverRespelledLocales(cwd, fs, targetLocales, {
+    dryRun,
+    memory: usesMemory,
+    lock: lockOptions,
+  });
+  const cache = usesMemory ? await createRunCacheState(config, cwd, fs, carryOver) : undefined;
+  const newerProvenance = !dryRun && (await isNewerProvenance(cwd, fs));
   const context: LocaleRunContext = {
     source,
     adapter,
-    provider,
-    providerKind: kindOf(config.provider.id),
+    mode,
     cwd,
     config,
     resolver,
@@ -596,19 +813,30 @@ export async function translate(
     fs,
     budget,
     cache,
-    ...(input.onLockWait !== undefined ? { onLockWait: input.onLockWait } : {}),
+    machine: machineAttribution(
+      config.provider,
+      mode.kind === "translate" ? mode.provider.id : undefined,
+    ),
+    protection: protectionPolicy(config, input.humanEdits),
+    provenanceMoves: dryRun ? carryOver.provenance : new Map(),
+    lockOptions,
+    recordLockOptions: recordLockOptions(input),
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
-    ...(input.lockAcquireTimeoutMs !== undefined
-      ? { lockAcquireTimeoutMs: input.lockAcquireTimeoutMs }
-      : {}),
   };
 
   const summaries = dryRun
-    ? await runAllLocalesDry(context, targetLocales, concurrency)
-    : await runAllLocalesLive(context, targetLocales, concurrency);
+    ? await runAllLocalesDry(context, targetLocales, concurrency, carryOver)
+    : await runAllLocalesLive(context, targetLocales, concurrency, carryOver);
   input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
 
-  const locales = withCacheNotices(summaries, cache);
+  const locales = withCarryOverNotices(
+    withNewerProvenanceNotice(
+      withCacheNotices(withCapabilityNotices(summaries, capabilities), cache),
+      newerProvenance,
+    ),
+    carryOver,
+    dryRun,
+  ).map((summary) => withProjectRelativeMessages(summary, cwd));
   const { succeeded, partial, failed } = partition(locales);
   const usage = summaries.reduce<ReturnType<typeof combineUsage>>(
     (total, summary) => combineUsage(total, summary.usage),

@@ -25,3 +25,9 @@ lib/version.generated.json
 # Next.js's own dev-server noise, not project content, so it is not committed.
 AGENTS.md
 CLAUDE.md
+
+next-env.d.ts
+
+# Generated from the git history of content/docs by scripts/sync-translation-freshness.mjs, which
+# dev, build, typecheck and test all run first; it drives the outdated-translation notice.
+lib/translation-freshness.generated.json

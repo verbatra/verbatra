@@ -5,6 +5,7 @@ import type { ExtractionConfig } from "../config/extraction-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { SdkError, type SdkErrorCode } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { matchesKeyGlob } from "./key-glob.js";
 import { isGeneratedPluralKey } from "./plural-categories.js";
@@ -153,6 +154,7 @@ export interface UnusedKeysInput {
   readonly config: VerbatraConfig;
   readonly cwd: string;
   readonly sourceCatalog?: LocaleResource;
+  readonly onProgress?: ScanProgressListener;
 }
 
 export interface UnusedKeysDeps {
@@ -212,7 +214,10 @@ async function scanSource(
     if (UNMODELED_FORMATS.has(input.config.format)) {
       return unmodeledFormat(input.config.format);
     }
-    return { scan: await runScan(extraction, input.cwd, fs, createExtractor), extraction };
+    return {
+      scan: await runScan(extraction, input.cwd, fs, createExtractor, input.onProgress),
+      extraction,
+    };
   } catch (error) {
     if (isNotRunError(error)) {
       return notRun(error.code, error.message);

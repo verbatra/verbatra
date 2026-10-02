@@ -1,3 +1,4 @@
+import { cpuScalingRatio, LINEAR_MAX_RATIO } from "@verbatra/config/scaling";
 import { describe, expect, it } from "vitest";
 import { extractSingleBraceTokens } from "./tokens.js";
 
@@ -25,8 +26,9 @@ describe("extractSingleBraceTokens", () => {
 
   it("stays linear on adversarial input", () => {
     const hostile = "{".repeat(200_000);
-    const start = Date.now();
     expect(extractSingleBraceTokens(hostile)).toEqual([]);
-    expect(Date.now() - start).toBeLessThan(1000);
+    expect(cpuScalingRatio(extractSingleBraceTokens, "{".repeat(25_000), hostile)).toBeLessThan(
+      LINEAR_MAX_RATIO,
+    );
   });
 });

@@ -1,0 +1,16 @@
+{
+  "title": "SDK",
+  "pages": [
+    "[Inicio rápido del SDK](/es/docs/sdk-quickstart)",
+    "[Recetas del SDK](/es/docs/programmatic-api)",
+    "index",
+    "run",
+    "inspect",
+    "review",
+    "exchange",
+    "config",
+    "extend",
+    "run-summary",
+    "errors"
+  ]
+}

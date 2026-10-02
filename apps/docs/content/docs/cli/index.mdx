@@ -1,25 +1,28 @@
 ---
-title: Overview
-description: "The verbatra command: its fourteen subcommands, the shared flags, how it reads your environment, and the exit-code contract."
+title: "CLI reference"
+sidebarTitle: "Overview"
+description: "The verbatra command: its subcommands, the global flags, and how it reads your environment."
+type: reference
 ---
-`@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). Fourteen commands do the work:
+`@verbatra/cli` ships the `verbatra` binary, a thin wrapper over [`@verbatra/sdk`](/docs/sdk). These commands do the work:
 
-| Command | What it does |
-| --- | --- |
-| [`init`](/docs/cli/init) | create a verbatra config and `.env.example` for this project |
-| [`extract`](/docs/cli/extract) | scan your application source for translation call sites and add the new keys to the source locale file |
-| [`translate`](/docs/cli/translate) | translate every target locale once, then exit |
-| [`watch`](/docs/cli/watch) | re-translate on every source change until interrupted |
-| [`check`](/docs/cli/check) | report which keys are missing or stale per locale, read-only |
-| [`diff`](/docs/cli/diff) | list the exact keys that would be added, re-translated, or are orphaned per locale, read-only |
-| [`doctor`](/docs/cli/doctor) | validate the project setup and report every problem at once, without calling a provider |
-| [`pseudo`](/docs/cli/pseudo) | generate a pseudolocale from the source strings, without calling a provider |
-| [`types`](/docs/cli/types) | generate TypeScript declarations for your catalog keys and their message arguments, without calling a provider |
-| [`export`](/docs/cli/export) | export untranslated strings for a human translator, as an Excel workbook or one CSV or TSV file per locale |
-| [`import`](/docs/cli/import) | import a filled workbook or delimited file back into the locale files |
-| [`tmx`](/docs/cli/tmx) | import a TMX translation memory from another tool into this project's memory, or export this project's memory as a TMX file |
-| [`studio`](/docs/cli/studio) | start Verbatra Studio, the local translation dashboard |
-| [`mcp`](/docs/cli/mcp) | start a stdio MCP server exposing verbatra's tools to an MCP client |
+<Cards>
+  <Card title="init" href="/docs/cli/init">Create a verbatra config and `.env.example` for this project.</Card>
+  <Card title="extract" href="/docs/cli/extract">Scan your application source for translation call sites and add the new keys to the source locale file.</Card>
+  <Card title="translate" href="/docs/cli/translate">Translate every target locale once, then exit.</Card>
+  <Card title="watch" href="/docs/cli/watch">Re-translate on every source change until interrupted.</Card>
+  <Card title="check" href="/docs/cli/check">Report which keys are missing or stale per locale, read-only.</Card>
+  <Card title="diff" href="/docs/cli/diff">List the exact keys that would be added, re-translated, or are orphaned per locale, read-only.</Card>
+  <Card title="report" href="/docs/cli/report">Print a read-only report: `report provenance` lists which translations a machine wrote and which a person reviewed.</Card>
+  <Card title="doctor" href="/docs/cli/doctor">Validate the project setup and report every problem at once, without calling a provider.</Card>
+  <Card title="pseudo" href="/docs/cli/pseudo">Generate a pseudolocale from the source strings, without calling a provider.</Card>
+  <Card title="types" href="/docs/cli/types">Generate TypeScript declarations for your catalog keys and their message arguments, without calling a provider.</Card>
+  <Card title="export" href="/docs/cli/export">Export untranslated strings for a human translator, as an Excel workbook, one CSV or TSV file per locale, or one XLIFF file per locale for a CAT tool.</Card>
+  <Card title="import" href="/docs/cli/import">Import a filled workbook or delimited file back into the locale files.</Card>
+  <Card title="tmx" href="/docs/cli/tmx">Import a TMX translation memory from another tool into this project's memory, or export this project's memory as a TMX file.</Card>
+  <Card title="studio" href="/docs/cli/studio">Start Verbatra Studio, the local translation dashboard.</Card>
+  <Card title="mcp" href="/docs/cli/mcp">Start a stdio MCP server exposing verbatra's tools to an MCP client.</Card>
+</Cards>
 
 ## Install and invoke
 
@@ -28,37 +31,38 @@ Install `@verbatra/cli` as a dev dependency, then run the binary through your pa
 | Package manager | Install | Run |
 | --- | --- | --- |
 | npm | `npm install --save-dev @verbatra/cli` | `npx verbatra <command>` |
-| pnpm | `pnpm add -D @verbatra/cli` | `pnpm verbatra <command>` (or `pnpm exec verbatra <command>`) |
-| yarn | `yarn add -D @verbatra/cli` | `yarn verbatra <command>` |
-| bun | `bun add -d @verbatra/cli` | `bun run verbatra <command>` |
+| pnpm | `pnpm add --save-dev @verbatra/cli` | `pnpm verbatra <command>` (or `pnpm exec verbatra <command>`) |
+| yarn | `yarn add --dev @verbatra/cli` | `yarn verbatra <command>` |
+| bun | `bun add --dev @verbatra/cli` | `bun run verbatra <command>` |
 
 You need Node.js `>=22.14.0`.
 
 Trying a command before installing? `npx @verbatra/cli <command>` (npm) or `pnpm dlx @verbatra/cli <command>` (pnpm) both work without a prior local install.
 
-## Shared conventions
+## Global flags
 
-- `--cwd <path>` resolves the config and locale files from that directory instead of the current one. Every command takes it.
-- `--config <path>` loads that config file instead of searching for one. Every command except `init` takes it; the search order is described in [The config file](/docs/config-file).
-- `--json` prints a machine-readable [envelope](/docs/ci-and-exit-codes#json-output) on stdout, one line per record, keeping stdout clean for piping.
-  - Branch on its `ok` field: a success carries the command's payload under `result`, and a failed run carries the same stable error code the stderr line names. The human-readable error line goes to stderr either way.
-  - `extract`, `translate`, `watch`, `check`, `diff`, `doctor`, `pseudo`, `types`, `export`, `import`, and `tmx` support it; `init`, `studio`, and `mcp` do not.
-  - `mcp` never writes anything to stdout at all, since stdout is the MCP protocol channel; see [`verbatra mcp`](/docs/cli/mcp).
-- `--help` and `--version` print and exit `0`. An unknown command or flag exits `2`.
+These flags mean the same on every command that takes them, so the command pages list only their own flags. The last column names the commands that do not take a flag.
+
+| Flag | Argument | Default | Effect | Not accepted by |
+| --- | --- | --- | --- | --- |
+| `--cwd` | `<path>` | current directory | resolve the config and locale files from this directory; `init` writes its files there | none |
+| `--config` | `<path>` | search for one | load this config file instead of searching; see the [search order](/docs/config-file) | `init` |
+| `--json` | none | off | print a machine-readable [envelope](/docs/cli/output#json-output) on stdout, one line per record; errors still go to stderr | `mcp`, `studio` |
+| `-q`, `--quiet` | none | off | print only results, warnings and errors: no progress, hints or informational lines; works before or after the command name | none |
+| `--no-color` | none | color on a terminal | never color the output; see [Terminal output](/docs/cli/output#terminal-output) | none |
+| `-h`, `--help` | none | off | print the help of the program or the command and exit `0` | none |
+| `-V`, `--version` | none | off | print the CLI version and exit `0` | none |
+
+An unknown command or flag exits `2`, and so does a bare `verbatra` with no command: it prints the help to stderr and, when no config is found, suggests `verbatra init`. `mcp` never writes to stdout, since stdout is its protocol channel, so it refuses `--json` with `USAGE_ERROR`.
 
 ## Environment files
 
-`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`), the handoff commands (`export`, `import`), `extract`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+`translate`, `watch`, `doctor`, `studio`, and `mcp` load `.env.local` and then `.env` from the working directory before they run. `doctor --literals` is the exception: it reads no API key, so it loads neither file. A variable already set in your real environment always wins, and a value in `.env.local` wins over the same variable in `.env`. API keys are read only from the environment, never from the config file or a flag: see [Providers](/docs/providers). The read-only commands (`check`, `diff`, `report`), the handoff commands (`export`, `import`), `extract`, `init`, `pseudo`, `types`, and `tmx` never call a provider and load no `.env` files.
+
+## Terminal output
+
+Color, the spinner, `--quiet` and the variables that control them are described in [Terminal output](/docs/cli/output#terminal-output).
 
 ## Exit codes
 
-The exit code is the contract a CI step or script branches on:
-
-| Code | Meaning |
-| --- | --- |
-| `0` | success (also `--help` and `--version`) |
-| `1` | `translate` or `import` finished but some locales failed or came out partial, `check` found a locale out of sync, `diff` found pending changes (or, with `--unused`, a complete scan found an unused source key), `doctor` found a setup problem or, with `--literals`, an untranslated literal, or `types --check` found the committed declaration out of date |
-| `2` | could not run: a whole-run error (config, source, provider, lock), or a usage error |
-| `130` | `watch`, `studio`, or `mcp` was force-stopped by a second interrupt |
-
-Each command page spells out how these codes apply to it. See [CI and exit codes](/docs/ci-and-exit-codes) for wiring them into a pipeline.
+The exit-code contract and its edge cases are on [Exit codes and JSON output](/docs/cli/output#exit-codes). Each command page lists only the codes that command returns.

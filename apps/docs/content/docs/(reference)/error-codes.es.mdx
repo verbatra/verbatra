@@ -1,0 +1,1255 @@
+---
+title: Códigos de error
+description: "Cada código de error, de resultado y de aviso que informa verbatra: qué significa, qué comandos lo lanzan, el código de salida y el siguiente paso."
+type: reference
+tocDepth: 2
+codeHeadings: true
+---
+Cada fallo que informa verbatra lleva un código estable: en la línea `verbatra: error [CODE] message` de stderr, como `code` o `causeCode` de un sobre `--json`, como `error.code` de un locale fallido o como aviso en el resumen de la ejecución. Ramifica según el código, nunca según el mensaje. Cada código tiene su propio ancla, `/docs/error-codes#` seguido del código en minúsculas, como [`#config_not_found`](#config_not_found).
+
+El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del sobre. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/docs/sdk/exchange#errorhint). Los códigos de salida y la forma del sobre están en [Códigos de salida y salida JSON](/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/docs/troubleshooting).
+
+Dos códigos pertenecen a dos familias: `CONFIG_INVALID` (el SDK, e `init` en la CLI) y `NETWORK_POLICY_VIOLATION` (el SDK y los proveedores). El ancla en minúsculas lleva a la entrada del SDK; la otra entrada tiene un ancla con prefijo.
+
+## Códigos de error de la CLI [#cli-error-codes]
+
+Estos códigos los lanza la propia CLI. La misma lista se publica como `CLI_ERROR_CODES` (con el tipo `CliErrorCode`) desde `@verbatra/cli`, así que un script puede comprobar un código contra ella en lugar de copiar esta página. Todos salen con `2`.
+
+### AGENT_FILE_INVALID
+
+`init --agent` encontró un `.mcp.json` que no es un objeto JSON con un objeto `mcpServers`, o una marca de verbatra sin pareja o repetida en `AGENTS.md` o `CLAUDE.md`; no se escribió nada.
+
+- **Lo lanza**: `init --agent`
+- **Código de salida**: `2`
+- **Siguiente paso**: Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.
+
+### CLI_ERROR
+
+Un fallo no traía código propio (el código de reserva).
+
+- **Lo lanza**: cualquier comando
+- **Código de salida**: `2`
+
+### CONFIG_EXISTS
+
+`init` sobrescribiría un `verbatra.config.ts` distinto sin `--force`, u otro archivo de configuración de verbatra del directorio se leería antes; se informa antes que cualquier respuesta que falte o sea ambigua, y en una terminal antes de la primera pregunta.
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --force to overwrite the existing config, or remove the other config file the message names.
+
+### CONFIG_INVALID [#cli-config_invalid]
+
+`init` no pudo generar una configuración válida con las respuestas que recibió (el SDK lanza el mismo código para una configuración que no se puede cargar).
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Correct the init answers the message names, then run `verbatra init` again.
+
+### FORMAT_AMBIGUOUS
+
+`init` encontró varios formatos que leen los archivos de locale; `candidates` los lista.
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --format with one of the candidates.
+
+### INIT_UNWRITABLE
+
+`init` no pudo escribir un archivo en su directorio, por ejemplo porque es de solo lectura; el mensaje nombra el archivo, el código del sistema de archivos y los archivos ya escritos.
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Make the directory writable, then run `verbatra init` again.
+
+### INVALID_CONCURRENCY
+
+`--concurrency` no es un número entero de 1 a 100.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --concurrency as a whole number from 1 to 100.
+
+### INVALID_DEBOUNCE
+
+`watch --debounce` no es un número entero de milisegundos de 1 a 60000.
+
+- **Lo lanza**: `watch`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --debounce as a whole number of milliseconds from 1 to 60000.
+
+### INVALID_DIRECTION
+
+`tmx` recibió una dirección distinta de `import` o `export`, o `tmx export` recibió un flag exclusivo de la importación (`--dry-run`, `--overwrite`).
+
+- **Lo lanza**: `tmx`
+- **Código de salida**: `2`
+- **Siguiente paso**: Run `verbatra tmx import` or `verbatra tmx export`, with only the flags that direction takes.
+
+### INVALID_FORMAT
+
+`--format` en `export` o `import` no nombra ningún formato de entrega admitido, o `--format` en `init` no nombra ningún formato de archivo de locale admitido.
+
+- **Lo lanza**: `export`, `import`, `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass a supported --format value; the command's --help lists them.
+
+### INVALID_LOCALE
+
+`pseudo --locale` no es una etiqueta de idioma formada por letras, dígitos y guiones, o un locale respondido en una pregunta interactiva de `init` no es un código BCP 47 (los flags `--source` y `--targets` fallan en su lugar con `CONFIG_INVALID`).
+
+- **Lo lanza**: `pseudo`, `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Give the locale as a language tag of letters, digits and hyphens, such as pt-BR or en-XA.
+
+### INVALID_LOCALES
+
+Se dio `--locales` pero no lista ningún locale, o los locales de destino respondidos en una pregunta interactiva de `init` incluyen el locale de origen.
+
+- **Lo lanza**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`, `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --locales as a comma-separated list of configured target locales, or omit it.
+
+### INVALID_LOCK_TIMEOUT
+
+`--lock-timeout` no es un número entero de segundos de 1 a 3600.
+
+- **Lo lanza**: `translate`, `watch`, `import`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --lock-timeout as a whole number of seconds from 1 to 3600.
+
+### INVALID_MAX_TOKENS
+
+`translate --max-tokens` no es un número entero de al menos 1.
+
+- **Lo lanza**: `translate`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --max-tokens as a whole number of at least 1.
+
+### INVALID_OPTION
+
+Un flag de `init` no encaja con el proveedor (`--base-url` sin `openai-compatible` ni `libretranslate`, `--model` para DeepL), `--api-key-env-var` no es un nombre de variable, `--base-url` incluye credenciales, una query string o un fragmento, `init --cwd` no nombra un directorio existente, o `doctor` recibió `--locales` o `--live` junto con `--literals`, o `check --file` no nombra ningún archivo o llega junto con `--locales`, `--consistency`, `--require-reviewed` o `--sensitive`.
+
+- **Lo lanza**: `init`, `doctor`, `check`
+- **Código de salida**: `2`
+- **Siguiente paso**: Correct or remove the flag the message names.
+
+### INVALID_OUT
+
+Se dio `--out` en `types` o `pseudo` pero no nombra ninguna ruta.
+
+- **Lo lanza**: `types`, `pseudo`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --out with a file path, or omit it.
+
+### INVALID_PORT
+
+`studio --port` no es un entero de 1 a 65535.
+
+- **Lo lanza**: `studio`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --port as a whole number from 1 to 65535.
+
+### INVALID_PROVIDER
+
+`init --provider` no nombra ningún proveedor conocido.
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --provider with a supported provider id; `verbatra init --help` lists them.
+
+### INVALID_QA_OPTION
+
+`check` recibió `--severity` o `--strict` sin `--qa` ni `--file`, o `--strict` junto con `--severity error`.
+
+- **Lo lanza**: `check`
+- **Código de salida**: `2`
+- **Siguiente paso**: Add --qa or --file, and do not combine --strict with --severity error.
+
+### INVALID_SEVERITY
+
+`check --severity` no es ni `error` ni `warning`.
+
+- **Lo lanza**: `check`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --severity error or --severity warning.
+
+### LAYOUT_AMBIGUOUS
+
+`init` encontró varios patrones de archivo que encajan igual de bien; `candidates` los lista.
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass --path with one of the candidates.
+
+### MISSING_OPTIONS
+
+`init` no pudo preguntar (sin terminal, o con `--json`) y un valor no se pasó, no se detectó ni se tomó por defecto con `--yes`; el mensaje nombra cada flag que falta.
+
+- **Lo lanza**: `init`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass every flag the message names, or add --yes to accept the defaults.
+
+### REDACTION_UNSUPPORTED
+
+`mcp --redact-values` cargó un `@verbatra/mcp` más antiguo que no confirma que oculta valores; el servidor se detuvo antes de servir nada.
+
+- **Lo lanza**: `mcp`
+- **Código de salida**: `2`
+- **Siguiente paso**: Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.
+
+### USAGE_ERROR
+
+El analizador de argumentos rechazó la línea de comandos (una opción desconocida, un argumento ausente), o `mcp` recibió opciones que no puede aceptar; su `hint` nombra el `--help` del comando.
+
+- **Lo lanza**: cualquier comando
+- **Código de salida**: `2`
+- **Siguiente paso**: Run the command with --help to see the options and arguments it accepts.
+
+## Códigos de error del SDK [#sdk-error-codes]
+
+Los fallos de toda la ejecución lanzan un `SdkError` con uno de estos códigos; [Errores](/docs/sdk/errors) describe la clase y qué códigos llevan un `cause`. En la CLI, un código lanzado termina la ejecución con `2`, mientras que un código registrado en un locale fallido sale con `1`. Los códigos sin comando de la CLI te llegan a través del SDK, Studio o el servidor MCP.
+
+### CONFIG_NOT_FOUND
+
+La búsqueda no encontró ninguna configuración, o un `configPath` explícito no existe (lanzado por `loadConfig`).
+
+- **Lo lanza**: todo comando que carga la config
+- **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
+- **Siguiente paso**: Run `verbatra init` to create a config, or pass the path of an existing config file.
+
+### CONFIG_INVALID
+
+Se encontró una configuración pero no se puede parsear o falla la validación, o su archivo de glosario no se pudo resolver; `translate` (también en dry run, salvo con el proveedor `none`) y `retranslateEntry` también lo lanzan cuando `VERBATRA_NETWORK_POLICY` o `VERBATRA_NETWORK_ALLOWED_HOSTS` tiene un valor no válido, antes de construir ningún proveedor.
+
+- **Lo lanza**: todo comando que carga la config
+- **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
+- **Siguiente paso**: Fix the config field the message names, then run `verbatra doctor` to confirm the setup.
+
+### UNKNOWN_FORMAT
+
+No hay adaptador registrado para el formato configurado; se lanza antes de leer ningún archivo.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
+- **Siguiente paso**: Set `format` in the config to a supported format, or register an adapter for this one.
+
+### UNKNOWN_LOCALE
+
+Un locale solicitado no está entre los locales de destino configurados.
+
+- **Lo lanza**: `translate`, `watch`, `check`, `diff`, `export`, `tmx`, `report`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Use a locale from the config's `targetLocales`, or add it there first.
+
+### UNKNOWN_KEY
+
+Una clave solicitada no está en el recurso de origen (`keyValue`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`).
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Use a key that exists in the source locale file, or add it there first.
+
+### KEY_PROTECTED
+
+`retranslateEntry` se negó a reemplazar un valor que escribió, importó o cambió una persona fuera de verbatra, porque ni `includeHuman` ni `humanEdits: "overwrite"` lo permitían.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Keep the human-written value, or opt in to replacing it: include human edits for this call, or set `humanEdits: "overwrite"` in the config.
+
+### KEY_PINNED
+
+La clave coincide con los `pinnedKeys` de la configuración, así que se rechazó una escritura automática (`retranslateEntry`, y `editEntry` con `actor: "agent"`).
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Edit the value by hand, or remove the key from `pinnedKeys` in the config to let verbatra write it.
+
+### PROVIDER_CONSTRUCTION_FAILED
+
+El proveedor no se pudo construir; envuelve el error propio del proveedor, incluida una clave de API ausente. Con una clave ausente, la pista nombra la variable en lugar del siguiente paso de abajo, como `Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.` El SDK no lee ningún archivo `.env`.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Check the config's `provider` block and its API key environment variable, then run `verbatra doctor`.
+
+### MACHINE_TRANSLATION_DISABLED
+
+La configuración fija `provider: { id: "none" }`, así que se rechazó una acción que gasta en el proveedor antes de construir ningún proveedor (`retranslateEntry`, `assertMachineTranslationEnabled`); `translate` y `watch` nunca lo lanzan.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Translate the key by hand, or configure a machine provider in place of `provider: { id: "none" }`.
+
+### NETWORK_POLICY_VIOLATION
+
+La [política de red](/docs/network-policy) efectiva no permite el endpoint del proveedor ni su proxy; lo lanzan `translate` fuera de una ejecución de prueba, `watch` al arrancar y `retranslateEntry`, antes de construir el proveedor o leer ninguna clave de API.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### SOURCE_UNREADABLE
+
+El archivo del locale de origen no existe.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
+- **Siguiente paso**: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+
+### SOURCE_INVALID
+
+El archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
+- **Siguiente paso**: Fix the file the message names so it parses under the configured format.
+
+### LOCK_FILE_INVALID
+
+El archivo de bloqueo está presente pero corrupto, es demasiado grande o está en una versión no admitida.
+
+- **Lo lanza**: `translate`, `import`, `check`, `diff`, `export`, `report`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Restore verbatra.lock.json from version control, then try again.
+
+### PROVENANCE_FILE_INVALID
+
+El archivo de procedencia está presente pero corrupto, es demasiado grande o tiene una forma incorrecta; lo lanza una escritura (`translate`, `watch`, `importWorkbook`, `editEntry`, `retranslateEntry`, `approveEntry`, `rejectEntry`) antes de cambiar nada, y `loadProvenance`, nunca un informe; uno de un verbatra más nuevo se deja intacto en su lugar, y `translate`, `watch` e `importWorkbook` informan el aviso `PROVENANCE_VERSION_UNRECOGNIZED`.
+
+- **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Restore verbatra.provenance.json from version control, then try again.
+
+### PROVENANCE_FILE_UNWRITABLE
+
+Una decisión de revisión no se pudo guardar porque el archivo de procedencia es de un verbatra más nuevo o crecería por encima del tamaño que verbatra vuelve a leer (`approveEntry`, `rejectEntry`); no se escribe nada.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Upgrade verbatra if a newer version wrote verbatra.provenance.json, then record the decision again.
+
+### REVIEW_VALUE_CHANGED
+
+La clave no tiene valor, o su valor no es el `expectedValue` que vio quien revisa, o `expectedValue` no es un string (`approveEntry`, `rejectEntry`).
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Reload the current value, review it again, and resend the decision.
+
+### REVIEW_SOURCE_CHANGED
+
+El origen cambió desde que se escribió el valor, así que no se puede aprobar tal cual (`approveEntry`).
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Edit or retranslate the key first, then review its new value.
+
+### REVIEW_REJECT_UNSUPPORTED
+
+El formato conserva el valor de una clave cuando el archivo se escribe sin ella, como XLIFF, o el archivo del locale es demasiado grande para guardar una copia que restaurar, así que `rejectEntry` dejó el archivo como estaba.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Edit the value instead of rejecting it.
+
+### REVIEW_RESTORE_FAILED
+
+`rejectEntry` falló después de reescribir el archivo de locale, y también falló la restauración del archivo de locale o del archivo de procedencia; el mensaje nombra el fallo original (también la `cause`) y los archivos que tienes que recuperar del control de versiones.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Restore the files the message names from version control.
+
+### REVIEWER_INVALID
+
+`reviewer` está vacío, tiene más de 64 caracteres o contiene un carácter de control (`approveEntry`, `rejectEntry`, `importWorkbook`).
+
+- **Lo lanza**: `import --reviewer`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass a reviewer name of 1 to 64 characters with no control characters.
+
+### LOCK_CONTENDED
+
+El bloqueo de escritura de un locale, o el bloqueo del glosario que toma `updateGlossaryTerm`, no se pudo adquirir antes de su tiempo límite, u otro proceso lo tomó antes de una escritura que protege, y no se escribió nada; el mensaje nombra la ruta del archivo de bloqueo.
+
+- **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
+- **Código de salida**: `1` cuando hace fallar un locale de `translate` o `import`
+- **Siguiente paso**: Wait for the other verbatra process to finish and try again, or remove the lock file the message names if no process holds it.
+
+### GLOSSARY_NOT_FILE_BACKED
+
+El glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`).
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Move the glossary into its own file and set the config's `glossary` to that file's path.
+
+### GLOSSARY_UNWRITABLE
+
+El archivo de glosario no se pudo escribir, o no se pudo crear el bloqueo de escritura del glosario, por ejemplo en un proyecto de solo lectura, o liberarlo tras una edición guardada (`updateGlossaryTerm`); el error del sistema de archivos es la `cause`.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Make the glossary file and its directory writable, then try again.
+
+### LOCALE_LAYOUT_INVALID
+
+`files.pattern` y `files.localeStyle` no se pueden combinar, o el estilo no tiene una escritura de ruta válida para un locale configurado.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Fix `files.pattern` and `files.localeStyle` in the config so every locale maps to a valid path.
+
+### LOCALE_PATH_COLLISION
+
+Dos locales configurados resuelven al mismo archivo absoluto.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Change `files.pattern` or `files.localeStyle` in the config so each locale resolves to its own file.
+
+### CONCURRENCY_INVALID
+
+Se definió `concurrency` pero no es un entero de al menos 1; se lanza antes de que se ejecute ningún locale.
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Pass a concurrency that is a whole number of at least 1.
+
+### CONCURRENCY_BUDGET_CONFLICT
+
+Una ejecución real fijó `concurrency` por encima de 1 mientras rige un presupuesto de tokens, configurado o de la ejecución; se lanza antes de cualquier llamada al proveedor (un dry run queda exento).
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: `2`
+- **Siguiente paso**: Run with a concurrency of 1 while a token budget applies, or remove the budget.
+
+### MAX_TOKENS_INVALID
+
+El `maxTokens` por ejecución de `translate` se fijó pero no es un número entero de al menos 1; se lanza antes de leer o gastar nada.
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Pass a token budget that is a whole number of at least 1.
+
+### LOCK_TIMEOUT_INVALID
+
+`lockAcquireTimeoutMs` se fijó pero no es un número entero de milisegundos de al menos 0 (`translate`, `watch` al arrancar, `importWorkbook`, `retranslateEntry`, `retranslateEntries`, `approveEntry`, `rejectEntry`, `approveEntries`, `rejectEntries`); se lanza antes de leer o bloquear nada.
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Pass a lock timeout that is a whole number of at least 0.
+
+### TARGET_UNWRITABLE
+
+Un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica.
+
+- **Lo lanza**: `translate`, `import`, `pseudo`; Studio y el servidor MCP
+- **Código de salida**: `1` cuando hace fallar un locale de `translate` o `import`; `2` en `pseudo`
+- **Siguiente paso**: Make the target locale file and its directory writable, then try again.
+
+### PSEUDO_OUTPUT_CONFLICT
+
+Se pidió a `pseudolocalize` un pseudolocale que nombra un locale configurado, o una ruta de salida que escribiría sobre un archivo de locale configurado o fuera de `cwd`, también tras resolver los enlaces simbólicos; se rechaza antes de leer o escribir nada.
+
+- **Lo lanza**: `pseudo`
+- **Código de salida**: `2`
+- **Siguiente paso**: Choose a pseudolocale and an output path inside the project that name no configured locale.
+
+### SOURCE_UNWRITABLE
+
+El archivo del locale de origen no se pudo escribir (solo `extract`); `xliff` y `apple-xcstrings` llegan aquí cuando todavía no existe un catálogo, porque ninguno se crea desde cero.
+
+- **Lo lanza**: `extract`
+- **Código de salida**: `2`
+- **Siguiente paso**: Make the source locale file writable; for xliff and apple-xcstrings, create the catalog first.
+
+### EXTRACT_NOT_CONFIGURED
+
+Se llamó a `extract` con una configuración que no lleva bloque `extract`.
+
+- **Lo lanza**: `extract`
+- **Código de salida**: `2`
+- **Siguiente paso**: Add an `extract` block to the config naming the framework and source roots.
+
+### EXTRACT_FS_UNSUPPORTED
+
+Se pasó a `extract` un `deps.fs` que no implementa `readDirectory`, así que no se puede descubrir ningún archivo de código.
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Pass a file system that implements `readDirectory`, or use the default one.
+
+### TYPES_OUTPUT_CONFLICT
+
+`generateTypes` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta), es absoluta, sale de `cwd` con `..` o nombra el propio `cwd` o no termina en `.ts`, `.mts` o `.cts`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ejecución que escribe también se niega a reemplazar un archivo existente que no empieza con la línea de cabecera de verbatra.
+
+- **Lo lanza**: `types`
+- **Código de salida**: `2`
+- **Siguiente paso**: Choose a relative `.ts`, `.mts` or `.cts` output path inside the project that names no file verbatra manages.
+
+### TYPES_UNWRITABLE
+
+El archivo de declaraciones que produce `generateTypes` no se pudo escribir (su directorio no es escribible, no existe, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos.
+
+- **Lo lanza**: `types`
+- **Código de salida**: `2`
+- **Siguiente paso**: Make the output file and its directory writable, then try again.
+
+### TMX_OUTPUT_CONFLICT
+
+`exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria.
+
+- **Lo lanza**: `tmx export`
+- **Código de salida**: `2`
+- **Siguiente paso**: Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### TMX_UNWRITABLE
+
+El archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es escribible, ya hay un directorio en esa ruta, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos.
+
+- **Lo lanza**: `tmx export`
+- **Código de salida**: `2`
+- **Siguiente paso**: Make the output file and its directory writable, then try again.
+
+### EXPORT_OUTPUT_CONFLICT
+
+`exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada.
+
+- **Lo lanza**: `export`
+- **Código de salida**: `2`
+- **Siguiente paso**: Choose an output path inside the project that names no locale file or other file verbatra manages.
+
+### EXPORT_UNWRITABLE
+
+El archivo de entrega que produce `exportWorkbook` no se pudo escribir (su directorio no es escribible, hay un directorio o un archivo en medio, o el disco se quedó sin espacio); el mensaje nombra el archivo y el código del sistema de archivos, y el error del sistema de archivos es la `cause`.
+
+- **Lo lanza**: `export`
+- **Código de salida**: `2`
+- **Siguiente paso**: Make the output file and its directory writable, then try again.
+
+### LOCALE_STATE_NOT_CARRIED_OVER
+
+Lo lanzan `editEntry`, `retranslateEntry`, `approveEntry` y `rejectEntry`, que entonces no escriben nada; si no, se registra en el `error` de un locale que `translate`, `watch` o `importWorkbook` no ejecutó porque su estado bajo un código reescrito como `pt_BR` no se pudo trasladar a él en el archivo de bloqueo o en el de procedencia; la siguiente ejecución lo vuelve a intentar ([Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito)).
+
+- **Lo lanza**: `translate`, `watch`, `import`; Studio y el servidor MCP
+- **Código de salida**: `1` cuando hace fallar un locale de `translate` o `import`
+- **Siguiente paso**: Wait for other verbatra processes to finish, make verbatra.lock.json and verbatra.provenance.json writable, then try again.
+
+### LOCALE_UNSUPPORTED_BY_PROVIDER
+
+El proveedor DeepL o Google Cloud Translation configurado no incluye el locale de origen o un locale de destino seleccionado en la tabla de idiomas que incluye verbatra; lo lanzan `translate` (también en una ejecución en seco y una estimación), `watch` al arrancar y `retranslateEntry`, antes de construir ningún proveedor, leer ninguna clave o empezar ningún locale; un locale asignado explícitamente en `localeMap` se considera fiable en su lugar ([Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución)).
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP
+- **Código de salida**: `2`
+- **Siguiente paso**: Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.
+
+### NOT_A_LOCALE_FILE
+
+`checkFile` recibió una ruta que no es el archivo de ningún locale configurado, o allí no existe ningún archivo.
+
+- **Lo lanza**: `check --file`
+- **Código de salida**: `2`
+- **Siguiente paso**: Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
+
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` no envió la clave, o descartó su respuesta, porque `sensitiveData.mode` es `block` o `redact` y la clave contiene contenido que un detector o patrón encontró y que no se pudo enviar o no volvió intacto ([Protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible)). `translate` y `watch` listan esas claves en `sensitiveWithheld` en su lugar.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
+### LOCALE_FAILED
+
+Nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido.
+
+- **Lo lanza**: `translate`, `watch`, `import`
+- **Código de salida**: `1` cuando hace fallar un locale de `translate` o `import`
+- **Siguiente paso**: Fix the cause the locale's message names, then try again.
+
+## Códigos de error del proveedor [#provider-error-codes]
+
+Un fallo del proveedor nunca aparece como un error bruto del SDK o de HTTP: verbatra lanza un `ProviderError` con uno de estos códigos y un mensaje fijo y sin secretos. Dentro de `translate` y `watch`, un fallo afecta solo a su propia petición: sus claves se retienen, el locale recibe un aviso `SUB_BATCH_FAILED` que nombra el código, y las claves se retoman en la siguiente ejecución. Una retraducción de una sola clave desde Studio o el servidor MCP vuelve a lanzar el `ProviderError`. Cómo clasifica cada proveedor sus fallos está en [Proveedores](/docs/providers#errores-estructurados).
+
+### MISSING_API_KEY
+
+La variable de entorno requerida no está definida o está vacía. El mensaje nombra la variable, nunca un valor. En LibreTranslate, cuya clave es opcional, significa que el servidor exigió una clave y `LIBRETRANSLATE_API_KEY` no está definida.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `2`, como `causeCode` de `PROVIDER_CONSTRUCTION_FAILED`
+- **Siguiente paso**: Set the API key environment variable your provider reads, then run `verbatra doctor`.
+
+### INVALID_REQUEST
+
+La petición falló la validación antes de cualquier llamada de red: un campo malformado, un código que DeepL no acepta (una entrada de `localeMap` con un código de origen regional, o un destino que acaba siendo un `en` o `pt` escueto), o un código que no es BCP-47 bien formado para Google Cloud Translation. En LibreTranslate cubre además un idioma para el que tu servidor no tiene modelo y una petición que supera su `--char-limit` o su `--batch-limit`. Corrige la configuración o la petición; reintentar no ayudará.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Check the provider options in the config, such as the model name.
+
+### INVALID_RESPONSE
+
+La salida era malformada, incompleta o falló la reconciliación contra la petición.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Try again; if it keeps failing, configure a different model.
+
+### OUTPUT_TRUNCATED
+
+El modelo alcanzó su límite de tokens de salida; consulta [Límites de tokens de salida](/docs/providers#límites-de-tokens-de-salida).
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Translate fewer keys at a time, or configure a model with a larger output limit.
+
+### PROVIDER_REFUSED
+
+El modelo se negó a responder.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Review the source text the provider refused, or translate it by hand.
+
+### PROVIDER_BLOCKED
+
+La petición o la respuesta fue bloqueada o filtrada por seguridad.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Review the source text the provider blocked, or translate it by hand.
+
+### RATE_LIMITED
+
+HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, esto también cubre un HTTP 403 cuyo cuerpo nombra un motivo de cuota (un límite diario o por minuto), porque la API de Google reutiliza el 403 tanto para fallos de cuota como de credenciales. Espera y reintenta más tarde, o aumenta la cuota de Cloud Translation de tu proyecto.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Wait a moment and try again, or lower the concurrency.
+
+### TIMEOUT
+
+Un tiempo de espera de red o de petición; no llegó respuesta a tiempo. Reintentar puede ayudar, y [`requestTimeoutMs`](/docs/providers#tiempo-de-espera-de-petición) sube el límite.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Try again, or raise the provider's `requestTimeoutMs` in the config.
+
+### AUTH_FAILED
+
+HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. En Google Cloud Translation, comprueba que `GOOGLE_TRANSLATE_API_KEY` sea una clave válida y sin restricciones para un proyecto con la Cloud Translation API activada. Reintentar no ayudará.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Check that the provider's API key is valid and allowed to use the configured model.
+
+### PROVIDER_UNAVAILABLE
+
+HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Los [reintentos](/docs/providers#reintentos) de cada capa ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida. Espera y reintenta más tarde.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Try again later, or check the configured endpoint.
+
+### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
+
+La [política de red](/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Point the provider at a host the network policy permits, or add its host to `network.allowedHosts` or VERBATRA_NETWORK_ALLOWED_HOSTS.
+
+### PROVIDER_ERROR
+
+Cualquier cosa inclasificable. Cuando el fallo es un problema de transporte reconocible, el mensaje lo nombra (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) y dice qué comprobar; si no, recurre a un mensaje estático y sin secretos. Si no se pudo cargar un paquete de proveedor, el mensaje nombra el paquete y te pide reinstalar `@verbatra/sdk`.
+
+- **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
+- **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Try again; if it keeps failing, check the provider configuration.
+
+## Códigos de error de los adaptadores de formato [#adapter-error-codes]
+
+Un adaptador de formato que no puede tratar un archivo lanza un `AdapterError` con uno de estos códigos. En el archivo de locale fuente llega envuelto en `SOURCE_INVALID`, con el código del adaptador como `causeCode`; en un archivo de destino se convierte en el `error.code` de ese locale. `check --file` informa en su lugar de un archivo que no se puede parsear como un hallazgo `syntax`. El conjunto es cerrado: un [adaptador propio](/docs/custom-format-adapters) lanza uno de estos códigos en lugar de uno suyo.
+
+### INVALID_JSON
+
+Un archivo de locale basado en JSON no es JSON válido. El mensaje termina con la línea y la columna cuando el parser las indica.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Fix the syntax error the message names in that file.
+
+### INVALID_YAML
+
+Un archivo de locale YAML no es YAML válido. El mensaje termina con la línea y la columna cuando el parser las indica.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Fix the syntax error the message names in that file.
+
+### INVALID_XML
+
+Un archivo de locale basado en XML, como XLIFF o `strings.xml` de Android, no es XML bien formado.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Fix the syntax error the message names in that file.
+
+### INVALID_STRUCTURE
+
+El archivo se puede parsear, pero no tiene la forma que espera el formato configurado, por ejemplo una clave con puntos y una ruta de claves anidada que llevan a la misma clave, o una clave de mapeo YAML que es un mapa o una secuencia.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Reshape the file the message names to match the configured format.
+
+### MAX_DEPTH_EXCEEDED
+
+El archivo anida a más profundidad de la que lee verbatra.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Reduce the nesting depth of the file the message names.
+
+### INPUT_TOO_LARGE
+
+El archivo es más grande de lo que lee verbatra.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Split the file the message names into smaller files.
+
+### MIXED_STRUCTURE
+
+El archivo mezcla claves planas y anidadas donde el formato lo prohíbe.
+
+- **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
+- **Código de salida**: `1` cuando un archivo de destino hace fallar su locale en `translate` o `import`; `2` cuando el culpable es el archivo fuente, como `causeCode` de `SOURCE_INVALID`
+- **Siguiente paso**: Use either flat or nested keys throughout the file the message names.
+
+### ADAPTER_FAILED
+
+Un adaptador `custom:` lanzó un error inesperado. El error nombra el formato del adaptador, y el error original del adaptador es su `cause`.
+
+- **Lo lanza**: el SDK, con un adaptador `custom:` (la CLI no carga ningún plugin)
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Report the failure to the maintainer of the custom adapter the message names.
+
+### DUPLICATE_FORMAT
+
+Se registró un segundo adaptador para un identificador de formato que el registro ya tiene.
+
+- **Lo lanza**: `AdapterRegistry.register` en el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Register only one adapter for each format identifier.
+
+### INVALID_FORMAT_ID
+
+Se registró un adaptador con un identificador `custom:` mal formado.
+
+- **Lo lanza**: `AdapterRegistry.register` en el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Name the custom adapter `custom:` followed by a valid name.
+
+## Códigos de la puerta de revisión [#check-result-codes]
+
+`check --require-reviewed` hace fallar el trabajo mientras una traducción escrita por máquina no esté aprobada. Informa del motivo como `result.review.code`, estable entre versiones, para que un script de CI pueda ramificar según él. Consulta [Exigir traducciones revisadas](/docs/cli/check#exigir-traducciones-revisadas).
+
+### REVIEW_REQUIRED
+
+Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzzy` o `agent`) no está aprobada en el `verbatra.provenance.json` confirmado. Aparece en `result.review.code`; el sobre sigue siendo `ok: true`, y `result.locales[].review.unreviewed` nombra las claves.
+
+- **Lo lanza**: `check --require-reviewed`
+- **Código de salida**: `1`
+- **Siguiente paso**: Aprueba o corrige las claves listadas en la [cola de revisión de Studio](/docs/review-in-studio) o con las herramientas MCP `review.approve` y `review.reject`, y luego confirma `verbatra.provenance.json`.
+
+### REVIEW_STATE_UNREADABLE
+
+`verbatra.provenance.json` está dañado o es de un verbatra más nuevo, así que no se puede leer ningún estado de revisión y la puerta falla por seguridad.
+
+- **Lo lanza**: `check --require-reviewed`
+- **Código de salida**: `1`
+- **Siguiente paso**: Restaura `verbatra.provenance.json` desde el control de versiones, o actualiza verbatra si lo escribió una versión más nueva.
+
+## Motivos de rechazo por integridad [#integrity-refusal-reasons]
+
+La [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad) rechaza un valor candidato con exactamente uno de estos motivos, el primero que se aplica en el orden `empty`, `icu` (no se puede analizar), `placeholder`, `markup`, `icu` (ramas de plural), `degenerate`. Un valor rechazado nunca se escribe: la clave conserva su línea base y se reintenta en la siguiente ejecución. El motivo aparece en los `integrityRefusals` de un locale tras `translate`, `watch` e `import` (`integrity-withheld` en la salida para personas), en el resultado de `editEntry` y como error de `check --qa`, a menudo con `details` que nombran lo que difiere. El conjunto se publica como la tupla `INTEGRITY_GATE_REASONS`.
+
+### placeholder
+
+Los placeholders del candidato difieren de los de su fuente, comparados como un multiconjunto: el número cuenta, el orden no. Qué cuenta como placeholder lo define cada [formato](/docs/formats). En i18next, ngx-translate y YAML también se rechaza un token con forma `{name}` que el candidato añade y que la fuente nunca tuvo, aunque ahí las llaves simples sean texto literal. Los detalles nombran cada placeholder eliminado con `-` y cada uno añadido con `+`, como `-{{name}}` o `+{{nom}}`.
+
+- **Lo lanza**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (como error)
+- **Código de salida**: `1` desde `translate` e `import` cuando el locale termina parcial o fallido; `1` desde `check --qa`
+- **Siguiente paso**: Vuelve a poner los placeholders de la fuente en la traducción, o deja que la siguiente ejecución la traduzca de nuevo.
+
+### markup
+
+El marcado HTML o XML en línea del candidato difiere del de su fuente o no está bien formado. Los detalles nombran cada etiqueta detrás del rechazo, con `-` delante para una que la fuente tenía y el candidato eliminó, o con `+` para una que el candidato inventó.
+
+- **Lo lanza**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (como error)
+- **Código de salida**: `1` desde `translate` e `import` cuando el locale termina parcial o fallido; `1` desde `check --qa`
+- **Siguiente paso**: Conserva en la traducción las etiquetas, los nombres de atributo y los valores de atributo protegidos de la fuente.
+
+#### Cómo se compara el marcado
+
+Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo, y
+eso es lo que decide si algo es un hallazgo:
+
+- Rechazado: una etiqueta perdida, una etiqueta inventada, una etiqueta renombrada, un conjunto
+  distinto de nombres de atributo, marcado que vuelve sin equilibrar o mal anidado, como
+  `<b>a<i>b</b></i>`, y una etiqueta que vuelve anidada dentro de otra del mismo nombre cuando el
+  origen las tenía como hermanas, que es como dos enlaces se convierten en uno en silencio.
+- Aceptado: las mismas etiquetas en otro orden, porque traducir una frase mueve su marcado de sitio,
+  un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
+  traducción correcta y no una rota (dentro de los límites para los valores de atributo que se
+  describen más abajo), y cualquiera de las dos grafías de un elemento vacío, así que `<br>` y
+  `<br/>` son la misma etiqueta.
+- Contado, no solo advertido: dos pares adyacentes fusionados en uno (`<b>a</b> <b>b</b>` que pasa a
+  ser `<b>a b</b>`) se rechaza, porque la comparación no puede distinguir una fusión cosmética de
+  dos enlaces que se convierten en uno.
+- Comparado de forma exacta, así que un cambio de mayúsculas es un hallazgo. Los elementos vacíos de
+  HTML (`<br>`, `<img>`, `<hr>` y el resto) no necesitan cierre se escriban como se escriban, así
+  que `<BR>` se reconoce como elemento vacío igual que `<br>`.
+- Rechazado cuando se añade o se quita un nombre de atributo, lo que incluye añadir un atributo
+  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres salvo por
+  esos límites; el conjunto de nombres no lo es.
+
+Un origen sin ningún marcado también está protegido frente al marcado que se le invente. La
+candidata se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
+añada, por una etiqueta de cierre sin apertura (`Hallo</div>`) y por una etiqueta de apertura sin
+cerrar que lleve algo más que su nombre, como `<Enter onfocus=...>` o `<x-key onmouseover=...>`.
+
+Un `<Word>` sin cerrar que no lleva más que su nombre, y cuyo nombre solo tiene letras, dígitos,
+guiones y guiones bajos, es una palabra entre corchetes angulares, como `<Enter>` en
+`Druecke <Enter>`. Estas palabras se apartan en ambos lados antes de juzgar el origen, así que un
+origen que lleve una se sigue comparando: una candidata que pierda un par `<b>` junto a `<Enter>`, o
+que invente un par `<script>` junto a ella, se rechaza. En cuanto el origen lleva etiquetas, las
+palabras entre corchetes angulares se cuentan como etiquetas. Si no lleva ninguna, una palabra entre
+corchetes angulares que añada la candidata se lee como texto y se acepta, salvo que su nombre, se
+escriba como se escriba, sea un elemento estándar de HTML (`Hallo <script>`), sea `image`, que un
+analizador convierte en un `<img>`, o contenga un guion, lo que lo convierte en un elemento
+personalizado (`Hallo <my-widget>`).
+
+Esa comprobación del nombre es deliberadamente prudente, así que una palabra corriente que resulte
+ser un nombre de elemento, como `<Del>`, `<Option>`, `<Select>`, `<Input>` o `<Menu>`, se rechaza
+cuando una traducción la añade a un origen que no la tiene. Como solución, mantén la palabra entre
+corchetes angulares también en tu texto de origen: una traducción que lleve las mismas palabras
+entre corchetes angulares que su origen se acepta.
+
+Los comentarios, las secciones CDATA, las declaraciones y las instrucciones de procesamiento no son
+etiquetas, y se leen como las lee un analizador de HTML, porque ahí es donde acaban los valores.
+`<!-->` y `<!--->` son comentarios vacíos completos, un comentario termina en el primer `-->` o
+`--!>`, y un comentario sin final oculta el resto del valor. `<![CDATA[`, `<!DOCTYPE html>`,
+cualquier otro `<!...`, `<?...` y un `</` seguido de algo que no sea una letra, como `</1 x>`,
+terminan todos en el primer `>`, mientras que un `</>` vacío se descarta, igual que lo descarta un
+analizador, y una etiqueta de cierre numérica como `</0>` se compara como etiqueta. Cada una de
+estas construcciones se compara como un multiconjunto de su texto, con las secuencias de espacios
+reducidas a uno, así que una que la candidata añada, pierda o reescriba se rechaza, incluido un
+comentario cuyo texto se tradujo. Las etiquetas que siguen al final de una construcción se comparan
+como siempre, así que `Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la
+construcción como por el `<img>`.
+
+El contenido de un elemento de texto sin formato también es texto, porque así lo lee un analizador.
+Tras una etiqueta de apertura `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
+`noembed` o `noframes`, todo hasta su etiqueta de cierre, escrita como se escriba y seguida de un
+espacio, `/` o `>`, es texto, y todo lo que sigue a `<plaintext>` es texto hasta el final del valor.
+Una etiqueta escrita dentro de un elemento así no se compara, y un valor de atributo entre comillas
+no puede extenderse más allá de la etiqueta de cierre para ocultar lo que sigue:
+`Füge ein <script><b x="</script><img src=x onerror=...>` se rechaza por el `<img>`. Cuando un
+analizador puede leer ese contenido de dos maneras, la candidata se rechaza salvo que sea el origen
+sin cambios, con un detalle como `+<noscript>...</noscript>`: un `script` cuyo contenido abre
+`<!--`, un `noscript` cuyo contenido lleva un `<`, porque entonces cómo se lee depende de si los
+scripts están activados, y cualquier elemento de texto sin formato cuyo contenido lleva un `<`
+después de una etiqueta `svg`, `math` o `select`, donde puede que ni siquiera sea texto sin formato.
+Por la misma razón, una sección CDATA o una etiqueta `image` en un valor donde el origen o la
+candidata abre `svg`, `math` o `select` se rechaza salvo que la candidata sea el origen sin cambios.
+
+El contenido de un elemento `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` o
+`plaintext` se ejecuta o da estilo a la página en lugar de mostrarse, así que nunca se traduce: cada
+elemento así en la candidata tiene que llevar exactamente el contenido del elemento en la misma
+posición entre los de su nombre en el origen, o la candidata se rechaza con un detalle como
+`+<script> content`. El contenido de `title` y `textarea` se muestra como texto y se puede traducir.
+Esto hace que un texto corriente que contenga literalmente una de esas etiquetas no se pueda
+traducir, porque en `Add a <script> tag` todo lo que sigue a `<script>` es su contenido:
+`Füge ein <script> Tag` se rechaza. En su lugar, escapa la etiqueta en el origen, como
+`Add a &lt;script&gt; tag`, que es texto en cualquier formato y se traduce como cualquier otra
+palabra.
+
+La comprobación es deliberadamente discreta, pero lee las etiquetas como lo hace un analizador de
+HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta numérica de texto
+enriquecido como `<0>`, de dígitos. Su nombre llega hasta un espacio, `/` o `>`, y un valor de
+atributo entre comillas puede contener `>`. Así que `5 < 10`, `x <= y` y un `&lt;b&gt;` escapado
+siguen siendo texto corriente, mientras que `<support@example.com>` y `<abbr title="a > b">` son
+etiquetas, y un `<` que nunca llega a su `>` no representa nada y no es una etiqueta. Una candidata
+que deja así una etiqueta sin terminar se rechaza de todos modos cuando su origen termina todas sus
+etiquetas, con un detalle que nombra el comienzo sin terminar, como `+<a`. Un origen cuyas propias
+etiquetas están mal formadas se compara igualmente. Tras apartar las etiquetas que el formato
+declara como placeholders y las palabras entre corchetes angulares, un origen cuenta como mal
+formado cuando tiene una etiqueta de apertura que nunca se cierra (salvo los elementos vacíos), una
+etiqueta de cierre sin apertura o etiquetas cerradas en el orden equivocado. El texto corriente
+puede provocarlo sin querer: en `a<b and c>d`, `<b and c>` es una etiqueta de apertura `b` con los
+atributos `and` y `c` que nunca se cierra, así que el origen cuenta como mal formado. Para un origen
+así solo se omite la comprobación del anidamiento: sus etiquetas se comparan como un multiconjunto
+igual que cualquier otro, así que una traducción que conserva `a<b and c>d` tal cual se acepta, una
+que añade un `<img>` a su lado se rechaza, y también una que traduce las palabras dentro de la
+secuencia (`a<b und c>d`), porque un analizador lee `und` como un atributo nuevo. Tampoco hay origen
+demasiado grande para compararlo. Una candidata solo se rechaza cuando lleva más del doble de
+etiquetas y construcciones que su origen, o más de 256 para un origen más pequeño, con el detalle
+`+more than N inline tags` que nombra ese límite.
+
+Los valores de los atributos son libres con excepciones, que existen porque un valor traducido acaba
+en una página. El valor de un atributo de URL (`href`, `src`, `action`, `formaction`, `xlink:href`,
+`poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`,
+`archive`, y los atributos de animación SVG `to`, `from`, `values` y `by`) se lee tras decodificar
+las referencias numéricas de caracteres y `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` y `&bsol;` e
+ignorar tabuladores, saltos de línea y caracteres de control alrededor. Un esquema `javascript:`,
+`vbscript:` o `data:` en él se rechaza salvo que el origen lleve exactamente ese valor en la misma
+etiqueta y el mismo atributo, con un detalle como `+<a href="javascript:...">`. Además, cada URL del
+valor, incluida cada URL de una lista `srcset`, `ping`, `archive` o `values`, tiene que conservar un
+esquema y una autoridad (host y puerto, o el host de una URL relativa al esquema `//host`) que tenga
+un valor de origen de la misma etiqueta y el mismo atributo, y una URL relativa tiene que seguir
+siendo relativa. Así, `/docs` puede pasar a `/de/docs` y `https://verbatra.dev/en` a
+`https://verbatra.dev/de`, pero `/docs` no puede pasar a `https://evil.example/docs` ni a
+`//evil.example/docs`, y un enlace absoluto localizado tiene que conservar el mismo host; el detalle
+nombra el nuevo origen, como `+<a href="https://evil.example...">`, o `+<a href="./...">` para un
+enlace absoluto que se volvió relativo. La ruta, la consulta y el fragmento pueden cambiar
+libremente. Una URL cambiada sin un esquema explícito `http`, `https`, `ws`, `wss`, `ftp` o `file`
+también se rechaza cuando lleva una barra invertida (`\` o `%5C`) en sus barras iniciales o en su
+host, porque una página con otro esquema lee `//verbatra.dev\@evil.example/` como un enlace a
+evil.example.
+
+Algunos valores de atributo tienen que volver exactamente como los tiene el origen, comparados tras
+decodificar las referencias de caracteres, con un detalle como `+<meta content="...">`: `http-equiv`
+y `content` en `meta`; `type`, `nomodule`, `integrity` y `crossorigin` en `script`; `rel`, `as`,
+`integrity`, `crossorigin` y `type` en `link`; `target` en `base`; `attributeName` y `attributeType`
+en `set`, `animate`, `animateTransform` y `animateMotion`; `sandbox`, `allow` y `allowfullscreen` en
+`iframe`; `method`, `enctype` y `target` en `form`; y `style`, `srcdoc` y cualquier manejador de
+eventos como `onclick` en cualquier elemento. Un atributo traducible como `title` o `alt` sigue
+siendo libre.
+
+De comparar valores enteros se siguen dos límites propios del formato. En un formato que mete varias
+formas plurales en un mismo valor separadas por una barra vertical (Vue I18n), una traducción que
+añade las formas que su idioma necesita repite el marcado del origen y se rechaza. Lo mismo pasa con
+un plural de estilo ICU (`{count, plural, one {...} other {...}}`) en un formato que lo guarda como
+texto plano en lugar de analizarlo como ICU (i18next, ngx-translate y YAML): una traducción con un
+número de formas distinto al del origen repite o pierde el marcado que contienen y se rechaza. En
+ambos casos el valor se retiene y la traducción anterior se conserva, así que no se pierde nada,
+pero las formas hay que añadirlas sin multiplicar también el marcado.
+
+La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya declara
+como placeholder (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de next-intl
+o ARB) queda para la comprobación de placeholders, junto con tantas etiquetas de cierre como aperturas
+tenga, y nunca se informa dos veces. Una etiqueta de apertura de ese tipo que la candidata deja sin
+cerrar se rechaza igualmente, nombrada por la etiqueta de cierre que le falta, como `-</g>`. Lo
+mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con el origen, como un
+`<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen solo lleva como
+texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla de ahí crearía
+el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una etiqueta de cierre
+sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron, cada una con `-`
+si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+
+### icu
+
+En next-intl y ARB, el candidato ya no se puede analizar como mensaje ICU (también un `plural` sin su rama `other`), o sus ramas `plural` o `selectordinal` no encajan con las categorías CLDR del idioma de destino, o sus ramas `select` difieren de las de la fuente. Los detalles nombran cada rama incorrecta. [Ramas de plural por idioma de destino](/docs/translation-safety#ramas-de-plural-por-idioma-de-destino) explica la regla.
+
+- **Lo lanza**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (como error)
+- **Código de salida**: `1` desde `translate` e `import` cuando el locale termina parcial o fallido; `1` desde `check --qa`
+- **Siguiente paso**: Corrige el mensaje para que se pueda analizar y tenga exactamente las ramas que necesita el idioma de destino.
+
+### degenerate
+
+El candidato está estructuralmente degenerado: un bucle de repeticiones, o una longitud que se ha disparado respecto a su fuente. Así se ve un modelo que se ha quedado repitiendo un fragmento, aunque haya sobrevivido cada placeholder.
+
+- **Lo lanza**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (como error)
+- **Código de salida**: `1` desde `translate` e `import` cuando el locale termina parcial o fallido; `1` desde `check --qa`
+- **Siguiente paso**: Deja que la siguiente ejecución traduzca la clave de nuevo, o escribe la traducción a mano.
+
+### empty
+
+El candidato está vacío o solo tiene espacios aunque su fuente no lo esté. Vaciar una traducción es un acto deliberado: lo hace el marcador `[[CLEAR]]` del libro de trabajo.
+
+- **Lo lanza**: `translate`, `watch`, `import`, `editEntry`; `check --qa` (como error)
+- **Código de salida**: `1` desde `translate` e `import` cuando el locale termina parcial o fallido; `1` desde `check --qa`
+- **Siguiente paso**: Escribe una traducción, o vacía el valor a propósito con `[[CLEAR]]` en una importación del libro de trabajo.
+
+## Motivos de revisión [#review-reason-codes]
+
+Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave. `translate` y `watch` listan las claves marcadas en `needsReview`, y `check --qa` informa como avisos de los motivos calculados a partir del valor, su origen y la configuración, que solo hacen fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`. Cada entrada dice cómo se mide su motivo; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión en conjunto.
+
+### LENGTH_RATIO_OUTLIER
+
+La traducción es mucho más corta o más larga que su fuente.
+
+Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada de la fuente; las fuentes muy cortas se omiten. La longitud se cuenta en clústeres de grafemas, y cada carácter se pondera según su escritura: un carácter chino cuenta 3.5, un kana japonés 1.5 y una sílaba coreana 2, así que una traducción correcta a esos idiomas no se marca solo por ser compacta.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Lee la traducción frente a su fuente y luego consérvala o corrígela.
+
+### MAX_LENGTH_EXCEEDED
+
+La traducción es más larga que el presupuesto `maxLength` configurado para su clave.
+
+La longitud se cuenta en clústeres de grafemas sobre el valor tal como está escrito. El límite es inclusivo, así que un valor de exactamente el presupuesto no se marca, y una clave sin presupuesto nunca se mide. El valor se escribe y se bloquea igualmente, porque una traducción correcta que desborda un diseño es mejor que ninguna.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Acorta la traducción, o sube el presupuesto `maxLength` de la clave.
+
+### EQUALS_SOURCE
+
+La traducción es idéntica a su fuente aunque el locale de destino sea otro.
+
+Solo salta cuando el locale de destino difiere del de origen y la fuente tiene texto traducible: una fuente hecha solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Traduce el valor, o consérvalo si el texto de verdad queda igual en ese idioma.
+
+### GLOSSARY_TERM_MISSED
+
+A un término del glosario de la fuente le falta su traducción para el locale de destino, o falta o se alteró un término `doNotTranslate`.
+
+Cada locale se comprueba contra su propia traducción del término de un glosario por locale. La comparación ignora mayúsculas salvo que el término sea `caseSensitive`, y las pliega según las reglas de cada locale (incluida la `İ` turca). El lado de la fuente exige una palabra completa, así que `AI` no se encuentra dentro de `Airport`; el lado del destino solo exige que el término aparezca en algún lugar del valor, porque un término traducido se funde con el texto que lo rodea (compuestos alemanes, partículas coreanas). Un término en una escritura sin separadores de palabras (han, kana, tailandés y similares) se compara por inclusión.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Usa la traducción del término que da el glosario, o deja el término sin cambios.
+
+### GLOSSARY_FORBIDDEN_TERM
+
+La traducción usa una versión que la lista `forbidden` del glosario excluye para el locale de destino.
+
+Se compara como palabra completa, y por inclusión en escrituras sin separadores de palabras, así que una forma flexionada o compuesta solo se detecta si también la listas. Una forma que la propia fuente contiene no se marca, porque la traducción puede citarla.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Sustituye la versión prohibida por la aprobada.
+
+### INTEGRITY_REORDERED
+
+Los marcadores coinciden exactamente, pero aparecen en otro orden que en la fuente.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Comprueba que el nuevo orden se lee bien en el idioma de destino.
+
+### PROVIDER_DEGRADED
+
+El proveedor degradó el lote del que viene esta clave, por ejemplo con una formalidad rebajada o un glosario ignorado.
+
+Salta cuando el lote llevaba un aviso `FORMALITY_DOWNGRADED` o `GLOSSARY_IGNORED`, que emiten DeepL, Google Cloud Translation y LibreTranslate. `PLACEHOLDER_UNSUPPORTED` no lo activa, porque esas entradas se retienen en lugar de degradarse.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`)
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa el tono y los términos del glosario del valor.
+
+### FUZZY_CACHE_REUSE
+
+El valor se reutilizó de la caché para una fuente anterior casi idéntica que se ha editado desde entonces. Solo ocurre con `fuzzyCache` activado.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`)
+- **Código de salida**: ninguno
+- **Siguiente paso**: Comprueba que el valor reutilizado sigue encajando con la fuente editada.
+
+### FOREIGN_PLACEHOLDER_CHANGED
+
+La traducción perdió o cambió un token con forma de placeholder que el formato del proyecto no protege, como `{name}` en un valor de i18next o `%{count}` en un valor de YAML.
+
+Se activa cuando ese token aparece en la fuente más veces que, literalmente, en la traducción. Los placeholders propios del formato quedan para la puerta de integridad, un token que la traducción solo añade no se marca, y un argumento ICU cuenta una vez, por su cabecera como `{n, plural,`, así que las ramas traducidas nunca lo activan. Los tokens dentro de ramas ICU, un token printf pegado a una letra o un dígito, los bytes codificados en porcentaje como `%2F` y todo lo que está dentro de una URL nunca se comprueban, ni tampoco los formatos de adaptadores de terceros. Qué sintaxis protege cada formato se indica en [Formatos](/docs/formats).
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso, que nombra cada token que falta en `details`, como `-{name}`)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Restaura el token en la traducción si tu biblioteca lo interpola.
+
+### BIDI_CONTROLS_CHANGED
+
+La traducción contiene caracteres invisibles de control de dirección que pueden reordenar el texto a su alrededor: una incrustación, anulación o aislamiento que nunca cierra, o una anulación que la fuente no tiene.
+
+Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada párrafo mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Un control sin cerrar extiende su dirección al texto que tu app pone después del valor, y una anulación invierte el texto a la vista. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
+
+- **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
+- **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
+- **Siguiente paso**: Cierra o quita los controles de dirección en la traducción.
+
+## Avisos de ejecución [#sdk-notice-codes]
+
+Un aviso son datos en los `notices` de un locale, nunca se lanza. Informa de una situación que la ejecución gestionó, y cambia el código de salida solo donde la entrada lo dice. [RunSummary](/docs/sdk/run-summary) muestra dónde están los avisos en el resumen.
+
+### PLURAL_CATEGORIES_INCOMPLETE
+
+A un plural de un locale de destino le falta una categoría de plural CLDR que usa su idioma, como un plural polaco con solo `one` y `other`, y verbatra no pudo generar el resto.
+
+- **Lo lanza**: `translate`, `watch`; `check` lo lista con los plurales, y `doctor` en Plural completeness
+- **Código de salida**: ninguno por sí solo; `1` desde `check --qa --strict`
+- **Siguiente paso**: Añade a mano las formas de plural que faltan.
+
+### SUB_BATCH_FAILED
+
+Una petición al proveedor falló. El aviso nombra el código de error del proveedor, o `PROVIDER_CALL_FAILED` cuando el fallo no era un error estructurado del proveedor, y las claves de la petición aparecen en `providerFailures`.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: `1`: el locale termina `partial` o `failed`
+- **Siguiente paso**: Busca el código que nombra en [Códigos de error del proveedor](#provider-error-codes). Las claves se vuelven a traducir en la siguiente ejecución.
+
+### BLANK_ROW_BASELINE_RETAINED
+
+Una fila importada quedó vacía para una clave cuya fuente cambió desde que se registró la línea base de la fila, así que se conservó la línea base anterior y el desfase se sigue informando.
+
+- **Lo lanza**: `import`
+- **Código de salida**: ninguno por sí solo
+- **Siguiente paso**: Traduce la clave en una exportación nueva, o ejecuta `verbatra translate`.
+
+### HANDOFF_REVIEWS_RECORDED
+
+Una entrega XLIFF marcó claves como revisadas o finales, y se registraron como aprobadas en `verbatra.provenance.json`.
+
+- **Lo lanza**: `import`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Nada que corregir; confirma `verbatra.provenance.json`.
+
+### BUDGET_TOKENS_EXCEEDED
+
+La ejecución alcanzó su presupuesto de tokens: `maxTokens` en la config, o `--max-tokens` para una ejecución. Con `"warn"` la ejecución sigue; con `"stop"` las claves aún no intentadas se retienen y aparecen en `budgetWithheld`.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: ninguno con `budgetBehavior: "warn"`; `1` con `"stop"` en cuanto se retienen claves
+- **Siguiente paso**: Sube el presupuesto, o vuelve a ejecutar: las claves retenidas se traducen en la siguiente ejecución.
+
+### CACHE_VERSION_UNRECOGNIZED
+
+`verbatra.cache.json` lo escribió un verbatra más nuevo, así que quedó intacto y la ejecución no usó caché.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Actualiza verbatra, o borra el archivo para reconstruirlo.
+
+### PROVENANCE_VERSION_UNRECOGNIZED
+
+`verbatra.provenance.json` lo escribió un verbatra más nuevo, así que quedó intacto y la ejecución no registró la procedencia de los valores que escribió.
+
+- **Lo lanza**: `translate`, `watch`, `import`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Actualiza verbatra para mantener el registro al día.
+
+### PROVENANCE_FILE_TOO_LARGE
+
+Registrar este locale habría hecho crecer `verbatra.provenance.json` por encima del tamaño que verbatra vuelve a leer, así que el archivo se quedó como estaba y los valores que escribió el locale no tienen registro.
+
+- **Lo lanza**: `translate`, `watch`, `import`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Los valores siguen escritos; solo falta su registro. Revisa antes de la siguiente ejecución por qué el archivo creció tanto.
+
+### LOCALE_STATE_CARRIED_OVER
+
+El estado registrado con una grafía con guion bajo como `pt_BR` se movió al `pt-BR` configurado. Consulta [Un código de locale reescrito](/docs/the-lock-file#un-código-de-locale-reescrito).
+
+- **Lo lanza**: `translate`, `watch`, `import`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Nada que corregir; confirma los archivos de bloqueo y de procedencia.
+
+### LOCALE_STATE_CARRY_OVER_SKIPPED
+
+Ese traslado quedó para la siguiente ejecución, porque el bloqueo del archivo de bloqueo siguió ocupado o no se pudo leer ni crear, o porque no se pudo escribir un archivo. Salvo que solo quedara atrás la memoria de traducción, el locale no se ejecutó y falló con `LOCALE_STATE_NOT_CARRIED_OVER`.
+
+- **Lo lanza**: `translate`, `watch`, `import`
+- **Código de salida**: `1` cuando el locale falló con `LOCALE_STATE_NOT_CARRIED_OVER`
+- **Siguiente paso**: Espera a que terminen otros procesos de verbatra y vuelve a ejecutar.
+
+### LOCALE_UNVERIFIED_BY_PROVIDER
+
+El código enviado no está en la tabla de idiomas del proveedor: solo lo está su idioma base, o viene de `localeMap`.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
+- **Código de salida**: ninguno
+- **Siguiente paso**: Ejecuta `verbatra doctor --locales` para ver el código enviado, y asigna el locale en `provider.options.localeMap` si es incorrecto.
+
+### LOCALE_NOT_WELL_TESTED
+
+Un proveedor LLM traduce a un idioma fuera de la lista de idiomas bien probados.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
+- **Código de salida**: ninguno
+- **Siguiente paso**: Haz que una persona revise las traducciones de este locale.
+
+### GLOSSARY_UNSUPPORTED_BY_PROVIDER
+
+El proveedor no puede aplicar un glosario para este locale.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa los términos del glosario en la revisión, o elige un proveedor que aplique un glosario para el locale.
+
+### FORMALITY_UNSUPPORTED_BY_PROVIDER
+
+El proveedor no puede aplicar el tono configurado para este locale.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`; `doctor --locales` lo informa
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa el tono en la revisión, o elige un proveedor que aplique formalidad para el locale.
+
+### SOURCE_FOREIGN_PLACEHOLDERS
+
+Valores de origen que este locale va a traducir contienen un token con forma de placeholder que el formato del proyecto no protege. El mensaje da el número de esos valores y nombra las primeras claves.
+
+Nada mantiene intacto ese token durante la traducción, así que una traducción que lo pierde o lo cambia se marca con [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). El aviso se emite por locale, solo cuando ese locale tiene una clave así que traducir, y nunca para formatos de adaptadores de terceros.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa las traducciones de las claves nombradas, o cambia la sintaxis si tu biblioteca no interpola estos tokens.
+
+### SENSITIVE_CONTENT_SENT
+
+Con `sensitiveData.mode: "warn"`, claves o términos del glosario que este locale envió contienen contenido que un detector o patrón encontró. Se enviaron sin cambios. El mensaje nombra los detectores y las primeras claves, nunca el texto encontrado salvo si forma parte del nombre de una clave.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Quita el contenido, permítelo en `sensitiveData.allow`, o cambia a `redact` o `block`.
+
+### SENSITIVE_CONTENT_REDACTED
+
+Con `"redact"`, las coincidencias en los valores de estas claves se sustituyeron por tokens antes de enviarlas y se restauraron en la traducción. El mensaje nombra las primeras claves completas, así que una coincidencia dentro del nombre de una clave aparece en él.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: No hace falta nada.
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y aparecen en `sensitiveWithheld`, o unos términos del glosario con coincidencia quedaron fuera de la petición. Con `"redact"` se retiene una clave cuando la coincidencia está en su nombre o se solapa con un marcador, o cuando un token no volvió exactamente una vez. El mensaje nombra las primeras claves completas, así que una coincidencia dentro del nombre de una clave aparece en él.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: `1`, ya que una clave retenida deja el locale `partial` o `failed`
+- **Siguiente paso**: Quita el contenido o permítelo en `sensitiveData.allow`; las claves se reintentan en la siguiente ejecución.
+
+## Avisos del proveedor [#provider-notice-codes]
+
+Un aviso del proveedor informa de una degradación controlada en una petición correcta, como datos en los `notices` del locale. Cada clave de un lote degradado lleva además el motivo de revisión `PROVIDER_DEGRADED`.
+
+### FORMALITY_DOWNGRADED
+
+No se aplicó un tono `formal` o `informal` solicitado, como en el plan gratuito de DeepL o con Google Cloud Translation Basic.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa el tono en la revisión, o usa un proveedor o plan que admita formalidad.
+
+### GLOSSARY_IGNORED
+
+No se aplicó un glosario con traducciones obligatorias o términos que conservar: DeepL solo aplica un id de glosario nativo, y Google Cloud Translation Basic no admite glosarios.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Revisa los términos del glosario en la revisión, o usa un proveedor LLM para el texto sujeto al glosario.
+
+### PLACEHOLDER_UNSUPPORTED
+
+Al menos un valor quedó sin traducir con DeepL, Google Cloud Translation o LibreTranslate. Un valor se retiene cuando un placeholder no aparece literal en él, o cuando su texto fuera de los placeholders contiene `<`, `>`, `{` o `}`: argumentos ICU como plural, select o number, marcado junto a un placeholder o un signo de comparación (LibreTranslate conserva el marcado, así que allí solo cuentan las llaves). Google retiene además un valor con un salto de línea, un tabulador o un doble espacio. Un resultado se descarta cuando un marcador vuelve perdido, duplicado, reescrito o sin etiqueta, o con una entidad desconocida o una etiqueta ajena. Un valor con marcado y sin placeholders se envía sin enmascarar.
+
+- **Lo lanza**: `translate`, `watch`
+- **Código de salida**: `1`: las claves aparecen en `providerFailures`, y el locale termina `partial` o `failed`
+- **Siguiente paso**: Traduce esos valores a mano, o usa un proveedor LLM para ellos.

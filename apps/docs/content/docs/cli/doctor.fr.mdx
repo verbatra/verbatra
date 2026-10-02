@@ -1,12 +1,11 @@
 ---
 title: verbatra doctor
 description: Valide la configuration du projet sans appeler de fournisseur ni lire de clé d'API.
+type: reference
 ---
 <AvailableFrom version="0.9.0" />
 
-Réponds à une question avant de lancer quoi que ce soit d'autre : ce projet est-il correctement configuré ? `doctor` valide la config, l'adaptateur de format, le fournisseur, la variable de clé d'API et le fichier de locale source, puis signale d'un coup tous les problèmes trouvés. Il ne dépense rien : aucun fournisseur n'est construit, aucune requête réseau n'est faite, aucun fichier n'est écrit, et aucune valeur de clé d'API n'est jamais lue.
-
-Utilise-le sur un checkout tout neuf, juste après [`verbatra init`](/docs/cli/init), ou chaque fois qu'une autre commande a échoué et que tu veux la liste complète plutôt que la première erreur. [`verbatra check`](/docs/cli/check) est la validation la moins chère une fois le projet fonctionnel, mais il lit les fichiers de locale et s'arrête à la première erreur globale : il ne peut donc pas te dire ce qui cloche dans un projet qui n'a pas encore de fichier source.
+Vérifie qu'un projet est bien configuré et obtiens tous les problèmes dans un seul rapport. `doctor` ne construit aucun fournisseur, n'écrit aucun fichier et ne lit jamais la valeur d'une clé d'API (seul `--live` envoie une requête). Lance-le après [`verbatra init`](/docs/cli/init) ou quand une autre commande échoue.
 
 ## Synopsis
 
@@ -18,63 +17,173 @@ verbatra doctor [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
 | `--literals` | aucun | désactivé | au lieu de vérifier la configuration, cherche des chaînes visibles par l'utilisateur écrites en dur dans les racines de code du [bloc `extract`](/docs/config-file#extract) (voir [Littéraux non traduits](#littéraux-non-traduits)) |
-| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le rapport sous `result` ; la ligne d'erreur lisible par un humain va toujours sur stderr |
+| `--locales` | aucun | désactivé | après les vérifications, liste par locale cible le code envoyé, la prise en charge du fournisseur, le glossaire et la formalité (voir [Prise en charge des locales](#prise-en-charge-des-locales)) |
+| `--live` | aucun | désactivé | récupère d'abord la liste de langues actuelle du fournisseur, sans consommer de quota de traduction ; implique `--locales` |
 
-## Ce qu'il vérifie
+Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`. `--locales` et `--live` ne se combinent pas avec `--literals` (`INVALID_OPTION`, sortie `2`).
+
+## Comportement
+
+### Ce qu'il vérifie
+
+<AvailableFrom version="0.12.0" />
+
+Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plural rules, Plural completeness, Locale codes et Locale state sont informatives et n'échouent jamais.
 
 | Vérification | Passe quand |
 | --- | --- |
-| Configuration | un fichier de config a été trouvé et passe la validation |
-| Format adapter | le `format` configuré se résout en un adaptateur de fichier |
-| Provider | le `provider.id` configuré se résout en une fabrique de fournisseur |
+| Configuration | un fichier de configuration a été trouvé et passe la validation |
+| Format adapter | le `format` configuré se résout en un adaptateur de fichiers |
+| Provider | le `provider.id` configuré se résout en une factory de fournisseur |
 | API key environment variable | la variable dans laquelle ce fournisseur lit sa clé est définie |
-| Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier ordinaire et s'analyse correctement avec le format configuré |
+| Network policy | la [politique réseau](/docs/network-policy) effective autorise l'hôte du fournisseur et tout proxy qu'il utiliserait |
+| Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier ordinaire et s'analyse avec le format configuré |
+| Plural rules | toujours : nomme les versions d'ICU et de CLDR utilisées et toute locale cible sans règles de pluriel dans ICU |
+| Plural completeness | toujours : nomme chaque pluriel cible auquel il manque une catégorie CLDR utilisée par sa langue (dix au plus ; [`verbatra check`](/docs/cli/check#catégories-de-pluriel) les liste tous) |
+| Locale codes | toujours : nomme chaque code valide mais non canonique, comme `en-us` ou `iw`, avec sa forme canonique (voir [Codes de locale](/docs/config-file#codes-de-locale)) |
+| Locale state | toujours : nomme chaque locale pour laquelle le fichier de verrou, le cache ou le fichier de provenance gardent un état que la configuration ne liste pas, et si `translate` le [reprend](/docs/the-lock-file#un-code-de-locale-réécrit) |
+| Locale support | le fournisseur prend en charge la locale source et chaque locale cible (voir [Prise en charge des locales](#prise-en-charge-des-locales)) |
 
-Chaque vérification s'exécute même si une précédente a échoué : une seule exécution signale donc tous les problèmes indépendants. Seule exception, la config elle-même : quand elle ne peut pas être chargée, les quatre vérifications qui en dépendent sont ignorées au lieu d'aboutir à un verdict. Une telle vérification s'affiche `[skip]` dans le rapport lisible et porte `"status": "skipped"` dans l'enveloppe `--json`.
+Chaque vérification s'exécute même si une précédente a échoué. La seule exception est la configuration : si elle ne peut pas être chargée, les vérifications qui en dépendent s'affichent en `[skip]` (`"status": "skipped"` en JSON). Une vérification échouée porte aussi un `fix`, une prochaine étape à l'impératif affichée en ligne `fix:` et transmise comme `"fix"` en JSON, pour qu'un agent agisse sans analyser `detail`.
 
-Quatre détails comptent :
+Une exécution avec deux problèmes :
 
-- La clé d'API est vérifiée **par son nom uniquement**. `doctor` demande si la variable est définie, jamais ce qu'elle contient. La valeur n'est pas lue, pas affichée, et n'est envoyée nulle part. Voir [Fournisseurs](/docs/providers) pour la variable utilisée par chaque fournisseur.
-- Le fournisseur `openai-compatible` fait exception. Il retombe sur une clé placeholder : une variable absente ne pose donc pas de problème. Il échoue seulement quand ta config nomme sa propre variable via `provider.options.apiKeyEnvVar` et que cette variable n'est pas définie.
-- Un fichier de locale **cible** manquant n'est pas un problème : [`verbatra translate`](/docs/cli/translate) le crée. Les fichiers cibles ne sont pas vérifiés du tout.
-- Le fichier de locale **source** est lu et analysé, pas seulement recherché. Un répertoire à sa place, un fichier vide et un contenu malformé font tous échouer cette vérification avec le message que [`verbatra check`](/docs/cli/check) donnerait, car ce sont exactement les cas qui font échouer toutes les autres commandes. Quand le `format` configuré ne résout aucun adaptateur, il n'y a rien pour l'analyser, donc la vérification retombe sur la seule existence et le signale.
+```text output
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
+  [ok  ] Provider: Provider "anthropic" resolves to a factory.
+  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
+         fix: Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.
+  [ok  ] Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.
+  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
+         fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+  ...
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
+2 problems found (run verbatra doctor again after fixing them)
+```
 
-Comme [`verbatra translate`](/docs/cli/translate), `doctor` charge `.env.local` puis `.env` depuis le répertoire de travail avant de regarder l'environnement : une clé rangée dans un fichier dotenv compte donc comme définie. Avec `--literals`, il ne charge aucun des deux fichiers.
+### Clés et fichiers
 
-## Littéraux non traduits
+- La clé d'API est vérifiée **par son nom uniquement** : `doctor` demande si la variable est définie, jamais ce qu'elle contient. La variable de chaque fournisseur est dans [Fournisseurs](/docs/providers).
+- `openai-compatible` se rabat sur une clé factice, il n'échoue donc que si la configuration nomme sa propre variable dans `provider.options.apiKeyEnvVar` et que cette variable n'est pas définie. `libretranslate` ne fait jamais échouer la vérification, car sa clé est facultative.
+- Avec [`provider: { id: "none" }`](/docs/human-only-workflow), les vérifications Provider, API key et Network policy passent, et Locale support est ignorée.
+- Un fichier **cible** manquant n'est pas un problème : `translate` le crée. Le fichier **source** est analysé, donc un répertoire, un fichier vide ou un contenu mal formé la fait échouer.
+- `doctor` charge d'abord les [fichiers d'environnement](/docs/cli#fichiers-denvironnement), donc une clé dans un fichier dotenv compte comme définie ; avec `--literals`, il n'en charge aucun.
+
+### Prise en charge des locales
+
+<AvailableFrom version="0.12.0" />
+
+La vérification Locale support demande si le fournisseur peut traduire chaque locale configurée. DeepL et Google Cloud Translation sont évalués d'après une table de langues datée que verbatra embarque ; un fournisseur LLM accepte toute locale. Elle échoue exactement sur la locale que [`verbatra translate`](/docs/cli/translate) refuserait avec `LOCALE_UNSUPPORTED_BY_PROVIDER`, et passe sinon avec des avertissements. [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) explique les verdicts.
+
+`--locales` affiche le verdict par locale après les vérifications :
+
+```text output
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+Chaque ligne nomme la locale, le code que reçoit le fournisseur (après [`localeMap`](/docs/providers#codes-de-locale-envoyés-au-fournisseur), marqué `(localeMap)`), le verdict, et si un glossaire et un ton `formal` ou `informal` s'appliquent. Un avertissement est indicatif.
+
+`--live` évalue plutôt d'après la liste actuelle du fournisseur (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Pour LibreTranslate, qui n'embarque aucune table, c'est le seul moyen d'obtenir un autre verdict que `unverified`. La requête n'est envoyée que si la variable de clé est définie (LibreTranslate n'en a pas besoin) et que la [politique réseau](/docs/network-policy) autorise l'hôte ; sinon, ou en cas d'échec, la table embarquée sert et une ligne `live language list` dit pourquoi.
+
+### Littéraux non traduits
 
 <AvailableFrom version="0.11.0" />
 
-`verbatra doctor --literals` cherche le seul bug i18n qu'aucune autre vérification ne voit : une chaîne visible par l'utilisateur qui n'est jamais arrivée dans un catalogue. Il parcourt les racines de code de ton [bloc `extract`](/docs/config-file#extract) et signale chaque chaîne écrite en dur qui se lit comme un texte destiné à l'utilisateur mais ne passe par aucun appel de traduction. Il lit ton code et ne l'écrit jamais, ne construit aucun fournisseur, ne lit aucune variable de clé d'API et ne charge aucun fichier `.env` : il passe donc dans un job sans secrets. Dans ce mode, seules deux vérifications s'exécutent : la configuration et l'analyse des littéraux.
+`--literals` trouve les chaînes visibles par l'utilisateur qui ne sont jamais arrivées dans un catalogue. Il parcourt les racines de code de ton [bloc `extract`](/docs/config-file#extract), lit ton code sans jamais l'écrire, ne construit aucun fournisseur, ne lit aucune clé et ne charge aucun `.env`. Seules deux vérifications s'exécutent : Configuration et Untranslated literals. Chaque résultat nomme fichier, ligne et colonne, avec les espaces regroupés, les références de caractères JSX décodées et 80 caractères au plus :
 
-Chaque constat indique le fichier, la ligne et la colonne. Dans son texte, les espaces sont réduits et, en JSX, les références de caractères comme `&amp;` sont décodées, et il est coupé à 80 caractères au plus :
-
-```text
-verbatra doctor
-  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+```text output
   [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
     src/components/Header.tsx:12:9  "Welcome back"
     src/pages/settings.tsx:40:22  "Save changes"
     suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
-1 problem found (run verbatra doctor again after fixing them)
 ```
 
-Ce qui compte comme un constat :
+Sont signalés : le texte JSX dans les fichiers `.tsx`, `.jsx` et `.js`, les attributs JSX visibles par l'utilisateur (`alt`, `title`, `placeholder`, `label`, `aria-label` et les autres `aria-*` porteurs de texte), et toute autre chaîne de deux mots ou plus.
 
-- Le texte JSX, comme `<p>Welcome back</p>`, dans les fichiers `.tsx`, `.jsx` et `.js`.
-- La valeur d'un attribut JSX visible par l'utilisateur : `alt`, `title`, `placeholder`, `label`, `aria-label` et les autres attributs `aria-*` porteurs de texte.
-- Une chaîne à tout autre endroit qui se lit comme de la prose, c'est-à-dire de deux mots ou plus. Un mot isolé hors JSX, comme un nom d'événement ou une valeur d'option, n'est pas signalé.
+Ne sont jamais signalés :
 
-Ce qui n'est jamais signalé : une chaîne passée à un appel de traduction reconnu (`t(...)`, `$t(...)`, `i18n.t(...)`, ou un `t` renommé depuis `useTranslation`, comme dans `const { t: translate } = useTranslation()`, de cette ligne jusqu'à la fin du bloc qui l'entoure) ou rendue dans `<Trans>` ou `<Translation>`, une clé d'objet, un spécificateur d'import, un nom de classe ou une valeur CSS, un test id ou un attribut `data-*`, un attribut qui contient des ids ou un mot-clé plutôt que du texte (comme `aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy` ou `crossOrigin`), une URL, un littéral en position de type (y compris un littéral après `as` ou `satisfies` ; la valeur qui les précède, comme dans `"Welcome" as const`, reste vérifiée), un message de log, le message d'une erreur construite (`new ValidationError(...)`) ou d'une erreur intégrée appelée sans `new` (`throw Error(...)`), un opérande de comparaison, un template literal contenant une expression, une chaîne sans lettres (ponctuation, espaces, un nombre, un emoji, un symbole) et tout ce qui se trouve dans les fichiers de test, de stories, de déclaration ou de configuration.
+- une chaîne passée à `t(...)`, `$t(...)`, `i18n.t(...)` ou à un `t` renommé issu de `useTranslation`, ou rendue dans `<Trans>` ou `<Translation>` ;
+- les clés d'objet, spécificateurs d'import, noms de classe, valeurs CSS, identifiants de test, `data-*` et attributs d'identifiant ou de mot-clé (`aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy`, `crossOrigin`), les URL et les chaînes sans lettres ;
+- les littéraux en position de type (la valeur avant `as` ou `satisfies` reste vérifiée), les messages de log, les messages d'erreur (`new ValidationError(...)`, `throw Error(...)`), les opérandes de comparaison et les template literals contenant une expression ;
+- les arguments directs de `describe` (zod), `query`, `execute`, `prepare`, `format`, `parse`, `z.enum`, `setItem`, `getItem` et `removeItem`, et le premier argument de `on`, `off`, `once`, `emit`, `addEventListener` et d'un `get` ou `set` sur un objet ; le texte plus imbriqué et les messages passés à des fonctions comme `setError` restent signalés ;
+- tout ce qui se trouve dans les fichiers de test, de story, de déclaration ou de configuration.
 
-Les appels qui attendent une requête, un format ou un nom plutôt que du texte sont aussi ignorés : une chaîne passée directement en argument à `describe` (zod), `query`, `execute`, `prepare`, `format` ou `parse`, une chaîne du tableau passé directement à `z.enum`, chaque argument chaîne de `setItem`, `getItem` et `removeItem`, ainsi que le premier argument de `on`, `off`, `once`, `emit`, `addEventListener` et d'un appel `get` ou `set` sur un objet, comme `cookies().get(...)`. Seuls les arguments directs sont ignorés : le texte imbriqué plus profondément dans un tel appel, comme dans un callback (`query(() => ({ message: "..." }))`), un objet ou du JSX, reste signalé. Une fonction dont le nom se termine juste par hasard par `Error`, comme `setError` ou `showError`, n'est pas ignorée : le message que tu lui passes reste signalé.
+Pour retenir un littéral, place `// verbatra-ignore-next-line` au-dessus (en JSX, `{/* verbatra-ignore-next-line */}`) ou `// verbatra-ignore-line` en fin de ligne. Une directive de ligne suivante vise la prochaine ligne contenant du code et, sur une balise JSX ouvrante, tous ses attributs. Une chaîne acceptable partout va dans `extract.literals.ignore`, références décodées (`Tom & Jerry`). Les littéraux supprimés restent listés avec leur raison.
 
-Pour retenir un littéral, mets `// verbatra-ignore-next-line` au-dessus (en JSX, `{/* verbatra-ignore-next-line */}`), ou `// verbatra-ignore-line` à la fin de sa propre ligne. Une directive de ligne suivante vise la prochaine ligne qui contient du code (les lignes vides et celles qui ne contiennent que des commentaires sont sautées) et couvre chaque littéral qui commence sur cette ligne. Quand une balise ouvrante JSX y commence, elle couvre aussi tous ses attributs, même si la balise s'étend sur plusieurs lignes. Le texte et les éléments imbriqués des lignes suivantes ne sont pas couverts : donne à chacun sa propre directive. Pour une chaîne qui convient partout, comme un nom de marque, ajoute-la sous `extract.literals.ignore` dans [le fichier de config](/docs/config-file#extract). Une entrée correspond au texte tel qu'il est signalé, avec les références de caractères décodées : écris donc `Tom & Jerry`, pas `Tom &amp; Jerry`. Un littéral retenu reste listé sous `suppressed`, avec la raison : rien ne disparaît en silence.
+La vérification échoue sur un résultat et sur un fichier qu'elle n'a pas pu ouvrir, lire jusqu'au bout, ou jugé trop gros (l'analyse continue). Un projet sans bloc `extract` la fait échouer.
 
-La vérification échoue quand elle trouve un littéral, et aussi quand un fichier n'a pas pu être analysé. Un fichier que l'analyseur ne peut pas lire jusqu'au bout (un commentaire ou un template literal non fermé, ou un élément JSX jamais fermé ou fermé par la balise d'un élément qui l'entoure), qu'il ne peut pas ouvrir du tout ou qu'il juge trop gros est listé comme non analysé et le reste de l'analyse continue, mais l'exécution n'est jamais signalée comme propre. Un type de fonction générique du genre `type Fn = <T>(x: T) => T` ou une liste de paramètres de type comme `<const T extends object = {}>(x: T) => x` dans un fichier `.tsx` est lu comme du code ordinaire et ne fait donc jamais échouer le fichier, et un élément avec des arguments de type de n'importe quelle longueur, comme `<Table<Row>>`, reste lu comme du JSX. Un projet sans bloc `extract` fait échouer la vérification avec un message qui nomme le bloc. Avec `--json`, l'analyse voyage dans l'enveloppe sous `result.literals`, répartie en `findings`, `suppressed` et `diagnostics`.
+### Sortie JSON
+
+Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte le rapport sous `result`. `ok` est vrai exactement quand la commande sort avec `0` :
+
+```ts
+interface DoctorResult {
+  ok: boolean;                 // true exactly when the command exits 0
+  checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
+}
+
+interface DoctorCheck {
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "network-policy"
+    | "source-file"
+    | "plural-rules"
+    | "plural-completeness"
+    | "locale-codes"
+    | "locale-state"
+    | "locales"
+    | "untranslated-literals";
+  title: string;               // stable, human-readable name
+  status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
+  detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check
+}
+
+interface LocaleCapabilityReport {
+  provider: string;
+  coverage: "listed" | "open";       // "open" for an LLM provider
+  tableVersion: string;              // the table's date (YYYY-MM-DD)
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;
+    formality: boolean;
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+`result.locales` est absent quand la configuration n'a pas pu être chargée, pour un fournisseur inconnu et pour `provider: { id: "none" }`.
+
+### Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+Pendant son exécution, `doctor` affiche une ligne sur stderr (`checking the setup`, ou `scanning the source for literals` avec un nombre de fichiers), que `--quiet` supprime. Le rapport reste sur stdout. Voir [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ## Exemples
 
@@ -88,35 +197,30 @@ verbatra doctor --cwd apps/web --config verbatra.config.ts
 # machine-readable report for a CI preflight step
 verbatra doctor --json
 
-# list hardcoded user-facing strings in your source, with no key set
+# list hardcoded user-facing strings, with no key set
 verbatra doctor --literals
-```
 
-Une exécution avec deux problèmes ressemble à ceci :
+# what the provider supports for each target locale
+verbatra doctor --locales
 
-```text
-verbatra doctor
-  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
-  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
-  [ok  ] Provider: Provider "anthropic" resolves to a factory.
-  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
-  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
-2 problems found (run verbatra doctor again after fixing them)
+# the same, against the provider's current language list
+verbatra doctor --live
 ```
 
 ## Codes de sortie
 
 | Code | Signification |
 | --- | --- |
-| `0` | toutes les vérifications sont passées |
-| `1` | au moins une vérification a échoué (le rapport complet est quand même affiché) ; avec `--literals`, un littéral a été trouvé ou un fichier n'a pas pu être analysé |
-| `2` | impossible de s'exécuter : une erreur d'utilisation, ou un chemin `--config` explicite qui n'existe pas |
+| `0` | toutes les vérifications ont passé |
+| `1` | au moins une vérification a échoué, y compris une locale non prise en charge ; avec `--literals`, un littéral trouvé ou un fichier non analysable |
+| `2` | impossible de s'exécuter : une erreur d'usage ou un chemin `--config` explicite qui n'existe pas |
 
-La sortie `1` signifie "il s'est exécuté et a trouvé des problèmes". La sortie `2` est réservée au cas où `doctor` ne peut pas s'exécuter du tout : c'est pourquoi un fichier de config introuvable par la recherche est une vérification en échec et un code de sortie `1`, alors qu'un chemin `--config` qui pointe dans le vide donne un code de sortie `2`.
+Une configuration que la recherche ne trouve pas, ou qui échoue à la validation, est une vérification échouée (sortie `1`), puisque la signaler est justement le rôle de la commande. Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
-- [`verbatra init`](/docs/cli/init) génère la config et le `.env.example` que `doctor` valide.
+- [`verbatra init`](/docs/cli/init) crée la configuration et le `.env.example` que `doctor` valide.
 - [`verbatra check`](/docs/cli/check) est le contrôle de dérive à lancer une fois la configuration saine.
 - [Le fichier de configuration](/docs/config-file) documente chaque clé que `doctor` valide.
 - [Fournisseurs](/docs/providers) liste la variable de clé d'API que lit chaque fournisseur.
+- [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) liste les tables de langues qu'utilise la vérification Locale support.

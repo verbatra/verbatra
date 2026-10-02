@@ -1,0 +1,139 @@
+---
+title: Consigner les preuves de traduction automatique
+description: Produis une trace, clé par clé, des traductions écrites par une machine et de celles qu'une personne a relues, et reporte ce marquage dans les exports XLIFF et TMX.
+status: new
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+Utilise ceci quand quelqu'un demande quelle partie de ton texte publié un fournisseur ou un agent d'IA a traduite, et si une personne l'a relue. verbatra consigne cela clé par clé dans `verbatra.provenance.json` ; tu l'en sors sous forme de rapport à archiver, ou de marqueurs dans les fichiers XLIFF et TMX que tu remets à d'autres outils.
+
+<Callout type="warn" title="Élément de preuve à l'appui, pas un conseil juridique">
+Selon l'[article 50 du règlement européen sur l'IA](/docs/data-handling#traductions-générées-par-ia-et-provenance), un texte qu'une
+personne a relu sous sa responsabilité éditoriale est traité différemment d'un texte qui ne l'a pas
+été. Le rapport et les marqueurs sont des éléments de preuve à l'appui pour la personne qui décide
+comment cela s'applique à ton produit. Ce ne sont
+pas des conseils juridiques, et les utiliser ne rend un produit conforme à rien du tout.
+</Callout>
+
+## Ce que la trace peut et ne peut pas te dire
+
+Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'écriture qui l'a produite), une éventuelle décision de revue et le nom du relecteur ; voir [le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur). Comme preuve, les origines se répartissent en deux classes :
+
+- **Classe machine** : `machine`, `memory`, `fuzzy` et `agent`. La mémoire compte comme machine parce qu'elle n'enregistre pas qui a écrit une entrée.
+- **Personnes** : `human` (une modification via Studio ou le SDK) et `import` (la remise d'un traducteur).
+
+`external`, `unrecorded` et `unknown` n'appartiennent à aucune des deux. Une approbation donnée avant que le texte source change se lit comme non relue.
+
+Garde ces limites en tête quand tu remets la trace à quelqu'un :
+
+- **Elle n'est pas infalsifiable.** Quiconque peut modifier tes fichiers de locale peut la modifier ; sa valeur vient de ton historique git et de ta revue de code.
+- **Elle n'a pas d'horodatage.** Le moment où une valeur a été écrite ou approuvée se trouve dans l'historique git (`git log -p verbatra.provenance.json`).
+- **Elle penche du côté de la machine.** Les correspondances de la mémoire, les correspondances approximatives et les modifications d'agent comptent toutes comme machine, et une valeur machine que personne n'a approuvée compte comme non relue, même si son texte est correct.
+
+## Le rapport de provenance
+
+[`verbatra report provenance`](/docs/cli/report) affiche, par locale cible, combien de valeurs tombent dans chaque catégorie.
+
+```bash
+verbatra report provenance
+```
+
+| Catégorie | La valeur a été écrite par | Relue ? |
+| --- | --- | --- |
+| `machine-unreviewed` | `machine`, `memory`, `fuzzy` ou `agent` | non approuvée, y compris une valeur rejetée revenue dans le fichier |
+| `machine-reviewed` | `machine`, `memory`, `fuzzy` ou `agent` | approuvée par une personne |
+| `human` | une personne, via verbatra | l'un ou l'autre |
+| `import` | la remise d'un traducteur | l'un ou l'autre |
+| `external` | quelque chose hors de verbatra, depuis l'écriture de sa trace | inconnu |
+| `unrecorded` | personne que verbatra connaisse : il n'y a pas de trace | inconnu |
+| `unknown` | enregistrée sans auteur connu | l'un ou l'autre |
+
+Seules les clés qui ont une valeur à la fois dans la source et dans la locale cible sont comptées : une clé manquante n'a pas de texte à justifier. Un agent lit le même rapport avec l'outil MCP [`report.provenance`](/docs/cli/mcp#tools).
+
+### Un fichier d'audit depuis la CI
+
+Avec `--json`, le rapport liste chaque clé, ce qui en fait un fichier d'audit à archiver avec chaque version :
+
+```bash
+verbatra report provenance --json > provenance-report.json
+```
+
+Si `verbatra.provenance.json` est corrompu ou a été écrit par une version plus récente de verbatra, la commande sort avec `1` au lieu d'afficher un rapport qui listerait chaque valeur comme `unrecorded`. Un job de CI échoue donc au lieu d'archiver un fichier d'audit vide.
+
+Si chaque traduction automatique doit être relue avant une version, bloque aussi avec [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues).
+
+### Le schéma JSON
+
+Le rapport est le `result` de l'[enveloppe JSON](/docs/cli/output#sortie-json) habituelle, avec `command` à `"report"`. Les appelants du SDK obtiennent le même objet de [`provenanceReport`](/docs/sdk/inspect#provenancereport).
+
+| Champ | Type | Signification |
+| --- | --- | --- |
+| `available` | `true` | le rapport a été construit à partir des fichiers commités |
+| `generatedAt` | string | quand le rapport a été généré, en ISO 8601 UTC |
+| `toolVersion` | string | la version de verbatra qui l'a généré, ou `unknown` quand un appelant du SDK n'en passe aucune |
+| `sourceLocale` | string | la locale source configurée |
+| `locales[]` | array | une entrée par locale cible, dans l'ordre configuré, restreinte par `--locales` |
+| `locales[].locale` | string | la locale cible |
+| `locales[].total` | number | combien de clés sont listées pour la locale |
+| `locales[].counts` | object | combien de clés tombent dans chaque catégorie ; les sept catégories sont toujours présentes |
+| `locales[].entries[]` | array | une entrée par clé ayant une valeur dans la source et la locale, dans l'ordre de la source |
+| `entries[].key` | string | la clé de traduction |
+| `entries[].bucket` | string | l'une des catégories ci-dessus |
+| `entries[].origin` | string | l'origine, y compris `unrecorded` et `external` |
+| `entries[].reviewState` | string | `unreviewed`, `approved` ou `rejected` |
+| `entries[].provider` | string, facultatif | l'`id` du fournisseur qui a répondu, pour une valeur `machine` |
+| `entries[].model` | string, facultatif | le modèle configuré, quand la trace en nomme un |
+| `entries[].reviewer` | string, facultatif | le relecteur nommé avec la décision, s'il a été indiqué |
+
+Quand le fichier de provenance est illisible, le résultat est `{ "available": false, "reason": "provenance-unreadable" }`. De nouveaux champs facultatifs peuvent être ajoutés plus tard ; les champs existants gardent leur sens.
+
+## Marqueurs dans les exports
+
+L'origine voyage aussi dans les fichiers que tu remets à d'autres outils, pour que l'autre côté distingue la sortie machine du travail humain.
+
+### XLIFF
+
+[`verbatra export`](/docs/cli/export) avec `--format xliff12` ou `--format xliff2` marque chaque unité qui a une cible :
+
+| La cible est | XLIFF 1.2 | XLIFF 2.0 |
+| --- | --- | --- |
+| classe machine, non approuvée | `state-qualifier="mt-suggestion"` sur `<target>` | `<mda:meta type="origin">` et `<mda:meta type="review-state">` |
+| classe machine, approuvée | pas de qualificatif | les deux mêmes entrées meta |
+| human, import, external, unrecorded ou unknown | pas de qualificatif | les deux mêmes entrées meta |
+
+`mt-suggestion` est la valeur XLIFF 1.2 pour "suggéré par traduction automatique", que les outils de TAO affichent comme telle, à côté du `state` habituel. Une valeur qu'une personne a approuvée, ou dont verbatra ne peut pas garantir l'origine, ne reçoit pas de qualificatif.
+
+XLIFF 2.0 n'a pas de qualificatif d'état, donc le groupe de métadonnées `verbatra` de l'unité, qui contient déjà le hash de la source, reçoit l'origine complète et l'état de revue :
+
+```xml
+<mda:metaGroup category="verbatra">
+  <mda:meta type="source-hash">8f3a0c1e2b4d6f70</mda:meta>
+  <mda:meta type="origin">machine</mda:meta>
+  <mda:meta type="review-state">unreviewed</mda:meta>
+</mda:metaGroup>
+```
+
+### TMX
+
+[`verbatra tmx export`](/docs/cli/tmx) écrit une propriété `x-origin` sur chaque segment cible, et `x-review` à côté d'un segment `machine` :
+
+```xml
+<tuv xml:lang="de"><prop type="x-origin">machine</prop><prop type="x-review">unreviewed</prop><seg>Zur Kasse</seg></tuv>
+```
+
+`x-origin` vaut `machine`, `human`, `import` ou `unknown` ; `x-review` vaut `approved`, `unreviewed` ou `rejected`. Une entrée de mémoire est une paire de textes, pas une clé, donc un segment est `machine` si une clé avec exactement ce texte est de classe machine, et `approved` seulement si toutes ces clés le sont. Un texte qu'aucune trace ne décrit est `unknown`.
+
+### Importer des fichiers marqués
+
+L'import ignore tous les marqueurs. Une unité XLIFF est jugée sur sa cible et son état, un segment TMX sur son texte. Une valeur importée depuis une remise est consignée comme `import`, et un import TMX ne fait que remplir la mémoire de traduction, donc un marqueur qu'un outil a réécrit, supprimé ou inventé ne peut pas changer ta trace.
+
+### Quand la trace est illisible
+
+Si `verbatra.provenance.json` est corrompu ou vient d'une version plus récente de verbatra (ou, pour TMX, si le fichier de verrouillage est illisible), l'export réussit quand même mais n'écrit aucun marqueur plutôt que des marqueurs qu'il ne peut pas étayer. Le résumé le dit, et le résultat `--json` porte `provenanceMarkers: "unavailable"` au lieu de `"written"`.
+
+## Voir aussi
+
+- [`verbatra report`](/docs/cli/report) : options, sortie et codes de sortie du rapport de provenance.
+- [Réviser dans Studio](/docs/review-in-studio) : approuve ou rejette les traductions automatiques, une par une ou par locale.
+- [Traitement des données et vie privée](/docs/data-handling) : ce que verbatra envoie, à qui, et ce qu'il garde en local.

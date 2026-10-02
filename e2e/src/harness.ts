@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ExcelJS from "exceljs";
 import { execa } from "execa";
 import { type RecordedProcessOutput, recordPendingRun, recordRun } from "./diagnostics.js";
 
@@ -12,6 +13,7 @@ export interface Tarballs {
   sdk: string;
   cli: string;
   studio: string;
+  mcp: string;
 }
 
 interface Manifest extends Tarballs {
@@ -39,14 +41,21 @@ export async function readSharedConsumer(): Promise<Consumer> {
   };
 }
 
-export async function makeConsumer(options: { withStudio?: boolean } = {}): Promise<Consumer> {
-  const { sdk, cli, studio } = await readTarballs();
+export async function makeConsumer(
+  options: { withStudio?: boolean; withMcp?: boolean } = {},
+): Promise<Consumer> {
+  const { sdk, cli, studio, mcp } = await readTarballs();
   const dir = await mkdtemp(join(tmpdir(), "verbatra-e2e-consumer-"));
   await writeFile(
     join(dir, "package.json"),
     JSON.stringify({ name: "verbatra-e2e-consumer", version: "0.0.0", private: true }, null, 2),
   );
-  const packs = options.withStudio === true ? [sdk, cli, studio] : [sdk, cli];
+  const packs = [
+    sdk,
+    cli,
+    ...(options.withStudio === true ? [studio] : []),
+    ...(options.withMcp === true ? [mcp] : []),
+  ];
   await execa("npm", ["install", "--no-audit", "--no-fund", "--no-package-lock", ...packs], {
     cwd: dir,
   });
@@ -135,6 +144,8 @@ export interface ErrorEnvelope {
   command: string | null;
   code: string;
   message: string;
+  causeCode?: string;
+  hint?: string;
 }
 
 export type JsonEnvelope<TResult> = SuccessEnvelope<TResult> | ErrorEnvelope;
@@ -298,4 +309,42 @@ export function providerConfigBlock(provider: { id: ProviderEnv["id"]; model?: s
     case "google-translate":
       return `{ id: "google-translate", options: {} }`;
   }
+}
+
+const WORKBOOK_HEADER_ROW = 1;
+const WORKBOOK_KEY_COLUMN = 1;
+const WORKBOOK_TRANSLATION_COLUMN = 5;
+const WORKBOOK_INSTRUCTIONS_SHEET = "Instructions";
+
+export interface FillWorkbookOptions {
+  onDataSheetHeaders?: (headers: readonly string[]) => void;
+}
+
+export async function fillWorkbook(
+  workbookPath: string,
+  translationFor: (key: string) => string | undefined,
+  options: FillWorkbookOptions = {},
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(workbookPath);
+  for (const sheet of workbook.worksheets) {
+    if (sheet.name === WORKBOOK_INSTRUCTIONS_SHEET) {
+      continue;
+    }
+    const headers: string[] = [];
+    sheet.getRow(WORKBOOK_HEADER_ROW).eachCell((cell) => {
+      headers.push(String(cell.value));
+    });
+    options.onDataSheetHeaders?.(headers);
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === WORKBOOK_HEADER_ROW) {
+        return;
+      }
+      const translation = translationFor(String(row.getCell(WORKBOOK_KEY_COLUMN).value));
+      if (translation !== undefined) {
+        row.getCell(WORKBOOK_TRANSLATION_COLUMN).value = translation;
+      }
+    });
+  }
+  await workbook.xlsx.writeFile(workbookPath);
 }

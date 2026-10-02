@@ -1,45 +1,80 @@
 ---
 title: Einführung
 description: Was verbatra ist, welches Problem es löst und wie CLI, SDK, Studio und MCP-Server zusammenspielen. Übersetze nur die Keys, die sich geändert haben, mit Integritätsprüfungen für jedes Ergebnis.
+type: overview
 ---
 
 <DocsHomeHero
   headline="So übersetzt du nur, was sich geändert hat."
   lead="verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, sendet nur die neuen und geänderten Keys an den Provider, den du konfigurierst, prüft jedes Ergebnis und schreibt die Dateien direkt zurück. Diese Seiten decken die CLI, das SDK, Studio und den MCP-Server ab."
-  primary={{ label: "Deine erste Übersetzung", href: "/docs/your-first-translation" }}
+  primary={{ label: "Schnellstart", href: "/docs/quickstart" }}
   secondary={{ label: "CLI-Referenz", href: "/docs/cli" }}
 />
 
 <DocsHomeBody>
 
-<DocsHomeSection title="Wohin als Nächstes" lead="Vier Einstiege, je nachdem, wo du gerade stehst.">
+<DocsHomeSection title="Starte bei deinem Ziel" lead="Wähle, was du vorhast; jede Karte öffnet die Seite, die genau das zeigt.">
 
 <DocsHomePaths
   cards={[
     {
-      tag: "Neu hier",
-      label: "Deine erste Übersetzung",
-      body: "Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne Key vorab an und übersetze dann.",
-      href: "/docs/your-first-translation",
+      goal: "Ein Projekt übersetzen",
+      page: "Schnellstart",
+      body: "Installiere die CLI, sieh dir den Lauf ohne Schlüssel an und übersetze dann deine erste Datei.",
+      href: "/docs/quickstart",
       primary: true,
     },
     {
-      tag: "Schon eingerichtet",
-      label: "Eine Sprache hinzufügen",
-      body: "Trage eine Locale in deine Konfiguration ein und lass einen Lauf sie füllen.",
-      href: "/docs/add-a-language",
-    },
-    {
-      tag: "Produktion",
-      label: "CI und Exit-Codes",
-      body: "Lass den Pull Request fehlschlagen, wenn eine Locale abdriftet, mit JSON-Ausgabe für Skripte.",
+      goal: "Pull Requests absichern",
+      page: "CI und Exit-Codes",
+      body: "Lass einen Pull Request fehlschlagen, wenn eine Locale abdriftet, mit JSON-Ausgabe für Skripte.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "Mit einem KI-Agenten",
-      label: "Mit KI einrichten",
+      goal: "An Übersetzer übergeben",
+      page: "Menschliche Übersetzung",
+      body: "Exportiere eine Arbeitsmappe, die ein Mensch übersetzt, und importiere sie wieder.",
+      href: "/docs/manual-translation",
+    },
+    {
+      goal: "Mit einem KI-Agenten arbeiten",
+      page: "Mit KI einrichten",
       body: "Gib Claude Code, Cursor oder einem beliebigen Coding-Agenten einen Prompt zum Kopieren und Einfügen.",
       href: "/docs/start-with-ai",
+    },
+  ]}
+/>
+
+<DocsHomeStacks
+  title="Wähle deinen Stack"
+  groups={[
+    {
+      title: "Frameworks",
+      links: [
+        { label: "React", href: "/docs/pick-your-stack#react-mit-i18next" },
+        { label: "Next.js", href: "/docs/pick-your-stack#nextjs-mit-next-intl" },
+        { label: "Vue", href: "/docs/pick-your-stack#vue-und-nuxt-mit-vue-i18n" },
+        { label: "Angular", href: "/docs/pick-your-stack#angular-mit-ngx-translate" },
+      ],
+    },
+    {
+      title: "Plattformen",
+      links: [
+        { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
+        { label: "Android", href: "/docs/pick-your-stack#android" },
+        { label: "iOS und macOS", href: "/docs/pick-your-stack#ios-und-macos" },
+        { label: "Spring", href: "/docs/pick-your-stack#java-und-spring" },
+        { label: ".NET", href: "/docs/pick-your-stack#net" },
+      ],
+    },
+    {
+      title: "Formate",
+      links: [
+        { label: "gettext", href: "/docs/pick-your-stack#gettext" },
+        { label: "YAML", href: "/docs/pick-your-stack#yaml" },
+        { label: "XLIFF", href: "/docs/pick-your-stack#xliff" },
+        { label: "INI", href: "/docs/pick-your-stack#ini" },
+      ],
     },
   ]}
 />
@@ -52,7 +87,7 @@ Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei ab
 
 <DocsHomeSteps />
 
-verbatra liest und schreibt vierzehn Formate und übersetzt über sechs Provider hinter einer einzigen Schnittstelle; ein Format, das es nicht mitbringt, lässt sich als [eigener Adapter](/docs/custom-format-adapters) ergänzen. Siehe [Formate](/docs/formats) und [Provider](/docs/providers).
+verbatra liest und schreibt die gängigen Formate für Locale-Dateien, von JSON und YAML bis XLIFF, gettext sowie Android- und Apple-Katalogen, und übersetzt über jeden unterstützten LLM- oder Maschinenübersetzungs-Provider hinter einer einzigen Schnittstelle (oder über keinen, für einen [rein menschlichen Workflow](/docs/human-only-workflow)); ein Format, das es nicht mitbringt, lässt sich als [eigener Adapter](/docs/custom-format-adapters) ergänzen. Die vollständigen Listen findest du unter [Formate](/docs/formats) und [Provider](/docs/providers).
 
 </DocsHomeSection>
 
@@ -63,7 +98,7 @@ verbatra liest und schreibt vierzehn Formate und übersetzt über sechs Provider
     {
       title: "@verbatra/cli",
       pkg: "cli",
-      body: "Das verbatra-Binary: vierzehn Befehle, von init und extract bis translate, check, export und studio, als dünner Wrapper über dem SDK. Starte hier.",
+      body: "Das verbatra-Binary: jeder Befehl, von init und extract bis translate, check, export und studio, als dünner Wrapper über dem SDK. Starte hier.",
       href: "/docs/cli",
     },
     {

@@ -62,7 +62,11 @@ describe("keyValue: reads", () => {
 
     const result = await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "greeting" });
 
-    expect(result).toEqual({ source: "Hello", target: "Hallo" });
+    expect(result).toEqual({
+      source: "Hello",
+      target: "Hallo",
+      provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+    });
   });
 
   it("omits target entirely when the key does not yet exist in that target locale", async () => {
@@ -98,9 +102,50 @@ describe("keyValue: reads", () => {
     try {
       process.chdir(dir);
       const result = await keyValue({ config: cfg(), locale: "de", key: "greeting" });
-      expect(result).toEqual({ source: "Hello", target: "Hallo" });
+      expect(result).toEqual({
+        source: "Hello",
+        target: "Hallo",
+        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+      });
     } finally {
       process.chdir(previous);
     }
+  });
+});
+
+describe("keyValue: source context", () => {
+  async function arbProject(): Promise<string> {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "locales"));
+    await writeJsonFile(join(dir, "locales", "en.arb"), {
+      "@@locale": "en",
+      greeting: "Hello",
+      "@greeting": { description: "Shown on the home page" },
+      farewell: "Bye",
+    });
+    await writeJsonFile(join(dir, "locales", "de.arb"), { "@@locale": "de", greeting: "Hallo" });
+    return dir;
+  }
+
+  const arbConfig = cfg({ format: "arb", files: { pattern: "locales/{locale}.arb" } });
+
+  it("returns the description the source file gives for the key", async () => {
+    const dir = await arbProject();
+
+    await expect(
+      keyValue({ config: arbConfig, cwd: dir, locale: "de", key: "greeting" }),
+    ).resolves.toMatchObject({
+      source: "Hello",
+      target: "Hallo",
+      description: "Shown on the home page",
+    });
+  });
+
+  it("leaves the description out when the source file gives none", async () => {
+    const dir = await arbProject();
+
+    const result = await keyValue({ config: arbConfig, cwd: dir, locale: "de", key: "farewell" });
+
+    expect(result).toEqual({ source: "Bye" });
   });
 });

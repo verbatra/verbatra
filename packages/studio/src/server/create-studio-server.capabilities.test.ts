@@ -12,7 +12,7 @@ import {
 
 interface RpcResponseBody {
   readonly ok: boolean;
-  readonly error?: { readonly code: string };
+  readonly error?: { readonly code: string; readonly retryAfterSeconds?: number };
   readonly result?: unknown;
 }
 
@@ -21,7 +21,7 @@ async function postRpc(
   cookie: string,
   method: string,
   params: Record<string, unknown> = {},
-): Promise<{ status: number; body: RpcResponseBody }> {
+): Promise<{ status: number; body: RpcResponseBody; retryAfter: string | null }> {
   const response = await fetch(new URL("/rpc", url), {
     method: "POST",
     headers: {
@@ -31,7 +31,11 @@ async function postRpc(
     },
     body: JSON.stringify({ method, params }),
   });
-  return { status: response.status, body: (await response.json()) as RpcResponseBody };
+  return {
+    status: response.status,
+    body: (await response.json()) as RpcResponseBody,
+    retryAfter: response.headers.get("retry-after"),
+  };
 }
 
 const TOKEN = "capabilities-test-token-0123456789abcdef";
@@ -104,10 +108,36 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
         const { body } = await postRpc(server.url, cookie, "project.snapshot");
         expect(body).toMatchObject({
           ok: true,
-          result: { capabilities: { spend: false, writeToDisk: true } },
+          result: { capabilities: { spend: false, spendWithheld: "flag", writeToDisk: true } },
         });
       },
       { token: TOKEN, loader: stubLoader() },
+    );
+  });
+
+  it("reports the retranslate and review decision limits, defaulted and configured", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { body } = await postRpc(server.url, cookie, "project.snapshot");
+        expect(body).toMatchObject({
+          ok: true,
+          result: {
+            capabilities: {
+              limits: {
+                retranslate: { windowMs: 60_000, max: 20 },
+                reviewDecision: { windowMs: 30_000, max: 7 },
+              },
+            },
+          },
+        });
+      },
+      {
+        token: TOKEN,
+        loader: stubLoader(),
+        reviewDecisionRateLimitWindowMs: 30_000,
+        reviewDecisionRateLimitMax: 7,
+      },
     );
   });
 
@@ -124,6 +154,44 @@ describe("project.snapshot's capabilities projection reflects the resolved flags
       { token: TOKEN, loader: stubLoader(), spend: true },
     );
   });
+});
+
+describe("provider none withholds the spend capability even when it was granted", () => {
+  const humanOnlyLoader = async () => ({
+    config: { ...(await stubLoader()()).config, provider: { id: "none" as const, options: {} } },
+    source: { kind: "override" as const },
+    glossary: { source: "none" as const },
+  });
+
+  it("reports spend false on the snapshot with spend set", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { body } = await postRpc(server.url, cookie, "project.snapshot");
+        expect(body).toMatchObject({
+          ok: true,
+          result: { capabilities: { spend: false, spendWithheld: "policy", writeToDisk: true } },
+        });
+      },
+      { token: TOKEN, loader: humanOnlyLoader, spend: true },
+    );
+  });
+
+  it.each(["translation.retranslateEntry", "translation.translatePending"])(
+    "answers METHOD_UNKNOWN for %s with spend set",
+    async (method) => {
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+          const { body } = await postRpc(server.url, cookie, method, {
+            ...(method === "translation.retranslateEntry" ? { locale: "de", key: "greeting" } : {}),
+          });
+          expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        },
+        { token: TOKEN, loader: humanOnlyLoader, spend: true },
+      );
+    },
+  );
 });
 
 describe("translation.editEntry and key.value reachability on a default server", () => {
@@ -221,6 +289,11 @@ describe("translation.editEntry's dispatch-layer rate limit, wired end to end", 
         });
         expect(third.status).toBe(429);
         expect(third.body).toMatchObject({ ok: false, error: { code: "METHOD_RATE_LIMITED" } });
+        const retryAfterSeconds = third.body.error?.retryAfterSeconds;
+        expect(retryAfterSeconds).toBeGreaterThanOrEqual(59);
+        expect(retryAfterSeconds).toBeLessThanOrEqual(60);
+        expect(third.retryAfter).toBe(String(retryAfterSeconds));
+        expect(first.retryAfter).toBeNull();
       },
       {
         token: TOKEN,
@@ -668,5 +741,163 @@ describe("translation.editEntry's per-(locale,key) in-flight guard, wired end to
     } finally {
       await project.cleanup();
     }
+  });
+});
+
+describe.each(["review.approve", "review.reject"])(
+  "%s's dispatch-layer rate limit, wired end to end",
+  (method) => {
+    it("trips after the configured ceiling and a call under the limit is unaffected", async () => {
+      await withServer(
+        async (server) => {
+          const cookie = await authenticatedCookie(server.url, TOKEN);
+          const params = { locale: "de", key: "greeting", expectedValue: "Hallo" };
+          const first = await postRpc(server.url, cookie, method, params);
+          expect(first.body.error?.code).not.toBe("METHOD_RATE_LIMITED");
+
+          const second = await postRpc(server.url, cookie, method, params);
+          expect(second.body.error?.code).not.toBe("METHOD_RATE_LIMITED");
+
+          const third = await postRpc(server.url, cookie, method, params);
+          expect(third.status).toBe(429);
+          expect(third.body).toMatchObject({ ok: false, error: { code: "METHOD_RATE_LIMITED" } });
+        },
+        {
+          token: TOKEN,
+          loader: stubLoader(),
+          reviewDecisionRateLimitWindowMs: 60_000,
+          reviewDecisionRateLimitMax: 2,
+        },
+      );
+    });
+  },
+);
+
+describe("review decisions: the default rate limit", () => {
+  it("allows a reviewer to decide on many rows in a minute before limiting", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const params = { locale: "de", key: "greeting", expectedValue: "Hallo" };
+        for (let call = 0; call < 20; call += 1) {
+          const response = await postRpc(server.url, cookie, "review.approve", params);
+          expect(response.body.error?.code).not.toBe("METHOD_RATE_LIMITED");
+        }
+      },
+      { token: TOKEN, loader: stubLoader() },
+    );
+  });
+});
+
+describe("translation.retranslateEntries across the spend table and the retranslate budget", () => {
+  it("returns METHOD_UNKNOWN on a default server (no spend)", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { status, body } = await postRpc(
+          server.url,
+          cookie,
+          "translation.retranslateEntries",
+          { entries: [{ locale: "de", key: "greeting" }] },
+        );
+        expect(status).toBe(400);
+        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+      },
+      { token: TOKEN, loader: stubLoader() },
+    );
+  });
+
+  it("draws a batch from the same per-entry budget as single retranslations", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const tooLarge = await postRpc(server.url, cookie, "translation.retranslateEntries", {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "b" },
+            { locale: "de", key: "c" },
+          ],
+        });
+        expect(tooLarge.status).toBe(429);
+
+        await postRpc(server.url, cookie, "translation.retranslateEntry", {
+          locale: "de",
+          key: "greeting",
+        });
+        const overBudget = await postRpc(server.url, cookie, "translation.retranslateEntries", {
+          entries: [
+            { locale: "de", key: "a" },
+            { locale: "de", key: "b" },
+          ],
+        });
+        expect(overBudget.status).toBe(429);
+        expect(overBudget.body).toMatchObject({
+          ok: false,
+          error: { code: "METHOD_RATE_LIMITED" },
+        });
+      },
+      {
+        token: TOKEN,
+        loader: stubLoader(),
+        spend: true,
+        retranslateRateLimitWindowMs: 60_000,
+        retranslateRateLimitMax: 2,
+      },
+    );
+  });
+});
+
+describe("review batches need no spend and count one call per batch", () => {
+  it("registers review.approveMany without spend and limits it per call", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const params = {
+          entries: [
+            { locale: "de", key: "a", expectedValue: "x" },
+            { locale: "de", key: "b", expectedValue: "y" },
+            { locale: "de", key: "c", expectedValue: "z" },
+          ],
+        };
+        const first = await postRpc(server.url, cookie, "review.approveMany", params);
+        const second = await postRpc(server.url, cookie, "review.approveMany", params);
+        const third = await postRpc(server.url, cookie, "review.approveMany", params);
+
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(third.status).toBe(429);
+      },
+      {
+        token: TOKEN,
+        loader: stubLoader(),
+        reviewDecisionRateLimitWindowMs: 60_000,
+        reviewDecisionRateLimitMax: 2,
+      },
+    );
+  });
+});
+
+describe("translation.inFlight", () => {
+  it("answers with no running retranslation on a spend server that is idle", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { status, body } = await postRpc(server.url, cookie, "translation.inFlight");
+        expect(status).toBe(200);
+        expect(body).toEqual({ ok: true, result: { retranslating: [] } });
+      },
+      { token: TOKEN, loader: stubLoader(), spend: true },
+    );
+  });
+
+  it("is not registered without spend", async () => {
+    await withServer(
+      async (server) => {
+        const cookie = await authenticatedCookie(server.url, TOKEN);
+        const { body } = await postRpc(server.url, cookie, "translation.inFlight");
+        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+      },
+      { token: TOKEN, loader: stubLoader() },
+    );
   });
 });

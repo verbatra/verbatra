@@ -1,36 +1,40 @@
 ---
-title: Récupération et retour en arrière
-description: Comment annuler une exécution de translate, pourquoi les fichiers de locale et le fichier de verrouillage doivent être restaurés ensemble, et ce que laisse une exécution interrompue.
+title: Annuler une exécution
+description: Comment annuler une exécution de translate, pourquoi les fichiers de locale, le fichier de verrouillage et le fichier de provenance doivent être restaurés ensemble, et ce que laisse une exécution interrompue.
+type: how-to
 ---
-verbatra n'a pas de commande d'annulation et ne conserve aucune sauvegarde. Une exécution réécrit
-tes fichiers de locale sur place et met à jour `verbatra.lock.json`, et rien sur le disque ne se
-souvient de l'état précédent. Le contrôle de version est le mécanisme de récupération, ce qui est la
-raison pratique pour laquelle les fichiers de locale et le fichier de verrouillage sont tous les
-deux commités : ensemble, ils forment l'instantané vers lequel tu peux revenir.
+Utilise ceci quand une exécution a produit des traductions dont tu ne veux pas : le mauvais ton, le mauvais modèle, un glossaire oublié. verbatra n'a pas de commande d'annulation et ne garde aucune sauvegarde. Le contrôle de version est le mécanisme de récupération, et c'est pour ça que les fichiers de locale, le fichier de verrouillage et le fichier de provenance sont commités : ensemble, ils forment l'instantané vers lequel tu reviens.
+
+Il te faut le projet dans git, avec l'état d'avant l'exécution commité.
 
 ## Ce qu'écrit une exécution
 
-Une exécution de `translate`, `watch` ou `import` écrit deux fichiers dont un retour en arrière doit
-se soucier :
+Une exécution de `translate`, `watch` ou `import` écrit les fichiers dont un retour arrière doit s'occuper :
 
-- les fichiers de locale cibles, un par locale, au chemin de ton `files.pattern`
-- `verbatra.lock.json`, un hash de contenu source par clé traduite
+- les fichiers de locale cibles, au chemin de ton `files.pattern` ;
+- `verbatra.lock.json`, un hash du contenu source par clé traduite.
 
-Le reste de ce qu'elle écrit est un état annexe régénérable que tu ne restaures jamais :
-`verbatra.cache.json` et le répertoire `.verbatra-local/`, tous deux ignorés par git. Une exécution
-peut aussi ajouter ces entrées à un `.gitignore` existant auquel elles manquent, ce qui relève de
-l'entretien ponctuel et non d'un retour en arrière.
+`verbatra.cache.json` et `.verbatra-local/` sont un état régénérable, ignoré par git ; ne les restaure jamais. Chaque fichier suivi est écrit de façon atomique, il n'y a donc jamais de fichier à moitié écrit à réparer.
 
-Les deux fichiers suivis sont écrits de façon atomique (un fichier temporaire, puis un renommage),
-si bien qu'un lecteur voit soit l'ancien fichier soit le nouveau, jamais un milieu écrit à moitié.
-Il n'y a aucun fichier partiel à réparer.
+### Le fichier de provenance
 
-## Revenir en arrière sur une exécution terminée
+<AvailableFrom version="0.12.0" />
 
-Si l'exécution n'est pas encore commitée, jette les deux fichiers ensemble :
+Une exécution écrit aussi `verbatra.provenance.json`, qui enregistre qui a écrit chaque valeur. Restaure-le avec les deux autres, ou supprime-le si cette exécution l'a créé. L'oublier n'est pas anodin : une valeur restaurée ne correspond plus à son enregistrement, donc elle se lit comme `external`, compte comme une modification humaine avec la valeur par défaut `humanEdits: protect` et n'est plus jamais traduite.
+
+## Annuler une exécution terminée
+
+Si l'exécution n'est pas encore commitée, jette ensemble les fichiers de locale et le fichier de verrouillage, puis le fichier de provenance :
 
 ```bash
 git checkout HEAD -- locales verbatra.lock.json
+```
+
+Restaure `verbatra.provenance.json` de la même façon s'il est déjà commité. Si c'est cette exécution qui l'a créé, git n'a rien à restaurer, alors supprime-le :
+
+```bash
+git checkout HEAD -- verbatra.provenance.json   # already committed
+rm verbatra.provenance.json                      # created by this run
 ```
 
 Si l'exécution est déjà commitée, annule ce commit :
@@ -39,84 +43,51 @@ Si l'exécution est déjà commitée, annule ce commit :
 git revert <commit>
 ```
 
-Dans les deux cas, restaure les fichiers de locale et `verbatra.lock.json` dans la même opération.
-La section suivante explique pourquoi.
+Dans les deux cas, restaure les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json` dans la même opération. La section suivante explique pourquoi.
 
-## Pourquoi les deux fichiers, ou aucun
+## Pourquoi les trois fichiers ou aucun
 
-Le fichier de verrouillage enregistre un hash de la valeur **source** qui a produit chaque
-traduction. Il n'enregistre rien sur la valeur traduite elle-même. Restaurer tes fichiers de locale
-ne dit donc rien au fichier de verrouillage, et ne le peut pas.
+Le fichier de verrouillage enregistre un hash de la valeur **source** derrière chaque traduction, et rien sur la valeur traduite elle-même ; le fichier de provenance enregistre qui a écrit chaque valeur, lié à un hash de cette valeur. Si tu restaures un fichier sans les autres, ils décrivent des moments différents.
 
-**Restaurer seulement les fichiers de locale.** Le fichier de verrouillage contient toujours le hash
-de la source telle qu'elle est maintenant. À l'exécution suivante, une clé que la restauration a
-rétablie est présente dans le fichier cible, donc elle n'est pas manquante ; et son hash enregistré
-correspond toujours à la source actuelle, donc elle n'est pas modifiée. Elle compte comme inchangée,
-n'est jamais envoyée au fournisseur, et la valeur vers laquelle tu es revenu reste en place
-définitivement. Les clés que l'exécution a créées font exception : la restauration les a retirées du
-fichier, elles reviennent donc comme manquantes et sont traduites à nouveau. Ce qui reste bloqué,
-c'est tout ce que l'exécution a *remplacé*.
+**Seulement les fichiers de locale.** Le fichier de verrouillage dit toujours que chaque clé est à jour. À l'exécution suivante, une clé restaurée est présente et son hash correspond à la source, elle n'est donc jamais renvoyée : l'ancienne valeur reste en place pour de bon. Seules les clés que l'exécution a créées reviennent comme manquantes. `check` et `diff` comparent avec la même référence, ils signalent donc la locale comme propre, et rien ne te dit que ces traductions sont périmées.
 
-L'échec est silencieux par conception, pas par accident. `verbatra check` et `verbatra diff`
-comparent à la même référence issue du fichier de verrouillage, et signalent donc la locale comme
-propre. Aucune commande ne te dira que ces traductions sont périmées, car du point de vue de la
-référence enregistrée, elles ne le sont pas.
+**Seulement le fichier de verrouillage.** Les hashes restaurés sont plus anciens que la source actuelle, donc les clés concernées apparaissent comme modifiées. L'exécution suivante les retraduit et écrase les fichiers de locale, y compris les corrections faites à la main depuis. Tu paies deux fois et tu perds les modifications.
 
-**Restaurer seulement le fichier de verrouillage.** L'image miroir, et destructrice dans l'autre
-sens. Les hashs restaurés sont plus anciens que la source actuelle, les clés concernées comptent
-donc comme modifiées, et l'exécution suivante les traduit à nouveau et écrase ce qui se trouve dans
-tes fichiers de locale, y compris les modifications manuelles faites depuis. Tu paies les appels au
-fournisseur une deuxième fois et tu perds les corrections à la main.
+**Sans le fichier de provenance.** Les valeurs restaurées ne correspondent plus à leurs enregistrements, elles se lisent donc comme `external` et, avec la valeur par défaut `humanEdits: protect`, ne sont plus jamais traduites.
 
-**Restaurer les deux.** Les hashs sources et les traductions qu'ils décrivent reviennent au même
-point dans le temps, la référence est de nouveau cohérente, et l'exécution suivante se comporte
-exactement comme elle l'aurait fait si la mauvaise exécution n'avait jamais eu lieu.
+**Les trois.** Les hashes, les enregistrements et les traductions reviennent au même moment, et l'exécution suivante se comporte comme si la mauvaise exécution n'avait jamais eu lieu.
 
-## Relancer après un retour en arrière
+## Relancer après un retour arrière
 
-Revenir en arrière puis relancer `verbatra translate`, c'est refaire la même chose, pas demander
-un second avis. Avec le même fournisseur, le même modèle, le même ton et le même glossaire,
-l'empreinte du [cache](/docs/the-cache) est inchangée, si bien que l'exécution ressert les mêmes
-traductions depuis `verbatra.cache.json` sans appeler le fournisseur du tout.
+Revenir en arrière puis relancer `verbatra translate` refait la même chose, ce n'est pas un second avis. Avec le même fournisseur, le même modèle, le même ton, le même glossaire et la même `localeMap` du fournisseur, l'empreinte du [cache](/docs/the-cache#lempreinte) ne change pas, donc l'exécution ressert les mêmes traductions depuis `verbatra.cache.json` sans appeler le fournisseur.
 
-Pour obtenir un résultat différent, change ce qui a rendu le premier mauvais. Modifier le ton ou le
-glossaire, ou changer de modèle, change l'empreinte et retraduit de lui-même. Si tu veux renvoyer la
-même configuration au fournisseur, passe `--no-cache` à [`translate`](/docs/cli/translate).
+Pour obtenir un autre résultat, change ce qui a rendu le premier mauvais : un nouveau ton, un nouveau glossaire ou un autre modèle change l'empreinte et retraduit tout seul. Pour renvoyer la même configuration au fournisseur, ajoute `--no-cache` :
 
-Pour reconstruire une locale de zéro plutôt que de revenir sur une exécution, voir
-[Comment je retraduis tout ?](/docs/faq#comment-je-retraduis-tout-) dans la FAQ. Note que supprimer
-le fichier de verrouillage n'est pas une remise à zéro : sans référence, rien ne peut être détecté
-comme périmé, donc une exécution après suppression ne traduit rien.
+```bash
+verbatra translate --no-cache
+```
 
-## Une exécution interrompue ou échouée
+Pour reconstruire une locale de zéro plutôt qu'annuler une exécution, voir [Comment je retraduis tout ?](/docs/faq#comment-je-retraduis-tout-). Supprimer le fichier de verrouillage n'est pas une remise à zéro : sans référence, rien n'est détecté comme obsolète, donc l'exécution suivante ne traduit rien.
 
-Une exécution interrompue n'a besoin d'aucun retour en arrière. Relance-la, tout simplement.
+## Une exécution interrompue ou en échec
 
-Chaque locale est validée séparément : son fichier cible est écrit, puis ses entrées dans le fichier
-de verrouillage sont enregistrées. Interrompre la commande laisse donc les locales déjà terminées
-entièrement écrites et enregistrées, et celles qu'elle n'avait pas atteintes totalement intactes.
-Une nouvelle exécution reprend les intactes et saute celles qui sont terminées.
+Une exécution interrompue n'a pas besoin de retour arrière. Relance-la.
 
-Le seul intervalle, entre l'écriture du fichier d'une locale et la mise à jour du fichier de
-verrouillage, se résout de lui-même à l'exécution suivante. Les clés que l'exécution avait ajoutées
-sont maintenant dans le fichier cible sans entrée dans le fichier de verrouillage, elles sont donc
-reprises telles quelles ; les clés dont la source avait dérivé portent toujours leur ancien hash,
-elles sont donc détectées comme modifiées et traduites à nouveau. Aucun des deux cas ne fait perdre
-de travail.
+Chaque locale est finalisée séparément : son fichier est écrit, puis ses entrées de verrouillage sont enregistrées. Une interruption laisse complètes les locales terminées et intactes les autres, et une nouvelle exécution reprend celles qui n'ont pas été touchées. Le seul écart, entre l'écriture du fichier d'une locale et la mise à jour de son verrouillage, se résout tout seul : les clés ajoutées sont adoptées telles quelles, et les clés modifiées portent encore leur ancien hash, elles sont donc retraduites. Aucun travail n'est perdu.
 
-Les clés retenues pendant une exécution (un contrôle d'intégrité échoué, un échec du fournisseur,
-une source ICU invalide, ou un budget de tokens arrêté) conservent leur hash précédent au lieu d'être
-enregistrées comme faites, si bien que l'exécution suivante les réessaie. Voir
-[Dépannage](/docs/troubleshooting) pour ce que signifie chacun de ces cas.
+Les clés retenues pendant une exécution, par un contrôle échoué, un appel au fournisseur échoué ou un budget de tokens, gardent leur hash précédent, donc l'exécution suivante les réessaie. Voir [Dépannage](/docs/troubleshooting) pour chaque cause.
 
-Si le processus interrompu a été tué brutalement, il a pu laisser un verrou d'écriture sous
-`.verbatra-local/`. L'exécution suivante signale `LOCK_CONTENDED` et affiche le chemin à supprimer.
+Une exécution interrompue libère ses verrous d'écriture. Un processus tué brutalement (`kill -9`, un plantage) peut en laisser un sous `.verbatra-local/` ; l'exécution suivante sur la même machine voit que le processus a disparu et le récupère. Un verrou qu'elle ne peut pas vérifier la fait attendre puis échouer avec [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), qui nomme le chemin à supprimer.
 
 ## Avant une exécution difficile à annuler
 
-- Commite d'abord tes fichiers de locale et `verbatra.lock.json`, pour que
-  `git checkout HEAD --` soit disponible.
-- Prévisualise avec `verbatra translate --dry-run`, ou avec `verbatra diff` pour les listes exactes
-  de clés et `verbatra check` pour les décomptes. Aucun des trois n'appelle un fournisseur ni
-  n'écrit de fichier.
-- Ajoute `--locales <locale>` pour essayer une locale avant de lancer le reste.
+- Commite d'abord tes fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, pour que `git checkout HEAD --` ait un point de retour.
+- Prévisualise avec `verbatra translate --dry-run`, `verbatra diff` ou `verbatra check`. Aucun n'appelle de fournisseur ni n'écrit de fichier.
+- Essaie d'abord une seule locale avec `--locales <locale>`.
+
+## Voir aussi
+
+- [Le fichier de verrouillage](/docs/the-lock-file) : ce qu'il enregistre et comment les écarts sont détectés.
+- [Le cache](/docs/the-cache) : l'empreinte et `--no-cache`.
+- [`verbatra translate`](/docs/cli/translate) : `--dry-run`, `--locales` et `--no-cache`.
+- [Codes d'erreur](/docs/error-codes#lock_contended) : `LOCK_CONTENDED` et les autres erreurs de verrou.

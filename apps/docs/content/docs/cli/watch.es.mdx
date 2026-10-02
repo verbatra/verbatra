@@ -1,8 +1,9 @@
 ---
 title: verbatra watch
 description: Retraduce en cada cambio del origen hasta que lo interrumpas.
+type: reference
 ---
-Vigila el archivo del locale de origen y vuelve a ejecutar una traducción en cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Antes de ejecutarse, carga `.env.local` y luego `.env` desde el directorio de trabajo; una variable ya definida en el entorno real gana.
+Vigila el archivo del locale de origen y vuelve a traducir tras cada cambio, con anti-rebote, hasta que lo interrumpas. `watch` ejecuta una traducción inicial al arrancar y luego mantiene al día tus locales de destino mientras guardas. Cada ejecución funciona igual que [`verbatra translate`](/docs/cli/translate).
 
 ## Sinopsis
 
@@ -14,37 +15,60 @@ verbatra watch [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
-| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
-| `--locales` | `<list>` | todos los locales de destino configurados | vigila y traduce solo este subconjunto separado por comas; un locale no configurado se rechaza al arrancar con `UNKNOWN_LOCALE` antes de empezar a vigilar nada, y una lista vacía es un error de uso, salida `2` |
-| `--debounce` | `<ms>` | `300` | espera estos milisegundos tras el último cambio antes de traducir; debe ser un entero positivo sin sufijo (un valor como `250ms`, `0` o `-1` es un error de uso, salida `2`) |
-| `--lock-timeout` | `<seconds>` | `600` | cuánto tiempo esperar a un bloqueo de escritura por locale que ya está tomado antes de fallar; debe ser un entero positivo sin sufijo, en segundos (un valor como `60s`, `0` o `-1` es un error de uso, salida `2`) |
-| `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez por ejecución; debe ser un entero positivo |
-| `--no-cache` | ninguno | desactivado (caché activada) | omite la [caché de memoria de traducción](/docs/the-cache) local (`verbatra.cache.json`) en cada ejecución |
-| `--json` | ninguno | desactivado | imprime cada ejecución como un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout, al estilo NDJSON (un objeto por línea) |
+| `--locales` | `<list>` | cada locale de destino configurado | vigila solo este subconjunto separado por comas; se comprueba una vez al arrancar, donde un locale no configurado falla con `UNKNOWN_LOCALE` |
+| `--debounce` | `<ms>` | `300` | espera estos milisegundos tras el último cambio antes de traducir; un entero de `1` a `60000` |
+| `--lock-timeout` | `<seconds>` | `600` | en cada ejecución, espera este tiempo por un bloqueo de escritura ocupado de un locale; un entero de `1` a `3600` |
+| `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez por ejecución; un entero de `1` a `100`, rechazado con un presupuesto `maxTokens` |
+| `--no-cache` | ninguno | desactivado (caché activa) | omite la [caché de memoria de traducción](/docs/the-cache) (`verbatra.cache.json`) en cada ejecución |
 
-Con `--json`, cada ejecución emite un registro [envoltorio](/docs/ci-and-exit-codes#salida-json) con `command: "watch"`: un registro `ok: true` que lleva el [`RunSummary`](/docs/sdk) de esa ejecución bajo `result`, o un registro `ok: false` que lleva un código de error y un mensaje. La línea de arranque, el aviso de parada y el progreso de cada ejecución van a stderr, así que el flujo de stdout se mantiene como NDJSON limpio. Una ejecución fallida es solo un registro en el flujo: ni detiene el watcher ni cambia el código de salida.
+También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; aquí `--json` imprime un registro por ejecución. Antes de arrancar, `watch` carga los [archivos de entorno](/docs/cli#archivos-de-entorno).
 
-`--locales de,fr` reduce cada ciclo de la sesión a un subconjunto de los destinos configurados, lo que mantiene barato un bucle de desarrollo cuando solo te importa un idioma. El subconjunto se valida una sola vez al arrancar, no en cada ejecución.
+## Comportamiento
 
-`--lock-timeout` se aplica a cada ciclo: ajusta cuánto espera un locale a un [bloqueo de escritura](/docs/the-lock-file) disputado antes de que esa ejecución falle con `LOCK_CONTENDED`. Una ejecución fallida es solo un registro en el flujo, así que el watcher sigue de todas formas.
+### Cada ejecución
 
-`--concurrency` se aplica a la ejecución de cada ciclo. Cada ejecución recibe un presupuesto de tokens nuevo, y un `--concurrency` mayor que `1` se sigue rechazando cuando la configuración fija un presupuesto `maxTokens`, porque qué locale pierde su trabajo restante dependería del orden en que los locales se entrelacen: `watch` rechaza esa combinación al arrancar y sale con `2` antes de la ejecución inicial, en lugar de arrancar una sesión que falla en cada ciclo. `--no-cache` omite la [caché de memoria de traducción](/docs/the-cache) en cada ciclo.
+Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con un presupuesto de tokens nuevo. Un locale cuyo [bloqueo de escritura](/docs/the-lock-file) siga ocupado más allá de `--lock-timeout` falla con `LOCK_CONTENDED` en el resumen de esa ejecución, mientras los demás siguen; un bloqueo de un proceso de verbatra que ya no corre se recupera al momento. Una ejecución fallida nunca detiene el vigilante.
 
-## Detención
+Un `--concurrency` mayor que `1` junto con un presupuesto `maxTokens` configurado se rechaza al arrancar con salida `2`, antes de la primera ejecución, porque el orden en que se intercalan los locales decidiría cuál pierde el trabajo restante.
 
-La primera interrupción (Ctrl-C, o SIGTERM) deja terminar la ejecución en curso, detiene el watcher limpiamente y sale con `0`. Una segunda interrupción mientras esa parada sigue en curso fuerza la detención con salida `130`.
+### Detención
+
+<AvailableFrom version="0.12.0" />
+
+La primera interrupción (Ctrl-C o SIGTERM) deja terminar la ejecución en curso, detiene el vigilante y sale con `0`. Una segunda interrupción mientras el apagado sigue en marcha fuerza la parada con salida `130`, tras liberar los bloqueos de escritura de la sesión. Sin `--json`, stderr dice `verbatra: waiting for changes...` tras cada ejecución, `verbatra: press Ctrl-C to stop` tras la línea de arranque en un terminal interactivo y `verbatra: stopped` cuando termina el apagado.
+
+### Salida JSON
+
+Con `--json`, stdout es NDJSON: un [sobre](/docs/cli/output#salida-json) por ejecución, con `command: "watch"`. Una ejecución correcta es un registro `ok: true` con el [`RunSummary`](/docs/cli/translate#salida-json) de esa ejecución; una fallida es un registro `ok: false` con el código propio del fallo, o `WATCH_RUN_FAILED` si no tenía, más su `hint` cuando lo hay. Una ejecución fallida es solo un registro: no detiene el vigilante ni cambia el código de salida. La línea de arranque, el aviso de parada y el progreso van a stderr. Sin `--json`, el resumen de una ejecución va a stdout y la línea `verbatra: error [CODE] message` de una fallida a stderr.
+
+### Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+Sin `--json`, `watch` nombra el archivo de origen cuando un cambio se ha asentado y luego informa de la ejecución como `translate`, con el mismo spinner en un terminal interactivo:
+
+```text output
+verbatra: change detected: locales/en.json
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 1 translated
+verbatra: run finished, 1 locale processed
+verbatra: waiting for changes...
+```
+
+Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
 
 ## Ejemplos
 
 ```bash
-# watch and re-translate on each change
+# vigila y retraduce en cada cambio
 verbatra watch
 
-# calmer in a busy editor: wait 1s after the last change, stream NDJSON
+# más tranquilo en un editor ajetreado: espera 1 s tras el último cambio y emite NDJSON
 verbatra watch --debounce 1000 --json
 
-# keep only German current while you work
+# mantén al día solo el alemán mientras trabajas
 verbatra watch --locales de
 ```
 
@@ -52,13 +76,16 @@ verbatra watch --locales de
 
 | Código | Significado |
 | --- | --- |
-| `0` | detenido limpiamente por una sola interrupción |
-| `2` | no se pudo arrancar o detener: un error de configuración, un fallo de arranque o de parada, o un error de uso (incluido un `--debounce` inválido) |
-| `130` | detenido a la fuerza por una segunda interrupción |
+| `0` | detenido limpiamente con una sola interrupción |
+| `2` | no pudo arrancar o detenerse: un error de configuración, un fallo al arrancar o al apagar, o un error de uso como un `--debounce` no válido |
+| `130` | detenido a la fuerza con una segunda interrupción |
+
+Una ejecución fallida durante la sesión nunca cambia el código de salida. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
 - [`verbatra translate`](/docs/cli/translate) es la ejecución única que `watch` repite.
 - [La caché](/docs/the-cache) explica qué omite `--no-cache` en cada ejecución.
 - [Cómo funciona](/docs/how-it-works) explica qué hace cada ejecución.
+- [Proteger las traducciones humanas](/docs/protecting-human-translations) explica por qué una ejecución conserva un valor obsoleto que escribió una persona.
 - [La referencia del SDK](/docs/sdk) documenta las formas `WatchRunResult` y `RunSummary`.

@@ -1,5 +1,5 @@
 import type { AnthropicModel, GeminiModel, OpenAiModel } from "@verbatra/ai-providers";
-import type { ProviderConfig, ProviderId } from "./provider-config.js";
+import type { ProviderConfigInput, ProviderId } from "./provider-config.js";
 import type { VerbatraConfigInput } from "./schema.js";
 
 /**
@@ -15,7 +15,7 @@ type KnownModels<M extends string> = M extends string ? (string extends M ? neve
  * authoring.
  */
 type AuthoringVariant<Id extends ProviderId, M extends string> =
-  Extract<ProviderConfig, { id: Id }> extends infer Variant
+  Extract<ProviderConfigInput, { id: Id }> extends infer Variant
     ? Variant extends { options: { model: string } }
       ? Omit<Variant, "options"> & {
           options: Omit<Variant["options"], "model"> & { model: KnownModels<M> };
@@ -25,9 +25,10 @@ type AuthoringVariant<Id extends ProviderId, M extends string> =
 
 /**
  * Maps each provider ID to its authoring-time config variant. The three language-model providers
- * get narrowed model unions; DeepL and Google Cloud Translation have no model to narrow, and
- * `openai-compatible` deliberately keeps a free-form model string because the endpoint is a local
- * or self-hosted server whose model list the SDK cannot know ahead of time.
+ * get narrowed model unions; DeepL, Google Cloud Translation and LibreTranslate have no model to
+ * narrow, and `openai-compatible` deliberately keeps a free-form model string because the endpoint
+ * is a local or self-hosted server whose model list the SDK cannot know ahead of time. `none` has
+ * no options at all.
  */
 type AuthoringProviderVariant = {
   /** Anthropic, with `model` narrowed to the Claude model IDs. */
@@ -37,14 +38,24 @@ type AuthoringProviderVariant = {
   /** Gemini, with `model` narrowed to the Gemini model IDs. */
   gemini: AuthoringVariant<"gemini", GeminiModel>;
   /** DeepL, which takes no model because it is a machine-translation API rather than a language model. */
-  deepl: Extract<ProviderConfig, { id: "deepl" }>;
+  deepl: Extract<ProviderConfigInput, { id: "deepl" }>;
   /**
    * Google Cloud Translation (Basic, v2), which takes no model for the same reason as DeepL: it is
    * a machine-translation API rather than a language model.
    */
-  "google-translate": Extract<ProviderConfig, { id: "google-translate" }>;
+  "google-translate": Extract<ProviderConfigInput, { id: "google-translate" }>;
   /** A local or self-hosted OpenAI-compatible endpoint, whose model stays a free-form string. */
-  "openai-compatible": Extract<ProviderConfig, { id: "openai-compatible" }>;
+  "openai-compatible": Extract<ProviderConfigInput, { id: "openai-compatible" }>;
+  /**
+   * A self-hosted LibreTranslate server, which takes no model because it is a machine-translation
+   * API rather than a language model.
+   */
+  libretranslate: Extract<ProviderConfigInput, { id: "libretranslate" }>;
+  /**
+   * Human-only mode: machine translation disabled by policy. `options` may be left out, since the
+   * only value it can hold is an empty object.
+   */
+  none: Extract<ProviderConfigInput, { id: "none" }>;
 };
 
 /**

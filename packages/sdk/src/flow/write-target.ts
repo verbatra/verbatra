@@ -1,7 +1,8 @@
 import { isAbsolute, relative, sep } from "node:path";
 import type { LocaleResource } from "@verbatra/core";
-import { AdapterError, type FormatAdapter } from "@verbatra/format-adapters";
+import { AdapterError, type FormatAdapter, type WriteContext } from "@verbatra/format-adapters";
 import { SdkError } from "../errors.js";
+import { assertLocksHeld } from "../lock/lock-ownership.js";
 
 const REMEDY_BY_CODE: Readonly<Record<string, string>> = {
   EACCES: "Check the write permissions on the containing directory, then run again.",
@@ -19,7 +20,7 @@ export function escapesWorkingDirectory(inside: string): boolean {
   return inside === "" || inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside);
 }
 
-function displayPath(targetPath: string, cwd: string): string {
+export function displayPath(targetPath: string, cwd: string): string {
   const relativePath = relative(cwd, targetPath);
   if (escapesWorkingDirectory(relativePath)) {
     return targetPath;
@@ -34,11 +35,20 @@ function fsErrorCode(error: unknown): string | undefined {
   return undefined;
 }
 
-export function targetUnwritableMessage(targetPath: string, cwd: string, error: unknown): string {
+export function unwritableFileMessage(
+  what: string,
+  targetPath: string,
+  cwd: string,
+  error: unknown,
+): string {
   const code = fsErrorCode(error);
   const remedy = (code === undefined ? undefined : REMEDY_BY_CODE[code]) ?? DEFAULT_REMEDY;
   const detail = code === undefined ? "" : ` (${code})`;
-  return `Could not write the locale file ${displayPath(targetPath, cwd)}${detail}. ${remedy}`;
+  return `Could not write ${what} ${displayPath(targetPath, cwd)}${detail}. ${remedy}`;
+}
+
+export function targetUnwritableMessage(targetPath: string, cwd: string, error: unknown): string {
+  return unwritableFileMessage("the locale file", targetPath, cwd, error);
 }
 
 export async function writeTargetResource(
@@ -46,9 +56,11 @@ export async function writeTargetResource(
   resource: LocaleResource,
   targetPath: string,
   cwd: string,
+  context: WriteContext,
 ): Promise<void> {
+  await assertLocksHeld();
   try {
-    await adapter.write(resource, targetPath);
+    await adapter.write(resource, targetPath, context);
   } catch (error) {
     if (error instanceof AdapterError || error instanceof SdkError) {
       throw error;

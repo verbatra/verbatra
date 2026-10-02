@@ -1,0 +1,47 @@
+---
+title: "Errors"
+description: "The SdkError model: one error class, which codes carry a cause, and the exceptions to the rule."
+type: reference
+---
+## The error model
+
+Whole-run failures throw an `SdkError`: one class, a stable `code`, and a secret-free `message`.
+Branch on the code, not the message. Per-locale failures, provider notices, and integrity findings
+are surfaced as data on the `RunSummary`, never thrown.
+
+Every code, what it means, which CLI commands reach it, and its next step are listed under [SDK error codes](/docs/error-codes#sdk-error-codes).
+
+A few codes also carry the error they wrap as the standard `cause`: `SOURCE_INVALID` when a
+parser or adapter failed (not when a file is refused for its size), `PROVIDER_CONSTRUCTION_FAILED`
+(the provider factory's own error, whose message is also redacted into the `SdkError` message),
+`EXPORT_UNWRITABLE` and `GLOSSARY_UNWRITABLE` (the file-system error), `REVIEW_RESTORE_FAILED` (the
+failure that interrupted the decision), and `LOCK_CONTENDED` when the lock was taken over or an
+abandoned lock could not be reclaimed or moved aside (the file-system error). `CONFIG_INVALID`
+carries one only when the config file failed to load with a coded error, such as an import that
+does not resolve. It carries none for a parse or schema error, and `CONFIG_NOT_FOUND` never does,
+because a config parser's error can quote the file's content, and a key written into the config
+must not travel with the error. Only the message of a `PROVIDER_CONSTRUCTION_FAILED` error is
+redacted: its `cause` is the original error, untouched. The built-in provider factories throw
+errors that carry no secret, and an error thrown by a `createProvider` you supply comes back exactly
+as you threw it, so keep secrets out of it or redact it yourself before you log the `cause`.
+
+The exceptions to the one-error-class rule:
+
+- `retranslateEntry` re-throws the provider's own `ProviderError` when the single call fails.
+- `approveEntries`, `rejectEntries` and `retranslateEntries` throw a `BatchInterruptedError`, with
+  the original error as its `cause`, when an unexpected error stops a batch part way.
+- A target locale file the adapter cannot parse surfaces as its `AdapterError`, with its own
+  `code`, from `check`, `diff` and the other flows that read it; `checkFile` reports it as a syntax
+  finding instead.
+- `watch` passes on whatever the watcher factory raised, unwrapped.
+- `runStatus` never throws at all.
+
+For how these codes map to CLI exit codes, see [SDK error codes](/docs/error-codes#sdk-error-codes);
+for symptom-first help, see [Troubleshooting](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` and its `ProviderErrorCode` type are exported from `@verbatra/sdk`, so test a
+`retranslateEntry` failure with `error instanceof ProviderError` and branch on `error.code`; the
+[provider error codes](/docs/error-codes#provider-error-codes) list every code. On an older version, which does not export the
+class, check `error.name === "ProviderError"` and read `code`.

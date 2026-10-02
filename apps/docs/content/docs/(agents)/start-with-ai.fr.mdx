@@ -1,10 +1,11 @@
 ---
 title: Configure verbatra avec un agent IA
 description: "Un prompt prêt à copier-coller pour Claude Code, Cursor ou n'importe quel agent IA de code, pour ajouter verbatra à un projet qui a déjà une configuration i18n, protégé par une confirmation humaine explicite avant toute dépense."
+type: tutorial
 ---
-Cette page s'adresse à un projet qui a déjà des fichiers de locale : i18next, vue-i18n, next-intl, ngx-translate, ou des fichiers bruts JSON, YAML, XLIFF, ARB, properties, `.strings` d'Apple, `.xcstrings` (Xcode String Catalog), `strings.xml` d'Android ou `.po`/`.pot` gettext, déjà commités et déjà utilisés. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor, ou tout agent capable de lire ton projet et d'exécuter des commandes shell), et il se charge lui-même d'inspecter ta configuration, d'installer verbatra, de générer une config qui correspond à ce qu'il a trouvé et de prévisualiser une exécution, puis s'arrête et te demande confirmation avant d'appeler un fournisseur pour de vrai.
+Cette page s'adresse à un projet qui a déjà des fichiers de locale : i18next, vue-i18n, next-intl, ngx-translate, ou des fichiers bruts JSON, YAML, XLIFF, ARB, properties, `.strings` d'Apple, `.xcstrings` (Xcode String Catalog), `strings.xml` d'Android, `.po`/`.pot` gettext, INI ou `.resx` .NET, déjà commités et déjà utilisés. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor, ou tout agent capable de lire ton projet et d'exécuter des commandes shell), et il se charge lui-même d'inspecter ta configuration, d'installer verbatra, de générer une config qui correspond à ce qu'il a trouvé et de prévisualiser une exécution, puis s'arrête et te demande confirmation avant d'appeler un fournisseur pour de vrai.
 
-Si tu configures verbatra toi-même plutôt que de le confier à un agent, [Ta première traduction](/docs/your-first-translation) est la version humaine du même parcours.
+Si tu configures verbatra toi-même plutôt que de le confier à un agent, le [Démarrage rapide](/docs/quickstart) est la version humaine du même parcours.
 
 ## Le prompt
 
@@ -71,71 +72,84 @@ Before touching anything, find out what is already here:
   comments and blank lines survive a write, and a new key is inserted at the end of
   its own section rather than at the end of the file.
 
-Do not trust `verbatra init`'s own format auto-detection: it only inspects
-`package.json` for exactly one of `i18next`/`vue-i18n`/`next-intl`/
-`@ngx-translate/core` and never reads the locale directory itself, so it cannot see
-YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalogs, Android
-`strings.xml`, gettext `.po`/`.pot`, INI, .NET `.resx`, or a project with more than
-one of those dependencies.
-Use what you found above instead of trusting its guess.
+`verbatra init` detects the format, the path pattern, and the locales from these
+same files in step 3. What you found here is what you check its result against.
 
 ## 2. Install the CLI
 
 npm install --save-dev @verbatra/cli
 
 pnpm and yarn work too. With pnpm, if it exits with `ERR_PNPM_IGNORED_BUILDS`, run
-`pnpm approve-builds` once and approve neither entry.
+`pnpm approve-builds` once and approve neither entry. npm 11 may print a warning
+that some packages have install scripts not yet covered by `allowScripts`; verbatra
+needs none of those scripts, so leave them unapproved and continue.
 
 ## 3. Scaffold the config, non-interactively
 
-Run `verbatra init` with explicit flags for what you found in step 1:
+Run `verbatra init` and let it detect the rest from the locale files:
 
-npx verbatra init --provider <anthropic|openai|gemini|deepl|google-translate> --source <source-locale> \
-  --targets <comma-separated-target-locales> --path <pattern-with-{locale}> --yes
+npx verbatra init --provider <provider> --yes --json
 
-Ask the human which provider to use unless it is already obvious from the project
-(an existing key reference, a comment, a teammate's note). Do not pick a provider
-that spends against a service the human never agreed to.
+`<provider>` is one of `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`,
+`openai-compatible`, `libretranslate`, or `none` (human-only, no machine translation).
+Ask the human which provider to use unless it is already obvious from the project (an
+existing key reference, a comment, a teammate's note). Do not pick a provider that spends against
+a service the human never agreed to. For a local or self-hosted OpenAI-compatible
+server, add `--base-url <url> --model <name>`, plus `--api-key-env-var <NAME>` if the
+server needs a key. For a self-hosted LibreTranslate server, add `--base-url <url>`
+only. Never pass a key value to `init`.
 
-`init --provider` accepts only `anthropic`, `openai`, `gemini`, `deepl`, or
-`google-translate`. For a local or self-hosted OpenAI-compatible server instead,
-scaffold with one of those five as a placeholder, then replace the whole
-`provider` block in `verbatra.config.ts` by hand with an `openai-compatible` block
-(it needs `baseUrl`, `model`, and `maxOutputTokens`); `doctor` in step 4 validates
-either shape the same way.
+`init` prints one JSON envelope on stdout and never prompts. Branch on its exit code:
 
-`init` has no `--format` flag. Open the generated `verbatra.config.ts` right after
-and set `format` to the id you determined in step 1 - the scaffold's own guess is
-unreliable for anything beyond the four JSON dependencies, and is wrong outright for
-YAML, XLIFF, ARB, properties, Apple `.strings`, Xcode String Catalog, Android
-`strings.xml`, gettext `.po`/`.pot`, INI, and .NET `.resx` projects.
+- `0`: compare `result.config` (`format`, `files.pattern`, `sourceLocale`,
+  `targetLocales`) with what you found in step 1. `result.config.files.localeStyle`
+  is only present when the files do not spell locales as written, such as Android's
+  `values-de` directories; for every other layout, `result.detection.layout` shows
+  the pattern, locale style, and locales the scan found. Every entry in
+  `result.sources` that says `default` was not detected, so check it first. If
+  anything is wrong, run the same command again with the right `--format`, `--path`,
+  `--source`, or `--targets` and add `--force`.
+- `2` with code `FORMAT_AMBIGUOUS`: several formats read these files (plain JSON with
+  no i18n library, for example). `candidates` lists them; pick the one that matches
+  step 1 and rerun with `--format <id>`.
+- `2` with code `LAYOUT_AMBIGUOUS`: several file patterns fit equally well, and
+  `candidates` lists them. verbatra addresses exactly one file pattern per config,
+  so when the candidates are namespace files side by side (for example
+  `locales/{locale}/common.json` and `locales/{locale}/auth.json`), tell the human
+  this project needs one config per namespace and stop for their direction rather
+  than guessing which namespace to wire up. Otherwise rerun with `--path <pattern>`.
+- `2` with code `MISSING_OPTIONS`: the message names every flag still needed.
+- `2` with code `CONFIG_EXISTS`: this project already has a verbatra config. Do not
+  pass `--force` without asking the human first.
 
-If the project splits strings across several namespace files per locale (for
-example `common.json` and `auth.json` side by side), verbatra addresses exactly one
-file per config: `files.pattern` is a literal path, never a glob. Tell the human
-this project needs one config per namespace before you go further, and stop for
-their direction rather than guessing which namespace to wire up.
+## 4. Hand the API key to the human - never a value
 
-## 4. Run doctor and fix until clean
-
-npx verbatra doctor
-
-`doctor` runs five checks: the config, the format, the provider id, the API-key
-environment variable that provider reads, and the source file. It makes no network
-call and reads no key value, only the variable's name. Fix whatever it reports by editing
-`verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
-or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
-it again. Repeat until it passes with no errors.
-
-## 5. Add the API key variable name - never a value
+Skip this step for provider `none`, which reads no key and has no `.env.example`.
 
 cp .env.example .env
 
-Open `.env` and confirm it names the right variable for the chosen provider
-(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`, or
-`GOOGLE_TRANSLATE_API_KEY`). Do not write, invent, or ask the human to paste a key
-value into anything you output. Leave the value blank and tell the human to fill
-it in themselves, directly in `.env`.
+Open `.env` and confirm it names the variable from `result.apiKeyEnvVar` in step 3
+(for example `GEMINI_API_KEY`). Do not write, invent, or ask the human to paste a key
+value into anything you output. Leave the value blank and tell the human which
+variable to fill in themselves, directly in `.env`. Setting the key is their job,
+not yours: carry on with the next steps without waiting for it.
+
+## 5. Run doctor and fix what is yours to fix
+
+npx verbatra doctor --json
+
+`doctor` runs eleven checks. Seven can fail: the config, the format, the provider id,
+the API-key environment variable that provider reads, the network policy, the source
+file, and the provider's support for every configured locale. The other four (plural
+rules, plural completeness, locale codes, locale state) are informational and never
+fail. It makes no network
+call and reads no key value, only the variable's name, from the environment or from
+`.env.local` and `.env`. Fix any other failing check by editing
+`verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
+or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
+it again. Repeat until the only failure left, if any, is the `api-key` check. That
+one only passes once the human has set the key from step 4, so do not loop on it:
+remind the human which variable to set and move on.
 
 ## 6. Preview - read-only, no spend
 
@@ -147,7 +161,10 @@ npx verbatra translate --dry-run --json
 
 None of the three calls a provider, needs a key, or writes a file. `check` gives
 per-locale counts, `diff` names the exact keys, and `translate --dry-run` gives the
-full run summary a real run would produce.
+full run summary a real run would produce. `check` and `diff` exit `1` when a locale
+is not in sync, which is the expected answer before a first run, not a failure; only
+exit `2` means a setup problem. With provider `none`, `translate --dry-run` exits `3`
+when keys are left for a human translator, which is also expected.
 
 Before you go further, know how verbatra treats what is already there: it never
 overwrites or retranslates an existing value. A source key the target file already
@@ -184,6 +201,7 @@ Commit:
 - `verbatra.config.ts`
 - `.env.example`
 - `verbatra.lock.json`
+- `verbatra.provenance.json` (once a run has written it)
 - the translated locale files
 
 Never commit `.env`, `.env.local`, `.verbatra-local/`, or `verbatra.cache.json`.
@@ -197,7 +215,11 @@ ignored before committing rather than assuming the scaffold caught every case.
 
 ## Ensuite
 
-- [Recettes pour agents et scripts](/docs/agent-recipes) : l'enveloppe `--json` et les codes de sortie sur lesquels s'appuient les commandes de ce prompt, pour construire tes propres boucles d'agent par-dessus.
-- [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) : une surface différente, pour piloter un projet déjà configuré depuis un onglet de navigateur plutôt que depuis un shell.
-- [Ta première traduction](/docs/your-first-translation) : le même parcours de configuration, écrit pour une personne plutôt que pour un agent.
-- [Le fichier de verrouillage](/docs/the-lock-file) : tout le détail derrière le comportement de sécurité d'adoption sur lequel s'appuie ce prompt.
+<Cards>
+  <Card title="Connecter un client MCP" href="/docs/connect-an-mcp-client" description="Une fois verbatra configuré, connecte Claude Code, Cursor, VS Code ou un autre client MCP à son serveur stdio pour que l'agent puisse vérifier le statut et corriger les traductions via des outils." />
+  <Card title="Connecter un client MCP" href="/docs/connect-an-mcp-client#le-plugin-verbatra" description="Dans Claude Code, le plugin verbatra apporte les skills, le serveur MCP avec la dépense désactivée et un hook qui vérifie chaque fichier de locale que l'agent modifie." />
+  <Card title="Recettes pour agents et scripts" href="/docs/agent-recipes" description="L'enveloppe --json et les codes de sortie sur lesquels s'appuient les commandes de ce prompt, pour construire tes propres boucles d'agent par-dessus." />
+  <Card title="Piloter Studio avec un agent de navigateur" href="/docs/agent-tools-in-studio" description="Une surface différente, pour piloter un projet déjà configuré depuis un onglet de navigateur plutôt que depuis un shell." />
+  <Card title="Démarrage rapide" href="/docs/quickstart" description="Le même parcours de configuration, écrit pour une personne plutôt que pour un agent." />
+  <Card title="Le fichier de verrouillage" href="/docs/the-lock-file" description="Tout le détail derrière le comportement de sécurité d'adoption sur lequel s'appuie ce prompt." />
+</Cards>

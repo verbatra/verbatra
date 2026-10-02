@@ -23,9 +23,11 @@ function succeededLocale(): LocaleSummary {
     providerFailures: [],
     generated: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
   };

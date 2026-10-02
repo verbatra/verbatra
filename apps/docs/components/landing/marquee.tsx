@@ -25,7 +25,50 @@ import type { ReactNode } from "react";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
 const ICON = 20;
-const SI = { size: ICON, color: "currentColor", "aria-hidden": true } as const;
+const VIEWBOX = 24;
+const SI = { size: VIEWBOX, color: "currentColor", title: "" } as const;
+
+function IniGlyph(): ReactNode {
+  return (
+    <svg
+      width={VIEWBOX}
+      height={VIEWBOX}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      aria-hidden="true"
+    >
+      <path d="M6 3h8l5 5v13H6z" />
+      <path d="M14 3v5h5M9 12h6M9 16h6" />
+    </svg>
+  );
+}
+
+const ICONS = {
+  android: <SiAndroid {...SI} />,
+  angular: <SiAngular {...SI} />,
+  apple: <SiApple {...SI} />,
+  astro: <SiAstro {...SI} />,
+  dotnet: <SiDotnet {...SI} />,
+  expo: <SiExpo {...SI} />,
+  flutter: <SiFlutter {...SI} />,
+  gnu: <SiGnu {...SI} />,
+  ini: <IniGlyph />,
+  json: <SiJson {...SI} />,
+  next: <SiNextdotjs {...SI} />,
+  node: <SiNodedotjs {...SI} />,
+  nuxt: <SiNuxt {...SI} />,
+  react: <SiReact {...SI} />,
+  spring: <SiSpring {...SI} />,
+  svelte: <SiSvelte {...SI} />,
+  vue: <SiVuedotjs {...SI} />,
+  xcode: <SiXcode {...SI} />,
+  xml: <SiXml {...SI} />,
+  yaml: <SiYaml {...SI} />,
+} as const satisfies Record<string, ReactNode>;
+
+type IconKey = keyof typeof ICONS;
 
 type FrameworkKey =
   | "react"
@@ -43,61 +86,70 @@ type FrameworkKey =
   | "android"
   | "dotnet";
 
-type Framework = { key: FrameworkKey; name: string; icon: ReactNode };
-type Format = { id: SupportedFormat; name: string; icon: ReactNode };
+type Framework = { key: FrameworkKey; name: string; icon: IconKey };
+type Format = { id: SupportedFormat; name: string; icon: IconKey };
 
 const FRAMEWORKS: ReadonlyArray<Framework> = [
-  { key: "react", name: "React", icon: <SiReact {...SI} /> },
-  { key: "next", name: "Next.js", icon: <SiNextdotjs {...SI} /> },
-  { key: "vue", name: "Vue", icon: <SiVuedotjs {...SI} /> },
-  { key: "nuxt", name: "Nuxt", icon: <SiNuxt {...SI} /> },
-  { key: "angular", name: "Angular", icon: <SiAngular {...SI} /> },
-  { key: "node", name: "Node.js", icon: <SiNodedotjs {...SI} /> },
-  { key: "svelte", name: "SvelteKit", icon: <SiSvelte {...SI} /> },
-  { key: "astro", name: "Astro", icon: <SiAstro {...SI} /> },
-  { key: "reactNative", name: "React Native", icon: <SiExpo {...SI} /> },
-  { key: "flutter", name: "Flutter", icon: <SiFlutter {...SI} /> },
-  { key: "spring", name: "Spring", icon: <SiSpring {...SI} /> },
-  { key: "apple", name: "iOS and macOS", icon: <SiApple {...SI} /> },
-  { key: "android", name: "Android", icon: <SiAndroid {...SI} /> },
-  { key: "dotnet", name: ".NET", icon: <SiDotnet {...SI} /> },
+  { key: "react", name: "React", icon: "react" },
+  { key: "next", name: "Next.js", icon: "next" },
+  { key: "vue", name: "Vue", icon: "vue" },
+  { key: "nuxt", name: "Nuxt", icon: "nuxt" },
+  { key: "angular", name: "Angular", icon: "angular" },
+  { key: "node", name: "Node.js", icon: "node" },
+  { key: "svelte", name: "SvelteKit", icon: "svelte" },
+  { key: "astro", name: "Astro", icon: "astro" },
+  { key: "reactNative", name: "React Native", icon: "expo" },
+  { key: "flutter", name: "Flutter", icon: "flutter" },
+  { key: "spring", name: "Spring", icon: "spring" },
+  { key: "apple", name: "iOS and macOS", icon: "apple" },
+  { key: "android", name: "Android", icon: "android" },
+  { key: "dotnet", name: ".NET", icon: "dotnet" },
 ];
 
-function IniGlyph(): ReactNode {
+const FORMATS: ReadonlyArray<Format> = [
+  { id: "i18next-json", name: "i18next JSON", icon: "json" },
+  { id: "vue-i18n-json", name: "vue-i18n JSON", icon: "vue" },
+  { id: "next-intl-json", name: "next-intl JSON", icon: "next" },
+  { id: "ngx-translate-json", name: "ngx-translate JSON", icon: "angular" },
+  { id: "xliff", name: "XLIFF", icon: "xml" },
+  { id: "yaml", name: "YAML", icon: "yaml" },
+  { id: "arb", name: "Flutter ARB", icon: "flutter" },
+  { id: "properties", name: "Java .properties", icon: "spring" },
+  { id: "apple-strings", name: "Apple .strings", icon: "apple" },
+  { id: "apple-xcstrings", name: "Xcode .xcstrings", icon: "xcode" },
+  { id: "android-xml", name: "Android strings.xml", icon: "android" },
+  { id: "gettext-po", name: "gettext .po", icon: "gnu" },
+  { id: "ini", name: "INI", icon: "ini" },
+  { id: "resx", name: ".NET .resx", icon: "dotnet" },
+];
+
+function symbolId(icon: IconKey): string {
+  return `vk-marquee-icon-${icon}`;
+}
+
+function IconSprite(): ReactNode {
   return (
-    <svg
-      width={ICON}
-      height={ICON}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      aria-hidden="true"
-    >
-      <path d="M6 3h8l5 5v13H6z" />
-      <path d="M14 3v5h5M9 12h6M9 16h6" />
+    <svg width="0" height="0" aria-hidden="true" className="absolute">
+      <defs>
+        {Object.entries(ICONS).map(([key, icon]) => (
+          <symbol key={key} id={symbolId(key as IconKey)} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
+            {icon}
+          </symbol>
+        ))}
+      </defs>
     </svg>
   );
 }
 
-const FORMATS: ReadonlyArray<Format> = [
-  { id: "i18next-json", name: "i18next JSON", icon: <SiJson {...SI} /> },
-  { id: "vue-i18n-json", name: "vue-i18n JSON", icon: <SiVuedotjs {...SI} /> },
-  { id: "next-intl-json", name: "next-intl JSON", icon: <SiNextdotjs {...SI} /> },
-  { id: "ngx-translate-json", name: "ngx-translate JSON", icon: <SiAngular {...SI} /> },
-  { id: "xliff", name: "XLIFF", icon: <SiXml {...SI} /> },
-  { id: "yaml", name: "YAML", icon: <SiYaml {...SI} /> },
-  { id: "arb", name: "Flutter ARB", icon: <SiFlutter {...SI} /> },
-  { id: "properties", name: "Java .properties", icon: <SiSpring {...SI} /> },
-  { id: "apple-strings", name: "Apple .strings", icon: <SiApple {...SI} /> },
-  { id: "apple-xcstrings", name: "Xcode .xcstrings", icon: <SiXcode {...SI} /> },
-  { id: "android-xml", name: "Android strings.xml", icon: <SiAndroid {...SI} /> },
-  { id: "gettext-po", name: "gettext .po", icon: <SiGnu {...SI} /> },
-  { id: "ini", name: "INI", icon: <IniGlyph /> },
-  { id: "resx", name: ".NET .resx", icon: <SiDotnet {...SI} /> },
-];
+function Icon({ icon }: { icon: IconKey }): ReactNode {
+  return (
+    <svg width={ICON} height={ICON} aria-hidden="true" className="vk-marquee-icon">
+      <use href={`#${symbolId(icon)}`} />
+    </svg>
+  );
+}
 
-type TrackItem = { key: string; name: string; icon: ReactNode; tip: string };
+type TrackItem = { key: string; name: string; icon: IconKey; tip: string };
 
 function Track({
   items,
@@ -122,10 +174,12 @@ function Track({
             href={href}
             data-tip={item.tip}
             tabIndex={hidden ? -1 : undefined}
-            className="vk-tip inline-flex min-h-9 items-center gap-2.5 px-1 text-[15px] font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
+            className="vk-tip vk-marquee-item inline-flex items-center px-1 font-medium text-fd-muted-foreground transition-colors hover:text-fd-foreground focus-visible:text-fd-foreground"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            <span className="shrink-0 text-fd-foreground opacity-85">{item.icon}</span>
+            <span className="shrink-0 text-fd-foreground opacity-85">
+              <Icon icon={item.icon} />
+            </span>
             <span>{item.name}</span>
           </a>
         </li>
@@ -170,9 +224,10 @@ export async function Marquee(): Promise<ReactNode> {
   }));
 
   return (
-    <section aria-label={t("label")} className="pt-14">
-      <p className="px-6 text-center text-[15px] text-fd-muted-foreground">{t("intro")}</p>
-      <div className="mt-[22px]">
+    <section aria-label={t("label")} className="vk-marquee-band">
+      <IconSprite />
+      <p className="vk-marquee-intro px-6 text-center text-fd-muted-foreground">{t("intro")}</p>
+      <div className="vk-marquee-rows">
         <Row items={frameworks} href={formatsHref} label={t("frameworksLabel")} direction="left" />
         <Row items={formats} href={formatsHref} label={t("formatsLabel")} direction="right" />
       </div>

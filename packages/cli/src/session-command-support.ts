@@ -1,5 +1,5 @@
 import { renderError, toRenderableError } from "./render.js";
-import { stoppableSession } from "./stoppable-session.js";
+import { type StopCause, stoppableSession } from "./stoppable-session.js";
 import type { Session, Streams } from "./types.js";
 
 const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
@@ -40,9 +40,23 @@ export function failedSession(code: number): Session {
   return { done: Promise.resolve(code), requestStop: () => {} };
 }
 
-export function watchForStop(server: { close(): Promise<void> }, streams: Streams): Session {
+export interface StoppableServer {
+  close(): Promise<void>;
+  readonly closed?: Promise<void>;
+}
+
+export function watchForStop(
+  server: StoppableServer,
+  streams: Streams,
+  onStopped?: (cause: StopCause) => void,
+): Session {
   return stoppableSession({
-    getController: () => Promise.resolve({ stop: () => server.close() }),
+    ...(onStopped !== undefined ? { onStopped } : {}),
+    getController: () =>
+      Promise.resolve({
+        stop: () => server.close(),
+        ...(server.closed !== undefined ? { ended: server.closed } : {}),
+      }),
     onFailure: (error) => {
       streams.err(`${renderError(toRenderableError(error))}\n`);
       return 1;

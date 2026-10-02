@@ -6,21 +6,28 @@ import {
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
+  type ServerNotification,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { redact } from "@verbatra/sdk";
+import { declareProviderKeyEnvVar, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
-import type { McpToolOutcome } from "./tools/define-tool.js";
+import { createProgressReporter, type ProgressReporter } from "./progress-reporter.js";
+import type { McpProjectState } from "./project-session.js";
+import { serverInstructions } from "./server-instructions.js";
+import type { McpToolOutcome, RegisteredMcpTool } from "./tools/define-tool.js";
 import { editEntryTool } from "./tools/edit-entry.js";
 import { createMcpInFlightGuard } from "./tools/in-flight-guard.js";
 import { buildToolRegistry } from "./tools/registry.js";
 import { retranslateEntryTool } from "./tools/retranslate-entry.js";
-import type { McpServerOptions, McpToolContext } from "./types.js";
+import { translatePendingTool } from "./tools/translate-pending.js";
+import { describeUnconfiguredRefusal } from "./tools/unconfigured-refusal.js";
+import type { McpCallScope, McpServerOptions, McpToolContext } from "./types.js";
 
 const GUARDED_TOOL_NAMES: ReadonlySet<string> = new Set([
   retranslateEntryTool.name,
   editEntryTool.name,
+  translatePendingTool.name,
 ]);
 
 const ALREADY_IN_PROGRESS_MESSAGE =
@@ -33,13 +40,13 @@ function entryDedupeKey(params: unknown): string | undefined {
   return parsed.success ? JSON.stringify([parsed.data.locale, parsed.data.key]) : undefined;
 }
 
-function buildContext(options: McpServerOptions): McpToolContext {
+function seamsOf(options: McpServerOptions): Omit<McpToolContext, "config"> {
   return {
-    config: options.config,
     cwd: options.cwd,
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
     ...(options.createProvider !== undefined ? { createProvider: options.createProvider } : {}),
+    ...(options.valueMarker !== undefined ? { valueMarker: options.valueMarker } : {}),
   };
 }
 
@@ -49,41 +56,118 @@ function toFailureResult(message: string): CallToolResult {
 
 function toOkResult(outcome: Extract<McpToolOutcome, { kind: "ok" }>): CallToolResult {
   const text = redact(JSON.stringify(outcome.result));
-  const content: CallToolResult["content"] = [{ type: "text", text }];
-  if (outcome.structuredContent !== undefined) {
-    return { content, structuredContent: JSON.parse(text) as Record<string, unknown> };
+  return {
+    content: [{ type: "text", text }],
+    structuredContent: JSON.parse(text) as Record<string, unknown>,
+  };
+}
+
+function toListedTool(tool: RegisteredMcpTool): Tool {
+  return {
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema as unknown as Tool["inputSchema"],
+    outputSchema: tool.outputSchema as unknown as Tool["outputSchema"],
+    annotations: tool.annotations,
+  };
+}
+
+function spendEnabled(allowSpend: boolean, state: McpProjectState): boolean {
+  return (
+    allowSpend && state.kind === "configured" && isMachineTranslationEnabled(state.loaded.config)
+  );
+}
+
+function executeFor(
+  tool: RegisteredMcpTool,
+  params: unknown,
+  state: McpProjectState,
+  seams: Omit<McpToolContext, "config">,
+  scope: McpCallScope,
+): Promise<McpToolOutcome> {
+  if (state.kind === "configured") {
+    return tool.execute(params, { ...seams, ...scope, config: state.loaded });
   }
-  return { content };
+  if (tool.executeUnconfigured !== undefined) {
+    return tool.executeUnconfigured(params, { ...seams, configError: state.error });
+  }
+  return Promise.resolve({
+    kind: "error",
+    message: describeUnconfiguredRefusal(tool.name, state.error, seams.cwd, seams.valueMarker),
+  });
+}
+
+interface ProgressChannel {
+  readonly _meta?: { readonly progressToken?: string | number | undefined } | undefined;
+  sendNotification(notification: ServerNotification): Promise<void>;
+}
+
+function progressReporterFor(
+  channel: ProgressChannel,
+  onLog: ((line: string) => void) | undefined,
+): ProgressReporter | undefined {
+  const progressToken = channel._meta?.progressToken;
+  if (progressToken === undefined) {
+    return undefined;
+  }
+  return createProgressReporter({
+    send: (update) =>
+      channel.sendNotification({
+        method: "notifications/progress",
+        params: { progressToken, ...update },
+      }),
+    ...(onLog !== undefined ? { onLog } : {}),
+  });
 }
 
 export function createMcpServer(options: McpServerOptions): Server {
+  const initial = options.project.latest();
+  if (initial.kind === "configured") {
+    declareProviderKeyEnvVar(initial.loaded.config.provider);
+  }
   const manifest = readPackageManifest();
-  const context = buildContext(options);
-  const tools = buildToolRegistry(options.allowSpend ?? false);
-  const toolsByName = new Map(tools.map((tool) => [tool.name, tool] as const));
+  const seams = seamsOf(options);
+  const allowSpend = options.allowSpend ?? false;
   const inFlightGuard = createMcpInFlightGuard(GUARDED_TOOL_NAMES);
+  let advertised: string | undefined;
 
   const server = new Server(
     { name: manifest.name, version: manifest.version },
-    { capabilities: { tools: {} } },
+    {
+      capabilities: { tools: { listChanged: true } },
+      instructions: serverInstructions({ valuesRedacted: options.valueMarker !== undefined }),
+    },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: tools.map(
-      (tool): Tool => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema as unknown as Tool["inputSchema"],
-        ...(tool.outputSchema !== undefined
-          ? { outputSchema: tool.outputSchema as unknown as Tool["outputSchema"] }
-          : {}),
-        annotations: tool.annotations,
-      }),
-    ),
-  }));
+  function announceIfChanged(tools: readonly RegisteredMcpTool[]): void {
+    const names = tools.map((tool) => tool.name).join(",");
+    if (advertised !== undefined && advertised !== names) {
+      server.sendToolListChanged().catch((error: unknown) => {
+        options.onLog?.(redact(`Announcing the changed tool list failed: ${String(error)}`));
+      });
+    }
+    advertised = names;
+  }
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = toolsByName.get(request.params.name);
+  async function currentTools(): Promise<{
+    readonly state: McpProjectState;
+    readonly tools: readonly RegisteredMcpTool[];
+  }> {
+    const state = await options.project.current();
+    const tools = buildToolRegistry(spendEnabled(allowSpend, state));
+    return { state, tools };
+  }
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const { tools } = await currentTools();
+    advertised = tools.map((tool) => tool.name).join(",");
+    return { tools: tools.map(toListedTool) };
+  });
+
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    const { state, tools } = await currentTools();
+    announceIfChanged(tools);
+    const tool = tools.find((candidate) => candidate.name === request.params.name);
     if (tool === undefined) {
       options.onLog?.(redact(`Unknown tool requested: ${request.params.name}`));
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
@@ -93,14 +177,17 @@ export function createMcpServer(options: McpServerOptions): Server {
       options.onLog?.(redact(`Tool "${tool.name}" rejected: ${ALREADY_IN_PROGRESS_MESSAGE}`));
       return toFailureResult(ALREADY_IN_PROGRESS_MESSAGE);
     }
+    const progress = progressReporterFor(extra, options.onLog);
     try {
-      const outcome = await tool.execute(request.params.arguments ?? {}, context);
+      const scope: McpCallScope = progress !== undefined ? { onProgress: progress.onProgress } : {};
+      const outcome = await executeFor(tool, request.params.arguments ?? {}, state, seams, scope);
       if (outcome.kind === "ok") {
         return toOkResult(outcome);
       }
       options.onLog?.(redact(`Tool "${tool.name}" ${outcome.kind}: ${outcome.message}`));
       return toFailureResult(outcome.message);
     } finally {
+      progress?.close();
       inFlightGuard.leave(tool.name, dedupeKey);
     }
   });

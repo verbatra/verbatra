@@ -1,15 +1,39 @@
 import { describe, expect, it } from "vitest";
-import type { GlossaryWriteResult } from "../shared/rpc/glossary.js";
+import type { GlossaryTermView, GlossaryWriteResult } from "../shared/rpc/glossary.js";
 import {
+  ALL_LOCALES,
+  buildTermEdit,
   deriveGlossaryWriteOutcome,
+  draftFor,
+  forbiddenRuleCount,
   glossaryReadOnlyReason,
+  hasPerLocaleData,
   isGlossaryEditable,
+  isTargetLocale,
+  parseRenderings,
+  scopeValue,
 } from "./glossary-editing.js";
 
 const RESULT: GlossaryWriteResult = {
   indicator: { source: "file", path: "glossary.json" },
-  entries: { brand: "Verbatra" },
+  version: 1,
+  locales: ["de"],
+  terms: [],
+  doNotTranslate: [],
   redactedTerms: [],
+};
+
+const TERM: GlossaryTermView = {
+  source: "Dashboard",
+  target: "Dashboard",
+  targets: { DE: "Übersicht" },
+  forbidden: { DE: ["Instrumententafel"] },
+  caseSensitive: false,
+  note: "Start page",
+  byLocale: {
+    de: { target: "Übersicht", inherited: false, forbidden: ["Instrumententafel", "Tafel"] },
+    fr: { target: "Dashboard", inherited: true, forbidden: [] },
+  },
 };
 
 describe("deriveGlossaryWriteOutcome", () => {
@@ -59,5 +83,132 @@ describe("glossaryReadOnlyReason", () => {
     expect(reason).toContain("no glossary yet");
     expect(reason).toContain("JSON file");
     expect(isGlossaryEditable({ source: "none" })).toBe(false);
+  });
+});
+
+describe("scopeValue", () => {
+  it("shows the translation for all locales in the all-locales scope, with nothing forbidden", () => {
+    expect(scopeValue(TERM, ALL_LOCALES)).toEqual({
+      translation: "Dashboard",
+      inheritedFrom: undefined,
+      forbidden: [],
+    });
+  });
+
+  it("shows a locale's resolved translation and every rendering it forbids", () => {
+    expect(scopeValue(TERM, "de")).toEqual({
+      translation: "Übersicht",
+      inheritedFrom: undefined,
+      forbidden: ["Instrumententafel", "Tafel"],
+    });
+  });
+
+  it("names where an inherited translation comes from", () => {
+    expect(scopeValue(TERM, "fr").inheritedFrom).toBe("all locales");
+    const regional: GlossaryTermView = {
+      ...TERM,
+      targets: { de: "Übersicht" },
+      byLocale: { "de-AT": { target: "Übersicht", inherited: true, forbidden: [] } },
+    };
+    expect(scopeValue(regional, "de-AT").inheritedFrom).toBe("de");
+  });
+
+  it("treats a locale the term has nothing for as inheriting nothing", () => {
+    expect(scopeValue(TERM, "it")).toEqual({
+      translation: undefined,
+      inheritedFrom: undefined,
+      forbidden: [],
+    });
+  });
+});
+
+describe("parseRenderings", () => {
+  it("splits on commas and new lines, trims, and drops blanks and repeats", () => {
+    expect(parseRenderings(" Tafel, Brett\nTafel ,, ")).toEqual(["Tafel", "Brett"]);
+  });
+});
+
+describe("draftFor", () => {
+  it("starts a locale draft from the term's own entry for that locale, whatever its case", () => {
+    expect(draftFor(TERM, "de")).toEqual({
+      translation: "Übersicht",
+      forbidden: "Instrumententafel",
+      note: "Start page",
+      partOfSpeech: "",
+      caseSensitive: false,
+    });
+  });
+
+  it("starts an inherited locale with an empty translation", () => {
+    expect(draftFor(TERM, "fr").translation).toBe("");
+  });
+});
+
+describe("buildTermEdit", () => {
+  it("returns nothing when the draft changes nothing", () => {
+    expect(buildTermEdit(TERM, "de", draftFor(TERM, "de"))).toBeUndefined();
+  });
+
+  it("sends a changed locale translation and forbidden list with their locale", () => {
+    const draft = { ...draftFor(TERM, "de"), translation: " Startseite ", forbidden: "Tafel" };
+    expect(buildTermEdit(TERM, "de", draft)).toEqual({
+      term: "Dashboard",
+      translation: "Startseite",
+      locale: "de",
+      forbidden: ["Tafel"],
+    });
+  });
+
+  it("clears a translation, a forbidden list, a note and a part of speech that were emptied", () => {
+    const term = { ...TERM, partOfSpeech: "noun" };
+    const draft = {
+      ...draftFor(term, "de"),
+      translation: "",
+      forbidden: "",
+      note: " ",
+      partOfSpeech: "",
+    };
+    expect(buildTermEdit(term, "de", draft)).toEqual({
+      term: "Dashboard",
+      translation: null,
+      locale: "de",
+      forbidden: null,
+      note: null,
+      partOfSpeech: null,
+    });
+  });
+
+  it("changes the shared translation and case sensitivity without a locale", () => {
+    const draft = { ...draftFor(TERM, ALL_LOCALES), translation: "Board", caseSensitive: true };
+    expect(buildTermEdit(TERM, ALL_LOCALES, draft)).toEqual({
+      term: "Dashboard",
+      translation: "Board",
+      caseSensitive: true,
+    });
+  });
+
+  it("sends a note change alone without a locale, even in a locale scope", () => {
+    const draft = { ...draftFor(TERM, "de"), note: "Home" };
+    expect(buildTermEdit(TERM, "de", draft)).toEqual({ term: "Dashboard", note: "Home" });
+  });
+});
+
+describe("hasPerLocaleData", () => {
+  it("is true for a term with a per-locale translation or forbidden list", () => {
+    expect(hasPerLocaleData(TERM)).toBe(true);
+    expect(hasPerLocaleData({ ...TERM, targets: {}, forbidden: {} })).toBe(false);
+  });
+});
+
+describe("forbiddenRuleCount", () => {
+  it("counts every forbidden rendering across locales", () => {
+    expect(forbiddenRuleCount({ ...TERM, forbidden: { de: ["a", "b"], fr: ["c"] } })).toBe(3);
+  });
+});
+
+describe("isTargetLocale", () => {
+  it("matches a configured target locale regardless of case", () => {
+    expect(isTargetLocale(["de", "fr"], "DE")).toBe(true);
+    expect(isTargetLocale(["de", "fr"], "de-AT")).toBe(false);
   });
 });

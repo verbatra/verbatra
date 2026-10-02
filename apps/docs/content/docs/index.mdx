@@ -1,45 +1,80 @@
 ---
 title: Introduction
 description: What verbatra is, the problem it solves, and how the CLI, SDK, Studio, and MCP server fit together. Translate only the keys that changed, with integrity checks on every result.
+type: overview
 ---
 
 <DocsHomeHero
   headline="How to translate only what changed."
   lead="verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you configure, checks every result, and writes the files back in place. These pages cover the CLI, the SDK, Studio, and the MCP server."
-  primary={{ label: "Your first translation", href: "/docs/your-first-translation" }}
+  primary={{ label: "Quickstart", href: "/docs/quickstart" }}
   secondary={{ label: "CLI reference", href: "/docs/cli" }}
 />
 
 <DocsHomeBody>
 
-<DocsHomeSection title="Where to go next" lead="Four starting points, depending on where you are.">
+<DocsHomeSection title="Start from your goal" lead="Pick what you want to do; each card opens the page that does it.">
 
 <DocsHomePaths
   cards={[
     {
-      tag: "New here",
-      label: "Your first translation",
-      body: "Install the CLI, scaffold a config, preview the run with no key, then translate.",
-      href: "/docs/your-first-translation",
+      goal: "Translate a project",
+      page: "Quickstart",
+      body: "Install the CLI, preview the run without a key, then translate your first file.",
+      href: "/docs/quickstart",
       primary: true,
     },
     {
-      tag: "Already set up",
-      label: "Add a language",
-      body: "Drop a locale into your config and let one run fill it in.",
-      href: "/docs/add-a-language",
-    },
-    {
-      tag: "Production",
-      label: "CI and exit codes",
-      body: "Fail the pull request when a locale drifts, with JSON output for scripts.",
+      goal: "Gate pull requests",
+      page: "CI and exit codes",
+      body: "Fail a pull request when a locale drifts, with JSON output for scripts.",
       href: "/docs/ci-and-exit-codes",
     },
     {
-      tag: "With an AI agent",
-      label: "Set up with AI",
-      body: "Point Claude Code, Cursor, or any coding agent at a copy-pasteable prompt.",
+      goal: "Hand off to translators",
+      page: "Human translation",
+      body: "Export a workbook for a person to translate, then import it back.",
+      href: "/docs/manual-translation",
+    },
+    {
+      goal: "Use with an AI agent",
+      page: "Set up with AI",
+      body: "Give Claude Code, Cursor, or any coding agent a copy-pasteable prompt.",
       href: "/docs/start-with-ai",
+    },
+  ]}
+/>
+
+<DocsHomeStacks
+  title="Pick your stack"
+  groups={[
+    {
+      title: "Frameworks",
+      links: [
+        { label: "React", href: "/docs/pick-your-stack#react-with-i18next" },
+        { label: "Next.js", href: "/docs/pick-your-stack#nextjs-with-next-intl" },
+        { label: "Vue", href: "/docs/pick-your-stack#vue-and-nuxt-with-vue-i18n" },
+        { label: "Angular", href: "/docs/pick-your-stack#angular-with-ngx-translate" },
+      ],
+    },
+    {
+      title: "Platforms",
+      links: [
+        { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
+        { label: "Android", href: "/docs/pick-your-stack#android" },
+        { label: "iOS and macOS", href: "/docs/pick-your-stack#ios-and-macos" },
+        { label: "Spring", href: "/docs/pick-your-stack#java-and-spring" },
+        { label: ".NET", href: "/docs/pick-your-stack#net" },
+      ],
+    },
+    {
+      title: "Formats",
+      links: [
+        { label: "gettext", href: "/docs/pick-your-stack#gettext" },
+        { label: "YAML", href: "/docs/pick-your-stack#yaml" },
+        { label: "XLIFF", href: "/docs/pick-your-stack#xliff" },
+        { label: "INI", href: "/docs/pick-your-stack#ini" },
+      ],
     },
   ]}
 />
@@ -52,7 +87,7 @@ Hand-maintaining one source locale means every other locale file drifts: new key
 
 <DocsHomeSteps />
 
-verbatra reads and writes fourteen formats and translates through six providers behind one interface, and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). See [Formats](/docs/formats) and [Providers](/docs/providers).
+verbatra reads and writes the common locale file formats, from JSON and YAML to XLIFF, gettext, and Android and Apple catalogs, and translates through any supported LLM or machine-translation provider behind one interface (or none, for a [human-only workflow](/docs/human-only-workflow)), and a format it does not ship can be added as a [custom adapter](/docs/custom-format-adapters). The full lists are on [Formats](/docs/formats) and [Providers](/docs/providers).
 
 </DocsHomeSection>
 
@@ -63,7 +98,7 @@ verbatra reads and writes fourteen formats and translates through six providers 
     {
       title: "@verbatra/cli",
       pkg: "cli",
-      body: "The verbatra binary: fourteen commands, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
+      body: "The verbatra binary: every command, from init and extract to translate, check, export, and studio, as a thin wrapper over the SDK. Start here.",
       href: "/docs/cli",
     },
     {

@@ -17,7 +17,7 @@ user-invocable: true
 command serves over a real project on localhost. It is an operator console, not a
 marketing page: the reader is a developer checking translation drift, clearing a review
 queue, or spending provider budget. Its look is already decided and codified in
-`packages/studio/src/app/styles.css` (172 lines).
+`packages/studio/src/app/styles.css` (181 lines).
 
 Two things make generic frontend advice wrong here, and both are enforced by tests:
 
@@ -128,8 +128,10 @@ brand          primary  primary-strong  primary-foreground  accent
 sidebar        sidebar  sidebar-foreground  sidebar-muted  sidebar-border
                 sidebar-accent  sidebar-active
 status          success  warning  danger  neutral (each with a -soft companion)
+                danger-foreground (text on a solid danger fill)
 diff            diff-new  diff-changed  diff-orphaned (each with a -soft companion)
 shadow          shadow-panel  shadow-panel-lg
+overlay         overlay (modal scrim)
 ```
 
 Two conventions carried by that list, both worth keeping:
@@ -142,14 +144,19 @@ Two conventions carried by that list, both worth keeping:
   chrome-versus-canvas contrast, not an oversight. Do not "fix" it by mapping the sidebar
   onto the surface tokens.
 
-**Known gap: there is no overlay token.** `OverlayBackdrop` (`src/app/ui.tsx`) draws the
-modal scrim with `bg-foreground/40`. `--v-foreground` is near-black in light theme and
-near-white in dark, so the scrim *brightens* the page behind a dialog in dark theme
-instead of dimming it. This is a real defect, not a convention: do not copy the pattern,
-and if you are touching overlays, add a `--v-overlay` pair to both `:root` blocks and
-point the backdrop at it. A token whose polarity flips between themes is the failure mode
-to watch for here, and it is easier to miss than a stray `dark:` variant because it looks
-token-compliant.
+**The modal scrim has its own token.** `OverlayBackdrop` (`src/app/ui.tsx`) draws it with
+`bg-overlay`, backed by `--v-overlay` in both `:root` blocks: a dark, translucent fill in each
+theme, so the page behind a dialog is dimmed in dark theme too. It used to be
+`bg-foreground/40`, which brightened the page in dark theme because `--v-foreground` is
+near-white there. Do not bring that pattern back: a token whose polarity flips between themes
+is the failure mode to watch for here, and it is easier to miss than a stray `dark:` variant
+because it looks token-compliant.
+
+**A solid danger fill uses `danger-foreground`.** The `danger` Button variant
+(`src/app/Button.tsx`) fills with `bg-danger` and writes `text-danger-foreground`, white on
+the light theme's deep red and near-black on the dark theme's light red. Use it for a
+destructive confirmation, such as Reject and remove in the Review panel, not for an ordinary
+row action, which stays a tinted `secondary` button.
 
 Scales are fixed and narrow, deliberately:
 
@@ -184,9 +191,10 @@ Rules that follow:
 `main.tsx`, `ui.tsx` and `test-support.tsx`; the rest are components, each with a
 co-located test). Compose these before writing anything new.
 
-- **Primitives:** `Button` (`variant: "primary" | "secondary" | "ghost"`,
+- **Primitives:** `Button` (`variant: "primary" | "secondary" | "ghost" | "danger"`,
   `size: "sm" | "md"`, default `secondary`/`sm`), `Card` (`padding: "none" | "sm" | "md"`,
-  `as: "div" | "section"`), `Badge` (`tone: "success" | "warning" | "neutral" | "danger"`),
+  `as: "div" | "section"`), `Badge` (`tone: "success" | "warning" | "neutral" | "danger"`, `wrap` to let a long
+  user value break inside the pill instead of overflowing; pills stay on one line by default),
   `Input`, `Select`, `Dropdown`, `Popover`, `Tooltip`, `Tabs`, `Accordion`, `Table`,
   `Sheet`, `Skeleton`, `Loading`, `ProgressBar`, `Toast`, `ErrorMessage`, `ErrorBoundary`.
   Extend a variant union rather than passing ad hoc `className` overrides at call sites.
@@ -220,7 +228,10 @@ co-located test). Compose these before writing anything new.
 ## Capabilities are two flags, and the decision is a pure function
 
 `StudioCapabilities` (`src/shared/rpc/snapshot.ts`) is
-`{ spend: boolean; writeToDisk: boolean }`. Do not conflate them:
+`{ spend: boolean; writeToDisk: boolean }`, plus a `spendWithheld` reason and the read-only
+`limits` the server enforces (`retranslate` and `reviewDecision`, each `{ windowMs, max }`), which
+`src/client/rate-budget.ts` checks a bulk action against before sending it. Do not conflate the
+two flags:
 
 - `spend` costs provider tokens and is off unless the server was started with
   `--allow-spend` (`packages/cli/src/studio-command.ts`). Retranslate and

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   glossaryGetParamsSchema,
   glossaryWriteParamsSchema,
+  MAX_FORBIDDEN_RENDERINGS,
   MAX_GLOSSARY_TERM_LENGTH,
   MAX_GLOSSARY_TRANSLATION_LENGTH,
 } from "./glossary.js";
@@ -36,8 +37,34 @@ describe("glossaryWriteParamsSchema", () => {
     expect(glossaryWriteParamsSchema.safeParse({ term: "x", translation: "" }).success).toBe(false);
   });
 
-  it("rejects an omitted translation, so removal is always explicit", () => {
-    expect(glossaryWriteParamsSchema.safeParse({ term: "Verbatra" }).success).toBe(false);
+  it("accepts the per-locale fields and a do-not-translate edit", () => {
+    expect(
+      glossaryWriteParamsSchema.safeParse({
+        term: "Dashboard",
+        locale: "de",
+        translation: "Übersicht",
+        forbidden: ["Instrumententafel"],
+        note: "Start page",
+        partOfSpeech: "noun",
+        caseSensitive: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      glossaryWriteParamsSchema.safeParse({ term: "verbatra", doNotTranslate: true }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an empty forbidden rendering and more renderings than the cap", () => {
+    expect(
+      glossaryWriteParamsSchema.safeParse({ term: "A", locale: "de", forbidden: [""] }).success,
+    ).toBe(false);
+    expect(
+      glossaryWriteParamsSchema.safeParse({
+        term: "A",
+        locale: "de",
+        forbidden: Array(MAX_FORBIDDEN_RENDERINGS + 1).fill("x"),
+      }).success,
+    ).toBe(false);
   });
 
   it("caps the term and the translation length", () => {
@@ -56,6 +83,15 @@ describe("glossaryWriteParamsSchema", () => {
   });
 
   it("declares no field by which a client could name the file to write", () => {
-    expect(Object.keys(glossaryWriteParamsSchema.shape)).toEqual(["term", "translation"]);
+    expect(Object.keys(glossaryWriteParamsSchema.shape)).toEqual([
+      "term",
+      "translation",
+      "locale",
+      "forbidden",
+      "note",
+      "partOfSpeech",
+      "caseSensitive",
+      "doNotTranslate",
+    ]);
   });
 });

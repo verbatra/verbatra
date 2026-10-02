@@ -147,9 +147,9 @@ describe("run studio: @verbatra/studio not installed", () => {
     const code = await run(["studio"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).toContain(
-      "Verbatra Studio requires @verbatra/studio. Install it with: pnpm add -D @verbatra/studio",
-    );
+    expect(cap.err()).toContain("Verbatra Studio requires @verbatra/studio.");
+    expect(cap.err()).toContain("npm install --save-dev @verbatra/studio");
+    expect(cap.err()).toContain("npx -y -p @verbatra/cli -p @verbatra/studio verbatra studio");
   });
 
   it("never masks a resolution failure inside @verbatra/studio's own dependency graph as not-installed", async () => {
@@ -165,7 +165,7 @@ describe("run studio: @verbatra/studio not installed", () => {
 
     expect(code).toBe(2);
     expect(cap.err()).toContain(importedFrom);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/studio");
+    expect(cap.err()).not.toContain("npm install --save-dev @verbatra/studio");
     expect(cap.err()).toContain("ERR_MODULE_NOT_FOUND");
     expect(cap.err()).toContain("chokidar");
   });
@@ -181,7 +181,7 @@ describe("run studio: @verbatra/studio not installed", () => {
     const code = await run(["studio"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/studio");
+    expect(cap.err()).not.toContain("npm install --save-dev @verbatra/studio");
     expect(cap.err()).toContain("unexpected dynamic import failure");
   });
 });
@@ -302,6 +302,9 @@ describe("run studio: failure output never leaks a URL or a token", () => {
 
     expect(code).toBe(2);
     expect(combined).toContain("PORT_IN_USE");
+    expect(cap.err()).toContain(
+      "verbatra: error [PORT_IN_USE] port 5849 is already in use. Pass --port <n> to use another port, or stop the process that holds it.",
+    );
     expect(combined).not.toMatch(/https?:\/\//);
     expect(combined).not.toMatch(TOKEN_SHAPE);
   });
@@ -327,7 +330,7 @@ describe("run studio: success path and shutdown", () => {
     expect(code).toBe(0);
   });
 
-  it("silences the studio server's own output sink so it prints no second banner or log line", async () => {
+  it("silences the studio server's own output sink unless --verbose is passed", async () => {
     const { deps } = recordingDeps({
       importStudio: async () =>
         makeStudioModule({
@@ -348,10 +351,100 @@ describe("run studio: success path and shutdown", () => {
     expect(out).toMatch(
       /^Verbatra Studio running at http:\/\/127\.0\.0\.1:\d+\/\?token=[0-9a-f]{64}\n$/,
     );
-    expect(cap.err()).toBe("");
+    expect(cap.err()).not.toContain("studio server internal log line");
 
     captured.session()?.requestStop();
     await donePromise;
+  });
+
+  it("forwards the studio server's error lines to stderr without --verbose, token masked", async () => {
+    let token = "";
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            token = options.token ?? "";
+            options.output?.(`studio error: translation.retranslateEntries stopped: EIO ${token}`);
+            options.output?.("GET / 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio"], deps, cap.streams, captured.hooks);
+    await flush();
+
+    expect(cap.err()).toContain(
+      "verbatra: studio error: translation.retranslateEntries stopped: EIO [REDACTED]\n",
+    );
+    expect(cap.err()).not.toContain(token);
+    expect(cap.err()).not.toContain("GET / 200");
+    expect(cap.out()).not.toContain("studio error");
+
+    captured.session()?.requestStop();
+    await donePromise;
+  });
+
+  it("keeps forwarding the studio server's error lines to stderr under --quiet", async () => {
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            options.output?.("studio error: project.snapshot failed: EIO");
+            options.output?.("GET / 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--quiet", "--verbose"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(cap.err()).toBe("verbatra: studio error: project.snapshot failed: EIO\n");
+  });
+
+  it("forwards request lines under --verbose but never Studio's own startup banner", async () => {
+    const { deps } = recordingDeps({
+      importStudio: async () =>
+        makeStudioModule({
+          startStudioServer: async (options) => {
+            options.output?.(
+              `Verbatra Studio running at http://127.0.0.1:5849/?token=${options.token}`,
+            );
+            options.output?.("GET / 200");
+            return { url: "http://127.0.0.1:5849/", port: 5849, close: async () => {} };
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureStudioSession();
+
+    const donePromise = run(["studio", "--verbose"], deps, cap.streams, captured.hooks);
+    await flush();
+
+    expect(cap.err()).toContain("GET / 200");
+    expect(cap.err()).not.toContain("Verbatra Studio running at");
+    expect(cap.out().match(/Verbatra Studio running at/g)).toHaveLength(1);
+
+    captured.session()?.requestStop();
+    await donePromise;
+  });
+
+  it("describes --verbose as what it forwards, not the startup banner", async () => {
+    const cap = captureStreams();
+
+    await run(["studio", "--help"], recordingDeps().deps, cap.streams);
+
+    const help = cap.out().replace(/\s+/g, " ");
+    expect(help).toContain(
+      "also print one stderr line per request, token masked (never Studio's startup banner)",
+    );
   });
 
   it("a second requestStop while the first is closing forces exit 130", async () => {

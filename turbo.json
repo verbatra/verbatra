@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "cacheDir": ".turbo/cache",
   "globalPassThroughEnv": ["BASE_SHA", "HEAD_BRANCH", "HEAD_SHA", "PUBLISHED_PACKAGES_JSON"],
   "tasks": {
     "build": {

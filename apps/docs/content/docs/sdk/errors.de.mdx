@@ -1,0 +1,54 @@
+---
+title: "Fehler"
+description: "Das SdkError-Modell: eine Fehlerklasse, welche Codes eine Ursache mitführen, und die Ausnahmen von der Regel."
+type: reference
+---
+## Das Fehlermodell
+
+Fehlschläge des gesamten Laufs werfen einen `SdkError`: eine Klasse, ein stabiler `code` und eine
+`message` ohne Secrets. Verzweige auf den Code, nicht auf die Message. Fehlschläge pro Locale,
+Provider-Notices und Integritätsbefunde kommen als Daten auf der `RunSummary` an, werden nie
+geworfen.
+
+Jeder Code, was er bedeutet, welche CLI-Befehle ihn erreichen und was der nächste Schritt ist, steht unter [SDK-Fehlercodes](/docs/error-codes#sdk-error-codes).
+
+Einige Codes tragen außerdem den Fehler, den sie umhüllen, als standardmäßigen `cause`:
+`SOURCE_INVALID`, wenn ein Parser oder Adapter gescheitert ist (nicht, wenn eine Datei wegen ihrer
+Größe abgelehnt wird), `PROVIDER_CONSTRUCTION_FAILED` (der eigene Fehler der Provider-Factory, dessen
+Meldung außerdem geschwärzt in die `SdkError`-Meldung übernommen wird), `EXPORT_UNWRITABLE` und
+`GLOSSARY_UNWRITABLE` (der Dateisystemfehler), `REVIEW_RESTORE_FAILED` (der Fehler, der die
+Entscheidung unterbrochen hat) und `LOCK_CONTENDED`, wenn die Sperre übernommen wurde oder eine
+verwaiste Sperre nicht zurückgeholt oder beiseitegeschoben werden konnte (der Dateisystemfehler).
+`CONFIG_INVALID` trägt nur dann einen, wenn die Config-Datei mit einem Fehler mit Code nicht geladen
+werden konnte, etwa bei einem Import, der sich nicht auflösen lässt. Bei einem Parse- oder
+Schemafehler trägt es keinen, und `CONFIG_NOT_FOUND` nie, weil der Fehler eines Config-Parsers den
+Inhalt der Datei zitieren kann und ein in die Config geschriebener Key nicht mit dem Fehler
+mitreisen darf. Geschwärzt wird bei `PROVIDER_CONSTRUCTION_FAILED` nur die Meldung: Der `cause` ist
+der ursprüngliche Fehler, unverändert. Die eingebauten Provider-Factories werfen Fehler ohne
+Geheimnis, und ein Fehler aus einem `createProvider`, das du selbst übergibst, kommt genau so zurück,
+wie du ihn geworfen hast. Halte also Geheimnisse aus ihm heraus oder schwärze ihn selbst, bevor du
+den `cause` loggst.
+
+Die Ausnahmen von der Ein-Fehlerklasse-Regel:
+
+- `retranslateEntry` wirft den eigenen `ProviderError` des Providers weiter, wenn der einzelne
+  Aufruf fehlschlägt.
+- `approveEntries`, `rejectEntries` und `retranslateEntries` werfen einen `BatchInterruptedError`
+  mit dem ursprünglichen Fehler als `cause`, wenn ein unerwarteter Fehler einen Stapel mittendrin
+  stoppt.
+- Eine Zielsprachdatei, die der Adapter nicht parsen kann, kommt als dessen `AdapterError` mit
+  eigenem `code` aus `check`, `diff` und den anderen Flows, die sie lesen; `checkFile` meldet sie
+  stattdessen als Syntaxbefund.
+- `watch` gibt weiter, was die Watcher-Factory geworfen hat, unverpackt.
+- `runStatus` wirft überhaupt nie.
+
+Wie diese Codes auf CLI-Exit-Codes abbilden, steht in
+[SDK-Fehlercodes](/docs/error-codes#sdk-error-codes); Hilfe ausgehend vom Symptom findest du unter
+[Fehlerbehebung](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` und sein Typ `ProviderErrorCode` werden aus `@verbatra/sdk` exportiert: Prüf einen
+Fehlschlag von `retranslateEntry` also mit `error instanceof ProviderError` und verzweige nach
+`error.code`; die [Provider-Fehlercodes](/docs/error-codes#provider-error-codes) listen jeden Code. Auf einer älteren Version,
+die die Klasse nicht exportiert, prüf `error.name === "ProviderError"` und lies `code`.

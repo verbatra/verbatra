@@ -1,8 +1,9 @@
 ---
 title: verbatra translate
 description: Übersetze jede Ziel-Locale einmal; danach beendet sich der Befehl.
+type: reference
 ---
-Führe genau einen Übersetzungsdurchlauf über jede Ziel-Locale aus; danach beendet sich der Befehl. `translate` liest die Quell-Locale, vergleicht sie mit der [Lock-Datei](/docs/the-lock-file), schickt nur die neuen oder geänderten Strings an den Provider, führt die [Integritätsprüfungen](/docs/translation-safety) aus, schreibt die Locale-Dateien und aktualisiert das Lock. Was noch aktuell ist, wird nie erneut gesendet; du zahlst also nie zweimal für einen unveränderten String.
+Führe einen Übersetzungsdurchlauf über jede Ziel-Locale aus; danach beendet sich der Befehl. `translate` vergleicht die Quelle mit der [Lock-Datei](/docs/the-lock-file), schickt nur neue oder geänderte Strings an den Provider, führt die [Integritätsprüfungen](/docs/translation-safety) aus, schreibt die Locale-Dateien und aktualisiert das Lock. Einen unveränderten String sendet es nie zweimal.
 
 ## Synopsis
 
@@ -14,63 +15,157 @@ verbatra translate [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
-| `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
-| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge übersetzen; eine nicht konfigurierte Locale lässt den Lauf mit `UNKNOWN_LOCALE` scheitern, bevor irgendetwas gelesen oder Geld ausgegeben wird, und eine leere Liste ist ein Verwendungsfehler, Exit `2` |
-| `--dry-run` | keins | aus | Änderungen vorab ansehen, ohne einen Provider aufzurufen oder Dateien zu schreiben (kein API-Key nötig) |
-| `--prune` | keins | die `prune`-Option der Konfiguration, sonst aus | verwaiste Keys (in einer Zieldatei, aber nicht in der Quelle) aus der geschriebenen Datei und dem Lock entfernen |
-| `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird, bevor der Lauf scheitert; muss eine positive Ganzzahl an Sekunden ohne Einheit sein (ein Wert wie `60s`, `0` oder `-1` ist ein Verwendungsfehler, Exit `2`) |
-| `--concurrency` | `<n>` | `1` | bis zu `n` Ziel-Locales gleichzeitig übersetzen; muss eine positive Ganzzahl sein |
-| `--no-cache` | keins | aus (Cache an) | den lokalen [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) für diesen Lauf umgehen |
-| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der die Lauf-Zusammenfassung unter `result` trägt (die [`RunSummary`-Form](/docs/sdk)), oder bei einem fehlgeschlagenen Lauf den Fehlercode; die menschenlesbare Fehlerzeile geht weiter auf stderr |
-| `--estimate` | keins | aus | schätzen, was der Lauf senden und was er kosten würde, und sich dann beenden, ohne einen Provider aufzurufen; impliziert `--dry-run`, es wird also kein API-Key gebraucht |
+| `--locales` | `<list>` | jede konfigurierte Ziel-Locale | nur diese kommagetrennte Teilmenge übersetzen; eine nicht konfigurierte Locale scheitert mit `UNKNOWN_LOCALE`, eine leere Liste endet mit Exit `2` |
+| `--dry-run` | keins | aus | melden, was ein Lauf ändern würde, ohne Provider-Aufruf und ohne Dateien zu schreiben; braucht keinen API-Key |
+| `--prune` | keins | die `prune`-Option der Konfiguration, sonst aus | verwaiste Keys (in einer Zieldatei, nicht in der Quelle) aus der geschriebenen Datei und dem Lock entfernen |
+| `--lock-timeout` | `<seconds>` | `600` | so lange auf eine gehaltene Schreibsperre einer Locale warten; eine Ganzzahl von `1` bis `3600` |
+| `--concurrency` | `<n>` | `1` | bis zu `n` Ziel-Locales gleichzeitig übersetzen; eine Ganzzahl von `1` bis `100`, abgelehnt bei einem Token-Budget |
+| `--max-tokens` | `<n>` | das `maxTokens` der Konfiguration | harte Token-Obergrenze für diesen Lauf; es gilt der niedrigere Wert von diesem Flag und `maxTokens` |
+| `--no-cache` | keins | aus (Cache an) | den [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) für diesen Lauf umgehen |
+| `--include-human` | keins | aus | nur für diesen Lauf auch veraltete Keys neu übersetzen, die ein Mensch geschrieben oder importiert hat; [gepinnte Keys](/docs/protecting-human-translations#keys-pinnen) bleiben unangetastet |
+| `--estimate` | keins | aus | schätzen, was der Lauf senden und kosten würde, und dann beenden; impliziert `--dry-run` |
 
-Standardmäßig löscht ein Lauf nichts: verwaiste Keys werden gemeldet und bleiben stehen. `--prune` entfernt genau diese Keys und sonst nichts und überschreibt für diesen Lauf die `prune`-Option der Konfiguration. Vor dem Lauf lädt `translate` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis; eine bereits in der echten Umgebung gesetzte Variable gewinnt.
+Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. Vor dem Lauf lädt `translate` die [Umgebungsdateien](/docs/cli#umgebungsdateien).
 
-`--dry-run` konstruiert überhaupt keinen Provider, braucht also keinen API-Key und kann keine Kosten verursachen: Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), es liest und schreibt den Cache nicht und es nimmt keine Schreibsperre pro Locale, wartet also nie auf einen bereits laufenden Lauf. Das Laden von `.env` oben passiert bei einem Dry Run weiterhin; es gibt nur keinen Key zu lesen. Damit ist es ein vollwertiger Weg, verbatra an einem echten Projekt auszuprobieren, bevor du ein Provider-Konto anlegst.
+## Verhalten
 
-`--estimate` ergänzt diesen Dry Run um eine Kostenschätzung vor dem Lauf: wie viele Keys gesendet würden, in wie viele Provider-Requests sie aufgeteilt würden und welche Menge der konfigurierte Provider tatsächlich abrechnet (geschätzte Prompt- und Antwort-Tokens bei einem LLM, geschätzte Quellzeichen bei DeepL oder Google Cloud Translation und gar keine Kosten bei einem selbst gehosteten `openai-compatible`-Endpunkt). Es impliziert `--dry-run`, kostet also nichts und schreibt nichts. Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block hat, der den konfigurierten Provider und das Modell abdeckt; ohne einen solchen wird die Menge trotzdem gemeldet und der fehlende Raten-Key benannt, statt Kosten von `0.00` zu erfinden. Jede Zahl wird neben dem Datum ausgegeben, an dem diese Raten gelesen wurden, und neben einer Zeile, die benennt, was die Schätzung auslässt. Siehe [Kosten abschätzen](/docs/estimating-cost).
+### Dry Run
+
+`--dry-run` konstruiert keinen Provider, braucht also keinen API-Key und kann nichts kosten. Es liest Quell- und Zieldateien, vergleicht sie mit der Lock-Datei und meldet genau, was ein echter Lauf ändern würde. Es schreibt nichts (keine Locale-Datei, keine Lock-Aktualisierung, keinen Run-Status-Schnappschuss), liest und schreibt den Cache nicht und nimmt keine Schreibsperre, wartet also nie auf einen laufenden Lauf.
+
+Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und bleiben stehen. `--prune` entfernt genau diese Keys, und `--prune --dry-run` zeigt sie dir vorher.
+
+### Kostenschätzung
+
+<AvailableFrom version="0.12.0" />
+
+`--estimate` ergänzt den Dry Run um eine Schätzung vor dem Lauf: wie viele Keys gesendet würden, wie viele Provider-Requests das wären und welche Menge der Provider abrechnet (Tokens bei einem LLM, Quellzeichen bei DeepL oder Google Cloud Translation, nichts bei einem selbst gehosteten `openai-compatible`-Endpunkt oder einem rein menschlichen Projekt). Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block für Provider und Modell hat; sonst wird der fehlende Raten-Key benannt, statt `0.00` zu erfinden. Siehe [Kosten abschätzen](/docs/estimating-cost).
+
+### Eine Teilmenge der Locales
 
 <AvailableFrom version="0.11.0" />
 
-`--locales de,fr` grenzt den Lauf auf eine Teilmenge der konfigurierten Ziele ein. Ausgelassene Locales bleiben unberührt: ihre Dateien, ihre Lock-Einträge und ihre Cache-Einträge bleiben, wie sie waren. Es ist das Flag für ein ratenbegrenztes kostenloses Kontingent, bei dem eine Locale nach der anderen der einzige Weg durch ist, und zugleich der schnellste Weg, eine einzelne unvollständig gebliebene Locale erneut laufen zu lassen. Der Run-Status-Schnappschuss beschreibt immer nur den jüngsten Lauf; ein Teilmengen-Lauf grenzt ihn also auf diese Teilmenge ein.
+`--locales de,fr` beschränkt den Lauf auf einen Teil der konfigurierten Ziele. Die übrigen Locales behalten ihre Dateien, Lock-Einträge und Cache-Einträge. Nutze es bei einem Free Tier mit Rate-Limit, um eine Locale nach der anderen zu übersetzen, oder um eine einzelne partielle Locale neu laufen zu lassen. Der Run-Status-Schnappschuss beschreibt dann nur diese Teilmenge.
 
-`--lock-timeout` stellt ein, wie lange eine Locale auf eine umkämpfte [Schreibsperre](/docs/the-lock-file) wartet, bevor der Lauf mit `LOCK_CONTENDED` scheitert: erhöhe es, wenn ein anderer Lauf die Sperre berechtigt eine Weile hält, senke es, um in CI schnell zu scheitern.
+### Schreibsperren und Unterbrechungen
 
-`--concurrency` übersetzt mehrere Ziel-Locales parallel, um ein großes Projekt schneller abzuschließen. Es wird mit Exit `2` abgelehnt, wenn die Konfiguration ein `maxTokens`-Budget setzt, weil die Obergrenze zwar weiterhin gälte, aber davon abhinge, in welcher Reihenfolge sich die Locales verschränken, welche von ihnen ihre restliche Arbeit verliert; dasselbe Projekt ergäbe also nicht zweimal denselben Lauf (ein Dry Run ist ausgenommen). Taucht ein Fehler des gesamten Laufs (in der Praxis eine beschädigte Lock-Datei) auf, während bereits Locales laufen, wird keine weitere Locale mehr gestartet, und die laufenden schließen ab und geben ihre Schreibsperren frei, bevor der Befehl mit Exit `2` endet; der Lauf lässt also keine Sperre zurück, auf die der nächste warten müsste. Während ein Lauf fortschreitet, wird der Fortschritt auf stderr ausgegeben (eine Zeile pro Locale-Start, Provider-Sub-Batch und Locale-Ende), sodass stdout bei einem `--json`-Lauf eine einzige saubere Zusammenfassung bleibt. `--no-cache` überspringt den [Übersetzungsspeicher-Cache](/docs/the-cache) für den Lauf und macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde.
+Eine Locale wartet bis zu `--lock-timeout` auf eine belegte [Schreibsperre](/docs/the-lock-file#die-schreibsperre) und scheitert dann mit `LOCK_CONTENDED`, während die übrigen Locales weiterlaufen. Eine Sperre, die ein nicht mehr laufender verbatra-Prozess auf diesem Rechner hinterlassen hat, wird sofort übernommen. Der Timeout begrenzt nur dieses Warten vor jedem Provider-Aufruf: Das Eintragen einer geschriebenen Datei in die Lock-Datei wartet immer bis zum Standard von zehn Minuten, damit keine geschriebene Datei unvermerkt bleibt. Strg-C oder SIGTERM gibt die Sperren des Laufs frei, bevor der Befehl endet.
+
+### Token-Obergrenze
+
+<AvailableFrom version="0.12.0" />
+
+`--max-tokens` ist immer ein harter Stopp: Ein Provider-Request, der die Grenze überschreiten würde, wird zurückgehalten, egal was `budgetBehavior` sagt, und seine Keys stehen unter `budgetWithheld`. Die Grenze wird wie ein konfiguriertes [`maxTokens`-Budget](/docs/config-file#maxtokens-und-budgetbehavior) gezählt und kann dieses Budget verschärfen, aber nie lockern. Ein Lauf, den die Grenze abgeschnitten hat, endet mit `1`. Führe vorher `--estimate` aus, um einen passenden Wert zu finden.
+
+### Parallele Locales
+
+`--concurrency` wird mit Exit `2` abgelehnt, wenn ein Token-Budget gilt (aus `maxTokens` oder `--max-tokens`), weil sonst die Reihenfolge der Locales entscheiden würde, welche ihre restliche Arbeit verliert; ein Dry Run ist ausgenommen. Tritt ein Fehler für den ganzen Lauf, etwa eine beschädigte Lock-Datei, auf, während Locales laufen, startet keine weitere, und die laufenden werden fertig und geben ihre Sperren frei, bevor der Befehl mit `2` endet.
+
+### Keys, die ein Mensch geschrieben hat
+
+<AvailableFrom version="0.12.0" />
+
+Ein veralteter Key, dessen Wert ein Mensch geschrieben, importiert oder außerhalb von verbatra geändert hat, bleibt standardmäßig erhalten: Er steht unter `protected`, geht nicht an den Provider und bleibt für `verbatra check` veraltet. Eine Zeile auf stderr sagt, wie viele erhalten blieben, und verweist auf `--include-human`, das sie für einen Lauf neu übersetzt (`humanEdits: "overwrite"`). Geschützte Keys ändern den Exit-Code nicht, außer in einem rein menschlichen Projekt. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
+### Rein menschliche Projekte
+
+<AvailableFrom version="0.12.0" />
+
+In einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id: "none" }`) wird kein Provider aufgerufen. Keys, die das Translation Memory abdeckt, werden geschrieben; jeder andere fehlende oder geänderte Key steht unter `unfilled` und führt zu Exit `3`; eine fehlgeschlagene oder partielle Locale gewinnt weiterhin mit `1`. Ein Dry Run liest hier das Memory, sodass sein Plan dieselben `cacheHits`- und `unfilled`-Keys zeigt, und `--estimate` meldet nichts Abgerechnetes; beide enden genauso mit Exit `3`. Übergib die `unfilled`-Keys mit [`verbatra export`](/docs/cli/export).
+
+### Fehlgeschlagene und partielle Locales
+
+<AvailableFrom version="0.9.0" />
+
+Eine fehlgeschlagene Locale ist nicht fatal: Der Lauf wird fertig und endet mit `1`. Auch eine **partielle** Locale endet mit `1`: Ihre Datei wurde geschrieben, aber es fehlen noch Keys, meist weil ein Provider-Teilbatch scheiterte oder das Integritäts-Gate eine Übersetzung ablehnte. Die menschenlesbare Ausgabe listet jeden abgelehnten Key unter `integrity-withheld` mit Grund (`placeholder`, `markup`, `icu`, `degenerate` oder `empty`); mit `--json` trägt jede Locale sie in `integrityRefusals`.
+
+### Nicht unterstützte Locales
+
+<AvailableFrom version="0.12.0" />
+
+Eine Locale, die der konfigurierte DeepL- oder Google-Cloud-Translation-Provider nicht unterstützt, lehnt den ganzen Lauf mit `LOCALE_UNSUPPORTED_BY_PROVIDER` und Exit `2` ab, auch bei einem Dry Run und mit `--estimate`, bevor irgendetwas kostet. Lass sie mit `--locales` weg oder lies [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen). Ein Glossar oder Ton, den der Provider nicht anwenden kann, ergibt nur einen Hinweis (`GLOSSARY_UNSUPPORTED_BY_PROVIDER`, `FORMALITY_UNSUPPORTED_BY_PROVIDER`), ebenso `LOCALE_UNVERIFIED_BY_PROVIDER` und bei einem LLM `LOCALE_NOT_WELL_TESTED`.
+
+### JSON-Ausgabe
+
+Mit `--json` trägt stdout einen [Envelope](/docs/cli/output#json-ausgabe), dessen `result` eine `RunSummary` ist:
+
+```ts
+interface RunSummary {
+  dryRun: boolean;          // whether this was a dry run (no provider calls, no writes)
+  locales: LocaleSummary[]; // one entry per target locale, in config order
+  succeeded: string[];      // locales whose run succeeded
+  partial: string[];        // locales written with keys still missing; these exit 1 too
+  failed: string[];         // locales whose run failed
+  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
+  budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
+  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
+}
+```
+
+Jede `LocaleSummary` trägt die Key-Listen pro Locale (übersetzt, unverändert, verwaist, zurückgehalten, zur Prüfung markiert und mehr); die vollständige Form steht in der [SDK-Referenz](/docs/sdk/run-summary).
+
+### Rückmeldung im Terminal
+
+<AvailableFrom version="0.12.0" />
+
+`translate` nennt vor dem Lauf die Locales und den Provider und gibt danach die Laufzeit, die verbrauchten Tokens und den nächsten Befehl aus. In einem interaktiven Terminal ist der Fortschritt eine Spinner-Zeile; wird stderr umgeleitet, ist jeder Schritt eine eigene Zeile:
+
+```text output
+verbatra: translating 2 locales with gemini/gemini-2.5-flash
+verbatra: translating de
+verbatra: de batch 1/1
+verbatra: de: writing
+verbatra: de done, 12 translated
+verbatra: translating fr
+verbatra: fr batch 1/1
+verbatra: fr: writing
+verbatra: fr done, 12 translated
+verbatra: run finished, 2 locales processed
+[ok] done in 4.2s, 1830 tokens
+next: verbatra check (confirm every locale is in sync)
+```
+
+Ein Dry Run oder eine Schätzung beendet jede Locale stattdessen mit `would translate`. Diese Zeilen gehen auf stderr, und `--quiet` lässt sie weg. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
 
 ## Beispiele
 
 ```bash
-# translate once using the config it finds
+# einmal übersetzen, mit der gefundenen Konfiguration
 verbatra translate
 
-# preview the keys that would be pruned, spending nothing
+# die Keys ansehen, die entfernt würden, ohne etwas auszugeben
 verbatra translate --prune --dry-run
 
-# one locale at a time, which is what a rate-limited free tier needs
+# eine Locale nach der anderen, wie es ein Free Tier mit Rate-Limit braucht
 verbatra translate --locales de
 
-# size and price the run without spending anything
+# den Lauf schätzen und bepreisen, ohne etwas auszugeben
 verbatra translate --estimate
+
+# anhalten, bevor der Lauf 50000 Tokens überschreitet
+verbatra translate --max-tokens 50000
+
+# auch veraltete Keys neu übersetzen, die ein Mensch geschrieben hat
+verbatra translate --include-human
 ```
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | jede Ziel-Locale kam vollständig durch |
-| `1` | der Lauf lief durch, aber eine oder mehrere Locales schlugen fehl oder blieben unvollständig |
-| `2` | konnte nicht laufen: ein Fehler des gesamten Laufs (Konfiguration, Quelle, Format, Provider oder Lock) oder ein Verwendungsfehler |
+| `0` | jede Ziel-Locale ist vollständig |
+| `1` | der Lauf wurde fertig, aber eine Locale ist fehlgeschlagen oder partiell |
+| `2` | konnte nicht laufen: ein Fehler in Konfiguration, Quelle, Format, Provider, Locale-Unterstützung oder Lock-Datei, oder ein Verwendungsfehler |
+| `3` | rein menschliches Projekt: der Lauf (auch als Dry Run oder mit `--estimate`) war sauber, aber Keys warten auf eine menschliche Übersetzung |
+| `130` | mit Strg-C (SIGINT) unterbrochen, nachdem die Schreibsperren freigegeben wurden |
+| `143` | mit SIGTERM gestoppt, nachdem die Schreibsperren freigegeben wurden |
 
-<AvailableFrom version="0.9.0" />
-
-Eine fehlschlagende Locale ist nicht fatal: der Lauf läuft zu Ende, endet mit `1`, und das Detail pro Locale steht in der Zusammenfassung. Eine **unvollständige** Locale endet ebenfalls mit `1`. Das ist eine Locale, deren Datei geschrieben wurde, der aber weiterhin Keys fehlen, typischerweise weil ein Provider-Sub-Batch fehlschlug oder das Integritäts-Gate eine Übersetzung abgelehnt hat; sie als Erfolg auszuliefern, würde eine halb übersetzte Datei unbemerkt in deinem Repository liegen lassen.
+Bei einer Unterbrechung endet stderr mit `verbatra: interrupted (SIGINT), released locks`, oder unter `--json` mit dem Datensatz `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
-- [Wie es funktioniert](/docs/how-it-works) erklärt die Pipeline aus Lesen, Diffen, Übersetzen, Schreiben.
-- [Der Cache](/docs/the-cache) erklärt, was `--no-cache` umgeht und wie die Wiederverwendung eingegrenzt ist.
-- [Übersetzungssicherheit](/docs/translation-safety) behandelt die Integritätsprüfungen und die Review-Warteschlange.
-- [`verbatra diff`](/docs/cli/diff) zeigt dieselben ausstehenden Keys nur lesend an.
-- [CI und Exit-Codes](/docs/ci-and-exit-codes) zeigt, wie du auf diese Codes verzweigst.
+- [So funktioniert es](/docs/how-it-works) erklärt die Pipeline aus Lesen, Vergleichen, Übersetzen und Schreiben.
+- [Der Cache](/docs/the-cache) erklärt, was `--no-cache` umgeht.
+- [Übersetzungssicherheit](/docs/translation-safety) behandelt die Integritätsprüfungen und die Prüfwarteschlange.
+- [`verbatra diff`](/docs/cli/diff) zeigt dieselben ausstehenden Keys, nur lesend.
+- [CI und Exit-Codes](/docs/ci-and-exit-codes) zeigt, wie du in einer Pipeline auf diese Codes reagierst.

@@ -53,6 +53,9 @@ jobs:
       - name: Guard the emitted config JSON Schema
         run: pnpm check:config-schema
 
+      - name: Guard lazy provider SDK imports in the sdk bundle
+        run: pnpm check:lazy-provider-sdks
+
       - name: Typecheck
         run: pnpm turbo run typecheck
 
@@ -163,9 +166,13 @@ jobs:
           pnpm --filter @verbatra/sdk pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/cli pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/studio pack --pack-destination "$RUNNER_TEMP/packs"
-          echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)" >> "$GITHUB_ENV"
+          pnpm --filter @verbatra/mcp pack --pack-destination "$RUNNER_TEMP/packs"
+          {
+            echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)"
+            echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)"
+            echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)"
+            echo "VERBATRA_MCP_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-mcp-*.tgz)"
+          } >> "$GITHUB_ENV"
 
       - name: Install e2e harness dependencies
         working-directory: e2e

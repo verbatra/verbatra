@@ -1,7 +1,14 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { type Document, type Element, XMLSerializer } from "@xmldom/xmldom";
 import type { AdapterFs } from "../fs-port.js";
-import { readXmlDestination, XML_PROLOG } from "../xml/document.js";
+import {
+  appendIndented,
+  childIndent,
+  isWhitespaceText,
+  readXmlDestination,
+  serializeXmlInto,
+  XML_PROLOG,
+} from "../xml/document.js";
 import { encodeAndroidEscapes } from "./escape.js";
 import { assertValidResourceName } from "./names.js";
 import {
@@ -43,11 +50,34 @@ function isTranslatable(element: Element): boolean {
   return element.getAttribute("translatable") !== "false";
 }
 
+const DEFAULT_INDENT = "\n    ";
+const LEVEL = "    ";
+
+const ROOT_LAYOUT = { indent: DEFAULT_INDENT, closing: "\n" } as const;
+
+function indentBefore(element: Element): string {
+  const previous = element.previousSibling;
+  return isWhitespaceText(previous) ? (previous?.nodeValue ?? DEFAULT_INDENT) : DEFAULT_INDENT;
+}
+
 function appendStringElement(doc: Document, root: Element, name: string, value: string): void {
   const element = doc.createElement("string");
   element.setAttribute("name", name);
   element.appendChild(doc.createTextNode(encodeAndroidEscapes(value)));
-  root.appendChild(element);
+  appendIndented(doc, root, element, ROOT_LAYOUT);
+}
+
+function appendItem(
+  doc: Document,
+  plurals: Element,
+  category: string,
+  value: string,
+  indent: string,
+): void {
+  const item = doc.createElement("item");
+  item.setAttribute("quantity", category);
+  item.appendChild(doc.createTextNode(encodeAndroidEscapes(value)));
+  appendIndented(doc, plurals, item, { indent: `${indent}${LEVEL}`, closing: indent });
 }
 
 function appendPluralsElement(
@@ -58,17 +88,14 @@ function appendPluralsElement(
 ): void {
   const plurals = doc.createElement("plurals");
   plurals.setAttribute("name", name);
+  const indent = childIndent(root, DEFAULT_INDENT);
   for (const category of ANDROID_PLURAL_CATEGORIES) {
     const entry = categories.get(category);
-    if (entry === undefined) {
-      continue;
+    if (entry !== undefined) {
+      appendItem(doc, plurals, category, entry.value, indent);
     }
-    const item = doc.createElement("item");
-    item.setAttribute("quantity", category);
-    item.appendChild(doc.createTextNode(encodeAndroidEscapes(entry.value)));
-    plurals.appendChild(item);
   }
-  root.appendChild(plurals);
+  appendIndented(doc, root, plurals, ROOT_LAYOUT);
 }
 
 function appendUnmatched(
@@ -141,10 +168,7 @@ function patchTranslatablePlurals(
     if (entry === undefined || seen.has(category)) {
       continue;
     }
-    const item = doc.createElement("item");
-    item.setAttribute("quantity", category);
-    item.appendChild(doc.createTextNode(encodeAndroidEscapes(entry.value)));
-    element.appendChild(item);
+    appendItem(doc, element, category, entry.value, indentBefore(element));
   }
 }
 
@@ -196,9 +220,9 @@ export async function serializeAndroidXmlEntries(
   if (existing === undefined) {
     const { doc, root } = createAndroidXmlDocument();
     appendUnmatched(doc, root, grouped, new Set());
-    return XML_PROLOG + new XMLSerializer().serializeToString(doc);
+    return `${XML_PROLOG}${new XMLSerializer().serializeToString(doc)}\n`;
   }
   const { doc, root } = parseAndroidXml(existing);
   patchDocument(doc, root, grouped);
-  return new XMLSerializer().serializeToString(doc);
+  return serializeXmlInto(existing, doc);
 }

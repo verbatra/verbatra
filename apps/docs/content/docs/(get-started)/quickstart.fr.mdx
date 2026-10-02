@@ -1,0 +1,154 @@
+---
+title: Démarrage rapide
+description: Installe la CLI, génère une configuration, prévisualise l'exécution sans clé d'API et traduis ton premier fichier de locale.
+type: tutorial
+---
+À la fin de cette page, un fichier de locale anglais a un pendant allemand, écrit par un fournisseur et vérifié par verbatra, ainsi que le fichier de verrouillage grâce auquel chaque exécution suivante ne traduit que ce qui a changé. Il te faut Node.js `>=22.14.0` et une dizaine de minutes. Les quatre premières étapes ne demandent ni compte ni clé d'API.
+
+<Callout title="Tu utilises un agent de code IA ?">
+Donne-lui plutôt le prompt de [Configure verbatra avec un agent IA](/docs/start-with-ai). Il exécute ces mêmes étapes pour toi.
+</Callout>
+
+## Étapes
+
+<Steps>
+<Step>
+
+### Installe la CLI
+
+```npm
+npm install --save-dev @verbatra/cli
+```
+
+Les commandes ci-dessous utilisent `npx`. Avec pnpm, yarn ou bun, lance plutôt `pnpm verbatra`, `yarn verbatra` ou `bun run verbatra`. Si pnpm s'arrête avec `ERR_PNPM_IGNORED_BUILDS`, consulte le [dépannage](/docs/troubleshooting#pnpm-bloque-les-scripts-dinstallation-dune-dépendance-err_pnpm_ignored_builds).
+
+</Step>
+<Step>
+
+### Ajoute un fichier de locale source
+
+Si ton projet a déjà des fichiers de locale, passe cette étape. Sinon, crées-en un :
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Génère une configuration
+
+```bash
+npx verbatra init --format i18next-json --provider gemini --yes
+```
+
+`--format` indique le format de tes fichiers : [Choisis ta stack](/docs/pick-your-stack) donne l'id pour chaque framework. `--yes` reprend ce que `init` a détecté au lieu de poser des questions ; sans lui, tu réponds aux questions que liste [`verbatra init`](/docs/cli/init).
+
+```text output
+created verbatra.config.ts
+created .env.example
+created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
+detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
+next steps:
+  - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
+  - npx verbatra doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx verbatra translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
+```
+
+Le nouveau `verbatra.config.ts` traduit de `en` vers `de`. Ajoute des codes à `targetLocales` pour d'autres langues.
+
+</Step>
+<Step>
+
+### Prévisualise l'exécution sans clé
+
+```bash
+npx verbatra translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+Une exécution à blanc ne construit aucun fournisseur : elle n'a pas besoin de clé, ne dépense rien et n'écrit rien. [`verbatra doctor`](/docs/cli/doctor) vérifie le reste de la configuration de la même façon.
+
+</Step>
+<Step>
+
+### Définis ta clé d'API
+
+```bash
+cp .env.example .env
+```
+
+Ouvre `.env` et colle ta clé après `GEMINI_API_KEY=`. Les clés viennent uniquement de l'environnement, et la CLI y charge [`.env.local` et `.env`](/docs/cli#fichiers-denvironnement). Pas encore de clé ? Gemini a une offre gratuite : crées-en une dans [Google AI Studio](https://aistudio.google.com/apikey). Les autres fournisseurs et leurs variables sont sur [Fournisseurs](/docs/providers).
+
+</Step>
+<Step>
+
+### Traduis
+
+```bash
+npx verbatra translate
+```
+
+verbatra envoie les deux clés manquantes à Gemini, vérifie chaque résultat et écrit le fichier allemand. Le résumé commence par `de: 2 translated, 0 unchanged` et indique les tokens utilisés par l'exécution. La formulation dépend du modèle, par exemple :
+
+```json title="locales/de.json"
+{
+  "greeting": "Hallo, {{name}}!",
+  "cart": {
+    "empty": "Dein Warenkorb ist leer."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Vérifie que chaque locale est synchronisée
+
+```bash
+npx verbatra check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` n'appelle aucun fournisseur et se termine avec `1` dès qu'une locale n'est plus synchronisée : la même commande peut donc protéger une pull request.
+
+</Step>
+</Steps>
+
+## Ce qui vient de se passer
+
+- `locales/de.json` contient les mêmes clés dans le même ordre que ta source, et `{{name}}` a survécu : un résultat qui perd un placeholder est retenu, jamais écrit. Voir [Sûreté de la traduction](/docs/translation-safety).
+- `verbatra.lock.json` enregistre un hash du texte source derrière chaque traduction, pour que l'exécution suivante n'envoie que les clés nouvelles ou modifiées. Voir [Le fichier de verrouillage](/docs/the-lock-file).
+- `verbatra.provenance.json` note quel fournisseur et quel modèle a écrit chaque valeur. Voir [La provenance](/docs/the-lock-file#la-provenance-de-chaque-valeur).
+- `verbatra.cache.json` et `.verbatra-local/` contiennent le cache de traduction régénérable et l'état local de l'exécution. `init` les a déjà ajoutés au `.gitignore`. Voir [Le cache](/docs/the-cache).
+
+Commite ensemble les fichiers de locale, le fichier de verrouillage et le fichier de provenance, pour que chaque machine et ta CI comparent avec la même base.
+
+## Ensuite
+
+<Cards>
+  <Card title="Ajouter une langue" href="/docs/add-a-language" description="Ajoute une locale cible et laisse une exécution la remplir." />
+  <Card title="Exécuter verbatra en CI" href="/docs/ci-and-exit-codes" description="Fais échouer une pull request quand une locale dérive." />
+  <Card title="Comment fonctionne une exécution" href="/docs/how-it-works" description="Le pipeline derrière les commandes que tu viens de lancer." />
+  <Card title="Fichier de configuration" href="/docs/config-file" description="Tout ce que verbatra.config.ts peut contenir." />
+</Cards>

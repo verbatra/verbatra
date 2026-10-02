@@ -1,3 +1,4 @@
+import { budgetTracking, createRateBudget, type RateBudget } from "../client/rate-budget.js";
 import type {
   ConnectionStatus,
   EventSourceLike,
@@ -5,7 +6,6 @@ import type {
   ProbeOutcome,
 } from "../client/reconnect.js";
 import { createReconnectController } from "../client/reconnect.js";
-import { createReviewOverlayStore, type ReviewOverlayStore } from "../client/review-overlay.js";
 import type { FetchLike, RpcClient } from "../client/rpc-client.js";
 import { createRpcClient } from "../client/rpc-client.js";
 import { createSessionStore, type SessionStore } from "../client/state.js";
@@ -19,12 +19,12 @@ const browserFetch: FetchLike = (url, init) => fetch(url, init);
 
 export const sessionStore: SessionStore = createSessionStore();
 
-export const rpcClient: RpcClient = createRpcClient({
-  fetchImpl: browserFetch,
-  session: sessionStore,
-});
+export const rateBudget: RateBudget = createRateBudget();
 
-export const reviewOverlayStore: ReviewOverlayStore = createReviewOverlayStore();
+export const rpcClient: RpcClient = budgetTracking(
+  createRpcClient({ fetchImpl: browserFetch, session: sessionStore }),
+  rateBudget,
+);
 
 export const agentToolsStatusStore: AgentToolsStatusStore = createAgentToolsStatusStore();
 

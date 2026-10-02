@@ -9,6 +9,7 @@ export const editEntryHandler: RpcHandler<"translation.editEntry"> = async (para
       locale: params.locale,
       key: params.key,
       value: params.value,
+      ...(params.actor !== undefined ? { actor: params.actor } : {}),
     },
     {
       ...(deps.fs !== undefined ? { fs: deps.fs } : {}),

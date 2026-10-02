@@ -40,9 +40,13 @@ jobs:
           pnpm --filter @verbatra/sdk pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/cli pack --pack-destination "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/studio pack --pack-destination "$RUNNER_TEMP/packs"
-          echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)" >> "$GITHUB_ENV"
-          echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)" >> "$GITHUB_ENV"
+          pnpm --filter @verbatra/mcp pack --pack-destination "$RUNNER_TEMP/packs"
+          {
+            echo "VERBATRA_SDK_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-sdk-*.tgz)"
+            echo "VERBATRA_CLI_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-cli-*.tgz)"
+            echo "VERBATRA_STUDIO_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-studio-*.tgz)"
+            echo "VERBATRA_MCP_TARBALL=$(ls "$RUNNER_TEMP"/packs/verbatra-mcp-*.tgz)"
+          } >> "$GITHUB_ENV"
 
       - name: Install e2e harness dependencies
         working-directory: e2e
@@ -73,9 +77,9 @@ jobs:
             echo "This tier is advisory and never gates a publish. The required release gate is the"
             echo "deterministic no-key tier, reported as \"Build and test gate\" on the CI workflow."
             echo
-            echo "A provider rate limit is reported as a skipped test, not a failure, so a failure"
-            echo "here means the CLI is genuinely broken against a real provider."
+            echo "A provider rate limit, outage, or timeout is reported as a skipped test, not a failure,"
+            echo "so a failure here means the CLI is genuinely broken against a real provider."
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$SUITE_OUTCOME" = "failure" ]; then
-            echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than throttling. Investigate before the next release."
+            echo "::warning title=Live E2E failed::The CLI failed against a real provider for a reason other than a rate limit, outage, or timeout. Investigate before the next release."
           fi

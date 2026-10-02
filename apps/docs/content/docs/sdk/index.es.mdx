@@ -1,0 +1,156 @@
+---
+title: "Referencia del SDK"
+sidebarTitle: "Vista general"
+description: "Instala @verbatra/sdk, encuentra la página de cada punto de entrada y pásale al SDK tu propio sistema de archivos."
+type: reference
+---
+`@verbatra/sdk` es el motor sobre el que corre el comando `verbatra`. La CLI es una envoltura fina, así que todo
+lo que hace la línea de comandos lo puedes hacer en código. Las páginas de abajo catalogan toda la superficie pública,
+agrupada por la tarea que hace cada punto de entrada. ¿Eres nuevo en el SDK? Empieza por el [inicio rápido del SDK](/docs/sdk-quickstart); para ejemplos de principio a fin, consulta
+[Recetas del SDK](/docs/programmatic-api).
+
+<SdkEntryPoints />
+
+<SdkAnchorForward />
+
+## Instalación
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Requiere Node.js `>=22.14.0`.
+
+La línea de pnpm instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`: pnpm bloquea los
+scripts de instalación del SDK de Gemini incluido y de su `protobufjs`, y deja un
+`pnpm-workspace.yaml` sin responder con el que cualquier comando pnpm posterior del proyecto falla
+igual. Ejecuta `pnpm approve-builds` una vez y no apruebes ninguna de las dos entradas, o consulta
+la [Solución de problemas](/docs/troubleshooting) para la solución no interactiva. Aquí no hay
+atajo con `npx` como en la CLI, porque estás importando una biblioteca, no ejecutando un binario.
+
+<Callout title="Las claves de API y el entorno">
+El SDK nunca lee, guarda ni acepta una clave de API. El proveedor lee su clave del entorno
+(por ejemplo `ANTHROPIC_API_KEY`) cuando se construye. A diferencia de la CLI, el SDK no carga
+archivos `.env`: en tu propio script, define tú la variable, por ejemplo con
+`node --env-file=.env script.js`.
+</Callout>
+
+Cada punto de entrada toma un objeto de entrada cuyo primer campo es la `config` validada (de
+`loadConfig`), salvo donde se indica. La mayoría también acepta un segundo argumento opcional `deps` que
+inyecta un registro, un constructor de proveedor o un sistema de archivos; puedes ignorarlo
+en el uso normal. Consulta
+[El punto de inyección de dependencias](#el-punto-de-inyección-de-dependencias) para ver hasta dónde
+llega `deps.fs`.
+
+## El punto de inyección de dependencias
+
+<AvailableFrom version="0.9.0" />
+
+`deps.fs` sustituye el puerto de sistema de archivos por el que viaja la propia I/O del SDK, con el
+tipo `SdkFs`. El punto de inyección es completo: el archivo de estado de la ejecución, el archivo
+de bloqueo, las herramientas del archivo de glosario, la I/O de libros e intercambio y los propios archivos
+de locale pasan todos por él, porque los adaptadores de formato leen y escriben a través de un
+puerto construido con ese mismo objeto. Así una ejecución entera se puede mantener en memoria, que
+es como las pruebas del propio SDK evitan tocar el disco y como una aplicación anfitriona puede
+respaldar parte de un proyecto con algo que no sea un disco local.
+
+```ts
+import { translate, type SdkFs } from "@verbatra/sdk";
+
+const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
+```
+
+Una implementación tiene que respetar dos puntos del contrato. Las lecturas están acotadas por
+tamaño: `readFileBounded` y `readBytesBounded` reciben un límite de bytes e informan de `missing` o
+`too-large` como estado en lugar de lanzar, que es lo que impide que un archivo hostil o
+accidentalmente enorme agote la memoria. Las escrituras deben ser atómicas, de modo que una caída a
+mitad de escritura nunca deje un archivo a medio escribir, y `createExclusive` debe ser atómica
+frente a otros procesos porque es la primitiva detrás del bloqueo de escritura por locale. Crear
+directorios es tarea de quien llama.
+
+`readDirectory` es opcional, para que una implementación escrita antes de que existiera la
+extracción desde código siga compilando. [`extract`](/docs/sdk/inspect#extract) es el único punto de entrada que lo
+necesita, e informa de su ausencia como `EXTRACT_FS_UNSUPPORTED`. Lista las entradas inmediatas de
+un directorio como `{ name, kind }`, donde `kind` es `"file"`, `"directory"` u `"other"`. Un enlace
+simbólico pertenece a `"other"`: el análisis nunca lo sigue, y eso es lo que lo mantiene dentro de
+las raíces que recibió.
+
+`realpath` también es opcional. Resuelve todos los enlaces simbólicos de una ruta existente, y las
+guardas de salida de [`generateTypes`](/docs/sdk/run#generatetypes), [`exportTmx`](/docs/sdk/exchange#exporttmx),
+[`exportWorkbook`](/docs/sdk/exchange#exportworkbook) y [`pseudolocalize`](/docs/sdk/run#pseudolocalize) lo usan para ver
+dónde cae de verdad una ruta de salida, así que un enlace no puede llevar un archivo escrito fuera
+de `cwd` ni sobre un archivo del que depende el proyecto. Sin él, esas guardas comparan las rutas
+tal como están escritas. Un enlace en la ruta de salida cuyo destino no existe no se puede resolver,
+así que las guardas dan por hecho que `writeFile` y `writeBytes` reemplazan ese enlace en lugar de escribir a través
+de él, como hace la escritura atómica por defecto.
+
+`rename` también es opcional.
+
+<AvailableFrom version="0.12.0" />
+
+Mueve un archivo a un nombre nuevo en el mismo directorio en un solo paso atómico, reemplazando
+cualquier archivo que ya esté allí, y rechaza con un error cuyo `code` es `ENOENT` cuando falta el
+origen. El bloqueo de escritura lo usa para quitar un bloqueo o una guarda de recuperación que dejó
+un proceso que ya no existe, y para liberar su propio bloqueo: el archivo se aparta con un nombre
+único `<name>.<pid>.<tag>.<uuid>.stale` y solo se borra si sigue siendo el registro que esperaba el
+bloqueo. Cualquier otra cosa, como un bloqueo que otro proceso tomó entretanto, se devuelve a su
+sitio con `createExclusive`. Un renombrado que falla con `EPERM`, `EBUSY` o `EACCES`, como informa
+Windows de un archivo que otro proceso tiene abierto, cuenta como "no recuperado en este sondeo", y
+el bloqueo sigue sondeando hasta su tiempo límite. Cuando el renombrado que libera un bloqueo falla
+por cualquier motivo, la liberación recurre a leer el archivo de bloqueo y borrarlo mientras siga
+llevando el token de quien lo tiene, y reintenta unas cuantas veces, con un sondeo de separación, un
+fallo con `EPERM`, `EBUSY` o `EACCES`. Un registro que debería devolverse a su sitio pero no puede,
+porque un tercer proceso tomó la ruta entretanto, se borra, ya que la comprobación del token de
+quien lo tenía falla a partir de ese momento. Sin `rename`, el bloqueo lee el archivo y lo
+borra si no ha cambiado, lo que deja una ventana más amplia en la que se borra un bloqueo que otro
+proceso acaba de tomar.
+
+Apartar un archivo y devolverlo son dos pasos, así que en intercalados poco frecuentes dos procesos
+pueden creer durante un momento que tienen el mismo bloqueo. Por eso cada bloqueo registra un token
+de propiedad aleatorio, y antes de cada escritura que protege el bloqueo (el archivo del locale, el
+archivo de bloqueo, el archivo de procedencia, el glosario) quien lo tiene comprueba que el archivo
+de bloqueo sigue llevando su token. Si no es así, la operación se detiene con `LOCK_CONTENDED` y no
+escribe nada. Un archivo de bloqueo que falta o lleva otro token al liberar se informa igual cuando
+la operación terminó bien, porque el otro proceso puede haber cambiado los mismos archivos desde
+entonces; una operación que falló lanza su propio error. La comprobación y la escritura siguen
+siendo dos pasos, y nada limita el tiempo entre ellos: quien tiene el bloqueo y se pausa justo
+después de la comprobación (una máquina suspendida, un proceso detenido, un depurador, un salto del
+reloj o un bucle de eventos bloqueado mucho tiempo) deja de latir, así que cuando su bloqueo tiene
+tres intervalos (30 segundos por defecto) otro proceso de la misma máquina lo toma, y quien estaba
+pausado todavía puede escribir una vez al continuar. La comprobación del token da por hecho que `createExclusive` crea un archivo que `readFileBounded` lee
+de vuelta, así que una implementación propia tiene que cumplirlo.
+
+`touch` y `mtimeMs` también son opcionales.
+
+<AvailableFrom version="0.12.0" />
+
+`touch(path)` pone la fecha de modificación de un archivo existente en el momento actual, y
+`mtimeMs(path)` la devuelve en milisegundos, o `undefined` si falta el archivo. Con `touch`, quien
+tiene un bloqueo registra en él un intervalo de latido de 10 segundos y refresca la fecha de
+modificación del archivo a ese ritmo mientras lo tiene. También la refresca justo después de
+crearlo, para que la antigüedad del archivo se mida con el reloj de este proceso y no con el del
+servidor de archivos. Con `mtimeMs`, un proceso en espera trata
+como abandonado un bloqueo de su propia máquina cuyo proceso sigue en marcha pero cuyo archivo no
+se ha refrescado durante tres de los intervalos registrados (30 segundos por defecto). Eso cubre un
+registro de bloqueo que sobrevivió a su uso, por ejemplo uno devuelto a su sitio para un proceso de
+Studio, `watch` o del servidor MCP de larga duración que ya lo había liberado. Una guarda de
+recuperación no registra latido: se quita cuando su proceso ya no existe de forma demostrable y se
+ha visto sin cambios en dos sondeos. Sin estos miembros, un bloqueo solo se considera abandonado cuando su
+proceso ya no existe de forma demostrable.
+
+Un proceso que se cae mientras tiene un bloqueo apartado puede dejar un archivo `.stale` en
+`.verbatra-local/locks/`. Puedes borrar esos archivos a mano sin riesgo, y la siguiente adquisición
+de un bloqueo los borra cuando el proceso que los movió ya no existe o, si `touch` está
+implementado, cuando superan el umbral de caducidad, contado desde que se apartaron. Un sistema de
+archivos sin `touch` los conserva hasta que su proceso ya no existe.
+
+`deps.fs` no alcanza un `deps.adapterRegistry` suministrado por quien llama. Esos
+adaptadores los construyó quien llama, así que su acceso a archivos es el que quien llama haya
+cableado en ellos. Suministrar ambos significa que quien llama es dueño de ese cableado.
+
+La carga de la configuración también queda fuera del punto de inyección. `loadConfig` y
+`loadConfigWithMeta` no reciben `deps`: leen el propio archivo de configuración del disco real, y un
+archivo de glosario que nombre la configuración a través de su propia opción `fs`, así que el
+`deps.fs` que recibe un flujo posterior no alcanza ninguna de las dos lecturas. Para mantener un
+proyecto entero en memoria, pasa el mismo `SdkFs` como `loadConfig({ fs })` y entrega la
+configuración como `configOverride` en lugar de como archivo.

@@ -30,6 +30,6 @@ jobs:
       - name: Check docs locales for drift
         uses: verbatra/action@0221b030d517d8af621fb6b812fcfd17a1f940ee # v1.2.0
         with:
-          version: "0.9.3"
+          version: "0.11.1"
           command: "check"
           working-directory: "apps/docs"

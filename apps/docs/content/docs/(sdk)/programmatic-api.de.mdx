@@ -1,74 +1,21 @@
 ---
 title: SDK-Rezepte
 description: Vollständige, lauffähige Muster, um verbatra aus deinen eigenen Skripten, CI-Jobs und Tools anzusteuern.
+type: how-to
 ---
-Die [SDK-Referenz](/docs/sdk) katalogisiert jeden Einstiegspunkt. Diese Seite ist der praktische
-Begleiter: End-to-End-Rezepte, die du in ein Skript kopieren und ausführen kannst. Eine Sache
-vorab: das SDK lädt keine `.env`-Dateien (das macht die CLI), stelle also sicher, dass die
-Umgebungsvariable des Providers gesetzt ist, bevor dein Skript läuft, zum Beispiel:
-
-```bash
-node --env-file=.env translate.mjs
-```
-
-## Einmal übersetzen in einem Skript
-
-Lade die Konfiguration, führe den Flow aus, dann lies die Zusammenfassung: das Gesamtbild aus
-`succeeded` und `failed`, den Token-Verbrauch aus `usage` und die Keys, die einen menschlichen
-Blick verdienen, aus dem `needsReview` jeder Locale. Probleme des gesamten Laufs werfen einen
-`SdkError`; Ergebnisse pro Locale sind Daten auf der Zusammenfassung.
-
-```ts
-import { loadConfig, translate } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await translate({ config });
-
-console.log(
-  `${summary.succeeded.length} ok, ${summary.partial.length} partial, ${summary.failed.length} failed`,
-);
-
-if (summary.usage !== undefined) {
-  console.log(`tokens: ${summary.usage.inputTokens} in, ${summary.usage.outputTokens} out`);
-}
-
-for (const locale of summary.locales) {
-  if (locale.status === "failed") {
-    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
-    continue;
-  }
-  for (const entry of locale.needsReview) {
-    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
-  }
-}
-
-if (summary.failed.length > 0 || summary.partial.length > 0) {
-  process.exitCode = 1;
-}
-```
-
-Eine als `partial` gemeldete Locale ist eine, deren Datei mit weiterhin fehlenden Keys
-geschrieben wurde. Das ist kein Erfolg: Die CLI endet darauf mit `1`, und dein eigenes Skript
-sollte es genauso behandeln, deshalb prüft die Abfrage oben `partial` neben `failed`.
-
-Übergib `dryRun: true`, um ohne Provider-Aufruf und ohne Schreiben eine Vorschau zu bekommen, und
-`prune: true` oder `generatePlurals: true`, um diese Konfigurationsoptionen für einen Lauf zu
-überschreiben. Übergib `locales: ["de"]`, um den Lauf auf eine Teilmenge der konfigurierten Ziele
-zu beschränken; so arbeitest du einen ratenbegrenzten Provider Sprache für Sprache ab. Eine nicht
-konfigurierte Locale wirft `UNKNOWN_LOCALE`, bevor irgendetwas gelesen oder Geld ausgegeben wird. Setze
-`concurrency` über 1, um Locales parallel zu übersetzen (bei einem Live-Lauf nicht mit einem
-`maxTokens`-Budget erlaubt), und `cache: false`, um den
-[Übersetzungsspeicher-Cache](/docs/the-cache) zu umgehen.
+Der [SDK-Schnellstart](/docs/sdk-quickstart) behandelt den ersten Lauf. Diese Seite setzt dort an
+mit vollständigen Rezepten zum Kopieren in ein Skript; die [SDK-Referenz](/docs/sdk) katalogisiert
+jeden Einstiegspunkt. Das SDK lädt keine `.env`-Dateien, also führst du ein Rezept, das einen
+Provider aufruft, mit `node --env-file=.env` aus. Um einen ratenbegrenzten Provider Sprache für
+Sprache abzuarbeiten, übergib `locales: ["de"]` an `translate`.
 
 ## Einen Lauf schätzen, bevor du ausgibst
 
 <AvailableFrom version="0.11.0" />
 
-`estimate: true` impliziert `dryRun`, der Lauf konstruiert also keinen Provider, liest keinen
-API-Key und schreibt nichts. Die Zahl landet auf `RunSummary.estimate`. Verzweige über `unit`
-für die abgerechnete Dimension und über `pricing` dafür, ob eine Währungszahl verfügbar war:
-verbatra liefert keine eigenen Raten mit, ein Preis erscheint also nur, wenn die Konfiguration
-einen `rates`-Block für diesen Provider und dieses Modell trägt.
+`estimate: true` impliziert `dryRun`. Die Zahl landet auf `RunSummary.estimate`: Verzweige über
+`unit` für die abgerechnete Dimension und über `pricing` dafür, ob ein
+[`rates`](/docs/config-file#rates)-Block sie bepreist hat.
 
 ```ts
 import { loadConfig, translate } from "@verbatra/sdk";
@@ -98,30 +45,9 @@ if (estimate !== undefined) {
 }
 ```
 
-Es begrenzt den Plan, nicht die Rechnung: Ein echter Lauf gibt meist weniger aus, weil er den
-[Übersetzungsspeicher-Cache](/docs/the-cache) befragt und identische Quellstrings zusammenfasst,
-und er kann aus jedem Grund mehr ausgeben, den `caveats` nennt. `resolveDryRun` ist die eine
-Stelle, an der die Regel "`estimate` impliziert `dryRun`" entschieden wird, rufe es also auf,
-statt sie erneut auszuformulieren. Die Methode hinter den Zahlen steht in
-[Kosten abschätzen](/docs/estimating-cost).
-
-`caveats` ist nie leer. Seine Codes (`EstimateCaveatCode`) sind:
-
-- `CACHE_NOT_CONSULTED`: Der Übersetzungsspeicher wird nicht gelesen, Keys, die ein echter Lauf
-  aus dem Cache bedienen würde, werden also trotzdem mitgezählt. Gilt für jede Schätzung.
-- `SOURCE_DUPLICATES_NOT_DEDUPLICATED`: Ein echter Lauf sendet einen Vertreter pro identischem
-  Quellstring; die Schätzung zählt jeden Key. Gilt für jede Schätzung.
-- `TRANSPORT_RETRIES_NOT_COUNTED`: Pro geplanter Anfrage wird ein abrechenbarer Aufruf gezählt,
-  obwohl die Provider-SDKs einen fehlgeschlagenen Aufruf darunter wiederholen können und ein
-  wiederholter Versuch trotzdem abgerechnet werden kann. Gilt für jede Schätzung.
-- `TRANSLATION_LENGTH_IS_ESTIMATED`: Die Antwort wird aus der Quelle plus einem festen Zuschlag für
-  Textverlängerung bemessen, eine Zielsprache mit längeren Texten meldet also mehr
-  Completion-Tokens. Nur Provider mit Token-Abrechnung.
-- `TOKEN_COUNT_IS_HEURISTIC`: Tokens werden aus Zeichenzahlen abgeleitet, nicht aus dem eigenen
-  Tokenizer des Providers. Nur Provider mit Token-Abrechnung.
-- `REPAIR_REQUESTS_NOT_COUNTED`: Die Reparaturrunde für Keys, die fehlend zurückkamen, und der
-  Retry in Hälften bei einer abgeschnittenen Antwort werden nicht gezählt. Nur Provider mit
-  Token-Abrechnung.
+Es begrenzt den Plan, nicht die Rechnung; [Kosten abschätzen](/docs/estimating-cost) erklärt die
+Methode, und [RunSummary](/docs/sdk/run-summary) listet, was jeder `EstimateCaveatCode` in `caveats`
+auslässt.
 
 ## In CI prüfen, ohne zu schreiben
 
@@ -147,6 +73,41 @@ if (!summary.inSync) {
 Du brauchst die Key-Namen statt der Anzahlen? Tausche `diff` ein, das die Key-Listen `missing`,
 `changed` und `orphaned` pro Locale zurückgibt, mit demselben `hasPendingChanges`-Gate. Du führst
 stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
+
+## Deine Integration ohne Schlüssel testen
+
+Ein als `createProvider` übergebener Fake-Provider durchläuft den ganzen Flow, Dateien und
+Integritätsprüfung eingeschlossen, ohne Schlüssel, ohne Netzwerkaufruf und mit deterministischer
+Ausgabe: genau das, was ein Unit-Test deiner eigenen Tools braucht.
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+Der Lauf schreibt echte Dateien, also teste gegen eine temporäre Kopie des Projekts. Ein echter
+Provider wird genauso eingebunden; siehe [Eigene Provider](/docs/sdk/extend#eigene-provider).
 
 ## Beobachten in einem langlaufenden Prozess
 
@@ -215,9 +176,8 @@ if (preview.added.length > 0 && preview.conflicts.length === 0) {
 ```
 
 `config.extract` muss das Framework und die Quellverzeichnisse nennen, sonst wirft der Aufruf
-`EXTRACT_NOT_CONFIGURED`. Die Dateisuche läuft über das optionale `readDirectory`-Member von
-`SdkFs`, ein eigenes `deps.fs` ohne dieses Member wird also mit `EXTRACT_FS_UNSUPPORTED`
-abgelehnt, und ein Quellkatalog, der nicht geschrieben werden kann, löst `SOURCE_UNWRITABLE` aus.
+`EXTRACT_NOT_CONFIGURED`. [`extract`](/docs/sdk/inspect#extract) listet jeden weiteren Fehler, den
+es auslöst.
 
 ## Einen typisierten Katalog erzeugen
 
@@ -255,10 +215,8 @@ if (gate.stale) {
 ```
 
 Übergib `configPath`, damit die vom Lauf geladene Konfigurationsdatei als Ausgabepfad abgelehnt
-wird. Ein `check`-Lauf schreibt nichts, lehnt nichts wegen seines Inhalts ab und meldet nur
-`stale`. Alles, was ein schreibender Lauf mit `TYPES_OUTPUT_CONFLICT` ablehnt, steht auf der Seite
-[`verbatra types`](/docs/cli/types); eine Deklaration, die nicht geschrieben werden kann, löst
-`TYPES_UNWRITABLE` aus.
+wird. Ein `check`-Lauf schreibt nichts und meldet nur `stale`. [`verbatra types`](/docs/cli/types)
+listet alles, was ein schreibender Lauf ablehnt.
 
 ## Eine Pseudo-Locale bauen
 
@@ -282,11 +240,9 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` ist standardmäßig `en-XA` und `out` `.verbatra-local/pseudo`. Eine Pseudo-Locale, die eine
-konfigurierte Locale benennt, oder ein `out`, das auf einer konfigurierten Locale-Datei landen
-würde, wird mit `PSEUDO_OUTPUT_CONFLICT` abgelehnt, bevor irgendetwas gelesen oder geschrieben
-wird. Die Transformation ist deterministisch, ein zweiter Lauf über unveränderte Quelle schreibt
-also nichts neu und meldet `written` als false.
+`locale` ist standardmäßig `en-XA` und `out` `.verbatra-local/pseudo`. Die Transformation ist
+deterministisch, ein zweiter Lauf über unveränderte Quelle schreibt also nichts neu und meldet
+`written` als false.
 
 ## Einen einzelnen Key bearbeiten und neu übersetzen
 
@@ -327,10 +283,63 @@ if (retry.accepted) {
 }
 ```
 
-Eine unbekannte Locale oder ein unbekannter Key wirft `UNKNOWN_LOCALE` oder `UNKNOWN_KEY`, und
-`retranslateEntry` wirft den eigenen `ProviderError` des Providers (zum Beispiel `RATE_LIMITED`),
-wenn der Aufruf selbst fehlschlägt. Dieselben Nahtstellen hinter einer Oberfläche zeigt
-[Review in Studio](/docs/review-in-studio).
+Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry). Dieselben
+Nahtstellen hinter einer Oberfläche zeigt [Review in Studio](/docs/review-in-studio).
+
+### Werte von Menschen
+
+<AvailableFrom version="0.12.0" />
+
+`retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, ab, außer du übergibst
+`includeHuman: true`, und einen gepinnten Key immer; siehe
+[Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
+## Die Review-Warteschlange abarbeiten
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` listet jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, mit den
+Gründen, aus denen der letzte Lauf ihn markiert hat. Dieses Skript gibt die unmarkierten Werte frei
+und lehnt den Rest ab; abgelehnte Werte werden entfernt, sodass das nächste `translate` sie neu
+füllt. Mit `expectedValue` wirft ein Aufruf `REVIEW_VALUE_CHANGED`, wenn sich der Wert
+zwischendurch geändert hat. Ohne Aufzeichnung des letzten Laufs auf dieser Maschine, etwa in einem
+frischen Klon oder auf einem CI-Runner, ist `reasons` ebenfalls leer, deshalb bricht das Skript ab,
+wenn `lastRunAt` fehlt.
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
+  process.exit(1);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+[Review](/docs/sdk/review#approveentry) zeigt die Batch-Varianten und jeden Code, den sie werfen.
 
 ## Alle Werte auf einmal lesen
 
@@ -434,8 +443,7 @@ const exported = await exportTmx({ config, out: "out/memory.tmx" });
 console.log(`${exported.units} units to ${exported.path}`);
 ```
 
-Keines von beiden konstruiert einen Provider, liest einen API-Key oder macht einen
-Netzwerkaufruf. `importTmx` meldet beschädigte Daten, statt bei ihnen zu werfen: Eine abgelehnte
+`importTmx` meldet beschädigte Daten, statt bei ihnen zu werfen: Eine abgelehnte
 Datei löst `SOURCE_INVALID` aus, und `tmxErrorLocation` liest die Stelle aus diesem Fehler, ohne
 ihn oder sein `cause` zu casten. Exportiert werden nur Einträge unter dem aktuellen
 Konfigurations-Fingerprint, also genau die Menge, die ein Lauf wiederverwenden würde.

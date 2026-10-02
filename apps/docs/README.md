@@ -3,8 +3,8 @@
 > Private package. Not published, not bundled. This is the source of the documentation site at
 > [verbatra.kreitz-webdev.de](https://verbatra.kreitz-webdev.de), a Fumadocs site on Next.js.
 
-The docs site dogfoods verbatra for its own interface strings and hand-maintains its MDX content
-translations, because verbatra translates structured formats (JSON, XLIFF, YAML, ARB, properties),
+The docs site dogfoods verbatra for its own interface strings, while an AI agent translates its MDX
+content in the same change as the English page, because verbatra translates structured locale formats (such as JSON, XLIFF, YAML, ARB, and properties),
 not Markdown or MDX.
 
 ## Running it
@@ -24,8 +24,11 @@ the interface strings with `pnpm i18n` (see below).
 ## Where content lives
 
 - `content/docs/**` is the documentation itself. English source is `page.mdx`; a translation is a
-  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. Route groups carry a
-  `meta.json` plus `meta.de.json`, `meta.es.json`, and `meta.fr.json`. These are hand-translated.
+  locale-suffixed sibling, `page.de.mdx`, `page.es.mdx`, `page.fr.mdx`. The sidebar's Docs and
+  Reference tabs are the `(docs)` and `(reference)` folders, which hold only meta files that list
+  the route groups; each meta file has `meta.de.json`, `meta.es.json`, and `meta.fr.json` siblings. An AI agent translates these in the
+  same change as the English page; `lib/docs-locale-parity.test.ts` keeps the four locales
+  structurally in sync.
 - `messages/en.json` is the source of the site's own interface strings, with `de.json`, `es.json`,
   and `fr.json` alongside it. These are machine-translated by verbatra.
 - `app/`, `components/`, and `lib/` are the Next.js application; `public/` holds the images,

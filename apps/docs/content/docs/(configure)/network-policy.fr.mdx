@@ -1,0 +1,102 @@
+---
+title: Restreindre l'accès réseau
+description: Restreins les hôtes auxquels un fournisseur de traduction peut se connecter, pour qu'une configuration purement locale soit imposée par verbatra au lieu de reposer sur l'habitude.
+type: how-to
+---
+<AvailableFrom version="0.12.0" />
+
+Sers-t'en quand tes chaînes doivent rester sur ton propre réseau, par exemple avec un modèle auto-hébergé derrière `openai-compatible` ou un serveur LibreTranslate derrière `libretranslate`. Une `baseUrl` mal tapée, un `OPENAI_BASE_URL` oublié ou le passage à un fournisseur hébergé enverraient sinon les chaînes vers un point de terminaison public. Avec une politique réseau, verbatra refuse un hôte que la politique n'autorise pas avant qu'aucune requête ne quitte la machine. Le contenu d'une requête est décrit dans [Traitement des données et confidentialité](/docs/data-handling).
+
+## Définir une politique
+
+Ajoute un bloc `network` à la config ([`network`](/docs/config-file#network) dans la référence) :
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+}
+```
+
+| Politique | Autorise |
+| --- | --- |
+| `any` | tous les hôtes ; la valeur par défaut sans bloc `network` |
+| `local-only` | le loopback (`127.0.0.0/8`, `::1`, et `localhost` ou `*.localhost` s'ils ne résolvent que vers du loopback), les IPv4 privées (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), les IPv6 unique-local (`fc00::/7`) et `allowedHosts` |
+| `allowlist` | seulement ce que liste `allowedHosts`, avec au moins une entrée |
+
+Chaque entrée de `allowedHosts` est un nom d'hôte (`llm.internal`, sans tenir compte de la casse), un joker (`*.corp.example`, sous-domaines seulement, au moins deux labels après `*.`), une adresse IP ou une plage CIDR comme `100.64.0.0/10`. N'écris ni schéma, ni port, ni chemin.
+
+`local-only` exclut les adresses link-local (`169.254.0.0/16`, qui contient l'adresse de métadonnées du cloud, et `fe80::/10`), la plage NAT d'opérateur `100.64.0.0/10`, ainsi que `0.0.0.0` et `::`. Si ton serveur écoute sur `0.0.0.0`, pointe `baseUrl` vers `127.0.0.1` ; si tu utilises une plage VPN, ajoute-la à `allowedHosts`.
+
+## Fournisseurs hébergés
+
+Sous `local-only`, `anthropic`, `openai`, `gemini`, `deepl` et `google-translate` sont refusés, car leurs points de terminaison sont publics. Pour en autoriser un, liste son hôte :
+
+```ts title="verbatra.config.ts"
+network: {
+  policy: "local-only",
+  allowedHosts: ["api.deepl.com"],
+}
+```
+
+Les hôtes sont `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `api.deepl.com` (`api-free.deepl.com` pour une clé qui finit par `:fx`) et `translation.googleapis.com`. Si `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` ou `GOOGLE_GEMINI_BASE_URL` est définie, verbatra vérifie ce point de terminaison à la place. Gemini en mode Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI` ou `GOOGLE_GENAI_USE_ENTERPRISE` à `true`) est toujours refusé sous une politique restrictive.
+
+## Imposer une politique depuis l'environnement
+
+Pour imposer une politique en CI, quoi que dise la config du dépôt :
+
+```bash
+export VERBATRA_NETWORK_POLICY=local-only
+export VERBATRA_NETWORK_ALLOWED_HOSTS=gpu.lan,10.20.0.0/16
+```
+
+`VERBATRA_NETWORK_ALLOWED_HOSTS` est une liste d'entrées `allowedHosts` séparées par des virgules. Quand la config et l'environnement définissent tous deux une politique, un hôte doit satisfaire les deux, donc une config ne peut jamais assouplir ce que l'environnement impose.
+
+Une valeur inconnue, comme `local_only`, ou la liste d'hôtes sans la variable de politique fait échouer l'exécution avec [`CONFIG_INVALID`](/docs/error-codes#config_invalid) au lieu d'autoriser tous les hôtes. `translate --dry-run` et `--estimate` vérifient aussi ces variables, sauf avec le fournisseur `none`.
+
+## Vérifier la politique
+
+Lance [`verbatra doctor`](/docs/cli/doctor) : il indique la politique effective, l'origine de chaque partie, l'hôte du fournisseur et si cet hôte est autorisé. Il ne résout aucun nom et n'envoie rien, et la liste des langues que récupère `doctor --live` est soumise à la même politique.
+
+Un hôte refusé arrête `translate`, `watch` au démarrage, la retraduction dans Studio et MCP, et `retranslateEntry` du SDK avec [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation) et le code de sortie `2`, avant qu'aucune clé ne soit lue. Une exécution à blanc et `--estimate` n'appellent aucun fournisseur, donc ils ne sont pas refusés.
+
+## Savoir quand les requêtes sont vérifiées
+
+La première vérification ne résout aucun nom, donc un nom d'hôte qu'elle ne sait pas classer seule, comme `llm.internal`, la passe. Chaque requête de `anthropic`, `openai`, `gemini`, `google-translate`, `openai-compatible` et `libretranslate` est vérifiée de nouveau juste avant l'envoi :
+
+- un nom d'hôte est résolu, et chaque adresse vers laquelle il résout doit être autorisée ;
+- seul un `307` ou `308` vers la même origine est suivi, jusqu'à cinq d'affilée ; une redirection vers une autre origine, y compris de `https` vers `http`, fait échouer la requête.
+
+Une requête refusée ici fait échouer son sous-lot avec l'erreur de fournisseur [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#provider-network_policy_violation), qui ne nomme que l'hôte, et n'est jamais relancée.
+
+## Limites
+
+- **DNS rebinding.** Le nom est résolu une fois pour la vérification et de nouveau pour la connexion, donc un serveur DNS qui répond autrement peut passer. Écris une adresse IP, ou liste le nom dans `allowedHosts`, auquel on fait confiance sans le résoudre.
+- **DeepL est vérifié une seule fois**, avant la construction du fournisseur, pas à chaque requête ni redirection.
+- **Proxys.** Sous une politique restrictive, chaque proxy que le fournisseur utiliserait doit lui-même être autorisé, comme adresse IP ou nom listé. DeepL utilise `HTTPS_PROXY`, `HTTP_PROXY` et `ALL_PROXY` ; les autres fournisseurs ne les utilisent que sous Node 24 avec `NODE_USE_ENV_PROXY=1` ou `--use-env-proxy`. `NO_PROXY` est ignoré.
+- **Fournisseurs personnalisés.** Un fournisseur passé via `createProvider` du SDK est vérifié avant sa construction et reçoit la politique effective ; l'appliquer à ses propres requêtes revient à ce code.
+
+## Traduction automatique sans modèle de langage
+
+Certains NDA interdisent les modèles de langage mais acceptent la traduction automatique classique sur ton propre matériel. [LibreTranslate](/docs/providers#libretranslate), c'est exactement ça : un serveur open source avec des modèles Argos Translate. Lance-le avec les langues dont tu as besoin :
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+Puis pointe verbatra dessus et verrouille le réseau :
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` vérifie chaque locale cible par rapport aux modèles installés. Ses valeurs sont tout de même enregistrées avec l'origine `machine`.
+
+## Voir aussi
+
+- [`network`](/docs/config-file#network) : la clé de config.
+- [`verbatra doctor`](/docs/cli/doctor) : vérifier la politique sans traduire.
+- [Traitement des données et confidentialité](/docs/data-handling) : ce qui quitte la machine, et quand.

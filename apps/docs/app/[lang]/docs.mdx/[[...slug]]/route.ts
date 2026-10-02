@@ -1,4 +1,5 @@
 import { isLocale } from "@/lib/i18n";
+import { pageFrontmatter } from "@/lib/page-frontmatter";
 import { source } from "@/lib/source";
 
 export const dynamic = "force-static";
@@ -17,7 +18,7 @@ export async function GET(
 
   const markdown = await page.data.getText("processed");
   const description = page.data.description ? `\n${page.data.description}\n` : "";
-  const body = `# ${page.data.title}\n${description}\n${markdown}`;
+  const body = `${pageFrontmatter(page.data)}# ${page.data.title}\n${description}\n${markdown}`;
 
   return new Response(body, {
     headers: { "Content-Type": "text/markdown; charset=utf-8" },

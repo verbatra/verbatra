@@ -8,12 +8,20 @@ export default defineConfig({
     },
   },
   test: {
+    server: {
+      deps: {
+        inline: ["fumadocs-core"],
+      },
+    },
     include: [
       "lib/**/*.test.ts",
       "lib/**/*.test.tsx",
       "components/**/*.test.tsx",
       "app/**/*.test.ts",
+      "app/**/*.test.tsx",
       "proxy.test.ts",
+      "proxy.cookies.test.ts",
+      "next.config.test.ts",
     ],
   },
 });

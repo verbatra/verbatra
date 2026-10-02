@@ -1,0 +1,49 @@
+---
+title: "Errores"
+description: "El modelo SdkError: una sola clase de error, qué códigos llevan una causa y las excepciones a la regla."
+type: reference
+---
+## El modelo de errores
+
+Los fallos de toda la ejecución lanzan un `SdkError`: una sola clase, un `code` estable y un `message`
+sin secretos. Ramifica sobre el código, no sobre el mensaje. Los fallos por locale, los avisos del
+proveedor y los hallazgos de integridad se comunican como datos en el `RunSummary`, nunca se lanzan.
+
+Cada código, qué significa, qué comandos de la CLI llegan a él y cuál es el siguiente paso están en [Códigos de error del SDK](/docs/error-codes#sdk-error-codes).
+
+Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
+falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
+`PROVIDER_CONSTRUCTION_FAILED` (el propio error de la factoría del proveedor, cuyo mensaje también
+pasa redactado al mensaje del `SdkError`), `EXPORT_UNWRITABLE` y `GLOSSARY_UNWRITABLE` (el error del
+sistema de archivos), `REVIEW_RESTORE_FAILED` (el fallo que interrumpió la decisión) y
+`LOCK_CONTENDED` cuando otro proceso tomó el bloqueo o un bloqueo abandonado no se pudo recuperar ni
+apartar (el error del sistema de archivos). `CONFIG_INVALID` lleva uno solo cuando el archivo de
+configuración no se pudo cargar por un error con código, como una importación que no se resuelve.
+No lleva ninguno ante un error de análisis o de esquema, y `CONFIG_NOT_FOUND` nunca, porque el error
+de un analizador de configuración puede citar el contenido del archivo, y una clave escrita en la
+configuración no debe viajar con el error. En `PROVIDER_CONSTRUCTION_FAILED` solo se redacta el
+mensaje: su `cause` es el error original, intacto. Las factorías de proveedor integradas lanzan
+errores sin secretos, y un error lanzado por un `createProvider` que pasas tú vuelve exactamente como
+lo lanzaste, así que mantén los secretos fuera de él o redáctalo tú antes de registrar el `cause`.
+
+Las excepciones a la regla de una sola clase de error:
+
+- `retranslateEntry` relanza el `ProviderError` propio del proveedor cuando la llamada única falla.
+- `approveEntries`, `rejectEntries` y `retranslateEntries` lanzan un `BatchInterruptedError`, con el
+  error original como `cause`, cuando un error inesperado detiene un lote a medias.
+- Un archivo de locale de destino que el adaptador no puede analizar sale como su `AdapterError`, con
+  su propio `code`, de `check`, `diff` y los demás flujos que lo leen; `checkFile` lo informa en
+  cambio como un hallazgo de sintaxis.
+- `watch` deja pasar, sin envolver, lo que haya lanzado la factoría del observador.
+- `runStatus` no lanza nunca.
+
+Para cómo estos códigos se corresponden con los códigos de salida de la CLI, consulta
+[Códigos de error del SDK](/docs/error-codes#sdk-error-codes); para ayuda a partir del síntoma, consulta
+[Solución de problemas](/docs/troubleshooting).
+
+<AvailableFrom version="0.12.0" />
+
+`ProviderError` y su tipo `ProviderErrorCode` se exportan desde `@verbatra/sdk`, así que comprueba
+un fallo de `retranslateEntry` con `error instanceof ProviderError` y ramifica según `error.code`; la
+[códigos de error del proveedor](/docs/error-codes#provider-error-codes) listan todos los códigos. En una versión anterior, que no
+exporta la clase, comprueba `error.name === "ProviderError"` y lee `code`.

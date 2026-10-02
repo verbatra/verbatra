@@ -1,11 +1,18 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { type McpServerHandle, resolveServerCwd } from "@verbatra/mcp";
 import { SdkError } from "@verbatra/sdk";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
-import { captureStreams, flush, makeMcpModule, recordingDeps } from "./test-support.js";
-import type { RunHooks, Session } from "./types.js";
+import {
+  captureStreams,
+  flush,
+  makeMcpHandle,
+  makeMcpModule,
+  recordingDeps,
+} from "./test-support.js";
+import type { CliDeps, McpModule, RunHooks, Session } from "./types.js";
 
 function moduleNotFound(specifier: string, importedFrom = "/proj/index.js"): Error {
   return Object.assign(
@@ -39,7 +46,16 @@ describe("run mcp: .env read failure", () => {
 
   it("a non-ENOENT .env read error (EISDIR) exits 2 with a structured error, no unhandled throw", async () => {
     mkdirSync(join(dir, ".env"));
-    const { deps, calls } = recordingDeps();
+    let started = false;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async () => {
+            started = true;
+            return makeMcpHandle();
+          },
+        }),
+    });
     const cap = captureStreams();
 
     const code = await run(["mcp", "--cwd", dir], deps, cap.streams);
@@ -47,7 +63,7 @@ describe("run mcp: .env read failure", () => {
     expect(code).toBe(2);
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
-    expect(calls.importMcp).toHaveLength(0);
+    expect(started).toBe(false);
   });
 });
 
@@ -64,7 +80,7 @@ describe("run mcp: option passthrough", () => {
               configPath: options.configPath,
               allowSpend: options.allowSpend ?? false,
             });
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -93,7 +109,7 @@ describe("run mcp: option passthrough", () => {
         makeMcpModule({
           startMcpServer: async (options) => {
             hasConfigPathKey.push(Object.hasOwn(options, "configPath"));
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -109,6 +125,115 @@ describe("run mcp: option passthrough", () => {
   });
 });
 
+describe("run mcp: project directory resolution", () => {
+  function recordStartCwd(resolveServerCwd?: (cwd?: string) => string): {
+    deps: CliDeps;
+    startCwds: string[];
+  } {
+    const startCwds: string[] = [];
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          ...(resolveServerCwd !== undefined ? { resolveServerCwd } : {}),
+          startMcpServer: async (options) => {
+            startCwds.push(options.cwd ?? "");
+            return makeMcpHandle();
+          },
+        }),
+    });
+    return { deps, startCwds };
+  }
+
+  async function startAndStop(args: string[], deps: CliDeps): Promise<void> {
+    const captured = captureMcpSession();
+    const donePromise = run(args, deps, captureStreams().streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+  }
+
+  it("starts the server in the directory @verbatra/mcp resolves when no --cwd is given", async () => {
+    const resolveServerCwd = vi.fn((cwd?: string) => cwd ?? "/claude/project");
+    const { deps, startCwds } = recordStartCwd(resolveServerCwd);
+
+    await startAndStop(["mcp"], deps);
+
+    expect(resolveServerCwd.mock.calls).toEqual([[undefined]]);
+    expect(startCwds).toEqual(["/claude/project"]);
+  });
+
+  it("hands an explicit --cwd to @verbatra/mcp's resolver", async () => {
+    const resolveServerCwd = vi.fn((cwd?: string) => cwd ?? "/claude/project");
+    const { deps, startCwds } = recordStartCwd(resolveServerCwd);
+
+    await startAndStop(["mcp", "--cwd", "/explicit"], deps);
+
+    expect(resolveServerCwd.mock.calls).toEqual([["/explicit"]]);
+    expect(startCwds).toEqual(["/explicit"]);
+  });
+
+  it("falls back to --cwd, then process.cwd(), with an @verbatra/mcp that has no resolver", async () => {
+    const withFlag = recordStartCwd();
+    await startAndStop(["mcp", "--cwd", "/explicit"], withFlag.deps);
+    const withoutFlag = recordStartCwd();
+    await startAndStop(["mcp"], withoutFlag.deps);
+    const withRelativeFlag = recordStartCwd();
+    await startAndStop(["mcp", "--cwd", "app/web"], withRelativeFlag.deps);
+
+    expect(withFlag.startCwds).toEqual(["/explicit"]);
+    expect(withoutFlag.startCwds).toEqual([process.cwd()]);
+    expect(withRelativeFlag.startCwds).toEqual([join(process.cwd(), "app/web")]);
+  });
+});
+
+describe("run mcp: CLAUDE_PROJECT_DIR from .env", () => {
+  let project: string;
+  let elsewhere: string;
+  let previous: string | undefined;
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), "verbatra-mcp-project-"));
+    elsewhere = mkdtempSync(join(tmpdir(), "verbatra-mcp-elsewhere-"));
+    previous = process.env.CLAUDE_PROJECT_DIR;
+    delete process.env.CLAUDE_PROJECT_DIR;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (previous === undefined) {
+      delete process.env.CLAUDE_PROJECT_DIR;
+    } else {
+      process.env.CLAUDE_PROJECT_DIR = previous;
+    }
+    rmSync(project, { recursive: true, force: true });
+    rmSync(elsewhere, { recursive: true, force: true });
+  });
+
+  it("ignores a CLAUDE_PROJECT_DIR set only in .env, resolving the root before .env is read", async () => {
+    writeFileSync(join(project, ".env"), `CLAUDE_PROJECT_DIR=${elsewhere}\n`);
+    vi.spyOn(process, "cwd").mockReturnValue(project);
+    const startCwds: string[] = [];
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          resolveServerCwd,
+          startMcpServer: async (options) => {
+            startCwds.push(options.cwd ?? "");
+            return makeMcpHandle();
+          },
+        }),
+    });
+    const captured = captureMcpSession();
+
+    const donePromise = run(["mcp"], deps, captureStreams().streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    expect(startCwds).toEqual([project]);
+  });
+});
+
 describe("run mcp: @verbatra/mcp not installed", () => {
   it("prints the canonical install hint and exits 2 when the missing specifier is @verbatra/mcp itself", async () => {
     const { deps, calls } = recordingDeps({
@@ -121,9 +246,9 @@ describe("run mcp: @verbatra/mcp not installed", () => {
     const code = await run(["mcp"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).toContain(
-      "Verbatra's MCP server requires @verbatra/mcp. Install it with: pnpm add -D @verbatra/mcp",
-    );
+    expect(cap.err()).toContain("Verbatra's MCP server requires @verbatra/mcp.");
+    expect(cap.err()).toContain("npx -y @verbatra/mcp");
+    expect(cap.err()).toContain("npm install --save-dev @verbatra/mcp");
     expect(cap.out()).toBe("");
     expect(calls.importMcp).toHaveLength(1);
   });
@@ -141,7 +266,7 @@ describe("run mcp: @verbatra/mcp not installed", () => {
 
     expect(code).toBe(2);
     expect(cap.err()).toContain(importedFrom);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/mcp");
+    expect(cap.err()).not.toContain("npx -y @verbatra/mcp");
     expect(cap.err()).toContain("ERR_MODULE_NOT_FOUND");
   });
 
@@ -156,7 +281,7 @@ describe("run mcp: @verbatra/mcp not installed", () => {
     const code = await run(["mcp"], deps, cap.streams);
 
     expect(code).toBe(2);
-    expect(cap.err()).not.toContain("Install it with: pnpm add -D @verbatra/mcp");
+    expect(cap.err()).not.toContain("npx -y @verbatra/mcp");
     expect(cap.err()).toContain("unexpected dynamic import failure");
   });
 });
@@ -201,7 +326,7 @@ describe("run mcp: stdout purity", () => {
         makeMcpModule({
           startMcpServer: async (options) => {
             options.onLog?.("tool call log line");
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -232,11 +357,32 @@ describe("run mcp: success path and shutdown", () => {
     expect(code).toBe(0);
   });
 
+  it("exits 0 without a stop request when the server closes because the client closed stdin", async () => {
+    let clientClosedStdin = (): void => {};
+    const closed = new Promise<void>((resolve) => {
+      clientClosedStdin = resolve;
+    });
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({ startMcpServer: async () => makeMcpHandle({ closed }) }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const donePromise = run(["mcp"], deps, cap.streams, captured.hooks);
+    await flush();
+    clientClosedStdin();
+    const code = await donePromise;
+
+    expect(code).toBe(0);
+    expect(cap.out()).toBe("");
+  });
+
   it("a second requestStop while the first is closing forces exit 130", async () => {
     const { deps } = recordingDeps({
       importMcp: async () =>
         makeMcpModule({
-          startMcpServer: async () => ({ close: () => new Promise(() => {}) }),
+          startMcpServer: async () => makeMcpHandle({ close: () => new Promise(() => {}) }),
         }),
     });
     const cap = captureStreams();
@@ -256,11 +402,12 @@ describe("run mcp: success path and shutdown", () => {
     const { deps } = recordingDeps({
       importMcp: async () =>
         makeMcpModule({
-          startMcpServer: async () => ({
-            close: async () => {
-              throw Object.assign(new Error("close failed"), { code: "CLOSE_FAILED" });
-            },
-          }),
+          startMcpServer: async () =>
+            makeMcpHandle({
+              close: async () => {
+                throw Object.assign(new Error("close failed"), { code: "CLOSE_FAILED" });
+              },
+            }),
         }),
     });
     const cap = captureStreams();
@@ -273,6 +420,104 @@ describe("run mcp: success path and shutdown", () => {
 
     expect(code).toBe(1);
     expect(cap.err()).toContain("CLOSE_FAILED");
+  });
+});
+
+describe("run mcp: stop and client disconnect racing", () => {
+  function deferred(): {
+    promise: Promise<void>;
+    resolve: () => void;
+    reject: (e: unknown) => void;
+  } {
+    let resolve!: () => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function startWithHandle(close: () => Promise<void>, closed: Promise<void>) {
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({ startMcpServer: async () => makeMcpHandle({ close, closed }) }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+    const donePromise = run(["mcp"], deps, cap.streams, captured.hooks);
+    return { cap, captured, donePromise };
+  }
+
+  const closeFailure = (): Error =>
+    Object.assign(new Error("close failed"), { code: "CLOSE_FAILED" });
+
+  it("exits 1 when the stop close fails after closed has already settled", async () => {
+    const closeCall = deferred();
+    const closed = deferred();
+    const { cap, captured, donePromise } = startWithHandle(() => closeCall.promise, closed.promise);
+    await flush();
+
+    captured.session()?.requestStop();
+    closed.resolve();
+    await flush();
+    closeCall.reject(closeFailure());
+    const code = await donePromise;
+
+    expect(code).toBe(1);
+    expect(cap.err()).toContain("CLOSE_FAILED");
+  });
+
+  it("exits 1 when the stop close fails before closed settles", async () => {
+    const closeCall = deferred();
+    const closed = deferred();
+    const { cap, captured, donePromise } = startWithHandle(() => closeCall.promise, closed.promise);
+    await flush();
+
+    captured.session()?.requestStop();
+    closeCall.reject(closeFailure());
+    await flush();
+    closed.resolve();
+    const code = await donePromise;
+
+    expect(code).toBe(1);
+    expect(cap.err()).toContain("CLOSE_FAILED");
+  });
+
+  it("keeps the forced exit 130 of a second requestStop even when closed settles in between", async () => {
+    const closed = deferred();
+    const { captured, donePromise } = startWithHandle(() => new Promise(() => {}), closed.promise);
+    await flush();
+
+    const session = captured.session();
+    session?.requestStop();
+    closed.resolve();
+    await flush();
+    session?.requestStop();
+    const code = await donePromise;
+
+    expect(code).toBe(130);
+  });
+
+  it("a requestStop after closed settled keeps the clean exit 0 and never closes again", async () => {
+    const close = vi.fn(async () => {});
+    const closed = deferred();
+    const { cap, captured, donePromise } = startWithHandle(close, closed.promise);
+    await flush();
+
+    closed.resolve();
+    await flush();
+    const session = captured.session();
+    session?.requestStop();
+    session?.requestStop();
+    const code = await donePromise;
+
+    expect(code).toBe(0);
+    expect(close).not.toHaveBeenCalled();
+    expect(cap.err()).toBe(
+      "verbatra MCP server running on stdio (project ., spend tools off)\n" +
+        "verbatra MCP server stopped (client closed stdin)\n",
+    );
   });
 });
 
@@ -300,7 +545,7 @@ describe("run mcp: --allow-spend capability resolution", () => {
         makeMcpModule({
           startMcpServer: async (options) => {
             resolved = options.allowSpend;
-            return { close: async () => {} };
+            return makeMcpHandle();
           },
         }),
     });
@@ -336,6 +581,126 @@ describe("run mcp: --allow-spend capability resolution", () => {
   it("the CLI flag wins when both the flag and the environment variable are given", async () => {
     process.env[ENV_VAR] = "false";
     expect(await captureResolvedAllowSpend(["mcp", "--allow-spend"])).toBe(true);
+  });
+});
+
+describe("run mcp: --redact-values resolution", () => {
+  const ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
+  let original: string | undefined;
+
+  beforeEach(() => {
+    original = process.env[ENV_VAR];
+    delete process.env[ENV_VAR];
+  });
+
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env[ENV_VAR];
+    } else {
+      process.env[ENV_VAR] = original;
+    }
+  });
+
+  async function startWith(
+    argv: readonly string[],
+  ): Promise<{ readonly redactValues: boolean | undefined; readonly err: string }> {
+    let redactValues: boolean | undefined;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async (options) => {
+            redactValues = options.redactValues;
+            return makeMcpHandle({ valuesRedacted: options.redactValues === true });
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const donePromise = run([...argv], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    return { redactValues, err: cap.err() };
+  }
+
+  it("defaults redactValues to false", async () => {
+    expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+
+  it("sets redactValues from the flag and says so in the ready line", async () => {
+    const started = await startWith(["mcp", "--redact-values"]);
+
+    expect(started.redactValues).toBe(true);
+    expect(started.err).toContain("spend tools off, values redacted)");
+  });
+
+  it("falls back to the environment variable when the flag is absent", async () => {
+    process.env[ENV_VAR] = " YES ";
+    expect((await startWith(["mcp"])).redactValues).toBe(true);
+  });
+
+  it("treats an unrecognized environment value as off", async () => {
+    process.env[ENV_VAR] = "0";
+    expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+});
+
+describe("run mcp: an @verbatra/mcp that cannot redact", () => {
+  function olderModule(startMcpServer: McpModule["startMcpServer"]): McpModule {
+    const module = { ...makeMcpModule({ startMcpServer }) } as Record<string, unknown>;
+    delete module.MCP_CAPABILITIES;
+    return module as unknown as McpModule;
+  }
+
+  function handleWithoutRedaction(close = vi.fn(async () => {})): McpServerHandle {
+    const handle = { ...makeMcpHandle({ close }) } as Record<string, unknown>;
+    delete handle.valuesRedacted;
+    return handle as unknown as McpServerHandle;
+  }
+
+  it("refuses --redact-values before starting a module without the capability", async () => {
+    const startMcpServer = vi.fn(async () => handleWithoutRedaction());
+    const { deps } = recordingDeps({ importMcp: async () => olderModule(startMcpServer) });
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--redact-values"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(startMcpServer).not.toHaveBeenCalled();
+    expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
+    expect(cap.err()).toContain("Upgrade @verbatra/mcp");
+  });
+
+  it("stops a started server whose handle does not confirm redaction", async () => {
+    const close = vi.fn(async () => {});
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({ startMcpServer: async () => handleWithoutRedaction(close) }),
+    });
+    const cap = captureStreams();
+
+    const code = await run(["mcp", "--redact-values"], deps, cap.streams);
+
+    expect(code).toBe(2);
+    expect(close).toHaveBeenCalledOnce();
+    expect(cap.err()).toContain("REDACTION_UNSUPPORTED");
+    expect(cap.err()).not.toContain("running on stdio");
+  });
+
+  it("serves normally from an older module when redaction was not requested", async () => {
+    const { deps } = recordingDeps({
+      importMcp: async () => olderModule(async () => handleWithoutRedaction()),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const done = run(["mcp"], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+
+    expect(await done).toBe(0);
   });
 });
 

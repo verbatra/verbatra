@@ -5,7 +5,6 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
 import { SKILLS_REPO_URL } from "./links";
-import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -54,26 +53,16 @@ function Row({
   children: ReactNode;
 }): ReactNode {
   return (
-    <Reveal className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center lg:gap-16">
       <div className={cn("min-w-0", flip && "lg:order-2")}>
-        <h3
-          className="max-w-[18ch] font-semibold text-fd-foreground"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(1.5rem, 2.6vw, 2rem)",
-            letterSpacing: "-0.02em",
-            lineHeight: 1.15,
-          }}
-        >
-          {title}
-        </h3>
+        <h3 className="vk-h3 max-w-[18ch]">{title}</h3>
         <p className="mt-3.5 max-w-[44ch] text-base text-fd-muted-foreground">{body}</p>
         <a href={href} className={cn(LINK_CLASS, "mt-4")}>
           {cta}
         </a>
       </div>
       <div className={cn("min-w-0", flip && "lg:order-1")}>{children}</div>
-    </Reveal>
+    </div>
   );
 }
 
@@ -87,15 +76,15 @@ export async function Loop(): Promise<ReactNode> {
   const docs = (path: string) => localizedPath(locale, path);
   const codeTags = {
     code: (chunks: ReactNode) => (
-      <code className="font-mono text-[14px] text-fd-foreground">{chunks}</code>
+      <code className="font-mono text-sm text-fd-foreground">{chunks}</code>
     ),
   };
 
   return (
     <Section width="wide" rhythm="lg" id="loop">
-      <Reveal>
+      <div>
         <SectionHead title={t("heading")} />
-      </Reveal>
+      </div>
       <div className="mt-[52px] grid gap-[72px]">
         <Row
           title={t("rows.excel.title")}
@@ -108,7 +97,7 @@ export async function Loop(): Promise<ReactNode> {
               {box("verbatra export")}
               {box("verbatra import translations.xlsx")}
             </div>
-            <table className="w-full border-t border-fd-border font-mono text-[13px]">
+            <table className="w-full border-t border-fd-border font-mono text-sm">
               <thead>
                 <tr style={{ background: "var(--surface-card)" }}>
                   {(["key", "source", "target"] as const).map((column) => (
@@ -159,7 +148,7 @@ export async function Loop(): Promise<ReactNode> {
           <Frame>
             <div className="p-5">{box("verbatra check --json")}</div>
             <pre
-              className="overflow-x-auto border-t border-fd-border px-5 py-4 font-mono text-[13px] leading-relaxed text-fd-muted-foreground"
+              className="overflow-x-auto border-t border-fd-border px-5 py-4 font-mono text-sm leading-relaxed text-fd-muted-foreground"
               style={{ background: "var(--v-void)" }}
             >
               <code>{CHECK_JSON_EXCERPT.join("\n")}</code>

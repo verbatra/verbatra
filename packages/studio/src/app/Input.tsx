@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Icon } from "./Icon.js";
 import { cn } from "./lib/cn.js";
 
@@ -8,7 +8,9 @@ const FIELD_CLASSNAME =
 export function TextArea({
   className,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement>): ReactNode {
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  readonly ref?: Ref<HTMLTextAreaElement> | undefined;
+}): ReactNode {
   return <textarea className={cn(FIELD_CLASSNAME, className)} {...props} />;
 }
 
@@ -16,14 +18,18 @@ export function TextField({
   className,
   type = "text",
   ...props
-}: InputHTMLAttributes<HTMLInputElement>): ReactNode {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  readonly ref?: Ref<HTMLInputElement> | undefined;
+}): ReactNode {
   return <input type={type} className={cn(FIELD_CLASSNAME, className)} {...props} />;
 }
 
 export function SearchInput({
   className,
   ...props
-}: InputHTMLAttributes<HTMLInputElement>): ReactNode {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  readonly ref?: Ref<HTMLInputElement> | undefined;
+}): ReactNode {
   return (
     <span className="relative block w-full max-w-[320px]">
       <Icon

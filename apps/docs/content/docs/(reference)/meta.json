@@ -1,0 +1,12 @@
+{
+  "title": "Reference",
+  "root": true,
+  "pages": [
+    "../cli",
+    "../(configure)",
+    "../sdk",
+    "[MCP server tools](/docs/cli/mcp#tools)",
+    "error-codes",
+    "external:[Release notes](https://github.com/verbatra/verbatra/releases)"
+  ]
+}

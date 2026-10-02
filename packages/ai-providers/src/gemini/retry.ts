@@ -1,4 +1,6 @@
 import { getErrorStatus } from "../error-classification.js";
+import { ProviderError } from "../errors.js";
+import type { ProviderRetry, ProviderRetryListener } from "../provider-retry.js";
 
 export interface GeminiRetryConfig {
   readonly attempts: number;
@@ -7,9 +9,20 @@ export interface GeminiRetryConfig {
 
 export const DEFAULT_GEMINI_RETRY: GeminiRetryConfig = { attempts: 3, baseDelayMs: 250 };
 
-function isRetryableStatus(error: unknown): boolean {
-  const status = getErrorStatus(error);
+function isRetryableStatus(status: number | undefined): status is number {
   return status === 429 || (status !== undefined && status >= 500 && status < 600);
+}
+
+function isRetryable(error: unknown): boolean {
+  return (
+    isRetryableStatus(getErrorStatus(error)) ||
+    (error instanceof ProviderError && error.code === "TIMEOUT")
+  );
+}
+
+function retryEvent(attempt: number, delayMs: number, error: unknown): ProviderRetry {
+  const status = getErrorStatus(error);
+  return status === undefined ? { attempt, delayMs } : { attempt, delayMs, status };
 }
 
 function isAborted(signal: AbortSignal | undefined): boolean {
@@ -39,6 +52,7 @@ export async function withGeminiRetry<T>(
   call: () => Promise<T>,
   signal?: AbortSignal,
   config: GeminiRetryConfig = DEFAULT_GEMINI_RETRY,
+  onRetry?: ProviderRetryListener,
 ): Promise<T> {
   let attempt = 1;
   while (true) {
@@ -48,11 +62,12 @@ export async function withGeminiRetry<T>(
       if (isAborted(signal)) {
         throwAbort(signal);
       }
-      const exhausted = attempt >= config.attempts;
-      if (exhausted || !isRetryableStatus(error)) {
+      if (attempt >= config.attempts || !isRetryable(error)) {
         throw error;
       }
-      await delay(config.baseDelayMs * 2 ** (attempt - 1), signal);
+      const delayMs = config.baseDelayMs * 2 ** (attempt - 1);
+      onRetry?.(retryEvent(attempt + 1, delayMs, error));
+      await delay(delayMs, signal);
       if (isAborted(signal)) {
         throwAbort(signal);
       }

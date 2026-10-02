@@ -28,14 +28,18 @@
 ## The `e2e/` directory: what already exists
 
 `e2e/` (`e2e/README.md`, `e2e/package.json`) is a Vitest-driven suite, not Playwright, and it is
-the CLI's end-to-end coverage. It sits outside the pnpm workspace on purpose (its own
+the end-to-end coverage of the four published packages as a consumer installs them. It sits outside the pnpm workspace on purpose (its own
 `e2e/package-lock.json`, consumed by `npm ci`/`npm install`), so the consumer install resolves the
 real published tarballs instead of workspace symlinks.
 
-How it works: `e2e/src/global-setup.ts` packs `@verbatra/sdk` and `@verbatra/cli` (or reuses
-`VERBATRA_SDK_TARBALL` / `VERBATRA_CLI_TARBALL` if both are set), each test builds a temp project,
-`npm install`s both tarballs, and drives the real `verbatra` binary through `e2e/src/harness.ts`.
-This catches packaging, bundling, and bin regressions unit tests cannot see.
+How it works: `e2e/src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`,
+and `@verbatra/mcp` (or reuses `VERBATRA_SDK_TARBALL`, `VERBATRA_CLI_TARBALL`,
+`VERBATRA_STUDIO_TARBALL`, and `VERBATRA_MCP_TARBALL`, which must be all set or all unset). Each
+test builds a temp project, `npm install`s the sdk and cli tarballs plus the studio or mcp one when
+it asks for it (`makeConsumer({ withStudio, withMcp })` in `e2e/src/harness.ts`), and drives the
+real `verbatra` binary. `e2e/tests/studio.e2e.test.ts` exercises the Studio server over HTTP and
+`e2e/tests/mcp.e2e.test.ts` the stdio MCP server; neither opens a browser. This catches packaging,
+bundling, and bin regressions unit tests cannot see.
 
 Split into two tiers by determinism, which doubles as the trust boundary for secrets:
 
@@ -44,11 +48,19 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   across formats, `translate --dry-run`, export-then-import round-trips, the keyless flag surface,
   structured exit-2 boundary errors, and the full `watch` lifecycle including SIGINT handling
   (`e2e/tests/watch-lifecycle.e2e.test.ts` keeps this keyless by giving the run nothing to
-  translate). Makes no provider call, no network request. **This is the required release gate**:
-  it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes when the
-  CI workflow's conclusion is success.
+  translate). Calls no hosted provider and makes no network request outside 127.0.0.1: two tests
+  (`e2e/tests/interrupt-releases-locks.e2e.test.ts` and the held-lock test in
+  `e2e/tests/mcp.e2e.test.ts`) point an `openai-compatible` provider at a never-answering loopback
+  endpoint (the MCP one through `--allow-spend`, spending nothing), and
+  `e2e/tests/watch-lifecycle.e2e.test.ts` names an unreachable `127.0.0.1:1` endpoint it never
+  reaches. `e2e/tests/human-only.e2e.test.ts` goes further and preloads a module that throws on
+  any socket, proving a `provider: none` run makes no network call at all. **This is the required release
+  gate**: it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes
+  when the CI workflow's conclusion is success.
 - **Live tier**: `tests/translate.live.e2e.test.ts` and `tests/watch.live.e2e.test.ts`, run with
-  `npm test` (which runs both tiers). Drives real `translate`/`watch` against a live provider
+  `npm test` (which runs both tiers), plus `tests/libretranslate.live.e2e.test.ts`, which skips
+  unless `LIBRETRANSLATE_URL` points at a LibreTranslate server you started yourself (no workflow
+  starts one; see `e2e/README.md`). Drives real `translate`/`watch` against a live provider
   (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var). Runs nightly,
   on push to `main`, and on manual dispatch via `.github/workflows/e2e-live.yml`, never on a pull
   request, and is advisory: it never gates a publish, since its outcome depends on a third party's
@@ -63,7 +75,7 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
 `packages/studio/package.json`) with unit/component tests under `packages/studio/src/` (jsdom-based)
 but **no test that drives it in a real browser**. Concretely, as of this writing:
 
-- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.62.1`) is a devDependency only of
+- `playwright` (`pnpm-workspace.yaml` catalog, pinned `1.63.0`) is a devDependency only of
   `apps/docs` (`apps/docs/package.json`), used exclusively by the one-off screenshot script
   `apps/docs/scripts/capture-studio.mjs` (see `CONTRIBUTING.md` "Refreshing the Studio
   screenshots"). It is not wired up as a test runner anywhere.

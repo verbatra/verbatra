@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { DiffBadge, type DiffTone } from "./DiffBadge.js";
+import { DiffBadge, type DiffTone, KeyLocaleStatusBadge } from "./DiffBadge.js";
 import { render } from "./test-support.js";
 
 const TONE_EXPECTATIONS: Readonly<
@@ -9,6 +9,7 @@ const TONE_EXPECTATIONS: Readonly<
   missing: { label: "Missing", bg: "bg-diff-new-soft" },
   changed: { label: "Changed", bg: "bg-diff-changed-soft" },
   orphaned: { label: "Orphaned", bg: "bg-diff-orphaned-soft" },
+  protected: { label: "Protected", bg: "bg-warning-soft" },
 };
 
 const TONES = Object.keys(TONE_EXPECTATIONS) as readonly DiffTone[];
@@ -20,7 +21,7 @@ describe("DiffBadge", () => {
     expect(view.text()).toBe(TONE_EXPECTATIONS[tone].label);
   });
 
-  it.each(TONES)("styles the %s tone from the diff token family", (tone) => {
+  it.each(TONES)("styles the %s tone from its own token pair", (tone) => {
     const view = render(<DiffBadge tone={tone} />);
 
     expect(view.get("span").className).toContain(TONE_EXPECTATIONS[tone].bg);
@@ -43,5 +44,15 @@ describe("DiffBadge", () => {
     const view = render(<DiffBadge tone="missing" />);
 
     expect(view.get("span").className).toContain("rounded-sm");
+  });
+});
+
+describe("KeyLocaleStatusBadge", () => {
+  it.each([
+    ["in-sync", "In sync"],
+    ["absent", "Absent"],
+    ["missing", "Missing"],
+  ] as const)("labels %s as %s", (status, label) => {
+    expect(render(<KeyLocaleStatusBadge status={status} />).text()).toBe(label);
   });
 });

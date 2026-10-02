@@ -2,8 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAnthropicProvider } from "./anthropic/anthropic-provider.js";
 import type { MessagesClient } from "./anthropic/types.js";
 import { ProviderError } from "./errors.js";
+import { declareKeyEnvVar } from "./key-env-vars.js";
 import type { TranslateRequest } from "./provider.js";
-import { entry, regexExtractor, stubClient, toolMessage } from "./test-support.js";
+import {
+  entry,
+  regexExtractor,
+  resetDeclaredKeyEnvVars,
+  stubClient,
+  termGlossary,
+  toolMessage,
+} from "./test-support.js";
 
 const FAKE_KEY = "sk-ant-SENTINELKEY123";
 const CONTENT = "TRANSLATABLE-CONTENT-SENTINEL";
@@ -16,7 +24,7 @@ function contentRequest(overrides: Partial<TranslateRequest> = {}): TranslateReq
     sourceLocale: "en",
     targetLocale: "de",
     entries: [entry(CONTENT, CONTENT, [], { description: CONTENT, meaning: CONTENT })],
-    glossary: { [CONTENT]: CONTENT },
+    glossary: termGlossary({ [CONTENT]: CONTENT }),
     extractPlaceholders: regexExtractor,
     ...overrides,
   };
@@ -125,8 +133,8 @@ describe("ProviderError messages never carry variable input across every error p
 
 describe("ProviderError constructor scrubs key shapes as a defense-in-depth backstop", () => {
   it("redacts all four v1 key shapes from a key-bearing message", () => {
-    const openAiKey = "sk-proj-ABCDEFGH1234567890";
-    const anthropicKey = "sk-ant-api03-ABCdef12345_-XYZ";
+    const openAiKey = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+    const anthropicKey = "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd";
     const geminiKey = "AIzaabcdefghijklmnopqrstuvwxyz012345678";
     const deepLKey = "abcdef12-3456-7890-abcd-ef1234567890:fx";
     const error = new ProviderError(
@@ -139,17 +147,32 @@ describe("ProviderError constructor scrubs key shapes as a defense-in-depth back
     expect(error.message).toContain("[REDACTED]");
   });
 
-  it("does not couple the scrub to ANTHROPIC_API_KEY (env default is not re-applied)", () => {
-    const saved = process.env.ANTHROPIC_API_KEY;
-    process.env.ANTHROPIC_API_KEY = "envonlysecret";
+  it.each([
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+    "DEEPL_API_KEY",
+    "GOOGLE_TRANSLATE_API_KEY",
+    "OPENAI_COMPATIBLE_API_KEY",
+    "MY_LOCAL_KEY",
+  ])("scrubs the exact value of %s, built-in or declared through apiKeyEnvVar", (name) => {
+    resetDeclaredKeyEnvVars();
+    declareKeyEnvVar("MY_LOCAL_KEY");
+    const saved = process.env[name];
+    process.env[name] = "fake-unshaped-key-value";
     try {
-      const error = new ProviderError("PROVIDER_ERROR", "carrying envonlysecret verbatim");
-      expect(error.message).toContain("envonlysecret");
+      const error = new ProviderError(
+        "PROVIDER_ERROR",
+        "carrying fake-unshaped-key-value verbatim",
+      );
+      expect(error.message).not.toContain("fake-unshaped-key-value");
+      expect(error.message).toBe("carrying [REDACTED] verbatim");
     } finally {
+      resetDeclaredKeyEnvVars();
       if (saved === undefined) {
-        delete process.env.ANTHROPIC_API_KEY;
+        delete process.env[name];
       } else {
-        process.env.ANTHROPIC_API_KEY = saved;
+        process.env[name] = saved;
       }
     }
   });

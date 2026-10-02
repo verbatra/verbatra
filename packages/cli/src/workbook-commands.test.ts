@@ -1,10 +1,11 @@
-import { EXCHANGE_FORMATS, SdkError } from "@verbatra/sdk";
+import { EXCHANGE_FORMATS, type LockWaitEvent, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { JSON_ENVELOPE_VERSION } from "./json-envelope.js";
 import { run, runImport } from "./run.js";
 import {
   captureStreams,
   makeExportResult,
+  makeLoadedConfig,
   makeLocale,
   makeSummary,
   parseEnvelope,
@@ -87,7 +88,9 @@ describe("run export: SDK delegation and rendering", () => {
     expect(cap.out()).toBe("");
     expect(calls.exportWorkbook).toHaveLength(0);
     expect(cap.err()).toContain("[INVALID_FORMAT]");
-    expect(cap.err()).toContain('The --format option must be one of xlsx, csv, tsv, got "ods".');
+    expect(cap.err()).toContain(
+      'The --format option must be one of xlsx, csv, tsv, xliff2, xliff12, got "ods".',
+    );
     expect(cap.err()).not.toContain("invalid_value");
     expect(cap.err()).not.toContain('"path"');
   });
@@ -109,7 +112,7 @@ describe("run export: SDK delegation and rendering", () => {
 
   it("a whole-run error renders to stderr and exits 2", async () => {
     const { deps } = recordingDeps({
-      loadConfig: async () => {
+      loadConfigWithMeta: async () => {
         throw Object.assign(new Error("no config"), { code: "CONFIG_NOT_FOUND" });
       },
     });
@@ -165,6 +168,73 @@ describe("run export: SDK delegation and rendering", () => {
   });
 });
 
+describe("run export: the output guard", () => {
+  it("hands the SDK the loaded config file, so the output guard refuses it under any name", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ source: { kind: "explicit", filepath: "/proj/custom/settings.ts" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["export", "--cwd", "/proj", "--config", "custom/settings.ts"], deps, cap.streams);
+
+    expect(calls.loadConfigWithMeta[0]).toMatchObject({
+      cwd: "/proj",
+      configPath: "custom/settings.ts",
+    });
+    expect(calls.exportWorkbook[0]).toMatchObject({ configPath: "/proj/custom/settings.ts" });
+  });
+
+  it("hands the SDK a file-backed glossary's path, so the output guard refuses it", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () =>
+        makeLoadedConfig({ glossary: { source: "file", path: "/proj/glossary.json" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["export", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(calls.exportWorkbook[0]).toMatchObject({ glossaryPath: "/proj/glossary.json" });
+  });
+
+  it("names no config file when the config came from no file", async () => {
+    const { deps, calls } = recordingDeps({
+      loadConfigWithMeta: async () => makeLoadedConfig({ source: { kind: "override" } }),
+    });
+    const cap = captureStreams();
+
+    await run(["export", "--cwd", "/proj"], deps, cap.streams);
+
+    expect(calls.exportWorkbook[0]).not.toHaveProperty("configPath");
+  });
+
+  it.each([
+    ["EXPORT_OUTPUT_CONFLICT", 'The output path "locales/de.json" is the locale file for "de".'],
+    ["EXPORT_UNWRITABLE", "Could not write the handoff file handoff.xlsx (EACCES)."],
+  ] as const)("reports %s as a structured failure envelope and exits 2", async (code, message) => {
+    const { deps } = recordingDeps({
+      exportWorkbook: async () => {
+        throw new SdkError(code, message);
+      },
+    });
+    const cap = captureStreams();
+
+    const exit = await run(
+      ["export", "--out", "locales/de.json", "--cwd", "/proj", "--json"],
+      deps,
+      cap.streams,
+    );
+
+    expect(exit).toBe(2);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      command: "export",
+      code,
+      message,
+    });
+  });
+});
+
 describe("run import: SDK delegation and rendering", () => {
   it("delegates to importWorkbook with the workbook arg and renders the summary as import", async () => {
     const summary = makeSummary({
@@ -200,6 +270,33 @@ describe("run import: SDK delegation and rendering", () => {
     expect(calls.importWorkbook[0]).toMatchObject({ workbook: "handoff", format: "tsv" });
   });
 
+  it("passes --reviewer through to the SDK and omits it when absent", async () => {
+    const { deps, calls } = recordingDeps();
+    const cap = captureStreams();
+
+    await run(["import", "handoff/de.xlf", "--reviewer", "Ana"], deps, cap.streams);
+    await run(["import", "handoff/de.xlf"], deps, cap.streams);
+
+    expect(calls.importWorkbook[0]).toMatchObject({ workbook: "handoff/de.xlf", reviewer: "Ana" });
+    expect(calls.importWorkbook[1]).not.toHaveProperty("reviewer");
+    expect(calls.importWorkbook[1]).not.toHaveProperty("format");
+  });
+
+  it("keeps --reviewer in the hint a dry run prints", async () => {
+    const { deps } = recordingDeps({
+      importWorkbook: async () => makeSummary({ dryRun: true, succeeded: ["de"] }),
+    });
+    const cap = captureStreams();
+
+    await run(
+      ["import", "de.xlf", "--dry-run", "--format", "xliff12", "--reviewer", "Ana Lee"],
+      deps,
+      cap.streams,
+    );
+
+    expect(cap.err()).toContain("verbatra import de.xlf --format xliff12 --reviewer 'Ana Lee'");
+  });
+
   it("omits the format entirely when the flag is absent, so the SDK default applies", async () => {
     const { deps, calls } = recordingDeps();
     const cap = captureStreams();
@@ -219,7 +316,9 @@ describe("run import: SDK delegation and rendering", () => {
     expect(cap.out()).toBe("");
     expect(calls.importWorkbook).toHaveLength(0);
     expect(cap.err()).toContain("[INVALID_FORMAT]");
-    expect(cap.err()).toContain('The --format option must be one of xlsx, csv, tsv, got "ods".');
+    expect(cap.err()).toContain(
+      'The --format option must be one of xlsx, csv, tsv, xliff2, xliff12, got "ods".',
+    );
     expect(cap.err()).not.toContain("invalid_value");
     expect(cap.err()).not.toContain('"path"');
   });
@@ -314,5 +413,107 @@ describe("run import: SDK delegation and rendering", () => {
     expect(cap.out()).toBe("");
     expect(cap.err()).not.toBe("");
     expect(calls.loadConfig).toHaveLength(0);
+  });
+});
+
+describe("run import: lock-wait progress and --lock-timeout", () => {
+  const waitEvent: LockWaitEvent = {
+    lockPath: "/proj/.verbatra-local/locks/de.lock",
+    elapsedMs: 2_000,
+    holder: { pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" },
+  };
+
+  it("renders the human waiting line to stderr, naming the path, holder pid, and delete hint", async () => {
+    const { deps } = recordingDeps({
+      importWorkbook: async (input) => {
+        input.onLockWait?.(waitEvent);
+        return makeSummary({ succeeded: ["de"] });
+      },
+    });
+    const cap = captureStreams();
+
+    const code = await run(["import", "wb.xlsx"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(cap.err()).toContain("waiting for the write lock");
+    expect(cap.err()).toContain("/proj/.verbatra-local/locks/de.lock");
+    expect(cap.err()).toContain("pid 4321");
+    expect(cap.err()).toContain("can be deleted");
+    expect(cap.out()).not.toContain("waiting for the write lock");
+  });
+
+  it("under --json, keeps stdout to the one envelope and emits the wait event as JSON on stderr", async () => {
+    const summary = makeSummary({ succeeded: ["de"] });
+    const { deps } = recordingDeps({
+      importWorkbook: async (input) => {
+        input.onLockWait?.(waitEvent);
+        return summary;
+      },
+    });
+    const cap = captureStreams();
+
+    const code = await run(["import", "wb.xlsx", "--json"], deps, cap.streams);
+
+    expect(code).toBe(0);
+    expect(parseEnvelope(cap.out()).result).toEqual(summary);
+    expect(JSON.parse(cap.err().trim())).toMatchObject({
+      type: "lock-wait",
+      lockPath: waitEvent.lockPath,
+      holder: { pid: 4321 },
+    });
+  });
+
+  it("--lock-timeout passes the timeout to the SDK as milliseconds", async () => {
+    const { deps, calls } = recordingDeps();
+
+    const code = await run(
+      ["import", "wb.xlsx", "--lock-timeout", "45"],
+      deps,
+      captureStreams().streams,
+    );
+
+    expect(code).toBe(0);
+    expect(calls.importWorkbook[0]?.lockAcquireTimeoutMs).toBe(45_000);
+  });
+
+  it("omits the timeout when the flag is absent, so the SDK default applies", async () => {
+    const { deps, calls } = recordingDeps();
+
+    await run(["import", "wb.xlsx"], deps, captureStreams().streams);
+
+    expect(calls.importWorkbook[0]).not.toHaveProperty("lockAcquireTimeoutMs");
+  });
+
+  it.each([["abc"], ["0"], ["-5"], ["1.5"], ["3601"]])(
+    "rejects --lock-timeout %s as a usage error: exit 2, clean stdout, no SDK call",
+    async (value) => {
+      const { deps, calls } = recordingDeps();
+      const cap = captureStreams();
+
+      const code = await run(["import", "wb.xlsx", `--lock-timeout=${value}`], deps, cap.streams);
+
+      expect(code).toBe(2);
+      expect(cap.out()).toBe("");
+      expect(cap.err()).toContain("INVALID_LOCK_TIMEOUT");
+      expect(calls.importWorkbook).toHaveLength(0);
+    },
+  );
+
+  it("reports an invalid --lock-timeout in the JSON error envelope under --json", async () => {
+    const { deps } = recordingDeps();
+    const cap = captureStreams();
+
+    const code = await run(
+      ["import", "wb.xlsx", "--lock-timeout", "0", "--json"],
+      deps,
+      cap.streams,
+    );
+
+    expect(code).toBe(2);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: false,
+      command: "import",
+      code: "INVALID_LOCK_TIMEOUT",
+    });
   });
 });

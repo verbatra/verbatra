@@ -80,7 +80,7 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
       return INTACT;
     });
 
-    gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo {name}", adapter);
+    gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo {name}", adapter, "de");
 
     expect(seen).toEqual(["Hi {name}", "Hallo {name}"]);
   });
@@ -90,11 +90,12 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     const withoutComparator = flatAdapterWith();
     const entry = sourceEntry("Hi {name}", ["{name}"]);
 
-    expect(gateCandidateValue(entry, "Hallo", withoutComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo", withoutComparator, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
+      details: ["-{name}"],
     });
-    expect(gateCandidateValue(entry, "Hallo", withComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo", withComparator, "de")).toEqual({
       accepted: true,
       integrity: INTACT,
     });
@@ -105,13 +106,14 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     const withoutComparator = flatAdapterWith();
     const entry = sourceEntry("Hi {name}", ["{name}"]);
 
-    expect(gateCandidateValue(entry, "Hallo {name}", withoutComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo {name}", withoutComparator, "de")).toEqual({
       accepted: true,
       integrity: INTACT,
     });
-    expect(gateCandidateValue(entry, "Hallo {name}", withComparator)).toEqual({
+    expect(gateCandidateValue(entry, "Hallo {name}", withComparator, "de")).toEqual({
       accepted: false,
       reason: "placeholder",
+      details: ["-{name}"],
     });
   });
 
@@ -124,7 +126,7 @@ describe("createFlatFileAdapter comparePlaceholders reaches the SDK integrity ga
     };
     const adapter = flatAdapterWith(() => verdict);
 
-    const result = gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo", adapter);
+    const result = gateCandidateValue(sourceEntry("Hi {name}", ["{name}"]), "Hallo", adapter, "de");
 
     expect(result).toEqual({ accepted: true, integrity: verdict });
     expect(result.accepted && result.integrity.reordered).toBe(true);
@@ -340,5 +342,32 @@ describe("translate runs end to end through a third-party adapter", () => {
 
     expect(String((failure as Error).message)).toContain("custom:kv");
     expect(String((failure as Error).message)).toContain("read()");
+  });
+  it("attributes a throw from the plugin's own parser to the plugin, keeping the cause chain", async () => {
+    const dir = await projectDir();
+    const stub = makeStubProvider();
+    const original = new TypeError("plugin parser defect");
+    const adapterRegistry = createDefaultRegistry().register(
+      createFlatFileAdapter({
+        format: "custom:kv",
+        extensions: [".kv"],
+        parseEntries: () => {
+          throw original;
+        },
+        serializeEntries: () => "",
+        extractPlaceholders: () => [],
+      }),
+    );
+
+    const failure = await translate(
+      { config: config(), cwd: dir },
+      { createProvider: () => stub.provider, adapterRegistry },
+    ).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((failure as Error).message).toContain('"custom:kv" adapter failed in read()');
+    const adapterFailure = (failure as Error).cause;
+    expect(adapterFailure).toMatchObject({ name: "AdapterError", code: "ADAPTER_FAILED" });
+    expect((adapterFailure as Error).cause).toBe(original);
   });
 });

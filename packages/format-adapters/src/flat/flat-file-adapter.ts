@@ -1,9 +1,10 @@
 import type { FormatId, LocaleResource, TranslationEntry } from "@verbatra/core";
-import type { FormatAdapter, ReadResult } from "../adapter.js";
+import type { FormatAdapter, ReadResult, WriteContext } from "../adapter.js";
 import { type AdapterFs, nodeAdapterFs } from "../fs-port.js";
 import { readFileContent } from "../json/bounded-read.js";
 import {
   buildCanHandle,
+  type CompareBranchArms,
   type ComparePlaceholders,
   type ComputeInvalidIcuKeys,
   computeIcu,
@@ -13,6 +14,7 @@ import {
   type Sniff,
   type ValidateMessage,
 } from "../shell.js";
+import { checkedParseOutcome, type ParsedEntries } from "./parse-outcome.js";
 
 /**
  * What a flat format's `parseEntries` returns when it has content to report as skipped. Returning a
@@ -46,24 +48,30 @@ export interface FlatFileAdapterOptions {
    */
   readonly sniff?: Sniff;
   /**
-   * Parse one file's text into entries keyed by entry key, in document order. Throw an
-   * `AdapterError` for content this format cannot represent; anything else thrown is reported as a
-   * structural failure.
+   * Parse one file's text into entries keyed by entry key, in document order. Also receives the
+   * locale the file is read as, for a format whose one file carries both source and target text
+   * and has to know which side to read. Throw an `AdapterError` for content this format cannot
+   * represent; anything else thrown is reported as a structural failure.
    */
   readonly parseEntries: (
     content: string,
     namespace: string,
     filePath: string,
     fs: AdapterFs,
+    locale: string,
   ) => FlatParseOutcome | Promise<FlatParseOutcome>;
   /**
-   * Render entries back to the format's text, preserving key order. Receives the destination path
-   * and the port, for a format that has to consult the existing file to write in place.
+   * Render entries back to the format's text, preserving key order. Receives the destination path,
+   * the port, the caller's write context and the locale being written, for a format that has to
+   * consult the existing file, or the source-locale file, to write in place, or that records the
+   * locale inside the file.
    */
   readonly serializeEntries: (
     entries: ReadonlyMap<string, TranslationEntry>,
     filePath: string,
     fs: AdapterFs,
+    context: WriteContext,
+    locale: string,
   ) => Promise<string> | string;
   /** Find this format's placeholder tokens in one value. */
   readonly extractPlaceholders: ExtractPlaceholders;
@@ -76,29 +84,32 @@ export interface FlatFileAdapterOptions {
    * would lose. Omitted adapters are compared by `extractPlaceholders` plus a flat multiset check.
    */
   readonly comparePlaceholders?: ComparePlaceholders;
+  /** Optional check of a translation's plural and select branch arms against its source. */
+  readonly compareBranchArms?: CompareBranchArms;
   /** The file-system port to read and write through. Defaults to `nodeAdapterFs`. */
   readonly fs?: AdapterFs;
 }
 
-function normalizeParseOutcome(outcome: FlatParseOutcome): Required<FlatParseResult> {
-  if (outcome instanceof Map) {
-    return { entries: outcome, excludedLeafPaths: [] };
-  }
-  return { entries: outcome.entries, excludedLeafPaths: outcome.excludedLeafPaths ?? [] };
+interface ParseRequest {
+  readonly content: string;
+  readonly namespace: string;
+  readonly filePath: string;
+  readonly locale: string;
 }
 
 async function toEntries(
-  content: string,
-  namespace: string,
-  filePath: string,
+  request: ParseRequest,
   fs: AdapterFs,
-  parseEntries: FlatFileAdapterOptions["parseEntries"],
-): Promise<Required<FlatParseResult>> {
+  options: Pick<FlatFileAdapterOptions, "format" | "parseEntries">,
+): Promise<ParsedEntries> {
+  const { content, namespace, filePath, locale } = request;
+  let outcome: FlatParseOutcome;
   try {
-    return normalizeParseOutcome(await parseEntries(content, namespace, filePath, fs));
+    outcome = await options.parseEntries(content, namespace, filePath, fs, locale);
   } catch (error) {
     rethrowStructured(error, "The file could not be parsed.");
   }
+  return checkedParseOutcome(options.format, outcome);
 }
 
 /**
@@ -138,6 +149,7 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     validateMessage,
     computeInvalidIcuKeys,
     comparePlaceholders,
+    compareBranchArms,
     fs = nodeAdapterFs,
   } = options;
   return {
@@ -146,22 +158,21 @@ export function createFlatFileAdapter(options: FlatFileAdapterOptions): FormatAd
     extractPlaceholders,
     validateMessage: validateMessage ?? ((): boolean => true),
     ...(comparePlaceholders !== undefined ? { comparePlaceholders } : {}),
+    ...(compareBranchArms !== undefined ? { compareBranchArms } : {}),
     async read(filePath, locale): Promise<ReadResult> {
       const content = await readFileContent(fs, filePath);
       const namespace = namespaceOf(filePath);
       const { entries, excludedLeafPaths } = await toEntries(
-        content,
-        namespace,
-        filePath,
+        { content, namespace, filePath, locale },
         fs,
-        parseEntries,
+        { format, parseEntries },
       );
       const resource: LocaleResource = { locale, namespace, format, entries };
       const invalidIcuKeys = computeIcu(entries, computeInvalidIcuKeys);
       return { resource, invalidIcuKeys, excludedLeafPaths };
     },
-    async write(resource, filePath): Promise<void> {
-      const data = await serializeEntries(resource.entries, filePath, fs);
+    async write(resource, filePath, context = {}): Promise<void> {
+      const data = await serializeEntries(resource.entries, filePath, fs, context, resource.locale);
       await fs.writeFileAtomic(filePath, data);
     },
   };

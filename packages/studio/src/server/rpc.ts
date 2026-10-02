@@ -3,27 +3,54 @@ import { STATUS_CHECK_METHOD } from "../shared/rpc/check.js";
 import type { RpcMethodName, RpcParamsFor, RpcResultFor } from "../shared/rpc/contract.js";
 import { STATUS_DIFF_METHOD } from "../shared/rpc/diff.js";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
+import { ESTIMATE_METHOD } from "../shared/rpc/estimate.js";
 import { GLOSSARY_GET_METHOD, GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
 import { HISTORY_LIST_METHOD } from "../shared/rpc/history.js";
+import { IN_FLIGHT_METHOD } from "../shared/rpc/in-flight.js";
+import { KEY_CONTEXT_METHOD } from "../shared/rpc/key-context.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
+import { LOCALE_INTEGRITY_METHOD } from "../shared/rpc/locale-integrity.js";
 import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
+import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import {
+  REVIEW_APPROVE_MANY_METHOD,
+  REVIEW_REJECT_MANY_METHOD,
+} from "../shared/rpc/review-batch.js";
+import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
+import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
-import { PROJECT_SNAPSHOT_METHOD, type StudioCapabilities } from "../shared/rpc/snapshot.js";
+import {
+  PROJECT_SNAPSHOT_METHOD,
+  type StudioCapabilities,
+  type StudioRateLimits,
+} from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { USAGE_SUMMARY_METHOD } from "../shared/rpc/usage-summary.js";
+import type { InFlightEntry } from "./in-flight-guard.js";
 import { statusCheckHandler } from "./methods/check.js";
 import { statusDiffHandler } from "./methods/diff.js";
 import { editEntryHandler } from "./methods/edit-entry.js";
+import { estimateHandler } from "./methods/estimate.js";
 import { glossaryGetHandler, glossaryWriteHandler } from "./methods/glossary.js";
 import { historyListHandler } from "./methods/history.js";
+import { inFlightHandler } from "./methods/in-flight.js";
+import { keyContextHandler } from "./methods/key-context.js";
 import { keyIntegrityHandler } from "./methods/key-integrity.js";
 import { keyValueHandler } from "./methods/key-value.js";
+import { localeIntegrityHandler } from "./methods/locale-integrity.js";
 import { localeValuesHandler } from "./methods/locale-values.js";
 import { lockStateHandler } from "./methods/lock.js";
 import { retranslateEntryHandler } from "./methods/retranslate-entry.js";
+import {
+  retranslateEntriesHandler,
+  reviewApproveManyHandler,
+  reviewRejectManyHandler,
+} from "./methods/review-batch.js";
+import { reviewApproveHandler, reviewRejectHandler } from "./methods/review-decision.js";
+import { reviewApproveLocaleHandler } from "./methods/review-locale.js";
 import { reviewQueueHandler } from "./methods/review-queue.js";
 import { snapshotHandler } from "./methods/snapshot.js";
 import { translatePendingHandler } from "./methods/translate-pending.js";
@@ -36,6 +63,9 @@ export interface RpcHandlerDeps
   extends Omit<StudioServerDeps, "loader" | "token" | "output" | "assetsRoot"> {
   readonly config: LoadedConfig;
   readonly projectRoot: string;
+  readonly inFlightEntries?: () => readonly InFlightEntry[];
+  readonly rateLimits?: StudioRateLimits;
+  readonly log?: (line: string) => void;
 }
 
 export type RpcHandler<M extends RpcMethodName> = (
@@ -53,9 +83,12 @@ const readOnlyHandlers: HandlersRegistry = {
   [LOCK_STATE_METHOD]: lockStateHandler,
   [HISTORY_LIST_METHOD]: historyListHandler,
   [KEY_INTEGRITY_METHOD]: keyIntegrityHandler,
+  [KEY_CONTEXT_METHOD]: keyContextHandler,
   [LOCALE_VALUES_METHOD]: localeValuesHandler,
+  [LOCALE_INTEGRITY_METHOD]: localeIntegrityHandler,
   [REVIEW_QUEUE_METHOD]: reviewQueueHandler,
   [USAGE_SUMMARY_METHOD]: usageSummaryHandler,
+  [ESTIMATE_METHOD]: estimateHandler,
 };
 
 export function createRpcHandlers(capabilities: StudioCapabilities): HandlersRegistry {
@@ -64,9 +97,16 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     [EDIT_ENTRY_METHOD]: editEntryHandler,
     [KEY_VALUE_METHOD]: keyValueHandler,
     [GLOSSARY_WRITE_METHOD]: glossaryWriteHandler,
+    [REVIEW_APPROVE_METHOD]: reviewApproveHandler,
+    [REVIEW_REJECT_METHOD]: reviewRejectHandler,
+    [REVIEW_APPROVE_MANY_METHOD]: reviewApproveManyHandler,
+    [REVIEW_REJECT_MANY_METHOD]: reviewRejectManyHandler,
+    [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleHandler,
     ...(capabilities.spend
       ? {
           [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,
+          [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesHandler,
+          [IN_FLIGHT_METHOD]: inFlightHandler,
           [TRANSLATE_PENDING_METHOD]: translatePendingHandler,
         }
       : {}),

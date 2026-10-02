@@ -1,6 +1,7 @@
 import process from "node:process";
 import {
   check,
+  checkFile,
   diff,
   doctor,
   exportTmx,
@@ -11,11 +12,27 @@ import {
   importWorkbook,
   loadConfig,
   loadConfigWithMeta,
+  provenanceReport,
   pseudolocalize,
+  releaseHeldLocks,
   translate,
   watch,
 } from "@verbatra/sdk";
+import { type InterruptSignal, renderInterrupted } from "./render.js";
 import { run } from "./run.js";
+import { createLineSettler } from "./spinner.js";
+
+const stderr = createLineSettler((text) => {
+  process.stderr.write(text);
+});
+
+function exitAfterReleasingLocks(code: number, signal: InterruptSignal, json: boolean): void {
+  stderr.settle();
+  void releaseHeldLocks().finally(() => {
+    process.stderr.write(`${renderInterrupted(signal, json)}\n`);
+    process.exit(code);
+  });
+}
 
 const code = await run(
   process.argv.slice(2),
@@ -26,6 +43,7 @@ const code = await run(
     exportWorkbook,
     importWorkbook,
     check,
+    checkFile,
     diff,
     doctor,
     loadConfigWithMeta,
@@ -36,16 +54,19 @@ const code = await run(
     generateTypes,
     importTmx,
     exportTmx,
+    provenanceReport,
   },
   {
     out: (text) => {
       process.stdout.write(text);
     },
-    err: (text) => {
-      process.stderr.write(text);
-    },
+    err: stderr.write,
   },
   {
+    onLockingCommand: ({ json }) => {
+      process.once("SIGINT", () => exitAfterReleasingLocks(130, "SIGINT", json));
+      process.once("SIGTERM", () => exitAfterReleasingLocks(143, "SIGTERM", json));
+    },
     onWatchSession: (session) => {
       process.on("SIGINT", () => session.requestStop());
       process.on("SIGTERM", () => session.requestStop());
@@ -59,6 +80,13 @@ const code = await run(
       process.on("SIGTERM", () => session.requestStop());
     },
   },
+  {
+    env: process.env,
+    stdinIsTty: process.stdin.isTTY === true,
+    stderrIsTty: process.stderr.isTTY === true,
+  },
 );
 
+await releaseHeldLocks();
+stderr.settle();
 process.exit(code);

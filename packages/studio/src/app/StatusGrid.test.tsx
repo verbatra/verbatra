@@ -96,7 +96,7 @@ describe("StatusGrid", () => {
       "b.changed in de: changed",
       "b.changed in fr: in-sync",
       "c.orphaned in de: orphaned",
-      "c.orphaned in fr: in-sync",
+      "c.orphaned in fr: absent",
     ]);
   });
 
@@ -111,6 +111,18 @@ describe("StatusGrid", () => {
     expect(cellFor(view, "b.changed in de: changed").textContent).toBe("Changed");
     expect(cellFor(view, "c.orphaned in de: orphaned").textContent).toBe("Orphaned");
     expect(cellFor(view, "a.missing in fr: in-sync").textContent).toBe("In sync");
+    expect(cellFor(view, "c.orphaned in fr: absent").textContent).toBe("Absent");
+  });
+
+  it("labels a protected key as protected, in words as well as color", async () => {
+    stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
+    const protectedDiff = { ...localeDiff("de", [], ["b.changed"]), protected: ["b.changed"] };
+
+    const view = await renderAsync(
+      <StatusGrid locales={[protectedDiff]} refreshToken={0} onSelectKey={vi.fn()} />,
+    );
+
+    expect(cellFor(view, "b.changed in de: protected").textContent).toBe("Protected");
   });
 
   it("shows a loading note per locale header while the coverage call is still open", () => {
@@ -305,7 +317,7 @@ describe("StatusGrid", () => {
     const view = await renderAsync(
       <StatusGrid locales={[DE_DRIFT, FR_CLEAN]} refreshToken={0} onSelectKey={vi.fn()} />,
     );
-    const target = cellFor(view, "c.orphaned in fr: in-sync");
+    const target = cellFor(view, "c.orphaned in fr: absent");
     act(() => {
       target.focus();
     });
@@ -366,7 +378,7 @@ describe("StatusGrid", () => {
     expect(view.text()).not.toContain("Switch to the List view to filter.");
   });
 
-  it("renders a right-to-left locale's header and cells in its own direction", async () => {
+  it("keeps a right-to-left locale's header and cells in the page direction, since they hold only UI text", async () => {
     stubRpc({ "status.check": { ok: true, result: checkResult([]) } });
 
     const view = await renderAsync(
@@ -377,9 +389,6 @@ describe("StatusGrid", () => {
       />,
     );
 
-    expect(view.get("thead th:nth-child(2)").getAttribute("dir")).toBe("rtl");
-    expect(view.get("thead th:nth-child(3)").getAttribute("dir")).toBeNull();
-    expect(view.get("tbody td:nth-child(2)").getAttribute("dir")).toBe("rtl");
-    expect(view.get("tbody td:nth-child(3)").getAttribute("dir")).toBeNull();
+    expect(view.all("[dir]")).toEqual([]);
   });
 });

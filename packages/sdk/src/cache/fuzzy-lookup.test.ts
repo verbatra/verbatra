@@ -73,6 +73,51 @@ describe("findFuzzyMatch", () => {
     expect(findFuzzyMatch(memory, "fp1", "de", NEARLY, { threshold: 0.7 })?.value).toBe("Nah");
   });
 
+  it("passes over an excluded value and returns the best remaining candidate", () => {
+    const rival = NEARLY.replace("automatically", "auTOmaticalLX");
+    const memory = memoryOf(
+      { fp1: { de: { aRival: "Weit", zNear: "Nah" } } },
+      { aRival: rival, zNear: EDITED },
+    );
+    const input = { threshold: 0.7, excludeValue: (value: string) => value === "Nah" };
+
+    expect(findFuzzyMatch(memory, "fp1", "de", NEARLY, input)?.value).toBe("Weit");
+  });
+
+  it("asks about excluding only the candidates that pass the prefilter", () => {
+    const memory = memoryOf(
+      { fp1: { de: { far: "Kurz", same: "Gleich", near: "Nah", gone: "Weg" } } },
+      { far: "Hi", same: NEARLY, near: EDITED },
+    );
+    const asked: string[] = [];
+    const excludeValue = (value: string): boolean => {
+      asked.push(value);
+      return false;
+    };
+
+    const match = findFuzzyMatch(memory, "fp1", "de", NEARLY, { threshold: 0.7, excludeValue });
+
+    expect(match?.value).toBe("Nah");
+    expect(asked).toEqual(["Nah"]);
+  });
+
+  it("keeps an excluded candidate from taking a scoring slot from the next best", () => {
+    const entries: Record<string, string> = { zNext: "Weiter" };
+    const sources: Record<string, string> = { zNext: EDITED };
+    for (let index = 0; index < FUZZY_MAX_CANDIDATES_SCORED; index += 1) {
+      const hash = `a${String(index).padStart(5, "0")}`;
+      entries[hash] = `Abgelehnt ${index}`;
+      sources[hash] = EDITED;
+    }
+
+    const match = findFuzzyMatch(memoryOf({ fp1: { de: entries } }, sources), "fp1", "de", NEARLY, {
+      threshold: 0.7,
+      excludeValue: (value) => value.startsWith("Abgelehnt"),
+    });
+
+    expect(match?.value).toBe("Weiter");
+  });
+
   it("clears the bar for the rival too, so that choice is a real one", () => {
     const rival = NEARLY.replace("automatically", "auTOmaticalLX");
     const memory = memoryOf({ fp1: { de: { aRival: "Weit" } } }, { aRival: rival });

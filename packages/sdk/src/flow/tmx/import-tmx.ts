@@ -8,11 +8,10 @@ import {
   type TmxUnit,
 } from "@verbatra/exchange";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
-import { computeFingerprint } from "../../cache/fingerprint.js";
+import { type FingerprintFor, fingerprintsFor } from "../../cache/fingerprint.js";
 import {
   applyAdditions,
   cacheFilePath,
-  readTranslationMemory,
   writeTranslationMemory,
 } from "../../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../../cache/types.js";
@@ -20,7 +19,12 @@ import type { VerbatraConfig } from "../../config/schema.js";
 import { errorMessage, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
-import { gateCandidateValue, type IntegrityGateReason } from "../integrity-gate.js";
+import {
+  gateCandidateValue,
+  type IntegrityGateReason,
+  type IntegrityGateRejection,
+} from "../integrity-gate.js";
+import { readCarriedOverMemory } from "../locale-carry-over.js";
 import { selectLocales } from "../select-locales.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
@@ -69,15 +73,39 @@ export function tmxErrorLocation(error: unknown): TmxErrorLocation | undefined {
 /** How many units were refused, by reason. See {@link TmxRejectionReason}. */
 export type TmxRejectionCounts = Readonly<Record<TmxRejectionReason, number>>;
 
+/**
+ * One translation unit the integrity gate refused for a locale, in an {@link ImportTmxLocaleResult}.
+ */
+export interface TmxUnitRefusal {
+  /** The 1-based ordinal of the unit in the file's first `body`, counting every `tu`. */
+  readonly unit: number;
+  /** The gate check the unit's translation failed, one of {@link INTEGRITY_GATE_REASONS}. */
+  readonly reason: IntegrityGateReason;
+  /**
+   * What is wrong, when the check can name it: for `placeholder`, each placeholder the translation
+   * dropped prefixed with `-` and each one it added prefixed with `+`; for `markup`, the offending
+   * tags in the same notation; for `icu`, each plural, ordinal, or select arm that does not fit the
+   * target language. Absent when no single part is at fault.
+   */
+  readonly details?: readonly string[];
+}
+
 /** What an import did to the memory for one target locale. */
 export interface ImportTmxLocaleResult {
   /** The configured target locale, spelled as the config spells it. */
   readonly locale: string;
-  /** Units stored for the first time. */
+  /**
+   * Units stored for the first time. On a dry run, or when {@link ImportTmxResult.memoryWritable}
+   * is false, this counts what the file would have stored, and nothing was written.
+   */
   readonly added: number;
   /** Units the memory already held with the same translation, so nothing changed. */
   readonly unchanged: number;
-  /** Units that replaced a different existing translation, which needs `overwrite`. */
+  /**
+   * Units that replaced a different existing translation, which needs `overwrite`. Like
+   * {@link ImportTmxLocaleResult.added}, it counts what would have been replaced when nothing was
+   * written.
+   */
   readonly overwritten: number;
   /** Units refused because the memory already held a different translation and `overwrite` was off. */
   readonly kept: number;
@@ -92,6 +120,11 @@ export interface ImportTmxLocaleResult {
   readonly conflicting: number;
   /** Units refused before they could be stored, by reason. */
   readonly rejected: TmxRejectionCounts;
+  /**
+   * Every unit counted under an integrity gate reason in {@link ImportTmxLocaleResult.rejected},
+   * in file order, with what is wrong. Units refused as `sourceBlank` are counted only.
+   */
+  readonly refusals: readonly TmxUnitRefusal[];
 }
 
 /** A language tag in the file that no configured locale could be resolved to. */
@@ -155,7 +188,9 @@ export interface ImportTmxResult {
   readonly notImported: readonly TmxLanguageReport[];
   /**
    * Whether the memory file could be written. False when the project's cache was written by a newer
-   * build, which is left untouched rather than downgraded.
+   * build, which is left untouched rather than downgraded. The per-locale counts are still reported
+   * then, as on a dry run, so they describe what the file holds for this project rather than what
+   * was stored: when this is false, nothing was.
    */
   readonly memoryWritable: boolean;
 }
@@ -204,6 +239,7 @@ interface LocaleTally {
   duplicates: number;
   conflicting: number;
   rejected: Record<TmxRejectionReason, number>;
+  refusals: TmxUnitRefusal[];
   additions: Record<string, CacheAddition>;
   seenHashes: Set<string>;
 }
@@ -217,6 +253,7 @@ function emptyTally(): LocaleTally {
     duplicates: 0,
     conflicting: 0,
     rejected: { ...NO_REJECTIONS },
+    refusals: [],
     additions: {},
     seenHashes: new Set<string>(),
   };
@@ -348,27 +385,35 @@ function decide(
 
 interface ApplyContext {
   readonly memory: TranslationMemory;
-  readonly fingerprint: string;
+  readonly fingerprintFor: FingerprintFor;
   readonly adapter: FormatAdapter;
   readonly overwrite: boolean;
 }
 
 const STAGED: ReadonlySet<Decision> = new Set<Decision>(["added", "overwritten"]);
 
+function unitRefusal(unit: number, rejection: IntegrityGateRejection): TmxUnitRefusal {
+  return rejection.details === undefined
+    ? { unit, reason: rejection.reason }
+    : { unit, reason: rejection.reason, details: rejection.details };
+}
+
 function applyTranslation(
   ctx: ApplyContext,
   tally: LocaleTally,
+  unit: number,
   locale: string,
   sourceEntry: TranslationEntry,
   candidate: string,
 ): void {
-  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter);
+  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
   if (!gate.accepted) {
     tally.rejected[gate.reason] += 1;
+    tally.refusals.push(unitRefusal(unit, gate));
     return;
   }
   const hash = contentHash(sourceEntry);
-  const existing = ctx.memory.entries[ctx.fingerprint]?.[locale]?.[hash];
+  const existing = ctx.memory.entries[ctx.fingerprintFor(locale)]?.[locale]?.[hash];
   const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
   tally[decision] += 1;
   if (STAGED.has(decision)) {
@@ -385,6 +430,7 @@ interface ScanTotals {
 
 function importUnit(
   ctx: ApplyContext,
+  unit: number,
   plan: UnitPlan,
   tallies: ReadonlyMap<string, LocaleTally>,
   census: LanguageCensus,
@@ -405,7 +451,7 @@ function importUnit(
     } else if (!refused && pick.conflicted) {
       tally.conflicting += 1;
     } else if (sourceEntry !== undefined) {
-      applyTranslation(ctx, tally, locale, sourceEntry, pick.text);
+      applyTranslation(ctx, tally, unit, locale, sourceEntry, pick.text);
     }
   }
   return plan.kind;
@@ -432,6 +478,7 @@ function scanUnits(
     }
     const outcome = importUnit(
       ctx,
+      unit.ordinal,
       planUnit(unit, sourceLocale, configuredTargets, census),
       tallies,
       census,
@@ -475,6 +522,7 @@ function toLocaleResult(locale: string, tally: LocaleTally): ImportTmxLocaleResu
     duplicates: tally.duplicates,
     conflicting: tally.conflicting,
     rejected: { ...tally.rejected },
+    refusals: [...tally.refusals],
   };
 }
 
@@ -505,8 +553,9 @@ function additionsByLocale(
  *
  * Units are stored under the project's current configuration fingerprint, the same key a real run
  * writes. That is deliberate: an imported memory is reused exactly when the configuration that
- * would consume it matches, and stops matching when the provider, model, tone or glossary changes,
- * which is the protection the fingerprint layer exists to give. Re-import after such a change.
+ * would consume it matches, and stops matching when the provider, model, tone, glossary or a
+ * non-empty provider `localeMap` changes, which is the protection the fingerprint layer exists to
+ * give. Re-import after such a change.
  *
  * A collision is decided in favour of what the project already has: if the memory already holds a
  * different translation for the same source and locale, the imported one is refused and counted as
@@ -564,9 +613,14 @@ export async function importTmx(
   const file = resolve(cwd, input.file);
   const document = parse(await readTmxText(file, fs), file);
 
-  const { memory, writable } = await readTranslationMemory(cacheFilePath(cwd), fs);
-  const fingerprint = computeFingerprint(input.config);
-  const ctx: ApplyContext = { memory, fingerprint, adapter, overwrite: input.overwrite ?? false };
+  const { memory, writable } = await readCarriedOverMemory(cwd, fs, locales);
+  const fingerprintFor = fingerprintsFor(input.config);
+  const ctx: ApplyContext = {
+    memory,
+    fingerprintFor,
+    adapter,
+    overwrite: input.overwrite ?? false,
+  };
   const census = new LanguageCensus();
   const tallies = new Map<string, LocaleTally>(locales.map((locale) => [locale, emptyTally()]));
 
@@ -584,7 +638,7 @@ export async function importTmx(
   if (!dryRun && writable && byLocale.size > 0) {
     await writeTranslationMemory(
       cacheFilePath(cwd),
-      applyAdditions(memory, fingerprint, byLocale),
+      applyAdditions(memory, fingerprintFor, byLocale),
       fs,
     );
   }

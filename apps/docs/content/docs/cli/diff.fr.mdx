@@ -1,8 +1,9 @@
 ---
 title: verbatra diff
 description: Affiche les clés qui seraient ajoutées, retraduites ou orphelines par locale sans écrire de fichiers.
+type: reference
 ---
-Liste, par locale cible, les clés exactes en attente : celles qu'une exécution ajouterait (manquantes dans la cible), celles qu'elle retraduirait (source modifiée depuis la dernière traduction) et celles désormais orphelines (dans la cible mais disparues de la source). `diff` exécute la même lecture et la même comparaison que [`verbatra translate`](/docs/cli/translate) effectue juste avant d'appeler un fournisseur, puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/docs/the-lock-file) et aucune clé d'API requise.
+Liste, par locale cible, les clés exactes en attente : celles qu'une exécution ajouterait, celles qu'elle retraduirait et celles désormais orphelines. `diff` fait la même lecture et la même comparaison que [`verbatra translate`](/docs/cli/translate), puis s'arrête : aucun appel de fournisseur, aucun fichier écrit, aucune mise à jour du [fichier de verrouillage](/docs/the-lock-file), aucune clé d'API requise.
 
 ## Synopsis
 
@@ -14,83 +15,116 @@ verbatra diff [flags]
 
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | répertoire courant | résout la config et les fichiers de locale depuis ce répertoire |
-| `--config` | `<path>` | recherche automatique | charge ce fichier de config au lieu d'en chercher un |
-| `--locales` | `<list>` | toutes les cibles configurées | sous-ensemble de locales cibles à comparer, séparées par des virgules |
-| `--unused` | aucun | désactivé | analyse aussi les racines du [bloc `extract`](/docs/config-file#extract) et liste les clés de la locale source qu'aucun appel ne nomme (voir [Clés source inutilisées](#clés-source-inutilisées)) |
-| `--json` | aucun | désactivé | affiche une [enveloppe JSON](/docs/ci-and-exit-codes#sortie-json) sur stdout portant le résumé de comparaison sous `result`, ou le code d'erreur si l'exécution échoue ; la ligne d'erreur lisible par un humain va toujours sur stderr |
+| `--locales` | `<list>` | toutes les cibles configurées | compare seulement ce sous-ensemble séparé par des virgules ; une valeur vide ou inconnue est une erreur d'utilisation, sortie `2` |
+| `--unused` | aucun | désactivé | liste aussi les clés de la locale source qu'aucun appel sous les [racines de `extract`](/docs/config-file#extract) ne nomme ; voir [Clés source inutilisées](#clés-source-inutilisées) |
 
-Une locale a des changements en attente quand elle a au moins une clé à ajouter ou à retraduire. Les clés orphelines sont signalées mais ne comptent jamais comme en attente, parce qu'une exécution par défaut ne les supprime pas (seul [`verbatra translate --prune`](/docs/cli/translate) le fait). Une valeur `--locales` vide ou inconnue est rejetée avec la sortie `2` plutôt que de ne rien comparer en silence. Là où [`verbatra check`](/docs/cli/check) répond "combien a dérivé" avec des décomptes, `diff` répond "quelles clés" avec les listes.
+Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`.
 
-## Clés source inutilisées
+## Comportement
+
+### Clés en attente et orphelines
+
+Chaque locale liste trois sortes de clés :
+
+| Liste | Signification |
+| --- | --- |
+| `missing` (affichée comme `add`) | dans la source, absente de la cible : une exécution l'ajouterait |
+| `changed` (affichée comme `re-translate`) | le texte source a changé depuis la dernière traduction : une exécution la retraduirait |
+| `orphaned` | dans la cible, disparue de la source : seulement signalée |
+
+Une locale a des changements en attente dès qu'elle a au moins une clé manquante ou modifiée. Les clés orphelines ne comptent jamais comme en attente, car une exécution par défaut les laisse en place ; seul [`verbatra translate --prune`](/docs/cli/translate) les supprime. [`verbatra check`](/docs/cli/check) donne les décomptes, `diff` donne les listes de clés.
+
+### Clés source inutilisées
 
 <AvailableFrom version="0.11.0" />
 
-`orphaned` répond à "quelles clés cibles ont quitté la source". `--unused` répond à une autre question : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus nulle part ? Il analyse les `roots` du [bloc `extract`](/docs/config-file#extract) avec le même lecteur que [`verbatra extract`](/docs/cli/extract), et liste chaque clé de la locale source qu'aucune référence statique ne nomme. Les deux listes ne sont jamais fusionnées : une clé peut être orpheline dans `de` et, indépendamment, inutilisée dans la source.
+`--unused` répond à une autre question que `orphaned` : quelles clés de ton fichier de locale source ton application ne nomme-t-elle plus ? Il analyse les `roots` du [bloc `extract`](/docs/config-file#extract) avec le lecteur de [`verbatra extract`](/docs/cli/extract) et liste chaque clé source qu'aucune référence statique ne nomme. Les deux listes ne sont jamais fusionnées. L'analyse ne fait que lire : rien n'est supprimé, et aucune clé d'API n'est lue. Supprimer une clé, c'est ta décision.
 
-Il reste en lecture seule. Rien n'est supprimé, réécrit ni réordonné, aucun fournisseur n'est construit et aucune clé d'API n'est lue. Supprimer une clé reste ta décision, alors relis la liste avant.
+L'analyse modélise le runtime i18next. Ceci compte comme une référence :
 
-L'analyse modélise le runtime i18next. Voici ce qui compte comme référence à une clé :
+- un appel `t(...)`, `$t(...)` ou `<object>.t(...)` n'importe où sous les racines, aussi via un alias comme `const { t: translate } = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` ou `i18n.getFixedT(...)` ;
+- un `keyPrefix` statique ou un troisième argument statique de `getFixedT`, qui couvre aussi la forme préfixée de chaque clé statique de ce fichier, et un `i18nKey` statique sur `Trans` ou dans un objet ;
+- une clé avec namespace (`common:nav.home` couvre aussi `nav.home`), une clé en langage naturel et chaque entrée d'un tableau statique de clés ;
+- une variante de pluriel ou de contexte d'une clé référencée (`t("items", { count })` couvre `items_one` et `items_other`) et chaque clé sous un parent référencé.
 
-- Un appel `t(...)`, `$t(...)` ou `<object>.t(...)` n'importe où sous les racines, y compris dans un fichier qu'aucune route n'importe, et un appel via un alias de `t` : `const { t: translate } = useTranslation()`, `const [translate] = useTranslation()`, `const tr = i18n.t`, `t.bind(i18n)` ou `i18n.getFixedT(...)`.
-- Un `keyPrefix` statique (en option, en propriété d'objet ou en attribut JSX) ou un troisième argument statique de `getFixedT`. Chaque clé statique de ce fichier couvre alors aussi la clé préfixée, donc `t("home")` sous `keyPrefix: "nav"` couvre `nav.home` (et toujours `home`).
-- Un `i18nKey` statique sur un élément `Trans` ou dans un objet.
-- Une clé avec namespace comme `common:nav.home` (elle couvre `common:nav.home` et `nav.home`), une clé en langage naturel comme `Loading...` ou `Error: failed`, et chaque clé d'un tableau statique de clés comme `t(["a", "b"])`.
-- Une variante de pluriel ou de contexte d'une clé référencée : `t("items", { count })` couvre `items_one` et `items_other`, et `t("friend", { context })` couvre `friend_male`, `place_ordinal_one` et similaires. Cela correspond à la façon dont `translate` garde les formes plurielles générées hors de la liste des orphelines. Chaque clé sous un parent référencé compte aussi, donc `t("nav", { returnObjects: true })` couvre `nav.home`.
+Les clés sont comparées dans l'encodage propre au format du catalogue, donc une clé JSON plate avec des points, un pluriel ou une entrée `msgctxt` gettext et une entrée `<plurals>` Android correspondent toutes à la clé que ton code nomme. Un template literal à tête statique, comme `` t(`nav.${page}`) ``, liste les clés sous `nav.` comme `possiblyDynamic`, à part de `unused`, et ne fait jamais échouer l'exécution.
 
-Les clés sont comparées dans l'encodage propre au format du catalogue, donc une clé JSON plate avec un point (`{ "a.b": "..." }`), un pluriel gettext (`msgstr[0]`, `msgstr[1]`) ou une entrée `msgctxt` (`t("Open", { context: "menu" })`) et une entrée Android `<plurals>` correspondent toutes à la clé que ton code nomme.
-
-Une clé en template literal avec un début statique, comme `` t(`nav.${page}`) ``, ne rend pas le rapport peu fiable : les clés sous `nav.` sont listées comme `possiblyDynamic`, séparément de `unused`, et ne font jamais échouer l'exécution.
-
-Le rapport porte un `status` :
-
-| `status` | Signification |
-| --- | --- |
-| `complete` | l'analyse a pu borner chaque clé qu'atteignent les constructions modélisées, donc `unused` liste des clés qu'aucune référence statique ne nomme |
-| `unreliable` | l'analyse a rencontré quelque chose qu'elle ne peut pas borner, donc une clé listée peut encore être utilisée. `unreliableBecause` nomme chaque raison avec son nombre et ses emplacements (fichier et ligne) |
-| `not-run` | il n'y a rien de fiable sur quoi juger, et aucune clé n'est listée. `reason` dit pourquoi |
+Le rapport porte un `status` : `complete` (chaque clé atteignable a été bornée, donc `unused` est fiable), `unreliable` (une clé listée peut encore servir ; `unreliableBecause` nomme chaque raison avec son nombre et ses emplacements) ou `not-run` (rien n'est listé ; `reason` dit pourquoi) :
 
 | Raison | `status` | Quand |
 | --- | --- | --- |
-| `dynamic-keys` | `unreliable` | une clé sans partie statique : `t(key)`, un template literal sans début statique ou une concaténation |
+| `dynamic-keys` | `unreliable` | une clé sans partie statique : `t(key)`, un template literal sans tête statique ou une concaténation |
 | `dynamic-key-prefix` | `unreliable` | un préfixe `keyPrefix` ou `getFixedT` qui n'est pas une chaîne statique |
 | `trans-without-key` | `unreliable` | un élément `Trans` sans `i18nKey` statique |
 | `aliased-translate-function` | `unreliable` | `t` affectée à autre chose qu'une simple variable, comme `this.tr = t` |
-| `translate-function-escapes` | `unreliable` | une fonction de traduction issue d'une source reconnue apparaît ailleurs qu'aux positions autorisées listées plus bas, comme `renderRow(t)`, `<Child t={t} />`, `{ t }`, `return t`, `cond ? t : other` ou `export default t` |
-| `unrecognised-translate-source` | `unreliable` | `useTranslation`, `withTranslation`, `getFixedT`, `Translation`, un membre `t` ou un import de `t` utilisé sous une forme absente de la liste plus bas, comme un hook enveloppe qui renvoie `useTranslation(...)`, des options du hook passées par nom ou construites avec un spread, ou un résultat de `getFixedT` exporté |
+| `translate-function-escapes` | `unreliable` | une fonction de traduction utilisée ailleurs que dans un appel direct, sa propre liaison, un alias local, `t={t}` sur `Trans` ou `Translation` ou un tableau de dépendances de hook : `renderRow(t)`, `{ t }`, `return t`, `export default t` |
+| `unrecognised-translate-source` | `unreliable` | un `t` ou `$t` venant d'une source que l'analyse ne modélise pas, comme un hook enveloppe qui renvoie `useTranslation(...)`, des options de hook avec spread ou un résultat `getFixedT` exporté |
 | `template-files-not-scanned` | `unreliable` | des fichiers `.vue`, `.svelte`, `.html`, `.htm`, `.astro`, `.hbs`, `.handlebars`, `.ejs`, `.pug`, `.njk`, `.liquid` ou `.mdx` sous les racines (les 20 premiers sont listés, tous sont comptés) |
-| `incomplete-scan` | `unreliable` | un fichier trop volumineux, illisible ou impossible à lire jusqu'au bout (dans un fichier `.tsx`, `.jsx` ou `.js`, aussi un élément JSX jamais fermé et une chaîne entre guillemets dans le code qui atteint la fin de sa ligne), ou un dossier impossible à lister |
+| `incomplete-scan` | `unreliable` | un fichier trop gros, illisible ou pas lisible jusqu'au bout (aussi un élément JSX jamais fermé ou une chaîne qui court jusqu'à la fin de sa ligne), ou un répertoire impossible à lister |
 | `EXTRACT_NOT_CONFIGURED` | `not-run` | aucun bloc `extract` |
-| `EXTRACT_FS_UNSUPPORTED` | `not-run` | le système de fichiers d'un appelant du SDK ne peut pas lister les dossiers |
-| `FRAMEWORK_NOT_MODELED` | `not-run` | le format est `next-intl-json`, `vue-i18n-json` ou `ngx-translate-json`, dont l'analyse ne modélise pas les runtimes |
+| `EXTRACT_FS_UNSUPPORTED` | `not-run` | le système de fichiers d'un appelant du SDK ne sait pas lister les répertoires |
+| `FRAMEWORK_NOT_MODELED` | `not-run` | le format est `next-intl-json`, `vue-i18n-json` ou `ngx-translate-json`, dont l'analyse ne modélise pas le runtime |
 | `NO_SOURCE_FILES` | `not-run` | aucun fichier source sous les racines |
-| `NO_REFERENCES_FOUND` | `not-run` | les fichiers analysés ne nomment aucune clé et ne contiennent aucun appel à clé dynamique alors que le catalogue n'est pas vide, ce qui signifie en général que les racines ne couvrent pas ton code |
+| `NO_REFERENCES_FOUND` | `not-run` | les fichiers analysés ne nomment aucune clé et n'ont aucun site de clé dynamique alors que le catalogue n'est pas vide, ce qui veut souvent dire que les racines ratent ton code |
 
-L'analyse ne fait confiance qu'aux fonctions de traduction dont elle voit la création. Chaque usage d'une source de traduction doit avoir l'une de ces formes, sinon le rapport est `unreliable` avec `unrecognised-translate-source` :
+Les sources de fonctions de traduction reconnues sont : `useTranslation(...)` déstructuré dans une liaison locale non exportée avec des arguments statiques ; un `i18n.getFixedT(...)` local avec des arguments statiques ; un appel direct sur un membre `t` (`i18n.t("key")`, `this.props.t("key")`) et son alias local ; `<Translation>{(t) => ...}</Translation>` ; `withTranslation("ns")(Component)` avec `props.t(...)` ; et `import { t } from "i18next"`. Toute variable ou tout membre nommé `t` ou `$t` est jugé, donc un `frame.t + 1` sans rapport peut rendre le rapport non fiable. Dans les fichiers `.tsx`, `.jsx` et `.js`, le texte JSX et les valeurs d'attribut entre guillemets sont lus comme du balisage, jamais comme du code.
 
-- `const { t } = useTranslation(...)` (aussi `{ t: alias }`, `i18n`, `ready` ou un tableau `[t, i18n]`), non exporté, appelé sans argument, avec un namespace statique ou un tableau de namespaces et, en option, un objet littéral dont le `keyPrefix`, s'il existe, est une chaîne statique et qui n'a ni spread ni clé calculée.
-- `const f = i18n.getFixedT(...)`, non exporté, avec une langue statique, `null` ou nommée en premier (comme `i18n.language`) puis uniquement des chaînes statiques, des tableaux de chaînes, `null` ou `undefined`.
-- Un appel direct sur un membre `t`, comme `i18n.t("key")` ou `this.props.t("key")`, un `const tr = i18n.t` ou `const tr = i18n.t.bind(i18n)` local et non exporté, et un `const { t } = i18next` ou `const { t: tr } = i18n` local et non exporté.
-- `<Translation>{(t) => ...}</Translation>` ou `<Translation>{t => ...}</Translation>`.
-- `withTranslation("ns")(Component)`, dont le composant appelle `props.t(...)`.
-- `import { t } from "i18next"` (aussi `t as alias`), et les imports simples de `useTranslation`, `withTranslation`, `getFixedT` et `Translation`.
+Chaque clé listée montre sa forme décodée (une entrée `msgctxt` gettext comme `menu|Open`) ; `--json` porte aussi la `catalogKey` telle que l'adaptateur l'écrit. Une clé utilisée seulement hors du code analysé (un template serveur, un CMS) va dans [`extract.unused.ignore`](/docs/config-file#extract) : un motif correspond à la clé décodée, et une clé qui correspond est listée sous `ignored`, jamais écartée en silence.
 
-Chaque liaison nommée `t` ou `$t` est vérifiée, quelle que soit son origine, tout comme chaque fonction de traduction obtenue comme ci-dessus et tout alias local `const tr = t`. Elles ne peuvent apparaître que comme appel direct, comme leur propre déclaration, comme alias local, comme attribut `t={t}` de `Trans` ou `Translation`, ou comme élément du tableau de dépendances de `useEffect`, `useLayoutEffect`, `useMemo` ou `useCallback`. Partout ailleurs (un argument, une prop, une propriété d'objet, une valeur de retour, un opérande de ternaire, un export), le rapport est `unreliable` avec `translate-function-escapes`. Un `t` ou `$t` déclaré ou déstructuré à partir d'autre chose qu'une source reconnue, un alias local, un paramètre de fonction ou `this.props` donne `unrecognised-translate-source` ; un paramètre de fonction nommé `t` convient tant qu'il est seulement appelé. Une variable ou un membre sans rapport nommé `t`, comme `frame.t + 1`, est jugé de la même façon et peut donc rendre un rapport peu fiable. Un préfixe de clé s'applique à chaque clé du fichier qui le déclare. Dans un fichier `.tsx`, `.jsx` ou `.js`, le texte JSX et les valeurs d'attribut entre guillemets sont lus comme du balisage, pas comme du code : une apostrophe ou un mot comme `t` qu'ils contiennent ne masque donc jamais un appel et ne compte jamais comme une utilisation de `t`.
+### Clés protégées
 
-Chaque clé listée affiche sa forme décodée (`Welcome. Enjoy`, et une entrée gettext avec `msgctxt` sous la forme `menu|Open`) ; `--json` porte aussi le `catalogKey` tel que l'adaptateur l'écrit (`Welcome\. Enjoy`).
+<AvailableFrom version="0.12.0" />
 
-Une clé référencée uniquement hors du code analysé (un template serveur, un CMS, une fixture de test) va dans [`extract.unused.ignore`](/docs/config-file#extract). Un motif correspond à la clé décodée. Une clé correspondante apparaît sous `ignored`, jamais sous `unused` ni `possiblyDynamic`, et n'est jamais écartée en silence.
+Les clés manquantes et modifiées que `translate` laisserait à une personne (une personne a écrit, importé ou modifié la valeur hors de verbatra, ou la clé correspond à `pinnedKeys`) sont listées en plus sous `protected` ; voir [Protéger les traductions humaines](/docs/protecting-human-translations). Elles restent sous `add` et `re-translate`, puisqu'elles sont toujours en attente. Si `verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, seules les clés épinglées sont listées.
+
+### Sortie JSON
+
+`--json` affiche une [enveloppe](/docs/cli/output#sortie-json) dont le `result` est un `DiffSummary`. `hasPendingChanges` est vrai exactement quand la commande sort avec `1` pour des clés en attente :
+
+```ts
+interface DiffSummary {
+  hasPendingChanges: boolean;
+  locales: LocaleDiff[];
+  unused?: UnusedKeysReport;   // seulement avec --unused
+}
+
+interface LocaleDiff {
+  locale: string;
+  missing: string[];           // serait ajoutée
+  changed: string[];           // serait retraduite
+  orphaned: string[];          // seulement signalée
+  hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
+  changedOrigins?: Record<string, KeyOrigin>; // absent si le fichier de provenance est illisible
+  protected?: string[];        // clés en attente que translate laisse intactes
+}
+```
+
+### Retour dans le terminal
+
+<AvailableFrom version="0.12.0" />
+
+`diff` affiche une ligne pendant qu'il travaille (avec un décompte des fichiers quand `--unused` analyse le code) et suggère la commande suivante :
+
+```text output
+verbatra: diffing and scanning the source... done (0.8s)
+next: verbatra translate (send the pending keys to your provider)
+```
+
+Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatra studio` ; avec `provider: { id: "none" }`, il suggère `verbatra export`. Ces lignes vont sur stderr, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ## Exemples
 
 ```bash
-# list the pending keys per locale (exit 1 if any are pending)
+# liste les clés en attente par locale (sortie 1 s'il y en a)
 verbatra diff
 
-# machine-readable key lists for tooling or a PR comment
+# seulement les locales allemande et française
+verbatra diff --locales de,fr
+
+# listes de clés lisibles par une machine pour un outil ou un commentaire de PR
 verbatra diff --json
 
-# also list the source keys your code no longer names (exit 1 if a complete scan finds any)
+# liste aussi les clés source que ton code ne nomme plus
 verbatra diff --unused
 ```
 
@@ -98,13 +132,15 @@ verbatra diff --unused
 
 | Code | Signification |
 | --- | --- |
-| `0` | aucun changement en attente : aucune locale n'a de clé à ajouter ou à retraduire, et avec `--unused` aucune analyse complète n'a trouvé de clé inutilisée |
-| `1` | changements en attente : au moins une locale a une clé manquante ou modifiée, ou avec `--unused` une analyse `complete` a trouvé au moins une clé inutilisée (les clés orphelines, les clés possiblement dynamiques, les clés ignorées et un rapport `unreliable` ou `not-run` ne produisent jamais `1` à eux seuls) |
-| `2` | impossible de s'exécuter : une erreur globale, ou une erreur d'utilisation (y compris une valeur `--locales` vide ou inconnue) |
+| `0` | aucune locale n'a de clé à ajouter ou à retraduire, et aucune analyse complète avec `--unused` n'a trouvé de clé inutilisée |
+| `1` | au moins une locale a une clé manquante ou modifiée, ou une analyse `complete` avec `--unused` a trouvé une clé inutilisée |
+| `2` | impossible de s'exécuter : une erreur globale ou une erreur d'utilisation, comme une valeur `--locales` vide ou inconnue |
+
+Les clés orphelines, possiblement dynamiques et ignorées, ainsi qu'un rapport `unreliable` ou `not-run`, ne produisent jamais `1` à eux seuls. Vois [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 
 - [`verbatra check`](/docs/cli/check) donne les décomptes par locale derrière ces listes.
-- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` qu'analyse `--unused`, y compris `unused.ignore`.
 - [`verbatra translate`](/docs/cli/translate) applique les changements en attente ; `--prune` supprime les clés orphelines.
-- [CI et codes de sortie](/docs/ci-and-exit-codes) montre diff dans un pipeline.
+- [Le fichier de configuration](/docs/config-file#extract) documente le bloc `extract` et `unused.ignore`.
+- [CI et codes de sortie](/docs/ci-and-exit-codes) montre `diff` dans un pipeline.

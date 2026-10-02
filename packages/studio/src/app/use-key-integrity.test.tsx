@@ -14,6 +14,8 @@ const MATCHING: KeyIntegrityLocaleEntry = {
   missing: [],
   extra: [],
   icuValid: true,
+  icuArmsMatch: true,
+  icuArmDetails: [],
   markupMatches: true,
   markupDetails: [],
 };
@@ -25,6 +27,8 @@ const MISMATCHED: KeyIntegrityLocaleEntry = {
   missing: ["{{name}}"],
   extra: ["{{nom}}"],
   icuValid: true,
+  icuArmsMatch: true,
+  icuArmDetails: [],
   markupMatches: true,
   markupDetails: [],
 };
@@ -76,7 +80,57 @@ describe("useKeyIntegrity", () => {
 
     await renderAsync(probe("checkout.total", 1));
 
-    expect(rpcCalls).toEqual([{ method: "key.integrity", params: { key: "checkout.total" } }]);
+    expect(rpcCalls).toEqual([
+      { method: "key.integrity", params: { key: "checkout.total" } },
+      { method: "locale.integrity", params: {} },
+    ]);
+  });
+
+  it("adds a failing verdict from the full locale check for a key that is in sync there", async () => {
+    const { locale: _locale, ...verdict } = MISMATCHED;
+    stubRpc({
+      "key.integrity": integrityAnswer([MATCHING]),
+      "locale.integrity": {
+        ok: true,
+        result: {
+          locales: [
+            { locale: "de", entries: [] },
+            { locale: "fr", entries: [{ key: "app.title", ...verdict }] },
+            { locale: "es", entries: [{ key: "app.other", ...verdict }] },
+          ],
+        },
+      },
+    });
+
+    await renderAsync(probe("app.title", 1));
+
+    expect(seen).toEqual({ kind: "loaded", locales: [MATCHING, MISMATCHED] });
+  });
+
+  it("keeps the changed-key verdict when the full check also lists the key for that locale", async () => {
+    const { locale: _locale, ...verdict } = MISMATCHED;
+    stubRpc({
+      "key.integrity": integrityAnswer([MISMATCHED]),
+      "locale.integrity": {
+        ok: true,
+        result: { locales: [{ locale: "fr", entries: [{ key: "app.title", ...verdict }] }] },
+      },
+    });
+
+    await renderAsync(probe("app.title", 1));
+
+    expect(seen).toEqual({ kind: "loaded", locales: [MISMATCHED] });
+  });
+
+  it("falls back to the changed-key verdicts when the full locale check fails", async () => {
+    stubRpc({
+      "key.integrity": integrityAnswer([MATCHING]),
+      "locale.integrity": rpcError("LOCK_FILE_INVALID"),
+    });
+
+    await renderAsync(probe("app.title", 1));
+
+    expect(seen).toEqual({ kind: "loaded", locales: [MATCHING] });
   });
 
   it("surfaces the failure message, which is what the drawer renders", async () => {
@@ -101,7 +155,7 @@ describe("useKeyIntegrity", () => {
     await flush();
 
     expect(seen).toEqual({ kind: "loaded", locales: [MISMATCHED] });
-    expect(rpcCalls).toEqual([
+    expect(rpcCalls.filter((call) => call.method === "key.integrity")).toEqual([
       { method: "key.integrity", params: { key: "app.title" } },
       { method: "key.integrity", params: { key: "app.subtitle" } },
     ]);
@@ -136,7 +190,7 @@ describe("useKeyIntegrity", () => {
     await flush();
 
     expect(seen).toEqual({ kind: "loaded", locales: [MATCHING] });
-    expect(rpcCalls).toHaveLength(2);
+    expect(rpcCalls.filter((call) => call.method === "key.integrity")).toHaveLength(2);
   });
 
   it("ignores an answer that arrives after the caller unmounted", async () => {

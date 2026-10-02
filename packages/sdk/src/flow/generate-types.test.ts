@@ -568,11 +568,15 @@ describe("generateTypes: refusals", () => {
           fs: {
             ...(await import("../fs.js")).defaultFs,
             writeFile: async (): Promise<void> => {
-              throw new Error("read-only file system");
+              throw Object.assign(new Error("read-only file system"), { code: "EROFS" });
             },
           },
         },
       ),
-    ).rejects.toMatchObject({ code: "TYPES_UNWRITABLE" });
+    ).rejects.toMatchObject({
+      code: "TYPES_UNWRITABLE",
+      message:
+        "Could not write the declaration file verbatra-types.d.ts (EROFS). That file system is mounted read-only, so nothing can be written there.",
+    });
   });
 });

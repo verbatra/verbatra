@@ -19,6 +19,8 @@ export type TerminalProps = {
   highlight?: string;
   fitContent?: boolean;
   headerAction?: ReactNode;
+  bare?: boolean;
+  playThreshold?: number;
   className?: string;
 };
 
@@ -131,7 +133,7 @@ const HIGHLIGHT_STYLE = {
 function LineRow({ line, highlighted = false }: { line: Line; highlighted?: boolean }): ReactNode {
   if (line.kind === "command") {
     return (
-      <div className="whitespace-pre-wrap">
+      <div className="whitespace-pre">
         <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
@@ -139,13 +141,13 @@ function LineRow({ line, highlighted = false }: { line: Line; highlighted?: bool
   }
   if (highlighted) {
     return (
-      <div className="-mx-4 whitespace-pre-wrap ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
+      <div className="-mx-4 whitespace-pre ps-[13px] pe-4" style={HIGHLIGHT_STYLE}>
         <HighlightedText text={line.text} base="var(--text-strong)" />
       </div>
     );
   }
   return (
-    <div className="whitespace-pre-wrap">
+    <div className="whitespace-pre">
       <HighlightedText text={line.text} base="var(--text-muted)" />
     </div>
   );
@@ -158,9 +160,9 @@ function LineList({
   lines: ReadonlyArray<Line>;
   highlight?: string | undefined;
 }): ReactNode {
-  return lines.map((line) => (
+  return lines.map((line, index) => (
     <LineRow
-      key={`${line.kind}:${line.text}`}
+      key={`${index}:${line.kind}`}
       line={line}
       highlighted={line.kind === "output" && line.text === highlight}
     />
@@ -179,9 +181,11 @@ export function Terminal({
   highlight,
   fitContent = false,
   headerAction,
+  bare = false,
+  playThreshold = 0.4,
   className,
 }: TerminalProps): ReactNode {
-  const [rootRef, inView] = useInViewOnce<HTMLDivElement>(0.4);
+  const [rootRef, inView] = useInViewOnce<HTMLDivElement>(playThreshold);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<Line[]>([]);
   const [typing, setTyping] = useState<string | null>(null);
@@ -228,25 +232,30 @@ export function Terminal({
     <div
       ref={rootRef}
       className={cn(
-        "not-prose flex flex-col overflow-hidden rounded-xl border border-fd-border",
+        "not-prose flex flex-col",
+        !bare && "overflow-hidden rounded-xl border border-fd-border",
         className,
       )}
-      style={{ background: "var(--surface-bg)" }}
+      style={bare ? undefined : { background: "var(--surface-bg)" }}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
-        {title ? <span className="font-mono text-xs text-fd-muted-foreground">{title}</span> : null}
-        {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
-      </div>
+      {bare ? null : (
+        <div className="flex items-center justify-between gap-3 border-b border-fd-border px-4 py-2.5">
+          {title ? (
+            <span className="font-mono text-xs text-fd-muted-foreground">{title}</span>
+          ) : null}
+          {headerAction ? <span className="ms-auto flex">{headerAction}</span> : null}
+        </div>
+      )}
 
       <div className="sr-only">
         <p>{sessionLabel}</p>
         <ol>
           {commands.map((cmd, i) => (
-            <li key={cmd}>
+            <li key={`${i}:${cmd}`}>
               <span>{cmd}</span>
               <ul>
-                {(outputs?.[i] ?? []).map((out) => (
-                  <li key={out}>{out}</li>
+                {(outputs?.[i] ?? []).map((out, j) => (
+                  <li key={`${j}:${out}`}>{out}</li>
                 ))}
               </ul>
             </li>
@@ -258,20 +267,20 @@ export function Terminal({
         ref={scrollRef}
         aria-hidden="true"
         className={cn(
-          "px-4 py-4 font-mono text-[13px] leading-relaxed",
+          "vk-terminal-scroll px-4 py-4 font-mono leading-relaxed",
           fitContent ? "grid flex-1 content-start" : "h-80 overflow-y-auto",
+          bare ? "text-xs sm:text-sm md:px-5 md:py-5" : "text-sm",
         )}
-        style={{ background: "var(--v-void)" }}
       >
         {fitContent ? (
-          <div className="invisible col-start-1 row-start-1">
+          <div className="invisible col-start-1 row-start-1 min-w-max">
             <LineList lines={buildSettled(commands, outputs)} highlight={highlight} />
           </div>
         ) : null}
-        <div className={cn(fitContent && "col-start-1 row-start-1")}>
+        <div className={cn("min-w-max", fitContent && "col-start-1 row-start-1")}>
           <LineList lines={history} highlight={highlight} />
           {typing !== null ? (
-            <div className="whitespace-pre-wrap">
+            <div className="whitespace-pre">
               <span style={{ color: "var(--v-glow)" }}>$</span>{" "}
               <HighlightedText text={typing} base="var(--text-strong)" />
               <span className="ms-0.5 animate-pulse" style={{ color: "var(--v-glow)" }}>

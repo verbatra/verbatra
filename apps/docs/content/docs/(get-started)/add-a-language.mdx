@@ -1,44 +1,43 @@
 ---
 title: Add a language
 description: Add a new target locale to an existing verbatra project with a one-line config change and one translate run, while your existing locales stay untouched.
+type: how-to
 ---
-Adding a language is a one-line config change plus a run. verbatra sees the new locale as missing everything and fills it completely; your existing locales cost nothing, because the lock file still has them on record as current.
+Use this when a project already translates into some languages and you want one more. It takes a one-line config change and one run. verbatra sees the new locale as missing every key and fills it; your existing locales cost nothing, because the lock file still has them on record as current.
+
+You need a working project: a config, a source locale file, and a provider key. If you do not have one yet, start with the [quickstart](/docs/quickstart).
 
 ## Add the locale to your config
 
-Add it to `targetLocales` in `verbatra.config.ts`:
+Add the code to `targetLocales` in `verbatra.config.ts`:
 
-```ts
+```ts title="verbatra.config.ts"
 import { defineConfig } from "@verbatra/cli";
 
 export default defineConfig({
   sourceLocale: "en",
-  targetLocales: ["de", "fr"], // "fr" added
+  targetLocales: ["de", "fr"], // [!code highlight]
   format: "i18next-json",
-  files: {
-    pattern: "locales/{locale}.json",
-  },
-  provider: {
-    id: "gemini",
-    options: {
-      model: "gemini-2.5-flash",
-      maxOutputTokens: 4096,
-    },
-  },
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
 });
 ```
 
-Two rules, both enforced when the config loads: a target locale must not be the `sourceLocale`, and two entries must not collide case-insensitively (no `de` and `DE` in the same list).
+### Locale code rules
+
+<AvailableFrom version="0.12.0" />
+
+Write the code in BCP 47 form, with a hyphen: `pt-BR`, not `pt_BR`. If your files use underscores, keep writing `pt-BR` and set `files.localeStyle` to `posix`; verbatra keeps the `pt_BR.json` file name. The config load rejects an invalid code, the source locale, and two codes that differ only in case. See [Locale codes](/docs/config-file#locale-codes) for the full rules, and run [`verbatra doctor`](/docs/cli/doctor) to see whether a provider supports the new language.
 
 ## Preview the work
 
-Before spending a token, see what a run would do. `diff` is read-only and lists the pending keys per locale:
+See what a run would do before you spend anything:
 
 ```bash
-verbatra diff
+verbatra diff --locales fr
 ```
 
-The new locale has no target file yet, so verbatra treats it as empty and every source key shows up as missing; your existing locales list nothing, assuming their source strings have not changed. `diff` exits `1` while changes are pending, `0` once there are none. `verbatra translate --dry-run` gives you the same preview shaped as a run summary, with no provider call and no writes.
+The new locale has no file yet, so every source key is listed as missing. Leave out `--locales` to confirm your other locales list nothing. `diff` calls no provider and writes nothing. For a cost figure, run `verbatra translate --estimate`; see [Estimate cost before a run](/docs/estimating-cost).
 
 ## Translate
 
@@ -46,31 +45,44 @@ The new locale has no target file yet, so verbatra treats it as empty and every 
 verbatra translate
 ```
 
-The run translates every source key into the new locale and writes the file at your `files.pattern` (here `locales/fr.json`). A large source is split into sub-batches of at most 50 keys per provider request (configurable with `maxBatchSize`), so one oversized request cannot sink the whole locale.
+The run translates every source key into the new locale and writes the file at your `files.pattern`, here `locales/fr.json`. Only the new locale triggers provider calls: the other locales have no missing or changed keys against their lock baseline, so nothing is sent for them.
 
-This is the incremental behavior at work: only the new locale triggers provider calls. For each existing locale, verbatra diffs the source against that locale's baseline in `verbatra.lock.json`, finds no missing or changed keys, and sends nothing. Afterwards, `verbatra check` exits `0`: every locale, including the new one, is in sync.
+If the run keeps nothing for the new locale, because every key failed a check, its provider requests failed, or a token budget withheld them, no file is created. The keys stay missing and the next run retries them.
+
+Afterwards, `verbatra check` exits `0` when every locale, the new one included, is in sync.
 
 ## Languages with more plural categories
 
-Some languages need more CLDR plural categories than your source has. English has two (`one` and `other`); Polish, Arabic, and Russian have more. By default verbatra translates the plural forms it finds in the source and does not invent the extras: the run still succeeds and emits a per-locale notice (code `PLURAL_CATEGORIES_INCOMPLETE`) naming the missing categories.
+Some languages need more plural forms than your source has. English has `one` and `other`; Polish needs four, Arabic six, and French adds `many`. By default verbatra translates the forms your source has and does not invent the others: the run succeeds and reports a `PLURAL_CATEGORIES_INCOMPLETE` notice naming what is missing.
 
-To have verbatra synthesize the missing forms instead, set `generatePlurals: true` in your config:
+### Generate the missing forms
 
-```ts
+<AvailableFrom version="0.3.0" />
+
+If you use i18next JSON with an LLM provider, you can let verbatra write the missing forms:
+
+```ts title="verbatra.config.ts"
 export default defineConfig({
   // ...
   generatePlurals: true,
 });
 ```
 
-Generation is supported for i18next-JSON projects translated by an LLM provider only; DeepL and Google Cloud Translation, the other formats, and unknown target languages fall back to the notice and never fail the run. Generated forms are integrity-checked like any translation and reported separately from translated keys in the run summary.
+Generated forms pass the same integrity checks as any translation.
 
-## Maintaining the source locale
+### Forms from CLDR
 
-You only ever hand-maintain the source locale. To add strings, put them in the source file and run `translate` again: verbatra fills them into every target, including the one you just added.
+<AvailableFrom version="0.12.0" />
 
-## Next
+Which forms a language needs comes from the CLDR plural rules built into Node.js, for every language, ordinals included. The ICU formats (next-intl and ARB) keep a whole plural in one value, so they need no generation: the provider is asked for exactly the arms the target language uses. See [`generatePlurals`](/docs/config-file#generateplurals) for what falls back to the notice, and [Plurals](/docs/language-support#plurals) for how verbatra decides which forms a language needs.
 
-- [The lock file](/docs/the-lock-file): why re-runs are cheap and what to commit.
-- [Configuration](/docs/config-file): the full config schema, including `glossary` and `tone`.
-- [Providers](/docs/providers): provider options and where to get a key.
+## Keep maintaining the source only
+
+You edit only the source locale from now on. Add a string there and run `translate` again: verbatra fills it into every target, including the one you just added.
+
+## Related
+
+- [`verbatra translate`](/docs/cli/translate) and [`verbatra diff`](/docs/cli/diff): every flag used on this page.
+- [The config file](/docs/config-file#locales-and-files): `targetLocales`, `files.pattern` and `files.localeStyle`.
+- [Languages and locales](/docs/language-support): which languages each provider covers, scripts, regional variants and right-to-left text.
+- [The lock file](/docs/the-lock-file): why existing locales cost nothing on a re-run.

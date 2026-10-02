@@ -1,8 +1,9 @@
 ---
 title: verbatra check
 description: Informa de qué claves faltan o están obsoletas por locale sin escribir archivos.
+type: reference
 ---
-Informa, por locale de destino, de cuántas claves faltan, están obsoletas o están al día, y sal con un código sobre el que un paso de CI puede decidir. `check` ejecuta la misma lectura y el mismo diff que [`verbatra translate`](/docs/cli/translate) hace justo antes de llamar a un proveedor, y luego se detiene: sin llamada al proveedor, sin archivos escritos, sin actualizar el [archivo de bloqueo](/docs/the-lock-file) y sin necesidad de clave de API.
+Informa, por cada locale de destino, de cuántas claves faltan, están obsoletas o al día, y termina con un código en el que un paso de CI puede ramificar. `check` lee y compara como [`verbatra translate`](/docs/cli/translate) antes de llamar al proveedor y se detiene ahí: sin llamada al proveedor, sin escribir archivos, sin clave de API.
 
 ## Sinopsis
 
@@ -14,66 +15,229 @@ verbatra check [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
-| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
-| `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino separado por comas a comprobar |
-| `--consistency` | ninguno | desactivado | además informa, por locale, de cada cadena de origen traducida de más de una forma bajo claves distintas; solo es un informe, nunca cambia el código de salida |
-| `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resumen de la comprobación bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
+| `--locales` | `<list>` | todos los destinos configurados | comprueba solo este subconjunto separado por comas; un valor vacío o desconocido es un error de uso |
+| `--consistency` | ninguno | desactivado | lista además los textos de origen traducidos de más de una forma; solo informa, mira el [informe de consistencia](#informe-de-consistencia) |
+| `--qa` | ninguno | desactivado | ejecuta además el [control de calidad](#control-de-calidad) sobre cada traducción confirmada; sale con `1` ante un error |
+| `--file` | `<path>` | desactivado | comprueba solo este archivo de locale, mira [Un solo archivo](#un-solo-archivo); no junto a `--locales`, `--consistency`, `--require-reviewed` ni `--sensitive` |
+| `--severity` | `error` o `warning` | `warning` | con `--qa` o `--file`, la gravedad mínima que se informa |
+| `--strict` | ninguno | desactivado | con `--qa` o `--file`, sale también con `1` ante un aviso o un [plural incompleto](#categorías-de-plural); no junto a `--severity error` |
+| `--require-reviewed` | ninguno | desactivado | sale además con `1` mientras una traducción escrita por máquina [no esté aprobada](#exigir-traducciones-revisadas) |
+| `--sensitive` | ninguno | desactivado | revisa además el archivo de origen y el glosario en busca de [contenido sensible](#contenido-sensible); sale con `1` ante cualquier hallazgo |
 
-Una clave falta cuando el origen la tiene y el destino no; está obsoleta cuando la cadena de origen cambió desde la última vez que se tradujo. Un locale está sincronizado cuando no tiene ni lo uno ni lo otro. Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de comprobar nada en silencio, así que una errata en un nombre de locale nunca deja pasar una puerta de CI. ¿Quieres las listas de claves detrás de los contadores? Eso es [`verbatra diff`](/docs/cli/diff).
+También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
-## Informe de consistencia
+Una clave falta cuando el origen la tiene y el destino no, y está obsoleta cuando su texto de origen cambió desde la última traducción. Un locale está sincronizado cuando no tiene ninguna de las dos. Para ver las listas de claves detrás de los recuentos, usa [`verbatra diff`](/docs/cli/diff).
+
+## Comportamiento
+
+### Informe de consistencia
 
 <AvailableFrom version="0.11.0" />
 
-`--consistency` añade un segundo informe de solo lectura: dentro de cada locale de destino, cada cadena de origen que dos o más claves traducen de forma distinta. Cada hallazgo nombra la cadena de origen, cada traducción distinta y las claves que la contienen, para que elijas una redacción y alinees el resto a mano. No se cambia nada por ti.
+`--consistency` lista, por locale de destino, cada texto de origen que dos o más claves traducen de forma distinta: el origen, cada traducción y las claves que la llevan. Nunca cambia el código de salida, un valor ni la cola de revisión. Las reglas de comparación:
 
-Es un informe y nada más. Nunca cambia el código de salida, nunca desincroniza un locale, nunca retiene ni reescribe un valor y nunca marca una clave para revisión. Como el resto de `check`, no llama a ningún proveedor ni necesita clave de API.
+- Los valores se comparan tras la normalización Unicode NFC, con `\r\n` convertido en `\n` y sin espacios al principio ni al final. Los espacios internos y las mayúsculas cuentan.
+- Solo se comparan claves al día, y una traducción igual a su origen queda para `EQUALS_SOURCE`.
+- Nunca se agrupan claves cuya descripción, significado, marca de plural o `msgctxt` de gettext difieran.
+- Las formas de plural se comparan por forma: las formas `one` y `other` de una clave nunca se agrupan entre sí.
 
-La comparación sigue un único conjunto de reglas, aplicado por igual al origen y a la traducción:
+Falsos positivos conocidos: variantes de contexto de i18next (`invite_male`, `invite_female`), entradas de gettext marcadas con `#, fuzzy`, claves con aspecto de plural en un formato sin plurales (`yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini`, `resx`) y las formas de plural de un formato `custom:`. Dales una descripción o un significado distintos, o ignora el hallazgo. Con `--json`, cada locale lleva `inconsistencies: { source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }[]`.
 
-- Los valores se comparan tras la normalización Unicode NFC, convertir `\r\n` en `\n` y recortar los espacios del principio y del final, así que `"Save "` y `"Save"` cuentan como la misma cadena. Los espacios dentro del valor y las mayúsculas sí cuentan.
-- Solo se comparan las claves al día. Una clave que falta aún no tiene traducción, y la traducción de una clave obsoleta pertenece a un texto de origen anterior, algo de lo que `check` ya informa.
-- Las claves nunca se agrupan si difieren en descripción, significado, marca de plural o `msgctxt` de gettext, porque esos metadatos existen precisamente para permitir otra traducción.
-- Las formas plurales se comparan forma por forma. Un formato que guarda cada forma bajo su propia clave (i18next, Apple `.stringsdict` y `.xcstrings`, Android `<plurals>`, gettext `msgstr[n]`) nunca agrupa entre sí las formas `one` y `other` de una misma clave, aunque su texto de origen sea idéntico; la misma forma bajo claves distintas se sigue comparando.
-- Una traducción idéntica a su propio origen no es un hallazgo aquí; una ejecución de traducción ya la marca para revisión como `EQUALS_SOURCE`.
+### Claves protegidas
 
-Los grupos se ordenan por cadena de origen, las traducciones por valor y las claves por nombre, así que el mismo catálogo produce siempre el mismo informe. Con `--json`, cada locale en `result.locales` lleva un array `inconsistencies` de `{ source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }`; sin el flag el campo no aparece.
+<AvailableFrom version="0.12.0" />
 
-### Limitaciones conocidas
+Una clave obsoleta que una persona escribió, importó o cambió fuera de verbatra, o una clave que coincide con `pinnedKeys`, es una que `translate` deja para una persona (mira [Proteger las traducciones humanas](/docs/protecting-human-translations)). `check` la sigue contando y muestra la parte protegida, por ejemplo `2 stale (1 protected)`. `--json` la da como `protected` por locale; si `verbatra.provenance.json` no se puede leer, solo cuentan las claves fijadas.
 
-- Las variantes de contexto de i18next se informan. i18next codifica un contexto como sufijo de la clave (`invite_male`, `invite_female`), que no se distingue de una clave snake_case normal, así que dos variantes de contexto con el mismo texto de origen pero traducidas de forma distinta aparecen como hallazgo. Si tu formato lo permite, dales una descripción o un significado distintos para que nunca se agrupen; si no, ignora el hallazgo.
-- Las entradas de gettext marcadas con `#, fuzzy` cuentan como traducciones. El adaptador de gettext no conserva la marca fuzzy, así que un `msgstr` fuzzy se compara como uno revisado y puede aparecer en un hallazgo. Revisa o limpia las entradas fuzzy antes de fiarte del informe.
-- Las claves de estilo plural en un formato sin concepto de plural cuentan como claves normales. Los adaptadores de `yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini` y `resx` no conocen las formas plurales, así que para ellos `item_one` e `item_other` son dos claves sin relación. Cuando dos de esas formas de una misma clave comparten el texto de origen pero están traducidas de forma distinta, aparecen como hallazgo. Si tu formato lo permite, dales una descripción o un significado distintos para que nunca se agrupen; si no, ignora el hallazgo.
-- Los formatos `custom:` no tienen un resolvedor de formas plurales. verbatra solo sabe cómo nombran las formas plurales sus adaptadores integrados, así que cuando un adaptador de terceros guarda cada forma bajo su propia clave, las formas de una misma clave se comparan como un solo grupo y pueden aparecer como hallazgo si comparten el texto de origen. Dales a las formas una descripción o un significado distintos, o ignora el hallazgo.
+### Categorías de plural
+
+<AvailableFrom version="0.12.0" />
+
+Cada `check` lista los plurales a los que les falta una categoría de plural CLDR que usa su idioma de destino, como un `<plurals>` de Android en polaco con solo `one` y `other`:
+
+```text output
+plural categories (warning: exit 1 only under --qa --strict)
+  pl: 2 plurals missing CLDR categories
+    cart {count} plural: missing few, many
+    files: missing few, many
+```
+
+Las categorías salen de las reglas CLDR integradas en Node.js (mira [soporte de idiomas](/docs/language-support#plurales)). Formatos comprobados:
+
+| Formato | Formas de plural leídas |
+| --- | --- |
+| `i18next-json` | los sufijos de clave `_one`, `_few`, ... y los plurales `_ordinal_` frente a las reglas ordinales |
+| `android-xml` | las entradas `<item quantity>` de cada `<plurals>` |
+| `apple-strings` | las reglas de plural del `.stringsdict` junto al archivo `.strings` |
+| `apple-xcstrings` | las categorías `variations.plural` de cada locale |
+| `next-intl-json`, `arb` | cada `plural` y `selectordinal` de ICU, también los anidados |
+
+`other` siempre es obligatoria. Una rama exacta como `=1` nunca sustituye a una categoría, las ramas de `select` nunca se comprueban y solo se comprueba un plural del que el destino tiene al menos una forma. Es un aviso: un `check` simple conserva su código de salida y `--qa --strict` falla por él. [`verbatra doctor`](/docs/cli/doctor) informa de los mismos plurales. Con `--json`, cada locale lleva `incompletePlurals`, ordenado por clave:
+
+```ts
+interface IncompletePlural {
+  code: "PLURAL_CATEGORIES_INCOMPLETE";
+  key: string;              // clave base, o la clave del mensaje ICU
+  argument?: string;        // el argumento del plural ICU, como count
+  ruleType: "cardinal" | "ordinal";
+  missing: ("zero" | "one" | "two" | "few" | "many" | "other")[]; // en orden CLDR
+}
+```
+
+### Control de calidad
+
+<AvailableFrom version="0.12.0" />
+
+`--qa` aplica las comprobaciones que una ejecución de traducción hace sobre la salida del proveedor a los valores que ya están en tus archivos de locale, obsoletos o no, incluidas las formas de plural extra que necesita el idioma de destino. Los hallazgos tienen dos gravedades:
+
+- **error**: el valor no pasa la [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad), con `placeholder`, `markup`, `icu`, `degenerate` o `empty`. Los detalles listan los tokens perdidos como `-{{name}}` y los añadidos como `+{{nom}}`.
+- **warning**: el valor lleva un [motivo de revisión](/docs/translation-safety#señales-de-revisión) calculado a partir del valor, su origen y tu configuración (glosario, `maxLength`), así que ninguno que dependa del proveedor o de la caché; con `FOREIGN_PLACEHOLDER_CHANGED`, los `details` del hallazgo nombran cada token perdido o cambiado, como `-{name}`. Un valor con error no recibe avisos.
+
+```text output
+qa: 1 error, 1 warning
+  de: 1 error, 1 warning in 42 values checked
+    greeting: error placeholder (-{{name}}, +{{nme}})
+    title: warning EQUALS_SOURCE
+```
+
+Las claves huérfanas y las que faltan se omiten, y las claves de origen que no son ICU válido aparecen una vez en `invalidSourceKeys`. Los valores protegidos, fijados y rechazados se comprueban como cualquier otro. Con `--json`, `result.qa` guarda los totales y cada locale su propio `qa`:
+
+```ts
+interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[] }
+interface LocaleQaReport { checked: number; errors: number; warnings: number; findings: QaFinding[] }
+type QaFinding =
+  | { key: string; severity: "error"; reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty"; details?: string[] }
+  | { key: string; severity: "warning"; reason: string; details?: string[] }; // uno de los motivos de revisión de arriba
+```
+
+### Exigir traducciones revisadas
+
+<AvailableFrom version="0.12.0" />
+
+`--require-reviewed` falla con `1` mientras un valor cuyo [origen](/docs/the-lock-file#procedencia-quién-escribió-cada-valor) sea `machine`, `memory`, `fuzzy` o `agent` no esté aprobado en el `verbatra.provenance.json` confirmado, donde [Studio](/docs/review-in-studio) y las [herramientas MCP](/docs/cli/mcp) guardan sus decisiones. Una aprobación anterior al cambio del texto de origen o del valor no cuenta.
+
+```text output
+review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
+  de: 2 unreviewed: checkout.title, checkout.total
+```
+
+Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code` es `REVIEW_REQUIRED`, o `REVIEW_STATE_UNREADABLE` cuando el archivo de procedencia está dañado o viene de un verbatra más nuevo (entonces la puerta falla). Cada locale lleva `review.unreviewed`, las claves en el orden del origen.
+
+### Contenido sensible
+
+<AvailableFrom version="0.12.0" />
+
+`--sensitive` ejecuta la revisión de la [protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData`, incluso con `mode: "off"`, o sin bloque con los detectores por defecto. Informa de claves y detectores, nunca del texto encontrado fuera de un nombre de clave, y sale con `1` ante cualquier hallazgo.
+
+```text output
+sensitive: 1 key and 0 glossary terms hold content that looks sensitive
+  support.contact: email in value
+```
+
+Con `--json`, `result.sensitive` es `{ findings, glossaryTerms }`, y cada hallazgo `{ key, fields, detectors }`; `detectors` puede incluir `pattern-timeout-<n>`.
+
+### Un solo archivo
+
+<AvailableFrom version="0.12.0" />
+
+`--file <path>` comprueba un único archivo de locale, pensado para hooks de editor y de agente tras una edición. Lee ese archivo y, para un locale de destino, el archivo de origen, nada más. La ruta se resuelve respecto a `--cwd` y se asocia a su locale mediante `files.pattern`.
+
+- Un archivo que no se puede analizar da un error `syntax` con el código del adaptador (`INVALID_JSON`, `INVALID_YAML`, ...) y la línea y la columna cuando el analizador informa de una posición.
+- Un archivo de destino se comprueba como con [`--qa`](#control-de-calidad), categorías de plural incluidas; un archivo de origen, solo la sintaxis. Un catálogo `apple-xcstrings` se comprueba para cada locale de destino.
+- Una ruta que no es el archivo de ningún locale configurado falla con `NOT_A_LOCALE_FILE` y sale con `2`.
+
+Con `--json`, `result` reutiliza el informe de `--qa`, así que un hook analiza una sola forma:
+
+```ts
+interface CheckFileSummary {
+  file: string;                          // relativo a --cwd
+  role: "source" | "target" | "catalogue";
+  locales: {
+    locale: string;
+    incompletePlurals: IncompletePlural[];
+    qa: { checked: number; errors: number; warnings: number; findings: (QaFinding | QaSyntaxFinding)[] };
+  }[];
+  qa: CheckQaSummary;
+}
+interface QaSyntaxFinding {
+  severity: "error"; reason: "syntax"; code: string; message: string;
+  line?: number; column?: number;       // si el analizador informa de una posición, contando desde 1
+}
+```
+
+Las claves que faltan y las obsoletas no forman parte de la comprobación de un archivo.
+
+### Salida JSON
+
+`--json` imprime un [sobre](/docs/cli/output#salida-json) cuyo `result` es el documento de estado. Sin `--qa`, `--require-reviewed` ni `--sensitive`, `inSync` es verdadero exactamente cuando el comando sale con `0`:
+
+```ts
+interface CheckSummary {
+  inSync: boolean;
+  locales: LocaleCheckSummary[];
+  qa?: CheckQaSummary;          // solo con --qa
+  review?: CheckReviewSummary;  // solo con --require-reviewed
+  sensitive?: CheckSensitiveSummary; // solo con --sensitive
+}
+
+interface LocaleCheckSummary {
+  locale: string;
+  missing: number;              // en el origen, ausente del destino
+  stale: number;                // el origen cambió desde la última traducción
+  upToDate: number;
+  inSync: boolean;              // missing === 0 && stale === 0
+  provenance?: ProvenanceSummary; // recuentos por origen y estado de revisión
+  protected?: number;
+  incompletePlurals?: IncompletePlural[];
+  inconsistencies?: InconsistencyGroup[]; // solo con --consistency
+  qa?: LocaleQaReport;          // solo con --qa
+  review?: LocaleReviewReport;  // solo con --require-reviewed
+}
+```
+
+### Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`check` muestra `verbatra: checking the locales... done (0.1s)` en stderr, o `verbatra: checking locales/de.json...` con `--file`. `--quiet` la omite. Mira [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
 
 ## Ejemplos
 
 ```bash
-# fail the build when translations drifted
+# hacer fallar el build cuando las traducciones se desfasaron
 verbatra check
 
-# machine-readable status for two locales
+# estado legible por máquina para dos locales
 verbatra check --locales de,fr --json
 
-# also list source strings translated more than one way
+# listar además los textos de origen traducidos de más de una forma
 verbatra check --consistency
+
+# fallar ante placeholders, markup e ICU rotos, y también ante avisos
+verbatra check --qa --strict
+
+# fallar mientras haya traducciones automáticas esperando aprobación
+verbatra check --require-reviewed
+
+# fallar ante correos, claves de API o números de tarjeta en el origen
+verbatra check --sensitive
+
+# comprobar solo el archivo que un editor o un agente acaba de cambiar
+verbatra check --file locales/de.json --json
 ```
 
 ## Códigos de salida
 
 | Código | Significado |
 | --- | --- |
-| `0` | sincronizado: ningún locale tiene una clave faltante u obsoleta |
-| `1` | desincronizado: al menos un locale tiene una clave faltante u obsoleta (el informe se imprime igualmente) |
-| `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido) |
+| `0` | sincronizado, y ningún hallazgo que los flags usados conviertan en fallo |
+| `1` | un locale tiene una clave que falta u obsoleta, `--qa` o `--file` encontró un error (o, con `--strict`, un aviso o un plural incompleto), `--require-reviewed` encontró una traducción sin aprobar, o `--sensitive` encontró contenido sensible |
+| `2` | no pudo ejecutarse: un error de toda la ejecución como `SOURCE_UNREADABLE` o `NOT_A_LOCALE_FILE`, o un error de uso como `INVALID_QA_OPTION` o `INVALID_SEVERITY` |
 
-El código de salida `1` significa "desincronizado", no un fallo: la ejecución en sí tuvo éxito, solo que el resultado no está todo en verde.
-
-En un proyecto cuyo archivo del locale de origen todavía no está en su sitio, `check` no puede ejecutarse en absoluto: falla por completo con `SOURCE_UNREADABLE` y sale con `2`. [`verbatra doctor`](/docs/cli/doctor) valida la configuración del proyecto y sí te da un informe en ese caso.
+La salida `1` significa que el resultado no está limpio, no que la ejecución fallara; el informe se imprime igual. En un proyecto cuyo archivo de origen aún no existe, [`verbatra doctor`](/docs/cli/doctor) sigue informando. El contrato está en [Códigos de salida](/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [`verbatra diff`](/docs/cli/diff) lista las claves exactas detrás de estos contadores.
-- [CI y códigos de salida](/docs/ci-and-exit-codes) muestra check como puerta contra el desfase.
-- [El archivo de bloqueo](/docs/the-lock-file) explica cómo se detecta la obsolescencia.
+- [`verbatra diff`](/docs/cli/diff) lista las claves exactas detrás de estos recuentos.
+- [CI y códigos de salida](/docs/ci-and-exit-codes) muestra `check` como puerta contra desfases.
+- [El archivo de bloqueo](/docs/the-lock-file) explica cómo se detecta que algo está obsoleto.

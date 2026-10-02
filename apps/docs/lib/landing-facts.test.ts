@@ -20,7 +20,7 @@ describe("landing facts", () => {
   it("counts every provider factory the sdk resolves", () => {
     const literals = literalsIn(
       "../../../packages/sdk/src/config/provider-config.ts",
-      /id: z\.literal\("[a-z-]+"\)/g,
+      /id: z\.literal\("(?!none")[a-z-]+"\)/g,
     );
     expect(PROVIDER_COUNT).toBe(literals);
   });

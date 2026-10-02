@@ -61,7 +61,7 @@ async function awaitDelivery(request: DeliveryRequest): Promise<string | undefin
   if (outcome.kind === "failed") {
     throw new Error(`watch run failed on "${request.target.key}": ${outcome.detail}`);
   }
-  await request.note(`"${request.target.key}" was throttled: ${outcome.detail}`);
+  await request.note(`"${request.target.key}" hit a transient provider fault: ${outcome.detail}`);
   return outcome.detail;
 }
 
@@ -127,7 +127,7 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
 
     if (throttled !== undefined) {
       ctx.skip(
-        `The provider rate-limited the watch run, so the translation half of this test could not run: ${throttled}`,
+        `The provider rate-limited, timed out, or was unavailable during the watch run, so the translation half of this test could not run: ${throttled}`,
       );
     }
 
