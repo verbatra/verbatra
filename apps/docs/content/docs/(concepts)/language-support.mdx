@@ -159,8 +159,9 @@ direction marks, removes none and reorders nothing. What that means for you:
 - **Set direction in your app, not in the strings**, with the `dir` attribute, CSS or your
   platform's layout direction. The [inline markup check](/docs/translation-safety#inline-markup-parity)
   refuses a translation that adds a `dir` attribute the source does not have.
-- **Direction control characters are ordinary text.** A mark such as U+200F is not a placeholder,
-  so the integrity gate does not require it to survive; check the translations that rely on one.
+- **Direction marks are ordinary text.** A mark such as U+200F may be dropped, but an unclosed
+  embedding or isolate, or an added override, raises
+  [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed).
 - **A changed placeholder order** only raises `INTEGRITY_REORDERED`, because another order is often
   correct in another language.
 - **Studio shows values right to left** for every locale whose script runs that way, asking the

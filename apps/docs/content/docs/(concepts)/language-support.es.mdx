@@ -173,9 +173,9 @@ nada. Lo que significa para ti:
   dirección de diseño de tu plataforma. La
   [comprobación del marcado en línea](/docs/translation-safety#paridad-del-marcado-en-línea) rechaza
   una traducción que añade un atributo `dir` que el origen no tiene.
-- **Los caracteres de control de dirección son texto corriente.** Una marca como U+200F no es un
-  placeholder, así que la puerta de integridad no exige que sobreviva; revisa las traducciones que
-  dependen de una.
+- **Las marcas de dirección son texto corriente.** Una marca como U+200F puede perderse, pero una
+  incrustación o un aislamiento sin cerrar, o una anulación añadida, activa
+  [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed).
 - **Un orden de placeholders distinto** solo activa `INTEGRITY_REORDERED`, porque en otro idioma
   otro orden suele ser correcto.
 - **Studio muestra los valores de derecha a izquierda** para cada locale cuya escritura va en ese

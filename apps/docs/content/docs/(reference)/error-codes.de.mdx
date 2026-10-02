@@ -1050,6 +1050,16 @@ Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, 
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Stelle das Token in der Übersetzung wieder her, wenn deine Bibliothek es interpoliert.
 
+### BIDI_CONTROLS_CHANGED
+
+Die Übersetzung enthält unsichtbare Richtungssteuerzeichen, die den Text um sie herum umordnen können: eine Einbettung, Überschreibung oder Isolierung, die sie nie schließt, oder eine Überschreibung, die die Quelle nicht hat.
+
+Er greift, wenn die Einbettungen (U+202A, U+202B), Überschreibungen (U+202D, U+202E) und Isolierungen (U+2066 bis U+2068) der Übersetzung innerhalb einer Zeile nicht zu ihren Abschlusszeichen (U+202C, U+2069) passen, die der Quelle aber schon, oder wenn sie mehr Links-nach-rechts- oder Rechts-nach-links-Überschreibungen enthält als die Quelle. Ein offenes Steuerzeichen überträgt seine Richtung auf den Text, den deine App hinter den Wert setzt, und eine Überschreibung kehrt Text sichtbar um. Richtungsmarken wie U+200F lösen ihn nie aus, ebenso wenig eine Übersetzung, die ausgeglichene Steuerzeichen der Quelle weglässt.
+
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
+- **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
+- **Nächster Schritt**: Schließe oder entferne die Richtungssteuerzeichen in der Übersetzung.
+
 ## Laufhinweise [#sdk-notice-codes]
 
 Ein Hinweis steht als Daten in den `notices` eines Locales und wird nie geworfen. Er meldet einen Zustand, den der Lauf behandelt hat, und ändert den Exit-Code nur dort, wo der Eintrag es sagt. [RunSummary](/docs/sdk/run-summary) zeigt, wo Hinweise in der Zusammenfassung stehen.
