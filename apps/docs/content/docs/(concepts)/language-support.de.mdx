@@ -173,9 +173,9 @@ nichts um. Was das für dich heißt:
 - **Setz die Richtung in deiner App, nicht in den Strings**, mit dem Attribut `dir`, CSS oder der
   Layoutrichtung deiner Plattform. Die [Inline-Markup-Prüfung](/docs/translation-safety#inline-markup-parität)
   lehnt eine Übersetzung ab, die ein `dir`-Attribut hinzufügt, das die Quelle nicht hat.
-- **Richtungsmarken sind gewöhnlicher Text.** Ein Zeichen wie U+200F darf wegfallen, aber eine
-  offene Einbettung oder Isolierung oder eine hinzugefügte Überschreibung löst
-  [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) aus.
+- **Richtungsmarken sind Text** und dürfen wegfallen; prüf Übersetzungen, die eine brauchen.
+  Offene Einbettungen, Überschreibungen oder Isolierungen (schließt die Quelle ihre) und neue
+  Überschreibungen lösen [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) aus.
 - **Eine geänderte Platzhalter-Reihenfolge** löst nur `INTEGRITY_REORDERED` aus, weil eine andere
   Reihenfolge in einer anderen Sprache oft richtig ist.
 - **Studio zeigt Werte von rechts nach links** für jede Locale, deren Schrift so läuft, fragt dazu

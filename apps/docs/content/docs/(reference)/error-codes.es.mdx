@@ -1054,7 +1054,7 @@ Se activa cuando ese token aparece en la fuente más veces que, literalmente, en
 
 La traducción contiene caracteres invisibles de control de dirección que pueden reordenar el texto a su alrededor: una incrustación, anulación o aislamiento que nunca cierra, o una anulación que la fuente no tiene.
 
-Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada línea mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Un control sin cerrar extiende su dirección al texto que tu app pone después del valor, y una anulación invierte el texto a la vista. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
+Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada párrafo mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Un control sin cerrar extiende su dirección al texto que tu app pone después del valor, y una anulación invierte el texto a la vista. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`

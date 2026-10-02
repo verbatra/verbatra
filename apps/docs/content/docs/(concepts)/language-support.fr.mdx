@@ -173,9 +173,9 @@ que cela veut dire pour toi :
   direction de mise en page de ta plateforme. La
   [vérification du balisage en ligne](/docs/translation-safety#parité-du-balisage-en-ligne) refuse
   une traduction qui ajoute un attribut `dir` que la source n'a pas.
-- **Les marques de direction sont du texte ordinaire.** Une marque comme U+200F peut disparaître,
-  mais un enchâssement ou un isolat non fermé, ou un forçage ajouté, lève
-  [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed).
+- **Les marques de direction sont du texte** et peuvent disparaître ; vérifie les traductions qui
+  en dépendent. Enchâssements, forçages ou isolats non fermés (la source fermant les siens) ou
+  forçages ajoutés lèvent [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed).
 - **Un ordre de placeholders modifié** ne lève que `INTEGRITY_REORDERED`, car un autre ordre est
   souvent correct dans une autre langue.
 - **Studio affiche les valeurs de droite à gauche** pour chaque locale dont l'écriture va dans ce
