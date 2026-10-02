@@ -1,15 +1,17 @@
-import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
 import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import {
+  decodeMaskedFromHtml,
+  encodeMaskedForHtml,
+  type MaskedEntry,
+  type OutgoingText,
   PLACEHOLDER_UNSUPPORTED_MESSAGE,
-  partitionByPlaceholders,
+  partitionForMasking,
+  restoreTranslations,
 } from "../placeholder-protection.js";
 import {
-  type PlaceholderComparator,
-  type PlaceholderExtractor,
   type TranslateRequest,
   type TranslationProvider,
   type ValidatedRequestData,
@@ -28,8 +30,8 @@ import { parseGoogleTranslateHttpResult, zipResults } from "./response.js";
 import type {
   GoogleTranslateClient,
   GoogleTranslateClientBundle,
-  GoogleTranslateHttpResponse,
   GoogleTranslateResult,
+  GoogleTranslateTextFormat,
 } from "./types.js";
 
 const PROVIDER_ID = "google-translate";
@@ -37,6 +39,13 @@ const PROVIDER_ID = "google-translate";
 interface GoogleLanguages {
   readonly sourceLang: string;
   readonly targetLang: string;
+}
+
+interface Call {
+  readonly client: GoogleTranslateClient;
+  readonly languages: GoogleLanguages;
+  readonly timeoutMs: number;
+  readonly signal: AbortSignal | undefined;
 }
 
 export interface GoogleTranslateDeps {
@@ -73,28 +82,39 @@ async function translate(
 ): Promise<GoogleTranslateResult> {
   const data = validateRequest(request);
   const languages = resolveGoogleLanguages(config, data);
-  const { protectable, unprotectable } = partitionByPlaceholders(data.entries);
-  const genericGlossarySupplied = appliesTerms(data.glossary);
+  const { plain, masked, unprotectable } = partitionForMasking(data.entries, {
+    withholdMarkup: true,
+  });
   const notices = buildTranslateNotices({
     ...(data.tone !== undefined ? { tone: data.tone } : {}),
-    genericGlossarySupplied,
+    genericGlossarySupplied: appliesTerms(data.glossary),
   });
-  const { values, integrity } = await translateProtectable(
-    bundle.client,
+  const call: Call = {
+    client: bundle.client,
     languages,
-    protectable,
+    timeoutMs: config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+    signal: request.signal,
+  };
+  const plainOut = plain.map((entry): OutgoingText => ({ entry, text: entry.value }));
+  const maskedOut = encodeForHtml(masked);
+  const pairs = [
+    ...zipResults(plainOut, await sendGroup(call, plainOut, "text")),
+    ...zipResults(maskedOut, await sendGroup(call, maskedOut, "html")),
+  ];
+  const restored = restoreTranslations(pairs, decodeMaskedFromHtml);
+  const integrity = checkBatchIntegrity(
+    restored.integrityInputs,
     request.extractPlaceholders,
     request.comparePlaceholders,
-    config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
-    request.signal,
   );
-  if (unprotectable.length > 0) {
+  const withheld = unprotectable.length + masked.length - maskedOut.length + restored.lost;
+  if (withheld > 0) {
     notices.push({ code: "PLACEHOLDER_UNSUPPORTED", message: PLACEHOLDER_UNSUPPORTED_MESSAGE });
   }
   const reviewFlags = applyProviderDegraded(
     buildEntryReviewFlags(
-      protectable,
-      values,
+      restored.translated,
+      restored.values,
       integrity,
       data.sourceLocale,
       data.targetLocale,
@@ -102,9 +122,16 @@ async function translate(
       data.maxLength,
     ),
     notices,
-    [...values.keys()],
+    [...restored.values.keys()],
   );
-  return { values, integrity, notices, reviewFlags };
+  return { values: restored.values, integrity, notices, reviewFlags };
+}
+
+function encodeForHtml(masked: readonly MaskedEntry[]): OutgoingText[] {
+  return masked.flatMap((item) => {
+    const text = encodeMaskedForHtml(item.masked);
+    return text === undefined ? [] : [{ entry: item.entry, text, masked: item.masked }];
+  });
 }
 
 function resolveGoogleLanguages(
@@ -126,68 +153,25 @@ function resolveGoogleLanguages(
   return { sourceLang, targetLang };
 }
 
-async function translateProtectable(
-  client: GoogleTranslateClient,
-  languages: GoogleLanguages,
-  protectable: readonly TranslationEntry[],
-  extract: PlaceholderExtractor,
-  compare: PlaceholderComparator | undefined,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
-): Promise<{
-  values: Map<string, string>;
-  integrity: Map<string, PlaceholderIntegrityResult>;
-}> {
-  if (protectable.length === 0) {
-    return { values: new Map(), integrity: new Map() };
-  }
-  const texts = protectable.map((entry) => entry.value);
-  const translatedTexts = await callClientChunked(
-    client,
-    texts,
-    languages.sourceLang,
-    languages.targetLang,
-    timeoutMs,
-    signal,
-  );
-  const { values, integrityInputs } = zipResults(protectable, translatedTexts);
-  const integrity = checkBatchIntegrity(integrityInputs, extract, compare);
-  return { values, integrity };
-}
-
-function callClient(
-  client: GoogleTranslateClient,
-  texts: readonly string[],
-  sourceLang: string,
-  targetLang: string,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
-): Promise<GoogleTranslateHttpResponse> {
-  return withRequestTimeout(
-    timeoutMs,
-    signal,
-    (guardedSignal) => client.translate(texts, sourceLang, targetLang, guardedSignal),
-    { endpointHost: GOOGLE_TRANSLATE_ENDPOINT_HOST },
-  );
-}
-
-async function callClientChunked(
-  client: GoogleTranslateClient,
-  texts: readonly string[],
-  sourceLang: string,
-  targetLang: string,
-  timeoutMs: number,
-  signal: AbortSignal | undefined,
+async function sendGroup(
+  call: Call,
+  outgoing: readonly OutgoingText[],
+  format: GoogleTranslateTextFormat,
 ): Promise<string[]> {
   const results: string[] = [];
-  for (const chunk of chunkTextsForGoogleTranslate(texts)) {
-    const { status, body } = await callClient(
-      client,
-      chunk,
-      sourceLang,
-      targetLang,
-      timeoutMs,
-      signal,
+  for (const chunk of chunkTextsForGoogleTranslate(outgoing.map((item) => item.text))) {
+    const { status, body } = await withRequestTimeout(
+      call.timeoutMs,
+      call.signal,
+      (guardedSignal) =>
+        call.client.translate(
+          chunk,
+          call.languages.sourceLang,
+          call.languages.targetLang,
+          format,
+          guardedSignal,
+        ),
+      { endpointHost: GOOGLE_TRANSLATE_ENDPOINT_HOST },
     );
     results.push(...parseGoogleTranslateHttpResult(status, body));
   }

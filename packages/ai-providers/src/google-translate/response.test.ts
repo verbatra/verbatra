@@ -94,14 +94,11 @@ describe("parseGoogleTranslateHttpResult: error classification", () => {
 });
 
 describe("zipResults", () => {
-  it("zips positionally to keys and builds integrity inputs", () => {
+  it("pairs each item with its translation by position", () => {
     const entries = [entry("a", "A?"), entry("b", "B?")];
-    const { values, integrityInputs } = zipResults(entries, ["A", "B"]);
-    expect(values.get("a")).toBe("A");
-    expect(values.get("b")).toBe("B");
-    expect(integrityInputs).toEqual([
-      { key: "a", sourceValue: "A?", translatedValue: "A" },
-      { key: "b", sourceValue: "B?", translatedValue: "B" },
+    expect(zipResults(entries, ["A", "B"])).toEqual([
+      [entries[0], "A"],
+      [entries[1], "B"],
     ]);
   });
 

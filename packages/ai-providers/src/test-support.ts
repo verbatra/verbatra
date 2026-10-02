@@ -12,6 +12,7 @@ import type { LocaleGlossary } from "./glossary.js";
 import type {
   GoogleTranslateClient,
   GoogleTranslateHttpResponse,
+  GoogleTranslateTextFormat,
 } from "./google-translate/types.js";
 import { declaredKeyEnvVars } from "./key-env-vars.js";
 import type { OpenAiRequest } from "./openai/request.js";
@@ -167,6 +168,7 @@ export interface GoogleTranslateCall {
   readonly texts: readonly string[];
   readonly sourceLang: string;
   readonly targetLang: string;
+  readonly format: GoogleTranslateTextFormat;
 }
 
 export function googleTranslateSuccess(
@@ -194,8 +196,8 @@ export function googleTranslateStubClient(response: GoogleTranslateHttpResponse)
 } {
   const calls: GoogleTranslateCall[] = [];
   const client: GoogleTranslateClient = {
-    translate: async (texts, sourceLang, targetLang) => {
-      calls.push({ texts, sourceLang, targetLang });
+    translate: async (texts, sourceLang, targetLang, format) => {
+      calls.push({ texts, sourceLang, targetLang, format });
       return response;
     },
   };
