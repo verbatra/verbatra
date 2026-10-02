@@ -77,7 +77,8 @@ interface InitResult {
     targetLocales: string[];
     format: string;
     files: { pattern: string; localeStyle?: "posix" | "android" };
-    provider: { id: string; options: Record<string, unknown> };
+    provider: { id: string; options?: Record<string, unknown> };
+    sensitiveData?: { mode: "warn" };
   } | null;
   sources: {                           // where each value came from
     provider: "flag" | "prompt";
