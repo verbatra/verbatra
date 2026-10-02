@@ -13,7 +13,6 @@ const BANNED = /too many/i;
 
 export const MALFORMED_RESPONSE_MESSAGE =
   "The LibreTranslate server returned a response verbatra could not parse.";
-export const MISMATCH_MESSAGE = "The provider returned a mismatched number of translations.";
 export const MISSING_KEY_MESSAGE =
   `The LibreTranslate server requires an API key, and the ${LIBRETRANSLATE_ENV_VAR} ` +
   "environment variable is not set.";
@@ -111,22 +110,4 @@ export function parseLibreTranslateHttpResult(
     return parsed.data.translatedText;
   }
   throw toProviderError(classifyErrorStatus(status, errorTextOf(body), keyConfigured));
-}
-
-export function zipTexts<T>(
-  items: readonly T[],
-  translated: readonly string[],
-): ReadonlyArray<readonly [T, string]> {
-  if (translated.length !== items.length) {
-    throw new ProviderError("INVALID_RESPONSE", MISMATCH_MESSAGE);
-  }
-  const pairs: Array<readonly [T, string]> = [];
-  for (const [index, item] of items.entries()) {
-    const text = translated[index];
-    if (text === undefined) {
-      throw new ProviderError("INVALID_RESPONSE", MISMATCH_MESSAGE);
-    }
-    pairs.push([item, text]);
-  }
-  return pairs;
 }

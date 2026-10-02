@@ -8,7 +8,6 @@ import {
   NOT_FOUND_MESSAGE,
   parseLibreTranslateHttpResult,
   RATE_LIMITED_MESSAGE,
-  zipTexts,
 } from "./response.js";
 
 function failure(status: number, body: unknown, keyConfigured = false): ProviderError {
@@ -99,25 +98,5 @@ describe("parseLibreTranslateHttpResult: errors", () => {
   it("never echoes the server's own error text", () => {
     const error = failure(500, { error: "Cannot translate text: secret-value-123" });
     expect(error.message).not.toContain("secret-value-123");
-  });
-});
-
-describe("zipTexts", () => {
-  it("pairs each item with its translation by position", () => {
-    expect(zipTexts(["a", "b"], ["A", "B"])).toEqual([
-      ["a", "A"],
-      ["b", "B"],
-    ]);
-  });
-
-  it("fails INVALID_RESPONSE when the counts differ", () => {
-    expect(() => zipTexts(["a", "b"], ["A"])).toThrow(ProviderError);
-    expect(() => zipTexts(["a"], ["A", "B"])).toThrow(ProviderError);
-  });
-
-  it("fails INVALID_RESPONSE for a hole in a sparse result", () => {
-    const sparse: string[] = [];
-    sparse.length = 1;
-    expect(() => zipTexts(["a"], sparse)).toThrow(ProviderError);
   });
 });

@@ -1,14 +1,8 @@
 import { appliesTerms } from "../glossary.js";
-import { checkBatchIntegrity } from "../integrity.js";
 import { supportsFormality } from "../language-support.js";
 import { resolveProviderLocale } from "../locale-map.js";
+import { translateMaskedBatch } from "../masked-batch.js";
 import { decodeMaskedFromXml, encodeMaskedForXml } from "../masked-wire-codec.js";
-import {
-  type OutgoingText,
-  PLACEHOLDER_UNSUPPORTED_MESSAGE,
-  partitionForMasking,
-  restoreTranslations,
-} from "../placeholder-protection.js";
 import {
   type TranslateRequest,
   type TranslationProvider,
@@ -16,7 +10,6 @@ import {
   validateRequest,
 } from "../provider.js";
 import { DEFAULT_REQUEST_TIMEOUT_MS, withSdkAttemptTimeout } from "../request-timeout.js";
-import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js";
 import { createDefaultClient } from "./client.js";
 import { type DeepLConfig, deepLConfigSchema } from "./config.js";
 import { DEEPL_LANGUAGE_TABLE } from "./languages.js";
@@ -24,7 +17,6 @@ import { chunkTextsForDeepL } from "./limits.js";
 import { toDeepLSourceCode, toDeepLTargetCode } from "./locale-codes.js";
 import { assertValidDeepLSourceLocale, assertValidDeepLTargetLocale } from "./locale-validation.js";
 import { buildTranslateOptions } from "./request.js";
-import { zipResults } from "./response.js";
 import type {
   DeepLClientBundle,
   DeepLTextResult,
@@ -88,9 +80,6 @@ async function translate(
 ): Promise<DeepLTranslateResult> {
   const data = validateRequest(request);
   const languages = resolveDeepLLanguages(config, data);
-  const { plain, masked, unprotectable } = partitionForMasking(data.entries, {
-    withholdMarkup: true,
-  });
   const { options, notices } = buildTranslateOptions({
     freeAccount: bundle.freeAccount,
     formalityAvailable: supportsFormality(DEEPL_LANGUAGE_TABLE, languages.targetLang),
@@ -104,41 +93,15 @@ async function translate(
     timeoutMs: config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
     signal: request.signal,
   };
-  const plainOut = plain.map((entry): OutgoingText => ({ entry, text: entry.value }));
-  const maskedOut = masked.map(
-    (item): OutgoingText => ({
-      entry: item.entry,
-      text: encodeMaskedForXml(item.masked),
-      masked: item.masked,
-    }),
-  );
-  const pairs = [
-    ...zipResults(plainOut, await sendGroup(call, plainOut, options)),
-    ...zipResults(maskedOut, await sendGroup(call, maskedOut, { ...options, ...MASKED_OPTIONS })),
-  ];
-  const restored = restoreTranslations(pairs, decodeMaskedFromXml);
-  const integrity = checkBatchIntegrity(
-    restored.integrityInputs,
-    request.extractPlaceholders,
-    request.comparePlaceholders,
-  );
-  if (unprotectable.length + restored.lost > 0) {
-    notices.push({ code: "PLACEHOLDER_UNSUPPORTED", message: PLACEHOLDER_UNSUPPORTED_MESSAGE });
-  }
-  const reviewFlags = applyProviderDegraded(
-    buildEntryReviewFlags(
-      restored.translated,
-      restored.values,
-      integrity,
-      data.sourceLocale,
-      data.targetLocale,
-      data.glossary,
-      data.maxLength,
-    ),
-    notices,
-    [...restored.values.keys()],
-  );
-  return { values: restored.values, integrity, notices, reviewFlags };
+  return translateMaskedBatch(data, request, notices, {
+    masking: { withholdMarkup: true },
+    encode: encodeMaskedForXml,
+    decode: decodeMaskedFromXml,
+    groups: ["plain", "masked"],
+    groupOf: (item) => (item.masked === undefined ? "plain" : "masked"),
+    send: (texts, group) =>
+      sendChunked(call, texts, group === "plain" ? options : { ...options, ...MASKED_OPTIONS }),
+  });
 }
 
 function resolveDeepLLanguages(config: DeepLConfig, data: ValidatedRequestData): DeepLLanguages {
@@ -149,13 +112,13 @@ function resolveDeepLLanguages(config: DeepLConfig, data: ValidatedRequestData):
   return { sourceLang, targetLang };
 }
 
-async function sendGroup(
+async function sendChunked(
   call: Call,
-  outgoing: readonly OutgoingText[],
+  texts: readonly string[],
   options: DeepLTranslateOptions,
-): Promise<DeepLTextResult[]> {
+): Promise<string[]> {
   const results: DeepLTextResult[] = [];
-  for (const chunk of chunkTextsForDeepL(outgoing.map((item) => item.text))) {
+  for (const chunk of chunkTextsForDeepL(texts)) {
     const chunkResults = await withSdkAttemptTimeout(call.timeoutMs, call.signal, () =>
       call.client.translateText(
         chunk,
@@ -166,5 +129,5 @@ async function sendGroup(
     );
     results.push(...chunkResults);
   }
-  return results;
+  return results.map((result) => result.text);
 }
