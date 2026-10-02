@@ -4,7 +4,7 @@ description: Start the stdio MCP server that exposes verbatra's tools to any MCP
 status: new
 type: reference
 ---
-Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the local transport MCP clients such as Claude Code, Cursor or Claude Desktop use to launch a tool server. It gives a terminal or headless agent the translation-status, glossary, review and editing tools Studio's browser agent tools expose, without a browser or a port.
+Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the local transport MCP clients such as Claude Code, Cursor or Claude Desktop use to launch a tool server. It gives a terminal or headless agent the translation-status, glossary, review and editing tools Studio's browser agent tools expose, without a browser or a port. There is no HTTP transport: the server works on one project's local files, and a network listener would put its write and spend tools on a port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 

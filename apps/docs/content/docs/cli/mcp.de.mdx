@@ -4,7 +4,7 @@ description: Starte den stdio-MCP-Server, der die Tools von verbatra für jeden 
 status: new
 type: reference
 ---
-Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den lokalen Transport, mit dem MCP-Clients wie Claude Code, Cursor oder Claude Desktop einen Tool-Server starten. Ein Agent im Terminal oder ohne Oberfläche bekommt damit die Status-, Glossar-, Review- und Bearbeitungs-Tools, die auch Studios Browser-Agent-Tools bieten, ohne Browser und ohne Port.
+Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den lokalen Transport, mit dem MCP-Clients wie Claude Code, Cursor oder Claude Desktop einen Tool-Server starten. Ein Agent im Terminal oder ohne Oberfläche bekommt damit die Status-, Glossar-, Review- und Bearbeitungs-Tools, die auch Studios Browser-Agent-Tools bieten, ohne Browser und ohne Port. Einen HTTP-Transport gibt es nicht: Der Server arbeitet auf den lokalen Dateien eines Projekts, und ein Netzwerk-Listener würde seine schreibenden und kostenpflichtigen Tools an einem Port anbieten.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
