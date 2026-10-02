@@ -33,7 +33,13 @@ const docs = loader({ baseUrl: "/docs", i18n, source: { files: virtualFiles() } 
 
 function pageUrls(tree: Root | Folder): string[] {
   return flattenTree(tree.children)
-    .filter((item) => !item.external && !item.url.includes("#"))
+    .filter((item) => item.$ref !== undefined && !item.external && !item.url.includes("#"))
+    .map((item) => item.url);
+}
+
+function linkUrls(tree: Root | Folder): string[] {
+  return flattenTree(tree.children)
+    .filter((item) => item.$ref === undefined && !item.external)
     .map((item) => item.url);
 }
 
@@ -72,6 +78,21 @@ describe("docs sidebar", () => {
       );
       const open = groups.filter((group) => group.defaultOpen === true);
       expect(open.map((group) => pageUrls(group)[0])).toEqual([`${prefix}/docs/quickstart`]);
+    });
+
+    it("links the SDK quickstart and recipes first in the SDK reference, as links not pages", () => {
+      const [docsTab, referenceTab] = rootFolders(tree);
+      const prefix = locale === i18n.defaultLanguage ? "" : `/${locale}`;
+      const sdk = referenceTab?.children.find(
+        (node): node is Folder =>
+          node.type === "folder" && pageUrls(node)[0] === `${prefix}/docs/sdk`,
+      );
+      const quickstart = `${prefix}/docs/sdk-quickstart`;
+      const recipes = `${prefix}/docs/programmatic-api`;
+      expect(sdk ? linkUrls(sdk).slice(0, 2) : undefined).toEqual([quickstart, recipes]);
+      expect(docsTab ? pageUrls(docsTab) : []).toEqual(
+        expect.arrayContaining([quickstart, recipes]),
+      );
     });
 
     it("keeps every link in the sidebar inside this locale", () => {
