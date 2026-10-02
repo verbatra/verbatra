@@ -25,7 +25,7 @@ verbatra translate [flags]
 | `--include-human` | aucun | désactivé | retraduit aussi, pour cette exécution seulement, les clés obsolètes écrites ou importées par une personne ; les [clés épinglées](/docs/protecting-human-translations#épingler-des-clés) restent intactes |
 | `--estimate` | aucun | désactivé | estime ce que l'exécution enverrait et coûterait, puis termine ; implique `--dry-run` |
 
-Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`. Avant de s'exécuter, `translate` charge `.env.local` puis `.env` depuis le répertoire de travail ; une variable déjà définie dans l'environnement réel l'emporte.
+Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--config` et `--json`. Avant de s'exécuter, `translate` charge les [fichiers d'environnement](/docs/cli#fichiers-denvironnement).
 
 ## Comportement
 

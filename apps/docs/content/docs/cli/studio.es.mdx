@@ -28,7 +28,7 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--conf
 
 ### La URL impresa
 
-Antes de arrancar, `studio` carga `.env.local` y luego `.env` del directorio de trabajo y resuelve tu configuración una vez; un error de configuración sale con `2` antes de que arranque ningún servidor. Studio solo escucha en `127.0.0.1` y, en cuanto está escuchando, imprime una línea en stdout:
+Antes de arrancar, `studio` carga los [archivos de entorno](/docs/cli#archivos-de-entorno) y resuelve tu configuración una vez; un error de configuración sale con `2` antes de que arranque ningún servidor. Studio solo escucha en `127.0.0.1` y, en cuanto está escuchando, imprime una línea en stdout:
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>

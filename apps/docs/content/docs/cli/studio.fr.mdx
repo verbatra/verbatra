@@ -28,7 +28,7 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--c
 
 ### L'URL affichée
 
-Avant de démarrer, `studio` charge `.env.local` puis `.env` depuis le répertoire de travail et résout ta config une fois ; une erreur de config sort avec `2` avant qu'un serveur ne démarre. Studio écoute uniquement sur `127.0.0.1` et, dès qu'il écoute, affiche une ligne sur stdout :
+Avant de démarrer, `studio` charge les [fichiers d'environnement](/docs/cli#fichiers-denvironnement) et résout ta config une fois ; une erreur de config sort avec `2` avant qu'un serveur ne démarre. Studio écoute uniquement sur `127.0.0.1` et, dès qu'il écoute, affiche une ligne sur stdout :
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>

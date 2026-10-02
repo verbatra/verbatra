@@ -32,7 +32,7 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektwurzel. Claude Code setzt diese Variable für jeden stdio-Server, den es startet, sodass eine Sitzung aus einem Unterverzeichnis trotzdem die Konfiguration findet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann `.env.local` und `.env` aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil die Wurzel vorher feststeht.
+Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektwurzel. Claude Code setzt diese Variable für jeden stdio-Server, den es startet, sodass eine Sitzung aus einem Unterverzeichnis trotzdem die Konfiguration findet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil die Wurzel vorher feststeht.
 
 Wie du den Server in einem Client einträgst, steht unter [MCP-Client verbinden](/docs/connect-an-mcp-client).
 

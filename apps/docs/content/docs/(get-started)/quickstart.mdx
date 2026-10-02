@@ -92,7 +92,7 @@ A dry run builds no provider, so it needs no key, spends nothing, and writes not
 cp .env.example .env
 ```
 
-Open `.env` and paste your key after `GEMINI_API_KEY=`. Keys only ever come from the environment: verbatra loads `.env.local` and `.env` from the working directory, and a variable already set in your shell wins. No key yet? Gemini has a free tier: create one in [Google AI Studio](https://aistudio.google.com/apikey). Every other provider and its variable is on [Providers](/docs/providers).
+Open `.env` and paste your key after `GEMINI_API_KEY=`. Keys only ever come from the environment, and the CLI loads [`.env.local` and `.env`](/docs/cli#environment-files) into it. No key yet? Gemini has a free tier: create one in [Google AI Studio](https://aistudio.google.com/apikey). Every other provider and its variable is on [Providers](/docs/providers).
 
 </Step>
 <Step>

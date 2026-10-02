@@ -115,9 +115,8 @@ is not set.` (oder die Variable deines Providers).
 **Ursache**: Die Variable, die die Meldung nennt, ist nicht gesetzt oder leer. Schlüssel kommen nur
 aus der Umgebung, nie aus der Konfiguration oder einem Flag.
 
-**Lösung**: Setz die Variable und bestätige sie mit `verbatra doctor`. `translate`, `watch`,
-`doctor`, `studio` und `mcp` laden `.env` und `.env.local` aus dem Arbeitsverzeichnis (siehe
-[Provider](/docs/providers#keys-kommen-aus-der-umgebung)); das SDK nicht, also nutze in deinem
+**Lösung**: Setz die Variable und bestätige sie mit `verbatra doctor`. Die CLI liest sie auch aus
+[`.env.local` und `.env`](/docs/cli#umgebungsdateien); das SDK nicht, also nutze in deinem
 eigenen Skript `node --env-file=.env`. Codes:
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).

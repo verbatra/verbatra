@@ -32,7 +32,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd` and `--config`. It
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the server uses it as the project root. Claude Code sets that variable for every stdio server it spawns, so a session started in a subdirectory still finds the config. An explicit `--cwd` always wins. `verbatra mcp` then loads `.env.local` and `.env` from that directory; a `CLAUDE_PROJECT_DIR` set only in those files is ignored, because the root is resolved first.
+When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the server uses it as the project root. Claude Code sets that variable for every stdio server it spawns, so a session started in a subdirectory still finds the config. An explicit `--cwd` always wins. `verbatra mcp` then loads the [environment files](/docs/cli#environment-files) from that directory; a `CLAUDE_PROJECT_DIR` set only in those files is ignored, because the root is resolved first.
 
 To register the server with a client, follow [Connect an MCP client](/docs/connect-an-mcp-client).
 

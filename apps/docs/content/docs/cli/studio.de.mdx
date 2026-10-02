@@ -28,7 +28,7 @@ Außerdem nimmt `studio` die [globalen Flags](/docs/cli#globale-flags) `--cwd` u
 
 ### Die ausgegebene URL
 
-Vor dem Start lädt `studio` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis und löst deine Konfiguration einmal auf; ein Konfigurationsfehler endet mit `2`, bevor irgendein Server startet. Studio bindet sich nur an `127.0.0.1` und gibt, sobald es lauscht, eine Zeile auf stdout aus:
+Vor dem Start lädt `studio` die [Umgebungsdateien](/docs/cli#umgebungsdateien) und löst deine Konfiguration einmal auf; ein Konfigurationsfehler endet mit `2`, bevor irgendein Server startet. Studio bindet sich nur an `127.0.0.1` und gibt, sobald es lauscht, eine Zeile auf stdout aus:
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>

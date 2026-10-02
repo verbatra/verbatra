@@ -108,9 +108,8 @@ is not set.` (or your provider's variable).
 **Cause**: the variable the message names is unset or empty. Keys come only from the environment,
 never from the config or a flag.
 
-**Fix**: set the variable and confirm it with `verbatra doctor`. `translate`, `watch`, `doctor`,
-`studio` and `mcp` load `.env` and `.env.local` from the working directory (see
-[Providers](/docs/providers#keys-come-from-the-environment)); the SDK does not, so use
+**Fix**: set the variable and confirm it with `verbatra doctor`. The CLI also reads it from
+[`.env.local` and `.env`](/docs/cli#environment-files); the SDK does not, so use
 `node --env-file=.env` in your own script. Codes:
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).

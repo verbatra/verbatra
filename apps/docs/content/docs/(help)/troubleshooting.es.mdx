@@ -113,9 +113,8 @@ is not set.` (o la variable de tu proveedor).
 **Causa**: la variable que nombra el mensaje no está definida o está vacía. Las claves solo vienen
 del entorno, nunca de la config ni de un flag.
 
-**Solución**: define la variable y confírmala con `verbatra doctor`. `translate`, `watch`, `doctor`,
-`studio` y `mcp` cargan `.env` y `.env.local` del directorio de trabajo (consulta
-[Proveedores](/docs/providers#las-claves-vienen-del-entorno)); el SDK no, así que usa
+**Solución**: define la variable y confírmala con `verbatra doctor`. La CLI también la lee de
+[`.env.local` y `.env`](/docs/cli#archivos-de-entorno); el SDK no, así que usa
 `node --env-file=.env` en tu propio script. Códigos:
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).

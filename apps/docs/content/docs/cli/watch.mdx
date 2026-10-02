@@ -21,7 +21,7 @@ verbatra watch [flags]
 | `--concurrency` | `<n>` | `1` | translate up to `n` target locales at once per run; a whole number from `1` to `100`, refused under a `maxTokens` budget |
 | `--no-cache` | none | off (cache on) | bypass the [translation-memory cache](/docs/the-cache) (`verbatra.cache.json`) on every run |
 
-Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`; here `--json` prints one record per run. Before it starts, `watch` loads `.env.local` and then `.env` from the working directory; a variable already set in the real environment wins.
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`; here `--json` prints one record per run. Before it starts, `watch` loads the [environment files](/docs/cli#environment-files).
 
 ## Behavior
 

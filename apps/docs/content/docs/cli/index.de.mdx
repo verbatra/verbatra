@@ -57,7 +57,7 @@ Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`. `mcp` schreibt n
 
 ## Umgebungsdateien
 
-`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
+`translate`, `watch`, `doctor`, `studio` und `mcp` laden `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor sie laufen. `doctor --literals` ist die Ausnahme: Dieser Aufruf liest keinen API-Key und lädt deshalb keine der beiden Dateien. Eine bereits in deiner echten Umgebung gesetzte Variable gewinnt immer, und ein Wert in `.env.local` gewinnt gegen dieselbe Variable in `.env`. API-Keys werden nur aus der Umgebung gelesen, nie aus der Konfigurationsdatei oder einem Flag: siehe [Provider](/docs/providers). Die nur lesenden Befehle (`check`, `diff`, `report`), die Übergabe-Befehle (`export`, `import`), `extract`, `init`, `pseudo`, `types` und `tmx` rufen nie einen Provider auf und laden keine `.env`-Dateien.
 
 ## Terminalausgabe
 

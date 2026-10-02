@@ -78,8 +78,8 @@ Aucune étape de plus : `@verbatra/cli` dépend de `@verbatra/sdk`, donc il vien
 
 ## Où vivent les clés d'API ?
 
-Uniquement dans des variables d'environnement, que `translate`, `watch`, `doctor`, `studio` et
-`mcp` lisent aussi depuis `.env` et `.env.local`. La config rejette les clés inconnues pour qu'aucun
+Uniquement dans des variables d'environnement, que la CLI lit aussi depuis
+[`.env.local` et `.env`](/docs/cli#fichiers-denvironnement). La config rejette les clés inconnues pour qu'aucun
 secret ne finisse dans un fichier commité. Voir [Fournisseurs](/docs/providers).
 
 ## verbatra envoie-t-il mes textes quelque part ?

@@ -28,7 +28,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd` and `--config`.
 
 ### The printed URL
 
-Before it starts, `studio` loads `.env.local` and then `.env` from the working directory and resolves your config once; a config error exits `2` before any server starts. Studio binds to `127.0.0.1` only and, once it is listening, prints one line to stdout:
+Before it starts, `studio` loads the [environment files](/docs/cli#environment-files) and resolves your config once; a config error exits `2` before any server starts. Studio binds to `127.0.0.1` only and, once it is listening, prints one line to stdout:
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
