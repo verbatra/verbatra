@@ -233,8 +233,8 @@ first.
 [Spend and agent tools](/docs/cli/studio#spend-and-agent-tools), and without it the spend actions
 are not registered.
 
-**Fix**: restart with `verbatra studio --allow-spend`. See
-[Review in Studio](/docs/review-in-studio).
+**Fix**: restart with `verbatra studio --allow-spend`, unless the project is
+[human-only](/docs/human-only-workflow). See [Review in Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp is not installed
 
@@ -256,7 +256,8 @@ unknown tool.
 **Cause**: spend is granted at startup, under the rules in [Spend tools](/docs/cli/mcp#spend-tools),
 and the tool list must not change per connection, so the spend tools are left out entirely.
 
-**Fix**: restart with `verbatra mcp --allow-spend`.
+**Fix**: restart with `verbatra mcp --allow-spend`, unless the project is
+[human-only](/docs/human-only-workflow).
 
 ## Undoing a run (no error code)
 

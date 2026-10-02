@@ -242,8 +242,8 @@ attente n'apparaissent pas.
 [Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation
 les actions de dépense ne sont pas enregistrées.
 
-**Solution** : redémarre avec `verbatra studio --allow-spend`. Voir
-[Réviser dans Studio](/docs/review-in-studio).
+**Solution** : redémarre avec `verbatra studio --allow-spend`, sauf si le projet est
+[uniquement humain](/docs/human-only-workflow). Voir [Réviser dans Studio](/docs/review-in-studio).
 
 ## MCP : @verbatra/mcp n'est pas installé
 
@@ -265,7 +265,8 @@ appeler un par son nom échoue comme outil inconnu.
 [Outils payants](/docs/cli/mcp#outils-payants), et la liste d'outils ne doit pas changer selon la
 connexion, donc les outils de dépense sont entièrement laissés de côté.
 
-**Solution** : redémarre avec `verbatra mcp --allow-spend`.
+**Solution** : redémarre avec `verbatra mcp --allow-spend`, sauf si le projet est
+[uniquement humain](/docs/human-only-workflow).
 
 ## Annuler une exécution (aucun code d'erreur)
 
