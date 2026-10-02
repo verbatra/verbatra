@@ -151,7 +151,7 @@ Chaque résultat et chaque ligne de log sont expurgés comme dans Studio : une v
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Avec `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` sur une valeur qu'accepte `VERBATRA_MCP_ALLOW_SPEND`, les résultats remplacent les textes source, les traductions, les descriptions, les termes du glossaire et les noms des relecteurs et auteurs par un marqueur, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`. Les noms de clés, les comptes, les origines, les verdicts d'intégrité, les sujets de commit et les chemins restent. `review.approve` et `review.reject` prennent alors le hash du marqueur comme `expectedHash`, valable jusqu'à l'arrêt du serveur. `locale.values` refuse `query`, et `key.context` refuse `draft`. Les outils payants exigent toujours `--allow-spend`, et un fournisseur reçoit toujours le texte. Voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
+Avec `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` sur une valeur qu'accepte `VERBATRA_MCP_ALLOW_SPEND`, les résultats remplacent les textes source, les traductions, les descriptions, les termes du glossaire et les noms des relecteurs et auteurs par un marqueur, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]` ; des valeurs égales partagent un hash jusqu'à l'arrêt du serveur. Le texte entre guillemets d'une erreur est aussi marqué. Les noms de clés, les comptes, les origines, les verdicts d'intégrité, les sujets de commit et les chemins restent. `review.approve` et `review.reject` ne prennent que le hash du marqueur, comme `expectedHash` ; `glossary.write` répond par des comptes ; `locale.values` refuse `query` et `key.context` refuse `draft`. Cela garde les valeurs hors des résultats, mais n'arrête pas un agent qui sonde exprès, par exemple via des écritures de glossaire et les correspondances de glossaire de `key.context`. Les outils payants exigent toujours `--allow-spend`, et un fournisseur reçoit toujours le texte. Voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
 
 ### stdout et stderr
 
@@ -200,7 +200,7 @@ npx -y @verbatra/mcp --cwd /path/to/project
 | --- | --- |
 | `0` | arrêté proprement par une seule interruption, ou parce que le client a fermé stdin |
 | `1` | la fermeture du serveur a échoué pendant l'arrêt |
-| `2` | n'a pas pu démarrer : un fichier `--config` inexistant, `@verbatra/mcp` non installé, ou une erreur d'utilisation |
+| `2` | n'a pas pu démarrer : un fichier `--config` inexistant, `@verbatra/mcp` absent ou, avec `--redact-values`, trop ancien, ou une erreur d'utilisation |
 | `130` | arrêté de force par une seconde interruption pendant l'arrêt |
 
 À l'arrêt, le serveur libère tout verrou de locale. `verbatra-mcp` sort avec `1` sur une erreur de démarrage et, depuis 0.3.0, avec `143` s'il est arrêté de force après SIGTERM. Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).

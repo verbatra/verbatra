@@ -60,8 +60,7 @@ Each request starts with a DNS lookup of the provider's host, so your resolver s
 | `libretranslate` | The source text of each key with placeholders replaced by numbered markers (a value with ICU syntax is not sent), the language codes, and `LIBRETRANSLATE_API_KEY` when set. | The `baseUrl` you configured. |
 | `none` | Nothing. | Nowhere. |
 
-The vendor SDKs also send their standard headers, which name the library and usually your
-operating system and Node.js version. Your API key goes only to the configured endpoint
+Vendor SDKs also send standard headers naming the library, your OS and Node.js version. Your API key goes only to the configured endpoint
 (`google-translate` sends it in the `?key=` query string). Treat anything in a source string, a
 description or the glossary as sent.
 
@@ -69,7 +68,7 @@ description or the glossary as sent.
 
 What happens to your strings after they arrive is set by the vendor and your contract, not by
 verbatra. The quotes are from each vendor's page as of September 2026; terms change and your
-contract wins, so read the linked pages.
+contract wins.
 
 | Provider | What the vendor says | Data processing terms |
 | --- | --- | --- |
@@ -123,7 +122,8 @@ prints at start, and its Content-Security-Policy blocks fetches to the internet.
 
 **The MCP server** talks over stdio and opens no port. Its read tools return your strings, glossary
 and status, unless it runs with [`--redact-values`](/docs/cli/mcp#redacted-values): then each value
-is a marker with its length and a hash. Key names, commit subjects and paths are not redacted.
+is a marker. Key names, commit subjects and paths are not redacted, and an agent probing on purpose,
+say through glossary writes, can still learn about values.
 
 **Locale file history.** `history.list` returns each commit's hash, date, author name (left out
 under `--redact-values`), subject and touched paths, never the email.

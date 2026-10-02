@@ -65,8 +65,7 @@ Chaque requête commence par une résolution DNS de l'hôte du fournisseur, que 
 | `libretranslate` | Le texte source de chaque clé avec ses placeholders remplacés par des marqueurs numérotés (une valeur avec de la syntaxe ICU n'est pas envoyée), les codes de langue, et `LIBRETRANSLATE_API_KEY` quand elle est définie. | La `baseUrl` que tu as configurée. |
 | `none` | Rien. | Nulle part. |
 
-Les SDK des fournisseurs envoient aussi leurs en-têtes standard, qui nomment la bibliothèque et
-souvent ton système d'exploitation et ta version de Node.js. Ta clé d'API ne va qu'au point de
+Les SDK envoient aussi des en-têtes avec la bibliothèque, ton OS et Node.js. Ta clé d'API ne va qu'au point de
 terminaison configuré (`google-translate` l'envoie dans la chaîne de requête `?key=`). Considère
 comme envoyé tout ce qui se trouve dans une chaîne source, une description ou le glossaire.
 
@@ -74,7 +73,7 @@ comme envoyé tout ce qui se trouve dans une chaîne source, une description ou 
 
 Ce qu'il advient de tes textes une fois arrivés dépend du fournisseur et de ton contrat, pas de
 verbatra. Les citations viennent de la page de chaque fournisseur en septembre 2026, dans leur
-anglais d'origine ; les conditions changent et ton contrat prime, donc lis les pages liées.
+anglais d'origine ; les conditions changent et ton contrat prime.
 
 | Fournisseur | Ce que dit le fournisseur | Traitement des données |
 | --- | --- | --- |
@@ -129,8 +128,9 @@ affiche au démarrage, et sa Content-Security-Policy bloque les accès à Intern
 
 **Le serveur MCP** parle via stdio sans ouvrir de port. Ses outils de lecture renvoient textes,
 glossaire et statut, sauf s'il tourne avec
-[`--redact-values`](/docs/cli/mcp#redacted-values) : chaque valeur devient alors un marqueur portant
-sa longueur et un hash. Noms de clés, sujets de commit et chemins ne sont pas masqués.
+[`--redact-values`](/docs/cli/mcp#redacted-values) : chaque valeur devient alors un marqueur. Noms de
+clés, sujets de commit et chemins ne sont pas masqués, et un agent qui sonde exprès, par exemple via
+des écritures de glossaire, peut encore apprendre quelque chose des valeurs.
 
 **Historique des fichiers de locale.** `history.list` renvoie pour chaque commit le hash, la date,
 le nom de l'auteur (omis avec `--redact-values`), le sujet et les chemins modifiés, jamais l'e-mail.

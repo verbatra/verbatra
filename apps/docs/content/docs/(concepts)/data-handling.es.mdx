@@ -65,8 +65,7 @@ Cada petición empieza con una consulta DNS del host del proveedor, así que tu 
 | `libretranslate` | El texto de origen de cada clave con los placeholders sustituidos por marcadores numerados (un valor con sintaxis ICU no se envía), los códigos de idioma y `LIBRETRANSLATE_API_KEY` si está definida. | La `baseUrl` que configuraste. |
 | `none` | Nada. | A ninguna parte. |
 
-Los SDK de los proveedores también envían sus cabeceras estándar, que nombran la biblioteca y
-normalmente tu sistema operativo y tu versión de Node.js. Tu clave de API solo va al endpoint
+Los SDK también envían cabeceras con la biblioteca, tu sistema operativo y Node.js. Tu clave de API solo va al endpoint
 configurado (`google-translate` la envía en la cadena de consulta `?key=`). Trata todo lo que haya en
 un texto de origen, una descripción o el glosario como enviado.
 
@@ -74,7 +73,7 @@ un texto de origen, una descripción o el glosario como enviado.
 
 Lo que pasa con tus textos una vez llegan lo deciden el proveedor y tu contrato, no verbatra. Las
 citas vienen de la página de cada proveedor a septiembre de 2026, en su inglés original; las
-condiciones cambian y tu contrato manda, así que lee las páginas enlazadas.
+condiciones cambian y tu contrato manda.
 
 | Proveedor | Qué dice el proveedor | Tratamiento de datos |
 | --- | --- | --- |
@@ -127,8 +126,9 @@ al arrancar, y su Content-Security-Policy bloquea las cargas desde internet.
 
 **El servidor MCP** habla por stdio sin abrir puertos. Sus herramientas de lectura devuelven textos,
 glosario y estado, salvo que se ejecute con
-[`--redact-values`](/docs/cli/mcp#redacted-values): entonces cada valor es una marca con su longitud
-y un hash. Nombres de clave, asuntos de commit y rutas no se ocultan.
+[`--redact-values`](/docs/cli/mcp#redacted-values): entonces cada valor es una marca. Nombres de
+clave, asuntos de commit y rutas no se ocultan, y un agente que sondea a propósito, por ejemplo con
+escrituras en el glosario, aún puede deducir algo de los valores.
 
 **Historial de los archivos de locale.** `history.list` devuelve de cada commit el hash, la fecha,
 el nombre del autor (omitido con `--redact-values`), el asunto y las rutas cambiadas, nunca el

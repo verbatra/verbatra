@@ -63,8 +63,7 @@ Jeder Request beginnt mit einem DNS-Lookup des Provider-Hosts, dein Resolver sie
 | `libretranslate` | Der Quelltext jedes Keys, mit Platzhaltern durch nummerierte Markierungen ersetzt (ein Wert mit ICU-Syntax wird nicht gesendet), die Sprachcodes und `LIBRETRANSLATE_API_KEY`, wenn gesetzt. | Die `baseUrl`, die du konfiguriert hast. |
 | `none` | Nichts. | Nirgendwohin. |
 
-Die SDKs der Anbieter senden außerdem ihre üblichen Header, die die Bibliothek und meist dein
-Betriebssystem und deine Node.js-Version nennen. Dein API-Key geht nur an den konfigurierten
+Die SDKs senden außerdem Header mit Bibliothek, Betriebssystem und Node.js-Version. Dein API-Key geht nur an den konfigurierten
 Endpunkt (`google-translate` sendet ihn im Query-String `?key=`). Behandle alles in einem
 Quell-String, einer Beschreibung oder dem Glossar als gesendet.
 
@@ -72,7 +71,7 @@ Quell-String, einer Beschreibung oder dem Glossar als gesendet.
 
 Was mit deinen Strings nach ihrer Ankunft passiert, bestimmen der Anbieter und dein Vertrag, nicht
 verbatra. Die Zitate stammen von der Seite des Anbieters, Stand September 2026, im englischen
-Original; Bedingungen ändern sich und dein Vertrag geht vor, also lies die verlinkten Seiten.
+Original; Bedingungen ändern sich und dein Vertrag geht vor.
 
 | Provider | Was der Anbieter sagt | Auftragsverarbeitung |
 | --- | --- | --- |
@@ -127,8 +126,9 @@ es beim Start ausgibt, und seine Content-Security-Policy blockiert Abrufe aus de
 
 **Der MCP-Server** spricht über stdio und öffnet keinen Port. Seine Lese-Tools geben deine Strings,
 dein Glossar und deinen Status heraus, außer er läuft mit
-[`--redact-values`](/docs/cli/mcp#redacted-values): Dann ist jeder Wert eine Markierung mit seiner
-Länge und einem Hash. Key-Namen, Commit-Betreffs und Pfade werden nicht geschwärzt.
+[`--redact-values`](/docs/cli/mcp#redacted-values): Dann ist jeder Wert eine Markierung. Key-Namen,
+Commit-Betreffs und Pfade werden nicht geschwärzt, und ein Agent, der gezielt sondiert, etwa über
+Glossar-Schreibvorgänge, kann weiter etwas über Werte erfahren.
 
 **Historie der Locale-Dateien.** `history.list` liefert für jeden Commit Hash, Datum, Autorname
 (fehlt unter `--redact-values`), Betreff und geänderte Pfade, nie die E-Mail.

@@ -151,7 +151,7 @@ Every result and log line is redacted as in Studio: a value shaped like an API k
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-With `--redact-values`, or `VERBATRA_MCP_REDACT_VALUES` set to a value `VERBATRA_MCP_ALLOW_SPEND` accepts, results replace source texts, translations, descriptions, glossary terms, and reviewer and author names with a marker, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`. Key names, counts, origins, integrity verdicts, commit subjects and paths stay. `review.approve` and `review.reject` then take the marker's hash as `expectedHash`, valid until the server stops. `locale.values` refuses `query`, and `key.context` refuses `draft`. The spend tools still need `--allow-spend`, and a provider still receives the text. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
+With `--redact-values`, or `VERBATRA_MCP_REDACT_VALUES` set to a value `VERBATRA_MCP_ALLOW_SPEND` accepts, results replace source texts, translations, descriptions, glossary terms, and reviewer and author names with a marker, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; equal values share a hash until the server stops. Quoted text in an error is marked too. Key names, counts, origins, integrity verdicts, commit subjects and paths stay. `review.approve` and `review.reject` take only the marker's hash, as `expectedHash`; `glossary.write` answers with counts; `locale.values` refuses `query` and `key.context` refuses `draft`. This keeps values out of results, but does not stop an agent probing on purpose, for example through glossary writes and the glossary hits of `key.context`. The spend tools still need `--allow-spend`, and a provider still receives the text. See [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ### Stdout and stderr
 
@@ -200,7 +200,7 @@ npx -y @verbatra/mcp --cwd /path/to/project
 | --- | --- |
 | `0` | stopped cleanly by a single interrupt, or because the client closed stdin |
 | `1` | closing the server failed during shutdown |
-| `2` | could not start: a missing `--config` file, `@verbatra/mcp` not installed, or a usage error |
+| `2` | could not start: a missing `--config` file, a missing or, with `--redact-values`, too old `@verbatra/mcp`, or a usage error |
 | `130` | force-stopped by a second interrupt during shutdown |
 
 A stop releases any locale lock. `verbatra-mcp` exits `1` on a startup error and, from 0.3.0, `143` when force-stopped after SIGTERM. See [the exit-code contract](/docs/cli/output#exit-codes).
