@@ -9,6 +9,10 @@ const UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 const KEY_PATTERNS: readonly RegExp[] = [
   /AIza[0-9A-Za-z_-]{35}/g,
   new RegExp(`${UUID}:fx\\b`, "g"),
+  /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g,
+  /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
+  /\b[rs]k_live_[A-Za-z0-9]{16,}\b/g,
+  /\bxox[abpr]-[A-Za-z0-9-]{10,}\b/g,
 ];
 
 const SK_TOKEN =
@@ -94,37 +98,38 @@ export function redactKeys(text: string): string {
   return scrubPatterns(scrubValues(text));
 }
 
-export interface KeyShapeSpan {
+export interface TextSpan {
   readonly start: number;
   readonly end: number;
 }
 
-function wholeMatchSpans(pattern: RegExp, text: string): KeyShapeSpan[] {
-  return [...text.matchAll(pattern)].map((match) => ({
-    start: match.index,
-    end: match.index + match[0].length,
-  }));
-}
-
-function skTokenSpans(text: string): KeyShapeSpan[] {
-  return [...text.matchAll(SK_TOKEN)]
-    .filter((match) => redactSkToken(match[0]) === REDACTED)
+export function matchSpans(
+  pattern: RegExp,
+  text: string,
+  accept: (match: string) => boolean = () => true,
+): TextSpan[] {
+  return [...text.matchAll(pattern)]
+    .filter((match) => match[0].length > 0 && accept(match[0]))
     .map((match) => ({ start: match.index, end: match.index + match[0].length }));
 }
 
-function deeplContextSpans(text: string): KeyShapeSpan[] {
+function isLongSkToken(token: string): boolean {
+  return redactSkToken(token) === REDACTED;
+}
+
+function deeplContextSpans(text: string): TextSpan[] {
   return [...text.matchAll(DEEPL_KEY_IN_CONTEXT)].map((match) => ({
     start: match.index + (match[1] ?? "").length,
     end: match.index + match[0].length,
   }));
 }
 
-export function findKeyShapes(text: string): readonly KeyShapeSpan[] {
+export function findKeyShapes(text: string): readonly TextSpan[] {
   const valuePattern = configuredValuePattern();
   return [
-    ...(valuePattern === undefined ? [] : wholeMatchSpans(valuePattern, text)),
+    ...(valuePattern === undefined ? [] : matchSpans(valuePattern, text)),
     ...deeplContextSpans(text),
-    ...skTokenSpans(text),
-    ...KEY_PATTERNS.flatMap((pattern) => wholeMatchSpans(pattern, text)),
+    ...matchSpans(SK_TOKEN, text, isLongSkToken),
+    ...KEY_PATTERNS.flatMap((pattern) => matchSpans(pattern, text)),
   ];
 }
