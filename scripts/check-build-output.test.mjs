@@ -7,6 +7,7 @@ import {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   findRenamedDeclarations,
+  findUnexportedLinks,
   getConfigSchemaFilesPattern,
   hasZodJitlessConfig,
   staticImportPattern,
@@ -247,6 +248,49 @@ describe("findRenamedDeclarations", () => {
   it("ignores a dollar sign that is not a numeric rename suffix", () => {
     const text = "type Strip = z.core.$strip;\ndeclare const $schema: string;";
     expect(findRenamedDeclarations(text, "dist/index.d.ts")).toEqual([]);
+  });
+});
+
+describe("findUnexportedLinks", () => {
+  it("accepts a link to an exported name, including one exported under an alias", () => {
+    const text = [
+      "/** See {@link Tone} and {@link Renamed}. */",
+      "type Tone = string;",
+      "type Local = string;",
+      "export { type Tone, type Local as Renamed };",
+    ].join("\n");
+    expect(findUnexportedLinks(text, "dist/index.d.ts")).toEqual([]);
+  });
+
+  it("reports a link to a top-level declaration the bundle does not export", () => {
+    const text = [
+      "declare const SCHEMA: string;",
+      "/** The inferred type of {@link SCHEMA}. */",
+      "type Shape = string;",
+      "export { type Shape };",
+    ].join("\n");
+    expect(findUnexportedLinks(text, "dist/index.d.ts")).toEqual(["dist/index.d.ts:2: SCHEMA"]);
+  });
+
+  it("reports a link to a name declared nowhere in the bundle", () => {
+    const text = [
+      "/** See {@linkcode Missing}. */",
+      "type Shape = string;",
+      "export { Shape };",
+    ].join("\n");
+    expect(findUnexportedLinks(text, "dist/index.d.ts")).toEqual(["dist/index.d.ts:1: Missing"]);
+  });
+
+  it("accepts a link to a sibling member of the documented declaration", () => {
+    const text = [
+      "interface Values {",
+      "    readonly entries: readonly string[];",
+      "    /** The length of {@link entries}. */",
+      "    readonly total: number;",
+      "}",
+      "export { type Values };",
+    ].join("\n");
+    expect(findUnexportedLinks(text, "dist/index.d.ts")).toEqual([]);
   });
 });
 
