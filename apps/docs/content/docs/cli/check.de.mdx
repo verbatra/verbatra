@@ -18,10 +18,11 @@ verbatra check [flags]
 | `--locales` | `<list>` | alle konfigurierten Ziele | prüft nur diese kommagetrennte Teilmenge; ein leerer oder unbekannter Wert ist ein Nutzungsfehler |
 | `--consistency` | keins | aus | listet zusätzlich Quelltexte, die unterschiedlich übersetzt sind; nur ein Bericht, siehe [Konsistenzbericht](#konsistenzbericht) |
 | `--qa` | keins | aus | führt zusätzlich die [Qualitätsprüfung](#qualitätsprüfung) über jede committete Übersetzung aus; Exit `1` bei einem Fehler |
-| `--file` | `<path>` | aus | prüft nur diese Locale-Datei, siehe [Eine Datei](#eine-datei); nicht mit `--locales`, `--consistency` oder `--require-reviewed` |
+| `--file` | `<path>` | aus | prüft nur diese Locale-Datei, siehe [Eine Datei](#eine-datei); nicht mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` |
 | `--severity` | `error` oder `warning` | `warning` | mit `--qa` oder `--file` die niedrigste gemeldete Schwere |
 | `--strict` | keins | aus | mit `--qa` oder `--file` auch Exit `1` bei einer Warnung oder [unvollständigen Pluralform](#pluralkategorien); nicht mit `--severity error` |
 | `--require-reviewed` | keins | aus | zusätzlich Exit `1`, solange eine maschinell geschriebene Übersetzung [nicht freigegeben](#freigegebene-übersetzungen-verlangen) ist |
+| `--sensitive` | keins | aus | durchsucht zusätzlich Quelldatei und Glossar nach [sensiblen Inhalten](#sensible-inhalte); Exit `1` bei jedem Fund |
 
 Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
 
@@ -122,6 +123,19 @@ review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
 
 Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei `code` `REVIEW_REQUIRED` ist oder `REVIEW_STATE_UNREADABLE`, wenn die Provenance-Datei beschädigt ist oder von einem neueren verbatra stammt (das Gate schlägt dann fehl). Jedes Locale trägt `review.unreviewed`, die Keys in Quellreihenfolge.
 
+### Sensible Inhalte
+
+<AvailableFrom version="0.12.0" />
+
+`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jedes geprüften Locales aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData`, oder ohne den Block mit den Standard-Detektoren. Es meldet Keys und Detektoren, nie den gefundenen Text, und endet bei jedem Fund mit Exit `1`, egal was `sensitiveData.mode` sagt.
+
+```text output
+sensitive: 1 key and 0 glossary terms hold content that looks sensitive
+  support.contact: email in value
+```
+
+Mit `--json` ist `result.sensitive` gleich `{ findings, glossaryTerms }`, jeder Fund `{ key, fields, detectors }`.
+
 ### Eine Datei
 
 <AvailableFrom version="0.12.0" />
@@ -155,7 +169,7 @@ Fehlende und veraltete Keys gehören nicht zur Dateiprüfung.
 
 ### JSON-Ausgabe
 
-`--json` gibt einen [Umschlag](/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa` und `--require-reviewed` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
+`--json` gibt einen [Umschlag](/docs/cli/output#json-ausgabe) aus, dessen `result` das Statusdokument ist. Ohne `--qa`, `--require-reviewed` und `--sensitive` ist `inSync` genau dann wahr, wenn der Befehl mit `0` endet:
 
 ```ts
 interface CheckSummary {
@@ -163,6 +177,7 @@ interface CheckSummary {
   locales: LocaleCheckSummary[];
   qa?: CheckQaSummary;          // nur mit --qa
   review?: CheckReviewSummary;  // nur mit --require-reviewed
+  sensitive?: CheckSensitiveSummary; // nur mit --sensitive
 }
 
 interface LocaleCheckSummary {
@@ -204,6 +219,9 @@ verbatra check --qa --strict
 # scheitern, solange maschinelle Übersetzungen auf Freigabe warten
 verbatra check --require-reviewed
 
+# bei E-Mails, API-Keys oder Kartennummern in der Quelle fehlschlagen
+verbatra check --sensitive
+
 # nur die eine Datei prüfen, die ein Editor oder Agent gerade geändert hat
 verbatra check --file locales/de.json --json
 ```
@@ -213,7 +231,7 @@ verbatra check --file locales/de.json --json
 | Code | Bedeutung |
 | --- | --- |
 | `0` | synchron, und kein Befund, den die übergebenen Flags zum Fehlschlag machen |
-| `1` | ein Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), oder `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden |
+| `1` | ein Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden, oder `--sensitive` hat sensible Inhalte gefunden |
 | `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Nutzungsfehler wie `INVALID_QA_OPTION` oder `INVALID_SEVERITY` |
 
 Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, meldet [`verbatra doctor`](/docs/cli/doctor) weiterhin. Den Vertrag findest du unter [Exit-Codes](/docs/cli/output#exit-codes).

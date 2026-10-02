@@ -53,6 +53,10 @@ Les clés inconnues sont rejetées à chaque niveau, à la seule exception de `$
 | `pinnedKeys` | tableau de chaînes | aucun | 0.12.0 | Des motifs de clés (`*` correspond à n'importe quelle suite de caractères) qu'aucune écriture automatique ne touche jamais. |
 | `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | Les hôtes auxquels un fournisseur peut se connecter. Voir [Restreindre l'accès réseau](/docs/network-policy). |
 | `network.allowedHosts` | tableau de chaînes | aucun ; requis pour `"allowlist"` | 0.12.0 | Hôtes autorisés en plus : noms, jokers `*.suffix`, IP ou plages CIDR. |
+| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | `"off"` | 0.12.0 | Ce qu'une exécution fait du [contenu sensible](/docs/data-handling#protection-des-contenus-sensibles) avant l'envoi. |
+| `sensitiveData.detectors` | tableau d'ID de détecteurs | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Détecteurs actifs ; `phone`, `ip`, `private-host` sont optionnels. |
+| `sensitiveData.patterns` | tableau de chaînes | aucun | 0.12.0 | Expressions régulières pour tes propres termes, comme des noms de code. |
+| `sensitiveData.allow` | tableau de chaînes | aucun | 0.12.0 | Correspondances jamais signalées ; `*` est un joker. |
 | `maxBatchSize` | entier positif | `50` | 0.3.0 | Le maximum d'entrées envoyées dans une seule requête fournisseur. |
 | `maxLength` | table de clé vers entier positif | aucun | 0.11.0 | Longueurs maximales par clé, en groupes de graphèmes. |
 | `maxTokens` | entier positif | aucun | 0.5.0 | Un budget de tokens pour toute l'exécution. |
@@ -103,7 +107,7 @@ Chaque code de locale doit être une étiquette qu'accepte `Intl.getCanonicalLoc
 
 ### provider
 
-`provider.id` sélectionne l'un des [fournisseurs](/docs/providers) ou `none`. Seuls `id` et `options` sont autorisés sous `provider` ; depuis 0.12.0, toute autre clé, comme un `localeMap` mal placé, échoue avec `CONFIG_INVALID`. Tous les fournisseurs sauf `none` acceptent `options.localeMap` et `options.requestTimeoutMs` ([Fournisseurs](/docs/providers#codes-de-locale-envoyés-au-fournisseur)). Pour `none`, `options` peut être omis et doit sinon valoir `{}` ([Travailler sans traduction automatique](/docs/human-only-workflow)).
+`provider.id` sélectionne l'un des [fournisseurs](/docs/providers) ou `none`. Depuis 0.12.0, toute clé sous `provider` autre que `id` et `options`, comme un `localeMap` mal placé, échoue avec `CONFIG_INVALID`. Tous les fournisseurs sauf `none` acceptent `options.localeMap` et `options.requestTimeoutMs` ([Fournisseurs](/docs/providers#codes-de-locale-envoyés-au-fournisseur)). Pour `none`, `options` peut être omis et doit sinon valoir `{}` ([Travailler sans traduction automatique](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -165,7 +169,7 @@ Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cib
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` laisse une clé dont la source a changé réutiliser la traduction de sa forme antérieure quand les deux se ressemblent au moins à hauteur de `threshold`, toujours signalée avec `FUZZY_CACHE_REUSE` ; les règles de sûreté sont sous [Réutilisation approximative](/docs/the-cache#réutilisation-approximative). Il n'y a pas d'option CLI ; `--no-cache` le contourne avec le reste du cache.
+`fuzzyCache: { enabled: true }` laisse une clé dont la source a changé réutiliser la traduction de sa forme antérieure quand les deux se ressemblent au moins à hauteur de `threshold`, toujours signalée avec `FUZZY_CACHE_REUSE` ; les règles de sûreté sont sous [Réutilisation approximative](/docs/the-cache#réutilisation-approximative). `--no-cache` le contourne avec le reste du cache.
 
 ### humanEdits et pinnedKeys
 
@@ -179,7 +183,7 @@ Une clé qui correspond à `pinnedKeys` (par exemple `["legal.*", "brand.name"]`
 
 ### network
 
-La politique et ses hôtes ; ce que chacune autorise, et comment l'imposer depuis l'environnement, est sous [Restreindre l'accès réseau](/docs/network-policy).
+Voir [Restreindre l'accès réseau](/docs/network-policy).
 
 ```ts title="verbatra.config.ts"
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
@@ -187,7 +191,7 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 
 ### maxBatchSize
 
-Les entrées manquantes et modifiées d'une locale partent en sous-lots séquentiels d'au plus cette taille, pour qu'une requête trop grosse ne puisse pas faire échouer toute la locale ; un sous-lot échoué est retenté à l'exécution suivante pendant que les autres avancent. Il n'y a ni option CLI ni surcharge par exécution.
+Les entrées manquantes et modifiées partent en sous-lots séquentiels d'au plus cette taille ; un sous-lot échoué est retenté à l'exécution suivante pendant que les autres avancent. Aucune option CLI ne le remplace.
 
 ### maxLength
 
@@ -219,10 +223,9 @@ Le décompte sous `"stop"` :
 - Chaque requête est vérifiée, y compris chaque moitié d'une requête redécoupée après une réponse tronquée.
 - Après chaque requête, le total est réconcilié avec l'usage que le fournisseur a remonté. Une requête qui coûte plus que projeté reporte l'écart après coup : une exécution peut donc finir au-dessus de `maxTokens` de l'écart de cette seule requête, et plus rien n'est envoyé.
 - Une requête admise peut coûter jusqu'à près du double de sa projection à cause de la requête de réparation que la couche fournisseur envoie elle-même pour les clés manquantes ; cela aussi arrive à la réconciliation.
-- Une requête échouée ou tronquée reste entièrement comptée, puisque le fournisseur a généralement facturé son prompt.
-- Une exécution arrêtée ne laisse aucun fichier à moitié écrit ni aucune entrée de verrouillage pour du travail retenu.
+- Une requête échouée ou tronquée reste entièrement comptée.
 - La projection inclut une allocation fixe pour le prompt LLM (règles système et schéma de réponse), ajoutée aussi pour les fournisseurs de traduction automatique. Une requête est projetée comme un lot entier, donc un `maxTokens` inférieur à la projection d'un lot le refuse à chaque exécution ; l'avis dit alors de baisser `maxBatchSize` ou d'augmenter `maxTokens`.
-- DeepL, Google Cloud Translation et LibreTranslate ne remontent aucun usage de tokens et sont budgétés à partir de la projection ; `budget.supported: false` dans le résumé d'exécution indique le décompte propre de verbatra.
+- Les fournisseurs de traduction automatique ne remontent aucun usage de tokens et sont budgétés à partir de la projection (`budget.supported: false`).
 
 Portée et codes de sortie :
 
@@ -345,6 +348,7 @@ Ces règles n'ont aucune expression en JSON Schema, donc seul le chargement de l
 - Chaque clé de `provider.options.localeMap` doit être `sourceLocale` ou une locale cible.
 - `apiKeyEnvVar` (openai-compatible) ne doit pas nommer la variable de clé d'un fournisseur hébergé.
 - Une entrée de `network.allowedHosts` doit être une adresse ou une plage valide (pas un octet au-delà de 255, un préfixe CIDR trop long ni un IPv6 mal formé).
+- Une entrée de `sensitiveData.patterns` doit être une expression régulière valide.
 - Un glossaire version 2 en ligne doit respecter les règles des termes décrites sous [glossary](#glossaire-par-locale-version-2).
 
 ## Le répertoire de travail et .env

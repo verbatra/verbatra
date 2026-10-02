@@ -53,6 +53,10 @@ Las claves desconocidas se rechazan en todos los niveles, con `$schema` como ún
 | `pinnedKeys` | array de strings | ninguno | 0.12.0 | Patrones de claves (`*` coincide con cualquier secuencia de caracteres) que ninguna escritura automática toca nunca. |
 | `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | A qué hosts puede conectarse un proveedor. Consulta [Restringe el acceso a la red](/docs/network-policy). |
 | `network.allowedHosts` | array de strings | ninguno; obligatoria con `"allowlist"` | 0.12.0 | Hosts permitidos adicionales: nombres, comodines `*.suffix`, IPs o rangos CIDR. |
+| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | `"off"` | 0.12.0 | Qué hace una ejecución con el [contenido sensible](/docs/data-handling#protección-de-contenido-sensible) antes de enviarlo. |
+| `sensitiveData.detectors` | array de IDs de detector | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Detectores activos; `phone`, `ip`, `private-host` son opcionales. |
+| `sensitiveData.patterns` | array de strings | ninguno | 0.12.0 | Expresiones regulares para tus propios términos, como nombres en clave. |
+| `sensitiveData.allow` | array de strings | ninguno | 0.12.0 | Coincidencias que nunca se informan; `*` es un comodín. |
 | `maxBatchSize` | entero positivo | `50` | 0.3.0 | El máximo de entradas enviadas en una sola petición al proveedor. |
 | `maxLength` | mapa de clave a entero positivo | ninguno | 0.11.0 | Presupuestos de longitud por clave, en clústeres de grafemas. |
 | `maxTokens` | entero positivo | ninguno | 0.5.0 | Un presupuesto de tokens para toda la ejecución. |
@@ -103,7 +107,7 @@ Cada código de locale debe ser una etiqueta que `Intl.getCanonicalLocales` acep
 
 ### provider
 
-`provider.id` selecciona uno de los [proveedores](/docs/providers) o `none`. Bajo `provider` solo se permiten `id` y `options`; desde 0.12.0 cualquier otra clave, como un `localeMap` mal colocado, falla con `CONFIG_INVALID`. Todos los proveedores salvo `none` aceptan `options.localeMap` y `options.requestTimeoutMs` ([Proveedores](/docs/providers#códigos-de-locale-enviados-al-proveedor)). Con `none`, `options` puede omitirse y, si se indica, debe ser `{}` ([Trabajar sin traducción automática](/docs/human-only-workflow)).
+`provider.id` selecciona uno de los [proveedores](/docs/providers) o `none`. Desde 0.12.0 cualquier clave bajo `provider` distinta de `id` y `options`, como un `localeMap` mal colocado, falla con `CONFIG_INVALID`. Todos los proveedores salvo `none` aceptan `options.localeMap` y `options.requestTimeoutMs` ([Proveedores](/docs/providers#códigos-de-locale-enviados-al-proveedor)). Con `none`, `options` puede omitirse y, si se indica, debe ser `{}` ([Trabajar sin traducción automática](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -165,7 +169,7 @@ Cuando es true, verbatra sintetiza las formas plurales CLDR que un destino neces
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` permite que una clave cuyo origen cambió reutilice la traducción de su forma anterior cuando ambas se parecen al menos `threshold`, siempre marcada como `FUZZY_CACHE_REUSE`; las reglas de seguridad están en [Reutilización difusa](/docs/the-cache#reutilización-difusa). No hay opción de CLI; `--no-cache` lo omite junto con el resto de la caché.
+`fuzzyCache: { enabled: true }` permite que una clave cuyo origen cambió reutilice la traducción de su forma anterior cuando ambas se parecen al menos `threshold`, siempre marcada como `FUZZY_CACHE_REUSE`; las reglas de seguridad están en [Reutilización difusa](/docs/the-cache#reutilización-difusa). `--no-cache` lo omite junto con el resto de la caché.
 
 ### humanEdits y pinnedKeys
 
@@ -179,7 +183,7 @@ Una clave que coincide con `pinnedKeys` (por ejemplo `["legal.*", "brand.name"]`
 
 ### network
 
-La política y sus hosts; qué permite cada una y cómo fijarla desde el entorno está en [Restringe el acceso a la red](/docs/network-policy).
+Consulta [Restringe el acceso a la red](/docs/network-policy).
 
 ```ts title="verbatra.config.ts"
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
@@ -187,7 +191,7 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 
 ### maxBatchSize
 
-Las entradas faltantes y modificadas de un locale se envían en sublotes secuenciales que no superan este tamaño, así que una petición sobredimensionada no puede hacer fallar el locale entero; un sublote fallido se reintenta en la siguiente ejecución mientras los demás siguen avanzando. No hay opción de CLI ni override por ejecución.
+Las entradas faltantes y modificadas se envían en sublotes secuenciales que no superan este tamaño; un sublote fallido se reintenta en la siguiente ejecución mientras los demás siguen avanzando. Ninguna opción de CLI lo sobrescribe.
 
 ### maxLength
 
@@ -219,10 +223,9 @@ Cómo cuenta `"stop"`:
 - Se comprueba cada petición, incluida cada mitad de una petición que se vuelve a dividir tras una respuesta truncada.
 - Después de cada petición el total se reconcilia con el uso que informó el proveedor. Una petición que cuesta más de lo proyectado aporta la diferencia a posteriori, así que una ejecución puede terminar por encima de `maxTokens` por la diferencia de esa única petición, y no se envía nada más.
 - Una petición admitida puede costar hasta cerca del doble de su proyección por la propia petición de reparación de la capa de proveedor para claves que faltan; eso también llega en la reconciliación.
-- Una petición fallida o truncada sigue cargada por completo, ya que el proveedor normalmente facturó su prompt.
-- Una ejecución detenida no deja ningún archivo a medio escribir ni ninguna entrada de bloqueo para trabajo retenido.
+- Una petición fallida o truncada sigue cargada por completo.
 - La proyección incluye una asignación fija para el prompt del LLM (reglas de sistema y esquema de respuesta), que se suma también para los proveedores de traducción automática. Una petición se proyecta como un lote entero, así que un `maxTokens` por debajo de la proyección de un lote lo rechaza en cada ejecución; el aviso indica entonces que bajes `maxBatchSize` o subas `maxTokens`.
-- DeepL, Google Cloud Translation y LibreTranslate no informan de uso de tokens y se presupuestan a partir de la proyección; `budget.supported: false` en el resumen de la ejecución marca la cuenta propia de verbatra.
+- Los proveedores de traducción automática no informan de uso de tokens y se presupuestan a partir de la proyección (`budget.supported: false`).
 
 Alcance y códigos de salida:
 
@@ -345,6 +348,7 @@ Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la
 - Cada clave de `provider.options.localeMap` debe ser `sourceLocale` o un locale de destino.
 - `apiKeyEnvVar` (openai-compatible) no debe nombrar la variable de clave de un proveedor alojado.
 - Una entrada de `network.allowedHosts` debe ser una dirección o un rango válidos (no un octeto mayor que 255, un prefijo CIDR demasiado largo ni un IPv6 mal formado).
+- Una entrada de `sensitiveData.patterns` debe ser una expresión regular válida.
 - Un glosario en línea de la versión 2 debe cumplir las reglas de términos de [glossary](#glosario-por-locale-versión-2).
 
 ## El directorio de trabajo y .env

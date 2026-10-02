@@ -281,6 +281,7 @@ describe("the error codes page documents every code family verbatra reports", ()
       expect(anchors.filter((anchor) => !/^[a-z_]+$/.test(anchor))).toEqual([
         "cli-config_invalid",
         "provider-network_policy_violation",
+        "notice-sensitive_content_withheld",
       ]);
     });
   });

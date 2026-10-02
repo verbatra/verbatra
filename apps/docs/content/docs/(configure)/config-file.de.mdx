@@ -53,6 +53,10 @@ Unbekannte Keys werden auf jeder Ebene abgelehnt, mit `$schema` als einziger Aus
 | `pinnedKeys` | String-Array | keiner | 0.12.0 | Key-Muster (`*` passt auf eine beliebige Zeichenfolge), die kein maschineller Schreibvorgang je anfasst. |
 | `network.policy` | `"any"`, `"local-only"`, `"allowlist"` | `"any"` | 0.12.0 | Zu welchen Hosts sich ein Provider verbinden darf. Siehe [Netzwerkzugriff einschränken](/docs/network-policy). |
 | `network.allowedHosts` | String-Array | keiner; bei `"allowlist"` erforderlich | 0.12.0 | Zusätzlich erlaubte Hosts: Namen, `*.suffix`-Platzhalter, IPs oder CIDR-Bereiche. |
+| `sensitiveData.mode` | `"off"`, `"warn"`, `"block"`, `"redact"` | `"off"` | 0.12.0 | Was ein Lauf mit [sensiblen Inhalten](/docs/data-handling#schutz-für-sensible-inhalte) vor dem Senden macht. |
+| `sensitiveData.detectors` | Array von Detektor-IDs | `secret`, `email`, `iban`, `credit-card` | 0.12.0 | Aktive Detektoren; `phone`, `ip`, `private-host` sind optional. |
+| `sensitiveData.patterns` | String-Array | keiner | 0.12.0 | Reguläre Ausdrücke für eigene Begriffe, etwa Codenamen. |
+| `sensitiveData.allow` | String-Array | keiner | 0.12.0 | Nie gemeldete Treffer; `*` ist ein Platzhalter. |
 | `maxBatchSize` | positive Ganzzahl | `50` | 0.3.0 | Die meisten Einträge, die in einer Provider-Anfrage gesendet werden. |
 | `maxLength` | Zuordnung von Key zu positiver Ganzzahl | keines | 0.11.0 | Längenbudgets pro Key in Graphemclustern. |
 | `maxTokens` | positive Ganzzahl | keines | 0.5.0 | Ein Token-Budget für den ganzen Lauf. |
@@ -103,7 +107,7 @@ Jeder Locale-Code muss ein Tag sein, den `Intl.getCanonicalLocales` akzeptiert, 
 
 ### provider
 
-`provider.id` wählt einen der [Provider](/docs/providers) oder `none`. Unter `provider` sind nur `id` und `options` erlaubt; ab 0.12.0 scheitert jeder andere Key, etwa ein falsch platziertes `localeMap`, mit `CONFIG_INVALID`. Jeder Provider außer `none` akzeptiert `options.localeMap` und `options.requestTimeoutMs` ([Provider](/docs/providers#an-den-provider-gesendete-locale-codes)). Bei `none` darf `options` fehlen und muss sonst `{}` sein ([Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow)).
+`provider.id` wählt einen der [Provider](/docs/providers) oder `none`. Ab 0.12.0 scheitert jeder Key unter `provider` außer `id` und `options`, etwa ein falsch platziertes `localeMap`, mit `CONFIG_INVALID`. Jeder Provider außer `none` akzeptiert `options.localeMap` und `options.requestTimeoutMs` ([Provider](/docs/providers#an-den-provider-gesendete-locale-codes)). Bei `none` darf `options` fehlen und muss sonst `{}` sein ([Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -165,7 +169,7 @@ Wenn true, synthetisiert verbatra die CLDR-Pluralformen, die ein Ziel braucht, d
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelle sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, wenn beide mindestens `threshold` ähnlich sind, immer als `FUZZY_CACHE_REUSE` markiert; die Sicherheitsregeln stehen unter [Unscharfe Wiederverwendung](/docs/the-cache#unscharfe-wiederverwendung). Es gibt kein CLI-Flag; `--no-cache` umgeht es zusammen mit dem restlichen Cache.
+`fuzzyCache: { enabled: true }` lässt einen Key, dessen Quelle sich geändert hat, die Übersetzung seiner früheren Form wiederverwenden, wenn beide mindestens `threshold` ähnlich sind, immer als `FUZZY_CACHE_REUSE` markiert; die Sicherheitsregeln stehen unter [Unscharfe Wiederverwendung](/docs/the-cache#unscharfe-wiederverwendung). `--no-cache` umgeht es zusammen mit dem restlichen Cache.
 
 ### humanEdits und pinnedKeys
 
@@ -179,7 +183,7 @@ Ein Key, der auf `pinnedKeys` passt (zum Beispiel `["legal.*", "brand.name"]`), 
 
 ### network
 
-Die Richtlinie und ihre Hosts; was jede erlaubt und wie du sie aus der Umgebung festlegst, steht unter [Netzwerkzugriff einschränken](/docs/network-policy).
+Siehe [Netzwerkzugriff einschränken](/docs/network-policy).
 
 ```ts title="verbatra.config.ts"
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
@@ -187,7 +191,7 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 
 ### maxBatchSize
 
-Die fehlenden und geänderten Einträge einer Locale gehen in sequenziellen Sub-Batches von höchstens dieser Größe hinaus, damit eine überdimensionierte Anfrage nicht die ganze Locale fehlschlagen lässt; ein fehlgeschlagener Sub-Batch wird beim nächsten Lauf erneut versucht, während die anderen weiter vorankommen. Es gibt kein CLI-Flag und keinen Override pro Lauf.
+Fehlende und geänderte Einträge gehen in sequenziellen Sub-Batches von höchstens dieser Größe hinaus; ein fehlgeschlagener Sub-Batch wird beim nächsten Lauf erneut versucht, während die anderen weiterlaufen. Kein CLI-Flag überschreibt es.
 
 ### maxLength
 
@@ -219,10 +223,9 @@ Zählung unter `"stop"`:
 - Jede Anfrage wird geprüft, auch jede Hälfte einer Anfrage, die nach einer abgeschnittenen Antwort neu aufgeteilt wird.
 - Nach jeder Anfrage wird die Summe auf den Verbrauch abgeglichen, den der Provider gemeldet hat. Eine Anfrage, die mehr kostet als projiziert, bringt die Differenz im Nachhinein ein, ein Lauf kann also um die Differenz dieser einen Anfrage über `maxTokens` enden, und um nicht mehr: Danach wird nichts weiter gesendet.
 - Eine zugelassene Anfrage kann durch die eigene Reparatur-Anfrage der Provider-Schicht für fehlende Keys bis zu etwa das Doppelte ihrer Projektion kosten; auch das landet beim Abgleich.
-- Eine fehlgeschlagene oder abgeschnittene Anfrage bleibt voll belastet, denn der Provider hat ihren Prompt meist schon abgerechnet.
-- Ein gestoppter Lauf hinterlässt keine halb geschriebene Datei und keinen Lock-Eintrag für zurückgehaltene Arbeit.
+- Eine fehlgeschlagene oder abgeschnittene Anfrage bleibt voll belastet.
 - Die Projektion enthält einen festen Aufschlag für den LLM-Prompt (Systemregeln und Antwortschema), der auch für die Maschinenübersetzungs-Provider angerechnet wird. Eine Anfrage wird als ganzer Batch projiziert, ein `maxTokens` unterhalb der Projektion eines Batches lehnt ihn also bei jedem Lauf ab; der Hinweis sagt dann, `maxBatchSize` zu senken oder `maxTokens` zu erhöhen.
-- DeepL, Google Cloud Translation und LibreTranslate melden keinen Token-Verbrauch und werden über die Projektion budgetiert; `budget.supported: false` in der Lauf-Zusammenfassung kennzeichnet verbatras eigene Zählung.
+- Maschinenübersetzungs-Provider melden keinen Token-Verbrauch und werden über die Projektion budgetiert (`budget.supported: false`).
 
 Geltungsbereich und Exit-Codes:
 
@@ -345,6 +348,7 @@ Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nu
 - Jeder Key von `provider.options.localeMap` muss `sourceLocale` oder eine Ziel-Locale sein.
 - `apiKeyEnvVar` (openai-compatible) darf keine Key-Variable eines gehosteten Providers nennen.
 - Ein Eintrag in `network.allowedHosts` muss eine gültige Adresse oder ein gültiger Bereich sein (kein Oktett über 255, kein zu langes CIDR-Präfix, kein fehlerhaftes IPv6).
+- Ein Eintrag in `sensitiveData.patterns` muss ein gültiger regulärer Ausdruck sein.
 - Ein Inline-Glossar der Version 2 muss die Begriffsregeln unter [glossary](#glossar-pro-locale-version-2) erfüllen.
 
 ## Das Arbeitsverzeichnis und .env

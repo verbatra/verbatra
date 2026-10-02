@@ -18,10 +18,11 @@ verbatra check [flags]
 | `--locales` | `<list>` | todos los destinos configurados | comprueba solo este subconjunto separado por comas; un valor vacío o desconocido es un error de uso |
 | `--consistency` | ninguno | desactivado | lista además los textos de origen traducidos de más de una forma; solo informa, mira el [informe de consistencia](#informe-de-consistencia) |
 | `--qa` | ninguno | desactivado | ejecuta además el [control de calidad](#control-de-calidad) sobre cada traducción confirmada; sale con `1` ante un error |
-| `--file` | `<path>` | desactivado | comprueba solo este archivo de locale, mira [Un solo archivo](#un-solo-archivo); no junto a `--locales`, `--consistency` ni `--require-reviewed` |
+| `--file` | `<path>` | desactivado | comprueba solo este archivo de locale, mira [Un solo archivo](#un-solo-archivo); no junto a `--locales`, `--consistency`, `--require-reviewed` ni `--sensitive` |
 | `--severity` | `error` o `warning` | `warning` | con `--qa` o `--file`, la gravedad mínima que se informa |
 | `--strict` | ninguno | desactivado | con `--qa` o `--file`, sale también con `1` ante un aviso o un [plural incompleto](#categorías-de-plural); no junto a `--severity error` |
 | `--require-reviewed` | ninguno | desactivado | sale además con `1` mientras una traducción escrita por máquina [no esté aprobada](#exigir-traducciones-revisadas) |
+| `--sensitive` | ninguno | desactivado | revisa además el archivo de origen y el glosario en busca de [contenido sensible](#contenido-sensible); sale con `1` ante cualquier hallazgo |
 
 También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
 
@@ -122,6 +123,19 @@ review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
 
 Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code` es `REVIEW_REQUIRED`, o `REVIEW_STATE_UNREADABLE` cuando el archivo de procedencia está dañado o viene de un verbatra más nuevo (entonces la puerta falla). Cada locale lleva `review.unreviewed`, las claves en el orden del origen.
 
+### Contenido sensible
+
+<AvailableFrom version="0.12.0" />
+
+`--sensitive` ejecuta la revisión de la [protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData`, o sin el bloque con los detectores por defecto. Informa de claves y detectores, nunca del texto encontrado, y sale con `1` ante cualquier hallazgo, diga lo que diga `sensitiveData.mode`.
+
+```text output
+sensitive: 1 key and 0 glossary terms hold content that looks sensitive
+  support.contact: email in value
+```
+
+Con `--json`, `result.sensitive` es `{ findings, glossaryTerms }`, y cada hallazgo `{ key, fields, detectors }`.
+
 ### Un solo archivo
 
 <AvailableFrom version="0.12.0" />
@@ -155,7 +169,7 @@ Las claves que faltan y las obsoletas no forman parte de la comprobación de un 
 
 ### Salida JSON
 
-`--json` imprime un [sobre](/docs/cli/output#salida-json) cuyo `result` es el documento de estado. Sin `--qa` ni `--require-reviewed`, `inSync` es verdadero exactamente cuando el comando sale con `0`:
+`--json` imprime un [sobre](/docs/cli/output#salida-json) cuyo `result` es el documento de estado. Sin `--qa`, `--require-reviewed` ni `--sensitive`, `inSync` es verdadero exactamente cuando el comando sale con `0`:
 
 ```ts
 interface CheckSummary {
@@ -163,6 +177,7 @@ interface CheckSummary {
   locales: LocaleCheckSummary[];
   qa?: CheckQaSummary;          // solo con --qa
   review?: CheckReviewSummary;  // solo con --require-reviewed
+  sensitive?: CheckSensitiveSummary; // solo con --sensitive
 }
 
 interface LocaleCheckSummary {
@@ -204,6 +219,9 @@ verbatra check --qa --strict
 # fallar mientras haya traducciones automáticas esperando aprobación
 verbatra check --require-reviewed
 
+# fallar ante correos, claves de API o números de tarjeta en el origen
+verbatra check --sensitive
+
 # comprobar solo el archivo que un editor o un agente acaba de cambiar
 verbatra check --file locales/de.json --json
 ```
@@ -213,7 +231,7 @@ verbatra check --file locales/de.json --json
 | Código | Significado |
 | --- | --- |
 | `0` | sincronizado, y ningún hallazgo que los flags usados conviertan en fallo |
-| `1` | un locale tiene una clave que falta u obsoleta, `--qa` o `--file` encontró un error (o, con `--strict`, un aviso o un plural incompleto), o `--require-reviewed` encontró una traducción sin aprobar |
+| `1` | un locale tiene una clave que falta u obsoleta, `--qa` o `--file` encontró un error (o, con `--strict`, un aviso o un plural incompleto), `--require-reviewed` encontró una traducción sin aprobar, o `--sensitive` encontró contenido sensible |
 | `2` | no pudo ejecutarse: un error de toda la ejecución como `SOURCE_UNREADABLE` o `NOT_A_LOCALE_FILE`, o un error de uso como `INVALID_QA_OPTION` o `INVALID_SEVERITY` |
 
 La salida `1` significa que el resultado no está limpio, no que la ejecución fallara; el informe se imprime igual. En un proyecto cuyo archivo de origen aún no existe, [`verbatra doctor`](/docs/cli/doctor) sigue informando. El contrato está en [Códigos de salida](/docs/cli/output#códigos-de-salida).

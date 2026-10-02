@@ -33,6 +33,7 @@ interface LocaleSummary {
   integrityRefusals?: { key: string; reason: string; details?: string[] }[]; // why each was withheld; translate, watch, and importWorkbook
   providerFailures: string[];    // keys withheld because nothing was translated for them
   budgetWithheld: string[];      // keys never sent because a "stop" budget already tripped
+  sensitiveWithheld: string[];   // keys sensitiveData kept from the provider (block or redact)
   generated: string[];           // CLDR plural forms synthesized this run
   unfilled: string[];            // blank import rows, or keys a human-only translate left for a human
   protected: { key: string; reason: string; suggestion?: string; suggestionStatus?: string }[]; // keys left for a person

@@ -67,6 +67,20 @@ operating system and Node.js version. Your API key goes only to the configured e
 (`google-translate` sends it in the `?key=` query string). Treat anything in a source string, a
 description or the glossary as sent.
 
+## Sensitive content guard
+
+<AvailableFrom version="0.12.0" />
+
+`sensitiveData` scans what the table above says a provider receives, before any request. The default detectors find API keys, email addresses, IBANs and card numbers; `phone`, `ip` and `private-host` are opt-in, and `patterns` adds your own terms, such as codenames.
+
+| `mode` | Effect |
+| --- | --- |
+| `warn` | Sends as usual; a notice names the keys. |
+| `block` | Withholds the key, so the locale ends `partial`. |
+| `redact` | Sends a token for each match in the value and restores the match. A match in a key name, or a token that does not come back exactly once, withholds the key. |
+
+`block` and `redact` also leave a matching glossary term out. The guard is off by default; `verbatra init` writes `warn`. For a false positive, add the text to `allow` or drop its detector. `verbatra check --sensitive` runs the same scan without a key. Names in free text are not found.
+
 ## Vendor retention and data processing terms
 
 What happens to your strings after they arrive is set by the vendor and your contract, not by
@@ -151,7 +165,7 @@ record: every value a provider produced is marked `machine` origin, with provide
    server, and pin `VERBATRA_NETWORK_POLICY=local-only` in CI.
 2. For a hosted provider, use a paid tier for anything confidential.
 3. Sign the vendor's data processing terms, with zero retention if you need it.
-4. Check what your source files send: key names, descriptions and the glossary.
+4. Check what your source files send: key names, descriptions and the glossary (`verbatra check --sensitive`).
 5. Keep API keys in a secret store or a gitignored `.env`, and run `verbatra doctor`.
 6. Decide which AI agents may connect to Studio or the MCP server.
 7. Commit `verbatra.provenance.json`, and archive `verbatra report provenance --json` per release.
