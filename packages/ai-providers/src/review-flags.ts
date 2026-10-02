@@ -189,14 +189,28 @@ function isBidiControlsChanged(sourceValue: string, translatedValue: string): bo
   );
 }
 
-export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
+export const LENGTH_REVIEW_REASONS: ReadonlySet<ReviewReasonCode> = new Set([
+  "LENGTH_RATIO_OUTLIER",
+  "MAX_LENGTH_EXCEEDED",
+]);
+
+export function lengthReviewReasons(
+  sourceValue: string,
+  translatedValue: string,
+  maxLength: number | undefined,
+): ReviewReasonCode[] {
   const reasons: ReviewReasonCode[] = [];
-  if (isLengthRatioOutlier(input.sourceValue, input.translatedValue)) {
+  if (isLengthRatioOutlier(sourceValue, translatedValue)) {
     reasons.push("LENGTH_RATIO_OUTLIER");
   }
-  if (exceedsMaxLength(input.translatedValue, input.maxLength)) {
+  if (exceedsMaxLength(translatedValue, maxLength)) {
     reasons.push("MAX_LENGTH_EXCEEDED");
   }
+  return reasons;
+}
+
+export function computeReviewFlags(input: ReviewFlagInput): ReviewFlag | undefined {
+  const reasons = lengthReviewReasons(input.sourceValue, input.translatedValue, input.maxLength);
   if (isEqualsSource(input)) {
     reasons.push("EQUALS_SOURCE");
   }
