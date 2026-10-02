@@ -25,6 +25,20 @@ interface JsonSchemaNode {
   readonly anyOf?: readonly JsonSchemaNode[];
   readonly oneOf?: readonly JsonSchemaNode[];
   readonly additionalProperties?: unknown;
+  readonly allOf?: unknown;
+  readonly $ref?: unknown;
+}
+
+function assertWalkable(schema: JsonSchemaNode, path: string): void {
+  const unsupported = [
+    schema.$ref !== undefined ? "$ref" : undefined,
+    schema.allOf !== undefined ? "allOf" : undefined,
+    schema.additionalProperties === true ? "additionalProperties: true" : undefined,
+    schema.anyOf?.length === 0 || schema.oneOf?.length === 0 ? "an empty union" : undefined,
+  ].filter((name) => name !== undefined);
+  if (unsupported.length > 0) {
+    throw new Error(`The schema walk cannot check ${unsupported.join(", ")} at "${path}".`);
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -37,7 +51,8 @@ function undeclaredInVariants(
   path: string,
 ): string[] {
   const candidates = variants.map((variant) => undeclaredPaths(variant, value, path));
-  return candidates.reduce((best, next) => (next.length < best.length ? next : best));
+  const [first = [], ...rest] = candidates;
+  return rest.reduce((best, next) => (next.length < best.length ? next : best), first);
 }
 
 function undeclaredInObject(
@@ -63,6 +78,7 @@ function undeclaredInObject(
 }
 
 function undeclaredPaths(schema: JsonSchemaNode, value: unknown, path = ""): string[] {
+  assertWalkable(schema, path);
   const variants = schema.anyOf ?? schema.oneOf;
   if (variants !== undefined) {
     return undeclaredInVariants(variants, value, path);
@@ -262,6 +278,15 @@ describe("createMcpServer: output schemas", () => {
     }
 
     expect(undeclared).toEqual([]);
+  });
+
+  it.each([
+    ["$ref", { $ref: "#/$defs/x" }],
+    ["allOf", { allOf: [] }],
+    ["additionalProperties: true", { additionalProperties: true }],
+    ["an empty union", { anyOf: [] }],
+  ] as const)("refuses to walk a schema node with %s", (name, schema) => {
+    expect(() => undeclaredPaths(schema, {})).toThrow(name);
   });
 
   it("reports the rich shapes a completed run leaves behind", async () => {
