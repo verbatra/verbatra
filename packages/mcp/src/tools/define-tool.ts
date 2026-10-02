@@ -4,6 +4,7 @@ import {
   ProviderError,
   projectRelativeMessage,
   SdkError,
+  type ValueMarker,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolCallContext, McpUnconfiguredContext } from "../types.js";
@@ -44,8 +45,14 @@ export interface RegisteredMcpTool {
   ): Promise<McpToolOutcome>;
 }
 
+export interface ValueRedaction<Params, Result> {
+  readonly redact: (result: Result, marker: ValueMarker) => Result;
+  readonly refusedParams?: readonly (keyof Params & string)[];
+}
+
 export interface McpToolConfig<Params, Result extends Readonly<Record<string, unknown>>> {
   readonly name: string;
+  readonly values: "none" | ValueRedaction<Params, Result>;
   readonly description: string;
   readonly paramsSchema: z.ZodType<Params>;
   readonly outputSchema: z.ZodObject & z.ZodType<Result>;
@@ -122,10 +129,32 @@ export function describeToolError(error: unknown, cwd: string): string {
   return hint === undefined ? described : `${described}\nNext step: ${hint}`;
 }
 
+function refusedParam<Params, Result>(
+  values: "none" | ValueRedaction<Params, Result>,
+  params: Params,
+): string | undefined {
+  if (values === "none") {
+    return undefined;
+  }
+  return values.refusedParams?.find((name) => params[name] !== undefined);
+}
+
+function refusedParamMessage(field: string): string {
+  return `Invalid input for field "${field}": this server redacts translation values, so "${field}" is not accepted. Leave it out.`;
+}
+
+function redactedResult<Params, Result>(
+  values: "none" | ValueRedaction<Params, Result>,
+  result: Result,
+  marker: ValueMarker | undefined,
+): Result {
+  return values === "none" || marker === undefined ? result : values.redact(result, marker);
+}
+
 function createExecutor<
   Params,
   Result extends Readonly<Record<string, unknown>>,
-  Context extends { readonly cwd: string },
+  Context extends { readonly cwd: string; readonly valueMarker?: ValueMarker },
 >(
   config: McpToolConfig<Params, Result>,
   handler: (params: Params, context: Context) => Promise<Result>,
@@ -137,6 +166,11 @@ function createExecutor<
         kind: "invalid",
         message: formatValidationError(config.paramsSchema, parsed.error),
       };
+    }
+    const refused =
+      context.valueMarker === undefined ? undefined : refusedParam(config.values, parsed.data);
+    if (refused !== undefined) {
+      return { kind: "invalid", message: refusedParamMessage(refused) };
     }
     let result: Result;
     try {
@@ -151,7 +185,7 @@ function createExecutor<
     if (mismatch !== undefined) {
       return { kind: "error", message: formatOutputMismatch(config, mismatch) };
     }
-    return { kind: "ok", result };
+    return { kind: "ok", result: redactedResult(config.values, result, context.valueMarker) };
   };
 }
 

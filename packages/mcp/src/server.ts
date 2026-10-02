@@ -9,12 +9,17 @@ import {
   type ServerNotification,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { declareProviderKeyEnvVar, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
+import {
+  createValueMarker,
+  declareProviderKeyEnvVar,
+  isMachineTranslationEnabled,
+  redact,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
 import { createProgressReporter, type ProgressReporter } from "./progress-reporter.js";
 import type { McpProjectState } from "./project-session.js";
-import { MCP_SERVER_INSTRUCTIONS } from "./server-instructions.js";
+import { serverInstructions } from "./server-instructions.js";
 import type { McpToolOutcome, RegisteredMcpTool } from "./tools/define-tool.js";
 import { editEntryTool } from "./tools/edit-entry.js";
 import { createMcpInFlightGuard } from "./tools/in-flight-guard.js";
@@ -46,6 +51,7 @@ function seamsOf(options: McpServerOptions): Omit<McpToolContext, "config"> {
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
     ...(options.createProvider !== undefined ? { createProvider: options.createProvider } : {}),
+    ...(options.redactValues === true ? { valueMarker: createValueMarker() } : {}),
   };
 }
 
@@ -132,7 +138,10 @@ export function createMcpServer(options: McpServerOptions): Server {
 
   const server = new Server(
     { name: manifest.name, version: manifest.version },
-    { capabilities: { tools: { listChanged: true } }, instructions: MCP_SERVER_INSTRUCTIONS },
+    {
+      capabilities: { tools: { listChanged: true } },
+      instructions: serverInstructions({ valuesRedacted: options.redactValues === true }),
+    },
   );
 
   function announceIfChanged(tools: readonly RegisteredMcpTool[]): void {

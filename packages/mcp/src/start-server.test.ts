@@ -60,6 +60,23 @@ describe("startMcpServer", () => {
     expect(handle.spend).toBe(expected);
   });
 
+  it.each([
+    [undefined, false],
+    [false, false],
+    [true, true],
+  ] as const)("reports valuesRedacted %s as %s", async (redactValues, expected) => {
+    const { dir, configPath } = await makeConfiguredProject();
+
+    const handle = await startMcpServer({
+      cwd: dir,
+      configPath,
+      ...(redactValues !== undefined ? { redactValues } : {}),
+    });
+    await handle.close();
+
+    expect(handle.valuesRedacted).toBe(expected);
+  });
+
   it("closes itself and settles closed when the client closes stdin", async () => {
     const { dir, configPath } = await makeConfiguredProject();
 

@@ -2,7 +2,8 @@ import { reviewQueue } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { fuzzyCacheHitSchema, reviewQueueEntrySchema } from "./run-schema.js";
+import { fuzzyCacheHitSchema, redactFuzzyHit, reviewQueueEntrySchema } from "./run-schema.js";
+import { withProvenanceRedacted } from "./value-redaction.js";
 
 const paramsSchema = z.strictObject({});
 
@@ -38,6 +39,21 @@ async function readReviewQueue(
 
 export const reviewQueueTool = defineTool({
   name: "review.queue",
+  values: {
+    redact: (result, marker) =>
+      result.locales === undefined
+        ? result
+        : {
+            ...result,
+            locales: result.locales.map(({ fuzzyHits, ...locale }) => ({
+              ...locale,
+              needsReview: locale.needsReview.map(withProvenanceRedacted),
+              ...(fuzzyHits !== undefined
+                ? { fuzzyHits: fuzzyHits.map((hit) => redactFuzzyHit(hit, marker)) }
+                : {}),
+            })),
+          },
+  },
   description:
     "Lists, per target locale, every key whose current value a provider, the translation " +
     "memory, a fuzzy match, or an AI agent wrote and that no person has approved yet, with the " +

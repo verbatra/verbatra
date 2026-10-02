@@ -32,6 +32,16 @@ export interface StartMcpServerOptions {
    */
   readonly allowSpend?: boolean;
   /**
+   * Whether every tool result replaces translation values with a marker,
+   * `[redacted length=<n> hash=<h>]`, so no source text, translation, description, glossary term,
+   * reviewer name, or commit author reaches the client. Key names, counts, statuses, origins,
+   * integrity verdicts, commit subjects, and file paths stay. `review.approve` and `review.reject`
+   * then take the marker's hash as `expectedHash`, valid for the life of this server only, and
+   * `locale.values` refuses `query` and `key.context` refuses `draft`. Off by default. It changes
+   * nothing a provider receives.
+   */
+  readonly redactValues?: boolean;
+  /**
    * File-system port the server reads and writes the project through: the config's glossary file,
    * each time the config is loaded, and every file the tools touch. The config file itself is always
    * read, and checked for changes, on the real file system. Defaults to the real file system.
@@ -74,6 +84,8 @@ export interface McpServerHandle {
    * `none`, `no-config` when spending was allowed but no usable config was loaded.
    */
   readonly spend: McpSpendState;
+  /** Whether the server replaces translation values with markers, see `redactValues`. */
+  readonly valuesRedacted: boolean;
   /**
    * Whether a usable project config was loaded at startup. When `false` the server runs in
    * unconfigured mode: `project.snapshot` reports `configured: false`, `project.doctor` explains
@@ -99,7 +111,7 @@ export interface McpServerHandle {
  * per-call diagnostics, which the caller is responsible for writing to stderr.
  *
  * @param options - Where to resolve the project from, whether provider-spending tools are
- * advertised, and optional dependency injection seams.
+ * advertised, whether values are redacted, and optional dependency injection seams.
  * @returns A handle whose `close()` stops the server and releases the stdio transport.
  *
  * @throws {@link SdkError} `CONFIG_NOT_FOUND`: the explicit `configPath` does not exist at startup.
@@ -131,6 +143,7 @@ export async function startMcpServer(
       project,
       cwd,
       allowSpend: options.allowSpend ?? false,
+      redactValues: options.redactValues ?? false,
       ...(options.fs !== undefined ? { fs: options.fs } : {}),
       ...(options.adapterRegistry !== undefined
         ? { adapterRegistry: options.adapterRegistry }
@@ -146,6 +159,7 @@ export async function startMcpServer(
     close: () => server.close(),
     closed,
     spend: spendState(options.allowSpend ?? false, initial),
+    valuesRedacted: options.redactValues ?? false,
     configured: initial.kind === "configured",
   };
 }

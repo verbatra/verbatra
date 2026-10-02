@@ -40,6 +40,7 @@ async function estimateTranslation(
 
 export const estimateTool = defineTool({
   name: "translation.estimate",
+  values: "none",
   description:
     "Estimates what translation.translatePending would send and cost, without spending " +
     "anything: the same result as the verbatra translate --estimate --json CLI command, a dry " +

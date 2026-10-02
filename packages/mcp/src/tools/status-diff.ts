@@ -46,6 +46,7 @@ async function statusDiff(
 
 export const statusDiffTool = defineTool({
   name: "status.diff",
+  values: "none",
   description:
     "Lists, per target locale, the exact keys that the next translate run would add, " +
     "re-translate, or leave orphaned. Use it after status.check when you need the key names " +

@@ -5,6 +5,7 @@ import {
   readCurrentGlossary,
   redactGlossary,
   SdkError,
+  type ValueMarker,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
@@ -15,6 +16,7 @@ import {
   lockAcquireTimeoutMs,
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
+import { markAll, markFields, markRecord } from "./value-redaction.js";
 
 const MAX_GLOSSARY_TERM_LENGTH = 200;
 const MAX_GLOSSARY_TRANSLATION_LENGTH = 2_000;
@@ -60,6 +62,46 @@ const glossaryResultSchema = z.object({
 });
 
 type GlossaryResult = z.infer<typeof glossaryResultSchema>;
+
+type LocaleTerm = z.infer<typeof localeTermSchema>;
+
+type DoNotTranslate = z.infer<typeof doNotTranslateSchema>;
+
+export function redactLocaleTerm(term: LocaleTerm, marker: ValueMarker): LocaleTerm {
+  return {
+    ...markFields(term, ["source", "target", "note"], marker),
+    forbidden: markAll(term.forbidden, marker),
+  };
+}
+
+export function redactDoNotTranslate(entry: DoNotTranslate, marker: ValueMarker): DoNotTranslate {
+  return markFields(entry, ["term"], marker);
+}
+
+function redactGlossaryResult(result: GlossaryResult, marker: ValueMarker): GlossaryResult {
+  const { effective } = result;
+  return {
+    ...result,
+    terms: result.terms.map((term) => ({
+      ...markFields(term, ["source", "target", "note"], marker),
+      targets: markRecord(term.targets, (value) => marker.mark(value)),
+      forbidden: markRecord(term.forbidden, (values) => markAll(values, marker)),
+    })),
+    doNotTranslate: result.doNotTranslate.map((entry) => redactDoNotTranslate(entry, marker)),
+    redactedTerms: markAll(result.redactedTerms, marker),
+    ...(effective !== undefined
+      ? {
+          effective: {
+            locale: effective.locale,
+            terms: effective.terms.map((term) => redactLocaleTerm(term, marker)),
+            doNotTranslate: effective.doNotTranslate.map((entry) =>
+              redactDoNotTranslate(entry, marker),
+            ),
+          },
+        }
+      : {}),
+  };
+}
 
 const glossaryGetParamsSchema = z.strictObject({
   locale: z.string().min(1).max(MAX_LOCALE_LENGTH).optional(),
@@ -159,6 +201,7 @@ async function glossaryWrite(
 
 export const glossaryGetTool = defineTool({
   name: "glossary.get",
+  values: { redact: redactGlossaryResult },
   description:
     "Reads the project glossary: every term with its translation for all locales (target), its " +
     "per-locale translations (targets), the renderings each locale must never use (forbidden), " +
@@ -186,6 +229,7 @@ export const glossaryGetTool = defineTool({
 
 export const glossaryWriteTool = defineTool({
   name: "glossary.write",
+  values: { redact: redactGlossaryResult },
   description:
     "Changes one glossary term and returns the whole glossary afterwards, in the shape " +
     "glossary.get returns. Pass term plus any of: translation (a string sets it, null clears " +

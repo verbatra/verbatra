@@ -74,7 +74,7 @@ export interface McpModule {
   startMcpServer(options: StartMcpServerOptions): Promise<McpServerHandle>;
   resolveServerCwd?(cwd?: string): string;
   projectLabel?(cwd: string, base: string): string;
-  mcpReadyLine?(project: string, spend: McpSpendState): string;
+  mcpReadyLine?(project: string, spend: McpSpendState, valuesRedacted?: boolean): string;
   mcpTerminalHint?(launch: McpLaunchArgs): readonly string[];
   mcpUnconfiguredHint?(): readonly string[];
   mcpStoppedLine?(cause: McpStopCause): string;

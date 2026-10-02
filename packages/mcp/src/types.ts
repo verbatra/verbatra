@@ -5,6 +5,7 @@ import type {
   LoadedConfig,
   ProgressListener,
   SdkFs,
+  ValueMarker,
 } from "@verbatra/sdk";
 import type { McpProjectSession } from "./project-session.js";
 
@@ -22,6 +23,8 @@ export interface McpToolContext {
   readonly createProvider?: CreateProvider;
   /** Runs git for history.list. Defaults to a real `child_process.execFile`. */
   readonly execFile?: GitExecFile;
+  /** Present when the server redacts translation values: every value in a result is replaced by its marker. */
+  readonly valueMarker?: ValueMarker;
 }
 
 export interface McpCallScope {
@@ -38,6 +41,7 @@ export interface McpServerOptions {
   readonly project: McpProjectSession;
   readonly cwd: string;
   readonly allowSpend?: boolean;
+  readonly redactValues?: boolean;
   readonly fs?: McpToolContext["fs"];
   readonly adapterRegistry?: McpToolContext["adapterRegistry"];
   readonly createProvider?: CreateProvider;

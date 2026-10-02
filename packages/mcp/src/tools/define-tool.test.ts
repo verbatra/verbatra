@@ -11,6 +11,7 @@ describe("defineTool", () => {
   it("derives a draft-2020-12 JSON Schema input schema from the zod params schema", () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -30,6 +31,7 @@ describe("defineTool", () => {
   it("derives a JSON Schema outputSchema and returns a result that conforms to it", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -51,6 +53,7 @@ describe("defineTool", () => {
   it("turns a handler result that breaks the outputSchema into an error naming the field, not its value", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -75,6 +78,7 @@ describe("defineTool", () => {
   it("lets an added field through even a strictObject outputSchema, so no tool breaks on an SDK addition", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema: z.strictObject({ greeting: z.string() }),
@@ -96,6 +100,7 @@ describe("defineTool", () => {
   it("keeps additionalProperties false on the input schema", () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -114,6 +119,7 @@ describe("defineTool", () => {
   it("adds a do-not-retry note to a mismatch from a tool that writes", async () => {
     const tool = defineTool({
       name: "test.writer",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -139,6 +145,7 @@ describe("defineTool", () => {
   it("names a record's field by placeholder, never by its user-supplied key", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema: z.object({
@@ -170,6 +177,7 @@ describe("defineTool", () => {
   it("names the root when a handler result breaks the outputSchema at its top level", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -193,6 +201,7 @@ describe("defineTool", () => {
   it("returns an isError-shaped outcome naming the offending field on invalid input", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -213,6 +222,7 @@ describe("defineTool", () => {
   it("treats a missing required field as invalid, naming the field", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -233,6 +243,7 @@ describe("defineTool", () => {
   it("maps a thrown SdkError to an error outcome carrying its code and message", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -260,6 +271,7 @@ describe("defineTool", () => {
   ])("leads the message of %s with its code, like an SdkError", async (_label, error) => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -286,6 +298,7 @@ describe("defineTool", () => {
     vi.stubEnv("OPENAI_API_KEY", sentinel);
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -316,6 +329,7 @@ describe("defineTool", () => {
   it("maps an McpInvalidParamsError from the handler to an invalid outcome naming the field", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -340,6 +354,7 @@ describe("defineTool", () => {
   it("maps a thrown plain Error to an error outcome carrying its message", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -361,6 +376,7 @@ describe("defineTool", () => {
   it("maps a thrown non-Error value to an error outcome via String()", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -383,6 +399,7 @@ describe("defineTool", () => {
     const emptyParamsSchema = z.strictObject({});
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema: emptyParamsSchema,
       outputSchema: z.strictObject({ ok: z.boolean() }),
@@ -403,6 +420,7 @@ describe("defineTool", () => {
     const cwd = "/Users/example/project";
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -433,6 +451,7 @@ describe("defineTool", () => {
     const cwd = "/Users/example/project";
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -459,6 +478,7 @@ describe("defineTool", () => {
     const cwd = "/Users/example/project";
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -484,6 +504,7 @@ describe("defineTool", () => {
   it("leaves the error message untouched when cwd is empty", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,
@@ -509,6 +530,7 @@ describe("defineTool", () => {
   it("names the root when a non-object argument fails validation, not a nested field", async () => {
     const tool = defineTool({
       name: "test.tool",
+      values: "none",
       description: "test",
       paramsSchema,
       outputSchema,

@@ -28,11 +28,14 @@ const mcpOptsSchema = z.object({
   cwd: z.string().optional(),
   config: z.string().optional(),
   allowSpend: z.boolean().optional(),
+  redactValues: z.boolean().optional(),
 });
 
 type McpOpts = z.infer<typeof mcpOptsSchema>;
 
 const ALLOW_SPEND_ENV_VAR = "VERBATRA_MCP_ALLOW_SPEND";
+
+const REDACT_VALUES_ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
 
 const CLI_LAUNCH_ARGS = ["verbatra", "mcp"] as const;
 
@@ -49,7 +52,9 @@ function announceReady(ui: Ui, mcpModule: McpModule, cwd: string, server: McpSer
     ui.line(FALLBACK_READY_LINE);
     return;
   }
-  ui.line(mcpReadyLine(projectLabel(cwd, process.cwd()), server.spend));
+  ui.line(
+    mcpReadyLine(projectLabel(cwd, process.cwd()), server.spend, server.valuesRedacted === true),
+  );
   if (server.configured === false && mcpUnconfiguredHint !== undefined) {
     for (const line of mcpUnconfiguredHint()) {
       ui.line(line);
@@ -117,12 +122,14 @@ export async function runMcp(
     return failedSession(2);
   }
   const allowSpend = resolveBooleanFlag(opts.allowSpend, ALLOW_SPEND_ENV_VAR);
+  const redactValues = resolveBooleanFlag(opts.redactValues, REDACT_VALUES_ENV_VAR);
 
   const server = await step(
     () =>
       mcpModule.startMcpServer({
         cwd,
         allowSpend,
+        redactValues,
         onLog: (line) => streams.err(`${line}\n`),
         ...(opts.config !== undefined ? { configPath: opts.config } : {}),
       }),

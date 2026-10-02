@@ -39,6 +39,13 @@ describe("projectLabel", () => {
 });
 
 describe("mcpReadyLine", () => {
+  it("adds the redaction state only when values are redacted", () => {
+    expect(mcpReadyLine(".", "off", true)).toBe(
+      "verbatra MCP server running on stdio (project ., spend tools off, values redacted)",
+    );
+    expect(mcpReadyLine(".", "off", false)).toBe(mcpReadyLine(".", "off"));
+  });
+
   it("names the project and the spend state", () => {
     expect(mcpReadyLine("web", "off")).toBe(
       "verbatra MCP server running on stdio (project web, spend tools off)",

@@ -36,11 +36,12 @@ async function serve(options: BinOptions): Promise<void> {
     ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
     ...(options.configPath !== undefined ? { configPath: options.configPath } : {}),
     allowSpend: options.allowSpend,
+    redactValues: options.redactValues,
     onLog: logToStderr,
   });
 
   const project = projectLabel(resolveServerCwd(options.cwd), process.cwd());
-  logToStderr(mcpReadyLine(project, handle.spend));
+  logToStderr(mcpReadyLine(project, handle.spend, handle.valuesRedacted));
   if (!handle.configured) {
     for (const line of mcpUnconfiguredHint()) {
       logToStderr(line);

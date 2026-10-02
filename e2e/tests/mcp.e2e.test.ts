@@ -211,6 +211,50 @@ describe("mcp (no key)", () => {
     expect(await lockFilesUnder(dir)).toEqual([]);
   }, 120_000);
 
+  it("verbatra mcp --redact-values keeps every value off stdout and still writes an edit", async () => {
+    const canary = "CANARY-e2e";
+    const redactedDir = join(consumer.dir, "mcp-redacted");
+    await writeJsonIn(redactedDir, "locales/en.json", { greeting: `${canary}-source` });
+    await writeJsonIn(redactedDir, "locales/de.json", { greeting: `${canary}-target` });
+    await writeJsonIn(redactedDir, ".verbatrarc.json", {
+      sourceLocale: "en",
+      targetLocales: ["de"],
+      format: "i18next-json",
+      files: { pattern: "locales/{locale}.json" },
+      provider: { id: "none" },
+    });
+
+    const { result, stdout } = await exchangeThenCloseStdin(
+      spawnVerbatra(consumer, ["mcp", "--cwd", redactedDir, "--redact-values"]),
+      [
+        [INITIALIZE_REQUEST, 1],
+        [INITIALIZED_NOTIFICATION, undefined],
+        [toolCall(2, "key.value", { locale: "de", key: "greeting" }), 2],
+        [toolCall(3, "locale.values"), 3],
+        [
+          toolCall(4, "translation.editEntry", {
+            locale: "de",
+            key: "greeting",
+            value: `${canary}-edit`,
+          }),
+          4,
+        ],
+      ],
+    );
+
+    expect(stdout).toContain('"id":4');
+    expect(stdout).not.toContain(canary);
+    expect(toolResponse(stdout, 2).result?.structuredContent?.target).toMatch(
+      /^\[redacted length=\d+ hash=[0-9a-f]{16}\]$/,
+    );
+    expect(toolResponse(stdout, 4).result?.structuredContent).toMatchObject({ accepted: true });
+    expect(JSON.parse(await readFile(join(redactedDir, "locales/de.json"), "utf8"))).toEqual({
+      greeting: `${canary}-edit`,
+    });
+    expect(result.stderr).toContain("values redacted)");
+    expect(result.exitCode).toBe(0);
+  }, 120_000);
+
   it("verbatra mcp releases a locale lock held by an in-flight translatePending when the client closes stdin", async () => {
     const stalledDir = join(consumer.dir, "mcp-held-lock");
     await scaffoldStalledProject(stalledDir, endpoint.baseUrl);

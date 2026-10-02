@@ -1,21 +1,34 @@
 import { approveEntry, type ReviewDecisionInput, rejectEntry } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
-import { defineTool } from "./define-tool.js";
+import { defineTool, type ValueRedaction } from "./define-tool.js";
 import {
   LOCK_TIMEOUT_DESCRIPTION,
   lockAcquireTimeoutMs,
   lockTimeoutMsSchema,
 } from "./lock-timeout.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
+import { withoutReviewer } from "./value-redaction.js";
 
-const paramsSchema = z.strictObject({
-  locale: z.string().min(1),
-  key: z.string().min(1),
-  expectedValue: z.string().max(20_000),
-  reviewer: z.string().min(1).max(64),
-  lockTimeoutMs: lockTimeoutMsSchema,
-});
+const paramsSchema = z
+  .strictObject({
+    locale: z.string().min(1),
+    key: z.string().min(1),
+    expectedValue: z.string().max(20_000).optional(),
+    expectedHash: z
+      .string()
+      .regex(/^[0-9a-f]{16}$/)
+      .optional(),
+    reviewer: z.string().min(1).max(64),
+    lockTimeoutMs: lockTimeoutMsSchema,
+  })
+  .refine(
+    (params) => (params.expectedValue === undefined) !== (params.expectedHash === undefined),
+    {
+      message: "Pass exactly one of expectedValue and expectedHash.",
+      path: ["expectedValue"],
+    },
+  );
 
 const reviewDecisionResultSchema = z.object({
   locale: z.string(),
@@ -32,7 +45,8 @@ function decisionInput(params: ReviewDecisionParams, context: McpToolContext): R
     cwd: context.cwd,
     locale: params.locale,
     key: params.key,
-    expectedValue: params.expectedValue,
+    ...(params.expectedValue !== undefined ? { expectedValue: params.expectedValue } : {}),
+    ...(params.expectedHash !== undefined ? { expectedValueHash: params.expectedHash } : {}),
     reviewer: params.reviewer,
     lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
   };
@@ -42,8 +56,13 @@ function decisionDeps(context: McpToolContext) {
   return {
     ...(context.fs !== undefined ? { fs: context.fs } : {}),
     ...(context.adapterRegistry !== undefined ? { adapterRegistry: context.adapterRegistry } : {}),
+    ...(context.valueMarker !== undefined ? { valueMarker: context.valueMarker } : {}),
   };
 }
+
+const REDACT_REVIEWER: ValueRedaction<ReviewDecisionParams, ReviewDecisionResult> = {
+  redact: (result) => ({ ...result, provenance: withoutReviewer(result.provenance) }),
+};
 
 const PERSON_ONLY =
   "Call it only when the user has read the value and told you to record this decision: never " +
@@ -52,14 +71,16 @@ const PERSON_ONLY =
 
 const SHARED_PARAMS =
   "The required locale parameter must be a configured target locale and the required key " +
-  "parameter must exist in the source. The required expectedValue parameter is the translation " +
-  "the user reviewed, read with key.value; the call is refused with REVIEW_VALUE_CHANGED, " +
+  "parameter must exist in the source. Pass exactly one of expectedValue, the translation the " +
+  "user reviewed as read with key.value, and expectedHash, the 16-digit hash from that value's " +
+  "marker when the server redacts values; the call is refused with REVIEW_VALUE_CHANGED, " +
   "writing nothing, when the current value is a different one. The required reviewer parameter " +
   "names the person who made the decision, 1 to 64 characters with no control characters; it is " +
   "stored in the committed verbatra.provenance.json, so it is public. ";
 
 export const reviewApproveTool = defineTool({
   name: "review.approve",
+  values: REDACT_REVIEWER,
   description:
     "Records that a person reviewed one key's current translation in one target locale and " +
     "accepts it. The approval is written to verbatra.provenance.json, so it is shared with every " +
@@ -103,6 +124,7 @@ const REJECT_DESCRIPTION =
 
 export const reviewRejectTool = defineTool({
   name: "review.reject",
+  values: REDACT_REVIEWER,
   description: REJECT_DESCRIPTION,
   paramsSchema,
   outputSchema: reviewDecisionResultSchema,

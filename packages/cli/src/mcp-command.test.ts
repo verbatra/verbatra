@@ -581,6 +581,69 @@ describe("run mcp: --allow-spend capability resolution", () => {
   });
 });
 
+describe("run mcp: --redact-values resolution", () => {
+  const ENV_VAR = "VERBATRA_MCP_REDACT_VALUES";
+  let original: string | undefined;
+
+  beforeEach(() => {
+    original = process.env[ENV_VAR];
+    delete process.env[ENV_VAR];
+  });
+
+  afterEach(() => {
+    if (original === undefined) {
+      delete process.env[ENV_VAR];
+    } else {
+      process.env[ENV_VAR] = original;
+    }
+  });
+
+  async function startWith(
+    argv: readonly string[],
+  ): Promise<{ readonly redactValues: boolean | undefined; readonly err: string }> {
+    let redactValues: boolean | undefined;
+    const { deps } = recordingDeps({
+      importMcp: async () =>
+        makeMcpModule({
+          startMcpServer: async (options) => {
+            redactValues = options.redactValues;
+            return makeMcpHandle({ valuesRedacted: options.redactValues === true });
+          },
+        }),
+    });
+    const cap = captureStreams();
+    const captured = captureMcpSession();
+
+    const donePromise = run([...argv], deps, cap.streams, captured.hooks);
+    await flush();
+    captured.session()?.requestStop();
+    await donePromise;
+
+    return { redactValues, err: cap.err() };
+  }
+
+  it("defaults redactValues to false", async () => {
+    expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+
+  it("sets redactValues from the flag and says so in the ready line", async () => {
+    const started = await startWith(["mcp", "--redact-values"]);
+
+    expect(started.redactValues).toBe(true);
+    expect(started.err).toContain("spend tools off, values redacted)");
+  });
+
+  it("falls back to the environment variable when the flag is absent", async () => {
+    process.env[ENV_VAR] = " YES ";
+    expect((await startWith(["mcp"])).redactValues).toBe(true);
+  });
+
+  it("treats an unrecognized environment value as off", async () => {
+    process.env[ENV_VAR] = "0";
+    expect((await startWith(["mcp"])).redactValues).toBe(false);
+  });
+});
+
 describe("run mcp: usage errors", () => {
   it("rejects an unknown flag, exiting 2 before importing @verbatra/mcp", async () => {
     const { deps, calls } = recordingDeps();

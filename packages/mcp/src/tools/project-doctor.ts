@@ -81,6 +81,7 @@ async function unconfiguredProjectDoctor(
 
 export const projectDoctorTool = defineTool({
   name: "project.doctor",
+  values: "none",
   description:
     "Checks the project setup and says how to fix what fails: whether the config loads and " +
     "validates, the format resolves to an adapter, the provider id is supported, the API key " +

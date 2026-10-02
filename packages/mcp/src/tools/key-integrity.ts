@@ -31,6 +31,12 @@ const keyIntegrityResultSchema = z.object({
 
 type KeyIntegrityResult = z.infer<typeof keyIntegrityResultSchema>;
 
+export function withoutIntegrityDetails<T extends z.infer<typeof keyIntegrityEntrySchema>>(
+  entry: T,
+): T {
+  return { ...entry, icuArmDetails: [], markupDetails: [] };
+}
+
 export function toKeyIntegrityEntry(
   entry: KeyIntegrityEntry,
 ): z.infer<typeof keyIntegrityEntrySchema> {
@@ -78,6 +84,14 @@ async function checkKeyIntegrity(
 
 export const keyIntegrityTool = defineTool({
   name: "key.integrity",
+  values: {
+    redact: (result) => ({
+      locales: result.locales.map((locale) => ({
+        ...locale,
+        entries: locale.entries.map(withoutIntegrityDetails),
+      })),
+    }),
+  },
   description:
     "Reports one key's placeholder, inline markup, ICU syntax, and ICU plural, ordinal, and " +
     "select arm drift against the lock-file " +
