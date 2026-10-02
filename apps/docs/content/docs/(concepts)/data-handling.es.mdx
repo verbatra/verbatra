@@ -3,21 +3,19 @@ title: Tratamiento de datos y privacidad
 description: Qué envía la herramienta verbatra fuera de tu máquina, a quién, y qué guarda en local, para que una revisión de seguridad o legal pueda aprobarla.
 type: concept
 ---
-Esta página trata de la herramienta verbatra: la CLI, el SDK, Studio y el servidor MCP que se
-ejecutan en tu máquina o en tu CI. Responde a la primera pregunta que hace quien revisa la seguridad
-o la parte legal: ¿qué sale de la máquina? El sitio web que estás leyendo es otro asunto, cubierto
-por la [política de privacidad](/privacy) del sitio.
+Qué envía la herramienta verbatra (CLI, SDK, Studio y servidor MCP) fuera de tu máquina o de tu CI,
+para una revisión de seguridad o legal. Este sitio web se rige por su
+[política de privacidad](/privacy).
 
 ## La respuesta corta
 
-- **Sin telemetría.** Ni analítica, ni informes de uso, ni informes de fallos, ni comprobación de
-  actualizaciones. verbatra nunca contacta con un servidor de verbatra, porque no existe ninguno.
-- **Un único destino saliente: tu proveedor**, y solo cuando un comando traduce de verdad. Con
-  `provider: { id: "none" }` no hay ninguna petición.
+- **Sin telemetría**, sin comprobación de actualizaciones y sin ningún servidor de verbatra al que
+  llamar.
+- **Un único destino saliente: tu proveedor**, solo cuando un comando traduce; ninguno con
+  `provider: { id: "none" }`.
 - **Solo se envía lo que necesita traducción**: ni claves sin cambios, ni aciertos de caché, ni
   claves protegidas.
-- **Todo lo demás se queda en local.** Studio solo escucha en `127.0.0.1`, y el servidor MCP habla
-  por stdio, no por un puerto de red.
+- **Todo lo demás se queda en local**: Studio en `127.0.0.1`, el servidor MCP por stdio.
 - **Las claves de API solo vienen de variables de entorno** y nunca aparecen en un mensaje.
 
 ## Cómo fluyen los datos
@@ -39,24 +37,22 @@ por la [política de privacidad](/privacy) del sitio.
   Studio en tu navegador   cliente MCP (tu agente de IA)
 ```
 
-Solo la flecha del proveedor cruza el límite de tu red. Las dos de abajo se quedan en local, pero
-consulta [Studio y MCP](#studio-y-mcp) para ver qué hace un agente de IA con lo que lee.
+Solo la flecha del proveedor cruza el límite de tu red; para ver qué hace un agente de IA con lo que
+lee, consulta [Studio y MCP](#studio-y-mcp).
 
 ## Cuándo se hace una petición
 
 Solo `translate`, `watch`, `retranslateEntry` del SDK y las acciones de retraducir y traducir
-pendientes de Studio y del servidor MCP (ofrecidas solo con `--allow-spend`) llaman a un proveedor.
-Todos los demás comandos, ejecuciones de prueba y estimaciones incluidas, trabajan con archivos
-locales. La única excepción es `verbatra doctor --live`, que obtiene la lista de idiomas de DeepL,
-de Google Cloud Translation o de tu servidor LibreTranslate, enviando tu clave de API y nada de tu
-proyecto.
+pendientes de Studio y del servidor MCP (con `--allow-spend`) llaman a un proveedor. Todo lo demás,
+ejecuciones de prueba y estimaciones incluidas, es local, salvo `verbatra doctor --live`: obtiene la
+lista de idiomas de DeepL, Google Cloud Translation o LibreTranslate, enviando tu clave de API y
+nada más.
 
 Una ejecución de `translate` envía solo las claves ausentes o cambiadas respecto a
-[el archivo de bloqueo](/docs/the-lock-file), menos las que responde [la caché](/docs/the-cache), y
-un texto compartido por varias claves una sola vez. Una clave desactualizada que escribió una persona
-no se envía, salvo que `humanEdits: "suggest"` pida una sugerencia que nunca se escribe en el
-archivo; una clave fijada nunca se envía. Consulta
-[Conserva las traducciones humanas](/docs/protecting-human-translations).
+[el archivo de bloqueo](/docs/the-lock-file), menos los aciertos de [la caché](/docs/the-cache), y
+el texto compartido una sola vez. Una clave desactualizada que escribió una persona solo se envía
+para una sugerencia de `humanEdits: "suggest"`; una clave fijada, nunca
+([Conserva las traducciones humanas](/docs/protecting-human-translations)).
 
 Cada petición empieza con una consulta DNS del host del proveedor a través del resolutor de tu
 sistema, así que el resolutor ve ese nombre.
@@ -78,10 +74,9 @@ un texto de origen, una descripción o el glosario como enviado.
 
 ## Retención y tratamiento de datos del proveedor
 
-Lo que pasa con tus textos una vez llegan lo deciden el proveedor y tu contrato con él, no
-verbatra. Las citas de abajo vienen de la página de cada proveedor, a septiembre de 2026, y se
-dejan en su inglés original. Las condiciones cambian y tu contrato manda, así que toma esta tabla
-como punto de partida y lee las páginas enlazadas.
+Lo que pasa con tus textos una vez llegan lo deciden el proveedor y tu contrato, no verbatra. Las
+citas vienen de la página de cada proveedor a septiembre de 2026, en su inglés original; las
+condiciones cambian y tu contrato manda, así que lee las páginas enlazadas.
 
 | Proveedor | Qué dice el proveedor | Tratamiento de datos |
 | --- | --- | --- |
@@ -92,55 +87,29 @@ como punto de partida y lee las páginas enlazadas.
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", y "Google does not use the content you send to train and improve our Google Translation features" ([data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
 | openai-compatible, LibreTranslate | Lo que haga tu propio servidor. Un servidor que ejecutas tú mantiene los textos en hardware que controlas. | Las tuyas |
 
-Dos consecuencias, dichas claramente: los niveles gratuitos de Gemini (fuera del EEE, Suiza y el
-Reino Unido) y de DeepL pueden usar lo que envías para mejorar los modelos del proveedor, y ninguno
-de los proveedores LLM alojados ofrece retención cero por defecto. Para textos confidenciales, usa
-un nivel de pago con las condiciones que necesita tu organización, tu propio servidor o ninguna
-traducción automática.
+En resumen: los niveles gratuitos de Gemini (fuera del EEE, Suiza y el Reino Unido) y de DeepL
+pueden usar lo que envías para mejorar los modelos del proveedor, y ningún proveedor LLM alojado
+ofrece retención cero por defecto. Para textos confidenciales, usa un nivel de pago con las
+condiciones que necesites, tu propio servidor o ninguna traducción automática.
 
 ## Mantener los textos en casa
 
-- **Sin traducción automática.** `provider: { id: "none" }` hace de verbatra una herramienta
-  puramente local. Consulta [Trabajar sin traducción automática](/docs/human-only-workflow).
+- **Sin traducción automática**: [Trabajar sin traducción automática](/docs/human-only-workflow).
 
   <AvailableFrom version="0.12.0" />
 
-- **Tu propio modelo.** `openai-compatible` envía las peticiones a la `baseUrl` que fijes, como
-  Ollama, LM Studio o vLLM en tu red.
-- **Tu propia traducción automática, sin modelo de lenguaje.** `libretranslate` llama a un servidor
-  LibreTranslate que ejecutas tú; consulta la receta de abajo.
+- **Tu propio modelo**: [`openai-compatible`](/docs/providers#openai-compatible) con Ollama, LM Studio o vLLM.
+- **Tu propia traducción automática, sin modelo de lenguaje**: [`libretranslate`](/docs/providers#libretranslate).
 
   <AvailableFrom version="0.12.0" />
 
-- **Hazlo cumplir.** Una [política de red](/docs/network-policy) `local-only` rechaza cualquier host
-  fuera de tu red, y `VERBATRA_NETWORK_POLICY` la fija para que la configuración de un repositorio
-  no pueda relajarla.
+- **Hazlo cumplir**: una [política de red](/docs/network-policy) `local-only`, fijada en CI.
 
   <AvailableFrom version="0.12.0" />
 
 ### Receta: traducción automática cuando los modelos de lenguaje están prohibidos
 
-Algunos NDA prohíben los modelos de lenguaje pero aceptan la traducción automática clásica en tu
-propio hardware. LibreTranslate es eso: un servidor de código abierto con modelos de Argos
-Translate. Ejecútalo:
-
-```bash
-docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
-```
-
-Después apunta verbatra a él y fija la red:
-
-```ts
-provider: {
-  id: "libretranslate",
-  options: { baseUrl: "http://127.0.0.1:5000" },
-},
-network: { policy: "local-only" },
-```
-
-`verbatra doctor --locales --live` comprueba cada locale de destino frente a los modelos instalados.
-Sus valores se siguen registrando con el origen `machine`. Los detalles están en
-[LibreTranslate](/docs/providers#libretranslate).
+Se ha movido a [Política de red](/docs/network-policy#traducción-automática-sin-modelo-de-lenguaje).
 
 ## Qué se escribe en local
 
@@ -155,53 +124,43 @@ Sus valores se siguen registrando con el origen `machine`. Los detalles están e
 
 ## Claves de API
 
-Cada proveedor lee una variable de entorno, listada en
-[Proveedores](/docs/providers#las-claves-vienen-del-entorno), nunca el archivo de configuración ni un
-argumento. Cada error de proveedor, y todo lo que imprime la CLI, pasa por un filtro que sustituye
-por `[REDACTED]` el valor de cada variable de clave conocida y todo lo que tenga forma de clave de
-API.
+Las claves solo vienen de [variables de entorno](/docs/providers#las-claves-vienen-del-entorno).
+Cada error de proveedor, y todo lo que imprime la CLI, pasa por un filtro que sustituye por
+`[REDACTED]` el valor de cada variable de clave conocida y todo lo que tenga forma de clave de API.
 
 ## Studio y MCP
 
-**Studio** escucha en `127.0.0.1` y se niega a arrancar en cualquier otra dirección, rechaza las
-peticiones con otro `Host` u `Origin` y exige el token aleatorio que imprime al arrancar. Su
-Content-Security-Policy impide que la página cargue nada de internet.
+**Studio** solo escucha en `127.0.0.1`, rechaza otro `Host` u `Origin`, exige el token que imprime
+al arrancar, y su Content-Security-Policy bloquea las cargas desde internet.
 
 **El servidor MCP** habla con su cliente por stdio y no abre ningún puerto. Sus herramientas de
 lectura devuelven tus textos, tu glosario y tu estado al cliente conectado.
 
-Sopésalo con cuidado: un cliente MCP, o un agente de navegador que usa `--expose-agent-tools` de
-Studio, suele ser un asistente de IA, y lo que lee va al modelo que tiene detrás, bajo las
-condiciones de ese proveedor, algo que verbatra no puede restringir.
+Sopésalo: un cliente MCP, o un agente de navegador que usa `--expose-agent-tools` de Studio, suele
+ser un asistente de IA, y lo que lee va a su modelo bajo las condiciones de ese proveedor, algo que
+verbatra no puede restringir.
 
 ## Traducciones generadas por IA y procedencia
 
 El artículo 50 del Reglamento de IA de la UE (AI Act) fija obligaciones de transparencia para los
 sistemas de IA que generan texto
 ([AI Act Service Desk, artículo 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Si se aplica a tu producto y cómo, es una pregunta para tu asesoría jurídica, no algo que decida
-verbatra.
-
-Lo que verbatra te da es un registro: cada valor que produjo un proveedor queda registrado con el
-origen `machine`, con el proveedor y el modelo, junto a cualquier decisión de revisión. Los valores
-`memory` y `fuzzy` vienen de la caché, que puede contener salida automática anterior, así que no los
-leas como trabajo humano. Consulta
+Si se aplica a tu producto es una pregunta para tu asesoría jurídica. verbatra te da un registro:
+cada valor que produjo un proveedor lleva el origen `machine`, con proveedor y modelo; consulta
 [Procedencia: quién escribió cada valor](/docs/the-lock-file#procedencia-quién-escribió-cada-valor).
 
 <AvailableFrom version="0.12.0" />
 
-`verbatra report provenance --json` convierte ese registro en un archivo de auditoría por clave, y
-las exportaciones XLIFF y TMX llevan la misma marca. Ambos son pruebas de apoyo, no asesoramiento
-jurídico; consulta
-[Registrar evidencia de traducción automática](/docs/provenance-evidence).
+`verbatra report provenance --json` convierte ese registro en un archivo de auditoría por clave;
+consulta [Registrar evidencia de traducción automática](/docs/provenance-evidence).
 
 ## Lista de comprobación para una revisión de DPA o NDA
 
 1. Decide si los textos pueden salir de tu red. Si no, usa el proveedor `none` o un servidor
    autoalojado, y fija `VERBATRA_NETWORK_POLICY=local-only` en CI.
 2. Con un proveedor alojado, usa un nivel de pago para todo lo confidencial.
-3. Firma las condiciones de tratamiento de datos del proveedor; pide retención cero si tu política
-   lo exige.
+3. Firma las condiciones de tratamiento de datos del proveedor, con retención cero si la
+   necesitas.
 4. Comprueba qué envían tus archivos de origen: nombres de clave, descripciones y el glosario.
 5. Guarda las claves de API en un almacén de secretos o en un `.env` ignorado por git, y ejecuta
    `verbatra doctor`.
@@ -211,6 +170,6 @@ jurídico; consulta
 
 ## Relacionado
 
-- [Política de red](/docs/network-policy): controla adónde puede conectarse verbatra.
+- [Política de red](/docs/network-policy): adónde puede conectarse verbatra.
 - [Proveedores](/docs/providers): claves, endpoints y opciones por proveedor.
 - [Registrar evidencia de traducción automática](/docs/provenance-evidence): el informe de procedencia.
