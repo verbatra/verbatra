@@ -28,7 +28,8 @@ function cliSource(file) {
   return readRepoFile(`packages/cli/src/${file}`);
 }
 
-const DECLARATION = /^(?:export )?(?:(?:async )?function (\w+)\(|const (\w+) = (?:async )?\()/gm;
+const DECLARATION =
+  /^(?:export )?(?:(?:async )?function (\w+)\(|const (\w+)(?:: [^\n]*?)? = (?:async )?\()/gm;
 
 function topLevelFunctions(sources) {
   const functions = new Map();
@@ -199,6 +200,16 @@ describe("the environment files section names exactly the commands that load .en
       /(\.command\("check"\)[\s\S]*?\.action\(async \(opts: unknown\) => \{)/,
       "$1\n      loadForCheck(process.cwd());",
     )}\nconst loadForCheck = (cwd: string): void => {\n  loadEnvFiles(cwd);\n};\n`;
+
+    expect(commandsCalling("loadEnvFiles", [patched, ...rest])).toContain("check");
+  });
+
+  it("follows a call through a typed arrow-const helper", () => {
+    const [run, ...rest] = CLI_SOURCES.map(cliSource);
+    const patched = `${run.replace(
+      /(\.command\("check"\)[\s\S]*?\.action\(async \(opts: unknown\) => \{)/,
+      "$1\n      loadForCheck(process.cwd());",
+    )}\nconst loadForCheck: (cwd: string) => void = (cwd) => {\n  loadEnvFiles(cwd);\n};\n`;
 
     expect(commandsCalling("loadEnvFiles", [patched, ...rest])).toContain("check");
   });
