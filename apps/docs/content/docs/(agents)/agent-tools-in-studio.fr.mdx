@@ -37,7 +37,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_status_diff` | les clés manquantes, modifiées et orphelines par locale |
 | `verbatra_glossary_get` | le glossaire résolu, secrets masqués |
 | `verbatra_lock_state` | l'état du fichier de verrouillage par locale |
-| `verbatra_history_list` | les commits récents sur les fichiers de locale |
+| `verbatra_history_list` | les commits récents sur les fichiers de locale, avec le nom de l'auteur ([jamais l'e-mail](/docs/data-handling#studio-et-mcp)) |
 | `verbatra_key_integrity` | les contrôles de placeholders, de balisage et d'ICU d'une clé, dans les locales où sa source a changé |
 | `verbatra_review_queue` | chaque valeur écrite par une machine que personne n'a approuvée, d'après les fichiers versionnés <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | la source et la cible d'une clé, avec qui a écrit la cible |
@@ -63,7 +63,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_translation_retranslateEntry` | retraduit une clé dans une locale |
 | `verbatra_translation_translatePending` | traduit tout ce qui est en attente, éventuellement pour certaines `locales` et sous un plafond `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP.
+`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP. Le serveur MCP a aussi les outils d'historique, de valeurs, d'intégrité et de contexte de clé ; son `locale.values` renvoie des pages, consulte [Autres entrées et résultats](/docs/cli/mcp#autres-entrées-et-résultats).
 
 ## Connaître les règles des outils
 

@@ -17,6 +17,16 @@ const DECLARATION_SPECIFIER = /(?:from|import)\s*\(?\s*['"](@verbatra\/[a-z-]+)[
 
 const DYNAMIC_IMPORT_ONLY_PACKAGES = ["@verbatra/studio", "@verbatra/mcp"];
 
+const LAZY_PROVIDER_PACKAGES = [
+  "@anthropic-ai/sdk",
+  "openai",
+  "@google/genai",
+  "deepl-node",
+  "loglevel",
+];
+
+const SDK_ENTRIES = ["packages/sdk/dist/index.js", "packages/sdk/dist/index.cjs"];
+
 const STUDIO_APP_ASSETS = "packages/studio/dist/app/assets";
 
 const ZOD_JITLESS_CONFIG = /\(\{\s*jitless\s*:\s*(?:!0|true)\s*\}\)/;
@@ -29,8 +39,35 @@ function dynamicImportPattern(packageName) {
   return new RegExp(`import\\(\\s*['"]${packageName}['"]\\s*\\)`);
 }
 
+function specifierPattern(packageName) {
+  return `['"]${packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:/[^'"]*)?['"]`;
+}
+
 function staticImportPattern(packageName) {
-  return new RegExp(`(?:^|\\s)(?:import|export)[^\\n]*?from\\s*['"]${packageName}['"]`, "m");
+  return new RegExp(
+    `(?:^|[\\s;}])(?:import|export)(?:[^'"\\n;]*?\\bfrom)?\\s*${specifierPattern(packageName)}`,
+    "m",
+  );
+}
+
+function staticRequirePattern(packageName) {
+  return new RegExp(`(?<![\\w$.])require\\(\\s*${specifierPattern(packageName)}\\s*\\)`);
+}
+
+function findEagerProviderImports(text, relativePath) {
+  const hits = [];
+  for (const packageName of LAZY_PROVIDER_PACKAGES) {
+    if (
+      staticImportPattern(packageName).test(text) ||
+      staticRequirePattern(packageName).test(text)
+    ) {
+      hits.push(`${relativePath}: loads ${packageName} at startup`);
+    }
+    if (!dynamicImportPattern(packageName).test(text)) {
+      hits.push(`${relativePath}: has no import("${packageName}")`);
+    }
+  }
+  return hits;
 }
 
 function readBuildOutput(relativePath) {
@@ -199,6 +236,19 @@ function checkStudioZodJitless() {
   }
 }
 
+function checkLazyProviderSdks() {
+  const hits = SDK_ENTRIES.flatMap((entry) =>
+    findEagerProviderImports(readBuildOutput(entry), entry),
+  );
+  if (hits.length > 0) {
+    throw new Error(
+      "a provider SDK is no longer loaded on first use; import it with await import() inside " +
+        `its client in packages/ai-providers/src:\n  ${hits.join("\n  ")}`,
+    );
+  }
+  return "the ESM and CommonJS sdk entries load every provider SDK through a runtime import().";
+}
+
 function getConfigSchemaFilesPattern(document) {
   return document.properties?.files?.properties?.pattern?.pattern;
 }
@@ -227,6 +277,7 @@ const TARGETS = {
   dts: checkDts,
   "studio-bundle": checkStudioBundle,
   "config-schema": checkConfigSchema,
+  "lazy-provider-sdks": checkLazyProviderSdks,
 };
 
 function main() {
@@ -255,9 +306,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 export {
   DECLARATION_SPECIFIER,
   dynamicImportPattern,
+  findEagerProviderImports,
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   getConfigSchemaFilesPattern,
   hasZodJitlessConfig,
   staticImportPattern,
+  staticRequirePattern,
 };

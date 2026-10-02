@@ -656,7 +656,7 @@ La [politique réseau](/docs/network-policy) a refusé la requête juste avant s
 
 ### PROVIDER_ERROR
 
-Tout ce qui est inclassable. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret.
+Tout ce qui est inclassable. Quand l'échec est un problème de transport reconnaissable, le message le nomme (connexion refusée, nom d'hôte non résolu, connexion fermée, hôte injoignable, certificat TLS non vérifié) et dit quoi vérifier ; sinon il se replie sur un message statique sans secret. Si un paquet de fournisseur n'a pas pu être chargé, le message nomme le paquet et te demande de réinstaller `@verbatra/sdk`.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`

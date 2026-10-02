@@ -656,7 +656,7 @@ La [política de red](/docs/network-policy) rechazó la petición justo antes de
 
 ### PROVIDER_ERROR
 
-Cualquier cosa inclasificable. Cuando el fallo es un problema de transporte reconocible, el mensaje lo nombra (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) y dice qué comprobar; si no, recurre a un mensaje estático y sin secretos.
+Cualquier cosa inclasificable. Cuando el fallo es un problema de transporte reconocible, el mensaje lo nombra (conexión rechazada, nombre de host no resuelto, conexión cerrada, host inalcanzable, certificado TLS no verificado) y dice qué comprobar; si no, recurre a un mensaje estático y sin secretos. Si no se pudo cargar un paquete de proveedor, el mensaje nombra el paquete y te pide reinstalar `@verbatra/sdk`.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`

@@ -2,7 +2,7 @@ import { AdapterError, errorHint, ProviderError, SdkError } from "@verbatra/sdk"
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { makeContext } from "../test-support.js";
-import { defineTool } from "./define-tool.js";
+import { defineTool, McpInvalidParamsError } from "./define-tool.js";
 
 const paramsSchema = z.strictObject({ name: z.string().min(1) });
 const outputSchema = z.object({ greeting: z.string() });
@@ -311,6 +311,30 @@ describe("defineTool", () => {
     });
     expect(JSON.stringify(outcome)).not.toContain(sentinel);
     vi.unstubAllEnvs();
+  });
+
+  it("maps an McpInvalidParamsError from the handler to an invalid outcome naming the field", async () => {
+    const tool = defineTool({
+      name: "test.tool",
+      description: "test",
+      paramsSchema,
+      outputSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => {
+        throw new McpInvalidParamsError("cursor", "it no longer matches.");
+      },
+    });
+
+    const outcome = await tool.execute({ name: "Ada" }, makeContext());
+    expect(outcome).toEqual({
+      kind: "invalid",
+      message: 'Invalid input for field "cursor": it no longer matches.',
+    });
   });
 
   it("maps a thrown plain Error to an error outcome carrying its message", async () => {

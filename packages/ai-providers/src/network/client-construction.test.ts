@@ -8,6 +8,7 @@ const constructed = vi.hoisted(() => ({
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
+    readonly messages = { create: async () => ({ content: [] }) };
     constructor(options: unknown) {
       constructed.anthropic.push(options);
     }
@@ -16,6 +17,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
 
 vi.mock("openai", () => ({
   default: class {
+    readonly chat = { completions: { create: async () => ({ choices: [] }) } };
     constructor(options: unknown) {
       constructed.openai.push(options);
     }
@@ -24,6 +26,7 @@ vi.mock("openai", () => ({
 
 vi.mock("@google/genai", () => ({
   GoogleGenAI: class {
+    readonly models = { generateContent: async () => ({}) };
     constructor(options: unknown) {
       constructed.gemini.push(options);
     }
@@ -73,12 +76,17 @@ const restricted = {
   env: {},
 };
 
+async function constructAll(network?: typeof restricted): Promise<void> {
+  const body = {} as never;
+  await createAnthropicClient(network).messages.create(body);
+  await createOpenAiClient(network).chat.completions.create(body);
+  await createCompatibleClient(compatibleConfig, network).chat.completions.create(body);
+  await createGeminiClient(network).models.generateContent(body);
+}
+
 describe("client construction without a network policy", () => {
-  it("passes exactly the options it passed before the policy existed", () => {
-    createAnthropicClient();
-    createOpenAiClient();
-    createCompatibleClient(compatibleConfig);
-    createGeminiClient();
+  it("passes exactly the options it passed before the policy existed", async () => {
+    await constructAll();
 
     expect(constructed.anthropic).toEqual([{ apiKey: "test-key-value", logLevel: "off" }]);
     expect(constructed.openai).toEqual([
@@ -90,11 +98,8 @@ describe("client construction without a network policy", () => {
 });
 
 describe("client construction under a restrictive network policy", () => {
-  it("pins the resolved base URL and a guarded fetch", () => {
-    createAnthropicClient(restricted);
-    createOpenAiClient(restricted);
-    createCompatibleClient(compatibleConfig, restricted);
-    createGeminiClient(restricted);
+  it("pins the resolved base URL and a guarded fetch", async () => {
+    await constructAll(restricted);
 
     expect(constructed.anthropic[0]).toMatchObject({
       baseURL: "https://api.anthropic.com",
@@ -114,5 +119,35 @@ describe("client construction under a restrictive network policy", () => {
         fetch: expect.any(Function),
       },
     });
+  });
+});
+
+describe("lazy SDK construction", () => {
+  it("constructs no SDK client until the first call", () => {
+    createAnthropicClient();
+    createOpenAiClient();
+    createCompatibleClient(compatibleConfig);
+    createGeminiClient();
+
+    expect(constructed).toEqual({ anthropic: [], openai: [], gemini: [] });
+  });
+
+  it("constructs one client across sequential and concurrent calls", async () => {
+    const client = createAnthropicClient();
+    const body = {} as never;
+    await Promise.all([client.messages.create(body), client.messages.create(body)]);
+    await client.messages.create(body);
+
+    expect(constructed.anthropic).toHaveLength(1);
+  });
+
+  it.each([
+    ["ANTHROPIC_API_KEY", () => createAnthropicClient()],
+    ["OPENAI_API_KEY", () => createOpenAiClient()],
+    ["GEMINI_API_KEY", () => createGeminiClient()],
+  ])("still throws MISSING_API_KEY synchronously when %s is unset", (name, create) => {
+    delete process.env[name];
+
+    expect(create).toThrow(expect.objectContaining({ code: "MISSING_API_KEY", envVar: name }));
   });
 });

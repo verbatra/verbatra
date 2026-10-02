@@ -8,7 +8,7 @@ const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
 });
 
-const keyIntegrityEntrySchema = z.object({
+export const keyIntegrityEntrySchema = z.object({
   hasPlaceholders: z.boolean(),
   matches: z.boolean(),
   missing: z.array(z.string()).readonly(),
@@ -31,7 +31,9 @@ const keyIntegrityResultSchema = z.object({
 
 type KeyIntegrityResult = z.infer<typeof keyIntegrityResultSchema>;
 
-function toKeyIntegrityEntry(entry: KeyIntegrityEntry): z.infer<typeof keyIntegrityEntrySchema> {
+export function toKeyIntegrityEntry(
+  entry: KeyIntegrityEntry,
+): z.infer<typeof keyIntegrityEntrySchema> {
   return {
     hasPlaceholders: entry.hasPlaceholders,
     matches: entry.matches,

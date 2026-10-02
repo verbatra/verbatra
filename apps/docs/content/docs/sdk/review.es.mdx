@@ -39,6 +39,48 @@ El resultado también lleva `description` cuando el archivo del locale de origen
 clave: una `@key.description` de ARB, una nota de XLIFF, un comentario de gettext, un comentario de
 `.strings` de Apple o un comentario de `.resx` de .NET.
 
+### keyContext
+
+<AvailableFrom version="0.12.0" />
+
+Lee lo que necesita quien traduce para escribir una clave en un locale de destino: todo lo que devuelve `keyValue`, más los términos del glosario que se aplican al texto de origen y el `maxLength` de la clave. Pasa un `draft` para comprobarlo contra esos términos. Solo lectura.
+
+```ts title="Firma"
+function keyContext(
+  input: KeyContextInput,
+  deps?: KeyContextDeps,
+): Promise<KeyContext>;
+```
+
+<SdkTypeTable name="KeyContextInput" />
+
+**Devuelve:** `KeyContext`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
+
+Un glosario ilegible no lanza: `glossary` queda vacío y `glossaryNotice` lleva el código y el mensaje redactado del error. `draftCheck` indica, por término aplicable, si el borrador usa la traducción exigida y qué variantes prohibidas usa.
+
+### localeHistory
+
+<AvailableFrom version="0.12.0" />
+
+Lista los commits de git recientes que cambiaron el archivo de origen o uno de destino, del más nuevo al más antiguo. Solo lectura; ejecuta `git log` mediante el `execFile` inyectable.
+
+```ts title="Firma"
+function localeHistory(
+  input: LocaleHistoryInput,
+  deps?: LocaleHistoryDeps,
+): Promise<LocaleHistoryResult>;
+```
+
+<SdkTypeTable name="LocaleHistoryInput" />
+
+**Devuelve:** `LocaleHistoryResult`
+
+**Lanza:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+Cada commit lleva `hash`, `author`, `authorDate`, `subject` y `touchedPaths`. `author` es el nombre tras `.mailmap`, nunca el correo. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto y como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`). Los caracteres de control y de formato bidireccional se eliminan de `author` y `subject`, y un commit cuyos metadatos no se pueden leer se omite. Si falta git, el proyecto no es un repositorio, o `git log` tarda más que `LOCALE_HISTORY_TIMEOUT_MS` o escribe más que `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`, con un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
+
 ### editEntry
 
 Escribe una corrección tecleada por un humano para una clave y un locale. El valor candidato pasa por la

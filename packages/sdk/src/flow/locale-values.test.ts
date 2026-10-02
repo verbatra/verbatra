@@ -168,6 +168,14 @@ describe("localeValues: prototype-named keys", () => {
     },
   );
 
+  it("lists keys in source order, integer-like keys included, then target-only keys", async () => {
+    const dir = await rawProject('{"b":"B","10":"Ten","a":"A","2":"Two"}', '{"z":"Z","a":"Aa"}');
+
+    const [locale] = await localeValues({ config: cfg({ targetLocales: ["de"] }), cwd: dir });
+
+    expect(locale?.keys).toEqual(["b", "10", "a", "2", "z"]);
+  });
+
   it("keeps a __proto__ key through a JSON round trip", async () => {
     const dir = await rawProject('{"__proto__":"S"}', '{"__proto__":"T"}');
 
@@ -175,7 +183,7 @@ describe("localeValues: prototype-named keys", () => {
     const serialized = JSON.stringify(result);
 
     expect(serialized).toBe(
-      '[{"locale":"de","values":{"__proto__":{"source":"S","target":"T","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]',
+      '[{"locale":"de","keys":["__proto__"],"values":{"__proto__":{"source":"S","target":"T","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]',
     );
     expect(Object.entries(JSON.parse(JSON.stringify(result[0]?.values)))).toEqual([
       [

@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { requireAnthropicKey } from "../env.js";
+import { loadSdkModule, memoizeAsync } from "../lazy-sdk.js";
 import { toMutableRequest } from "../llm/mutable.js";
 import { openAiStyleTransport, type ProviderNetwork } from "../network/transport.js";
 import type { ProviderRetryListener } from "../provider-retry.js";
@@ -11,20 +11,22 @@ export function createDefaultClient(
   onRetry?: ProviderRetryListener,
 ): MessagesClient {
   const transport = openAiStyleTransport({ id: "anthropic" }, network, onRetry);
-  const sdk = new Anthropic({
-    apiKey: requireAnthropicKey(),
-    logLevel: "off",
-    ...transport.options,
+  const apiKey = requireAnthropicKey();
+  const loadClient = memoizeAsync(async () => {
+    const { default: Anthropic } = await loadSdkModule(
+      "@anthropic-ai/sdk",
+      () => import("@anthropic-ai/sdk"),
+    );
+    return new Anthropic({ apiKey, logLevel: "off", ...transport.options });
   });
   return {
     messages: {
       create: (body: BuiltRequest, options?: AnthropicCallOptions): Promise<AnthropicMessage> =>
         transport.run(
           async () =>
-            (await sdk.messages.create(
-              toMutableRequest(body),
-              options,
-            )) as unknown as AnthropicMessage,
+            (await (
+              await loadClient()
+            ).messages.create(toMutableRequest(body), options)) as unknown as AnthropicMessage,
         ),
     },
   };
