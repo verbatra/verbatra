@@ -234,6 +234,12 @@
  * - `NOT_A_LOCALE_FILE`: {@link checkFile} was given a path that is not the file of any configured
  *   locale under the config's `files.pattern` and `files.localeStyle`, or no file exists at it.
  *   Thrown before any locale file is read.
+ * - `SENSITIVE_CONTENT_WITHHELD`: {@link retranslateEntry} did not send the key, or dropped its
+ *   answer, because `sensitiveData.mode` is `block` or `redact` and the key holds content a
+ *   detector or pattern matched that could not be sent or did not come back intact. The message
+ *   names the key and locale, never the matched text, except where it is part of the key name.
+ *   {@link translate} and {@link watch} do not
+ *   throw it: they list such keys in {@link LocaleSummary.sensitiveWithheld}.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -281,6 +287,7 @@ export type SdkErrorCode =
   | "LOCALE_STATE_NOT_CARRIED_OVER"
   | "LOCALE_UNSUPPORTED_BY_PROVIDER"
   | "NOT_A_LOCALE_FILE"
+  | "SENSITIVE_CONTENT_WITHHELD"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

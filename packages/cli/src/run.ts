@@ -178,6 +178,7 @@ const checkOptsSchema = sharedCommandOptsSchema.extend({
   severity: z.string().optional(),
   strict: z.boolean().optional(),
   requireReviewed: z.boolean().optional(),
+  sensitive: z.boolean().optional(),
   file: z.string().optional(),
 });
 
@@ -218,6 +219,7 @@ const PROJECT_WIDE_CHECK_FLAGS = [
   ["--locales", (opts: CheckOpts) => opts.locales !== undefined],
   ["--consistency", (opts: CheckOpts) => opts.consistency === true],
   ["--require-reviewed", (opts: CheckOpts) => opts.requireReviewed === true],
+  ["--sensitive", (opts: CheckOpts) => opts.sensitive === true],
 ] as const;
 
 function assertFileCheckOpts(opts: CheckOpts): void {
@@ -257,7 +259,10 @@ function checkExitCode(summary: CheckSummary, strict: boolean): number {
   const warns = (qa?.warnings ?? 0) > 0 || hasIncompletePlurals(summary);
   const qaFails = qa !== undefined && (qa.errors > 0 || (strict && warns));
   const reviewFails = summary.review !== undefined && !summary.review.reviewed;
-  return summary.inSync && !qaFails && !reviewFails ? 0 : 1;
+  const sensitive = summary.sensitive;
+  const sensitiveFails =
+    sensitive !== undefined && sensitive.findings.length + sensitive.glossaryTerms > 0;
+  return summary.inSync && !qaFails && !reviewFails && !sensitiveFails ? 0 : 1;
 }
 
 function fileHasIncompletePlurals(summary: CheckFileSummary): boolean {
@@ -1227,6 +1232,7 @@ function checkInput(
     ...(opts.qa === true ? { qa: true } : {}),
     ...(opts.qaSeverity !== undefined ? { qaSeverity: opts.qaSeverity } : {}),
     ...(opts.requireReviewed === true ? { requireReviewed: true } : {}),
+    ...(opts.sensitive === true ? { sensitive: true } : {}),
   };
 }
 
@@ -1850,6 +1856,10 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
       "--require-reviewed",
       "also exit 1 while a machine-written translation is not approved (reads the committed review state)",
     )
+    .option(
+      "--sensitive",
+      "also scan the source file and glossary for content that looks sensitive (exit 1 on any finding)",
+    )
     .option("--json", "print the check summary as JSON")
     .action(async (opts: unknown) => {
       ctx.setCode(await runCheck(opts, ctx.deps, ctx.streams, ctx.settings()));
@@ -1866,6 +1876,7 @@ function registerCheckCommand(program: Command, ctx: ProgramContext): void {
         "  $ verbatra check --qa             also check placeholders, markup, ICU and review flags",
         "  $ verbatra check --qa --strict    also fail on warnings and missing plural categories",
         "  $ verbatra check --require-reviewed  fail while machine translations wait for approval",
+        "  $ verbatra check --sensitive      fail on emails, keys or card numbers about to be sent",
         "  $ verbatra check --file locales/de.json --json  check one edited file, nothing else",
       ].join("\n"),
     );

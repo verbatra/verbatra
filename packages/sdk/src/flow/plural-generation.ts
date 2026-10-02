@@ -11,6 +11,8 @@ import {
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
+import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
+import type { SensitiveFindingSource } from "../sensitive/scan-text.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import { type BudgetTracker, checkBudgetTrip, reconcileBudget, reserveBudget } from "./budget.js";
 import { payloadContextOf } from "./estimate.js";
@@ -54,6 +56,8 @@ export interface PluralGenerationResult {
   readonly refusals: readonly IntegrityRefusal[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
+  readonly sensitiveWithheld: readonly string[];
+  readonly sensitiveSources: readonly SensitiveFindingSource[];
   readonly notices: readonly LocaleNotice[];
   readonly usage: UsageSummary | undefined;
   readonly withheldByBudget: boolean;
@@ -67,6 +71,8 @@ const EMPTY_RESULT: PluralGenerationResult = {
   refusals: [],
   providerFailures: [],
   budgetWithheld: [],
+  sensitiveWithheld: [],
+  sensitiveSources: [],
   notices: [],
   usage: undefined,
   withheldByBudget: false,
@@ -137,6 +143,7 @@ export async function generatePluralForms(
   const withheld: IntegrityRefusal[] = [];
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
+  const sensitive: GenerationSensitive = { withheld: [], sources: new Set() };
   const notices: LocaleNotice[] = [];
   const usage = createUsageAccumulator();
   let budgetWithheldAny = false;
@@ -154,14 +161,12 @@ export async function generatePluralForms(
       refusedProjection = refusedProjection ?? decision.refusedProjection;
       continue;
     }
-    const subResult = await runGenerationSubBatch(
-      context,
-      batch,
-      entries,
+    const subResult = await runGenerationSubBatch(context, batch, entries, {
       accepted,
       withheld,
       providerFailures,
-    );
+      sensitive,
+    });
     notices.push(...subResult.notices);
     foldUsage(usage, subResult.usage);
     reconcileBudget(context.budget, decision.reservation, subResult.usage);
@@ -175,6 +180,8 @@ export async function generatePluralForms(
     refusals: withheld,
     providerFailures,
     budgetWithheld,
+    sensitiveWithheld: sensitive.withheld,
+    sensitiveSources: [...sensitive.sources].sort(),
     notices,
     usage: usage.total,
     withheldByBudget: budgetWithheldAny,
@@ -188,50 +195,74 @@ interface GenerationSubBatchResult {
   readonly usage: TranslateResult["usage"];
 }
 
+interface GenerationSensitive {
+  readonly withheld: string[];
+  readonly sources: Set<SensitiveFindingSource>;
+}
+
+interface GenerationBuckets {
+  readonly accepted: GeneratedForm[];
+  readonly withheld: IntegrityRefusal[];
+  readonly providerFailures: string[];
+  readonly sensitive: GenerationSensitive;
+}
+
 async function runGenerationSubBatch(
   context: PluralGenerationContext,
   batch: readonly PluralGenerationItem[],
   entries: readonly TranslationEntry[],
-  accepted: GeneratedForm[],
-  withheld: IntegrityRefusal[],
-  providerFailures: string[],
+  buckets: GenerationBuckets,
 ): Promise<GenerationSubBatchResult> {
   let result: TranslateResult;
   try {
     result = await context.provider.translateBatch(buildTranslateRequest(context, entries));
   } catch (error) {
     for (const item of batch) {
-      providerFailures.push(item.targetKey);
+      buckets.providerFailures.push(item.targetKey);
     }
     return { notices: [subBatchFailedNotice(batch.length, error)], usage: undefined };
   }
   for (const item of batch) {
-    foldGenerationItem(item, result, context, accepted, withheld, providerFailures);
+    foldGenerationItem(item, result, context, buckets);
   }
   return { notices: readNotices(result), usage: result.usage };
+}
+
+function foldMissingItem(
+  item: PluralGenerationItem,
+  result: TranslateResult,
+  buckets: GenerationBuckets,
+): void {
+  const sources = sensitiveWithheldOf(result).get(item.targetKey);
+  if (sources === undefined) {
+    buckets.providerFailures.push(item.targetKey);
+    return;
+  }
+  buckets.sensitive.withheld.push(item.targetKey);
+  for (const source of sources) {
+    buckets.sensitive.sources.add(source);
+  }
 }
 
 function foldGenerationItem(
   item: PluralGenerationItem,
   result: TranslateResult,
   context: PluralGenerationContext,
-  accepted: GeneratedForm[],
-  withheld: IntegrityRefusal[],
-  providerFailures: string[],
+  buckets: GenerationBuckets,
 ): void {
   const value = result.values.get(item.targetKey);
   if (value === undefined) {
-    providerFailures.push(item.targetKey);
+    foldMissingItem(item, result, buckets);
     return;
   }
   const gate = gateCandidateValue(item.sourceEntry, value, context.adapter, context.targetLocale);
   if (gate.accepted) {
-    accepted.push({
+    buckets.accepted.push({
       targetKey: item.targetKey,
       entry: { ...syntheticEntry(item), value },
       lockHash: generatedLockHash(item.governingEntries, item.category),
     });
   } else {
-    withheld.push(refusalOf(item.targetKey, gate));
+    buckets.withheld.push(refusalOf(item.targetKey, gate));
   }
 }

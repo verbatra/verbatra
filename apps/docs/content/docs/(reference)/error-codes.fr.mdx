@@ -554,6 +554,14 @@ Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la loca
 - **Code de sortie** : `2`
 - **Étape suivante** : Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
 
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` n'a pas envoyé la clé, ou a écarté sa réponse, parce que `sensitiveData.mode` vaut `block` ou `redact` et que la clé contient un contenu trouvé par un détecteur ou un motif qui n'a pas pu être envoyé ou n'est pas revenu intact ([Protection des contenus sensibles](/docs/data-handling#protection-des-contenus-sensibles)). `translate` et `watch` listent ces clés dans `sensitiveWithheld` à la place.
+
+- **Levé par** : Studio et le serveur MCP
+- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
+- **Étape suivante** : Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
 ### LOCALE_FAILED
 
 Jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée.
@@ -1194,6 +1202,30 @@ Rien ne garde un tel jeton intact pendant la traduction, donc une traduction qui
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : aucun
 - **Étape suivante** : Vérifie les traductions des clés nommées, ou change de syntaxe si ta bibliothèque n'interpole pas ces jetons.
+
+### SENSITIVE_CONTENT_SENT
+
+Avec `sensitiveData.mode: "warn"`, des clés ou des termes du glossaire envoyés par cette locale contiennent un contenu trouvé par un détecteur ou un motif. Ils ont été envoyés tels quels. Le message nomme les détecteurs et les premières clés, jamais le texte trouvé sauf s'il fait partie d'un nom de clé.
+
+- **Levé par** : `translate` (y compris une exécution à blanc), `watch`
+- **Code de sortie** : aucun
+- **Étape suivante** : Retire le contenu, autorise-le dans `sensitiveData.allow`, ou passe à `redact` ou `block`.
+
+### SENSITIVE_CONTENT_REDACTED
+
+Avec `"redact"`, les correspondances dans les valeurs de ces clés ont été remplacées par des jetons avant l'envoi puis restaurées dans la traduction.
+
+- **Levé par** : `translate` (y compris une exécution à blanc), `watch`
+- **Code de sortie** : aucun
+- **Étape suivante** : Rien à faire.
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+Avec `"block"` ou `"redact"`, des clés n'ont pas été envoyées à cause d'une correspondance et figurent dans `sensitiveWithheld`, ou des termes du glossaire avec une correspondance ont été laissés hors de la requête. Avec `"redact"`, une clé est retenue quand la correspondance est dans son nom ou chevauche un placeholder, ou quand un jeton n'est pas revenu exactement une fois.
+
+- **Levé par** : `translate` (y compris une exécution à blanc), `watch`
+- **Code de sortie** : `1`, puisqu'une clé retenue laisse la locale `partial` ou `failed`
+- **Étape suivante** : Retire le contenu ou autorise-le dans `sensitiveData.allow` ; les clés sont retentées à la prochaine exécution.
 
 ## Avis des fournisseurs [#provider-notice-codes]
 

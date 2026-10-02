@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createValueMarker } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
   baseLoadedConfig,
@@ -191,5 +192,28 @@ describe("translation.translatePending: locales and maxTokens", () => {
     const outcome = await translatePendingTool.execute(params, makeContext());
 
     expect(outcome.kind).toBe("invalid");
+  });
+
+  it.each([
+    ["plain", undefined],
+    ["values-redacted", createValueMarker(new Uint8Array([5]))],
+  ])("keeps sensitiveWithheld in the %s output, naming the key", async (_mode, valueMarker) => {
+    const dir = await makeProject({ contact: "Mail ops@acme.io", greeting: "Hello" }, { de: {} });
+    const context = makeContext({
+      cwd: dir,
+      config: baseLoadedConfig({
+        config: baseVerbatraConfig({ sensitiveData: { mode: "block" } }),
+      }),
+      createProvider: () => makeStubProvider(),
+      ...(valueMarker === undefined ? {} : { valueMarker }),
+    });
+
+    const outcome = await translatePendingTool.execute({}, context);
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: { partial: ["de"], locales: [{ sensitiveWithheld: ["contact"] }] },
+    });
+    expect(JSON.stringify(outcome)).not.toContain("ops@acme.io");
   });
 });

@@ -17,6 +17,8 @@ import {
 import { errorMessage, SdkError } from "../errors.js";
 import type { ProgressEvent } from "../progress/types.js";
 import { redact } from "../redact.js";
+import type { SensitiveGuard } from "../sensitive/guard.js";
+import { guardProvider } from "../sensitive/guarded-provider.js";
 
 /**
  * What the SDK hands a {@link CreateProvider} besides the `provider` block. It is passed only when
@@ -46,6 +48,11 @@ export interface CreateProviderContext {
  * called for a config whose provider is `none`: that is refused as `MACHINE_TRANSLATION_DISABLED`
  * before any factory runs. Nor is it called when the network policy refuses the provider's
  * endpoint: that is refused as `NETWORK_POLICY_VIOLATION` before any API key is read.
+ *
+ * When the config's `sensitiveData.mode` is `block` or `redact`, the SDK wraps the provider the
+ * factory returns: a withheld key never reaches it, a glossary term with a match is left out of the
+ * request, and under `redact` each match in a value arrives as a token such as `__VBR0__`, listed
+ * in the entry's `placeholders`, that the SDK restores in the result.
  */
 export type CreateProvider = (
   config: ProviderConfig,
@@ -70,6 +77,7 @@ export interface SelectProviderNetwork {
   readonly network: NetworkConfig | undefined;
   readonly env?: EnvironmentSource;
   readonly hooks?: CreateProviderHooks;
+  readonly sensitive?: SensitiveGuard;
 }
 
 function construct(
@@ -104,5 +112,8 @@ export function selectProvider(
   const policy = resolveNetworkPolicy(selection.network, env);
   assertEndpointPermitted(config, policy, env);
   const context = isRestrictive(policy) ? { network: { policy, env } } : undefined;
-  return construct(config, createProvider, context, selection.hooks);
+  const provider = construct(config, createProvider, context, selection.hooks);
+  return selection.sensitive === undefined
+    ? provider
+    : guardProvider(provider, selection.sensitive);
 }

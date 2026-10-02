@@ -46,6 +46,9 @@ Config-less start and reload, review and glossary v2 tools, spend limits, struct
   `translation.translatePending` takes `locales` and a `maxTokens` ceiling.
 - `translation.translatePending` sends `notifications/progress` as batches finish when the call
   carries a `progressToken`.
+- `translation.translatePending` lists keys the config's `sensitiveData` guard kept from the
+  provider under `sensitiveWithheld`, and `translation.retranslateEntry` fails with
+  `SENSITIVE_CONTENT_WITHHELD` for such a key.
 - `translation.translatePending` and `translation.estimate` report `integrityRefusals`, and
   `key.integrity` reports `icuArmsMatch` and `icuArmDetails`.
 - `key.value` returns the key's `description`, and read tools return provenance fields, described

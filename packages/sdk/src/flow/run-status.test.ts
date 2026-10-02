@@ -29,6 +29,7 @@ function runSummary(): RunSummary {
         providerFailures: [],
         generated: [],
         budgetWithheld: [],
+        sensitiveWithheld: [],
         notices: [],
         needsReview: [{ key: "greeting", reasons: ["EQUALS_SOURCE"] }],
         unfilled: [],

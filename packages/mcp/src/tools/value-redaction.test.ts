@@ -28,6 +28,7 @@ function emptyLocale(locale: string) {
     providerFailures: [],
     generated: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     notices: [],
     needsReview: [],
     unfilled: [],

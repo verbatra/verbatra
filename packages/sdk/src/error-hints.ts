@@ -74,6 +74,8 @@ const SDK_ERROR_HINTS = {
     "Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.",
   NOT_A_LOCALE_FILE:
     "Pass the path of an existing locale file that `files.pattern` maps to a configured locale.",
+  SENSITIVE_CONTENT_WITHHELD:
+    "Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.",
   LOCALE_FAILED: "Fix the cause the locale's message names, then try again.",
 } as const satisfies Record<SdkErrorCode, string>;
 

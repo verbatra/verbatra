@@ -21,6 +21,7 @@ function summaryWith(locale: string, status: LocaleSummary["status"]): LocaleSum
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     generated: [],
     notices: [],
     needsReview: [],
@@ -39,6 +40,7 @@ const NO_STATUS_PARTS = {
   integrityMismatches: [] as readonly string[],
   providerFailures: [] as readonly string[],
   budgetWithheld: [] as readonly string[],
+  sensitiveWithheld: [] as readonly string[],
 };
 
 describe("failureSummary", () => {
@@ -57,6 +59,7 @@ describe("failureSummary", () => {
       integrityMismatches: [],
       providerFailures: [],
       budgetWithheld: [],
+      sensitiveWithheld: [],
       generated: [],
       notices: [],
       needsReview: [],
@@ -88,6 +91,9 @@ describe("deriveLocaleStatus", () => {
     expect(
       deriveLocaleStatus({ ...NO_STATUS_PARTS, translated: ["a"], budgetWithheld: ["b"] }),
     ).toBe("partial");
+    expect(
+      deriveLocaleStatus({ ...NO_STATUS_PARTS, translated: ["a"], sensitiveWithheld: ["b"] }),
+    ).toBe("partial");
   });
 
   it("is partial when only cache hits were accepted (translated empty) and something was withheld", () => {
@@ -114,6 +120,7 @@ describe("deriveLocaleStatus", () => {
     expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, providerFailures: ["a", "b"] })).toBe("failed");
     expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, integrityMismatches: ["a"] })).toBe("failed");
     expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, budgetWithheld: ["a"] })).toBe("failed");
+    expect(deriveLocaleStatus({ ...NO_STATUS_PARTS, sensitiveWithheld: ["a"] })).toBe("failed");
   });
 });
 

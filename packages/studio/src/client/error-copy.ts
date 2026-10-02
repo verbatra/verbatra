@@ -37,6 +37,8 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
     "A person wrote, imported, or changed this value outside verbatra, so it is not retranslated without an explicit override.",
   KEY_PINNED:
     "This key matches the config's pinnedKeys, so no machine translation or agent edit may change it.",
+  SENSITIVE_CONTENT_WITHHELD:
+    "This key holds content that looks sensitive, so it was not sent to the provider. Remove it, or allow it in the config's sensitiveData block.",
   LOCK_CONTENDED:
     "This locale's write lock is held by another process. Wait a moment and try again.",
   GLOSSARY_NOT_FILE_BACKED:

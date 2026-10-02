@@ -61,6 +61,7 @@ import {
   type CreateProviderHooks,
   selectProvider,
 } from "../selection/select-provider.js";
+import { createSensitiveGuard } from "../sensitive/guard.js";
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
@@ -603,18 +604,22 @@ function selectRunMode(
     return { kind: "memory-only", write: !dryRun };
   }
   const providerKind = kindOf(machineProvider.id);
+  const sensitive = createSensitiveGuard(config.sensitiveData, providerKind);
+  const guarded = sensitive === undefined ? {} : { sensitive };
   if (dryRun) {
     resolveNetworkPolicy(config.network, processEnvironment());
   }
   return dryRun
-    ? { kind: "plan", providerKind }
+    ? { kind: "plan", providerKind, ...guarded }
     : {
         kind: "translate",
         provider: selectProvider(machineProvider, createProvider, {
           network: config.network,
+          ...guarded,
           ...retryHooks(onProgress),
         }),
         providerKind,
+        ...guarded,
       };
 }
 

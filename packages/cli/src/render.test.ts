@@ -819,6 +819,21 @@ describe("render: human run summary", () => {
     expect(none).not.toContain("budget-withheld");
   });
 
+  it("shows the sensitive-withheld count and lists the keys only when non-zero", () => {
+    const withheld = renderHuman(
+      makeSummary({
+        locales: [makeLocale({ status: "partial", sensitiveWithheld: ["contact", "copy"] })],
+        partial: ["de"],
+      }),
+    );
+    expect(withheld).toContain("2 sensitive-withheld");
+    expect(withheld).toContain("sensitive-withheld: contact, copy");
+
+    expect(renderHuman(makeSummary({ locales: [makeLocale()] }))).not.toContain(
+      "sensitive-withheld",
+    );
+  });
+
   it("shows per-locale token counts when usage is present, and omits them when absent", () => {
     const withUsage = renderHuman(
       makeSummary({

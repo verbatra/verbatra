@@ -4,6 +4,7 @@ import { glossaryForLocale } from "../config/glossary.js";
 import type { MachineProviderConfig, ProviderConfig } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { sortRecordKeys } from "../record-utils.js";
+import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
 
 function fingerprintModel(provider: ProviderConfig): string | null {
   const options: Record<string, unknown> = provider.options;
@@ -63,7 +64,20 @@ const HUMAN_ONLY_CANONICAL = JSON.stringify({ provider: "none" });
 
 export type FingerprintFor = (locale: string) => string;
 
-export function computeFingerprint(config: VerbatraConfig, locale: string): string {
+function sentGlossary(
+  config: VerbatraConfig,
+  locale: string,
+  guard: SensitiveGuard | undefined,
+): LocaleGlossary | undefined {
+  const glossary = glossaryForLocale(config.glossary, locale);
+  return guard === undefined ? glossary : guard.glossary(glossary).send;
+}
+
+export function computeFingerprint(
+  config: VerbatraConfig,
+  locale: string,
+  guard: SensitiveGuard | undefined = sensitiveGuardFor(config),
+): string {
   if (config.provider.id === "none") {
     return stableStringHash(HUMAN_ONLY_CANONICAL);
   }
@@ -72,7 +86,7 @@ export function computeFingerprint(config: VerbatraConfig, locale: string): stri
     provider: config.provider.id,
     model: fingerprintModel(config.provider),
     tone: config.tone ?? null,
-    glossary: canonicalGlossary(glossaryForLocale(config.glossary, locale)),
+    glossary: canonicalGlossary(sentGlossary(config, locale, guard)),
     ...(localeMap !== undefined ? { localeMap } : {}),
   });
   return stableStringHash(canonical);
@@ -80,12 +94,13 @@ export function computeFingerprint(config: VerbatraConfig, locale: string): stri
 
 export function fingerprintsFor(config: VerbatraConfig): FingerprintFor {
   const cache = new Map<string, string>();
+  const guard = sensitiveGuardFor(config);
   return (locale) => {
     const known = cache.get(locale);
     if (known !== undefined) {
       return known;
     }
-    const fingerprint = computeFingerprint(config, locale);
+    const fingerprint = computeFingerprint(config, locale, guard);
     cache.set(locale, fingerprint);
     return fingerprint;
   };

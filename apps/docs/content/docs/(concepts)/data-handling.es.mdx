@@ -69,6 +69,20 @@ Los SDK también envían cabeceras con la biblioteca, tu sistema operativo y Nod
 configurado (`google-translate` la envía en la cadena de consulta `?key=`). Trata todo lo que haya en
 un texto de origen, una descripción o el glosario como enviado.
 
+## Protección de contenido sensible
+
+<AvailableFrom version="0.12.0" />
+
+`sensitiveData` revisa, antes de cada petición, exactamente lo que según la tabla anterior recibe un proveedor. Los detectores por defecto encuentran claves de API, direcciones de correo, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos, como nombres en clave. Se rechaza un patrón que repite un grupo con un cuantificador o una alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado. Lee los primeros 2.000 caracteres de un campo y se detiene al cabo de un segundo; agotar el tiempo cuenta como hallazgo (`pattern-timeout-<n>`), así que con `block` y `redact` la clave se retiene.
+
+| `mode` | Efecto |
+| --- | --- |
+| `warn` | Envía como siempre; un aviso nombra las claves. |
+| `block` | Retiene la clave, así que el locale termina `partial`. |
+| `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia; una coincidencia en una descripción o un significado se envía como `[redacted]`. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. |
+
+`block` y `redact` además dejan fuera un término del glosario que coincide. La protección está desactivada por defecto; `verbatra init` escribe `warn`. Ante un falso positivo, añade el texto a `allow` o quita su detector. `verbatra check --sensitive` ejecuta la misma revisión sin clave. Los nombres en texto libre no se detectan.
+
 ## Retención y tratamiento de datos del proveedor
 
 Lo que pasa con tus textos una vez llegan lo deciden el proveedor y tu contrato, no verbatra. Las
@@ -161,7 +175,7 @@ consulta [Registrar evidencia de traducción automática](/docs/provenance-evide
 2. Con un proveedor alojado, usa un nivel de pago para todo lo confidencial.
 3. Firma las condiciones de tratamiento de datos del proveedor, con retención cero si la
    necesitas.
-4. Comprueba qué envían tus archivos de origen: nombres de clave, descripciones y el glosario.
+4. Comprueba qué envían tus archivos de origen: nombres de clave, descripciones y el glosario (`verbatra check --sensitive`).
 5. Guarda las claves de API en un almacén de secretos o en un `.env` ignorado por git, y ejecuta
    `verbatra doctor`.
 6. Decide qué agentes de IA pueden usar Studio o el servidor MCP, y si este necesita

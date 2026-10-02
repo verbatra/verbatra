@@ -554,6 +554,14 @@ El proveedor DeepL o Google Cloud Translation configurado no incluye el locale d
 - **Código de salida**: `2`
 - **Siguiente paso**: Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
 
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` no envió la clave, o descartó su respuesta, porque `sensitiveData.mode` es `block` o `redact` y la clave contiene contenido que un detector o patrón encontró y que no se pudo enviar o no volvió intacto ([Protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible)). `translate` y `watch` listan esas claves en `sensitiveWithheld` en su lugar.
+
+- **Lo lanza**: Studio y el servidor MCP
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
 ### LOCALE_FAILED
 
 Nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido.
@@ -1193,6 +1201,30 @@ Nada mantiene intacto ese token durante la traducción, así que una traducción
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno
 - **Siguiente paso**: Revisa las traducciones de las claves nombradas, o cambia la sintaxis si tu biblioteca no interpola estos tokens.
+
+### SENSITIVE_CONTENT_SENT
+
+Con `sensitiveData.mode: "warn"`, claves o términos del glosario que este locale envió contienen contenido que un detector o patrón encontró. Se enviaron sin cambios. El mensaje nombra los detectores y las primeras claves, nunca el texto encontrado salvo si forma parte del nombre de una clave.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Quita el contenido, permítelo en `sensitiveData.allow`, o cambia a `redact` o `block`.
+
+### SENSITIVE_CONTENT_REDACTED
+
+Con `"redact"`, las coincidencias en los valores de estas claves se sustituyeron por tokens antes de enviarlas y se restauraron en la traducción.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: No hace falta nada.
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y aparecen en `sensitiveWithheld`, o unos términos del glosario con coincidencia quedaron fuera de la petición. Con `"redact"` se retiene una clave cuando la coincidencia está en su nombre o se solapa con un marcador, o cuando un token no volvió exactamente una vez.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: `1`, ya que una clave retenida deja el locale `partial` o `failed`
+- **Siguiente paso**: Quita el contenido o permítelo en `sensitiveData.allow`; las claves se reintentan en la siguiente ejecución.
 
 ## Avisos del proveedor [#provider-notice-codes]
 

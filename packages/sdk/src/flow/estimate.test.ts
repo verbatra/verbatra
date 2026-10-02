@@ -540,6 +540,7 @@ describe("estimateForRun", () => {
       providerFailures: [],
       generated: [],
       budgetWithheld: [],
+      sensitiveWithheld: [],
       notices: [],
       needsReview: [],
       unfilled: [],

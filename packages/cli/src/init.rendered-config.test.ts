@@ -55,6 +55,24 @@ describe("the scaffolded verbatra.config.ts", () => {
   );
 
   it.each(SCAFFOLDABLE_PROVIDERS)(
+    "turns on the sensitive-content warning for %s",
+    async (provider) => {
+      const code = await runInit(
+        { cwd: dir, yes: true, provider },
+        captureStreams().streams,
+        nonInteractive,
+      );
+      expect(code).toBe(0);
+
+      const rendered = evaluateRenderedConfig(
+        readFileSync(join(dir, "verbatra.config.ts"), "utf8"),
+      ) as { sensitiveData?: unknown };
+
+      expect(rendered.sensitiveData).toEqual({ mode: "warn" });
+    },
+  );
+
+  it.each(SCAFFOLDABLE_PROVIDERS)(
     "renders exactly the provider options that were validated for %s",
     async (provider) => {
       const cap = captureStreams();
@@ -84,6 +102,7 @@ describe("the scaffolded verbatra.config.ts", () => {
     const rendered = evaluateRenderedConfig(readFileSync(join(dir, "verbatra.config.ts"), "utf8"));
 
     expect(verbatraConfigSchema.parse(rendered).provider).toEqual({ id: "none", options: {} });
+    expect(verbatraConfigSchema.parse(rendered).sensitiveData).toBe(undefined);
   });
 
   it("names the token limit option each language model provider actually accepts", async () => {

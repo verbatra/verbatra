@@ -554,6 +554,14 @@ Der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-
 - **Exit-Code**: `2`
 - **Nächster Schritt**: Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
 
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` hat den Key nicht gesendet oder seine Antwort verworfen, weil `sensitiveData.mode` auf `block` oder `redact` steht und der Key Inhalt enthält, den ein Detektor oder Muster getroffen hat und der nicht gesendet werden konnte oder nicht unverändert zurückkam ([Schutz für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte)). `translate` und `watch` listen solche Keys stattdessen in `sensitiveWithheld`.
+
+- **Ausgelöst von**: Studio und der MCP-Server
+- **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
+- **Nächster Schritt**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
 ### LOCALE_FAILED
 
 Wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale.
@@ -1193,6 +1201,30 @@ Nichts hält ein solches Token beim Übersetzen intakt, daher wird eine Überset
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: keiner
 - **Nächster Schritt**: Prüfe die Übersetzungen der genannten Keys, oder wechsle die Syntax, wenn deine Bibliothek diese Tokens nicht interpoliert.
+
+### SENSITIVE_CONTENT_SENT
+
+Unter `sensitiveData.mode: "warn"` enthalten Keys oder Glossarbegriffe, die diese Locale gesendet hat, Inhalt, den ein Detektor oder Muster getroffen hat. Sie wurden unverändert gesendet. Die Meldung nennt die Detektoren und die ersten Keys, nie den gefundenen Text, außer er steht im Key-Namen.
+
+- **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
+- **Exit-Code**: keiner
+- **Nächster Schritt**: Entferne den Inhalt, erlaube ihn in `sensitiveData.allow`, oder wechsle zu `redact` oder `block`.
+
+### SENSITIVE_CONTENT_REDACTED
+
+Unter `"redact"` wurden die Treffer in den Werten dieser Keys vor dem Senden durch Tokens ersetzt und in der Übersetzung wieder eingesetzt.
+
+- **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
+- **Exit-Code**: keiner
+- **Nächster Schritt**: Nichts zu tun.
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+Unter `"block"` oder `"redact"` wurden Keys wegen eines Treffers nicht gesendet und stehen in `sensitiveWithheld`, oder Glossarbegriffe mit einem Treffer blieben aus dem Request. Unter `"redact"` wird ein Key zurückgehalten, wenn der Treffer in seinem Key-Namen liegt oder einen Platzhalter überlappt, oder wenn ein Token nicht genau einmal zurückkam.
+
+- **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
+- **Exit-Code**: `1`, da ein zurückgehaltener Key die Locale `partial` oder `failed` lässt
+- **Nächster Schritt**: Entferne den Inhalt oder erlaube ihn in `sensitiveData.allow`; die Keys werden beim nächsten Lauf erneut versucht.
 
 ## Provider-Hinweise [#provider-notice-codes]
 

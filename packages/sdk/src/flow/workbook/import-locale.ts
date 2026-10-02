@@ -235,6 +235,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
       integrityMismatches,
       providerFailures: [],
       budgetWithheld: [],
+      sensitiveWithheld: [],
     }),
     translated,
     unchanged: diff.unchanged.filter(
@@ -249,6 +250,7 @@ export function importLocale(params: ImportLocaleParams): ImportLocaleResult {
     integrityRefusals: [...buckets.refusals].sort((left, right) => (left.key < right.key ? -1 : 1)),
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     generated: [],
     notices:
       buckets.blankDrifted.size > 0 ? [blankRowBaselineNotice(buckets.blankDrifted.size)] : [],

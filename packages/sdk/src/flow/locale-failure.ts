@@ -16,6 +16,7 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
     integrityMismatches: [],
     providerFailures: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     generated: [],
     notices: [],
     needsReview: [],
@@ -46,13 +47,15 @@ export interface LocaleStatusParts {
   readonly integrityMismatches: readonly string[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
+  readonly sensitiveWithheld: readonly string[];
 }
 
 export function deriveLocaleStatus(parts: LocaleStatusParts): LocaleSummary["status"] {
   const withheld =
     parts.integrityMismatches.length > 0 ||
     parts.providerFailures.length > 0 ||
-    parts.budgetWithheld.length > 0;
+    parts.budgetWithheld.length > 0 ||
+    parts.sensitiveWithheld.length > 0;
   if (!withheld) {
     return "succeeded";
   }

@@ -69,6 +69,20 @@ Les SDK envoient aussi des en-têtes avec la bibliothèque, ton OS et Node.js. T
 terminaison configuré (`google-translate` l'envoie dans la chaîne de requête `?key=`). Considère
 comme envoyé tout ce qui se trouve dans une chaîne source, une description ou le glossaire.
 
+## Protection des contenus sensibles
+
+<AvailableFrom version="0.12.0" />
+
+`sensitiveData` analyse, avant chaque requête, exactement ce qu'un fournisseur reçoit selon le tableau ci-dessus. Les détecteurs par défaut trouvent les clés d'API, adresses e-mail, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes, comme des noms de code. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement compte comme une trouvaille (`pattern-timeout-<n>`), donc la clé est retenue avec `block` et `redact`.
+
+| `mode` | Effet |
+| --- | --- |
+| `warn` | Envoie comme d'habitude ; un avis nomme les clés. |
+| `block` | Retient la clé, donc la locale se termine `partial`. |
+| `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. |
+
+`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. La protection est désactivée par défaut ; `verbatra init` écrit `warn`. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. `verbatra check --sensitive` lance la même analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
+
 ## Conservation et traitement des données chez le fournisseur
 
 Ce qu'il advient de tes textes une fois arrivés dépend du fournisseur et de ton contrat, pas de
@@ -163,7 +177,7 @@ modèle ; voir [La provenance de chaque valeur](/docs/the-lock-file#la-provenanc
 2. Pour un fournisseur hébergé, prends un niveau payant pour tout ce qui est confidentiel.
 3. Signe les conditions de traitement des données du fournisseur, avec la conservation zéro s'il
    te la faut.
-4. Vérifie ce que tes fichiers source envoient : noms de clé, descriptions et glossaire.
+4. Vérifie ce que tes fichiers source envoient : noms de clé, descriptions et glossaire (`verbatra check --sensitive`).
 5. Garde les clés d'API dans un coffre à secrets ou un `.env` ignoré par git, et lance
    `verbatra doctor`.
 6. Décide quels agents IA peuvent utiliser Studio ou le serveur MCP, et s'il a besoin de

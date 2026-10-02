@@ -41,6 +41,12 @@ describe("SHARED_SYSTEM_RULES", () => {
     );
   });
 
+  it("preserves redaction tokens like placeholders", () => {
+    expect(SHARED_SYSTEM_RULES.join("\n")).toContain(
+      "do not alter, add, remove, reorder, or translate {placeholders}, {{placeholders}}, __VBR0__ tokens,",
+    );
+  });
+
   it("keeps doNotTranslate terms verbatim", () => {
     expect(SHARED_SYSTEM_RULES.join("\n")).toContain(
       "When doNotTranslate is provided, copy each listed term into the translation verbatim, never translated or transliterated.",

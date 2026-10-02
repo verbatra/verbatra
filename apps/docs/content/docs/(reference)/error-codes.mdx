@@ -554,6 +554,14 @@ The configured DeepL or Google Cloud Translation provider does not list the sour
 - **Exit code**: `2`
 - **Next step**: Pass the path of an existing locale file that `files.pattern` maps to a configured locale.
 
+### SENSITIVE_CONTENT_WITHHELD
+
+`retranslateEntry` did not send the key, or dropped its answer, because `sensitiveData.mode` is `block` or `redact` and the key holds content a detector or pattern matched that could not be sent or did not come back intact ([Sensitive content guard](/docs/data-handling#sensitive-content-guard)). `translate` and `watch` list such keys in `sensitiveWithheld` instead.
+
+- **Raised by**: Studio and the MCP server
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
+
 ### LOCALE_FAILED
 
 Never thrown: the fallback `code` recorded on a failed locale's `error`.
@@ -1178,6 +1186,30 @@ Nothing keeps such a token intact during translation, so a translation that drop
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: none
 - **Next step**: Review the translations of the named keys, or switch the syntax if your library does not interpolate these tokens.
+
+### SENSITIVE_CONTENT_SENT
+
+Under `sensitiveData.mode: "warn"`, keys or glossary terms this locale sent hold content a detector or pattern matched. They were sent unchanged. The message names the detectors and the first keys, never the matched text unless it is part of a key name.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: Remove the content, allow it in `sensitiveData.allow`, or switch to `redact` or `block`.
+
+### SENSITIVE_CONTENT_REDACTED
+
+Under `"redact"`, the matches in these keys' values were replaced by tokens before sending and restored in the translation.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: None needed.
+
+### SENSITIVE_CONTENT_WITHHELD [#notice-sensitive_content_withheld]
+
+Under `"block"` or `"redact"`, keys were not sent because of a match and are listed in `sensitiveWithheld`, or glossary terms with a match were left out of the request. Under `"redact"` a key is withheld when the match is in its key name or overlaps a placeholder, or a token did not come back exactly once.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: `1`, since a withheld key leaves the locale `partial` or `failed`
+- **Next step**: Remove the content, or allow it in `sensitiveData.allow`; the keys are retried on the next run.
 
 ## Provider notices [#provider-notice-codes]
 

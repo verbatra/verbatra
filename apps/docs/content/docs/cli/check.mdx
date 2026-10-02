@@ -18,10 +18,11 @@ verbatra check [flags]
 | `--locales` | `<list>` | all configured targets | check only this comma-separated subset; an empty or unknown value is a usage error |
 | `--consistency` | none | off | also list source strings translated more than one way; report only, see [Consistency report](#consistency-report) |
 | `--qa` | none | off | also run the [quality check](#quality-check) over every committed translation; exit `1` on an error |
-| `--file` | `<path>` | off | check only this locale file, see [One file](#one-file); not with `--locales`, `--consistency` or `--require-reviewed` |
+| `--file` | `<path>` | off | check only this locale file, see [One file](#one-file); not with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive` |
 | `--severity` | `error` or `warning` | `warning` | with `--qa` or `--file`, the lowest severity to report |
 | `--strict` | none | off | with `--qa` or `--file`, also exit `1` on a warning or [incomplete plural](#plural-categories); not with `--severity error` |
 | `--require-reviewed` | none | off | also exit `1` while a machine-written translation is [not approved](#require-reviewed-translations) |
+| `--sensitive` | none | off | also scan the source file and glossary for [sensitive content](#sensitive-content); exit `1` on any finding |
 
 Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`.
 
@@ -122,6 +123,19 @@ review: failed [REVIEW_REQUIRED] 2 machine-written translations not approved
 
 With `--json`, `result.review` is `{ reviewed, unreviewed, code? }`, where `code` is `REVIEW_REQUIRED`, or `REVIEW_STATE_UNREADABLE` when the provenance file is corrupt or from a newer verbatra (the gate then fails). Each locale carries `review.unreviewed`, the keys in source order.
 
+### Sensitive content
+
+<AvailableFrom version="0.12.0" />
+
+`--sensitive` runs the [sensitive content guard](/docs/data-handling#sensitive-content-guard) scan over each source key (key name, value, description, meaning) and the glossary of each checked locale, with the detectors, patterns and allow list of `sensitiveData`, or the default detectors without the block. It reports keys and detectors, never the matched text except where it is part of a key name, and fails with exit `1` on any finding.
+
+```text output
+sensitive: 1 key and 0 glossary terms hold content that looks sensitive
+  support.contact: email in value
+```
+
+With `--json`, `result.sensitive` is `{ findings, glossaryTerms }`, each finding `{ key, fields, detectors }`; `detectors` may hold `pattern-timeout-<n>`.
+
 ### One file
 
 <AvailableFrom version="0.12.0" />
@@ -155,7 +169,7 @@ Missing and stale keys are not part of a file check.
 
 ### JSON output
 
-`--json` prints one [envelope](/docs/cli/output#json-output) whose `result` is the status document. Without `--qa` or `--require-reviewed`, `inSync` is true exactly when the command exits `0`:
+`--json` prints one [envelope](/docs/cli/output#json-output) whose `result` is the status document. Without `--qa`, `--require-reviewed` or `--sensitive`, `inSync` is true exactly when the command exits `0`:
 
 ```ts
 interface CheckSummary {
@@ -163,6 +177,7 @@ interface CheckSummary {
   locales: LocaleCheckSummary[];
   qa?: CheckQaSummary;          // only with --qa
   review?: CheckReviewSummary;  // only with --require-reviewed
+  sensitive?: CheckSensitiveSummary; // only with --sensitive
 }
 
 interface LocaleCheckSummary {
@@ -204,6 +219,9 @@ verbatra check --qa --strict
 # fail while machine translations wait for approval
 verbatra check --require-reviewed
 
+# fail on emails, API keys or card numbers in the source
+verbatra check --sensitive
+
 # check the one file an editor or agent just changed
 verbatra check --file locales/de.json --json
 ```
@@ -213,7 +231,7 @@ verbatra check --file locales/de.json --json
 | Code | Meaning |
 | --- | --- |
 | `0` | in sync, and no finding the flags given turn into a failure |
-| `1` | a locale has a missing or stale key, `--qa` or `--file` found an error (or a warning or incomplete plural under `--strict`), or `--require-reviewed` found an unapproved translation |
+| `1` | a locale has a missing or stale key, `--qa` or `--file` found an error (or a warning or incomplete plural under `--strict`), `--require-reviewed` found an unapproved translation, or `--sensitive` found sensitive content |
 | `2` | could not run: a whole-run error such as `SOURCE_UNREADABLE` or `NOT_A_LOCALE_FILE`, or a usage error such as `INVALID_QA_OPTION` or `INVALID_SEVERITY` |
 
 Exit `1` means the result is not clean, not that the run failed; the report is still printed. On a project whose source file is not in place yet, [`verbatra doctor`](/docs/cli/doctor) still reports. See [Exit codes](/docs/cli/output#exit-codes) for the contract.

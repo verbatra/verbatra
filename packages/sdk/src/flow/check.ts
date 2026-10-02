@@ -15,6 +15,10 @@ import {
 import type { VerbatraConfig } from "../config/schema.js";
 import type { SdkFs } from "../fs.js";
 import { type ProvenanceSummary, summarizeProvenance } from "../lock/key-provenance.js";
+import {
+  type CheckSensitiveSummary,
+  scanProjectForSensitiveContent,
+} from "../sensitive/check-scan.js";
 import { diffLocalesWithSource, type LocaleDiffResult } from "./diff-locales.js";
 import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
 import { reportedProtectedKeys } from "./protection.js";
@@ -131,6 +135,11 @@ export interface CheckSummary {
    * gate fails the build when `reviewed` is false.
    */
   readonly review?: CheckReviewSummary;
+  /**
+   * The sensitive-content scan, present only when {@link CheckInput.sensitive} is true. A CI gate
+   * fails the build when it holds any finding or glossary term.
+   */
+  readonly sensitive?: CheckSensitiveSummary;
 }
 
 /** Input for {@link check}. */
@@ -167,6 +176,15 @@ export interface CheckInput {
    * since does not count. Keyless: no provider is called and nothing is written. Defaults to false.
    */
   readonly requireReviewed?: boolean;
+  /**
+   * Also scan the source file and the glossary of every reported locale for content that looks
+   * sensitive (see {@link CheckSummary.sensitive}), with the config's `sensitiveData` detectors,
+   * patterns and allow list, or the default detectors when the block is absent. It scans every
+   * field a language model would receive, whatever the configured provider and
+   * `sensitiveData.mode`.
+   * Keyless: no provider is called and nothing is written. Defaults to false.
+   */
+  readonly sensitive?: boolean;
 }
 
 /** Injectable dependencies for {@link check}. Every field has a working default. */
@@ -334,7 +352,10 @@ function qaReports(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  */
 export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<CheckSummary> {
-  const { results, adapter, sourceInvalidIcuKeys } = await diffLocalesWithSource(input, deps);
+  const { results, adapter, source, sourceInvalidIcuKeys } = await diffLocalesWithSource(
+    input,
+    deps,
+  );
   const consistency =
     input.consistency === true ? consistencyOptions(input.config.format) : undefined;
   const qa = qaReports(input, adapter, sourceInvalidIcuKeys, results);
@@ -347,5 +368,14 @@ export async function check(input: CheckInput, deps: CheckDeps = {}): Promise<Ch
     locales,
     ...(qa !== undefined ? { qa: totalQa(qa, sourceInvalidIcuKeys) } : {}),
     ...(review !== undefined ? { review: reviewSummary(results, review) } : {}),
+    ...(input.sensitive === true
+      ? {
+          sensitive: scanProjectForSensitiveContent(
+            input.config,
+            source,
+            results.map((result) => result.locale),
+          ),
+        }
+      : {}),
   };
 }

@@ -29,6 +29,8 @@ import { type PendingProvenance, settleProvenance } from "../lock/provenance-fil
 import { assertProvenanceReadable } from "../lock/provenance-notice.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
+import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
+import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
 import { readTarget } from "./diff-locales.js";
 import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -169,6 +171,9 @@ async function translateOne(context: UnderLockContext) {
     ),
   );
   const value = result.values.get(context.key);
+  if (value === undefined && sensitiveWithheldOf(result).has(context.key)) {
+    throw sensitiveWithheldError(context.key, locale);
+  }
   if (value === undefined) {
     throw new ProviderError(
       "INVALID_RESPONSE",
@@ -182,6 +187,24 @@ async function translateOne(context: UnderLockContext) {
     value,
   );
   return { value, reviewReasons: flag?.reasons ?? [] };
+}
+
+function sensitiveWithheldError(key: string, locale: string): SdkError {
+  return new SdkError(
+    "SENSITIVE_CONTENT_WITHHELD",
+    `The key "${key}" was not retranslated into "${locale}": sensitiveData found content in it ` +
+      "that could not be sent or did not come back intact.",
+  );
+}
+
+function assertSendable(
+  sensitive: SensitiveGuard | undefined,
+  entry: TranslationEntry,
+  locale: string,
+): void {
+  if (sensitive?.entry(entry).action === "withhold") {
+    throw sensitiveWithheldError(entry.key, locale);
+  }
 }
 
 async function saveAccepted(
@@ -322,6 +345,11 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * structurally wrong. Checked before the provider is called or anything is written. A file from a
  * newer verbatra is left untouched and the value is written without a record, and so is a value
  * whose record would grow the file past the size verbatra reads back.
+ * @throws {@link SdkError} `SENSITIVE_CONTENT_WITHHELD`: `sensitiveData.mode` is `block` or
+ * `redact` and the key holds content a detector or pattern matched that cannot be sent: under
+ * `block` any match, under `redact` a match in the key name, one that overlaps a placeholder, or
+ * a redacted match that did not come back exactly once. Thrown before anything is written; under
+ * `block`, also before the write lock is taken and the provider is called.
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
@@ -358,9 +386,12 @@ export async function retranslateEntry(
 
   const policy = protectionPolicy(config, input.includeHuman === true ? "overwrite" : undefined);
   assertNotPinned(policy, input.key);
+  const sensitive = sensitiveGuardFor(config);
   const provider = selectProvider(config.provider, deps.createProvider, {
     network: config.network,
+    ...(sensitive === undefined ? {} : { sensitive }),
   });
+  assertSendable(sensitive, sourceEntry, locale);
   await assertProvenanceReadable(cwd, fs);
   await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 

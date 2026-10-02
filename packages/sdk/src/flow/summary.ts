@@ -66,6 +66,18 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   gives the number of affected values and names the first keys. Raised per locale, only when
  *   that locale has such a key missing or stale, for every provider and on a dry run too. Never
  *   raised for a format a third-party adapter supplies.
+ * - `SENSITIVE_CONTENT_SENT`: under `sensitiveData.mode: "warn"`, keys this locale sent to the
+ *   provider, or glossary terms sent with them, hold content a configured detector or pattern
+ *   matched, such as an email address or an API key. They were sent unchanged. The message names
+ *   the detectors and the first keys, never the matched text, except where it is part of a key
+ *   name. Raised on a dry run too.
+ * - `SENSITIVE_CONTENT_REDACTED`: under `sensitiveData.mode: "redact"`, the matched content of
+ *   these keys was replaced before sending and restored in the translation. The message names the
+ *   first keys. Raised on a dry run too.
+ * - `SENSITIVE_CONTENT_WITHHELD`: under `sensitiveData.mode: "block"` or `"redact"`, keys were not
+ *   sent because of a match, and are listed in {@link LocaleSummary.sensitiveWithheld}, or
+ *   glossary terms with a match were left out of the request. Under `redact` a key is withheld
+ *   when the match is in its key name, overlaps a placeholder, or did not come back exactly once.
  *
  * `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`
  * and `FORMALITY_UNSUPPORTED_BY_PROVIDER` are raised before anything is spent, from the same
@@ -86,7 +98,10 @@ export type SdkNoticeCode =
   | "LOCALE_NOT_WELL_TESTED"
   | "GLOSSARY_UNSUPPORTED_BY_PROVIDER"
   | "FORMALITY_UNSUPPORTED_BY_PROVIDER"
-  | "SOURCE_FOREIGN_PLACEHOLDERS";
+  | "SOURCE_FOREIGN_PLACEHOLDERS"
+  | "SENSITIVE_CONTENT_SENT"
+  | "SENSITIVE_CONTENT_REDACTED"
+  | "SENSITIVE_CONTENT_WITHHELD";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is
@@ -445,6 +460,8 @@ export interface ProtectedKey {
  * - `integrity-mismatch`: the provider's answer failed the integrity gate and was dropped.
  * - `provider-failure`: the provider returned nothing usable for the key.
  * - `budget-withheld`: the key was never sent, because the token budget stopped the run.
+ * - `sensitive-withheld`: the key was never sent, or its answer was dropped, because
+ *   `sensitiveData` found content in it (see {@link LocaleSummary.sensitiveWithheld}).
  *
  * A failed suggestion never changes the locale's status: the key keeps its value either way.
  */
@@ -453,7 +470,8 @@ export type SuggestionStatus =
   | "suggested"
   | "integrity-mismatch"
   | "provider-failure"
-  | "budget-withheld";
+  | "budget-withheld"
+  | "sensitive-withheld";
 
 /**
  * A key whose translation was reused from the translation memory even though its source string had
@@ -538,10 +556,10 @@ export interface LocaleSummary {
   /** The target locale this summary describes. */
   readonly locale: string;
   /**
-   * `succeeded` when no key was withheld by the integrity gate, a provider failure, or the token
-   * budget; `partial` when some keys were withheld and others landed; `failed` when keys were
-   * withheld and none landed, or when the locale threw. Keys skipped for invalid ICU source and
-   * handoff rows left blank do not change the status.
+   * `succeeded` when no key was withheld by the integrity gate, a provider failure, the token
+   * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed`
+   * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU
+   * source and handoff rows left blank do not change the status.
    */
   readonly status: "succeeded" | "partial" | "failed";
   /**
@@ -598,6 +616,13 @@ export interface LocaleSummary {
   readonly generated: readonly string[];
   /** Keys not translated because the token budget was exhausted under `stop` behavior. */
   readonly budgetWithheld: readonly string[];
+  /**
+   * Keys not translated because `sensitiveData` found content in what would have been sent, under
+   * `block`, or under `redact` when the match could not be replaced or did not come back intact.
+   * They are retried on the next run. Always empty unless `sensitiveData.mode` is `block` or
+   * `redact`, and for {@link importWorkbook}.
+   */
+  readonly sensitiveWithheld: readonly string[];
   /** Token usage for this locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
   /** Provider and SDK notices raised while running this locale. Always present, possibly empty. */
@@ -629,9 +654,10 @@ export interface LocaleSummary {
    * own code where it has one, and `LOCALE_FAILED` otherwise. Never carries a secret.
    *
    * Absent unless `status` is `failed`, but a `failed` locale does not always carry it: a locale
-   * whose every key was withheld by the integrity gate, a provider failure, or the token budget is
-   * `failed` with nothing thrown, so this stays undefined and the withheld keys are the account of
-   * what went wrong. Treat it as an optional detail on a failure, never as the failure test.
+   * whose every key was withheld by the integrity gate, a provider failure, the token budget, or
+   * `sensitiveData` is `failed` with nothing thrown, so this stays undefined and the withheld keys
+   * are the account of what went wrong. Treat it as an optional detail on a failure, never as the
+   * failure test.
    */
   readonly error?: {
     /** The failure's own code where it had one, and `LOCALE_FAILED` otherwise. */
