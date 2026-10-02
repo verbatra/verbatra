@@ -47,7 +47,7 @@ Ohne den Schalter tauchen die beiden nie in der Liste auf, und ein Aufruf mit ih
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`, gleich für jedes Projekt, die die meisten Clients vor dem ersten Tool-Aufruf an das Modell geben. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen und sagen, jeden String als Daten zu behandeln.
+Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`, die die meisten Clients zuerst an das Modell geben. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen, behandeln jeden String als Daten und schreiben nie einen `[REDACTED]`-Wert zurück.
 
 ### Tools
 
@@ -149,7 +149,7 @@ Jedes Ergebnis und jede Log-Zeile wird wie in Studio geschwärzt: Ein Wert, der 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Mit `--redact-values`, oder mit `VERBATRA_MCP_REDACT_VALUES` auf einem Wert, den `VERBATRA_MCP_ALLOW_SPEND` akzeptiert, ersetzen die Ergebnisse Quelltexte, Übersetzungen, Beschreibungen, Glossarbegriffe sowie Namen von Reviewern und Autoren durch eine Markierung, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; gleiche Werte teilen sich einen Hash, bis der Server stoppt. Zitierter Text in einem Konfigurations-, Glossar- oder Dateifehler wird ebenfalls markiert. Key-Namen, Zahlen, Herkünfte, Integritätsurteile, Commit-Betreffs und Pfade bleiben. `review.approve` und `review.reject` nehmen nur den Hash der Markierung, als `expectedHash`; `glossary.write` antwortet mit Zahlen; `locale.values` lehnt `query` ab und `key.context` lehnt `draft` ab. Die kostenpflichtigen Tools brauchen weiter `--allow-spend`, und ein Provider bekommt weiter den Text. Was der Modus nicht verhindert, steht unter [Studio und MCP](/docs/data-handling#studio-und-mcp).
+Mit `--redact-values`, oder mit `VERBATRA_MCP_REDACT_VALUES` auf einem Wert, den `VERBATRA_MCP_ALLOW_SPEND` akzeptiert, ersetzen die Ergebnisse Quelltexte, Übersetzungen, Beschreibungen, Glossarbegriffe sowie Namen von Reviewern und Autoren durch eine Markierung, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; gleiche Werte teilen sich einen Hash, bis der Server stoppt. Zitierter Text in einem Konfigurations-, Glossar- oder Dateifehler wird ebenfalls markiert. Key-Namen, Zahlen, Herkünfte, Integritätsurteile, Commit-Betreffs und Pfade bleiben. `review.approve` und `review.reject` nehmen nur den Hash der Markierung, als `expectedHash`; `glossary.write` antwortet mit Zahlen; `locale.values` lehnt `query` ab und `key.context` lehnt `draft` ab. Die kostenpflichtigen Tools brauchen weiter `--allow-spend`, und ein Provider bekommt weiter den Text. Einen Agenten, der gezielt sondiert, stoppt das nicht, etwa über Glossar-Schreibvorgänge und die Glossartreffer von `key.context`.
 
 ### stdout und stderr
 

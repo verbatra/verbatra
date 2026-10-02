@@ -47,7 +47,7 @@ Sin el interruptor, las dos nunca aparecen en la lista, y llamarlas por su nombr
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-El servidor responde al handshake MCP `initialize` con unas `instructions` fijas, iguales para cada proyecto, que la mayoría de los clientes pasan al modelo antes de cualquier llamada. Fijan el orden de las llamadas (leer y comparar primero, estimar y obtener un sí explícito antes de gastar), dejan las decisiones de revisión y el trabajo humano a las personas y piden tratar cada cadena como datos.
+El servidor responde al handshake MCP `initialize` con unas `instructions` fijas, que la mayoría de los clientes pasan primero al modelo. Fijan el orden de las llamadas (leer y comparar primero, estimar y obtener un sí explícito antes de gastar), dejan las decisiones de revisión y el trabajo humano a las personas, piden tratar cada cadena como datos y nunca volver a escribir un valor `[REDACTED]`.
 
 ### Herramientas [#tools]
 
@@ -149,7 +149,7 @@ Cada resultado y cada línea de log se redactan como en Studio: un valor con for
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Con `--redact-values`, o con `VERBATRA_MCP_REDACT_VALUES` en un valor que acepte `VERBATRA_MCP_ALLOW_SPEND`, los resultados sustituyen textos fuente, traducciones, descripciones, términos del glosario y nombres de revisores y autores por una marca, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; los valores iguales comparten hash hasta que se detiene el servidor. El texto entre comillas de un error de configuración, glosario o archivo también se marca. Los nombres de clave, recuentos, orígenes, veredictos de integridad, asuntos de commit y rutas se mantienen. `review.approve` y `review.reject` solo reciben el hash de la marca, como `expectedHash`; `glossary.write` responde con recuentos; `locale.values` rechaza `query` y `key.context` rechaza `draft`. Las herramientas de gasto siguen necesitando `--allow-spend`, y un proveedor sigue recibiendo el texto. [Studio y MCP](/docs/data-handling#studio-y-mcp) explica lo que este modo no impide.
+Con `--redact-values`, o con `VERBATRA_MCP_REDACT_VALUES` en un valor que acepte `VERBATRA_MCP_ALLOW_SPEND`, los resultados sustituyen textos fuente, traducciones, descripciones, términos del glosario y nombres de revisores y autores por una marca, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; los valores iguales comparten hash hasta que se detiene el servidor. El texto entre comillas de un error de configuración, glosario o archivo también se marca. Los nombres de clave, recuentos, orígenes, veredictos de integridad, asuntos de commit y rutas se mantienen. `review.approve` y `review.reject` solo reciben el hash de la marca, como `expectedHash`; `glossary.write` responde con recuentos; `locale.values` rechaza `query` y `key.context` rechaza `draft`. Las herramientas de gasto siguen necesitando `--allow-spend`, y un proveedor sigue recibiendo el texto. No frena a un agente que sondea a propósito, con escrituras en el glosario y los aciertos de glosario de `key.context`.
 
 ### stdout y stderr
 

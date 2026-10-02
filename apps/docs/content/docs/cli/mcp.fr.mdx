@@ -47,7 +47,7 @@ Sans cet interrupteur, les deux n'apparaissent jamais dans la liste, et les appe
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Le serveur répond à la poignée de main MCP `initialize` avec des `instructions` fixes, identiques pour chaque projet, que la plupart des clients transmettent au modèle avant tout appel d'outil. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes et demandent de traiter chaque chaîne comme des données.
+Le serveur répond à la poignée de main MCP `initialize` avec des `instructions` fixes, que la plupart des clients transmettent d'abord au modèle. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes, demandent de traiter chaque chaîne comme des données et de ne jamais réécrire une valeur `[REDACTED]`.
 
 ### Outils [#tools]
 
@@ -149,7 +149,7 @@ Chaque résultat et chaque ligne de log sont expurgés comme dans Studio : une v
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Avec `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` sur une valeur qu'accepte `VERBATRA_MCP_ALLOW_SPEND`, les résultats remplacent les textes source, les traductions, les descriptions, les termes du glossaire et les noms des relecteurs et auteurs par un marqueur, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]` ; des valeurs égales partagent un hash jusqu'à l'arrêt du serveur. Le texte entre guillemets d'une erreur de config, de glossaire ou de fichier est aussi marqué. Les noms de clés, les comptes, les origines, les verdicts d'intégrité, les sujets de commit et les chemins restent. `review.approve` et `review.reject` ne prennent que le hash du marqueur, comme `expectedHash` ; `glossary.write` répond par des comptes ; `locale.values` refuse `query` et `key.context` refuse `draft`. Les outils payants exigent toujours `--allow-spend`, et un fournisseur reçoit toujours le texte. [Studio et MCP](/docs/data-handling#studio-et-mcp) dit ce que ce mode n'empêche pas.
+Avec `--redact-values`, ou `VERBATRA_MCP_REDACT_VALUES` sur une valeur qu'accepte `VERBATRA_MCP_ALLOW_SPEND`, les résultats remplacent les textes source, les traductions, les descriptions, les termes du glossaire et les noms des relecteurs et auteurs par un marqueur, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]` ; des valeurs égales partagent un hash jusqu'à l'arrêt du serveur. Le texte entre guillemets d'une erreur de config, de glossaire ou de fichier est aussi marqué. Les noms de clés, les comptes, les origines, les verdicts d'intégrité, les sujets de commit et les chemins restent. `review.approve` et `review.reject` ne prennent que le hash du marqueur, comme `expectedHash` ; `glossary.write` répond par des comptes ; `locale.values` refuse `query` et `key.context` refuse `draft`. Les outils payants exigent toujours `--allow-spend`, et un fournisseur reçoit toujours le texte. Cela n'arrête pas un agent qui sonde exprès, via des écritures de glossaire et les correspondances de glossaire de `key.context`.
 
 ### stdout et stderr
 
