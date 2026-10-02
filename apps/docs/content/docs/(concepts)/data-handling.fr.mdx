@@ -73,7 +73,7 @@ comme envoyé tout ce qui se trouve dans une chaîne source, une description ou 
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, exactement ce qu'un fournisseur reçoit selon le tableau ci-dessus. Les détecteurs par défaut trouvent les clés d'API, adresses e-mail, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes, comme des noms de code ; un motif qui répète un groupe contenant une répétition ou une alternative est refusé, et un motif lit les 2 000 premiers caractères d'un champ.
+`sensitiveData` analyse, avant chaque requête, exactement ce qu'un fournisseur reçoit selon le tableau ci-dessus. Les détecteurs par défaut trouvent les clés d'API, adresses e-mail, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes, comme des noms de code. Pour borner son temps, un motif est refusé s'il répète un groupe contenant une répétition ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop ; il ne lit que les 2 000 premiers caractères d'un champ.
 
 | `mode` | Effet |
 | --- | --- |

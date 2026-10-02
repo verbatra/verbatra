@@ -40,14 +40,19 @@ describe("the sensitiveData config block", () => {
     expect(result.error?.issues[0]?.message).toContain("valid regular expressions");
   });
 
-  it.each(["(a+)+$", "(a|aa)*b"])(
-    "rejects the catastrophic pattern %s before it ever runs, naming the key",
-    (pattern) => {
+  it.each([
+    ["(a+)+$", "must not repeat a group that holds a repeat or an alternative"],
+    ["(a|aa)*b", "must not repeat a group that holds a repeat or an alternative"],
+    ["\\w*\\w*x", "at most one unbounded repeat"],
+    ["\\w{0,64}\\w*x", "may branch at most 4 ways beside an unbounded repeat"],
+  ])(
+    "rejects the slow pattern %s before it ever runs, naming the rule and the key",
+    (pattern, rule) => {
       const result = parse({ mode: "warn", patterns: [pattern] });
 
       expect(result.success).toBe(false);
       expect(result.error?.issues[0]?.path).toEqual(["sensitiveData", "patterns", 0]);
-      expect(result.error?.issues[0]?.message).toContain("exponential time");
+      expect(result.error?.issues[0]?.message).toContain(rule);
     },
   );
 

@@ -78,10 +78,12 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * (send it and report a notice), `block` (withhold the key), or `redact` (replace the match with a
  * token and restore it in the translation). `detectors` picks from `secret`, `email`, `iban`,
  * `credit-card`, `phone`, `ip` and `private-host`, and defaults to the first four. `patterns` adds
- * regular expressions, compiled with the `u` flag, for your own terms. A pattern that repeats a
- * group holding a repeat or an alternative, such as `(a+)+` or `(a|aa)*`, is rejected, since it can
- * take exponential time, and each pattern reads only the first 2,000 characters of a field, which
- * bounds a slow pattern but means a match beyond them is not found. `allow` lists texts that are
+ * regular expressions, compiled with the `u` flag, for your own terms. To keep each scan fast, a
+ * pattern is rejected when it repeats a group holding a repeat or an alternative (`(a+)+`,
+ * `(a|aa)*`), holds more than one unbounded repeat (`*`, `+` or `{n,}`, lazy forms included), or
+ * branches more than 4 ways beside its unbounded repeat (1,024 without one), counting `?`, each
+ * `{m,n}` and `|` alternatives together. Each pattern reads only the first 2,000 characters of a
+ * field, so a match beyond them is not found. `allow` lists texts that are
  * never reported, where `*` matches any run of characters and case is ignored.
  *
  * Beyond the per-field checks, three whole-config rules are enforced: `targetLocales` must not

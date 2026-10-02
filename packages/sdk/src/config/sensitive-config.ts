@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { hasUnsafeRepeat } from "../sensitive/pattern-safety.js";
+import {
+  MAX_PATHS,
+  MAX_PATHS_WITH_UNBOUNDED,
+  type UnsafePatternReason,
+  unsafePatternReason,
+} from "../sensitive/pattern-safety.js";
 
 /** The built-in `sensitiveData` detectors, by id. */
 export const SENSITIVE_DETECTORS = [
@@ -35,18 +40,25 @@ function compilesAsPattern(source: string): boolean {
   }
 }
 
+const UNSAFE_PATTERN_MESSAGES: Readonly<Record<UnsafePatternReason, string>> = {
+  "nested-repeat":
+    "sensitiveData.patterns entries must not repeat a group that holds a repeat or an alternative, such as (a+)+ or (a|aa)*",
+  "several-unbounded":
+    "sensitiveData.patterns entries may hold at most one unbounded repeat (*, + or {n,}, lazy forms included); use a bounded {m,n} for the others",
+  "too-many-paths": `sensitiveData.patterns entries may branch at most ${MAX_PATHS_WITH_UNBOUNDED} ways beside an unbounded repeat, or ${MAX_PATHS} ways without one, counting ?, {m,n} and | alternatives together`,
+};
+
 function checkPattern(source: string, context: z.RefinementCtx): void {
   if (!compilesAsPattern(source)) {
     context.addIssue({
       code: "custom",
       message: "sensitiveData.patterns entries must be valid regular expressions",
     });
-  } else if (hasUnsafeRepeat(source)) {
-    context.addIssue({
-      code: "custom",
-      message:
-        "sensitiveData.patterns entries must not repeat a group that holds a repeat or an alternative, such as (a+)+ or (a|aa)*, which can take exponential time",
-    });
+    return;
+  }
+  const reason = unsafePatternReason(source);
+  if (reason !== undefined) {
+    context.addIssue({ code: "custom", message: UNSAFE_PATTERN_MESSAGES[reason] });
   }
 }
 

@@ -71,7 +71,7 @@ Quell-String, einer Beschreibung oder dem Glossar als gesendet.
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` durchsucht vor jedem Request genau das, was ein Provider laut der Tabelle oben bekommt. Die Standard-Detektoren finden API-Keys, E-Mail-Adressen, IBANs und Kartennummern; `phone`, `ip` und `private-host` schaltest du bei Bedarf zu, und `patterns` ergänzt eigene Begriffe, etwa Codenamen; ein Muster, das eine Gruppe mit einer Wiederholung oder einer Alternative wiederholt, wird abgelehnt, und ein Muster liest die ersten 2.000 Zeichen eines Felds.
+`sensitiveData` durchsucht vor jedem Request genau das, was ein Provider laut der Tabelle oben bekommt. Die Standard-Detektoren finden API-Keys, E-Mail-Adressen, IBANs und Kartennummern; `phone`, `ip` und `private-host` schaltest du bei Bedarf zu, und `patterns` ergänzt eigene Begriffe, etwa Codenamen. Damit die Laufzeit begrenzt bleibt, wird ein Muster abgelehnt, das eine Gruppe mit einer Wiederholung oder Alternative wiederholt, mehr als ein `*`, `+` oder `{n,}` enthält oder zu oft verzweigt; es liest nur die ersten 2.000 Zeichen eines Felds.
 
 | `mode` | Wirkung |
 | --- | --- |
