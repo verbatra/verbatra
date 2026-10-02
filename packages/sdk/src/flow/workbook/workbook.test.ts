@@ -289,6 +289,22 @@ describe("exportWorkbook", () => {
     expect(row?.reviewReasons).toContain("length-ratio-outlier");
   });
 
+  it("recomputes FOREIGN_PLACEHOLDER_CHANGED for a current target that drops one", async () => {
+    const dir = await project(
+      { a: "Hello {name}, welcome back!" },
+      { de: { a: "Hallo, willkommen zurück!" } },
+    );
+    const result = await exportWorkbook({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+      includeUnchanged: true,
+    });
+    const data = await readWorkbook(new Uint8Array(await readFile(result.path)));
+    const row = data.sheets[0]?.rows.find((r) => r.key === "a");
+    expect(row?.reviewStatus).toBe("review");
+    expect(row?.reviewReasons).toBe("foreign-placeholder-changed");
+  });
+
   it("recomputes MAX_LENGTH_EXCEEDED for a current target over its key's budget", async () => {
     const dir = await project({ a: "Save your settings" }, { de: { a: "Einstellungen sichern" } });
     const config = cfg({ targetLocales: ["de"], maxLength: { a: 10 } });

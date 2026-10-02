@@ -42,6 +42,10 @@ import {
   reserveBudget,
 } from "./budget.js";
 import { type PayloadContext, payloadContextOf } from "./estimate.js";
+import {
+  sourceForeignPlaceholderNotice,
+  withForeignPlaceholderReason,
+} from "./foreign-placeholders.js";
 import { gateCandidateValue, refusalOf } from "./integrity-gate.js";
 import { deriveLocaleStatus } from "./locale-failure.js";
 import { readNotices } from "./notices.js";
@@ -157,7 +161,7 @@ function reviewCandidateValue(
   candidate: string,
   integrity: PlaceholderIntegrityResult,
 ): ReviewFlag | undefined {
-  return computeReviewFlags({
+  const flag = computeReviewFlags({
     sourceValue: source.value,
     translatedValue: candidate,
     sourceLocale: params.sourceLocale,
@@ -166,6 +170,7 @@ function reviewCandidateValue(
     glossary: params.glossary,
     maxLength: params.maxLength?.get(source.key),
   });
+  return withForeignPlaceholderReason(flag, params.format, source.value, candidate);
 }
 
 function reviewCachedValue(
@@ -502,6 +507,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     params.format,
   );
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
+  const sourceNotices = sourceNoticesFor(params, toTranslate);
 
   if (params.mode.kind === "plan") {
     const planned = plannedGenerationKeys(
@@ -528,7 +534,10 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         providerFailures: [],
         budgetWithheld: [],
         pruned,
-        notices: generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices,
+        notices: [
+          ...(generationEnabled(params) ? pluralNoticeFor(params, projected) : sdkNotices),
+          ...sourceNotices,
+        ],
         protected: protectedEntries(protection.reasons, plannedSuggestions(protection.suggest)),
       }),
       lockEntries: {},
@@ -626,6 +635,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     : sdkNotices;
   const notices: readonly LocaleNotice[] = [
     ...pluralNotices,
+    ...sourceNotices,
     ...translation.notices,
     ...generation.notices,
     ...budgetLocaleNotices(params.budget, startedStopped, translation, generation),
@@ -933,6 +943,14 @@ function budgetLocaleNotices(
     : [];
 }
 
+function sourceNoticesFor(
+  params: LocaleRunParams,
+  pendingKeys: readonly string[],
+): readonly LocaleNotice[] {
+  const notice = sourceForeignPlaceholderNotice(params.format, params.source, pendingKeys);
+  return notice === undefined ? [] : [notice];
+}
+
 function pluralNoticeFor(params: LocaleRunParams, keys: Iterable<string>): readonly LocaleNotice[] {
   if (params.format !== "i18next-json") {
     return [];
@@ -1134,6 +1152,7 @@ async function runSubBatch(
       outcome.reviewFlags.set(key, flag);
     }
   }
+  flagForeignPlaceholders(params, batch, outcome);
   return {
     notices: readNotices(result),
     usage: result.usage === undefined ? undefined : countableUsage(result.usage),
@@ -1199,6 +1218,28 @@ async function retryTruncatedSplit(
     counted = counted || sub.counted;
   }
   return { notices, usage, withheld, refusedProjection, counted };
+}
+
+function flagForeignPlaceholders(
+  params: LocaleRunParams,
+  batch: readonly TranslationEntry[],
+  outcome: TranslationOutcome,
+): void {
+  for (const entry of batch) {
+    const accepted = outcome.accepted.get(entry.key);
+    if (accepted === undefined) {
+      continue;
+    }
+    const flag = withForeignPlaceholderReason(
+      outcome.reviewFlags.get(entry.key),
+      params.format,
+      entry.value,
+      accepted.value,
+    );
+    if (flag !== undefined) {
+      outcome.reviewFlags.set(entry.key, flag);
+    }
+  }
 }
 
 function foldEntryResult(

@@ -33,3 +33,12 @@ describe("reviewReasonLabel", () => {
     }
   });
 });
+
+describe("reviewReasonLabel: FOREIGN_PLACEHOLDER_CHANGED", () => {
+  it("reads as a warning about a placeholder of another syntax", () => {
+    expect(reviewReasonLabel("FOREIGN_PLACEHOLDER_CHANGED")).toEqual({
+      label: "Other-syntax placeholder changed",
+      tone: "warning",
+    });
+  });
+});

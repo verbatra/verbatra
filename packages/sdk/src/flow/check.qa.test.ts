@@ -158,6 +158,37 @@ describe("check: qa report", () => {
     expect(summary.qa).toMatchObject({ errors: 1, warnings: 0 });
   });
 
+  it("warns about a dropped placeholder of a foreign syntax, naming each missing token", async () => {
+    const dir = await project(
+      { greeting: "Hello {name}, welcome back!", kept: "Hi {name} and {{user}}" },
+      { de: { greeting: "Hallo, willkommen zurück!", kept: "Hallo {name} und {{user}}" }, fr: {} },
+    );
+
+    const summary = await check({ config: cfg(), cwd: dir, qa: true });
+
+    expect(summary.locales[0]?.qa?.findings).toEqual([
+      {
+        key: "greeting",
+        severity: "warning",
+        reason: "FOREIGN_PLACEHOLDER_CHANGED",
+        details: ["-{name}"],
+      },
+    ]);
+    expect(summary.qa).toMatchObject({ errors: 0, warnings: 1 });
+  });
+
+  it("hides the foreign-placeholder warning at severity error", async () => {
+    const dir = await project(
+      { greeting: "Hello {name}, welcome back!" },
+      { de: { greeting: "Hallo, willkommen zurück!" }, fr: {} },
+    );
+
+    const summary = await check({ config: cfg(), cwd: dir, qa: true, qaSeverity: "error" });
+
+    expect(summary.locales[0]?.qa?.findings).toEqual([]);
+    expect(summary.qa).toMatchObject({ errors: 0, warnings: 0 });
+  });
+
   it("checks only values for source keys: missing and target-only keys are not findings", async () => {
     const dir = await project({ a: "One", b: "Two" }, { de: { a: "Eins", stray: "" }, fr: {} });
 

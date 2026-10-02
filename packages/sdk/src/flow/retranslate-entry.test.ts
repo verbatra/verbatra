@@ -9,6 +9,7 @@ import { ProviderError as ExportedProviderError } from "../index.js";
 import {
   baseConfig,
   localeGlossaryOf,
+  makeIntegrityProvider,
   makeStubProvider,
   makeTempDir,
   readJsonFile,
@@ -147,6 +148,30 @@ describe("retranslateEntry: acceptance", () => {
     );
 
     expect(result).toMatchObject({ accepted: true, reviewReasons: ["EQUALS_SOURCE"] });
+  });
+
+  it("adds FOREIGN_PLACEHOLDER_CHANGED after the provider's reasons when the value drops one", async () => {
+    const dir = await project({ greeting: "Hello {name}, welcome back!" });
+    const provider = makeIntegrityProvider(() => "Hallo, willkommen zurück!");
+    const reviewingProvider = {
+      ...provider,
+      translateBatch: async (request: Parameters<typeof provider.translateBatch>[0]) => ({
+        ...(await provider.translateBatch(request)),
+        reviewFlags: new Map([
+          ["greeting", { status: "review" as const, reasons: ["EQUALS_SOURCE" as const] }],
+        ]),
+      }),
+    };
+
+    const result = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => reviewingProvider },
+    );
+
+    expect(result).toMatchObject({
+      accepted: true,
+      reviewReasons: ["EQUALS_SOURCE", "FOREIGN_PLACEHOLDER_CHANGED"],
+    });
   });
 
   it("passes the key's configured length budget to the provider", async () => {
