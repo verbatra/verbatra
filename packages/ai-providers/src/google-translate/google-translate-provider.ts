@@ -1,10 +1,9 @@
 import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { resolveProviderLocale } from "../locale-map.js";
+import { decodeMaskedFromHtml, encodeMaskedForHtml } from "../masked-wire-codec.js";
 import type { ProviderNetwork } from "../network/transport.js";
 import {
-  decodeMaskedFromHtml,
-  encodeMaskedForHtml,
   type MaskedEntry,
   type OutgoingText,
   PLACEHOLDER_UNSUPPORTED_MESSAGE,

@@ -2,9 +2,8 @@ import { appliesTerms } from "../glossary.js";
 import { checkBatchIntegrity } from "../integrity.js";
 import { supportsFormality } from "../language-support.js";
 import { resolveProviderLocale } from "../locale-map.js";
+import { decodeMaskedFromXml, encodeMaskedForXml } from "../masked-wire-codec.js";
 import {
-  decodeMaskedFromXml,
-  encodeMaskedForXml,
   type OutgoingText,
   PLACEHOLDER_UNSUPPORTED_MESSAGE,
   partitionForMasking,
