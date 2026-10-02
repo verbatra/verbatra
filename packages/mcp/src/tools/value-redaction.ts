@@ -54,7 +54,7 @@ export function redactWriteResult<
 }
 
 export function redactQuoted(text: string, marker: ValueMarker): string {
-  return text.replace(/"([^"\n]*)"/g, (_quoted, inner: string) => marker.mark(inner));
+  return text.replace(/"((?:[^"\\\n]|\\.)*)"/g, (_quoted, inner: string) => marker.mark(inner));
 }
 
 const VALUE_BEARING_SDK_CODES: ReadonlySet<string> = new Set(["CONFIG_INVALID", "SOURCE_INVALID"]);
