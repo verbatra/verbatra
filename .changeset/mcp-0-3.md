@@ -60,10 +60,11 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
 
 **Values redacted**
 - `--redact-values` (also `verbatra mcp --redact-values`, or `VERBATRA_MCP_REDACT_VALUES`) replaces
-  every source text, translation, description, glossary term, and reviewer or author name in a
-  result with a marker carrying the value's length and a per-session hash. Key names, counts,
-  statuses, integrity verdicts, commit subjects and paths stay; `project.snapshot` reports
-  `valuesRedacted`, and the exported `MCP_CAPABILITIES` lets a host check support first.
+  every source text, translation, description, and glossary term in a result with a marker
+  carrying the value's length and a per-session hash, and leaves reviewer and author names out.
+  Key names, counts, statuses, integrity verdicts, commit subjects and paths stay;
+  `project.snapshot` reports `valuesRedacted`, and the exported `MCP_CAPABILITIES` lets a host
+  check support first.
 - In that mode `review.approve` and `review.reject` take only the marker's hash as `expectedHash`,
   `glossary.write` answers with counts, quoted text in config, glossary and file errors is marked,
   `translation.editEntry` still writes, and `locale.values` refuses `query` and `key.context`
