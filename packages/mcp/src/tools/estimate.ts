@@ -2,7 +2,7 @@ import { translate } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { runEstimateSchema, runSummarySchema } from "./run-schema.js";
+import { redactRunSummary, runEstimateSchema, runSummarySchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({
   locales: z.array(z.string().min(1)).min(1).optional(),
@@ -40,7 +40,7 @@ async function estimateTranslation(
 
 export const estimateTool = defineTool({
   name: "translation.estimate",
-  values: "none",
+  values: { redact: redactRunSummary },
   description:
     "Estimates what translation.translatePending would send and cost, without spending " +
     "anything: the same result as the verbatra translate --estimate --json CLI command, a dry " +

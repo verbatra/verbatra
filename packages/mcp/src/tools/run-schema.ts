@@ -127,7 +127,7 @@ function redactLocaleSummary(locale: LocaleSummary, marker: ValueMarker): Locale
   };
 }
 
-export function redactRunSummary(summary: RunSummary, marker: ValueMarker): RunSummary {
+export function redactRunSummary<T extends RunSummary>(summary: T, marker: ValueMarker): T {
   return {
     ...summary,
     locales: summary.locales.map((locale) => redactLocaleSummary(locale, marker)),
