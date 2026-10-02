@@ -139,6 +139,10 @@ function redactEntry(entry: TranslationEntry, spans: FieldSpans, finding: Sensit
   return { action: "redact", finding, entry: redacted, originals: value.originals } as const;
 }
 
+function hasUnknownSpan(spans: FieldSpans): boolean {
+  return [...spans.values()].some((list) => list.some((span) => span.timedOut));
+}
+
 function decideEntry(mode: GuardedMode, entry: TranslationEntry, spans: FieldSpans): EntryVerdict {
   const finding = findingOf(spans);
   if (finding === undefined) {
@@ -147,7 +151,7 @@ function decideEntry(mode: GuardedMode, entry: TranslationEntry, spans: FieldSpa
   if (mode === "warn") {
     return { action: "send", finding };
   }
-  if (mode === "block" || spans.has("key")) {
+  if (mode === "block" || spans.has("key") || hasUnknownSpan(spans)) {
     return { action: "withhold", finding };
   }
   return redactEntry(entry, spans, finding);

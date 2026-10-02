@@ -79,11 +79,13 @@ function findCaseInsensitiveDuplicate(locales: readonly string[]): string | unde
  * token and restore it in the translation). `detectors` picks from `secret`, `email`, `iban`,
  * `credit-card`, `phone`, `ip` and `private-host`, and defaults to the first four. `patterns` adds
  * regular expressions, compiled with the `u` flag, for your own terms. To keep each scan fast, a
- * pattern is rejected when it repeats a group holding a repeat or an alternative (`(a+)+`,
- * `(a|aa)*`), holds more than one unbounded repeat (`*`, `+` or `{n,}`, lazy forms included), or
- * branches more than 4 ways beside its unbounded repeat (1,024 without one), counting `?`, each
- * `{m,n}` and `|` alternatives together. Each pattern reads only the first 2,000 characters of a
- * field, so a match beyond them is not found. `allow` lists texts that are
+ * pattern is rejected when it repeats more than once a group holding a quantifier or an
+ * alternative (`(a+)+`, `(a|aa)*`, `(?:a?){30}`), holds more than one unbounded repeat (`*`, `+`
+ * or `{n,}`, lazy forms included), or branches more than 4 ways beside its unbounded repeat (1,024
+ * without one), counting `?`, each `{m,n}` and `|` alternatives together. Each pattern reads only
+ * the first 2,000 characters of a field, so a match beyond them is not found, and runs for at most
+ * 50 ms per field: a pattern that runs out of time counts as a finding named `pattern-timeout-<n>`
+ * (its index), so the key is sent under `warn` and withheld under `block` and `redact`. `allow` lists texts that are
  * never reported, where `*` matches any run of characters and case is ignored.
  *
  * Beyond the per-field checks, three whole-config rules are enforced: `targetLocales` must not

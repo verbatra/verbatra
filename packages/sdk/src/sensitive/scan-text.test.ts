@@ -18,7 +18,7 @@ describe("scanText", () => {
 
   it("tags a configured pattern as pattern", () => {
     expect(scanText(RULES, "Project Falcon")).toEqual([
-      { start: 8, end: 14, sources: ["pattern"] },
+      { start: 8, end: 14, sources: ["pattern"], timedOut: false },
     ]);
   });
 
@@ -58,5 +58,18 @@ describe("scanText", () => {
     expect(
       scanText(rules, `${"a".repeat(MAX_PATTERN_SCAN_LENGTH - 1)}x`).map((span) => span.end),
     ).toEqual([MAX_PATTERN_SCAN_LENGTH]);
+  });
+
+  it("reports a pattern that ran past its time limit as a finding over the whole field", () => {
+    const rules: SensitiveRules = {
+      detectors: [],
+      patterns: [/Falcon/gu, /(?:a?){30}x/gu],
+      allow: ["*"],
+    };
+    const text = "a".repeat(30);
+
+    expect(scanText(rules, text)).toEqual([
+      { start: 0, end: 30, sources: ["pattern-timeout-1"], timedOut: true },
+    ]);
   });
 });

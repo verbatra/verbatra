@@ -138,6 +138,23 @@ describe("the entry verdict", () => {
   });
 });
 
+describe("a pattern that runs past its time limit", () => {
+  function withSlowPattern(mode: "warn" | "block" | "redact") {
+    return guard({ mode, detectors: [], patterns: ["(?:a?){30}x"] });
+  }
+
+  it.each([
+    ["warn", "send"],
+    ["block", "withhold"],
+    ["redact", "withhold"],
+  ] as const)("under %s, %s the key, since the span is unknown", (mode, action) => {
+    const verdict = withSlowPattern(mode).entry(entry({ value: "a".repeat(30) }));
+
+    expect(verdict.action).toBe(action);
+    expect(verdict.finding?.sources).toEqual(["pattern-timeout-0"]);
+  });
+});
+
 describe("the glossary verdict", () => {
   function verdictOf(sensitive: SensitiveGuard, glossary: LocaleGlossary | undefined) {
     return sensitive.glossary(glossary);
