@@ -79,7 +79,7 @@ function localeHistory(
 
 **Lanza:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
 
-Cada commit lleva `hash`, `author`, `authorDate`, `subject` y `touchedPaths`. `author` es el nombre tras `.mailmap`, nunca el correo. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto y como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`). Los caracteres de control y de formato bidireccional se eliminan de `author` y `subject`, y un commit cuyos metadatos no se pueden leer se omite. Si falta git, el proyecto no es un repositorio, o `git log` tarda más que `LOCALE_HISTORY_TIMEOUT_MS` o escribe más que `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`. Consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
+Cada commit lleva `hash`, `author`, `authorDate`, `subject` y `touchedPaths`. `author` es el nombre tras `.mailmap`, nunca el correo. `limit` vale `LOCALE_HISTORY_LIMIT_DEFAULT` (`50`) por defecto y como máximo `LOCALE_HISTORY_LIMIT_CAP` (`200`). Los caracteres de control y de formato bidireccional se eliminan de `author` y `subject`, y un commit cuyos metadatos no se pueden leer se omite. Si falta git, el proyecto no es un repositorio, o `git log` tarda más que `LOCALE_HISTORY_TIMEOUT_MS` o escribe más que `LOCALE_HISTORY_MAX_OUTPUT_BYTES`, el resultado es `{ available: false, reason }`, con un motivo de `LOCALE_HISTORY_UNAVAILABLE_REASONS`. Consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
 
 ### editEntry
 

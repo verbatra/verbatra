@@ -55,11 +55,15 @@ export interface LocaleHistoryCommit {
  * - `timeout`: `git log` ran longer than {@link LOCALE_HISTORY_TIMEOUT_MS} and was stopped.
  * - `output-too-large`: `git log` wrote more than {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
  */
-export type LocaleHistoryUnavailableReason =
-  | "git-missing"
-  | "not-a-repository"
-  | "timeout"
-  | "output-too-large";
+export type LocaleHistoryUnavailableReason = (typeof LOCALE_HISTORY_UNAVAILABLE_REASONS)[number];
+
+/** Every {@link LocaleHistoryUnavailableReason}, in the order the documentation lists them. */
+export const LOCALE_HISTORY_UNAVAILABLE_REASONS = Object.freeze([
+  "git-missing",
+  "not-a-repository",
+  "timeout",
+  "output-too-large",
+] as const);
 
 /**
  * The result of {@link localeHistory}: `available: false` with a reason when the history could not

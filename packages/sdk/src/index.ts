@@ -244,6 +244,7 @@ export {
   LOCALE_HISTORY_LIMIT_DEFAULT,
   LOCALE_HISTORY_MAX_OUTPUT_BYTES,
   LOCALE_HISTORY_TIMEOUT_MS,
+  LOCALE_HISTORY_UNAVAILABLE_REASONS,
   type LocaleHistoryCommit,
   type LocaleHistoryResult,
   type LocaleHistoryUnavailableReason,
