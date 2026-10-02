@@ -62,7 +62,7 @@ Config-less start and reload, review and glossary v2 tools, spend limits, struct
   statuses, integrity verdicts, commit subjects and paths stay; `project.snapshot` reports
   `valuesRedacted`.
 - In that mode `review.approve` and `review.reject` take only the marker's hash as `expectedHash`,
-  `glossary.write` answers with counts, quoted text in errors and log lines is marked,
+  `glossary.write` answers with counts, quoted text in config, glossary and file errors is marked,
   `translation.editEntry` still writes, and `locale.values` refuses `query` and `key.context`
   refuses `draft`. Spend tools still need `--allow-spend`. It does not stop an agent that probes
   on purpose.
