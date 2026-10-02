@@ -504,6 +504,9 @@ export type {
   CreateProviderContext,
   CreateProviderHooks,
 } from "./selection/select-provider.js";
+export type { CheckSensitiveSummary, SensitiveKeyFinding } from "./sensitive/check-scan.js";
+export type { SensitiveField } from "./sensitive/guard.js";
+export type { SensitiveFindingSource } from "./sensitive/scan-text.js";
 export {
   type CreateWatcher,
   type RunTranslate,

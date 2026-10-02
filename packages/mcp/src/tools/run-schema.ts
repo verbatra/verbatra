@@ -48,7 +48,14 @@ const protectedKeySchema = z.object({
   reason: z.enum(["human", "import", "external", "pinned"]),
   suggestion: z.string().optional(),
   suggestionStatus: z
-    .enum(["planned", "suggested", "integrity-mismatch", "provider-failure", "budget-withheld"])
+    .enum([
+      "planned",
+      "suggested",
+      "integrity-mismatch",
+      "provider-failure",
+      "budget-withheld",
+      "sensitive-withheld",
+    ])
     .optional(),
 });
 
@@ -67,6 +74,7 @@ const localeSummarySchema = z.object({
   providerFailures: keyListSchema,
   generated: keyListSchema,
   budgetWithheld: keyListSchema,
+  sensitiveWithheld: keyListSchema,
   usage: usageSchema.optional(),
   notices: z.array(z.object({ code: z.string(), message: z.string() })).readonly(),
   needsReview: z.array(needsReviewEntrySchema).readonly(),

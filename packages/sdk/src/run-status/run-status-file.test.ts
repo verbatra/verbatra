@@ -27,6 +27,7 @@ function succeededLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummary 
     providerFailures: [],
     generated: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     notices: [],
     needsReview: [],
     unfilled: [],
