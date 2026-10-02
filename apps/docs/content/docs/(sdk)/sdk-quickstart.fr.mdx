@@ -1,0 +1,188 @@
+---
+title: Démarrage rapide du SDK
+description: Installe @verbatra/sdk, prévisualise une exécution sans clé d'API, traduis depuis ton propre script, gère les erreurs et protège ta CI.
+type: tutorial
+---
+À la fin de cette page, un script TypeScript à toi traduit un fichier de locale anglais en allemand, rapporte ce qui s'est passé et fait échouer un job CI quand une locale n'est plus synchronisée. Il te faut Node.js `>=22.14.0` et une dizaine de minutes. Les trois premières étapes ne demandent aucune clé d'API.
+
+Chaque étape est un script complet que tu lances avec `node`. Node.js exécute directement les fichiers TypeScript à partir de `22.18.0` ; de `22.14.0` à `22.17.x`, ajoute `--experimental-strip-types` à chaque commande `node` ci-dessous.
+
+## Étapes
+
+<Steps>
+<Step>
+
+### Installe le SDK
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Si pnpm s'arrête avec `ERR_PNPM_IGNORED_BUILDS`, consulte [Installation](/docs/sdk#installation).
+
+</Step>
+<Step>
+
+### Ajoute un fichier source et une config
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+`loadConfig` trouve ce fichier à partir du répertoire de travail et le valide. [Choisis ta stack](/docs/pick-your-stack) donne le `format` de ton framework, et [Fournisseurs](/docs/providers) liste chaque fournisseur et ses options. Pour te passer complètement du fichier, passe le même objet en `configOverride` ; voir [Recettes SDK](/docs/programmatic-api#une-config-sans-fichier).
+
+</Step>
+<Step>
+
+### Prévisualise l'exécution sans clé
+
+```ts title="preview.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await translate({ config, dryRun: true });
+
+for (const locale of preview.locales) {
+  console.log(`${locale.locale}: would translate ${locale.translated.join(", ")}`);
+}
+```
+
+```bash
+node preview.ts
+```
+
+```text output
+de: would translate cart.empty, greeting
+```
+
+Une exécution à blanc ne construit aucun fournisseur : elle ne demande donc aucune clé, ne dépense rien et n'écrit rien. Passe plutôt `estimate: true` pour obtenir un chiffre en tokens ou en coût ; voir [Estimer le coût](/docs/estimating-cost).
+
+</Step>
+<Step>
+
+### Traduis et lis le résumé
+
+```ts title="translate.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const summary = await translate({
+  config,
+  onProgress: (event) => {
+    if (event.type === "locale-finished") {
+      console.log(`${event.locale}: ${event.translated} keys translated`);
+    }
+  },
+});
+
+const { succeeded, partial, failed } = summary;
+console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+
+for (const locale of summary.locales) {
+  if (locale.status === "failed") {
+    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
+    continue;
+  }
+  for (const entry of locale.needsReview) {
+    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+  }
+}
+
+if (failed.length > 0 || partial.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+Le fournisseur lit sa clé dans l'environnement, et contrairement à la CLI, le SDK ne charge pas les fichiers `.env` : transmets-la toi-même. [Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement) nomme la variable de chaque fournisseur.
+
+```bash
+node --env-file=.env translate.ts
+```
+
+`locales/de.json` contient maintenant les deux clés, avec `{{name}}` intact. Une locale `partial` a été écrite avec des clés encore manquantes, donc le script échoue dessus comme sur `failed`. Les problèmes par locale arrivent comme des données sur le résumé ; seul un problème touchant toute l'exécution lève une erreur.
+
+</Step>
+<Step>
+
+### Gère les erreurs
+
+<AvailableFrom version="0.12.0" />
+
+Un problème touchant toute l'exécution lève une `SdkError`. Branche-toi sur son `code` stable, et affiche `errorHint` pour connaître l'étape suivante.
+
+```ts title="safe-translate.ts"
+import { errorHint, loadConfig, SdkError, translate } from "@verbatra/sdk";
+
+try {
+  const summary = await translate({ config: await loadConfig() });
+  console.log(`${summary.succeeded.length} locales translated`);
+} catch (error) {
+  if (!(error instanceof SdkError)) {
+    throw error;
+  }
+  console.error(`${error.code}: ${error.message}`);
+  const hint = errorHint(error);
+  if (hint !== undefined) {
+    console.error(`next: ${hint}`);
+  }
+  process.exitCode = 2;
+}
+```
+
+Lance-le sans la clé : il signale `PROVIDER_CONSTRUCTION_FAILED` en nommant la variable manquante, jamais une valeur de clé. [Codes d'erreur](/docs/error-codes#sdk-error-codes) liste chaque code.
+
+</Step>
+<Step>
+
+### Protège ta CI avec check
+
+```ts title="check.ts"
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+for (const locale of summary.locales) {
+  console.log(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+}
+
+if (!summary.inSync) {
+  process.exitCode = 1;
+}
+```
+
+```bash
+node check.ts
+```
+
+`check` n'appelle aucun fournisseur et n'écrit rien : il ne demande donc aucune clé en CI. Il sort avec `1` dès qu'une chaîne source n'a pas de traduction ou a changé depuis sa traduction.
+
+</Step>
+</Steps>
+
+## CommonJS
+
+Dans un projet CommonJS, `require("@verbatra/sdk")` renvoie les mêmes exports. Le `await` de premier niveau n'y est pas disponible, donc enveloppe les appels dans une fonction `async`.
+
+## Étapes suivantes
+
+- [Recettes SDK](/docs/programmatic-api) : estimations, mode surveillance, une doublure de test pour le fournisseur, la file de relecture, et les allers-retours classeur et TMX.
+- [Référence SDK](/docs/sdk) : chaque point d'entrée, son entrée et ce qu'il lève.
+- [Fournisseurs personnalisés](/docs/sdk/extend#fournisseurs-personnalisés) et [adaptateurs de format personnalisés](/docs/custom-format-adapters) : branche ce que verbatra ne fournit pas.
+- [Sûreté de la traduction](/docs/translation-safety) : ce que verbatra vérifie avant d'écrire une traduction.

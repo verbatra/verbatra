@@ -3,59 +3,11 @@ title: Recetas del SDK
 description: Patrones completos y ejecutables para manejar verbatra desde tus propios scripts, jobs de CI y herramientas.
 type: how-to
 ---
-La [referencia del SDK](/docs/sdk) cataloga cada punto de entrada. Esta página es la compañera práctica:
-recetas de principio a fin que puedes copiar en un script y ejecutar. Una cosa que preparar primero: el
-SDK no carga archivos `.env` (eso lo hace la CLI), así que asegúrate de que la variable de entorno del
-proveedor está definida antes de que se ejecute tu script, por ejemplo:
-
-```bash
-node --env-file=.env translate.mjs
-```
-
-## Traducción única en un script
-
-Carga la configuración, ejecuta el flujo y luego lee el resumen: el titular en `succeeded` y `failed`,
-el gasto de tokens en `usage` y las claves que merecen una mirada humana en el `needsReview` de cada
-locale. Los problemas de toda la ejecución lanzan un `SdkError`; los resultados por locale son datos en
-el resumen.
-
-```ts
-import { loadConfig, translate } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await translate({ config });
-
-console.log(
-  `${summary.succeeded.length} ok, ${summary.partial.length} partial, ${summary.failed.length} failed`,
-);
-
-if (summary.usage !== undefined) {
-  console.log(`tokens: ${summary.usage.inputTokens} in, ${summary.usage.outputTokens} out`);
-}
-
-for (const locale of summary.locales) {
-  if (locale.status === "failed") {
-    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
-    continue;
-  }
-  for (const entry of locale.needsReview) {
-    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
-  }
-}
-
-if (summary.failed.length > 0 || summary.partial.length > 0) {
-  process.exitCode = 1;
-}
-```
-
-Un locale `partial` es aquel cuyo archivo se escribió con claves aún faltantes. No es un éxito: la
-CLI sale con `1` ante él, y tu propio script debería tratarlo igual: por eso la comprobación de
-arriba mira `partial` junto a `failed`.
-
-Pasa `dryRun: true` para previsualizar sin llamar a un proveedor ni escribir nada, y `locales: ["de"]`
-para restringir la ejecución a parte de los destinos configurados, que es como recorres un
-proveedor con límite de tasa un idioma cada vez. [`translate`](/docs/sdk/run#translate) enumera
-cada una de las demás opciones.
+El [inicio rápido del SDK](/docs/sdk-quickstart) cubre la primera ejecución. Esta página sigue desde
+ahí con recetas completas para copiar en un script; la [referencia del SDK](/docs/sdk) cataloga cada
+punto de entrada. El SDK no carga archivos `.env`, así que ejecuta una receta que llama a un proveedor
+con `node --env-file=.env`. Para recorrer un proveedor con límite de tasa un idioma cada vez, pasa
+`locales: ["de"]` a `translate`.
 
 ## Estima una ejecución antes de gastar
 
@@ -120,6 +72,43 @@ if (!summary.inSync) {
 ¿Necesitas los nombres de las claves en lugar de contadores? Cambia a `diff`, que devuelve listas de
 claves `missing`, `changed` y `orphaned` por locale con la misma puerta `hasPendingChanges`. ¿Ejecutas
 la CLI en CI en su lugar? Consulta [CI y códigos de salida](/docs/ci-and-exit-codes).
+
+## Prueba tu integración sin clave
+
+<AvailableFrom version="0.12.0" />
+
+Un proveedor falso pasado como `createProvider` ejecuta todo el flujo, archivos y control de
+integridad incluidos, sin clave, sin llamada de red y con una salida determinista: justo lo que
+necesita una prueba unitaria de tus propias herramientas.
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+La ejecución escribe archivos reales, así que prueba contra una copia temporal del proyecto. Un
+proveedor real se conecta de la misma forma; consulta [Proveedores personalizados](/docs/sdk/extend#proveedores-propios).
 
 ## Vigila en un proceso de larga duración
 
@@ -306,6 +295,46 @@ interfaz.
 
 `retranslateEntry` rechaza un valor que escribió una persona salvo que pases `includeHuman: true`, y
 una clave fijada siempre; consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+
+## Recorre la cola de revisión
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` enumera cada valor escrito por máquina que nadie ha aprobado todavía, con los motivos
+por los que la última ejecución lo marcó. Este script aprueba los valores sin marcar y rechaza el
+resto, lo que los elimina para que el siguiente `translate` los vuelva a rellenar. `expectedValue` hace
+que una llamada lance `REVIEW_VALUE_CHANGED` si el valor cambió entretanto.
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  throw new Error(`no review queue: ${queue.reason}`);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+Ambas llamadas escriben la decisión en `verbatra.provenance.json` y no llaman a ningún proveedor.
+[Edita y revisa](/docs/sdk/review#approveentry) tiene las variantes por lotes y cada código que lanzan.
 
 ## Lee todos los valores de golpe
 

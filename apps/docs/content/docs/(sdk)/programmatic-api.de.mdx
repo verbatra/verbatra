@@ -3,59 +3,11 @@ title: SDK-Rezepte
 description: Vollständige, lauffähige Muster, um verbatra aus deinen eigenen Skripten, CI-Jobs und Tools anzusteuern.
 type: how-to
 ---
-Die [SDK-Referenz](/docs/sdk) katalogisiert jeden Einstiegspunkt. Diese Seite ist der praktische
-Begleiter: End-to-End-Rezepte, die du in ein Skript kopieren und ausführen kannst. Eine Sache
-vorab: das SDK lädt keine `.env`-Dateien (das macht die CLI), stelle also sicher, dass die
-Umgebungsvariable des Providers gesetzt ist, bevor dein Skript läuft, zum Beispiel:
-
-```bash
-node --env-file=.env translate.mjs
-```
-
-## Einmal übersetzen in einem Skript
-
-Lade die Konfiguration, führe den Flow aus, dann lies die Zusammenfassung: das Gesamtbild aus
-`succeeded` und `failed`, den Token-Verbrauch aus `usage` und die Keys, die einen menschlichen
-Blick verdienen, aus dem `needsReview` jeder Locale. Probleme des gesamten Laufs werfen einen
-`SdkError`; Ergebnisse pro Locale sind Daten auf der Zusammenfassung.
-
-```ts
-import { loadConfig, translate } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await translate({ config });
-
-console.log(
-  `${summary.succeeded.length} ok, ${summary.partial.length} partial, ${summary.failed.length} failed`,
-);
-
-if (summary.usage !== undefined) {
-  console.log(`tokens: ${summary.usage.inputTokens} in, ${summary.usage.outputTokens} out`);
-}
-
-for (const locale of summary.locales) {
-  if (locale.status === "failed") {
-    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
-    continue;
-  }
-  for (const entry of locale.needsReview) {
-    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
-  }
-}
-
-if (summary.failed.length > 0 || summary.partial.length > 0) {
-  process.exitCode = 1;
-}
-```
-
-Eine als `partial` gemeldete Locale ist eine, deren Datei mit weiterhin fehlenden Keys
-geschrieben wurde. Das ist kein Erfolg: Die CLI endet darauf mit `1`, und dein eigenes Skript
-sollte es genauso behandeln, deshalb prüft die Abfrage oben `partial` neben `failed`.
-
-Übergib `dryRun: true`, um ohne Provider-Aufruf und ohne Schreiben eine Vorschau zu bekommen, und
-`locales: ["de"]`, um den Lauf auf einen Teil der konfigurierten Ziele zu beschränken; so arbeitest
-du einen ratenbegrenzten Provider Sprache für Sprache ab. [`translate`](/docs/sdk/run#translate)
-listet jede weitere Option.
+Der [SDK-Schnellstart](/docs/sdk-quickstart) behandelt den ersten Lauf. Diese Seite setzt dort an
+mit vollständigen Rezepten zum Kopieren in ein Skript; die [SDK-Referenz](/docs/sdk) katalogisiert
+jeden Einstiegspunkt. Das SDK lädt keine `.env`-Dateien, also führst du ein Rezept, das einen
+Provider aufruft, mit `node --env-file=.env` aus. Um einen ratenbegrenzten Provider Sprache für
+Sprache abzuarbeiten, übergib `locales: ["de"]` an `translate`.
 
 ## Einen Lauf schätzen, bevor du ausgibst
 
@@ -121,6 +73,43 @@ if (!summary.inSync) {
 Du brauchst die Key-Namen statt der Anzahlen? Tausche `diff` ein, das die Key-Listen `missing`,
 `changed` und `orphaned` pro Locale zurückgibt, mit demselben `hasPendingChanges`-Gate. Du führst
 stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
+
+## Deine Integration ohne Schlüssel testen
+
+<AvailableFrom version="0.12.0" />
+
+Ein als `createProvider` übergebener Fake-Provider durchläuft den ganzen Flow, Dateien und
+Integritätsprüfung eingeschlossen, ohne Schlüssel, ohne Netzwerkaufruf und mit deterministischer
+Ausgabe: genau das, was ein Unit-Test deiner eigenen Tools braucht.
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+Der Lauf schreibt echte Dateien, also teste gegen eine temporäre Kopie des Projekts. Ein echter
+Provider wird genauso eingebunden; siehe [Eigene Provider](/docs/sdk/extend#eigene-provider).
 
 ## Beobachten in einem langlaufenden Prozess
 
@@ -306,6 +295,47 @@ Nahtstellen hinter einer Oberfläche zeigt [Review in Studio](/docs/review-in-st
 `retranslateEntry` lehnt einen Wert, den ein Mensch geschrieben hat, ab, außer du übergibst
 `includeHuman: true`, und einen gepinnten Key immer; siehe
 [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+
+## Die Review-Warteschlange abarbeiten
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` listet jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, mit den
+Gründen, aus denen der letzte Lauf ihn markiert hat. Dieses Skript gibt die unmarkierten Werte frei
+und lehnt den Rest ab; abgelehnte Werte werden entfernt, sodass das nächste `translate` sie neu
+füllt. Mit `expectedValue` wirft ein Aufruf `REVIEW_VALUE_CHANGED`, wenn sich der Wert
+zwischendurch geändert hat.
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  throw new Error(`no review queue: ${queue.reason}`);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+Beide Aufrufe schreiben die Entscheidung in `verbatra.provenance.json` und rufen keinen Provider
+auf. [Review](/docs/sdk/review#approveentry) zeigt die Batch-Varianten und jeden Code, den sie werfen.
 
 ## Alle Werte auf einmal lesen
 

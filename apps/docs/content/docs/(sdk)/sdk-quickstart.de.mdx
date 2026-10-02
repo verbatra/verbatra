@@ -1,0 +1,188 @@
+---
+title: SDK-Schnellstart
+description: Installiere @verbatra/sdk, sieh dir einen Lauf ohne API-Schlüssel in der Vorschau an, übersetze aus deinem eigenen Skript, behandle Fehler und sichere die CI ab.
+type: tutorial
+---
+Am Ende dieser Seite übersetzt ein TypeScript-Skript von dir eine englische Locale-Datei ins Deutsche, meldet, was passiert ist, und lässt einen CI-Job scheitern, sobald eine Locale nicht mehr synchron ist. Du brauchst Node.js `>=22.14.0` und etwa zehn Minuten. Die ersten drei Schritte brauchen keinen API-Schlüssel.
+
+Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.js führt TypeScript-Dateien ab `22.18.0` direkt aus; unter `22.14.0` bis `22.17.x` ergänzt du jeden `node`-Befehl unten um `--experimental-strip-types`.
+
+## Schritte
+
+<Steps>
+<Step>
+
+### Das SDK installieren
+
+```npm
+npm install --save-dev @verbatra/sdk
+```
+
+Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` endet, sieh unter [Installation](/docs/sdk#installation) nach.
+
+</Step>
+<Step>
+
+### Eine Quelldatei und eine Konfiguration anlegen
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+```ts title="verbatra.config.ts"
+import { defineConfig } from "@verbatra/sdk";
+
+export default defineConfig({
+  sourceLocale: "en",
+  targetLocales: ["de"],
+  format: "i18next-json",
+  files: { pattern: "locales/{locale}.json" },
+  provider: { id: "gemini", options: { model: "gemini-2.5-flash", maxOutputTokens: 4096 } },
+});
+```
+
+`loadConfig` findet diese Datei ausgehend vom Arbeitsverzeichnis und validiert sie. Unter [Wähle deinen Stack](/docs/pick-your-stack) steht das `format` für dein Framework, und [Provider](/docs/providers) listet jeden Provider mit seinen Optionen. Willst du ganz ohne Datei auskommen, übergib dasselbe Objekt als `configOverride`; siehe [SDK-Rezepte](/docs/programmatic-api#eine-konfiguration-ohne-datei).
+
+</Step>
+<Step>
+
+### Den Lauf ohne Schlüssel in der Vorschau ansehen
+
+```ts title="preview.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const preview = await translate({ config, dryRun: true });
+
+for (const locale of preview.locales) {
+  console.log(`${locale.locale}: would translate ${locale.translated.join(", ")}`);
+}
+```
+
+```bash
+node preview.ts
+```
+
+```text output
+de: would translate cart.empty, greeting
+```
+
+Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. Übergib stattdessen `estimate: true`, um eine Token- oder Kostenzahl zu bekommen; siehe [Kosten schätzen](/docs/estimating-cost).
+
+</Step>
+<Step>
+
+### Übersetzen und die Zusammenfassung lesen
+
+```ts title="translate.ts"
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const summary = await translate({
+  config,
+  onProgress: (event) => {
+    if (event.type === "locale-finished") {
+      console.log(`${event.locale}: ${event.translated} keys translated`);
+    }
+  },
+});
+
+const { succeeded, partial, failed } = summary;
+console.log(`${succeeded.length} ok, ${partial.length} partial, ${failed.length} failed`);
+
+for (const locale of summary.locales) {
+  if (locale.status === "failed") {
+    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
+    continue;
+  }
+  for (const entry of locale.needsReview) {
+    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+  }
+}
+
+if (failed.length > 0 || partial.length > 0) {
+  process.exitCode = 1;
+}
+```
+
+Der Provider liest seinen Schlüssel aus der Umgebung, und anders als die CLI lädt das SDK keine `.env`-Dateien, also reichst du ihn selbst weiter. [Provider](/docs/providers#keys-kommen-aus-der-umgebung) nennt die Variable für jeden Provider.
+
+```bash
+node --env-file=.env translate.ts
+```
+
+`locales/de.json` enthält jetzt beide Keys, und `{{name}}` ist unversehrt. Eine Locale mit `partial` wurde geschrieben, obwohl noch Keys fehlen, deshalb scheitert das Skript daran genauso wie an `failed`. Probleme einzelner Locales kommen als Daten in der Zusammenfassung an; nur ein Problem des ganzen Laufs wirft.
+
+</Step>
+<Step>
+
+### Fehler behandeln
+
+<AvailableFrom version="0.12.0" />
+
+Ein Problem des ganzen Laufs wirft einen `SdkError`. Verzweige über seinen stabilen `code` und gib `errorHint` aus, um den nächsten Schritt zu zeigen.
+
+```ts title="safe-translate.ts"
+import { errorHint, loadConfig, SdkError, translate } from "@verbatra/sdk";
+
+try {
+  const summary = await translate({ config: await loadConfig() });
+  console.log(`${summary.succeeded.length} locales translated`);
+} catch (error) {
+  if (!(error instanceof SdkError)) {
+    throw error;
+  }
+  console.error(`${error.code}: ${error.message}`);
+  const hint = errorHint(error);
+  if (hint !== undefined) {
+    console.error(`next: ${hint}`);
+  }
+  process.exitCode = 2;
+}
+```
+
+Führst du es ohne Schlüssel aus, meldet es `PROVIDER_CONSTRUCTION_FAILED` und nennt die fehlende Variable, nie einen Schlüsselwert. [Fehlercodes](/docs/error-codes#sdk-error-codes) listet jeden Code.
+
+</Step>
+<Step>
+
+### Die CI mit check absichern
+
+```ts title="check.ts"
+import { check, loadConfig } from "@verbatra/sdk";
+
+const summary = await check({ config: await loadConfig() });
+
+for (const locale of summary.locales) {
+  console.log(`${locale.locale}: ${locale.missing} missing, ${locale.stale} stale`);
+}
+
+if (!summary.inSync) {
+  process.exitCode = 1;
+}
+```
+
+```bash
+node check.ts
+```
+
+`check` ruft keinen Provider auf und schreibt nichts, braucht in der CI also keinen Schlüssel. Es endet mit `1`, sobald ein Quelltext keine Übersetzung hat oder sich seit der Übersetzung geändert hat.
+
+</Step>
+</Steps>
+
+## CommonJS
+
+In einem CommonJS-Projekt liefert `require("@verbatra/sdk")` dieselben Exporte. Top-Level-`await` gibt es dort nicht, also packst du die Aufrufe in eine `async`-Funktion.
+
+## Nächste Schritte
+
+- [SDK-Rezepte](/docs/programmatic-api): Schätzungen, Watch-Modus, ein Test-Double für den Provider, die Review-Warteschlange und die Roundtrips über Arbeitsmappe und TMX.
+- [SDK-Referenz](/docs/sdk): jeder Einstiegspunkt, seine Eingabe und was er wirft.
+- [Eigene Provider](/docs/sdk/extend#eigene-provider) und [eigene Format-Adapter](/docs/custom-format-adapters): binde ein, was verbatra nicht mitliefert.
+- [Übersetzungssicherheit](/docs/translation-safety): was verbatra prüft, bevor es eine Übersetzung schreibt.
