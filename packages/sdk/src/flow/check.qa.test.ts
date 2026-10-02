@@ -177,6 +177,25 @@ describe("check: qa report", () => {
     expect(summary.qa).toMatchObject({ errors: 0, warnings: 1 });
   });
 
+  it("warns about a committed Arabic value whose isolate is never closed", async () => {
+    const dir = await project(
+      { greeting: "Hello {{name}}, welcome back!", closed: "Hi {{name}}" },
+      {
+        ar: {
+          greeting: "مرحبا \u2067{{name}}، أهلا بعودتك!",
+          closed: "أهلا \u2067{{name}}\u2069",
+        },
+      },
+    );
+
+    const summary = await check({ config: cfg({ targetLocales: ["ar"] }), cwd: dir, qa: true });
+
+    expect(summary.locales[0]?.qa?.findings).toEqual([
+      { key: "greeting", severity: "warning", reason: "BIDI_CONTROLS_CHANGED" },
+    ]);
+    expect(summary.qa).toMatchObject({ errors: 0, warnings: 1 });
+  });
+
   it("hides the foreign-placeholder warning at severity error", async () => {
     const dir = await project(
       { greeting: "Hello {name}, welcome back!" },
