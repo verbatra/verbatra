@@ -60,7 +60,7 @@ Config-less start and reload, review and glossary v2 tools, spend limits, struct
   every source text, translation, description, glossary term, and reviewer or author name in a
   result with a marker carrying the value's length and a per-session hash. Key names, counts,
   statuses, integrity verdicts, commit subjects and paths stay; `project.snapshot` reports
-  `valuesRedacted`.
+  `valuesRedacted`, and the exported `MCP_CAPABILITIES` lets a host check support first.
 - In that mode `review.approve` and `review.reject` take only the marker's hash as `expectedHash`,
   `glossary.write` answers with counts, quoted text in config, glossary and file errors is marked,
   `translation.editEntry` still writes, and `locale.values` refuses `query` and `key.context`
