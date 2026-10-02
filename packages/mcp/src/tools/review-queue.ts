@@ -20,7 +20,7 @@ const reviewQueueResultSchema = z.object({
   lastRunAt: z.string().optional(),
 });
 
-type ReviewQueueResult = z.infer<typeof reviewQueueResultSchema>;
+export type ReviewQueueResult = z.infer<typeof reviewQueueResultSchema>;
 
 async function readReviewQueue(
   _params: z.infer<typeof paramsSchema>,

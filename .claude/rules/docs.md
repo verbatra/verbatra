@@ -93,6 +93,10 @@ parity tests (`pnpm test:scripts`):
 - `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in
   `packages/mcp/README.md` follows `ALL_TOOLS_IN_ORDER`, with exactly the spend-gated tools marked
   as calling a provider, and the client allowlists name only registered, non-spend tools.
+- `verify-docs-studio-tool-names.test.mjs`: the read, write and spend tool tables in
+  `(agents)/agent-tools-in-studio*.mdx` list exactly the tools of `TOOL_DESCRIPTORS`
+  (`packages/studio/src/webmcp/register-tools.ts`), each in the table its `readOnlyHint` and
+  `spendGated` flags put it in.
 - `verify-docs-registry-parity.test.mjs`: the overview table in `formats*.mdx` lists every
   `SUPPORTED_FORMATS` id in order, `providers*.mdx` opens one `##` section per `providerFactories`
   id plus `none`, the `cli/doctor*.mdx` check table follows the setup checks in `doctor.ts`, and

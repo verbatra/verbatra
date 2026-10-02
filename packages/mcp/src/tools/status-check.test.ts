@@ -1,3 +1,4 @@
+import { createValueMarker } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import { defaultAdapterRegistry, makeContext, makeProject, nodeFs } from "../test-support.js";
 import { statusCheckTool } from "./status-check.js";
@@ -25,6 +26,37 @@ describe("status.check", () => {
     expect(outcome).toMatchObject({
       kind: "ok",
       result: { locales: [{ locale: "de", missing: 0, stale: 0, upToDate: 1, inSync: true }] },
+    });
+  });
+
+  it("keeps each incomplete plural, with its key and missing categories, when values are redacted", async () => {
+    const dir = await makeProject(
+      { items_one: "One item", items_other: "{{count}} items" },
+      { de: { items_other: "{{count}} Dinge" } },
+    );
+
+    const outcome = await statusCheckTool.execute(
+      {},
+      makeContext({ cwd: dir, valueMarker: createValueMarker() }),
+    );
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        locales: [
+          {
+            locale: "de",
+            incompletePlurals: [
+              {
+                code: "PLURAL_CATEGORIES_INCOMPLETE",
+                key: "items",
+                ruleType: "cardinal",
+                missing: ["one"],
+              },
+            ],
+          },
+        ],
+      },
     });
   });
 

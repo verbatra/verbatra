@@ -24,7 +24,7 @@ const editEntryResultSchema = z.object({
   details: z.array(z.string()).readonly().optional(),
 });
 
-type EditEntryResult = z.infer<typeof editEntryResultSchema>;
+export type EditEntryResult = z.infer<typeof editEntryResultSchema>;
 
 async function editKeyEntry(
   params: z.infer<typeof paramsSchema>,

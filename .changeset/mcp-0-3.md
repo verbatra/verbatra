@@ -54,7 +54,7 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
 - `key.value` returns the key's `description`, and read tools return provenance fields, described
   in each tool's description along with protected and pinned keys.
 - Write tools take `lockTimeoutMs`. A failed call ends with a `Next step:` line, and error messages
-  use project-relative paths.
+  use project-relative paths, also when `--cwd` is a relative path.
 - An `apiKeyEnvVar` value is redacted from every result, and `startMcpServer` reads the glossary
   through an injected `fs`.
 

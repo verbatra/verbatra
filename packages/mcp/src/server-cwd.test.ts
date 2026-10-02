@@ -1,6 +1,6 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveServerCwd } from "./server-cwd.js";
 
@@ -13,6 +13,18 @@ describe("resolveServerCwd", () => {
     const projectDir = await makeDir();
 
     expect(resolveServerCwd("/explicit", { CLAUDE_PROJECT_DIR: projectDir })).toBe("/explicit");
+  });
+
+  it("resolves a relative cwd against process.cwd()", () => {
+    expect(resolveServerCwd("app/web", {})).toBe(resolve(process.cwd(), "app/web"));
+  });
+
+  it("resolves a relative CLAUDE_PROJECT_DIR that names an existing directory", async () => {
+    const projectDir = await makeDir();
+
+    expect(
+      resolveServerCwd(undefined, { CLAUDE_PROJECT_DIR: relative(process.cwd(), projectDir) }),
+    ).toBe(resolve(projectDir));
   });
 
   it("falls back to CLAUDE_PROJECT_DIR when no cwd is given and it is an existing directory", async () => {

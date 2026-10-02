@@ -15,6 +15,8 @@ import { MCP_SERVER_INSTRUCTIONS, serverInstructions } from "./server-instructio
 import {
   baseLoadedConfig,
   baseVerbatraConfig,
+  defaultAdapterRegistry,
+  makeProject,
   makeTempDir,
   nodeFs,
   staticProject,
@@ -453,6 +455,66 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
     });
     expect(structuredOf(approvedReviewer as Answer).provenance).toMatchObject({
       reviewState: "approved",
+    });
+  });
+});
+
+type AdapterRegistry = typeof defaultAdapterRegistry;
+
+function registryFailingReadsOf(locale: string): AdapterRegistry {
+  return {
+    resolve(filePath: string, options?: Parameters<AdapterRegistry["resolve"]>[1]) {
+      const resolution = defaultAdapterRegistry.resolve(filePath, options);
+      if (resolution.status !== "resolved") {
+        return resolution;
+      }
+      const adapter = resolution.adapter;
+      return {
+        ...resolution,
+        adapter: {
+          ...adapter,
+          read: (path: string, ...rest: unknown[]) =>
+            path.endsWith(`${locale}.json`)
+              ? Promise.reject(new Error(`${CANARY}-value quoted by a format plugin`))
+              : (adapter.read as (path: string, ...rest: unknown[]) => unknown)(path, ...rest),
+        },
+      };
+    },
+  } as unknown as AdapterRegistry;
+}
+
+describe("createMcpServer with redactValues: translation.estimate", () => {
+  it("marks a locale error message that quotes a value, and keeps the estimate", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: {}, fr: {} });
+    const server = createMcpServer({
+      project: staticProject(
+        baseLoadedConfig({ config: baseVerbatraConfig({ targetLocales: ["de", "fr"] }) }),
+      ),
+      cwd: dir,
+      valueMarker: createValueMarker(),
+      fs: nodeFs,
+      adapterRegistry: registryFailingReadsOf("fr"),
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "test-client", version: "1.0.0" });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const answer = await ask(client, { name: "translation.estimate", arguments: {} });
+
+    expect(`${answer.text} ${JSON.stringify(answer.structured)}`).not.toContain(CANARY);
+    expect(structuredOf(answer)).toMatchObject({
+      failed: ["fr"],
+      locales: [
+        { locale: "de" },
+        { locale: "fr", error: { code: "LOCALE_FAILED", message: expect.stringMatching(MARKER) } },
+      ],
+      estimate: {
+        locales: [
+          { locale: "de", keys: 1 },
+          { locale: "fr", keys: 0 },
+        ],
+      },
     });
   });
 });

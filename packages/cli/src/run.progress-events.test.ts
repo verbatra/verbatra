@@ -24,6 +24,10 @@ const everyEvent: readonly ProgressEvent[] = [
   { type: "run-finished", localesCompleted: 1 },
 ];
 
+function withoutElapsed(stderr: string): string {
+  return stderr.replace(/done in \d+\.\ds/g, "done in <elapsed>");
+}
+
 function emitting(events: readonly ProgressEvent[]) {
   return recordingDeps({
     translate: async (input) => {
@@ -55,20 +59,19 @@ describe("run translate: the finer-grained SDK events leave existing output byte
     await run(["translate"], emitting(everyEvent), extended.streams);
 
     expect(extended.out()).toBe(baseline.out());
-    expect(extended.err()).toBe(
-      baseline
-        .err()
-        .replace(
-          "verbatra: de batch 1/1\n",
-          [
-            "verbatra: de batch 1/1",
-            "verbatra: retrying the provider call (attempt 2, status 429) in 0.3s",
-            "verbatra: de: asking again for 1 missing key",
-            "verbatra: de: output cut off, retrying 2 keys in halves",
-            "verbatra: de: writing",
-            "",
-          ].join("\n"),
-        ),
+    expect(extended.err()).toMatch(/done in \d+\.\ds/);
+    expect(withoutElapsed(extended.err())).toBe(
+      withoutElapsed(baseline.err()).replace(
+        "verbatra: de batch 1/1\n",
+        [
+          "verbatra: de batch 1/1",
+          "verbatra: retrying the provider call (attempt 2, status 429) in 0.3s",
+          "verbatra: de: asking again for 1 missing key",
+          "verbatra: de: output cut off, retrying 2 keys in halves",
+          "verbatra: de: writing",
+          "",
+        ].join("\n"),
+      ),
     );
   });
 

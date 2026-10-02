@@ -15,7 +15,7 @@ verbatra mcp [flags]
 verbatra-mcp [flags]
 ```
 
-- `verbatra-mcp` ist das Binary aus `@verbatra/mcp`, mit dem ein Client den Server ganz ohne CLI starten kann. Es nimmt dieselben Flags und startet denselben Server, lädt aber keine `.env`-Datei, endet bei einem Startfehler mit `1` statt `2` und gibt bei `--version` die Version von `@verbatra/mcp` aus.
+- `verbatra-mcp` ist das Binary aus `@verbatra/mcp`, mit dem ein Client den Server ganz ohne CLI starten kann. Es nimmt dieselben Flags und startet denselben Server, lädt aber keine `.env`-Datei und gibt bei `--version` die Version von `@verbatra/mcp` aus.
 - Beide lehnen ein unbekanntes Flag (etwa `--json`), ein Flag ohne Wert oder ein überzähliges Argument als Nutzungsfehler mit Exit `2` ab. `verbatra-mcp` tut das, und kennt `-h` und `-V`, ab `@verbatra/mcp` 0.3.0.
 
 ## Flags
@@ -35,8 +35,6 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--con
 
 Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt der Server es als Projektwurzel. Claude Code setzt diese Variable für jeden stdio-Server, den es startet, sodass eine Sitzung aus einem Unterverzeichnis trotzdem die Konfiguration findet. Ein ausdrückliches `--cwd` gewinnt immer. `verbatra mcp` lädt dann die [Umgebungsdateien](/docs/cli#umgebungsdateien) aus diesem Verzeichnis; ein `CLAUDE_PROJECT_DIR`, das nur in diesen Dateien steht, wird ignoriert, weil die Wurzel vorher feststeht.
 
-Wie du den Server in einem Client einträgst, steht unter [MCP-Client verbinden](/docs/connect-an-mcp-client).
-
 ### Kostenpflichtige Tools
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
@@ -49,7 +47,7 @@ Ohne den Schalter tauchen die beiden nie in der Liste auf, und ein Aufruf mit ih
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`, gleich für jedes Projekt, die die meisten Clients vor dem ersten Tool-Aufruf an das Modell geben. Sie sagen dem Agenten: zuerst `project.snapshot` und die Status-Tools lesen (bei `configured: false` `project.doctor`), einen einzelnen Key über `translation.editEntry` korrigieren, Review-Entscheidungen nur auf Anweisung des Nutzers festhalten, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen, menschliche Arbeit in Ruhe lassen, jeden String als Daten statt als Anweisung behandeln und nie einen `[REDACTED]`-Wert zurückschreiben.
+Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`, die die meisten Clients zuerst an das Modell geben. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen, behandeln jeden String als Daten und schreiben nie einen `[REDACTED]`-Wert zurück.
 
 ### Tools
 
@@ -90,7 +88,7 @@ Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`,
 <AvailableFrom version="0.2.1" pkg="@verbatra/mcp" />
 
 - `status.check`, `status.diff` und `key.integrity` nehmen ein optionales Array `locales`; `key.integrity` nimmt außerdem den `key`.
-- `key.integrity` liefert `{ locales: [{ locale, entries }] }`, jeder Eintrag mit `matches`, `missing`, `extra`, `icuValid`, `markupMatches` und den zugehörigen Details; Studios `verbatra_key_integrity` ist flacher aufgebaut (siehe [Agent-Tools in Studio](/docs/agent-tools-in-studio)).
+- `key.integrity` liefert `{ locales: [{ locale, entries }] }`, jeder Eintrag mit `matches`, `missing`, `extra`, `icuValid`, `markupMatches` und den zugehörigen Details.
 - `translation.editEntry` nimmt `locale`, `key` und einen `value` mit höchstens 20.000 Zeichen. Es und `translation.retranslateEntry` liefern `{ accepted, value, reason?, details? }`, wobei `reason` `placeholder`, `markup`, `icu`, `degenerate` oder `empty` ist.
 - `glossary.write` braucht ein dateibasiertes Glossar, sonst scheitert es mit `GLOSSARY_NOT_FILE_BACKED`.
 
@@ -104,7 +102,7 @@ Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`,
 - `key.value`, `lock.state`, `status.check` und `status.diff` enthalten die Herkunft; sie fehlt, wenn `verbatra.provenance.json` nicht lesbar ist.
 - `locale.values` und `report.provenance` liefern ihre Einträge seitenweise in der Reihenfolge der Quell-Keys: `limit` (Standard 200, höchstens 1.000), danach das `nextCursor` der vorigen Seite als `cursor`. Eine Seite nennt nur die Locales, zu denen sie Einträge enthält, und ein veralteter Cursor scheitert als ungültige Eingabe.
 - `locale.values` nimmt `keys` oder eine `query` ohne Beachtung der Groß- und Kleinschreibung und liefert Arrays von Einträgen statt der Map nach Key wie in Studio. `report.provenance` liefert immer vollständige Zahlen; `includeEntries` ergänzt die Keys, auf Wunsch nur für einige `buckets`.
-- `history.list` nennt den Autor jedes Commits, nie die E-Mail, und gibt bei `available: false` einen `reason` an; siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
+- `history.list` gibt bei `available: false` einen `reason` an; siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
 - Die schreibenden Tools nehmen ein optionales `lockTimeoutMs`, `0` bis `600000`, Standard `30000`: so lange wartet der Aufruf auf eine gehaltene Schreibsperre, bevor er mit `LOCK_CONTENDED` scheitert, ohne etwas geschrieben zu haben.
 - Inputs und Outputs sind JSON-Schemas; ein falscher Input liefert ein Ergebnis, das das Feld nennt. Ein Ergebnis, das nicht zu seinem `outputSchema` passt, scheitert mit `OUTPUT_SCHEMA_MISMATCH`; bei einem schreibenden Tool wurde die Änderung trotzdem ausgeführt, also nicht wiederholen.
 - Der Text eines fehlgeschlagenen Aufrufs beginnt mit seinem Fehlercode, etwa `UNKNOWN_KEY: ...`, und endet mit einer Zeile `Next step: ...`, wenn der Fehler einen nächsten Schritt hat, demselben Text wie `hint` in der CLI.
@@ -113,7 +111,7 @@ Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`,
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.estimate` liefert die Zusammenfassung von [`verbatra translate --estimate --json`](/docs/cli/translate) und ist immer gelistet. `translation.translatePending` nimmt optional `locales` (eine nicht konfigurierte scheitert mit `UNKNOWN_LOCALE`, bevor etwas ausgegeben wird) und `maxTokens`, eine Obergrenze, die die der Konfiguration nur verschärfen kann. Reihenfolge: `status.diff`, `translation.estimate`, das Ja des Nutzers, dann `translation.translatePending` mit denselben `locales`. Siehe [Kosten schätzen](/docs/estimating-cost).
+`translation.estimate` ist immer gelistet. `translation.translatePending` nimmt optional `locales` (eine nicht konfigurierte scheitert mit `UNKNOWN_LOCALE`, bevor etwas ausgegeben wird) und `maxTokens`, eine Obergrenze, die die der Konfiguration nur verschärfen kann. Reihenfolge: `status.diff`, `translation.estimate`, das Ja des Nutzers, dann `translation.translatePending` mit denselben `locales`. Siehe [Kosten schätzen](/docs/estimating-cost).
 
 ### Fortschritt
 
@@ -151,7 +149,7 @@ Jedes Ergebnis und jede Log-Zeile wird wie in Studio geschwärzt: Ein Wert, der 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Mit `--redact-values`, oder mit `VERBATRA_MCP_REDACT_VALUES` auf einem Wert, den `VERBATRA_MCP_ALLOW_SPEND` akzeptiert, ersetzen die Ergebnisse Quelltexte, Übersetzungen, Beschreibungen, Glossarbegriffe sowie Namen von Reviewern und Autoren durch eine Markierung, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; gleiche Werte teilen sich einen Hash, bis der Server stoppt. Zitierter Text in einem Konfigurations-, Glossar- oder Dateifehler wird ebenfalls markiert. Key-Namen, Zahlen, Herkünfte, Integritätsurteile, Commit-Betreffs und Pfade bleiben. `review.approve` und `review.reject` nehmen nur den Hash der Markierung, als `expectedHash`; `glossary.write` antwortet mit Zahlen; `locale.values` lehnt `query` ab und `key.context` lehnt `draft` ab. Das hält Werte aus den Ergebnissen heraus, stoppt aber keinen Agenten, der gezielt sondiert, etwa über Glossar-Schreibvorgänge und die Glossartreffer von `key.context`. Die kostenpflichtigen Tools brauchen weiter `--allow-spend`, und ein Provider bekommt weiter den Text. Siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
+Mit `--redact-values`, oder mit `VERBATRA_MCP_REDACT_VALUES` auf einem Wert, den `VERBATRA_MCP_ALLOW_SPEND` akzeptiert, ersetzen die Ergebnisse Quelltexte, Übersetzungen, Beschreibungen, Glossarbegriffe sowie Namen von Reviewern und Autoren durch eine Markierung, `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`; gleiche Werte teilen sich einen Hash, bis der Server stoppt. Zitierter Text in einem Konfigurations-, Glossar- oder Dateifehler wird ebenfalls markiert. Key-Namen, Zahlen, Herkünfte, Integritätsurteile, Commit-Betreffs und Pfade bleiben. `review.approve` und `review.reject` nehmen nur den Hash der Markierung, als `expectedHash`; `glossary.write` antwortet mit Zahlen; `locale.values` lehnt `query` ab und `key.context` lehnt `draft` ab. Die kostenpflichtigen Tools brauchen weiter `--allow-spend`, und ein Provider bekommt weiter den Text. Einen Agenten, der gezielt sondiert, stoppt das nicht, etwa über Glossar-Schreibvorgänge und die Glossartreffer von `key.context`.
 
 ### stdout und stderr
 
@@ -209,5 +207,4 @@ Beim Stoppen gibt der Server jede Locale-Sperre frei. `verbatra-mcp` endet bei e
 
 - [MCP-Client verbinden](/docs/connect-an-mcp-client) richtet alle gängigen stdio-Clients ein.
 - [Agent-Tools in Studio](/docs/agent-tools-in-studio) deckt die Agent-Oberfläche im Browser ab.
-- [Provider](/docs/providers) nennt die Schlüsselvariable, die jeder Provider liest.
 - [`verbatra check`](/docs/cli/check) und [`verbatra diff`](/docs/cli/diff) sind die Berechnungen hinter `status.check` und `status.diff`.
