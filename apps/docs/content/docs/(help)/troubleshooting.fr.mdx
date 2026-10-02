@@ -112,9 +112,8 @@ is not set.` (ou la variable de ton fournisseur).
 **Cause** : la variable que nomme le message n'est pas définie ou est vide. Les clés viennent
 uniquement de l'environnement, jamais de la config ni d'une option.
 
-**Solution** : définis la variable et confirme-la avec `verbatra doctor`. `translate`, `watch`,
-`doctor`, `studio` et `mcp` chargent `.env` et `.env.local` depuis le répertoire de travail (voir
-[Fournisseurs](/docs/providers#les-clés-viennent-de-lenvironnement)) ; le SDK non, donc utilise
+**Solution** : définis la variable et confirme-la avec `verbatra doctor`. La CLI la lit aussi depuis
+[`.env.local` et `.env`](/docs/cli#fichiers-denvironnement) ; le SDK non, donc utilise
 `node --env-file=.env` dans ton propre script. Codes :
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).
@@ -239,12 +238,12 @@ même barrière juge les deux. Ce qui est comparé et quels refus sont voulus es
 **Symptôme** : l'édition fonctionne, mais les actions de retraduction et de traduction des clés en
 attente n'apparaissent pas.
 
-**Cause** : la dépense chez le fournisseur s'accorde au démarrage, et sans cette autorisation les
-actions de dépense ne sont pas enregistrées. Un projet [uniquement humain](/docs/human-only-workflow)
-les retient même dans ce cas.
+**Cause** : la dépense chez le fournisseur s'accorde au démarrage, selon les règles de
+[Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent), et sans cette autorisation
+les actions de dépense ne sont pas enregistrées.
 
-**Solution** : redémarre avec `verbatra studio --allow-spend`, ou définis
-`VERBATRA_STUDIO_ALLOW_SPEND=1`. Voir [Réviser dans Studio](/docs/review-in-studio).
+**Solution** : redémarre avec `verbatra studio --allow-spend`, sauf si le projet est
+[uniquement humain](/docs/human-only-workflow). Voir [Réviser dans Studio](/docs/review-in-studio).
 
 ## MCP : @verbatra/mcp n'est pas installé
 
@@ -262,12 +261,12 @@ les retient même dans ce cas.
 **Symptôme** : les outils locaux fonctionnent, mais les deux outils de dépense manquent, et en
 appeler un par son nom échoue comme outil inconnu.
 
-**Cause** : la dépense s'accorde au démarrage, et la liste d'outils ne doit pas changer selon la
-connexion, donc les outils de dépense sont entièrement laissés de côté. Un projet
-[uniquement humain](/docs/human-only-workflow) les laisse de côté même avec `--allow-spend`.
+**Cause** : la dépense s'accorde au démarrage, selon les règles des
+[Outils payants](/docs/cli/mcp#outils-payants), et la liste d'outils ne doit pas changer selon la
+connexion, donc les outils de dépense sont entièrement laissés de côté.
 
-**Solution** : redémarre avec `verbatra mcp --allow-spend`, ou définis
-`VERBATRA_MCP_ALLOW_SPEND=1`. Voir [`verbatra mcp`](/docs/cli/mcp).
+**Solution** : redémarre avec `verbatra mcp --allow-spend`, sauf si le projet est
+[uniquement humain](/docs/human-only-workflow).
 
 ## Annuler une exécution (aucun code d'erreur)
 

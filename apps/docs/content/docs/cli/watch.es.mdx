@@ -21,7 +21,7 @@ verbatra watch [flags]
 | `--concurrency` | `<n>` | `1` | traduce hasta `n` locales de destino a la vez por ejecución; un entero de `1` a `100`, rechazado con un presupuesto `maxTokens` |
 | `--no-cache` | ninguno | desactivado (caché activa) | omite la [caché de memoria de traducción](/docs/the-cache) (`verbatra.cache.json`) en cada ejecución |
 
-También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; aquí `--json` imprime un registro por ejecución. Antes de arrancar, `watch` carga `.env.local` y después `.env` desde el directorio de trabajo; una variable ya definida en el entorno real tiene prioridad.
+También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`; aquí `--json` imprime un registro por ejecución. Antes de arrancar, `watch` carga los [archivos de entorno](/docs/cli#archivos-de-entorno).
 
 ## Comportamiento
 

@@ -32,7 +32,7 @@ Prend aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--con
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme racine du projet. Claude Code définit cette variable pour chaque serveur stdio qu'il lance, donc une session ouverte dans un sous-répertoire trouve quand même la config. Un `--cwd` explicite l'emporte toujours. `verbatra mcp` charge alors `.env.local` et `.env` depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car la racine est résolue avant.
+Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire existant, le serveur l'utilise comme racine du projet. Claude Code définit cette variable pour chaque serveur stdio qu'il lance, donc une session ouverte dans un sous-répertoire trouve quand même la config. Un `--cwd` explicite l'emporte toujours. `verbatra mcp` charge alors les [fichiers d'environnement](/docs/cli#fichiers-denvironnement) depuis ce répertoire ; un `CLAUDE_PROJECT_DIR` défini seulement dans ces fichiers est ignoré, car la racine est résolue avant.
 
 Pour inscrire le serveur dans un client, suis [Connecter un client MCP](/docs/connect-an-mcp-client).
 
@@ -40,7 +40,7 @@ Pour inscrire le serveur dans un client, suis [Connecter un client MCP](/docs/co
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.retranslateEntry` et `translation.translatePending` ne sont annoncés qu'avec `--allow-spend` ou, si l'option manque, avec `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` (sans tenir compte de la casse). L'option l'emporte sur la variable. `verbatra mcp` lit d'abord `.env.local` et `.env`, la variable peut donc s'y trouver ; `verbatra-mcp` ne la prend que dans son propre environnement.
+`translation.retranslateEntry` et `translation.translatePending` ne sont annoncés qu'avec `--allow-spend` ou, si l'option manque, avec `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour). L'option l'emporte sur la variable. `verbatra mcp` lit d'abord `.env.local` et `.env`, la variable peut donc s'y trouver ; `verbatra-mcp` ne la prend que dans son propre environnement.
 
 Sans cet interrupteur, les deux n'apparaissent jamais dans la liste, et les appeler par leur nom échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/docs/providers)).
 

@@ -25,7 +25,7 @@ verbatra translate [flags]
 | `--include-human` | none | off | also retranslate stale keys a person wrote or imported, for this run only; [pinned keys](/docs/protecting-human-translations#pinning-keys) stay untouched |
 | `--estimate` | none | off | estimate what the run would send and cost, then exit; implies `--dry-run` |
 
-Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. Before it runs, `translate` loads `.env.local` and then `.env` from the working directory; a variable already set in the real environment wins.
+Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `--json`. Before it runs, `translate` loads the [environment files](/docs/cli#environment-files).
 
 ## Behavior
 

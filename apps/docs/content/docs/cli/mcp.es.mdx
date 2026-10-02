@@ -32,7 +32,7 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--conf
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como raíz del proyecto. Claude Code fija esa variable para cada servidor stdio que lanza, así que una sesión iniciada en un subdirectorio sigue encontrando la configuración. Un `--cwd` explícito siempre gana. `verbatra mcp` carga entonces `.env.local` y `.env` desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque la raíz se resuelve antes.
+Si falta `--cwd` y `CLAUDE_PROJECT_DIR` nombra un directorio existente, el servidor lo usa como raíz del proyecto. Claude Code fija esa variable para cada servidor stdio que lanza, así que una sesión iniciada en un subdirectorio sigue encontrando la configuración. Un `--cwd` explícito siempre gana. `verbatra mcp` carga entonces los [archivos de entorno](/docs/cli#archivos-de-entorno) desde ese directorio; un `CLAUDE_PROJECT_DIR` definido solo en esos archivos se ignora, porque la raíz se resuelve antes.
 
 Para registrar el servidor en un cliente, sigue [Conectar un cliente MCP](/docs/connect-an-mcp-client).
 
@@ -40,7 +40,7 @@ Para registrar el servidor en un cliente, sigue [Conectar un cliente MCP](/docs/
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.retranslateEntry` y `translation.translatePending` solo se anuncian con `--allow-spend` o, si falta el flag, con `VERBATRA_MCP_ALLOW_SPEND` a `1`, `true`, `yes` u `on` (sin distinguir mayúsculas). El flag gana a la variable. `verbatra mcp` lee antes `.env.local` y `.env`, así que la variable puede estar ahí; `verbatra-mcp` solo la toma de su propio entorno.
+`translation.retranslateEntry` y `translation.translatePending` solo se anuncian con `--allow-spend` o, si falta el flag, con `VERBATRA_MCP_ALLOW_SPEND` a `1`, `true`, `yes` u `on` (sin distinguir mayúsculas e ignorando espacios alrededor). El flag gana a la variable. `verbatra mcp` lee antes `.env.local` y `.env`, así que la variable puede estar ahí; `verbatra-mcp` solo la toma de su propio entorno.
 
 Sin el interruptor, las dos nunca aparecen en la lista, y llamarlas por su nombre falla como herramienta desconocida. Una configuración con `provider: { id: "none" }` nunca las lista, ni siquiera con `--allow-spend`. Las demás herramientas no llaman a ningún proveedor ni necesitan clave; pasa la clave al servidor por el entorno del cliente solo cuando actives el gasto (consulta [Proveedores](/docs/providers)).
 

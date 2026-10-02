@@ -28,7 +28,7 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--conf
 
 ### La URL impresa
 
-Antes de arrancar, `studio` carga `.env.local` y luego `.env` del directorio de trabajo y resuelve tu configuración una vez; un error de configuración sale con `2` antes de que arranque ningún servidor. Studio solo escucha en `127.0.0.1` y, en cuanto está escuchando, imprime una línea en stdout:
+Antes de arrancar, `studio` carga los [archivos de entorno](/docs/cli#archivos-de-entorno) y resuelve tu configuración una vez; un error de configuración sale con `2` antes de que arranque ningún servidor. Studio solo escucha en `127.0.0.1` y, en cuanto está escuchando, imprime una línea en stdout:
 
 ```
 Verbatra Studio running at http://127.0.0.1:5849/?token=<token>
@@ -55,7 +55,7 @@ Con `--allow-spend` y el proveedor `none`, la primera línea dice `verbatra: spe
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Sin `--allow-spend`, Studio lee `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` recurre del mismo modo a `VERBATRA_STUDIO_AGENT_TOOLS`. En ambos casos, `1`, `true`, `yes` u `on` (sin distinguir mayúsculas) cuenta como activado, y el flag siempre gana a la variable. Sin ninguno de los dos, Studio nunca contacta con un proveedor.
+Sin `--allow-spend`, Studio lee `VERBATRA_STUDIO_ALLOW_SPEND`; `--expose-agent-tools` recurre del mismo modo a `VERBATRA_STUDIO_AGENT_TOOLS`. En ambos casos, `1`, `true`, `yes` u `on` (sin distinguir mayúsculas e ignorando espacios alrededor) cuenta como activado, y el flag siempre gana a la variable. Sin ninguno de los dos, Studio nunca contacta con un proveedor.
 
 El gasto desde un agente necesita los dos flags; ninguno implica el otro. Una configuración con `provider: { id: "none" }` desactiva la traducción automática por política, así que Studio retiene el gasto incluso con `--allow-spend`, y la página Settings lo indica. Consulta [Opera Studio con un agente de navegador](/docs/agent-tools-in-studio) para el catálogo de herramientas y el modelo de seguridad.
 

@@ -3,10 +3,10 @@ title: El archivo de bloqueo y la procedencia
 description: Qué registran verbatra.lock.json y verbatra.provenance.json, cómo se detecta el desfase, cómo se serializan las ejecuciones concurrentes y por qué debes confirmar ambos.
 type: concept
 ---
-El archivo de bloqueo, `verbatra.lock.json`, es la línea base con la que compara cada ejecución:
-para cada clave traducida registra de qué texto de origen salió la traducción, así que una
-ejecución puede saltarse lo que está al día y volver a traducir lo que se desfasó. A su lado,
-`verbatra.provenance.json` registra quién o qué escribió cada valor y si una persona lo revisó.
+`verbatra.lock.json` es la línea base con la que compara cada ejecución, así que una ejecución puede
+saltarse lo que está al día y volver a traducir lo que se desfasó. A su lado,
+[`verbatra.provenance.json`](#procedencia-quién-escribió-cada-valor) registra quién o qué escribió
+cada valor.
 
 ## Qué registra
 
@@ -26,9 +26,9 @@ origen no cuesta nada. La canalización completa está en
 
 <AvailableFrom version="0.12.0" />
 
-La excepción es una clave cambiada cuyo valor actual escribió o importó una persona: por defecto
-está protegida y sigue desactualizada en lugar de volver a traducirse. Consulta
-[Conserva las traducciones humanas](/docs/protecting-human-translations).
+La excepción es una clave cambiada cuyo valor escribió o importó una persona: por defecto está
+[protegida](/docs/protecting-human-translations) y sigue desactualizada en lugar de volver a
+traducirse.
 
 ## Adoptar un proyecto existente
 
@@ -48,7 +48,7 @@ La adopción se basa en la presencia de la clave, nunca en su valor, lo que tien
 
 La misma regla conserva las formas de plural escritas a mano, así que `generatePlurals` es seguro
 durante la adopción. Para ver todo esto de antemano, ejecuta [`verbatra diff`](/docs/cli/diff) o
-`verbatra translate --dry-run`; ninguno llama a un proveedor ni escribe un archivo.
+`verbatra translate --dry-run`.
 
 ## Cómo se actualiza
 
@@ -65,10 +65,10 @@ las claves ordenadas, así que sus diffs se mantienen pequeños y revisables.
 ## El bloqueo de escritura
 
 Dos ejecuciones que tocan el mismo locale a la vez podrían comparar con una línea base desfasada y
-pagar dos veces la misma llamada. Por eso cada escritura en un locale ocurre bajo un bloqueo entre
-procesos para ese único locale, guardado en el directorio `.verbatra-local/`, que está en el
-gitignore. Un segundo escritor espera, luego vuelve a leer el archivo de bloqueo y compara con una
-línea base que ya incluye el resultado del primero. Locales distintos nunca se bloquean entre sí.
+pagar dos veces. Por eso cada escritura en un locale toma un bloqueo entre procesos para ese locale,
+guardado en `.verbatra-local/`. Un segundo escritor espera, luego vuelve a leer el archivo de
+bloqueo y compara con una línea base que ya incluye el resultado del primero. Locales distintos
+nunca se bloquean entre sí.
 
 Lo que garantiza el bloqueo:
 
@@ -90,9 +90,8 @@ Lo que garantiza el bloqueo:
 Lo que no cubre:
 
 - **Un bloqueo de otra máquina** (una unidad de red compartida) o de un verbatra anterior a 0.12.0
-  nunca se recupera automáticamente. Si no hay ningún proceso de verbatra en marcha en ninguna
-  parte, borra el archivo de bloqueo que nombra el error; [Solución de problemas](/docs/troubleshooting)
-  tiene los pasos.
+  nunca se recupera automáticamente; [Solución de problemas](/docs/troubleshooting) tiene los
+  pasos para quitarlo.
 - **Una pausa larga entre la comprobación y la escritura.** Una ejecución pausada justo después de
   comprobar el token (una máquina que se duerme, un proceso detenido) todavía puede escribir una vez
   al reanudarse.
@@ -120,18 +119,17 @@ sobrescribe. Si el traslado no se puede escribir, ese locale no se ejecuta y fal
 [`LOCALE_STATE_NOT_CARRIED_OVER`](/docs/error-codes#locale_state_not_carried_over), para que la
 siguiente ejecución lo intente de nuevo; los demás locales se ejecutan como siempre.
 
-Hasta que una ejecución lo traslade, cada lectura (`check`, `diff`, `export`, el SDK, las
-herramientas MCP y Studio) trata el estado antiguo como el de `pt-BR` sin escribir nada, así que una
-clave desfasada se informa como desfasada. Una escritura de una sola clave (una edición, una nueva
-traducción, una decisión de revisión) y `verbatra import` trasladan antes el estado, del mismo modo.
-La comprobación `locale-state` de [`verbatra doctor`](/docs/cli/doctor) nombra cualquier estado que
-quede atrás.
+Hasta que una ejecución lo traslade, cada lectura trata el estado antiguo como el de `pt-BR` sin
+escribir nada, así que una clave desfasada se informa como desfasada. Una escritura de una sola
+clave (una edición, una nueva traducción, una decisión de revisión) y `verbatra import` trasladan
+antes el estado, del mismo modo. La comprobación `locale-state` de
+[`verbatra doctor`](/docs/cli/doctor) nombra cualquier estado que quede atrás.
 
 ## Ausente o corrupto
 
-Un archivo de bloqueo ausente no es un error: es una primera ejecución, tratada como se describe en
-la adopción. Un archivo de bloqueo que no se puede analizar, con una estructura incorrecta,
-demasiado grande o con una versión no soportada hace fallar la ejecución con
+Un archivo de bloqueo ausente es una [primera ejecución](#adoptar-un-proyecto-existente), no un
+error. Un archivo de bloqueo que no se puede analizar, con una estructura incorrecta, demasiado
+grande o con una versión no soportada hace fallar la ejecución con
 [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid) en lugar de sobrescribirse, para que
 puedas restaurarlo en vez de perder la línea base.
 
@@ -139,10 +137,9 @@ puedas restaurarlo en vez de perder la línea base.
 
 <AvailableFrom version="0.12.0" />
 
-Mientras el bloqueo registra de qué texto de origen salió una traducción,
-`verbatra.provenance.json` registra qué vía de escritura produjo el valor que hay ahora en el
-archivo de locale, y si alguien lo revisó. Es un archivo aparte, así que un verbatra más antiguo,
-por ejemplo uno fijado en CI, sigue leyendo el bloqueo e ignora la procedencia.
+Mientras el bloqueo registra de qué texto de origen salió una traducción, `verbatra.provenance.json`
+registra qué vía de escritura produjo el valor que hay ahora en el archivo de locale, y si alguien
+lo revisó. Como archivo aparte, un verbatra más antiguo, por ejemplo uno fijado en CI, lo ignora.
 
 | Origen | Lo escribe |
 | --- | --- |
@@ -170,10 +167,9 @@ Lo que garantiza el archivo:
   por uno nuevo y sin revisar; una escritura que deja igual el valor y el origen lo conserva.
 - **Ninguna sobrescritura silenciosa.** Un archivo corrupto detiene cada escritura con
   [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid) antes de que cambie ningún
-  archivo de locale; los informes omiten sus campos de procedencia en lugar de fallar. Un archivo de
-  un verbatra más nuevo se deja intacto, y un archivo que crecería por encima del tamaño que verbatra
-  vuelve a leer no se escribe
-  ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
+  archivo de locale; los informes omiten en su lugar sus campos de procedencia. Un archivo de un
+  verbatra más nuevo se deja intacto, y uno que crecería demasiado para volver a leerlo no se
+  escribe ([`PROVENANCE_FILE_TOO_LARGE`](/docs/error-codes#provenance_file_too_large)).
 
 Lo que no es: a prueba de manipulaciones. Cualquiera que pueda editar los archivos de locale puede
 editarlo. Para convertirlo en un informe, consulta
@@ -184,10 +180,11 @@ editarlo. Para convertirlo en un informe, consulta
 <AvailableFrom version="0.12.0" />
 
 Un registro puede llevar una decisión de revisión, `approved` o `rejected`, con un nombre de
-`reviewer` opcional. Las escribe la página Review de Studio, igual que `approveEntry`, `rejectEntry`
-y `approveLocale` del SDK, y las herramientas MCP `review.approve` y `review.reject`, que transmiten
-la decisión de una persona y exigen su nombre. Una decisión se aplica al valor exacto que vio el
-revisor y se rechaza si ese valor cambió desde entonces.
+`reviewer` opcional. Las escriben la página Review de Studio, las
+[funciones de revisión del SDK](/docs/sdk/review) y las
+[herramientas MCP de revisión](/docs/cli/mcp); las herramientas MCP transmiten la decisión de una
+persona y exigen su nombre. Una decisión se aplica al valor exacto que vio el revisor y se rechaza
+si ese valor cambió desde entonces.
 
 - **Una aprobación** solo cambia el archivo de procedencia. Guarda el hash de origen con el que se
   dio, así que vuelve a leerse como sin revisar en cuanto cambia el texto de origen.
@@ -198,7 +195,7 @@ revisor y se rechaza si ese valor cambió desde entonces.
   sola traducción, así que ahí un rechazo se deniega con
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Cualquier escritura posterior que cambie el valor empieza un registro nuevo y sin revisar. Como las
+Como las
 decisiones viven en este archivo confirmado, la cola de revisión y la puerta de CI
 [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
 estado en todas las máquinas. El nombre de `reviewer` se confirma en el repositorio, así que es
@@ -207,16 +204,10 @@ público; verbatra nunca lo rellena por su cuenta.
 ## Confírmalo
 
 Confirma `verbatra.lock.json` y `verbatra.provenance.json` junto a tus archivos de locale, y nunca
-los edites a mano. Son la línea base compartida con la que comparan tus compañeros y tu CI, y eso
-es lo que hace reproducibles las ejecuciones incrementales entre máquinas. Confirmarlos es también
-lo que hace funcionar una reversión: revertir los archivos de locale sin el bloqueo lo deja
-afirmando que las traducciones revertidas están al día. Consulta
-[Deshaz una ejecución](/docs/recovery-and-rollback).
+los edites a mano: son la línea base compartida con la que comparan tus compañeros y tu CI, y lo
+que restaura una [reversión](/docs/recovery-and-rollback).
 
 ## Relacionado
 
-- [Cómo funciona una ejecución](/docs/how-it-works): dónde están la comparación y la actualización
-  del bloqueo.
 - [La caché de traducciones](/docs/the-cache): la reutilización por contenido junto al bloqueo.
 - [Revisar en Studio](/docs/review-in-studio): registra aprobaciones y rechazos.
-- [Códigos de error](/docs/error-codes): cada código de bloqueo, procedencia y revisión.

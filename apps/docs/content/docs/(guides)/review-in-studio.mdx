@@ -38,11 +38,11 @@ It also shows **ICU arms mismatch** when a value's plural or select arms do not 
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-An origin badge shows who wrote each value, read from [`verbatra.provenance.json`](/docs/the-lock-file#provenance-who-wrote-each-value), such as **Machine**, **Human** or **Edited outside verbatra**. An edit you save in Studio is recorded as **Human**.
+An origin badge shows who wrote each value, read from [`verbatra.provenance.json`](/docs/the-lock-file#provenance-who-wrote-each-value), such as **Machine**, **Human** or **Edited outside verbatra**.
 
 ### Edit with integrity gating
 
-**Edit** opens the editor. Saving runs the value through the integrity gate: a value that fails is rejected with the reason and nothing is written, and an empty value is refused too. An accepted edit writes the locale file and updates the lock file. Editing needs no flag and never calls a provider.
+**Edit** opens the editor. Saving runs the value through the [integrity gate](/docs/translation-safety#the-integrity-gate); a value it refuses is not written, and the reason is shown. An accepted edit writes the locale file and updates the lock file. Editing needs no flag and never calls a provider.
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
@@ -72,15 +72,13 @@ Filter by locale or by text in the key, source or translation, then work each ro
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Both decisions are saved in [`verbatra.provenance.json`](/docs/the-lock-file#review-decisions) and apply to exactly the text on screen: if the value changed since the page loaded, the decision is refused. An approval also needs the value to be up to date with its source.
-
-A rejected value is removed from the locale file, so the key counts as missing until the next `verbatra translate` fills it, and no run reuses the rejected text for that key. Commit the locale file, the lock file and the provenance file together. In an XLIFF project reject is refused; edit the value instead.
+Both decisions are saved in `verbatra.provenance.json` under the rules in [Review decisions](/docs/the-lock-file#review-decisions), including what a rejection removes. An approval also needs the value to be up to date with its source. Commit the locale file, the lock file and the provenance file together; in an XLIFF project, edit instead of rejecting.
 
 ### One queue for the whole team
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The queue is read from the committed files, so a teammate who pulls the locale files, the lock file and `verbatra.provenance.json` sees the same queue. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
+The queue is read from the committed files, so a teammate who pulls them sees the same queue. A value leaves it once a person approves, rejects, writes or imports it; an approved value that a machine rewrites comes back.
 
 The filter bar switches between **Needs review** and **Approved** and narrows by origin; with a locale chosen, **Approve all in** approves all of it after a confirmation. To fail a pull request while machine translations wait, run [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) in CI.
 
@@ -111,7 +109,7 @@ Tick rows (or the header box for everything the filter shows), then choose **App
 
 ## Retranslate a flagged key
 
-Start Studio with spend allowed (or set `VERBATRA_STUDIO_ALLOW_SPEND=1`); the provider's API key still comes from the environment:
+Start Studio with spend allowed ([how spend is granted](/docs/cli/studio#spend-and-agent-tools)):
 
 ```bash
 verbatra studio --allow-spend
@@ -141,7 +139,6 @@ A glossary edit changes what the next run is told, never text already written; r
 
 ## Related
 
-- [`verbatra studio`](/docs/cli/studio): every flag and the startup contract.
 - [Drive Studio with a browser agent](/docs/agent-tools-in-studio): the same workflow from a browser AI agent.
 - [Record machine-translation evidence](/docs/provenance-evidence): turn the review decisions into an audit file.
-- [Edit and review from the SDK](/docs/sdk/review): `approveEntry`, `rejectEntry` and the batch functions behind these buttons.
+- [Edit and review from the SDK](/docs/sdk/review): the functions behind these buttons.

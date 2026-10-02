@@ -78,9 +78,9 @@ Kein zusätzlicher Schritt: `@verbatra/cli` hängt von `@verbatra/sdk` ab, also 
 
 ## Wo leben API-Schlüssel?
 
-Nur in Umgebungsvariablen, die `translate`, `watch`, `doctor`, `studio` und `mcp` auch aus `.env`
-und `.env.local` lesen. Die Konfiguration lehnt unbekannte Keys ab, damit kein Secret in einer
-committeten Datei landet. Siehe [Provider](/docs/providers).
+Nur in Umgebungsvariablen, die die CLI auch aus
+[`.env.local` und `.env`](/docs/cli#umgebungsdateien) liest. Die Konfiguration lehnt unbekannte Keys
+ab, damit kein Secret in einer committeten Datei landet. Siehe [Provider](/docs/providers).
 
 ## Schickt verbatra meine Strings irgendwohin?
 

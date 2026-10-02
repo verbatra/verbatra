@@ -21,7 +21,7 @@ verbatra watch [flags]
 | `--concurrency` | `<n>` | `1` | pro Lauf bis zu `n` Ziel-Locales gleichzeitig übersetzen; eine Ganzzahl von `1` bis `100`, abgelehnt bei einem `maxTokens`-Budget |
 | `--no-cache` | keins | aus (Cache an) | den [Übersetzungsspeicher-Cache](/docs/the-cache) (`verbatra.cache.json`) bei jedem Lauf umgehen |
 
-Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`; hier gibt `--json` einen Datensatz pro Lauf aus. Vor dem Start lädt `watch` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis; eine bereits in der echten Umgebung gesetzte Variable gewinnt.
+Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`; hier gibt `--json` einen Datensatz pro Lauf aus. Vor dem Start lädt `watch` die [Umgebungsdateien](/docs/cli#umgebungsdateien).
 
 ## Verhalten
 

@@ -75,6 +75,26 @@ Une requête refusée ici fait échouer son sous-lot avec l'erreur de fournisseu
 - **Proxys.** Sous une politique restrictive, chaque proxy que le fournisseur utiliserait doit lui-même être autorisé, comme adresse IP ou nom listé. DeepL utilise `HTTPS_PROXY`, `HTTP_PROXY` et `ALL_PROXY` ; les autres fournisseurs ne les utilisent que sous Node 24 avec `NODE_USE_ENV_PROXY=1` ou `--use-env-proxy`. `NO_PROXY` est ignoré.
 - **Fournisseurs personnalisés.** Un fournisseur passé via `createProvider` du SDK est vérifié avant sa construction et reçoit la politique effective ; l'appliquer à ses propres requêtes revient à ce code.
 
+## Traduction automatique sans modèle de langage
+
+Certains NDA interdisent les modèles de langage mais acceptent la traduction automatique classique sur ton propre matériel. [LibreTranslate](/docs/providers#libretranslate), c'est exactement ça : un serveur open source avec des modèles Argos Translate. Lance-le avec les langues dont tu as besoin :
+
+```bash
+docker run -d -p 5000:5000 libretranslate/libretranslate --load-only en,de,fr
+```
+
+Puis pointe verbatra dessus et verrouille le réseau :
+
+```ts title="verbatra.config.ts"
+provider: {
+  id: "libretranslate",
+  options: { baseUrl: "http://127.0.0.1:5000" },
+},
+network: { policy: "local-only" },
+```
+
+`verbatra doctor --locales --live` vérifie chaque locale cible par rapport aux modèles installés. Ses valeurs sont tout de même enregistrées avec l'origine `machine`.
+
 ## Voir aussi
 
 - [`network`](/docs/config-file#network) : la clé de config.

@@ -99,11 +99,11 @@ Une écriture que la langue et la région impliquent déjà est omise, donc conf
 
 <AvailableFrom version="0.12.0" />
 
-Chaque code de locale doit être une étiquette qu'accepte `Intl.getCanonicalLocales`, avec une sous-étiquette de langue de deux ou trois lettres ; sinon le chargement échoue avec `CONFIG_INVALID`, en nommant le champ et le code. `pt_BR` est rejeté (écris `pt-BR` et règle `localeStyle: "posix"`), tout comme un nom de langue tel que `german`. Un code valide mais pas canonique, comme `zh-hant-tw` ou l'obsolète `iw`, fonctionne tel qu'il est écrit, et [`verbatra doctor`](/docs/cli/doctor) suggère la forme canonique. verbatra ne renomme jamais un fichier ; quand tu réécris un code, la prochaine exécution de `translate` reprend son état de verrouillage, de mémoire et de provenance ([Un code de locale réécrit](/docs/the-lock-file#un-code-de-locale-réécrit)).
+Chaque code de locale doit être une étiquette qu'accepte `Intl.getCanonicalLocales`, avec une sous-étiquette de langue de deux ou trois lettres ; sinon le chargement échoue avec `CONFIG_INVALID`, en nommant le champ et le code. `pt_BR` est rejeté (écris `pt-BR` et règle `localeStyle: "posix"`), tout comme un nom de langue tel que `german`. Un code valide mais pas canonique, comme `zh-hant-tw` ou l'obsolète `iw`, fonctionne tel qu'il est écrit, et [`verbatra doctor`](/docs/cli/doctor) suggère la forme canonique. verbatra ne renomme jamais un fichier, et un code réécrit garde son état ([Un code de locale réécrit](/docs/the-lock-file#un-code-de-locale-réécrit)).
 
 ### provider
 
-`provider.id` sélectionne `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` (depuis 0.12.0) ou `none`. Seuls `id` et `options` sont autorisés sous `provider` ; depuis 0.12.0, toute autre clé, comme un `localeMap` mal placé, échoue avec `CONFIG_INVALID`. Tous les fournisseurs sauf `none` acceptent `options.localeMap` et `options.requestTimeoutMs` ([Fournisseurs](/docs/providers#codes-de-locale-envoyés-au-fournisseur)). Pour `none`, `options` peut être omis et doit sinon valoir `{}` ([Travailler sans traduction automatique](/docs/human-only-workflow)).
+`provider.id` sélectionne l'un des [fournisseurs](/docs/providers) ou `none`. Seuls `id` et `options` sont autorisés sous `provider` ; depuis 0.12.0, toute autre clé, comme un `localeMap` mal placé, échoue avec `CONFIG_INVALID`. Tous les fournisseurs sauf `none` acceptent `options.localeMap` et `options.requestTimeoutMs` ([Fournisseurs](/docs/providers#codes-de-locale-envoyés-au-fournisseur)). Pour `none`, `options` peut être omis et doit sinon valoir `{}` ([Travailler sans traduction automatique](/docs/human-only-workflow)).
 
 ### glossary
 
@@ -165,28 +165,21 @@ Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cib
 
 ### fuzzyCache
 
-`fuzzyCache: { enabled: true }` laisse une clé dont la source a changé réutiliser la traduction de sa forme antérieure quand les deux se ressemblent au moins à hauteur de `threshold`, au lieu d'appeler le fournisseur. Une réutilisation :
-
-- est comptée à part des succès de cache exacts et toujours signalée pour révision avec `FUZZY_CACHE_REUSE` ;
-- passe les mêmes contrôles d'intégrité que n'importe quelle autre valeur candidate, et n'est jamais réécrite dans le cache ;
-- est refusée quel que soit son score quand ses caractères numériques diffèrent de la source actuelle ;
-- est écrite mais pas verrouillée : la clé reste modifiée et est proposée à nouveau à chaque exécution jusqu'à ce qu'une vraie traduction arrive.
-
-`threshold` règle la dépense que tu évites, pas la sûreté de la réutilisation ([pourquoi](/docs/the-cache)) : n'active donc cela que si quelqu'un traite la file de révision. Il n'y a pas d'option CLI ; `--no-cache` le contourne avec le reste du cache.
+`fuzzyCache: { enabled: true }` laisse une clé dont la source a changé réutiliser la traduction de sa forme antérieure quand les deux se ressemblent au moins à hauteur de `threshold`, toujours signalée avec `FUZZY_CACHE_REUSE` ; les règles de sûreté sont sous [Réutilisation approximative](/docs/the-cache#réutilisation-approximative). Il n'y a pas d'option CLI ; `--no-cache` le contourne avec le reste du cache.
 
 ### humanEdits et pinnedKeys
 
-`humanEdits` couvre une clé obsolète dont la valeur vient d'une modification dans Studio ou via le SDK (`human`), d'un livrable importé (`import`) ou d'une modification hors de verbatra (`external`), comme l'enregistre la [provenance](/docs/the-lock-file#la-provenance-de-chaque-valeur) :
+`humanEdits` couvre une clé obsolète dont la valeur a été écrite par une personne (provenance `human`, `import` ou `external`, voir la [provenance](/docs/the-lock-file#la-provenance-de-chaque-valeur)) :
 
-- `"protect"` garde la valeur ; la clé n'est pas envoyée, reste obsolète dans `check` et apparaît comme protégée.
-- `"suggest"` garde la valeur mais interroge le fournisseur ; la réponse est une suggestion gardée dans la mémoire, jamais écrite.
-- `"overwrite"` la retraduit comme n'importe quelle clé obsolète ; `translate --include-human` fait cela pour une seule exécution.
+- `"protect"` garde la valeur et n'envoie pas la clé.
+- `"suggest"` garde la valeur et demande au fournisseur une suggestion qui n'est jamais écrite.
+- `"overwrite"` la retraduit ; `translate --include-human` fait cela pour une seule exécution.
 
-Une clé qui correspond à `pinnedKeys` (par exemple `["legal.*", "brand.name"]`) n'est jamais traduite, suggérée ni retraduite, quoi que dise `humanEdits`, et un agent IA ne peut pas la modifier ; une personne le peut toujours. Une valeur sans enregistrement de provenance (`unrecorded`) n'est pas protégée. Voir [Garder les traductions humaines](/docs/protecting-human-translations).
+Une clé qui correspond à `pinnedKeys` (par exemple `["legal.*", "brand.name"]`) n'est jamais écrite par une machine, quoi que dise `humanEdits`. Voir [Garder les traductions humaines](/docs/protecting-human-translations).
 
 ### network
 
-`"local-only"` autorise les adresses loopback, privées et uniques locales plus `allowedHosts` ; `"allowlist"` n'autorise que `allowedHosts`. `VERBATRA_NETWORK_POLICY` peut imposer une politique plus stricte en CI. Voir [Restreindre l'accès réseau](/docs/network-policy).
+La politique et ses hôtes ; ce que chacune autorise, et comment l'imposer depuis l'environnement, est sous [Restreindre l'accès réseau](/docs/network-policy).
 
 ```ts title="verbatra.config.ts"
 network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
@@ -244,7 +237,7 @@ Le `maxTokens` de premier niveau est ce budget de toute l'exécution. Le `provid
 
 ### rates
 
-Lu uniquement par [`verbatra translate --estimate`](/docs/estimating-cost) ; une exécution réelle l'ignore. verbatra ne livre aucun prix, c'est donc toi qui les fournis, avec la date à laquelle tu les as lus.
+Lu uniquement par [`verbatra translate --estimate`](/docs/estimating-cost), qui explique comment les tarifs deviennent de l'argent ; une exécution réelle l'ignore.
 
 ```ts title="verbatra.config.ts"
 rates: {
@@ -257,7 +250,7 @@ rates: {
 }
 ```
 
-Une clé de `table` est `provider/model` pour un fournisseur avec un modèle, et l'id seul pour un fournisseur sans modèle (`deepl`, `google-translate`). Une entrée est soit facturée aux tokens (`inputPerMillionTokens` et `outputPerMillionTokens`), soit facturée aux caractères (`perMillionCharacters`), jamais les deux ; un tarif négatif est rejeté. `openai-compatible` et `libretranslate` n'envoient aucune facture, donc leur quantité est indiquée sans tarif. Une clé de tarif manquante est signalée comme absente, jamais comme nulle, et une entrée dans la mauvaise unité est refusée.
+Une clé de `table` est `provider/model` pour un fournisseur avec un modèle, et l'id seul pour un fournisseur sans modèle (`deepl`, `google-translate`). Une entrée est soit facturée aux tokens (`inputPerMillionTokens` et `outputPerMillionTokens`), soit facturée aux caractères (`perMillionCharacters`), jamais les deux ; un tarif négatif est rejeté. `openai-compatible` et `libretranslate` n'envoient aucune facture, donc leur quantité est indiquée sans tarif. Une entrée dans la mauvaise unité est refusée.
 
 ### extract
 
@@ -356,7 +349,7 @@ Ces règles n'ont aucune expression en JSON Schema, donc seul le chargement de l
 
 ## Le répertoire de travail et .env
 
-Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) ancre tout : la recherche de configuration y démarre, les chemins de locale se résolvent par rapport à lui, et `translate`, `watch`, `doctor`, `studio` et `mcp` y chargent `.env.local` et `.env`. Une variable déjà définie dans l'environnement l'emporte sur `.env.local`, qui l'emporte sur `.env`.
+Le répertoire de travail (là où tu lances verbatra, ou `--cwd`) ancre la recherche de configuration et les chemins de locale ; les commandes qui y chargent `.env.local` et `.env` sont sous [Fichiers d'environnement](/docs/cli#fichiers-denvironnement).
 
 ## Quand le chargement échoue
 

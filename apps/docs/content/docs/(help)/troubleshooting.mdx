@@ -108,9 +108,8 @@ is not set.` (or your provider's variable).
 **Cause**: the variable the message names is unset or empty. Keys come only from the environment,
 never from the config or a flag.
 
-**Fix**: set the variable and confirm it with `verbatra doctor`. `translate`, `watch`, `doctor`,
-`studio` and `mcp` load `.env` and `.env.local` from the working directory (see
-[Providers](/docs/providers#keys-come-from-the-environment)); the SDK does not, so use
+**Fix**: set the variable and confirm it with `verbatra doctor`. The CLI also reads it from
+[`.env.local` and `.env`](/docs/cli#environment-files); the SDK does not, so use
 `node --env-file=.env` in your own script. Codes:
 [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed),
 [`MISSING_API_KEY`](/docs/error-codes#missing_api_key).
@@ -230,11 +229,12 @@ first.
 
 **Symptom**: editing works, but the retranslate and translate-pending actions do not appear.
 
-**Cause**: provider spend is granted at startup, and without it the spend actions are not
-registered. A [human-only](/docs/human-only-workflow) project withholds them even then.
+**Cause**: provider spend is granted at startup, under the rules in
+[Spend and agent tools](/docs/cli/studio#spend-and-agent-tools), and without it the spend actions
+are not registered.
 
-**Fix**: restart with `verbatra studio --allow-spend`, or set `VERBATRA_STUDIO_ALLOW_SPEND=1`. See
-[Review in Studio](/docs/review-in-studio).
+**Fix**: restart with `verbatra studio --allow-spend`, unless the project is
+[human-only](/docs/human-only-workflow). See [Review in Studio](/docs/review-in-studio).
 
 ## MCP: @verbatra/mcp is not installed
 
@@ -253,12 +253,11 @@ first.
 **Symptom**: the local tools work, but the two spend tools are absent, and calling one fails as an
 unknown tool.
 
-**Cause**: spend is granted at startup, and the tool list must not change per connection, so the
-spend tools are left out entirely. A [human-only](/docs/human-only-workflow) project leaves them
-out even with `--allow-spend`.
+**Cause**: spend is granted at startup, under the rules in [Spend tools](/docs/cli/mcp#spend-tools),
+and the tool list must not change per connection, so the spend tools are left out entirely.
 
-**Fix**: restart with `verbatra mcp --allow-spend`, or set `VERBATRA_MCP_ALLOW_SPEND=1`. See
-[`verbatra mcp`](/docs/cli/mcp).
+**Fix**: restart with `verbatra mcp --allow-spend`, unless the project is
+[human-only](/docs/human-only-workflow).
 
 ## Undoing a run (no error code)
 

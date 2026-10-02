@@ -9,11 +9,10 @@ type: how-to
 Utilise ceci quand quelqu'un demande quelle partie de ton texte publié un fournisseur ou un agent d'IA a traduite, et si une personne l'a relue. verbatra consigne cela clé par clé dans `verbatra.provenance.json` ; tu l'en sors sous forme de rapport à archiver, ou de marqueurs dans les fichiers XLIFF et TMX que tu remets à d'autres outils.
 
 <Callout type="warn" title="Élément de preuve à l'appui, pas un conseil juridique">
-L'article 50 du règlement européen sur l'IA (AI Act) fixe des obligations de transparence pour le
-texte généré par IA, et un texte qu'une personne a relu sous sa responsabilité éditoriale est traité
-différemment d'un texte qui ne l'a pas été. La façon dont ces règles s'appliquent à la traduction, et
-à ton produit, n'est pas quelque chose que verbatra peut décider à ta place. Le rapport et les
-marqueurs sont des éléments de preuve à l'appui pour la personne qui prend cette décision. Ce ne sont
+Selon l'[article 50 du règlement européen sur l'IA](/docs/data-handling#traductions-générées-par-ia-et-provenance), un texte qu'une
+personne a relu sous sa responsabilité éditoriale est traité différemment d'un texte qui ne l'a pas
+été. Le rapport et les marqueurs sont des éléments de preuve à l'appui pour la personne qui décide
+comment cela s'applique à ton produit. Ce ne sont
 pas des conseils juridiques, et les utiliser ne rend un produit conforme à rien du tout.
 </Callout>
 
@@ -24,7 +23,7 @@ Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'�
 - **Classe machine** : `machine`, `memory`, `fuzzy` et `agent`. La mémoire compte comme machine parce qu'elle n'enregistre pas qui a écrit une entrée.
 - **Personnes** : `human` (une modification via Studio ou le SDK) et `import` (la remise d'un traducteur).
 
-`external` (modifiée hors de verbatra depuis son enregistrement), `unrecorded` (aucune trace) et `unknown` (enregistrée sans auteur connu) n'appartiennent à aucune des deux. Une approbation donnée avant que le texte source change se lit comme non relue.
+`external`, `unrecorded` et `unknown` n'appartiennent à aucune des deux. Une approbation donnée avant que le texte source change se lit comme non relue.
 
 Garde ces limites en tête quand tu remets la trace à quelqu'un :
 
@@ -34,7 +33,7 @@ Garde ces limites en tête quand tu remets la trace à quelqu'un :
 
 ## Le rapport de provenance
 
-[`verbatra report provenance`](/docs/cli/report) affiche, par locale cible, combien de valeurs tombent dans chaque catégorie. Il ne lit que les fichiers commités, n'appelle aucun fournisseur et n'écrit rien.
+[`verbatra report provenance`](/docs/cli/report) affiche, par locale cible, combien de valeurs tombent dans chaque catégorie.
 
 ```bash
 verbatra report provenance
