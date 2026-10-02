@@ -73,7 +73,7 @@ un texto de origen, una descripción o el glosario como enviado.
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` revisa, antes de cada petición, exactamente lo que según la tabla anterior recibe un proveedor. Los detectores por defecto encuentran claves de API, direcciones de correo, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos, como nombres en clave. Para acotar su tiempo, se rechaza un patrón que repite un grupo con una repetición o alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado; solo lee los primeros 2.000 caracteres de un campo.
+`sensitiveData` revisa, antes de cada petición, exactamente lo que según la tabla anterior recibe un proveedor. Los detectores por defecto encuentran claves de API, direcciones de correo, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos, como nombres en clave. Se rechaza un patrón que repite un grupo con un cuantificador o una alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado. Lee los primeros 2.000 caracteres de un campo y se detiene a los 50 ms; agotar el tiempo cuenta como hallazgo (`pattern-timeout-<n>`), así que con `block` y `redact` la clave se retiene.
 
 | `mode` | Efecto |
 | --- | --- |

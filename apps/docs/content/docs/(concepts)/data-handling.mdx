@@ -68,7 +68,7 @@ description or the glossary as sent.
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` scans what the table above says a provider receives, before any request. The default detectors find API keys, email addresses, IBANs and card numbers; `phone`, `ip` and `private-host` are opt-in, and `patterns` adds your own terms, such as codenames. To bound its time, a pattern is rejected if it repeats a group holding a repeat or an alternative, holds more than one `*`, `+` or `{n,}`, or branches too often; it reads only the first 2,000 characters of a field.
+`sensitiveData` scans what the table above says a provider receives, before any request. The default detectors find API keys, email addresses, IBANs and card numbers; `phone`, `ip` and `private-host` are opt-in, and `patterns` adds your own terms, such as codenames. A pattern is rejected if it repeats a group holding a quantifier or an alternative, holds more than one `*`, `+` or `{n,}`, or branches too often. It reads the first 2,000 characters of a field and stops after 50 ms; a timeout counts as a finding (`pattern-timeout-<n>`), so the key is withheld under `block` and `redact`.
 
 | `mode` | Effect |
 | --- | --- |
