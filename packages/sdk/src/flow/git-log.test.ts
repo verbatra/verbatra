@@ -1,4 +1,4 @@
-import { execFile as execFileCb } from "node:child_process";
+import { execFile as execFileCb, spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -461,16 +461,24 @@ describe("runGitLog against a real temporary git repository", () => {
 });
 
 async function gitOutput(cwd: string, args: readonly string[], input?: string): Promise<string> {
-  const child = execFileCb("git", args as string[], { cwd });
+  const child = spawn("git", args, {
+    cwd,
+    stdio: [input === undefined ? "ignore" : "pipe", "pipe", "ignore"],
+  });
   const output = new Promise<string>((resolveOutput, reject) => {
     let stdout = "";
     child.stdout?.on("data", (chunk: Buffer) => {
       stdout += chunk.toString("utf8");
     });
+    child.stdin?.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "EPIPE") reject(error);
+    });
     child.on("error", reject);
     child.on("close", () => resolveOutput(stdout.trim()));
   });
-  child.stdin?.end(input ?? "");
+  if (input !== undefined) {
+    child.stdin?.end(input);
+  }
   return output;
 }
 

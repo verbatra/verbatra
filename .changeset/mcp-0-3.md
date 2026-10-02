@@ -2,7 +2,7 @@
 "@verbatra/mcp": minor
 ---
 
-Config-less start and reload, review and glossary v2 tools, spend limits, structured output.
+Config-less start, review, glossary and read tools, values-redacted mode, progress, spend limits.
 
 **Upgrading from 0.2**
 - `glossary.get` no longer returns `entries`: it returns `version`, `terms` and `doNotTranslate`.

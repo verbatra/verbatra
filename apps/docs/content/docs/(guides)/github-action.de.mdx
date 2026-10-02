@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@<commit-sha>
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.11.1 # an exact @verbatra/cli release, 0.9.3 or newer
+          version: 0.12.0 # an exact @verbatra/cli release, 0.9.3 or newer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -49,7 +49,7 @@ Setze `command: check`, damit ein Pull Request mit abweichenden Locale-Dateien f
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line
         with:
-          version: 0.11.1
+          version: 0.12.0
           command: check
 ```
 
@@ -112,7 +112,7 @@ Ist `config-path` leer, verlangt die Action eine erkannte Konfigurationsdatei di
 
 ```yaml
       with:
-        version: 0.11.1
+        version: 0.12.0
         working-directory: apps/docs
 ```
 
