@@ -7,6 +7,7 @@ import type { HistoryState } from "./use-history-list.js";
 
 const COMMIT: HistoryCommit = {
   hash: "0123456789abcdef",
+  author: "Ada Lovelace",
   authorDate: "2026-07-18T09:41:12+02:00",
   subject: "chore(i18n): sync de and fr",
   touchedPaths: ["locales/de.json", "locales/fr.json"],
@@ -103,6 +104,23 @@ describe("CommitList", () => {
     const dateLabel = view.getByText("span", "2026-07-18");
 
     expect(dateLabel.getAttribute("title")).toBe("2026-07-18T09:41:12+02:00");
+  });
+
+  it("names the commit author next to the date", () => {
+    const view = render(<CommitList state={LOADED} emptyMessage="none" />);
+
+    expect(view.getByText("span", "Ada Lovelace")).not.toBeNull();
+  });
+
+  it("writes the author name as text, so a name shaped like markup never becomes markup", () => {
+    const hostile: HistoryCommit = { ...COMMIT, author: "<img src=x onerror=alert(1)>" };
+
+    const view = render(
+      <CommitList state={{ kind: "loaded", commits: [hostile] }} emptyMessage="none" />,
+    );
+
+    expect(view.query("img")).toBeNull();
+    expect(view.getByText("span", "<img src=x onerror=alert(1)>")).not.toBeNull();
   });
 
   it("writes git-sourced text as text, so a subject shaped like markup never becomes markup", () => {
