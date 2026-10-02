@@ -692,9 +692,8 @@ describe("describeErrorMessage: redacted values", () => {
     const message = (outcome as { readonly message: string }).message;
     expect(message.startsWith(`CONFIG_INVALID: ${marker.mark(error.message)}`)).toBe(true);
     const hint = errorHint(error);
-    if (hint !== undefined) {
-      expect(message).toContain(`Next step: ${hint}`);
-    }
+    expect(hint).toBeDefined();
+    expect(message).toContain(`Next step: ${hint}`);
   });
 
   it("replaces an adapter error with an unterminated quote", () => {
