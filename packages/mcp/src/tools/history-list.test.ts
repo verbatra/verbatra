@@ -3,8 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { baseLoadedConfig, baseVerbatraConfig, makeContext } from "../test-support.js";
 import { historyListTool } from "./history-list.js";
 
-const COMMIT =
-  "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1fupdate de\0\nlocales/de.json\0";
+const COMMIT = `${"a".repeat(40)}\x002026-01-01T00:00:00+00:00\x00Ada Lovelace\x00update de\n\nlocales/de.json\n`;
 
 function stub(stdout: string): GitExecFile & ReturnType<typeof vi.fn> {
   return vi.fn(async () => ({ stdout, stderr: "" })) as unknown as GitExecFile &
@@ -29,7 +28,7 @@ describe("history.list", () => {
         available: true,
         commits: [
           {
-            hash: "abc",
+            hash: "a".repeat(40),
             author: "Ada Lovelace",
             authorDate: "2026-01-01T00:00:00+00:00",
             subject: "update de",
@@ -57,7 +56,7 @@ describe("history.list", () => {
       makeContext({ cwd: "/project", execFile: failing({ code: "ENOENT" }) }),
     );
 
-    expect(outcome).toEqual({ kind: "ok", result: { available: false } });
+    expect(outcome).toEqual({ kind: "ok", result: { available: false, reason: "git-missing" } });
   });
 
   it("reports itself unavailable outside a git repository", async () => {
@@ -69,7 +68,10 @@ describe("history.list", () => {
       }),
     );
 
-    expect(outcome).toEqual({ kind: "ok", result: { available: false } });
+    expect(outcome).toEqual({
+      kind: "ok",
+      result: { available: false, reason: "not-a-repository" },
+    });
   });
 
   it("passes a locale path shaped like an option only after the -- separator", async () => {

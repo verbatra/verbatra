@@ -69,6 +69,8 @@ describe("historyListHandler", () => {
 
       expect(execFileImpl).toHaveBeenCalledWith("git", expect.any(Array), {
         cwd: project.root,
+        timeout: expect.any(Number),
+        maxBuffer: expect.any(Number),
       });
     } finally {
       await project.cleanup();
@@ -108,7 +110,7 @@ describe("historyListHandler", () => {
     try {
       const result = await historyListHandler({}, deps(project));
 
-      expect(result).toEqual({ available: false });
+      expect(result).toEqual({ available: false, reason: "not-a-repository" });
     } finally {
       await project.cleanup();
     }

@@ -14,6 +14,8 @@ import {
   isPathContained,
   LOCALE_HISTORY_LIMIT_CAP,
   LOCALE_HISTORY_LIMIT_DEFAULT,
+  LOCALE_HISTORY_MAX_OUTPUT_BYTES,
+  LOCALE_HISTORY_TIMEOUT_MS,
   parseGitLogOutput,
   resolveWatchedPaths,
   runGitLog,
@@ -117,16 +119,26 @@ describe("resolveWatchedPaths", () => {
   });
 });
 
+const HASH_A = "a".repeat(40);
+const HASH_B = "b".repeat(40);
+const DATE = "2026-01-01T00:00:00+00:00";
+
+function header(hash: string, author: string, subject: string, date = DATE): string {
+  return [hash, date, author, subject].join("\0");
+}
+
 describe("buildGitLogArgs", () => {
   it("builds the exact argument array, never a shell string", () => {
     const args = buildGitLogArgs(50, ["/project/locales/de.json", "/project/locales/fr.json"]);
 
     expect(args).toEqual([
+      "-c",
+      "core.quotePath=false",
       "log",
+      "--no-show-signature",
       "--max-count=50",
       "--name-only",
-      "-z",
-      "--format=\x1e%H\x1f%aN\x1f%aI\x1f%s",
+      "--format=%H%x00%aI%x00%aN%x00%s",
       "--",
       "/project/locales/de.json",
       "/project/locales/fr.json",
@@ -137,13 +149,14 @@ describe("buildGitLogArgs", () => {
     const args = buildGitLogArgs(50, ["/project/locales/de.json"]);
     const sentinelIndex = args.indexOf("--");
 
-    expect(sentinelIndex).toBeGreaterThan(-1);
     expect(args[sentinelIndex + 1]).toBe("/project/locales/de.json");
   });
 
-  it("never includes --follow", () => {
+  it("never includes --follow and never asks for an email", () => {
     const args = buildGitLogArgs(50, ["/project/locales/de.json"]);
+
     expect(args).not.toContain("--follow");
+    expect(args.join(" ")).not.toMatch(/%a[eE]|%c[eE]/);
   });
 });
 
@@ -152,75 +165,72 @@ describe("parseGitLogOutput", () => {
     expect(parseGitLogOutput("")).toEqual([]);
   });
 
-  it("parses one commit touching two files", () => {
-    const stdout =
-      "\x1eabc123\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1ffirst commit\0\na.json\0b.json\0";
+  it("parses commits newest first, each with its own file list", () => {
+    const stdout = `${header(HASH_B, "Ada", "second")}\n\na.json\n${header(HASH_A, "Bo", "first")}\n\na.json\nb.json\n`;
 
     expect(parseGitLogOutput(stdout)).toEqual([
       {
-        hash: "abc123",
-        author: "Ada Lovelace",
-        authorDate: "2026-01-01T00:00:00+00:00",
-        subject: "first commit",
-        touchedPaths: ["a.json", "b.json"],
-      },
-    ]);
-  });
-
-  it("parses multiple commits in newest-first order, each with its own file list", () => {
-    const stdout =
-      "\x1ehash2\x1fAda Lovelace\x1f2026-01-02T00:00:00+00:00\x1fsecond\0\na.json\0" +
-      "\x1ehash1\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1ffirst\0\na.json\0b.json\0";
-
-    expect(parseGitLogOutput(stdout)).toEqual([
-      {
-        hash: "hash2",
-        author: "Ada Lovelace",
-        authorDate: "2026-01-02T00:00:00+00:00",
+        hash: HASH_B,
+        author: "Ada",
+        authorDate: DATE,
         subject: "second",
         touchedPaths: ["a.json"],
       },
       {
-        hash: "hash1",
-        author: "Ada Lovelace",
-        authorDate: "2026-01-01T00:00:00+00:00",
+        hash: HASH_A,
+        author: "Bo",
+        authorDate: DATE,
         subject: "first",
         touchedPaths: ["a.json", "b.json"],
       },
     ]);
   });
 
-  it("parses a commit with no touched files (no name-only block at all)", () => {
-    const stdout = "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1fempty commit\0";
+  it("accepts a 64-character SHA-256 hash", () => {
+    const hash = "c".repeat(64);
 
-    expect(parseGitLogOutput(stdout)).toEqual([
-      {
-        hash: "abc",
-        author: "Ada Lovelace",
-        authorDate: "2026-01-01T00:00:00+00:00",
-        subject: "empty commit",
-        touchedPaths: [],
-      },
+    expect(parseGitLogOutput(`${header(hash, "Ada", "x")}\n`)[0]?.hash).toBe(hash);
+  });
+
+  it("parses a commit with no touched files", () => {
+    expect(parseGitLogOutput(header(HASH_A, "Ada", "empty"))).toEqual([
+      { hash: HASH_A, author: "Ada", authorDate: DATE, subject: "empty", touchedPaths: [] },
     ]);
   });
 
-  it("drops a record whose header does not have all three fields", () => {
-    const stdout = "\x1eonly-hash\0\na.json\0";
-    expect(parseGitLogOutput(stdout)).toEqual([]);
-  });
-
-  it("parses a record with no NUL at all as a header-only commit with no touched files", () => {
-    const stdout = "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1fno trailing nul";
+  it.each([
+    ["a short hash", header("abc", "Ada", "x")],
+    ["an uppercase hash", header("A".repeat(40), "Ada", "x")],
+    ["a date that is not ISO 8601", header(HASH_A, "Ada", "x", "yesterday")],
+    ["an extra field", `${header(HASH_A, "Ada", "x")}\0${HASH_B}`],
+    ["a missing field", [HASH_A, DATE, "Ada"].join("\0")],
+  ])("drops a record with %s, and its paths with it", (_label, line) => {
+    const stdout = `${line}\n\nforged.json\n${header(HASH_B, "Bo", "real")}\n\na.json\n`;
 
     expect(parseGitLogOutput(stdout)).toEqual([
-      {
-        hash: "abc",
-        author: "Ada Lovelace",
-        authorDate: "2026-01-01T00:00:00+00:00",
-        subject: "no trailing nul",
-        touchedPaths: [],
-      },
+      { hash: HASH_B, author: "Bo", authorDate: DATE, subject: "real", touchedPaths: ["a.json"] },
     ]);
+  });
+
+  it("removes control and bidirectional formatting characters from the author and subject", () => {
+    const stdout = header(HASH_A, "Ada\x1e\u202eLovelace", "fix\x1f\u2066 de\x07");
+
+    expect(parseGitLogOutput(stdout)[0]).toMatchObject({
+      author: "AdaLovelace",
+      subject: "fix de",
+    });
+  });
+
+  it("unquotes a C-quoted path", () => {
+    const stdout = `${header(HASH_A, "Ada", "x")}\n\n"l/x\\ny\\303\\244.json"\n`;
+
+    expect(parseGitLogOutput(stdout)[0]?.touchedPaths).toEqual(["l/x\nyä.json"]);
+  });
+
+  it("unquotes the named escapes of a C-quoted path", () => {
+    const stdout = `${header(HASH_A, "Ada", "x")}\n\n"a\\tb\\"c\\\\d"\n`;
+
+    expect(parseGitLogOutput(stdout)[0]?.touchedPaths).toEqual(['a\tb"c\\d']);
   });
 });
 
@@ -232,25 +242,27 @@ function resolvedExecFile(stdout: string, stderr = ""): MockedExecFile {
   ) as unknown as MockedExecFile;
 }
 
+function failingExecFile(failure: Record<string, unknown>): GitExecFile {
+  return vi.fn(async () => {
+    throw Object.assign(new Error("git log failed"), failure);
+  }) as unknown as GitExecFile;
+}
+
+const WATCHED = ["/project/locales/de.json"];
+
 describe("runGitLog", () => {
   it("returns available: true with parsed commits on a successful invocation", async () => {
-    const execFile = resolvedExecFile(
-      "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1ffirst\0\na.json\0",
-    );
+    const execFile = resolvedExecFile(`${header(HASH_A, "Ada", "first")}\n\na.json\n`);
 
-    const result = await runGitLog({
-      execFile,
-      projectRoot: "/project",
-      watchedPaths: ["/project/locales/de.json"],
-    });
+    const result = await runGitLog({ execFile, projectRoot: "/project", watchedPaths: WATCHED });
 
     expect(result).toEqual({
       available: true,
       commits: [
         {
-          hash: "abc",
-          author: "Ada Lovelace",
-          authorDate: "2026-01-01T00:00:00+00:00",
+          hash: HASH_A,
+          author: "Ada",
+          authorDate: DATE,
           subject: "first",
           touchedPaths: ["a.json"],
         },
@@ -258,16 +270,16 @@ describe("runGitLog", () => {
     });
   });
 
-  it("runs execFile with cwd set to the project root", async () => {
+  it("runs git in the project root with a timeout and an output limit", async () => {
     const execFile = resolvedExecFile("");
 
-    await runGitLog({
-      execFile,
-      projectRoot: "/project",
-      watchedPaths: ["/project/locales/de.json"],
-    });
+    await runGitLog({ execFile, projectRoot: "/project", watchedPaths: WATCHED });
 
-    expect(execFile).toHaveBeenCalledWith("git", expect.any(Array), { cwd: "/project" });
+    expect(execFile).toHaveBeenCalledWith("git", expect.any(Array), {
+      cwd: "/project",
+      timeout: LOCALE_HISTORY_TIMEOUT_MS,
+      maxBuffer: LOCALE_HISTORY_MAX_OUTPUT_BYTES,
+    });
   });
 
   it("never invokes execFile when watchedPaths is empty", async () => {
@@ -279,52 +291,40 @@ describe("runGitLog", () => {
     expect(execFile).not.toHaveBeenCalled();
   });
 
-  it("degrades to available: false when git itself is missing (ENOENT)", async () => {
-    const execFile = vi.fn(async () => {
-      const error = new Error("spawn git ENOENT") as NodeJS.ErrnoException;
-      error.code = "ENOENT";
-      throw error;
-    }) as unknown as GitExecFile;
-
+  it.each([
+    ["git-missing", { code: "ENOENT" }],
+    ["not-a-repository", { code: 128, stderr: "fatal: not a git repository (or any parent)\n" }],
+    ["timeout", { killed: true, signal: "SIGTERM", code: null }],
+    ["output-too-large", { code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" }],
+  ])("reports available: false with reason %s", async (reason, failure) => {
     const result = await runGitLog({
-      execFile,
+      execFile: failingExecFile(failure),
       projectRoot: "/project",
-      watchedPaths: ["/project/locales/de.json"],
+      watchedPaths: WATCHED,
     });
 
-    expect(result).toEqual({ available: false });
+    expect(result).toEqual({ available: false, reason });
   });
 
-  it("degrades to available: false when the directory is not a git repository", async () => {
-    const execFile = vi.fn(async () => {
-      const error = new Error("git log failed") as Error & { code?: number; stderr?: string };
-      error.code = 128;
-      error.stderr = "fatal: not a git repository (or any of the parent directories): .git\n";
-      throw error;
-    }) as unknown as GitExecFile;
-
+  it("reads any other git failure, such as an unborn branch, as an empty history", async () => {
     const result = await runGitLog({
-      execFile,
+      execFile: failingExecFile({
+        code: 128,
+        stderr: "fatal: your current branch 'main' does not have any commits yet\n",
+      }),
       projectRoot: "/project",
-      watchedPaths: ["/project/locales/de.json"],
+      watchedPaths: WATCHED,
     });
 
-    expect(result).toEqual({ available: false });
+    expect(result).toEqual({ available: true, commits: [] });
   });
 
-  it("degrades to available: true with an empty history for any other git failure, such as an unborn branch", async () => {
-    const execFile = vi.fn(async () => {
-      const error = new Error("git log failed") as Error & { code?: number; stderr?: string };
-      error.code = 128;
-      error.stderr = "fatal: your current branch 'main' does not have any commits yet\n";
-      throw error;
-    }) as unknown as GitExecFile;
+  it("reads a thrown non-object as an empty history", async () => {
+    const execFile: GitExecFile = async () => {
+      throw undefined;
+    };
 
-    const result = await runGitLog({
-      execFile,
-      projectRoot: "/project",
-      watchedPaths: ["/project/locales/de.json"],
-    });
+    const result = await runGitLog({ execFile, projectRoot: "/project", watchedPaths: WATCHED });
 
     expect(result).toEqual({ available: true, commits: [] });
   });
@@ -332,12 +332,7 @@ describe("runGitLog", () => {
   it("clamps the limit before building the argument array", async () => {
     const execFile = resolvedExecFile("");
 
-    await runGitLog({
-      execFile,
-      projectRoot: "/project",
-      watchedPaths: ["/project/locales/de.json"],
-      limit: 9999,
-    });
+    await runGitLog({ execFile, projectRoot: "/project", watchedPaths: WATCHED, limit: 9999 });
 
     const args = execFile.mock.calls[0]?.[1] as readonly string[];
     expect(args).toContain(`--max-count=${LOCALE_HISTORY_LIMIT_CAP}`);
@@ -352,6 +347,8 @@ describe("defaultGitExecFile", () => {
 
       const result = await defaultGitExecFile("git", ["log", "--max-count=1", "--format=%s"], {
         cwd: project.root,
+        timeout: 10_000,
+        maxBuffer: 1024 * 1024,
       });
 
       expect(result.stdout.trim()).toBe("write a.json");
@@ -362,7 +359,11 @@ describe("defaultGitExecFile", () => {
 
   it("rejects when the command does not exist", async () => {
     await expect(
-      defaultGitExecFile("verbatra-nonexistent-binary-xyz", [], { cwd: process.cwd() }),
+      defaultGitExecFile("verbatra-nonexistent-binary-xyz", [], {
+        cwd: process.cwd(),
+        timeout: 10_000,
+        maxBuffer: 1024,
+      }),
     ).rejects.toThrow();
   });
 });
@@ -423,7 +424,7 @@ describe("runGitLog against a real temporary git repository", () => {
         watchedPaths: [join(root, "locales", "de.json")],
       });
 
-      expect(result).toEqual({ available: false });
+      expect(result).toEqual({ available: false, reason: "not-a-repository" });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -455,6 +456,119 @@ describe("runGitLog against a real temporary git repository", () => {
     } finally {
       await source.cleanup();
       await rm(cloneRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+async function gitOutput(cwd: string, args: readonly string[], input?: string): Promise<string> {
+  const child = execFileCb("git", args as string[], { cwd });
+  const output = new Promise<string>((resolveOutput, reject) => {
+    let stdout = "";
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.on("error", reject);
+    child.on("close", () => resolveOutput(stdout.trim()));
+  });
+  child.stdin?.end(input ?? "");
+  return output;
+}
+
+async function commitRawMessage(root: string, path: string, message: string): Promise<void> {
+  await writeFile(join(root, path), `${message.length}\n`, "utf8");
+  await runGit(root, ["add", path]);
+  const tree = await gitOutput(root, ["write-tree"]);
+  const parent = await gitOutput(root, ["rev-parse", "HEAD"]);
+  const body =
+    `tree ${tree}\nparent ${parent}\n` +
+    "author Mallory\x1f <m@example.com> 1767225600 +0000\n" +
+    "committer Mallory <m@example.com> 1767225600 +0000\n\n" +
+    `${message}\n`;
+  const hash = await gitOutput(
+    root,
+    ["hash-object", "-t", "commit", "-w", "--literally", "--stdin"],
+    body,
+  );
+  await runGit(root, ["update-ref", "HEAD", hash]);
+}
+
+describe("runGitLog against crafted commit metadata", () => {
+  it("never forges a commit from separators in a subject or author", async () => {
+    const project = await makeTempGitRepo();
+    try {
+      await mkdir(join(project.root, "locales"), { recursive: true });
+      await commitFile(project.root, "locales/de.json", "1\n");
+      const fake = `${"f".repeat(40)}\x1f2020-01-01T00:00:00+00:00\x1fForged\x1fforged\x1e`;
+      await commitRawMessage(project.root, "locales/de.json", `evil \x1e${fake}‮ end`);
+      await commitRawMessage(
+        project.root,
+        "locales/de.json",
+        `nul\0${"e".repeat(40)}\0${DATE}\0Eve\0x`,
+      );
+
+      const result = await runGitLog({
+        execFile: defaultGitExecFile,
+        projectRoot: project.root,
+        watchedPaths: [join(project.root, "locales", "de.json")],
+      });
+
+      if (!result.available) {
+        throw new Error("expected available: true");
+      }
+      const authors = result.commits.map((commit) => commit.author);
+      expect(authors).not.toContain("Forged");
+      expect(authors).not.toContain("Eve");
+      expect(result.commits.every((commit) => /^[0-9a-f]{40}$/.test(commit.hash))).toBe(true);
+      expect(result.commits.some((commit) => commit.hash === "f".repeat(40))).toBe(false);
+      const evil = result.commits.find((commit) => commit.subject.startsWith("evil"));
+      expect(evil?.author).toBe("Mallory");
+      for (const forbidden of ["\x1e", "\x1f", "\u202e"]) {
+        expect(evil?.subject).not.toContain(forbidden);
+      }
+      expect(evil?.touchedPaths).toEqual(["locales/de.json"]);
+      expect(result.commits.at(-1)?.subject).toBe("write locales/de.json");
+    } finally {
+      await project.cleanup();
+    }
+  });
+});
+
+describe("runGitLog with the real runner under tight limits", () => {
+  it("reports output-too-large when git writes more than the buffer allows", async () => {
+    const project = await makeTempGitRepo();
+    try {
+      await commitFile(project.root, "a.json", "1\n");
+      const execFile: GitExecFile = (file, args, options) =>
+        defaultGitExecFile(file, args, { ...options, maxBuffer: 8 });
+
+      const result = await runGitLog({
+        execFile,
+        projectRoot: project.root,
+        watchedPaths: [join(project.root, "a.json")],
+      });
+
+      expect(result).toEqual({ available: false, reason: "output-too-large" });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("reports timeout when git runs longer than allowed", async () => {
+    const project = await makeTempGitRepo();
+    try {
+      await commitFile(project.root, "a.json", "1\n");
+      const execFile: GitExecFile = (_file, _args, options) =>
+        defaultGitExecFile("sh", ["-c", "sleep 5"], { ...options, timeout: 50 });
+
+      const result = await runGitLog({
+        execFile,
+        projectRoot: project.root,
+        watchedPaths: [join(project.root, "a.json")],
+      });
+
+      expect(result).toEqual({ available: false, reason: "timeout" });
+    } finally {
+      await project.cleanup();
     }
   });
 });

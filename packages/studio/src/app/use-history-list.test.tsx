@@ -63,12 +63,12 @@ describe("useHistoryList", () => {
   });
 
   it("reports the unavailable state when the project is not a git repository", async () => {
-    stubRpc({ "history.list": historyAnswer({ available: false }) });
+    stubRpc({ "history.list": historyAnswer({ available: false, reason: "not-a-repository" }) });
 
     const view = await renderAsync(<Probe />);
 
     expect(view.text()).toBe("unavailable");
-    expect(seen).toEqual({ kind: "unavailable" });
+    expect(seen).toEqual({ kind: "unavailable", reason: "not-a-repository" });
   });
 
   it("carries the server's structured error through when the read fails", async () => {

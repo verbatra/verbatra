@@ -84,7 +84,7 @@ function capabilities(spend: boolean, writeToDisk: boolean): StubRpcResult {
 
 function stubBackground(): void {
   stubRpc({
-    "history.list": { ok: true, result: { available: false } },
+    "history.list": { ok: true, result: { available: false, reason: "not-a-repository" } },
     "key.integrity": { ok: true, result: integrityResult([]) },
     "project.snapshot": capabilities(false, false),
   });

@@ -37,16 +37,37 @@ describe("CommitList", () => {
   });
 
   it("explains a project without git as an empty state rather than an error", () => {
-    const view = render(<CommitList state={{ kind: "unavailable" }} emptyMessage="No commits." />);
+    const view = render(
+      <CommitList
+        state={{ kind: "unavailable", reason: "not-a-repository" }}
+        emptyMessage="No commits."
+      />,
+    );
 
     expect(view.query('[role="alert"]')).toBeNull();
     expect(view.getByText("p", "History unavailable")).not.toBeNull();
     expect(view.text()).toContain("This project is not a git repository, or git is not installed.");
   });
 
+  it.each([
+    ["timeout", "Reading the git history took too long and was stopped."],
+    ["output-too-large", "The git history is too large to read here."],
+    ["git-missing", "This project is not a git repository, or git is not installed."],
+  ] as const)("explains the unavailable reason %s", (reason, message) => {
+    const view = render(
+      <CommitList state={{ kind: "unavailable", reason }} compact emptyMessage="No commits." />,
+    );
+
+    expect(view.text()).toBe(message);
+  });
+
   it("drops the empty-state chrome for the unavailable case when compact", () => {
     const view = render(
-      <CommitList state={{ kind: "unavailable" }} compact emptyMessage="No commits." />,
+      <CommitList
+        state={{ kind: "unavailable", reason: "not-a-repository" }}
+        compact
+        emptyMessage="No commits."
+      />,
     );
 
     expect(view.query('[role="alert"]')).toBeNull();

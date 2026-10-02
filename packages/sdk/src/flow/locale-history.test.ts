@@ -4,8 +4,7 @@ import type { GitExecFile } from "./git-log.js";
 import { LOCALE_HISTORY_LIMIT_CAP } from "./git-log.js";
 import { localeHistory } from "./locale-history.js";
 
-const COMMIT =
-  "\x1eabc\x1fAda Lovelace\x1f2026-01-01T00:00:00+00:00\x1fupdate de\0\nlocales/de.json\0";
+const COMMIT = `${"a".repeat(40)}\x002026-01-01T00:00:00+00:00\x00Ada Lovelace\x00update de\n\nlocales/de.json\n`;
 
 function stubExecFile(stdout: string): GitExecFile & ReturnType<typeof vi.fn> {
   return vi.fn(async () => ({ stdout, stderr: "" })) as unknown as GitExecFile &
@@ -31,7 +30,7 @@ describe("localeHistory", () => {
       available: true,
       commits: [
         {
-          hash: "abc",
+          hash: "a".repeat(40),
           author: "Ada Lovelace",
           authorDate: "2026-01-01T00:00:00+00:00",
           subject: "update de",
@@ -41,7 +40,7 @@ describe("localeHistory", () => {
     });
     const [file, args, options] = execFile.mock.calls[0] as [string, string[], { cwd: string }];
     expect(file).toBe("git");
-    expect(options).toEqual({ cwd: "/project" });
+    expect(options).toMatchObject({ cwd: "/project" });
     expect(args.slice(args.indexOf("--") + 1)).toEqual([
       "/project/locales/en.json",
       "/project/locales/de.json",
@@ -81,7 +80,7 @@ describe("localeHistory", () => {
       { execFile: failingExecFile({ code: "ENOENT" }) },
     );
 
-    expect(result).toEqual({ available: false });
+    expect(result).toEqual({ available: false, reason: "git-missing" });
   });
 
   it("reports itself unavailable outside a git repository", async () => {
@@ -90,7 +89,7 @@ describe("localeHistory", () => {
       { execFile: failingExecFile({ code: 128, stderr: "fatal: not a git repository" }) },
     );
 
-    expect(result).toEqual({ available: false });
+    expect(result).toEqual({ available: false, reason: "not-a-repository" });
   });
 
   it("never passes a locale path that resolves to a git option", async () => {

@@ -24,6 +24,10 @@ export type ExecFileImpl = (
   options: {
     /** Absolute directory to run the process in, which for the history view is the project root. */
     readonly cwd: string;
+    /** Milliseconds after which the process should be stopped. */
+    readonly timeout: number;
+    /** The most bytes of output to accept before the process should be stopped. */
+    readonly maxBuffer: number;
   },
 ) => Promise<ExecFileResult>;
 

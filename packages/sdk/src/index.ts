@@ -242,8 +242,11 @@ export {
   type GitExecFileResult,
   LOCALE_HISTORY_LIMIT_CAP,
   LOCALE_HISTORY_LIMIT_DEFAULT,
+  LOCALE_HISTORY_MAX_OUTPUT_BYTES,
+  LOCALE_HISTORY_TIMEOUT_MS,
   type LocaleHistoryCommit,
   type LocaleHistoryResult,
+  type LocaleHistoryUnavailableReason,
 } from "./flow/git-log.js";
 export {
   INTEGRITY_GATE_REASONS,

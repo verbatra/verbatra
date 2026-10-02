@@ -32,16 +32,20 @@ export interface LocaleHistoryDeps {
  * file, newest first, each with its hash, author name, author date, subject and touched paths. It
  * writes nothing and calls no provider.
  *
- * The author is the name only, after `.mailmap`; the email address is never read. Renames are not
- * followed, so history from before a locale file was renamed is not listed. Every locale path is
- * resolved inside `cwd` and passed after a `--` separator, and a path that would leave `cwd` or
- * start with a dash is dropped, so a config value is never read as a git option.
+ * The author is the name only, after `.mailmap`; the email address is never read. Control and
+ * bidirectional formatting characters are removed from the author and the subject, and a commit
+ * whose metadata does not parse as a full hash, an ISO date, an author and a subject is left out.
+ * Renames are not followed, so history from before a locale file was renamed is not listed. Every
+ * locale path is resolved inside `cwd` and passed after a `--` separator, and a path that would
+ * leave `cwd` or start with a dash is dropped, so a config value is never read as a git option.
+ * `git log` runs with commit signature display off and terminal prompts disabled, is stopped after
+ * {@link LOCALE_HISTORY_TIMEOUT_MS}, and may write at most {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
  *
  * @param input - The config, the project directory, and the optional commit limit.
  * @param deps - Optional process runner override.
- * @returns The commits, or `available: false` when git is not installed or `cwd` is not inside a
- * git repository. Any other git failure, such as a branch with no commits yet, reads as an empty
- * history.
+ * @returns The commits, or `available: false` with a {@link LocaleHistoryUnavailableReason} when
+ * git is missing, `cwd` is not inside a git repository, or `git log` timed out or wrote too much.
+ * Any other git failure, such as a branch with no commits yet, reads as an empty history.
  *
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or a configured locale has no valid path spelling under that style.

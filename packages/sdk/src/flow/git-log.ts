@@ -26,6 +26,10 @@ export type GitExecFile = (
   options: {
     /** Absolute directory to run the process in: the project root. */
     readonly cwd: string;
+    /** Milliseconds after which the process is killed. A runner should honour it. */
+    readonly timeout: number;
+    /** The most bytes of standard output or error to accept before the process is killed. */
+    readonly maxBuffer: number;
   },
 ) => Promise<GitExecFileResult>;
 
@@ -44,19 +48,41 @@ export interface LocaleHistoryCommit {
 }
 
 /**
- * The result of {@link localeHistory}: `available: false` when git is not installed or the project
- * is not inside a git repository, otherwise the commits, newest first.
+ * Why {@link localeHistory} could not read the history:
+ *
+ * - `git-missing`: no `git` executable was found.
+ * - `not-a-repository`: the project is not inside a git repository.
+ * - `timeout`: `git log` ran longer than {@link LOCALE_HISTORY_TIMEOUT_MS} and was stopped.
+ * - `output-too-large`: `git log` wrote more than {@link LOCALE_HISTORY_MAX_OUTPUT_BYTES}.
+ */
+export type LocaleHistoryUnavailableReason =
+  | "git-missing"
+  | "not-a-repository"
+  | "timeout"
+  | "output-too-large";
+
+/**
+ * The result of {@link localeHistory}: `available: false` with a reason when the history could not
+ * be read, otherwise the commits, newest first.
  */
 export type LocaleHistoryResult =
-  | { readonly available: false }
+  | { readonly available: false; readonly reason: LocaleHistoryUnavailableReason }
   | { readonly available: true; readonly commits: readonly LocaleHistoryCommit[] };
 
 const execFileAsync = promisify(execFileCb);
+
+/** How long {@link localeHistory} lets `git log` run before stopping it, in milliseconds. */
+export const LOCALE_HISTORY_TIMEOUT_MS = 10_000;
+/** The most output {@link localeHistory} accepts from `git log`, in bytes. */
+export const LOCALE_HISTORY_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 
 export const defaultGitExecFile: GitExecFile = async (file, args, options) => {
   const { stdout, stderr } = await execFileAsync(file, args as string[], {
     cwd: options.cwd,
     encoding: "utf8",
+    timeout: options.timeout,
+    maxBuffer: options.maxBuffer,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
   });
   return { stdout, stderr };
 };
@@ -92,80 +118,133 @@ export function resolveWatchedPaths(projectRoot: string, candidates: readonly st
   return Array.from(new Set(safe));
 }
 
-const RECORD_SEPARATOR = "\x1e";
-const FIELD_SEPARATOR = "\x1f";
-const GIT_LOG_FORMAT = `${RECORD_SEPARATOR}%H${FIELD_SEPARATOR}%aN${FIELD_SEPARATOR}%aI${FIELD_SEPARATOR}%s`;
+const FIELD_SEPARATOR = "\0";
+const GIT_LOG_FORMAT = "%H%x00%aI%x00%aN%x00%s";
+const HEADER_FIELD_COUNT = 4;
+const COMMIT_HASH = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
+const UNSAFE_TEXT = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/gu;
 
 export function buildGitLogArgs(maxCount: number, paths: readonly string[]): string[] {
   return [
+    "-c",
+    "core.quotePath=false",
     "log",
+    "--no-show-signature",
     `--max-count=${maxCount}`,
     "--name-only",
-    "-z",
     `--format=${GIT_LOG_FORMAT}`,
     "--",
     ...paths,
   ];
 }
 
-function parseCommitHeader(header: string): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
-  const [hash, author, authorDate, subject] = header.split(FIELD_SEPARATOR);
-  if (
-    hash === undefined ||
-    author === undefined ||
-    authorDate === undefined ||
-    subject === undefined
-  ) {
-    return undefined;
-  }
-  return { hash, author, authorDate, subject };
+export function sanitizeGitText(text: string): string {
+  return text.replace(UNSAFE_TEXT, "");
 }
 
-function parseTouchedPaths(filesPart: string): string[] {
-  return filesPart
-    .split("\0")
-    .map((entry) => (entry.startsWith("\n") ? entry.slice(1) : entry))
-    .filter((entry) => entry.length > 0);
+const C_ESCAPES: Readonly<Record<string, number>> = {
+  a: 7,
+  b: 8,
+  t: 9,
+  n: 10,
+  v: 11,
+  f: 12,
+  r: 13,
+  '"': 34,
+  "\\": 92,
+};
+
+function unquoteCPath(quoted: string): string {
+  const bytes: number[] = [];
+  const body = quoted.slice(1, -1);
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index] as string;
+    if (char !== "\\") {
+      bytes.push(...Buffer.from(char, "utf8"));
+      continue;
+    }
+    const octal = /^[0-7]{3}/.exec(body.slice(index + 1));
+    if (octal !== null) {
+      bytes.push(Number.parseInt(octal[0], 8));
+      index += 3;
+      continue;
+    }
+    const next = body[index + 1] ?? "";
+    bytes.push(C_ESCAPES[next] ?? next.charCodeAt(0));
+    index += 1;
+  }
+  return Buffer.from(bytes).toString("utf8");
 }
 
-function parseCommitRecord(record: string): LocaleHistoryCommit | undefined {
-  const nulIndex = record.indexOf("\0");
-  const header = nulIndex === -1 ? record : record.slice(0, nulIndex);
-  const parsedHeader = parseCommitHeader(header);
-  if (parsedHeader === undefined) {
+function parsePathLine(line: string): string {
+  return line.length >= 2 && line.startsWith('"') && line.endsWith('"') ? unquoteCPath(line) : line;
+}
+
+function parseCommitHeader(line: string): Omit<LocaleHistoryCommit, "touchedPaths"> | undefined {
+  const fields = line.split(FIELD_SEPARATOR);
+  if (fields.length !== HEADER_FIELD_COUNT) {
     return undefined;
   }
-  const touchedPaths = nulIndex === -1 ? [] : parseTouchedPaths(record.slice(nulIndex + 1));
-  return { ...parsedHeader, touchedPaths };
+  const [hash = "", authorDate = "", author = "", subject = ""] = fields;
+  if (!COMMIT_HASH.test(hash) || !ISO_DATE.test(authorDate)) {
+    return undefined;
+  }
+  return { hash, author: sanitizeGitText(author), authorDate, subject: sanitizeGitText(subject) };
+}
+
+interface PendingCommit {
+  readonly header: Omit<LocaleHistoryCommit, "touchedPaths"> | undefined;
+  readonly touchedPaths: string[];
+}
+
+function completed(pending: PendingCommit | undefined): LocaleHistoryCommit[] {
+  return pending?.header === undefined
+    ? []
+    : [{ ...pending.header, touchedPaths: pending.touchedPaths }];
 }
 
 export function parseGitLogOutput(stdout: string): LocaleHistoryCommit[] {
-  return stdout
-    .split(RECORD_SEPARATOR)
-    .filter((record) => record.length > 0)
-    .map(parseCommitRecord)
-    .filter((commit): commit is LocaleHistoryCommit => commit !== undefined);
+  const commits: LocaleHistoryCommit[] = [];
+  let pending: PendingCommit | undefined;
+  for (const line of stdout.split("\n")) {
+    if (line.includes(FIELD_SEPARATOR)) {
+      commits.push(...completed(pending));
+      pending = { header: parseCommitHeader(line), touchedPaths: [] };
+    } else if (line.length > 0 && pending !== undefined) {
+      pending.touchedPaths.push(parsePathLine(line));
+    }
+  }
+  commits.push(...completed(pending));
+  return commits;
 }
 
 interface ExecFileFailure {
-  readonly code?: string | number;
+  readonly code?: string | number | null;
+  readonly killed?: boolean;
+  readonly signal?: string | null;
   readonly stderr?: string;
 }
 
-function isMissingGitBinary(error: ExecFileFailure): boolean {
-  return error.code === "ENOENT";
-}
-
-function isNotARepository(error: ExecFileFailure): boolean {
-  return typeof error.stderr === "string" && error.stderr.includes("not a git repository");
+function unavailableReason(failure: ExecFileFailure): LocaleHistoryUnavailableReason | undefined {
+  if (failure.code === "ENOENT") {
+    return "git-missing";
+  }
+  if (failure.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
+    return "output-too-large";
+  }
+  if (failure.killed === true || failure.signal === "SIGTERM") {
+    return "timeout";
+  }
+  if (typeof failure.stderr === "string" && failure.stderr.includes("not a git repository")) {
+    return "not-a-repository";
+  }
+  return undefined;
 }
 
 function interpretGitLogFailure(error: unknown): LocaleHistoryResult {
-  const failure = error as ExecFileFailure;
-  if (isMissingGitBinary(failure) || isNotARepository(failure)) {
-    return { available: false };
-  }
-  return { available: true, commits: [] };
+  const reason = unavailableReason((error ?? {}) as ExecFileFailure);
+  return reason === undefined ? { available: true, commits: [] } : { available: false, reason };
 }
 
 export interface RunGitLogInput {
@@ -181,7 +260,11 @@ export async function runGitLog(input: RunGitLogInput): Promise<LocaleHistoryRes
   }
   const args = buildGitLogArgs(clampHistoryLimit(input.limit), input.watchedPaths);
   try {
-    const { stdout } = await input.execFile("git", args, { cwd: input.projectRoot });
+    const { stdout } = await input.execFile("git", args, {
+      cwd: input.projectRoot,
+      timeout: LOCALE_HISTORY_TIMEOUT_MS,
+      maxBuffer: LOCALE_HISTORY_MAX_OUTPUT_BYTES,
+    });
     return { available: true, commits: parseGitLogOutput(stdout) };
   } catch (error) {
     return interpretGitLogFailure(error);

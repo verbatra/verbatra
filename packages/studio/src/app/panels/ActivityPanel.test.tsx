@@ -353,7 +353,7 @@ describe("ActivityPanel", () => {
   });
 
   it("renders history as unavailable, not an error, for a project without git", async () => {
-    stubActivity(TRACKED_RUN, { available: false });
+    stubActivity(TRACKED_RUN, { available: false, reason: "not-a-repository" });
 
     const view = await renderAsync(<ActivityPanel refreshToken={0} />);
 
