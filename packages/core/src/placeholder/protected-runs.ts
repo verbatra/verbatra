@@ -121,7 +121,7 @@ interface Frame {
   readonly end: number;
 }
 
-function enterBrace(scan: Scan, frame: Frame, open: number, inner: Frame[]): void {
+function enterBrace(scan: Scan, frame: Frame, open: number, frames: Frame[]): void {
   const closeIndex = closingBrace(scan, open);
   if (closeIndex === -1) {
     scan.mask[open] = 1;
@@ -134,7 +134,7 @@ function enterBrace(scan: Scan, frame: Frame, open: number, inner: Frame[]): voi
   } else {
     scan.mask.fill(1, open, submessage.styleStart);
     scan.mask[closeIndex] = 1;
-    inner.push({ arms: true, index: submessage.styleStart, end: closeIndex });
+    frames.push({ arms: true, index: submessage.styleStart, end: closeIndex });
   }
   frame.index = closeIndex + 1;
 }
