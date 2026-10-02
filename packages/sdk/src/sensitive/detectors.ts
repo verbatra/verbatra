@@ -2,6 +2,7 @@ import { findKeyShapes, matchSpans, type TextSpan } from "@verbatra/ai-providers
 import type { SensitiveDetectorId } from "../config/sensitive-config.js";
 import { emailSpans } from "./email.js";
 import { ibanSpans } from "./iban.js";
+import { jwtSpans } from "./jwt.js";
 
 export type { TextSpan } from "@verbatra/ai-providers";
 
@@ -28,7 +29,6 @@ const SERVICE_TOKENS: readonly RegExp[] = [
   /\b[rs]k_live_[A-Za-z0-9]{16,}\b/g,
   /\bxox[abpr]-[A-Za-z0-9-]{10,}\b/g,
 ];
-const JWT = /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g;
 const PRIVATE_KEY = /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g;
 const OCTET = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
 const IPV4 = new RegExp(`(?<![\\w.])(?:${OCTET}\\.){3}${OCTET}(?![\\w.])`, "g");
@@ -83,7 +83,7 @@ const DETECTORS: Readonly<Record<SensitiveDetectorId, Detector>> = {
     ...findKeyShapes(text),
     ...matchSpans(AWS_KEY, text),
     ...SERVICE_TOKENS.flatMap((pattern) => matchSpans(pattern, text)),
-    ...matchSpans(JWT, text),
+    ...jwtSpans(text),
     ...matchSpans(PRIVATE_KEY, text),
   ],
   email: emailSpans,

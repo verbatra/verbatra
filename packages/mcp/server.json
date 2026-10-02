@@ -29,6 +29,13 @@
           "isSecret": false
         },
         {
+          "name": "VERBATRA_MCP_REDACT_VALUES",
+          "description": "Set to true to replace translation values in every tool result with a marker, the same as --redact-values.",
+          "format": "boolean",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
           "name": "ANTHROPIC_API_KEY",
           "description": "API key for the anthropic provider, read only by the provider-calling tools.",
           "isRequired": false,

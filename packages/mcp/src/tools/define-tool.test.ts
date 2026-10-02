@@ -2,7 +2,7 @@ import { AdapterError, createValueMarker, errorHint, ProviderError, SdkError } f
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { makeContext } from "../test-support.js";
-import { defineTool, McpInvalidParamsError } from "./define-tool.js";
+import { defineTool, describeErrorMessage, McpInvalidParamsError } from "./define-tool.js";
 
 const paramsSchema = z.strictObject({ name: z.string().min(1) });
 const outputSchema = z.object({ greeting: z.string() });
@@ -655,5 +655,100 @@ describe("defineTool: redacted values", () => {
     expect(outcome.kind).toBe("error");
     expect(JSON.stringify(outcome)).not.toContain("Hallo Welt");
     expect(JSON.stringify(outcome)).toContain("PROVIDER_ERROR");
+  });
+});
+
+describe("describeErrorMessage: redacted values", () => {
+  const marker = createValueMarker(new Uint8Array([5]));
+
+  it("replaces the whole message of a config error, even after a backslash-terminated term", async () => {
+    const error = new SdkError(
+      "CONFIG_INVALID",
+      'glossary forbids "Pfad C:\\temp\\" for "de", where "GEHEIM-ZIEL" is the target',
+    );
+    const tool = defineTool({
+      name: "test.config",
+      values: "none",
+      description: "test",
+      paramsSchema: z.strictObject({}),
+      outputSchema: z.object({}),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      handler: async () => {
+        throw error;
+      },
+    });
+
+    const outcome = await tool.execute({}, makeContext({ valueMarker: marker }));
+    const text = JSON.stringify(outcome);
+
+    expect(text).not.toContain("GEHEIM");
+    expect(text).not.toContain("Pfad");
+    expect(outcome).toMatchObject({ kind: "error" });
+    const message = (outcome as { readonly message: string }).message;
+    expect(message.startsWith(`CONFIG_INVALID: ${marker.mark(error.message)}`)).toBe(true);
+    const hint = errorHint(error);
+    expect(hint).toBeDefined();
+    expect(message).toContain(`Next step: ${hint}`);
+  });
+
+  it("replaces an adapter error with an unterminated quote", () => {
+    const error = new AdapterError("INVALID_STRUCTURE", 'bad value "GEHEIM never closed');
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe(
+      `INVALID_STRUCTURE: ${marker.mark(error.message)}`,
+    );
+  });
+
+  it("replaces an adversarial message of 80,000 escaped quotes in linear time", () => {
+    const error = new SdkError("SOURCE_INVALID", `"${'\\"'.repeat(80_000)}`);
+    const started = performance.now();
+
+    const described = describeErrorMessage(error, "/project", marker);
+
+    expect(performance.now() - started).toBeLessThan(1_000);
+    expect(described).toBe(`SOURCE_INVALID: ${marker.mark(error.message)}`);
+  });
+
+  it("leaves an error that carries no values readable", () => {
+    const error = new SdkError("UNKNOWN_KEY", 'No key "greeting" in the source locale');
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe(
+      'UNKNOWN_KEY: No key "greeting" in the source locale',
+    );
+  });
+
+  it.each([
+    ["REVIEW_RESTORE_FAILED", new AdapterError("INVALID_STRUCTURE", 'cannot write "GEHEIM"')],
+    ["SOURCE_UNWRITABLE", new SdkError("CONFIG_INVALID", 'term "GEHEIM" is invalid')],
+  ] as const)("replaces a %s message that wraps a value-carrying error", (code, cause) => {
+    const error = new SdkError(code, `failed (${cause.message})`, { cause });
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe(
+      `${code}: ${marker.mark(error.message)}`,
+    );
+  });
+
+  it("leaves a wrapping error readable when nothing in its cause chain carries values", () => {
+    const error = new SdkError("SOURCE_UNWRITABLE", "disk full", { cause: new Error("ENOSPC") });
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe("SOURCE_UNWRITABLE: disk full");
+  });
+
+  it("stops following a cause chain that loops back on itself", () => {
+    const error = new SdkError("UNKNOWN_KEY", "No key greeting");
+    Object.defineProperty(error, "cause", { value: error });
+
+    expect(describeErrorMessage(error, "/project", marker)).toBe("UNKNOWN_KEY: No key greeting");
+  });
+
+  it("leaves every message readable without a marker", () => {
+    const error = new SdkError("CONFIG_INVALID", 'term "GEHEIM"');
+
+    expect(describeErrorMessage(error, "/project")).toBe('CONFIG_INVALID: term "GEHEIM"');
   });
 });

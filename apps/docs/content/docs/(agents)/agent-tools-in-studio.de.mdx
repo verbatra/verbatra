@@ -65,7 +65,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_translation_retranslateEntry` | einen Key in einer Locale neu übersetzen |
 | `verbatra_translation_translatePending` | alles Ausstehende übersetzen, optional nur für bestimmte `locales` und unter einer `maxTokens`-Obergrenze <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Der MCP-Server hat die Tools für Historie, Werte, Integrität und Key-Kontext ebenfalls; sein `locale.values` liefert Seiten, siehe [Weitere Eingaben und Ergebnisse](/docs/cli/mcp#weitere-eingaben-und-ergebnisse).
+`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`; sein `locale.values` liefert Seiten, siehe [Weitere Eingaben und Ergebnisse](/docs/cli/mcp#weitere-eingaben-und-ergebnisse).
 
 ## Die Regeln der Tools kennen
 

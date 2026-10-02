@@ -3,48 +3,7 @@ title: Recettes SDK
 description: Des exemples complets et exécutables pour piloter verbatra depuis tes propres scripts, jobs CI et outillage.
 type: how-to
 ---
-La [référence SDK](/docs/sdk) catalogue chaque point d'entrée. Cette page est le compagnon pratique : des recettes de bout en bout à copier dans un script et à lancer. Une chose à préparer d'abord : le SDK ne charge pas les fichiers `.env` (c'est la CLI qui fait ça), donc assure-toi que la variable d'environnement du fournisseur est définie avant que ton script tourne, par exemple :
-
-```bash
-node --env-file=.env translate.mjs
-```
-
-## Traduire en une passe dans un script
-
-Charge la config, lance le flux, puis lis le résumé : l'essentiel dans `succeeded` et `failed`, la dépense de tokens dans `usage`, et les clés qui méritent un regard humain dans le `needsReview` de chaque locale. Les problèmes globaux lèvent une `SdkError` ; les résultats par locale sont des données sur le résumé.
-
-```ts
-import { loadConfig, translate } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await translate({ config });
-
-console.log(
-  `${summary.succeeded.length} ok, ${summary.partial.length} partial, ${summary.failed.length} failed`,
-);
-
-if (summary.usage !== undefined) {
-  console.log(`tokens: ${summary.usage.inputTokens} in, ${summary.usage.outputTokens} out`);
-}
-
-for (const locale of summary.locales) {
-  if (locale.status === "failed") {
-    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
-    continue;
-  }
-  for (const entry of locale.needsReview) {
-    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
-  }
-}
-
-if (summary.failed.length > 0 || summary.partial.length > 0) {
-  process.exitCode = 1;
-}
-```
-
-Une locale `partial` est une locale dont le fichier a été écrit alors que des clés manquent encore. Ce n'est pas un succès : la CLI se termine avec le code `1` dans ce cas, et ton propre script devrait la traiter de la même façon, d'où le test de `partial` à côté de `failed` ci-dessus.
-
-Passe `dryRun: true` pour prévisualiser sans appeler de fournisseur ni rien écrire, et `locales: ["de"]` pour restreindre l'exécution à une partie des cibles configurées, ce qui te permet d'avancer une langue à la fois avec un fournisseur soumis à une limite de débit. [`translate`](/docs/sdk/run#translate) liste toutes les autres options.
+Le [démarrage rapide du SDK](/docs/sdk-quickstart) couvre la première exécution. Cette page prend le relais avec des recettes complètes à copier dans un script ; la [référence SDK](/docs/sdk) catalogue chaque point d'entrée. Le SDK ne charge pas les fichiers `.env`, donc lance une recette qui appelle un fournisseur avec `node --env-file=.env`. Pour avancer avec un fournisseur limité en débit une langue à la fois, passe `locales: ["de"]` à `translate`.
 
 ## Estimer une exécution avant de dépenser
 
@@ -106,6 +65,38 @@ if (!summary.inSync) {
 ```
 
 Besoin des noms de clés plutôt que des comptes ? Remplace par `diff`, qui renvoie les listes de clés `missing`, `changed` et `orphaned` par locale, avec le même verdict `hasPendingChanges`. Tu lances plutôt la CLI en CI ? Voir [CI et codes de sortie](/docs/ci-and-exit-codes).
+
+## Tester ton intégration sans clé
+
+Un faux fournisseur passé en `createProvider` exécute tout le flux, fichiers et contrôle d'intégrité compris, sans clé, sans appel réseau et avec une sortie déterministe : ce dont un test unitaire de ton propre outillage a besoin.
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+L'exécution écrit de vrais fichiers, donc teste sur une copie temporaire du projet. Un vrai fournisseur se branche de la même façon ; voir [Fournisseurs personnalisés](/docs/sdk/extend#fournisseurs-personnalisés).
 
 ## Surveiller dans un processus de longue durée
 
@@ -282,6 +273,47 @@ if (retry.accepted) {
 
 `retranslateEntry` refuse une valeur écrite par une personne sauf si tu passes `includeHuman: true`,
 et une clé épinglée toujours ; voir [Protéger les traductions humaines](/docs/protecting-human-translations).
+
+## Traiter la file de relecture
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` liste chaque valeur écrite par une machine que personne n'a encore approuvée, avec les raisons pour lesquelles la dernière exécution l'a signalée. Ce script approuve les valeurs non signalées et rejette les autres, ce qui les retire pour que le prochain `translate` les remplisse à nouveau. `expectedValue` fait lever `REVIEW_VALUE_CHANGED` à un appel si la valeur a changé entre-temps. Sans trace de la dernière exécution sur cette machine, comme dans un clone tout neuf ou sur un runner de CI, `reasons` est vide aussi : le script s'arrête donc si `lastRunAt` manque.
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
+  process.exit(1);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+[Modifier et relire](/docs/sdk/review#approveentry) présente les variantes par lot et chaque code qu'elles lèvent.
 
 ## Lire toutes les valeurs en bloc
 

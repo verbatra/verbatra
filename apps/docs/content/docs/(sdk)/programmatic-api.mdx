@@ -3,57 +3,11 @@ title: SDK recipes
 description: Complete, runnable patterns for driving verbatra from your own scripts, CI jobs, and tooling.
 type: how-to
 ---
-The [SDK reference](/docs/sdk) catalogs every entry point. This page is the hands-on companion:
-end-to-end recipes you can copy into a script and run. One thing to set up first: the SDK does not
-load `.env` files (the CLI does that), so make sure the provider's environment variable is set
-before your script runs, for example:
-
-```bash
-node --env-file=.env translate.mjs
-```
-
-## One-shot translate in a script
-
-Load the config, run the flow, then read the summary: the headline from `succeeded` and `failed`,
-token spend from `usage`, and the keys worth a human look from each locale's `needsReview`.
-Whole-run problems throw an `SdkError`; per-locale outcomes are data on the summary.
-
-```ts
-import { loadConfig, translate } from "@verbatra/sdk";
-
-const config = await loadConfig();
-const summary = await translate({ config });
-
-console.log(
-  `${summary.succeeded.length} ok, ${summary.partial.length} partial, ${summary.failed.length} failed`,
-);
-
-if (summary.usage !== undefined) {
-  console.log(`tokens: ${summary.usage.inputTokens} in, ${summary.usage.outputTokens} out`);
-}
-
-for (const locale of summary.locales) {
-  if (locale.status === "failed") {
-    console.error(`${locale.locale}: ${locale.error?.code} ${locale.error?.message}`);
-    continue;
-  }
-  for (const entry of locale.needsReview) {
-    console.warn(`review ${locale.locale}/${entry.key}: ${entry.reasons.join(", ")}`);
-  }
-}
-
-if (summary.failed.length > 0 || summary.partial.length > 0) {
-  process.exitCode = 1;
-}
-```
-
-A `partial` locale is one whose file was written with keys still missing. It is not a success:
-the CLI exits `1` on it, and your own script should treat it the same way, which is why the check
-above tests `partial` alongside `failed`.
-
-Pass `dryRun: true` to preview without calling a provider or writing anything, and `locales: ["de"]`
-to restrict the run to some of the configured targets, which is how you work through a rate-limited
-provider one language at a time. [`translate`](/docs/sdk/run#translate) lists every other option.
+The [SDK quickstart](/docs/sdk-quickstart) covers the first run. This page picks up from there
+with complete recipes to copy into a script; the [SDK reference](/docs/sdk) catalogs every entry
+point. The SDK does not load `.env` files, so run a recipe that calls a provider with
+`node --env-file=.env`. To work through a rate-limited provider one language at a time, pass
+`locales: ["de"]` to `translate`.
 
 ## Estimate a run before spending
 
@@ -118,6 +72,41 @@ if (!summary.inSync) {
 Need the key names instead of counts? Swap in `diff`, which returns `missing`, `changed`, and
 `orphaned` key lists per locale with the same `hasPendingChanges` gate. Running the CLI in CI
 instead? See [CI and exit codes](/docs/ci-and-exit-codes).
+
+## Test your integration without a key
+
+A fake provider passed as `createProvider` runs the whole flow, files and integrity gate
+included, with no key, no network call and deterministic output: what a unit test of your own
+tooling needs.
+
+```ts title="fake-provider.ts"
+import { type CreateProvider, check, loadConfig, translate } from "@verbatra/sdk";
+
+const createProvider: CreateProvider = () => ({
+  id: "fake",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  translateBatch: async (request) => ({
+    values: new Map(
+      request.entries.map((entry) => [entry.key, `[${request.targetLocale}] ${entry.value}`]),
+    ),
+    integrity: new Map(),
+    notices: [],
+  }),
+});
+
+const config = await loadConfig();
+const summary = await translate({ config }, { createProvider });
+const after = await check({ config });
+
+console.log(`${summary.succeeded.length} locales translated, in sync: ${after.inSync}`);
+if (summary.failed.length > 0 || !after.inSync) {
+  process.exitCode = 1;
+}
+```
+
+The run writes real files, so test against a temporary copy of the project. A real provider plugs
+in the same way; see [Custom providers](/docs/sdk/extend#custom-providers).
 
 ## Watch in a long-running process
 
@@ -297,6 +286,51 @@ if (retry.accepted) {
 
 `retranslateEntry` refuses a value a person wrote unless you pass `includeHuman: true`, and a
 pinned key always; see [Protecting human translations](/docs/protecting-human-translations).
+
+## Work through the review queue
+
+<AvailableFrom version="0.12.0" />
+
+`reviewQueue` lists every machine-written value nobody has approved yet, with the reasons the last
+run flagged it for. This script approves the unflagged values and rejects the rest, which removes
+them so the next `translate` fills them again. `expectedValue` makes a call throw
+`REVIEW_VALUE_CHANGED` if the value changed in between. On a machine with no record of the last run,
+like a fresh clone or CI runner, `reasons` is empty too, so the script stops without `lastRunAt`.
+
+```ts title="review.ts"
+import { approveEntry, keyValue, loadConfig, rejectEntry, reviewQueue } from "@verbatra/sdk";
+
+const config = await loadConfig();
+const queue = await reviewQueue({ config });
+
+if (!queue.available) {
+  console.error(`no review queue: ${queue.reason}`);
+  process.exit(1);
+}
+if (queue.lastRunAt === undefined) {
+  console.error("no run recorded on this machine, so flags are unknown: run translate first");
+  process.exit(1);
+}
+
+for (const { locale, needsReview } of queue.locales) {
+  for (const entry of needsReview) {
+    const { target } = await keyValue({ config, locale, key: entry.key });
+    if (target === undefined) {
+      continue;
+    }
+    const decision = { config, locale, key: entry.key, expectedValue: target };
+    if (entry.reasons.length > 0) {
+      await rejectEntry(decision);
+      console.log(`rejected ${locale}/${entry.key}: ${entry.reasons.join(", ")}`);
+    } else {
+      await approveEntry(decision);
+      console.log(`approved ${locale}/${entry.key}`);
+    }
+  }
+}
+```
+
+[Review](/docs/sdk/review#approveentry) has the batch variants and every code they throw.
 
 ## Read every value in bulk
 
