@@ -204,6 +204,7 @@ describe("the sdk reference Signature blocks match the published declarations", 
   const declarations = stripComments(readDeclarations());
 
   it("parses a declared overload set, so the comparison cannot pass vacuously", () => {
+    expect(signatureBlocks("").length).toBeGreaterThanOrEqual(60);
     expect(declaredFunctions(declarations, "defineConfig").length).toBeGreaterThan(1);
     expect(declaredFunctions(declarations, "translate")[0]?.parameters.map((p) => p.name)).toEqual([
       "input",
@@ -229,7 +230,7 @@ describe("the sdk reference Signature blocks match the published declarations", 
       .map(({ path, code }) => ({ path, drift: signatureDrift(declarations, code) }))
       .filter(({ drift }) => drift !== undefined);
 
-    expect(blocks.length).toBeGreaterThanOrEqual(60);
+    expect(blocks.length).toBe(signatureBlocks("").length);
     expect(drift).toEqual([]);
   });
 });
