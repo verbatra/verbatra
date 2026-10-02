@@ -65,7 +65,7 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 | `verbatra_translation_retranslateEntry` | vuelve a traducir una clave en un locale |
 | `verbatra_translation_translatePending` | traduce todo lo pendiente, opcionalmente solo para algunos `locales` y con un tope de `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` solo devuelve los locales donde cambió el origen de la clave, así que una lista vacía significa que no había nada que comprobar. Sus filas son más planas que las de [`key.integrity`](/docs/cli/mcp#entradas-y-resultados) en el servidor MCP. El servidor MCP también tiene las herramientas de historial, valores, integridad y contexto de clave; su `locale.values` devuelve páginas, consulta [Más entradas y resultados](/docs/cli/mcp#más-entradas-y-resultados).
+`verbatra_key_integrity` solo devuelve los locales donde cambió el origen de la clave, así que una lista vacía significa que no había nada que comprobar. Sus filas son más planas que las de [`key.integrity`](/docs/cli/mcp#entradas-y-resultados) en el servidor MCP. Solo el servidor MCP tiene `project.doctor` y `report.provenance`; su `locale.values` devuelve páginas, consulta [Más entradas y resultados](/docs/cli/mcp#más-entradas-y-resultados).
 
 ## Conoce las reglas de las herramientas
 
