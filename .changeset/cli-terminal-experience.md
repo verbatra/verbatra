@@ -16,7 +16,8 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 - `watch` says when it waits and when it stops. `verbatra mcp` prints ready and stopped lines and
   exits 0 when the client closes stdin.
 - `verbatra mcp --redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) keeps translation values out of
-  every MCP tool result and says so in the ready line.
+  every MCP tool result and says so in the ready line. An `@verbatra/mcp` too old to confirm it
+  exits 2 with `REDACTION_UNSUPPORTED` before serving anything.
 - `studio` reports whether spend and agent tools are on, `--verbose` logs requests, and a server
   error is shown as a warning.
 
