@@ -41,7 +41,7 @@ const SYNTAX_GROUPS: readonly (readonly [string, PlaceholderSyntax])[] = [
 const PLACEHOLDER_TOKEN = new RegExp(
   [
     "(?<escape>%%)",
-    `(?<doubleBrace>\\{\\{\\s*(?:-\\s*)?${IDENTIFIER}(?:\\s*,[^{}]*)?\\s*\\}\\})`,
+    `(?<doubleBrace>\\{\\{\\s*(?:-\\s*)?${IDENTIFIER}(?:\\s*,[^{}]*\\}\\}|\\s*\\}\\}))`,
     `(?<ruby>%\\{${IDENTIFIER}\\})`,
     `(?<dollarBrace>\\$\\{${IDENTIFIER}\\})`,
     `(?<pythonNamed>%\\(\\w+\\)${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_CONVERSION}${NOT_IN_A_WORD_AFTER})`,

@@ -67,3 +67,32 @@ describe("foreignPlaceholderTokens URL masking", () => {
     );
   });
 });
+
+const BEFORE_LINEAR_REWRITE =
+  /\{\{\s*(?:-\s*)?(?:\p{Nd}+|[\p{L}_$][\p{L}\p{M}\p{Nd}_$.-]*)(?:\s*,[^{}]*)?\s*\}\}/uy;
+const doubleBraceBody = fc
+  .array(
+    fc.constantFrom(" ", "\n", "\t", ",", ", ", "a", "1", "-", "$", "%", ".", "}", "}}", "x y"),
+    { maxLength: 12 },
+  )
+  .map((parts) => `{{${parts.join("")}`);
+const otherSyntaxes = PLACEHOLDER_SYNTAXES.filter((syntax) => syntax !== "double-brace");
+
+function matchedBeforeRewrite(segment: string): readonly string[] {
+  BEFORE_LINEAR_REWRITE.lastIndex = 0;
+  const match = BEFORE_LINEAR_REWRITE.exec(segment);
+  return match === null ? [] : [match[0]];
+}
+
+describe("foreignPlaceholderTokens double-brace matching", () => {
+  it("reports exactly what the backtracking double-brace pattern matched", () => {
+    fc.assert(
+      fc.property(fc.array(doubleBraceBody, { maxLength: 4 }), (segments) => {
+        expect(foreignPlaceholderTokens(segments.join(""), otherSyntaxes)).toEqual(
+          segments.flatMap(matchedBeforeRewrite),
+        );
+      }),
+      { numRuns: 2000 },
+    );
+  });
+});
