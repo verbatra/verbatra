@@ -11,7 +11,7 @@ covered by its [privacy policy](/privacy).
 - **No telemetry**, no update check, and no verbatra server to contact.
 - **One outbound destination: your provider**, only when a command translates; none with
   `provider: { id: "none" }`.
-- **Only what needs translating is sent**: no unchanged keys, cache hits or protected keys.
+- **Only what needs translating is sent**: no unchanged keys, cache hits or protected keys (unless `humanEdits: "suggest"`).
 - **Everything else stays local**: Studio on `127.0.0.1`, the MCP server over stdio.
 - **API keys come from environment variables only** and never appear in a message.
 
@@ -38,12 +38,11 @@ covered by its [privacy policy](/privacy).
 
 Only the commands in the diagram call a provider; the Studio and MCP actions need
 [`--allow-spend`](/docs/cli/mcp#spend-tools). Everything else, dry runs and estimates included, is local,
-except `verbatra doctor --live`: it sends only your API key, to fetch the language list of DeepL,
-Google Cloud Translation or LibreTranslate.
+except `verbatra doctor --live`: it sends only your API key, to fetch the machine-translation
+provider's language list.
 
 A `translate` run sends only keys missing or changed against [the lock file](/docs/the-lock-file),
-minus [cache](/docs/the-cache) hits, and shared text once. A stale key a person wrote is sent only
-for a `humanEdits: "suggest"` suggestion; a pinned key never
+minus [cache](/docs/the-cache) hits, and shared text once. A pinned key is never sent
 ([Protecting human translations](/docs/protecting-human-translations)). Your DNS resolver sees the
 provider's host name.
 
@@ -53,11 +52,11 @@ provider's host name.
 | --- | --- | --- |
 | `anthropic`, `openai`, `gemini`, `openai-compatible` | Per key: the key name, the source text, and the description or meaning your source file carries (an ARB `description`, an XLIFF note, a gettext comment). Per request: the source and target codes (after [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider)) and their English names, your `tone`, the target locale's glossary terms, the target's plural categories when a batch has plurals, verbatra's fixed instructions, the model name and an output token limit. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, or the `baseUrl` you configured. A `*_BASE_URL` variable redirects the hosted ones, see [Network policy](/docs/network-policy#hosted-providers). |
 | `deepl` | The source text of each key with placeholders replaced by numbered markers inside an ignored `<x>` tag (a value whose placeholders cannot be protected is not sent) <AvailableFrom version="0.12.0" />, the language codes, a formality setting when your `tone` asks for one on a paid key, and your `glossaryId`. No key names, descriptions or glossary terms. | `api.deepl.com`, or `api-free.deepl.com` for a key ending in `:fx`. |
-| `google-translate` | The source text of each key with placeholders replaced by numbered markers inside a `translate="no"` span (a value whose placeholders cannot be protected is not sent) <AvailableFrom version="0.12.0" />, and the language codes. | `translation.googleapis.com` |
+| `google-translate` | The source text of each key with placeholders replaced by numbered markers inside a `translate="no"` span (a value whose placeholders cannot be protected, or with a line break, tab or double space, is not sent) <AvailableFrom version="0.12.0" />, and the language codes. | `translation.googleapis.com` |
 | `libretranslate` | The source text of each key with placeholders replaced by numbered markers (a value with ICU syntax is not sent), the language codes, and `LIBRETRANSLATE_API_KEY` when set. | The `baseUrl` you configured. |
 | `none` | Nothing. | Nowhere. |
 
-Vendor SDKs also send standard headers naming the library, your OS and Node.js version. Your API
+Vendor SDKs also send standard headers naming the library, OS and Node.js version. Your API
 key goes only to the configured endpoint (`google-translate` sends it in the `?key=` query string).
 
 ## Sensitive content guard
@@ -70,18 +69,18 @@ key goes only to the configured endpoint (`google-translate` sends it in the `?k
 | --- | --- |
 | `warn` | Sends as usual; a notice names the keys. |
 | `block` | Withholds the key, so the locale ends `partial`. |
-| `redact` | Sends a token for each match in the value and restores the match; a match in a description or meaning is sent as `[redacted]`. A match in a key name, or a token that does not come back exactly once, withholds the key. |
+| `redact` | Sends a token for each match in the value and restores the match; a match in a description or meaning is sent as `[redacted]`. A match in a key name, or a token that does not come back exactly once, withholds the key. On DeepL and Google a token is a placeholder, so an unprotectable value is withheld (`PLACEHOLDER_UNSUPPORTED`). |
 
-`block` and `redact` also drop a matching glossary term. The guard is off by default; `verbatra init` writes `warn`. For a false positive, add the text to `allow` or drop its detector. [`verbatra check --sensitive`](/docs/cli/check#sensitive-content) runs the scan without a key. Names in free text are not found.
+`block` and `redact` also drop a matching glossary term. Off by default; `verbatra init` writes `warn` for a machine provider. For a false positive, add the text to `allow` or drop its detector. [`verbatra check --sensitive`](/docs/cli/check#sensitive-content) runs the scan without a key. Names in free text are not found.
 
 ## Vendor retention and data processing terms
 
 Retention is set by the vendor and your contract, not by verbatra. Quotes are as of September
-2026; terms change and your contract wins.
+2026; your contract wins.
 
 | Provider | What the vendor says | Data processing terms |
 | --- | --- | --- |
-| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([retention](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products (e.g. Claude for Work, Anthropic API, Claude Gov, etc.) to train our models" ([training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). Zero data retention is agreed per organization through Anthropic's sales team ([zero data retention](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([retention](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products [...] to train our models" ([training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). Zero data retention is agreed per organization through Anthropic's sales team ([zero data retention](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
 | OpenAI | "data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)"; "abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law". Zero Data Retention and Modified Abuse Monitoring "are subject to prior approval by OpenAI", and `/v1/chat/completions`, the endpoint verbatra calls, is listed as eligible ([your data](https://developers.openai.com/api/docs/guides/your-data)). | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
 | Gemini | On the free tier (Unpaid Services), "human reviewers may read, annotate, and process your API input and output", and the terms say "Do not submit sensitive, confidential, or personal information to the Unpaid Services". On Paid Services, "Google doesn't use your prompts [...] or responses to improve our products" and logs them "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy". In the EEA, Switzerland and the UK the Paid Services terms apply to all use, the free tier included ([Gemini API terms](https://ai.google.dev/gemini-api/terms)). verbatra uses neither grounding nor explicit caching, which Google's [zero data retention](https://ai.google.dev/gemini-api/docs/zdr) page excludes. | [Processor terms](https://business.safety.google/processorterms/), which the Gemini API terms name for Paid Services |
 | DeepL | For DeepL API Free, the [privacy policy](https://www.deepl.com/en/privacy) applies the free-service rule: "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." For Pro, "your texts will not be used to improve the quality of our services", and "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, referenced in the [DeepL Pro terms](https://www.deepl.com/en/pro-license) |
@@ -120,7 +119,7 @@ Moved to
 ## API keys
 
 Provider errors and CLI output replace each known
-[key variable](/docs/providers#keys-come-from-the-environment)'s value, and anything shaped like an
+[key variable](/docs/providers#keys-come-from-the-environment)'s value of 8 or more characters, and anything shaped like an
 API key, with `[REDACTED]`.
 
 ## Studio and MCP
@@ -130,8 +129,8 @@ prints at start, and its Content-Security-Policy blocks fetches to the internet.
 
 **The MCP server** talks over stdio and opens no port. Its read tools return your strings, glossary
 and status; [`--redact-values`](/docs/cli/mcp#redacted-values) turns each value into a marker, with
-the limits listed there. `history.list` gives each commit's hash, date, author name (not under
-`--redact-values`), subject and paths, never the email.
+the limits listed there. `history.list` gives commit metadata and the author name (not under
+`--redact-values`), never the email.
 
 An MCP client, or a browser agent using Studio's `--expose-agent-tools`, is usually an AI assistant,
 and what it reads goes to its model under that vendor's terms. Studio's agent tools are never

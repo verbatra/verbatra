@@ -48,7 +48,8 @@ What that means in practice:
   [Review flags](/docs/translation-safety#review-flags) point at the most suspicious results.
 - **DeepL and Google Cloud Translation** have a closed list, checked before a run. Like
   LibreTranslate, they [mask placeholders](/docs/providers#deepl) and withhold a value they cannot
-  protect, such as ICU plural, select or number syntax, or markup beside a placeholder.
+  protect, such as ICU plural, select or number syntax, markup beside a placeholder, or, on Google,
+  a line break, tab or double space.
 - **LibreTranslate** serves whatever models your server installed.
 - A `tone` or glossary a provider cannot honor is reported as a notice, never dropped silently. See
   [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
@@ -181,13 +182,13 @@ For a language your hosted provider covers poorly, there are three routes:
   [TranslateGemma](https://huggingface.co/google/translategemma-4b-it) (55 languages, Gemma terms of
   use), and [NLLB-200](https://huggingface.co/facebook/nllb-200-distilled-600M) (about 200
   languages, but CC-BY-NC-4.0, so not for a commercial product). Check each model's license
-  yourself before relying on it.
+  yourself.
 - **Have a person translate.** The [human-only workflow](/docs/human-only-workflow) works for any
   language.
 
 ## Related
 
 - [Add a language](/docs/add-a-language): the config change and the first run.
-- [Providers](/docs/providers): options, keys and the full locale code mapping.
+- [Providers](/docs/providers): the full locale code mapping.
 - [`verbatra doctor`](/docs/cli/doctor): the locale support and plural checks.
 - [Translation safety](/docs/translation-safety): the checks every translation passes.
