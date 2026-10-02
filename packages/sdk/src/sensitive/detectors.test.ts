@@ -52,10 +52,18 @@ describe("the email detector", () => {
     "See https://acme.io/help?ref=docs",
     "Use logo@2x.png on retina screens",
     "Use icon@3x.webp and hero@1.5x.jpg",
+    "Use badge@2x.svg, photo@2x.jpeg, art@2x.avif, pic@2x.heic and anim@2x.gif",
     "Version pkg@1.2.34",
     "Mention @acme.io alone",
   ])("ignores %s", (text) => {
     expect(found("email", text)).toEqual([]);
+  });
+
+  it.each([
+    ["sales@2x.com", "Write to sales@2x.com"],
+    ["team@3x.io", "Write to team@3x.io"],
+  ])("still finds %s, whose domain only looks like an asset scale", (expected, text) => {
+    expect(found("email", text)).toEqual([expected]);
   });
 
   it("drops trailing sentence punctuation and finds each of several addresses", () => {

@@ -6,7 +6,7 @@ const TRAILING_PUNCTUATION = /[.-]+$/;
 const LABEL = /^[A-Za-z0-9-]+$/;
 const TOP_LEVEL = /^[A-Za-z]{2,}$/;
 const RESERVED_DOMAIN = /(?:^|\.)(?:example\.(?:com|org|net)|example|test|invalid|localhost)$/i;
-const SCALED_ASSET = /^\d+(?:\.\d+)?x\.[A-Za-z0-9]+$/i;
+const SCALED_ASSET = /^\d+(?:\.\d+)?x\.(?:png|jpe?g|webp|gif|svg|avif|heic)$/i;
 
 function isAddressDomain(domain: string): boolean {
   const labels = domain.split(".");
