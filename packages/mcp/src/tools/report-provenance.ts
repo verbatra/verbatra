@@ -78,7 +78,10 @@ function pagedEntries(
       items: locale.entries.filter((entry) => wanted === undefined || wanted.has(entry.bucket)),
     })),
     {
-      filters: JSON.stringify([params.locales ?? null, params.buckets ?? null]),
+      filters: {
+        locales: params.locales ?? null,
+        buckets: params.buckets === undefined ? null : [...new Set(params.buckets)].sort(),
+      },
       limit: params.limit ?? PAGE_LIMIT_DEFAULT,
       ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
     },
@@ -142,7 +145,9 @@ export const reportProvenanceTool = defineTool({
     "Counts are always complete. Set includeEntries to true to also list keys with their " +
     "origin, reviewState, provider, model, and reviewer, optionally only for some buckets; " +
     `entries come in pages of at most limit (default ${PAGE_LIMIT_DEFAULT}, at most ` +
-    `${PAGE_LIMIT_CAP}), in source key order per locale. When nextCursor is present, call again ` +
+    `${PAGE_LIMIT_CAP}), in source key order per locale; a locale carries entries only in the ` +
+    "pages that hold at least one of them, and keeps its counts on every page. When nextCursor " +
+    "is present, call again " +
     "with the same parameters and cursor set to it; a cursor that no longer matches is rejected " +
     "as invalid input. The optional locales parameter narrows the report. toolVersion is this " +
     "server's version. available: false with reason provenance-unreadable means " +

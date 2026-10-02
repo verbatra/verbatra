@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -128,6 +129,46 @@ describe("locale.values", () => {
     );
     expect(seen).toEqual(expected);
     expect(calls).toBe(5);
+  });
+
+  it("pages through a list of 1,000 keys", async () => {
+    const source = Object.fromEntries(
+      Array.from({ length: 1000 }, (_, i) => [`section_with_a_long_name_key${i}`, `Text ${i}`]),
+    );
+    const keys = Object.keys(source);
+    const dir = await makeProject(source, { de: {} });
+    const context = makeContext({ cwd: dir });
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const result = await page({ keys, limit: 100, ...(cursor ? { cursor } : {}) }, context);
+      seen.push(...keysOf(result));
+      cursor = result.nextCursor;
+    } while (cursor !== undefined);
+
+    expect(seen).toEqual(keys.map((key) => `de:${key}`));
+  });
+
+  it("accepts the same cursor for the same keys in another order", async () => {
+    const dir = await makeProject(SOURCE, { de: {} });
+    const context = makeContext({ cwd: dir });
+    const first = await page({ keys: ["key0", "key1", "key2"], limit: 1 }, context);
+
+    const second = await page(
+      { keys: ["key2", "key0", "key1"], limit: 1, cursor: first.nextCursor },
+      context,
+    );
+
+    expect(keysOf(second)).toEqual(["de:key1"]);
+  });
+
+  it("lists keys in source order with integer-like keys and target-only keys last", async () => {
+    const dir = await makeProject({}, { de: { z: "Z" } });
+    await writeFile(join(dir, "locales", "en.json"), '{"b":"B","10":"Ten","a":"A"}\n', "utf8");
+
+    const result = await page({}, makeContext({ cwd: dir }));
+
+    expect(keysOf(result)).toEqual(["de:b", "de:10", "de:a", "de:z"]);
   });
 
   it("omits nextCursor when the last page ends exactly at the last key", async () => {

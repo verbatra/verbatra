@@ -71,10 +71,19 @@ function filteredLocale(
   locale: LocaleValues,
   matches: (entry: LocaleValueEntry) => boolean,
 ): PagedLocale<LocaleValueEntry> {
-  const items = Object.entries(locale.values)
-    .map(([key, pair]) => entryOf(key, pair))
-    .filter(matches);
-  return { locale: locale.locale, items };
+  const items = locale.keys.flatMap((key) => {
+    const pair = locale.values[key];
+    return pair === undefined ? [] : [entryOf(key, pair)];
+  });
+  return { locale: locale.locale, items: items.filter(matches) };
+}
+
+function canonicalFilters(params: Params): unknown {
+  return {
+    locales: params.locales ?? null,
+    keys: params.keys === undefined ? null : [...new Set(params.keys)].sort(),
+    query: params.query ?? null,
+  };
 }
 
 async function readLocaleValues(
@@ -98,7 +107,7 @@ async function readLocaleValues(
   const page = pageAcrossLocales(
     locales.map((locale) => filteredLocale(locale, matches)),
     {
-      filters: JSON.stringify([params.locales ?? null, params.keys ?? null, params.query ?? null]),
+      filters: canonicalFilters(params),
       limit: params.limit ?? PAGE_LIMIT_DEFAULT,
       ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
     },
@@ -118,7 +127,9 @@ export const localeValuesTool = defineTool({
     "locales parameter narrows the target locales; keys lists exact key names, or query keeps " +
     "keys whose name, source, or target contains that text, ignoring case, but not both. Each " +
     `page holds at most limit entries (default ${PAGE_LIMIT_DEFAULT}, at most ${PAGE_LIMIT_CAP}), ` +
-    "ordered by locale and then by key; when nextCursor is present, call again with the same " +
+    "ordered by locale and then in source key order (keys only in a target follow); a page " +
+    "lists a locale only when it holds at least one of that locale's entries. When nextCursor " +
+    "is present, call again with the same " +
     "parameters and cursor set to it. A cursor from other parameters, or one that no longer " +
     "matches the files, is rejected as invalid input: call again without it. An absent target " +
     "means the key is not translated in that locale; an absent source means the key is " +
