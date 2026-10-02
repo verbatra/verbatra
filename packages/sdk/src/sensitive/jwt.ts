@@ -3,8 +3,10 @@ import type { TextSpan } from "@verbatra/ai-providers";
 const MIN_SEGMENT_LENGTH = 8;
 const HEADER_PREFIX_LENGTH = "eyJ".length;
 const TOKEN_START = /\beyJ/g;
-const SEGMENT = /[A-Za-z0-9_-]*/y;
-const PAYLOAD_AND_SIGNATURE = /\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/y;
+const SEGMENT_CHARACTER = "[A-Za-z0-9_-]";
+const SEGMENT = new RegExp(`${SEGMENT_CHARACTER}*`, "y");
+const FULL_SEGMENT = `${SEGMENT_CHARACTER}{${MIN_SEGMENT_LENGTH},}`;
+const PAYLOAD_AND_SIGNATURE = new RegExp(`\\.eyJ${FULL_SEGMENT}\\.${FULL_SEGMENT}`, "y");
 
 function segmentEnd(text: string, from: number): number {
   SEGMENT.lastIndex = from;
