@@ -29,6 +29,7 @@ describe("createProgressReporter", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -117,12 +118,36 @@ describe("createProgressReporter", () => {
     reporter.onProgress(planned("de", 2));
     reporter.onProgress(finished("de", 1, 2));
     reporter.onProgress(finished("de", 2, 2));
+    expect(vi.getTimerCount()).toBe(1);
     reporter.close();
+    expect(vi.getTimerCount()).toBe(0);
     reporter.onProgress(finished("de", 2, 2));
     reporter.close();
     vi.advanceTimersByTime(1000);
 
+    expect(vi.getTimerCount()).toBe(0);
     expect(updates.map((update) => update.progress)).toEqual([1, 2]);
+  });
+
+  it("unrefs the trailing timer so it never keeps the process alive", () => {
+    const unref = vi.fn();
+    const fakeSetTimeout = globalThis.setTimeout;
+    const spy = vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+      handler: () => void,
+      delay?: number,
+    ) => {
+      const handle = fakeSetTimeout(handler, delay);
+      return Object.assign(handle, { unref: () => unref() });
+    }) as unknown as typeof setTimeout);
+    const { send } = recorder();
+    const reporter = createProgressReporter({ send, minIntervalMs: 250 });
+
+    reporter.onProgress(finished("de", 1, 2));
+    reporter.onProgress(finished("de", 2, 2));
+    reporter.close();
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(unref).toHaveBeenCalledTimes(1);
   });
 
   it("logs a rejected send without throwing into the run", async () => {

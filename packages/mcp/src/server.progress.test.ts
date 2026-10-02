@@ -35,15 +35,28 @@ function isProgressNotification(message: JSONRPCMessage): boolean {
   return "method" in message && message.method === "notifications/progress";
 }
 
+function frameKind(message: JSONRPCMessage): string {
+  if (isProgressNotification(message)) {
+    return "progress";
+  }
+  return "result" in message ? "result" : "other";
+}
+
 async function connect(
   options: McpServerOptions,
   failProgressSends = false,
-): Promise<{ readonly client: Client; readonly progressFrames: JSONRPCMessage[] }> {
+): Promise<{
+  readonly client: Client;
+  readonly progressFrames: JSONRPCMessage[];
+  readonly frameOrder: string[];
+}> {
   const server = createMcpServer(options);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const progressFrames: JSONRPCMessage[] = [];
+  const frameOrder: string[] = [];
   const send = serverTransport.send.bind(serverTransport);
   serverTransport.send = async (message, sendOptions) => {
+    frameOrder.push(frameKind(message));
     if (isProgressNotification(message)) {
       progressFrames.push(message);
       if (failProgressSends) {
@@ -55,12 +68,12 @@ async function connect(
   const client = new Client({ name: "progress-client", version: "1.0.0" });
   await server.connect(serverTransport);
   await client.connect(clientTransport);
-  return { client, progressFrames };
+  return { client, progressFrames, frameOrder };
 }
 
 describe("createMcpServer: progress notifications for translation.translatePending", () => {
   it("sends increasing progress that ends at the total when the call carries a progress token", async () => {
-    const { client } = await connect(await spendOptions());
+    const { client, frameOrder } = await connect(await spendOptions());
     const updates: Progress[] = [];
 
     const result = await client.callTool(TRANSLATE_PENDING, undefined, {
@@ -75,6 +88,8 @@ describe("createMcpServer: progress notifications for translation.translatePendi
     const last = updates.at(-1);
     expect(last).toMatchObject({ progress: 4, total: 4 });
     expect(last?.message).toMatch(/^fr: batch 2\/2$/);
+    expect(frameOrder.at(-1)).toBe("result");
+    expect(frameOrder.lastIndexOf("progress")).toBe(frameOrder.length - 2);
   });
 
   it("sends no progress notification when the call carries no progress token", async () => {
