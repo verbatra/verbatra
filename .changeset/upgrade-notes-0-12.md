@@ -74,6 +74,11 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `TMX_UNWRITABLE`, `PSEUDO_OUTPUT_CONFLICT`.
 - A failed `watch` run's error line moves from stdout to stderr, human output prints paths
   relative to the working directory, and dry runs read `would translate`.
+- `watch` whose provider cannot be built, such as one with an unset API key, exits 2 with
+  `PROVIDER_CONSTRUCTION_FAILED` at startup instead of waiting for changes; the SDK's `watch`
+  rejects the same way. Set the key before starting it.
+- A `--cwd` that names no existing directory exits 2 with `INVALID_OPTION` on every command,
+  before anything is read, instead of a later `CONFIG_NOT_FOUND` or `SOURCE_UNREADABLE`.
 - Every command writes progress and `next:` lines to stderr (trim them with `--quiet` and
   `--no-color`). stdout and `--json` are unchanged.
 - The `--json` envelope gains the optional `hint`, `causeCode`, `candidates` and `missing` fields

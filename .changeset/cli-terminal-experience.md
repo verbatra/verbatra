@@ -24,7 +24,8 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 **Output fixes**
 - Errors go to stderr, paths print relative to the working directory, dry runs read
   `would translate`, `--estimate` is headed `(estimate)`, `watch --help` has examples,
-  `types --check` says a missing declaration is missing, and counts of one read in the singular.
+  `types --check` says a missing declaration is missing, counts of one read in the singular, and
+  a run's notices print one per line.
 
 **SDK**
 - `onProgress` gains retry, repair, write and `watch` events, and `extract`, `diff` and `doctor`
