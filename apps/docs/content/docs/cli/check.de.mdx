@@ -127,7 +127,7 @@ Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jedes geprüften Locales aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData`, auch bei `mode: "off"`, oder ohne Block mit den Standard-Detektoren. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
+`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jedes geprüften Locales aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
