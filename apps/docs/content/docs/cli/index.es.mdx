@@ -53,7 +53,7 @@ Estos flags significan lo mismo en cada comando que los acepta, así que las pá
 | `-h`, `--help` | ninguno | desactivado | imprime la ayuda del programa o del comando y sale con `0` | ninguno |
 | `-V`, `--version` | ninguno | desactivado | imprime la versión de la CLI y sale con `0` | ninguno |
 
-Un comando o flag desconocido sale con `2`, igual que un `verbatra` sin comando: imprime la ayuda en stderr y, si no encuentra configuración, sugiere `verbatra init`. `mcp` nunca escribe en stdout, porque stdout es su canal de protocolo, así que rechaza `--json` con `USAGE_ERROR`.
+Un comando o flag desconocido sale con `2`, igual que un `verbatra` sin comando: imprime la ayuda en stderr y, si no encuentra configuración, sugiere `verbatra init`. `mcp` nunca escribe en stdout, porque stdout es su canal de protocolo, así que rechaza `--json` con `USAGE_ERROR`. Desde 0.12.0, un `--cwd` que no nombra un directorio existente sale con `2` e [`INVALID_OPTION`](/docs/error-codes#invalid_option) en todos los comandos, antes de leer o escribir nada.
 
 ## Archivos de entorno
 

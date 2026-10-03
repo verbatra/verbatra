@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import process from "node:process";
 import {
@@ -15,6 +15,7 @@ import {
   planAgentScaffold,
 } from "./agent-scaffold.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { assertCwdDirectory } from "./cwd-option.js";
 import { ensureGitignore, type GitignoreAction } from "./gitignore.js";
 import {
   type DetectFn,
@@ -403,21 +404,6 @@ function interactiveMode(opts: InitOptions, isTty: () => boolean): boolean {
   return opts.yes !== true && opts.json !== true && isTty();
 }
 
-function assertDirectory(cwd: string): void {
-  let isDirectory: boolean;
-  try {
-    isDirectory = statSync(cwd).isDirectory();
-  } catch {
-    isDirectory = false;
-  }
-  if (!isDirectory) {
-    throw new CliUsageError(
-      "INVALID_OPTION",
-      `--cwd names ${cwd}, which is not an existing directory. Create it first, or pass the project directory.`,
-    );
-  }
-}
-
 async function planOrExisting(
   opts: InitOptions,
   cwd: string,
@@ -529,7 +515,7 @@ export async function runInit(
     const opts = initOptsSchema.parse(rawOpts);
     const cwd = opts.cwd ?? process.cwd();
     if (opts.cwd !== undefined) {
-      assertDirectory(cwd);
+      assertCwdDirectory(cwd);
     }
     const keptConfig = agentOnlyConfigFile(opts, cwd);
     if (keptConfig !== undefined) {

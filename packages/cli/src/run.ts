@@ -31,6 +31,7 @@ import type { CliErrorCode } from "./cli-error-codes.js";
 import { usageErrorHint } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
 import { hasConfigFile } from "./config-presence.js";
+import { assertCwdDirectory } from "./cwd-option.js";
 import { loadEnvFiles } from "./env.js";
 import { appendMissingGitignoreEntries } from "./gitignore.js";
 import { runInit } from "./init.js";
@@ -394,7 +395,7 @@ interface CommandContext {
 const jsonFlagSchema = z.object({ json: z.boolean().optional() });
 
 function commandContext(
-  command: string,
+  command: string | null,
   rawOpts: unknown,
   streams: Streams,
   settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
@@ -2251,6 +2252,20 @@ const globalOptsSchema = z.object({
   color: z.boolean().optional(),
 });
 
+const cwdOptionSchema = z.object({ cwd: z.string().optional() });
+
+function assertCwdOption(rawOpts: unknown, deps: CliDeps): void {
+  const parsed = cwdOptionSchema.safeParse(rawOpts);
+  if (parsed.success && parsed.data.cwd !== undefined) {
+    assertCwdDirectory(parsed.data.cwd, deps.isDirectory);
+  }
+}
+
+function terminalSettings(program: Command, facts: TerminalFacts): TerminalSettings {
+  const global = globalOptsSchema.parse(program.opts());
+  return { facts, quiet: global.quiet === true, color: global.color !== false };
+}
+
 function buildProgram(
   deps: CliDeps,
   streams: Streams,
@@ -2271,12 +2286,10 @@ function buildProgram(
     )
     .option("--no-color", "never color the output (also: NO_COLOR, VERBATRA_NO_COLOR)")
     .exitOverride()
-    .configureOutput({ writeOut: (s) => streams.out(s), writeErr: (s) => streams.err(s) });
+    .configureOutput({ writeOut: (s) => streams.out(s), writeErr: (s) => streams.err(s) })
+    .hook("preAction", (_program, actionCommand) => assertCwdOption(actionCommand.opts(), deps));
 
-  const settings = (): TerminalSettings => {
-    const global = globalOptsSchema.parse(program.opts());
-    return { facts, quiet: global.quiet === true, color: global.color !== false };
-  };
+  const settings = (): TerminalSettings => terminalSettings(program, facts);
   const ctx: ProgramContext = { deps, streams, hooks, setCode, settings };
   registerTranslateCommand(program, ctx);
   registerWatchCommand(program, ctx);
@@ -2343,6 +2356,12 @@ async function runRedacted(
         suggestInitWithoutConfig(streams);
       }
       return renderUsageFailureExit2(error, program, argv, streams, facts);
+    }
+    if (error instanceof CliUsageError) {
+      const command = resolveCommandName(program, argv);
+      const json = { json: argvRequestsJson(argv) };
+      const settings = terminalSettings(program, facts);
+      return renderFailureExit2(error, commandContext(command, json, streams, settings));
     }
     throw error;
   }

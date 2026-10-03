@@ -53,7 +53,7 @@ These flags mean the same on every command that takes them, so the command pages
 | `-h`, `--help` | none | off | print the help of the program or the command and exit `0` | none |
 | `-V`, `--version` | none | off | print the CLI version and exit `0` | none |
 
-An unknown command or flag exits `2`, and so does a bare `verbatra` with no command: it prints the help to stderr and, when no config is found, suggests `verbatra init`. `mcp` never writes to stdout, since stdout is its protocol channel, so it refuses `--json` with `USAGE_ERROR`.
+An unknown command or flag exits `2`, and so does a bare `verbatra` with no command: it prints the help to stderr and, when no config is found, suggests `verbatra init`. `mcp` never writes to stdout, since stdout is its protocol channel, so it refuses `--json` with `USAGE_ERROR`. From 0.12.0 a `--cwd` that names no existing directory exits `2` with [`INVALID_OPTION`](/docs/error-codes#invalid_option) on every command, before anything is read or written.
 
 ## Environment files
 
