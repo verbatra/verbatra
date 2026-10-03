@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -39,29 +40,48 @@ function rewriteChangesetConfig(worktree, env) {
   return rewritten;
 }
 
-function removeWorktree(repoRoot, worktree) {
+function unlinkModules(worktree) {
   const linkedModules = join(worktree, "node_modules");
-  if (existsSync(linkedModules)) {
+  if (lstatSync(linkedModules, { throwIfNoEntry: false })?.isSymbolicLink()) {
     unlinkSync(linkedModules);
   }
+}
+
+function removeWorktree(repoRoot, parent, worktree) {
   try {
-    git(repoRoot, ["worktree", "remove", "--force", worktree]);
+    unlinkModules(worktree);
+    if (existsSync(worktree)) {
+      git(repoRoot, ["worktree", "remove", "--force", worktree]);
+    }
   } finally {
-    rmSync(dirname(worktree), { recursive: true, force: true });
+    rmSync(parent, { recursive: true, force: true });
     git(repoRoot, ["worktree", "prune"]);
   }
 }
 
 async function withTemporaryWorktree(repoRoot, run) {
-  const worktree = join(
-    mkdtempSync(join(realpathSync(tmpdir()), "verbatra-release-preview-")),
-    "wt",
-  );
-  git(repoRoot, ["worktree", "add", "--detach", worktree, "HEAD"]);
+  let parent;
+  let worktree = "";
+  let removed = false;
+  const cleanUp = () => {
+    if (!removed && parent !== undefined) {
+      removed = true;
+      removeWorktree(repoRoot, parent, worktree);
+    }
+  };
+  const onInterrupt = () => {
+    cleanUp();
+    process.exit(130);
+  };
+  process.once("SIGINT", onInterrupt);
   try {
+    parent = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-release-preview-"));
+    worktree = join(parent, "wt");
+    git(repoRoot, ["worktree", "add", "--detach", worktree, "HEAD"]);
     return await run(worktree);
   } finally {
-    removeWorktree(repoRoot, worktree);
+    process.off("SIGINT", onInterrupt);
+    cleanUp();
   }
 }
 
@@ -154,24 +174,29 @@ function renderPreview(worktree, bumps) {
   return out.join("\n");
 }
 
-function runVersioning(repoRoot, worktree, env) {
+function runFile(command, args, options) {
+  execFileSync(command, args, options);
+}
+
+function runVersioning(repoRoot, worktree, env, run = runFile) {
   symlinkSync(join(repoRoot, "node_modules"), join(worktree, "node_modules"), "dir");
   rewriteChangesetConfig(worktree, env);
   const options = { cwd: worktree, env, stdio: ["ignore", process.stderr, "inherit"] };
-  execFileSync(join(repoRoot, "node_modules", ".bin", "changeset"), ["version"], options);
-  execFileSync(
-    process.execPath,
-    [join(worktree, "scripts", "mcp-server-json.mjs"), "sync"],
-    options,
-  );
+  run(join(repoRoot, "node_modules", ".bin", "changeset"), ["version"], options);
+  run(process.execPath, [join(worktree, "scripts", "mcp-server-json.mjs"), "sync"], options);
 }
 
-async function main(repoRoot = REPO_ROOT, env = process.env) {
+async function main({
+  repoRoot = REPO_ROOT,
+  env = process.env,
+  run = runFile,
+  log = console.log,
+} = {}) {
   const report = await withTemporaryWorktree(repoRoot, (worktree) => {
-    runVersioning(repoRoot, worktree, env);
+    runVersioning(repoRoot, worktree, env, run);
     return renderPreview(worktree, versionBumps(worktree));
   });
-  console.log(report);
+  log(report);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -184,6 +209,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 export {
   changelogSection,
   countLinesAndWords,
+  main,
   PREVIEW_CHANGELOG,
   previewConfig,
   renderPreview,

@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   changelogSection,
   countLinesAndWords,
+  main,
   PREVIEW_CHANGELOG,
   previewConfig,
   renderPreview,
@@ -160,6 +161,96 @@ describe("release-preview: the temporary worktree", () => {
     });
 
     expect(bumps).toEqual([{ dir: "packages/a", name: "@x/a", from: "1.0.0", to: "1.1.0" }]);
+  });
+});
+
+function untouched(repo) {
+  expect(git(repo, ["status", "--porcelain", "--ignored"])).toBe("");
+  expect(JSON.parse(readFileSync(join(repo, ".changeset/config.json"), "utf8"))).toEqual(
+    CHANGESET_CONFIG,
+  );
+  expect(linkedWorktrees(repo)).toHaveLength(1);
+}
+
+describe("release-preview: main", () => {
+  it("versions inside the temporary worktree, prints the report, and leaves the real tree untouched", async () => {
+    const repo = committedRepo();
+    const calls = [];
+    const logged = [];
+
+    await main({
+      repoRoot: repo,
+      env: {},
+      log: (text) => logged.push(text),
+      run: (command, args, options) => {
+        calls.push({ command, args, cwd: options.cwd });
+        if (args[0] === "version") {
+          const config = JSON.parse(
+            readFileSync(join(options.cwd, ".changeset/config.json"), "utf8"),
+          );
+          expect(config.changelog).toBe(PREVIEW_CHANGELOG);
+          writeFile(options.cwd, "packages/a/package.json", '{"name":"@x/a","version":"1.1.0"}\n');
+          writeFile(
+            options.cwd,
+            "packages/a/CHANGELOG.md",
+            "# @x/a\n\n## 1.1.0\n\n- abc: Adds it.\n",
+          );
+        }
+      },
+    });
+
+    expect(calls.map((call) => call.args)).toEqual([
+      ["version"],
+      [expect.stringMatching(/scripts[/\\]mcp-server-json\.mjs$/), "sync"],
+    ]);
+    for (const call of calls) {
+      expect(call.cwd).not.toBe(repo);
+      expect(existsSync(call.cwd)).toBe(false);
+    }
+    expect(logged.join("\n")).toContain("  @x/a: 1.0.0 -> 1.1.0");
+    expect(logged.join("\n")).toContain("=== @x/a@1.1.0 (3 lines, 6 words) ===");
+    untouched(repo);
+  });
+
+  it("cleans up and leaves the real tree untouched when changeset version fails", async () => {
+    const repo = committedRepo();
+
+    await expect(
+      main({
+        repoRoot: repo,
+        env: {},
+        log: () => {},
+        run: () => {
+          throw new Error("changeset version exited with 1");
+        },
+      }),
+    ).rejects.toThrow("changeset version exited with 1");
+
+    untouched(repo);
+  });
+
+  it("removes the worktree when interrupted with SIGINT", () => {
+    const repo = committedRepo();
+    const script = resolve(REPO_ROOT, "scripts/release-preview.mjs");
+    const code = [
+      `const { withTemporaryWorktree } = await import(${JSON.stringify(script)});`,
+      `await withTemporaryWorktree(${JSON.stringify(repo)}, (worktree) => {`,
+      "  console.log(worktree);",
+      "  process.kill(process.pid, 'SIGINT');",
+      "  return new Promise(() => { setInterval(() => {}, 1_000); });",
+      "});",
+    ].join("\n");
+
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", code], {
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+
+    expect(result.status).toBe(130);
+    const worktree = result.stdout.trim();
+    expect(worktree).not.toBe("");
+    expect(existsSync(dirname(worktree))).toBe(false);
+    untouched(repo);
   });
 });
 
