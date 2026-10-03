@@ -43,7 +43,7 @@ eine ARB-`@key.description`, eine XLIFF-Notiz, einen gettext-Kommentar, einen Ko
 
 <AvailableFrom version="0.12.0" />
 
-Liest, was eine Übersetzerin braucht, um einen Key in einer Ziel-Locale zu schreiben: alles, was `keyValue` liefert, dazu die Glossarbegriffe, die auf den Quelltext zutreffen, und das `maxLength` des Keys. Gib einen `draft` mit, um ihn gegen diese Begriffe zu prüfen. Nur lesend. Wie jeder glossarbezogene Einstiegspunkt nimmt es `loaded` aus `loadConfigWithMeta` statt einer bloßen Konfiguration, weil es ein dateibasiertes Glossar neu von der Festplatte liest.
+Liest, was eine Übersetzerin braucht, um einen Key in einer Ziel-Locale zu schreiben: alles, was `keyValue` liefert, dazu die Glossarbegriffe, die auf den Quelltext zutreffen, und das `maxLength` des Keys. Gib einen `draft` mit, um ihn gegen diese Begriffe zu prüfen. Nur lesend. Wie die anderen Einstiegspunkte, die ein dateibasiertes Glossar neu von der Festplatte lesen, nimmt er `loaded` aus `loadConfigWithMeta` statt einer bloßen Konfiguration.
 
 ```ts title="Signatur"
 function keyContext(

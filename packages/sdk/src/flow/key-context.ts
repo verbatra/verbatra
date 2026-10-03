@@ -82,9 +82,9 @@ async function readGlossaryLeniently(
  * read does not fail the call: the glossary part comes back empty with a `glossaryNotice` naming
  * the error, while the source, target and provenance are still answered.
  *
- * Like every glossary-aware entry point, it takes the `loaded` result of
- * {@link loadConfigWithMeta} rather than a bare config, because it reads a file-backed glossary
- * again from disk, so an edit to that file is picked up without loading the config again.
+ * Like the other entry points that re-read a file-backed glossary from disk, it takes the `loaded`
+ * result of {@link loadConfigWithMeta} rather than a bare config, so an edit to that file is picked
+ * up without loading the config again.
  *
  * @param input - The loaded config, the locale and key, and an optional draft.
  * @param deps - Optional adapter registry and file-system overrides.
