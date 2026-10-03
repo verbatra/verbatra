@@ -134,7 +134,7 @@ function glossaryForLocale(
 
 <AvailableFrom version="0.12.0" />
 
-`glossaryHits({ glossary, locale, sourceLocale, text })` renvoie les entrées du glossaire qui s'appliquent à un texte source dans une locale cible, sous la forme `{ terms, doNotTranslate }` que renvoie `glossaryForLocale` : chaque terme dont la source apparaît dans `text` comme terme entier, avec la traduction et les rendus interdits auxquels cette locale est tenue, et chaque terme à garder non traduit qui y apparaît. Un terme correspond avec ou sans casse selon ce qu'il indique, la casse étant repliée pour `sourceLocale`. Il utilise la même correspondance qu'une exécution de traduction pour signaler un terme de glossaire manqué, et ne lit rien.
+`glossaryHits({ glossary, locale, sourceLocale, source })` renvoie les entrées du glossaire qui s'appliquent à un texte source dans une locale cible, sous la forme `{ terms, doNotTranslate }` que renvoie `glossaryForLocale` : chaque terme dont la source apparaît dans `source` comme terme entier, avec la traduction et les rendus interdits auxquels cette locale est tenue, et chaque terme à garder non traduit qui y apparaît. Un terme correspond avec ou sans casse selon ce qu'il indique, la casse étant repliée pour `sourceLocale`. Il utilise la même correspondance qu'une exécution de traduction pour signaler un terme de glossaire manqué, et ne lit rien.
 
 ```ts title="Signature"
 function glossaryHits(

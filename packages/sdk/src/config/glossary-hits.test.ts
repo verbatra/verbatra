@@ -23,7 +23,7 @@ describe("glossaryHits", () => {
         glossary: GLOSSARY,
         locale: "de",
         sourceLocale: "en",
-        text: "Your cart at Verbatra",
+        source: "Your cart at Verbatra",
       }),
     ).toEqual({
       terms: [{ source: "cart", target: "Warenkorb", forbidden: ["Karren"], caseSensitive: false }],
@@ -33,7 +33,7 @@ describe("glossaryHits", () => {
 
   it("resolves the translation for the requested locale", () => {
     expect(
-      glossaryHits({ glossary: GLOSSARY, locale: "fr", sourceLocale: "en", text: "Cart" }).terms,
+      glossaryHits({ glossary: GLOSSARY, locale: "fr", sourceLocale: "en", source: "Cart" }).terms,
     ).toMatchObject([{ source: "cart", target: "panier", forbidden: [] }]);
   });
 
@@ -43,7 +43,7 @@ describe("glossaryHits", () => {
         glossary: GLOSSARY,
         locale: "de",
         sourceLocale: "en",
-        text: "carts and checkout",
+        source: "carts and checkout",
       }),
     ).toEqual({
       terms: [],
@@ -57,14 +57,14 @@ describe("glossaryHits", () => {
         glossary: { cart: "Warenkorb" },
         locale: "de",
         sourceLocale: "en",
-        text: "cart",
+        source: "cart",
       }).terms,
     ).toMatchObject([{ source: "cart", target: "Warenkorb" }]);
   });
 
   it("finds nothing without a glossary", () => {
     expect(
-      glossaryHits({ glossary: undefined, locale: "de", sourceLocale: "en", text: "cart" }),
+      glossaryHits({ glossary: undefined, locale: "de", sourceLocale: "en", source: "cart" }),
     ).toEqual({ terms: [], doNotTranslate: [] });
   });
 });

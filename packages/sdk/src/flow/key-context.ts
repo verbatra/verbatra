@@ -133,7 +133,7 @@ export async function keyContext(
       glossary,
       locale: input.locale,
       sourceLocale: config.sourceLocale,
-      text: value.source,
+      source: value.source,
     }),
     ...(maxLength !== undefined ? { maxLength } : {}),
     ...(glossaryRead.notice !== undefined ? { glossaryNotice: glossaryRead.notice } : {}),

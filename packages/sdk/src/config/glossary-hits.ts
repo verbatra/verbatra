@@ -17,7 +17,7 @@ export interface GlossaryHitsInput {
   /** The locale the text is written in, used to fold case for a term matched without case. */
   readonly sourceLocale: string;
   /** The source text to look for terms in. */
-  readonly text: string;
+  readonly source: string;
 }
 
 /**
@@ -37,7 +37,7 @@ export function glossaryHits(input: GlossaryHitsInput): LocaleGlossary {
   const localeGlossary = glossaryForLocale(input.glossary, input.locale);
   return localeGlossary === undefined
     ? NO_HITS
-    : glossaryEntriesInText(localeGlossary, input.text, input.sourceLocale);
+    : glossaryEntriesInText(localeGlossary, input.source, input.sourceLocale);
 }
 
 /** Input for {@link glossaryDraftCheck}. */
@@ -72,7 +72,7 @@ export function glossaryDraftCheck(input: GlossaryDraftCheckInput): GlossaryDraf
       glossary: input.glossary,
       locale: input.locale,
       sourceLocale: input.sourceLocale,
-      text: input.source,
+      source: input.source,
     }),
     sourceValue: input.source,
     draft: input.draft,

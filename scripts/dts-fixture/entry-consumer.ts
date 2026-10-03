@@ -85,7 +85,7 @@ export async function inspect(config: VerbatraConfig): Promise<number> {
     glossary: undefined,
     locale: "de",
     sourceLocale: "en",
-    text: value.source,
+    source: value.source,
   });
   const draft = glossaryDraftCheck({
     glossary: undefined,
