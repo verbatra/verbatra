@@ -271,7 +271,12 @@ async function readPluralFlagsByText(
   adapter: FormatAdapter,
 ): Promise<PluralFlagsByText> {
   const byText = new Map<string, Set<boolean>>();
-  const catalog = await readSource(config, cwd, fs, adapter).catch(() => undefined);
+  const catalog = await readSource(config, cwd, fs, adapter).catch((error: unknown) => {
+    if (error instanceof SdkError && error.code === "SOURCE_UNREADABLE") {
+      return undefined;
+    }
+    throw error;
+  });
   for (const entry of catalog?.resource.entries.values() ?? []) {
     const text = normalizeText(entry.value);
     byText.set(text, (byText.get(text) ?? new Set<boolean>()).add(entry.isPlural));
@@ -427,27 +432,43 @@ function unitRefusal(unit: number, rejection: IntegrityGateRejection): TmxUnitRe
     : { unit, reason: rejection.reason, details: rejection.details };
 }
 
-function applyTranslation(
+const DECISION_PRECEDENCE: readonly Decision[] = [
+  "added",
+  "overwritten",
+  "kept",
+  "unchanged",
+  "duplicates",
+];
+
+function firstRejection(
+  ctx: ApplyContext,
+  locale: string,
+  sourceEntries: readonly TranslationEntry[],
+  candidate: string,
+): IntegrityGateRejection | undefined {
+  for (const sourceEntry of sourceEntries) {
+    const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
+    if (!gate.accepted) {
+      return gate;
+    }
+  }
+  return undefined;
+}
+
+function decideKeying(
   ctx: ApplyContext,
   tally: LocaleTally,
-  unit: number,
   locale: string,
   sourceEntry: TranslationEntry,
   candidate: string,
-): void {
-  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
-  if (!gate.accepted) {
-    tally.rejected[gate.reason] += 1;
-    tally.refusals.push(unitRefusal(unit, gate));
-    return;
-  }
+): Decision {
   const hash = contentHash(sourceEntry);
   const existing = ctx.memory.entries[ctx.fingerprintFor(locale)]?.[locale]?.[hash];
   const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
-  tally[decision] += 1;
   if (STAGED.has(decision)) {
     tally.additions[hash] = { contentHash: hash, value: candidate, source: sourceEntry.value };
   }
+  return decision;
 }
 
 function applyTranslations(
@@ -458,8 +479,18 @@ function applyTranslations(
   sourceEntries: readonly TranslationEntry[],
   candidate: string,
 ): void {
-  for (const sourceEntry of sourceEntries) {
-    applyTranslation(ctx, tally, unit, locale, sourceEntry, candidate);
+  const rejection = firstRejection(ctx, locale, sourceEntries, candidate);
+  if (rejection !== undefined) {
+    tally.rejected[rejection.reason] += 1;
+    tally.refusals.push(unitRefusal(unit, rejection));
+    return;
+  }
+  const decisions = new Set(
+    sourceEntries.map((sourceEntry) => decideKeying(ctx, tally, locale, sourceEntry, candidate)),
+  );
+  const counted = DECISION_PRECEDENCE.find((decision) => decisions.has(decision));
+  if (counted !== undefined) {
+    tally[counted] += 1;
   }
 }
 
@@ -614,8 +645,8 @@ function additionsByLocale(
  * A unit carries no plural flag, so the flag is taken from the project's source catalog: a unit
  * whose source text a plural form holds there (`cart.items_one`, for example) is
  * stored as that plural form's translation, and as a plain string's too when the catalog holds the
- * text both ways. A unit no catalog entry matches, or any unit when the source catalog cannot be
- * read, is stored as a plain string.
+ * text both ways, and is still counted once. A unit no catalog entry matches, or any unit when the
+ * project has no source locale file yet, is stored as a plain string.
  *
  * An imported source that is identical to a project string but hashes differently is not reachable
  * at all. Fuzzy reuse discards any candidate whose normalized source equals the query, so a project
@@ -639,7 +670,7 @@ function additionsByLocale(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: no file exists at the given path.
  * @throws {@link SdkError} `SOURCE_INVALID`: the file is oversized, malformed, not a TMX document,
- * or declares an XML entity. When the problem has a place in the file, the message names its line,
+ * or declares an XML entity, or the project's source locale file exists but cannot be parsed. When the problem has a place in the file, the message names its line,
  * column and, inside a translation unit, the unit's 1-based ordinal, and `cause` is the interchange
  * reader's error carrying the same as a structured `location`.
  *
