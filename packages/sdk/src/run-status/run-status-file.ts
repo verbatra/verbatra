@@ -5,6 +5,28 @@ import type { LocaleSummary, NeedsReviewEntry, RunSummary } from "../flow/summar
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import type { RunStatusFile, RunStatusLocale } from "./types.js";
 
+/**
+ * Why {@link runStatus} reported `available: false`:
+ *
+ * - `no-status-file`: no `.verbatra-local/run-status.json` exists, so no non-dry run has completed
+ *   in this directory yet.
+ * - `unreadable`: something exists at the path but could not be read: the process may not open it,
+ *   it is not a regular file, it exceeds the size limit, or the read itself failed.
+ * - `invalid`: the file is not JSON, or its JSON at the current version does not have the
+ *   run-status shape.
+ * - `unsupported-version`: the file names a format version this verbatra does not read, whatever
+ *   the rest of its shape.
+ */
+export type RunStatusUnavailableReason = (typeof RUN_STATUS_UNAVAILABLE_REASONS)[number];
+
+/** Every {@link RunStatusUnavailableReason}. */
+export const RUN_STATUS_UNAVAILABLE_REASONS = Object.freeze([
+  "no-status-file",
+  "unreadable",
+  "invalid",
+  "unsupported-version",
+] as const);
+
 const RUN_STATUS_DIR_NAME = ".verbatra-local";
 const RUN_STATUS_FILE_NAME = "run-status.json";
 
@@ -45,6 +67,8 @@ const runStatusLocaleSchema = z.object({
   fuzzyHits: z.array(fuzzyCacheHitSchema).optional(),
   usage: usageSummarySchema.optional(),
 });
+
+const versionSchema = z.object({ version: z.number() });
 
 const runStatusFileSchema = z.object({
   version: z.number().int().positive(),
@@ -121,30 +145,55 @@ function fromParsed(data: ParsedRunStatusFile): RunStatusFile {
   };
 }
 
-export async function readRunStatusFile(
-  path: string,
-  fs: SdkFs,
-): Promise<RunStatusFile | undefined> {
-  let read: BoundedFileRead;
+export type RunStatusRead =
+  | { readonly kind: "ok"; readonly file: RunStatusFile }
+  | { readonly kind: "unavailable"; readonly reason: RunStatusUnavailableReason };
+
+function unavailable(reason: RunStatusUnavailableReason): RunStatusRead {
+  return { kind: "unavailable", reason };
+}
+
+async function readBounded(path: string, fs: SdkFs): Promise<BoundedFileRead | undefined> {
   try {
-    read = await fs.readFileBounded(path, MAX_RUN_STATUS_FILE_BYTES);
+    return await fs.readFileBounded(path, MAX_RUN_STATUS_FILE_BYTES);
   } catch {
     return undefined;
   }
-  if (read.kind !== "ok") {
-    return undefined;
-  }
-  let parsed: unknown;
+}
+
+function parseJson(content: string): { readonly value: unknown } | undefined {
   try {
-    parsed = JSON.parse(read.content);
+    return { value: JSON.parse(content) };
   } catch {
     return undefined;
   }
-  const result = runStatusFileSchema.safeParse(parsed);
-  if (!result.success || result.data.version !== CURRENT_VERSION) {
-    return undefined;
+}
+
+function notRead(read: BoundedFileRead | undefined): RunStatusRead {
+  return read?.kind === "missing" && read.unreadable !== true
+    ? unavailable("no-status-file")
+    : unavailable("unreadable");
+}
+
+function fromJson(value: unknown): RunStatusRead {
+  const header = versionSchema.safeParse(value);
+  if (!header.success) {
+    return unavailable("invalid");
   }
-  return fromParsed(result.data);
+  if (header.data.version !== CURRENT_VERSION) {
+    return unavailable("unsupported-version");
+  }
+  const result = runStatusFileSchema.safeParse(value);
+  return result.success ? { kind: "ok", file: fromParsed(result.data) } : unavailable("invalid");
+}
+
+export async function readRunStatusFile(path: string, fs: SdkFs): Promise<RunStatusRead> {
+  const read = await readBounded(path, fs);
+  if (read?.kind !== "ok") {
+    return notRead(read);
+  }
+  const parsed = parseJson(read.content);
+  return parsed === undefined ? unavailable("invalid") : fromJson(parsed.value);
 }
 
 export async function writeRunStatusFile(

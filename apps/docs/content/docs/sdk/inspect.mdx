@@ -387,9 +387,8 @@ No config needed. Returns a `ProvenanceFile`.
 ### runStatus
 
 Reads the review-flag and token-usage snapshot the most recent non-dry-run `translate` or `watch`
-run persisted to `.verbatra-local/run-status.json`. Never throws: a missing, corrupt, or
-unrecognized file degrades to `{ available: false }`. This file is best-effort telemetry, not a
-correctness baseline.
+run persisted to `.verbatra-local/run-status.json`. Never throws: an unusable file
+degrades to `available: false`. The file is best-effort telemetry, not a correctness baseline.
 
 ```ts title="Signature"
 function runStatus(
@@ -402,8 +401,8 @@ function runStatus(
 
 **Returns:** `RunStatusResult`
 
-No config needed. Returns `{ available: false }` or
-`{ available: true, version, generatedAt, usage?, budget?, locales }`.
+No config needed. Returns `{ available: false, reason }` (see `RUN_STATUS_UNAVAILABLE_REASONS`)
+or `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
 A snapshot written by a release from before the token budget was enforced is still read, but its
 `budget` is left out when it says `supported: false`: back then that meant nothing was counted, so

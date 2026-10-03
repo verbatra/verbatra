@@ -8,6 +8,18 @@ import { type Glossary, type GlossaryInput, glossaryForLocale } from "./glossary
 
 const NO_HITS: LocaleGlossary = { terms: [], doNotTranslate: [] };
 
+/** Input for {@link glossaryHits}. */
+export interface GlossaryHitsInput {
+  /** The config's glossary, in either supported shape or already normalized, or `undefined`. */
+  readonly glossary: GlossaryInput | Glossary | undefined;
+  /** The target locale whose translations and forbidden renderings apply. */
+  readonly locale: string;
+  /** The locale the text is written in, used to fold case for a term matched without case. */
+  readonly sourceLocale: string;
+  /** The source text to look for terms in. */
+  readonly source: string;
+}
+
 /**
  * Finds the glossary entries that apply to one source text in one target locale: every term whose
  * source occurs in the text, with the translation and forbidden renderings that locale is held to,
@@ -18,24 +30,14 @@ const NO_HITS: LocaleGlossary = { terms: [], doNotTranslate: [] };
  * This is the same matching a translate run uses to decide that a translation missed a glossary
  * term, so a caller can show a translator the terminology a key is held to before it is written.
  *
- * @param glossary - The config's glossary, in either supported shape or already normalized, or
- * `undefined` for none.
- * @param locale - The target locale whose translations and forbidden renderings apply.
- * @param sourceLocale - The locale the text is written in, used to fold case for a term matched
- * without case.
- * @param text - The source text to look for terms in.
+ * @param input - The glossary, the target and source locales, and the source text.
  * @returns The matching terms and terms to keep untranslated, both empty when nothing matches.
  */
-export function glossaryHits(
-  glossary: GlossaryInput | Glossary | undefined,
-  locale: string,
-  sourceLocale: string,
-  text: string,
-): LocaleGlossary {
-  const localeGlossary = glossaryForLocale(glossary, locale);
+export function glossaryHits(input: GlossaryHitsInput): LocaleGlossary {
+  const localeGlossary = glossaryForLocale(input.glossary, input.locale);
   return localeGlossary === undefined
     ? NO_HITS
-    : glossaryEntriesInText(localeGlossary, text, sourceLocale);
+    : glossaryEntriesInText(localeGlossary, input.source, input.sourceLocale);
 }
 
 /** Input for {@link glossaryDraftCheck}. */
@@ -66,7 +68,12 @@ export interface GlossaryDraftCheckInput {
  */
 export function glossaryDraftCheck(input: GlossaryDraftCheckInput): GlossaryDraftCheck {
   return checkGlossaryDraft({
-    hits: glossaryHits(input.glossary, input.locale, input.sourceLocale, input.source),
+    hits: glossaryHits({
+      glossary: input.glossary,
+      locale: input.locale,
+      sourceLocale: input.sourceLocale,
+      source: input.source,
+    }),
     sourceValue: input.source,
     draft: input.draft,
     targetLocale: input.locale,
