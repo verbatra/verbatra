@@ -9,7 +9,7 @@ vi.mock("@/components/landing/package-install", () => ({
   PackageInstall: () => <div data-testid="install" />,
 }));
 
-const { DocsHomeHero, DocsHomeStacks } = await import("./docs-home");
+const { DocsHomeHero } = await import("./docs-home");
 
 function renderHero(): Document {
   const markup = renderToStaticMarkup(
@@ -34,58 +34,6 @@ describe("DocsHomeHero: phone width", () => {
     expect(grid?.classList.contains("grid-cols-[minmax(0,1fr)]")).toBe(true);
     expect(wrapper?.classList.contains("min-w-0")).toBe(true);
     expect(wrapper?.classList.contains("w-full")).toBe(true);
-  });
-});
-
-describe("DocsHomeStacks", () => {
-  function renderStacks(locale: "en" | "de"): Document {
-    const markup = renderToStaticMarkup(
-      <DocsHomeStacks
-        title="Pick your stack"
-        groups={[
-          {
-            title: "Frameworks",
-            links: [{ label: "React", href: "/docs/pick-your-stack#react-with-i18next" }],
-          },
-          {
-            title: "Platforms",
-            links: [{ label: "Flutter", href: "/docs/pick-your-stack#flutter" }],
-          },
-        ]}
-        locale={locale}
-      />,
-    );
-    return new DOMParser().parseFromString(markup, "text/html");
-  }
-
-  it("names the row after its title and lists every stack as a plain text link", () => {
-    const nav = renderStacks("en").querySelector("nav");
-    expect(nav?.getAttribute("aria-label")).toBe("Pick your stack");
-    const links = [...(nav?.querySelectorAll("a") ?? [])];
-    expect(links.map((link) => link.textContent)).toEqual(["React", "Flutter"]);
-    expect(links.every((link) => link.querySelector("img, svg") === null)).toBe(true);
-  });
-
-  it("puts the title above the groups and each group label above its own list", () => {
-    const nav = renderStacks("en").querySelector("nav");
-    expect(nav?.classList.contains("flex-col")).toBe(true);
-    expect(nav?.className).not.toMatch(/(^|\s)\w+:flex-row/);
-    const groups = [...(nav?.querySelectorAll("ul") ?? [])].map((list) => [
-      list.previousElementSibling?.textContent,
-      [...list.querySelectorAll("a")].map((link) => link.textContent),
-    ]);
-    expect(groups).toEqual([
-      ["Frameworks", ["React"]],
-      ["Platforms", ["Flutter"]],
-    ]);
-  });
-
-  it("keeps the section anchor and prefixes the reader's locale", () => {
-    const hrefs = [...renderStacks("de").querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual([
-      "/de/docs/pick-your-stack#react-with-i18next",
-      "/de/docs/pick-your-stack#flutter",
-    ]);
   });
 });
 

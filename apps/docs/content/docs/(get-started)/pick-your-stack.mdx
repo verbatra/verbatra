@@ -5,22 +5,25 @@ type: reference
 ---
 Find your framework below and use its `init` command in place of the one in the [Quickstart](/docs/quickstart). Each file layout is the pattern `init` writes when it finds no locale files; when your files already exist, `init` detects where they are, and `--path` sets the pattern yourself. Every format's full behavior is on [Formats](/docs/formats).
 
-| Stack | `--format` id | File layout |
-| --- | --- | --- |
-| [React with i18next](#react-with-i18next) | `i18next-json` | `locales/{locale}.json` |
-| [Next.js with next-intl](#nextjs-with-next-intl) | `next-intl-json` | `messages/{locale}.json` |
-| [Vue and Nuxt with vue-i18n](#vue-and-nuxt-with-vue-i18n) | `vue-i18n-json` | `src/locales/{locale}.json` |
-| [Angular with ngx-translate](#angular-with-ngx-translate) | `ngx-translate-json` | `src/assets/i18n/{locale}.json` |
-| [Flutter](#flutter) | `arb` | `lib/l10n/app_{locale}.arb` |
-| [Android](#android) | `android-xml` | `app/src/main/res/{locale}/strings.xml` |
-| [iOS and macOS](#ios-and-macos) | `apple-strings` | `{locale}.lproj/Localizable.strings` |
-| [iOS and macOS](#ios-and-macos) | `apple-xcstrings` | `{locale}Localizable.xcstrings` |
-| [gettext](#gettext) | `gettext-po` | `locales/{locale}/LC_MESSAGES/messages.po` |
-| [Java and Spring](#java-and-spring) | `properties` | `src/main/resources/messages_{locale}.properties` |
-| [.NET](#net) | `resx` | `Resources/Strings.{locale}.resx` |
-| [YAML](#yaml) | `yaml` | `locales/{locale}.yml` |
-| [XLIFF](#xliff) | `xliff` | `locales/{locale}.xlf` |
-| [INI](#ini) | `ini` | `locales/{locale}.ini` |
+<StackCards
+  title="Pick your stack"
+  cards={[
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "#react-with-i18next" },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "#nextjs-with-next-intl" },
+    { label: "Vue and Nuxt", icon: "vue", formats: ["vue-i18n-json"], href: "#vue-and-nuxt-with-vue-i18n" },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "#angular-with-ngx-translate" },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "#flutter" },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "#android" },
+    { label: "iOS and macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "#ios-and-macos" },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "#gettext" },
+    { label: "Java and Spring", icon: "spring", formats: ["properties"], href: "#java-and-spring" },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "#yaml" },
+    { label: "XLIFF", icon: "xml", formats: ["xliff"], href: "#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "#ini" },
+    { label: "Something else", icon: "custom", formats: [], href: "#something-else" },
+  ]}
+/>
 
 ## React with i18next
 

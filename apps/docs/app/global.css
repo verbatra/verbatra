@@ -447,6 +447,49 @@ samp {
   color: var(--text-strong);
 }
 
+.vk-stack-card {
+  color: var(--text-strong);
+  text-decoration-line: none;
+  border-color: var(--border-default);
+  background: var(--surface-bg);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.vk-stack-card:hover,
+.vk-stack-card:focus-visible {
+  border-color: color-mix(in srgb, var(--v-glow) 45%, var(--border-default));
+}
+
+.vk-stack-card:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.vk-stack-card-chip {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 9999px;
+  background: var(--surface-card);
+  color: var(--text-strong);
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+.vk-stack-card:hover .vk-stack-card-chip,
+.vk-stack-card:focus-visible .vk-stack-card-chip {
+  color: var(--accent);
+}
+
+.vk-stack-card-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-strong);
+}
+
 #nd-toc h3 {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

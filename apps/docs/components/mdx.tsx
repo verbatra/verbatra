@@ -14,11 +14,11 @@ import {
   DocsHomeHero,
   DocsHomePaths,
   DocsHomeSection,
-  DocsHomeStacks,
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { VMark } from "@/components/landing";
 import { OutputCodeBlock } from "@/components/output-code-block";
+import { StackCards } from "@/components/stack-cards";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
@@ -99,8 +99,8 @@ export function getMDXComponents(
     DocsHomePaths: (props: Omit<ComponentProps<typeof DocsHomePaths>, "locale">) => (
       <DocsHomePaths {...props} locale={locale} />
     ),
-    DocsHomeStacks: (props: Omit<ComponentProps<typeof DocsHomeStacks>, "locale">) => (
-      <DocsHomeStacks {...props} locale={locale} />
+    StackCards: (props: Omit<ComponentProps<typeof StackCards>, "locale">) => (
+      <StackCards {...props} locale={locale} />
     ),
     DocsHomeFeatures: (props: Omit<ComponentProps<typeof DocsHomeFeatures>, "locale">) => (
       <DocsHomeFeatures {...props} locale={locale} />

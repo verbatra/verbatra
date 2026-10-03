@@ -197,47 +197,6 @@ export function DocsHomePaths({
   );
 }
 
-type StackLink = { label: string; href: string };
-
-type StackGroup = { title: string; links: ReadonlyArray<StackLink> };
-
-export function DocsHomeStacks({
-  title,
-  groups,
-  locale,
-}: {
-  title: string;
-  groups: ReadonlyArray<StackGroup>;
-  locale: Locale;
-}): ReactNode {
-  return (
-    <nav
-      aria-label={title}
-      className="not-prose mt-8 flex flex-col gap-4 border-t border-fd-border pt-[18px]"
-    >
-      <span className="vk-label">{title}</span>
-      <div className="flex flex-col gap-5 md:flex-row md:flex-wrap md:gap-x-12">
-        {groups.map((group) => (
-          <div key={group.title} className="flex flex-col gap-2 md:flex-none">
-            <span className="text-xs font-medium text-[color:var(--text-faint)]">
-              {group.title}
-            </span>
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-              {group.links.map((link) => (
-                <li key={link.href}>
-                  <Link href={localizedPath(locale, link.href)} className="vk-prose-link">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
 export function DocsHomeSteps(): ReactNode {
   const t = useTranslations("landing.how.steps");
   return (

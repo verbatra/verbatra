@@ -150,13 +150,20 @@ footer's oversized watermark only; do not clip it onto a heading.
   recaptured.
 - **Docs-facing:** `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
-  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
-  `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
+  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
+  `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
   `content/docs/index.mdx` and its three locale siblings. The hero and the body share one frame
   (`HOME_FRAME`: one max width, one gutter), so the hero panel and the sections below it start and
-  end on the same edges; a section head sets its lead on the heading's last baseline. `DocsHomeStacks` is the plain text links
-  into `pick-your-stack`, grouped (frameworks, platforms, formats) under a label that sits above
-  them at every width: no logos, no icons. Fumadocs' `Steps` and `Step`
+  end on the same edges; a section head sets its lead on the heading's last baseline.
+  `StackCards` (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top
+  of `pick-your-stack`: one flat grid of flat-panel cards (one column, two from a 30rem container,
+  three from 50rem), each a single-colour logo in a round `--surface-card` chip, the stack name in
+  the display face, and its `--format` ids in mono `--text-faint`, with no group labels and no
+  arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
+  (shared with the marquee), always `currentColor`, never a brand colour, since several brand
+  colours are black on this dark-only site; a format with no brand mark gets an outline glyph
+  there. `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` and anchor to
+  `SUPPORTED_FORMATS` and to the page's sections in all four locales. Fumadocs' `Steps` and `Step`
   are registered there too, for numbered tutorial steps such as the quickstart's.
 
 ## Keep the client payload small
@@ -168,7 +175,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
-- A brand icon repeated on a page (the marquee's two tracks) is drawn once as an SVG `<symbol>`
+- A brand icon repeated on a page (the marquee's two tracks, the stack cards) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
   payload.
 - Keep all three `next/font` families preloaded. Every one of them sets text in the first

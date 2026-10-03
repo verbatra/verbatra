@@ -203,11 +203,35 @@ function headingSlug(heading) {
     .replace(/ /g, "-");
 }
 
-function stackTableRows(page) {
-  const intro = page.split(/^## /m)[0];
-  return [...intro.matchAll(/^\| \[[^\]]+\]\(#([^)]+)\) \| `([^`]+)` \| `([^`]+)` \|$/gm)].map(
-    (match) => ({ anchor: match[1], format: match[2], pattern: match[3] }),
-  );
+const STACK_CARD =
+  /\{ label: "([^"]+)", icon: "([a-z]+)", formats: \[([^\]]*)\], href: "([^"#]*)#([^"]+)" \}/g;
+
+function stackCards(page) {
+  const block = /<StackCards\n[\s\S]*?\n\/>/.exec(page)?.[0] ?? "";
+  return [...block.matchAll(STACK_CARD)].map((match) => ({
+    label: match[1],
+    formats: [...match[3].matchAll(/"([a-z0-9-]+)"/g)].map((format) => format[1]),
+    path: match[4],
+    anchor: match[5],
+  }));
+}
+
+function sectionAnchors(page) {
+  return page
+    .split(/^## /m)
+    .slice(1)
+    .map((section) => headingSlug(section.split("\n", 1)[0]));
+}
+
+function expectCardsCoverEveryFormat(cards, stackPage, formats) {
+  expect(cards.flatMap((card) => card.formats).sort()).toEqual([...formats].sort());
+  const anchors = sectionAnchors(stackPage);
+  for (const card of cards) {
+    expect(anchors, card.label).toContain(card.anchor);
+    for (const format of card.formats) {
+      expect(card.anchor, format).toBe(stackSectionAnchor(stackPage, format));
+    }
+  }
 }
 
 function stackSectionAnchor(page, format) {
@@ -233,27 +257,40 @@ describe("the pick-your-stack page covers every built-in format", () => {
         expect(sections[0], format).toContain(`\`${patterns.get(format)}\``);
         expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
       }
-      const rows = stackTableRows(page);
-      expect(rows.map((row) => row.format).sort()).toEqual([...formats].sort());
-      for (const row of rows) {
-        expect(row.pattern, row.format).toBe(patterns.get(row.format));
-        expect(row.anchor, row.format).toBe(stackSectionAnchor(page, row.format));
-      }
+      const cards = stackCards(page);
+      expect(cards.every((card) => card.path === "")).toBe(true);
+      expectCardsCoverEveryFormat(cards, page, formats);
       const commands = [...page.matchAll(/npx verbatra init --format ([a-z0-9-]+)/g)];
       expect(commands.map((match) => match[1]).sort()).toEqual([...formats].sort());
     },
   );
 
-  it("sees a format whose section, table row, or layout is missing or wrong", () => {
+  it.each(LOCALE_SUFFIXES)(
+    "links the docs home stack cards to the section of every format in index%s.mdx",
+    (suffix) => {
+      const cards = stackCards(readDocPage("index", suffix));
+      expect(cards.every((card) => card.path === "/docs/pick-your-stack")).toBe(true);
+      expectCardsCoverEveryFormat(
+        cards,
+        readDocPage("(get-started)/pick-your-stack", suffix),
+        formats,
+      );
+    },
+  );
+
+  it("sees a format whose section, card, or layout is missing or wrong", () => {
     const page = readDocPage("(get-started)/pick-your-stack", "");
     const withoutIni = page.replace("npx verbatra init --format ini\n", "");
     expect(stackSectionsFor(withoutIni, "ini")).toHaveLength(0);
-    const wrongRow = page.replace("| [INI](#ini) | `ini` |", "| [INI](#yaml) | `ini` |");
-    const iniRow = stackTableRows(wrongRow).find((row) => row.format === "ini");
-    expect(iniRow?.anchor).not.toBe(stackSectionAnchor(wrongRow, "ini"));
-    expect(stackTableRows(page.replace("| [INI](#ini) | `ini` |", "| INI | `ini` |"))).toHaveLength(
-      formats.length - 1,
+    const cards = stackCards(page);
+    const iniCard = (list) => list.find((card) => card.formats.includes("ini"));
+    expect(iniCard(cards)?.anchor).toBe(stackSectionAnchor(page, "ini"));
+    const wrongCard = stackCards(
+      page.replace('formats: ["ini"], href: "#ini"', 'formats: ["ini"], href: "#yaml"'),
     );
+    expect(iniCard(wrongCard)?.anchor).not.toBe(stackSectionAnchor(page, "ini"));
+    const cardsWithoutIni = stackCards(page.replace('formats: ["ini"]', "formats: []"));
+    expect(cardsWithoutIni.flatMap((card) => card.formats)).not.toContain("ini");
     const wrongLayout = page.replaceAll("`locales/{locale}.ini`", "`config/{locale}.ini`");
     expect(stackSectionsFor(wrongLayout, "ini")[0]).not.toContain("`locales/{locale}.ini`");
   });
