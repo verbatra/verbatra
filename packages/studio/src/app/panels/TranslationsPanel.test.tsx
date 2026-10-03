@@ -688,7 +688,7 @@ describe("TranslationsPanel stat strip", () => {
 
     expect(metricTile(view, "Last run")).toMatchObject({
       value: "Not reported",
-      hint: `Within budget. As of ${formatTimestamp(generatedAt)}`,
+      hint: `The provider sent no token usage for this run. Within budget. As of ${formatTimestamp(generatedAt)}`,
     });
   });
 
@@ -699,7 +699,7 @@ describe("TranslationsPanel stat strip", () => {
 
     expect(metricTile(view, "Last run")).toMatchObject({
       value: "Not reported",
-      hint: `As of ${formatTimestamp(generatedAt)}`,
+      hint: `The provider sent no token usage for this run. As of ${formatTimestamp(generatedAt)}`,
     });
   });
 

@@ -214,7 +214,10 @@ function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
       ? `${formatCount(state.usage.inputTokens)} / ${formatCount(state.usage.outputTokens)}`
       : "Not reported";
   const budget = state.budget.kind === "tracked" ? STANDING_HINT[state.budget.standing] : "";
-  const hintLead = state.usage.kind === "reported" ? "Tokens in / out. " : "";
+  const hintLead =
+    state.usage.kind === "reported"
+      ? "Tokens in / out. "
+      : "The provider sent no token usage for this run. ";
   return {
     value: usage,
     hint: `${hintLead}${budget}As of ${formatTimestamp(state.generatedAt)}`,

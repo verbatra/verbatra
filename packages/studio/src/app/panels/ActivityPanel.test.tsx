@@ -174,7 +174,7 @@ describe("ActivityPanel", () => {
     const view = await renderAsync(<ActivityPanel refreshToken={0} />);
 
     expect(metricValue(view, "Tokens")).toBe("Not reported");
-    expect(metricHint(view, "Tokens")).toBe("This provider does not report token usage.");
+    expect(metricHint(view, "Tokens")).toBe("The provider sent no token usage for this run.");
     expect(view.query("div[title='640']")).toBeNull();
   });
 
