@@ -16,7 +16,6 @@ import {
   SiSvelte,
   SiVuedotjs,
   SiXcode,
-  SiXml,
   SiYaml,
 } from "@icons-pack/react-simple-icons";
 import type { ReactNode } from "react";
@@ -71,7 +70,12 @@ export const STACK_ICONS = {
   svelte: <SiSvelte {...SI} />,
   vue: <SiVuedotjs {...SI} />,
   xcode: <SiXcode {...SI} />,
-  xml: <SiXml {...SI} />,
+  xliff: (
+    <OutlineGlyph>
+      <path d="M6 3h8l5 5v13H6z" />
+      <path d="M14 3v5h5M10.5 12 8.5 14.5l2 2.5M13.5 12l2 2.5-2 2.5" />
+    </OutlineGlyph>
+  ),
   yaml: <SiYaml {...SI} />,
 } as const satisfies Record<string, ReactNode>;
 

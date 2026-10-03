@@ -48,7 +48,7 @@ const FORMATS: ReadonlyArray<Format> = [
   { id: "vue-i18n-json", name: "vue-i18n JSON", icon: "vue" },
   { id: "next-intl-json", name: "next-intl JSON", icon: "next" },
   { id: "ngx-translate-json", name: "ngx-translate JSON", icon: "angular" },
-  { id: "xliff", name: "XLIFF", icon: "xml" },
+  { id: "xliff", name: "XLIFF", icon: "xliff" },
   { id: "yaml", name: "YAML", icon: "yaml" },
   { id: "arb", name: "Flutter ARB", icon: "flutter" },
   { id: "properties", name: "Java .properties", icon: "spring" },
