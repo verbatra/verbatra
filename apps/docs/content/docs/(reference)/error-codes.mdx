@@ -380,7 +380,7 @@ A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could no
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-The config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`).
+The config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`). With no glossary at all, the hint says instead: Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Raised by**: Studio and the MCP server
 - **Exit code**: none: no CLI command raises it

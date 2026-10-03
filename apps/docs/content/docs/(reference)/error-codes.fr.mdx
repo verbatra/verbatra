@@ -380,7 +380,7 @@ Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateG
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-Le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`).
+Le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`). Sans aucun glossaire configuré, l'indice dit à la place : Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Levé par** : Studio et le serveur MCP
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève

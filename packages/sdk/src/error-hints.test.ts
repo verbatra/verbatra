@@ -5,7 +5,7 @@ import { AdapterError } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildProvider, type ProviderConfig } from "./config/provider-config.js";
 import { apiKeyHint, errorHint, sdkErrorHint } from "./error-hints.js";
-import { SdkError, type SdkErrorCode } from "./errors.js";
+import { GlossaryNotConfiguredError, SdkError, type SdkErrorCode } from "./errors.js";
 import { selectProvider } from "./selection/select-provider.js";
 
 function unionMembers(relativePath: string, typeName: string): readonly string[] {
@@ -186,5 +186,20 @@ describe("errorHint: a hint never contains a key value", () => {
     );
 
     expect(hints.join("\n")).not.toContain(KEY_SENTINEL);
+  });
+});
+
+describe("errorHint: a glossary with no file to edit", () => {
+  it("asks for a new glossary file when no glossary is configured", () => {
+    const hint = errorHint(new GlossaryNotConfiguredError());
+
+    expect(hint).toContain("Create a glossary file, such as glossary.json holding `{}`");
+    expect(hint).toContain("set the config's `glossary` to its path");
+  });
+
+  it("keeps the move-it-to-a-file hint for an inline glossary", () => {
+    expect(errorHint(new SdkError("GLOSSARY_NOT_FILE_BACKED", "inline"))).toBe(
+      sdkErrorHint("GLOSSARY_NOT_FILE_BACKED"),
+    );
   });
 });

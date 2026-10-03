@@ -380,7 +380,7 @@ El bloqueo de escritura de un locale, o el bloqueo del glosario que toma `update
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-El glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`).
+El glosario de la configuración está en línea o ausente, así que no hay ningún archivo de glosario que leer o reescribir (`readGlossaryFile`, `updateGlossaryTerm`). Sin ningún glosario configurado, la pista dice en su lugar: Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Lo lanza**: Studio y el servidor MCP
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza

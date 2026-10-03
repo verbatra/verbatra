@@ -1,6 +1,6 @@
 import { ProviderError, type ProviderErrorCode } from "@verbatra/ai-providers";
 import type { AdapterErrorCode } from "@verbatra/format-adapters";
-import type { SdkErrorCode } from "./errors.js";
+import { GlossaryNotConfiguredError, type SdkErrorCode } from "./errors.js";
 
 const WRITABLE_OUTPUT_HINT = "Make the output file and its directory writable, then try again.";
 
@@ -106,6 +106,9 @@ const MODULE_RESOLUTION_CODES: ReadonlySet<string> = new Set([
 
 const CONFIG_IMPORT_UNRESOLVED_HINT =
   "Install the package the config file imports, or fix the import so it resolves from the config file's directory.";
+
+const NO_GLOSSARY_HINT =
+  'Create a glossary file, such as glossary.json holding `{}`, and set the config\'s `glossary` to its path, such as `"glossary.json"`.';
 
 const MALFORMED_FILE_HINT = "Fix the syntax error the message names in that file.";
 
@@ -218,6 +221,9 @@ export function errorHint(error: unknown): string | undefined {
   const code = codeOf(error);
   if (code === undefined) {
     return undefined;
+  }
+  if (error instanceof GlossaryNotConfiguredError) {
+    return NO_GLOSSARY_HINT;
   }
   return wrappedErrorHint(code, error) ?? missingKeyHint(error) ?? hintOfCode(code);
 }

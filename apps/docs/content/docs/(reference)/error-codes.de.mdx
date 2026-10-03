@@ -380,7 +380,7 @@ Die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` 
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-Das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`).
+Das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`). Ist gar kein Glossar konfiguriert, lautet der Hinweis stattdessen: Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Ausgelöst von**: Studio und der MCP-Server
 - **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus

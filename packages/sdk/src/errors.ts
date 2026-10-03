@@ -343,3 +343,12 @@ export class SdkError extends Error {
     this.code = code;
   }
 }
+
+export class GlossaryNotConfiguredError extends SdkError {
+  constructor() {
+    super(
+      "GLOSSARY_NOT_FILE_BACKED",
+      "The glossary is not configured, so there is no glossary file to work with. Point the config's glossary at a JSON file first.",
+    );
+  }
+}
