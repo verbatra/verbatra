@@ -31,6 +31,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   verbatra writes becomes `translated`.
 - No empty target file is created for a new locale whose keys were all withheld, and `import`
   writes new keys in source order.
+- i18next: `verbatra types` also declares the base key of each plural group (`cart.items` next to
+  `cart.items_one`), so `types --check` reports a committed 0.11 declaration as out of date. Run
+  `verbatra types` once and commit the file.
 
 **Translation behavior and spend**
 - `humanEdits` defaults to `"protect"`: a stale key whose value a person wrote, imported or edited

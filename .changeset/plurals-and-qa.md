@@ -18,6 +18,9 @@ CLDR plurals, ICU arm checks, other-syntax placeholder and direction control war
   holds for gettext `msgid_plural` entries and Android `<plurals>`.
 - `tmx import` fills plural forms: a unit whose text matches a plural form in the source file is
   stored for it, so `cart.items_one` and `cart.items_other` are served from the imported memory.
+- `verbatra types` declares the base key i18next looks up for a plural group, so
+  `t("cart.items", { count })` type-checks: `cart.items` requires `count` and every argument its
+  forms take, and `place_ordinal_one` declares `place`.
 
 **Integrity gate**
 - Each locale carries `integrityRefusals` with the reason and details per withheld key.

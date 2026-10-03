@@ -12,6 +12,7 @@ import {
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
+import { pluralLookupKey } from "./plural-categories.js";
 import {
   asWrittenRefusal,
   createOutputPathGuard,
@@ -106,7 +107,11 @@ export interface GenerateTypesResult {
   readonly unresolved: readonly UnresolvedMessage[];
   /** Keys the adapter reported as excluded from translation, which are never declared. */
   readonly excluded: readonly string[];
-  /** Keys the adapter marked as carrying plural forms. Each sibling is declared on its own. */
+  /**
+   * Keys the adapter marked as carrying plural forms. Each sibling is declared on its own; for
+   * `i18next-json` the base key a `count` lookup names (`item` for `item_one` and `item_other`)
+   * is declared too, but is not listed here.
+   */
   readonly plural: readonly string[];
   /**
    * Whether the declaration file was written. False in `check` mode, and false when the file on
@@ -237,6 +242,52 @@ function declareMessage(
   return { key, arguments: argumentsTaken, isPlural: entry.isPlural };
 }
 
+const COUNT_PLACEHOLDER = "{{count}}";
+
+function pluralLookupPlaceholders(
+  entries: ReadonlyMap<string, TranslationEntry>,
+): ReadonlyMap<string, readonly string[]> {
+  const byLookup = new Map<string, string[]>();
+  for (const [key, entry] of entries) {
+    const lookup = entry.isPlural ? pluralLookupKey(key) : undefined;
+    if (lookup !== undefined && !entries.has(lookup)) {
+      byLookup.set(lookup, [...(byLookup.get(lookup) ?? []), ...entry.placeholders]);
+    }
+  }
+  return byLookup;
+}
+
+function withPluralLookupKeys(
+  messages: readonly DeclaredMessage[],
+  entries: ReadonlyMap<string, TranslationEntry>,
+): readonly DeclaredMessage[] {
+  const placeholders = pluralLookupPlaceholders(entries);
+  const declared = new Set<string>();
+  return messages.flatMap((message) => {
+    const lookup = message.isPlural ? pluralLookupKey(message.key) : undefined;
+    const tokens = lookup === undefined ? undefined : placeholders.get(lookup);
+    if (lookup === undefined || tokens === undefined || declared.has(lookup)) {
+      return [message];
+    }
+    declared.add(lookup);
+    const base: DeclaredMessage = {
+      key: lookup,
+      arguments: describeMessageArguments([...tokens, COUNT_PLACEHOLDER]),
+      isPlural: false,
+    };
+    return [base, message];
+  });
+}
+
+function declaredMessages(
+  entries: ReadonlyMap<string, TranslationEntry>,
+  invalid: ReadonlySet<string>,
+  format: FormatId,
+): readonly DeclaredMessage[] {
+  const messages = [...entries].map(([key, entry]) => declareMessage(key, entry, invalid, format));
+  return format === "i18next-json" ? withPluralLookupKeys(messages, entries) : messages;
+}
+
 function takesKnownArguments(message: DeclaredMessage): boolean {
   return message.arguments.style === "named" || message.arguments.style === "positional";
 }
@@ -332,7 +383,10 @@ async function writeDeclaration(
  * and `arb`): there each message is analysed with the same ICU parser the adapter uses, so an
  * argument that only some `select` or `plural` branches use is still declared, as optional. Keys
  * are emitted as quoted string literals, so a key carrying a dot, a reserved word, a leading digit,
- * a quote, or nothing at all is declared verbatim rather than dropped or re-split.
+ * a quote, or nothing at all is declared verbatim rather than dropped or re-split. For
+ * `i18next-json`, a plural group also declares the base key that `t("item", { count })` looks up
+ * (`item` for `item_one` and `item_other`, `place` for `place_ordinal_one`), requiring `count` and
+ * every argument any of its forms takes, unless the catalog already holds that key.
  *
  * What it will not claim is as important as what it will. A message whose placeholders name their
  * arguments gets an object shape; one whose placeholders are numbered or anonymous gets a readonly
@@ -393,9 +447,7 @@ export async function generateTypes(
 
   const read = await readSourceResource(config, resolver, fs, adapter);
   const invalid = new Set(read.invalidIcuKeys);
-  const messages = [...read.resource.entries].map(([key, entry]) =>
-    declareMessage(key, entry, invalid, config.format),
-  );
+  const messages = declaredMessages(read.resource.entries, invalid, config.format);
   const sourcePath = toPosix(relative(cwd, resolver.pathFor(config.sourceLocale)));
   const declaration = renderTypesDeclaration({ sourcePath, format: config.format, messages });
 

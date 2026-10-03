@@ -59,6 +59,7 @@ export type VerbatraUnknownArguments = Record<string, VerbatraArgument>;
 export interface VerbatraMessages {
   "app.title": VerbatraNoArguments;
   "greeting": { readonly "name": VerbatraArgument };
+  "cart.item": { readonly "count": VerbatraArgument };
   "cart.item_one": { readonly "count": VerbatraArgument };
   "cart.item_other": { readonly "count": VerbatraArgument };
 }
@@ -134,7 +135,7 @@ Nur `next-intl-json` und `arb` prüfen die Nachrichtensyntax. In jedem anderen F
 
 ### Plural-Keys
 
-Nichts wird zusammengefasst. i18next trägt den Plural als Key-Suffix, deshalb werden `cart.item_one` und `cart.item_other` als die zwei Keys deklariert, die dein Code tatsächlich nachschlägt. `VerbatraPluralMessageKey` listet die Keys, die der Adapter als Träger von Pluralformen markiert hat, damit du darauf einschränken kannst.
+Nichts wird zusammengefasst. i18next trägt den Plural als Key-Suffix, deshalb werden `cart.item_one` und `cart.item_other` so deklariert, wie sie geschrieben sind, und daneben der Basis-Key `cart.item`, den `t("cart.item", { count })` nachschlägt; er verlangt `count` und jedes Argument, das eine der Formen nimmt. Auch die eigenen Typen von i18next akzeptieren beide Schreibweisen. Eine Ordinalgruppe wie `place_ordinal_one` deklariert `place`, und ein Basis-Key, den der Katalog schon enthält, behält seine eigene Deklaration. `VerbatraPluralMessageKey` listet die Keys, die der Adapter als Träger von Pluralformen markiert hat, also die mit Suffix, damit du darauf einschränken kannst.
 
 ### Wohin die Deklaration geht
 
