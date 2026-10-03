@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { buildDelimited, buildWorkbook, readDelimited, readWorkbook } from "@verbatra/exchange";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../../config/schema.js";
+import { errorHint } from "../../error-hints.js";
 import { defaultFs } from "../../fs.js";
 import {
   baseConfig,
@@ -287,6 +288,62 @@ describe("importWorkbook: delimited formats", () => {
     }).catch((caught: unknown) => caught);
     expect(error).toMatchObject({ code: "SOURCE_INVALID" });
     expect((error as Error).message).not.toContain("Hello");
+  });
+
+  it("points a missing handoff at the handoff path, not the source locale file", async () => {
+    const dir = await project({ greeting: "Hello" });
+
+    const errors = await Promise.all(
+      ([undefined, "csv"] as const).map((format) =>
+        importWorkbook({
+          config: cfg(),
+          cwd: dir,
+          workbook: "nowhere",
+          ...(format === undefined ? {} : { format }),
+        }).catch((caught: unknown) => caught),
+      ),
+    );
+
+    for (const error of errors) {
+      expect(error).toMatchObject({ code: "SOURCE_UNREADABLE" });
+      expect(errorHint(error)).toBe(
+        "Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.",
+      );
+    }
+  });
+
+  it("says a file with an unknown extension was read as a workbook, and how to name its format", async () => {
+    const dir = await project({ greeting: "Hello" });
+    await mkdir(join(dir, "handoff"), { recursive: true });
+    await writeFile(join(dir, "handoff", "de.txt"), "Key,Source,Translation\n", "utf8");
+
+    const error: unknown = await importWorkbook({
+      config: cfg(),
+      cwd: dir,
+      workbook: join("handoff", "de.txt"),
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((error as Error).message).toContain(
+      "de.txt was read as an xlsx workbook because no format was given and its extension names none; pass one of xlsx, csv, tsv, xliff2, xliff12 for another handoff shape.",
+    );
+    expect(errorHint(error)).toBe(
+      "Fix the handoff file the message names, or pass its format with `--format` when its extension names none.",
+    );
+  });
+
+  it("adds no format note when the workbook extension named the format", async () => {
+    const dir = await project({ greeting: "Hello" });
+    await writeFile(join(dir, "broken.xlsx"), "not a zip", "utf8");
+
+    const error: unknown = await importWorkbook({
+      config: cfg(),
+      cwd: dir,
+      workbook: "broken.xlsx",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((error as Error).message).not.toContain("no format was given");
   });
 
   it("fails the run when the path is neither a readable file nor a directory of locale files", async () => {

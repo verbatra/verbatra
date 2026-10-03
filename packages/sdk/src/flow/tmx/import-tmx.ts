@@ -16,7 +16,7 @@ import {
 } from "../../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
-import { errorMessage, SdkError } from "../../errors.js";
+import { errorMessage, InputFileError, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import {
@@ -297,10 +297,11 @@ function sourceEntriesFor(
 async function readTmxText(path: string, fs: SdkFs): Promise<string> {
   const read = await fs.readFileBounded(path, DEFAULT_TMX_LIMITS.maxInputBytes);
   if (read.kind === "missing") {
-    throw new SdkError("SOURCE_UNREADABLE", `No TMX file was found at ${path}.`);
+    throw new InputFileError("tmx", "SOURCE_UNREADABLE", `No TMX file was found at ${path}.`);
   }
   if (read.kind === "too-large") {
-    throw new SdkError(
+    throw new InputFileError(
+      "tmx",
       "SOURCE_INVALID",
       `The TMX file at ${path} exceeds the maximum allowed size of ${DEFAULT_TMX_LIMITS.maxInputBytes} bytes.`,
     );
@@ -312,7 +313,9 @@ function parse(text: string, path: string): ReturnType<typeof readTmx> {
   try {
     return readTmx(text);
   } catch (error) {
-    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`, { cause: error });
+    throw new InputFileError("tmx", "SOURCE_INVALID", `${path}: ${errorMessage(error)}`, {
+      cause: error,
+    });
   }
 }
 

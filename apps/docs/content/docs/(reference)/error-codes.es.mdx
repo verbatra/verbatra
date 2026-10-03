@@ -292,19 +292,23 @@ La [política de red](/docs/network-policy) efectiva no permite el endpoint del 
 
 ### SOURCE_UNREADABLE
 
-El archivo del locale de origen no existe.
+El archivo del locale de origen no existe o, con `import` y `tmx import`, no existe el archivo o directorio que se importa.
 
 - **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
 - **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
 - **Siguiente paso**: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+- **Siguiente paso con `import`**: Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.
+- **Siguiente paso con `tmx import`**: Pass the path of an existing TMX file, relative to the working directory or `--cwd`.
 
 ### SOURCE_INVALID
 
-El archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador.
+El archivo del locale de origen no se pudo leer o parsear; envuelve el error de lectura del adaptador. Con `import` y `tmx import`, el archivo que se importa es demasiado grande o no es un documento de entrega o TMX legible.
 
 - **Lo lanza**: todo comando que lee archivos de locale; Studio y el servidor MCP
 - **Código de salida**: `2`; `1` en `doctor`, que lo informa como una comprobación fallida
 - **Siguiente paso**: Fix the file the message names so it parses under the configured format.
+- **Siguiente paso con `import`**: Fix the handoff file the message names, or pass its format with `--format` when its extension names none.
+- **Siguiente paso con `tmx import`**: Fix the TMX file the message names, or export it again from the tool that wrote it.
 
 ### LOCK_FILE_INVALID
 

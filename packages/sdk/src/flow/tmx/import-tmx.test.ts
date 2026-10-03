@@ -7,6 +7,7 @@ import { computeFingerprint } from "../../cache/fingerprint.js";
 import { CACHE_FILE_NAME } from "../../cache/translation-memory.js";
 import type { TranslationMemory } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
+import { errorHint } from "../../error-hints.js";
 import { SdkError } from "../../errors.js";
 import { defaultFs } from "../../fs.js";
 import {
@@ -1122,6 +1123,25 @@ describe("importTmx reports an unusable file as a structured error", () => {
     await expect(importTmx({ config: cfg(), file: "absent.tmx", cwd: dir })).rejects.toMatchObject({
       code: "SOURCE_UNREADABLE",
     });
+  });
+
+  it("points a missing or malformed TMX file at the TMX file, not the source locale file", async () => {
+    const dir = await project([]);
+    await writeFile(join(dir, "memory.tmx"), '<tmx version="1.4"><body><tu', "utf8");
+
+    const missing = await importTmx({ config: cfg(), file: "absent.tmx", cwd: dir }).catch(
+      (caught: unknown) => caught,
+    );
+    const malformed = await importTmx({ config: cfg(), file: "memory.tmx", cwd: dir }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(errorHint(missing)).toBe(
+      "Pass the path of an existing TMX file, relative to the working directory or `--cwd`.",
+    );
+    expect(errorHint(malformed)).toBe(
+      "Fix the TMX file the message names, or export it again from the tool that wrote it.",
+    );
   });
 
   it("names a malformed file rather than leaking a parser error", async () => {

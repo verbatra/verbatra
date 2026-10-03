@@ -1,6 +1,6 @@
 import { basename, extname, join } from "node:path";
 import type { VerbatraConfig } from "../../config/schema.js";
-import { SdkError } from "../../errors.js";
+import { InputFileError } from "../../errors.js";
 import type { SdkFs } from "../../fs.js";
 import {
   type DirectoryFormat,
@@ -32,7 +32,8 @@ async function readHandoffText(path: string, fs: SdkFs): Promise<string | undefi
     return undefined;
   }
   if (read.kind === "too-large") {
-    throw new SdkError(
+    throw new InputFileError(
+      "handoff",
       "SOURCE_INVALID",
       `The interchange file at ${path} exceeds the maximum allowed size of ${MAX_HANDOFF_FILE_BYTES} bytes.`,
     );
@@ -81,7 +82,8 @@ export async function collectHandoffFiles(
     sources.push({ locale, text });
   }
   if (sources.length === 0 && staleLocales.length === 0) {
-    throw new SdkError(
+    throw new InputFileError(
+      "handoff",
       "SOURCE_UNREADABLE",
       `No ${describeFiles(format)} file was found at ${path}, and it holds no <locale>.${handoffExtension(format)} file for any configured target locale.`,
     );

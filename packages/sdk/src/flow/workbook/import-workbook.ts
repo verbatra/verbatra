@@ -14,7 +14,7 @@ import { fingerprintsFor } from "../../cache/fingerprint.js";
 import { feedTranslationMemory } from "../../cache/translation-memory.js";
 import type { CacheAddition } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
-import { errorMessage, SdkError } from "../../errors.js";
+import { errorMessage, InputFileError, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../../lock/carry-forward.js";
@@ -67,10 +67,13 @@ import { writeTargetResource } from "../write-target.js";
 import { withApprovalNotice, withHandoffApprovals } from "../xliff/handoff-approvals.js";
 import { type HandoffStates, readXliffHandoff } from "../xliff/xliff-import.js";
 import {
+  DEFAULT_EXCHANGE_FORMAT,
   type DirectoryFormat,
+  EXCHANGE_FORMATS,
   type ExchangeFormat,
   handoffExtension,
   importFormatFor,
+  inferredImportFormat,
   isDirectoryFormat,
   isXliffFormat,
 } from "./exchange-format.js";
@@ -140,10 +143,15 @@ export interface ImportWorkbookDeps {
 async function readWorkbookBytes(path: string, fs: SdkFs): Promise<Uint8Array> {
   const read = await fs.readBytesBounded(path, MAX_WORKBOOK_FILE_BYTES);
   if (read.kind === "missing") {
-    throw new SdkError("SOURCE_UNREADABLE", `The workbook was not found at ${path}.`);
+    throw new InputFileError(
+      "handoff",
+      "SOURCE_UNREADABLE",
+      `The workbook was not found at ${path}.`,
+    );
   }
   if (read.kind === "too-large") {
-    throw new SdkError(
+    throw new InputFileError(
+      "handoff",
       "SOURCE_INVALID",
       `The workbook at ${path} exceeds the maximum allowed size of ${MAX_WORKBOOK_FILE_BYTES} bytes.`,
     );
@@ -208,6 +216,7 @@ async function readImportData(
   fs: SdkFs,
   format: ExchangeFormat,
   source: LocaleResource,
+  formatGuessed: boolean,
 ): Promise<ImportRead> {
   try {
     if (isDirectoryFormat(format)) {
@@ -222,8 +231,18 @@ async function readImportData(
     if (error instanceof SdkError) {
       throw error;
     }
-    throw new SdkError("SOURCE_INVALID", errorMessage(error), { cause: error });
+    const guess = formatGuessed ? ` ${guessedFormatNote(path)}` : "";
+    throw new InputFileError("handoff", "SOURCE_INVALID", `${errorMessage(error)}${guess}`, {
+      cause: error,
+    });
   }
+}
+
+function guessedFormatNote(path: string): string {
+  return (
+    `${path} was read as an ${DEFAULT_EXCHANGE_FORMAT} workbook because no format was given and ` +
+    `its extension names none; pass one of ${EXCHANGE_FORMATS.join(", ")} for another handoff shape.`
+  );
 }
 
 function mergeAccepted(
@@ -577,6 +596,7 @@ export async function importWorkbook(
     fs,
     format,
     source.resource,
+    input.format === undefined && inferredImportFormat(input.workbook) === undefined,
   );
 
   const lockOptions = writeLockOptions(input);

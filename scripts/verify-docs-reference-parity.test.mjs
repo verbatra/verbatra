@@ -137,6 +137,28 @@ const NEXT_STEP_LABEL = {
   ".fr": "Étape suivante",
 };
 
+const INPUT_FILE_HINT_LABELS = {
+  "": { handoff: "Next step for `import`", tmx: "Next step for `tmx import`" },
+  ".de": { handoff: "Nächster Schritt bei `import`", tmx: "Nächster Schritt bei `tmx import`" },
+  ".es": { handoff: "Siguiente paso con `import`", tmx: "Siguiente paso con `tmx import`" },
+  ".fr": { handoff: "Étape suivante pour `import`", tmx: "Étape suivante pour `tmx import`" },
+};
+
+const INPUT_FILE_HINTS = {
+  handoff: hintTable(SDK_HINTS_FILE, "HANDOFF_FILE_HINTS"),
+  tmx: hintTable(SDK_HINTS_FILE, "TMX_FILE_HINTS"),
+};
+
+function documentedInputFileHints(page, suffix, input) {
+  const entries = familySections(page).get("sdk-error-codes")?.entries ?? [];
+  const label = INPUT_FILE_HINT_LABELS[suffix][input];
+  return new Map(
+    entries.flatMap(({ code, bullets }) =>
+      bullets.filter((bullet) => bullet.label === label).map(({ text }) => [code, text]),
+    ),
+  );
+}
+
 function errorCodesPage(suffix) {
   return readDocPage("(reference)/error-codes", suffix);
 }
@@ -268,6 +290,11 @@ describe("the error codes page documents every code family verbatra reports", ()
 
     it.each(ERROR_CODE_FAMILIES)("quotes the exact hint of every $id code", ({ id, hints }) => {
       expect(documentedHints(page, id, suffix)).toEqual(hints);
+    });
+
+    it.each(["handoff", "tmx"])("quotes the exact %s import-file hints", (input) => {
+      expect(INPUT_FILE_HINTS[input].size).toBe(2);
+      expect(documentedInputFileHints(page, suffix, input)).toEqual(INPUT_FILE_HINTS[input]);
     });
 
     it("gives every code a unique anchor, the lower-case code wherever it is free", () => {
