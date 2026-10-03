@@ -49,7 +49,7 @@ async function roundTrip(budget: RunBudget): Promise<RunBudget | undefined> {
   const path = join(dir, ".verbatra-local", "run-status.json");
   await writeRunStatusFile(path, buildRunStatusFile(runSummary(budget)), defaultFs);
   const read = await readRunStatusFile(path, defaultFs);
-  return read?.budget;
+  return read.kind === "ok" ? read.file.budget : undefined;
 }
 
 describe("run-status persistence: a budget round-trips whether its count was reported or estimated", () => {
@@ -106,7 +106,10 @@ describe("run-status persistence: a budget round-trips whether its count was rep
     onDisk.budget.tokensUsed = 1.75;
     await writeFile(path, JSON.stringify(onDisk), "utf8");
 
-    expect(await readRunStatusFile(path, defaultFs)).toBeUndefined();
+    expect(await readRunStatusFile(path, defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
+    });
   });
 });
 
@@ -138,7 +141,8 @@ async function readUnmarkedSnapshot(budget: RunBudget): Promise<RunStatusFile | 
       },
     ],
   });
-  return readRunStatusFile(path, defaultFs);
+  const read = await readRunStatusFile(path, defaultFs);
+  return read.kind === "ok" ? read.file : undefined;
 }
 
 describe("run-status persistence: a snapshot written before the budget was enforced", () => {
@@ -205,10 +209,11 @@ describe("run-status persistence: the counting marker a current writer leaves", 
     await writeRunStatusFile(path, buildRunStatusFile(runSummary(ESTIMATED_BUDGET)), defaultFs);
 
     const read = await readRunStatusFile(path, defaultFs);
+    const file = read.kind === "ok" ? read.file : undefined;
 
-    expect(read?.budget).toEqual(ESTIMATED_BUDGET);
-    expect(read).not.toHaveProperty("budgetCounting");
-    expect(read?.budget).not.toHaveProperty("budgetCounting");
+    expect(file?.budget).toEqual(ESTIMATED_BUDGET);
+    expect(file).not.toHaveProperty("budgetCounting");
+    expect(file?.budget).not.toHaveProperty("budgetCounting");
   });
 });
 

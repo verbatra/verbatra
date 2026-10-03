@@ -402,8 +402,7 @@ No necesita configuración. Devuelve un `ProvenanceFile`.
 
 Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de `translate` o
 `watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca lanza: un archivo ausente,
-corrupto o no reconocido degrada a `{ available: false }`. Este archivo es telemetría de mejor esfuerzo,
-no una línea base de corrección.
+corrupto o no reconocido degrada a `available: false`. El archivo es telemetría de mejor esfuerzo.
 
 ```ts title="Firma"
 function runStatus(
@@ -416,8 +415,8 @@ function runStatus(
 
 **Devuelve:** `RunStatusResult`
 
-No necesita configuración. Devuelve `{ available: false }` o
-`{ available: true, version, generatedAt, usage?, budget?, locales }`.
+No necesita configuración. Devuelve `{ available: false, reason }` (consulta `RUN_STATUS_UNAVAILABLE_REASONS`)
+o `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
 Una instantánea escrita por una versión anterior a que el presupuesto de tokens se hiciera cumplir
 se sigue leyendo, pero su `budget` se omite cuando indica `supported: false`: entonces eso

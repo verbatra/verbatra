@@ -377,9 +377,11 @@ export {
   reviewQueue,
 } from "./flow/review-queue.js";
 export {
+  RUN_STATUS_UNAVAILABLE_REASONS,
   type RunStatusDeps,
   type RunStatusInput,
   type RunStatusResult,
+  type RunStatusUnavailableReason,
   runStatus,
 } from "./flow/run-status.js";
 export type {

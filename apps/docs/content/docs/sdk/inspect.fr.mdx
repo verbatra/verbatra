@@ -297,7 +297,7 @@ Aucune config nécessaire. Renvoie un `ProvenanceFile`.
 
 ### runStatus
 
-Lit l'instantané des signalements de révision et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier manquant, corrompu ou non reconnu se dégrade en `{ available: false }`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
+Lit l'instantané des signalements de révision et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier manquant, corrompu ou non reconnu se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie.
 
 ```ts title="Signature"
 function runStatus(
@@ -310,7 +310,7 @@ function runStatus(
 
 **Renvoie :** `RunStatusResult`
 
-Aucune config requise. Renvoie `{ available: false }` ou `{ available: true, version, generatedAt, usage?, budget?, locales }`.
+Aucune config requise. Renvoie `{ available: false, reason }` (voir `RUN_STATUS_UNAVAILABLE_REASONS`) ou `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
 Un instantané écrit par une version antérieure à l'application du budget de tokens est toujours lu, mais son `budget` est omis quand il indique `supported: false` : à l'époque, cela voulait dire que rien n'était compté, donc son `tokensUsed: 0` n'est pas un décompte. Les instantanés écrits désormais gardent la même `version` et ajoutent seulement un champ marqueur qu'un Studio ou un serveur d'agents plus ancien ignore : un lecteur plus ancien continue donc d'afficher la file de révision et l'usage. Tant qu'il n'est pas mis à jour, il peut afficher un budget estimé comme non suivi.
 

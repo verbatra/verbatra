@@ -8,7 +8,7 @@ import {
   writeRunStatusFile,
 } from "../run-status/run-status-file.js";
 import { makeFakeFs, makeTempDir } from "../test-support.js";
-import { runStatus } from "./run-status.js";
+import { RUN_STATUS_UNAVAILABLE_REASONS, runStatus } from "./run-status.js";
 import type { RunSummary } from "./summary.js";
 
 function runSummary(): RunSummary {
@@ -47,12 +47,12 @@ function runSummary(): RunSummary {
 describe("runStatus", () => {
   it("returns available: false when no run-status file exists yet", async () => {
     const dir = await makeTempDir();
-    expect(await runStatus({ cwd: dir })).toEqual({ available: false });
+    expect(await runStatus({ cwd: dir })).toEqual({ available: false, reason: "no-status-file" });
   });
 
   it("defaults cwd to process.cwd() and fs to the real file system", async () => {
     const result = await runStatus();
-    expect(result).toEqual({ available: false });
+    expect(result).toMatchObject({ available: false });
   });
 
   it("returns available: true with the persisted fields when a file exists and matches the schema", async () => {
@@ -70,7 +70,7 @@ describe("runStatus", () => {
     await mkdir(join(dir, ".verbatra-local"));
     await writeFile(join(dir, ".verbatra-local", "run-status.json"), "{ not json", "utf8");
 
-    await expect(runStatus({ cwd: dir })).resolves.toEqual({ available: false });
+    await expect(runStatus({ cwd: dir })).resolves.toEqual({ available: false, reason: "invalid" });
   });
 
   it("degrades a rejecting fs read to available: false rather than throwing", async () => {
@@ -80,7 +80,10 @@ describe("runStatus", () => {
       },
     });
 
-    await expect(runStatus({ cwd: "/anywhere" }, { fs })).resolves.toEqual({ available: false });
+    await expect(runStatus({ cwd: "/anywhere" }, { fs })).resolves.toEqual({
+      available: false,
+      reason: "unreadable",
+    });
   });
 
   it("never calls a provider or writes any file, accepting an injected fs", async () => {
@@ -93,7 +96,7 @@ describe("runStatus", () => {
 
     const result = await runStatus({ cwd: "/anywhere" }, { fs });
 
-    expect(result).toEqual({ available: false });
+    expect(result).toMatchObject({ available: false });
     expect(writeCalled).toBe(false);
   });
 
@@ -131,5 +134,30 @@ describe("runStatus", () => {
         },
       ],
     });
+  });
+
+  it("reports a file at another format version as unsupported-version", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(
+      runStatusFilePath(dir),
+      JSON.stringify({ version: 2, generatedAt: "2026-01-01T00:00:00.000Z", locales: [] }),
+      "utf8",
+    );
+
+    expect(await runStatus({ cwd: dir })).toEqual({
+      available: false,
+      reason: "unsupported-version",
+    });
+  });
+
+  it("lists every unavailable reason in documentation order", () => {
+    expect(RUN_STATUS_UNAVAILABLE_REASONS).toEqual([
+      "no-status-file",
+      "unreadable",
+      "invalid",
+      "unsupported-version",
+    ]);
+    expect(Object.isFrozen(RUN_STATUS_UNAVAILABLE_REASONS)).toBe(true);
   });
 });
