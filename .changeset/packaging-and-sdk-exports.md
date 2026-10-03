@@ -27,3 +27,6 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
   `maxLength` and a check of a draft. `localeHistory` lists the git commits that touched the locale
   files, with the author name and never the email, or a `reason` when it cannot read them.
 - `localeValues` lists each locale's keys in source order under `keys`.
+- `runStatus` says why it found no usable status: `available: false` now carries a `reason` from
+  `RUN_STATUS_UNAVAILABLE_REASONS` (`no-status-file`, `unreadable`, `invalid`,
+  `unsupported-version`).

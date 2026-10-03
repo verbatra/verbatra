@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, symlink, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defaultFs, tempFileName } from "./fs.js";
@@ -37,10 +37,69 @@ describe("defaultFs binary read/write", () => {
     });
   });
 
-  it("readBytesBounded reports a directory path as missing (not a regular file)", async () => {
+  it("readBytesBounded reports a directory path as missing and unreadable", async () => {
     const dir = await makeTempDir();
-    expect(await defaultFs.readBytesBounded(dir, 100)).toEqual({ kind: "missing" });
+    expect(await defaultFs.readBytesBounded(dir, 100)).toEqual({
+      kind: "missing",
+      unreadable: true,
+    });
   });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "readBytesBounded reports a file it may not open as missing and unreadable",
+    async () => {
+      const dir = await makeTempDir();
+      const path = join(dir, "locked.bin");
+      await writeFile(path, new Uint8Array([1]));
+      await chmod(path, 0o000);
+
+      expect(await defaultFs.readBytesBounded(path, 100)).toEqual({
+        kind: "missing",
+        unreadable: true,
+      });
+    },
+  );
+});
+
+describe("defaultFs bounded text read: why a file is missing", () => {
+  it("reports an absent path as missing with no unreadable flag", async () => {
+    const dir = await makeTempDir();
+    expect(await defaultFs.readFileBounded(join(dir, "absent.json"), 100)).toEqual({
+      kind: "missing",
+    });
+  });
+
+  it("reports a path below a regular file as missing with no unreadable flag", async () => {
+    const dir = await makeTempDir();
+    const path = join(dir, "file.json");
+    await writeFile(path, "{}", "utf8");
+    expect(await defaultFs.readFileBounded(join(path, "child.json"), 100)).toEqual({
+      kind: "missing",
+    });
+  });
+
+  it("reports a directory path as missing and unreadable", async () => {
+    const dir = await makeTempDir();
+    expect(await defaultFs.readFileBounded(dir, 100)).toEqual({
+      kind: "missing",
+      unreadable: true,
+    });
+  });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "reports a file it may not open as missing and unreadable",
+    async () => {
+      const dir = await makeTempDir();
+      const path = join(dir, "locked.json");
+      await writeFile(path, "{}", "utf8");
+      await chmod(path, 0o000);
+
+      expect(await defaultFs.readFileBounded(path, 100)).toEqual({
+        kind: "missing",
+        unreadable: true,
+      });
+    },
+  );
 
   it("writeBytes writes atomically and round-trips", async () => {
     const dir = await makeTempDir();
