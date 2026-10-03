@@ -1,5 +1,6 @@
 import type { BudgetStanding } from "@verbatra/sdk";
 import type { ReactNode } from "react";
+import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import type { BudgetDisplay, UsageDisplay } from "../../client/usage-ticker-data.js";
 import { budgetPercent, toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Badge, type BadgeTone } from "../Badge.js";
@@ -26,8 +27,8 @@ function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
   }
   return (
     <>
-      <MetricCard label="Input tokens" icon="gauge" value={usage.inputTokens.toLocaleString()} />
-      <MetricCard label="Output tokens" icon="gauge" value={usage.outputTokens.toLocaleString()} />
+      <MetricCard label="Input tokens" icon="gauge" value={formatCount(usage.inputTokens)} />
+      <MetricCard label="Output tokens" icon="gauge" value={formatCount(usage.outputTokens)} />
     </>
   );
 }
@@ -49,7 +50,7 @@ function BudgetCards({ budget }: { readonly budget: BudgetDisplay }): ReactNode 
     <>
       <MetricCard
         label="Budget"
-        value={`${budget.tokensUsed.toLocaleString()} / ${budget.maxTokens.toLocaleString()}`}
+        value={`${formatCount(budget.tokensUsed)} / ${formatCount(budget.maxTokens)}`}
         hint={`Behavior: ${budget.behavior}${counting}`}
         progress={budgetPercent(budget)}
         progressTone={budget.standing === "reached" ? "danger" : "primary"}
@@ -83,7 +84,7 @@ function LastRunRail({ refreshToken }: PanelProps): ReactNode {
     <div>
       {view.stale && <ErrorMessage error={view.error} prefix="Showing the last known usage." />}
       <p className="mb-3 text-xs text-muted-foreground">
-        As of {new Date(state.generatedAt).toLocaleString()}
+        As of {formatTimestamp(state.generatedAt)}
       </p>
       <div className="grid grid-cols-1 gap-3">
         <UsageCards usage={state.usage} />

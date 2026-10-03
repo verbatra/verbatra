@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DiffLocale } from "../../client/diff-view.js";
 import { MAX_RENDERED_KEYS } from "../../client/filter.js";
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
+import { formatTimestamp } from "../../client/ui-format.js";
 import type { RenderResult, StubRpcHandler, StubRpcResult } from "../test-support.js";
 import {
   clickAsync,
@@ -582,8 +583,8 @@ describe("TranslationsPanel stat strip", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     expect(metricTile(view, "Last run")).toMatchObject({
-      value: `${(12345).toLocaleString()} / ${(678).toLocaleString()}`,
-      hint: `Tokens in / out. Budget ceiling reached. As of ${new Date(generatedAt).toLocaleString()}`,
+      value: "12,345 / 678",
+      hint: `Tokens in / out. Budget ceiling reached. As of ${formatTimestamp(generatedAt)}`,
     });
   });
 
@@ -609,7 +610,7 @@ describe("TranslationsPanel stat strip", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Within budget. As of ${new Date(generatedAt).toLocaleString()}`,
+      `Tokens in / out. Within budget. As of ${formatTimestamp(generatedAt)}`,
     );
   });
 
@@ -635,7 +636,7 @@ describe("TranslationsPanel stat strip", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Stopped before the budget ceiling. As of ${new Date(generatedAt).toLocaleString()}`,
+      `Tokens in / out. Stopped before the budget ceiling. As of ${formatTimestamp(generatedAt)}`,
     );
   });
 
@@ -661,7 +662,7 @@ describe("TranslationsPanel stat strip", () => {
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
     expect(metricTile(view, "Last run").hint).toBe(
-      `Tokens in / out. Stopped before the budget ceiling. As of ${new Date(generatedAt).toLocaleString()}`,
+      `Tokens in / out. Stopped before the budget ceiling. As of ${formatTimestamp(generatedAt)}`,
     );
   });
 
@@ -687,7 +688,7 @@ describe("TranslationsPanel stat strip", () => {
 
     expect(metricTile(view, "Last run")).toMatchObject({
       value: "Not reported",
-      hint: `Within budget. As of ${new Date(generatedAt).toLocaleString()}`,
+      hint: `Within budget. As of ${formatTimestamp(generatedAt)}`,
     });
   });
 
@@ -698,7 +699,7 @@ describe("TranslationsPanel stat strip", () => {
 
     expect(metricTile(view, "Last run")).toMatchObject({
       value: "Not reported",
-      hint: `As of ${new Date(generatedAt).toLocaleString()}`,
+      hint: `As of ${formatTimestamp(generatedAt)}`,
     });
   });
 
@@ -802,13 +803,7 @@ describe("TranslationsPanel locales section", () => {
 
     const view = await renderAsync(<TranslationsPanel refreshToken={1} />);
 
-    expect(cellTexts(coverageRows(view)[0])).toEqual([
-      "de",
-      `80%${(8).toLocaleString()} / ${(10).toLocaleString()} keys`,
-      "1",
-      "1",
-      "8",
-    ]);
+    expect(cellTexts(coverageRows(view)[0])).toEqual(["de", "80%8 / 10 keys", "1", "1", "8"]);
   });
 
   it("names the lock version next to the section heading", async () => {

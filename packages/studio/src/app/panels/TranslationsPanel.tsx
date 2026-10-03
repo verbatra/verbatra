@@ -33,6 +33,7 @@ import { type ReviewQueueData, unreviewedRows } from "../../client/review-queue-
 import { buildReviewReportMarkdown } from "../../client/review-report.js";
 import type { RpcCallResult } from "../../client/rpc-client.js";
 import type { RefreshableView, StructuredError } from "../../client/state.js";
+import { formatCount, formatTimestamp } from "../../client/ui-format.js";
 import { toUsageTickerDisplayState } from "../../client/usage-ticker-data.js";
 import { Accordion, AccordionItem } from "../Accordion.js";
 import { rpcClient } from "../api.js";
@@ -210,13 +211,13 @@ function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
   }
   const usage =
     state.usage.kind === "reported"
-      ? `${state.usage.inputTokens.toLocaleString()} / ${state.usage.outputTokens.toLocaleString()}`
+      ? `${formatCount(state.usage.inputTokens)} / ${formatCount(state.usage.outputTokens)}`
       : "Not reported";
   const budget = state.budget.kind === "tracked" ? STANDING_HINT[state.budget.standing] : "";
   const hintLead = state.usage.kind === "reported" ? "Tokens in / out. " : "";
   return {
     value: usage,
-    hint: `${hintLead}${budget}As of ${new Date(state.generatedAt).toLocaleString()}`,
+    hint: `${hintLead}${budget}As of ${formatTimestamp(state.generatedAt)}`,
   };
 }
 
@@ -634,7 +635,7 @@ function LocaleRow({ row, lock }: { readonly row: StatusRow; readonly lock: Lock
           <span className="mb-1 flex items-baseline justify-between gap-3 font-mono text-xs tabular-nums">
             <span className="font-semibold text-foreground">{row.percent}%</span>
             <span className="text-muted-foreground">
-              {row.upToDate.toLocaleString()} / {total.toLocaleString()} keys
+              {formatCount(row.upToDate)} / {formatCount(total)} keys
             </span>
           </span>
           <ProgressBar percent={row.percent} />
