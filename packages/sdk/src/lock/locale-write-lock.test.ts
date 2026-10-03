@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { makeFakeFs } from "../test-support.js";
+import { deferred, makeFakeFs } from "../test-support.js";
 import type { LivenessContext } from "./holder-liveness.js";
 import {
   isUnreadableLockError,
@@ -14,19 +14,6 @@ import {
   withLocaleWriteLock,
   withLockFileGuard,
 } from "./locale-write-lock.js";
-
-interface Deferred {
-  readonly promise: Promise<void>;
-  readonly resolve: () => void;
-}
-
-function deferred(): Deferred {
-  let resolve: () => void = () => {};
-  const promise = new Promise<void>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
-}
 
 function barrier(parties: number): { readonly arrive: () => Promise<void> } {
   const allArrived = deferred();

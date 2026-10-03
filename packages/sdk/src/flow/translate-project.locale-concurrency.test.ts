@@ -13,6 +13,8 @@ import { type BoundedFileRead, defaultFs, type SdkFs } from "../fs.js";
 import { lockFilePath } from "../lock/lock-file.js";
 import {
   baseConfig,
+  type Deferred,
+  deferred,
   makeStubProvider,
   makeTempDir,
   readTextFile,
@@ -295,19 +297,6 @@ describe("translate: bounded locale-level concurrency", () => {
   });
 });
 
-interface Deferred {
-  readonly promise: Promise<void>;
-  readonly resolve: () => void;
-}
-
-function deferred(): Deferred {
-  let resolve: () => void = () => {};
-  const promise = new Promise<void>((res) => {
-    resolve = res;
-  });
-  return { promise, resolve };
-}
-
 function fsWithOneCorruptLockRead(dir: string): {
   readonly fs: SdkFs;
   readonly corruptReadServed: Promise<void>;
@@ -426,6 +415,7 @@ async function heldLockFiles(dir: string): Promise<string[]> {
 
 interface WholeRunFailure {
   readonly stats: ProbeStats;
+  readonly settledWhileWorkersHeld: boolean;
   readonly locksHeldAtSettle: readonly string[];
 }
 
@@ -434,20 +424,24 @@ async function failWholeRunWithWorkersInFlight(dir: string): Promise<WholeRunFai
   const corrupt = fsWithOneCorruptLockRead(dir);
   const tracked = activityTrackedFs(corrupt.fs);
 
-  const settled = expect(
-    translate(
-      { config: cfg(["de", "fr", "es", "pt", "nl"]), cwd: dir, concurrency: 3 },
-      { createProvider: () => probe.provider, fs: tracked.fs },
-    ),
-  ).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
+  let hasSettled = false;
+  let locksHeldAtSettle: readonly string[] = [];
+  const run = translate(
+    { config: cfg(["de", "fr", "es", "pt", "nl"]), cwd: dir, concurrency: 3 },
+    { createProvider: () => probe.provider, fs: tracked.fs },
+  ).finally(async () => {
+    hasSettled = true;
+    locksHeldAtSettle = await heldLockFiles(dir);
+  });
+  const settled = expect(run).rejects.toMatchObject({ code: "LOCK_FILE_INVALID" });
 
   await Promise.all([corrupt.corruptReadServed, probe.arrivals(2)]);
   await idle(() => tracked.pending() === 0);
+  const settledWhileWorkersHeld = hasSettled;
   probe.open();
   await settled;
-  const locksHeldAtSettle = await heldLockFiles(dir);
   await idle(() => tracked.pending() === 0 && probe.inFlight() === 0);
-  return { stats: probe.stats(), locksHeldAtSettle };
+  return { stats: probe.stats(), settledWhileWorkersHeld, locksHeldAtSettle };
 }
 
 describe("translate: a whole-run failure under concurrency", () => {
@@ -472,8 +466,10 @@ describe("translate: a whole-run failure under concurrency", () => {
   it("releases every in-flight worker's write lock before translate() settles", async () => {
     const dir = await project({ a: "A" });
 
-    const { locksHeldAtSettle } = await failWholeRunWithWorkersInFlight(dir);
+    const { settledWhileWorkersHeld, locksHeldAtSettle } =
+      await failWholeRunWithWorkersInFlight(dir);
 
+    expect(settledWhileWorkersHeld).toBe(false);
     expect(locksHeldAtSettle).toEqual([]);
   });
 
