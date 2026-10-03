@@ -18,7 +18,7 @@ verbatra import <workbook> [flags]
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
 | `--dry-run` | keins | aus | validieren und melden, ohne Locale-Dateien zu schreiben oder das Lock zu aktualisieren |
-| `--format` | `<format>` | aus der Endung des Pfads: `csv`, `tsv`, `xliff2` bei `.xlf` oder `.xliff`, sonst `xlsx` | `xlsx`, `csv`, `tsv`, `xliff2` oder `xliff12`; jedes der beiden XLIFF-Formate liest beide Versionen |
+| `--format` | `<format>` | aus der Endung des Pfads: `csv`, `tsv`, `xliff2` bei `.xlf` oder `.xliff`, sonst `xlsx`; bei einem Verzeichnis aus dem Export-Manifest oder den Locale-Dateien darin | `xlsx`, `csv`, `tsv`, `xliff2` oder `xliff12`; jedes der beiden XLIFF-Formate liest beide Versionen |
 | `--reviewer` | `<name>` | keiner | Name, der bei jeder als reviewed oder final markierten XLIFF-Unit festgehalten wird; höchstens 64 Zeichen, gespeichert in der eingecheckten Herkunftsdatei |
 | `--lock-timeout` | `<seconds>` | `600` | wie lange auf eine gehaltene Schreibsperre einer Locale gewartet wird; eine ganze Zahl von `1` bis `3600`, sonst ein Verwendungsfehler, Exit `2` |
 

@@ -290,6 +290,62 @@ describe("importWorkbook: delimited formats", () => {
     expect((error as Error).message).not.toContain("Hello");
   });
 
+  it("reads an exported directory without a format, taking it from the export manifest", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const config = cfg({ targetLocales: ["de"] });
+    await exportWorkbook({ config, cwd: dir, format: "csv", out: "handoff" });
+    await fillExported(join(dir, "handoff", "de.csv"), "de", "csv", { greeting: "Hallo" });
+
+    const summary = await importWorkbook({ config, cwd: dir, workbook: "handoff" });
+
+    expect(summary.failed).toEqual([]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
+  });
+
+  it("reads a directory without a manifest in the format of the locale files inside", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const config = cfg({ targetLocales: ["de"] });
+    await exportWorkbook({ config, cwd: dir, format: "tsv", out: "handoff" });
+    await fillExported(join(dir, "handoff", "de.tsv"), "de", "tsv", { greeting: "Hallo" });
+    await rm(join(dir, "handoff", ".verbatra-export-tsv.json"));
+
+    const summary = await importWorkbook({ config, cwd: dir, workbook: "handoff" });
+
+    expect(summary.failed).toEqual([]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
+  });
+
+  it("refuses a directory holding locale files of two formats, naming both", async () => {
+    const dir = await project({ greeting: "Hello" });
+    await mkdir(join(dir, "handoff"), { recursive: true });
+    await writeFile(join(dir, "handoff", "de.csv"), "", "utf8");
+    await writeFile(join(dir, "handoff", "de.tsv"), "", "utf8");
+
+    const error: unknown = await importWorkbook({
+      config: cfg({ targetLocales: ["de"] }),
+      cwd: dir,
+      workbook: "handoff",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "SOURCE_INVALID" });
+    expect((error as Error).message).toContain("more than one format (csv, tsv)");
+  });
+
+  it("says a directory holds no handoff rather than calling it a missing workbook", async () => {
+    const dir = await project({ greeting: "Hello" });
+    await mkdir(join(dir, "handoff"), { recursive: true });
+
+    const error: unknown = await importWorkbook({
+      config: cfg(),
+      cwd: dir,
+      workbook: "handoff",
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ code: "SOURCE_UNREADABLE" });
+    expect((error as Error).message).toContain("holds no export manifest");
+    expect((error as Error).message).not.toContain("workbook");
+  });
+
   it("points a missing handoff at the handoff path, not the source locale file", async () => {
     const dir = await project({ greeting: "Hello" });
 

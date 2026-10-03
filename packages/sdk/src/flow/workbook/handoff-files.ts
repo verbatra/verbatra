@@ -90,3 +90,80 @@ export async function collectHandoffFiles(
   }
   return { sources, staleLocales, expectedLocales: config.targetLocales, singleFile: false };
 }
+
+const DIRECTORY_FORMATS: readonly DirectoryFormat[] = ["csv", "tsv", "xliff2"];
+
+async function hasManifest(fs: SdkFs, path: string, format: DirectoryFormat): Promise<boolean> {
+  return (await readExportedLocales(fs, path, handoffFamily(format))) !== undefined;
+}
+
+async function hasLocaleFile(
+  fs: SdkFs,
+  path: string,
+  config: VerbatraConfig,
+  format: DirectoryFormat,
+): Promise<boolean> {
+  for (const locale of config.targetLocales) {
+    if (await fs.fileExists(join(path, handoffFileName(locale, format)))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function formatsMatching(
+  test: (format: DirectoryFormat) => Promise<boolean>,
+): Promise<readonly DirectoryFormat[]> {
+  const matching: DirectoryFormat[] = [];
+  for (const format of DIRECTORY_FORMATS) {
+    if (await test(format)) {
+      matching.push(format);
+    }
+  }
+  return matching;
+}
+
+async function isDirectory(fs: SdkFs, path: string): Promise<boolean> {
+  if (fs.readDirectory === undefined) {
+    return false;
+  }
+  return fs.readDirectory(path).then(
+    () => true,
+    () => false,
+  );
+}
+
+function singleFormat(path: string, formats: readonly DirectoryFormat[]): DirectoryFormat {
+  const [only, ...others] = formats;
+  if (only === undefined || others.length > 0) {
+    throw new InputFileError(
+      "handoff",
+      "SOURCE_INVALID",
+      `The directory ${path} holds handoff files of more than one format (${formats.map(describeFiles).join(", ")}), so which one to import cannot be told.`,
+    );
+  }
+  return only;
+}
+
+export async function inferHandoffDirectoryFormat(
+  path: string,
+  config: VerbatraConfig,
+  fs: SdkFs,
+): Promise<DirectoryFormat | undefined> {
+  if (!(await isDirectory(fs, path))) {
+    return undefined;
+  }
+  const manifests = await formatsMatching((format) => hasManifest(fs, path, format));
+  if (manifests.length > 0) {
+    return singleFormat(path, manifests);
+  }
+  const files = await formatsMatching((format) => hasLocaleFile(fs, path, config, format));
+  if (files.length > 0) {
+    return singleFormat(path, files);
+  }
+  throw new InputFileError(
+    "handoff",
+    "SOURCE_UNREADABLE",
+    `The directory ${path} holds no export manifest and no <locale>.csv, <locale>.tsv or <locale>.xlf file for a configured target locale.`,
+  );
+}

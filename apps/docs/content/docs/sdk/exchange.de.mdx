@@ -200,7 +200,7 @@ function importWorkbook(
 
 Bei `csv` und `tsv` ist `workbook` entweder
 eine einzelne Übergabedatei oder das Verzeichnis mit einer Datei pro Locale, und die Locale kommt aus
-dem Dateinamen. Eine Datei auf `.csv` oder `.tsv` wird ohne `format` in diesem Format gelesen. Gibt dieselbe `RunSummary`-Form zurück wie
+dem Dateinamen. Eine Datei auf `.csv` oder `.tsv` wird ohne `format` in diesem Format gelesen, ein Verzeichnis im Format seines Export-Manifests oder seiner Locale-Dateien. Gibt dieselbe `RunSummary`-Form zurück wie
 `translate` (mit `needsReview` immer leer, da kein Provider beteiligt ist). Ein Blatt für eine
 Locale, die kein konfiguriertes Ziel ist, lässt diese Locale mit `CONFIG_INVALID` als Daten auf der
 Zusammenfassung fehlschlagen, statt zu werfen.

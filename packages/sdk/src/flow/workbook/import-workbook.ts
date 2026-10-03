@@ -77,7 +77,11 @@ import {
   isDirectoryFormat,
   isXliffFormat,
 } from "./exchange-format.js";
-import { collectHandoffFiles, type HandoffSource } from "./handoff-files.js";
+import {
+  collectHandoffFiles,
+  type HandoffSource,
+  inferHandoffDirectoryFormat,
+} from "./handoff-files.js";
 import { type ImportLocaleResult, importLocale } from "./import-locale.js";
 
 const MAX_WORKBOOK_FILE_BYTES = 64 * 1024 * 1024;
@@ -106,8 +110,10 @@ export interface ImportWorkbookInput {
   /**
    * The handoff shape to read. Defaults to the shape the extension of
    * {@link ImportWorkbookInput.workbook} names: `csv` for `.csv`, `tsv` for `.tsv`, `xliff2` for
-   * `.xlf` or `.xliff`, and `xlsx` for `.xlsx`, a directory, or any other path. `xliff2` and
-   * `xliff12` both read either XLIFF version, which is taken from the file.
+   * `.xlf` or `.xliff`, and `xlsx` for `.xlsx` or any other file. For a directory it is the
+   * format of the export manifest inside, else of the `<locale>` files inside; a directory holding
+   * two formats, or none, is refused. `xliff2` and `xliff12` both read either XLIFF version, which
+   * is taken from the file.
    */
   readonly format?: ExchangeFormat;
   /**
@@ -589,14 +595,18 @@ export async function importWorkbook(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const format = importFormatFor(input.format, input.workbook);
+  const workbookPath = resolve(cwd, input.workbook);
+  const guessed = input.format === undefined && inferredImportFormat(input.workbook) === undefined;
+  const format = guessed
+    ? ((await inferHandoffDirectoryFormat(workbookPath, config, fs)) ?? DEFAULT_EXCHANGE_FORMAT)
+    : importFormatFor(input.format, input.workbook);
   const { data, staleLocales, expectedLocales, states } = await readImportData(
-    resolve(cwd, input.workbook),
+    workbookPath,
     config,
     fs,
     format,
     source.resource,
-    input.format === undefined && inferredImportFormat(input.workbook) === undefined,
+    guessed && format === DEFAULT_EXCHANGE_FORMAT,
   );
 
   const lockOptions = writeLockOptions(input);
