@@ -1,4 +1,4 @@
-import { PLACEHOLDER_ARGUMENT_NAME } from "./argument-name.js";
+import { DOTTED_PLACEHOLDER_NAME, PLACEHOLDER_ARGUMENT_NAME } from "./argument-name.js";
 import { countTokens, multisetExcess } from "./multiset.js";
 import {
   PRINTF_CONVERSION,
@@ -17,8 +17,6 @@ export const PLACEHOLDER_SYNTAXES = [
 ] as const;
 
 export type PlaceholderSyntax = (typeof PLACEHOLDER_SYNTAXES)[number];
-
-const IDENTIFIER = "(?:\\p{Nd}+|[\\p{L}_$][\\p{L}\\p{M}\\p{Nd}_$.-]*)";
 
 const ICU_ARGUMENT_TYPES =
   "(?:plural|selectordinal|select|number|date|time|spellout|ordinal|duration|choice)";
@@ -42,12 +40,12 @@ const SYNTAX_GROUPS: readonly (readonly [string, PlaceholderSyntax])[] = [
 const PLACEHOLDER_TOKEN = new RegExp(
   [
     "(?<escape>%%)",
-    `(?<doubleBrace>\\{\\{\\s*(?:-\\s*)?${IDENTIFIER}(?:\\s*,[^{}]*\\}\\}|\\s*\\}\\}))`,
-    `(?<ruby>%\\{${IDENTIFIER}\\})`,
-    `(?<dollarBrace>\\$\\{${IDENTIFIER}\\})`,
+    `(?<doubleBrace>\\{\\{\\s*(?:-\\s*)?${DOTTED_PLACEHOLDER_NAME}(?:\\s*,[^{}]*\\}\\}|\\s*\\}\\}))`,
+    `(?<ruby>%\\{${DOTTED_PLACEHOLDER_NAME}\\})`,
+    `(?<dollarBrace>\\$\\{${DOTTED_PLACEHOLDER_NAME}\\})`,
     `(?<pythonNamed>%\\(\\w+\\)${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_CONVERSION}${NOT_IN_A_WORD_AFTER})`,
     `(?<printf>${NOT_IN_A_WORD_BEFORE}%${NOT_A_PERCENT_ENCODED_BYTE}${PRINTF_POSITION}${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_LENGTH}${PRINTF_CONVERSION}${NOT_IN_A_WORD_AFTER})`,
-    `(?<icuArgument>\\{\\s*${PLACEHOLDER_ARGUMENT_NAME}\\s*,\\s*${ICU_ARGUMENT_TYPES}\\s*[,}])`,
+    `(?<icuArgument>\\{\\s*${DOTTED_PLACEHOLDER_NAME}\\s*,\\s*${ICU_ARGUMENT_TYPES}\\s*[,}])`,
     `(?<singleBrace>\\{${PLACEHOLDER_ARGUMENT_NAME}\\})`,
   ].join("|"),
   "uy",

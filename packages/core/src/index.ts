@@ -43,7 +43,11 @@ export {
   supportedFormatSchema,
 } from "./model/supported-format.js";
 export { type TranslationEntry, translationEntrySchema } from "./model/translation-entry.js";
-export { PLACEHOLDER_ARGUMENT_NAME } from "./placeholder/argument-name.js";
+export {
+  isPlaceholderArgumentName,
+  PLACEHOLDER_ARGUMENT_IDENTIFIER,
+  PLACEHOLDER_ARGUMENT_NAME,
+} from "./placeholder/argument-name.js";
 export {
   foreignPlaceholderTokens,
   missingForeignPlaceholders,
