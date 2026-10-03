@@ -37,6 +37,7 @@
     "typecheck:configs": "tsc -p tsconfig.configs.json",
     "changeset": "changeset",
     "version-packages": "changeset version && node scripts/mcp-server-json.mjs sync",
+    "release:preview": "node scripts/release-preview.mjs",
     "release": "changeset publish"
   },
   "devDependencies": {
