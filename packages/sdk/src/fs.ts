@@ -224,7 +224,8 @@ const NOT_FOUND = { kind: "missing" } as const;
 const UNREADABLE = { kind: "missing", unreadable: true } as const;
 
 function openFailure(error: unknown): typeof NOT_FOUND | typeof UNREADABLE {
-  return NOT_FOUND_CODES.has((error as NodeJS.ErrnoException).code) ? NOT_FOUND : UNREADABLE;
+  const code = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+  return NOT_FOUND_CODES.has(code) ? NOT_FOUND : UNREADABLE;
 }
 
 async function readBoundedUtf8(handle: FileHandle, size: number): Promise<string> {
