@@ -1,11 +1,15 @@
 import { defaultFs, type SdkFs } from "../fs.js";
-import { readRunStatusFile, runStatusFilePath } from "../run-status/run-status-file.js";
-import type { RunStatusFile, RunStatusUnavailableReason } from "../run-status/types.js";
+import {
+  type RunStatusUnavailableReason,
+  readRunStatusFile,
+  runStatusFilePath,
+} from "../run-status/run-status-file.js";
+import type { RunStatusFile } from "../run-status/types.js";
 
 export {
   RUN_STATUS_UNAVAILABLE_REASONS,
   type RunStatusUnavailableReason,
-} from "../run-status/types.js";
+} from "../run-status/run-status-file.js";
 
 /** Input for {@link runStatus}. */
 export interface RunStatusInput {
@@ -47,9 +51,9 @@ export type RunStatusResult =
  * The read is deliberately total: a missing, unopenable, oversized, unparseable, schema-invalid,
  * or wrong-version file all report `available: false` with a {@link RunStatusUnavailableReason}
  * rather than throwing, and so does an injected `deps.fs` whose read rejects, because stale or
- * unreachable local status should never break the tool reading it. This call throws nothing. A review reason written by a newer verbatra that this
- * version does not know is ignored rather than making the whole file unusable, and an entry left
- * with no known reason is dropped.
+ * unreachable local status should never break the tool reading it. This call throws nothing. A
+ * review reason written by a newer verbatra that this version does not know is ignored rather than
+ * making the whole file unusable, and an entry left with no known reason is dropped.
  *
  * @param input - The optional working directory.
  * @param deps - Optional file-system override.

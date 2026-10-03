@@ -3,7 +3,29 @@ import { REVIEW_REASON_CODES, type ReviewReasonCode } from "@verbatra/ai-provide
 import { z } from "zod";
 import type { LocaleSummary, NeedsReviewEntry, RunSummary } from "../flow/summary.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import type { RunStatusFile, RunStatusLocale, RunStatusUnavailableReason } from "./types.js";
+import type { RunStatusFile, RunStatusLocale } from "./types.js";
+
+/**
+ * Why {@link runStatus} reported `available: false`:
+ *
+ * - `no-status-file`: no `.verbatra-local/run-status.json` exists, so no non-dry run has completed
+ *   in this directory yet.
+ * - `unreadable`: something exists at the path but could not be read: the process may not open it,
+ *   it is not a regular file, it exceeds the size limit, or the read itself failed.
+ * - `invalid`: the file is not JSON, or its JSON at the current version does not have the
+ *   run-status shape.
+ * - `unsupported-version`: the file names a format version this verbatra does not read, whatever
+ *   the rest of its shape.
+ */
+export type RunStatusUnavailableReason = (typeof RUN_STATUS_UNAVAILABLE_REASONS)[number];
+
+/** Every {@link RunStatusUnavailableReason}. */
+export const RUN_STATUS_UNAVAILABLE_REASONS = Object.freeze([
+  "no-status-file",
+  "unreadable",
+  "invalid",
+  "unsupported-version",
+] as const);
 
 const RUN_STATUS_DIR_NAME = ".verbatra-local";
 const RUN_STATUS_FILE_NAME = "run-status.json";
