@@ -1,7 +1,7 @@
-import { PLACEHOLDER_ARGUMENT_NAME } from "@verbatra/core";
+import { PLACEHOLDER_ARGUMENT_IDENTIFIER } from "@verbatra/core";
 
 const COMPOSITE_FORMAT_ITEM = new RegExp(
-  `\\{\\{|\\}\\}|\\{\\s*(\\d+|${PLACEHOLDER_ARGUMENT_NAME})\\s*(?:,\\s*(-?\\d+)\\s*)?(?::([^{}]*))?\\}|[{}]`,
+  `\\{\\{|\\}\\}|\\{\\s*(\\d+|${PLACEHOLDER_ARGUMENT_IDENTIFIER})\\s*(?:,\\s*(-?\\d+)\\s*)?(?::([^{}]*))?\\}|[{}]`,
   "gu",
 );
 

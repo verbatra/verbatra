@@ -1,8 +1,6 @@
-import { PLACEHOLDER_ARGUMENT_NAME } from "@verbatra/core";
+import { isPlaceholderArgumentName } from "@verbatra/core";
 
 const SUBMESSAGE_TYPES = new Set(["plural", "select", "selectordinal", "choice"]);
-
-const ARGUMENT_NAME = new RegExp(`^${PLACEHOLDER_ARGUMENT_NAME}$`, "u");
 
 interface ParsedArgument {
   readonly name: string;
@@ -51,7 +49,7 @@ function parseArgumentAt(value: string, open: number, close: number): ParsedArgu
   }
   const nameEnd = comma === -1 ? close : comma;
   const name = value.slice(open + 1, nameEnd).trim();
-  if (!ARGUMENT_NAME.test(name)) {
+  if (!isPlaceholderArgumentName(name)) {
     return null;
   }
   if (comma === -1) {

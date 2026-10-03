@@ -35,6 +35,10 @@ describe("extractResxPlaceholders", () => {
     ).toEqual(["{name}", "{名前,-10}", "{when:yyyy-MM-dd}", "{user-id,3:X}"]);
   });
 
+  it("takes an index in ASCII digits only, as .NET does, so {٣} stays two bare braces", () => {
+    expect(extractResxPlaceholders("{٣} and {3}")).toEqual(["{", "}", "{3}"]);
+  });
+
   it("reports a brace that belongs to no format item as its own token", () => {
     expect(extractResxPlaceholders("Hello {user.name}")).toEqual(["{", "}"]);
     expect(extractResxPlaceholders("{ see note }")).toEqual(["{", "}"]);
