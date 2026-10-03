@@ -29,8 +29,15 @@ describe("extractResxPlaceholders", () => {
     expect(extractResxPlaceholders("{{0}} is literal, {0} is not")).toEqual(["{{", "}}", "{0}"]);
   });
 
+  it("extracts a named hole canonically, with its alignment and format specifier", () => {
+    expect(
+      extractResxPlaceholders("{name} {名前 , -10} {when:yyyy-MM-dd} { user-id ,3 :X}"),
+    ).toEqual(["{name}", "{名前,-10}", "{when:yyyy-MM-dd}", "{user-id,3:X}"]);
+  });
+
   it("reports a brace that belongs to no format item as its own token", () => {
-    expect(extractResxPlaceholders("Hello {name}")).toEqual(["{", "}"]);
+    expect(extractResxPlaceholders("Hello {user.name}")).toEqual(["{", "}"]);
+    expect(extractResxPlaceholders("{ see note }")).toEqual(["{", "}"]);
     expect(extractResxPlaceholders("a } b")).toEqual(["}"]);
   });
 
@@ -71,6 +78,16 @@ describe("extractResxPlaceholders under the integrity check", () => {
     expect(result.matches).toBe(false);
     expect(result.missing).toEqual(["{0:C}"]);
     expect(result.extra).toEqual(["{0}"]);
+  });
+
+  it("rejects a renamed named hole, naming the token that went missing", () => {
+    const result = checkPlaceholders(
+      extractResxPlaceholders("Hello {name}"),
+      extractResxPlaceholders("Hola {nombre}"),
+    );
+    expect(result.matches).toBe(false);
+    expect(result.missing).toEqual(["{name}"]);
+    expect(result.extra).toEqual(["{nombre}"]);
   });
 
   it("accepts a translation that only reorders the items or respaces them", () => {

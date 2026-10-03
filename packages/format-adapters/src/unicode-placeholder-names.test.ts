@@ -2,7 +2,7 @@ import { checkPlaceholders, type SupportedFormat } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { createDefaultRegistry } from "./default-registry.js";
 
-const FORMATS: readonly SupportedFormat[] = ["vue-i18n-json", "properties", "ini"];
+const FORMATS: readonly SupportedFormat[] = ["vue-i18n-json", "properties", "ini", "resx"];
 
 const NAMES = ["número", "名前", "nom_é", "नाम"] as const;
 
