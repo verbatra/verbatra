@@ -350,10 +350,10 @@ die schon auf der Platte liegen, der pro Locale den aktuellen Quell- und Zieltex
 zurückgibt. Greif darauf zurück, wenn ein Aufrufer Übersetzungsinhalte statt Key-Namen durchsuchen
 oder scannen muss.
 
-```ts
+```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
 
-const report = await localeValues({ config: await loadConfig(), locales: ["de", "fr"] });
+const report = await localeValues({ config: await loadConfig() });
 
 for (const { locale, values } of report) {
   for (const [key, pair] of Object.entries(values)) {
@@ -369,7 +369,7 @@ for (const { locale, values } of report) {
 ```
 
 Nur lesend: Es ruft keinen Provider auf, schreibt nichts und berührt weder die Lock-Datei noch den
-Cache. Lass `locales` weg, um jede konfigurierte Ziel-Locale abzudecken.
+Cache. Es deckt jede konfigurierte Ziel-Locale ab; mit `locales` grenzt du es auf einige davon ein, und eine Locale außerhalb von `targetLocales` wirft `UNKNOWN_LOCALE`.
 
 ## Der Arbeitsmappen-Roundtrip
 

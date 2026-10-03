@@ -202,7 +202,7 @@ describe("the SDK examples run end to end without an API key", () => {
         "safe-translate.ts",
         "check.ts",
       ],
-      [RECIPES]: ["fake-provider.ts", "review.ts"],
+      [RECIPES]: ["fake-provider.ts", "review.ts", "scan-values.ts"],
     };
     for (const [page, titles] of Object.entries(files)) {
       for (const title of titles) {
@@ -266,6 +266,18 @@ describe("the SDK examples run end to end without an API key", () => {
   );
 
   it(
+    "scans the configured target locales in bulk, naming none the config lacks",
+    () => {
+      const scan = runScript(project, "scan-values.ts");
+      expect(scan.status, scan.stderr).toBe(0);
+      expect(scan.stderr).not.toContain("UNKNOWN_LOCALE");
+      expect(scan.stderr).toContain("de/greeting: not translated yet");
+      expect(scan.stderr).toContain("de/cart.empty: not translated yet");
+    },
+    SLOW,
+  );
+
+  it(
     "refuses to review on a machine with no record of the last run",
     () => {
       const review = runScript(project, "review.ts");
@@ -307,6 +319,17 @@ describe("the SDK examples run end to end without an API key", () => {
       expect(review.status, review.stderr).toBe(0);
       expect(review.stdout).toContain("approved de/greeting");
       expect(review.stdout).toContain("approved de/cart.empty");
+    },
+    SLOW,
+  );
+
+  it(
+    "finds nothing left to flag in the bulk scan after the translation",
+    () => {
+      const scan = runScript(project, "scan-values.ts");
+      expect(scan.status, scan.stderr).toBe(0);
+      expect(scan.stderr).not.toContain("not translated yet");
+      expect(scan.stdout).toBe("");
     },
     SLOW,
   );
