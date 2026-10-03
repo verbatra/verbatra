@@ -43,7 +43,7 @@ clave: una `@key.description` de ARB, una nota de XLIFF, un comentario de gettex
 
 <AvailableFrom version="0.12.0" />
 
-Lee lo que necesita quien traduce para escribir una clave en un locale de destino: todo lo que devuelve `keyValue`, más los términos del glosario que se aplican al texto de origen y el `maxLength` de la clave. Pasa un `draft` para comprobarlo contra esos términos. Solo lectura.
+Lee lo que necesita quien traduce para escribir una clave en un locale de destino: todo lo que devuelve `keyValue`, más los términos del glosario que se aplican al texto de origen y el `maxLength` de la clave. Pasa un `draft` para comprobarlo contra esos términos. Solo lectura. Como todo punto de entrada que usa el glosario, recibe `loaded` de `loadConfigWithMeta` en lugar de una configuración sin más, porque vuelve a leer del disco un glosario basado en archivo.
 
 ```ts title="Firma"
 function keyContext(

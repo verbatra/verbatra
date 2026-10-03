@@ -43,7 +43,7 @@ The result also carries `description` when the source locale file gives one for 
 
 <AvailableFrom version="0.12.0" />
 
-Reads what a translator needs to write one key in one target locale: everything `keyValue` returns, plus the glossary terms that apply to the source text and the key's `maxLength`. Pass a `draft` to check it against those terms. Read-only.
+Reads what a translator needs to write one key in one target locale: everything `keyValue` returns, plus the glossary terms that apply to the source text and the key's `maxLength`. Pass a `draft` to check it against those terms. Read-only. Like every glossary-aware entry point, it takes `loaded` from `loadConfigWithMeta` rather than a bare config, because it reads a file-backed glossary again from disk.
 
 ```ts title="Signature"
 function keyContext(

@@ -36,7 +36,7 @@ Le résultat porte aussi `description` quand le fichier de la locale source en d
 
 <AvailableFrom version="0.12.0" />
 
-Lit ce dont un traducteur a besoin pour écrire une clé dans une locale cible : tout ce que renvoie `keyValue`, plus les termes du glossaire qui s'appliquent au texte source et le `maxLength` de la clé. Passe un `draft` pour le vérifier par rapport à ces termes. En lecture seule.
+Lit ce dont un traducteur a besoin pour écrire une clé dans une locale cible : tout ce que renvoie `keyValue`, plus les termes du glossaire qui s'appliquent au texte source et le `maxLength` de la clé. Passe un `draft` pour le vérifier par rapport à ces termes. En lecture seule. Comme tout point d'entrée qui utilise le glossaire, elle prend `loaded` issu de `loadConfigWithMeta` plutôt qu'une simple config, car elle relit sur le disque un glossaire stocké dans un fichier.
 
 ```ts title="Signature"
 function keyContext(
