@@ -122,6 +122,7 @@ export {
 } from "./config/glossary-file.js";
 export {
   type GlossaryDraftCheckInput,
+  type GlossaryHitsInput,
   glossaryDraftCheck,
   glossaryHits,
 } from "./config/glossary-hits.js";
@@ -377,9 +378,11 @@ export {
   reviewQueue,
 } from "./flow/review-queue.js";
 export {
+  RUN_STATUS_UNAVAILABLE_REASONS,
   type RunStatusDeps,
   type RunStatusInput,
   type RunStatusResult,
+  type RunStatusUnavailableReason,
   runStatus,
 } from "./flow/run-status.js";
 export type {
