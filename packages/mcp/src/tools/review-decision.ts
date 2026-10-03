@@ -28,7 +28,13 @@ const paramsSchema = z
       message: "Pass exactly one of expectedValue and expectedHash.",
       path: ["expectedValue"],
     },
-  );
+  )
+  .meta({
+    if: { required: ["expectedValue"] },
+    // biome-ignore lint/suspicious/noThenProperty: the JSON Schema if/then/else keyword, never a callable thenable
+    then: { not: { required: ["expectedHash"] } },
+    else: { required: ["expectedHash"] },
+  });
 
 const reviewDecisionResultSchema = z.object({
   locale: z.string(),
