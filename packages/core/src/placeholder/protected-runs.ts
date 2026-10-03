@@ -1,3 +1,4 @@
+import { PLACEHOLDER_ARGUMENT_NAME } from "./argument-name.js";
 import {
   PRINTF_ANY_CONVERSION,
   PRINTF_FLAGS_WIDTH_PRECISION,
@@ -7,7 +8,7 @@ import {
 
 const SUBMESSAGE_TYPES = new Set(["plural", "select", "selectordinal", "choice"]);
 
-const ARGUMENT_NAME = /^(?:\d+|[A-Za-z_$][\w$-]*)$/;
+const ARGUMENT_NAME = new RegExp(`^${PLACEHOLDER_ARGUMENT_NAME}$`, "u");
 
 const PROTECTED_TOKEN = new RegExp(
   [

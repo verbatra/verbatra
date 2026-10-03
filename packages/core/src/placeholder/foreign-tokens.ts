@@ -1,3 +1,4 @@
+import { PLACEHOLDER_ARGUMENT_NAME } from "./argument-name.js";
 import { countTokens, multisetExcess } from "./multiset.js";
 import {
   PRINTF_CONVERSION,
@@ -46,8 +47,8 @@ const PLACEHOLDER_TOKEN = new RegExp(
     `(?<dollarBrace>\\$\\{${IDENTIFIER}\\})`,
     `(?<pythonNamed>%\\(\\w+\\)${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_CONVERSION}${NOT_IN_A_WORD_AFTER})`,
     `(?<printf>${NOT_IN_A_WORD_BEFORE}%${NOT_A_PERCENT_ENCODED_BYTE}${PRINTF_POSITION}${PRINTF_FLAGS_WIDTH_PRECISION}${PRINTF_LENGTH}${PRINTF_CONVERSION}${NOT_IN_A_WORD_AFTER})`,
-    `(?<icuArgument>\\{\\s*${IDENTIFIER}\\s*,\\s*${ICU_ARGUMENT_TYPES}\\s*[,}])`,
-    `(?<singleBrace>\\{${IDENTIFIER}\\})`,
+    `(?<icuArgument>\\{\\s*${PLACEHOLDER_ARGUMENT_NAME}\\s*,\\s*${ICU_ARGUMENT_TYPES}\\s*[,}])`,
+    `(?<singleBrace>\\{${PLACEHOLDER_ARGUMENT_NAME}\\})`,
   ].join("|"),
   "uy",
 );

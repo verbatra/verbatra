@@ -45,6 +45,23 @@ describe("protectedRuns", () => {
   });
 
   it.each([
+    ["{件数, plural, one {# 件} other {# 件の品}}", "件数"],
+    ["{número, select, one {uno} other {otro}}", "número"],
+    ["{नाम, plural, one {# चीज़} other {# चीज़ें}}", "नाम"],
+  ])("leaves the arm text of %s translatable for the non-ASCII argument %s", (value, name) => {
+    const runs = protectedRuns(value);
+
+    expect(runs[0]?.text.startsWith(`{${name}, `)).toBe(true);
+    expect(runs.filter((run) => !run.protected).length).toBe(2);
+  });
+
+  it("does not read a dotted name as an ICU argument, so the whole brace stays protected", () => {
+    expect(protectedRuns("{user.name, plural, one {a} other {b}}")).toEqual([
+      { protected: true, text: "{user.name, plural, one {a} other {b}}" },
+    ]);
+  });
+
+  it.each([
     "Hello {{name}}, you have {count, plural, one {# <b>item</b>} other {# items}} %s",
     "{unbalanced",
     "}{",

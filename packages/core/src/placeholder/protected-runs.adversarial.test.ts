@@ -29,6 +29,7 @@ describe("protectedRuns on deeply nested ICU arguments", () => {
   it.each([
     ["{n,plural,o{", "}"],
     ["{n,plural,o{<b", "}"],
+    ["{件数,plural,o{", "}"],
     ["{", "}"],
   ])("stays linear on %j nested to 200k characters", (head, tail) => {
     const depthOf = (length: number) => Math.floor(length / (head.length + tail.length));
