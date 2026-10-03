@@ -38,17 +38,17 @@ The List view also filters by locale and by state, including **Review queue** an
 
 ### Edit with integrity gating
 
-**Edit** opens the editor. Saving runs the value through the [integrity gate](/docs/translation-safety#the-integrity-gate); a value it refuses is not written, and the reason is shown. An accepted edit writes the locale file and updates the lock file. Editing needs no flag and never calls a provider.
+**Edit** opens the editor. Saving runs the value through the [integrity gate](/docs/translation-safety#the-integrity-gate); a value it refuses is not written, and the reason is shown. An accepted edit writes the locale file and updates the lock file. Editing needs no flag and calls no provider.
 
 #### Side-by-side editor
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-The editor shows the source and your draft side by side, with the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
+The editor shows source and draft side by side, with the key's description, the glossary terms your draft uses or misses, and its length against the source and `maxLength`. Ctrl or Cmd with Enter saves.
 
 ## Work the Review queue
 
-The Review page lists every value a machine wrote that nobody has approved: one row per locale and key, with its origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
+The Review page lists every value a machine wrote that nobody has approved: one row per locale and key showing source and translation, origin and any [review flags](/docs/translation-safety#review-flags) from the last run on this machine.
 
 <StudioScreenshot
   shot="review"

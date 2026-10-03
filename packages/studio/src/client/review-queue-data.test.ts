@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   flattenReviewQueue,
   type ReviewQueueData,
+  reviewedSourceFor,
   reviewedValueFor,
   toReviewQueueOutcome,
   unreviewedRows,
@@ -98,5 +99,17 @@ describe("reviewedValueFor", () => {
   it("returns nothing for a key without a translation or a row with no loaded value", () => {
     expect(reviewedValueFor(values, { locale: "de", key: "farewell" })).toBeUndefined();
     expect(reviewedValueFor(values, { locale: "fr", key: "greeting" })).toBeUndefined();
+  });
+});
+
+describe("reviewedSourceFor", () => {
+  const values = new Map([["de\tgreeting", { source: "Hello", target: "Hallo" }]]);
+
+  it("returns the source text the row's key holds", () => {
+    expect(reviewedSourceFor(values, { locale: "de", key: "greeting" })).toBe("Hello");
+  });
+
+  it("returns nothing for a row with no loaded value", () => {
+    expect(reviewedSourceFor(values, { locale: "fr", key: "greeting" })).toBeUndefined();
   });
 });

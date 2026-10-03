@@ -33,6 +33,8 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
 **Display**
 - Right-to-left text follows the browser's direction for each locale, with placeholders and
   markup isolated left to right, and only the value takes that direction.
+- Review rows show the source text above the translation. Dates and token counts use the
+  English format of the interface, and a run without token usage says its provider sent none.
 - **Translate pending** counts keys the config's `sensitiveData` guard kept from the provider among
   the withheld keys, and a retranslation it refuses explains why.
 - The session-expired screen says to reopen the printed URL, and an unexpected server error is
