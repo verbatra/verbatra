@@ -24,6 +24,24 @@ describe("extractSingleBraceTokens", () => {
     expect(extractSingleBraceTokens('$t(common.foo, {"count": 3})')).toEqual([]);
   });
 
+  it.each(["{número}", "{名前}", "{nom_é}", "{नाम}", "{\u0663}", "{e\u0301}"])(
+    "extracts the non-ASCII name %s",
+    (token) => {
+      expect(extractSingleBraceTokens(`a ${token} b`)).toEqual([token]);
+    },
+  );
+
+  it.each(["{·名}", "{\u0308a}", "{a½}", "{名 前}"])("ignores %s, which is no name", (value) => {
+    expect(extractSingleBraceTokens(value)).toEqual([]);
+  });
+
+  it.each(["{名", "{ 名前 ", "{é\u0301"])("stays linear on %j repeated", (unit) => {
+    const repeated = (count: number) => unit.repeat(count);
+    expect(
+      cpuScalingRatio(extractSingleBraceTokens, repeated(4_000), repeated(32_000)),
+    ).toBeLessThan(LINEAR_MAX_RATIO);
+  });
+
   it("stays linear on adversarial input", () => {
     const hostile = "{".repeat(200_000);
     expect(extractSingleBraceTokens(hostile)).toEqual([]);

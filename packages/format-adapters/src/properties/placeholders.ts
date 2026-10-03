@@ -1,6 +1,8 @@
+import { PLACEHOLDER_ARGUMENT_NAME } from "@verbatra/core";
+
 const SUBMESSAGE_TYPES = new Set(["plural", "select", "selectordinal", "choice"]);
 
-const ARGUMENT_NAME = /^(?:\d+|[A-Za-z_$][\w$-]*)$/;
+const ARGUMENT_NAME = new RegExp(`^${PLACEHOLDER_ARGUMENT_NAME}$`, "u");
 
 interface ParsedArgument {
   readonly name: string;
