@@ -1,217 +1,102 @@
 ---
 title: Configura verbatra con un agente de IA
-description: "Un prompt listo para copiar y pegar en Claude Code, Cursor o cualquier agente de IA para programar, que añade verbatra a un proyecto que ya tiene una configuración de i18n, protegido por una confirmación humana explícita antes de que gaste nada."
+description: "Un prompt corto para Claude Code, Cursor o cualquier agente de IA para programar, que añade verbatra a un proyecto que ya tiene una configuración de i18n, protegido por una confirmación humana explícita antes de que gaste nada."
 type: tutorial
 ---
-Esta página es para un proyecto que ya tiene archivos de locale: i18next, vue-i18n, next-intl, ngx-translate, o archivos en bruto de JSON, YAML, XLIFF, ARB, properties, `.strings` de Apple, `.xcstrings` de Xcode String Catalog, `strings.xml` de Android, `.po`/`.pot` de gettext, INI o `.resx` de .NET, ya confirmados en el repositorio y ya en uso. Copia el prompt de abajo en tu agente de IA para programar (Claude Code, Cursor o cualquier agente que pueda leer tu proyecto y ejecutar comandos de shell), y él mismo se encarga de inspeccionar tu configuración, instalar verbatra, generar una config que coincida con lo que encontró y previsualizar una ejecución, y luego se detiene y te pide confirmación antes de llamar a un proveedor de verdad.
+Esta página es para un proyecto que ya tiene archivos de locale en el repositorio. Pega el prompt de abajo en tu agente de IA para programar (Claude Code, Cursor o cualquier agente que pueda leer tu proyecto, abrir un enlace y ejecutar comandos de shell). El agente lee los pasos de esta página, revisa tu configuración, instala verbatra, crea una config que encaja con lo que encontró y muestra una vista previa de una ejecución; luego se detiene y te pide confirmación antes de llamar de verdad a un proveedor.
 
 Si estás configurando verbatra tú mismo en lugar de dárselo a un agente, el [Inicio rápido](/docs/quickstart) es la versión humana del mismo recorrido.
 
 ## El prompt
 
-Copia todo lo que hay en el bloque de abajo.
+Copia el bloque de abajo.
 
 ```text
-You are setting up verbatra (an i18n translation automation CLI, `@verbatra/cli`
-on npm) in this project. This project already has an existing i18n setup - do not
-treat it as a greenfield project. Follow these steps in order and do not skip the
-safety gates in steps 7 and 8.
+Set up verbatra (`@verbatra/cli` on npm) in this project. Read
+https://verbatra.kreitz-webdev.de/docs/start-with-ai.md and follow its steps in
+order. Until I confirm, run only commands that spend nothing, and never run a
+real `verbatra translate` without my explicit go-ahead. If you cannot open the
+link, stop and tell me.
+```
 
-## 1. Inspect the existing i18n setup
+## Los pasos que sigue el agente
 
-Before touching anything, find out what is already here:
+El prompt envía al agente a la versión Markdown de esta página. Agente: sigue estos pasos en orden y nunca te saltes la parada del paso 7.
 
-- Look in `package.json` dependencies for an i18n library: `i18next`, `vue-i18n`,
-  `next-intl`, or `@ngx-translate/core`.
-- Find the actual locale files (commonly under `locales/`, `src/locales/`,
-  `public/locales/`, `i18n/`, or similar) and determine:
-  - The file format: nested JSON, flat JSON, `.yml`/`.yaml`, `.xlf`/`.xliff`, `.arb`,
-    `.properties`, `.strings`, `.xcstrings`, Android's `res/values[-qualifier]/strings.xml`,
-    gettext's `.po`/`.pot`, `.ini`, or .NET's `.resx`.
-  - The source locale: the language the strings are actually written in.
-  - Every target locale already present.
-  - The exact path pattern, written with a `{locale}` token, for example
-    `locales/{locale}.json` or `src/i18n/{locale}/common.json`. For `.xcstrings`,
-    every locale lives in the same file, so the pattern still needs a `{locale}`
-    token but it resolves to that one file regardless of locale, for example
-    `{locale}Localizable.xcstrings`. For an Android project, use
-    `res/{locale}/strings.xml` with `files.localeStyle` set to `android`, so
-    `{locale}` expands to `values` for the source locale and to `values-de`,
-    `values-pt-rBR`, and similar resource-qualifier directories for the targets,
-    not to the BCP-47 tag itself.
-- Map what you found to one verbatra format id: i18next -> `i18next-json`,
-  vue-i18n -> `vue-i18n-json`, next-intl -> `next-intl-json`,
-  ngx-translate -> `ngx-translate-json`, `.yml`/`.yaml` -> `yaml`,
-  `.xlf`/`.xliff` -> `xliff`, `.arb` -> `arb`, `.properties` -> `properties`,
-  `.strings` -> `apple-strings`, `.xcstrings` -> `apple-xcstrings`,
-  Android `strings.xml` -> `android-xml`, gettext `.po`/`.pot` -> `gettext-po`,
-  `.ini` -> `ini`, .NET `.resx` -> `resx`. Plain
-  JSON with no matching library: pick by placeholder syntax, `{{name}}` means
-  `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
-- If the format is `xliff`: verbatra only updates `<target>` elements in a file that
-  already exists, it never creates one. Every target locale's XLIFF file must already
-  be present before you run `translate`.
-- If the format is `apple-xcstrings`: verbatra does not create a new catalogue
-  either, and every locale, including the source, resolves to the same file, so
-  translate runs against this format one locale at a time internally even if
-  `--concurrency` is set higher.
-- If the format is `android-xml`: set `files.localeStyle` to `android` as shown
-  above. A `<string>` or `<plurals>` marked `translatable="false"`, a
-  `<string-array>`, and a `<string>` containing inline markup are all left
-  untouched; everything else is translated normally, `formatted="false"`
-  included.
-- If the format is `gettext-po`: a `msgctxt` before a `msgid` disambiguates it into
-  its own entry; a `#, fuzzy` entry's existing `msgstr` is treated as an existing
-  translation, not as missing, and the `fuzzy` flag is never added or cleared by
-  verbatra; a `.pot` template reads its empty `msgstr` values without error.
-- If the format is `resx`: a `<data>` element carrying a `type` or `mimetype`
-  attribute, and any entry whose name starts with `>>` or `$`, hold designer or
-  binary resources and are left untouched; everything else is translated
-  normally, and a target `.resx` that does not exist yet is created.
-- If the format is `ini`: a key inside a `[section]` is addressed as `section.key`,
-  comments and blank lines survive a write, and a new key is inserted at the end of
-  its own section rather than at the end of the file.
+### 1. Revisar la configuración existente
 
-`verbatra init` detects the format, the path pattern, and the locales from these
-same files in step 3. What you found here is what you check its result against.
+Antes de cambiar nada, busca la biblioteca de i18n en `package.json` (por ejemplo `i18next`, `vue-i18n`, `next-intl` o `@ngx-translate/core`) y los propios archivos de locale. Anota el locale de origen, cada locale de destino que ya exista y el patrón de ruta con un token `{locale}`, como `locales/{locale}.json`. [Elige tu stack](/docs/pick-your-stack) asigna a cada stack su id de formato y su estructura habitual, y [Formatos](/docs/formats) indica qué deja intacto o nunca crea cada formato: un archivo XLIFF y un Xcode String Catalog, por ejemplo, ya tienen que existir.
 
-## 2. Install the CLI
+### 2. Instalar la CLI
 
+```bash
 npm install --save-dev @verbatra/cli
+```
 
-pnpm and yarn work too. With pnpm, if it exits with `ERR_PNPM_IGNORED_BUILDS`, run
-`pnpm approve-builds` once and approve neither entry. npm 11 may print a warning
-that some packages have install scripts not yet covered by `allowScripts`; verbatra
-needs none of those scripts, so leave them unapproved and continue.
+pnpm, yarn y bun también funcionan. Si pnpm termina con `ERR_PNPM_IGNORED_BUILDS`, ejecuta `pnpm approve-builds` una vez y no apruebes ninguna de las dos entradas. Si npm avisa de scripts de instalación que `allowScripts` no cubre, déjalos sin aprobar: verbatra no necesita ninguno.
 
-## 3. Scaffold the config, non-interactively
+### 3. Crear la config sin preguntas
 
-Run `verbatra init` and let it detect the rest from the locale files:
-
+```bash
 npx verbatra init --provider <provider> --yes --json
+```
 
-`<provider>` is one of `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`,
-`openai-compatible`, `libretranslate`, or `none` (human-only, no machine translation).
-Ask the human which provider to use unless it is already obvious from the project (an
-existing key reference, a comment, a teammate's note). Do not pick a provider that spends against
-a service the human never agreed to. For a local or self-hosted OpenAI-compatible
-server, add `--base-url <url> --model <name>`, plus `--api-key-env-var <NAME>` if the
-server needs a key. For a self-hosted LibreTranslate server, add `--base-url <url>`
-only. Never pass a key value to `init`.
+Pregunta a la persona qué proveedor usar, salvo que el proyecto ya lo deje claro. [Proveedores](/docs/providers) lista los ids; `none` desactiva la traducción automática. Nunca elijas un proveedor que gaste en un servicio que la persona no haya aceptado, y nunca pases un valor de clave a `init`. `init` detecta el formato, el patrón de ruta y los locales, imprime un sobre JSON y nunca pregunta:
 
-`init` prints one JSON envelope on stdout and never prompts. Branch on its exit code:
+- Salida `0`: compara `result.config` con lo que encontraste en el paso 1, empezando por cada entrada de `result.sources` que diga `default`. Si algo está mal, vuelve a ejecutarlo con el `--format`, `--path`, `--source` o `--targets` correcto, más `--force`.
+- Salida `2` con `FORMAT_AMBIGUOUS` o `LAYOUT_AMBIGUOUS`: elige entre los `candidates` y vuelve a ejecutarlo con `--format` o `--path`. Si los candidatos son archivos de namespace uno junto a otro, detente y pregunta a la persona, porque una config cubre un patrón de archivo.
+- Salida `2` con `MISSING_OPTIONS`: el mensaje nombra cada flag que aún falta.
+- Salida `2` con `CONFIG_EXISTS`: pregunta a la persona antes de pasar `--force`.
 
-- `0`: compare `result.config` (`format`, `files.pattern`, `sourceLocale`,
-  `targetLocales`) with what you found in step 1. `result.config.files.localeStyle`
-  is only present when the files do not spell locales as written, such as Android's
-  `values-de` directories; for every other layout, `result.detection.layout` shows
-  the pattern, locale style, and locales the scan found. Every entry in
-  `result.sources` that says `default` was not detected, so check it first. If
-  anything is wrong, run the same command again with the right `--format`, `--path`,
-  `--source`, or `--targets` and add `--force`.
-- `2` with code `FORMAT_AMBIGUOUS`: several formats read these files (plain JSON with
-  no i18n library, for example). `candidates` lists them; pick the one that matches
-  step 1 and rerun with `--format <id>`.
-- `2` with code `LAYOUT_AMBIGUOUS`: several file patterns fit equally well, and
-  `candidates` lists them. verbatra addresses exactly one file pattern per config,
-  so when the candidates are namespace files side by side (for example
-  `locales/{locale}/common.json` and `locales/{locale}/auth.json`), tell the human
-  this project needs one config per namespace and stop for their direction rather
-  than guessing which namespace to wire up. Otherwise rerun with `--path <pattern>`.
-- `2` with code `MISSING_OPTIONS`: the message names every flag still needed.
-- `2` with code `CONFIG_EXISTS`: this project already has a verbatra config. Do not
-  pass `--force` without asking the human first.
+[init](/docs/cli/init) documenta cada flag.
 
-## 4. Hand the API key to the human - never a value
+### 4. Dejar la clave de API a la persona
 
-Skip this step for provider `none`, which reads no key and has no `.env.example`.
+Sáltate este paso con el proveedor `none`.
 
+```bash
 cp .env.example .env
+```
 
-Open `.env` and confirm it names the variable from `result.apiKeyEnvVar` in step 3
-(for example `GEMINI_API_KEY`). Do not write, invent, or ask the human to paste a key
-value into anything you output. Leave the value blank and tell the human which
-variable to fill in themselves, directly in `.env`. Setting the key is their job,
-not yours: carry on with the next steps without waiting for it.
+Comprueba que `.env` nombra la variable de `result.apiKeyEnvVar`, deja su valor vacío y dile a la persona qué variable debe rellenar. Nunca escribas, inventes ni pidas un valor de clave. Sigue sin esperarla.
 
-## 5. Run doctor and fix what is yours to fix
+### 5. Ejecutar doctor
 
+```bash
 npx verbatra doctor --json
+```
 
-`doctor` runs eleven checks. Seven can fail: the config, the format, the provider id,
-the API-key environment variable that provider reads, the network policy, the source
-file, and the provider's support for every configured locale. The other four (plural
-rules, plural completeness, locale codes, locale state) are informational and never
-fail. It makes no network
-call and reads no key value, only the variable's name, from the environment or from
-`.env.local` and `.env`. Fix any other failing check by editing
-`verbatra.config.ts` (for example a missing `model` and `maxTokens` for Anthropic,
-or `model` and `maxOutputTokens` for OpenAI, Gemini, or openai-compatible), then run
-it again. Repeat until the only failure left, if any, is the `api-key` check. That
-one only passes once the human has set the key from step 4, so do not loop on it:
-remind the human which variable to set and move on.
+Corrige cada comprobación fallida que puedas editando `verbatra.config.ts` y vuelve a ejecutarlo. La comprobación `api-key` solo pasa cuando la persona ha puesto la clave, así que no entres en bucle con ella.
 
-## 6. Preview - read-only, no spend
+### 6. Vista previa sin gastar
 
-Run all three and read what they report:
-
+```bash
 npx verbatra check --json
 npx verbatra diff --json
 npx verbatra translate --dry-run --json
-
-None of the three calls a provider, needs a key, or writes a file. `check` gives
-per-locale counts, `diff` names the exact keys, and `translate --dry-run` gives the
-full run summary a real run would produce. `check` and `diff` exit `1` when a locale
-is not in sync, which is the expected answer before a first run, not a failure; only
-exit `2` means a setup problem. With provider `none`, `translate --dry-run` exits `3`
-when keys are left for a human translator, which is also expected.
-
-Before you go further, know how verbatra treats what is already there: it never
-overwrites or retranslates an existing value. A source key the target file already
-has is left exactly as it is, even on this very first run before a lock file
-exists - only keys genuinely missing from the target get translated. The one trap:
-an empty string still counts as an existing key, so a placeholder value like `""`
-will not be filled in by a normal run. If this project has empty-string
-placeholders that need a real translation, tell the human and ask before deleting
-those keys from the target files, since that changes tracked files; once deleted,
-the next run treats them as missing and translates them.
-
-## 7. Stop. Report. Get explicit confirmation.
-
-Summarize in plain language: how many keys are pending, per locale, and what
-`translate --dry-run` said it would do. Then stop and ask the human to explicitly
-confirm before you run a real `translate`. Do not proceed on your own judgment: a
-real run spends against the provider immediately, with no confirmation prompt of
-its own.
-
-Never suggest or use `--prune` unless the human has explicitly asked for orphaned
-keys to be removed from target files. It deletes existing target entries.
-
-## 8. Only after explicit confirmation: translate for real
-
-npx verbatra translate --json
-
-Report the result from the summary's `succeeded`, `partial`, and `failed` lists. A
-`partial` or `failed` locale was still written with whatever did succeed; nothing
-already translated is lost.
-
-## 9. Commit the right files
-
-Commit:
-- `verbatra.config.ts`
-- `.env.example`
-- `verbatra.lock.json`
-- `verbatra.provenance.json` (once a run has written it)
-- the translated locale files
-
-Never commit `.env`, `.env.local`, `.verbatra-local/`, or `verbatra.cache.json`.
-`verbatra init` already added these to `.gitignore`; confirm they are actually
-ignored before committing rather than assuming the scaffold caught every case.
 ```
+
+Ninguno de estos comandos llama a un proveedor, necesita una clave ni escribe un archivo. La salida `1` de `check` o `diff` significa que un locale no está sincronizado, lo esperado antes de una primera ejecución; solo la salida `2` es un problema de configuración. verbatra nunca sobrescribe un valor existente, ni siquiera en la primera ejecución: solo se traducen las claves que faltan en el destino. Una cadena vacía cuenta como valor existente, así que pregunta a la persona antes de borrar claves de marcador con `""`.
+
+### 7. Detenerse y preguntar
+
+Resume cuántas claves quedan pendientes por locale y qué informó `translate --dry-run`, y detente. Una ejecución real gasta de inmediato y no tiene su propio aviso de confirmación, así que espera la aprobación explícita de la persona. Nunca uses `--prune` salvo que la persona haya pedido eliminar las claves huérfanas.
+
+### 8. Traducir tras la aprobación
+
+```bash
+npx verbatra translate --json
+```
+
+Informa de las listas `succeeded`, `partial` y `failed` del resumen. Un locale `partial` o `failed` se escribió igualmente con todo lo que salió bien.
+
+### 9. Hacer commit de los archivos correctos
+
+Haz commit de `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`, `verbatra.provenance.json` cuando una ejecución lo haya escrito, y de los archivos de locale traducidos. Nunca hagas commit de `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json`; `init` los añadió a `.gitignore`, así que confirma que se ignoran.
 
 ## Por qué esta forma
 
-`translate` no tiene su propia barrera de gasto: en cuanto existen una config válida y una clave de API, un simple `verbatra translate` llama al proveedor de inmediato, sin ningún aviso de confirmación. El prompt de arriba pone esa barrera en las instrucciones del agente: `doctor`, `check`, `diff` y `translate --dry-run` son gratuitos y de solo lectura, así que el agente puede validar toda la configuración y mostrarte exactamente qué pasaría antes del paso 8, el único paso que gasta algo.
+`translate` no tiene su propia barrera de gasto: en cuanto existen una config válida y una clave de API, un simple `verbatra translate` llama al proveedor de inmediato, sin ningún aviso de confirmación. Los pasos de arriba ponen esa barrera en las instrucciones del agente: `doctor`, `check`, `diff` y `translate --dry-run` son gratuitos y de solo lectura, así que el agente puede validar toda la configuración y mostrarte exactamente qué pasaría antes del paso 8, el único paso que gasta algo.
 
 ## Siguiente
 

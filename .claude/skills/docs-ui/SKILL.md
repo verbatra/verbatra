@@ -137,7 +137,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
   `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  the tab row wraps too, and the AI prompt row keeps scrolling), `reveal.tsx` (the scroll
+  the install box's second row shows the whole AI setup prompt, wrapped, under a `.vk-label`
+  caption), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
@@ -173,8 +174,8 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - Keep all three `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
-- Content only needed after an interaction (the AI setup prompt in `package-install.tsx`) is
-  loaded with a dynamic `import()` on hover, focus, or click.
+- Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
+  or click. The AI setup prompt is not: it is a few lines, shown in full in the install box.
 
 ## Fumadocs UI strings
 
@@ -273,11 +274,11 @@ comes from:
   "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
   target is dropped at render time (`lib/docs-neighbours.ts`, passed to `getMDXComponents` by the
   docs page), so the footer and the cards never link the same page twice.
-- **Package-manager tabs**: a fenced block with the `npm` language becomes npm / pnpm / yarn / bun
-  tabs through Fumadocs' remark-npm (persisted as `package-manager` in `source.config.ts`; the
-  landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
-  and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
-  `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
+- **One install command**: every install is shown as one npm command in a `bash` fence, with no
+  package-manager tabs. remark-npm is off (`remarkNpmOptions: false` in `source.config.ts`), and
+  `lib/install-commands.test.ts` fails on an `npm` fence anywhere in the content. The landing and
+  docs home install box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts`; a page that
+  needs pnpm, yarn or bun says so in a sentence.
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in
