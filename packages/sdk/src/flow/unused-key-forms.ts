@@ -4,8 +4,8 @@ import {
   androidPluralCategoryOf,
   decodePathKey,
   decomposeGettextKey,
-  pluralBaseKey,
 } from "@verbatra/format-adapters";
+import { pluralLookupKey } from "./plural-categories.js";
 
 export interface CatalogKeyForms {
   readonly key: string;
@@ -66,11 +66,22 @@ export function catalogKeyForms(format: FormatId, catalogKey: string): CatalogKe
   };
 }
 
-export function callSiteKeysOfLookup(lookup: string): readonly string[] {
-  const base = pluralBaseKey(lookup);
-  return base === undefined ? [lookup] : [lookup, base];
+const SUFFIX_PLURAL_FORMATS: ReadonlySet<FormatId> = new Set(["i18next-json"]);
+
+export function pluralSuffixLookup(
+  format: FormatId,
+  key: string,
+  isPlural: boolean,
+): string | undefined {
+  return isPlural && SUFFIX_PLURAL_FORMATS.has(format) ? pluralLookupKey(key) : undefined;
 }
 
-export function callSiteKeysOf(format: FormatId, catalogKey: string): readonly string[] {
-  return catalogKeyForms(format, catalogKey).lookups.flatMap(callSiteKeysOfLookup);
+export function callSiteKeysOf(
+  format: FormatId,
+  catalogKey: string,
+  isPlural: boolean,
+): readonly string[] {
+  const { lookups } = catalogKeyForms(format, catalogKey);
+  const plural = lookups.flatMap((lookup) => pluralSuffixLookup(format, lookup, isPlural) ?? []);
+  return [...new Set([...lookups, ...plural])];
 }

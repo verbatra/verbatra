@@ -598,6 +598,34 @@ describe("extract on a key the catalog holds only as plural forms", () => {
     expect(result.added.map((entry) => entry.key)).toEqual(["cart.items"]);
   });
 
+  it("adds no key for an i18next ordinal group, looked up without its ordinal suffix", async () => {
+    const cwd = await project({
+      "src/rank.ts": 't("place", { count, ordinal: true });',
+      "locales/en.json": JSON.stringify({
+        place_ordinal_one: "{{count}}st",
+        place_ordinal_other: "{{count}}th",
+      }),
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added).toEqual([]);
+  });
+
+  it("adds a key that a plain catalog key only resembles as a plural form", async () => {
+    const cwd = await project({
+      "src/wizard.ts": 't("step");',
+      "locales/en.yml": "step_one: First step\n",
+    });
+
+    const result = await extract({
+      config: config({ format: "yaml", files: { pattern: "locales/{locale}.yml" } }),
+      cwd,
+    });
+
+    expect(result.added.map((entry) => entry.key)).toEqual(["step"]);
+  });
+
   it("adds no key for a gettext msgid held only as plural forms", async () => {
     const cwd = await project({ "src/a.ts": 't("apple", { count });', "locales/en.po": PLURAL_PO });
 

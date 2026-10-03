@@ -1093,6 +1093,17 @@ describe("findUnusedKeys on plural, context, and parent variants of a referenced
 
     expect(report.unused.map((entry) => entry.key)).toEqual(["items_one", "items_other"]);
   });
+
+  it("reports a plain key of a format without plural suffixes that only resembles a plural form", async () => {
+    const yamlConfig = config({ format: "yaml", files: { pattern: "locales/{locale}.yml" } });
+    const cwd = await projectFor(yamlConfig, "step_one: First step\nc: C\n", {
+      "src/a.ts": 't("step");\nt("c");',
+    });
+
+    const report = scanned(await findUnusedKeys({ config: yamlConfig, cwd }));
+
+    expect(report.unused).toEqual([{ key: "step_one", catalogKey: "step_one" }]);
+  });
 });
 
 describe("findUnusedKeys with an ignore list", () => {

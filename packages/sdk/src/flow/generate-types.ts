@@ -12,7 +12,6 @@ import {
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
-import { pluralLookupKey } from "./plural-categories.js";
 import {
   asWrittenRefusal,
   createOutputPathGuard,
@@ -28,6 +27,7 @@ import {
   GENERATED_HEADER,
   renderTypesDeclaration,
 } from "./types-declaration.js";
+import { pluralSuffixLookup } from "./unused-key-forms.js";
 import { unwritableFileMessage } from "./write-target.js";
 
 /**
@@ -246,10 +246,11 @@ const COUNT_PLACEHOLDER = "{{count}}";
 
 function pluralLookupPlaceholders(
   entries: ReadonlyMap<string, TranslationEntry>,
+  format: FormatId,
 ): ReadonlyMap<string, readonly string[]> {
   const byLookup = new Map<string, string[]>();
   for (const [key, entry] of entries) {
-    const lookup = entry.isPlural ? pluralLookupKey(key) : undefined;
+    const lookup = pluralSuffixLookup(format, key, entry.isPlural);
     if (lookup !== undefined && !entries.has(lookup)) {
       byLookup.set(lookup, [...(byLookup.get(lookup) ?? []), ...entry.placeholders]);
     }
@@ -260,11 +261,12 @@ function pluralLookupPlaceholders(
 function withPluralLookupKeys(
   messages: readonly DeclaredMessage[],
   entries: ReadonlyMap<string, TranslationEntry>,
+  format: FormatId,
 ): readonly DeclaredMessage[] {
-  const placeholders = pluralLookupPlaceholders(entries);
+  const placeholders = pluralLookupPlaceholders(entries, format);
   const declared = new Set<string>();
   return messages.flatMap((message) => {
-    const lookup = message.isPlural ? pluralLookupKey(message.key) : undefined;
+    const lookup = pluralSuffixLookup(format, message.key, message.isPlural);
     const tokens = lookup === undefined ? undefined : placeholders.get(lookup);
     if (lookup === undefined || tokens === undefined || declared.has(lookup)) {
       return [message];
@@ -285,7 +287,7 @@ function declaredMessages(
   format: FormatId,
 ): readonly DeclaredMessage[] {
   const messages = [...entries].map(([key, entry]) => declareMessage(key, entry, invalid, format));
-  return format === "i18next-json" ? withPluralLookupKeys(messages, entries) : messages;
+  return withPluralLookupKeys(messages, entries, format);
 }
 
 function takesKnownArguments(message: DeclaredMessage): boolean {

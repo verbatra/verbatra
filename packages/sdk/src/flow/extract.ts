@@ -112,8 +112,8 @@ async function readExistingResource(
 
 function presentCallSiteKeys(resource: LocaleResource): ReadonlySet<string> {
   return new Set(
-    [...resource.entries.keys()].flatMap((catalogKey) =>
-      callSiteKeysOf(resource.format, catalogKey),
+    [...resource.entries].flatMap(([catalogKey, entry]) =>
+      callSiteKeysOf(resource.format, catalogKey, entry.isPlural),
     ),
   );
 }

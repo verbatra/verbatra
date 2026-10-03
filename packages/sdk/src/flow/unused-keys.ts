@@ -10,7 +10,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { matchesKeyGlob } from "./key-glob.js";
 import { readSource } from "./source.js";
 import { type CreateExtractor, requireExtractionConfig, runScan } from "./source-scan.js";
-import { type CatalogKeyForms, callSiteKeysOfLookup, catalogKeyForms } from "./unused-key-forms.js";
+import { type CatalogKeyForms, callSiteKeysOf, catalogKeyForms } from "./unused-key-forms.js";
 
 /**
  * Why an unused-key report could not be produced at all.
@@ -275,9 +275,18 @@ function isUnderReferencedParent(key: string, referenced: ReadonlySet<string>): 
 
 function isReferencedLookup(lookup: string, referenced: ReadonlySet<string>): boolean {
   return (
-    callSiteKeysOfLookup(lookup).some((key) => referenced.has(key)) ||
-    isContextVariantOfReferenced(lookup, referenced) ||
-    isUnderReferencedParent(lookup, referenced)
+    isContextVariantOfReferenced(lookup, referenced) || isUnderReferencedParent(lookup, referenced)
+  );
+}
+
+function isReferencedEntry(
+  forms: CatalogKeyForms,
+  callSiteKeys: readonly string[],
+  referenced: ReadonlySet<string>,
+): boolean {
+  return (
+    callSiteKeys.some((key) => referenced.has(key)) ||
+    forms.lookups.some((lookup) => isReferencedLookup(lookup, referenced))
   );
 }
 
@@ -356,9 +365,15 @@ function classifyKeys(
   const referenced = referencedKeys(scan);
   const prefixes = [...new Set(scan.usage.prefixes.map((site) => site.prefix))];
   const classified: Classified = { unused: [], possiblyDynamic: [], ignored: [] };
-  for (const catalogKey of catalog.entries.keys()) {
+  for (const [catalogKey, catalogEntry] of catalog.entries) {
     const forms = catalogKeyForms(format, catalogKey);
-    if (forms.lookups.some((lookup) => isReferencedLookup(lookup, referenced))) {
+    if (
+      isReferencedEntry(
+        forms,
+        callSiteKeysOf(format, catalogKey, catalogEntry.isPlural),
+        referenced,
+      )
+    ) {
       continue;
     }
     const entry = { key: forms.key, catalogKey };
