@@ -163,6 +163,35 @@ function findUnexportedLinks(text, relativePath) {
   return hits;
 }
 
+const EXPORTED_VALUE_DECLARATION =
+  /^(?:export\s+)?declare\s+(?:function|const|class)\s+([A-Za-z_$][\w$]*)/;
+
+function previousContentLine(lines, index) {
+  let cursor = index - 1;
+  while (cursor >= 0 && (lines[cursor] ?? "").trim() === "") {
+    cursor -= 1;
+  }
+  return lines[cursor] ?? "";
+}
+
+function isDocumented(lines, index, name) {
+  const previous = previousContentLine(lines, index);
+  return previous.trim().endsWith("*/") || EXPORTED_VALUE_DECLARATION.exec(previous)?.[1] === name;
+}
+
+function findUndocumentedExports(text, relativePath) {
+  const exported = exportedNames(text);
+  const lines = text.split("\n");
+  const hits = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const name = EXPORTED_VALUE_DECLARATION.exec(lines[index] ?? "")?.[1];
+    if (name !== undefined && exported.has(name) && !isDocumented(lines, index, name)) {
+      hits.push(`${relativePath}:${index + 1}: ${name}`);
+    }
+  }
+  return hits;
+}
+
 function moduleFormat(path, packageType) {
   if (path.endsWith(".d.cts") || path.endsWith(".cjs")) {
     return "cjs";
@@ -267,11 +296,21 @@ function checkDts() {
     );
   }
 
+  const undocumented = SDK_DECLARATIONS.flatMap((relativePath) =>
+    findUndocumentedExports(readBuildOutput(relativePath), relativePath),
+  );
+  if (undocumented.length > 0) {
+    throw new Error(
+      "an exported sdk function, class or constant ships without its JSDoc; keep the JSDoc " +
+        `directly above the declaration it documents:\n  ${undocumented.join("\n  ")}`,
+    );
+  }
+
   checkExportTypes();
   runTsc("scripts/dts-fixture/tsconfig.json");
   runTsc("scripts/dts-fixture/tsconfig.cjs.json");
   return (
-    "declarations reference no unpublished package and bundle each type once, every JSDoc link names an export, every exports condition pairs matching " +
+    "declarations reference no unpublished package and bundle each type once, every exported value carries its JSDoc, every JSDoc link names an export, every exports condition pairs matching " +
     "module formats, and the ESM and CommonJS consumer fixtures typecheck."
   );
 }
@@ -411,6 +450,7 @@ export {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   findRenamedDeclarations,
+  findUndocumentedExports,
   findUnexportedLinks,
   getConfigSchemaFilesPattern,
   getConfigSchemaProviderRequired,

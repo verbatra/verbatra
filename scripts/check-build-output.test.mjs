@@ -7,6 +7,7 @@ import {
   findExportTypeMismatches,
   findForbiddenSpecifiersInText,
   findRenamedDeclarations,
+  findUndocumentedExports,
   findUnexportedLinks,
   getConfigSchemaFilesPattern,
   getConfigSchemaProviderRequired,
@@ -249,6 +250,33 @@ describe("findRenamedDeclarations", () => {
   it("ignores a dollar sign that is not a numeric rename suffix", () => {
     const text = "type Strip = z.core.$strip;\ndeclare const $schema: string;";
     expect(findRenamedDeclarations(text, "dist/index.d.ts")).toEqual([]);
+  });
+});
+
+describe("findUndocumentedExports", () => {
+  it("reports an exported function whose JSDoc a helper pushed away", () => {
+    const text = [
+      "/** Documented. */",
+      "declare function documented(): void;",
+      "",
+      "declare function stripped(): void;",
+      "declare function internal(): void;",
+      "export { documented, stripped };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual(["index.d.ts:4: stripped"]);
+  });
+
+  it("accepts an overload that follows its documented first signature", () => {
+    const text = [
+      "/** Documented. */",
+      "declare function load(path: string): void;",
+      "declare function load(path: URL): void;",
+      "declare const VERSION: string;",
+      "export { load };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual([]);
   });
 });
 
