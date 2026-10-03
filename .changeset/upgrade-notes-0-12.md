@@ -56,6 +56,11 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - `requestTimeoutMs` applies per attempt. A failed call reports its last attempt's cause
   (`RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_ERROR`) instead of `TIMEOUT`, and Gemini
   retries a timed-out attempt.
+- A placeholder name in another script, such as `{número}` or `{名前}`, is protected in
+  `vue-i18n-json`, `properties` and `ini`: a translation that renames or drops it is refused
+  instead of written. Values already in a locale file stay until their source changes.
+- In `resx`, a named hole such as `{name}` or `{when:d}` is a placeholder: a translation that
+  renames it (`{name}` to `{nombre}`) is refused instead of written.
 - Integrity refusals report `empty` and `icu` ahead of `placeholder` and `markup`.
   `LENGTH_RATIO_OUTLIER` counts graphemes weighted by script.
 - `lockAcquireTimeoutMs` bounds only the waits before a provider call, and `onLockWait` first
