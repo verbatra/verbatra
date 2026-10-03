@@ -189,7 +189,7 @@ function importWorkbook(
 
 With `csv` or `tsv`, `workbook` is either
 one interchange file or the directory holding one per locale, and the locale comes from the file
-name. Returns the same `RunSummary` shape as `translate`
+name. A file ending in `.csv` or `.tsv` is read in that format when `format` is left out. Returns the same `RunSummary` shape as `translate`
 (with `needsReview` always empty, since no provider is involved). A sheet for a locale that is not
 a configured target fails that locale with `CONFIG_INVALID` as data on the summary, not a throw.
 

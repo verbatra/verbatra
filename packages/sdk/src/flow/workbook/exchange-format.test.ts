@@ -70,7 +70,16 @@ describe("importFormatFor", () => {
     expect(importFormatFor(undefined, path)).toBe("xliff2");
   });
 
-  it.each(["translations.xlsx", "handoff", "de.csv"])("defaults %s to the workbook", (path) => {
+  it.each([
+    ["handoff/de.csv", "csv"],
+    ["handoff/DE.CSV", "csv"],
+    ["handoff/de.tsv", "tsv"],
+    ["out/translations.XLSX", "xlsx"],
+  ] as const)("reads %s as %s", (path, format) => {
+    expect(importFormatFor(undefined, path)).toBe(format);
+  });
+
+  it.each(["handoff", "notes.txt", "de.csv.bak"])("defaults %s to the workbook", (path) => {
     expect(importFormatFor(undefined, path)).toBe("xlsx");
   });
 });

@@ -211,6 +211,27 @@ describe("importWorkbook: delimited formats", () => {
     expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
   });
 
+  it.each(["csv", "tsv"] as const)(
+    "reads a single %s file without a format, inferring it from the extension",
+    async (format) => {
+      const dir = await project({ greeting: "Hello" });
+      const config = cfg({ targetLocales: ["de"] });
+      await exportWorkbook({ config, cwd: dir, format, out: "handoff" });
+      await fillExported(join(dir, "handoff", `de.${format}`), "de", format, {
+        greeting: "Hallo",
+      });
+
+      const summary = await importWorkbook({
+        config,
+        cwd: dir,
+        workbook: join("handoff", `de.${format}`),
+      });
+
+      expect(summary.failed).toEqual([]);
+      expect(await readJsonFile(join(dir, "locales", "de.json"))).toEqual({ greeting: "Hallo" });
+    },
+  );
+
   it("imports a single interchange file for one of several target locales, without failing the other", async () => {
     const dir = await project({ greeting: "Hello" });
     await exportWorkbook({

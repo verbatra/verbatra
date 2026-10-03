@@ -101,9 +101,10 @@ export interface ImportWorkbookInput {
    */
   readonly dryRun?: boolean;
   /**
-   * The handoff shape to read. Defaults to `xliff2` when {@link ImportWorkbookInput.workbook} ends
-   * in `.xlf` or `.xliff`, and to `xlsx` otherwise. `xliff2` and `xliff12` both read either XLIFF
-   * version, which is taken from the file.
+   * The handoff shape to read. Defaults to the shape the extension of
+   * {@link ImportWorkbookInput.workbook} names: `csv` for `.csv`, `tsv` for `.tsv`, `xliff2` for
+   * `.xlf` or `.xliff`, and `xlsx` for `.xlsx`, a directory, or any other path. `xliff2` and
+   * `xliff12` both read either XLIFF version, which is taken from the file.
    */
   readonly format?: ExchangeFormat;
   /**

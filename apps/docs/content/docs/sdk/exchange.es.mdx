@@ -197,7 +197,7 @@ function importWorkbook(
 
 Con `csv` o `tsv`, `workbook` es un solo
 archivo de entrega o el directorio que contiene uno por locale, y el locale viene del nombre del
-archivo. Devuelve la misma forma `RunSummary` que `translate`
+archivo. Un archivo que termina en `.csv` o `.tsv` se lee en ese formato si omites `format`. Devuelve la misma forma `RunSummary` que `translate`
 (con `needsReview` siempre vacío, ya que no interviene ningún proveedor). Una hoja de un locale que no
 es un destino configurado hace fallar ese locale con `CONFIG_INVALID` como dato en el resumen, no como
 excepción.

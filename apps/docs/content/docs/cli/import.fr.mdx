@@ -18,7 +18,7 @@ verbatra import <workbook> [flags]
 | Option | Argument | Défaut | Effet |
 | --- | --- | --- | --- |
 | `--dry-run` | aucun | désactivé | valide et rapporte sans écrire les fichiers de locale ni mettre à jour le verrou |
-| `--format` | `<format>` | `xlsx`, ou `xliff2` pour un chemin terminé par `.xlf` ou `.xliff` | `xlsx`, `csv`, `tsv`, `xliff2` ou `xliff12` ; chacun des deux formats XLIFF lit les deux versions |
+| `--format` | `<format>` | d'après l'extension du chemin : `csv`, `tsv`, `xliff2` pour `.xlf` ou `.xliff`, sinon `xlsx` | `xlsx`, `csv`, `tsv`, `xliff2` ou `xliff12` ; chacun des deux formats XLIFF lit les deux versions |
 | `--reviewer` | `<name>` | aucun | nom enregistré sur chaque unité XLIFF marquée relue ou finale ; au plus 64 caractères, stocké dans le fichier de provenance versionné |
 | `--lock-timeout` | `<seconds>` | `600` | combien de temps attendre un verrou d'écriture de locale déjà détenu ; un entier de `1` à `3600`, sinon erreur d'utilisation, sortie `2` |
 

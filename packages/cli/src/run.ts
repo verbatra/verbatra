@@ -615,7 +615,7 @@ const FORMAT_OPTION_DESCRIPTION = `handoff format: one of ${EXCHANGE_FORMATS.joi
 
 const IMPORT_FORMAT_OPTION_DESCRIPTION = `handoff format: one of ${EXCHANGE_FORMATS.join(
   ", ",
-)} (default xliff2 for a .xlf or .xliff path, otherwise ${DEFAULT_EXCHANGE_FORMAT}; either XLIFF format reads both versions)`;
+)} (default from the path's extension: csv, tsv, xliff2 for .xlf or .xliff, otherwise ${DEFAULT_EXCHANGE_FORMAT}; either XLIFF format reads both versions)`;
 
 function parseExchangeFormat(value: string | undefined): ExchangeFormat | undefined {
   if (value === undefined) {

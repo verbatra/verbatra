@@ -11,6 +11,8 @@ XLIFF 1.2 and 2.0 agency handoff, spec-accurate XLIFF, and layout-keeping writes
   become notes, and segment states follow the lock and review state.
 - `verbatra import <file.xlf>` reads either version through the integrity gate. A unit marked
   reviewed or final is recorded as approved under `--reviewer <name>`.
+- `verbatra import <file>` takes the handoff format from the extension when `--format` is left
+  out: `.csv`, `.tsv`, `.xlf`/`.xliff` and `.xlsx` (SDK: `importWorkbook` without `format`).
 
 **XLIFF files**
 - An empty, missing, `new` or `needs-translation` target counts as missing and is translated, and
