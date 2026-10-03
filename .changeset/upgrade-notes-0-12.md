@@ -36,6 +36,10 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `verbatra types` once and commit the file.
 
 **Translation behavior and spend**
+- `tmx import` takes the plural flag from the source file: a plural form whose text matches an
+  imported unit is now an exact memory hit, filled without a provider call, where 0.11 sent it to
+  the provider. Units imported with 0.11 stay keyed as plain strings: import the TMX file again.
+  A unit matching a plural form and a plain string is stored for both and counted once.
 - `humanEdits` defaults to `"protect"`: a stale key whose value a person wrote, imported or edited
   outside verbatra is no longer retranslated, and `check` keeps reporting it as stale. Set
   `humanEdits: "overwrite"`, or pass `translate --include-human` for one run, to get 0.11 behavior.
