@@ -122,14 +122,18 @@ function projectSetupBlock() {
   return block.body.split("\n");
 }
 
-function runSetupCommand(project, command) {
-  const result = spawnSync(command, {
+function spawnSetupCommand(project, command) {
+  return spawnSync(command, {
     cwd: project,
     encoding: "utf8",
     env: keylessEnv(),
     shell: true,
     timeout: 60_000,
   });
+}
+
+function runSetupCommand(project, command) {
+  const result = spawnSetupCommand(project, command);
   if (result.status !== 0) throw new Error(`${command} failed: ${result.stderr}`);
 }
 
@@ -182,11 +186,9 @@ describe("the SDK quickstart and recipes", () => {
 
 describe("the SDK examples run end to end without an API key", () => {
   let project;
-  let startedEmpty;
 
   beforeAll(() => {
     project = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-docs-project-"));
-    startedEmpty = readdirSync(project).length === 0;
     for (const command of projectSetupBlock()) {
       if (command.startsWith("npm install")) continue;
       runSetupCommand(project, command);
@@ -215,8 +217,23 @@ describe("the SDK examples run end to end without an API key", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it(
+    "needs npm init -y first, since npm pkg set alone fails in an empty directory",
+    () => {
+      const empty = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-docs-empty-"));
+      try {
+        expect(readdirSync(empty)).toEqual([]);
+        const alone = spawnSetupCommand(empty, "npm pkg set type=module");
+        expect(alone.status).not.toBe(0);
+        expect(readdirSync(empty)).toEqual([]);
+      } finally {
+        rmSync(empty, { recursive: true, force: true });
+      }
+    },
+    SLOW,
+  );
+
   it("sets the project up from an empty directory with the page's own commands", () => {
-    expect(startedEmpty).toBe(true);
     expect(projectSetupBlock()).toEqual([
       "npm init -y",
       "npm pkg set type=module",
