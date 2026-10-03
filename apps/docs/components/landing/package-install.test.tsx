@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
@@ -10,6 +12,13 @@ vi.mock("next-intl", () => ({
 }));
 
 const { PackageInstall } = await import("./package-install");
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+afterEach(() => {
+  window.umami = undefined;
+  document.body.innerHTML = "";
+});
 
 function renderInstall(): Document {
   return new DOMParser().parseFromString(renderToStaticMarkup(<PackageInstall />), "text/html");
@@ -34,5 +43,22 @@ describe("PackageInstall", () => {
       button.getAttribute("aria-label"),
     );
     expect(labels).toEqual(["copyAria", "copyPromptAria"]);
+  });
+
+  it("sends the copied command text for the command and no data for the prompt", () => {
+    const track = vi.fn();
+    window.umami = { track };
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    act(() => root.render(<PackageInstall />));
+    for (const button of container.querySelectorAll("button")) {
+      act(() => button.click());
+    }
+    act(() => root.unmount());
+    expect(track.mock.calls).toEqual([
+      ["copy-install-command", { command: NPM_INSTALL_COMMAND }],
+      ["copy-ai-prompt", undefined],
+    ]);
   });
 });

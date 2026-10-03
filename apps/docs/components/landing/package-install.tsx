@@ -34,7 +34,9 @@ export function PackageInstall(): ReactNode {
           <CopyButton
             text={NPM_INSTALL_COMMAND}
             label={t("copyAria")}
-            onCopied={() => trackUmamiEvent("copy-install-command")}
+            onCopied={() =>
+              trackUmamiEvent("copy-install-command", { command: NPM_INSTALL_COMMAND })
+            }
           />
         </div>
         <figure
