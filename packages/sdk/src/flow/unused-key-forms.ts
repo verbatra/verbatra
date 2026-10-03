@@ -4,6 +4,7 @@ import {
   androidPluralCategoryOf,
   decodePathKey,
   decomposeGettextKey,
+  pluralBaseKey,
 } from "@verbatra/format-adapters";
 
 export interface CatalogKeyForms {
@@ -63,4 +64,13 @@ export function catalogKeyForms(format: FormatId, catalogKey: string): CatalogKe
     key: decoded.key,
     lookups: [...new Set([catalogKey, decoded.key, ...decoded.lookups])],
   };
+}
+
+export function callSiteKeysOfLookup(lookup: string): readonly string[] {
+  const base = pluralBaseKey(lookup);
+  return base === undefined ? [lookup] : [lookup, base];
+}
+
+export function callSiteKeysOf(format: FormatId, catalogKey: string): readonly string[] {
+  return catalogKeyForms(format, catalogKey).lookups.flatMap(callSiteKeysOfLookup);
 }

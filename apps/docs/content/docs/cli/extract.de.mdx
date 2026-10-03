@@ -67,6 +67,7 @@ Ein Key mit Namespace wie `t("common:nav.home")` wird als dynamisch gemeldet und
 Nur die Quell-Locale-Datei, und nur Keys, die wirklich neu sind:
 
 - Ein Key, der schon im Katalog steht, behält seinen Wert genau so, wie er ist; ein Standardwert am Aufruf überschreibt nie eine Bearbeitung.
+- Ein Key, den der Katalog nur in Pluralformen führt, gilt als vorhanden: `t("cart.items", { count })` fügt neben `cart.items_one` und `cart.items_other` nichts hinzu, und das gilt genauso für einen gettext-Eintrag mit `msgid_plural` und eine Android-`<plurals>`-Ressource.
 - Ein Katalog-Key, den kein Aufruf erwähnt, bleibt stehen. `extract` löscht nie; [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) listet diese Keys.
 - Ein Lauf, der nichts Neues findet, schreibt nichts, die Datei bleibt also byte-identisch.
 - Eine Ziel-Locale-Datei wird nie geschrieben. Lass danach [`verbatra translate`](/docs/cli/translate) laufen, um die neuen Keys zu füllen.

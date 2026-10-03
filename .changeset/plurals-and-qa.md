@@ -13,6 +13,9 @@ CLDR plurals, ICU arm checks, other-syntax placeholder and direction control war
 - For next-intl and ARB, LLM providers receive the target's plural categories, and the integrity
   gate refuses `plural`, `selectordinal` or `select` arms that do not fit.
 - `keyIntegrity`, exports and imports report wrong arms (`icuArmsMatch`, `icu-arms`).
+- `extract` counts a key held only as plural forms as present: `t("cart.items", { count })` no
+  longer adds an empty `cart.items` next to `cart.items_one` and `cart.items_other`, and the same
+  holds for gettext `msgid_plural` entries and Android `<plurals>`.
 
 **Integrity gate**
 - Each locale carries `integrityRefusals` with the reason and details per withheld key.

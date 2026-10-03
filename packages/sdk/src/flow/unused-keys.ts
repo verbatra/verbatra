@@ -8,10 +8,9 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { matchesKeyGlob } from "./key-glob.js";
-import { isGeneratedPluralKey } from "./plural-categories.js";
 import { readSource } from "./source.js";
 import { type CreateExtractor, requireExtractionConfig, runScan } from "./source-scan.js";
-import { type CatalogKeyForms, catalogKeyForms } from "./unused-key-forms.js";
+import { type CatalogKeyForms, callSiteKeysOfLookup, catalogKeyForms } from "./unused-key-forms.js";
 
 /**
  * Why an unused-key report could not be produced at all.
@@ -276,8 +275,7 @@ function isUnderReferencedParent(key: string, referenced: ReadonlySet<string>): 
 
 function isReferencedLookup(lookup: string, referenced: ReadonlySet<string>): boolean {
   return (
-    referenced.has(lookup) ||
-    isGeneratedPluralKey(lookup, referenced) ||
+    callSiteKeysOfLookup(lookup).some((key) => referenced.has(key)) ||
     isContextVariantOfReferenced(lookup, referenced) ||
     isUnderReferencedParent(lookup, referenced)
   );
