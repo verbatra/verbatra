@@ -11,6 +11,7 @@ export interface RpcResult {
   readonly statusCode: number;
   readonly body: string;
   readonly retryAfterSeconds?: number;
+  readonly rpcMethod?: RpcMethodName;
 }
 
 const REQUEST_INVALID_MESSAGE = "The request body must be JSON shaped as { method, params }.";
@@ -220,7 +221,15 @@ export async function dispatchRpc(
   if (!isKnownMethod(request.method)) {
     return errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
-  return invokeHandler(request.method, request.params, deps, handlers, rateLimiter, inFlightGuard);
+  const result = await invokeHandler(
+    request.method,
+    request.params,
+    deps,
+    handlers,
+    rateLimiter,
+    inFlightGuard,
+  );
+  return { ...result, rpcMethod: request.method };
 }
 
 export function handleRpcBody(
