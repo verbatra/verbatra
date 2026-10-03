@@ -6,7 +6,7 @@ import {
   provenanceReport,
 } from "@verbatra/sdk";
 import { z } from "zod";
-import { readPackageManifest } from "../package-manifest.js";
+import { readSdkManifest } from "../package-manifest.js";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import {
@@ -113,7 +113,7 @@ async function readProvenanceReport(
     {
       config: context.config.config,
       cwd: context.cwd,
-      toolVersion: readPackageManifest().version,
+      toolVersion: readSdkManifest().version,
       ...(params.locales !== undefined ? { locales: params.locales } : {}),
     },
     {
@@ -164,8 +164,8 @@ export const reportProvenanceTool = defineTool({
     "pages that hold at least one of them, and keeps its counts on every page. When nextCursor " +
     "is present, call again " +
     "with the same parameters and cursor set to it; a cursor that no longer matches is rejected " +
-    "as invalid input. The optional locales parameter narrows the report. toolVersion is this " +
-    "server's version. available: false with reason provenance-unreadable means " +
+    "as invalid input. The optional locales parameter narrows the report. toolVersion is the " +
+    "version of the verbatra SDK that produced the report, as the CLI reports it. available: false with reason provenance-unreadable means " +
     "verbatra.provenance.json is corrupt or from a newer verbatra. Read-only: it calls no " +
     "provider and writes nothing.",
   paramsSchema,

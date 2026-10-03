@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readPackageManifest } from "../package-manifest.js";
+import { readPackageManifest, readSdkManifest } from "../package-manifest.js";
 import {
   baseLoadedConfig,
   baseVerbatraConfig,
@@ -57,16 +57,17 @@ function entryKeys(result: Report): string[] {
 }
 
 describe("report.provenance", () => {
-  it("returns complete counts without entries by default, stamped with this server's version", async () => {
+  it("returns complete counts without entries by default, stamped with the SDK version, not this server's", async () => {
     const { context } = await projectWithAgentEdit();
 
     const result = await report({}, context);
 
     expect(result).toMatchObject({
       available: true,
-      toolVersion: readPackageManifest().version,
+      toolVersion: readSdkManifest().version,
       sourceLocale: "en",
     });
+    expect(result.toolVersion).not.toBe(readPackageManifest().version);
     expect(result.locales?.map((locale) => [locale.locale, locale.total])).toEqual([
       ["de", 5],
       ["fr", 5],
