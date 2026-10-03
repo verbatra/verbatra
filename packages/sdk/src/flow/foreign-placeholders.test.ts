@@ -1,6 +1,7 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: the fixtures are placeholder text under test, not templates
 import {
   type FormatId,
+  foreignPlaceholderTokens,
   type LocaleResource,
   PLACEHOLDER_SYNTAXES,
   type PlaceholderSyntax,
@@ -91,6 +92,73 @@ describe("NATIVE_PLACEHOLDER_SYNTAXES", () => {
 
   it("treats the resx brace escapes as native", () => {
     expect(droppedForeignPlaceholders("resx", "Use {{x}} and {0}", "Nutze {0}")).toEqual([]);
+  });
+});
+
+const SINGLE_BRACE_NAMES = [
+  "name",
+  "0",
+  "\u0663",
+  "_x",
+  "n\u00famero",
+  "\u540d\u524d",
+  "nom_\u00e9",
+  "\u0928\u093e\u092e",
+  "e\u0301t\u00e9",
+] as const;
+
+const NON_ICU_NAMES = ["$count", "user-id"] as const;
+
+const ICU_STRICT_FORMATS: readonly SupportedFormat[] = ["next-intl-json", "arb"];
+
+const ICU_PARSING_FORMATS: readonly SupportedFormat[] = [...ICU_STRICT_FORMATS, "properties"];
+
+const SINGLE_BRACE_NATIVE_FORMATS = SUPPORTED_FORMATS.filter((format) =>
+  NATIVE_PLACEHOLDER_SYNTAXES[format].includes("single-brace"),
+);
+
+function detectedSingleBraceNames(value: string): readonly string[] {
+  const allButSingleBrace = PLACEHOLDER_SYNTAXES.filter((syntax) => syntax !== "single-brace");
+  return foreignPlaceholderTokens(value, allButSingleBrace).map(
+    (token) => /^\{\s*([^\s,}]+)/u.exec(token)?.[1] ?? token,
+  );
+}
+
+function expectAgreement(format: SupportedFormat, value: string): void {
+  const names = detectedSingleBraceNames(value);
+  const extracted = selectAdapter(format).extractPlaceholders(value);
+
+  expect(names.length).toBeGreaterThan(0);
+  for (const name of names) {
+    expect(extracted.some((token) => token.startsWith(`{${name}`))).toBe(true);
+  }
+}
+
+describe("single-brace detection agrees with the adapters that treat it as native", () => {
+  it.each(
+    SINGLE_BRACE_NATIVE_FORMATS.flatMap((format) =>
+      SINGLE_BRACE_NAMES.map((name) => [format, `Hi {${name}}!`] as const),
+    ),
+  )("%s extracts every single-brace name the detector matches in %s", (format, value) => {
+    expectAgreement(format, value);
+  });
+
+  it.each(
+    SINGLE_BRACE_NATIVE_FORMATS.filter((format) => !ICU_STRICT_FORMATS.includes(format)).flatMap(
+      (format) => NON_ICU_NAMES.map((name) => [format, `Hi {${name}}!`] as const),
+    ),
+  )("%s extracts a name ICU would reject in %s", (format, value) => {
+    expectAgreement(format, value);
+  });
+
+  it.each(
+    ICU_PARSING_FORMATS.flatMap((format) =>
+      SINGLE_BRACE_NAMES.map(
+        (name) => [format, `{${name}, plural, one {# a} other {# b}}`] as const,
+      ),
+    ),
+  )("%s extracts the ICU argument the detector matches in %s", (format, value) => {
+    expectAgreement(format, value);
   });
 });
 
