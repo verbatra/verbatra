@@ -38,8 +38,14 @@ import {
 } from "./init-config.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
 import { askLine, stdinIsTty } from "./prompt.js";
-import { renderError, toRenderableError } from "./render.js";
+import { toRenderableError } from "./render.js";
+import {
+  DEFAULT_TERMINAL_SETTINGS,
+  resolveTerminalMode,
+  type TerminalSettings,
+} from "./terminal-mode.js";
 import type { Streams } from "./types.js";
+import { createUi } from "./ui.js";
 
 export { DEFAULT_MODEL } from "./init-config.js";
 
@@ -494,9 +500,19 @@ function withAgentOnlyHint(error: unknown, agent: boolean): unknown {
   );
 }
 
-function renderFailure(error: unknown, json: boolean, streams: Streams): number {
+function renderFailure(
+  error: unknown,
+  json: boolean,
+  streams: Streams,
+  settings: TerminalSettings,
+): number {
   const renderable = toRenderableError(error);
-  streams.err(`${renderError(renderable)}\n`);
+  const terminal = resolveTerminalMode(settings.facts, {
+    json,
+    quiet: settings.quiet,
+    color: settings.color,
+  });
+  createUi(streams, terminal).error(renderable);
   if (json) {
     streams.out(`${renderErrorEnvelope("init", renderable)}\n`);
   }
@@ -507,6 +523,7 @@ export async function runInit(
   rawOpts: unknown,
   streams: Streams,
   deps: InitDeps = {},
+  settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
 ): Promise<number> {
   const parsed = initOptsSchema.safeParse(rawOpts);
   const json = parsed.success && parsed.data.json === true;
@@ -554,6 +571,6 @@ export async function runInit(
     streams.out(`${renderNextStepsHuman(steps)}\n`);
     return 0;
   } catch (error) {
-    return renderFailure(withAgentOnlyHint(error, agentRequested), json, streams);
+    return renderFailure(withAgentOnlyHint(error, agentRequested), json, streams, settings);
   }
 }

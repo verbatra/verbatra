@@ -2152,7 +2152,7 @@ function registerInitCommand(program: Command, ctx: ProgramContext): void {
       "also write verbatra rules for coding agents to AGENTS.md (or CLAUDE.md) and the verbatra MCP server, spending off, to .mcp.json",
     )
     .action(async (opts: InitOpts) => {
-      ctx.setCode(await runInit(opts, ctx.streams));
+      ctx.setCode(await runInit(opts, ctx.streams, {}, ctx.settings()));
     })
     .addHelpText(
       "after",
