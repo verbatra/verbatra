@@ -137,10 +137,16 @@ function expectAgreement(format: SupportedFormat, value: string): void {
 describe("single-brace detection agrees with the adapters that treat it as native", () => {
   it.each(
     SINGLE_BRACE_NATIVE_FORMATS.flatMap((format) =>
-      SINGLE_BRACE_NAMES.map((name) => [format, `Hi {${name}}!`] as const),
+      SINGLE_BRACE_NAMES.filter((name) => format !== "resx" || name !== "\u0663").map(
+        (name) => [format, `Hi {${name}}!`] as const,
+      ),
     ),
   )("%s extracts every single-brace name the detector matches in %s", (format, value) => {
     expectAgreement(format, value);
+  });
+
+  it("guards a resx index in non-ASCII digits by its bare braces, as .NET rejects it", () => {
+    expect(selectAdapter("resx").extractPlaceholders("Hi {\u0663}!")).toEqual(["{", "}"]);
   });
 
   it.each(
