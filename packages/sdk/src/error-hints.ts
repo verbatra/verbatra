@@ -1,11 +1,6 @@
 import { ProviderError, type ProviderErrorCode } from "@verbatra/ai-providers";
 import type { AdapterErrorCode } from "@verbatra/format-adapters";
-import {
-  InputFileError,
-  type InputFileErrorCode,
-  type InputFileKind,
-  type SdkErrorCode,
-} from "./errors.js";
+import type { InputFileErrorCode, InputFileKind, SdkErrorCode } from "./errors.js";
 
 const WRITABLE_OUTPUT_HINT = "Make the output file and its directory writable, then try again.";
 
@@ -203,6 +198,22 @@ function wrappedErrorHint(code: string, error: unknown): string | undefined {
   return code === "CONFIG_INVALID" ? configLoadHint(error) : undefined;
 }
 
+function inputOf(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("input" in error)) {
+    return undefined;
+  }
+  return typeof error.input === "string" ? error.input : undefined;
+}
+
+function inputFileHint(code: string, error: unknown): string | undefined {
+  const input = inputOf(error);
+  if (input === undefined || !Object.hasOwn(INPUT_FILE_HINTS, input)) {
+    return undefined;
+  }
+  const hints: Readonly<Record<string, string>> = INPUT_FILE_HINTS[input as InputFileKind];
+  return Object.hasOwn(hints, code) ? hints[code] : undefined;
+}
+
 /**
  * Returns the next step that resolves an error verbatra raised: one short imperative sentence,
  * such as "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project
@@ -210,8 +221,10 @@ function wrappedErrorHint(code: string, error: unknown): string | undefined {
  * "Run `verbatra init` to create a config, or pass the path of an existing config file.".
  *
  * Every {@link SdkErrorCode}, every {@link ProviderErrorCode}, and every {@link AdapterErrorCode}
- * has a hint. The error is matched by its `code` property, so a plain `{ code, message }` object,
- * such as the error of a failed watch run, gets the same hint as the error it was built from. A
+ * has a hint. The error is matched by its `code` property, and an error about a file an import
+ * reads also by its `input` property, so a plain object carrying the same properties, such as the
+ * `{ code, message }` error of a failed watch run, gets the same hint as the error it was built
+ * from. A
  * `PROVIDER_CONSTRUCTION_FAILED` error takes the hint of the provider error it wraps, so a missing
  * key names the exact environment variable to set, and a `CONFIG_INVALID` error caused by a config
  * file whose import could not be resolved says to install or fix that import. A
@@ -240,17 +253,13 @@ function wrappedErrorHint(code: string, error: unknown): string | undefined {
  * }
  * ```
  */
-function inputFileHint(error: unknown): string | undefined {
-  return error instanceof InputFileError ? INPUT_FILE_HINTS[error.input][error.code] : undefined;
-}
-
 export function errorHint(error: unknown): string | undefined {
   const code = codeOf(error);
   if (code === undefined) {
     return undefined;
   }
   return (
-    inputFileHint(error) ??
+    inputFileHint(code, error) ??
     wrappedErrorHint(code, error) ??
     missingKeyHint(error) ??
     hintOfCode(code)
