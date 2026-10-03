@@ -89,7 +89,8 @@ Cada herramienta devuelve el sobre del panel, así que un fallo se lee `{ "ok": 
 | Código | Significado |
 | --- | --- |
 | `REQUEST_INVALID` | la petición o la respuesta no era un sobre legible |
-| `METHOD_UNKNOWN` | el método no está registrado en esta sesión, como una herramienta de gasto sin `--allow-spend` |
+| `METHOD_UNKNOWN` | el método no existe en esta versión de Studio |
+| `SPEND_DISABLED` | un método de gasto con el gasto desactivado: Studio corre sin `--allow-spend`, o el proveedor es `none`; el mensaje dice cuál |
 | `PARAMS_INVALID` | un parámetro no pasó la validación; `issues` nombra cada campo |
 | `METHOD_RATE_LIMITED` | se superó el límite; `retryAfterSeconds` indica cuándo cabe la llamada |
 | `SESSION_EXPIRED` | Studio se reinició con un token nuevo; abre la URL que imprimió |

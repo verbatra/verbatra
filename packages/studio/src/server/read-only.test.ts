@@ -82,7 +82,7 @@ async function hashTree(root: string): Promise<string> {
 }
 
 describe("read-only proof: the fixture project's file tree is untouched", () => {
-  it("hashes identically after driving the read views, and a default server answers METHOD_UNKNOWN for both spend methods", async () => {
+  it("hashes identically after driving the read views, and a default server answers SPEND_DISABLED for both spend methods", async () => {
     const project = await makeFixtureProject();
     try {
       const before = await hashTree(project.root);
@@ -120,9 +120,9 @@ describe("read-only proof: the fixture project's file tree is untouched", () => 
             locale: "de",
             key: "greeting",
           });
-          expect(retranslate.error?.code).toBe("METHOD_UNKNOWN");
+          expect(retranslate.error?.code).toBe("SPEND_DISABLED");
           const translatePending = await postMethod("translation.translatePending");
-          expect(translatePending.error?.code).toBe("METHOD_UNKNOWN");
+          expect(translatePending.error?.code).toBe("SPEND_DISABLED");
         },
         {
           token: "read-only-proof-token",

@@ -91,6 +91,13 @@ const readOnlyHandlers: HandlersRegistry = {
   [ESTIMATE_METHOD]: estimateHandler,
 };
 
+const spendHandlers: HandlersRegistry = {
+  [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,
+  [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesHandler,
+  [IN_FLIGHT_METHOD]: inFlightHandler,
+  [TRANSLATE_PENDING_METHOD]: translatePendingHandler,
+};
+
 export function createRpcHandlers(capabilities: StudioCapabilities): HandlersRegistry {
   return {
     ...readOnlyHandlers,
@@ -102,13 +109,10 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     [REVIEW_APPROVE_MANY_METHOD]: reviewApproveManyHandler,
     [REVIEW_REJECT_MANY_METHOD]: reviewRejectManyHandler,
     [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleHandler,
-    ...(capabilities.spend
-      ? {
-          [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,
-          [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesHandler,
-          [IN_FLIGHT_METHOD]: inFlightHandler,
-          [TRANSLATE_PENDING_METHOD]: translatePendingHandler,
-        }
-      : {}),
+    ...(capabilities.spend ? spendHandlers : {}),
   };
+}
+
+export function isSpendMethod(method: RpcMethodName): boolean {
+  return Object.hasOwn(spendHandlers, method);
 }

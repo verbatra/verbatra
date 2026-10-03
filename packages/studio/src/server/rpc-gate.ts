@@ -1,11 +1,11 @@
-import { projectRelativeMessage, redact } from "@verbatra/sdk";
+import { isMachineTranslationEnabled, projectRelativeMessage, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { entryIdentity, uniqueByIdentity } from "../shared/rpc/entry-identity.js";
 import { causeText, studioErrorLine } from "./error-line.js";
 import type { InFlightEntryRef, RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
-import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
+import { type HandlersRegistry, isSpendMethod, type RpcHandlerDeps } from "./rpc.js";
 
 export interface RpcResult {
   readonly statusCode: number;
@@ -23,6 +23,17 @@ const BATCH_TOO_LARGE_MESSAGE =
 const ALREADY_IN_PROGRESS_MESSAGE =
   "A matching call is already in progress; wait for it to finish.";
 const INTERNAL_ERROR_MESSAGE = "An unexpected error occurred.";
+const SPEND_OFF_BY_FLAG_MESSAGE =
+  "This method calls the translation provider, and spending is off in this session. Restart Studio with `verbatra studio --allow-spend` to enable it.";
+const SPEND_OFF_BY_POLICY_MESSAGE =
+  "This method calls the translation provider, and the config's provider is none, so machine translation is disabled; --allow-spend does not change that.";
+
+function spendDisabledEnvelope(deps: RpcHandlerDeps): RpcResult {
+  const message = isMachineTranslationEnabled(deps.config.config)
+    ? SPEND_OFF_BY_FLAG_MESSAGE
+    : SPEND_OFF_BY_POLICY_MESSAGE;
+  return errorEnvelope(403, "SPEND_DISABLED", message);
+}
 
 interface ParsedIssue {
   readonly path: readonly string[];
@@ -186,7 +197,9 @@ async function invokeHandler(
   }
   const handler = handlers[method];
   if (handler === undefined) {
-    return errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
+    return isSpendMethod(method)
+      ? spendDisabledEnvelope(deps)
+      : errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
   const dedupeKey = entryDedupeKey(parsedParams.data);
   if (inFlightGuard?.tryEnter(method, dedupeKey, requestEntryRefs(parsedParams.data)) === false) {

@@ -69,6 +69,40 @@ describe("dispatchRpc envelope", () => {
     expect(parsed).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
   });
 
+  it("answers 403 SPEND_DISABLED naming --allow-spend for a spend method left unregistered", async () => {
+    const handlers = createRpcHandlers({ spend: false, spendWithheld: "flag", writeToDisk: true });
+    const result = await dispatchRpc(
+      body({ method: "translation.translatePending", params: {} }),
+      deps(),
+      handlers,
+    );
+
+    expect(result.statusCode).toBe(403);
+    expect(await parseBody(result)).toMatchObject({
+      ok: false,
+      error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+    });
+  });
+
+  it("names the provider none as the reason when the config disables machine translation", async () => {
+    const humanOnly: RpcHandlerDeps = {
+      ...deps(),
+      config: {
+        ...deps().config,
+        config: baseStudioConfig({ provider: { id: "none", options: {} } }),
+      },
+    };
+    const result = await dispatchRpc(
+      body({ method: "translation.inFlight", params: {} }),
+      humanOnly,
+      createRpcHandlers({ spend: false, spendWithheld: "policy", writeToDisk: true }),
+    );
+
+    expect(await parseBody(result)).toMatchObject({
+      error: { code: "SPEND_DISABLED", message: expect.stringContaining("provider is none") },
+    });
+  });
+
   it("answers 400 METHOD_UNKNOWN for a contract method with no registered handler", async () => {
     const result = await dispatchRpc(body({ method: "status.check", params: {} }), deps(), {});
 

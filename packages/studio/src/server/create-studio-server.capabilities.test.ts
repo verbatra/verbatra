@@ -41,7 +41,7 @@ async function postRpc(
 const TOKEN = "capabilities-test-token-0123456789abcdef";
 
 describe("translation.retranslateEntry reachability across the spend table", () => {
-  it("returns METHOD_UNKNOWN on a default server (no spend)", async () => {
+  it("returns SPEND_DISABLED on a default server (no spend)", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
@@ -49,14 +49,17 @@ describe("translation.retranslateEntry reachability across the spend table", () 
           locale: "de",
           key: "greeting",
         });
-        expect(status).toBe(400);
-        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        expect(status).toBe(403);
+        expect(body).toMatchObject({
+          ok: false,
+          error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+        });
       },
       { token: TOKEN, loader: stubLoader() },
     );
   });
 
-  it("returns METHOD_UNKNOWN when spend is explicitly false", async () => {
+  it("returns SPEND_DISABLED when spend is explicitly false", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
@@ -64,13 +67,16 @@ describe("translation.retranslateEntry reachability across the spend table", () 
           locale: "de",
           key: "greeting",
         });
-        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        expect(body).toMatchObject({
+          ok: false,
+          error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+        });
       },
       { token: TOKEN, loader: stubLoader(), spend: false },
     );
   });
 
-  it("reaches the real handler (not METHOD_UNKNOWN) with spend set, no other flag needed", async () => {
+  it("reaches the real handler (not SPEND_DISABLED) with spend set, no other flag needed", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
@@ -79,7 +85,7 @@ describe("translation.retranslateEntry reachability across the spend table", () 
           key: "greeting",
         });
         expect(body.ok).toBe(false);
-        expect(body.error?.code).not.toBe("METHOD_UNKNOWN");
+        expect(body.error?.code).not.toMatch(/^(METHOD_UNKNOWN|SPEND_DISABLED)$/);
       },
       { token: TOKEN, loader: stubLoader(), spend: true },
     );
@@ -178,15 +184,19 @@ describe("provider none withholds the spend capability even when it was granted"
   });
 
   it.each(["translation.retranslateEntry", "translation.translatePending"])(
-    "answers METHOD_UNKNOWN for %s with spend set",
+    "answers SPEND_DISABLED naming the provider none for %s with spend set",
     async (method) => {
       await withServer(
         async (server) => {
           const cookie = await authenticatedCookie(server.url, TOKEN);
-          const { body } = await postRpc(server.url, cookie, method, {
+          const { status, body } = await postRpc(server.url, cookie, method, {
             ...(method === "translation.retranslateEntry" ? { locale: "de", key: "greeting" } : {}),
           });
-          expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+          expect(status).toBe(403);
+          expect(body).toMatchObject({
+            ok: false,
+            error: { code: "SPEND_DISABLED", message: expect.stringContaining("provider is none") },
+          });
         },
         { token: TOKEN, loader: humanOnlyLoader, spend: true },
       );
@@ -195,7 +205,7 @@ describe("provider none withholds the spend capability even when it was granted"
 });
 
 describe("translation.editEntry and key.value reachability on a default server", () => {
-  it("reaches the real handlers (not METHOD_UNKNOWN) on a default server, no flag needed", async () => {
+  it("reaches the real handlers (not SPEND_DISABLED) on a default server, no flag needed", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
@@ -209,9 +219,9 @@ describe("translation.editEntry and key.value reachability on a default server",
           key: "greeting",
         });
         expect(edit.body.ok).toBe(false);
-        expect(edit.body.error?.code).not.toBe("METHOD_UNKNOWN");
+        expect(edit.body.error?.code).not.toMatch(/^(METHOD_UNKNOWN|SPEND_DISABLED)$/);
         expect(value.body.ok).toBe(false);
-        expect(value.body.error?.code).not.toBe("METHOD_UNKNOWN");
+        expect(value.body.error?.code).not.toMatch(/^(METHOD_UNKNOWN|SPEND_DISABLED)$/);
       },
       { token: TOKEN, loader: stubLoader() },
     );
@@ -226,7 +236,7 @@ describe("translation.editEntry and key.value reachability on a default server",
           key: "greeting",
           value: "Hallo",
         });
-        expect(edit.body.error?.code).not.toBe("METHOD_UNKNOWN");
+        expect(edit.body.error?.code).not.toMatch(/^(METHOD_UNKNOWN|SPEND_DISABLED)$/);
       },
       { token: TOKEN, loader: stubLoader(), spend: true },
     );
@@ -341,36 +351,42 @@ describe("translation.retranslateEntry's dispatch-layer rate limit, wired end to
 });
 
 describe("translation.translatePending reachability across the spend table", () => {
-  it("returns METHOD_UNKNOWN on a default server (no spend)", async () => {
+  it("returns SPEND_DISABLED on a default server (no spend)", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
         const { status, body } = await postRpc(server.url, cookie, "translation.translatePending");
-        expect(status).toBe(400);
-        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        expect(status).toBe(403);
+        expect(body).toMatchObject({
+          ok: false,
+          error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+        });
       },
       { token: TOKEN, loader: stubLoader() },
     );
   });
 
-  it("returns METHOD_UNKNOWN when spend is explicitly false", async () => {
+  it("returns SPEND_DISABLED when spend is explicitly false", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
         const { body } = await postRpc(server.url, cookie, "translation.translatePending");
-        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        expect(body).toMatchObject({
+          ok: false,
+          error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+        });
       },
       { token: TOKEN, loader: stubLoader(), spend: false },
     );
   });
 
-  it("reaches the real handler (not METHOD_UNKNOWN) with spend set, no other flag needed", async () => {
+  it("reaches the real handler (not SPEND_DISABLED) with spend set, no other flag needed", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
         const { body } = await postRpc(server.url, cookie, "translation.translatePending");
         expect(body.ok).toBe(false);
-        expect(body.error?.code).not.toBe("METHOD_UNKNOWN");
+        expect(body.error?.code).not.toMatch(/^(METHOD_UNKNOWN|SPEND_DISABLED)$/);
       },
       { token: TOKEN, loader: stubLoader(), spend: true },
     );
@@ -790,7 +806,7 @@ describe("review decisions: the default rate limit", () => {
 });
 
 describe("translation.retranslateEntries across the spend table and the retranslate budget", () => {
-  it("returns METHOD_UNKNOWN on a default server (no spend)", async () => {
+  it("returns SPEND_DISABLED on a default server (no spend)", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
@@ -800,8 +816,11 @@ describe("translation.retranslateEntries across the spend table and the retransl
           "translation.retranslateEntries",
           { entries: [{ locale: "de", key: "greeting" }] },
         );
-        expect(status).toBe(400);
-        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        expect(status).toBe(403);
+        expect(body).toMatchObject({
+          ok: false,
+          error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+        });
       },
       { token: TOKEN, loader: stubLoader() },
     );
@@ -895,7 +914,10 @@ describe("translation.inFlight", () => {
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
         const { body } = await postRpc(server.url, cookie, "translation.inFlight");
-        expect(body).toMatchObject({ ok: false, error: { code: "METHOD_UNKNOWN" } });
+        expect(body).toMatchObject({
+          ok: false,
+          error: { code: "SPEND_DISABLED", message: expect.stringContaining("--allow-spend") },
+        });
       },
       { token: TOKEN, loader: stubLoader() },
     );

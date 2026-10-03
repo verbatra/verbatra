@@ -89,7 +89,8 @@ Every tool returns the dashboard's envelope, so a failure reads `{ "ok": false, 
 | Code | Meaning |
 | --- | --- |
 | `REQUEST_INVALID` | the request or the answer was not a readable envelope |
-| `METHOD_UNKNOWN` | the method is not registered in this session, as a spend tool is without `--allow-spend` |
+| `METHOD_UNKNOWN` | the method does not exist on this Studio version |
+| `SPEND_DISABLED` | a spend method while spending is off: Studio runs without `--allow-spend`, or the provider is `none`; the message names which |
 | `PARAMS_INVALID` | a parameter failed validation; `issues` names each field |
 | `METHOD_RATE_LIMITED` | over the rate limit; `retryAfterSeconds` says when the call fits |
 | `SESSION_EXPIRED` | Studio restarted with a new token; open the URL it printed |
