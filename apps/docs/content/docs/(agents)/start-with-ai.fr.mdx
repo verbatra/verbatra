@@ -3,7 +3,7 @@ title: Configure verbatra avec un agent IA
 description: "Un prompt court pour Claude Code, Cursor ou n'importe quel agent IA de code, pour ajouter verbatra à un projet qui a déjà une configuration i18n, protégé par une confirmation humaine explicite avant toute dépense."
 type: tutorial
 ---
-Cette page s'adresse à un projet qui a déjà des fichiers de locale commités. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor ou tout agent capable de lire ton projet, d'ouvrir un lien et d'exécuter des commandes shell). L'agent lit les étapes de cette page, examine ta configuration, installe verbatra, crée une config adaptée à ce qu'il a trouvé et prévisualise une exécution, puis il s'arrête et te demande confirmation avant d'appeler réellement un fournisseur.
+Cette page s'adresse à un projet qui a déjà des fichiers de locale commités. Colle le prompt ci-dessous dans ton agent IA de code (Claude Code, Cursor ou tout agent capable d'ouvrir un lien et d'exécuter des commandes shell). Il suit les étapes de cette page et te demande avant d'appeler réellement un fournisseur.
 
 Si tu configures verbatra toi-même plutôt que de le confier à un agent, le [Démarrage rapide](/docs/quickstart) est la version humaine du même parcours.
 
@@ -15,8 +15,8 @@ Copie le bloc ci-dessous.
 Set up verbatra (`@verbatra/cli` on npm) in this project. Read
 https://verbatra.kreitz-webdev.de/docs/start-with-ai.md and follow its steps in
 order. Until I confirm, run only commands that spend nothing, and never run a
-real `verbatra translate` without my explicit go-ahead. If you cannot open the
-link, stop and tell me.
+real `verbatra translate` without my explicit go-ahead. Never write, invent, or
+ask for an API key value. If you cannot open the link, stop and tell me.
 ```
 
 ## Les étapes que suit l'agent
@@ -25,7 +25,7 @@ Le prompt envoie l'agent vers la version Markdown de cette page. Agent : suis ce
 
 ### 1. Examiner la configuration existante
 
-Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (par exemple `i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`) et les fichiers de locale eux-mêmes. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/docs/pick-your-stack) associe à chaque stack son id de format et sa structure habituelle, et [Formats](/docs/formats) indique ce que chaque format laisse intact ou ne crée jamais : un fichier XLIFF et un Xcode String Catalog, par exemple, doivent déjà exister.
+Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (par exemple `i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`) et les fichiers de locale eux-mêmes. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/docs/pick-your-stack) associe à chaque stack son id de format et sa structure habituelle, et [Formats](/docs/formats) indique ce que chaque format laisse intact ou ne crée jamais : un fichier XLIFF et un Xcode String Catalog, par exemple, doivent déjà exister, et un String Catalog est traduit une locale à la fois. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`. Un projet Android utilise `res/{locale}/strings.xml` avec `files.localeStyle: "android"`, si bien que le jeton devient `values` et `values-de`.
 
 ### 2. Installer la CLI
 
@@ -43,12 +43,12 @@ npx verbatra init --provider <provider> --yes --json
 
 Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend déjà évident. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. Ne choisis jamais un fournisseur qui dépense sur un service que l'humain n'a pas accepté, et ne passe jamais une valeur de clé à `init`. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question :
 
-- Sortie `0` : compare `result.config` avec ce que tu as trouvé à l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default`. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
+- Sortie `0` : compare `result.config` avec ce que tu as trouvé à l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles, et `result.detection.layout` montre le motif et les locales trouvés par l'analyse. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
 - Sortie `2` avec `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` : choisis parmi les `candidates` et relance-la avec `--format` ou `--path`. Si les candidats sont des fichiers de namespace côte à côte, arrête-toi et demande à l'humain, car une config couvre un seul motif de fichier.
 - Sortie `2` avec `MISSING_OPTIONS` : le message nomme chaque flag encore nécessaire.
 - Sortie `2` avec `CONFIG_EXISTS` : demande à l'humain avant de passer `--force`.
 
-[init](/docs/cli/init) documente chaque flag.
+[init](/docs/cli/init#fournisseurs) documente chaque flag, y compris `--base-url` et `--model` pour un serveur compatible OpenAI ou LibreTranslate.
 
 ### 4. Laisser la clé d'API à l'humain
 
@@ -66,7 +66,7 @@ Vérifie que `.env` nomme la variable de `result.apiKeyEnvVar`, laisse sa valeur
 npx verbatra doctor --json
 ```
 
-Corrige chaque vérification en échec que tu peux corriger en modifiant `verbatra.config.ts`, puis relance-la. La vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus.
+`doctor` lit le nom de la variable de clé dans l'environnement ou dans `.env.local` et `.env`, jamais sa valeur. Corrige chaque vérification en échec que tu peux corriger en modifiant `verbatra.config.ts`, puis relance-la. La vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus.
 
 ### 6. Prévisualiser sans dépenser
 
@@ -76,7 +76,7 @@ npx verbatra diff --json
 npx verbatra translate --dry-run --json
 ```
 
-Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. La sortie `1` de `check` ou `diff` signifie qu'une locale n'est pas synchronisée, ce qui est attendu avant une première exécution ; seule la sortie `2` signale un problème de configuration. verbatra n'écrase jamais une valeur existante, même à la première exécution : seules les clés absentes de la cible sont traduites. Une chaîne vide compte comme une valeur existante, alors demande à l'humain avant de supprimer des clés de remplissage `""`.
+Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. La sortie `1` de `check` ou `diff` signifie qu'une locale n'est pas synchronisée, ce qui est attendu avant une première exécution ; seule la sortie `2` signale un problème de configuration. Avec le fournisseur `none`, `translate --dry-run` sort avec `3` quand des clés restent pour un traducteur humain, ce qui est aussi attendu. verbatra n'écrase jamais une valeur existante, même à la première exécution : seules les clés absentes de la cible sont traduites. Une chaîne vide compte comme une valeur existante, alors demande à l'humain avant de supprimer des clés de remplissage `""`.
 
 ### 7. S'arrêter et demander
 

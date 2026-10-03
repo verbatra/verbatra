@@ -27,10 +27,11 @@ describe("AI_SETUP_PROMPT", () => {
     expect(AI_SETUP_PROMPT.replace(/\s+/g, " ")).toContain(` ${url} `);
   });
 
-  it("keeps the spend gate in the prompt itself, for an agent that cannot open the link", () => {
+  it("keeps the spend gate and the key rule in the prompt itself, for an agent that cannot open the link", () => {
     const prompt = AI_SETUP_PROMPT.replace(/\s+/g, " ");
     expect(prompt).toContain("never run a real `verbatra translate` without my explicit go-ahead");
     expect(prompt).toContain("If you cannot open the link, stop");
+    expect(prompt).toContain("Never write, invent, or ask for an API key value.");
   });
 
   it(`stays short enough to read in the install box (under ${PROMPT_WORD_LIMIT} words)`, () => {
