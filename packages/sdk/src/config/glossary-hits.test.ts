@@ -18,33 +18,54 @@ const GLOSSARY: GlossaryDefinition = {
 
 describe("glossaryHits", () => {
   it("returns the terms in the text with what the target locale is held to", () => {
-    expect(glossaryHits(GLOSSARY, "de", "en", "Your cart at Verbatra")).toEqual({
+    expect(
+      glossaryHits({
+        glossary: GLOSSARY,
+        locale: "de",
+        sourceLocale: "en",
+        text: "Your cart at Verbatra",
+      }),
+    ).toEqual({
       terms: [{ source: "cart", target: "Warenkorb", forbidden: ["Karren"], caseSensitive: false }],
       doNotTranslate: [{ term: "Verbatra", caseSensitive: true }],
     });
   });
 
   it("resolves the translation for the requested locale", () => {
-    expect(glossaryHits(GLOSSARY, "fr", "en", "Cart").terms).toMatchObject([
-      { source: "cart", target: "panier", forbidden: [] },
-    ]);
+    expect(
+      glossaryHits({ glossary: GLOSSARY, locale: "fr", sourceLocale: "en", text: "Cart" }).terms,
+    ).toMatchObject([{ source: "cart", target: "panier", forbidden: [] }]);
   });
 
   it("matches whole terms only, with case where the term asks for it", () => {
-    expect(glossaryHits(GLOSSARY, "de", "en", "carts and checkout")).toEqual({
+    expect(
+      glossaryHits({
+        glossary: GLOSSARY,
+        locale: "de",
+        sourceLocale: "en",
+        text: "carts and checkout",
+      }),
+    ).toEqual({
       terms: [],
       doNotTranslate: [],
     });
   });
 
   it("accepts a version 1 term map", () => {
-    expect(glossaryHits({ cart: "Warenkorb" }, "de", "en", "cart").terms).toMatchObject([
-      { source: "cart", target: "Warenkorb" },
-    ]);
+    expect(
+      glossaryHits({
+        glossary: { cart: "Warenkorb" },
+        locale: "de",
+        sourceLocale: "en",
+        text: "cart",
+      }).terms,
+    ).toMatchObject([{ source: "cart", target: "Warenkorb" }]);
   });
 
   it("finds nothing without a glossary", () => {
-    expect(glossaryHits(undefined, "de", "en", "cart")).toEqual({ terms: [], doNotTranslate: [] });
+    expect(
+      glossaryHits({ glossary: undefined, locale: "de", sourceLocale: "en", text: "cart" }),
+    ).toEqual({ terms: [], doNotTranslate: [] });
   });
 });
 

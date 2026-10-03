@@ -122,6 +122,7 @@ export {
 } from "./config/glossary-file.js";
 export {
   type GlossaryDraftCheckInput,
+  type GlossaryHitsInput,
   glossaryDraftCheck,
   glossaryHits,
 } from "./config/glossary-hits.js";

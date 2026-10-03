@@ -180,7 +180,7 @@ function glossaryForLocale(
 
 <AvailableFrom version="0.12.0" />
 
-`glossaryHits(glossary, locale, sourceLocale, text)` returns the glossary entries that apply to one
+`glossaryHits({ glossary, locale, sourceLocale, text })` returns the glossary entries that apply to one
 source text in one target locale, as `{ terms, doNotTranslate }` in the shape `glossaryForLocale`
 returns: every term whose source occurs in `text` as a whole term, with the translation and
 forbidden renderings that locale is held to, and every term to keep untranslated that occurs in it.
@@ -189,12 +189,11 @@ same matching a translate run applies when it flags a missed glossary term, and 
 
 ```ts title="Signature"
 function glossaryHits(
-  glossary: GlossaryInput | Glossary | undefined,
-  locale: string,
-  sourceLocale: string,
-  text: string,
+  input: GlossaryHitsInput,
 ): LocaleGlossary;
 ```
+
+<SdkTypeTable name="GlossaryHitsInput" />
 
 **Returns:** `LocaleGlossary`
 

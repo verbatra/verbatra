@@ -81,7 +81,12 @@ export async function decide(config: VerbatraConfig): Promise<readonly (string |
 export async function inspect(config: VerbatraConfig): Promise<number> {
   const value = await keyValue({ config, locale: "de", key: "cart.title" });
   const description: string | undefined = value.description;
-  const hits = glossaryHits(undefined, "de", "en", value.source);
+  const hits = glossaryHits({
+    glossary: undefined,
+    locale: "de",
+    sourceLocale: "en",
+    text: value.source,
+  });
   const draft = glossaryDraftCheck({
     glossary: undefined,
     locale: "de",

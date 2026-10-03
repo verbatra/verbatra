@@ -125,7 +125,12 @@ export async function keyContext(
   const maxLength = config.maxLength?.[input.key];
   return {
     ...value,
-    glossary: glossaryHits(glossary, input.locale, config.sourceLocale, value.source),
+    glossary: glossaryHits({
+      glossary,
+      locale: input.locale,
+      sourceLocale: config.sourceLocale,
+      text: value.source,
+    }),
     ...(maxLength !== undefined ? { maxLength } : {}),
     ...(glossaryRead.notice !== undefined ? { glossaryNotice: glossaryRead.notice } : {}),
     ...(input.draft !== undefined
