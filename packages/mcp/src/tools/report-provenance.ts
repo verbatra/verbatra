@@ -165,7 +165,8 @@ export const reportProvenanceTool = defineTool({
     "is present, call again " +
     "with the same parameters and cursor set to it; a cursor that no longer matches is rejected " +
     "as invalid input. The optional locales parameter narrows the report. toolVersion is the " +
-    "version of the verbatra SDK that produced the report, as the CLI reports it. available: false with reason provenance-unreadable means " +
+    "version of the verbatra SDK that produced the report, as the CLI reports it. " +
+    "available: false with reason provenance-unreadable means " +
     "verbatra.provenance.json is corrupt or from a newer verbatra. Read-only: it calls no " +
     "provider and writes nothing.",
   paramsSchema,
