@@ -63,3 +63,17 @@ describe("DocsHomePaths", () => {
     expect(card?.classList.contains("grid-rows-subgrid")).toBe(true);
   });
 });
+
+describe("DocsHomeSection", () => {
+  it("gives its heading the id a card grid below it names itself by", async () => {
+    const { DocsHomeSection } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomeSection id="pick-your-stack" title="Pick your stack">
+        <p>cards</p>
+      </DocsHomeSection>,
+    );
+    const heading = new DOMParser().parseFromString(markup, "text/html").querySelector("h2");
+    expect(heading?.id).toBe("pick-your-stack");
+    expect(heading?.textContent).toBe("Pick your stack");
+  });
+});

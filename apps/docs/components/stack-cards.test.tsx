@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { type StackCard, StackCards } from "./stack-cards";
@@ -15,39 +17,80 @@ const CARDS: ReadonlyArray<StackCard> = [
   { label: "Something else", icon: "custom", formats: [], href: "#something-else" },
 ];
 
-function renderCards(locale: "en" | "de"): Document {
-  const markup = renderToStaticMarkup(
-    <StackCards title="Pick your stack" cards={CARDS} locale={locale} />,
-  );
+const GLOBAL_CSS = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+
+function render(markup: string): Document {
   return new DOMParser().parseFromString(markup, "text/html");
 }
 
+function renderCards(locale: "en" | "de", labelledBy = "stacks"): Document {
+  return render(
+    renderToStaticMarkup(
+      <>
+        <h2 id={labelledBy}>Pick your stack</h2>
+        <StackCards labelledBy={labelledBy} cards={CARDS} locale={locale} />
+      </>,
+    ),
+  );
+}
+
+function accessibleText(element: Element): string {
+  const clone = element.cloneNode(true) as Element;
+  for (const hidden of clone.querySelectorAll('[aria-hidden="true"]')) hidden.remove();
+  return clone.textContent ?? "";
+}
+
 describe("StackCards", () => {
-  it("is a navigation landmark named after its title, one list item per card", () => {
-    const nav = renderCards("en").querySelector("nav");
-    expect(nav?.getAttribute("aria-label")).toBe("Pick your stack");
+  it("is a navigation landmark named by the heading it sits under, one list item per card", () => {
+    const doc = renderCards("en");
+    const nav = doc.querySelector("nav");
+    expect(nav?.hasAttribute("aria-label")).toBe(false);
+    const heading = doc.getElementById(nav?.getAttribute("aria-labelledby") ?? "");
+    expect(heading?.textContent).toBe("Pick your stack");
     expect(nav?.querySelectorAll("li a")).toHaveLength(CARDS.length);
   });
 
-  it("names each card by its stack and format ids, keeping the logo out of the name", () => {
+  it("names each card by its stack, a separator, then its format ids, never by its logo", () => {
     const links = [...renderCards("en").querySelectorAll("a")];
-    expect(links.map((link) => link.textContent)).toEqual([
-      "Reacti18next-json",
-      "iOS and macOSapple-stringsapple-xcstrings",
+    expect(links.map(accessibleText)).toEqual([
+      "React: i18next-json",
+      "iOS and macOS: apple-strings, apple-xcstrings",
       "Something else",
     ]);
     for (const link of links) {
-      const logo = link.querySelector("svg");
-      expect(logo?.closest('[aria-hidden="true"]')).not.toBeNull();
+      expect(link.querySelector("svg")?.closest('[aria-hidden="true"]')).not.toBeNull();
     }
   });
 
   it("draws each logo once in a sprite and references it from the card", () => {
     const doc = renderCards("en");
     const symbols = [...doc.querySelectorAll("symbol")].map((symbol) => symbol.id);
-    expect(symbols).toEqual(["vk-stack-icon-react", "vk-stack-icon-apple", "vk-stack-icon-custom"]);
+    expect(symbols).toEqual([
+      "vk-stack-icon-stacks-react",
+      "vk-stack-icon-stacks-apple",
+      "vk-stack-icon-stacks-custom",
+    ]);
     const uses = [...doc.querySelectorAll("a use")].map((use) => use.getAttribute("href"));
     expect(uses).toEqual(symbols.map((id) => `#${id}`));
+  });
+
+  it("keeps every sprite id unique when two card grids share a page", () => {
+    const doc = render(
+      renderToStaticMarkup(
+        <>
+          <StackCards labelledBy="home" cards={CARDS} locale="en" />
+          <StackCards labelledBy="page-title" cards={CARDS} locale="en" />
+        </>,
+      ),
+    );
+    const ids = [...doc.querySelectorAll("[id]")].map((element) => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const nav of doc.querySelectorAll("nav")) {
+      const prefix = `#vk-stack-icon-${nav.getAttribute("aria-labelledby")}-`;
+      for (const use of nav.querySelectorAll("a use")) {
+        expect(use.getAttribute("href")?.startsWith(prefix)).toBe(true);
+      }
+    }
   });
 
   it("prefixes the reader's locale on a page link and leaves an in-page anchor alone", () => {
@@ -56,11 +99,19 @@ describe("StackCards", () => {
   });
 
   it("uses single-colour logos that follow the text colour, never a brand colour", () => {
-    const paths = [...renderCards("en").querySelectorAll("symbol path, symbol svg")];
-    for (const element of paths) {
+    const doc = renderCards("en");
+    for (const element of doc.querySelectorAll("symbol path, symbol svg")) {
       const fill = element.getAttribute("fill");
       expect(fill === null || fill === "none" || fill === "currentColor", fill ?? "").toBe(true);
     }
-    expect(renderCards("en").body.innerHTML).not.toMatch(/dark:/);
+    expect(doc.body.innerHTML).not.toMatch(/dark:/);
+  });
+
+  it("drops the card and chip transitions for readers who prefer reduced motion", () => {
+    const blocks = [
+      ...GLOBAL_CSS.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g),
+    ].map((match) => match[1] ?? "");
+    const optOut = blocks.find((block) => block.includes(".vk-stack-card,"));
+    expect(optOut).toMatch(/\.vk-stack-card,\s*\.vk-stack-card-chip \{\s*transition: none;/);
   });
 });

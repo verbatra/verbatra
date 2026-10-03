@@ -913,7 +913,9 @@ figure.shiki.vk-code-output figcaption {
 
 @media (prefers-reduced-motion: reduce) {
   .vk-link-card,
-  .vk-evidence-link {
+  .vk-evidence-link,
+  .vk-stack-card,
+  .vk-stack-card-chip {
     transition: none;
   }
 }

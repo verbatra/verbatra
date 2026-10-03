@@ -93,10 +93,12 @@ export function DocsHomeBody({ children }: { children: ReactNode }): ReactNode {
 }
 
 export function DocsHomeSection({
+  id,
   title,
   lead,
   children,
 }: {
+  id?: string;
   title: string;
   lead?: string;
   children: ReactNode;
@@ -105,6 +107,7 @@ export function DocsHomeSection({
     <section>
       <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-baseline-last lg:gap-x-16">
         <h2
+          id={id}
           className="max-w-[16ch] font-semibold text-fd-foreground"
           style={{
             ...DISPLAY,

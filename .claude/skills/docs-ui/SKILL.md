@@ -162,7 +162,10 @@ footer's oversized watermark only; do not clip it onto a heading.
   arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
   (shared with the marquee), always `currentColor`, never a brand colour, since several brand
   colours are black on this dark-only site; a format with no brand mark gets an outline glyph
-  there. `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` and anchor to
+  there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
+  section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its sprite's symbol
+  ids, so two grids on one page never collide. A card's name reads "React: i18next-json".
+  `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` and anchor to
   `SUPPORTED_FORMATS` and to the page's sections in all four locales. Fumadocs' `Steps` and `Step`
   are registered there too, for numbered tutorial steps such as the quickstart's.
 
