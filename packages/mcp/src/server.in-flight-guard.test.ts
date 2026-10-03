@@ -3,7 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { TranslateRequest, TranslateResult } from "@verbatra/ai-providers";
 import type { SdkFs } from "@verbatra/sdk";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMcpServer } from "./server.js";
 import { baseLoadedConfig, makeProject, nodeFs, staticProject } from "./test-support.js";
 import type { McpServerOptions } from "./types.js";
@@ -25,16 +25,13 @@ function deferred<T>(): { readonly promise: Promise<T>; resolve: (value: T) => v
   return { promise, resolve };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 async function waitUntil(hasArrived: () => boolean): Promise<void> {
-  while (!hasArrived()) {
-    await sleep(5);
-  }
+  await vi.waitFor(
+    () => {
+      expect(hasArrived()).toBe(true);
+    },
+    { timeout: 30_000, interval: 5 },
+  );
 }
 
 interface ToolCallResponse {
