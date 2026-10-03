@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -113,6 +114,25 @@ function spawnScript(project, file) {
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
+function projectSetupBlock() {
+  const block = fencedBlocks(readPage(QUICKSTART)).find(
+    (candidate) => candidate.opening === "```bash" && candidate.body.includes("npm pkg set"),
+  );
+  if (block === undefined) throw new Error("the SDK quickstart shows no project setup block");
+  return block.body.split("\n");
+}
+
+function runSetupCommand(project, command) {
+  const result = spawnSync(command, {
+    cwd: project,
+    encoding: "utf8",
+    env: keylessEnv(),
+    shell: true,
+    timeout: 60_000,
+  });
+  if (result.status !== 0) throw new Error(`${command} failed: ${result.stderr}`);
+}
+
 function runScript(project, file) {
   const result = spawnScript(project, file);
   expect(result.stderr, result.stderr).not.toContain(TYPELESS_WARNING);
@@ -162,13 +182,18 @@ describe("the SDK quickstart and recipes", () => {
 
 describe("the SDK examples run end to end without an API key", () => {
   let project;
+  let startedEmpty;
 
   beforeAll(() => {
     project = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-docs-project-"));
+    startedEmpty = readdirSync(project).length === 0;
+    for (const command of projectSetupBlock()) {
+      if (command.startsWith("npm install")) continue;
+      runSetupCommand(project, command);
+    }
     mkdirSync(join(project, "locales"));
     mkdirSync(join(project, "node_modules/@verbatra"), { recursive: true });
     symlinkSync(SDK_DIR, join(project, "node_modules/@verbatra/sdk"), "junction");
-    writeFileSync(join(project, "package.json"), '{"type":"module","private":true}\n');
     const files = {
       [QUICKSTART]: [
         "locales/en.json",
@@ -184,10 +209,21 @@ describe("the SDK examples run end to end without an API key", () => {
         writeFileSync(join(project, title), `${blockTitled(page, title)}\n`);
       }
     }
-  });
+  }, SLOW);
 
   afterAll(() => {
     rmSync(project, { recursive: true, force: true });
+  });
+
+  it("sets the project up from an empty directory with the page's own commands", () => {
+    expect(startedEmpty).toBe(true);
+    expect(projectSetupBlock()).toEqual([
+      "npm init -y",
+      "npm pkg set type=module",
+      "npm install --save-dev @verbatra/sdk",
+    ]);
+    const manifest = JSON.parse(readFileSync(join(project, "package.json"), "utf8"));
+    expect(manifest.type).toBe("module");
   });
 
   it(
