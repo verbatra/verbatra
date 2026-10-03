@@ -387,8 +387,8 @@ No config needed. Returns a `ProvenanceFile`.
 ### runStatus
 
 Reads the review-flag and token-usage snapshot the most recent non-dry-run `translate` or `watch`
-run persisted to `.verbatra-local/run-status.json`. Never throws: a missing, corrupt, or
-unrecognized file degrades to `available: false`. The file is best-effort telemetry.
+run persisted to `.verbatra-local/run-status.json`. Never throws: an unusable file
+degrades to `available: false`. The file is best-effort telemetry, not a correctness baseline.
 
 ```ts title="Signature"
 function runStatus(

@@ -400,9 +400,10 @@ No necesita configuración. Devuelve un `ProvenanceFile`.
 
 ### runStatus
 
-Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de `translate` o
-`watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca lanza: un archivo ausente,
-corrupto o no reconocido degrada a `available: false`. El archivo es telemetría de mejor esfuerzo.
+Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de
+`translate` o `watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca
+lanza: un archivo inservible degrada a `available: false`. El archivo es telemetría de mejor
+esfuerzo, no una línea base de corrección.
 
 ```ts title="Firma"
 function runStatus(

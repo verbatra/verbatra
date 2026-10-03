@@ -1,4 +1,4 @@
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { REVIEW_REASON_CODES } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
@@ -292,6 +292,53 @@ describe("readRunStatusFile: unavailable cases name their reason", () => {
     expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
       kind: "unavailable",
       reason: "unsupported-version",
+    });
+  });
+
+  it("a directory at the path reads as unreadable", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local", "run-status.json"), { recursive: true });
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "unreadable",
+    });
+  });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "a file the process may not open reads as unreadable",
+    async () => {
+      const dir = await makeTempDir();
+      await mkdir(join(dir, ".verbatra-local"));
+      await writeFile(runStatusFilePath(dir), "{}", "utf8");
+      await chmod(runStatusFilePath(dir), 0o000);
+      expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+        kind: "unavailable",
+        reason: "unreadable",
+      });
+    },
+  );
+
+  it("a file at another version reads as unsupported-version even when its shape changed", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(
+      runStatusFilePath(dir),
+      JSON.stringify({ version: 2, writtenAt: 1767225600, runs: { de: { flagged: 3 } } }),
+      "utf8",
+    );
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "unsupported-version",
+    });
+  });
+
+  it("valid JSON without a numeric version reads as invalid", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(runStatusFilePath(dir), JSON.stringify({ locales: [] }), "utf8");
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
     });
   });
 

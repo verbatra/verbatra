@@ -403,8 +403,8 @@ Keine Konfiguration nötig. Gibt eine `ProvenanceFile` zurück.
 
 Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `translate`- oder
 `watch`-Lauf ohne Dry-Run nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine
-fehlende, korrupte oder unbekannte Datei fällt auf `available: false` zurück. Die Datei ist
-Best-Effort-Telemetrie.
+unbrauchbare Datei fällt auf `available: false` zurück. Die Datei ist Best-Effort-Telemetrie, keine
+Korrektheits-Baseline.
 
 ```ts title="Signatur"
 function runStatus(

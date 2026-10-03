@@ -151,7 +151,7 @@ describe("runStatus", () => {
     });
   });
 
-  it("lists every unavailable reason in documentation order", () => {
+  it("lists every unavailable reason", () => {
     expect(RUN_STATUS_UNAVAILABLE_REASONS).toEqual([
       "no-status-file",
       "unreadable",

@@ -297,7 +297,7 @@ Aucune config nécessaire. Renvoie un `ProvenanceFile`.
 
 ### runStatus
 
-Lit l'instantané des signalements de révision et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier manquant, corrompu ou non reconnu se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie.
+Lit l'instantané des signalements de révision et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier inutilisable se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
 
 ```ts title="Signature"
 function runStatus(
