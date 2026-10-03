@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { contentHash, type TranslationEntry } from "@verbatra/core";
+import { contentHash, normalizeText, type TranslationEntry } from "@verbatra/core";
 import {
   DEFAULT_TMX_LIMITS,
   ExchangeError,
@@ -26,6 +26,7 @@ import {
 } from "../integrity-gate.js";
 import { readCarriedOverMemory } from "../locale-carry-over.js";
 import { selectLocales } from "../select-locales.js";
+import { readSource } from "../source.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
 /**
@@ -259,14 +260,38 @@ function emptyTally(): LocaleTally {
   };
 }
 
-function sourceEntryFor(sourceText: string, adapter: FormatAdapter): TranslationEntry {
-  return {
+type PluralFlagsByText = ReadonlyMap<string, readonly boolean[]>;
+
+const UNMATCHED_SOURCE_FLAGS: readonly boolean[] = [false];
+
+async function readPluralFlagsByText(
+  config: VerbatraConfig,
+  cwd: string,
+  fs: SdkFs,
+  adapter: FormatAdapter,
+): Promise<PluralFlagsByText> {
+  const byText = new Map<string, Set<boolean>>();
+  const catalog = await readSource(config, cwd, fs, adapter).catch(() => undefined);
+  for (const entry of catalog?.resource.entries.values() ?? []) {
+    const text = normalizeText(entry.value);
+    byText.set(text, (byText.get(text) ?? new Set<boolean>()).add(entry.isPlural));
+  }
+  return new Map([...byText].map(([text, flags]) => [text, [...flags]]));
+}
+
+function sourceEntriesFor(
+  sourceText: string,
+  adapter: FormatAdapter,
+  pluralFlags: PluralFlagsByText,
+): readonly TranslationEntry[] {
+  const placeholders = adapter.extractPlaceholders(sourceText);
+  return (pluralFlags.get(normalizeText(sourceText)) ?? UNMATCHED_SOURCE_FLAGS).map((isPlural) => ({
     key: "tmx",
     namespace: "",
     value: sourceText,
-    placeholders: adapter.extractPlaceholders(sourceText),
-    isPlural: false,
-  };
+    placeholders,
+    isPlural,
+  }));
 }
 
 async function readTmxText(path: string, fs: SdkFs): Promise<string> {
@@ -387,6 +412,7 @@ interface ApplyContext {
   readonly memory: TranslationMemory;
   readonly fingerprintFor: FingerprintFor;
   readonly adapter: FormatAdapter;
+  readonly pluralFlags: PluralFlagsByText;
   readonly overwrite: boolean;
 }
 
@@ -421,6 +447,19 @@ function applyTranslation(
   }
 }
 
+function applyTranslations(
+  ctx: ApplyContext,
+  tally: LocaleTally,
+  unit: number,
+  locale: string,
+  sourceEntries: readonly TranslationEntry[],
+  candidate: string,
+): void {
+  for (const sourceEntry of sourceEntries) {
+    applyTranslation(ctx, tally, unit, locale, sourceEntry, candidate);
+  }
+}
+
 interface ScanTotals {
   readonly unmatchedSourceUnits: number;
   readonly conflictingSourceUnits: number;
@@ -440,8 +479,10 @@ function importUnit(
   }
   const refused = plan.kind === "conflicting-source";
   const blankSource = plan.kind === "ok" && plan.sourceText.trim() === "";
-  const sourceEntry =
-    plan.kind === "ok" && !blankSource ? sourceEntryFor(plan.sourceText, ctx.adapter) : undefined;
+  const sourceEntries =
+    plan.kind === "ok" && !blankSource
+      ? sourceEntriesFor(plan.sourceText, ctx.adapter, ctx.pluralFlags)
+      : [];
   for (const [locale, pick] of plan.targets) {
     const tally = tallies.get(locale);
     if (tally === undefined) {
@@ -450,8 +491,8 @@ function importUnit(
       tally.rejected.sourceBlank += 1;
     } else if (!refused && pick.conflicted) {
       tally.conflicting += 1;
-    } else if (sourceEntry !== undefined) {
-      applyTranslation(ctx, tally, unit, locale, sourceEntry, pick.text);
+    } else {
+      applyTranslations(ctx, tally, unit, locale, sourceEntries, pick.text);
     }
   }
   return plan.kind;
@@ -567,11 +608,17 @@ function additionsByLocale(
  * scores a changed string against. An imported source that DIFFERS from a string in the project can
  * therefore be served for that string by fuzzy reuse, which is what resemblance means.
  *
+ * A unit carries no plural flag, so the flag is taken from the project's source catalog: a unit
+ * whose source text a plural form holds there (`cart.items_one`, for example) is
+ * stored as that plural form's translation, and as a plain string's too when the catalog holds the
+ * text both ways. A unit no catalog entry matches, or any unit when the source catalog cannot be
+ * read, is stored as a plain string.
+ *
  * An imported source that is identical to a project string but hashes differently is not reachable
  * at all. Fuzzy reuse discards any candidate whose normalized source equals the query, so a project
- * entry that carries a description, a meaning, or a plural flag the unit cannot carry falls through
- * to the provider rather than being served: the hashes differ, and the identical text disqualifies
- * the fuzzy candidate.
+ * entry that carries a description or a meaning the unit cannot carry falls through to the provider
+ * rather than being served: the hashes differ, and the identical text disqualifies the fuzzy
+ * candidate.
  *
  * A fuzzy reuse is still held to the integrity gate against the real entry and is reported as a
  * `FUZZY_CACHE_REUSE` review flag on the run summary, so it is visible rather than silent. A project
@@ -619,6 +666,7 @@ export async function importTmx(
     memory,
     fingerprintFor,
     adapter,
+    pluralFlags: await readPluralFlagsByText(input.config, cwd, fs, adapter),
     overwrite: input.overwrite ?? false,
   };
   const census = new LanguageCensus();

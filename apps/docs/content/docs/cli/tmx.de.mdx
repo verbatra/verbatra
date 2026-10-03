@@ -69,7 +69,7 @@ Importierte Einheiten werden unter dem aktuellen Konfigurations-Fingerprint des 
 
 ### Importierte Einheiten und unscharfe Wiederverwendung
 
-Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unscharfe Wiederverwendung](/docs/the-cache) geänderte Strings bewertet, sodass eine importierte Quelle, die von einem deiner Strings abweicht, für ihn verwendet werden kann. Eine solche Wiederverwendung besteht trotzdem das Integritäts-Gate gegen deinen echten Eintrag und trägt das Review-Flag `FUZZY_CACHE_REUSE`. Eine importierte Quelle, die einem deiner Strings gleicht, aber anders gehasht wird (dein Eintrag hat eine Beschreibung, Bedeutung oder ein Plural-Flag, das TMX nicht tragen kann), wird nie wiederverwendet. Lass `fuzzyCache` aus deiner Config weg, um nur exakte Treffer zuzulassen.
+Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unscharfe Wiederverwendung](/docs/the-cache) geänderte Strings bewertet, sodass eine importierte Quelle, die von einem deiner Strings abweicht, für ihn verwendet werden kann. Eine solche Wiederverwendung besteht trotzdem das Integritäts-Gate gegen deinen echten Eintrag und trägt das Review-Flag `FUZZY_CACHE_REUSE`. Eine importierte Quelle, die einem deiner Strings gleicht, aber anders gehasht wird (dein Eintrag hat eine Beschreibung oder Bedeutung, die TMX nicht tragen kann), wird nie wiederverwendet. Eine Pluralform wird über ihren Text gefunden: Der Import übernimmt das Plural-Flag aus deiner Quelldatei, sodass sich `cart.items_one` und `cart.items_other` wie jeder andere Key aus dem Speicher füllen. Lass `fuzzyCache` aus deiner Config weg, um nur exakte Treffer zuzulassen.
 
 ### Was der Export schreibt
 

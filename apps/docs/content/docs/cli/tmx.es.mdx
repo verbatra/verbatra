@@ -69,7 +69,7 @@ Las unidades importadas se guardan bajo la huella de configuración actual del p
 
 ### Unidades importadas y reutilización difusa
 
-El texto de origen de una unidad aceptada entra en el índice contra el que la [reutilización difusa](/docs/the-cache) puntúa las cadenas cambiadas, así que un origen importado distinto de una de tus cadenas puede servirse para ella. Esa reutilización sigue pasando la puerta de integridad contra tu entrada real y lleva la marca de revisión `FUZZY_CACHE_REUSE`. Un origen importado idéntico a una de tus cadenas pero con otro hash (tu entrada tiene una descripción, un significado o una marca de plural que TMX no puede llevar) nunca se reutiliza. Quita `fuzzyCache` de tu configuración para permitir solo coincidencias exactas.
+El texto de origen de una unidad aceptada entra en el índice contra el que la [reutilización difusa](/docs/the-cache) puntúa las cadenas cambiadas, así que un origen importado distinto de una de tus cadenas puede servirse para ella. Esa reutilización sigue pasando la puerta de integridad contra tu entrada real y lleva la marca de revisión `FUZZY_CACHE_REUSE`. Un origen importado idéntico a una de tus cadenas pero con otro hash (tu entrada tiene una descripción o un significado que TMX no puede llevar) nunca se reutiliza. Una forma de plural se encuentra por su texto: la importación toma la marca de plural de tu archivo de origen, así que `cart.items_one` y `cart.items_other` se rellenan desde la memoria como cualquier otra clave. Quita `fuzzyCache` de tu configuración para permitir solo coincidencias exactas.
 
 ### Qué escribe el export
 
