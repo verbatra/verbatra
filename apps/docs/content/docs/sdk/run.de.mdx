@@ -121,7 +121,7 @@ function watch(
 
 **Rückgabe:** `WatchController`
 
-**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
 aufgerufen: `{ status: "succeeded", summary }` oder
@@ -134,12 +134,14 @@ wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge
 beim Start geprüft, nicht pro Zyklus.
 
 Gibt einen `WatchController` mit einer Methode zurück, `stop()`, die den Watcher schließt und den
-laufenden Lauf abwartet. Drei Probleme werden schon beim Start zurückgewiesen, bevor der Watcher
+laufenden Lauf abwartet. Vier Probleme werden schon beim Start zurückgewiesen, bevor der Watcher
 existiert, sodass `watch` selbst fehlschlägt, statt einen Controller zurückzugeben: Eine
 `concurrency`, die keine Ganzzahl von mindestens 1 ist, wirft `CONCURRENCY_INVALID`, eine
 `concurrency` über 1 gegen eine Konfiguration, die `maxTokens` setzt, wirft
 `CONCURRENCY_BUDGET_CONFLICT` (es gibt keinen Dry-Run-Watch, der Budgetkonflikt greift also
-immer), und eine fehlende Quelldatei wirft `SOURCE_UNREADABLE`. Jeder Fehlschlag nach dem Start
+immer), eine fehlende Quelldatei wirft `SOURCE_UNREADABLE`, und ab 0.12.0 wirft ein Provider, der
+sich nicht erzeugen lässt, etwa weil seine API-Key-Variable fehlt, `PROVIDER_CONSTRUCTION_FAILED`.
+Jeder Fehlschlag nach dem Start
 kommt über `onRun` an, und das Beobachten geht weiter.
 
 ### releaseHeldLocks
