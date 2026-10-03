@@ -145,7 +145,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[]; l
       ))}
       {isHome ? null : (
         <>
-          <DocsTitle>{page.data.title}</DocsTitle>
+          <DocsTitle id="page-title">{page.data.title}</DocsTitle>
           <DocsDescription>{page.data.description}</DocsDescription>
           <div className="not-prose -mt-4 flex flex-wrap items-center gap-2">
             <MarkdownCopyButton markdownUrl={markdownHref} />

@@ -137,7 +137,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
   `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  the tab row wraps too, and the AI prompt row keeps scrolling), `reveal.tsx` (the scroll
+  the install box's second row shows the whole AI setup prompt, wrapped, under a `.vk-label`
+  caption), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
@@ -149,13 +150,23 @@ footer's oversized watermark only; do not clip it onto a heading.
   recaptured.
 - **Docs-facing:** `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
-  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeStacks`,
-  `DocsHomeSteps`, `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
+  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
+  `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
   `content/docs/index.mdx` and its three locale siblings. The hero and the body share one frame
   (`HOME_FRAME`: one max width, one gutter), so the hero panel and the sections below it start and
-  end on the same edges; a section head sets its lead on the heading's last baseline. `DocsHomeStacks` is the plain text links
-  into `pick-your-stack`, grouped (frameworks, platforms, formats) under a label that sits above
-  them at every width: no logos, no icons. Fumadocs' `Steps` and `Step`
+  end on the same edges; a section head sets its lead on the heading's last baseline.
+  `StackCards` (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top
+  of `pick-your-stack`: one flat grid of flat-panel cards (one column, two from a 30rem container,
+  three from 50rem), each a single-colour logo in a round `--surface-card` chip, the stack name in
+  the display face, and its `--format` ids in mono `--text-faint`, with no group labels and no
+  arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
+  (shared with the marquee), always `currentColor`, never a brand colour, since several brand
+  colours are black on this dark-only site; a format with no brand mark gets an outline glyph
+  there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
+  section's `id`, or `page-title` on the docs `<h1>`), and that id also prefixes its sprite's symbol
+  ids, so two grids on one page never collide. A card's name reads "React: i18next-json".
+  `scripts/verify-docs-registry-parity.test.mjs` pins every card's `formats` and anchor to
+  `SUPPORTED_FORMATS` and to the page's sections in all four locales. Fumadocs' `Steps` and `Step`
   are registered there too, for numbered tutorial steps such as the quickstart's.
 
 ## Keep the client payload small
@@ -167,14 +178,14 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
 - `NextIntlClientProvider` receives only `CLIENT_MESSAGE_NAMESPACES` (`lib/client-messages.ts`),
   not the whole catalog. A new `useTranslations` namespace in a `"use client"` file must be added
   there; `lib/client-messages.test.ts` fails until it is.
-- A brand icon repeated on a page (the marquee's two tracks) is drawn once as an SVG `<symbol>`
+- A brand icon repeated on a page (the marquee's two tracks, the stack cards) is drawn once as an SVG `<symbol>`
   and referenced with `<use>`, since every copy is serialized twice: in the HTML and in the RSC
   payload.
 - Keep all three `next/font` families preloaded. Every one of them sets text in the first
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
-- Content only needed after an interaction (the AI setup prompt in `package-install.tsx`) is
-  loaded with a dynamic `import()` on hover, focus, or click.
+- Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
+  or click. The AI setup prompt is not: it is a few lines, shown in full in the install box.
 
 ## Fumadocs UI strings
 
@@ -273,11 +284,11 @@ comes from:
   "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
   target is dropped at render time (`lib/docs-neighbours.ts`, passed to `getMDXComponents` by the
   docs page), so the footer and the cards never link the same page twice.
-- **Package-manager tabs**: a fenced block with the `npm` language becomes npm / pnpm / yarn / bun
-  tabs through Fumadocs' remark-npm (persisted as `package-manager` in `source.config.ts`; the
-  landing's install box reads and writes the same key through `lib/package-manager-preference.ts`
-  and takes its four commands from `lib/install-commands.ts`, which a test pins to remark-npm);
-  `CodeBlockTabs` is mapped to add `.vk-code-tabs`, which puts the tabs on the void code surface.
+- **One install command**: every install is shown as one npm command in a `bash` fence, with no
+  package-manager tabs. remark-npm is off (`remarkNpmOptions: false` in `source.config.ts`), and
+  `lib/install-commands.test.ts` fails on an `npm` fence anywhere in the content. The landing and
+  docs home install box takes `NPM_INSTALL_COMMAND` from `lib/install-commands.ts`; a page that
+  needs pnpm, yarn or bun says so in a sentence.
 - **Output blocks**: a fence flagged `output` (`` ```text output ``) is what a command prints, not
   something to run. The flag, not a title, is the marker, so it reads the same in every locale:
   `parseCodeBlockMeta` (`lib/code-block-meta.ts`, wired as `rehypeCodeOptions.parseMetaString` in

@@ -340,10 +340,10 @@ for (const { locale, needsReview } of queue.locales) {
 returning every key's current source and target text per locale. Reach for it when a caller needs
 to search or scan translation content rather than key names.
 
-```ts
+```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
 
-const report = await localeValues({ config: await loadConfig(), locales: ["de", "fr"] });
+const report = await localeValues({ config: await loadConfig() });
 
 for (const { locale, values } of report) {
   for (const [key, pair] of Object.entries(values)) {
@@ -359,7 +359,7 @@ for (const { locale, values } of report) {
 ```
 
 Read-only: it calls no provider, writes nothing, and touches neither the lock file nor the cache.
-Omit `locales` to cover every configured target locale.
+It covers every configured target locale; pass `locales` to narrow it to some of them, and a locale outside `targetLocales` throws `UNKNOWN_LOCALE`.
 
 ## The workbook round-trip
 
