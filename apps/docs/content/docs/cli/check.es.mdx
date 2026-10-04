@@ -129,6 +129,8 @@ Con `--json`, `result.review` es `{ reviewed, unreviewed, code? }`, donde `code`
 
 `--sensitive` ejecuta la revisión de la [protección de contenido sensible](/docs/data-handling#protección-de-contenido-sensible) sobre cada clave de origen (nombre de clave, valor, descripción y significado) y el glosario de cada locale comprobado, con los detectores, patrones y la lista `allow` de `sensitiveData` (sin bloque, los detectores por defecto), con cualquier `mode` y proveedor, `none` incluido: los valores siguen saliendo del equipo en entregas por exportación, XLIFF y TMX. Informa de claves y detectores, nunca del texto encontrado fuera de un nombre de clave, y sale con `1` ante cualquier hallazgo.
 
+El detector `email` omite los [dominios de ejemplo reservados](/docs/data-handling#protección-de-contenido-sensible), así que prueba con una dirección de aspecto real.
+
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
   support.contact: email in value

@@ -61,8 +61,8 @@ retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exéc
 | `split-retry` | un lot dont la sortie a été coupée est réessayé en deux moitiés | `locale`, `keys` |
 | `batch-finished` | un lot est terminé, qu'il ait réussi ou non | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
 | `writing` | juste avant l'écriture du fichier d'une locale | `locale` |
-| `locale-finished` | le travail sur une locale se termine | `locale`, `translated`, `localeIndex`, `totalLocales` |
-| `run-finished` | toutes les locales sont terminées | `localesCompleted` |
+| `locale-finished` | le travail sur une locale se termine | `locale`, `status`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | toutes les locales sont terminées | `localesCompleted`, `localesFailed` |
 | `change-detected` | `watch` uniquement : une modification du fichier source s'est stabilisée | `paths` |
 | `idle` | `watch` uniquement : une exécution est terminée et aucune n'attend | aucun |
 

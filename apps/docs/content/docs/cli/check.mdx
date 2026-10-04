@@ -129,6 +129,8 @@ With `--json`, `result.review` is `{ reviewed, unreviewed, code? }`, where `code
 
 `--sensitive` runs the [sensitive content guard](/docs/data-handling#sensitive-content-guard) scan over each source key (key name, value, description, meaning) and the glossary of each checked locale, with the detectors, patterns and allow list of `sensitiveData` (default detectors without the block), whatever its `mode` and provider, `none` included: values still leave the machine through export, XLIFF and TMX handoffs. It reports keys and detectors, never matched text outside a key name, and fails with exit `1` on any finding.
 
+The `email` detector skips [reserved example domains](/docs/data-handling#sensitive-content-guard), so test with a real-looking address.
+
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
   support.contact: email in value

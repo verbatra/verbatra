@@ -1128,11 +1128,24 @@ describe("render: progress", () => {
     [{ type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 3 }, "translating de"],
     [{ type: "sub-batch", locale: "de", batchIndex: 2, totalBatches: 4 }, "de batch 2/4"],
     [
-      { type: "locale-finished", locale: "de", translated: 5, localeIndex: 0, totalLocales: 3 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 5,
+        localeIndex: 0,
+        totalLocales: 3,
+      },
       "de done, 5 translated",
     ],
-    [{ type: "run-finished", localesCompleted: 3 }, "run finished, 3 locales processed"],
-    [{ type: "run-finished", localesCompleted: 1 }, "run finished, 1 locale processed"],
+    [
+      { type: "run-finished", localesCompleted: 3, localesFailed: 0 },
+      "run finished, 3 locales processed",
+    ],
+    [
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
+      "run finished, 1 locale processed",
+    ],
   ];
 
   it("renders every event type human-readably, prefixed with verbatra:", () => {
@@ -1141,6 +1154,51 @@ describe("render: progress", () => {
       expect(line.startsWith("verbatra:")).toBe(true);
       expect(line).toContain(fragment);
     }
+  });
+
+  it("says a failed locale failed instead of done, and names no translated count for it", () => {
+    const line = renderProgressHuman({
+      type: "locale-finished",
+      locale: "de",
+      status: "failed",
+      translated: 0,
+      localeIndex: 0,
+      totalLocales: 2,
+    });
+    expect(line).toBe("verbatra: de failed");
+  });
+
+  it("says a partial locale is partly done, with its translated count", () => {
+    const line = renderProgressHuman(
+      {
+        type: "locale-finished",
+        locale: "fr",
+        status: "partial",
+        translated: 2,
+        localeIndex: 1,
+        totalLocales: 2,
+      },
+      true,
+    );
+    expect(line).toBe("verbatra: fr partly done, 2 would translate");
+  });
+
+  it("names no count for a partial locale that translated nothing", () => {
+    const line = renderProgressHuman({
+      type: "locale-finished",
+      locale: "fr",
+      status: "partial",
+      translated: 0,
+      localeIndex: 1,
+      totalLocales: 2,
+    });
+    expect(line).toBe("verbatra: fr partly done");
+  });
+
+  it("states the failed count on the run-finished line when a locale failed", () => {
+    expect(
+      renderProgressHuman({ type: "run-finished", localesCompleted: 2, localesFailed: 1 }),
+    ).toBe("verbatra: run finished, 2 locales processed, 1 failed");
   });
 
   it("renders every event type as its verbatim JSON record", () => {

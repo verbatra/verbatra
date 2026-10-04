@@ -67,7 +67,7 @@ solo va al endpoint configurado (`google-translate` la envía en la cadena de co
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` revisa, antes de cada petición, lo que la tabla anterior envía. Los detectores por defecto encuentran claves de API, correos, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos. Se rechaza un patrón que repite un grupo con un cuantificador o una alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado. Lee los primeros 2.000 caracteres de un campo y se detiene al cabo de un segundo; agotar el tiempo es un hallazgo (`pattern-timeout-<n>`), así que `block` y `redact` retienen la clave.
+`sensitiveData` revisa, antes de cada petición, lo que la tabla anterior envía. Los detectores por defecto encuentran claves de API, correos, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos. El detector `email` omite `example.com`, `example.org`, `example.net` y los dominios bajo `.example`, `.test`, `.invalid` o `.localhost`. Se rechaza un patrón que repite un grupo con un cuantificador o una alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado. Lee los primeros 2.000 caracteres de un campo y se detiene al cabo de un segundo; agotar el tiempo es un hallazgo (`pattern-timeout-<n>`).
 
 | `mode` | Efecto |
 | --- | --- |
@@ -92,7 +92,7 @@ septiembre de 2026.
 | openai-compatible, LibreTranslate | Lo que haga tu propio servidor. Un servidor que ejecutas tú mantiene los textos en hardware que controlas. | Las tuyas |
 
 Gemini gratuito (fuera del EEE, Suiza y el Reino Unido) y DeepL Free pueden entrenar con lo que
-envías, y ningún proveedor LLM alojado tiene retención cero por defecto. Para textos
+envías. Para textos
 confidenciales, usa un nivel de pago, tu propio servidor o ninguna traducción automática.
 
 ## Mantener los textos en casa

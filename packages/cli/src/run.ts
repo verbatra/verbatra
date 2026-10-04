@@ -11,6 +11,7 @@ import {
   type ExchangeFormat,
   type ExportWorkbookInput,
   type ExportWorkbookResult,
+  errorHint,
   type GenerateTypesInput,
   type ImportWorkbookInput,
   isMachineTranslationEnabled,
@@ -791,17 +792,36 @@ function reportTranslateOutcome(
   }
 }
 
+function announceOnce(announce: () => void): () => void {
+  let announced = false;
+  return () => {
+    if (!announced) {
+      announced = true;
+      announce();
+    }
+  };
+}
+
 function buildTranslateInput(
   opts: ParsedTranslateOpts,
   config: TranslateInput["config"],
   cwd: string,
   context: CommandContext,
+  announceStart: () => void,
 ): TranslateInput {
+  const report = progressReporter(context, resolveDryRun(opts));
+  const reportLockWait = lockWaitReporter(context);
   return {
     config,
     cwd,
-    onLockWait: lockWaitReporter(context),
-    onProgress: progressReporter(context, resolveDryRun(opts)),
+    onLockWait: (event) => {
+      announceStart();
+      reportLockWait(event);
+    },
+    onProgress: (event) => {
+      announceStart();
+      report(event);
+    },
     ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
     ...(opts.dryRun === true ? { dryRun: true } : {}),
     ...(opts.prune === true ? { prune: true } : {}),
@@ -835,8 +855,13 @@ export async function runTranslate(
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
           const startedAt = Date.now();
-          context.ui.info(translateStartLine(opts, config));
-          const summary = await deps.translate(buildTranslateInput(opts, config, cwd, context));
+          const announceStart = announceOnce(() =>
+            context.ui.info(translateStartLine(opts, config)),
+          );
+          const summary = await deps.translate(
+            buildTranslateInput(opts, config, cwd, context, announceStart),
+          );
+          announceStart();
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("translate", summary)}\n`
@@ -1058,14 +1083,35 @@ function hintAfterImport(
   summary: RunSummary,
   exitCode: number,
 ): void {
+  const reviewerArgs = opts.reviewer !== undefined ? ["--reviewer", opts.reviewer] : [];
+  const reimport = verbatraCommand(
+    ["import", workbook, ...formatArgs(opts.format), ...reviewerArgs],
+    opts,
+  );
   if (summary.dryRun) {
-    const reviewerArgs = opts.reviewer !== undefined ? ["--reviewer", opts.reviewer] : [];
-    context.ui.hint(
-      verbatraCommand(["import", workbook, ...formatArgs(opts.format), ...reviewerArgs], opts),
-      "without --dry-run to write the files",
-    );
+    context.ui.hint(reimport, "without --dry-run to write the files");
   } else if (exitCode === 0) {
     context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
+  } else {
+    hintAfterUnsettledImport(context, reimport, summary);
+  }
+}
+
+function hintAfterUnsettledImport(
+  context: CommandContext,
+  reimport: string,
+  summary: RunSummary,
+): void {
+  const unsettled = summary.locales.filter((locale) => locale.status !== "succeeded");
+  if (unsettled.some((locale) => locale.integrityMismatches.length > 0)) {
+    context.ui.hint(reimport, "after correcting the rows listed above");
+    return;
+  }
+  const causeHint = unsettled
+    .map((locale) => (locale.error === undefined ? undefined : errorHint(locale.error)))
+    .find((hint) => hint !== undefined);
+  if (causeHint !== undefined) {
+    context.ui.hint(causeHint);
   }
 }
 
