@@ -921,7 +921,7 @@ const LOCALE_FINISHED_VERBS: Record<LocaleFinishedEvent["status"], string> = {
 
 function renderLocaleFinished(event: LocaleFinishedEvent, dryRun: boolean): string {
   const verb = LOCALE_FINISHED_VERBS[event.status];
-  if (event.status === "failed") {
+  if (event.status === "failed" || (event.status === "partial" && event.translated === 0)) {
     return `verbatra: ${event.locale} ${verb}`;
   }
   return `verbatra: ${event.locale} ${verb}, ${event.translated} ${dryRun ? "would translate" : "translated"}`;

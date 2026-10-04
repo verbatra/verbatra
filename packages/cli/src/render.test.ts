@@ -1183,6 +1183,18 @@ describe("render: progress", () => {
     expect(line).toBe("verbatra: fr partly done, 2 would translate");
   });
 
+  it("names no count for a partial locale that translated nothing", () => {
+    const line = renderProgressHuman({
+      type: "locale-finished",
+      locale: "fr",
+      status: "partial",
+      translated: 0,
+      localeIndex: 1,
+      totalLocales: 2,
+    });
+    expect(line).toBe("verbatra: fr partly done");
+  });
+
   it("states the failed count on the run-finished line when a locale failed", () => {
     expect(
       renderProgressHuman({ type: "run-finished", localesCompleted: 2, localesFailed: 1 }),
