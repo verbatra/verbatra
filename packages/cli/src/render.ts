@@ -307,15 +307,18 @@ function renderIntegrityWithheld(
   return lines.length === 0 ? [] : ["    integrity-withheld:", ...lines.map((entry) => entry.line)];
 }
 
+function renderNotices(notices: LocaleSummary["notices"]): readonly string[] {
+  return notices.length === 0
+    ? []
+    : ["    notices:", ...notices.map((notice) => `      [${notice.code}] ${notice.message}`)];
+}
+
 function renderLocaleDetail(locale: LocaleSummary, labels: RunCountLabels): readonly string[] {
   const groups = [
     renderDetailGroup("fuzzy-reused", locale.fuzzyHits.map(renderFuzzyHit)),
     renderDetailGroup("provider-failed", locale.providerFailures),
     renderDetailGroup("sensitive-withheld", locale.sensitiveWithheld),
-    renderDetailGroup(
-      "notices",
-      locale.notices.map((notice) => `[${notice.code}] ${notice.message}`),
-    ),
+    ...renderNotices(locale.notices),
     renderDetailGroup("unfilled", locale.unfilled),
     renderDetailGroup("protected", locale.protected.map(renderProtectedKey)),
     renderDetailGroup(

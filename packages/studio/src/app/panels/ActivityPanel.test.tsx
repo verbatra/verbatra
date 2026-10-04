@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
+
 import { describe, expect, it, vi } from "vitest";
+import { formatTimestamp } from "../../client/ui-format.js";
 import type { HistoryCommit, HistoryListResult } from "../../shared/rpc/history.js";
 import type { UsageSummaryResult } from "../../shared/rpc/usage-summary.js";
 import type { RenderResult } from "../test-support.js";
@@ -163,7 +165,7 @@ describe("ActivityPanel", () => {
 
     const view = await renderAsync(<ActivityPanel refreshToken={0} />);
 
-    expect(view.text()).toContain(`As of ${new Date(GENERATED_AT).toLocaleString()}`);
+    expect(view.text()).toContain(`As of ${formatTimestamp(GENERATED_AT)}`);
   });
 
   it("says tokens were not reported rather than showing a fabricated zero", async () => {
@@ -172,7 +174,9 @@ describe("ActivityPanel", () => {
     const view = await renderAsync(<ActivityPanel refreshToken={0} />);
 
     expect(metricValue(view, "Tokens")).toBe("Not reported");
-    expect(metricHint(view, "Tokens")).toBe("This provider does not report token usage.");
+    expect(metricHint(view, "Tokens")).toBe(
+      "No token usage was recorded: the run called no provider, or its provider does not report usage.",
+    );
     expect(view.query("div[title='640']")).toBeNull();
   });
 

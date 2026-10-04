@@ -1,4 +1,4 @@
-import { SdkError } from "../errors.js";
+import { GlossaryNotConfiguredError, SdkError } from "../errors.js";
 import { selectLocales } from "../flow/select-locales.js";
 import { unwritableFileMessage } from "../flow/write-target.js";
 import { defaultFs, type SdkFs } from "../fs.js";
@@ -145,10 +145,13 @@ export async function readGlossaryInput(path: string, fs: SdkFs): Promise<Glossa
 }
 
 function glossaryFilePath(glossary: GlossaryProvenance): string {
-  if (glossary.source !== "file") {
+  if (glossary.source === "none") {
+    throw new GlossaryNotConfiguredError();
+  }
+  if (glossary.source === "inline") {
     throw new SdkError(
       "GLOSSARY_NOT_FILE_BACKED",
-      `The glossary is ${glossary.source === "inline" ? "written inline in the config" : "not configured"}, so there is no glossary file to work with. Point the config's glossary at a JSON file first.`,
+      "The glossary is written inline in the config, so there is no glossary file to work with. Point the config's glossary at a JSON file first.",
     );
   }
   return glossary.path;

@@ -1,4 +1,5 @@
 import {
+  ProviderError,
   SdkError,
   type WatchController,
   type WatchInput,
@@ -333,6 +334,26 @@ describe("run watch: shutdown and exit codes", () => {
     expect(await done).toBe(2);
     expect(cap.err()).toContain("[SOURCE_UNREADABLE] missing source");
     expect(() => session.requestStop()).not.toThrow();
+  });
+
+  it("a provider that cannot be constructed exits 2 at startup with the key hint, never waiting", async () => {
+    const { deps } = recordingDeps({
+      watch: () =>
+        Promise.reject(
+          new SdkError("PROVIDER_CONSTRUCTION_FAILED", "no key", {
+            cause: new ProviderError("MISSING_API_KEY", "GEMINI_API_KEY is not set.", {
+              envVar: "GEMINI_API_KEY",
+            }),
+          }),
+        ),
+    });
+    const cap = captureStreams();
+    const { done } = await startWatch(["watch"], deps, cap.streams);
+
+    expect(await done).toBe(2);
+    expect(cap.err()).toContain("[PROVIDER_CONSTRUCTION_FAILED] no key (cause: MISSING_API_KEY)");
+    expect(cap.err()).toContain("next: Set GEMINI_API_KEY in the environment");
+    expect(cap.err()).not.toContain("waiting for changes");
   });
 
   it("refuses a budget conflict without first announcing an initial translation", async () => {

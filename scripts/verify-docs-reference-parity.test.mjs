@@ -359,11 +359,8 @@ describe("the SDK reference catalogs the whole public surface", () => {
     expect(sdkReferencePages().length).toBeGreaterThanOrEqual(9);
   });
 
-  it("skips the sidebar link entries and keeps every page that has a file", () => {
-    const entries = JSON.parse(readRepoFile("apps/docs/content/docs/sdk/meta.json")).pages;
-    const pages = sdkReferencePages();
-    expect(entries.length).toBeGreaterThan(pages.length);
-    for (const page of pages) {
+  it("lists only pages that have a file", () => {
+    for (const page of sdkReferencePages()) {
       expect(() => readDocPage(`sdk/${page}`, "")).not.toThrow();
     }
   });

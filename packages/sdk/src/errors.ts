@@ -349,6 +349,15 @@ export class SdkError extends Error {
   }
 }
 
+export class GlossaryNotConfiguredError extends SdkError {
+  constructor() {
+    super(
+      "GLOSSARY_NOT_FILE_BACKED",
+      "The glossary is not configured, so there is no glossary file to work with. Point the config's glossary at a JSON file first.",
+    );
+  }
+}
+
 export type InputFileKind = "handoff" | "tmx";
 
 export type InputFileErrorCode = Extract<SdkErrorCode, "SOURCE_UNREADABLE" | "SOURCE_INVALID">;

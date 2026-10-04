@@ -24,7 +24,7 @@ verbatra studio --expose-agent-tools
 
 Damit der Agent deinen Provider aufrufen darf, startest du Studio zusätzlich mit `--allow-spend` ([Ausgaben und Agent-Tools](/docs/cli/studio#ausgaben-und-agent-tools)).
 
-Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt; für ein NDA-Projekt siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
+Der Agent liest jeden Wert ungeschwärzt, so wie die Seite ihn zeigt: Studio schwärzt nichts, weil ein Agent im Tab die Seite ohnehin lesen kann. Willst du Werte vor einem Agenten verbergen, nutze stattdessen den MCP-Server mit [`--redact-values`](/docs/cli/mcp#redacted-values); für ein NDA-Projekt siehe [Studio und MCP](/docs/data-handling#studio-und-mcp).
 
 ## Wissen, was der Agent aufrufen kann
 
@@ -89,7 +89,8 @@ Jedes Tool liefert den Umschlag des Dashboards, ein Fehler sieht also so aus: `{
 | Code | Bedeutung |
 | --- | --- |
 | `REQUEST_INVALID` | Anfrage oder Antwort war kein lesbarer Umschlag |
-| `METHOD_UNKNOWN` | die Methode ist in dieser Sitzung nicht registriert, wie ein kostenpflichtiges Tool ohne `--allow-spend` |
+| `METHOD_UNKNOWN` | die Methode gibt es in dieser Studio-Version nicht |
+| `SPEND_DISABLED` | eine kostenpflichtige Methode, während Ausgaben aus sind: Studio läuft ohne `--allow-spend`, oder der Provider ist `none`; die Meldung nennt den Grund |
 | `PARAMS_INVALID` | ein Parameter hat die Prüfung nicht bestanden; `issues` nennt jedes Feld |
 | `METHOD_RATE_LIMITED` | über dem Rate-Limit; `retryAfterSeconds` sagt, wann der Aufruf passt |
 | `SESSION_EXPIRED` | Studio wurde mit neuem Token neu gestartet; öffne die URL, die es ausgegeben hat |

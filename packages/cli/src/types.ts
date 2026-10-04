@@ -65,6 +65,7 @@ export interface CliDeps {
   importTmx(input: ImportTmxInput): Promise<ImportTmxResult>;
   exportTmx(input: ExportTmxInput): Promise<ExportTmxResult>;
   provenanceReport(input: ProvenanceReportInput): Promise<ProvenanceReportResult>;
+  isDirectory?(path: string): boolean;
 }
 
 export interface StudioModule {

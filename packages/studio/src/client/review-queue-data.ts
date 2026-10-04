@@ -64,3 +64,10 @@ export function reviewedValueFor(
 ): string | undefined {
   return values.get(reviewValuesKey(row.locale, row.key))?.target;
 }
+
+export function reviewedSourceFor(
+  values: ReadonlyMap<string, KeyValuePair>,
+  row: ReviewEntryRef,
+): string | undefined {
+  return values.get(reviewValuesKey(row.locale, row.key))?.source;
+}

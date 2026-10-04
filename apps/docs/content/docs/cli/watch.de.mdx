@@ -31,6 +31,8 @@ Jeder Lauf übersetzt die `--locales`-Teilmenge oder jedes Ziel, mit einem frisc
 
 Eine `--concurrency` über `1` zusammen mit einem konfigurierten `maxTokens`-Budget wird beim Start mit Exit `2` abgelehnt, noch vor dem ersten Lauf, weil sonst die Reihenfolge der Locales entscheiden würde, welche ihre restliche Arbeit verliert.
 
+Ein Provider, der sich nicht erzeugen lässt, meist weil seine API-Key-Variable fehlt, wird ebenfalls beim Start abgelehnt: `watch` endet mit Exit `2` und `PROVIDER_CONSTRUCTION_FAILED` sowie einer `next:`-Zeile, die die Variable nennt, genau wie `translate`, statt auf Änderungen zu warten, die kein Lauf übersetzen könnte. Vor 0.12.0 wartete es weiter.
+
 ### Stoppen
 
 <AvailableFrom version="0.12.0" />

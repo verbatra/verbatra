@@ -14,11 +14,20 @@ const paramsSchema = z
   .strictObject({
     locale: z.string().min(1),
     key: z.string().min(1),
-    expectedValue: z.string().max(20_000).optional(),
+    expectedValue: z
+      .string()
+      .max(20_000)
+      .optional()
+      .describe(
+        "The translation the user reviewed, as read with key.value. Pass exactly one of expectedValue and expectedHash.",
+      ),
     expectedHash: z
       .string()
       .regex(/^[0-9a-f]{16}$/)
-      .optional(),
+      .optional()
+      .describe(
+        "The 16-digit hash from the reviewed value's marker when the server redacts values. Pass exactly one of expectedValue and expectedHash.",
+      ),
     reviewer: z.string().min(1).max(64),
     lockTimeoutMs: lockTimeoutMsSchema,
   })
