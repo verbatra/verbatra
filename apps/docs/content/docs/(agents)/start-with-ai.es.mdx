@@ -5,11 +5,7 @@ type: tutorial
 ---
 Esta página es para un proyecto que ya tiene archivos de locale en el repositorio. Pega el prompt de abajo en tu agente de IA para programar (Claude Code, Cursor o cualquier agente que pueda abrir un enlace y ejecutar comandos de shell). Sigue los pasos de esta página y te pregunta antes de llamar de verdad a un proveedor.
 
-Si estás configurando verbatra tú mismo en lugar de dárselo a un agente, el [Inicio rápido](/docs/quickstart) es la versión humana del mismo recorrido.
-
 ## El prompt
-
-Copia el bloque de abajo.
 
 ```text
 Set up verbatra (`@verbatra/cli` on npm) in this project. Read
@@ -25,7 +21,7 @@ El prompt envía al agente a la versión Markdown de esta página. Agente: sigue
 
 ### 1. Revisar la configuración existente
 
-Antes de cambiar nada, busca la biblioteca de i18n en `package.json` (por ejemplo `i18next`, `vue-i18n`, `next-intl` o `@ngx-translate/core`) y los propios archivos de locale. Anota el locale de origen, cada locale de destino que ya exista y el patrón de ruta con un token `{locale}`, como `locales/{locale}.json`. [Elige tu stack](/docs/pick-your-stack) asigna a cada stack su id de formato y su estructura habitual, y [Formatos](/docs/formats) indica qué deja intacto o nunca crea cada formato: un archivo XLIFF y un Xcode String Catalog, por ejemplo, ya tienen que existir, y un String Catalog se traduce de locale en locale. JSON sin biblioteca de i18n: los marcadores `{{name}}` indican `i18next-json`, y la llave simple `{name}` indica `vue-i18n-json`. Un proyecto Android usa `res/{locale}/strings.xml` con `files.localeStyle: "android"`, así el token se expande a `values` y `values-de`.
+Antes de cambiar nada, busca la biblioteca de i18n en `package.json` (por ejemplo `i18next`, `vue-i18n`, `next-intl` o `@ngx-translate/core`) y los propios archivos de locale. Anota el locale de origen, cada locale de destino que ya exista y el patrón de ruta con un token `{locale}`, como `locales/{locale}.json`. [Elige tu stack](/docs/pick-your-stack) asigna a cada stack su id de formato y su estructura; [Formatos](/docs/formats) indica qué archivos ya tienen que existir, como un archivo XLIFF o un Xcode String Catalog. JSON sin biblioteca de i18n: los marcadores `{{name}}` indican `i18next-json`, y la llave simple `{name}` indica `vue-i18n-json`. Un proyecto Android usa `res/{locale}/strings.xml` con `files.localeStyle: "android"`, así el token se expande a `values` y `values-de`.
 
 ### 2. Instalar la CLI
 
@@ -96,7 +92,7 @@ Haz commit de `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`, `verba
 
 ## Por qué esta forma
 
-`translate` no tiene su propia barrera de gasto: en cuanto existen una config válida y una clave de API, un simple `verbatra translate` llama al proveedor de inmediato, sin ningún aviso de confirmación. Los pasos de arriba ponen esa barrera en las instrucciones del agente: `doctor`, `check`, `diff` y `translate --dry-run` son gratuitos y de solo lectura, así que el agente puede validar toda la configuración y mostrarte exactamente qué pasaría antes del paso 8, el único paso que gasta algo.
+`translate` no tiene su propia barrera de gasto, así que la barrera vive en las instrucciones del agente: cada paso antes del 8 es gratuito y de solo lectura.
 
 ## Siguiente
 
