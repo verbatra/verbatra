@@ -1221,6 +1221,14 @@ DeepL, Google Cloud Translation et LibreTranslate reçoivent un tel jeton masqu�
 - **Code de sortie** : aucun
 - **Étape suivante** : Vérifie les traductions des clés nommées, ou change de syntaxe si ta bibliothèque n'interpole pas ces jetons.
 
+### SOURCE_VALUE_EMPTY
+
+Des clés source dont la valeur est vide ou ne contient que des espaces, comme une clé qu'[`extract`](/docs/cli/extract) a ajoutée sans valeur par défaut, seraient sinon manquantes ou obsolètes dans cette locale. Rien n'est envoyé, écrit ni compté pour elles, et la cible garde la valeur qu'elle a. Le message donne le nombre de clés et nomme les premières.
+
+- **Levé par** : `translate` (y compris une exécution à blanc), `watch`
+- **Code de sortie** : aucun
+- **Étape suivante** : Écris le texte source des clés nommées, puis relance `verbatra translate`.
+
 ### SENSITIVE_CONTENT_SENT
 
 Avec `sensitiveData.mode: "warn"`, des clés ou des termes du glossaire envoyés par cette locale contiennent un contenu trouvé par un détecteur ou un motif. Ils ont été envoyés tels quels. Le message nomme les détecteurs et les premières clés, jamais le texte trouvé sauf s'il fait partie d'un nom de clé.

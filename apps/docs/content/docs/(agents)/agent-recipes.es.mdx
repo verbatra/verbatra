@@ -25,13 +25,13 @@ Cada salida de abajo viene de un proyecto pequeño: locale de origen `en`, un lo
 `check` responde "¿hay algo desincronizado?", en recuentos, y aquí sale con `1`:
 
 ```json
-{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0,"incompletePlurals":[]}]}}
+{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"emptySource":0,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0,"incompletePlurals":[]}]}}
 ```
 
 `diff` responde la misma pregunta por nombre de clave y también sale con `1`. Úsalo cuando el script tenga que nombrar las claves; usa `check` cuando baste un sí o un no:
 
 ```json
-{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
+{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"emptySource":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
 ```
 
 `translate --dry-run` responde "¿qué haría una ejecución?", sin llamar a un proveedor, sin clave y sin escribir nada. Sale con `0`. Cada lista por locale está presente aunque esté vacía, así que reduce el resultado a los campos con los que actúas:

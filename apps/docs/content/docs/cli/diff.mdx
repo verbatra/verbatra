@@ -24,13 +24,14 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 ### Pending and orphaned keys
 
-Each locale lists three kinds of key:
+Each locale lists four kinds of key:
 
 | List | Meaning |
 | --- | --- |
 | `missing` (shown as `add`) | in the source, absent from the target: a run would add it |
 | `changed` (shown as `re-translate`) | the source text changed since the last translation: a run would re-translate it |
 | `orphaned` | in the target, gone from the source: reported only |
+| `emptySource` (shown as `empty source`) | the source value is empty or whitespace only: nothing to translate until you write it, never pending |
 
 A locale has pending changes when it has at least one missing or changed key. Orphaned keys never count as pending, because a default run leaves them in place; only [`verbatra translate --prune`](/docs/cli/translate) removes them. Where [`verbatra check`](/docs/cli/check) gives the counts, `diff` gives the key lists.
 
@@ -93,6 +94,7 @@ interface LocaleDiff {
   missing: string[];           // would be added
   changed: string[];           // would be re-translated
   orphaned: string[];          // reported only
+  emptySource?: string[];      // source value empty: never pending
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
   changedOrigins?: Record<string, KeyOrigin>; // absent when the provenance file is unreadable
   protected?: string[];        // pending keys translate would leave alone

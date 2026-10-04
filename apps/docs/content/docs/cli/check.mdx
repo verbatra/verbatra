@@ -186,6 +186,7 @@ interface LocaleCheckSummary {
   stale: number;                // source changed since last translated
   upToDate: number;
   inSync: boolean;              // missing === 0 && stale === 0
+  emptySource?: number;         // source value empty: never missing or stale
   provenance?: ProvenanceSummary; // counts by origin and review state
   protected?: number;
   incompletePlurals?: IncompletePlural[];
@@ -194,6 +195,8 @@ interface LocaleCheckSummary {
   review?: LocaleReviewReport;  // only with --require-reviewed
 }
 ```
+
+A source key whose value is empty or whitespace only, such as one `extract` added without a default, has nothing to translate yet: it is counted in `emptySource` instead of `missing` or `stale`, never makes a locale out of sync, and the terminal output names the count.
 
 ### Terminal feedback
 

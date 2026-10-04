@@ -25,13 +25,13 @@ Every payload below comes from a small project: source locale `en`, one target l
 `check` answers "is anything out of sync", in counts, and exits `1` here:
 
 ```json
-{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0,"incompletePlurals":[]}]}}
+{"ok":true,"version":1,"command":"check","result":{"inSync":false,"locales":[{"locale":"de","missing":1,"stale":0,"upToDate":1,"emptySource":0,"inSync":false,"provenance":{"byOrigin":{"machine":0,"memory":0,"fuzzy":0,"agent":0,"human":0,"import":0,"unknown":0,"unrecorded":1,"external":0},"byReviewState":{"unreviewed":1,"approved":0,"rejected":0}},"protected":0,"incompletePlurals":[]}]}}
 ```
 
 `diff` answers the same question by key name, and also exits `1`. Use it when the script has to name the keys; use `check` when a yes or no is enough:
 
 ```json
-{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
+{"ok":true,"version":1,"command":"diff","result":{"hasPendingChanges":true,"locales":[{"locale":"de","missing":["app.greeting"],"changed":[],"orphaned":[],"emptySource":[],"hasPendingChanges":true,"changedOrigins":{},"protected":[]}]}}
 ```
 
 `translate --dry-run` answers "what would a run do", with no provider call, no key and nothing written. It exits `0`. Every per-locale list is present even when empty, so reduce the result to the fields you act on:

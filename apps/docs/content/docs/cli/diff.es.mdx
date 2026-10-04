@@ -24,13 +24,14 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--confi
 
 ### Claves pendientes y huérfanas
 
-Cada locale lista tres tipos de clave:
+Cada locale lista cuatro tipos de clave:
 
 | Lista | Significado |
 | --- | --- |
 | `missing` (se muestra como `add`) | está en el origen y falta en el destino: una ejecución la añadiría |
 | `changed` (se muestra como `re-translate`) | el texto de origen cambió desde la última traducción: una ejecución la retraduciría |
 | `orphaned` | está en el destino y ya no en el origen: solo se informa |
+| `emptySource` (se muestra como `empty source`) | el valor de origen está vacío o solo tiene espacios: nada que traducir hasta que lo escribas, nunca pendiente |
 
 Un locale tiene cambios pendientes cuando tiene al menos una clave faltante o cambiada. Las claves huérfanas nunca cuentan como pendientes, porque una ejecución por defecto las deja donde están; solo [`verbatra translate --prune`](/docs/cli/translate) las elimina. [`verbatra check`](/docs/cli/check) da los contadores, `diff` da las listas de claves.
 
@@ -93,6 +94,7 @@ interface LocaleDiff {
   missing: string[];           // se añadiría
   changed: string[];           // se retraduciría
   orphaned: string[];          // solo se informa
+  emptySource?: string[];      // valor de origen vacío: nunca pendiente
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
   changedOrigins?: Record<string, KeyOrigin>; // ausente si el archivo de procedencia no se puede leer
   protected?: string[];        // claves pendientes que translate deja como están

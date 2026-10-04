@@ -70,7 +70,7 @@ Solo el archivo del locale de origen, y solo claves realmente nuevas:
 - Una clave que el catálogo solo tiene en formas de plural cuenta como presente: `t("cart.items", { count })` no añade nada junto a `cart.items_one` y `cart.items_other`, y lo mismo vale para una entrada gettext con `msgid_plural` y un recurso `<plurals>` de Android. En un formato que no marca las formas de plural, como YAML, cuenta toda clave que termina en un sufijo de plural de i18next.
 - Una clave del catálogo que ninguna llamada menciona se queda donde está. `extract` nunca borra; [`verbatra diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso) lista esas claves.
 - Una ejecución que no encuentra nada nuevo no escribe nada, así que el archivo queda idéntico byte a byte.
-- Nunca se escribe un archivo de locale de destino. Ejecuta después [`verbatra translate`](/docs/cli/translate) para rellenar las claves nuevas.
+- Nunca se escribe un archivo de locale de destino. Ejecuta después [`verbatra translate`](/docs/cli/translate) para rellenar las claves nuevas. Una clave añadida con valor vacío se omite hasta que escribas su texto de origen, y la ejecución la nombra con [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
 
 Los catálogos `xliff` y `apple-xcstrings` nunca se crean desde cero: crea primero el catálogo de origen (el de `.xcstrings` en Xcode) y `extract` lo amplía después.
 

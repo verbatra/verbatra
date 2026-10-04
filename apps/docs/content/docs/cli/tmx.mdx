@@ -73,7 +73,7 @@ An accepted unit's source text joins the index [fuzzy reuse](/docs/the-cache) sc
 
 ### What export writes
 
-One `tu` per distinct source string, with the source segment and one target segment per exported locale, under a TMX 1.4b header (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Only entries under the current configuration fingerprint are written. Language tags are written in BCP 47 form (`en_US` becomes `en-US`), characters XML 1.0 cannot represent are removed and counted, and an empty memory produces a valid, empty file. Entries without stored source text, carried forward from an older cache, are left out and counted.
+One `tu` per distinct source string, with the source segment and one target segment per exported locale, under a TMX 1.4b header (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Only entries under the current configuration fingerprint are written. Language tags are written in BCP 47 form (`en_US` becomes `en-US`), characters XML 1.0 cannot represent are removed and counted, and an empty memory produces a valid, empty file. Entries without stored source text, carried forward from an older cache, are left out and counted. The summary counts `tu` elements in its total and target segments per locale, so the per-locale counts add up to more than the total whenever a string is translated into several locales.
 
 <AvailableFrom version="0.12.0" />
 

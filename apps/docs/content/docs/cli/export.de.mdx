@@ -3,7 +3,7 @@ title: verbatra export
 description: Exportiere unübersetzte Strings in eine Übergabe für Übersetzerinnen, als formatierte Excel-Arbeitsmappe, als CSV- bzw. TSV-Datei pro Locale oder als XLIFF-Datei pro Locale für ein CAT-Tool.
 type: reference
 ---
-Schreibe die zu übersetzenden Strings in eine Übergabe, die ein Mensch ausfüllt und für [`verbatra import`](/docs/cli/import) zurückschickt. Standardmäßig enthält sie nur die fehlenden und geänderten Strings, also dieselben Keys, die ein automatischer Lauf an einen Provider schicken würde. `export` ruft nie einen Provider auf und braucht keinen API-Key.
+Schreibe die zu übersetzenden Strings in eine Übergabe, die ein Mensch ausfüllt und für [`verbatra import`](/docs/cli/import) zurückschickt. Standardmäßig enthält sie nur die fehlenden und geänderten Strings, also dieselben Keys, die ein automatischer Lauf an einen Provider schicken würde. Ein Key, dessen Quellwert leer ist oder nur aus Leerraum besteht, bekommt keine Zeile, bis du seinen Quelltext schreibst. `export` ruft nie einen Provider auf und braucht keinen API-Key.
 
 ## Synopsis
 

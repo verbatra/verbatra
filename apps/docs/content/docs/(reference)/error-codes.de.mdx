@@ -1220,6 +1220,14 @@ DeepL, Google Cloud Translation und LibreTranslate bekommen ein solches Token wi
 - **Exit-Code**: keiner
 - **Nächster Schritt**: Prüfe die Übersetzungen der genannten Keys, oder wechsle die Syntax, wenn deine Bibliothek diese Tokens nicht interpoliert.
 
+### SOURCE_VALUE_EMPTY
+
+Quell-Keys, deren Wert leer ist oder nur aus Leerraum besteht, etwa ein Key, den [`extract`](/docs/cli/extract) ohne Standardwert ergänzt hat, wären in diesem Locale sonst fehlend oder veraltet. Für sie wird nichts gesendet, geschrieben oder gezählt, und das Ziel behält den Wert, den es hat. Die Meldung nennt die Zahl der Keys und die ersten davon.
+
+- **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
+- **Exit-Code**: keiner
+- **Nächster Schritt**: Schreib den Quelltext der genannten Keys und lass dann `verbatra translate` erneut laufen.
+
 ### SENSITIVE_CONTENT_SENT
 
 Unter `sensitiveData.mode: "warn"` enthalten Keys oder Glossarbegriffe, die diese Locale gesendet hat, Inhalt, den ein Detektor oder Muster getroffen hat. Sie wurden unverändert gesendet. Die Meldung nennt die Detektoren und die ersten Keys, nie den gefundenen Text, außer er steht im Key-Namen.

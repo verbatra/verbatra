@@ -3,7 +3,7 @@ title: verbatra export
 description: Exporte les chaînes non traduites dans une remise pour traducteurs, sous forme de classeur Excel stylisé, d'un fichier CSV ou TSV par locale ou d'un fichier XLIFF par locale pour un outil de TAO.
 type: reference
 ---
-Écris les chaînes à traduire dans une remise qu'une personne remplit et renvoie pour [`verbatra import`](/docs/cli/import). Par défaut, elle ne porte que les chaînes manquantes et modifiées, les mêmes clés qu'une exécution automatisée enverrait à un fournisseur. `export` n'appelle jamais de fournisseur et n'a besoin d'aucune clé d'API.
+Écris les chaînes à traduire dans une remise qu'une personne remplit et renvoie pour [`verbatra import`](/docs/cli/import). Par défaut, elle ne porte que les chaînes manquantes et modifiées, les mêmes clés qu'une exécution automatisée enverrait à un fournisseur. Une clé dont la valeur source est vide ou ne contient que des espaces n'a pas de ligne tant que tu n'as pas écrit son texte source. `export` n'appelle jamais de fournisseur et n'a besoin d'aucune clé d'API.
 
 ## Synopsis
 

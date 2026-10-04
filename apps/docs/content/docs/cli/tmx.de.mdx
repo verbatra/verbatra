@@ -73,7 +73,7 @@ Der Quelltext einer angenommenen Einheit landet im Index, gegen den die [unschar
 
 ### Was der Export schreibt
 
-Ein `tu` pro eindeutigem Quellstring, mit dem Quellsegment und einem Zielsegment pro exportierter Locale, unter einem TMX-1.4b-Header (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint. Sprach-Tags erscheinen in BCP-47-Form (`en_US` wird `en-US`), Zeichen, die XML 1.0 nicht darstellen kann, werden entfernt und gezählt, und ein leerer Speicher ergibt eine gültige, leere Datei. Einträge ohne gespeicherten Quelltext, übernommen aus einem älteren Cache, werden ausgelassen und gezählt.
+Ein `tu` pro eindeutigem Quellstring, mit dem Quellsegment und einem Zielsegment pro exportierter Locale, unter einem TMX-1.4b-Header (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Geschrieben werden nur Einträge unter dem aktuellen Konfigurations-Fingerprint. Sprach-Tags erscheinen in BCP-47-Form (`en_US` wird `en-US`), Zeichen, die XML 1.0 nicht darstellen kann, werden entfernt und gezählt, und ein leerer Speicher ergibt eine gültige, leere Datei. Einträge ohne gespeicherten Quelltext, übernommen aus einem älteren Cache, werden ausgelassen und gezählt. Die Zusammenfassung zählt in der Summe `tu`-Elemente und pro Locale Zielsegmente, daher ergeben die Zahlen pro Locale zusammen mehr als die Summe, sobald ein String in mehrere Locales übersetzt ist.
 
 <AvailableFrom version="0.12.0" />
 

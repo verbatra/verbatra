@@ -1206,6 +1206,14 @@ DeepL, Google Cloud Translation and LibreTranslate get such a token masked like 
 - **Exit code**: none
 - **Next step**: Review the translations of the named keys, or switch the syntax if your library does not interpolate these tokens.
 
+### SOURCE_VALUE_EMPTY
+
+Source keys whose value is empty or whitespace only, such as a key [`extract`](/docs/cli/extract) added without a default, would otherwise be missing or stale in this locale. Nothing is sent, written or counted for them, and the target keeps whatever value it holds. The message gives the number of keys and names the first ones.
+
+- **Raised by**: `translate` (a dry run too), `watch`
+- **Exit code**: none
+- **Next step**: Write the source text of the named keys, then run `verbatra translate` again.
+
 ### SENSITIVE_CONTENT_SENT
 
 Under `sensitiveData.mode: "warn"`, keys or glossary terms this locale sent hold content a detector or pattern matched. They were sent unchanged. The message names the detectors and the first keys, never the matched text unless it is part of a key name.
