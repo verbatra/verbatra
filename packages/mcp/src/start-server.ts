@@ -102,8 +102,8 @@ export interface McpServerHandle {
 
 /**
  * Starts verbatra's stdio MCP server: loads the project config, serves MCP over
- * `process.stdin`/`process.stdout` to clients on protocol revision 2026-07-28 and on the 2025
- * revisions, and returns a handle to stop it. The server closes itself when
+ * `process.stdin`/`process.stdout` to clients on protocol revision 2026-07-28 and on the earlier
+ * revisions back to 2024-10-07, and returns a handle to stop it. The server closes itself when
  * the client closes stdin, which settles the handle's `closed` promise. Use this to embed the server
  * in your own process; the `verbatra mcp` CLI command and the `verbatra-mcp` binary both call it.
  *

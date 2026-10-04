@@ -30,7 +30,7 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
   and on an interrupt shuts down within two seconds, releasing its locale locks.
 - The server sends `instructions`, and every tool declares an `outputSchema`.
 - The server speaks MCP protocol revision 2026-07-28 (`server/discover`, `subscriptions/listen`)
-  and keeps serving clients on the 2025 revisions unchanged.
+  and keeps serving clients on the earlier revisions back to 2024-10-07 unchanged.
 - `package.json` declares `mcpName` for the official MCP Registry, and `./package.json` is exported.
 
 **Tools**
