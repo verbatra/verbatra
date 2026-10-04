@@ -102,7 +102,11 @@ export function createProgressReporter(options: ProgressReporterOptions): Progre
     stop();
   }
 
-  options.signal?.addEventListener("abort", stop, { once: true });
+  if (options.signal?.aborted === true) {
+    stop();
+  } else {
+    options.signal?.addEventListener("abort", stop, { once: true });
+  }
 
   return { onProgress, close };
 }

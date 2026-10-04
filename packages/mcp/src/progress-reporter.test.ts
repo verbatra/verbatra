@@ -226,4 +226,15 @@ describe("createProgressReporter", () => {
       { progress: 2, total: 2, message: "de: batch 2/2" },
     ]);
   });
+
+  it("sends nothing when the signal had already aborted before it was created", () => {
+    const { updates, send } = recorder();
+    const reporter = createProgressReporter({ send, signal: AbortSignal.abort() });
+
+    reporter.onProgress(planned("de", 1));
+    reporter.onProgress(finished("de", 1, 1));
+    reporter.close();
+
+    expect(updates).toEqual([]);
+  });
 });
