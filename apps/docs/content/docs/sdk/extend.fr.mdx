@@ -182,7 +182,9 @@ const summary = await translate({ config }, { createProvider });
   `glossary` (le résultat de [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) pour la locale cible),
   `tone`, `maxLength` et `pluralCategories`. Il porte aussi `extractPlaceholders` et, pour certains
   formats, `comparePlaceholders`, que ton fournisseur utilise pour le contrôle d'intégrité, ainsi
-  que `signal`, qui interrompt un appel en cours, et `onRepair`.
+  que `signal`, qui interrompt un appel en cours, `onRepair` et, depuis 0.12.0,
+  `foreignPlaceholders` : par clé, les jetons d'une autre syntaxe de placeholder à protéger comme
+  des placeholders.
 - `TranslateResult` renvoie `values` et `integrity` par clé, plus `usage`, `notices` et
   `reviewFlags` en option. Une clé absente de `values` compte comme non traduite, donc un
   fournisseur peut omettre une valeur qu'il ne sait pas traduire sans risque. Le SDK fait passer

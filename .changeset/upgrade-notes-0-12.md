@@ -69,8 +69,7 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   plain text, is now withheld with `PLACEHOLDER_UNSUPPORTED` when its other text holds `{` or `}`
   (also `<` or `>` for DeepL and Google), such as ICU `{n, plural, ...}` in i18next; for DeepL and
   Google also when it holds markup, and for Google a line break, tab or double space. Translate
-  such keys by hand or with an LLM provider. A custom provider sees the tokens appended to
-  `entries[].placeholders`, for an ICU argument only its head, such as `{n, plural,`.
+  such keys by hand or with an LLM provider.
 - DeepL and Google: a locale missing from the shipped language table refuses the whole run with
   `LOCALE_UNSUPPORTED_BY_PROVIDER` (exit 2) before anything is spent. DeepL formality uses
   `prefer_`, so an unsupported register gives a `FORMALITY_DOWNGRADED` notice instead of failing.

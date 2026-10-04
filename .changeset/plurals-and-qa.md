@@ -36,6 +36,8 @@ CLDR plurals, ICU arm checks, other-syntax placeholder and direction control war
   The value is still written, and translated ICU arms are never flagged.
 - DeepL, Google and LibreTranslate get such tokens masked like placeholders; a value whose token
   cannot be masked or comes back damaged is left untranslated with `PLACEHOLDER_UNSUPPORTED`.
+  A custom provider receives the tokens per key in `TranslateRequest.foreignPlaceholders` (for an
+  ICU argument only its head, such as `{n, plural,`).
 - `check --qa` names each missing token in the warning's `details`, as `-{name}`.
 - Each locale reports `SOURCE_FOREIGN_PLACEHOLDERS` naming its pending keys that hold such a
   token, on a dry run too, so you can review them or change the syntax before anything is spent.
