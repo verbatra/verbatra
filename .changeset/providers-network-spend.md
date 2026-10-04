@@ -19,7 +19,7 @@ LibreTranslate, placeholder masking, network policy, sensitive-data guard, `--ma
 - A value whose placeholders cannot be protected (ICU syntax, markup or other brackets beside
   them), a Google value with line breaks, tabs or double spaces, and a result whose markers do not
   come back intact are still withheld with `PLACEHOLDER_UNSUPPORTED`, which now names a next step.
-  Values without placeholders are sent exactly as before.
+  Values without placeholders or placeholder-like tokens are sent exactly as before.
 
 **Network policy**
 - A `network` block (`any`, `local-only`, `allowlist` with `allowedHosts`), or

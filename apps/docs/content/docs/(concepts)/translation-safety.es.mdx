@@ -148,7 +148,7 @@ una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | deja abierto un control de dirección, o añade una anulación que invierte el texto <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google y LibreTranslate reciben ese token enmascarado y retienen un valor que no pueden
-enmascarar ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
+enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
 
 Los aciertos de caché y los valores compartidos entre claves pasan por las mismas heurísticas que
 las traducciones nuevas. Las claves marcadas aparecen por locale como `needsReview` en el resumen de

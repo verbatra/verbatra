@@ -151,7 +151,7 @@ retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la f
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | laisse un contrôle de direction ouvert, ou ajoute un forçage qui inverse le texte <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google et LibreTranslate reçoivent ce jeton masqué et retiennent une valeur qu'ils ne peuvent
-pas masquer ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) ; le signalement couvre les LLM et les personnes.
+ni masquer ni restaurer ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) ; le signalement couvre les LLM et les personnes.
 
 Les succès du cache et les valeurs partagées entre clés passent par les mêmes heuristiques que les
 traductions fraîches. Les clés signalées apparaissent par locale sous `needsReview` dans le résumé

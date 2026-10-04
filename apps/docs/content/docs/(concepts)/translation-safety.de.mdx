@@ -150,7 +150,7 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | ein Richtungssteuerzeichen offen lässt oder eine Überschreibung hinzufügt, die Text umkehrt <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google und LibreTranslate bekommen so ein Token maskiert und halten einen Wert zurück, den sie
-nicht maskieren können ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); die Markierung deckt LLMs und Menschen ab.
+nicht maskieren oder wiederherstellen können ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); die Markierung deckt LLMs und Menschen ab.
 
 Cache-Treffer und Werte, die sich Keys teilen, durchlaufen dieselben Heuristiken wie frische
 Übersetzungen. Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung,

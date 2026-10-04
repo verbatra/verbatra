@@ -139,7 +139,7 @@ locked, and put on the needs-review queue.
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | leaves a direction control unclosed, or adds an override that reverses text <AvailableFrom version="0.12.0" /> |
 
 DeepL, Google and LibreTranslate get such a token masked, and withhold a value they cannot mask
-([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); the flag covers LLMs and people.
+or restore ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); the flag covers LLMs and people.
 
 Cache hits and values shared between keys go through the same heuristics as fresh translations.
 Flagged keys appear per locale as `needsReview` on the run summary, in the workbook's review
