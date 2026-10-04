@@ -217,7 +217,7 @@ function lastRunTile(view: ReturnType<typeof useUsageTicker>): {
   const hintLead =
     state.usage.kind === "reported"
       ? "Tokens in / out. "
-      : "The provider sent no token usage for this run. ";
+      : "No token usage was recorded: the run called no provider, or its provider does not report usage. ";
   return {
     value: usage,
     hint: `${hintLead}${budget}As of ${formatTimestamp(state.generatedAt)}`,

@@ -21,7 +21,7 @@ function UsageCards({ usage }: { readonly usage: UsageDisplay }): ReactNode {
         label="Tokens"
         icon="gauge"
         value="Not reported"
-        hint="The provider sent no token usage for this run."
+        hint="No token usage was recorded: the run called no provider, or its provider does not report usage."
       />
     );
   }

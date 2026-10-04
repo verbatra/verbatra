@@ -688,7 +688,7 @@ describe("TranslationsPanel stat strip", () => {
 
     expect(metricTile(view, "Last run")).toMatchObject({
       value: "Not reported",
-      hint: `The provider sent no token usage for this run. Within budget. As of ${formatTimestamp(generatedAt)}`,
+      hint: `No token usage was recorded: the run called no provider, or its provider does not report usage. Within budget. As of ${formatTimestamp(generatedAt)}`,
     });
   });
 
@@ -699,7 +699,7 @@ describe("TranslationsPanel stat strip", () => {
 
     expect(metricTile(view, "Last run")).toMatchObject({
       value: "Not reported",
-      hint: `The provider sent no token usage for this run. As of ${formatTimestamp(generatedAt)}`,
+      hint: `No token usage was recorded: the run called no provider, or its provider does not report usage. As of ${formatTimestamp(generatedAt)}`,
     });
   });
 
