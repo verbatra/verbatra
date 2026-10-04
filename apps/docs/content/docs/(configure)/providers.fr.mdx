@@ -97,7 +97,7 @@ provider: {
 Lit `GEMINI_API_KEY`.
 
 <Callout title="L'offre gratuite et ses limites">
-Une clé de [Google AI Studio](https://aistudio.google.com/apikey) ne demande aucune facturation. L'offre gratuite plafonne les requêtes par minute et par jour, donc une première exécution sur beaucoup de locales peut atteindre le plafond. Les brèves limites de débit sont retentées, un plafond durable ne l'est pas : traduis une locale à la fois ou baisse `maxBatchSize`, puis relance, ce qui ne reprend que ce qui manque encore.
+Une clé de [Google AI Studio](https://aistudio.google.com/apikey) ne demande aucune facturation. L'offre gratuite plafonne les requêtes par minute et par jour, donc une première exécution sur beaucoup de locales peut atteindre le plafond : traduis une locale à la fois ou baisse `maxBatchSize`, puis relance, ce qui ne reprend que ce qui manque encore.
 </Callout>
 
 ## DeepL
@@ -273,7 +273,7 @@ Le travail d'une locale part en sous-lots séquentiels d'au plus [`maxBatchSize`
 
 ### Nouvelles tentatives
 
-Les limites de débit et les erreurs serveur sont retentées avec backoff : les clients d'OpenAI, d'Anthropic et de DeepL le font eux-mêmes, et verbatra ajoute la même chose pour Gemini. Google Cloud Translation et LibreTranslate ne réessaient pas : une limite de débit ou une erreur serveur remonte aussitôt comme `RATE_LIMITED` ou `PROVIDER_UNAVAILABLE`, et le sous-lot est repris à l'exécution suivante.
+Les limites de débit et les erreurs serveur sont retentées avec backoff : les clients d'OpenAI, d'Anthropic et de DeepL le font eux-mêmes, et verbatra ajoute la même chose pour Gemini. Google Cloud Translation et LibreTranslate ne réessaient pas : une limite de débit ou une erreur serveur remonte aussitôt comme `RATE_LIMITED` ou `PROVIDER_UNAVAILABLE`.
 
 ### Délai de requête
 
@@ -294,6 +294,7 @@ provider: {
 - **Par tentative.** Les clients réessaient `429` et `5xx` quelques fois, chaque tentative disposant du délai complet. Anthropic, OpenAI, openai-compatible et Gemini réessaient aussi une tentative qui a dépassé le délai, et tous sauf Gemini une erreur de connexion : un serveur figé met donc jusqu'à trois délais plus les pauses avant d'être abandonné.
 - **L'erreur nomme la cause.** `TIMEOUT` veut dire qu'une tentative n'a reçu aucune réponse à temps ; des connexions refusées répétées échouent en `PROVIDER_ERROR`.
 - **DeepL** attend au moins le délai par tentative, jusqu'à cinq tentatives, et ne peut pas interrompre une requête en cours : une exécution interrompue la laisse donc aller à son terme chez DeepL.
+- **Google Cloud Translation et LibreTranslate** envoient une seule requête sans nouvelle tentative, donc le délai couvre l'appel entier.
 
 ### Codes de locale envoyés au fournisseur
 
@@ -344,7 +345,7 @@ Chaque locale configurée est jugée avant toute dépense :
 
 [`verbatra doctor`](/docs/cli/doctor#prise-en-charge-des-locales) donne chaque verdict, et `--locales` ajoute le code envoyé ainsi que la prise en charge du glossaire et de la formalité. Une locale non prise en charge est refusée avec [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider) (code de sortie `2`) avant qu'aucun fournisseur ne soit construit ; un avertissement ne refuse jamais et apparaît comme [avis](/docs/error-codes#sdk-notice-codes).
 
-Les tables sont des copies datées. `verbatra doctor --live` récupère d'abord la liste actuelle (`/v3/languages` chez DeepL, `languages` chez Cloud Translation, `/languages` chez LibreTranslate, sans consommer de quota) quand la clé est définie (LibreTranslate n'en a pas besoin) et que la [politique réseau](/docs/network-policy) l'autorise. La liste en direct n'alimente que le rapport ; `translate` utilise toujours la table embarquée. Pour une langue ajoutée depuis, associe la locale dans `localeMap` : un code explicite est envoyé avec un avertissement, pas refusé.
+`verbatra doctor --live` récupère d'abord la liste actuelle (`/v3/languages` chez DeepL, `languages` chez Cloud Translation, `/languages` chez LibreTranslate, sans consommer de quota) quand la clé est définie (LibreTranslate n'en a pas besoin) et que la [politique réseau](/docs/network-policy) l'autorise. La liste en direct n'alimente que le rapport ; `translate` utilise toujours la table embarquée. Pour une langue ajoutée depuis, associe la locale dans `localeMap` : un code explicite est envoyé avec un avertissement, pas refusé.
 
 ### Erreurs structurées
 

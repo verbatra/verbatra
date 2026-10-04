@@ -97,7 +97,7 @@ provider: {
 Reads `GEMINI_API_KEY`.
 
 <Callout title="The free tier and its limits">
-A key from [Google AI Studio](https://aistudio.google.com/apikey) needs no billing. The free tier caps requests per minute and per day, so a first run over many locales can hit the cap. Brief rate limits are retried, a sustained cap is not: translate one locale at a time or lower `maxBatchSize`, then re-run, which only picks up what is still missing.
+A key from [Google AI Studio](https://aistudio.google.com/apikey) needs no billing. The free tier caps requests per minute and per day, so a first run over many locales can hit the cap: translate one locale at a time or lower `maxBatchSize`, then re-run, which only picks up what is still missing.
 </Callout>
 
 ## DeepL
@@ -273,7 +273,7 @@ A locale's work goes out in sequential sub-batches of at most [`maxBatchSize`](/
 
 ### Retries
 
-Rate limits and server errors are retried with backoff: the OpenAI, Anthropic and DeepL clients do it themselves, and verbatra adds the same for Gemini. Google Cloud Translation and LibreTranslate do not retry: a rate limit or server error surfaces at once as `RATE_LIMITED` or `PROVIDER_UNAVAILABLE`, and the sub-batch is picked up next run.
+Rate limits and server errors are retried with backoff: the OpenAI, Anthropic and DeepL clients do it themselves, and verbatra adds the same for Gemini. Google Cloud Translation and LibreTranslate do not retry: a rate limit or server error surfaces at once as `RATE_LIMITED` or `PROVIDER_UNAVAILABLE`.
 
 ### Request timeout
 
@@ -294,6 +294,7 @@ provider: {
 - **Per attempt.** Clients retry `429` and `5xx` a few times, each attempt with the full timeout. Anthropic, OpenAI, openai-compatible and Gemini also retry a timed-out attempt, and all but Gemini a connection error, so a hung server takes up to three timeouts plus backoff to give up.
 - **The error names the cause.** `TIMEOUT` means one attempt got no answer in time; repeated refused connections fail as `PROVIDER_ERROR`.
 - **DeepL** waits at least the timeout per attempt, up to five attempts, and cannot abort a request in flight, so an interrupted run leaves it to settle at DeepL.
+- **Google Cloud Translation and LibreTranslate** send one request with no retries, so the timeout covers the whole call.
 
 ### Locale codes sent to the provider
 
@@ -344,7 +345,7 @@ Every configured locale is judged before anything is spent:
 
 [`verbatra doctor`](/docs/cli/doctor#locale-support) reports each verdict, and `--locales` adds the code sent and glossary and formality support. An unsupported locale is refused with [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider) (exit `2`) before any provider is built; a warning never refuses and appears as a [notice](/docs/error-codes#sdk-notice-codes).
 
-The tables are dated copies. `verbatra doctor --live` first fetches the current list (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`, no quota used) when the key is set (LibreTranslate needs none) and the [network policy](/docs/network-policy) allows it. The live list only informs the report; `translate` always uses the shipped table. For a language added since, map the locale in `localeMap`: an explicit code is sent with a warning, not refused.
+`verbatra doctor --live` first fetches the current list (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`, no quota used) when the key is set (LibreTranslate needs none) and the [network policy](/docs/network-policy) allows it. The live list only informs the report; `translate` always uses the shipped table. For a language added since, map the locale in `localeMap`: an explicit code is sent with a warning, not refused.
 
 ### Structured errors
 

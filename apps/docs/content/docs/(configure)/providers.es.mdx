@@ -97,7 +97,7 @@ provider: {
 Lee `GEMINI_API_KEY`.
 
 <Callout title="El nivel gratuito y sus límites">
-Una clave de [Google AI Studio](https://aistudio.google.com/apikey) no necesita facturación. El nivel gratuito limita las peticiones por minuto y por día, así que una primera ejecución sobre muchos locales puede toparse con el tope. Los límites de tasa breves se reintentan, un tope sostenido no: traduce un locale cada vez o baja `maxBatchSize`, y vuelve a ejecutar, que solo recoge lo que sigue faltando.
+Una clave de [Google AI Studio](https://aistudio.google.com/apikey) no necesita facturación. El nivel gratuito limita las peticiones por minuto y por día, así que una primera ejecución sobre muchos locales puede toparse con el tope: traduce un locale cada vez o baja `maxBatchSize`, y vuelve a ejecutar, que solo recoge lo que sigue faltando.
 </Callout>
 
 ## DeepL
@@ -273,7 +273,7 @@ El trabajo de un locale se envía en sublotes secuenciales de como mucho [`maxBa
 
 ### Reintentos
 
-Los límites de tasa y los errores de servidor se reintentan con espera: los clientes de OpenAI, Anthropic y DeepL lo hacen por sí mismos, y verbatra añade lo mismo para Gemini. Google Cloud Translation y LibreTranslate no reintentan: un límite de tasa o un error de servidor aflora de inmediato como `RATE_LIMITED` o `PROVIDER_UNAVAILABLE`, y el sublote se recoge en la siguiente ejecución.
+Los límites de tasa y los errores de servidor se reintentan con espera: los clientes de OpenAI, Anthropic y DeepL lo hacen por sí mismos, y verbatra añade lo mismo para Gemini. Google Cloud Translation y LibreTranslate no reintentan: un límite de tasa o un error de servidor aflora de inmediato como `RATE_LIMITED` o `PROVIDER_UNAVAILABLE`.
 
 ### Tiempo de espera de petición
 
@@ -294,6 +294,7 @@ provider: {
 - **Por intento.** Los clientes reintentan `429` y `5xx` unas cuantas veces, cada intento con el límite completo. Anthropic, OpenAI, openai-compatible y Gemini también reintentan un intento que agotó el tiempo, y todos menos Gemini un error de conexión, así que un servidor colgado tarda hasta tres límites más las pausas en darse por perdido.
 - **El error nombra la causa.** `TIMEOUT` significa que un intento no recibió respuesta a tiempo; las conexiones rechazadas repetidas fallan como `PROVIDER_ERROR`.
 - **DeepL** espera al menos el límite por intento, hasta cinco intentos, y no puede abortar una petición en vuelo, así que una ejecución interrumpida la deja resolverse en DeepL.
+- **Google Cloud Translation y LibreTranslate** envían una sola petición sin reintentos, así que el límite cubre la llamada completa.
 
 ### Códigos de locale enviados al proveedor
 
@@ -344,7 +345,7 @@ Cada locale configurado se evalúa antes de gastar nada:
 
 [`verbatra doctor`](/docs/cli/doctor#soporte-de-locales) informa de cada veredicto, y `--locales` añade el código enviado y el soporte de glosario y de formalidad. Un locale no admitido se rechaza con [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider) (salida `2`) antes de construir ningún proveedor; una advertencia nunca rechaza y aparece como [aviso](/docs/error-codes#sdk-notice-codes).
 
-Las tablas son copias fechadas. `verbatra doctor --live` obtiene primero la lista actual (`/v3/languages` de DeepL, `languages` de Cloud Translation, `/languages` de LibreTranslate, sin consumir cuota) cuando la clave está definida (LibreTranslate no necesita ninguna) y la [política de red](/docs/network-policy) lo permite. La lista en vivo solo informa el resultado; `translate` siempre usa la tabla incluida. Para un idioma añadido después, asigna el locale en `localeMap`: un código explícito se envía con un aviso, no se rechaza.
+`verbatra doctor --live` obtiene primero la lista actual (`/v3/languages` de DeepL, `languages` de Cloud Translation, `/languages` de LibreTranslate, sin consumir cuota) cuando la clave está definida (LibreTranslate no necesita ninguna) y la [política de red](/docs/network-policy) lo permite. La lista en vivo solo informa el resultado; `translate` siempre usa la tabla incluida. Para un idioma añadido después, asigna el locale en `localeMap`: un código explícito se envía con un aviso, no se rechaza.
 
 ### Errores estructurados
 
