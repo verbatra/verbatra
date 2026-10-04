@@ -1,8 +1,6 @@
 {
   "title": "SDK",
   "pages": [
-    "[Démarrage rapide du SDK](/fr/docs/sdk-quickstart)",
-    "[Recettes SDK](/fr/docs/programmatic-api)",
     "index",
     "run",
     "inspect",

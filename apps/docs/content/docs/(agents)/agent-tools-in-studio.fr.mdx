@@ -24,7 +24,7 @@ verbatra studio --expose-agent-tools
 
 Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent)).
 
-L'agent lit chaque valeur sans masquage, comme la page l'affiche ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
+L'agent lit chaque valeur sans masquage, comme la page l'affiche : Studio ne masque rien, car un agent dans l'onglet peut de toute façon lire la page. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
 
 ## Savoir ce que l'agent peut appeler
 

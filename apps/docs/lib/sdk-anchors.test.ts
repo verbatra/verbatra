@@ -16,7 +16,7 @@ import LEGACY_ANCHORS from "@/lib/sdk-legacy-anchors.json";
 const SDK_DIR = join(import.meta.dirname, "../content/docs/sdk");
 const PAGE_NAMES = (
   JSON.parse(readFileSync(join(SDK_DIR, "meta.json"), "utf8")) as { pages: string[] }
-).pages.filter((page) => !page.startsWith("["));
+).pages;
 
 function readPage(name: string, locale: Locale): string {
   const suffix = locale === i18n.defaultLanguage ? "" : `.${locale}`;
