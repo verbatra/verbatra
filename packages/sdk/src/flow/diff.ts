@@ -13,9 +13,12 @@ import { findUnusedKeys, type UnusedKeysReport } from "./unused-keys.js";
 export interface LocaleDiff {
   /** The target locale this entry describes. */
   readonly locale: string;
-  /** Keys present in the source but absent from this locale. */
+  /** Keys with a non-blank source value that are absent from this locale. */
   readonly missing: readonly string[];
-  /** Keys whose source text changed since this locale was last translated. */
+  /**
+   * Keys with a non-blank source value whose source text changed since this locale was last
+   * translated.
+   */
   readonly changed: readonly string[];
   /**
    * Keys present in this locale but no longer in the source. They are reported, never removed,
@@ -27,6 +30,14 @@ export interface LocaleDiff {
    * because they need no translation work.
    */
   readonly hasPendingChanges: boolean;
+  /**
+   * Source keys whose value is empty or whitespace only, such as a key `extract` added without a
+   * default, whatever the target or the lock-file holds. They are never in `missing` or `changed`
+   * and are not pending: a {@link translate} run sends nothing for them and reports them with a
+   * `SOURCE_VALUE_EMPTY` notice. {@link diff} always sets it; it is optional only so a value built
+   * by hand, such as a test double, can leave it out.
+   */
+  readonly emptySource?: readonly string[];
   /**
    * The interpreted origin of each `changed` key's current value, read from the provenance file,
    * so a caller can see before a run whose work a retranslation would replace. See
@@ -104,6 +115,7 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
     missing: diff.missing,
     changed: diff.changed,
     orphaned: diff.orphaned,
+    emptySource: diff.emptySource,
     hasPendingChanges: diff.missing.length > 0 || diff.changed.length > 0,
   };
 }

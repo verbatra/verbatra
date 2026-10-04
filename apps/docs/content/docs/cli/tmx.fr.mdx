@@ -73,7 +73,7 @@ Le texte source d'une unité acceptée rejoint l'index contre lequel la [réutil
 
 ### Ce qu'écrit l'export
 
-Un `tu` par chaîne source distincte, avec le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Seules les entrées sous l'empreinte de configuration actuelle sont écrites. Les étiquettes de langue sont écrites en forme BCP 47 (`en_US` devient `en-US`), les caractères que XML 1.0 ne peut pas représenter sont retirés et comptés, et une mémoire vide produit un fichier valide et vide. Les entrées sans texte source stocké, héritées d'un ancien cache, sont écartées et comptées.
+Un `tu` par chaîne source distincte, avec le segment source et un segment cible par locale exportée, sous un en-tête TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Seules les entrées sous l'empreinte de configuration actuelle sont écrites. Les étiquettes de langue sont écrites en forme BCP 47 (`en_US` devient `en-US`), les caractères que XML 1.0 ne peut pas représenter sont retirés et comptés, et une mémoire vide produit un fichier valide et vide. Les entrées sans texte source stocké, héritées d'un ancien cache, sont écartées et comptées. Le résumé compte des éléments `tu` dans son total et des segments cibles par locale, donc les nombres par locale dépassent le total dès qu'une chaîne est traduite dans plusieurs locales.
 
 <AvailableFrom version="0.12.0" />
 

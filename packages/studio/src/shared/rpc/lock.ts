@@ -13,6 +13,7 @@ export interface LockLocaleState {
   readonly missing: number;
   readonly stale: number;
   readonly upToDate: number;
+  readonly emptySource?: number;
   readonly provenance?: ProvenanceSummary;
 }
 

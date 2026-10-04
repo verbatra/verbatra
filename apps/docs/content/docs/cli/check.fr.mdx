@@ -188,6 +188,7 @@ interface LocaleCheckSummary {
   stale: number;                // source modifiée depuis la dernière traduction
   upToDate: number;
   inSync: boolean;              // missing === 0 && stale === 0
+  emptySource?: number;         // valeur source vide : jamais manquante ni obsolète
   provenance?: ProvenanceSummary; // décomptes par origine et état de relecture
   protected?: number;
   incompletePlurals?: IncompletePlural[];
@@ -196,6 +197,8 @@ interface LocaleCheckSummary {
   review?: LocaleReviewReport;  // seulement avec --require-reviewed
 }
 ```
+
+Une clé source dont la valeur est vide ou ne contient que des espaces, comme une clé qu'`extract` a ajoutée sans valeur par défaut, n'a encore rien à traduire : elle est comptée dans `emptySource` au lieu de `missing` ou `stale`, ne désynchronise jamais une locale, et la sortie du terminal en donne le nombre.
 
 ### Retour dans le terminal
 

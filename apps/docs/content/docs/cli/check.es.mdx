@@ -188,6 +188,7 @@ interface LocaleCheckSummary {
   stale: number;                // el origen cambió desde la última traducción
   upToDate: number;
   inSync: boolean;              // missing === 0 && stale === 0
+  emptySource?: number;         // valor de origen vacío: nunca falta ni está desactualizado
   provenance?: ProvenanceSummary; // recuentos por origen y estado de revisión
   protected?: number;
   incompletePlurals?: IncompletePlural[];
@@ -196,6 +197,8 @@ interface LocaleCheckSummary {
   review?: LocaleReviewReport;  // solo con --require-reviewed
 }
 ```
+
+Una clave de origen cuyo valor está vacío o solo tiene espacios, como una que `extract` añadió sin valor por defecto, aún no tiene nada que traducir: se cuenta en `emptySource` en lugar de `missing` o `stale`, nunca deja un locale fuera de sincronía, y la salida de terminal indica el número.
 
 ### Información en el terminal
 

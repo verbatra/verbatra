@@ -29,11 +29,15 @@ import { readTmxOriginLookup, type TmxOriginLookup } from "./tmx-origin.js";
 /** Default output path for a TMX export, used when {@link ExportTmxInput.out} is omitted. */
 export const DEFAULT_TMX_PATH = "verbatra-memory.tmx";
 
-/** How many translation units one locale contributed to the exported file. */
+/**
+ * How many target segments one locale contributed to the exported file. A `tu` element carries one
+ * segment per locale that translated its source string, so these counts add up to more than
+ * {@link ExportTmxResult.units} whenever a source string is translated into several locales.
+ */
 export interface ExportTmxLocaleCount {
   /** The configured target locale. */
   readonly locale: string;
-  /** How many of its memory entries were written. */
+  /** How many of its memory entries were written, one target segment each. */
   readonly units: number;
 }
 
@@ -43,7 +47,7 @@ export interface ExportTmxResult {
   readonly path: string;
   /** How many `tu` elements the file holds, one per distinct source string. */
   readonly units: number;
-  /** Per-locale contribution to that total. */
+  /** Per-locale target segment counts, not a breakdown of `units`. */
   readonly locales: readonly ExportTmxLocaleCount[];
   /**
    * Translations left out because the memory holds no source text for their content hash, counted

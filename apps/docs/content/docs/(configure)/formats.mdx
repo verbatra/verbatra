@@ -157,7 +157,7 @@ One JSON catalogue holding every locale, Xcode 15's replacement for `.strings`.
 
 - **`msgctxt`** joins its `msgid` into one key with U+E000; a source containing that character is rejected.
 - **Plurals** are keyed by index, `key[n]`, not by CLDR category. `Plural-Forms` is kept verbatim and only its `nplurals` bounds the indices; plural entries without it are rejected, as `msgfmt --check` does.
-- **Flags and comments.** A `#, fuzzy` value is read as current and the flag kept. `#.` comments are read-only context; `#:` and other flags are kept, `#~` blocks stay inert, and the header is never touched. A `.pot` with empty `msgstr` reads cleanly.
+- **Flags and comments.** A `#, fuzzy` value is read as current and the flag kept. `#.` comments are read-only context; `#:` and other flags are kept, `#~` blocks stay inert, and the header is never touched. A `.pot` with empty `msgstr` reads cleanly. As a source catalog, though, each `msgstr` is the text to translate: an entry whose source `msgstr` is empty is skipped with [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
 - **Missing target** is created with a minimal header and, for plurals, a `Plural-Forms` sized to the highest index (a safe fallback from three forms on; seed from a real template for exact grammar).
 - **Placeholders are printf**, `%(name)s` included.
 - **Errors** name the `msgid` and line. `--prune` knows nothing of plural indices, so it can delete target-only forms.

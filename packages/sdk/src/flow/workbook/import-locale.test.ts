@@ -295,6 +295,47 @@ describe("importLocale", () => {
     ).toThrow(UnknownKeyError);
   });
 
+  it("accepts a person's value for a key whose source value is empty", () => {
+    const src = entry("blank", "");
+    const sheet: WorkbookSheet = { locale: "de", rows: [row("blank", "Leer", contentHash(src))] };
+
+    const result = importLocale(
+      params({ sheet, source: resource("en", [src]), target: resource("de", []) }),
+    );
+
+    expect(result.accepted.get("blank")?.value).toBe("Leer");
+    expect(result.summary.translated).toEqual(["blank"]);
+  });
+
+  it("does not report a blank row for a key whose source value is empty as unfilled", () => {
+    const src = entry("blank", " ");
+    const sheet: WorkbookSheet = { locale: "de", rows: [row("blank", "", contentHash(src))] };
+
+    const result = importLocale(
+      params({ sheet, source: resource("en", [src]), target: resource("de", []) }),
+    );
+
+    expect(result.summary.unfilled).toEqual([]);
+    expect(result.accepted.size).toBe(0);
+  });
+
+  it("keeps an XLIFF initial echo of a key whose source value is empty instead of reporting it unfilled", () => {
+    const src = entry("blank", "");
+    const sheet: WorkbookSheet = { locale: "de", rows: [row("blank", "Alt", contentHash(src))] };
+
+    const result = importLocale(
+      params({
+        sheet,
+        source: resource("en", [src]),
+        target: resource("de", [entry("blank", "Alt")]),
+        states: new Map([["blank", "initial"]]),
+      }),
+    );
+
+    expect(result.summary.unfilled).toEqual([]);
+    expect(result.accepted.size).toBe(0);
+  });
+
   it('accepts a filled row with reviewStatus "review" exactly like an equivalent "ok" row', () => {
     const src = entry("greet", "Hi");
     const sheet: WorkbookSheet = {

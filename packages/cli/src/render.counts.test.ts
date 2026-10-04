@@ -204,11 +204,11 @@ describe("render: count wording agrees with the count", () => {
       "2 units carried differing segments for this locale, so none of them was stored",
     ],
     [
-      "tmx export locale units",
+      "tmx export locale segments",
       (n: number) =>
         renderTmxExportHuman(makeExportTmxResult({ locales: [{ locale: "de", units: n }] })),
-      "de: 1 unit",
-      "de: 2 units",
+      "de: 1 segment",
+      "de: 2 segments",
     ],
     [
       "tmx export total",

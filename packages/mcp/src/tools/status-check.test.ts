@@ -18,6 +18,20 @@ describe("status.check", () => {
     });
   });
 
+  it("counts a key with an empty source value apart and keeps the locale in sync", async () => {
+    const dir = await makeProject({ greeting: "Hello", empty: " " }, { de: { greeting: "Hallo" } });
+
+    const outcome = await statusCheckTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        inSync: true,
+        locales: [{ locale: "de", missing: 0, emptySource: 1, inSync: true }],
+      },
+    });
+  });
+
   it("reports a locale in sync once every key is translated", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
 

@@ -73,7 +73,7 @@ El texto de origen de una unidad aceptada entra en el índice contra el que la [
 
 ### Qué escribe el export
 
-Un `tu` por cada cadena de origen distinta, con el segmento de origen y un segmento de destino por locale exportado, bajo una cabecera TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Solo se escriben las entradas bajo la huella de configuración actual. Las etiquetas de idioma salen en forma BCP 47 (`en_US` pasa a `en-US`), los caracteres que XML 1.0 no puede representar se eliminan y se cuentan, y una memoria vacía produce un archivo válido y vacío. Las entradas sin texto de origen guardado, heredadas de una caché antigua, se omiten y se cuentan.
+Un `tu` por cada cadena de origen distinta, con el segmento de origen y un segmento de destino por locale exportado, bajo una cabecera TMX 1.4b (`srclang`, `creationtool`, `creationtoolversion`, `segtype`, `o-tmf`). Solo se escriben las entradas bajo la huella de configuración actual. Las etiquetas de idioma salen en forma BCP 47 (`en_US` pasa a `en-US`), los caracteres que XML 1.0 no puede representar se eliminan y se cuentan, y una memoria vacía produce un archivo válido y vacío. Las entradas sin texto de origen guardado, heredadas de una caché antigua, se omiten y se cuentan. El resumen cuenta elementos `tu` en el total y segmentos de destino por locale, así que los recuentos por locale suman más que el total cuando una cadena está traducida a varios locales.
 
 <AvailableFrom version="0.12.0" />
 

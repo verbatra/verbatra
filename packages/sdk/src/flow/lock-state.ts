@@ -16,12 +16,26 @@ export interface LockLocaleState {
   readonly locale: string;
   /** How many keys the lock-file records a baseline hash for in this locale. */
   readonly keyCount: number;
-  /** Number of source keys with no translation in this locale yet. */
+  /** Number of source keys with a non-blank value and no translation in this locale yet. */
   readonly missing: number;
-  /** Number of keys whose source text changed since the recorded baseline. */
+  /**
+   * Number of keys with a non-blank source value whose source text changed since the recorded
+   * baseline.
+   */
   readonly stale: number;
-  /** Number of keys whose translation still matches the recorded baseline. */
+  /**
+   * Number of keys with a non-blank source value whose translation still matches the recorded
+   * baseline.
+   */
   readonly upToDate: number;
+  /**
+   * Number of source keys whose value is empty or whitespace only. They are counted here and
+   * never in `missing`, `stale` or `upToDate`, so the four counts add up to the source's keys. A
+   * lock-file baseline such a key already has stays in `keyCount`: nothing is translated for it,
+   * so no run rewrites or drops that entry. {@link lockState} always sets it; it is optional only
+   * so a value built by hand, such as a test double, can leave it out.
+   */
+  readonly emptySource?: number;
   /**
    * Counts by origin and review state over the keys this locale has a value for, read from the
    * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
@@ -73,6 +87,7 @@ function toLockLocaleState(locale: string, keyCount: number, diff: DiffResult): 
     missing: diff.missing.length,
     stale: diff.changed.length,
     upToDate: diff.unchanged.length,
+    emptySource: diff.emptySource.length,
   };
 }
 

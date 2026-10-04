@@ -70,7 +70,7 @@ Nur die Quell-Locale-Datei, und nur Keys, die wirklich neu sind:
 - Ein Key, den der Katalog nur in Pluralformen führt, gilt als vorhanden: `t("cart.items", { count })` fügt neben `cart.items_one` und `cart.items_other` nichts hinzu, und das gilt genauso für einen gettext-Eintrag mit `msgid_plural` und eine Android-`<plurals>`-Ressource. In einem Format, das Pluralformen nicht markiert, etwa YAML, zählt jeder Key mit einem i18next-Plural-Suffix.
 - Ein Katalog-Key, den kein Aufruf erwähnt, bleibt stehen. `extract` löscht nie; [`verbatra diff --unused`](/docs/cli/diff#ungenutzte-quell-keys) listet diese Keys.
 - Ein Lauf, der nichts Neues findet, schreibt nichts, die Datei bleibt also byte-identisch.
-- Eine Ziel-Locale-Datei wird nie geschrieben. Lass danach [`verbatra translate`](/docs/cli/translate) laufen, um die neuen Keys zu füllen.
+- Eine Ziel-Locale-Datei wird nie geschrieben. Lass danach [`verbatra translate`](/docs/cli/translate) laufen, um die neuen Keys zu füllen. Ein Key mit leerem Wert wird übersprungen, bis du seinen Quelltext schreibst, und der Lauf nennt ihn mit [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
 
 Kataloge in `xliff` und `apple-xcstrings` werden nie aus dem Nichts erzeugt: Leg den Quellkatalog zuerst an (den `.xcstrings`-Katalog in Xcode), dann ergänzt `extract` ihn.
 

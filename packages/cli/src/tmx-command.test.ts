@@ -217,7 +217,8 @@ describe("verbatra tmx export", () => {
     await run(["tmx", "export", "--cwd", "/proj"], deps, streams);
 
     expect(out()).toContain("verbatra tmx export -> /proj/verbatra-memory.tmx");
-    expect(out()).toContain("de: 9 units");
+    expect(out()).toContain("de: 9 segments");
+    expect(out()).toContain("fr: 4 segments");
     expect(out()).toContain("9 units across 2 locales");
     expect(out()).toContain("3 entries left out");
   });

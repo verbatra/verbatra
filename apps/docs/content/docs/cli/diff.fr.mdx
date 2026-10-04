@@ -24,13 +24,14 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--con
 
 ### Clés en attente et orphelines
 
-Chaque locale liste trois sortes de clés :
+Chaque locale liste quatre sortes de clés :
 
 | Liste | Signification |
 | --- | --- |
 | `missing` (affichée comme `add`) | dans la source, absente de la cible : une exécution l'ajouterait |
 | `changed` (affichée comme `re-translate`) | le texte source a changé depuis la dernière traduction : une exécution la retraduirait |
 | `orphaned` | dans la cible, disparue de la source : seulement signalée |
+| `emptySource` (affichée comme `empty source`) | la valeur source est vide ou ne contient que des espaces : rien à traduire tant que tu ne l'as pas écrite, jamais en attente |
 
 Une locale a des changements en attente dès qu'elle a au moins une clé manquante ou modifiée. Les clés orphelines ne comptent jamais comme en attente, car une exécution par défaut les laisse en place ; seul [`verbatra translate --prune`](/docs/cli/translate) les supprime. [`verbatra check`](/docs/cli/check) donne les décomptes, `diff` donne les listes de clés.
 
@@ -93,6 +94,7 @@ interface LocaleDiff {
   missing: string[];           // serait ajoutée
   changed: string[];           // serait retraduite
   orphaned: string[];          // seulement signalée
+  emptySource?: string[];      // valeur source vide : jamais en attente
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
   changedOrigins?: Record<string, KeyOrigin>; // absent si le fichier de provenance est illisible
   protected?: string[];        // clés en attente que translate laisse intactes

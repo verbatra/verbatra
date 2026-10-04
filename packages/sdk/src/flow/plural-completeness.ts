@@ -1,5 +1,6 @@
 import {
   type FormatId,
+  isBlankValue,
   type LocaleResource,
   PLURAL_CATEGORIES,
   type PluralCategory,
@@ -71,19 +72,13 @@ function compareIncomplete(a: IncompletePlural, b: IncompletePlural): number {
   );
 }
 
-export function findIncompletePlurals(
-  format: FormatId,
-  source: LocaleResource,
-  target: LocaleResource,
+function incompleteAmong(
+  sets: readonly PluralFormSet[],
   locale: string,
 ): readonly IncompletePlural[] {
-  const sourcePlurals = new Set(pluralFormSets(format, source).map(identityOf));
   const gaps = new Map<string, PluralGap>();
-  for (const set of pluralFormSets(format, target)) {
+  for (const set of sets) {
     const identity = identityOf(set);
-    if (!sourcePlurals.has(identity)) {
-      continue;
-    }
     const present = new Set(set.categories);
     const gap = gaps.get(identity) ?? { set, missing: new Set<PluralCategory>() };
     for (const category of requiredCategories(locale, set.ruleType)) {
@@ -97,4 +92,60 @@ export function findIncompletePlurals(
     .filter((gap) => gap.missing.size > 0)
     .map(toIncompletePlural)
     .sort(compareIncomplete);
+}
+
+export function findIncompletePlurals(
+  format: FormatId,
+  source: LocaleResource,
+  target: LocaleResource,
+  locale: string,
+): readonly IncompletePlural[] {
+  const sourcePlurals = new Set(pluralFormSets(format, source).map(identityOf));
+  return incompleteAmong(
+    pluralFormSets(format, target).filter((set) => sourcePlurals.has(identityOf(set))),
+    locale,
+  );
+}
+
+function withoutBlankValues(resource: LocaleResource): LocaleResource {
+  return {
+    ...resource,
+    entries: new Map([...resource.entries].filter(([, entry]) => !isBlankValue(entry.value))),
+  };
+}
+
+function projectedCategories(
+  set: PluralFormSet,
+  filled: readonly string[],
+  generation: boolean,
+): readonly string[] {
+  if (!generation || filled.length === 0) {
+    return filled;
+  }
+  return PLURAL_CATEGORIES.filter(
+    (category) => filled.includes(category) || !set.categories.includes(category),
+  );
+}
+
+export function findIncompleteAbsentPlurals(
+  format: FormatId,
+  source: LocaleResource,
+  target: LocaleResource,
+  locale: string,
+  generation: boolean,
+): readonly IncompletePlural[] {
+  const targetPlurals = new Set(pluralFormSets(format, target).map(identityOf));
+  const filled = new Map(
+    pluralFormSets(format, withoutBlankValues(source)).map((set) => [
+      identityOf(set),
+      set.categories,
+    ]),
+  );
+  const projected = pluralFormSets(format, source)
+    .filter((set) => set.argument === undefined && !targetPlurals.has(identityOf(set)))
+    .map((set) => ({
+      ...set,
+      categories: projectedCategories(set, filled.get(identityOf(set)) ?? [], generation),
+    }));
+  return incompleteAmong(projected, locale);
 }

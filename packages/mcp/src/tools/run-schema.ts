@@ -68,6 +68,7 @@ const localeSummarySchema = z.object({
   orphaned: keyListSchema,
   pruned: keyListSchema,
   invalidIcuSource: keyListSchema,
+  emptySource: keyListSchema.optional(),
   cacheHits: keyListSchema,
   fuzzyHits: z.array(fuzzyCacheHitSchema).readonly(),
   integrityMismatches: keyListSchema,

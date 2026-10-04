@@ -54,6 +54,7 @@ describe("failureSummary", () => {
       orphaned: [],
       pruned: [],
       invalidIcuSource: [],
+      emptySource: [],
       cacheHits: [],
       fuzzyHits: [],
       integrityMismatches: [],

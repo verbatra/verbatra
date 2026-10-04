@@ -70,7 +70,7 @@ Only the source locale file, and only keys that are genuinely new:
 - A key the catalog holds only as plural forms counts as present: `t("cart.items", { count })` adds nothing next to `cart.items_one` and `cart.items_other`, and the same holds for a gettext `msgid_plural` entry and an Android `<plurals>` resource. In a format that does not mark plural forms, such as YAML, every key ending in an i18next plural suffix counts.
 - A catalog key no call site mentions is left alone. `extract` never deletes; [`verbatra diff --unused`](/docs/cli/diff#unused-source-keys) lists those keys.
 - A run that finds nothing new writes nothing, so the file stays byte-identical.
-- A target locale file is never written. Run [`verbatra translate`](/docs/cli/translate) afterwards to fill in the new keys.
+- A target locale file is never written. Run [`verbatra translate`](/docs/cli/translate) afterwards to fill in the new keys. A key added with an empty value is skipped until you write its source text, and the run names it with [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
 
 `xliff` and `apple-xcstrings` catalogs are never created from nothing: create the source catalog first (the `.xcstrings` one in Xcode), and `extract` then appends to it.
 

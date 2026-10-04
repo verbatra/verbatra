@@ -188,6 +188,7 @@ interface LocaleCheckSummary {
   stale: number;                // Quelle seit der letzten Übersetzung geändert
   upToDate: number;
   inSync: boolean;              // missing === 0 && stale === 0
+  emptySource?: number;         // Quellwert leer: nie fehlend oder veraltet
   provenance?: ProvenanceSummary; // Zählungen nach Herkunft und Review-Status
   protected?: number;
   incompletePlurals?: IncompletePlural[];
@@ -196,6 +197,8 @@ interface LocaleCheckSummary {
   review?: LocaleReviewReport;  // nur mit --require-reviewed
 }
 ```
+
+Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, den `extract` ohne Standardwert ergänzt hat, hat noch nichts zu übersetzen: Er wird in `emptySource` statt in `missing` oder `stale` gezählt, macht ein Locale nie asynchron, und die Terminalausgabe nennt die Zahl.
 
 ### Rückmeldung im Terminal
 

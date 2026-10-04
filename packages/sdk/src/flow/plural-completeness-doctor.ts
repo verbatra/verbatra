@@ -1,10 +1,16 @@
 import { type FormatAdapter, tracksPluralCategories } from "@verbatra/format-adapters";
+import { isMachineProvider } from "../config/provider-config.js";
+import { kindOf } from "../config/provider-kind.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { readTarget } from "./diff-locales.js";
-import { findIncompletePlurals, type IncompletePlural } from "./plural-completeness.js";
+import {
+  findIncompleteAbsentPlurals,
+  findIncompletePlurals,
+  type IncompletePlural,
+} from "./plural-completeness.js";
 import { readSourceResource } from "./source.js";
 
 const LISTED_PLURALS = 10;
@@ -12,6 +18,19 @@ const LISTED_PLURALS = 10;
 interface LocalePluralGaps {
   readonly locale: string;
   readonly plurals: readonly IncompletePlural[];
+}
+
+function pluralGenerationRuns(config: VerbatraConfig): boolean {
+  return (
+    config.format === "i18next-json" &&
+    config.generatePlurals === true &&
+    isMachineProvider(config.provider) &&
+    kindOf(config.provider.id) === "llm"
+  );
+}
+
+function compareGaps(a: IncompletePlural, b: IncompletePlural): number {
+  return a.key.localeCompare(b.key) || a.ruleType.localeCompare(b.ruleType);
 }
 
 async function incompletePluralsByLocale(
@@ -25,7 +44,15 @@ async function incompletePluralsByLocale(
   return Promise.all(
     config.targetLocales.map(async (locale) => {
       const target = await readTarget(cwd, config, adapter, fs, locale);
-      return { locale, plurals: findIncompletePlurals(config.format, source, target, locale) };
+      const committed = findIncompletePlurals(config.format, source, target, locale);
+      const projected = findIncompleteAbsentPlurals(
+        config.format,
+        source,
+        target,
+        locale,
+        pluralGenerationRuns(config),
+      );
+      return { locale, plurals: [...committed, ...projected].sort(compareGaps) };
     }),
   );
 }
@@ -47,7 +74,8 @@ function describeGaps(gaps: readonly LocalePluralGaps[]): string {
   return (
     `${listed.length} ${listed.length === 1 ? "plural lacks" : "plurals lack"} CLDR plural ` +
     `categories the target language uses: ${shown}${more}. Add the missing forms by hand; ` +
-    "verbatra check lists them all."
+    "verbatra check lists every gap in a plural a target already holds and counts a plural it " +
+    "lacks entirely as missing keys."
   );
 }
 

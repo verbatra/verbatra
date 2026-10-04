@@ -1221,6 +1221,14 @@ DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado c
 - **Código de salida**: ninguno
 - **Siguiente paso**: Revisa las traducciones de las claves nombradas, o cambia la sintaxis si tu biblioteca no interpola estos tokens.
 
+### SOURCE_VALUE_EMPTY
+
+Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/docs/cli/extract) añadió sin valor por defecto, nunca faltan, están desactualizadas ni al día, tenga lo que tenga el destino o el archivo de bloqueo; en un catálogo de origen `gettext-po` es un `msgstr` vacío. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
+
+- **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
+- **Código de salida**: ninguno
+- **Siguiente paso**: Escribe el texto de origen de las claves nombradas y vuelve a ejecutar `verbatra translate`.
+
 ### SENSITIVE_CONTENT_SENT
 
 Con `sensitiveData.mode: "warn"`, claves o términos del glosario que este locale envió contienen contenido que un detector o patrón encontró. Se enviaron sin cambios. El mensaje nombra los detectores y las primeras claves, nunca el texto encontrado salvo si forma parte del nombre de una clave.

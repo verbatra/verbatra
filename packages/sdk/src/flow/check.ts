@@ -36,14 +36,29 @@ import { machineClassValues } from "./review-scan.js";
 export interface LocaleCheckSummary {
   /** The target locale these counts describe. */
   readonly locale: string;
-  /** Number of source keys with no translation in this locale yet. */
+  /** Number of source keys with a non-blank value and no translation in this locale yet. */
   readonly missing: number;
-  /** Number of keys whose source text changed since the locale was last translated. */
+  /**
+   * Number of keys with a non-blank source value whose source text changed since the locale was
+   * last translated.
+   */
   readonly stale: number;
-  /** Number of keys whose translation still matches the source recorded in the lock-file. */
+  /**
+   * Number of keys with a non-blank source value whose translation still matches the source
+   * recorded in the lock-file.
+   */
   readonly upToDate: number;
   /** True when this locale has nothing missing and nothing stale. */
   readonly inSync: boolean;
+  /**
+   * Number of source keys whose value is empty or whitespace only, such as a key `extract` added
+   * without a default. They are counted here and never in `missing`, `stale` or `upToDate`,
+   * whatever the target or the lock-file holds, so the four counts add up to the source's keys.
+   * There is nothing to translate yet, so they never make `inSync` false; a {@link translate} run
+   * reports them with a `SOURCE_VALUE_EMPTY` notice. {@link check} always sets it; it is optional
+   * only so a summary built by hand, such as a test double, can leave it out.
+   */
+  readonly emptySource?: number;
   /**
    * Counts by origin and review state over the keys this locale has a value for, read from the
    * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
@@ -228,6 +243,7 @@ function toCheckSummary(
     missing: diff.missing.length,
     stale: diff.changed.length,
     upToDate: diff.unchanged.length,
+    emptySource: diff.emptySource.length,
     inSync: diff.missing.length === 0 && diff.changed.length === 0,
     ...(provenance !== undefined
       ? { provenance: summarizeProvenance(provenance, source, target) }

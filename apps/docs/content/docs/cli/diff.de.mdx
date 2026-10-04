@@ -24,13 +24,14 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config
 
 ### Ausstehende und verwaiste Keys
 
-Jedes Locale listet drei Arten von Keys:
+Jedes Locale listet vier Arten von Keys:
 
 | Liste | Bedeutung |
 | --- | --- |
 | `missing` (angezeigt als `add`) | in der Quelle, im Ziel nicht vorhanden: ein Lauf würde ihn hinzufügen |
 | `changed` (angezeigt als `re-translate`) | der Quelltext hat sich seit der letzten Übersetzung geändert: ein Lauf würde ihn neu übersetzen |
 | `orphaned` | im Ziel, aber aus der Quelle verschwunden: wird nur gemeldet |
+| `emptySource` (angezeigt als `empty source`) | der Quellwert ist leer oder besteht nur aus Leerraum: nichts zu übersetzen, bis du ihn schreibst, nie ausstehend |
 
 Ein Locale hat ausstehende Änderungen, sobald es mindestens einen fehlenden oder geänderten Key hat. Verwaiste Keys zählen nie als ausstehend, weil ein Standardlauf sie stehen lässt; nur [`verbatra translate --prune`](/docs/cli/translate) entfernt sie. [`verbatra check`](/docs/cli/check) liefert die Zähler, `diff` die Key-Listen.
 
@@ -93,6 +94,7 @@ interface LocaleDiff {
   missing: string[];           // würde hinzugefügt
   changed: string[];           // würde neu übersetzt
   orphaned: string[];          // wird nur gemeldet
+  emptySource?: string[];      // Quellwert leer: nie ausstehend
   hasPendingChanges: boolean;  // missing.length > 0 || changed.length > 0
   changedOrigins?: Record<string, KeyOrigin>; // fehlt, wenn die Provenienz-Datei unlesbar ist
   protected?: string[];        // ausstehende Keys, die translate stehen lässt

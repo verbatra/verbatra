@@ -12,6 +12,7 @@ import {
   contentHash,
   diffResources,
   type FormatId,
+  isBlankValue,
   type LocaleResource,
   type PlaceholderIntegrityResult,
   type TranslationEntry,
@@ -52,6 +53,7 @@ import {
   reserveBudget,
 } from "./budget.js";
 import { withCancelledKeys } from "./cancellation.js";
+import { emptySourceNotice } from "./empty-source.js";
 import { type PayloadContext, payloadContextOf } from "./estimate.js";
 import {
   sourceForeignPlaceholderNotice,
@@ -90,6 +92,7 @@ import type {
   NeedsReviewEntry,
   ProtectedKey,
   ProtectionReason,
+  SdkNotice,
   SuggestionStatus,
   UsageSummary,
 } from "./summary.js";
@@ -532,7 +535,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     params.format,
   );
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
-  const sourceNotices = sourceNoticesFor(params, toTranslate);
+  const sourceNotices = sourceNoticesFor(params, toTranslate, diff.emptySource);
 
   if (params.mode.kind === "plan") {
     const planned = plannedGenerationKeys(
@@ -557,6 +560,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         unchanged: diff.unchanged,
         orphaned,
         invalidIcuSource,
+        emptySource: diff.emptySource,
         translated,
         cacheHits: [],
         fuzzyHits: [],
@@ -702,6 +706,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...integrityMismatches,
     ...providerFailures,
     ...invalidIcuSource,
+    ...diff.emptySource,
     ...generation.withheld,
     ...generation.providerFailures,
     ...budgetWithheld,
@@ -721,6 +726,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         unchanged: diff.unchanged,
         orphaned,
         invalidIcuSource,
+        emptySource: diff.emptySource,
         translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
         cacheHits: [...cacheHitKeys]
           .filter((key) => !fuzzyKeys.has(key) && !protection.suggest.has(key))
@@ -1065,14 +1071,18 @@ function sourceEntriesOf(
 function sourceNoticesFor(
   params: LocaleRunParams,
   pendingKeys: readonly string[],
+  emptySourceKeys: readonly string[],
 ): readonly LocaleNotice[] {
-  const notice = sourceForeignPlaceholderNotice(
-    params.adapter.format,
-    params.source,
-    pendingKeys,
-    params.mode.kind === "memory-only" ? "human-only" : "machine",
-  );
-  return notice === undefined ? [] : [notice];
+  const notices = [
+    emptySourceNotice(emptySourceKeys),
+    sourceForeignPlaceholderNotice(
+      params.adapter.format,
+      params.source,
+      pendingKeys,
+      params.mode.kind === "memory-only" ? "human-only" : "machine",
+    ),
+  ];
+  return notices.filter((notice): notice is SdkNotice => notice !== undefined);
 }
 
 function generatedPluralNotices(
@@ -1098,6 +1108,7 @@ interface SummaryParts {
   readonly unchanged: readonly string[];
   readonly orphaned: readonly string[];
   readonly invalidIcuSource: readonly string[];
+  readonly emptySource: readonly string[];
   readonly translated: readonly string[];
   readonly cacheHits: readonly string[];
   readonly fuzzyHits: readonly FuzzyCacheHit[];
@@ -1124,6 +1135,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     orphaned: parts.orphaned,
     pruned: parts.pruned,
     invalidIcuSource: parts.invalidIcuSource,
+    emptySource: parts.emptySource,
     cacheHits: parts.cacheHits,
     fuzzyHits: parts.fuzzyHits,
     integrityMismatches: parts.integrityMismatches,
@@ -1437,6 +1449,10 @@ function refusalsFor(
   return [...listed, ...generated].sort((left, right) => (left.key < right.key ? -1 : 1));
 }
 
+function blankSourceBaseline(sourceEntry: TranslationEntry): string | undefined {
+  return isBlankValue(sourceEntry.value) ? contentHash(sourceEntry) : undefined;
+}
+
 function computeLockEntries(
   params: LocaleRunParams,
   merged: ReadonlyMap<string, TranslationEntry>,
@@ -1451,7 +1467,7 @@ function computeLockEntries(
       continue;
     }
     if (withheld.has(key)) {
-      const prior = params.baseline.get(key);
+      const prior = params.baseline.get(key) ?? blankSourceBaseline(sourceEntry);
       if (prior !== undefined) {
         lockEntries.set(key, prior);
       }

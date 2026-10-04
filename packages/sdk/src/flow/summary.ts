@@ -68,6 +68,12 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   The message gives the number of affected values and names the first keys. Raised per locale,
  *   only when that locale has such a key missing or stale, for every provider and on a dry run
  *   too. Never raised for a format a third-party adapter supplies.
+ * - `SOURCE_VALUE_EMPTY`: source keys whose value is empty or whitespace only, such as a key
+ *   `extract` added without a default or a `gettext-po` source entry with an empty `msgstr`.
+ *   Whatever the target or the lock file holds, they are never sent to a provider, written, or
+ *   counted as translated, unchanged or unfilled, and the target keeps whatever value it holds;
+ *   {@link LocaleSummary.emptySource} lists them. The message gives the number of keys and names
+ *   the first ones. Raised per locale, on a dry run too, until the source text is written.
  * - `SENSITIVE_CONTENT_SENT`: under `sensitiveData.mode: "warn"`, keys this locale sent to the
  *   provider, or glossary terms sent with them, hold content a configured detector or pattern
  *   matched, such as an email address or an API key. They were sent unchanged. The message names
@@ -106,6 +112,7 @@ export type SdkNoticeCode =
   | "GLOSSARY_UNSUPPORTED_BY_PROVIDER"
   | "FORMALITY_UNSUPPORTED_BY_PROVIDER"
   | "SOURCE_FOREIGN_PLACEHOLDERS"
+  | "SOURCE_VALUE_EMPTY"
   | "SENSITIVE_CONTENT_SENT"
   | "SENSITIVE_CONTENT_REDACTED"
   | "SENSITIVE_CONTENT_WITHHELD"
@@ -593,6 +600,15 @@ export interface LocaleSummary {
    * because a broken source message cannot yield a sound translation.
    */
   readonly invalidIcuSource: readonly string[];
+  /**
+   * Source keys whose value is empty or whitespace only, such as a key `extract` added without a
+   * default (for `gettext-po`, a `msgid` whose `msgstr` in the source catalog is empty). Nothing is
+   * sent, written or counted for them, and the target keeps whatever value it holds; the same keys
+   * are named by the locale's `SOURCE_VALUE_EMPTY` notice. Always set by {@link translate} and
+   * {@link watch}; it is optional only so a summary built by hand, such as a test double, can leave
+   * it out.
+   */
+  readonly emptySource?: readonly string[];
   /**
    * Keys served from the translation memory instead of the provider, and so not paid for. Only
    * exact matches: a reuse for a source string that has since changed is reported in

@@ -36,6 +36,20 @@ describe("lock.state", () => {
     });
   });
 
+  it("counts a key with an empty source value in emptySource only", async () => {
+    const dir = await makeProject({ greeting: "Hello", empty: "" }, { de: {} });
+    await writeJsonFile(join(dir, LOCK_FILE_NAME), { version: 1, locales: { de: {} } });
+
+    const outcome = await lockStateTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        locales: [{ locale: "de", missing: 1, stale: 0, upToDate: 0, emptySource: 1 }],
+      },
+    });
+  });
+
   it("rejects an unrecognized parameter", async () => {
     const outcome = await lockStateTool.execute({ bogus: true }, makeContext());
 

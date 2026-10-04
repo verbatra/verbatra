@@ -29,6 +29,27 @@ describe("translation.translatePending", () => {
     expect(outcome).toMatchObject({ result: { succeeded: ["de"] } });
   });
 
+  it("skips a key with an empty source value and names it in emptySource and a notice", async () => {
+    const dir = await makeProject({ greeting: "Hello", empty: "" }, { de: {} });
+    const context = makeContext({ cwd: dir, createProvider: () => makeStubProvider() });
+
+    const outcome = await translatePendingTool.execute({}, context);
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        locales: [
+          {
+            locale: "de",
+            translated: ["greeting"],
+            emptySource: ["empty"],
+            notices: [expect.objectContaining({ code: "SOURCE_VALUE_EMPTY" })],
+          },
+        ],
+      },
+    });
+  });
+
   it("names a corrupt target file by its project-relative path in the locale's error", async () => {
     const dir = await makeProject({ greeting: "Hello" }, { de: {} });
     await writeFile(join(dir, "locales", "de.json"), "{ not json", "utf8");
