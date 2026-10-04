@@ -28,7 +28,7 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
   files, with the author name and never the email, or a `reason` when it cannot read them.
 - `localeValues` lists each locale's keys in source order under `keys`.
 - `localeValuesPage` reads those values one page at a time, narrowed by `keys` or `query`, and
-  `pageAcrossLocales` pages any per-locale list with the same cursor. A stale cursor throws
+  `provenanceReportPage` pages the entries of `provenanceReport` by bucket. A stale cursor throws
   `PAGE_CURSOR_INVALID`, a limit outside 1 to `PAGE_LIMIT_CAP` throws `PAGE_LIMIT_INVALID`.
 - `runStatus` says why it found no usable status: `available: false` now carries a `reason` from
   `RUN_STATUS_UNAVAILABLE_REASONS` (`no-status-file`, `unreadable`, `invalid`,
