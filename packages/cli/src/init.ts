@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import process from "node:process";
 import {
@@ -15,6 +15,7 @@ import {
   planAgentScaffold,
 } from "./agent-scaffold.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { assertCwdDirectory } from "./cwd-option.js";
 import { ensureGitignore, type GitignoreAction } from "./gitignore.js";
 import {
   type DetectFn,
@@ -37,8 +38,14 @@ import {
 } from "./init-config.js";
 import { renderErrorEnvelope, renderSuccessEnvelope } from "./json-envelope.js";
 import { askLine, stdinIsTty } from "./prompt.js";
-import { renderError, toRenderableError } from "./render.js";
+import { toRenderableError } from "./render.js";
+import {
+  DEFAULT_TERMINAL_SETTINGS,
+  resolveTerminalMode,
+  type TerminalSettings,
+} from "./terminal-mode.js";
 import type { Streams } from "./types.js";
+import { createUi } from "./ui.js";
 
 export { DEFAULT_MODEL } from "./init-config.js";
 
@@ -403,21 +410,6 @@ function interactiveMode(opts: InitOptions, isTty: () => boolean): boolean {
   return opts.yes !== true && opts.json !== true && isTty();
 }
 
-function assertDirectory(cwd: string): void {
-  let isDirectory: boolean;
-  try {
-    isDirectory = statSync(cwd).isDirectory();
-  } catch {
-    isDirectory = false;
-  }
-  if (!isDirectory) {
-    throw new CliUsageError(
-      "INVALID_OPTION",
-      `--cwd names ${cwd}, which is not an existing directory. Create it first, or pass the project directory.`,
-    );
-  }
-}
-
 async function planOrExisting(
   opts: InitOptions,
   cwd: string,
@@ -508,9 +500,19 @@ function withAgentOnlyHint(error: unknown, agent: boolean): unknown {
   );
 }
 
-function renderFailure(error: unknown, json: boolean, streams: Streams): number {
+function renderFailure(
+  error: unknown,
+  json: boolean,
+  streams: Streams,
+  settings: TerminalSettings,
+): number {
   const renderable = toRenderableError(error);
-  streams.err(`${renderError(renderable)}\n`);
+  const terminal = resolveTerminalMode(settings.facts, {
+    json,
+    quiet: settings.quiet,
+    color: settings.color,
+  });
+  createUi(streams, terminal).error(renderable);
   if (json) {
     streams.out(`${renderErrorEnvelope("init", renderable)}\n`);
   }
@@ -521,6 +523,7 @@ export async function runInit(
   rawOpts: unknown,
   streams: Streams,
   deps: InitDeps = {},
+  settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS,
 ): Promise<number> {
   const parsed = initOptsSchema.safeParse(rawOpts);
   const json = parsed.success && parsed.data.json === true;
@@ -529,7 +532,7 @@ export async function runInit(
     const opts = initOptsSchema.parse(rawOpts);
     const cwd = opts.cwd ?? process.cwd();
     if (opts.cwd !== undefined) {
-      assertDirectory(cwd);
+      assertCwdDirectory(cwd);
     }
     const keptConfig = agentOnlyConfigFile(opts, cwd);
     if (keptConfig !== undefined) {
@@ -568,6 +571,6 @@ export async function runInit(
     streams.out(`${renderNextStepsHuman(steps)}\n`);
     return 0;
   } catch (error) {
-    return renderFailure(withAgentOnlyHint(error, agentRequested), json, streams);
+    return renderFailure(withAgentOnlyHint(error, agentRequested), json, streams, settings);
   }
 }

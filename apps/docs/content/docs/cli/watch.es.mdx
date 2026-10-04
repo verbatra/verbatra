@@ -31,6 +31,8 @@ Cada ejecución traduce el subconjunto de `--locales`, o todos los destinos, con
 
 Un `--concurrency` mayor que `1` junto con un presupuesto `maxTokens` configurado se rechaza al arrancar con salida `2`, antes de la primera ejecución, porque el orden en que se intercalan los locales decidiría cuál pierde el trabajo restante.
 
+Un proveedor que no se puede construir, casi siempre porque falta su variable de API key, también se rechaza al arrancar: `watch` sale con `2` y `PROVIDER_CONSTRUCTION_FAILED` y una línea `next:` que nombra la variable, igual que `translate`, en lugar de esperar cambios que ninguna ejecución podría traducir. Antes de 0.12.0 seguía esperando.
+
 ### Detención
 
 <AvailableFrom version="0.12.0" />

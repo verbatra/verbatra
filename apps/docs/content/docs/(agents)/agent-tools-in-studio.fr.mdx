@@ -89,7 +89,8 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | Code | Signification |
 | --- | --- |
 | `REQUEST_INVALID` | la requête ou la réponse n'était pas une enveloppe lisible |
-| `METHOD_UNKNOWN` | la méthode n'est pas enregistrée dans cette session, comme un outil payant sans `--allow-spend` |
+| `METHOD_UNKNOWN` | la méthode n'existe pas dans cette version de Studio |
+| `SPEND_DISABLED` | une méthode payante alors que la dépense est coupée : Studio tourne sans `--allow-spend`, ou le fournisseur est `none` ; le message dit lequel |
 | `PARAMS_INVALID` | un paramètre a échoué à la validation ; `issues` nomme chaque champ |
 | `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
 | `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |

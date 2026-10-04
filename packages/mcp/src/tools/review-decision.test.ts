@@ -110,3 +110,33 @@ describe("review.reject", () => {
     });
   });
 });
+
+const HASH = "0123456789abcdef";
+
+const BOTH_OR_NEITHER: readonly (readonly [string, Record<string, unknown>])[] = [
+  ["neither", { locale: "de", key: "greeting", reviewer: "Mario" }],
+  ["both", { ...PARAMS, expectedHash: HASH }],
+];
+
+describe.each([reviewApproveTool, reviewRejectTool])("$name input schema", (tool) => {
+  it("describes the exactly-one-of rule on both expected-value parameters", () => {
+    const properties = tool.inputSchema.properties as Record<string, { description?: string }>;
+
+    expect(tool.inputSchema.required).toEqual(["locale", "key", "reviewer"]);
+    expect(properties.expectedValue?.description).toContain(
+      "Pass exactly one of expectedValue and expectedHash.",
+    );
+    expect(properties.expectedHash?.description).toContain(
+      "Pass exactly one of expectedValue and expectedHash.",
+    );
+  });
+
+  it.each(BOTH_OR_NEITHER)("refuses %s at the zod boundary", async (_label, params) => {
+    const outcome = await tool.execute(params, makeContext({ cwd: "/nowhere" }));
+
+    expect(outcome).toMatchObject({
+      kind: "invalid",
+      message: expect.stringContaining("Pass exactly one of expectedValue and expectedHash."),
+    });
+  });
+});

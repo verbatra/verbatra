@@ -782,6 +782,29 @@ describe("render: human run summary", () => {
     expect(text).toContain("RATE_LIMITED");
   });
 
+  it("renders each notice on its own line under the notices heading", () => {
+    const text = renderHuman(
+      makeSummary({
+        locales: [
+          makeLocale({
+            notices: [
+              { code: "SOURCE_FOREIGN_PLACEHOLDERS", message: "First notice, with a comma." },
+              { code: "SENSITIVE_CONTENT_SENT", message: "Second notice." },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    const lines = text.split("\n");
+    const heading = lines.indexOf("    notices:");
+    expect(heading).toBeGreaterThan(-1);
+    expect(lines.slice(heading + 1, heading + 3)).toEqual([
+      "      [SOURCE_FOREIGN_PLACEHOLDERS] First notice, with a comma.",
+      "      [SENSITIVE_CONTENT_SENT] Second notice.",
+    ]);
+  });
+
   it("counts provider-failed keys on a partial locale and lists them under it", () => {
     const text = renderHuman(
       makeSummary({

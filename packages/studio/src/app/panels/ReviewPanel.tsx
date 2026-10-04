@@ -17,7 +17,11 @@ import {
   type RowBusyAction,
 } from "../../client/review-in-flight.js";
 import type { QueueReviewState, ReviewQueueRow } from "../../client/review-queue-data.js";
-import { flattenReviewQueue, reviewedValueFor } from "../../client/review-queue-data.js";
+import {
+  flattenReviewQueue,
+  reviewedSourceFor,
+  reviewedValueFor,
+} from "../../client/review-queue-data.js";
 import {
   bulkBusyNote,
   bulkDecisionBlocker,
@@ -70,7 +74,7 @@ import {
 } from "../Table.js";
 import { FilterBar } from "../Toolbar.js";
 import { TranslationValue } from "../TranslationValue.js";
-import { EmptyState } from "../ui.js";
+import { EmptyState, microLabelClassName } from "../ui.js";
 import { useCapabilities } from "../use-capabilities.js";
 import { useLocaleValues } from "../use-locale-values.js";
 import { useMediaQuery } from "../use-media-query.js";
@@ -103,6 +107,8 @@ interface RowActions {
   readonly onRetranslate: ((row: ReviewQueueRow) => void) | undefined;
   readonly onActivate: (row: ReviewQueueRow) => void;
   readonly currentValueOf: (row: ReviewQueueRow) => string | undefined;
+  readonly sourceOf: (row: ReviewQueueRow) => string | undefined;
+  readonly sourceLocale: string | undefined;
   readonly busyOf: (row: ReviewQueueRow) => RowBusy | undefined;
   readonly activeId: string | null;
   readonly rowRefs: Map<string, HTMLTableRowElement>;
@@ -117,11 +123,18 @@ const ACTIVE_ROW_CLASSNAME = "bg-accent/60";
 const ROW_FOCUS_CLASSNAME =
   "focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
+const ROW_TEXT_CLASSNAME =
+  "block w-fit max-w-full truncate group-focus-within:whitespace-pre-wrap group-focus-within:break-words";
+
 function ReviewEntry({
   row,
+  source,
+  sourceLocale,
   value,
 }: {
   readonly row: ReviewQueueRow;
+  readonly source: string | undefined;
+  readonly sourceLocale: string | undefined;
   readonly value: string | undefined;
 }): ReactNode {
   return (
@@ -134,13 +147,32 @@ function ReviewEntry({
           Loading the current translation…
         </span>
       ) : (
-        <TranslationValue
-          value={value}
-          locale={row.locale}
-          className="block w-fit max-w-full truncate text-xs text-muted-foreground"
-          title={value}
-          data-row-value=""
-        />
+        <dl className="m-0 mt-1 grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2 gap-y-0.5 text-xs">
+          {source === undefined ? null : (
+            <>
+              <dt className={microLabelClassName}>Source</dt>
+              <dd className="m-0 min-w-0">
+                <TranslationValue
+                  value={source}
+                  locale={sourceLocale}
+                  className={cn(ROW_TEXT_CLASSNAME, "text-muted-foreground")}
+                  title={source}
+                  data-row-source=""
+                />
+              </dd>
+            </>
+          )}
+          <dt className={microLabelClassName}>Target</dt>
+          <dd className="m-0 min-w-0">
+            <TranslationValue
+              value={value}
+              locale={row.locale}
+              className={cn(ROW_TEXT_CLASSNAME, "text-foreground")}
+              title={value}
+              data-row-value=""
+            />
+          </dd>
+        </dl>
       )}
     </>
   );
@@ -216,7 +248,7 @@ function ReviewRow({
       tabIndex={active ? 0 : -1}
       aria-current={active ? "true" : undefined}
       data-active={active ? "" : undefined}
-      className={cn("align-top", ROW_FOCUS_CLASSNAME, active && ACTIVE_ROW_CLASSNAME)}
+      className={cn("group align-top", ROW_FOCUS_CLASSNAME, active && ACTIVE_ROW_CLASSNAME)}
       onFocus={() => actions.onActivate(row)}
       onClick={() => actions.onActivate(row)}
     >
@@ -231,7 +263,12 @@ function ReviewRow({
       ) : null}
       <TableCell mono>{row.locale}</TableCell>
       <TableCell className="w-full max-w-0">
-        <ReviewEntry row={row} value={value} />
+        <ReviewEntry
+          row={row}
+          source={actions.sourceOf(row)}
+          sourceLocale={actions.sourceLocale}
+          value={value}
+        />
         {wide ? null : (
           <div className="mt-2 space-y-2" data-row-stacked="">
             <RowWhy row={row} />
@@ -966,6 +1003,8 @@ function ReviewPanelBody({ refreshToken }: PanelProps): ReactNode {
     onRetranslate: spend ? decisions.retranslate : undefined,
     onActivate: active.activate,
     currentValueOf: (row) => reviewedValueFor(values, row),
+    sourceOf: (row) => reviewedSourceFor(values, row),
+    sourceLocale: capabilitiesState.kind === "loaded" ? capabilitiesState.sourceLocale : undefined,
     busyOf: busyFor(decisions.pending, now),
     activeId: active.activeRow === undefined ? null : rowId(active.activeRow),
     rowRefs: active.rowRefs,

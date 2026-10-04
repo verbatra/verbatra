@@ -2,15 +2,17 @@ import { projectRelativeMessage, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { entryIdentity, uniqueByIdentity } from "../shared/rpc/entry-identity.js";
+import type { SpendWithheldReason } from "../shared/rpc/snapshot.js";
 import { causeText, studioErrorLine } from "./error-line.js";
 import type { InFlightEntryRef, RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
-import type { HandlersRegistry, RpcHandlerDeps } from "./rpc.js";
+import { type HandlersRegistry, isSpendMethod, type RpcHandlerDeps } from "./rpc.js";
 
 export interface RpcResult {
   readonly statusCode: number;
   readonly body: string;
   readonly retryAfterSeconds?: number;
+  readonly rpcMethod?: RpcMethodName;
 }
 
 const REQUEST_INVALID_MESSAGE = "The request body must be JSON shaped as { method, params }.";
@@ -22,6 +24,21 @@ const BATCH_TOO_LARGE_MESSAGE =
 const ALREADY_IN_PROGRESS_MESSAGE =
   "A matching call is already in progress; wait for it to finish.";
 const INTERNAL_ERROR_MESSAGE = "An unexpected error occurred.";
+const SPEND_SET_MESSAGE =
+  "This method belongs to the spend set, which Studio registers only when it may call the translation provider";
+
+const SPEND_WITHHELD_MESSAGES: Readonly<Record<SpendWithheldReason, string>> = {
+  flag: `${SPEND_SET_MESSAGE}, and this session was started without --allow-spend. Restart it with \`verbatra studio --allow-spend\` to enable the spend set.`,
+  policy: `${SPEND_SET_MESSAGE}, and the config's provider is none, so machine translation is disabled; --allow-spend does not change that.`,
+};
+
+function spendDisabledEnvelope(deps: RpcHandlerDeps): RpcResult {
+  return errorEnvelope(
+    403,
+    "SPEND_DISABLED",
+    SPEND_WITHHELD_MESSAGES[deps.spendWithheld ?? "flag"],
+  );
+}
 
 interface ParsedIssue {
   readonly path: readonly string[];
@@ -173,6 +190,12 @@ async function invokeHandler(
   rateLimiter: RpcRateLimiter | undefined,
   inFlightGuard: RpcInFlightGuard | undefined,
 ): Promise<RpcResult> {
+  const handler = handlers[method];
+  if (handler === undefined) {
+    return isSpendMethod(method)
+      ? spendDisabledEnvelope(deps)
+      : errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
+  }
   const schema = rpcParamsSchemas[method];
   const parsedParams = schema.safeParse(params);
   if (!parsedParams.success) {
@@ -182,10 +205,6 @@ async function invokeHandler(
       PARAMS_INVALID_MESSAGE,
       toParsedIssues(parsedParams.error),
     );
-  }
-  const handler = handlers[method];
-  if (handler === undefined) {
-    return errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
   const dedupeKey = entryDedupeKey(parsedParams.data);
   if (inFlightGuard?.tryEnter(method, dedupeKey, requestEntryRefs(parsedParams.data)) === false) {
@@ -220,7 +239,15 @@ export async function dispatchRpc(
   if (!isKnownMethod(request.method)) {
     return errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
-  return invokeHandler(request.method, request.params, deps, handlers, rateLimiter, inFlightGuard);
+  const result = await invokeHandler(
+    request.method,
+    request.params,
+    deps,
+    handlers,
+    rateLimiter,
+    inFlightGuard,
+  );
+  return { ...result, rpcMethod: request.method };
 }
 
 export function handleRpcBody(

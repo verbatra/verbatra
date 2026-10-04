@@ -36,7 +36,7 @@ A failure carried no code of its own (the fallback).
 
 - **Raised by**: `init`
 - **Exit code**: `2`
-- **Next step**: Pass --force to overwrite the existing config, or remove the other config file the message names.
+- **Next step**: Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
 
 ### CONFIG_INVALID [#cli-config_invalid]
 
@@ -128,9 +128,9 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_OPTION
 
-An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `init --cwd` names no existing directory, or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`.
+An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `--cwd` names no existing directory (any command, before it runs), or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`.
 
-- **Raised by**: `init`, `doctor`, `check`
+- **Raised by**: every command that takes `--cwd`, plus `init`, `doctor`, `check`
 - **Exit code**: `2`
 - **Next step**: Correct or remove the flag the message names.
 
@@ -188,7 +188,7 @@ An `init` flag does not fit the provider (`--base-url` without `openai-compatibl
 
 - **Raised by**: `init`
 - **Exit code**: `2`
-- **Next step**: Pass every flag the message names, or add --yes to accept the defaults.
+- **Next step**: Pass the flags the message names, or --yes where the message offers it.
 
 ### REDACTION_UNSUPPORTED
 
@@ -384,7 +384,7 @@ A locale's write lock, or the glossary lock `updateGlossaryTerm` takes, could no
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-The config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`).
+The config's glossary is inline or absent, so there is no glossary file to read or rewrite (`readGlossaryFile`, `updateGlossaryTerm`). With no glossary at all, the hint says instead: Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Raised by**: Studio and the MCP server
 - **Exit code**: none: no CLI command raises it

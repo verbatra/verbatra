@@ -31,6 +31,8 @@ Chaque exécution traduit le sous-ensemble `--locales`, ou toutes les cibles, av
 
 Un `--concurrency` supérieur à `1` avec un budget `maxTokens` configuré est refusé au démarrage avec la sortie `2`, avant la première exécution, car l'ordre dans lequel les locales s'entrelacent déciderait laquelle perd son travail restant.
 
+Un fournisseur impossible à construire, le plus souvent parce que sa variable de clé d'API manque, est lui aussi refusé au démarrage : `watch` sort avec `2` et `PROVIDER_CONSTRUCTION_FAILED` et une ligne `next:` qui nomme la variable, exactement comme `translate`, au lieu d'attendre des changements qu'aucune exécution ne pourrait traduire. Avant 0.12.0, il continuait d'attendre.
+
 ### Arrêt
 
 <AvailableFrom version="0.12.0" />

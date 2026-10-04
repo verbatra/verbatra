@@ -375,6 +375,7 @@ export function recordingDeps(impl: Partial<CliDeps> = {}): { deps: CliDeps; cal
     provenanceReport: [],
   };
   const deps: CliDeps = {
+    isDirectory: impl.isDirectory ?? (() => true),
     loadConfig: async (options) => {
       calls.loadConfig.push(options);
       return impl.loadConfig ? impl.loadConfig(options) : makeConfig();

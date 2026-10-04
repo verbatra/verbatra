@@ -600,6 +600,35 @@ describe("ReviewPanel", () => {
     expect(shown?.className).toContain("truncate");
   });
 
+  it("shows each row's source text beside its translation, labelled, in full on hover", async () => {
+    stubDecisionReady();
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+    const source = row?.querySelector("[data-row-source]");
+    const labels = Array.from(row?.querySelectorAll("dt") ?? []).map((node) => node.textContent);
+
+    expect(source?.textContent).toBe(source?.getAttribute("title"));
+    expect(source?.textContent).not.toBe("");
+    expect(source?.className).toContain("truncate");
+    expect(labels).toEqual(["Source", "Target"]);
+    expect(source?.getAttribute("lang")).toBe(SNAPSHOT.sourceLocale);
+  });
+
+  it("unfolds a row's source and translation in full while the row has keyboard focus", async () => {
+    stubDecisionReady();
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+
+    expect(row?.className).toContain("group");
+    for (const selector of ["[data-row-source]", "[data-row-value]"]) {
+      const text = row?.querySelector(selector);
+      expect(text?.className).toContain("group-focus-within:whitespace-pre-wrap");
+      expect(text?.className).toContain("group-focus-within:break-words");
+    }
+  });
+
   it("gives a right-to-left value its own direction, isolates its tokens, and starts it at the key's edge", async () => {
     const arQueue: ReviewQueueResult = {
       available: true,
@@ -640,7 +669,14 @@ describe("ReviewPanel", () => {
     expect(
       Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
     ).toEqual(["#{orderId}", "{count, plural,", "one {", "#", "} other {", "#", "}", "}"]);
-    expect(view.all("[dir]").filter((node) => node !== shown && !shown.contains(node))).toEqual([]);
+    const source = view.get("[data-row-source]");
+    expect(source.getAttribute("dir")).toBe("ltr");
+    expect(source.getAttribute("lang")).toBe(SNAPSHOT.sourceLocale);
+    expect(
+      view
+        .all("[dir]")
+        .filter((node) => ![shown, source].some((own) => own === node || own.contains(node))),
+    ).toEqual([]);
   });
 
   it("says the translation is loading until the values arrive", async () => {

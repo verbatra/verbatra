@@ -53,7 +53,7 @@ Ces options ont le même sens sur chaque commande qui les accepte, donc les page
 | `-h`, `--help` | aucun | désactivé | affiche l'aide du programme ou de la commande et sort avec `0` | aucune |
 | `-V`, `--version` | aucun | désactivé | affiche la version de la CLI et sort avec `0` | aucune |
 
-Une commande ou une option inconnue sort avec `2`, tout comme un `verbatra` sans commande : il affiche l'aide sur stderr et, si aucune config n'est trouvée, suggère `verbatra init`. `mcp` n'écrit jamais sur stdout, car stdout est son canal de protocole, donc il refuse `--json` avec `USAGE_ERROR`.
+Une commande ou une option inconnue sort avec `2`, tout comme un `verbatra` sans commande : il affiche l'aide sur stderr et, si aucune config n'est trouvée, suggère `verbatra init`. `mcp` n'écrit jamais sur stdout, car stdout est son canal de protocole, donc il refuse `--json` avec `USAGE_ERROR`. Depuis 0.12.0, un `--cwd` qui ne nomme aucun répertoire existant sort avec `2` et [`INVALID_OPTION`](/docs/error-codes#invalid_option) pour toute commande, avant toute lecture ou écriture.
 
 ## Fichiers d'environnement
 

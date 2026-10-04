@@ -357,7 +357,7 @@ describe("glossary.write", () => {
     });
   });
 
-  it("returns an error outcome when the glossary is not file-backed", async () => {
+  it("tells the agent to create a glossary file when none is configured", async () => {
     const context = makeContext({
       config: baseLoadedConfig({ glossary: { source: "none" } }),
     });
@@ -368,6 +368,21 @@ describe("glossary.write", () => {
       kind: "error",
       message: expect.stringContaining("GLOSSARY_NOT_FILE_BACKED"),
     });
+    const message = outcome.kind === "error" ? outcome.message : "";
+    expect(message).toContain("Next step: Create a glossary file, such as glossary.json");
+    expect(message).not.toContain("Move the glossary");
+  });
+
+  it("tells the agent to move an inline glossary into its own file", async () => {
+    const context = makeContext({
+      config: baseLoadedConfig({ glossary: { source: "inline" } }),
+    });
+
+    const outcome = await glossaryWriteTool.execute({ term: "API", translation: "API" }, context);
+
+    const message = outcome.kind === "error" ? outcome.message : "";
+    expect(message).toContain("GLOSSARY_NOT_FILE_BACKED");
+    expect(message).toContain("Next step: Move the glossary into its own file");
   });
 
   it.each([

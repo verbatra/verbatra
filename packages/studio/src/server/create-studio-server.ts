@@ -296,6 +296,9 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
       rateLimits,
       inFlightEntries: () => inFlightGuard.entries(),
       log: output,
+      ...(capabilities.spendWithheld !== undefined
+        ? { spendWithheld: capabilities.spendWithheld }
+        : {}),
     },
     handlers,
     rateLimiter,

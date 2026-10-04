@@ -12,6 +12,14 @@ const SOURCE = resolve(CWD, "locales/en.json");
 
 const okFs = makeFakeFs({ fileExists: async () => true });
 
+beforeEach(() => {
+  vi.stubEnv("ANTHROPIC_API_KEY", "watch-test-key");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 async function settle(): Promise<void> {
   for (let i = 0; i < 25; i += 1) {
     await Promise.resolve();
@@ -169,6 +177,57 @@ describe("watch: startup and wiring", () => {
     ).rejects.toMatchObject({ code: "SOURCE_UNREADABLE" });
     expect(r.calls).toBe(0);
     expect(w.paths).toEqual([]);
+  });
+
+  it("a provider that cannot be constructed at startup is a hard PROVIDER_CONSTRUCTION_FAILED error, no watcher or run", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const w = watcherHarness();
+    const r = runHarness();
+    const ready = vi.fn();
+    const failure = watch(
+      { config: baseConfig(), cwd: CWD, onRun: () => {}, onReady: ready },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run },
+    );
+    await expect(failure).rejects.toBeInstanceOf(SdkError);
+    await expect(failure).rejects.toMatchObject({
+      code: "PROVIDER_CONSTRUCTION_FAILED",
+      cause: { code: "MISSING_API_KEY" },
+    });
+    expect(r.calls).toBe(0);
+    expect(w.paths).toEqual([]);
+    expect(ready).not.toHaveBeenCalled();
+  });
+
+  it("constructs the provider at startup through the injected factory", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const w = watcherHarness();
+    const r = runHarness();
+    const createProvider = vi.fn(() => {
+      throw new Error("factory refused");
+    });
+    await expect(
+      watch(
+        { config: baseConfig(), cwd: CWD, onRun: () => {} },
+        { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run, createProvider },
+      ),
+    ).rejects.toMatchObject({ code: "PROVIDER_CONSTRUCTION_FAILED" });
+    expect(createProvider).toHaveBeenCalledTimes(1);
+    expect(r.calls).toBe(0);
+  });
+
+  it("constructs no provider under provider none, so a missing key never stops the session", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const w = watcherHarness();
+    const r = runHarness();
+    const createProvider = vi.fn();
+    const controller = await watch(
+      { config: baseConfig({ provider: { id: "none", options: {} } }), cwd: CWD, onRun: () => {} },
+      { fs: okFs, createWatcher: w.createWatcher, runTranslate: r.run, createProvider },
+    );
+    await settle();
+    expect(createProvider).not.toHaveBeenCalled();
+    expect(r.calls).toBe(1);
+    await controller.stop();
   });
 
   it("calls onReady once, after the watcher is attached and before the initial run starts", async () => {
