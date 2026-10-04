@@ -12,6 +12,7 @@ const lockLocaleStateSchema = z.object({
   missing: z.number(),
   stale: z.number(),
   upToDate: z.number(),
+  emptySource: z.number().optional(),
   provenance: provenanceSummarySchema.optional(),
 });
 
@@ -50,7 +51,8 @@ export const lockStateTool = defineTool({
     "the recorded baseline. Each locale also carries provenance: counts byOrigin and " +
     "byReviewState over the keys present in both the source and that locale, read from " +
     "verbatra.provenance.json and absent when that file is corrupt or from a newer " +
-    "verbatra. Takes no parameters. Read-only: it calls no provider and writes nothing.",
+    "verbatra. emptySource counts the source keys whose value is empty or whitespace only, " +
+    "kept out of the other counts so the four add up to the source's keys. Takes no parameters. Read-only: it calls no provider and writes nothing.",
   paramsSchema,
   outputSchema: lockStateResultSchema,
   annotations: {
