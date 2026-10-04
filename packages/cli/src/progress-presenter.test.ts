@@ -27,8 +27,15 @@ const run: readonly ProgressEvent[] = [
   { type: "split-retry", locale: "de", keys: 4 },
   { type: "batch-finished", locale: "de", batchIndex: 1, totalBatches: 2, durationMs: 1200 },
   { type: "writing", locale: "de" },
-  { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 1 },
-  { type: "run-finished", localesCompleted: 1 },
+  {
+    type: "locale-finished",
+    locale: "de",
+    status: "succeeded",
+    translated: 3,
+    localeIndex: 0,
+    totalLocales: 1,
+  },
+  { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
 ];
 
 describe("spinnerText", () => {

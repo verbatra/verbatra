@@ -177,11 +177,15 @@ describe("runWatch: lock-wait progress and timeout threading", () => {
 
     runWatch({ ...options(), json: true }, deps, plainUi(streams, true));
     await flush();
-    calls.watch[0]?.onProgress?.({ type: "run-finished", localesCompleted: 2 });
+    calls.watch[0]?.onProgress?.({ type: "run-finished", localesCompleted: 2, localesFailed: 0 });
 
     const lines = err().trim().split("\n");
     const lastLine = lines.at(-1) ?? "";
-    expect(JSON.parse(lastLine)).toEqual({ type: "run-finished", localesCompleted: 2 });
+    expect(JSON.parse(lastLine)).toEqual({
+      type: "run-finished",
+      localesCompleted: 2,
+      localesFailed: 0,
+    });
   });
 });
 

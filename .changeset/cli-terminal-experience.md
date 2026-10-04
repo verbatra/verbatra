@@ -25,12 +25,14 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 - Errors go to stderr, paths print relative to the working directory, dry runs read
   `would translate`, `--estimate` is headed `(estimate)`, `watch --help` has examples,
   `types --check` says a missing declaration is missing, counts of one read in the singular, and
-  a run's notices print one per line.
+  a run's notices print one per line. A failed locale's progress line says `failed` instead of
+  `done`, and the closing line counts the failed locales.
 - A missing or unreadable file passed to `import` or `tmx import` gets a `next:` hint about that
   file, not the source locale file, and a file read as xlsx because its extension names no format
   says so (SDK: `errorHint`).
 
 **SDK**
 - `onProgress` gains retry, repair, write and `watch` events, and `extract`, `diff` and `doctor`
-  report `files-scanned`. `watch` takes an `onReady` callback, and
+  report `files-scanned`. `locale-finished` carries the locale's `status` and `run-finished` its
+  `localesFailed`, also in the `--json` progress lines. `watch` takes an `onReady` callback, and
   `GenerateTypesResult` carries `missing`.

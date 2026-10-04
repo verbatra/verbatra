@@ -7,8 +7,15 @@ import type { Session } from "./types.js";
 const baseEvents: readonly ProgressEvent[] = [
   { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 1 },
   { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 1 },
-  { type: "locale-finished", locale: "de", translated: 1, localeIndex: 0, totalLocales: 1 },
-  { type: "run-finished", localesCompleted: 1 },
+  {
+    type: "locale-finished",
+    locale: "de",
+    status: "succeeded",
+    translated: 1,
+    localeIndex: 0,
+    totalLocales: 1,
+  },
+  { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
 ];
 
 const everyEvent: readonly ProgressEvent[] = [
@@ -20,8 +27,15 @@ const everyEvent: readonly ProgressEvent[] = [
   { type: "split-retry", locale: "de", keys: 2 },
   { type: "batch-finished", locale: "de", batchIndex: 1, totalBatches: 1, durationMs: 12 },
   { type: "writing", locale: "de" },
-  { type: "locale-finished", locale: "de", translated: 1, localeIndex: 0, totalLocales: 1 },
-  { type: "run-finished", localesCompleted: 1 },
+  {
+    type: "locale-finished",
+    locale: "de",
+    status: "succeeded",
+    translated: 1,
+    localeIndex: 0,
+    totalLocales: 1,
+  },
+  { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
 ];
 
 function withoutElapsed(stderr: string): string {

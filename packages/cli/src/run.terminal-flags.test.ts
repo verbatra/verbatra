@@ -25,8 +25,15 @@ const COLOR_TTY: TerminalFacts = {
 const events: readonly ProgressEvent[] = [
   { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 1 },
   { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 1 },
-  { type: "locale-finished", locale: "de", translated: 1, localeIndex: 0, totalLocales: 1 },
-  { type: "run-finished", localesCompleted: 1 },
+  {
+    type: "locale-finished",
+    locale: "de",
+    status: "succeeded",
+    translated: 1,
+    localeIndex: 0,
+    totalLocales: 1,
+  },
+  { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
 ];
 
 const lockWait: LockWaitEvent = {

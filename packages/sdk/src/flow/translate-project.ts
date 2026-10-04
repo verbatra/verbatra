@@ -451,6 +451,7 @@ async function runLocaleAt(
   context.onProgress?.({
     type: "locale-finished",
     locale: targetLocale,
+    status: summary.status,
     translated: summary.translated.length,
     localeIndex,
     totalLocales: targetLocales.length,
@@ -854,7 +855,11 @@ export async function translate(
   const ran = dryRun
     ? await runAllLocalesDry(context, targetLocales, concurrency, carryOver)
     : await runAllLocalesLive(context, targetLocales, concurrency, carryOver);
-  input.onProgress?.({ type: "run-finished", localesCompleted: ran.length });
+  input.onProgress?.({
+    type: "run-finished",
+    localesCompleted: ran.length,
+    localesFailed: ran.filter((summary) => summary.status === "failed").length,
+  });
   const summaries = withUnstartedCancelled(targetLocales, ran);
 
   const locales = withCarryOverNotices(

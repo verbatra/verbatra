@@ -27,6 +27,7 @@ import {
   type LocaleCheckSummary,
   type LocaleDiff,
   type LocaleFileCheck,
+  type LocaleFinishedEvent,
   type LocaleQaReport,
   type LocaleSummary,
   type LockWaitEvent,
@@ -912,6 +913,20 @@ export function renderLockWait(event: LockWaitEvent, json: boolean): string {
   return json ? renderLockWaitJson(event) : renderLockWaitHuman(event);
 }
 
+const LOCALE_FINISHED_VERBS: Record<LocaleFinishedEvent["status"], string> = {
+  succeeded: "done",
+  partial: "partly done",
+  failed: "failed",
+};
+
+function renderLocaleFinished(event: LocaleFinishedEvent, dryRun: boolean): string {
+  const verb = LOCALE_FINISHED_VERBS[event.status];
+  if (event.status === "failed") {
+    return `verbatra: ${event.locale} ${verb}`;
+  }
+  return `verbatra: ${event.locale} ${verb}, ${event.translated} ${dryRun ? "would translate" : "translated"}`;
+}
+
 export function renderProgressHuman(event: ProgressEvent, dryRun = false): string | undefined {
   switch (event.type) {
     case "locale-started":
@@ -919,9 +934,11 @@ export function renderProgressHuman(event: ProgressEvent, dryRun = false): strin
     case "sub-batch":
       return `verbatra: ${event.locale} batch ${event.batchIndex}/${event.totalBatches}`;
     case "locale-finished":
-      return `verbatra: ${event.locale} done, ${event.translated} ${dryRun ? "would translate" : "translated"}`;
+      return renderLocaleFinished(event, dryRun);
     case "run-finished":
-      return `verbatra: run finished, ${plural(event.localesCompleted, "locale")} processed`;
+      return `verbatra: run finished, ${plural(event.localesCompleted, "locale")} processed${
+        event.localesFailed > 0 ? `, ${event.localesFailed} failed` : ""
+      }`;
     default:
       return undefined;
   }

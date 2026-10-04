@@ -27,6 +27,7 @@ describe("translate: progress and hints", () => {
     const event = {
       type: "locale-finished",
       locale: "de",
+      status: "succeeded",
       translated: 3,
       localeIndex: 0,
       totalLocales: 1,
@@ -42,6 +43,7 @@ describe("translate: progress and hints", () => {
         input.onProgress?.({
           type: "locale-finished",
           locale: "de",
+          status: "succeeded",
           translated: 3,
           localeIndex: 0,
           totalLocales: 1,

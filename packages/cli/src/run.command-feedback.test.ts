@@ -102,6 +102,27 @@ describe("translate: start, outcome and next step", () => {
     expect(err).not.toContain("next:");
   });
 
+  it("reports a failed locale as failed and the failed count on the closing line", async () => {
+    const { err } = await stderrOf(["translate"], {
+      translate: async (input) => {
+        input.onProgress?.({
+          type: "locale-finished",
+          locale: "de",
+          status: "failed",
+          translated: 0,
+          localeIndex: 0,
+          totalLocales: 2,
+        });
+        input.onProgress?.({ type: "run-finished", localesCompleted: 2, localesFailed: 1 });
+        return makeSummary({ failed: ["de"], succeeded: ["fr"] });
+      },
+    });
+
+    expect(err).toContain("verbatra: de failed\n");
+    expect(err).not.toContain("de done");
+    expect(err).toContain("verbatra: run finished, 2 locales processed, 1 failed\n");
+  });
+
   it("stays silent about all of it under --quiet and --json", async () => {
     for (const flag of ["--quiet", "--json"]) {
       const { err } = await stderrOf(["translate", flag]);

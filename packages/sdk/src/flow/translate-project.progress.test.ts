@@ -59,12 +59,26 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
       { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 2 },
       { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 2 },
       { type: "sub-batch", locale: "de", batchIndex: 2, totalBatches: 2 },
-      { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 2 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 0,
+        totalLocales: 2,
+      },
       { type: "locale-started", locale: "fr", localeIndex: 1, totalLocales: 2 },
       { type: "sub-batch", locale: "fr", batchIndex: 1, totalBatches: 2 },
       { type: "sub-batch", locale: "fr", batchIndex: 2, totalBatches: 2 },
-      { type: "locale-finished", locale: "fr", translated: 3, localeIndex: 1, totalLocales: 2 },
-      { type: "run-finished", localesCompleted: 2 },
+      {
+        type: "locale-finished",
+        locale: "fr",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 1,
+        totalLocales: 2,
+      },
+      { type: "run-finished", localesCompleted: 2, localesFailed: 0 },
     ]);
   });
 
@@ -94,8 +108,15 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
       { type: "sub-batch", locale: "de", batchIndex: 2, totalBatches: 2 },
       { ...batchFinished, batchIndex: 2 },
       { type: "writing", locale: "de" },
-      { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 1 },
-      { type: "run-finished", localesCompleted: 1 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
     ]);
   });
 
@@ -214,12 +235,19 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
     expect(events.some((event) => event.type === "sub-batch")).toBe(false);
     expect(events).toEqual([
       { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 1 },
-      { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 1 },
-      { type: "run-finished", localesCompleted: 1 },
+      {
+        type: "locale-finished",
+        locale: "de",
+        status: "succeeded",
+        translated: 3,
+        localeIndex: 0,
+        totalLocales: 1,
+      },
+      { type: "run-finished", localesCompleted: 1, localesFailed: 0 },
     ]);
   });
 
-  it("counts a failed (isolated, not thrown) locale in run-finished and fires its locale-finished with 0", async () => {
+  it("counts a failed (isolated, not thrown) locale in run-finished and fires its locale-finished as failed", async () => {
     const dir = await makeProject(1);
     await holdLock(dir, "de");
     const config = baseConfig({ targetLocales: ["de", "fr"] });
@@ -235,11 +263,12 @@ describe("translate: onProgress emits locale, sub-batch, and run events on the l
     expect(events).toContainEqual({
       type: "locale-finished",
       locale: "de",
+      status: "failed",
       translated: 0,
       localeIndex: 0,
       totalLocales: 2,
     });
-    expect(events).toContainEqual({ type: "run-finished", localesCompleted: 2 });
+    expect(events).toContainEqual({ type: "run-finished", localesCompleted: 2, localesFailed: 1 });
   });
 
   it("carries the same localeIndex on a finish as on its start, even out of completion order", async () => {

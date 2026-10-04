@@ -105,7 +105,7 @@ describe("createProgressReporter", () => {
 
     reporter.onProgress({ type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 1 });
     reporter.onProgress({ type: "writing", locale: "de" });
-    reporter.onProgress({ type: "run-finished", localesCompleted: 1 });
+    reporter.onProgress({ type: "run-finished", localesCompleted: 1, localesFailed: 0 });
     reporter.close();
 
     expect(updates).toEqual([]);
