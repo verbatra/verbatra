@@ -4,7 +4,7 @@ description: Wire verbatra's stdio MCP server into Claude Code, Codex, Gemini CL
 type: how-to
 status: new
 ---
-Use this to let a coding agent read translation status and fix values through verbatra's MCP server. The client starts the server over stdio, so there is no port to manage. You need a project with a verbatra config ([`npx verbatra init`](/docs/cli/init)) and Node.js 22.14 or later. The tools are listed in [`verbatra mcp`](/docs/cli/mcp#tools).
+Use this to let a coding agent read translation status and fix values through verbatra's MCP server. The client starts the server over stdio, so there is no port to manage. You need a project with a verbatra config ([`npx verbatra init`](/docs/cli/init)) and Node.js 22.14 or later. 
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -25,13 +25,13 @@ The server is also listed in the [official MCP Registry](https://registry.modelc
 
 ## Decide whether the agent may spend
 
-The server starts with read and local edit tools, no spend: the two spend tools stay hidden and no tool reads a key. To let the agent spend, add both:
+The server starts with read and local edit tools only: spend tools stay hidden and no tool reads a key. To let the agent spend, add both:
 
 - `--allow-spend` in the arguments, or `VERBATRA_MCP_ALLOW_SPEND=1` in the environment ([Spend tools](/docs/cli/mcp#spend-tools));
 - your provider's key variable, such as `ANTHROPIC_API_KEY` ([Providers](/docs/providers)).
 
 <Callout type="warn">
-Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` or `.vscode/mcp.json`. Each section below passes it by reference or from your environment.
+Never write a key into a committed file such as `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` or `.vscode/mcp.json`. 
 </Callout>
 
 To keep values from the agent's model, add `--redact-values`; see [Studio and MCP](/docs/data-handling#studio-and-mcp).
@@ -316,6 +316,6 @@ Ask the agent to call `project.snapshot`; it returns the locales, format and pro
 
 ## Related
 
-- [`verbatra mcp`](/docs/cli/mcp): flags, every tool, and the exit codes.
+- [`verbatra mcp`](/docs/cli/mcp): flags and every tool.
 - [Script verbatra with JSON](/docs/agent-recipes#the-skills-pack): the `verbatra-mcp-tools` skill.
-- [Set up verbatra with an AI agent](/docs/start-with-ai): add verbatra before connecting a client.
+- [Set up verbatra with an AI agent](/docs/start-with-ai).
