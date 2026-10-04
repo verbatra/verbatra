@@ -79,16 +79,26 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
-function removeWholeTerms(text: string, term: string): string {
-  let remaining = "";
-  let covered = 0;
-  for (const index of wholeTermIndices(text, term)) {
-    if (index >= covered) {
-      remaining += `${text.slice(covered, index)} `;
+function coveredPositions(text: string, terms: readonly string[]): boolean[] {
+  const covered = new Array<boolean>(text.length).fill(false);
+  for (const term of terms) {
+    for (const index of wholeTermIndices(text, term)) {
+      covered.fill(true, index, index + term.length);
     }
-    covered = index + term.length;
   }
-  return remaining + text.slice(covered);
+  return covered;
+}
+
+function hasUncoveredLetter(text: string, covered: readonly boolean[]): boolean {
+  let uncovered = "";
+  for (let index = 0; index < text.length; index += 1) {
+    uncovered += covered[index] === true ? " " : text.charAt(index);
+  }
+  return UNICODE_LETTER.test(uncovered);
+}
+
+function unionOf(first: readonly boolean[], second: readonly boolean[]): boolean[] {
+  return first.map((covered, index) => covered || second[index] === true);
 }
 
 function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
@@ -106,15 +116,22 @@ function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
   if (fixed.length === 0) {
     return false;
   }
-  let remaining = input.sourceValue;
-  for (const { term } of fixed.filter((entry) => entry.caseSensitive)) {
-    remaining = removeWholeTerms(remaining, term);
+  const source = input.sourceValue;
+  const folded = foldGlossaryCase(source, input.sourceLocale, false);
+  const exactCoverage = coveredPositions(
+    source,
+    fixed.filter((entry) => entry.caseSensitive).map(({ term }) => term),
+  );
+  const foldedCoverage = coveredPositions(
+    folded,
+    fixed
+      .filter((entry) => !entry.caseSensitive)
+      .map(({ term }) => foldGlossaryCase(term, input.sourceLocale, false)),
+  );
+  if (folded.length === source.length) {
+    return !hasUncoveredLetter(source, unionOf(exactCoverage, foldedCoverage));
   }
-  remaining = foldGlossaryCase(remaining, input.sourceLocale, false);
-  for (const { term } of fixed.filter((entry) => !entry.caseSensitive)) {
-    remaining = removeWholeTerms(remaining, foldGlossaryCase(term, input.sourceLocale, false));
-  }
-  return !UNICODE_LETTER.test(remaining);
+  return !hasUncoveredLetter(source, exactCoverage) || !hasUncoveredLetter(folded, foldedCoverage);
 }
 
 function isEqualsSource(input: ReviewFlagInput): boolean {

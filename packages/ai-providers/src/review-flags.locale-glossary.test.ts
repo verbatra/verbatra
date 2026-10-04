@@ -193,6 +193,51 @@ describe("computeReviewFlags: EQUALS_SOURCE with fixed terms", () => {
     ).toEqual([]);
   });
 
+  it("discounts a value covered by case-sensitive and case-insensitive terms together", () => {
+    expect(
+      reasons({
+        sourceValue: "verbatra API",
+        translatedValue: "verbatra API",
+        glossary: glossary(
+          [],
+          [
+            { term: "API", caseSensitive: true },
+            { term: "VERBATRA", caseSensitive: false },
+          ],
+        ),
+      }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["a case-insensitive", false],
+    ["a case-sensitive", true],
+  ])("discounts %s term when case folding lengthens the value", (_label, caseSensitive) => {
+    expect(
+      reasons({
+        sourceValue: "İstanbul",
+        translatedValue: "İstanbul",
+        glossary: glossary([], [{ term: "İstanbul", caseSensitive }]),
+      }),
+    ).toEqual([]);
+  });
+
+  it("is raised when case folding lengthens the value and no single pass covers it", () => {
+    expect(
+      reasons({
+        sourceValue: "İstanbul API",
+        translatedValue: "İstanbul API",
+        glossary: glossary(
+          [],
+          [
+            { term: "API", caseSensitive: true },
+            { term: "İstanbul", caseSensitive: false },
+          ],
+        ),
+      }),
+    ).toEqual(["EQUALS_SOURCE"]);
+  });
+
   it("is still raised for an untranslated copy when the glossary has no fixed terms", () => {
     expect(
       reasons({
