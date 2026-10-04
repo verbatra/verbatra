@@ -121,6 +121,9 @@ const EXPORT_LIST = /^export\s*(?:type\s*)?\{([^}]*)\}/gm;
 const TOP_LEVEL_DECLARATION =
   /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:type|interface|class|function|enum|const|let|var|namespace)\s+([A-Za-z_$][\w$]*)/gm;
 
+const TOP_LEVEL_DECLARATION_START =
+  /^(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:type|interface|class|function|enum|const|let|var|namespace)\s/;
+
 const MEMBER_DECLARATION = /^\s+(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*[:(<]/gm;
 
 const LINK_TARGET = /\{@link(?:code|plain)?\s+([A-Za-z_$][\w$]*)/g;
@@ -163,31 +166,68 @@ function findUnexportedLinks(text, relativePath) {
   return hits;
 }
 
-const EXPORTED_VALUE_DECLARATION =
-  /^(?:export\s+)?declare\s+(?:function|const|class)\s+([A-Za-z_$][\w$]*)/;
+const VALUE_DECLARATION =
+  /^(export\s+)?declare\s+(?:abstract\s+class|class|function|const\s+enum|enum|const|let|var)\s+([A-Za-z_$][\w$]*)/;
 
-function previousContentLine(lines, index) {
+function exportedLocalNames(text) {
+  const names = new Set();
+  for (const match of text.matchAll(EXPORT_LIST)) {
+    for (const specifier of (match[1] ?? "").split(",")) {
+      const local = specifier
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)[0]
+        ?.trim();
+      if (local !== undefined && local !== "") {
+        names.add(local);
+      }
+    }
+  }
+  return names;
+}
+
+function previousContentIndex(lines, index) {
   let cursor = index - 1;
   while (cursor >= 0 && (lines[cursor] ?? "").trim() === "") {
     cursor -= 1;
   }
-  return lines[cursor] ?? "";
+  return cursor;
 }
 
-function isDocumented(lines, index, name) {
-  const previous = previousContentLine(lines, index);
-  return previous.trim().endsWith("*/") || EXPORTED_VALUE_DECLARATION.exec(previous)?.[1] === name;
+function endsJsDocBlock(lines, index) {
+  if (!(lines[index] ?? "").trim().endsWith("*/")) {
+    return false;
+  }
+  for (let cursor = index; cursor >= 0; cursor -= 1) {
+    const line = (lines[cursor] ?? "").trim();
+    const opening = line.indexOf("/*");
+    if (opening !== -1) {
+      return line.slice(opening).startsWith("/**") && !line.slice(opening).startsWith("/**/");
+    }
+  }
+  return false;
 }
 
 function findUndocumentedExports(text, relativePath) {
-  const exported = exportedNames(text);
+  const exported = exportedLocalNames(text);
   const lines = text.split("\n");
   const hits = [];
+  let previousName;
   for (let index = 0; index < lines.length; index += 1) {
-    const name = EXPORTED_VALUE_DECLARATION.exec(lines[index] ?? "")?.[1];
-    if (name !== undefined && exported.has(name) && !isDocumented(lines, index, name)) {
+    const line = lines[index] ?? "";
+    const declaration = VALUE_DECLARATION.exec(line);
+    const topLevel = TOP_LEVEL_DECLARATION_START.exec(line);
+    if (declaration === null) {
+      previousName = topLevel === null ? previousName : undefined;
+      continue;
+    }
+    const name = declaration[2];
+    const isExported = declaration[1] !== undefined || exported.has(name);
+    const isOverload = previousName === name;
+    if (isExported && !isOverload && !endsJsDocBlock(lines, previousContentIndex(lines, index))) {
       hits.push(`${relativePath}:${index + 1}: ${name}`);
     }
+    previousName = name;
   }
   return hits;
 }

@@ -267,16 +267,88 @@ describe("findUndocumentedExports", () => {
     expect(findUndocumentedExports(text, "index.d.ts")).toEqual(["index.d.ts:4: stripped"]);
   });
 
-  it("accepts an overload that follows its documented first signature", () => {
+  it("checks a value exported under an alias by its local declaration", () => {
     const text = [
+      "declare function local(): void;",
       "/** Documented. */",
-      "declare function load(path: string): void;",
-      "declare function load(path: URL): void;",
-      "declare const VERSION: string;",
+      "declare const shown: string;",
+      "export { local as renamed, shown as alsoShown };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual(["index.d.ts:1: local"]);
+  });
+
+  it("covers abstract classes, enums, let and var, and inline exports", () => {
+    const text = [
+      "declare abstract class Base {}",
+      "declare enum Mode { A }",
+      "declare const enum Flag { B }",
+      "declare let counter: number;",
+      "declare var legacy: string;",
+      "export declare function inline(): void;",
+      "export { Base, Mode, Flag, counter, legacy };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual([
+      "index.d.ts:1: Base",
+      "index.d.ts:2: Mode",
+      "index.d.ts:3: Flag",
+      "index.d.ts:4: counter",
+      "index.d.ts:5: legacy",
+      "index.d.ts:6: inline",
+    ]);
+  });
+
+  it("accepts overloads, multi-line ones included, after a documented first signature", () => {
+    const text = [
+      "/**",
+      " * Documented.",
+      " */",
+      "declare function load(",
+      "  path: string,",
+      "): void;",
+      "declare function load(",
+      "  path: URL,",
+      "): void;",
       "export { load };",
     ].join("\n");
 
     expect(findUndocumentedExports(text, "index.d.ts")).toEqual([]);
+  });
+
+  it("does not take an overload of another name or after a type for a documented one", () => {
+    const text = [
+      "/** Documented. */",
+      "declare function first(): void;",
+      "declare function second(): void;",
+      "/** A type. */",
+      "type Shape = string;",
+      "declare function second(): void;",
+      "export { first, second };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual([
+      "index.d.ts:3: second",
+      "index.d.ts:6: second",
+    ]);
+  });
+
+  it("requires a real JSDoc block, not a plain comment", () => {
+    const text = [
+      "/* plain */",
+      "declare function plain(): void;",
+      "// line",
+      "declare function line(): void;",
+      "/**/",
+      "declare function empty(): void;",
+      "export { plain, line, empty };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual([
+      "index.d.ts:2: plain",
+      "index.d.ts:4: line",
+      "index.d.ts:6: empty",
+    ]);
   });
 });
 
