@@ -145,6 +145,10 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - `LocaleSummary.protected` and `LocaleSummary.sensitiveWithheld` are new required fields, and
   `SuggestionStatus` gains `"sensitive-withheld"`. `RunBudget.supported` is `true` for a run
   that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
+- `DoctorCheckStatus` gains `"warn"`: a check that names something worth attention without
+  failing, such as a plural missing a CLDR category or a non-canonical locale code, reports
+  `warn` instead of `pass`, in `doctor --json` too, and `doctor` prints it as `[warn]`. `ok` and
+  the exit code do not change. Handle `"warn"` in an exhaustive `switch` or `Record`.
 - `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
   deep-frozen.
 - `onProgress` has new event kinds, `ReviewReasonCode` gains `GLOSSARY_FORBIDDEN_TERM`,
