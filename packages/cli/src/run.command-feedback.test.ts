@@ -204,33 +204,77 @@ describe("export and import: task lines and hand-off hints", () => {
     expect(err).toContain("next: verbatra check (confirm every locale is in sync)\n");
   });
 
-  it("import suggests the real import after a dry run, and a corrected re-import after a partial one", async () => {
+  it("import suggests the real import after a dry run", async () => {
     const dry = await stderrOf(["import", "handoff.xlsx", "--dry-run"], {
       importWorkbook: async () => makeSummary({ dryRun: true }),
     });
     expect(dry.err).toContain(
       "next: verbatra import handoff.xlsx (without --dry-run to write the files)\n",
     );
-
-    const partial = await stderrOf(["import", "handoff.xlsx", "--reviewer", "ana"], {
-      importWorkbook: async () => makeSummary({ partial: ["de"] }),
-    });
-    expect(partial.code).toBe(1);
-    expect(partial.err).toContain(
-      "next: verbatra import handoff.xlsx --reviewer ana (after correcting the rows listed above)\n",
-    );
-    expect(partial.err).not.toContain("verbatra check");
   });
 
-  it("import suggests a corrected re-import after a failed locale", async () => {
-    const { code, err } = await stderrOf(["import", "handoff.csv", "--format", "csv"], {
-      importWorkbook: async () => makeSummary({ failed: ["de"] }),
+  it("import suggests a corrected re-import when the integrity gate withheld rows", async () => {
+    const { code, err } = await stderrOf(["import", "handoff.xlsx", "--reviewer", "ana"], {
+      importWorkbook: async () =>
+        makeSummary({
+          partial: ["de"],
+          locales: [
+            makeLocale({
+              status: "partial",
+              translated: ["nav.home"],
+              integrityMismatches: ["nav.settings.save"],
+            }),
+          ],
+        }),
     });
 
     expect(code).toBe(1);
     expect(err).toContain(
-      "next: verbatra import handoff.csv --format csv (after correcting the rows listed above)\n",
+      "next: verbatra import handoff.xlsx --reviewer ana (after correcting the rows listed above)\n",
     );
+    expect(err).not.toContain("verbatra check");
+  });
+
+  it("import passes on the cause's own next step when a locale failed without withheld rows", async () => {
+    const { code, err } = await stderrOf(["import", "handoff.xlsx"], {
+      importWorkbook: async () =>
+        makeSummary({
+          failed: ["de"],
+          locales: [
+            makeLocale({
+              status: "failed",
+              error: { code: "LOCK_CONTENDED", message: "Another process holds de.lock." },
+            }),
+          ],
+        }),
+    });
+
+    expect(code).toBe(1);
+    expect(err).toContain("next: Wait for the other verbatra process to finish");
+    expect(err).not.toContain("rows listed above");
+  });
+
+  it("import prints no rows hint for a missing sheet, whose cause has no next step", async () => {
+    const { code, err } = await stderrOf(["import", "handoff.xlsx"], {
+      importWorkbook: async () =>
+        makeSummary({
+          succeeded: ["fr"],
+          failed: ["de"],
+          locales: [
+            makeLocale({
+              status: "failed",
+              error: {
+                code: "WORKBOOK_SHEET_MISSING",
+                message: 'The workbook has no sheet (tab) for the configured target locale "de".',
+              },
+            }),
+            makeLocale({ locale: "fr", translated: ["nav.home"] }),
+          ],
+        }),
+    });
+
+    expect(code).toBe(1);
+    expect(err).not.toContain("next:");
   });
 });
 

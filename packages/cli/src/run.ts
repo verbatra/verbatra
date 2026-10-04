@@ -11,6 +11,7 @@ import {
   type ExchangeFormat,
   type ExportWorkbookInput,
   type ExportWorkbookResult,
+  errorHint,
   type GenerateTypesInput,
   type ImportWorkbookInput,
   isMachineTranslationEnabled,
@@ -1092,7 +1093,25 @@ function hintAfterImport(
   } else if (exitCode === 0) {
     context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
   } else {
+    hintAfterUnsettledImport(context, reimport, summary);
+  }
+}
+
+function hintAfterUnsettledImport(
+  context: CommandContext,
+  reimport: string,
+  summary: RunSummary,
+): void {
+  const unsettled = summary.locales.filter((locale) => locale.status !== "succeeded");
+  if (unsettled.some((locale) => locale.integrityMismatches.length > 0)) {
     context.ui.hint(reimport, "after correcting the rows listed above");
+    return;
+  }
+  const causeHint = unsettled
+    .map((locale) => (locale.error === undefined ? undefined : errorHint(locale.error)))
+    .find((hint) => hint !== undefined);
+  if (causeHint !== undefined) {
+    context.ui.hint(causeHint);
   }
 }
 

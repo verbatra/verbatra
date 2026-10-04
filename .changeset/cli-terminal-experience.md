@@ -9,6 +9,8 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 - Every command shows what it is doing on stderr, as a spinner on a terminal and plain lines in
   CI. `translate` and `watch` show each locale, batch, retry and write.
 - Commands end with a `next:` hint that runs as printed. stdout and `--json` are unchanged.
+  An `import` that withheld rows points at the re-import once they are corrected, and one whose
+  locale failed for another reason prints that cause's next step.
 - `-q`/`--quiet` keeps only results, warnings and errors. `--no-color`, `NO_COLOR`, `FORCE_COLOR`
   and `VERBATRA_NO_SPINNER` are honored.
 
