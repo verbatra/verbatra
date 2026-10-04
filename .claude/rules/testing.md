@@ -53,8 +53,11 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   `e2e/tests/mcp.e2e.test.ts`) point an `openai-compatible` provider at a never-answering loopback
   endpoint (the MCP one through `--allow-spend`, spending nothing), and
   `e2e/tests/watch-lifecycle.e2e.test.ts` names an unreachable `127.0.0.1:1` endpoint it never
-  reaches. `e2e/tests/human-only.e2e.test.ts` goes further and preloads a module that throws on
-  any socket, proving a `provider: none` run makes no network call at all. **This is the required release
+  reaches. The 2026-07-28 session test in `e2e/tests/mcp.e2e.test.ts` translates against a
+  loopback LibreTranslate stub it serves (`e2e/src/libretranslate-endpoint.ts`), so it too makes
+  no network request outside 127.0.0.1. `e2e/tests/human-only.e2e.test.ts` goes further and
+  preloads a module that throws on any socket, proving a `provider: none` run makes no network
+  call at all. **This is the required release
   gate**: it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes
   when the CI workflow's conclusion is success.
 - **Live tier**: `tests/translate.live.e2e.test.ts` and `tests/watch.live.e2e.test.ts`, run with
