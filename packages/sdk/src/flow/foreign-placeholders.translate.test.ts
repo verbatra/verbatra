@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import {
   createLibreTranslateProvider,
@@ -10,7 +10,12 @@ import { createDefaultRegistry, createFlatFileAdapter } from "@verbatra/format-a
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
-import { baseConfig, makeStubProvider, makeTempDir } from "../test-support.js";
+import {
+  baseConfig,
+  makeIntegrityProvider,
+  makeStubProvider,
+  makeTempDir,
+} from "../test-support.js";
 import type { RunSummary } from "./summary.js";
 import { translate } from "./translate-project.js";
 
@@ -89,36 +94,97 @@ async function seed(content: string, config: VerbatraConfig): Promise<string> {
   return dir;
 }
 
-function libreTranslate(transform: (text: string) => string): TranslationProvider {
-  const client: NonNullable<LibreTranslateDeps["client"]> = {
-    translate: async (texts) => ({ status: 200, body: { translatedText: texts.map(transform) } }),
-  };
-  return createLibreTranslateProvider({ baseUrl: "http://127.0.0.1:5000" }, { client });
+interface Wire {
+  readonly sent: string[];
+  readonly provider: TranslationProvider;
 }
 
-async function run(fixture: Fixture, transform: (text: string) => string): Promise<RunSummary> {
+function libreTranslate(transform: (text: string) => string): Wire {
+  const sent: string[] = [];
+  const client: NonNullable<LibreTranslateDeps["client"]> = {
+    translate: async (texts) => {
+      sent.push(...texts);
+      return { status: 200, body: { translatedText: texts.map(transform) } };
+    },
+  };
+  return {
+    sent,
+    provider: createLibreTranslateProvider({ baseUrl: "http://127.0.0.1:5000" }, { client }),
+  };
+}
+
+interface Run {
+  readonly summary: RunSummary;
+  readonly sent: readonly string[];
+  readonly written: string;
+}
+
+async function runWith(fixture: Fixture, provider: TranslationProvider): Promise<RunSummary> {
   const config = configFor(fixture);
   const dir = await seed(fixture.content, config);
-  return translate({ config, cwd: dir }, { createProvider: () => libreTranslate(transform) });
+  return translate({ config, cwd: dir }, { createProvider: () => provider });
+}
+
+async function run(fixture: Fixture, transform: (text: string) => string): Promise<Run> {
+  const config = configFor(fixture);
+  const dir = await seed(fixture.content, config);
+  const wire = libreTranslate(transform);
+  const summary = await translate({ config, cwd: dir }, { createProvider: () => wire.provider });
+  const written = await readFile(createLocalePathResolver(dir, config).pathFor("de"), "utf8").catch(
+    () => "",
+  );
+  return { summary, sent: wire.sent, written };
 }
 
 function reasonsOf(summary: RunSummary, key: string): readonly string[] {
   return summary.locales[0]?.needsReview.find((entry) => entry.key === key)?.reasons ?? [];
 }
 
-describe("translate flags a dropped placeholder of a foreign syntax", () => {
-  it.each(FLAGGED)("$format: a result without $token is flagged", async (fixture) => {
-    const summary = await run(fixture, (text) => text.replace(fixture.token, "").trim());
+function noticeCodes(summary: RunSummary): readonly string[] {
+  return summary.locales.flatMap((locale) => locale.notices.map((notice) => notice.code));
+}
+
+const VUE_I18N: Fixture = {
+  format: "vue-i18n-json",
+  pattern: "locales/{locale}.json",
+  content: `${JSON.stringify({ greeting: "Hello {name}, use {{x}} here" })}\n`,
+  token: "{{x}}",
+};
+
+const MASKED: readonly Fixture[] = [...FLAGGED, VUE_I18N];
+
+describe("translate masks a placeholder of a foreign syntax for machine translation", () => {
+  it.each(MASKED)("$format: $token goes out as a marker and comes back intact", async (fixture) => {
+    const { summary, sent, written } = await run(fixture, (text) => `DE ${text}`);
 
     expect(summary.succeeded).toEqual(["de"]);
-    expect(reasonsOf(summary, "greeting")).toContain("FOREIGN_PLACEHOLDER_CHANGED");
+    expect(sent.join("\n")).not.toContain(fixture.token);
+    expect(sent.join("\n")).toMatch(/\{\d+\}/);
+    expect(written).toContain(fixture.token);
+    expect(reasonsOf(summary, "greeting")).not.toContain("FOREIGN_PLACEHOLDER_CHANGED");
   });
 
-  it.each(FLAGGED)("$format: a result keeping $token is not flagged", async (fixture) => {
-    const summary = await run(fixture, (text) => `DE ${text}`);
+  it.each(MASKED)(
+    "$format: a result that loses the marker is withheld, not written",
+    async (fixture) => {
+      const { summary, written } = await run(fixture, (text) => text.replace(/\{\d+\}/g, ""));
 
-    expect(summary.succeeded).toEqual(["de"]);
-    expect(reasonsOf(summary, "greeting")).not.toContain("FOREIGN_PLACEHOLDER_CHANGED");
+      expect(noticeCodes(summary)).toContain("PLACEHOLDER_UNSUPPORTED");
+      expect(written).not.toContain("greeting");
+    },
+  );
+
+  it("withholds a value whose foreign token cannot be masked, with the notice", async () => {
+    const fixture: Fixture = {
+      ...I18NEXT,
+      content: `${JSON.stringify({ greeting: "{count, plural, one {# item} other {# items}}" })}\n`,
+    };
+
+    const { summary, sent, written } = await run(fixture, (text) => `DE ${text}`);
+
+    expect(sent).toEqual([]);
+    expect(noticeCodes(summary)).toContain("PLACEHOLDER_UNSUPPORTED");
+    expect(written).not.toContain("greeting");
   });
 
   it("resx: a dropped {{x}} brace escape is never flagged", async () => {
@@ -129,7 +195,31 @@ describe("translate flags a dropped placeholder of a foreign syntax", () => {
       token: "{{x}}",
     };
 
-    const summary = await run(fixture, (text) => text.replace("{{x}}", "x"));
+    const { summary } = await run(fixture, (text) => text.replace("{{x}}", "x"));
+
+    expect(summary.succeeded).toEqual(["de"]);
+    expect(reasonsOf(summary, "greeting")).not.toContain("FOREIGN_PLACEHOLDER_CHANGED");
+  });
+});
+
+describe("translate flags a foreign token an LLM provider drops once, outside the integrity gate", () => {
+  it.each(MASKED)("$format: a result without $token is flagged", async (fixture) => {
+    const provider = makeIntegrityProvider((value) => value.replace(fixture.token, "").trim());
+
+    const summary = await runWith(fixture, provider);
+
+    expect(summary.locales[0]?.status).toBe("succeeded");
+    expect(summary.locales[0]?.translated).toEqual(["greeting"]);
+    expect(
+      reasonsOf(summary, "greeting").filter((reason) => reason === "FOREIGN_PLACEHOLDER_CHANGED"),
+    ).toHaveLength(1);
+  });
+
+  it.each(MASKED)("$format: a result keeping $token is not flagged", async (fixture) => {
+    const summary = await runWith(
+      fixture,
+      makeIntegrityProvider((value) => `DE ${value}`),
+    );
 
     expect(summary.succeeded).toEqual(["de"]);
     expect(reasonsOf(summary, "greeting")).not.toContain("FOREIGN_PLACEHOLDER_CHANGED");

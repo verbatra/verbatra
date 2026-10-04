@@ -7,6 +7,7 @@ import {
   missingForeignPlaceholders,
   type PlaceholderSyntax,
   type SupportedFormat,
+  type TranslationEntry,
 } from "@verbatra/core";
 import type { SdkNotice } from "./summary.js";
 
@@ -35,6 +36,23 @@ const NOTICE_KEY_LIMIT = 5;
 
 function nativeSyntaxesOf(format: FormatId): readonly PlaceholderSyntax[] | undefined {
   return isCustomFormatId(format) ? undefined : NATIVE_PLACEHOLDER_SYNTAXES[format];
+}
+
+export function withForeignPlaceholders(
+  entry: TranslationEntry,
+  format: FormatId,
+): TranslationEntry {
+  const native = nativeSyntaxesOf(format);
+  if (native === undefined) {
+    return entry;
+  }
+  const known = new Set(entry.placeholders);
+  const added = foreignPlaceholderTokens(entry.value, native).filter((token) => {
+    const fresh = !known.has(token);
+    known.add(token);
+    return fresh;
+  });
+  return added.length === 0 ? entry : { ...entry, placeholders: [...entry.placeholders, ...added] };
 }
 
 export function droppedForeignPlaceholders(
@@ -79,7 +97,10 @@ function keysWithForeignPlaceholders(
 export type ForeignPlaceholderTranslation = "machine" | "human-only";
 
 const TRANSLATION_ADVICE: Readonly<Record<ForeignPlaceholderTranslation, string>> = {
-  machine: "These tokens are not protected during translation, so review the translations",
+  machine:
+    "Machine translation providers get these tokens masked and leave a value untranslated " +
+    "when that fails, but an LLM provider or a person must keep them unchanged, so review " +
+    "the translations",
   "human-only":
     "Machine translation is off, so keep these tokens unchanged when you translate the values",
 };
@@ -94,7 +115,7 @@ function noticeMessage(
   const count = keys.length === 1 ? "1 source value holds" : `${keys.length} source values hold`;
   const advice = TRANSLATION_ADVICE[translation];
   return (
-    `${count} a placeholder-like token that ${format} does not protect: ` +
+    `${count} a placeholder-like token of another syntax than ${format} uses: ` +
     `${shown.join(", ")}${more}. ${advice}, ` +
     "or switch the syntax if your library does not interpolate them."
   );
