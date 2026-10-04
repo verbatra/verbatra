@@ -5,7 +5,7 @@ type: tutorial
 ---
 By the end of this page a TypeScript script of yours translates an English locale file into German, reports what happened, and fails a CI job when a locale falls out of sync. You need Node.js `>=22.14.0` and about ten minutes. The first three steps need no API key.
 
-Each step is a complete script you run with `node`. Node.js runs TypeScript files directly from `22.18.0`; on `22.14.0` to `22.17.x`, add `--experimental-strip-types` to every `node` command below. The scripts use `import` and top-level `await`, so mark your project as ES modules first with `npm pkg set type=module`.
+Each step is a complete script you run with `node`. Node.js runs TypeScript files directly from `22.18.0`; on `22.14.0` to `22.17.x`, add `--experimental-strip-types` to every `node` command below. The scripts use `import` and top-level `await`, so the first step also marks the project as ES modules.
 
 ## Steps
 
@@ -14,11 +14,13 @@ Each step is a complete script you run with `node`. Node.js runs TypeScript file
 
 ### Install the SDK
 
-```npm
+```bash
+npm init -y
+npm pkg set type=module
 npm install --save-dev @verbatra/sdk
 ```
 
-If pnpm exits with `ERR_PNPM_IGNORED_BUILDS`, see [Install](/docs/sdk#install).
+Run this in an empty directory: `npm init -y` creates the `package.json` that `npm pkg set type=module` marks as ES modules. In an existing project, skip `npm init -y`. If pnpm exits with `ERR_PNPM_IGNORED_BUILDS`, see [Install](/docs/sdk#install).
 
 </Step>
 <Step>

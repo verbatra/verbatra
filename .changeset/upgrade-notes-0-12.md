@@ -70,6 +70,16 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - `requestTimeoutMs` applies per attempt. A failed call reports its last attempt's cause
   (`RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `PROVIDER_ERROR`) instead of `TIMEOUT`, and Gemini
   retries a timed-out attempt.
+- More single-brace names are placeholders. Names in another script (`{número}`, `{名前}`) are
+  protected in `vue-i18n-json`, `properties` and `ini`, and ASCII names starting with `$`
+  (`{$name}`) in `vue-i18n-json` and `ini`: a translation that renames or drops one is refused
+  instead of written. In `i18next-json`, `ngx-translate-json` and `yaml`, a translation that
+  invents such a token (`{$x}`, `{número}`) is refused as fabricated. Values already in a locale
+  file stay until their source changes.
+- In `resx`, a named hole such as `{name}` or `{when:d}` is a placeholder: a translation that
+  renames it (`{name}` to `{nombre}`) is refused instead of written. A braced word in prose
+  (`Click {Save}`, `{ curly }`) counts too, so keep it unchanged in the translation. Existing
+  values that renamed one now show in the integrity views of Studio and the MCP server.
 - Integrity refusals report `empty` and `icu` ahead of `placeholder` and `markup`.
   `LENGTH_RATIO_OUTLIER` counts graphemes weighted by script.
 - `lockAcquireTimeoutMs` bounds only the waits before a provider call, and `onLockWait` first

@@ -8,6 +8,14 @@ describe("extractPropertiesPlaceholders", () => {
     expect(extractPropertiesPlaceholders("{0} then {1}")).toEqual(["{0}", "{1}"]);
   });
 
+  it("extracts a non-ASCII argument and recurses into its plural arms", () => {
+    expect(
+      extractPropertiesPlaceholders(
+        "{件数, plural, one {# {名前}} other {# {名前}s}} {nom_é,number}",
+      ),
+    ).toEqual(["{件数,plural}", "{名前}", "{名前}", "{nom_é,number}"]);
+  });
+
   it("extracts named tokens and normalizes inner whitespace", () => {
     expect(extractPropertiesPlaceholders("Hi { name }")).toEqual(["{name}"]);
   });

@@ -382,3 +382,16 @@ export function editXliffUnit(xml: string, key: string, edit: CatToolEdit): stri
     : editXliff12Unit(block, edit);
   return `${xml.slice(0, start)}${edited}${xml.slice(start + block.length)}`;
 }
+
+export interface Deferred {
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
+}
+
+export function deferred(): Deferred {
+  let resolve: () => void = () => {};
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}

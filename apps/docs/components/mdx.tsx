@@ -1,6 +1,6 @@
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card } from "fumadocs-ui/components/card";
-import { CodeBlock, CodeBlockTabs, Pre } from "fumadocs-ui/components/codeblock";
+import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
@@ -14,11 +14,11 @@ import {
   DocsHomeHero,
   DocsHomePaths,
   DocsHomeSection,
-  DocsHomeStacks,
   DocsHomeSteps,
 } from "@/components/docs-home";
 import { VMark } from "@/components/landing";
 import { OutputCodeBlock } from "@/components/output-code-block";
+import { StackCards } from "@/components/stack-cards";
 import { StudioScreenshot } from "@/components/studio-screenshot";
 import Badge from "@/components/ui/badge";
 import CommandLine from "@/components/ui/command-line";
@@ -32,7 +32,6 @@ import { breakAfterUnderscores } from "@/lib/word-breaks";
 
 export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
-export const CODE_TABS_CLASS = "vk-code-tabs";
 export const SHORT_CODE_CLASS = "vk-code-short";
 
 const NO_NEIGHBOURS: ReadonlySet<string> = new Set();
@@ -81,9 +80,6 @@ export function getMDXComponents(
         />
       );
     },
-    CodeBlockTabs: ({ className, ...rest }: ComponentProps<typeof CodeBlockTabs>) => (
-      <CodeBlockTabs className={cn(CODE_TABS_CLASS, className)} {...rest} />
-    ),
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
     DiffPanel,
     Step,
@@ -103,8 +99,8 @@ export function getMDXComponents(
     DocsHomePaths: (props: Omit<ComponentProps<typeof DocsHomePaths>, "locale">) => (
       <DocsHomePaths {...props} locale={locale} />
     ),
-    DocsHomeStacks: (props: Omit<ComponentProps<typeof DocsHomeStacks>, "locale">) => (
-      <DocsHomeStacks {...props} locale={locale} />
+    StackCards: (props: Omit<ComponentProps<typeof StackCards>, "locale">) => (
+      <StackCards {...props} locale={locale} />
     ),
     DocsHomeFeatures: (props: Omit<ComponentProps<typeof DocsHomeFeatures>, "locale">) => (
       <DocsHomeFeatures {...props} locale={locale} />

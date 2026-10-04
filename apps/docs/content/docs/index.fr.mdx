@@ -45,37 +45,27 @@ type: overview
   ]}
 />
 
-<DocsHomeStacks
-  title="Choisis ta stack"
-  groups={[
-    {
-      title: "Frameworks",
-      links: [
-        { label: "React", href: "/docs/pick-your-stack#react-avec-i18next" },
-        { label: "Next.js", href: "/docs/pick-your-stack#nextjs-avec-next-intl" },
-        { label: "Vue", href: "/docs/pick-your-stack#vue-et-nuxt-avec-vue-i18n" },
-        { label: "Angular", href: "/docs/pick-your-stack#angular-avec-ngx-translate" },
-      ],
-    },
-    {
-      title: "Plateformes",
-      links: [
-        { label: "Flutter", href: "/docs/pick-your-stack#flutter" },
-        { label: "Android", href: "/docs/pick-your-stack#android" },
-        { label: "iOS et macOS", href: "/docs/pick-your-stack#ios-et-macos" },
-        { label: "Spring", href: "/docs/pick-your-stack#java-et-spring" },
-        { label: ".NET", href: "/docs/pick-your-stack#net" },
-      ],
-    },
-    {
-      title: "Formats",
-      links: [
-        { label: "gettext", href: "/docs/pick-your-stack#gettext" },
-        { label: "YAML", href: "/docs/pick-your-stack#yaml" },
-        { label: "XLIFF", href: "/docs/pick-your-stack#xliff" },
-        { label: "INI", href: "/docs/pick-your-stack#ini" },
-      ],
-    },
+</DocsHomeSection>
+
+<DocsHomeSection id="pick-your-stack" title="Choisis ta stack" lead="Chaque carte ouvre la commande init et l'organisation des fichiers de cette stack.">
+
+<StackCards
+  labelledBy="pick-your-stack"
+  cards={[
+    { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/pick-your-stack#react-avec-i18next" },
+    { label: "Next.js", icon: "next", formats: ["next-intl-json"], href: "/docs/pick-your-stack#nextjs-avec-next-intl" },
+    { label: "Vue et Nuxt", icon: "vue", formats: ["vue-i18n-json"], href: "/docs/pick-your-stack#vue-et-nuxt-avec-vue-i18n" },
+    { label: "Angular", icon: "angular", formats: ["ngx-translate-json"], href: "/docs/pick-your-stack#angular-avec-ngx-translate" },
+    { label: "Flutter", icon: "flutter", formats: ["arb"], href: "/docs/pick-your-stack#flutter" },
+    { label: "Android", icon: "android", formats: ["android-xml"], href: "/docs/pick-your-stack#android" },
+    { label: "iOS et macOS", icon: "apple", formats: ["apple-strings", "apple-xcstrings"], href: "/docs/pick-your-stack#ios-et-macos" },
+    { label: "gettext", icon: "gnu", formats: ["gettext-po"], href: "/docs/pick-your-stack#gettext" },
+    { label: "Java et Spring", icon: "spring", formats: ["properties"], href: "/docs/pick-your-stack#java-et-spring" },
+    { label: ".NET", icon: "dotnet", formats: ["resx"], href: "/docs/pick-your-stack#net" },
+    { label: "YAML", icon: "yaml", formats: ["yaml"], href: "/docs/pick-your-stack#yaml" },
+    { label: "XLIFF", icon: "xliff", formats: ["xliff"], href: "/docs/pick-your-stack#xliff" },
+    { label: "INI", icon: "ini", formats: ["ini"], href: "/docs/pick-your-stack#ini" },
+    { label: "Autre chose", icon: "custom", formats: [], href: "/docs/pick-your-stack#autre-chose" },
   ]}
 />
 

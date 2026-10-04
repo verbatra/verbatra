@@ -24,6 +24,11 @@ describe("foreignPlaceholderTokens on a long value without whitespace", () => {
     "%(a",
     "{a}",
     "a$",
+    "{名",
+    "{名,",
+    "{名前}",
+    "{é\u0301",
+    "{\u0663",
   ])("stays linear on %j repeated to 200k characters", (unit) => {
     const small = repeatedTo(unit, LENGTH / LINEAR_SCALE);
     const large = repeatedTo(unit, LENGTH);
@@ -54,6 +59,8 @@ describe("foreignPlaceholderTokens on an unclosed placeholder followed by whites
     ["{{a", " "],
     ["{ a,", " "],
     ["{a, ", " "],
+    ["{名, ", " "],
+    ["{ número,", "\n"],
   ])("stays linear on %j followed by %j up to 200k characters", (prefix, filler) => {
     const small = prefix + repeatedTo(filler, LENGTH / LINEAR_SCALE);
     const large = prefix + repeatedTo(filler, LENGTH);

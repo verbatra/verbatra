@@ -324,10 +324,10 @@ le disque, qui renvoie par locale le texte source et le texte cible actuels de c
 Utilise-le quand l'appelant doit chercher ou parcourir du contenu traduit plutôt que des noms de
 clés.
 
-```ts
+```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
 
-const report = await localeValues({ config: await loadConfig(), locales: ["de", "fr"] });
+const report = await localeValues({ config: await loadConfig() });
 
 for (const { locale, values } of report) {
   for (const [key, pair] of Object.entries(values)) {
@@ -343,7 +343,7 @@ for (const { locale, values } of report) {
 ```
 
 En lecture seule : il n'appelle aucun fournisseur, n'écrit rien et ne touche ni au fichier de
-verrouillage ni au cache. Omets `locales` pour couvrir toutes les locales cibles configurées.
+verrouillage ni au cache. Il couvre toutes les locales cibles configurées ; passe `locales` pour le limiter à certaines d'entre elles, et une locale hors de `targetLocales` lève `UNKNOWN_LOCALE`.
 
 ## L'aller-retour du classeur
 

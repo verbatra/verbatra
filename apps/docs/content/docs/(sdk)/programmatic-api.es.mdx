@@ -348,10 +348,10 @@ for (const { locale, needsReview } of queue.locales) {
 en disco, que devuelve el texto de origen y de destino actual de cada clave por locale. Recurre a
 él cuando quien llama necesita buscar o escanear contenido traducido en lugar de nombres de clave.
 
-```ts
+```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
 
-const report = await localeValues({ config: await loadConfig(), locales: ["de", "fr"] });
+const report = await localeValues({ config: await loadConfig() });
 
 for (const { locale, values } of report) {
   for (const [key, pair] of Object.entries(values)) {
@@ -367,7 +367,7 @@ for (const { locale, values } of report) {
 ```
 
 Solo lectura: no llama a ningún proveedor, no escribe nada y no toca ni el archivo de bloqueo ni la
-caché. Omite `locales` para cubrir todos los locales de destino configurados.
+caché. Cubre todos los locales de destino configurados; pasa `locales` para limitarlo a algunos, y un locale fuera de `targetLocales` lanza `UNKNOWN_LOCALE`.
 
 ## El ciclo de ida y vuelta del libro
 

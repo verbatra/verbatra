@@ -20,7 +20,7 @@ A format adapter reads a locale file into one format-neutral shape for the diff,
 | `android-xml` | Android `strings.xml` | printf `%s`, `%1$s` | `<plurals>` quantities | created | printf `%s` |
 | `gettext-po` | gettext (`.po`, `.pot`) | printf, `%(name)s` | `msgstr[n]` | created | printf `%s`, `%(name)s` |
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | none | created | `{name}`, `%{name}`, `${name}` |
-| `resx` | .NET resources (`.resx`) | composite `{0}`, `{1:C}` | none | created | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `resx` | .NET resources (`.resx`) | composite `{0}`, `{1:C}`, named `{name}` | none | created | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
 The format decides which placeholders the [integrity check](/docs/translation-safety) compares and, for the ICU formats, which values are validated, so match it to your i18n library.
 
@@ -34,7 +34,7 @@ All four read nested JSON objects of string leaves; they differ in message synta
 
 ### vue-i18n-json
 
-Single-brace `{name}` and `{0}` tokens; plural from a pipe in the value.
+Single-brace `{name}` and `{0}` tokens; names may use any script, such as `{número}` or `{名前}`. Plural from a pipe in the value.
 
 ### next-intl-json
 
@@ -106,7 +106,7 @@ Java and Spring `.properties`: flat key/value lines, keys kept verbatim.
 - **Syntax** follows `java.util.Properties`: `=`, `:` or whitespace separate key and value; `#` and `!` start comments; a trailing backslash continues a line; standard escapes and `\uXXXX` are decoded. Files are read as UTF-8 and non-ASCII is written as `\uXXXX`.
 - **Writes keep** key order, comments and blank lines, rewriting each existing line in place and appending new keys in source order. A duplicate key keeps its first position and last value.
 - **Line endings follow the file**: any CRLF means all CRLF, CR-only stays CR, otherwise LF.
-- **Placeholders are `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}`, and `plural`, `select`, `selectordinal` and `choice` arguments. Single-quote quoting is not interpreted, so an apostrophe never swallows a placeholder and `'{0}'` still counts as one.
+- **Placeholders are `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` (names in any script, such as `{número}`), and `plural`, `select`, `selectordinal` and `choice` arguments. Single-quote quoting is not interpreted, so an apostrophe never swallows a placeholder and `'{0}'` still counts as one.
 
 ## Apple .strings
 
@@ -171,7 +171,7 @@ One level of `[section]` headers over `key=value` lines.
 - **Keys.** A key in `[home]` is `home.title`; keys above the first section keep their bare name, and literal dots are escaped.
 - **Writes** change only values, keeping key spelling, spacing, `;` and `#` comments and blank lines. A new key goes to the end of its section, a new section to the end of the file, and a missing file is created.
 - **Values.** Double-quoted values are unquoted with `\\`, `\"`, `\n`, `\r`, `\t` decoded, and a value that needs it is written quoted. An inline `;` belongs to the value.
-- **Placeholders** are `{name}` and `{0}`; there are no plurals.
+- **Placeholders** are `{name}` and `{0}`, names in any script (`{名前}`); there are no plurals.
 - **Errors.** An unterminated or empty header, or text after `]` that is not a comment, raises an `AdapterError`. A line without `=` is kept verbatim.
 
 ## .NET .resx
@@ -182,7 +182,7 @@ One level of `[section]` headers over `key=value` lines.
 
 - **Writes patch values only**: the XSD block, `<resheader>`, `<metadata>`, `<assembly>` and untranslated entries come back unchanged, on the file's line terminator; a byte-order mark is dropped.
 - **Not translated.** `<data>` with `type` or `mimetype`, and names starting with `>>` or `$`, are kept as they are. A `<comment>` is read-only context.
-- **Placeholders** are composite format items taken whole (`{0}`, `{1,-10}`, `{2:C}`); `{{`, `}}` and stray braces are guarded too. There is no ICU check and there are no plurals.
+- **Placeholders** are composite format items taken whole (`{0}`, `{1,-10}`, `{2:C}`), and so are named holes such as `{name}` or `{when:d}`, so a renamed hole is refused; `{{`, `}}` and stray braces are guarded too. There is no ICU check and there are no plurals.
 - **Missing target** is created with the standard `resmimetype`, `version`, `reader` and `writer` headers.
 - **Refused keys.** A value the target holds as a typed, designer or markup entry, and a key that could not be read back (empty, or starting with `>>` or `$`), fails the write with an `AdapterError` naming it.
 - **Errors.** Invalid XML, a root other than `<root>`, and a DTD or entity are rejected.

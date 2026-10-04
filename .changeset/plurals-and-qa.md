@@ -24,6 +24,8 @@ CLDR plurals, ICU arm checks, other-syntax placeholder and direction control war
 
 **Integrity gate**
 - Each locale carries `integrityRefusals` with the reason and details per withheld key.
+- Placeholder names in any script (`{número}`, `{名前}`) are protected in vue-i18n, properties
+  and INI, and resx named holes (`{name}`, `{when:d}`) are protected like `{0}`.
 - `LENGTH_RATIO_OUTLIER` counts graphemes weighted by script, so correct Chinese, Japanese or
   Korean is no longer flagged.
 

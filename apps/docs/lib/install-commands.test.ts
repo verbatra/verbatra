@@ -1,64 +1,34 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { remarkNpm } from "fumadocs-core/mdx-plugins";
 import { describe, expect, it } from "vitest";
-import {
-  INSTALL_COMMANDS,
-  isPackageManagerId,
-  NPM_INSTALL_COMMAND,
-  PACKAGE_MANAGER_STORAGE_KEY,
-} from "@/lib/install-commands";
+import { NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 
-type MdNode = {
-  type: string;
-  name?: string;
-  lang?: string;
-  value?: unknown;
-  attributes?: ReadonlyArray<{ name: string; value: unknown }>;
-  children?: MdNode[];
-};
+const DOCS_DIR = fileURLToPath(new URL("../", import.meta.url));
+const CONTENT_DIR = join(DOCS_DIR, "content/docs");
 
 function docsFile(relative: string): string {
-  return readFileSync(fileURLToPath(new URL(`../${relative}`, import.meta.url)), "utf8");
+  return readFileSync(join(DOCS_DIR, relative), "utf8");
 }
 
-function docsTabs(command: string): Record<string, string> {
-  const tree: MdNode = { type: "root", children: [{ type: "code", lang: "npm", value: command }] };
-  const transform = remarkNpm({ persist: { id: PACKAGE_MANAGER_STORAGE_KEY } }) as unknown as (
-    root: MdNode,
-  ) => void;
-  transform(tree);
-  const tabs: Record<string, string> = {};
-  for (const node of tree.children?.[0]?.children ?? []) {
-    if (node.name !== "CodeBlockTab") continue;
-    const value = node.attributes?.find((attribute) => attribute.name === "value")?.value;
-    const code = node.children?.find((child) => child.type === "code")?.value;
-    if (typeof value === "string" && typeof code === "string") tabs[value] = code;
-  }
-  return tabs;
+function mdxPages(): string[] {
+  return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" }).filter((file) =>
+    file.endsWith(".mdx"),
+  );
 }
 
-describe("landing install commands", () => {
-  it("match the commands the docs package-manager tabs render", () => {
-    const expected = Object.fromEntries(INSTALL_COMMANDS.map((entry) => [entry.id, entry.command]));
-    expect(docsTabs(NPM_INSTALL_COMMAND)).toEqual(expected);
-  });
-
-  it("use the npm command the first-translation guide installs with", () => {
+describe("the install command", () => {
+  it("is the npm command the quickstart installs with", () => {
     expect(docsFile("content/docs/(get-started)/quickstart.mdx")).toContain(
-      `\`\`\`npm\n${NPM_INSTALL_COMMAND}\n\`\`\``,
+      `\`\`\`bash\n${NPM_INSTALL_COMMAND}\n\`\`\``,
     );
   });
 
-  it("persist under the key the docs code tabs use", () => {
-    expect(docsFile("source.config.ts")).toContain(
-      `persist: { id: "${PACKAGE_MANAGER_STORAGE_KEY}" }`,
+  it("renders as one command, with no package-manager tabs on any page", () => {
+    expect(docsFile("source.config.ts")).toContain("remarkNpmOptions: false");
+    const tabbed = mdxPages().filter((file) =>
+      /^```npm\s*$/m.test(readFileSync(join(CONTENT_DIR, file), "utf8")),
     );
-  });
-
-  it("accepts only a known package manager id", () => {
-    expect(isPackageManagerId("pnpm")).toBe(true);
-    expect(isPackageManagerId("deno")).toBe(false);
-    expect(isPackageManagerId(null)).toBe(false);
+    expect(tabbed).toEqual([]);
   });
 });

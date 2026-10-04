@@ -117,6 +117,22 @@ the matching theme file instead of adding a new one, and add nothing for a
 test-only, docs-only or internal change or for a fix to an unreleased feature.
 The full policy is the changeset bullet in `.claude/rules/git-conventions.md`.
 
+To see what the next release would ship before the release workflow opens its
+`Version Packages` pull request, run:
+
+```
+pnpm release:preview
+```
+
+It checks out `HEAD` into a temporary git worktree, runs `changeset version` and
+the `server.json` sync there, prints each version bump and the new `CHANGELOG.md`
+section of every bumped package with its line and word count, and removes the
+worktree again, also when a step fails. Uncommitted changes are not included.
+Without a token it swaps the GitHub changelog generator for the plain
+`@changesets/cli/changelog` one, so entries carry commit hashes but no pull
+request links or author names. For the exact GitHub-flavoured output, pass a
+token: `GITHUB_TOKEN=$(gh auth token) pnpm release:preview`.
+
 ## Pull requests
 
 1. Branch from `main`.

@@ -20,7 +20,7 @@ Un adaptateur de format lit un fichier de locale vers une forme unique, neutre v
 | `android-xml` | `strings.xml` d'Android | printf `%s`, `%1$s` | quantités `<plurals>` | créé | printf `%s` |
 | `gettext-po` | gettext (`.po`, `.pot`) | printf, `%(name)s` | `msgstr[n]` | créé | printf `%s`, `%(name)s` |
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | aucun | créé | `{name}`, `%{name}`, `${name}` |
-| `resx` | ressources .NET (`.resx`) | composite `{0}`, `{1:C}` | aucun | créé | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `resx` | ressources .NET (`.resx`) | composite `{0}`, `{1:C}`, nommé `{name}` | aucun | créé | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
 Le format décide quels placeholders compare le [contrôle d'intégrité](/docs/translation-safety) et, pour les formats ICU, quelles valeurs sont validées : fais-le donc correspondre à ta bibliothèque i18n.
 
@@ -34,7 +34,7 @@ Interpolation `{{double-brace}}` ; pluriel d'après le suffixe CLDR sur la clé 
 
 ### vue-i18n-json
 
-Jetons à accolade simple `{name}` et `{0}` ; pluriel d'après un pipe dans la valeur.
+Jetons à accolade simple `{name}` et `{0}` ; les noms peuvent utiliser n'importe quelle écriture, comme `{número}` ou `{名前}`. Pluriel d'après un pipe dans la valeur.
 
 ### next-intl-json
 
@@ -106,7 +106,7 @@ Les `.properties` de Java et Spring : des lignes clé/valeur plates, clés conse
 - **La syntaxe** suit `java.util.Properties` : `=`, `:` ou un espace séparent la clé et la valeur ; `#` et `!` commencent un commentaire ; une barre oblique inversée finale poursuit une ligne ; les échappements standard et `\uXXXX` sont décodés. Les fichiers sont lus en UTF-8 et le non-ASCII est écrit en `\uXXXX`.
 - **Les écritures conservent** l'ordre des clés, les commentaires et les lignes vides, en réécrivant chaque ligne existante en place et en ajoutant les nouvelles clés dans l'ordre de la source. Une clé en double garde sa première position et sa dernière valeur.
 - **Les fins de ligne suivent le fichier** : le moindre CRLF signifie tout en CRLF, uniquement CR reste en CR, sinon LF.
-- **Les placeholders sont du `java.text.MessageFormat`** : `{0}`, `{0,number}`, `{0,number,integer}`, `{count}`, et les arguments `plural`, `select`, `selectordinal` et `choice`. Les guillemets simples ne sont pas interprétés, donc une apostrophe n'avale jamais un placeholder et `'{0}'` compte toujours comme un placeholder.
+- **Les placeholders sont du `java.text.MessageFormat`** : `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` (noms dans n'importe quelle écriture, comme `{número}`), et les arguments `plural`, `select`, `selectordinal` et `choice`. Les guillemets simples ne sont pas interprétés, donc une apostrophe n'avale jamais un placeholder et `'{0}'` compte toujours comme un placeholder.
 
 ## Apple .strings
 
@@ -171,7 +171,7 @@ Un niveau d'en-têtes `[section]` au-dessus de lignes `key=value`.
 - **Clés.** Une clé dans `[home]` est `home.title` ; les clés placées avant la première section gardent leur nom nu, et les points littéraux sont échappés.
 - **Les écritures** ne changent que les valeurs, en gardant l'orthographe des clés, l'espacement, les commentaires `;` et `#` et les lignes vides. Une nouvelle clé va à la fin de sa section, une nouvelle section à la fin du fichier, et un fichier manquant est créé.
 - **Valeurs.** Les valeurs entre guillemets doubles sont débarrassées de leurs guillemets, avec `\\`, `\"`, `\n`, `\r`, `\t` décodés, et une valeur qui en a besoin est écrite entre guillemets. Un `;` en milieu de ligne fait partie de la valeur.
-- **Les placeholders** sont `{name}` et `{0}` ; il n'y a pas de pluriels.
+- **Les placeholders** sont `{name}` et `{0}`, avec des noms dans n'importe quelle écriture (`{名前}`) ; il n'y a pas de pluriels.
 - **Erreurs.** Un en-tête non terminé ou vide, ou un texte après `]` qui n'est pas un commentaire, lève une `AdapterError`. Une ligne sans `=` est conservée mot pour mot.
 
 ## .NET .resx
@@ -182,7 +182,7 @@ Des éléments `<data name><value>` sous `<root>`, revendiqués uniquement pour 
 
 - **Les écritures ne retouchent que les valeurs** : le bloc XSD, `<resheader>`, `<metadata>`, `<assembly>` et les entrées non traduites reviennent inchangés, avec le terminateur de ligne du fichier ; une marque d'ordre des octets est retirée.
 - **Non traduit.** Un `<data>` avec `type` ou `mimetype`, et les noms commençant par `>>` ou `$`, sont conservés tels quels. Un `<comment>` est du contexte en lecture seule.
-- **Les placeholders** sont les éléments de format composite pris en entier (`{0}`, `{1,-10}`, `{2:C}`) ; `{{`, `}}` et les accolades isolées sont aussi protégés. Il n'y a pas de contrôle ICU ni de pluriels.
+- **Les placeholders** sont les éléments de format composite pris en entier (`{0}`, `{1,-10}`, `{2:C}`), tout comme les trous nommés tels que `{name}` ou `{when:d}`, donc un trou renommé est refusé ; `{{`, `}}` et les accolades isolées sont aussi protégés. Il n'y a pas de contrôle ICU ni de pluriels.
 - **Une cible manquante** est créée avec les en-têtes standard `resmimetype`, `version`, `reader` et `writer`.
 - **Clés refusées.** Une valeur que la cible contient comme entrée typée, du concepteur ou avec du balisage, et une clé qui ne pourrait pas être relue (vide, ou commençant par `>>` ou `$`), font échouer l'écriture avec une `AdapterError` qui la nomme.
 - **Erreurs.** Un XML invalide, une racine autre que `<root>`, et une DTD ou une entité sont rejetés.

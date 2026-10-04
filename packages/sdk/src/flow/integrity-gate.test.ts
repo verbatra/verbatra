@@ -195,3 +195,48 @@ describe.each([
     expect(gateCandidateValue(entry("", []), "", adapter, "de")).toMatchObject({ accepted: true });
   });
 });
+
+describe("gateCandidateValue: placeholder names beyond ASCII and resx named holes", () => {
+  function adapterFor(format: "vue-i18n-json" | "properties" | "ini" | "resx") {
+    const resolution = createDefaultRegistry().resolve("", { format });
+    if (resolution.status !== "resolved") {
+      throw new Error(`${format} adapter did not resolve`);
+    }
+    return resolution.adapter;
+  }
+
+  it.each([
+    ["vue-i18n-json", "Hola {número}", "Hallo {numero}", "-{número}"],
+    ["properties", "Hola {名前}", "Hallo {name}", "-{名前}"],
+    ["ini", "Salut {nom_é}", "Hallo {nom_e}", "-{nom_é}"],
+    ["resx", "Hello {name}", "Hola {nombre}", "-{name}"],
+    ["resx", "Due {when:yyyy-MM-dd}", "Fällig {when}", "-{when:yyyy-MM-dd}"],
+  ] as const)("%s refuses %j translated as %j", (format, source, candidate, missing) => {
+    const adapter = adapterFor(format);
+    const result = gateCandidateValue(
+      entry(source, adapter.extractPlaceholders(source)),
+      candidate,
+      adapter,
+      "de",
+    );
+
+    expect(result).toMatchObject({ accepted: false, reason: "placeholder" });
+    expect(result.accepted === false ? result.details : []).toContain(missing);
+  });
+
+  it.each([
+    ["vue-i18n-json", "Hola {número}", "Hallo { número }"],
+    ["resx", "Hello {name,-10}", "Hallo {name, -10}"],
+    ["resx", "Hello {नाम}", "नमस्ते {नाम}"],
+  ] as const)("%s accepts %j kept as %j", (format, source, candidate) => {
+    const adapter = adapterFor(format);
+    const result = gateCandidateValue(
+      entry(source, adapter.extractPlaceholders(source)),
+      candidate,
+      adapter,
+      "de",
+    );
+
+    expect(result).toMatchObject({ accepted: true });
+  });
+});
