@@ -8,6 +8,7 @@ import type {
   keyContext,
   keyValue,
   localeHistory,
+  localeValuesPage,
   lockState,
   provenanceReport,
   retranslateEntry,
@@ -21,6 +22,7 @@ import type { GlossaryResult, LocaleTerm } from "./glossary.js";
 import type { HistoryListResult } from "./history-list.js";
 import type { KeyContextResult } from "./key-context.js";
 import type { KeyValueResult } from "./key-value.js";
+import type { LocaleValuesResult } from "./locale-values.js";
 import type { LockStateResult } from "./lock-state.js";
 import type { ReportProvenanceResult } from "./report-provenance.js";
 import type { RetranslateEntryResult } from "./retranslate-entry.js";
@@ -101,6 +103,12 @@ describe("output schemas declare every field the SDK result they pass through ca
     >().toEqualTypeOf<never>();
     expectTypeOf<
       Undeclared<SdkResult<typeof approveEntry>, ReviewDecisionResult>
+    >().toEqualTypeOf<never>();
+  });
+
+  it("locale.values", () => {
+    expectTypeOf<
+      Undeclared<SdkResult<typeof localeValuesPage>, LocaleValuesResult>
     >().toEqualTypeOf<never>();
   });
 

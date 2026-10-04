@@ -1,21 +1,18 @@
 import {
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
   PROVENANCE_BUCKETS,
   type ProvenanceBucket,
   type ProvenanceReport,
   type ProvenanceReportEntry,
+  pageAcrossLocales,
   provenanceReport,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import { readSdkManifest } from "../package-manifest.js";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import {
-  PAGE_LIMIT_CAP,
-  PAGE_LIMIT_DEFAULT,
-  pageAcrossLocales,
-  pageCursorSchema,
-  pageLimitSchema,
-} from "./page-cursor.js";
+import { asInvalidCursor, pageCursorSchema, pageLimitSchema } from "./page-cursor.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
 import { withoutReviewer } from "./value-redaction.js";
 
@@ -83,7 +80,7 @@ function pagedEntries(
         locales: params.locales ?? null,
         buckets: params.buckets === undefined ? null : [...new Set(params.buckets)].sort(),
       },
-      limit: params.limit ?? PAGE_LIMIT_DEFAULT,
+      ...(params.limit !== undefined ? { limit: params.limit } : {}),
       ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
     },
   );
@@ -132,7 +129,7 @@ async function readProvenanceReport(
       locales: report.locales.map(({ entries: _entries, ...locale }) => locale),
     };
   }
-  return withEntries(report, params);
+  return asInvalidCursor(() => withEntries(report, params));
 }
 
 export const reportProvenanceTool = defineTool({
