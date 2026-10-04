@@ -136,6 +136,18 @@ function foldByUnit(text: string, locale: string): UnitFolding {
   return { folded, spans };
 }
 
+function lettersCovered(folded: string, covered: readonly boolean[], span: FoldSpan): boolean {
+  let index = span.foldedStart;
+  for (const character of folded.slice(span.foldedStart, span.foldedEnd)) {
+    const end = index + character.length;
+    if (UNICODE_LETTER.test(character) && !covered.slice(index, end).every(Boolean)) {
+      return false;
+    }
+    index = end;
+  }
+  return true;
+}
+
 function caseInsensitiveCoverage(
   text: string,
   terms: readonly string[],
@@ -148,7 +160,7 @@ function caseInsensitiveCoverage(
   );
   const covered = new Array<boolean>(text.length).fill(false);
   for (const span of spans) {
-    if (foldedCovered.slice(span.foldedStart, span.foldedEnd).every(Boolean)) {
+    if (lettersCovered(folded, foldedCovered, span)) {
       covered.fill(true, span.start, span.end);
     }
   }
