@@ -1,10 +1,10 @@
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { PassThrough } from "node:stream";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { SdkError } from "@verbatra/sdk";
 import { afterEach, describe, expect, it, type Mock, vi } from "vitest";
-import { connectMcpServer } from "./server.js";
+import { serveMcpStdio } from "./server.js";
 import { closeOnInputEnd, startMcpServer } from "./start-server.js";
 import {
   baseLoadedConfig,
@@ -247,7 +247,7 @@ describe("stdio transport: stdout purity", () => {
     const serverToClient = new PassThrough();
 
     const transport = new StdioServerTransport(clientToServer, serverToClient);
-    const server = await connectMcpServer(
+    const server = serveMcpStdio(
       { project: staticProject(baseLoadedConfig()), cwd: dir },
       transport,
     );

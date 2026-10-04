@@ -17,6 +17,5 @@ Runtime dependency updates that reach consumers of the published packages.
 - `ip-address` 10.7.0 -> 10.7.3 (through `@google/genai`, security fix)
 
 **`@verbatra/mcp`**
-- `@modelcontextprotocol/sdk` 1.30.0 -> 1.31.0
-- `hono` 4.13.5 -> 4.13.12 (through `@modelcontextprotocol/sdk`, security fix)
-- `ip-address` 10.7.0 -> 10.7.3 (through `@modelcontextprotocol/sdk`, security fix)
+- `@modelcontextprotocol/sdk` 1.30.0 -> `@modelcontextprotocol/server` 2.3.0, which no longer
+  pulls in `hono`, `ip-address` or `express`

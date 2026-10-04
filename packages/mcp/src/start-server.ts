@@ -1,5 +1,5 @@
 import type { Readable } from "node:stream";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { type StdioServerHandle, StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import {
   type CreateProvider,
   createValueMarker,
@@ -7,7 +7,7 @@ import {
   redact,
 } from "@verbatra/sdk";
 import { type McpProjectState, openProjectSession } from "./project-session.js";
-import { connectMcpServer } from "./server.js";
+import { serveMcpStdio } from "./server.js";
 import { resolveServerCwd } from "./server-cwd.js";
 import type { McpSpendState } from "./session-banner.js";
 import type { McpToolContext } from "./types.js";
@@ -101,8 +101,9 @@ export interface McpServerHandle {
 }
 
 /**
- * Starts verbatra's stdio MCP server: loads the project config, connects an MCP `Server` over
- * `process.stdin`/`process.stdout`, and returns a handle to stop it. The server closes itself when
+ * Starts verbatra's stdio MCP server: loads the project config, serves MCP over
+ * `process.stdin`/`process.stdout` to clients on protocol revision 2026-07-28 and on the 2025
+ * revisions, and returns a handle to stop it. The server closes itself when
  * the client closes stdin, which settles the handle's `closed` promise. Use this to embed the server
  * in your own process; the `verbatra mcp` CLI command and the `verbatra-mcp` binary both call it.
  *
@@ -145,7 +146,7 @@ export async function startMcpServer(
 
   const input = process.stdin;
   const transport = new StdioServerTransport(input, process.stdout);
-  const server = await connectMcpServer(
+  const handle = serveMcpStdio(
     {
       project,
       cwd,
@@ -161,9 +162,10 @@ export async function startMcpServer(
     transport,
   );
 
-  const closed = closeOnInputEnd(input, server, options.onLog);
+  const connection = stdioConnection(handle, transport);
+  const closed = closeOnInputEnd(input, connection, options.onLog);
   return {
-    close: () => server.close(),
+    close: () => connection.close(),
     closed,
     spend: spendState(options.allowSpend ?? false, initial),
     valuesRedacted: options.redactValues ?? false,
@@ -184,6 +186,19 @@ function spendState(allowSpend: boolean, state: McpProjectState): McpSpendState 
 interface ClosableServer {
   close(): Promise<void>;
   onclose?: (() => void) | undefined;
+}
+
+function stdioConnection(
+  handle: StdioServerHandle,
+  transport: StdioServerTransport,
+): ClosableServer {
+  const connection: ClosableServer = { close: () => handle.close() };
+  const transportOnClose = transport.onclose;
+  transport.onclose = () => {
+    transportOnClose?.();
+    connection.onclose?.();
+  };
+  return connection;
 }
 
 function describeError(error: unknown): string {

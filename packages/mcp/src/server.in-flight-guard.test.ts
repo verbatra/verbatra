@@ -1,6 +1,5 @@
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import type { TranslateRequest, TranslateResult } from "@verbatra/ai-providers";
 import type { SdkFs } from "@verbatra/sdk";
 import { describe, expect, it, vi } from "vitest";

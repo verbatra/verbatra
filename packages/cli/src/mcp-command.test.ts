@@ -257,7 +257,7 @@ describe("run mcp: @verbatra/mcp not installed", () => {
     const importedFrom = "/proj/node_modules/@verbatra/mcp/dist/server.js";
     const { deps } = recordingDeps({
       importMcp: async () => {
-        throw moduleNotFound("@modelcontextprotocol/sdk", importedFrom);
+        throw moduleNotFound("@modelcontextprotocol/server", importedFrom);
       },
     });
     const cap = captureStreams();

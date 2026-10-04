@@ -1,14 +1,13 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
-  CallToolRequestSchema,
   type CallToolResult,
-  ErrorCode,
-  ListToolsRequestSchema,
-  McpError,
-  type ServerNotification,
+  type Notification,
+  ProtocolError,
+  ProtocolErrorCode,
+  Server,
   type Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+  type Transport,
+} from "@modelcontextprotocol/server";
+import { type StdioServerHandle, serveStdio } from "@modelcontextprotocol/server/stdio";
 import { declareProviderKeyEnvVar, isMachineTranslationEnabled, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { readPackageManifest } from "./package-manifest.js";
@@ -98,21 +97,23 @@ function executeFor(
 }
 
 interface ProgressChannel {
-  readonly _meta?: { readonly progressToken?: string | number | undefined } | undefined;
-  sendNotification(notification: ServerNotification): Promise<void>;
+  readonly mcpReq: {
+    readonly _meta?: { readonly progressToken?: string | number | undefined } | undefined;
+    notify(notification: Notification): Promise<void>;
+  };
 }
 
 function progressReporterFor(
   channel: ProgressChannel,
   onLog: ((line: string) => void) | undefined,
 ): ProgressReporter | undefined {
-  const progressToken = channel._meta?.progressToken;
+  const progressToken = channel.mcpReq._meta?.progressToken;
   if (progressToken === undefined) {
     return undefined;
   }
   return createProgressReporter({
     send: (update) =>
-      channel.sendNotification({
+      channel.mcpReq.notify({
         method: "notifications/progress",
         params: { progressToken, ...update },
       }),
@@ -158,26 +159,29 @@ export function createMcpServer(options: McpServerOptions): Server {
     return { state, tools };
   }
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
+  server.setRequestHandler("tools/list", async () => {
     const { tools } = await currentTools();
     advertised = tools.map((tool) => tool.name).join(",");
     return { tools: tools.map(toListedTool) };
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+  server.setRequestHandler("tools/call", async (request, ctx) => {
     const { state, tools } = await currentTools();
     announceIfChanged(tools);
     const tool = tools.find((candidate) => candidate.name === request.params.name);
     if (tool === undefined) {
       options.onLog?.(redact(`Unknown tool requested: ${request.params.name}`));
-      throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
+      throw new ProtocolError(
+        ProtocolErrorCode.MethodNotFound,
+        `Unknown tool: ${request.params.name}`,
+      );
     }
     const dedupeKey = entryDedupeKey(request.params.arguments);
     if (inFlightGuard.tryEnter(tool.name, dedupeKey) === false) {
       options.onLog?.(redact(`Tool "${tool.name}" rejected: ${ALREADY_IN_PROGRESS_MESSAGE}`));
       return toFailureResult(ALREADY_IN_PROGRESS_MESSAGE);
     }
-    const progress = progressReporterFor(extra, options.onLog);
+    const progress = progressReporterFor(ctx, options.onLog);
     try {
       const scope: McpCallScope = progress !== undefined ? { onProgress: progress.onProgress } : {};
       const outcome = await executeFor(tool, request.params.arguments ?? {}, state, seams, scope);
@@ -195,11 +199,6 @@ export function createMcpServer(options: McpServerOptions): Server {
   return server;
 }
 
-export async function connectMcpServer(
-  options: McpServerOptions,
-  transport: Transport,
-): Promise<Server> {
-  const server = createMcpServer(options);
-  await server.connect(transport);
-  return server;
+export function serveMcpStdio(options: McpServerOptions, transport: Transport): StdioServerHandle {
+  return serveStdio(() => createMcpServer(options), { legacy: "serve", transport });
 }
