@@ -14,11 +14,10 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import {
   droppedForeignPlaceholders,
   type ForeignPlaceholderTranslation,
+  foreignPlaceholdersOf,
   NATIVE_PLACEHOLDER_SYNTAXES,
   sourceForeignPlaceholderNotice,
   withForeignPlaceholderReason,
-  withForeignPlaceholders,
-  withoutForeignPlaceholders,
 } from "./foreign-placeholders.js";
 
 const SAMPLES: Readonly<Record<PlaceholderSyntax, string>> = {
@@ -260,10 +259,10 @@ describe("withForeignPlaceholderReason", () => {
   });
 });
 
-describe("withForeignPlaceholders", () => {
-  function entryOf(format: SupportedFormat, value: string): TranslationEntry {
+describe("foreignPlaceholdersOf", () => {
+  function entryOf(format: SupportedFormat, key: string, value: string): TranslationEntry {
     return {
-      key: "k",
+      key,
       namespace: "",
       value,
       placeholders: selectAdapter(format).extractPlaceholders(value),
@@ -271,42 +270,33 @@ describe("withForeignPlaceholders", () => {
     };
   }
 
-  it("appends each foreign token once, in source order, after the native placeholders", () => {
-    const entry = entryOf("vue-i18n-json", "{{b}} and {name} and {{a}} then {{b}} and %s");
+  it("lists each foreign token once, in source order, per key that holds one", () => {
+    const entries = [
+      entryOf("vue-i18n-json", "a", "{{b}} and {name} and {{a}} then {{b}} and %s"),
+      entryOf("vue-i18n-json", "plain", "Hi {name}"),
+    ];
 
-    expect(withForeignPlaceholders(entry, "vue-i18n-json").placeholders).toEqual([
-      "{name}",
-      "{{b}}",
-      "{{a}}",
-      "%s",
-    ]);
+    expect(foreignPlaceholdersOf(entries, "vue-i18n-json")).toEqual(
+      new Map([["a", ["{{b}}", "{{a}}", "%s"]]]),
+    );
   });
 
-  it("does not repeat a foreign token the native placeholders already list", () => {
+  it("leaves out a foreign token the native placeholders already list", () => {
     const entry: TranslationEntry = {
-      ...entryOf("i18next-json", "Hi {name}"),
+      ...entryOf("i18next-json", "k", "Hi {name}"),
       placeholders: ["{name}"],
     };
 
-    expect(withForeignPlaceholders(entry, "i18next-json").placeholders).toEqual(["{name}"]);
+    expect(foreignPlaceholdersOf([entry], "i18next-json")).toBeUndefined();
   });
 
-  it("returns the entry itself when the value holds no foreign token", () => {
-    const entry = entryOf("i18next-json", "Hi {{name}}, 50%off");
+  it("is undefined when no value holds a foreign token", () => {
+    const entries = [entryOf("i18next-json", "k", "Hi {{name}}, 50%off")];
 
-    expect(withForeignPlaceholders(entry, "i18next-json")).toBe(entry);
+    expect(foreignPlaceholdersOf(entries, "i18next-json")).toBeUndefined();
   });
 
-  it("hands back the original entry object to code that must not see the foreign tokens", () => {
-    const entry = entryOf("vue-i18n-json", "Use {{x}}");
-    const extended = withForeignPlaceholders(entry, "vue-i18n-json");
-
-    expect(extended).not.toBe(entry);
-    expect(withoutForeignPlaceholders(extended)).toBe(entry);
-    expect(withoutForeignPlaceholders(entry)).toBe(entry);
-  });
-
-  it("returns the entry itself for a third-party format", () => {
+  it("is undefined for a third-party format", () => {
     const entry: TranslationEntry = {
       key: "k",
       namespace: "",
@@ -315,7 +305,7 @@ describe("withForeignPlaceholders", () => {
       isPlural: false,
     };
 
-    expect(withForeignPlaceholders(entry, "custom:kv")).toBe(entry);
+    expect(foreignPlaceholdersOf([entry], "custom:kv")).toBeUndefined();
   });
 });
 

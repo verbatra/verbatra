@@ -107,16 +107,18 @@ function google(): Wire {
 }
 
 describe("buildTranslateRequest", () => {
-  it("adds the value's foreign tokens to its placeholders, after the native ones", () => {
-    const request = buildTranslateRequest(VUE, [entry("greeting", "Hi {name}, use {{x}}")]);
+  it("lists the value's foreign tokens beside the entries, which it passes on unchanged", () => {
+    const entries = [entry("greeting", "Hi {name}, use {{x}}")];
+    const request = buildTranslateRequest(VUE, entries);
 
-    expect(request.entries[0]?.placeholders).toEqual(["{name}", "{{x}}"]);
+    expect(request.entries).toBe(entries);
+    expect(request.foreignPlaceholders).toEqual(new Map([["greeting", ["{{x}}"]]]));
   });
 
-  it("passes an entry without a foreign token through unchanged", () => {
-    const plain = entry("greeting", "Hi {name}");
+  it("sets no foreign tokens when no value holds one", () => {
+    const request = buildTranslateRequest(VUE, [entry("greeting", "Hi {name}")]);
 
-    expect(buildTranslateRequest(VUE, [plain]).entries[0]).toBe(plain);
+    expect("foreignPlaceholders" in request).toBe(false);
   });
 });
 
@@ -191,14 +193,14 @@ describe("an LLM request", () => {
   it("is byte-identical with and without the foreign tokens in the placeholders", async () => {
     const entries = [entry("greeting", "Hi {name}, use {{x}} and %s here"), entry("plain", "Save")];
     const built = buildTranslateRequest(VUE, entries);
-    const raw: TranslateRequest = { ...built, entries };
+    const { foreignPlaceholders: _foreign, ...raw }: TranslateRequest = built;
     const withForeign = gemini();
     const without = gemini();
 
     await withForeign.provider.translateBatch(built);
     await without.provider.translateBatch(raw);
 
-    expect(built.entries[0]?.placeholders).toContain("{{x}}");
+    expect(built.foreignPlaceholders?.get("greeting")).toEqual(["{{x}}", "%s"]);
     expect(withForeign.sent).toHaveLength(1);
     expect(withForeign.sent).toEqual(without.sent);
   });
@@ -209,7 +211,7 @@ describe("an LLM request", () => {
       i18nextEntry("plain", "Save"),
     ];
     const built = buildTranslateRequest(I18NEXT, entries);
-    const raw: TranslateRequest = { ...built, entries };
+    const { foreignPlaceholders: _foreign, ...raw }: TranslateRequest = built;
     const withForeign = gemini();
     const without = gemini();
 
@@ -218,7 +220,7 @@ describe("an LLM request", () => {
     );
     await guardProvider(without.provider, redactGuard("llm")).translateBatch(raw);
 
-    expect(built.entries[0]?.placeholders).toEqual(["{secretToken}"]);
+    expect(built.foreignPlaceholders?.get("token")).toEqual(["{secretToken}"]);
     expect(withForeign.sent).toHaveLength(1);
     expect(withForeign.sent).toEqual(without.sent);
     expect(withForeign.sent[0]).not.toContain("secretToken");
@@ -253,6 +255,65 @@ describe("the sensitive-data guard and the planned verdict", () => {
     );
     expect(result.values.has("token")).toBe(true);
     expect(sensitiveWithheldOf(result).size).toBe(0);
+  });
+
+  it("reaches the same verdict for a shallow copy of the entries, from the memo", async () => {
+    const guard = redactGuard("llm");
+    const entries = [i18nextEntry("token", "Your {secretToken} here")];
+    const planned = guard.entry(entries[0] as TranslationEntry);
+    const copied = buildTranslateRequest(
+      I18NEXT,
+      entries.map((item) => ({ ...item })),
+    );
+
+    const result = await guardProvider(gemini().provider, guard).translateBatch(copied);
+
+    expect(guard.entry({ ...(entries[0] as TranslationEntry) })).toBe(planned);
+    expect(planned.action).toBe("redact");
+    expect(result.values.get("token")).toBe("DE Your {secretToken} here");
+    expect(sensitiveWithheldOf(result).size).toBe(0);
+  });
+
+  it("passes on only the foreign tokens still literal in what the guard sends", async () => {
+    const received: TranslateRequest[] = [];
+    const recorder: TranslationProvider = {
+      id: "recorder",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async (request) => {
+        received.push(request);
+        return { values: new Map(), integrity: new Map() };
+      },
+    };
+    const entries = [
+      i18nextEntry("token", "Your {secretToken} here"),
+      i18nextEntry("name", "Hi {name}"),
+    ];
+
+    await guardProvider(recorder, redactGuard("llm")).translateBatch(
+      buildTranslateRequest(I18NEXT, entries),
+    );
+
+    expect(received[0]?.foreignPlaceholders).toEqual(new Map([["name", ["{name}"]]]));
+  });
+
+  it("sends no foreign tokens when none survives the guard", async () => {
+    const received: TranslateRequest[] = [];
+    const recorder: TranslationProvider = {
+      id: "recorder",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async (request) => {
+        received.push(request);
+        return { values: new Map(), integrity: new Map() };
+      },
+    };
+
+    await guardProvider(recorder, redactGuard("llm")).translateBatch(
+      buildTranslateRequest(I18NEXT, [i18nextEntry("token", "Your {secretToken} here")]),
+    );
+
+    expect(received[0] !== undefined && "foreignPlaceholders" in received[0]).toBe(false);
   });
 
   it("keeps the redact verdict for machine translation, which then masks or withholds the value", async () => {

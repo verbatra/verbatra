@@ -6,7 +6,7 @@ import type {
 } from "@verbatra/ai-providers";
 import type { TranslationEntry } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
-import { withForeignPlaceholders } from "./foreign-placeholders.js";
+import { foreignPlaceholdersOf } from "./foreign-placeholders.js";
 import { resolvePluralCategories } from "./plural-rules.js";
 
 export interface TranslateRequestContext {
@@ -40,10 +40,12 @@ export function buildTranslateRequest(
   entries: readonly TranslationEntry[],
 ): TranslateRequest {
   const pluralCategories = requestPluralCategories(context, entries);
+  const foreignPlaceholders = foreignPlaceholdersOf(entries, context.adapter.format);
   return {
     sourceLocale: context.sourceLocale,
     targetLocale: context.targetLocale,
-    entries: entries.map((entry) => withForeignPlaceholders(entry, context.adapter.format)),
+    entries,
+    ...(foreignPlaceholders !== undefined ? { foreignPlaceholders } : {}),
     extractPlaceholders: context.adapter.extractPlaceholders,
     ...(context.glossary !== undefined ? { glossary: context.glossary } : {}),
     ...(context.maxLength !== undefined ? { maxLength: context.maxLength } : {}),
