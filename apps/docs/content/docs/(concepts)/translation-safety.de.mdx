@@ -109,8 +109,7 @@ jetzt schon. Wie Plurale in den anderen Formaten funktionieren, steht unter
 
 Rich Text erreicht einen String als Inline-Markup: ein `<b>` in einem i18next-`Trans`-Block, ein
 maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in einem gettext-Katalog. Ein
-weggelassenes oder kaputtes Tag zerbricht die Darstellung so, wie ein weggelassener Platzhalter die
-Interpolation zerbricht, deshalb vergleicht das Gate Tag-Namen und Attributnamen als Multimenge:
+weggelassenes oder kaputtes Tag zerbricht die Darstellung, deshalb vergleicht das Gate Tag-Namen und Attributnamen als Multimenge:
 
 - **Abgelehnt**: ein weggelassenes, erfundenes oder umbenanntes Tag; eine geänderte Menge von
   Attributnamen (auch ein hinzugefügtes `dir`); unausgeglichenes oder falsch verschachteltes Markup;
@@ -126,13 +125,11 @@ Interpolation zerbricht, deshalb vergleicht das Gate Tag-Namen und Attributnamen
 
 Markup, das in einen String ohne Markup erfunden wird, wird ebenfalls abgelehnt, während ein
 gewöhnliches Wort in spitzen Klammern wie `<Enter>` als Text gelesen wird. Tags, die das Format
-schon als Platzhalter meldet, überlässt es der Platzhalterprüfung. Die vollständigen Regeln,
-einschließlich wie Kommentare, Rohtext und fehlerhafte Quellen gelesen werden, stehen unter
-[`markup`](/docs/error-codes#markup).
+schon als Platzhalter meldet, überlässt es der Platzhalterprüfung. Kommentare, Rohtext und fehlerhafte Quellen:
+siehe [`markup`](/docs/error-codes#markup).
 
 ## Review-Flags
 
-Das Gate zu bestehen beweist, dass eine Übersetzung strukturell sicher ist, nicht, dass sie gut ist.
 Eine zweite, beratende Schicht markiert verdächtige Ergebnisse für einen Menschen. Ein Flag hält nie
 einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Warteschlange gestellt.
 
@@ -160,8 +157,7 @@ siehe [Review-Entscheidungen](/docs/the-lock-file#review-entscheidungen).
 
 ## Das Token-Budget
 
-Provider-Ausgaben sollten eine Obergrenze haben, die du setzt, nicht eine, die du auf der Rechnung
-entdeckst. Mit konfiguriertem `maxTokens` zählt verbatra die Tokens eines Laufs über jeden Aufruf
+Mit konfiguriertem `maxTokens` zählt verbatra die Tokens eines Laufs über jeden Aufruf
 und jede Locale. `budgetBehavior: "warn"` (der Standard) markiert eine Überschreitung nur; `"stop"`
 hält den Request zurück, der die Obergrenze überschreiten würde, samt jedem Kandidaten danach, für
 den nächsten Lauf.
