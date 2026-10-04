@@ -31,9 +31,13 @@ CLDR plurals, ICU arm checks, other-syntax placeholder and direction control war
 
 **Placeholders of another syntax**
 - A translation that drops or changes a token shaped like a placeholder the format does not
-  protect, such as `{name}` in an i18next value or `%{count}` in YAML, is flagged
+  interpolate, such as `{name}` in an i18next value or `%{count}` in YAML, is flagged
   `FOREIGN_PLACEHOLDER_CHANGED` by translation runs, `retranslateEntry`, exports and `check --qa`.
   The value is still written, and translated ICU arms are never flagged.
+- DeepL, Google and LibreTranslate get such tokens masked like placeholders; a value whose token
+  cannot be masked or comes back damaged is left untranslated with `PLACEHOLDER_UNSUPPORTED`.
+  A custom provider receives the tokens per key in `TranslateRequest.foreignPlaceholders` (for an
+  ICU argument only its head, such as `{n, plural,`).
 - `check --qa` names each missing token in the warning's `details`, as `-{name}`.
 - Each locale reports `SOURCE_FOREIGN_PLACEHOLDERS` naming its pending keys that hold such a
   token, on a dry run too, so you can review them or change the syntax before anything is spent.

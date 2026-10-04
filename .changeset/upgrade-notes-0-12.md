@@ -64,6 +64,13 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - DeepL and Google translate values with placeholders that 0.11 withheld with
   `PLACEHOLDER_UNSUPPORTED`: the next run bills them and writes machine translations, flagged for
   review as usual. To keep such a key human-only, write its value by hand before the run.
+- DeepL, Google and LibreTranslate also mask a token of another placeholder syntax than the
+  format's (`{name}` in i18next, `{{x}}` in vue-i18n). A value holding one, which 0.11 sent as
+  plain text, is now withheld with `PLACEHOLDER_UNSUPPORTED` when its other text holds `{`, `}`,
+  `<` or `>`, such as ICU `{n, plural, ...}` in i18next or a comparison sign. A value with markup
+  is withheld by DeepL and Google, while LibreTranslate keeps the markup and withholds it only for
+  a brace; Google also withholds one with a line break, tab or double space. Translate such keys
+  by hand or with an LLM provider.
 - DeepL and Google: a locale missing from the shipped language table refuses the whole run with
   `LOCALE_UNSUPPORTED_BY_PROVIDER` (exit 2) before anything is spent. DeepL formality uses
   `prefer_`, so an unsupported register gives a `FORMALITY_DOWNGRADED` notice instead of failing.

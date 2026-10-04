@@ -22,8 +22,7 @@ instrucciones"), así que verbatra trata cada cadena como entrada no confiable. 
 que se envían a un proveedor LLM son constantes de compilación. Todo lo variable (las entradas, tu
 glosario y tu tono, los nombres de idioma, las categorías de destino de un plural) viaja solo en la
 carga JSON del turno de usuario, nunca en el canal de instrucciones. La respuesta debe ajustarse a
-un esquema fijo; una respuesta con una clave que nunca se pidió hace fallar su sublote entero,
-porque no hay forma segura de aceptar a medias alrededor de contenido inventado.
+un esquema fijo; una respuesta con una clave que nunca se pidió hace fallar su sublote entero.
 
 ### Nombres de idioma, escritura y región
 
@@ -145,8 +144,11 @@ una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | conserva cada placeholder pero en otro orden |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | viene de un lote que el proveedor degradó, como una formalidad perdida |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | se [reutilizó de un origen parecido y editado](/docs/the-cache#reutilización-difusa) <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | pierde o cambia un token con forma de placeholder que su [formato](/docs/formats) no protege, como `{name}` en i18next <AvailableFrom version="0.12.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | pierde o cambia un token con forma de placeholder que su [formato](/docs/formats) no interpola, como `{name}` en i18next <AvailableFrom version="0.12.0" /> |
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | deja abierto un control de dirección, o añade una anulación que invierte el texto <AvailableFrom version="0.12.0" /> |
+
+DeepL, Google y LibreTranslate reciben ese token enmascarado y retienen un valor que no pueden
+enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); la marca cubre los LLM y a las personas.
 
 Los aciertos de caché y los valores compartidos entre claves pasan por las mismas heurísticas que
 las traducciones nuevas. Las claves marcadas aparecen por locale como `needsReview` en el resumen de
@@ -174,8 +176,7 @@ de agentes. Las reglas exactas están en
 Cuando una llamada al proveedor falla, el error bruto del SDK (que puede llevar cabeceras de la
 petición o credenciales) se descarta: nunca se enlaza, se registra ni se vuelve a lanzar. En su
 lugar, verbatra lanza un error estructurado con un código estable y un mensaje fijo sin secretos;
-los códigos están en [Códigos de error de proveedor](/docs/error-codes#provider-error-codes). Los
-avisos y los resúmenes llevan códigos y recuentos, nunca secretos. De dónde vienen las claves y cómo
+los códigos están en [Códigos de error de proveedor](/docs/error-codes#provider-error-codes). De dónde vienen las claves y cómo
 se ocultan en la salida está en [Tratamiento de datos](/docs/data-handling#claves-de-api).
 
 ## Dónde lo ves

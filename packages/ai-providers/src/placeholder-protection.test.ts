@@ -8,6 +8,7 @@ import {
   partitionForMasking,
   restoreTranslations,
   unmaskPlaceholders,
+  withForeignPlaceholders,
 } from "./placeholder-protection.js";
 import { entry } from "./test-support.js";
 
@@ -231,5 +232,22 @@ describe("PLACEHOLDER_UNSUPPORTED_MESSAGE", () => {
     expect(PLACEHOLDER_UNSUPPORTED_MESSAGE).toBe(
       "Some entries were left untranslated: their placeholders could not be protected (ICU syntax or reserved characters next to them) or did not come back intact. Translate them by hand or with an LLM provider.",
     );
+  });
+});
+
+describe("withForeignPlaceholders", () => {
+  it("appends each entry's foreign tokens after its own placeholders, skipping ones it lists", () => {
+    const entries = [entry("a", "{x} and {{y}}", ["{{y}}"]), entry("b", "Plain")];
+
+    const merged = withForeignPlaceholders(entries, new Map([["a", ["{x}", "{{y}}"]]]));
+
+    expect(merged[0]?.placeholders).toEqual(["{{y}}", "{x}"]);
+    expect(merged[1]).toBe(entries[1]);
+  });
+
+  it("returns the entries as they are without foreign tokens", () => {
+    const entries = [entry("a", "{x}")];
+
+    expect(withForeignPlaceholders(entries, undefined)).toBe(entries);
   });
 });

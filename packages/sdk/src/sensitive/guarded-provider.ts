@@ -55,14 +55,34 @@ function guardBatch(guard: SensitiveGuard, entries: readonly TranslationEntry[])
   return { entries: sent, redactions, withheld };
 }
 
+function sentForeignPlaceholders(
+  foreign: ReadonlyMap<string, readonly string[]> | undefined,
+  entries: readonly TranslationEntry[],
+): ReadonlyMap<string, readonly string[]> | undefined {
+  const kept = new Map<string, readonly string[]>();
+  for (const entry of entries) {
+    const tokens = foreign?.get(entry.key)?.filter((token) => entry.value.includes(token)) ?? [];
+    if (tokens.length > 0) {
+      kept.set(entry.key, tokens);
+    }
+  }
+  return kept.size === 0 ? undefined : kept;
+}
+
 function guardedRequest(
   guard: SensitiveGuard,
   request: TranslateRequest,
   entries: readonly TranslationEntry[],
 ): TranslateRequest {
-  const { glossary: _glossary, ...rest } = request;
+  const { glossary: _glossary, foreignPlaceholders: _foreign, ...rest } = request;
   const glossary = guard.glossary(request.glossary).send;
-  return glossary === undefined ? { ...rest, entries } : { ...rest, entries, glossary };
+  const foreignPlaceholders = sentForeignPlaceholders(request.foreignPlaceholders, entries);
+  return {
+    ...rest,
+    entries,
+    ...(glossary !== undefined ? { glossary } : {}),
+    ...(foreignPlaceholders !== undefined ? { foreignPlaceholders } : {}),
+  };
 }
 
 function keepKeys<T>(map: ReadonlyMap<string, T> | undefined, keys: ReadonlySet<string>) {

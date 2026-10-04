@@ -60,12 +60,14 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  * - `FORMALITY_UNSUPPORTED_BY_PROVIDER`: the config sets a `formal` or `informal` tone and the
  *   provider has no formality control for this target language, so the default register is used.
  * - `SOURCE_FOREIGN_PLACEHOLDERS`: source values this locale is about to translate hold a token
- *   that looks like a placeholder the configured format does not protect, such as a single-brace
- *   `{name}` in an i18next value. Nothing keeps such a token intact during translation; a
- *   translation that drops or changes it is flagged `FOREIGN_PLACEHOLDER_CHANGED`. The message
- *   gives the number of affected values and names the first keys. Raised per locale, only when
- *   that locale has such a key missing or stale, for every provider and on a dry run too. Never
- *   raised for a format a third-party adapter supplies.
+ *   that looks like a placeholder the configured format does not interpolate, such as a
+ *   single-brace `{name}` in an i18next value. DeepL, Google Cloud Translation and LibreTranslate
+ *   get such a token masked like a placeholder, and a value they cannot mask or restore is left
+ *   untranslated with a `PLACEHOLDER_UNSUPPORTED` notice. An LLM provider or a person must keep it
+ *   unchanged; a translation that drops or changes it is flagged `FOREIGN_PLACEHOLDER_CHANGED`.
+ *   The message gives the number of affected values and names the first keys. Raised per locale,
+ *   only when that locale has such a key missing or stale, for every provider and on a dry run
+ *   too. Never raised for a format a third-party adapter supplies.
  * - `SENSITIVE_CONTENT_SENT`: under `sensitiveData.mode: "warn"`, keys this locale sent to the
  *   provider, or glossary terms sent with them, hold content a configured detector or pattern
  *   matched, such as an email address or an API key. They were sent unchanged. The message names
