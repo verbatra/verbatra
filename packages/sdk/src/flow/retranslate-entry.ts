@@ -31,6 +31,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
 import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
+import { signalField, unlessCancelled } from "./cancellation.js";
 import { readTarget } from "./diff-locales.js";
 import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -78,6 +79,13 @@ export interface RetranslateEntryInput {
    * written value, which always allows the ten-minute default.
    */
   readonly lockAcquireTimeoutMs?: number;
+  /**
+   * Cancels the call when aborted before the provider has answered: a wait for the write lock
+   * stops, an in-flight provider request is abandoned, and the call rejects with `RUN_CANCELLED`
+   * having written nothing. An abort after the answer arrived does not stop the write. Defaults to
+   * none.
+   */
+  readonly signal?: AbortSignal;
 }
 
 /** Injectable dependencies for {@link retranslateEntry}. Every field has a working default. */
@@ -131,6 +139,9 @@ export type RetranslateEntryResult =
       readonly value: string;
     };
 
+const RETRANSLATION_CANCELLED =
+  "The retranslation was cancelled before the provider answered, so nothing was written.";
+
 function machinePending(
   value: string,
   config: VerbatraConfig,
@@ -153,22 +164,26 @@ interface UnderLockContext {
   readonly policy: ProtectionPolicy;
   readonly provider: TranslationProvider;
   readonly recordLock: LocaleWriteLockOptions;
+  readonly signal?: AbortSignal;
 }
 
 async function translateOne(context: UnderLockContext) {
   const { config, locale, adapter, sourceEntry } = context;
-  const result = await context.provider.translateBatch(
-    buildTranslateRequest(
-      {
-        sourceLocale: config.sourceLocale,
-        targetLocale: locale,
-        adapter,
-        glossary: glossaryForLocale(config.glossary, locale),
-        maxLength: toMaxLengthMap(config.maxLength),
-        tone: config.tone,
-      },
-      [sourceEntry],
-    ),
+  const result = await unlessCancelled(context.signal, RETRANSLATION_CANCELLED, () =>
+    context.provider.translateBatch({
+      ...buildTranslateRequest(
+        {
+          sourceLocale: config.sourceLocale,
+          targetLocale: locale,
+          adapter,
+          glossary: glossaryForLocale(config.glossary, locale),
+          maxLength: toMaxLengthMap(config.maxLength),
+          tone: config.tone,
+        },
+        [sourceEntry],
+      ),
+      ...signalField(context.signal),
+    }),
   );
   const value = result.values.get(context.key);
   if (value === undefined && sensitiveWithheldOf(result).has(context.key)) {
@@ -333,6 +348,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws {@link SdkError} `LOCK_CONTENDED`: the locale's write lock could not be acquired before
  * `lockAcquireTimeoutMs` elapsed.
+ * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
+ * before the write lock was taken, while waiting for it, or during the provider request. Nothing
+ * was written.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
@@ -393,7 +411,9 @@ export async function retranslateEntry(
   });
   assertSendable(sensitive, sourceEntry, locale);
   await assertProvenanceReadable(cwd, fs);
-  await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
+  await unlessCancelled(input.signal, RETRANSLATION_CANCELLED, () =>
+    carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input)),
+  );
 
   return withLocaleWriteLock(
     cwd,
@@ -411,6 +431,7 @@ export async function retranslateEntry(
         policy,
         provider,
         recordLock: recordLockOptions(input),
+        ...signalField(input.signal),
       }),
     writeLockOptions(input),
   );

@@ -76,6 +76,7 @@ const SDK_ERROR_HINTS = {
     "Pass the path of an existing locale file that `files.pattern` maps to a configured locale.",
   SENSITIVE_CONTENT_WITHHELD:
     "Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.",
+  RUN_CANCELLED: "Run the operation again to finish the work the cancellation left pending.",
   LOCALE_FAILED: "Fix the cause the locale's message names, then try again.",
 } as const satisfies Record<SdkErrorCode, string>;
 

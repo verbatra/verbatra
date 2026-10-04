@@ -64,6 +64,7 @@ import {
 import { createSensitiveGuard } from "../sensitive/guard.js";
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
+import { isCancelled, signalField, unstartedLocaleError } from "./cancellation.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { assertConfiguredLocalesSupported, withCapabilityNotices } from "./locale-capabilities.js";
 import {
@@ -192,6 +193,17 @@ export interface TranslateInput {
    * number of at least 1. Defaults to the config's `maxTokens` and `budgetBehavior` alone.
    */
   readonly maxTokens?: number;
+  /**
+   * Cancels the run when aborted. No further locale starts, and a wait for a write lock stops. The
+   * locale running at the time sends no further request, and an in-flight request is abandoned
+   * rather than counted as a provider failure. What already arrived is still written and recorded,
+   * the keys left over get no lock-file entry and stay pending for the next run, the run status is
+   * recorded, and every lock is released. The call then resolves rather than rejects: the result
+   * carries {@link RunSummary.cancelled}, each locale kept from starting is `failed` with the
+   * `RUN_CANCELLED` error code, and a locale stopped while running is `partial` with a
+   * `RUN_CANCELLED` notice. A dry run only stops early. Defaults to none.
+   */
+  readonly signal?: AbortSignal;
 }
 
 /** Injectable dependencies for {@link translate}. Every field has a working default. */
@@ -302,6 +314,7 @@ interface LocaleRunContext {
   readonly lockOptions: LocaleWriteLockOptions;
   readonly recordLockOptions: LocaleWriteLockOptions;
   readonly onProgress?: ProgressListener;
+  readonly signal?: AbortSignal;
 }
 
 async function buildLocaleRunParams(
@@ -354,6 +367,7 @@ async function buildLocaleRunParams(
         }
       : {}),
     ...(context.onProgress !== undefined ? { onProgress: context.onProgress } : {}),
+    ...signalField(context.signal),
   };
 }
 
@@ -453,7 +467,7 @@ async function runLocalesWithProgress(
   let abort: { readonly reason: unknown } | undefined;
 
   async function worker(): Promise<void> {
-    while (abort === undefined && nextIndex < totalLocales) {
+    while (abort === undefined && !isCancelled(context.signal) && nextIndex < totalLocales) {
       const localeIndex = nextIndex;
       nextIndex += 1;
       try {
@@ -474,6 +488,20 @@ async function runLocalesWithProgress(
     throw abort.reason;
   }
   return results.filter((summary): summary is LocaleSummary => summary !== undefined);
+}
+
+function withUnstartedCancelled(
+  targetLocales: readonly string[],
+  summaries: readonly LocaleSummary[],
+): LocaleSummary[] {
+  const ran = new Map(summaries.map((summary) => [summary.locale, summary]));
+  return targetLocales.map(
+    (locale) => ran.get(locale) ?? failureSummary(locale, unstartedLocaleError()),
+  );
+}
+
+function cancelledField(signal: AbortSignal | undefined): { cancelled?: true } {
+  return isCancelled(signal) ? { cancelled: true } : {};
 }
 
 function unlessWithheld(
@@ -822,12 +850,14 @@ export async function translate(
     lockOptions,
     recordLockOptions: recordLockOptions(input),
     ...(input.onProgress !== undefined ? { onProgress: input.onProgress } : {}),
+    ...signalField(input.signal),
   };
 
-  const summaries = dryRun
+  const ran = dryRun
     ? await runAllLocalesDry(context, targetLocales, concurrency, carryOver)
     : await runAllLocalesLive(context, targetLocales, concurrency, carryOver);
-  input.onProgress?.({ type: "run-finished", localesCompleted: summaries.length });
+  input.onProgress?.({ type: "run-finished", localesCompleted: ran.length });
+  const summaries = withUnstartedCancelled(targetLocales, ran);
 
   const locales = withCarryOverNotices(
     withNewerProvenanceNotice(
@@ -857,6 +887,7 @@ export async function translate(
       config,
       maxBatchSize,
     }),
+    ...cancelledField(input.signal),
   };
 
   await recordCacheAdditions(cwd, cache, fs);

@@ -50,6 +50,7 @@ import {
   reconcileBudget,
   reserveBudget,
 } from "./budget.js";
+import { isCancelled, signalField, withCancelledKeys } from "./cancellation.js";
 import { type PayloadContext, payloadContextOf } from "./estimate.js";
 import {
   sourceForeignPlaceholderNotice,
@@ -140,6 +141,7 @@ export interface LocaleRunParams {
   };
   readonly rejected?: RejectedValueHashes;
   readonly onProgress?: ProgressListener;
+  readonly signal?: AbortSignal;
 }
 
 export interface LocaleRunResult {
@@ -354,6 +356,7 @@ interface TranslationOutcome {
   readonly providerFailures: string[];
   readonly budgetWithheld: string[];
   readonly sensitiveWithheld: string[];
+  readonly cancelled: string[];
   readonly reviewFlags: Map<string, ReviewFlag>;
 }
 
@@ -452,6 +455,9 @@ function withheldBucketFor(representative: string, outcome: TranslationOutcome):
   }
   if (outcome.sensitiveWithheld.includes(representative)) {
     return outcome.sensitiveWithheld;
+  }
+  if (outcome.cancelled.includes(representative)) {
+    return outcome.cancelled;
   }
   return outcome.providerFailures;
 }
@@ -592,6 +598,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
   const sensitiveWithheld: string[] = [...sensitivePlan.withheld];
+  const cancelled: string[] = [];
   const reviewFlags = new Map<string, ReviewFlag>(partition.reviewFlags);
   const provider = params.mode.kind === "translate" ? params.mode.provider : undefined;
   reportPlan(params, provider, entries.length, partition.hits.size);
@@ -603,6 +610,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     providerFailures,
     budgetWithheld,
     sensitiveWithheld,
+    cancelled,
     reviewFlags,
   });
   const cacheAdditions = collectCacheAdditions(params, accepted, cacheHitKeys, fuzzyKeys);
@@ -611,6 +619,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     providerFailures,
     budgetWithheld,
     sensitiveWithheld,
+    cancelled,
   });
 
   const merged = new Map(target.entries);
@@ -641,7 +650,9 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
       providerFailures.length +
       budgetWithheld.length +
       sensitiveWithheld.length +
+      cancelled.length +
       generation.sensitiveWithheld.length +
+      generation.cancelled.length +
       generation.withheld.length +
       generation.providerFailures.length +
       generation.budgetWithheld.length +
@@ -695,37 +706,42 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...budgetWithheld,
     ...sensitiveWithheld,
     ...generation.sensitiveWithheld,
+    ...cancelled,
+    ...generation.cancelled,
     ...fuzzyKeys,
     ...unfilled,
     ...protection.reasons.keys(),
   ]);
   const localeUsage = combineUsage(translation.usage, generation.usage);
   return {
-    summary: baseSummary({
-      locale: params.targetLocale,
-      unchanged: diff.unchanged,
-      orphaned,
-      invalidIcuSource,
-      translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
-      cacheHits: [...cacheHitKeys]
-        .filter((key) => !fuzzyKeys.has(key) && !protection.suggest.has(key))
-        .sort(),
-      fuzzyHits: [...partition.fuzzy.values()].sort((left, right) =>
-        left.key.localeCompare(right.key),
-      ),
-      generated: generation.accepted.map((form) => form.targetKey).sort(),
-      integrityMismatches: [...integrityMismatches, ...generation.withheld].sort(),
-      integrityRefusals: refusalsFor(integrityMismatches, integrityRefusals, generation.refusals),
-      providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
-      budgetWithheld: [...budgetWithheld, ...generation.budgetWithheld].sort(),
-      sensitiveWithheld: [...sensitiveWithheld, ...generation.sensitiveWithheld].sort(),
-      pruned,
-      notices,
-      unfilled,
-      needsReview: needsReviewFor(accepted.keys(), reviewFlags),
-      protected: protectedEntries(protection.reasons, suggestions),
-      ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
-    }),
+    summary: withCancelledKeys(
+      baseSummary({
+        locale: params.targetLocale,
+        unchanged: diff.unchanged,
+        orphaned,
+        invalidIcuSource,
+        translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
+        cacheHits: [...cacheHitKeys]
+          .filter((key) => !fuzzyKeys.has(key) && !protection.suggest.has(key))
+          .sort(),
+        fuzzyHits: [...partition.fuzzy.values()].sort((left, right) =>
+          left.key.localeCompare(right.key),
+        ),
+        generated: generation.accepted.map((form) => form.targetKey).sort(),
+        integrityMismatches: [...integrityMismatches, ...generation.withheld].sort(),
+        integrityRefusals: refusalsFor(integrityMismatches, integrityRefusals, generation.refusals),
+        providerFailures: [...providerFailures, ...generation.providerFailures].sort(),
+        budgetWithheld: [...budgetWithheld, ...generation.budgetWithheld].sort(),
+        sensitiveWithheld: [...sensitiveWithheld, ...generation.sensitiveWithheld].sort(),
+        pruned,
+        notices,
+        unfilled,
+        needsReview: needsReviewFor(accepted.keys(), reviewFlags),
+        protected: protectedEntries(protection.reasons, suggestions),
+        ...(localeUsage !== undefined ? { usage: localeUsage } : {}),
+      }),
+      [...cancelled, ...generation.cancelled],
+    ),
     lockEntries: computeLockEntries(params, merged, withheld, generation.accepted),
     provenance: settleProvenance(pending, written, new Set(merged.keys())),
     cacheAdditions,
@@ -831,6 +847,7 @@ interface SuggestionFailures {
   readonly providerFailures: string[];
   readonly budgetWithheld: string[];
   readonly sensitiveWithheld: string[];
+  readonly cancelled: string[];
 }
 
 interface SuggestionResult {
@@ -848,6 +865,19 @@ function suggestionFailure(key: string, failures: SuggestionFailures): Suggestio
   return failures.budgetWithheld.includes(key) ? "budget-withheld" : "provider-failure";
 }
 
+function suggestionFor(
+  key: string,
+  hit: Accepted | undefined,
+  failures: SuggestionFailures,
+): SuggestionResult | undefined {
+  if (hit !== undefined) {
+    return { status: "suggested", value: hit.value };
+  }
+  return failures.cancelled.includes(key)
+    ? undefined
+    : { status: suggestionFailure(key, failures) };
+}
+
 function plannedSuggestions(suggest: ReadonlySet<string>): ReadonlyMap<string, SuggestionResult> {
   return new Map([...suggest].map((key) => [key, { status: "planned" }]));
 }
@@ -863,13 +893,10 @@ function divertSuggestions(
     return suggestions;
   }
   for (const key of suggest) {
-    const hit = accepted.get(key);
-    suggestions.set(
-      key,
-      hit === undefined
-        ? { status: suggestionFailure(key, failures) }
-        : { status: "suggested", value: hit.value },
-    );
+    const suggestion = suggestionFor(key, accepted.get(key), failures);
+    if (suggestion !== undefined) {
+      suggestions.set(key, suggestion);
+    }
     accepted.delete(key);
     reviewFlags.delete(key);
   }
@@ -877,6 +904,7 @@ function divertSuggestions(
   dropKeys(failures.providerFailures, suggest);
   dropKeys(failures.budgetWithheld, suggest);
   dropKeys(failures.sensitiveWithheld, suggest);
+  dropKeys(failures.cancelled, suggest);
   return suggestions;
 }
 
@@ -910,6 +938,7 @@ const NO_GENERATION_RESULT: PluralGenerationResult = {
   refusals: [],
   providerFailures: [],
   budgetWithheld: [],
+  cancelled: [],
   sensitiveWithheld: [],
   sensitiveSources: [],
   notices: [],
@@ -971,6 +1000,7 @@ async function runGeneration(
     skip,
     maxBatchSize: params.maxBatchSize,
     budget: params.budget,
+    ...signalField(params.signal),
   });
 }
 
@@ -1167,6 +1197,10 @@ async function translateAndCheck(
   const payload = payloadContextOf(params);
   let batchIndex = 0;
   for (const batch of batches) {
+    if (isCancelled(params.signal)) {
+      cancelEntries(batches.slice(batchIndex).flat(), outcome);
+      break;
+    }
     batchIndex += 1;
     params.onProgress?.({
       type: "sub-batch",
@@ -1193,6 +1227,20 @@ async function translateAndCheck(
   return { notices, withheldByBudget: withheld, refusedProjection, counted, usage: usage.total };
 }
 
+function cancelEntries(entries: readonly TranslationEntry[], outcome: TranslationOutcome): void {
+  for (const entry of entries) {
+    outcome.cancelled.push(entry.key);
+  }
+}
+
+const NO_SUB_BATCH_RESULT: SubBatchResult = {
+  notices: [],
+  usage: undefined,
+  withheld: false,
+  refusedProjection: undefined,
+  counted: false,
+};
+
 function withholdBatch(batch: readonly TranslationEntry[], budgetWithheld: string[]): void {
   for (const entry of batch) {
     budgetWithheld.push(entry.key);
@@ -1214,6 +1262,10 @@ async function runSubBatch(
   batch: readonly TranslationEntry[],
   outcome: TranslationOutcome,
 ): Promise<SubBatchResult> {
+  if (isCancelled(params.signal)) {
+    cancelEntries(batch, outcome);
+    return NO_SUB_BATCH_RESULT;
+  }
   const decision = reserveBudget(params.budget, batch, payload);
   if (decision.reservation === undefined) {
     withholdBatch(batch, outcome.budgetWithheld);
@@ -1229,11 +1281,16 @@ async function runSubBatch(
   try {
     result = await provider.translateBatch({
       ...buildTranslateRequest(params, batch),
+      ...signalField(params.signal),
       ...repairListener(params),
     });
   } catch (error) {
     reconcileBudget(params.budget, decision.reservation, undefined);
     const tripped = checkBudgetTrip(params.budget);
+    if (isCancelled(params.signal)) {
+      cancelEntries(batch, outcome);
+      return { ...NO_SUB_BATCH_RESULT, counted: tripped };
+    }
     const failure = await handleSubBatchFailure(error, provider, params, payload, batch, outcome);
     return { ...failure, counted: tripped || failure.counted };
   }
