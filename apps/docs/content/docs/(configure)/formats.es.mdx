@@ -20,7 +20,7 @@ Un adaptador de formato lee un archivo de locale y lo convierte en una forma neu
 | `android-xml` | `strings.xml` de Android | printf `%s`, `%1$s` | cantidades de `<plurals>` | se crea | printf `%s` |
 | `gettext-po` | gettext (`.po`, `.pot`) | printf, `%(name)s` | `msgstr[n]` | se crea | printf `%s`, `%(name)s` |
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | ninguno | se crea | `{name}`, `%{name}`, `${name}` |
-| `resx` | recursos de .NET (`.resx`) | compuesto `{0}`, `{1:C}` | ninguno | se crea | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `resx` | recursos de .NET (`.resx`) | compuesto `{0}`, `{1:C}`, con nombre `{name}` | ninguno | se crea | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
 El formato decide qué placeholders compara la [comprobación de integridad](/docs/translation-safety) y, en los formatos ICU, qué valores se validan, así que hazlo coincidir con tu librería de i18n.
 
@@ -34,7 +34,7 @@ Interpolación `{{double-brace}}`; el plural sale del sufijo CLDR de la clave (`
 
 ### vue-i18n-json
 
-Tokens de llave simple `{name}` y `{0}`; el plural sale de un pipe en el valor.
+Tokens de llave simple `{name}` y `{0}`; los nombres pueden usar cualquier escritura, como `{número}` o `{名前}`. El plural sale de un pipe en el valor.
 
 ### next-intl-json
 
@@ -106,7 +106,7 @@ Los `.properties` de Java y Spring: líneas planas de clave/valor, con las clave
 - **La sintaxis** sigue a `java.util.Properties`: `=`, `:` o espacios en blanco separan clave y valor; `#` y `!` inician comentarios; una barra invertida final continúa una línea; los escapes estándar y `\uXXXX` se decodifican. Los archivos se leen como UTF-8 y lo que no es ASCII se escribe como `\uXXXX`.
 - **Las escrituras conservan** el orden de claves, los comentarios y las líneas en blanco, reescribiendo cada línea existente en su sitio y añadiendo las claves nuevas en el orden del origen. Una clave duplicada mantiene su primera posición y su último valor.
 - **Los finales de línea siguen al archivo**: cualquier CRLF significa todo CRLF, un archivo solo con CR sigue con CR, y si no, LF.
-- **Los placeholders son `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` y los argumentos `plural`, `select`, `selectordinal` y `choice`. El entrecomillado con comilla simple no se interpreta, así que un apóstrofo nunca se traga un placeholder y `'{0}'` sigue contando como uno.
+- **Los placeholders son `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` (nombres en cualquier escritura, como `{número}`) y los argumentos `plural`, `select`, `selectordinal` y `choice`. El entrecomillado con comilla simple no se interpreta, así que un apóstrofo nunca se traga un placeholder y `'{0}'` sigue contando como uno.
 
 ## Apple .strings
 
@@ -171,7 +171,7 @@ Un nivel de cabeceras `[section]` sobre líneas `key=value`.
 - **Claves.** Una clave en `[home]` es `home.title`; las claves por encima de la primera sección conservan su nombre a secas, y los puntos literales se escapan.
 - **Las escrituras** solo cambian valores, conservando la grafía de las claves, los espacios, los comentarios `;` y `#` y las líneas en blanco. Una clave nueva va al final de su sección, una sección nueva al final del archivo, y un archivo ausente se crea.
 - **Valores.** Los valores entre comillas dobles se desentrecomillan decodificando `\\`, `\"`, `\n`, `\r`, `\t`, y un valor que lo necesita se escribe entrecomillado. Un `;` en medio de la línea forma parte del valor.
-- **Los placeholders** son `{name}` y `{0}`; no hay plurales.
+- **Los placeholders** son `{name}` y `{0}`, con nombres en cualquier escritura (`{名前}`); no hay plurales.
 - **Errores.** Una cabecera sin cerrar o vacía, o un texto tras `]` que no sea un comentario, lanza un `AdapterError`. Una línea sin `=` se conserva literalmente.
 
 ## .NET .resx
@@ -182,7 +182,7 @@ Elementos `<data name><value>` bajo `<root>`, reclamados solo por `.resx`.
 
 - **Las escrituras solo parchean valores**: el bloque XSD, `<resheader>`, `<metadata>`, `<assembly>` y las entradas sin traducir vuelven sin cambios, con el salto de línea del archivo; una marca de orden de bytes se descarta.
 - **No se traducen.** Los `<data>` con `type` o `mimetype`, y los nombres que empiezan por `>>` o `$`, se conservan tal cual. Un `<comment>` es contexto de solo lectura.
-- **Los placeholders** son elementos de formato compuesto tomados enteros (`{0}`, `{1,-10}`, `{2:C}`); `{{`, `}}` y las llaves sueltas también se protegen. No hay comprobación ICU ni plurales.
+- **Los placeholders** son elementos de formato compuesto tomados enteros (`{0}`, `{1,-10}`, `{2:C}`), igual que los huecos con nombre como `{name}` o `{when:d}`, así que se rechaza uno renombrado; `{{`, `}}` y las llaves sueltas también se protegen. No hay comprobación ICU ni plurales.
 - **Un destino ausente** se crea con las cabeceras estándar `resmimetype`, `version`, `reader` y `writer`.
 - **Claves rechazadas.** Un valor que el destino tiene como entrada tipada, de diseñador o con marcado, y una clave que no se podría volver a leer (vacía, o que empieza por `>>` o `$`), hacen fallar la escritura con un `AdapterError` que la nombra.
 - **Errores.** Se rechazan el XML no válido, una raíz distinta de `<root>` y una DTD o una entidad.

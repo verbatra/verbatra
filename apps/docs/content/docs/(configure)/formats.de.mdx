@@ -20,7 +20,7 @@ Ein Format-Adapter liest eine Locale-Datei in eine formatneutrale Form für Verg
 | `android-xml` | Android `strings.xml` | printf `%s`, `%1$s` | `<plurals>`-Quantitäten | angelegt | printf `%s` |
 | `gettext-po` | gettext (`.po`, `.pot`) | printf, `%(name)s` | `msgstr[n]` | angelegt | printf `%s`, `%(name)s` |
 | `ini` | INI (`.ini`) | `{name}`, `{0}` | keine | angelegt | `{name}`, `%{name}`, `${name}` |
-| `resx` | .NET-Ressourcen (`.resx`) | Composite `{0}`, `{1:C}` | keine | angelegt | `{{name}}`, `{name}`, `%{name}`, `${name}` |
+| `resx` | .NET-Ressourcen (`.resx`) | Composite `{0}`, `{1:C}`, benannt `{name}` | keine | angelegt | `{{name}}`, `{name}`, `%{name}`, `${name}` |
 
 Das Format entscheidet, welche Platzhalter die [Integritätsprüfung](/docs/translation-safety) vergleicht und, bei den ICU-Formaten, welche Werte validiert werden. Wähle es also passend zu deiner i18n-Bibliothek.
 
@@ -34,7 +34,7 @@ Alle vier lesen verschachtelte JSON-Objekte mit String-Blättern; sie unterschei
 
 ### vue-i18n-json
 
-Einzelklammer-Tokens `{name}` und `{0}`; der Plural kommt aus einer Pipe im Wert.
+Einzelklammer-Tokens `{name}` und `{0}`; Namen dürfen jede Schrift nutzen, etwa `{número}` oder `{名前}`. Der Plural kommt aus einer Pipe im Wert.
 
 ### next-intl-json
 
@@ -106,7 +106,7 @@ Javas und Springs `.properties`: flache Key/Wert-Zeilen, Keys wortgetreu erhalte
 - **Die Syntax** folgt `java.util.Properties`: `=`, `:` oder Leerraum trennen Key und Wert; `#` und `!` leiten Kommentare ein; ein Backslash am Zeilenende setzt eine Zeile fort; die Standard-Escapes und `\uXXXX` werden dekodiert. Dateien werden als UTF-8 gelesen, und Nicht-ASCII wird als `\uXXXX` geschrieben.
 - **Schreibvorgänge erhalten** Key-Reihenfolge, Kommentare und Leerzeilen, schreiben jede vorhandene Zeile an Ort und Stelle neu und hängen neue Keys in Quellreihenfolge an. Ein doppelter Key behält seine erste Position und seinen letzten Wert.
 - **Zeilenenden folgen der Datei**: irgendein CRLF heißt überall CRLF, reines CR bleibt CR, sonst LF.
-- **Platzhalter sind `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` sowie Argumente vom Typ `plural`, `select`, `selectordinal` und `choice`. Die Maskierung mit einfachen Anführungszeichen wird nicht interpretiert, ein Apostroph verschluckt also nie einen Platzhalter, und `'{0}'` zählt weiterhin als einer.
+- **Platzhalter sind `java.text.MessageFormat`**: `{0}`, `{0,number}`, `{0,number,integer}`, `{count}` (Namen in jeder Schrift, etwa `{número}`) sowie Argumente vom Typ `plural`, `select`, `selectordinal` und `choice`. Die Maskierung mit einfachen Anführungszeichen wird nicht interpretiert, ein Apostroph verschluckt also nie einen Platzhalter, und `'{0}'` zählt weiterhin als einer.
 
 ## Apple .strings
 
@@ -171,7 +171,7 @@ Eine Ebene von `[section]`-Headern über `key=value`-Zeilen.
 - **Keys.** Ein Key in `[home]` ist `home.title`; Keys oberhalb der ersten Section behalten ihren blanken Namen, und wörtliche Punkte werden maskiert.
 - **Schreibvorgänge** ändern nur Werte und erhalten Key-Schreibweise, Abstände, `;`- und `#`-Kommentare und Leerzeilen. Ein neuer Key kommt ans Ende seiner Section, eine neue Section ans Ende der Datei, und eine fehlende Datei wird angelegt.
 - **Werte.** Werte in doppelten Anführungszeichen werden entpackt, wobei `\\`, `\"`, `\n`, `\r`, `\t` dekodiert werden, und ein Wert, der es braucht, wird in Anführungszeichen geschrieben. Ein `;` mitten in der Zeile gehört zum Wert.
-- **Platzhalter** sind `{name}` und `{0}`; Plurale gibt es nicht.
+- **Platzhalter** sind `{name}` und `{0}`, Namen in jeder Schrift (`{名前}`); Plurale gibt es nicht.
 - **Fehler.** Ein unterminierter oder leerer Header, oder Text nach `]`, der kein Kommentar ist, löst einen `AdapterError` aus. Eine Zeile ohne `=` bleibt wörtlich erhalten.
 
 ## .NET .resx
@@ -182,7 +182,7 @@ Eine Ebene von `[section]`-Headern über `key=value`-Zeilen.
 
 - **Schreibvorgänge patchen nur Werte**: Der XSD-Block, `<resheader>`, `<metadata>`, `<assembly>` und nicht übersetzte Einträge kommen unverändert zurück, auf dem Zeilenende der Datei; ein Byte-Order-Mark fällt weg.
 - **Nicht übersetzt.** `<data>` mit `type` oder `mimetype` und Namen, die mit `>>` oder `$` beginnen, bleiben, wie sie sind. Ein `<comment>` ist nur lesbarer Kontext.
-- **Platzhalter** sind Composite-Format-Items, vollständig erfasst (`{0}`, `{1,-10}`, `{2:C}`); `{{`, `}}` und einzelne Klammern werden ebenfalls geschützt. Es gibt keine ICU-Prüfung und keine Plurale.
+- **Platzhalter** sind Composite-Format-Items, vollständig erfasst (`{0}`, `{1,-10}`, `{2:C}`), ebenso benannte Platzhalter wie `{name}` oder `{when:d}`, ein umbenannter wird also abgelehnt; `{{`, `}}` und einzelne Klammern werden ebenfalls geschützt. Es gibt keine ICU-Prüfung und keine Plurale.
 - **Ein fehlendes Ziel** wird mit den Standard-Headern `resmimetype`, `version`, `reader` und `writer` angelegt.
 - **Abgelehnte Keys.** Ein Wert, den das Ziel als typisierten, Designer- oder Markup-Eintrag hält, und ein Key, der nicht zurückgelesen werden könnte (leer oder mit `>>` oder `$` am Anfang), lässt das Schreiben mit einem `AdapterError` scheitern, der ihn nennt.
 - **Fehler.** Ungültiges XML, ein Wurzelelement außer `<root>` und eine DTD oder Entity werden abgelehnt.
