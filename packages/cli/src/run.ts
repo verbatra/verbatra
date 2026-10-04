@@ -1082,14 +1082,17 @@ function hintAfterImport(
   summary: RunSummary,
   exitCode: number,
 ): void {
+  const reviewerArgs = opts.reviewer !== undefined ? ["--reviewer", opts.reviewer] : [];
+  const reimport = verbatraCommand(
+    ["import", workbook, ...formatArgs(opts.format), ...reviewerArgs],
+    opts,
+  );
   if (summary.dryRun) {
-    const reviewerArgs = opts.reviewer !== undefined ? ["--reviewer", opts.reviewer] : [];
-    context.ui.hint(
-      verbatraCommand(["import", workbook, ...formatArgs(opts.format), ...reviewerArgs], opts),
-      "without --dry-run to write the files",
-    );
+    context.ui.hint(reimport, "without --dry-run to write the files");
   } else if (exitCode === 0) {
     context.ui.hint(verbatraCommand(["check"], opts), "confirm every locale is in sync");
+  } else {
+    context.ui.hint(reimport, "after correcting the rows listed above");
   }
 }
 
