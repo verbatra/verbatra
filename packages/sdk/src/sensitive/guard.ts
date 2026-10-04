@@ -191,6 +191,17 @@ function decideGlossary(
   return { flagged: hits.length, sources: sourcesOf(hits), send };
 }
 
+function entryIdentity(entry: TranslationEntry): string {
+  return JSON.stringify([
+    entry.namespace,
+    entry.key,
+    entry.value,
+    entry.description ?? null,
+    entry.meaning ?? null,
+    entry.placeholders,
+  ]);
+}
+
 const NOTHING_FLAGGED: GlossaryVerdict = { flagged: 0, sources: [], send: undefined };
 
 export function createSensitiveGuard(
@@ -203,18 +214,19 @@ export function createSensitiveGuard(
   const mode = config.mode;
   const rules = sensitiveRules(config);
   const scansEveryField = providerKind === "llm";
-  const entries = new WeakMap<TranslationEntry, EntryVerdict>();
+  const entries = new Map<string, EntryVerdict>();
   const glossaries = new WeakMap<LocaleGlossary, GlossaryVerdict>();
   return {
     mode,
     scansEveryField,
     entry(entry) {
-      const known = entries.get(entry);
+      const identity = entryIdentity(entry);
+      const known = entries.get(identity);
       if (known !== undefined) {
         return known;
       }
       const verdict = decideEntry(mode, entry, scanEntryFields(rules, entry, scansEveryField));
-      entries.set(entry, verdict);
+      entries.set(identity, verdict);
       return verdict;
     },
     glossary(glossary) {

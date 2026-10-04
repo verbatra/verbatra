@@ -7,10 +7,6 @@ import {
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import type { PlaceholderIntegrityResult, TranslationEntry } from "@verbatra/core";
-import {
-  reapplyForeignPlaceholders,
-  withoutForeignPlaceholders,
-} from "../flow/foreign-placeholders.js";
 import type { SensitiveFinding, SensitiveGuard } from "./guard.js";
 import type { SensitiveFindingSource } from "./scan-text.js";
 import { restoreTokens } from "./tokens.js";
@@ -42,11 +38,11 @@ function guardBatch(guard: SensitiveGuard, entries: readonly TranslationEntry[])
   const redactions = new Map<string, Redaction>();
   const withheld = new Map<string, readonly SensitiveFindingSource[]>();
   for (const entry of entries) {
-    const verdict = guard.entry(withoutForeignPlaceholders(entry));
+    const verdict = guard.entry(entry);
     if (verdict.action === "withhold") {
       withheld.set(entry.key, verdict.finding.sources);
     } else if (verdict.action === "redact") {
-      sent.push(reapplyForeignPlaceholders(verdict.entry, entry));
+      sent.push(verdict.entry);
       redactions.set(entry.key, {
         source: entry.value,
         originals: verdict.originals,

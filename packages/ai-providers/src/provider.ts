@@ -61,12 +61,7 @@ export interface TranslateRequest {
   readonly sourceLocale: string;
   /** BCP-47 target locale to translate into (for example, "de"). */
   readonly targetLocale: string;
-  /**
-   * The entries to translate; at least one is required. In a request the SDK builds, each entry's
-   * `placeholders` lists the format's native tokens followed by the value's tokens of another
-   * placeholder syntax (such as `{name}` in an i18next value, or an ICU argument's head
-   * `{n, plural,`), which a machine-translation provider protects like placeholders.
-   */
+  /** The entries to translate; at least one is required. */
   readonly entries: readonly TranslationEntry[];
   /**
    * Optional glossary for this batch's target locale only: required translations, forbidden
