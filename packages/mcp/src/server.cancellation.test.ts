@@ -15,6 +15,8 @@ import {
 } from "./test-support.js";
 
 const CANCELLED_LOG = 'Tool "translation.translatePending" cancelled by the client';
+const CLOSED_LOG =
+  'Tool "translation.translatePending" stopped because the client closed the connection';
 
 interface GatedProvider {
   readonly provider: TranslationProvider;
@@ -59,7 +61,30 @@ async function heldLocks(dir: string): Promise<string[]> {
   }
 }
 
-async function cancelledRun() {
+type McpServer = ReturnType<typeof createMcpServer>;
+
+async function connectClient(
+  server: McpServer,
+  frames: string[],
+): Promise<{ readonly client: Client; readonly clientTransport: InMemoryTransport }> {
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const send = serverTransport.send.bind(serverTransport);
+  serverTransport.send = async (message, sendOptions) => {
+    frames.push(`out:${frameName(message)}`);
+    return send(message, sendOptions);
+  };
+  await server.connect(serverTransport);
+  const receive = serverTransport.onmessage;
+  serverTransport.onmessage = (message, extra) => {
+    frames.push(`in:${frameName(message)}`);
+    receive?.(message, extra);
+  };
+  const client = new Client({ name: "cancel-client", version: "1.0.0" });
+  await client.connect(clientTransport);
+  return { client, clientTransport };
+}
+
+async function heldRun() {
   const dir = await makeProject({ a: "Alpha", b: "Beta", c: "Gamma" }, { de: {} });
   const gated = gatedProvider();
   const providers = [gated.provider, makeStubProvider()];
@@ -77,40 +102,49 @@ async function cancelledRun() {
     createProvider: () => providers.shift() ?? makeStubProvider(),
     onLog: (line) => logLines.push(line),
   });
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const send = serverTransport.send.bind(serverTransport);
-  serverTransport.send = async (message, sendOptions) => {
-    frames.push(`out:${frameName(message)}`);
-    return send(message, sendOptions);
-  };
-  await server.connect(serverTransport);
-  const receive = serverTransport.onmessage;
-  serverTransport.onmessage = (message, extra) => {
-    frames.push(`in:${frameName(message)}`);
-    receive?.(message, extra);
-  };
-  const client = new Client({ name: "cancel-client", version: "1.0.0" });
-  await client.connect(clientTransport);
-
+  const { client, clientTransport } = await connectClient(server, frames);
   const controller = new AbortController();
   const call = client.callTool(
     { name: "translation.translatePending", arguments: {} },
     { signal: controller.signal, onprogress: () => undefined },
   );
+  call.catch(() => undefined);
   await vi.waitFor(() => expect(gated.signals).toHaveLength(2), { timeout: 30_000, interval: 5 });
-  controller.abort("the user clicked Stop");
-  await expect(call).rejects.toThrow();
-  await vi.waitFor(
-    () => expect(logLines.some((line) => line.startsWith(CANCELLED_LOG))).toBe(true),
-    { timeout: 30_000, interval: 5 },
-  );
-  return { dir, client, gated, frames };
+  const locksWhileHeld = await heldLocks(dir);
+  async function logged(prefix: string): Promise<void> {
+    await vi.waitFor(() => expect(logLines.some((line) => line.startsWith(prefix))).toBe(true), {
+      timeout: 30_000,
+      interval: 5,
+    });
+  }
+  return {
+    dir,
+    server,
+    client,
+    clientTransport,
+    controller,
+    call,
+    gated,
+    frames,
+    logLines,
+    locksWhileHeld,
+    logged,
+  };
+}
+
+async function cancelledRun() {
+  const run = await heldRun();
+  run.controller.abort("the user clicked Stop");
+  await expect(run.call).rejects.toThrow();
+  await run.logged(CANCELLED_LOG);
+  return run;
 }
 
 describe("createMcpServer: cancelling translation.translatePending", () => {
   it("aborts the provider request, releases the locks, records the run, and sends nothing after the cancellation", async () => {
-    const { dir, gated, frames } = await cancelledRun();
+    const { dir, gated, frames, locksWhileHeld, logLines } = await cancelledRun();
 
+    expect(locksWhileHeld).not.toEqual([]);
     expect(gated.signals[1]?.aborted).toBe(true);
     expect(await heldLocks(dir)).toEqual([]);
     const status = await runStatus({ cwd: dir });
@@ -121,6 +155,7 @@ describe("createMcpServer: cancelling translation.translatePending", () => {
     const cancelledAt = frames.indexOf("in:notifications/cancelled");
     expect(cancelledAt).toBeGreaterThan(-1);
     expect(frames.slice(cancelledAt + 1).filter((frame) => frame.startsWith("out:"))).toEqual([]);
+    expect(logLines.some((line) => line.startsWith(CLOSED_LOG))).toBe(false);
   });
 
   it("runs the next call once the cancelled one released the in-flight guard", async () => {
@@ -131,5 +166,24 @@ describe("createMcpServer: cancelling translation.translatePending", () => {
     expect(next.isError).toBeUndefined();
     expect(next.structuredContent).toMatchObject({ succeeded: ["de"], failed: [] });
     expect(next.structuredContent).not.toHaveProperty("cancelled");
+  });
+});
+
+describe("createMcpServer: the connection closing during translation.translatePending", () => {
+  it("aborts the provider request, releases the locks and the in-flight guard, and logs the closed connection", async () => {
+    const run = await heldRun();
+
+    await run.clientTransport.close();
+    await expect(run.call).rejects.toThrow();
+    await run.logged(CLOSED_LOG);
+
+    expect(run.locksWhileHeld).not.toEqual([]);
+    expect(run.gated.signals[1]?.aborted).toBe(true);
+    expect(await heldLocks(run.dir)).toEqual([]);
+    expect(run.logLines.some((line) => line.startsWith(CANCELLED_LOG))).toBe(false);
+    const { client } = await connectClient(run.server, []);
+    const next = await client.callTool({ name: "translation.translatePending", arguments: {} });
+    expect(next.isError).toBeUndefined();
+    expect(next.structuredContent).toMatchObject({ succeeded: ["de"], failed: [] });
   });
 });

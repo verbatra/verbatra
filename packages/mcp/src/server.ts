@@ -3,6 +3,8 @@ import {
   type Notification,
   ProtocolError,
   ProtocolErrorCode,
+  SdkError,
+  SdkErrorCode,
   Server,
   type Tool,
   type Transport,
@@ -123,6 +125,15 @@ function progressReporterFor(
   });
 }
 
+function describeAbort(toolName: string, signal: AbortSignal): string {
+  const closed =
+    signal.reason instanceof SdkError && signal.reason.code === SdkErrorCode.ConnectionClosed;
+  const by = closed
+    ? "stopped because the client closed the connection"
+    : "cancelled by the client";
+  return `Tool "${toolName}" ${by}; no result was sent.`;
+}
+
 function callScope(signal: AbortSignal, progress: ProgressReporter | undefined): McpCallScope {
   return { signal, ...(progress !== undefined ? { onProgress: progress.onProgress } : {}) };
 }
@@ -200,7 +211,7 @@ export function createMcpServer(options: McpServerOptions): Server {
       progress?.close();
       inFlightGuard.leave(tool.name, dedupeKey);
       if (ctx.mcpReq.signal.aborted) {
-        options.onLog?.(redact(`Tool "${tool.name}" cancelled by the client; no result was sent.`));
+        options.onLog?.(redact(describeAbort(tool.name, ctx.mcpReq.signal)));
       }
     }
   });
