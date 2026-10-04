@@ -26,9 +26,9 @@ function diffLocale(overrides: Partial<LocaleDiff>): LocaleDiff {
 }
 
 describe("render: source keys with an empty value", () => {
-  it("names the largest per-locale count once under check", () => {
+  it("names the source-wide count once under check, never a sum over locales", () => {
     const text = renderCheckHuman(
-      makeCheckSummary({ inSync: true, locales: [checkLocale("de", 2), checkLocale("fr", 1)] }),
+      makeCheckSummary({ inSync: true, locales: [checkLocale("de", 2), checkLocale("fr", 2)] }),
     );
 
     expect(text).toContain(
