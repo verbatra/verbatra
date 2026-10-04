@@ -132,7 +132,11 @@ export interface WatchInput {
 export interface WatchDeps {
   /** Format-adapter registry to resolve the configured format. Defaults to the built-in registry. */
   readonly adapterRegistry?: AdapterRegistry;
-  /** Provider factory. Defaults to constructing the provider named in the config. */
+  /**
+   * Provider factory. Defaults to constructing the provider named in the config. Called once at
+   * startup to check that the provider can be built, then again by every run. Never called under
+   * the provider `none`.
+   */
   readonly createProvider?: CreateProvider;
   /** File-system port. Defaults to the real file system. */
   readonly fs?: SdkFs;
