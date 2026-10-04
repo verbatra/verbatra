@@ -3,7 +3,7 @@ title: Die GitHub Action nutzen
 description: "Führe verbatra in GitHub Actions mit der Composite Action aus: übersetze bei einem Push oder sichere einen Pull Request ab, mit Annotationen und einer Job-Zusammenfassung."
 type: how-to
 ---
-Nutze die Action, wenn ein GitHub-Actions-Job verbatra ausführen und dir zeigen soll, was passiert ist. Sie führt die CLI mit `--json` aus, macht aus Fehlschlägen Annotationen, schreibt eine Job-Zusammenfassung und endet mit dem Exit-Code der CLI. Sie führt `translate`, `check` oder `diff` aus; für jeden anderen Befehl oder jedes andere Flag, etwa `--prune`, führst du [die CLI direkt](/docs/ci-and-exit-codes) aus.
+Nutze die Action, wenn ein GitHub-Actions-Job verbatra ausführen und dir zeigen soll, was passiert ist. Sie führt `translate`, `check` oder `diff` mit `--json` aus; für jeden anderen Befehl oder jedes andere Flag, etwa `--prune`, führst du [die CLI direkt](/docs/ci-and-exit-codes) aus.
 
 Bevor du anfängst, brauchst du:
 
@@ -13,7 +13,7 @@ Bevor du anfängst, brauchst du:
 
 ## Die Action in einen Workflow einbauen
 
-Die Action liegt in [verbatra/action](https://github.com/verbatra/action) und im [GitHub Marketplace](https://github.com/marketplace/actions/verbatra). Es gibt kein npm-Paket; du referenzierst sie mit `uses:`. Pinne sie wie unten auf einen Commit-SHA oder nutze den mitwandernden Tag `verbatra/action@v1`. Die alte Pfad-Form aus dem verbatra-Monorepo wird nicht mehr aufgelöst.
+Die Action liegt in [verbatra/action](https://github.com/verbatra/action) und im [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); ein npm-Paket gibt es nicht. Pinne sie wie unten auf einen Commit-SHA oder nutze den mitwandernden Tag `verbatra/action@v1`. Die alte Pfad-Form aus dem verbatra-Monorepo wird nicht mehr aufgelöst.
 
 ```yaml title=".github/workflows/translate.yml"
 name: translate
@@ -36,7 +36,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Version in ein temporäres Verzeichnis, daher braucht der Job keinen eigenen Installationsschritt. Schau auf [`@verbatra/cli` bei npm](https://www.npmjs.com/package/@verbatra/cli) nach dem aktuellen Release und hebe den Pin bewusst an.
+Die Action installiert `@verbatra/cli` und `@verbatra/sdk` in genau dieser Version in ein temporäres Verzeichnis, daher braucht der Job keinen eigenen Installationsschritt. Hebe den Pin bewusst an; [npm](https://www.npmjs.com/package/@verbatra/cli) zeigt das aktuelle Release.
 
 ### Den Provider-Schlüssel übergeben
 
@@ -69,7 +69,7 @@ Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/docs/cli/
 
 - Jeder Befund wird zu einer Annotation mit dem Titel `verbatra qa: <locale>`: ein Fehler für einen Wert, den das Integritäts-Gate ablehnen würde, eine Warnung für einen Review-Grund.
 - Der Schritt schlägt bei jedem Fehler-Befund fehl. Mit `qa-strict: "true"` schlägt er auch bei Warnungen und unvollständigen Pluralen fehl, mit `qa-severity: error` meldet er nur Fehler.
-- `qa` braucht eine `version` ab `0.12.0`. Ein niedrigerer Pin lässt den Schritt fehlschlagen, bevor irgendetwas installiert wird, und ein Prerelease wie `0.12.0-next.0` ebenso, also pinne das Release.
+- Eine `version` unter `0.12.0` oder ein Prerelease wie `0.12.0-next.0` lässt den Schritt fehlschlagen, bevor irgendetwas installiert wird. Dasselbe gilt für `require-reviewed`.
 
 ## Freigegebene Übersetzungen verlangen
 
@@ -87,7 +87,6 @@ Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --r
 
 - Jede Locale mit nicht freigegebenen Keys bekommt eine [`REVIEW_REQUIRED`](/docs/error-codes#review_required)-Fehler-Annotation, die sie nennt, und die Job-Zusammenfassung ergänzt eine Spalte `unreviewed`.
 - Ist `verbatra.provenance.json` beschädigt oder stammt sie von einem neueren verbatra, schlägt das Gate mit einer einzigen `REVIEW_STATE_UNREADABLE`-Annotation fehl.
-- Wie `qa` braucht es eine `version` ab `0.12.0`, und ein Prerelease lässt den Schritt fehlschlagen.
 
 ## Rein menschlicher Modus
 
@@ -116,7 +115,7 @@ Ist `config-path` leer, verlangt die Action eine erkannte Konfigurationsdatei di
         working-directory: apps/docs
 ```
 
-Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der CLI fehl und nennt das geprüfte Verzeichnis. Um eine Konfiguration von woanders zu laden, setze `config-path`: Ein relativer Pfad wird gegen `working-directory` aufgelöst. Die Action übergibt die aufgelöste Datei der CLI immer mit `--config`.
+Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der CLI fehl und nennt das geprüfte Verzeichnis. Um eine Konfiguration von woanders zu laden, setze `config-path`: Ein relativer Pfad wird gegen `working-directory` aufgelöst.
 
 ## Übersetzungen behalten
 
@@ -131,10 +130,10 @@ Wird keine Konfiguration gefunden, schlägt der Schritt vor der Installation der
 | `config-path` | `""` | zu ladende Konfigurationsdatei (`--config`); relativ zu `working-directory` |
 | `working-directory` | `""` | Verzeichnis, in dem die CLI läuft (`--cwd`); leer ist es das Repository-Root |
 | `dry-run` | `"false"` | `"true"` zeigt eine Vorschau ohne Provider-Aufruf und ohne Schreiben (`--dry-run`); nur `translate` |
-| `qa` | `"false"` | `"true"` ergänzt die Qualitätsprüfung (`--qa`); nur `check`, braucht `0.12.0` oder neuer |
+| `qa` | `"false"` | `"true"` ergänzt die Qualitätsprüfung (`--qa`); nur `check` |
 | `qa-severity` | `""` | niedrigste gemeldete Schwere, `error` oder `warning` (`--severity`); verlangt `qa` |
 | `qa-strict` | `"false"` | `"true"` lässt auch Warnungen fehlschlagen (`--strict`); verlangt `qa` |
-| `require-reviewed` | `"false"` | `"true"` lässt auch nicht freigegebene maschinelle Übersetzungen fehlschlagen (`--require-reviewed`); nur `check`, braucht `0.12.0` oder neuer |
+| `require-reviewed` | `"false"` | `"true"` lässt auch nicht freigegebene maschinelle Übersetzungen fehlschlagen (`--require-reviewed`); nur `check` |
 | `node-version` | `"24"` | Node.js-Version, die die Action zum Ausführen der CLI einrichtet |
 
 Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger Wert oder eine ungültige Kombination lässt den Schritt mit Exit `1` fehlschlagen, bevor etwas installiert wird.
@@ -148,15 +147,15 @@ Die booleschen Eingaben akzeptieren nur `"true"` oder `"false"`. Ein ungültiger
 ## Was ein Lauf dir zeigt
 
 - **Annotationen.** Unter `translate` wird jede fehlgeschlagene oder teilweise Locale zu einer Fehler-Annotation mit dem Titel `verbatra: <locale>`. Unter `check` oder `diff` bekommt jede abweichende Locale eine mit dem Titel `verbatra check: <locale>` oder `verbatra diff: <locale>`. Die `LOCALE_PARTIAL`-Annotation einer teilweisen Locale nennt die zurückgehaltenen Keys, nach Ursache gruppiert. Jeder `check` ergänzt pro Locale eine `PLURAL_CATEGORIES_INCOMPLETE`-Warnung, wenn ihren Pluralen eine CLDR-Kategorie fehlt, die die Sprache nutzt. Ein Lauf, der als Ganzes fehlschlägt, bekommt eine einzige `verbatra`-Annotation mit dem Fehlercode, der Ursache als `(cause: X)` und einem `Next step:`-Hinweis, sofern die CLI sie liefert. GitHub zeigt höchstens 10 Annotationen pro Schweregrad, daher sortiert die Action sie nach Drift, Review, Qualitätsfehlern und Warnungen und ergänzt einen Hinweis, der den Rest zählt.
-- **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu, mit `require-reviewed` eine Spalte `unreviewed`; unvollständige Plurale bekommen einen eigenen Abschnitt.
-- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem Code der CLI, sodass der Schritt bei `1` oder `2` erst fehlschlägt, nachdem er gezeigt hat, warum. Die Codes stehen unter [Exit-Codes und JSON-Ausgabe](/docs/cli/output#exit-codes).
+- **Job-Zusammenfassung.** Eine Zeile pro Locale mit den Zahlen des ausgeführten Befehls, eine Gesamtzeile und die teilweisen und fehlgeschlagenen Locales. Mit `qa` kommt eine Befundtabelle mit bis zu 1000 Befunden hinzu; unvollständige Plurale bekommen einen eigenen Abschnitt.
+- **Exit-Status.** Die Action gibt zuerst die Annotationen und die Zusammenfassung aus und endet dann mit dem [Exit-Code](/docs/cli/output#exit-codes) der CLI, sodass der Schritt erst fehlschlägt, nachdem er gezeigt hat, warum.
 
 ## Sicherheit
 
-Pinne beide Referenzen: `uses:` auf einen Commit-SHA und `version` auf ein exaktes Release; die Action lehnt alles ab, was sich zu `latest` auflösen könnte. Lass den Workflow bei `contents: read`, solange kein späterer Schritt schreibt. Eingaben erreichen die CLI als Argument-Array in Anführungszeichen und werden nie in Shell-Text eingefügt, ein präparierter Eingabewert bleibt also ein Argument.
+Pinne beide Referenzen: `uses:` auf einen Commit-SHA und `version` auf ein exaktes Release; die Action lehnt alles ab, was sich zu `latest` auflösen könnte. Eingaben erreichen die CLI als Argument-Array in Anführungszeichen und werden nie in Shell-Text eingefügt, ein präparierter Eingabewert bleibt also ein Argument.
 
 ## Siehe auch
 
-- [verbatra in CI ausführen](/docs/ci-and-exit-codes): dieselben Gates als einfache CLI-Schritte, in jedem CI-System.
-- [`verbatra check`](/docs/cli/check) und [`verbatra translate`](/docs/cli/translate): die Befehle, die die Action ausführt.
+- [verbatra in CI ausführen](/docs/ci-and-exit-codes): dieselben Gates in jedem CI-System.
+- [`verbatra check`](/docs/cli/check) und [`verbatra translate`](/docs/cli/translate).
 - [verbatra/action](https://github.com/verbatra/action): die Release Notes und die aus `action.yml` erzeugte Eingaben-Referenz.
