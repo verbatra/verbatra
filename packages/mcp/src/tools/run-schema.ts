@@ -98,6 +98,7 @@ export const runSummarySchema = z.object({
   failed: keyListSchema,
   usage: usageSchema.optional(),
   budget: runBudgetSchema.optional(),
+  cancelled: z.literal(true).optional(),
 });
 
 type FuzzyCacheHit = z.infer<typeof fuzzyCacheHitSchema>;

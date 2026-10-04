@@ -111,13 +111,13 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.estimate` est toujours listé. `translation.translatePending` prend des `locales` optionnelles (une locale non configurée échoue avec `UNKNOWN_LOCALE` avant toute dépense) et `maxTokens`, un plafond qui ne peut que resserrer celui de la config. L'ordre : `status.diff`, `translation.estimate`, le oui de l'utilisateur, puis `translation.translatePending` avec les mêmes `locales`. Voir [Estimer le coût](/docs/estimating-cost).
+`translation.estimate` est toujours listé. `translation.translatePending` prend des `locales` optionnelles (une locale non configurée échoue avec `UNKNOWN_LOCALE` avant toute dépense) et `maxTokens`, un plafond qui ne peut que resserrer celui de la config. Voir [Estimer le coût](/docs/estimating-cost).
 
 ### Progression
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Quand un appel à `translation.translatePending` porte un `progressToken`, le serveur envoie `notifications/progress` à la fin de chaque lot : `progress` les compte, `total` grandit avec chaque locale planifiée, et `message` nomme la locale et le lot (`de: batch 3/7`), au plus une toutes les 250 ms plus une dernière.
+Quand un appel à `translation.translatePending` porte un `progressToken`, le serveur envoie `notifications/progress` à la fin de chaque lot : `progress` les compte, `total` grandit avec chaque locale planifiée, et `message` nomme la locale et le lot (`de: batch 3/7`), au plus une toutes les 250 ms plus une dernière. Si tu annules un appel payant (`notifications/cancelled`), il s'arrête sans résultat ni autre progression : `translation.translatePending` garde ce qui est déjà arrivé, et le reste reste en attente.
 
 ### Sans config
 
@@ -132,8 +132,6 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
   set it up:  npx verbatra init in the project, or fix the config project.doctor names
   no restart needed: the server loads the config on the next call once it is valid
 ```
-
-Seul un fichier `--config` inexistant arrête le serveur au démarrage.
 
 ### Après un changement de config
 

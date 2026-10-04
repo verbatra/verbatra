@@ -48,6 +48,9 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
   `translation.translatePending` takes `locales` and a `maxTokens` ceiling.
 - `translation.translatePending` sends `notifications/progress` as batches finish when the call
   carries a `progressToken`.
+- Cancelling `translation.translatePending` or `translation.retranslateEntry` with
+  `notifications/cancelled` stops the run and releases its locks; a cancelled run keeps what
+  arrived and records its status, and no result or progress follows.
 - `translation.translatePending` lists keys the config's `sensitiveData` guard kept from the
   provider under `sensitiveWithheld`, and `translation.retranslateEntry` fails with
   `SENSITIVE_CONTENT_WITHHELD` for such a key.

@@ -26,6 +26,7 @@ async function translatePending(
       ...(params.maxTokens !== undefined ? { maxTokens: params.maxTokens } : {}),
       lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
       ...(context.onProgress !== undefined ? { onProgress: context.onProgress } : {}),
+      ...(context.signal !== undefined ? { signal: context.signal } : {}),
     },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),

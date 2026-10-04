@@ -1,6 +1,6 @@
 import { retranslateEntry } from "@verbatra/sdk";
 import { z } from "zod";
-import type { McpToolContext } from "../types.js";
+import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
 import { integrityGateReasonSchema } from "./integrity-gate-reason.js";
 import {
@@ -29,7 +29,7 @@ export type RetranslateEntryResult = z.infer<typeof retranslateEntryResultSchema
 
 async function retranslateKeyEntry(
   params: z.infer<typeof paramsSchema>,
-  context: McpToolContext,
+  context: McpToolCallContext,
 ): Promise<RetranslateEntryResult> {
   return retranslateEntry(
     {
@@ -38,6 +38,7 @@ async function retranslateKeyEntry(
       locale: params.locale,
       key: params.key,
       lockAcquireTimeoutMs: lockAcquireTimeoutMs(params.lockTimeoutMs),
+      ...(context.signal !== undefined ? { signal: context.signal } : {}),
     },
     {
       ...(context.fs !== undefined ? { fs: context.fs } : {}),

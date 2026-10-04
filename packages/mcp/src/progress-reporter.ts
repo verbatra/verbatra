@@ -12,6 +12,7 @@ export interface ProgressReporterOptions {
   readonly send: (update: ProgressUpdate) => Promise<void>;
   readonly onLog?: (line: string) => void;
   readonly minIntervalMs?: number;
+  readonly signal?: AbortSignal;
 }
 
 export interface ProgressReporter {
@@ -34,7 +35,7 @@ export function createProgressReporter(options: ProgressReporterOptions): Progre
   }
 
   function emit(): void {
-    if (finishedBatches <= sentProgress) {
+    if (closed || finishedBatches <= sentProgress) {
       return;
     }
     sentProgress = finishedBatches;
@@ -82,16 +83,29 @@ export function createProgressReporter(options: ProgressReporterOptions): Progre
     }
   }
 
-  function close(): void {
-    if (closed) {
-      return;
-    }
+  function stop(): void {
+    closed = true;
+    options.signal?.removeEventListener("abort", stop);
     if (timer !== undefined) {
       clearTimeout(timer);
       timer = undefined;
     }
-    emit();
-    closed = true;
+  }
+
+  function close(): void {
+    if (closed) {
+      return;
+    }
+    if (options.signal?.aborted !== true) {
+      emit();
+    }
+    stop();
+  }
+
+  if (options.signal?.aborted === true) {
+    stop();
+  } else {
+    options.signal?.addEventListener("abort", stop, { once: true });
   }
 
   return { onProgress, close };
