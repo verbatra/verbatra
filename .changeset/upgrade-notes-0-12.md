@@ -36,6 +36,8 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `verbatra types` once and commit the file.
 
 **Translation behavior and spend**
+- `tmx import` reads the project's source locale file and fails with `SOURCE_INVALID` (exit 2)
+  when that file exists but cannot be parsed. Fix the source file, then import again.
 - `diff --unused` no longer counts a plain string such as `step_one` as used by `t("step")` in an
   Android, gettext or Apple catalog, where plural forms are marked: it is listed as unused and
   `diff --unused` exits 1. `extract` no longer adds `step` next to a YAML or other unmarked
