@@ -7,12 +7,6 @@ const SDK_META = resolve(
   "../apps/docs/content/docs/sdk/meta.json",
 );
 
-function isSidebarLinkEntry(page) {
-  return page.startsWith("[");
-}
-
 export function sdkReferencePages() {
-  return JSON.parse(readFileSync(SDK_META, "utf8")).pages.filter(
-    (page) => !isSidebarLinkEntry(page),
-  );
+  return JSON.parse(readFileSync(SDK_META, "utf8")).pages;
 }
