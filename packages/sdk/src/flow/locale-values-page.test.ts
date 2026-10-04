@@ -2,7 +2,6 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
-import { SdkError } from "../errors.js";
 import { baseConfig, makeTempDir, writeJsonFile } from "../test-support.js";
 import { type LocaleValuesPage, localeValuesPage } from "./locale-values-page.js";
 
@@ -147,6 +146,6 @@ describe("localeValuesPage", () => {
 
     await expect(
       localeValuesPage({ config: cfg(["de"]), cwd: dir, limit: 0 }),
-    ).rejects.toBeInstanceOf(SdkError);
+    ).rejects.toMatchObject({ code: "PAGE_LIMIT_INVALID" });
   });
 });

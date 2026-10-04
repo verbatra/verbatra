@@ -11,6 +11,7 @@ import type {
   localeValuesPage,
   lockState,
   provenanceReport,
+  provenanceReportPage,
   retranslateEntry,
   reviewQueue,
   translate,
@@ -115,6 +116,9 @@ describe("output schemas declare every field the SDK result they pass through ca
   it("report.provenance", () => {
     expectTypeOf<
       Undeclared<SdkResult<typeof provenanceReport>, ReportProvenanceResult>
+    >().toEqualTypeOf<never>();
+    expectTypeOf<
+      Undeclared<SdkResult<typeof provenanceReportPage>, ReportProvenanceResult>
     >().toEqualTypeOf<never>();
   });
 

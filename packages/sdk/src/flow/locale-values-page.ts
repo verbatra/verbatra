@@ -1,4 +1,4 @@
-import { type PagedLocale, pageAcrossLocales } from "../paging/page-across-locales.js";
+import { type LocaleItems, pageAcrossLocales } from "../paging/page-across-locales.js";
 import {
   type KeyValuePair,
   type LocaleValues,
@@ -7,24 +7,30 @@ import {
   localeValues,
 } from "./locale-values.js";
 
+/**
+ * The longest `query` the verbatra MCP server and Studio agent tool accept for
+ * {@link localeValuesPage}. The SDK itself takes a query of any length.
+ */
+export const LOCALE_VALUES_QUERY_MAX_LENGTH = 500;
+
 /** One key's current source and target text on a {@link LocaleValuesPage}. */
-export interface LocaleValueEntry extends KeyValuePair {
+export interface LocaleValuesPageEntry extends KeyValuePair {
   /** The key name. */
   readonly key: string;
 }
 
 /** One target locale's entries on a {@link LocaleValuesPage}. */
-export interface PagedLocaleValues {
+export interface LocaleValuesPageLocale {
   /** The target locale these entries were read for. */
   readonly locale: string;
   /** This locale's entries on the page, in source key order, then the target-only keys. */
-  readonly entries: readonly LocaleValueEntry[];
+  readonly entries: readonly LocaleValuesPageEntry[];
 }
 
 /** One page of current source and target text, as returned by {@link localeValuesPage}. */
 export interface LocaleValuesPage {
   /** The target locales that hold at least one entry on this page, in configured order. */
-  readonly locales: readonly PagedLocaleValues[];
+  readonly locales: readonly LocaleValuesPageLocale[];
   /** Pass this back as `cursor`, with the same filters, to read the next page. Absent on the last page. */
   readonly nextCursor?: string;
 }
@@ -41,7 +47,7 @@ export interface LocaleValuesPageInput extends LocaleValuesInput {
   readonly cursor?: string;
 }
 
-type EntryMatcher = (entry: LocaleValueEntry) => boolean;
+type EntryMatcher = (entry: LocaleValuesPageEntry) => boolean;
 
 function keyMatcher(keys: readonly string[] | undefined): EntryMatcher {
   if (keys === undefined) {
@@ -65,7 +71,7 @@ function queryMatcher(query: string | undefined): EntryMatcher {
 function filteredLocale(
   locale: LocaleValues,
   matches: EntryMatcher,
-): PagedLocale<LocaleValueEntry> {
+): LocaleItems<LocaleValuesPageEntry> {
   const items = locale.keys.flatMap((key) => {
     const pair = locale.values[key];
     return pair === undefined ? [] : [{ key, ...pair }];
@@ -84,8 +90,8 @@ function canonicalFilters(input: LocaleValuesPageInput): unknown {
 /**
  * Reads one page of current source and target text across the requested target locales,
  * optionally narrowed to exact keys or to a text query, and returns a cursor for the next page. It
- * is {@link localeValues} cut into pages with {@link pageAcrossLocales}, so a caller can scan a
- * large project without holding every value at once. It writes nothing and calls no provider.
+ * is {@link localeValues} cut into pages, so a caller can scan a large project without holding
+ * every value at once. It writes nothing and calls no provider.
  *
  * Entries come ordered by locale and then by key, in source key order followed by the keys only in
  * that target. Every call reads the files again, so a cursor whose key has moved or gone since the
@@ -105,8 +111,9 @@ function canonicalFilters(input: LocaleValuesPageInput): unknown {
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: the source locale file does not exist.
  * @throws {@link SdkError} `SOURCE_INVALID`: the source locale file could not be parsed.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
- * @throws {@link SdkError} `PAGE_CURSOR_INVALID`: the cursor is malformed, was made under other
- * filters, or no longer points at the key it was made for.
+ * @throws {@link SdkError} `PAGE_CURSOR_INVALID`: the cursor is malformed, longer than
+ * {@link PAGE_CURSOR_MAX_LENGTH}, was made under other filters, or no longer points at the key it
+ * was made for.
  * @throws {@link SdkError} `PAGE_LIMIT_INVALID`: `limit` is not a whole number from 1 to
  * {@link PAGE_LIMIT_CAP}.
  *

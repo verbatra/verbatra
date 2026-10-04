@@ -1,4 +1,9 @@
-import { localeValuesPage, PAGE_LIMIT_CAP, PAGE_LIMIT_DEFAULT } from "@verbatra/sdk";
+import {
+  LOCALE_VALUES_QUERY_MAX_LENGTH,
+  localeValuesPage,
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -10,7 +15,7 @@ const paramsSchema = z
   .strictObject({
     locales: z.array(z.string().min(1)).min(1).optional(),
     keys: z.array(z.string().min(1)).min(1).max(PAGE_LIMIT_CAP).optional(),
-    query: z.string().min(1).max(500).optional(),
+    query: z.string().min(1).max(LOCALE_VALUES_QUERY_MAX_LENGTH).optional(),
     limit: pageLimitSchema,
     cursor: pageCursorSchema,
   })

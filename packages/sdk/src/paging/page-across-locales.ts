@@ -8,32 +8,22 @@ export const PAGE_LIMIT_DEFAULT = 200;
 /** The largest `limit` a page accepts. */
 export const PAGE_LIMIT_CAP = 1000;
 
-/** One locale's items within a page, or within the full list a page is cut from. */
-export interface PagedLocale<Item> {
-  /** The locale these items belong to. */
+/** The longest `cursor` a paged read accepts. */
+export const PAGE_CURSOR_MAX_LENGTH = 512;
+
+export interface LocaleItems<Item> {
   readonly locale: string;
-  /** The locale's items, in a stable order. */
   readonly items: readonly Item[];
 }
 
-/** One page cut from a per-locale list, as returned by {@link pageAcrossLocales}. */
-export interface LocalePage<Item> {
-  /** The locales that hold at least one item on this page, in the order of the full list. */
-  readonly locales: readonly PagedLocale<Item>[];
-  /** Pass this back as `cursor` to read the next page. Absent on the last page. */
+export interface CrossLocalePage<Item> {
+  readonly locales: readonly LocaleItems<Item>[];
   readonly nextCursor?: string;
 }
 
-/** Which page {@link pageAcrossLocales} cuts. */
-export interface PageRequest {
-  /**
-   * The filters the full list was built with, as a JSON-serializable value in a canonical order.
-   * A cursor remembers a digest of them and is refused under any other filters.
-   */
+export interface CrossLocalePageRequest {
   readonly filters: unknown;
-  /** The most items the page holds, a whole number from 1 to {@link PAGE_LIMIT_CAP}. Defaults to {@link PAGE_LIMIT_DEFAULT}. */
   readonly limit?: number;
-  /** The `nextCursor` of the previous page. Omit it to read the first page. */
   readonly cursor?: string;
 }
 
@@ -84,6 +74,9 @@ function encodeCursor(filters: string, position: CursorPosition): string {
 }
 
 function decodeCursor(cursor: string, filters: string): DecodedCursor {
+  if (cursor.length > PAGE_CURSOR_MAX_LENGTH) {
+    throw staleCursor();
+  }
   let raw: unknown;
   try {
     raw = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
@@ -98,7 +91,7 @@ function decodeCursor(cursor: string, filters: string): DecodedCursor {
 }
 
 function startOf<Item extends { readonly key: string }>(
-  locales: readonly PagedLocale<Item>[],
+  locales: readonly LocaleItems<Item>[],
   position: DecodedCursor | undefined,
 ): { readonly localeIndex: number; readonly itemIndex: number } {
   if (position === undefined) {
@@ -113,7 +106,7 @@ function startOf<Item extends { readonly key: string }>(
 }
 
 function nextPosition<Item extends { readonly key: string }>(
-  locales: readonly PagedLocale<Item>[],
+  locales: readonly LocaleItems<Item>[],
   localeIndex: number,
   itemIndex: number,
 ): CursorPosition | undefined {
@@ -141,51 +134,16 @@ function pageLimit(limit: number | undefined): number {
   return limit;
 }
 
-/**
- * Cuts one page from a list of items grouped by locale, walking the locales in order and each
- * locale's items in order, and returns a cursor for the next page. It reads nothing and is the
- * paging that {@link localeValuesPage} and the MCP server's paged tools use, for a caller that
- * builds its own per-locale list, such as the entries of a {@link provenanceReport}.
- *
- * The cursor is opaque. It records the position of the next item, a digest of that item's key, and
- * a digest of `filters`, so a cursor made under other filters, or one whose key has since moved
- * or gone because the files changed, is refused rather than skipping or repeating items. Every
- * item needs a `key`.
- *
- * @param locales - The full list, every locale with its items, in a stable order.
- * @param request - The filters the list was built with, the page size, and the previous cursor.
- * @returns The locales with at least one item on this page, and the next cursor unless this is
- * the last page.
- *
- * @throws {@link SdkError} `PAGE_CURSOR_INVALID`: the cursor is malformed, was made under other
- * filters, or no longer points at the key it was made for.
- * @throws {@link SdkError} `PAGE_LIMIT_INVALID`: `limit` is not a whole number from 1 to
- * {@link PAGE_LIMIT_CAP}.
- *
- * @example
- * ```ts
- * import { loadConfig, pageAcrossLocales, provenanceReport } from "@verbatra/sdk";
- *
- * const report = await provenanceReport({ config: await loadConfig() });
- * if (report.available) {
- *   const page = pageAcrossLocales(
- *     report.locales.map((locale) => ({ locale: locale.locale, items: locale.entries })),
- *     { filters: { buckets: null }, limit: 50 },
- *   );
- *   console.log(page.locales, page.nextCursor);
- * }
- * ```
- */
 export function pageAcrossLocales<Item extends { readonly key: string }>(
-  locales: readonly PagedLocale<Item>[],
-  request: PageRequest,
-): LocalePage<Item> {
+  locales: readonly LocaleItems<Item>[],
+  request: CrossLocalePageRequest,
+): CrossLocalePage<Item> {
   const limit = pageLimit(request.limit);
   const fingerprint = filtersFingerprint(request.filters);
   const position =
     request.cursor === undefined ? undefined : decodeCursor(request.cursor, fingerprint);
   const start = startOf(locales, position);
-  const page: PagedLocale<Item>[] = [];
+  const page: LocaleItems<Item>[] = [];
   let remaining = limit;
   let localeIndex = start.localeIndex;
   let itemIndex = start.itemIndex;

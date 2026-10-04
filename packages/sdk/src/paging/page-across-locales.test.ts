@@ -3,9 +3,10 @@ import { sdkErrorHint } from "../error-hints.js";
 import { SdkError } from "../errors.js";
 import {
   filtersFingerprint,
+  type LocaleItems,
+  PAGE_CURSOR_MAX_LENGTH,
   PAGE_LIMIT_CAP,
   PAGE_LIMIT_DEFAULT,
-  type PagedLocale,
   pageAcrossLocales,
 } from "./page-across-locales.js";
 
@@ -13,7 +14,7 @@ interface Item {
   readonly key: string;
 }
 
-function locale(name: string, keys: readonly string[]): PagedLocale<Item> {
+function locale(name: string, keys: readonly string[]): LocaleItems<Item> {
   return { locale: name, items: keys.map((key) => ({ key })) };
 }
 
@@ -125,6 +126,12 @@ describe("pageAcrossLocales", () => {
     forged({ v: 2, f: "x", l: "de", i: 0, k: "y" }),
     forged({ v: 1, f: filtersFingerprint(FILTERS), l: "de", i: -1, k: "y" }),
   ])("rejects the tampered cursor %s", (cursor) => {
+    expectInvalid(() => pageAcrossLocales(DATA, { filters: FILTERS, limit: 2, cursor }));
+  });
+
+  it("rejects a cursor longer than the accepted length", () => {
+    const cursor = cursorAfter(2).padEnd(PAGE_CURSOR_MAX_LENGTH + 1, "A");
+
     expectInvalid(() => pageAcrossLocales(DATA, { filters: FILTERS, limit: 2, cursor }));
   });
 

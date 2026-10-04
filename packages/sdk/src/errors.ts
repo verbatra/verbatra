@@ -158,11 +158,12 @@
  *   milliseconds of at least 0. Thrown by {@link translate}, {@link importWorkbook},
  *   {@link retranslateEntry}, and {@link retranslateEntries} before anything is read or locked, and
  *   by {@link watch} once at startup, before any watching begins.
- * - `PAGE_CURSOR_INVALID`: the `cursor` passed to {@link pageAcrossLocales} or
- *   {@link localeValuesPage} is malformed, was made under other filters, or points at a key that is
- *   no longer where it was, because the files changed between pages. Call again without a cursor.
- * - `PAGE_LIMIT_INVALID`: the `limit` passed to {@link pageAcrossLocales} or
- *   {@link localeValuesPage} is not a whole number from 1 to {@link PAGE_LIMIT_CAP}.
+ * - `PAGE_CURSOR_INVALID`: the `cursor` passed to {@link localeValuesPage} or
+ *   {@link provenanceReportPage} is malformed, longer than {@link PAGE_CURSOR_MAX_LENGTH}, was made
+ *   under other filters, or points at a key that is no longer where it was, because the files
+ *   changed between pages. Call again without a cursor.
+ * - `PAGE_LIMIT_INVALID`: the `limit` passed to {@link localeValuesPage} or
+ *   {@link provenanceReportPage} is not a whole number from 1 to {@link PAGE_LIMIT_CAP}.
  * - `TARGET_UNWRITABLE`: a target locale file could not be written, because its directory is not
  *   writable, does not exist, is read-only, or is out of space. The message names the target file
  *   relative to `cwd` and the underlying file-system code, never the internal temporary file the
