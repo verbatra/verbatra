@@ -63,7 +63,8 @@ export interface StartMcpServerOptions {
    * Receives one diagnostic line, already redacted, for each tool call that fails, is rejected
    * because a matching call is still in progress, or names an unknown tool, and one line each time
    * the project config is loaded again after a change or fails to load: at startup when the server
-   * starts without a usable config, and whenever that error changes. Never called for a successful
+   * starts without a usable config, and whenever that error changes, and one line for each error on
+   * the connection itself, such as a message that is not valid MCP. Never called for a successful
    * call. Omit it to discard them.
    */
   readonly onLog?: (line: string) => void;

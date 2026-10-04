@@ -200,5 +200,12 @@ export function createMcpServer(options: McpServerOptions): Server {
 }
 
 export function serveMcpStdio(options: McpServerOptions, transport: Transport): StdioServerHandle {
-  return serveStdio(() => createMcpServer(options), { legacy: "serve", transport });
+  const { onLog } = options;
+  return serveStdio(() => createMcpServer(options), {
+    legacy: "serve",
+    transport,
+    ...(onLog !== undefined
+      ? { onerror: (error: Error) => onLog(redact(`MCP connection error: ${error.message}`)) }
+      : {}),
+  });
 }
