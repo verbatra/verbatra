@@ -45,6 +45,7 @@ describe("startStudioServer: cwd option", () => {
                 missing: 1,
                 stale: 0,
                 upToDate: 0,
+                emptySource: 0,
                 inSync: false,
                 provenance: expect.any(Object),
                 protected: 0,
