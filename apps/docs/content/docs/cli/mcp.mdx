@@ -111,13 +111,13 @@ The server answers the handshake with fixed `instructions`, which most clients p
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-`translation.estimate` is always listed. `translation.translatePending` takes optional `locales` (an unconfigured one fails with `UNKNOWN_LOCALE` before spending) and `maxTokens`, a ceiling that can only tighten the config's. Order: `status.diff`, `translation.estimate`, the user's yes, then `translation.translatePending` with the same `locales`. See [Estimating cost](/docs/estimating-cost).
+`translation.estimate` is always listed. `translation.translatePending` takes optional `locales` (an unconfigured one fails with `UNKNOWN_LOCALE` before spending) and `maxTokens`, a ceiling that can only tighten the config's. See [Estimating cost](/docs/estimating-cost).
 
 ### Progress
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-When a `translation.translatePending` call carries a `progressToken`, verbatra sends `notifications/progress` as batches finish: `progress` counts them, `total` grows per planned locale, and `message` names locale and batch (`de: batch 3/7`), at most one every 250 ms plus a final one.
+When a `translation.translatePending` call carries a `progressToken`, verbatra sends `notifications/progress` as batches finish: `progress` counts them, `total` grows per planned locale, and `message` names locale and batch (`de: batch 3/7`), at most one every 250 ms plus a final one. Cancelling a spend call (`notifications/cancelled`) stops it with no result or further progress: `translation.translatePending` keeps what arrived, and the rest stays pending.
 
 ### Without a config
 
@@ -132,8 +132,6 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
   set it up:  npx verbatra init in the project, or fix the config project.doctor names
   no restart needed: the server loads the config on the next call once it is valid
 ```
-
-Only a missing `--config` file stops the server at startup.
 
 ### After a config change
 
