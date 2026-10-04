@@ -1,6 +1,6 @@
 ---
 title: "Inspect a project"
-description: "Read-only entry points: doctor, check, diff, integrity checks, lock and provenance state, and bulk reads."
+description: "Read-only entry points: doctor, check, diff, integrity checks, and lock and provenance state."
 type: reference
 ---
 ## Inspect state without writing
@@ -481,35 +481,3 @@ each locale `{ locale, total, counts, entries }` and each entry
 every value as `unrecorded`. A source, target, or lock file that cannot be read fails the call as it
 fails `check`. The report is supporting evidence, not legal advice; the full schema is on
 [Machine-translation evidence](/docs/provenance-evidence#the-json-schema).
-
-## Bulk content reads
-
-<AvailableFrom version="0.10.0" />
-
-### localeValues
-
-Reads every key's current source and target text, across every requested target locale, in one
-pass over the files already on disk, for instance to search values rather than key names: the bulk
-counterpart to `keyValue`, which answers for one key at a time. Read-only.
-
-```ts title="Signature"
-function localeValues(
-  input: LocaleValuesInput,
-  deps?: LocaleValuesDeps,
-): Promise<readonly LocaleValues[]>;
-```
-
-<SdkTypeTable name="LocaleValuesInput" />
-
-**Returns:** `readonly LocaleValues[]`
-
-**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
-
-An omitted `locales` covers every configured target locale.
-Returns an array of `{ locale, keys, values }`, one entry per locale: `keys` lists every key in
-source order, then the target-only ones, and `values` maps each key to `{ source?, target? }`. An absent `target` means the key has not been translated in that locale
-yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
-the source. `values` has no prototype, so every key, including one named `__proto__` or
-`constructor`, is an own property, and a key absent from the catalog reads as `undefined`.
-
-Each pair with a `target` also carries `provenance`, the same `KeyProvenance` `keyValue` reports.

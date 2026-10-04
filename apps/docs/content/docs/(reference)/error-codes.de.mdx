@@ -446,6 +446,22 @@ Das `maxTokens` pro Lauf von `translate` wurde gesetzt, ist aber keine ganze Zah
 - **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
 - **Nächster Schritt**: Pass a lock timeout that is a whole number of at least 0.
 
+### PAGE_CURSOR_INVALID
+
+Der an `localeValuesPage` oder `pageAcrossLocales` übergebene `cursor` ist fehlerhaft, stammt aus anderen Filtern oder zeigt auf einen Key, der verschoben wurde oder fehlt, weil sich die Dateien zwischen zwei Seiten geändert haben.
+
+- **Ausgelöst von**: das SDK; das Agent-Tool `verbatra_locale_values` in Studio (der MCP-Server meldet ihn als ungültige Eingabe für `cursor`)
+- **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
+- **Nächster Schritt**: Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+Das an `localeValuesPage` oder `pageAcrossLocales` übergebene `limit` ist keine ganze Zahl von 1 bis `PAGE_LIMIT_CAP` (1000).
+
+- **Ausgelöst von**: nur das SDK
+- **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
+- **Nächster Schritt**: Pass a page limit that is a whole number from 1 to 1000.
+
 ### TARGET_UNWRITABLE
 
 Eine Ziel-Locale-Datei konnte nicht geschrieben werden (ihr Verzeichnis ist nicht schreibbar, existiert nicht, ist schreibgeschützt oder hat keinen Platz mehr); die Message nennt die Zieldatei und den Dateisystem-Code, nie die interne temporäre Datei, die der atomare Schreibvorgang nutzt.

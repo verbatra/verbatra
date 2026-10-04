@@ -44,7 +44,7 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 | `verbatra_review_queue` | cada valor escrito por una máquina que nadie ha aprobado, según los archivos del repositorio <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | el origen y el destino de una clave, con quién escribió el destino |
 | `verbatra_key_context` | la descripción, los términos del glosario y el `maxLength` de una clave, y la comprobación de un `draft` opcional <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
-| `verbatra_locale_values` | los valores de cada clave en cada locale de destino |
+| `verbatra_locale_values` | valores de clave por locale de destino, 200 por página por defecto, acotados con `locales`, `keys` o `query` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_locale_integrity` | cada traducción que no supera las comprobaciones de integridad <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | lo que enviaría y costaría una llamada translate-pending, sin llamar a ningún proveedor |
 | `verbatra_usage_summary` | el uso de tokens y el presupuesto de la última ejecución |
@@ -65,7 +65,7 @@ Cada herramienta es una acción de Studio con el prefijo `verbatra_`. Las de lec
 | `verbatra_translation_retranslateEntry` | vuelve a traducir una clave en un locale |
 | `verbatra_translation_translatePending` | traduce todo lo pendiente, opcionalmente solo para algunos `locales` y con un tope de `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` solo devuelve los locales donde cambió el origen de la clave, así que una lista vacía significa que no había nada que comprobar. Sus filas son más planas que las de [`key.integrity`](/docs/cli/mcp#entradas-y-resultados) en el servidor MCP. Solo el servidor MCP tiene `project.doctor` y `report.provenance`; su `locale.values` devuelve páginas, consulta [Más entradas y resultados](/docs/cli/mcp#más-entradas-y-resultados).
+`verbatra_key_integrity` solo devuelve los locales donde cambió el origen de la clave, así que una lista vacía significa que no había nada que comprobar. Sus filas son más planas que las de [`key.integrity`](/docs/cli/mcp#entradas-y-resultados) en el servidor MCP. Solo el servidor MCP tiene `project.doctor` y `report.provenance`. `verbatra_locale_values` pagina como su `locale.values`, con los mismos `limit` y `cursor` ([Más entradas y resultados](/docs/cli/mcp#más-entradas-y-resultados)).
 
 ## Conoce las reglas de las herramientas
 

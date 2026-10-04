@@ -446,6 +446,22 @@ Le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nom
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Pass a lock timeout that is a whole number of at least 0.
 
+### PAGE_CURSOR_INVALID
+
+Le `cursor` passé à `localeValuesPage` ou `pageAcrossLocales` est mal formé, a été créé avec d'autres filtres ou pointe vers une clé déplacée ou disparue parce que les fichiers ont changé entre deux pages.
+
+- **Levé par** : le SDK ; l'outil d'agent `verbatra_locale_values` de Studio (le serveur MCP le signale comme entrée invalide pour `cursor`)
+- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
+- **Étape suivante** : Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+Le `limit` passé à `localeValuesPage` ou `pageAcrossLocales` n'est pas un nombre entier de 1 à `PAGE_LIMIT_CAP` (1000).
+
+- **Levé par** : le SDK uniquement
+- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
+- **Étape suivante** : Pass a page limit that is a whole number from 1 to 1000.
+
 ### TARGET_UNWRITABLE
 
 Un fichier de locale cible n'a pas pu être écrit (son répertoire n'est pas inscriptible, n'existe pas, est en lecture seule ou est plein) ; le message nomme le fichier cible et le code du système de fichiers, jamais le fichier temporaire interne qu'utilise l'écriture atomique.

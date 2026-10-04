@@ -44,7 +44,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_review_queue` | chaque valeur écrite par une machine que personne n'a approuvée, d'après les fichiers versionnés <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | la source et la cible d'une clé, avec qui a écrit la cible |
 | `verbatra_key_context` | la description, les termes du glossaire et le `maxLength` d'une clé, et le contrôle d'un `draft` optionnel <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
-| `verbatra_locale_values` | les valeurs de chaque clé dans chaque locale cible |
+| `verbatra_locale_values` | les valeurs des clés par locale cible, 200 par page par défaut, restreintes par `locales`, `keys` ou `query` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_locale_integrity` | chaque traduction qui échoue aux contrôles d'intégrité <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | ce qu'un appel translate-pending enverrait et coûterait, sans appeler de fournisseur |
 | `verbatra_usage_summary` | la consommation de tokens et le budget de la dernière exécution |
@@ -65,7 +65,7 @@ Chaque outil est une action Studio avec le préfixe `verbatra_`. Les outils de l
 | `verbatra_translation_retranslateEntry` | retraduit une clé dans une locale |
 | `verbatra_translation_translatePending` | traduit tout ce qui est en attente, éventuellement pour certaines `locales` et sous un plafond `maxTokens` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP. Seul le serveur MCP a `project.doctor` et `report.provenance` ; son `locale.values` renvoie des pages, consulte [Autres entrées et résultats](/docs/cli/mcp#autres-entrées-et-résultats).
+`verbatra_key_integrity` ne renvoie que les locales où la source de la clé a changé, donc une liste vide signifie qu'il n'y avait rien à vérifier. Ses lignes sont plus plates que celles de [`key.integrity`](/docs/cli/mcp#entrées-et-résultats) dans le serveur MCP. Seul le serveur MCP a `project.doctor` et `report.provenance`. `verbatra_locale_values` pagine comme son `locale.values`, avec les mêmes `limit` et `cursor` ([Autres entrées et résultats](/docs/cli/mcp#autres-entrées-et-résultats)).
 
 ## Connaître les règles des outils
 

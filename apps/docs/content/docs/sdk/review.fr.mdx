@@ -1,6 +1,6 @@
 ---
 title: "Modifier et relire"
-description: "Lire, modifier, approuver, rejeter et retraduire une clé, ou en relire et retraduire plusieurs à la fois."
+description: "Lire, modifier, approuver, rejeter et retraduire une clé, lire des valeurs en masse ou page par page, ou en relire et retraduire plusieurs à la fois."
 type: reference
 ---
 ## Opérations sur une seule clé
@@ -189,6 +189,73 @@ function createValueMarker(salt?: Uint8Array): ValueMarker;
 ```
 
 **Renvoie :** `ValueMarker`
+
+## Lectures de contenu en masse
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Lit le texte source et cible actuel de chaque clé, sur chaque locale cible demandée, en un seul passage sur les fichiers déjà présents sur le disque, par exemple pour chercher des valeurs plutôt que des noms de clé : le pendant en masse de `keyValue`, qui ne répond que pour une clé à la fois. En lecture seule.
+
+```ts title="Signature"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Renvoie :** `readonly LocaleValues[]`
+
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, keys, values }`, une entrée par locale : `keys` liste chaque clé dans l'ordre de la source, puis celles présentes seulement dans la cible, et `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source. `values` n'a pas de prototype : chaque clé, y compris une clé nommée `__proto__` ou `constructor`, est une propriété propre, et une clé absente du catalogue se lit comme `undefined`.
+
+Chaque paire avec une `target` porte aussi `provenance`, la même `KeyProvenance` que rapporte `keyValue`.
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+Lit une page de `localeValues`, restreinte si tu veux à des `keys` exactes ou à une `query` comparée à la clé, au texte source et au texte cible sans tenir compte de la casse, et renvoie un curseur pour la page suivante. Le serveur MCP et l'outil d'agent `verbatra_locale_values` de Studio paginent avec. En lecture seule.
+
+```ts title="Signature"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**Renvoie :** `LocaleValuesPage`
+
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Renvoie `{ locales, nextCursor? }` : chaque locale ayant une entrée sur la page porte `entries`, chacune `{ key, source?, target?, provenance? }` comme `localeValues` la rapporte, triées par locale puis par clé. Une page contient au plus `limit` entrées : `PAGE_LIMIT_DEFAULT` (200) par défaut, `PAGE_LIMIT_CAP` (1000) au maximum. Repasse `nextCursor` comme `cursor`, avec les mêmes filtres, jusqu'à ce qu'il soit absent. Chaque appel relit les fichiers, donc un curseur dont la clé a bougé ou disparu est refusé au lieu de sauter ou de répéter des entrées.
+
+### pageAcrossLocales
+
+<AvailableFrom version="0.12.0" />
+
+Découpe une page dans une liste par locale que tu construis toi-même, comme les entrées de `provenanceReport`, avec le curseur qu'utilise `localeValuesPage`. Ne lit rien.
+
+```ts title="Signature"
+function pageAcrossLocales<Item extends { readonly key: string }>(
+  locales: readonly PagedLocale<Item>[],
+  request: PageRequest,
+): LocalePage<Item>;
+```
+
+<SdkTypeTable name="PageRequest" />
+
+**Renvoie :** `LocalePage<Item>`
+
+**Lève :** [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+`filters` est l'ensemble de filtres sérialisable en JSON avec lequel la liste a été construite, dans un ordre canonique ; le curseur en garde un condensé et est refusé avec d'autres filtres. Chaque élément a besoin d'une `key`.
 
 ## Révision et retraduction par lots
 

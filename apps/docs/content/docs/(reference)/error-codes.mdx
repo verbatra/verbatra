@@ -446,6 +446,22 @@ A live run set `concurrency` above 1 while a token budget applies, configured or
 - **Exit code**: none: no CLI command raises it
 - **Next step**: Pass a lock timeout that is a whole number of at least 0.
 
+### PAGE_CURSOR_INVALID
+
+The `cursor` passed to `localeValuesPage` or `pageAcrossLocales` is malformed, was made under other filters, or points at a key that moved or is gone because the files changed between pages.
+
+- **Raised by**: the SDK; Studio's `verbatra_locale_values` agent tool (the MCP server reports it as invalid input for `cursor`)
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+The `limit` passed to `localeValuesPage` or `pageAcrossLocales` is not a whole number from 1 to `PAGE_LIMIT_CAP` (1000).
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Pass a page limit that is a whole number from 1 to 1000.
+
 ### TARGET_UNWRITABLE
 
 A target locale file could not be written (its directory is not writable, does not exist, is read-only, or is out of space); the message names the target file and the file-system code, never the internal temporary file the atomic write uses.

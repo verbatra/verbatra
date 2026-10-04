@@ -1,6 +1,6 @@
 ---
 title: "Inspecciona un proyecto"
-description: "Puntos de entrada de solo lectura: doctor, check, diff, comprobaciones de integridad, estado del lock y de la procedencia, y lecturas en bloque."
+description: "Puntos de entrada de solo lectura: doctor, check, diff, comprobaciones de integridad, y estado del lock y de la procedencia."
 type: reference
 ---
 ## Inspecciona el estado sin escribir
@@ -500,38 +500,3 @@ listaría cada valor como `unrecorded`. Un archivo de origen, de destino o de bl
 leer hace fallar la llamada igual que en `check`. El informe es evidencia de apoyo, no asesoramiento
 jurídico; el esquema completo está en
 [Evidencia de traducción automática](/docs/provenance-evidence#el-esquema-json).
-
-## Lecturas de contenido en bloque
-
-<AvailableFrom version="0.10.0" />
-
-### localeValues
-
-Lee el texto de origen y de destino actual de cada clave, en cada locale de destino solicitado, en
-una sola pasada sobre los archivos que ya están en disco, por ejemplo para buscar valores en lugar de
-nombres de clave: la contraparte en bloque de `keyValue`, que responde para una clave a la vez.
-Solo lectura.
-
-```ts title="Firma"
-function localeValues(
-  input: LocaleValuesInput,
-  deps?: LocaleValuesDeps,
-): Promise<readonly LocaleValues[]>;
-```
-
-<SdkTypeTable name="LocaleValuesInput" />
-
-**Devuelve:** `readonly LocaleValues[]`
-
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
-
-Un `locales` omitido cubre cada locale de destino
-configurado. Devuelve un array de `{ locale, keys, values }`, una entrada por locale: `keys`
-lista cada clave en el orden de origen, luego las que solo están en el destino, y `values` asigna
-cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
-se ha traducido en ese locale; un `source` ausente significa que la clave está huérfana, presente
-en el locale de destino pero ya no en el origen. `values` no tiene prototipo: cada clave, incluida
-una llamada `__proto__` o `constructor`, es una propiedad propia, y una clave que no está en el
-catálogo se lee como `undefined`.
-
-Cada par con un `target` lleva además `provenance`, la misma `KeyProvenance` que informa `keyValue`.
