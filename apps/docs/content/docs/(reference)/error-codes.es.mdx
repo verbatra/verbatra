@@ -13,7 +13,7 @@ Dos códigos pertenecen a dos familias: `CONFIG_INVALID` (el SDK, e `init` en la
 
 ## Códigos de error de la CLI [#cli-error-codes]
 
-Estos códigos los lanza la propia CLI. La misma lista se publica como `CLI_ERROR_CODES` (con el tipo `CliErrorCode`) desde `@verbatra/cli`, así que un script puede comprobar un código contra ella en lugar de copiar esta página. Todos salen con `2`.
+Estos códigos los lanza la propia CLI. La misma lista se publica como `CLI_ERROR_CODES` (con el tipo `CliErrorCode`) desde `@verbatra/cli`. Todos salen con `2`.
 
 ### AGENT_FILE_INVALID
 
@@ -520,7 +520,7 @@ El archivo de declaraciones que produce `generateTypes` no se pudo escribir (su 
 
 ### TMX_OUTPUT_CONFLICT
 
-`exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria.
+`exportTmx` rechazó su ruta de salida: una que no nombra ningún archivo (o termina en un separador de ruta) o que queda fuera de `cwd` o en el propio `cwd`, y una que nombra un archivo que verbatra gestiona, según la lista de [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), también tras resolver los enlaces simbólicos; se rechaza antes de leer la memoria.
 
 - **Lo lanza**: `tmx export`
 - **Código de salida**: `2`
@@ -536,7 +536,7 @@ El archivo TMX que produce `exportTmx` no se pudo escribir (su directorio no es 
 
 ### EXPORT_OUTPUT_CONFLICT
 
-`exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de memoria de traducción, un archivo que verbatra busca para su configuración, el archivo de configuración que cargó la ejecución, o el archivo de glosario de la configuración, también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada.
+`exportWorkbook` rechazó su ruta de salida: una que queda fuera de `cwd`, y una que, por sí misma o a través de un archivo que la exportación escribiría dentro, nombra un archivo que verbatra gestiona, según la lista de [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), también tras resolver los enlaces simbólicos; una ruta `xlsx` que no nombra ningún archivo o nombra el propio `cwd` también se rechaza; se rechaza antes de leer nada.
 
 - **Lo lanza**: `export`
 - **Código de salida**: `2`
@@ -600,7 +600,7 @@ Nunca se lanza: el `code` de reserva registrado en el `error` de un locale falli
 
 ## Códigos de error del proveedor [#provider-error-codes]
 
-Un fallo del proveedor nunca aparece como un error bruto del SDK o de HTTP: verbatra lanza un `ProviderError` con uno de estos códigos y un mensaje fijo y sin secretos. Dentro de `translate` y `watch`, un fallo afecta solo a su propia petición: sus claves se retienen, el locale recibe un aviso `SUB_BATCH_FAILED` que nombra el código, y las claves se retoman en la siguiente ejecución. Una retraducción de una sola clave desde Studio o el servidor MCP vuelve a lanzar el `ProviderError`. Cómo clasifica cada proveedor sus fallos está en [Proveedores](/docs/providers#errores-estructurados).
+Un fallo del proveedor lanza un `ProviderError` con uno de estos códigos ([Errores estructurados](/docs/providers#errores-estructurados)). Dentro de `translate` y `watch` solo falla su propia petición: sus claves se retienen, el locale recibe un aviso `SUB_BATCH_FAILED` que nombra el código, y las claves se retoman en la siguiente ejecución. Una retraducción de una sola clave desde Studio o el servidor MCP vuelve a lanzar el `ProviderError`.
 
 ### MISSING_API_KEY
 
@@ -612,7 +612,7 @@ La variable de entorno requerida no está definida o está vacía. El mensaje no
 
 ### INVALID_REQUEST
 
-La petición falló la validación antes de cualquier llamada de red: un campo malformado, un código que DeepL no acepta (una entrada de `localeMap` con un código de origen regional, o un destino que acaba siendo un `en` o `pt` escueto), o un código que no es BCP-47 bien formado para Google Cloud Translation. En LibreTranslate cubre además un idioma para el que tu servidor no tiene modelo y una petición que supera su `--char-limit` o su `--batch-limit`. Corrige la configuración o la petición; reintentar no ayudará.
+La petición falló la validación antes de cualquier llamada de red: un campo malformado, un código que DeepL no acepta (una entrada de `localeMap` con un código de origen regional, o un destino que acaba siendo un `en` o `pt` escueto), o un código que no es BCP-47 bien formado para Google Cloud Translation. En LibreTranslate cubre además un idioma para el que tu servidor no tiene modelo y una petición que supera su `--char-limit` o su `--batch-limit`.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
@@ -652,7 +652,7 @@ La petición o la respuesta fue bloqueada o filtrada por seguridad.
 
 ### RATE_LIMITED
 
-HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, esto también cubre un HTTP 403 cuyo cuerpo nombra un motivo de cuota (un límite diario o por minuto), porque la API de Google reutiliza el 403 tanto para fallos de cuota como de credenciales. Espera y reintenta más tarde, o aumenta la cuota de Cloud Translation de tu proyecto.
+HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, esto también cubre un HTTP 403 cuyo cuerpo nombra un motivo de cuota (un límite diario o por minuto).
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
@@ -660,7 +660,7 @@ HTTP 429 o un error de límite de tasa del SDK. En Google Cloud Translation, est
 
 ### TIMEOUT
 
-Un tiempo de espera de red o de petición; no llegó respuesta a tiempo. Reintentar puede ayudar, y [`requestTimeoutMs`](/docs/providers#tiempo-de-espera-de-petición) sube el límite.
+Un tiempo de espera de red o de petición; [`requestTimeoutMs`](/docs/providers#tiempo-de-espera-de-petición) sube el límite.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
@@ -668,7 +668,7 @@ Un tiempo de espera de red o de petición; no llegó respuesta a tiempo. Reinten
 
 ### AUTH_FAILED
 
-HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. En Google Cloud Translation, comprueba que `GOOGLE_TRANSLATE_API_KEY` sea una clave válida y sin restricciones para un proyecto con la Cloud Translation API activada. Reintentar no ayudará.
+HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. En Google Cloud Translation, comprueba que `GOOGLE_TRANSLATE_API_KEY` sea una clave válida y sin restricciones para un proyecto con la Cloud Translation API activada.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
@@ -676,7 +676,7 @@ HTTP 401 o 403: la clave es inválida, está revocada o carece de permisos. En G
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuvo la culpa. Los [reintentos](/docs/providers#reintentos) de cada capa ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida. Espera y reintenta más tarde.
+HTTP 5xx: el proveedor falló en su propio lado. Los [reintentos](/docs/providers#reintentos) de cada capa ya absorben un 5xx transitorio, así que uno que llega a este código es una caída sostenida.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
@@ -684,7 +684,7 @@ HTTP 5xx: el proveedor falló en su propio lado, y la petición en sí nunca tuv
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-La [política de red](/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host. Reintentar no ayuda.
+La [política de red](/docs/network-policy) rechazó la petición justo antes de enviarla: el nombre de host resolvió a una dirección que la política no permite, o una respuesta redirigió a un host rechazado. El mensaje nombra solo el host.
 
 - **Lo lanza**: `translate`, `watch`; Studio y el servidor MCP al retraducir
 - **Código de salida**: `1`: las claves de la petición fallida se retienen, y el locale termina `partial` o `failed`
@@ -784,11 +784,11 @@ Se registró un adaptador con un identificador `custom:` mal formado.
 
 ## Códigos de la puerta de revisión [#check-result-codes]
 
-`check --require-reviewed` hace fallar el trabajo mientras una traducción escrita por máquina no esté aprobada. Informa del motivo como `result.review.code`, estable entre versiones, para que un script de CI pueda ramificar según él. Consulta [Exigir traducciones revisadas](/docs/cli/check#exigir-traducciones-revisadas).
+`check --require-reviewed` informa del motivo de su fallo como `result.review.code` ([Exigir traducciones revisadas](/docs/cli/check#exigir-traducciones-revisadas)).
 
 ### REVIEW_REQUIRED
 
-Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzzy` o `agent`) no está aprobada en el `verbatra.provenance.json` confirmado. Aparece en `result.review.code`; el sobre sigue siendo `ok: true`, y `result.locales[].review.unreviewed` nombra las claves.
+Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzzy` o `agent`) no está aprobada en el `verbatra.provenance.json` confirmado. El sobre sigue siendo `ok: true`, y `result.locales[].review.unreviewed` nombra las claves.
 
 - **Lo lanza**: `check --require-reviewed`
 - **Código de salida**: `1`
@@ -804,7 +804,7 @@ Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzz
 
 ## Motivos de rechazo por integridad [#integrity-refusal-reasons]
 
-La [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad) rechaza un valor candidato con exactamente uno de estos motivos, el primero que se aplica en el orden `empty`, `icu` (no se puede analizar), `placeholder`, `markup`, `icu` (ramas de plural), `degenerate`. Un valor rechazado nunca se escribe: la clave conserva su línea base y se reintenta en la siguiente ejecución. El motivo aparece en los `integrityRefusals` de un locale tras `translate`, `watch` e `import` (`integrity-withheld` en la salida para personas), en el resultado de `editEntry` y como error de `check --qa`, a menudo con `details` que nombran lo que difiere. El conjunto se publica como la tupla `INTEGRITY_GATE_REASONS`.
+La [puerta de integridad](/docs/translation-safety#la-puerta-de-integridad) rechaza un valor candidato con exactamente uno de estos motivos, el primero que se aplica en el orden que da esa página. El motivo aparece en los `integrityRefusals` de un locale tras `translate`, `watch` e `import` (`integrity-withheld` en la salida para personas), en el resultado de `editEntry` y como error de `check --qa`, a menudo con `details` que nombran lo que difiere. El conjunto se publica como la tupla `INTEGRITY_GATE_REASONS`.
 
 ### placeholder
 
@@ -824,27 +824,22 @@ El marcado HTML o XML en línea del candidato difiere del de su fuente o no est�
 
 #### Cómo se compara el marcado
 
-Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo, y
-eso es lo que decide si algo es un hallazgo:
+Las etiquetas se comparan como un multiconjunto de nombres de etiqueta más nombres de atributo:
 
 - Rechazado: una etiqueta perdida, una etiqueta inventada, una etiqueta renombrada, un conjunto
-  distinto de nombres de atributo, marcado que vuelve sin equilibrar o mal anidado, como
+  distinto de nombres de atributo (incluido añadir un atributo `dir` para un destino de derecha a
+  izquierda), marcado que vuelve sin equilibrar o mal anidado, como
   `<b>a<i>b</b></i>`, y una etiqueta que vuelve anidada dentro de otra del mismo nombre cuando el
   origen las tenía como hermanas, que es como dos enlaces se convierten en uno en silencio.
-- Aceptado: las mismas etiquetas en otro orden, porque traducir una frase mueve su marcado de sitio,
-  un valor de atributo distinto, porque un `title` traducido o un `href` localizado es una
-  traducción correcta y no una rota (dentro de los límites para los valores de atributo que se
+- Aceptado: las mismas etiquetas en otro orden, un valor de atributo distinto, como un `title`
+  traducido o un `href` localizado (dentro de los límites para los valores de atributo que se
   describen más abajo), y cualquiera de las dos grafías de un elemento vacío, así que `<br>` y
   `<br/>` son la misma etiqueta.
 - Contado, no solo advertido: dos pares adyacentes fusionados en uno (`<b>a</b> <b>b</b>` que pasa a
-  ser `<b>a b</b>`) se rechaza, porque la comparación no puede distinguir una fusión cosmética de
-  dos enlaces que se convierten en uno.
+  ser `<b>a b</b>`) se rechaza.
 - Comparado de forma exacta, así que un cambio de mayúsculas es un hallazgo. Los elementos vacíos de
   HTML (`<br>`, `<img>`, `<hr>` y el resto) no necesitan cierre se escriban como se escriban, así
   que `<BR>` se reconoce como elemento vacío igual que `<br>`.
-- Rechazado cuando se añade o se quita un nombre de atributo, lo que incluye añadir un atributo
-  `dir` para un destino de derecha a izquierda. Los valores de los atributos son libres salvo por
-  esos límites; el conjunto de nombres no lo es.
 
 Un origen sin ningún marcado también está protegido frente al marcado que se le invente. La
 candidata se rechaza por cualquier par de etiquetas, elemento vacío o etiqueta autocerrada que
@@ -869,7 +864,7 @@ corchetes angulares también en tu texto de origen: una traducción que lleve la
 entre corchetes angulares que su origen se acepta.
 
 Los comentarios, las secciones CDATA, las declaraciones y las instrucciones de procesamiento no son
-etiquetas, y se leen como las lee un analizador de HTML, porque ahí es donde acaban los valores.
+etiquetas, y se leen como las lee un analizador de HTML.
 `<!-->` y `<!--->` son comentarios vacíos completos, un comentario termina en el primer `-->` o
 `--!>`, y un comentario sin final oculta el resto del valor. `<![CDATA[`, `<!DOCTYPE html>`,
 cualquier otro `<!...`, `<?...` y un `</` seguido de algo que no sea una letra, como `</1 x>`,
@@ -881,7 +876,7 @@ comentario cuyo texto se tradujo. Las etiquetas que siguen al final de una const
 como siempre, así que `Hallo <![CDATA[><img src=x onerror=...>]]>` se rechaza tanto por la
 construcción como por el `<img>`.
 
-El contenido de un elemento de texto sin formato también es texto, porque así lo lee un analizador.
+El contenido de un elemento de texto sin formato también es texto.
 Tras una etiqueta de apertura `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
 `noembed` o `noframes`, todo hasta su etiqueta de cierre, escrita como se escriba y seguida de un
 espacio, `/` o `>`, es texto, y todo lo que sigue a `<plaintext>` es texto hasta el final del valor.
@@ -904,8 +899,7 @@ posición entre los de su nombre en el origen, o la candidata se rechaza con un 
 Esto hace que un texto corriente que contenga literalmente una de esas etiquetas no se pueda
 traducir, porque en `Add a <script> tag` todo lo que sigue a `<script>` es su contenido:
 `Füge ein <script> Tag` se rechaza. En su lugar, escapa la etiqueta en el origen, como
-`Add a &lt;script&gt; tag`, que es texto en cualquier formato y se traduce como cualquier otra
-palabra.
+`Add a &lt;script&gt; tag`.
 
 La comprobación es deliberadamente discreta, pero lee las etiquetas como lo hace un analizador de
 HTML. Una etiqueta empieza en `<` o `</` seguido de una letra o, en una etiqueta numérica de texto
@@ -929,8 +923,7 @@ demasiado grande para compararlo. Una candidata solo se rechaza cuando lleva má
 etiquetas y construcciones que su origen, o más de 256 para un origen más pequeño, con el detalle
 `+more than N inline tags` que nombra ese límite.
 
-Los valores de los atributos son libres con excepciones, que existen porque un valor traducido acaba
-en una página. El valor de un atributo de URL (`href`, `src`, `action`, `formaction`, `xlink:href`,
+Los valores de los atributos son libres con estas excepciones. El valor de un atributo de URL (`href`, `src`, `action`, `formaction`, `xlink:href`,
 `poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`,
 `archive`, y los atributos de animación SVG `to`, `from`, `values` y `by`) se lee tras decodificar
 las referencias numéricas de caracteres y `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` y `&bsol;` e
@@ -965,8 +958,7 @@ añade las formas que su idioma necesita repite el marcado del origen y se recha
 un plural de estilo ICU (`{count, plural, one {...} other {...}}`) en un formato que lo guarda como
 texto plano en lugar de analizarlo como ICU (i18next, ngx-translate y YAML): una traducción con un
 número de formas distinto al del origen repite o pierde el marcado que contienen y se rechaza. En
-ambos casos el valor se retiene y la traducción anterior se conserva, así que no se pierde nada,
-pero las formas hay que añadirlas sin multiplicar también el marcado.
+ambos casos la traducción anterior se conserva.
 
 La comprobación también se retira etiqueta por etiqueta. Una etiqueta que el formato ya declara
 como placeholder (un elemento en línea de XLIFF, una etiqueta de texto enriquecido ICU de next-intl
@@ -977,8 +969,7 @@ mismo vale para una cuyo anidamiento con las demás etiquetas ya no coincide con
 `<b>` que vuelve cruzando el `<g>` dentro del que estaba, y para una que el origen solo lleva como
 texto, dentro de un comentario o de un elemento de texto sin formato, porque sacarla de ahí crearía
 el elemento. Cualquier otra etiqueta del mismo valor sí se compara, incluida una etiqueta de cierre
-sobrante como un segundo `</g>`. Un rechazo nombra las etiquetas que lo causaron, cada una con `-`
-si el origen la tenía y la candidata la perdió o `+` si la candidata la inventó.
+sobrante como un segundo `</g>`.
 
 ### icu
 
@@ -1012,7 +1003,7 @@ Una señal de revisión marca una traducción aceptada como digna de una segunda
 
 La traducción es mucho más corta o más larga que su fuente.
 
-Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada de la fuente; las fuentes muy cortas se omiten. La longitud se cuenta en clústeres de grafemas, y cada carácter se pondera según su escritura: un carácter chino cuenta 3.5, un kana japonés 1.5 y una sílaba coreana 2, así que una traducción correcta a esos idiomas no se marca solo por ser compacta.
+Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada de la fuente; las fuentes muy cortas se omiten. La longitud se cuenta en clústeres de grafemas, y cada carácter se pondera según su escritura: un carácter chino cuenta 3.5, un kana japonés 1.5 y una sílaba coreana 2.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1022,7 +1013,7 @@ Salta por debajo de 0.35 veces o por encima de 3.0 veces la longitud recortada d
 
 La traducción es más larga que el presupuesto `maxLength` configurado para su clave.
 
-La longitud se cuenta en clústeres de grafemas sobre el valor tal como está escrito. El límite es inclusivo, así que un valor de exactamente el presupuesto no se marca, y una clave sin presupuesto nunca se mide. El valor se escribe y se bloquea igualmente, porque una traducción correcta que desborda un diseño es mejor que ninguna.
+La longitud se cuenta en clústeres de grafemas sobre el valor tal como está escrito. El límite es inclusivo, así que un valor de exactamente el presupuesto no se marca, y una clave sin presupuesto nunca se mide. El valor se escribe y se bloquea igualmente.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
