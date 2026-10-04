@@ -13,9 +13,7 @@ Runtime dependency updates that reach consumers of the published packages.
 - `openai` 7.19.0 -> 7.23.0
 - `axios` 1.19.0 -> 1.20.0 (through `deepl-node`, security fix)
 - `brace-expansion` 1.1.18 -> 1.1.21 and 2.1.4 -> 2.1.7 (through `exceljs`, security fix)
-- `hono` 4.13.5 -> 4.13.12 (through `@google/genai`, security fix)
-- `ip-address` 10.7.0 -> 10.7.3 (through `@google/genai`, security fix)
 
 **`@verbatra/mcp`**
 - `@modelcontextprotocol/sdk` 1.30.0 -> `@modelcontextprotocol/server` 2.3.0, which no longer
-  pulls in `hono`, `ip-address` or `express`
+  pulls in `hono`, `ip-address` or `express`; its license changes from MIT to Apache-2.0
