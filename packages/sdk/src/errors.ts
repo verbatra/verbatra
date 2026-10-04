@@ -240,6 +240,10 @@
  *   names the key and locale, never the matched text, except where it is part of the key name.
  *   {@link translate} and {@link watch} do not
  *   throw it: they list such keys in {@link LocaleSummary.sensitiveWithheld}.
+ * - `RUN_CANCELLED`: the `signal` passed to the call aborted. {@link retranslateEntry} throws it
+ *   when the abort arrives before the provider has answered, so nothing is written. {@link translate}
+ *   does not throw it: it records it on each locale the cancellation kept from starting, a locale
+ *   whose write-lock wait it stopped included, and sets {@link RunSummary.cancelled}.
  * - `LOCALE_FAILED`: never thrown. It is the fallback code recorded on a failed
  *   {@link LocaleSummary} when a per-locale failure carries no code of its own.
  */
@@ -288,6 +292,7 @@ export type SdkErrorCode =
   | "LOCALE_UNSUPPORTED_BY_PROVIDER"
   | "NOT_A_LOCALE_FILE"
   | "SENSITIVE_CONTENT_WITHHELD"
+  | "RUN_CANCELLED"
   | "LOCALE_FAILED";
 
 export function errorMessage(error: unknown): string {

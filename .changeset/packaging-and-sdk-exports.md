@@ -30,3 +30,6 @@ CommonJS entry and types, `./package.json` export, and new SDK exports.
 - `runStatus` says why it found no usable status: `available: false` now carries a `reason` from
   `RUN_STATUS_UNAVAILABLE_REASONS` (`no-status-file`, `unreadable`, `invalid`,
   `unsupported-version`).
+- `translate` and `retranslateEntry` take a `signal` to cancel a running translation. Finished
+  batches stay written and recorded, unsent keys stay pending, and locks are released;
+  `RunSummary.cancelled` and the `RUN_CANCELLED` code report what was cut short.

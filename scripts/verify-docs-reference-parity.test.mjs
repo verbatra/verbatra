@@ -306,6 +306,7 @@ describe("the error codes page documents every code family verbatra reports", ()
         "cli-config_invalid",
         "provider-network_policy_violation",
         "notice-sensitive_content_withheld",
+        "notice-run_cancelled",
       ]);
     });
   });

@@ -17,6 +17,7 @@ interface RunSummary {
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
   estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
 }
 
 interface LocaleSummary {
@@ -87,6 +88,7 @@ Die Teile, die du kennen solltest:
   `budgetWithheld` stehen, scheitert, ohne dass etwas geworfen wurde. Der Grund steht in diesen
   Listen und in ihren `notices`, etwa `SUB_BATCH_FAILED` für einen gescheiterten Provider-Batch oder
   `BUDGET_TOKENS_EXCEEDED` für das Token-Budget. Prüf `status`, nie, ob `error` vorhanden ist.
+- **cancelled** erscheint nur, wenn das `signal` des Laufs ihn abgebrochen hat. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) sagt, was das hinterlässt.
 - **estimate** erscheint nur, wenn der Lauf eine Schätzung vor dem Lauf angefordert hat. Seine
   Liste `caveats` ist nie leer und nennt, was die Zahl auslässt, als Member von `EstimateCaveatCode`:
   - `CACHE_NOT_CONSULTED`: Der Übersetzungsspeicher wird nicht gelesen, Keys, die ein echter Lauf

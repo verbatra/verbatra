@@ -80,6 +80,11 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   sent because of a match, and are listed in {@link LocaleSummary.sensitiveWithheld}, or
  *   glossary terms with a match were left out of the request. Under `redact` a key is withheld
  *   when the match is in its key name, overlaps a placeholder, or did not come back exactly once.
+ * - `RUN_CANCELLED`: the run's `signal` aborted while this locale was running. The keys not yet
+ *   translated were not sent, or their request was abandoned; they get no lock-file entry and stay
+ *   pending for the next run, and the locale is `partial`, or `failed` when other keys were
+ *   withheld and none landed. The message gives their number.
+ *   Translations that arrived before the abort were written and recorded.
  *
  * `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`
  * and `FORMALITY_UNSUPPORTED_BY_PROVIDER` are raised before anything is spent, from the same
@@ -103,7 +108,8 @@ export type SdkNoticeCode =
   | "SOURCE_FOREIGN_PLACEHOLDERS"
   | "SENSITIVE_CONTENT_SENT"
   | "SENSITIVE_CONTENT_REDACTED"
-  | "SENSITIVE_CONTENT_WITHHELD";
+  | "SENSITIVE_CONTENT_WITHHELD"
+  | "RUN_CANCELLED";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is
@@ -449,7 +455,8 @@ export interface ProtectedKey {
   readonly suggestion?: string;
   /**
    * What became of the suggestion for this key, present only for a key that was, or on a dry run
-   * would be, sent for one. See {@link SuggestionStatus}.
+   * would be, sent for one. See {@link SuggestionStatus}. Absent too for a key whose request a
+   * cancelled run never sent or abandoned.
    */
   readonly suggestionStatus?: SuggestionStatus;
 }
@@ -561,7 +568,11 @@ export interface LocaleSummary {
    * `succeeded` when no key was withheld by the integrity gate, a provider failure, the token
    * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed`
    * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU
-   * source and handoff rows left blank do not change the status.
+   * source and handoff rows left blank do not change the status. Either way, `partial` means the
+   * locale is incomplete: that includes a locale a cancelled run stopped while it was running, even
+   * before it sent anything, which carries a `RUN_CANCELLED` notice. Such a locale is `failed`
+   * instead when other keys were withheld and none landed. Locales a cancelled run kept from
+   * starting are `failed` with the `RUN_CANCELLED` error code.
    */
   readonly status: "succeeded" | "partial" | "failed";
   /**
@@ -707,4 +718,12 @@ export interface RunSummary {
    * dry run: an estimate constructs no provider and spends nothing.
    */
   readonly estimate?: RunEstimate;
+  /**
+   * Present, and true, only when the run's `signal` aborted and cut something short: a locale
+   * it kept from starting or whose write-lock wait it stopped, which is `failed` with the
+   * `RUN_CANCELLED` error code, or keys it left unsent in locales that were running, which carry
+   * a `RUN_CANCELLED` notice and are `partial` (or `failed` when no key landed and others were
+   * withheld). An abort that arrives after every locale finished leaves it absent.
+   */
+  readonly cancelled?: true;
 }

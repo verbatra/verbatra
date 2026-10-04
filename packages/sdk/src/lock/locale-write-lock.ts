@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import type { FormatId } from "@verbatra/core";
+import { cancelledError, isCancelled, signalField } from "../cancellation.js";
 import { errorMessage, SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
@@ -79,11 +80,13 @@ export interface LocaleWriteLockOptions {
   readonly onWait?: LockWaitListener;
   readonly liveness?: LivenessContext;
   readonly heartbeatIntervalMs?: number;
+  readonly signal?: AbortSignal;
 }
 
 export interface RunLockInput {
   readonly onLockWait?: LockWaitListener;
   readonly lockAcquireTimeoutMs?: number;
+  readonly signal?: AbortSignal;
 }
 
 export function assertLockAcquireTimeout(value: number | undefined): void {
@@ -101,6 +104,7 @@ export function writeLockOptions(input: RunLockInput): LocaleWriteLockOptions {
     ...(input.lockAcquireTimeoutMs !== undefined
       ? { acquireTimeoutMs: input.lockAcquireTimeoutMs }
       : {}),
+    ...signalField(input.signal),
   };
 }
 
@@ -135,9 +139,15 @@ export function glossaryGuardPath(cwd: string): string {
   return lockPath(cwd, GLOSSARY_GUARD_STEM);
 }
 
-function sleep(ms: number): Promise<void> {
+function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
   return new Promise((res) => {
-    setTimeout(res, ms);
+    const wake = (): void => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", wake);
+      res();
+    };
+    const timer = setTimeout(wake, ms);
+    signal?.addEventListener("abort", wake, { once: true });
   });
 }
 
@@ -478,6 +488,14 @@ function makeWaitNotifier(
 interface AcquireSettings extends ReclaimSettings {
   readonly deadline: number;
   readonly notify?: (observed: ObservedLock) => void;
+  readonly signal?: AbortSignal;
+}
+
+function lockWaitCancelledError(path: string): SdkError {
+  return cancelledError(
+    `The operation was cancelled while waiting for the write lock at ${path}, so nothing was ` +
+      "sent or written under it.",
+  );
 }
 
 function contendedError(path: string, refusal: RenameRefusal | undefined): SdkError {
@@ -515,10 +533,13 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
       continue;
     }
     settings.notify?.(observed);
+    if (isCancelled(settings.signal)) {
+      throw lockWaitCancelledError(path);
+    }
     if (Date.now() >= settings.deadline) {
       throw markUnacquired(path, contendedError(path, state.refusal));
     }
-    await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs);
+    await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs, settings.signal);
   }
 }
 
@@ -553,6 +574,7 @@ async function withFileLock<T>(
     ...(options.onWait !== undefined
       ? { notify: makeWaitNotifier(path, options.onWait, start, liveness) }
       : {}),
+    ...signalField(options.signal),
   });
   const owned: OwnedLock = { path, fs, content };
   heldLocks.add(owned);

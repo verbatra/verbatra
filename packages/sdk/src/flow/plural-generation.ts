@@ -11,6 +11,7 @@ import {
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
+import { isAbandoned, isCancelled, signalField } from "../cancellation.js";
 import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
 import type { SensitiveFindingSource } from "../sensitive/scan-text.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
@@ -42,6 +43,7 @@ export interface PluralGenerationContext {
   readonly skip?: ReadonlySet<string>;
   readonly maxBatchSize: number;
   readonly budget: BudgetTracker;
+  readonly signal?: AbortSignal;
 }
 
 export interface GeneratedForm {
@@ -56,6 +58,7 @@ export interface PluralGenerationResult {
   readonly refusals: readonly IntegrityRefusal[];
   readonly providerFailures: readonly string[];
   readonly budgetWithheld: readonly string[];
+  readonly cancelled: readonly string[];
   readonly sensitiveWithheld: readonly string[];
   readonly sensitiveSources: readonly SensitiveFindingSource[];
   readonly notices: readonly LocaleNotice[];
@@ -71,6 +74,7 @@ const EMPTY_RESULT: PluralGenerationResult = {
   refusals: [],
   providerFailures: [],
   budgetWithheld: [],
+  cancelled: [],
   sensitiveWithheld: [],
   sensitiveSources: [],
   notices: [],
@@ -143,6 +147,7 @@ export async function generatePluralForms(
   const withheld: IntegrityRefusal[] = [];
   const providerFailures: string[] = [];
   const budgetWithheld: string[] = [];
+  const cancelled: string[] = [];
   const sensitive: GenerationSensitive = { withheld: [], sources: new Set() };
   const notices: LocaleNotice[] = [];
   const usage = createUsageAccumulator();
@@ -151,6 +156,10 @@ export async function generatePluralForms(
   let counted = false;
   const payload = payloadContextOf(context);
   for (const batch of chunk(stale, context.maxBatchSize)) {
+    if (isCancelled(context.signal)) {
+      cancelled.push(...batch.map((item) => item.targetKey));
+      continue;
+    }
     const entries = batch.map(syntheticEntry);
     const decision = reserveBudget(context.budget, entries, payload);
     if (decision.reservation === undefined) {
@@ -165,6 +174,7 @@ export async function generatePluralForms(
       accepted,
       withheld,
       providerFailures,
+      cancelled,
       sensitive,
     });
     notices.push(...subResult.notices);
@@ -180,6 +190,7 @@ export async function generatePluralForms(
     refusals: withheld,
     providerFailures,
     budgetWithheld,
+    cancelled,
     sensitiveWithheld: sensitive.withheld,
     sensitiveSources: [...sensitive.sources].sort(),
     notices,
@@ -204,6 +215,7 @@ interface GenerationBuckets {
   readonly accepted: GeneratedForm[];
   readonly withheld: IntegrityRefusal[];
   readonly providerFailures: string[];
+  readonly cancelled: string[];
   readonly sensitive: GenerationSensitive;
 }
 
@@ -215,8 +227,15 @@ async function runGenerationSubBatch(
 ): Promise<GenerationSubBatchResult> {
   let result: TranslateResult;
   try {
-    result = await context.provider.translateBatch(buildTranslateRequest(context, entries));
+    result = await context.provider.translateBatch({
+      ...buildTranslateRequest(context, entries),
+      ...signalField(context.signal),
+    });
   } catch (error) {
+    if (isAbandoned(context.signal, error)) {
+      buckets.cancelled.push(...batch.map((item) => item.targetKey));
+      return { notices: [], usage: undefined };
+    }
     for (const item of batch) {
       buckets.providerFailures.push(item.targetKey);
     }

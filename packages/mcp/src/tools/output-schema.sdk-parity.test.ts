@@ -70,9 +70,11 @@ describe("output schemas declare every field the SDK result they pass through ca
 
   it("translation.translatePending and translation.estimate", () => {
     expectTypeOf<
-      Undeclared<SdkResult<typeof translate>, RunSummary, "estimate">
+      Undeclared<SdkResult<typeof translate>, RunSummary, "estimate" | "cancelled">
     >().toEqualTypeOf<never>();
-    expectTypeOf<Undeclared<SdkResult<typeof translate>, EstimateResult>>().toEqualTypeOf<never>();
+    expectTypeOf<
+      Undeclared<SdkResult<typeof translate>, EstimateResult, "cancelled">
+    >().toEqualTypeOf<never>();
   });
 
   it("translation.editEntry and translation.retranslateEntry", () => {

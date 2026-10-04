@@ -17,6 +17,7 @@ interface RunSummary {
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
   estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
 }
 
 interface LocaleSummary {
@@ -84,6 +85,7 @@ The parts worth knowing:
   reason is in those lists and in its `notices`, such as `SUB_BATCH_FAILED` for a failed provider
   batch or `BUDGET_TOKENS_EXCEEDED` for the token budget. Test `status`, never the presence of
   `error`.
+- **cancelled** appears only when the run's `signal` aborted it. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) says what that leaves behind.
 - **estimate** appears only when the run was asked for a pre-run estimate. Its `caveats` list is
   never empty and names what the figure leaves out, as `EstimateCaveatCode` members:
   - `CACHE_NOT_CONSULTED`: the translation memory is not read, so keys a live run would serve from
