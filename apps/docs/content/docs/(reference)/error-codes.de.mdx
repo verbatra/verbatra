@@ -612,7 +612,7 @@ Die erforderliche Umgebungsvariable ist ungesetzt oder leer. Die Meldung nennt d
 
 ### INVALID_REQUEST
 
-Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Code, den DeepL nicht akzeptiert (ein `localeMap`-Eintrag mit einem regionalen Quell-Code oder ein Ziel, das auf ein bloßes `en` oder `pt` hinausläuft), oder ein Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Bei LibreTranslate deckt es auch eine Sprache ab, für die dein Server kein Modell hat, und eine Anfrage über seinem `--char-limit` oder `--batch-limit`.
+Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Code, den DeepL nicht akzeptiert (ein `localeMap`-Eintrag mit einem regionalen Quell-Code oder ein Ziel, das auf ein bloßes `en` oder `pt` hinausläuft), oder ein Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Bei LibreTranslate deckt es auch eine Sprache ab, für die dein Server kein Modell hat, und eine Anfrage über seinem `--char-limit` oder `--batch-limit`. Wiederholen hilft nicht.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -652,7 +652,7 @@ Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert.
 
 ### RATE_LIMITED
 
-HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit).
+HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Google nutzt 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler, erhöhe also das Cloud-Translation-Kontingent deines Projekts.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -668,7 +668,7 @@ Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/docs/providers#anfrage
 
 ### AUTH_FAILED
 
-HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist.
+HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Prüfe bei Google Cloud Translation, dass `GOOGLE_TRANSLATE_API_KEY` ein gültiger, uneingeschränkter Key für ein Projekt mit aktivierter Cloud Translation API ist. Wiederholen hilft nicht.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -676,7 +676,7 @@ HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Pr�
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert. Die [Wiederholungsebenen](/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung.
+HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die [Wiederholungsebenen](/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -684,7 +684,7 @@ HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert. Die [Wiederholu
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host.
+Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Wiederholen hilft nicht.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`

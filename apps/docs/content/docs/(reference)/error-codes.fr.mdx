@@ -612,7 +612,7 @@ La variable d'environnement requise est absente ou vide. Le message nomme la var
 
 ### INVALID_REQUEST
 
-La requête a échoué à la validation avant tout appel réseau : un champ malformé, un code que DeepL n'accepte pas (une entrée de `localeMap` donnant un code source régional, ou une cible qui aboutit à un `en` ou `pt` nu), ou un code qui n'est pas du BCP-47 bien formé pour Google Cloud Translation. Pour LibreTranslate, cela couvre aussi une langue pour laquelle ton serveur n'a pas de modèle et une requête qui dépasse son `--char-limit` ou son `--batch-limit`.
+La requête a échoué à la validation avant tout appel réseau : un champ malformé, un code que DeepL n'accepte pas (une entrée de `localeMap` donnant un code source régional, ou une cible qui aboutit à un `en` ou `pt` nu), ou un code qui n'est pas du BCP-47 bien formé pour Google Cloud Translation. Pour LibreTranslate, cela couvre aussi une langue pour laquelle ton serveur n'a pas de modèle et une requête qui dépasse son `--char-limit` ou son `--batch-limit`. Réessayer n'aidera pas.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -652,7 +652,7 @@ La requête ou la réponse a été bloquée ou filtrée pour raison de sécurit�
 
 ### RATE_LIMITED
 
-HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute).
+HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute). Google réutilise le 403 à la fois pour les échecs de quota et d'identifiants, donc augmente le quota Cloud Translation de ton projet.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -668,7 +668,7 @@ Un délai réseau ou de requête dépassé ; [`requestTimeoutMs`](/docs/provider
 
 ### AUTH_FAILED
 
-HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Pour Google Cloud Translation, vérifie que `GOOGLE_TRANSLATE_API_KEY` est une clé valide et sans restriction pour un projet où l'API Cloud Translation est activée.
+HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Pour Google Cloud Translation, vérifie que `GOOGLE_TRANSLATE_API_KEY` est une clé valide et sans restriction pour un projet où l'API Cloud Translation est activée. Réessayer n'aidera pas.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -676,7 +676,7 @@ HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Pour Goog
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx : le fournisseur a échoué de son côté. Les couches de [nouvelles tentatives](/docs/providers#nouvelles-tentatives) absorbent déjà un 5xx transitoire, donc un 5xx qui atteint ce code est une panne durable.
+HTTP 5xx : le fournisseur a échoué de son côté, et la requête elle-même n'a jamais été en cause. Les couches de [nouvelles tentatives](/docs/providers#nouvelles-tentatives) absorbent déjà un 5xx transitoire, donc un 5xx qui atteint ce code est une panne durable.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -684,7 +684,7 @@ HTTP 5xx : le fournisseur a échoué de son côté. Les couches de [nouvelles te
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-La [politique réseau](/docs/network-policy) a refusé la requête juste avant son envoi : le nom d'hôte pointait vers une adresse que la politique n'autorise pas, ou une réponse redirigeait vers un hôte refusé. Le message ne nomme que l'hôte.
+La [politique réseau](/docs/network-policy) a refusé la requête juste avant son envoi : le nom d'hôte pointait vers une adresse que la politique n'autorise pas, ou une réponse redirigeait vers un hôte refusé. Le message ne nomme que l'hôte. Réessayer n'aidera pas.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -863,26 +863,28 @@ ton texte source : une traduction qui porte les mêmes mots entre chevrons que s
 acceptée.
 
 Les commentaires, les sections CDATA, les déclarations et les instructions de traitement ne sont pas
-des balises, et ils sont lus comme un analyseur HTML les lit. `<!-->` et `<!--->` sont des commentaires vides complets, un commentaire se termine au
-premier `-->` ou `--!>`, et un commentaire sans fin masque le reste de la valeur. `<![CDATA[`,
-`<!DOCTYPE html>`, tout autre `<!...`, `<?...` et un `</` suivi d'autre chose qu'une lettre, comme
-`</1 x>`, se terminent tous au premier `>`, tandis qu'un `</>` vide est écarté, comme un analyseur
-l'écarte, et qu'une balise fermante numérique comme `</0>` est comparée comme une balise. Chacune de
-ces constructions est comparée comme un multiensemble de son texte, les suites d'espaces étant
-réduites à une seule, donc une construction que la candidate ajoute, perd ou réécrit est refusée, y
-compris un commentaire dont le texte a été traduit. Les balises qui suivent la fin d'une
-construction sont comparées normalement, donc `Hallo <![CDATA[><img src=x onerror=...>]]>` est
-refusé à la fois pour la construction et pour le `<img>`.
+des balises, et ils sont lus comme un analyseur HTML les lit. `<!-->` et `<!--->` sont des
+commentaires vides complets, un commentaire se termine au premier `-->` ou `--!>`, et un commentaire
+sans fin masque le reste de la valeur. `<![CDATA[`, `<!DOCTYPE html>`, tout autre `<!...`, `<?...`
+et un `</` suivi d'autre chose qu'une lettre, comme `</1 x>`, se terminent tous au premier `>`,
+tandis qu'un `</>` vide est écarté, comme un analyseur l'écarte, et qu'une balise fermante numérique
+comme `</0>` est comparée comme une balise. Chacune de ces constructions est comparée comme un
+multiensemble de son texte, les suites d'espaces étant réduites à une seule, donc une construction
+que la candidate ajoute, perd ou réécrit est refusée, y compris un commentaire dont le texte a été
+traduit. Les balises qui suivent la fin d'une construction sont comparées normalement, donc
+`Hallo <![CDATA[><img src=x onerror=...>]]>` est refusé à la fois pour la construction et pour le
+`<img>`.
 
-Le contenu d'un élément de texte brut est lui aussi du texte. Après une balise ouvrante `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
-`noembed` ou `noframes`, tout ce qui précède sa balise fermante, quelle que soit sa casse et suivie
-d'un espace, de `/` ou de `>`, est du texte, et tout ce qui suit `<plaintext>` est du texte jusqu'à
-la fin de la valeur. Une balise écrite dans un tel élément n'est pas comparée, et une valeur
-d'attribut entre guillemets ne peut pas s'étendre au-delà de la balise fermante pour masquer ce qui
-suit : `Füge ein <script><b x="</script><img src=x onerror=...>` est refusé pour le `<img>`. Là où
-un analyseur peut lire ce contenu de deux façons, la candidate est refusée sauf si elle est la
-source inchangée, avec un détail comme `+<noscript>...</noscript>` : un `script` dont le contenu
-ouvre `<!--`, un `noscript` dont le contenu contient un `<`, puisque sa lecture dépend alors de
+Le contenu d'un élément de texte brut est lui aussi du texte. Après une balise ouvrante `script`,
+`style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`, `noembed` ou `noframes`, tout ce qui
+précède sa balise fermante, quelle que soit sa casse et suivie d'un espace, de `/` ou de `>`, est du
+texte, et tout ce qui suit `<plaintext>` est du texte jusqu'à la fin de la valeur. Une balise écrite
+dans un tel élément n'est pas comparée, et une valeur d'attribut entre guillemets ne peut pas
+s'étendre au-delà de la balise fermante pour masquer ce qui suit :
+`Füge ein <script><b x="</script><img src=x onerror=...>` est refusé pour le `<img>`. Là où un
+analyseur peut lire ce contenu de deux façons, la candidate est refusée sauf si elle est la source
+inchangée, avec un détail comme `+<noscript>...</noscript>` : un `script` dont le contenu ouvre
+`<!--`, un `noscript` dont le contenu contient un `<`, puisque sa lecture dépend alors de
 l'activation des scripts, et tout élément de texte brut dont le contenu contient un `<` après une
 balise `svg`, `math` ou `select`, où ce n'est peut-être pas du texte brut du tout. Pour la même
 raison, une section CDATA ou une balise `image` dans une valeur où la source ou la candidate ouvre
@@ -920,25 +922,25 @@ pour être comparée. Une candidate n'est refusée que lorsqu'elle porte plus du
 de constructions que sa source, ou plus de 256 pour une source plus petite, avec le détail
 `+more than N inline tags` qui nomme cette limite.
 
-Les valeurs d'attribut sont libres, à ces exceptions près. La valeur d'un attribut d'URL (`href`, `src`, `action`, `formaction`,
-`xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`,
-`codebase`, `archive`, ainsi que les attributs d'animation SVG `to`, `from`, `values` et `by`) est
-lue après décodage des références numériques de caractères et de `&colon;`, `&Tab;`, `&NewLine;`,
-`&sol;` et `&bsol;`, en ignorant les tabulations, les sauts de ligne et les caractères de contrôle
-qui l'entourent. Un schéma `javascript:`, `vbscript:` ou `data:` y est refusé sauf si la source
-porte exactement cette valeur sur la même balise et le même attribut, avec un détail comme
-`+<a href="javascript:...">`. Au-delà, chaque URL de la valeur, y compris chaque URL d'une liste
-`srcset`, `ping`, `archive` ou `values`, doit garder un schéma et une autorité (hôte et port, ou
-l'hôte d'une URL relative au schéma `//host`) qu'une valeur source de la même balise et du même
-attribut possède, et une URL relative doit rester relative. Ainsi `/docs` peut devenir `/de/docs` et
-`https://verbatra.dev/en` peut devenir `https://verbatra.dev/de`, mais `/docs` ne peut pas devenir
-`https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu localisé doit garder le même
-hôte ; le détail nomme la nouvelle origine, comme `+<a href="https://evil.example...">`, ou
-`+<a href="./...">` pour un lien absolu rendu relatif. Le chemin, la requête et le fragment peuvent
-changer librement. Une URL modifiée sans schéma explicite `http`, `https`, `ws`, `wss`, `ftp` ou
-`file` est aussi refusée quand une barre oblique inversée (`\` ou `%5C`) se trouve dans ses barres
-obliques initiales ou dans son hôte, car une page sur un autre schéma lit
-`//verbatra.dev\@evil.example/` comme un lien vers evil.example.
+Les valeurs d'attribut sont libres, à ces exceptions près. La valeur d'un attribut d'URL (`href`,
+`src`, `action`, `formaction`, `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`,
+`longdesc`, `srcset`, `manifest`, `codebase`, `archive`, ainsi que les attributs d'animation SVG
+`to`, `from`, `values` et `by`) est lue après décodage des références numériques de caractères et de
+`&colon;`, `&Tab;`, `&NewLine;`, `&sol;` et `&bsol;`, en ignorant les tabulations, les sauts de
+ligne et les caractères de contrôle qui l'entourent. Un schéma `javascript:`, `vbscript:` ou `data:`
+y est refusé sauf si la source porte exactement cette valeur sur la même balise et le même attribut,
+avec un détail comme `+<a href="javascript:...">`. Au-delà, chaque URL de la valeur, y compris
+chaque URL d'une liste `srcset`, `ping`, `archive` ou `values`, doit garder un schéma et une
+autorité (hôte et port, ou l'hôte d'une URL relative au schéma `//host`) qu'une valeur source de la
+même balise et du même attribut possède, et une URL relative doit rester relative. Ainsi `/docs`
+peut devenir `/de/docs` et `https://verbatra.dev/en` peut devenir `https://verbatra.dev/de`, mais
+`/docs` ne peut pas devenir `https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu
+localisé doit garder le même hôte ; le détail nomme la nouvelle origine, comme
+`+<a href="https://evil.example...">`, ou `+<a href="./...">` pour un lien absolu rendu relatif. Le
+chemin, la requête et le fragment peuvent changer librement. Une URL modifiée sans schéma explicite
+`http`, `https`, `ws`, `wss`, `ftp` ou `file` est aussi refusée quand une barre oblique inversée
+(`\` ou `%5C`) se trouve dans ses barres obliques initiales ou dans son hôte, car une page sur un
+autre schéma lit `//verbatra.dev\@evil.example/` comme un lien vers evil.example.
 
 Certaines valeurs d'attribut doivent revenir exactement telles que la source les a, comparées après
 décodage des références de caractères, avec un détail comme `+<meta content="...">` : `http-equiv`

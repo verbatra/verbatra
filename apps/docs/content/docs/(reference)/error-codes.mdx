@@ -612,7 +612,7 @@ The required environment variable is unset or empty. The message names the varia
 
 ### INVALID_REQUEST
 
-The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`.
+The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Retrying will not help.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -652,7 +652,7 @@ The request or response was safety-blocked or filtered.
 
 ### RATE_LIMITED
 
-HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit).
+HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit). Google reuses 403 for both quota and credential failures, so raise your project's Cloud Translation quota.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -668,7 +668,7 @@ A network or request timeout; [`requestTimeoutMs`](/docs/providers#request-timeo
 
 ### AUTH_FAILED
 
-HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled.
+HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cloud Translation, check that `GOOGLE_TRANSLATE_API_KEY` is a valid, unrestricted key for a project with the Cloud Translation API enabled. Retrying will not help.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -676,7 +676,7 @@ HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cl
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: the provider failed on its own side. The [retry layers](/docs/providers#retries) already absorb a transient 5xx, so one that reaches this code is a sustained outage.
+HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The [retry layers](/docs/providers#retries) already absorb a transient 5xx, so one that reaches this code is a sustained outage.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -684,7 +684,7 @@ HTTP 5xx: the provider failed on its own side. The [retry layers](/docs/provider
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-The [network policy](/docs/network-policy) refused the request right before it was sent: the host name resolved to an address the policy does not permit, or a response redirected to a refused host. The message names only the host.
+The [network policy](/docs/network-policy) refused the request right before it was sent: the host name resolved to an address the policy does not permit, or a response redirected to a refused host. The message names only the host. Retrying will not help.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -827,10 +827,9 @@ The candidate's inline HTML or XML markup differs from its source's, or is not w
 Tags are compared as a multiset of tag names plus attribute names:
 
 - Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names (adding a
-  `dir` attribute for a right-to-left target included), markup
-  that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back
-  nested inside another of the same name when the source had them as siblings, which is how two
-  links silently become one.
+  `dir` attribute for a right-to-left target included), markup that comes back unbalanced or
+  mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back nested inside another of the
+  same name when the source had them as siblings, which is how two links silently become one.
 - Accepted: the same tags in a different order, a changed attribute value such as a translated
   `title` or a localized `href` (within the limits on attribute values described below), and either
   spelling of a void element, so `<br>` and `<br/>` are one tag.
@@ -860,29 +859,29 @@ it to a source that does not have it. The workaround is to keep the bracketed wo
 string too: a translation that carries the same bracketed words as its source is accepted.
 
 Comments, CDATA sections, declarations and processing instructions are not tags, and they are read
-the way an HTML parser reads them. `<!-->` and `<!--->` are
-complete empty comments, a comment ends at the first `-->` or `--!>`, and a comment with no end
-hides the rest of the value. `<![CDATA[`, `<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</`
-followed by anything but a letter, such as `</1 x>`, all end at the first `>`, while an empty `</>`
-is dropped, as a parser drops it, and a numeric closing tag such as `</0>` is compared as a tag.
-Each such construct is compared as a multiset of its text with runs of whitespace collapsed, so one
-the candidate adds, drops or rewrites is refused, including a comment whose text was translated.
-Tags after a construct's end are compared as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>`
-is refused for both the construct and the `<img>`.
+the way an HTML parser reads them. `<!-->` and `<!--->` are complete empty comments, a comment ends
+at the first `-->` or `--!>`, and a comment with no end hides the rest of the value. `<![CDATA[`,
+`<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</` followed by anything but a letter, such as
+`</1 x>`, all end at the first `>`, while an empty `</>` is dropped, as a parser drops it, and a
+numeric closing tag such as `</0>` is compared as a tag. Each such construct is compared as a
+multiset of its text with runs of whitespace collapsed, so one the candidate adds, drops or rewrites
+is refused, including a comment whose text was translated. Tags after a construct's end are compared
+as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>` is refused for both the construct and the
+`<img>`.
 
-The content of a raw text element is text too. After an
-opening `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`, `noembed` or `noframes`
-tag, everything up to its closing tag, in any letter case and followed by whitespace, `/` or `>`, is
-text, and everything after `<plaintext>` is text to the end of the value. A tag written inside such
-an element is not compared, and a quoted attribute value cannot reach across the closing tag to hide
-what follows: `Füge ein <script><b x="</script><img src=x onerror=...>` is refused for the `<img>`.
-Where a parser can read that content two ways, the candidate is refused unless it is the source
-unchanged, with a detail such as `+<noscript>...</noscript>`: a `script` whose content opens `<!--`,
-a `noscript` whose content holds a `<`, since whether scripting is enabled decides how it is read,
-and any raw text element whose content holds a `<` after an `svg`, `math` or `select` tag, where it
-may not be raw text at all. For the same reason, a CDATA section or an `image` tag in a value where
-the source or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the
-source unchanged.
+The content of a raw text element is text too. After an opening `script`, `style`, `title`,
+`textarea`, `xmp`, `iframe`, `noscript`, `noembed` or `noframes` tag, everything up to its closing
+tag, in any letter case and followed by whitespace, `/` or `>`, is text, and everything after
+`<plaintext>` is text to the end of the value. A tag written inside such an element is not compared,
+and a quoted attribute value cannot reach across the closing tag to hide what follows:
+`Füge ein <script><b x="</script><img src=x onerror=...>` is refused for the `<img>`. Where a parser
+can read that content two ways, the candidate is refused unless it is the source unchanged, with a
+detail such as `+<noscript>...</noscript>`: a `script` whose content opens `<!--`, a `noscript`
+whose content holds a `<`, since whether scripting is enabled decides how it is read, and any raw
+text element whose content holds a `<` after an `svg`, `math` or `select` tag, where it may not be
+raw text at all. For the same reason, a CDATA section or an `image` tag in a value where the source
+or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the source
+unchanged.
 
 The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
 `plaintext` element runs or styles the page instead of being shown, so it is never translated: each
@@ -912,24 +911,24 @@ attribute. No source is too large to compare either. A candidate is refused only
 more than twice as many tags and constructs as its source, or more than 256 for a smaller source,
 with the detail `+more than N inline tags` naming that limit.
 
-Attribute values are free with these exceptions.
-The value of a URL attribute (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`, `data`,
-`background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive`, and the SVG
-animation attributes `to`, `from`, `values` and `by`) is read after decoding numeric character
-references and `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` and `&bsol;` and ignoring tabs, line breaks
-and surrounding control characters. A `javascript:`, `vbscript:` or `data:` scheme in it is refused
-unless the source carries that exact value on the same tag and attribute, with a detail such as
-`+<a href="javascript:...">`. Beyond that, every URL in the value, including each URL of a `srcset`,
-`ping`, `archive` or `values` list, must keep a scheme and authority (host and port, or the host of
-a scheme-relative `//host` URL) that a source value of the same tag and attribute has, and a
-relative URL must stay relative. So `/docs` may become `/de/docs` and `https://verbatra.dev/en` may
-become `https://verbatra.dev/de`, but `/docs` may not become `https://evil.example/docs` or
-`//evil.example/docs`, and a localized absolute link has to keep the same host; the detail names the
-new origin, such as `+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute
-link made relative. The path, query and fragment may change freely. A changed URL without an
-explicit `http`, `https`, `ws`, `wss`, `ftp` or `file` scheme is also refused when a backslash (`\`
-or `%5C`) sits in its leading slashes or its host, because a page on another scheme reads
-`//verbatra.dev\@evil.example/` as a link to evil.example.
+Attribute values are free with these exceptions. The value of a URL attribute (`href`, `src`,
+`action`, `formaction`, `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`,
+`srcset`, `manifest`, `codebase`, `archive`, and the SVG animation attributes `to`, `from`, `values`
+and `by`) is read after decoding numeric character references and `&colon;`, `&Tab;`, `&NewLine;`,
+`&sol;` and `&bsol;` and ignoring tabs, line breaks and surrounding control characters. A
+`javascript:`, `vbscript:` or `data:` scheme in it is refused unless the source carries that exact
+value on the same tag and attribute, with a detail such as `+<a href="javascript:...">`. Beyond
+that, every URL in the value, including each URL of a `srcset`, `ping`, `archive` or `values` list,
+must keep a scheme and authority (host and port, or the host of a scheme-relative `//host` URL) that
+a source value of the same tag and attribute has, and a relative URL must stay relative. So `/docs`
+may become `/de/docs` and `https://verbatra.dev/en` may become `https://verbatra.dev/de`, but
+`/docs` may not become `https://evil.example/docs` or `//evil.example/docs`, and a localized
+absolute link has to keep the same host; the detail names the new origin, such as
+`+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute link made relative.
+The path, query and fragment may change freely. A changed URL without an explicit `http`, `https`,
+`ws`, `wss`, `ftp` or `file` scheme is also refused when a backslash (`\` or `%5C`) sits in its
+leading slashes or its host, because a page on another scheme reads `//verbatra.dev\@evil.example/`
+as a link to evil.example.
 
 Some attribute values must come back exactly as the source has them, compared after decoding
 character references, with a detail such as `+<meta content="...">`: `http-equiv` and `content` on
