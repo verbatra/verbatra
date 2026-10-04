@@ -113,7 +113,7 @@ describe("doctor: the plural-completeness check", () => {
     expect(detail).toContain("pl: files {count} (few, many)");
   });
 
-  it("says a format without CLDR plural forms is not checked", async () => {
+  it("skips a format without CLDR plural forms and says so", async () => {
     await writeConfig({
       ...androidConfig(["pl"]),
       format: "properties",
@@ -122,18 +122,19 @@ describe("doctor: the plural-completeness check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(pluralCheck(result).detail).toBe(
-      'Not checked: the "properties" format does not store plural forms by CLDR category.',
-    );
+    expect(pluralCheck(result)).toMatchObject({
+      status: "skipped",
+      detail: 'Not checked: the "properties" format does not store plural forms by CLDR category.',
+    });
   });
 
-  it("says the check did not run when the format resolves to no adapter", async () => {
+  it("skips the check when the format resolves to no adapter", async () => {
     await writeConfig(androidConfig(["pl"]));
 
     const result = await doctor({ cwd: projectDir }, { adapterRegistry: new AdapterRegistry() });
 
     expect(pluralCheck(result)).toMatchObject({
-      status: "pass",
+      status: "skipped",
       detail: "Not checked: the configured format resolves to no adapter.",
     });
   });

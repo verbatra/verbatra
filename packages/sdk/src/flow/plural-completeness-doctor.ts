@@ -6,7 +6,7 @@ import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { readTarget } from "./diff-locales.js";
-import { type DoctorFinding, passing, warning } from "./doctor-finding.js";
+import { type DoctorFinding, passFinding, skippedFinding, warnFinding } from "./doctor-finding.js";
 import {
   findIncompleteAbsentPlurals,
   findIncompletePlurals,
@@ -68,11 +68,11 @@ function describeGaps(gaps: readonly LocalePluralGaps[]): DoctorFinding {
     plurals.map((plural) => `${locale}: ${describePlural(plural)}`),
   );
   if (listed.length === 0) {
-    return passing("Every target locale holds every CLDR plural category its language uses.");
+    return passFinding("Every target locale holds every CLDR plural category its language uses.");
   }
   const shown = listed.slice(0, LISTED_PLURALS).join("; ");
   const more = listed.length > LISTED_PLURALS ? `; and ${listed.length - LISTED_PLURALS} more` : "";
-  return warning(
+  return warnFinding(
     `${listed.length} ${listed.length === 1 ? "plural lacks" : "plurals lack"} CLDR plural ` +
       `categories the target language uses: ${shown}${more}. Add the missing forms by hand; ` +
       "verbatra check lists every gap in a plural a target already holds and counts a plural it " +
@@ -87,16 +87,16 @@ export async function describePluralCompleteness(
   adapter: FormatAdapter | undefined,
 ): Promise<DoctorFinding> {
   if (!tracksPluralCategories(config.format)) {
-    return passing(
+    return skippedFinding(
       `Not checked: the "${config.format}" format does not store plural forms by CLDR category.`,
     );
   }
   if (adapter === undefined) {
-    return passing("Not checked: the configured format resolves to no adapter.");
+    return skippedFinding("Not checked: the configured format resolves to no adapter.");
   }
   try {
     return describeGaps(await incompletePluralsByLocale(config, cwd, fs, adapter));
   } catch (error) {
-    return warning(`Not checked: ${errorMessage(error)}`);
+    return warnFinding(`Not checked: ${errorMessage(error)}`);
   }
 }

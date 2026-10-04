@@ -12,7 +12,6 @@ import {
   type LoadedConfig,
   loadConfigWithMeta,
 } from "../config/load-config.js";
-import { describeLocaleCodes } from "../config/locale-code.js";
 import {
   hasProviderFactory,
   isMachineProvider,
@@ -35,6 +34,7 @@ import {
   unsupportedLocales,
 } from "./locale-capabilities.js";
 import { refreshLanguageTable } from "./locale-capabilities-live.js";
+import { describeLocaleCodes } from "./locale-codes-doctor.js";
 import { describeLocaleState } from "./locale-state-doctor.js";
 import { checkNetworkPolicy } from "./network-doctor.js";
 import { describePluralCompleteness } from "./plural-completeness-doctor.js";
@@ -68,9 +68,9 @@ import { readSourceResource } from "./source.js";
  *   source's non-blank forms, plus the categories plural generation would add when it is on, the
  *   format is `i18next-json`, the provider is an LLM, and at least one source form is non-blank.
  *   That is deliberately stricter than the `PLURAL_CATEGORIES_INCOMPLETE` notice of
- *   {@link translate}, which covers `i18next-json` only. It says when the format does not store
- *   plural forms by CLDR category, or when a file could not be read. It is `warn` when it names a
- *   plural or a file it could not read.
+ *   {@link translate}, which covers `i18next-json` only. It is `warn` when it names a plural or a
+ *   file it could not read, and `skipped` when the format does not store plural forms by CLDR
+ *   category or resolves to no adapter.
  * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
  *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
  *   canonical form `Intl.getCanonicalLocales` suggests for it. It is `warn` when it names one.
@@ -113,9 +113,10 @@ export type DoctorCheckId =
  *   possibly supports. Like `pass`, it leaves {@link DoctorResult.ok} true and the CLI exit code
  *   at 0.
  * - `fail`: the check found a problem; {@link DoctorResult.ok} is false.
- * - `skipped`: reported for the checks that need a loaded config when the `config` check itself
- *   failed, and for the `locales` check under the provider `none`, where it does not apply, so a
- *   skipped check is never a problem of its own.
+ * - `skipped`: the check did not run. Reported for the checks that need a loaded config when the
+ *   `config` check itself failed, for the `locales` check under the provider `none` or an unknown
+ *   provider, and for the `plural-completeness` check when the format does not store plural forms
+ *   by CLDR category or resolves to no adapter. A skipped check is never a problem of its own.
  */
 export type DoctorCheckStatus = "pass" | "warn" | "fail" | "skipped";
 
@@ -623,7 +624,8 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * uses, such as a Polish Android `<plurals>` with only `one` and `other`. A plural a target holds
  * no form of yet is judged by the forms a run would write there, counting a blank source form as
  * absent, which is stricter than the notice {@link translate} raises. A file it cannot read is
- * named in its detail rather than failing the check.
+ * named in its detail and makes the check `warn` rather than fail it; a format that does not
+ * store plural forms by CLDR category makes it `skipped`.
  *
  * The informational `locale-codes` check names every configured locale code that is
  * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the

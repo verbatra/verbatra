@@ -19,7 +19,7 @@ import {
   provenanceLocalesWithState,
   readProvenanceFile,
 } from "../lock/provenance-file.js";
-import { type DoctorFinding, passing, warning } from "./doctor-finding.js";
+import { type DoctorFinding, passFinding, warnFinding } from "./doctor-finding.js";
 import { type LocaleStateFile, planLocaleMoves, respellingsOf } from "./locale-carry-over.js";
 
 async function stateLocalesByFile(
@@ -87,12 +87,14 @@ export async function describeLocaleState(
   try {
     byFile = await stateLocalesByFile(cwd, fs);
   } catch (error) {
-    return warning(`The locale state could not be read: ${errorMessage(error)}`);
+    return warnFinding(`The locale state could not be read: ${errorMessage(error)}`);
   }
   const lines = byFile
     .map(([file, locales]) => describeFile(file, locales, config))
     .filter((line): line is string => line !== undefined);
   return lines.length === 0
-    ? passing(ALL_CONFIGURED)
-    : warning(`State recorded for locales that are not configured. ${lines.join(" ")} ${REMEDY}`);
+    ? passFinding(ALL_CONFIGURED)
+    : warnFinding(
+        `State recorded for locales that are not configured. ${lines.join(" ")} ${REMEDY}`,
+      );
 }

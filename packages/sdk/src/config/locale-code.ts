@@ -1,6 +1,5 @@
 import { splitGettextModifier } from "@verbatra/core";
 import { z } from "zod";
-import { type DoctorFinding, passing, warning } from "../flow/doctor-finding.js";
 
 export const LOCALE_CODE_PATTERN =
   /^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*(?:-[0-9A-WYZa-wyz](?:-[A-Za-z0-9]{2,8})+)*(?:-[Xx](?:-[A-Za-z0-9]{1,8})+)?$/;
@@ -57,12 +56,12 @@ export const localeCodeSchema = z
     error: (issue) => invalidMessage(String(issue.input)),
   });
 
-interface NonCanonicalLocale {
+export interface NonCanonicalLocale {
   readonly locale: string;
   readonly canonical: string;
 }
 
-function nonCanonicalLocales(locales: readonly string[]): readonly NonCanonicalLocale[] {
+export function nonCanonicalLocales(locales: readonly string[]): readonly NonCanonicalLocale[] {
   const found: NonCanonicalLocale[] = [];
   for (const locale of locales) {
     const canonical = canonicalLocaleCode(locale);
@@ -71,18 +70,4 @@ function nonCanonicalLocales(locales: readonly string[]): readonly NonCanonicalL
     }
   }
   return found;
-}
-
-export function describeLocaleCodes(locales: readonly string[]): DoctorFinding {
-  const found = nonCanonicalLocales(locales);
-  if (found.length === 0) {
-    return passing("Every configured locale code is in canonical BCP 47 form.");
-  }
-  const suggestions = found
-    .map(({ locale, canonical }) => `"${locale}" is canonically "${canonical}"`)
-    .join(", ");
-  return warning(
-    `${suggestions}. Consider the canonical form in your config; file names follow the ` +
-      "configured code and are never renamed for you.",
-  );
 }
