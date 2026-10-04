@@ -1,6 +1,6 @@
 ---
 "@verbatra/sdk": minor
-"@verbatra/cli": patch
+"@verbatra/cli": minor
 ---
 
 CommonJS entry and types, `./package.json` export, and new SDK exports.
