@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CLEAR_LINE,
   createLineSettler,
@@ -111,7 +111,12 @@ describe("createSpinner", () => {
 });
 
 describe("systemClock", () => {
-  it("schedules and cancels real timers", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("schedules and cancels timers through the global timer functions", () => {
+    vi.useFakeTimers();
     const fired = { timeout: 0, cancelled: 0, interval: 0 };
     systemClock.setTimeout(() => {
       fired.timeout += 1;
@@ -123,15 +128,13 @@ describe("systemClock", () => {
     const interval = systemClock.setInterval(() => {
       fired.interval += 1;
     }, 1);
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    vi.advanceTimersByTime(3);
     systemClock.clearInterval(interval);
-    const afterClear = fired.interval;
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    vi.advanceTimersByTime(10);
 
     expect(fired.timeout).toBe(1);
     expect(fired.cancelled).toBe(0);
-    expect(fired.interval).toBeGreaterThan(0);
-    expect(fired.interval).toBe(afterClear);
+    expect(fired.interval).toBe(3);
   });
 });
 

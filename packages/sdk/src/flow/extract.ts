@@ -16,6 +16,7 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { requireExtractionConfig, runScan } from "./source-scan.js";
+import { callSiteKeysOf } from "./unused-key-forms.js";
 
 /** One key the run added to the source catalog, and the call site it was found at. */
 export interface AddedKey {
@@ -109,6 +110,18 @@ async function readExistingResource(
   }
 }
 
+function presentCallSiteKeys(
+  resource: LocaleResource,
+  framework: SourceFramework,
+): ReadonlySet<string> {
+  const rules = { framework, format: resource.format };
+  return new Set(
+    [...resource.entries].flatMap(([catalogKey, entry]) =>
+      callSiteKeysOf(rules, catalogKey, entry.isPlural),
+    ),
+  );
+}
+
 function toEntry(
   key: ExtractedKey,
   resource: LocaleResource,
@@ -165,8 +178,10 @@ function toAddedKey(key: ExtractedKey): AddedKey {
  *
  * Only the source locale file is ever written, and only keys that are genuinely new are added: a
  * key already in the catalog keeps its value exactly as it stands, so an editorial fix is never
- * reverted by a stale default left at a call site. A key in the catalog that no call site mentions
- * is left alone. A run that finds nothing new writes nothing at all, so it leaves the file
+ * reverted by a stale default left at a call site. A key the catalog holds only as its plural
+ * forms (`cart.items_one` and `cart.items_other` for `t("cart.items", { count })`, a gettext
+ * `msgid_plural` entry, an Android `<plurals>` resource) counts as present, so no empty base key is
+ * written next to them. A key in the catalog that no call site mentions is left alone. A run that finds nothing new writes nothing at all, so it leaves the file
  * byte-identical and its modification time untouched.
  *
  * Everything the scan cannot resolve is reported as data rather than thrown. A call site whose key
@@ -210,7 +225,8 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
   const sourcePath = resolver.pathFor(input.config.sourceLocale);
   const scan = await runScan(extraction, cwd, fs, deps.createExtractor, input.onProgress);
   const resource = await readExistingResource(sourcePath, input.config, fs, adapter);
-  const added = scan.keys.filter((key) => !resource.entries.has(key.key));
+  const present = presentCallSiteKeys(resource, extraction.framework);
+  const added = scan.keys.filter((key) => !present.has(key.key));
   const dryRun = input.dryRun === true;
   const written = added.length > 0 && !dryRun;
   if (written) {

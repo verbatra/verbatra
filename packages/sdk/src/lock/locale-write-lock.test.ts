@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
-import { makeFakeFs } from "../test-support.js";
+import { deferred, makeFakeFs } from "../test-support.js";
 import type { LivenessContext } from "./holder-liveness.js";
 import {
   isUnreadableLockError,
@@ -15,10 +15,64 @@ import {
   withLockFileGuard,
 } from "./locale-write-lock.js";
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((res) => {
-    setTimeout(res, ms);
-  });
+function barrier(parties: number): { readonly arrive: () => Promise<void> } {
+  const allArrived = deferred();
+  let arrived = 0;
+  return {
+    arrive: (): Promise<void> => {
+      arrived += 1;
+      if (arrived === parties) {
+        allArrived.resolve();
+      }
+      return allArrived.promise;
+    },
+  };
+}
+
+function refusalWatchingFs(): { readonly fs: SdkFs; readonly refused: Promise<void> } {
+  const inner = makeLockFs();
+  const refusal = deferred();
+  return {
+    fs: {
+      ...inner,
+      createExclusive: async (path, data): Promise<boolean> => {
+        const created = await inner.createExclusive(path, data);
+        if (!created) {
+          refusal.resolve();
+        }
+        return created;
+      },
+    },
+    refused: refusal.promise,
+  };
+}
+
+interface HeldSection {
+  readonly entered: Promise<void>;
+  readonly release: () => void;
+  readonly run: () => Promise<void>;
+}
+
+function heldSection(
+  id: string,
+  order: string[],
+  tracker: { inside: number; max: number },
+): HeldSection {
+  const entered = deferred();
+  const released = deferred();
+  return {
+    entered: entered.promise,
+    release: released.resolve,
+    run: async (): Promise<void> => {
+      tracker.inside += 1;
+      tracker.max = Math.max(tracker.max, tracker.inside);
+      order.push(`${id}-start`);
+      entered.resolve();
+      await released.promise;
+      order.push(`${id}-end`);
+      tracker.inside -= 1;
+    },
+  };
 }
 
 function makeLockFs(): SdkFs {
@@ -62,61 +116,59 @@ describe("lockFileGuardPath", () => {
 
 describe("withLockFileGuard: mutual exclusion", () => {
   it("never runs two callbacks for the same cwd concurrently", async () => {
-    const fs = makeLockFs();
-    let insideCount = 0;
-    let maxInsideCount = 0;
+    const { fs, refused } = refusalWatchingFs();
+    const order: string[] = [];
+    const tracker = { inside: 0, max: 0 };
+    const first = heldSection("A", order, tracker);
+    const second = heldSection("B", order, tracker);
+    second.release();
 
-    async function criticalSection(): Promise<void> {
-      insideCount += 1;
-      maxInsideCount = Math.max(maxInsideCount, insideCount);
-      await sleep(20);
-      insideCount -= 1;
-    }
+    const options = { pollIntervalMs: 5, acquireTimeoutMs: 30_000 };
+    const a = withLockFileGuard("/proj", fs, first.run, options);
+    await first.entered;
+    const b = withLockFileGuard("/proj", fs, second.run, options);
+    await Promise.race([refused, second.entered]);
+    first.release();
+    await Promise.all([a, b]);
 
-    const options = { pollIntervalMs: 5, acquireTimeoutMs: 2000 };
-    await Promise.all([
-      withLockFileGuard("/proj", fs, criticalSection, options),
-      withLockFileGuard("/proj", fs, criticalSection, options),
-    ]);
-
-    expect(maxInsideCount).toBe(1);
+    expect(tracker.max).toBe(1);
+    expect(order).toEqual(["A-start", "A-end", "B-start", "B-end"]);
   });
 });
 
 describe("withLocaleWriteLock: mutual exclusion", () => {
   it("never runs two callbacks for the same (cwd, locale) concurrently (proof by construction, not timing luck)", async () => {
-    const fs = makeLockFs();
-    let insideCount = 0;
-    let maxInsideCount = 0;
+    const { fs, refused } = refusalWatchingFs();
     const order: string[] = [];
+    const tracker = { inside: 0, max: 0 };
+    const first = heldSection("A", order, tracker);
+    const second = heldSection("B", order, tracker);
+    second.release();
 
-    async function criticalSection(id: string, workMs: number): Promise<void> {
-      insideCount += 1;
-      maxInsideCount = Math.max(maxInsideCount, insideCount);
-      order.push(`${id}-start`);
-      await sleep(workMs);
-      order.push(`${id}-end`);
-      insideCount -= 1;
-    }
-
-    const options = { pollIntervalMs: 5, acquireTimeoutMs: 2000 };
-    const a = withLocaleWriteLock("/proj", "de", fs, () => criticalSection("A", 30), options);
-    const b = withLocaleWriteLock("/proj", "de", fs, () => criticalSection("B", 5), options);
-
+    const options = { pollIntervalMs: 5, acquireTimeoutMs: 30_000 };
+    const a = withLocaleWriteLock("/proj", "de", fs, first.run, options);
+    await first.entered;
+    const b = withLocaleWriteLock("/proj", "de", fs, second.run, options);
+    await Promise.race([refused, second.entered]);
+    first.release();
     await Promise.all([a, b]);
 
-    expect(maxInsideCount).toBe(1);
+    expect(tracker.max).toBe(1);
     expect(order).toEqual(["A-start", "A-end", "B-start", "B-end"]);
   });
 
   it("a different locale never contends with another locale's lock", async () => {
-    const fs = makeLockFs();
+    const { fs, refused } = refusalWatchingFs();
     const order: string[] = [];
-    const options = { pollIntervalMs: 5, acquireTimeoutMs: 2000 };
+    const options = { pollIntervalMs: 5, acquireTimeoutMs: 30_000 };
+    const bothInside = barrier(2);
+    const contended = refused.then(() => {
+      throw new Error("one locale's lock refused the other locale");
+    });
 
     async function section(id: string): Promise<void> {
       order.push(`${id}-start`);
-      await sleep(10);
+      await Promise.race([bothInside.arrive(), contended]);
       order.push(`${id}-end`);
     }
 

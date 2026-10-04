@@ -67,6 +67,7 @@ Una clave con namespace como `t("common:nav.home")` se informa como dinámica y 
 Solo el archivo del locale de origen, y solo claves realmente nuevas:
 
 - Una clave que ya está en el catálogo conserva su valor tal cual; un valor por defecto en la llamada nunca sobrescribe una edición.
+- Una clave que el catálogo solo tiene en formas de plural cuenta como presente: `t("cart.items", { count })` no añade nada junto a `cart.items_one` y `cart.items_other`, y lo mismo vale para una entrada gettext con `msgid_plural` y un recurso `<plurals>` de Android. En un formato que no marca las formas de plural, como YAML, cuenta toda clave que termina en un sufijo de plural de i18next.
 - Una clave del catálogo que ninguna llamada menciona se queda donde está. `extract` nunca borra; [`verbatra diff --unused`](/docs/cli/diff#claves-de-origen-sin-uso) lista esas claves.
 - Una ejecución que no encuentra nada nuevo no escribe nada, así que el archivo queda idéntico byte a byte.
 - Nunca se escribe un archivo de locale de destino. Ejecuta después [`verbatra translate`](/docs/cli/translate) para rellenar las claves nuevas.

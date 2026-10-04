@@ -167,3 +167,127 @@ describe("an imported unit is reused by a later run without a provider call", ()
     expect(stub.calls[0]?.request.entries.map((entry) => entry.key)).toEqual(["untouched"]);
   });
 });
+
+describe("a memory holding plural forms survives a TMX round trip", () => {
+  const PLURALS = {
+    cart: { items_one: "{{count}} item", items_other: "{{count}} items" },
+    title: "Cart",
+  };
+
+  it("fills every plural form from the imported memory without a provider call", async () => {
+    const config = cfg();
+    const dir = await projectWith({});
+    await writeJsonFile(join(dir, "locales", "en.json"), PLURALS);
+    await translate({ config, cwd: dir }, { createProvider: () => makeStubProvider().provider });
+    const original = await memoryOf(dir);
+    const exported = await exportTmx({ config, cwd: dir });
+
+    const fresh = await projectWith({});
+    await writeJsonFile(join(fresh, "locales", "en.json"), PLURALS);
+    await defaultFs.writeFile(join(fresh, "memory.tmx"), await readFile(exported.path, "utf8"));
+    const imported = await importTmx({ config, file: "memory.tmx", cwd: fresh });
+    const stub = makeStubProvider();
+    await translate({ config, cwd: fresh }, { createProvider: () => stub.provider });
+
+    expect(imported.locales[0]?.added).toBe(3);
+    expect(bucketOf(await memoryOf(fresh), config, "de")).toEqual(bucketOf(original, config, "de"));
+    expect(stub.calls).toEqual([]);
+    expect(JSON.parse(await readFile(join(fresh, "locales", "de.json"), "utf8"))).toEqual(
+      JSON.parse(await readFile(join(dir, "locales", "de.json"), "utf8")),
+    );
+  });
+
+  it("stores a unit under both keyings when the catalog holds its text as plural and plain", async () => {
+    const config = cfg();
+    const dir = await projectWith({});
+    await writeJsonFile(join(dir, "locales", "en.json"), { items_one: "Item", label: "Item" });
+    await defaultFs.writeFile(
+      join(dir, "memory.tmx"),
+      [
+        '<tmx version="1.4">',
+        '  <header srclang="en"/>',
+        '  <body><tu><tuv xml:lang="en"><seg>Item</seg></tuv><tuv xml:lang="de"><seg>Artikel</seg></tuv></tu></body>',
+        "</tmx>",
+      ].join("\n"),
+    );
+
+    await importTmx({ config, file: "memory.tmx", cwd: dir });
+    const stub = makeStubProvider();
+    await translate({ config, cwd: dir }, { createProvider: () => stub.provider });
+
+    expect(stub.calls).toEqual([]);
+    expect(JSON.parse(await readFile(join(dir, "locales", "de.json"), "utf8"))).toEqual({
+      items_one: "Artikel",
+      label: "Artikel",
+    });
+  });
+
+  it("counts a unit stored under both keyings once, whether it is added or refused", async () => {
+    const config = cfg();
+    const dir = await projectWith({});
+    await writeJsonFile(join(dir, "locales", "en.json"), {
+      items_one: "Item",
+      label: "Item",
+      count_one: "{{count}} left",
+      remaining: "{{count}} left",
+    });
+    await defaultFs.writeFile(
+      join(dir, "memory.tmx"),
+      [
+        '<tmx version="1.4">',
+        '  <header srclang="en"/>',
+        "  <body>",
+        '    <tu><tuv xml:lang="en"><seg>Item</seg></tuv><tuv xml:lang="de"><seg>Artikel</seg></tuv></tu>',
+        '    <tu><tuv xml:lang="en"><seg>{{count}} left</seg></tuv><tuv xml:lang="de"><seg>uebrig</seg></tuv></tu>',
+        "  </body>",
+        "</tmx>",
+      ].join("\n"),
+    );
+
+    const imported = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(imported.locales[0]).toMatchObject({ added: 1, unchanged: 0, kept: 0, duplicates: 0 });
+    expect(imported.locales[0]?.rejected.placeholder).toBe(1);
+    expect(imported.locales[0]?.refusals).toEqual([
+      { unit: 2, reason: "placeholder", details: ["-{{count}}"] },
+    ]);
+    expect(Object.keys(bucketOf(await memoryOf(dir), config, "de"))).toHaveLength(2);
+
+    const again = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(again.locales[0]).toMatchObject({ added: 0, unchanged: 1 });
+  });
+
+  it("refuses to read the memory against a source catalog it cannot parse", async () => {
+    const config = cfg();
+    const dir = await projectWith({});
+    await defaultFs.writeFile(join(dir, "locales", "en.json"), "{ not json");
+    await defaultFs.writeFile(
+      join(dir, "memory.tmx"),
+      '<tmx version="1.4"><header srclang="en"/><body></body></tmx>',
+    );
+
+    await expect(importTmx({ config, file: "memory.tmx", cwd: dir })).rejects.toMatchObject({
+      code: "SOURCE_INVALID",
+    });
+  });
+
+  it("keys a unit no source entry matches as a plain string", async () => {
+    const config = cfg();
+    const dir = await projectWith({ greeting: "Hello" });
+    await defaultFs.writeFile(
+      join(dir, "memory.tmx"),
+      [
+        '<tmx version="1.4">',
+        '  <header srclang="en"/>',
+        '  <body><tu><tuv xml:lang="en"><seg>Unrelated</seg></tuv><tuv xml:lang="de"><seg>Fremd</seg></tuv></tu></body>',
+        "</tmx>",
+      ].join("\n"),
+    );
+
+    const imported = await importTmx({ config, file: "memory.tmx", cwd: dir });
+
+    expect(imported.locales[0]?.added).toBe(1);
+    expect(Object.values((await memoryOf(dir)).sources)).toEqual(["Unrelated"]);
+  });
+});

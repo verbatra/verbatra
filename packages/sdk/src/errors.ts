@@ -352,3 +352,22 @@ export class GlossaryNotConfiguredError extends SdkError {
     );
   }
 }
+
+export type InputFileKind = "handoff" | "tmx";
+
+export type InputFileErrorCode = Extract<SdkErrorCode, "SOURCE_UNREADABLE" | "SOURCE_INVALID">;
+
+export class InputFileError extends SdkError {
+  declare readonly code: InputFileErrorCode;
+  readonly input: InputFileKind;
+
+  constructor(
+    input: InputFileKind,
+    code: InputFileErrorCode,
+    message: string,
+    options?: { readonly cause?: unknown },
+  ) {
+    super(code, message, options);
+    this.input = input;
+  }
+}

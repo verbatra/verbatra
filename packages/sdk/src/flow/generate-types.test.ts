@@ -301,7 +301,7 @@ describe("generateTypes: comparing against whatever is already on disk", () => {
 });
 
 describe("generateTypes: plural keys", () => {
-  it("declares each plural sibling separately and lists them as plural", async () => {
+  it("declares each plural sibling and the base key an i18next count lookup uses", async () => {
     const dir = await seed({
       title: "Verbatra",
       item_one: "{{count}} item",
@@ -316,8 +316,68 @@ describe("generateTypes: plural keys", () => {
     );
     expect(declaredMembers(await declarationIn(dir))).toEqual([
       '  "title": VerbatraNoArguments;',
+      '  "item": { readonly "count": VerbatraArgument };',
       '  "item_one": { readonly "count": VerbatraArgument };',
       '  "item_other": { readonly "count": VerbatraArgument };',
+    ]);
+    expect(result.keys).toBe(4);
+  });
+
+  it("requires count and every argument any plural form takes on the base key", async () => {
+    const dir = await seed({
+      cart: { items_one: "One item for {{name}}", items_other: "{{count}} items in {{place}}" },
+    });
+
+    await generateTypes({ config: baseConfig(), cwd: dir });
+
+    expect(declaredMembers(await declarationIn(dir))[0]).toBe(
+      '  "cart.items": { readonly "name": VerbatraArgument; readonly "count": VerbatraArgument; readonly "place": VerbatraArgument };',
+    );
+  });
+
+  it("declares an ordinal group under the key without its ordinal suffix", async () => {
+    const dir = await seed({
+      place_ordinal_one: "{{count}}st",
+      place_ordinal_other: "{{count}}th",
+    });
+
+    await generateTypes({ config: baseConfig(), cwd: dir });
+
+    expect(declaredMembers(await declarationIn(dir))[0]).toBe(
+      '  "place": { readonly "count": VerbatraArgument };',
+    );
+  });
+
+  it("declares a base key the catalog already holds only once, with its own arguments", async () => {
+    const dir = await seed({ item: "One item", item_other: "{{count}} items" });
+
+    await generateTypes({ config: baseConfig(), cwd: dir });
+
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "item": VerbatraNoArguments;',
+      '  "item_other": { readonly "count": VerbatraArgument };',
+    ]);
+  });
+
+  it("adds no base key for a format that keeps every plural form in one message", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, "messages"), { recursive: true });
+    await writeFile(
+      join(dir, "messages", "en.json"),
+      JSON.stringify({ cart: "{count, plural, one {# item} other {# items}}" }),
+      "utf8",
+    );
+
+    await generateTypes({
+      config: baseConfig({
+        format: "next-intl-json",
+        files: { pattern: "messages/{locale}.json" },
+      }),
+      cwd: dir,
+    });
+
+    expect(declaredMembers(await declarationIn(dir))).toEqual([
+      '  "cart": { readonly "count": number };',
     ]);
   });
 });

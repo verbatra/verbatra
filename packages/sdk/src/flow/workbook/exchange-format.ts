@@ -85,9 +85,19 @@ export function isXliffPath(path: string): boolean {
   return XLIFF_EXTENSIONS.has(extname(path).toLowerCase());
 }
 
+const FORMAT_BY_EXTENSION: Readonly<Record<string, ExchangeFormat>> = {
+  ".xlsx": "xlsx",
+  ".csv": "csv",
+  ".tsv": "tsv",
+  ".xlf": "xliff2",
+  ".xliff": "xliff2",
+};
+
+export function inferredImportFormat(path: string): ExchangeFormat | undefined {
+  const extension = extname(path).toLowerCase();
+  return Object.hasOwn(FORMAT_BY_EXTENSION, extension) ? FORMAT_BY_EXTENSION[extension] : undefined;
+}
+
 export function importFormatFor(format: ExchangeFormat | undefined, path: string): ExchangeFormat {
-  if (format !== undefined) {
-    return format;
-  }
-  return isXliffPath(path) ? "xliff2" : DEFAULT_EXCHANGE_FORMAT;
+  return format ?? inferredImportFormat(path) ?? DEFAULT_EXCHANGE_FORMAT;
 }

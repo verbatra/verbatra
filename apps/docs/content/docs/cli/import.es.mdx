@@ -18,7 +18,7 @@ verbatra import <workbook> [flags]
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
 | `--dry-run` | ninguno | desactivado | valida e informa sin escribir archivos de locale ni actualizar el bloqueo |
-| `--format` | `<format>` | `xlsx`, o `xliff2` para una ruta que termina en `.xlf` o `.xliff` | `xlsx`, `csv`, `tsv`, `xliff2` o `xliff12`; cualquiera de los dos formatos XLIFF lee ambas versiones |
+| `--format` | `<format>` | según la extensión de la ruta: `csv`, `tsv`, `xliff2` para `.xlf` o `.xliff`, si no `xlsx`; para un directorio, según el manifiesto de exportación o los archivos de locale que contiene | `xlsx`, `csv`, `tsv`, `xliff2` o `xliff12`; cualquiera de los dos formatos XLIFF lee ambas versiones |
 | `--reviewer` | `<name>` | ninguno | nombre que se registra en cada unidad XLIFF marcada como revisada o final; como máximo 64 caracteres, guardado en el archivo de procedencia versionado |
 | `--lock-timeout` | `<seconds>` | `600` | cuánto esperar a un bloqueo de escritura por locale ya tomado; un número entero de `1` a `3600`, si no es un error de uso, salida `2` |
 

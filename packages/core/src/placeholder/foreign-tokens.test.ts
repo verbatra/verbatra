@@ -91,6 +91,13 @@ describe("foreignPlaceholderTokens", () => {
     },
   );
 
+  it("reads a dotted ICU head as one argument, so its arms are never flagged", () => {
+    const value = "{user.name, select, male {He {x}} other {They}} left {y}";
+
+    expect(foreignPlaceholderTokens(value, [])).toEqual(["{user.name, select,", "{y}"]);
+    expect(foreignPlaceholderTokens(value, ["single-brace"])).toEqual([]);
+  });
+
   it("keeps python-named names ASCII-only, so %(名前)s stays quiet", () => {
     expect(foreignPlaceholderTokens("Hi %(名前)s", NONE)).toEqual([]);
   });

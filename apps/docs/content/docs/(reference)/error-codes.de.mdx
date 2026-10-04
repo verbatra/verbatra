@@ -292,19 +292,23 @@ Die wirksame [Netzwerkrichtlinie](/docs/network-policy) erlaubt den Endpunkt des
 
 ### SOURCE_UNREADABLE
 
-Die Quell-Locale-Datei existiert nicht.
+Die Quell-Locale-Datei existiert nicht, oder bei `import` und `tmx import` die zu importierende Datei bzw. das Verzeichnis.
 
 - **Ausgelöst von**: jeder Befehl, der Locale-Dateien liest; Studio und der MCP-Server
 - **Exit-Code**: `2`; `1` in `doctor`, das ihn als fehlgeschlagene Prüfung meldet
 - **Nächster Schritt**: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+- **Nächster Schritt bei `import`**: Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.
+- **Nächster Schritt bei `tmx import`**: Pass the path of an existing TMX file, relative to the working directory or `--cwd`.
 
 ### SOURCE_INVALID
 
-Die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters.
+Die Quell-Locale-Datei konnte nicht gelesen oder geparst werden; umhüllt den Lesefehler des Adapters. Bei `import` und `tmx import` ist die zu importierende Datei zu groß oder kein lesbares Übergabe- bzw. TMX-Dokument.
 
 - **Ausgelöst von**: jeder Befehl, der Locale-Dateien liest; Studio und der MCP-Server
 - **Exit-Code**: `2`; `1` in `doctor`, das ihn als fehlgeschlagene Prüfung meldet
 - **Nächster Schritt**: Fix the file the message names so it parses under the configured format.
+- **Nächster Schritt bei `import`**: Fix the handoff file the message names, or pass its format with `--format` when its extension names none.
+- **Nächster Schritt bei `tmx import`**: Fix the TMX file the message names, or export it again from the tool that wrote it.
 
 ### LOCK_FILE_INVALID
 

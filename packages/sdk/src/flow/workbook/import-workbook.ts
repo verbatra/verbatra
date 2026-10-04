@@ -14,7 +14,7 @@ import { fingerprintsFor } from "../../cache/fingerprint.js";
 import { feedTranslationMemory } from "../../cache/translation-memory.js";
 import type { CacheAddition } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
-import { errorMessage, SdkError } from "../../errors.js";
+import { errorMessage, InputFileError, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../../lock/carry-forward.js";
@@ -67,14 +67,21 @@ import { writeTargetResource } from "../write-target.js";
 import { withApprovalNotice, withHandoffApprovals } from "../xliff/handoff-approvals.js";
 import { type HandoffStates, readXliffHandoff } from "../xliff/xliff-import.js";
 import {
+  DEFAULT_EXCHANGE_FORMAT,
   type DirectoryFormat,
+  EXCHANGE_FORMATS,
   type ExchangeFormat,
   handoffExtension,
   importFormatFor,
+  inferredImportFormat,
   isDirectoryFormat,
   isXliffFormat,
 } from "./exchange-format.js";
-import { collectHandoffFiles, type HandoffSource } from "./handoff-files.js";
+import {
+  collectHandoffFiles,
+  type HandoffSource,
+  inferHandoffDirectoryFormat,
+} from "./handoff-files.js";
 import { type ImportLocaleResult, importLocale } from "./import-locale.js";
 
 const MAX_WORKBOOK_FILE_BYTES = 64 * 1024 * 1024;
@@ -101,9 +108,12 @@ export interface ImportWorkbookInput {
    */
   readonly dryRun?: boolean;
   /**
-   * The handoff shape to read. Defaults to `xliff2` when {@link ImportWorkbookInput.workbook} ends
-   * in `.xlf` or `.xliff`, and to `xlsx` otherwise. `xliff2` and `xliff12` both read either XLIFF
-   * version, which is taken from the file.
+   * The handoff shape to read. Defaults to the shape the extension of
+   * {@link ImportWorkbookInput.workbook} names: `csv` for `.csv`, `tsv` for `.tsv`, `xliff2` for
+   * `.xlf` or `.xliff`, and `xlsx` for `.xlsx` or any other file. For a directory it is the
+   * format of the export manifest inside, else of the `<locale>` files inside; a directory holding
+   * two formats, or none, is refused. `xliff2` and `xliff12` both read either XLIFF version, which
+   * is taken from the file.
    */
   readonly format?: ExchangeFormat;
   /**
@@ -139,10 +149,15 @@ export interface ImportWorkbookDeps {
 async function readWorkbookBytes(path: string, fs: SdkFs): Promise<Uint8Array> {
   const read = await fs.readBytesBounded(path, MAX_WORKBOOK_FILE_BYTES);
   if (read.kind === "missing") {
-    throw new SdkError("SOURCE_UNREADABLE", `The workbook was not found at ${path}.`);
+    throw new InputFileError(
+      "handoff",
+      "SOURCE_UNREADABLE",
+      `The workbook was not found at ${path}.`,
+    );
   }
   if (read.kind === "too-large") {
-    throw new SdkError(
+    throw new InputFileError(
+      "handoff",
       "SOURCE_INVALID",
       `The workbook at ${path} exceeds the maximum allowed size of ${MAX_WORKBOOK_FILE_BYTES} bytes.`,
     );
@@ -207,6 +222,7 @@ async function readImportData(
   fs: SdkFs,
   format: ExchangeFormat,
   source: LocaleResource,
+  formatGuessed: boolean,
 ): Promise<ImportRead> {
   try {
     if (isDirectoryFormat(format)) {
@@ -221,8 +237,18 @@ async function readImportData(
     if (error instanceof SdkError) {
       throw error;
     }
-    throw new SdkError("SOURCE_INVALID", errorMessage(error), { cause: error });
+    const guess = formatGuessed ? ` ${guessedFormatNote(path)}` : "";
+    throw new InputFileError("handoff", "SOURCE_INVALID", `${errorMessage(error)}${guess}`, {
+      cause: error,
+    });
   }
+}
+
+function guessedFormatNote(path: string): string {
+  return (
+    `${path} was read as an ${DEFAULT_EXCHANGE_FORMAT} workbook because no format was given and ` +
+    `its extension names none; pass one of ${EXCHANGE_FORMATS.join(", ")} for another handoff shape.`
+  );
 }
 
 function mergeAccepted(
@@ -569,13 +595,18 @@ export async function importWorkbook(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
-  const format = importFormatFor(input.format, input.workbook);
+  const workbookPath = resolve(cwd, input.workbook);
+  const guessed = input.format === undefined && inferredImportFormat(input.workbook) === undefined;
+  const format = guessed
+    ? ((await inferHandoffDirectoryFormat(workbookPath, config, fs)) ?? DEFAULT_EXCHANGE_FORMAT)
+    : importFormatFor(input.format, input.workbook);
   const { data, staleLocales, expectedLocales, states } = await readImportData(
-    resolve(cwd, input.workbook),
+    workbookPath,
     config,
     fs,
     format,
     source.resource,
+    guessed && format === DEFAULT_EXCHANGE_FORMAT,
   );
 
   const lockOptions = writeLockOptions(input);

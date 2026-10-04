@@ -26,6 +26,9 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
   `would translate`, `--estimate` is headed `(estimate)`, `watch --help` has examples,
   `types --check` says a missing declaration is missing, counts of one read in the singular, and
   a run's notices print one per line.
+- A missing or unreadable file passed to `import` or `tmx import` gets a `next:` hint about that
+  file, not the source locale file, and a file read as xlsx because its extension names no format
+  says so (SDK: `errorHint`).
 
 **SDK**
 - `onProgress` gains retry, repair, write and `watch` events, and `extract`, `diff` and `doctor`

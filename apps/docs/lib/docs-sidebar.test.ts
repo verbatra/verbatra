@@ -80,19 +80,14 @@ describe("docs sidebar", () => {
       expect(open.map((group) => pageUrls(group)[0])).toEqual([`${prefix}/docs/quickstart`]);
     });
 
-    it("links the SDK quickstart and recipes first in the SDK reference, as links not pages", () => {
-      const [docsTab, referenceTab] = rootFolders(tree);
-      const prefix = locale === i18n.defaultLanguage ? "" : `/${locale}`;
-      const sdk = referenceTab?.children.find(
-        (node): node is Folder =>
-          node.type === "folder" && pageUrls(node)[0] === `${prefix}/docs/sdk`,
-      );
-      const quickstart = `${prefix}/docs/sdk-quickstart`;
-      const recipes = `${prefix}/docs/programmatic-api`;
-      expect(sdk ? linkUrls(sdk).slice(0, 2) : undefined).toEqual([quickstart, recipes]);
-      expect(docsTab ? pageUrls(docsTab) : []).toEqual(
-        expect.arrayContaining([quickstart, recipes]),
-      );
+    it("links only to pages its own tab owns, so a link never switches the tab", () => {
+      const roots = rootFolders(tree);
+      const crossTab = roots.flatMap((root) => {
+        const owned = new Set(pageUrls(root));
+        return linkUrls(root).filter((url) => !owned.has(url.split("#")[0] ?? url));
+      });
+      expect(roots.flatMap(linkUrls).length).toBeGreaterThan(0);
+      expect(crossTab).toEqual([]);
     });
 
     it("keeps every link in the sidebar inside this locale", () => {

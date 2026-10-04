@@ -5,7 +5,12 @@ import { AdapterError } from "@verbatra/format-adapters";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildProvider, type ProviderConfig } from "./config/provider-config.js";
 import { apiKeyHint, errorHint, sdkErrorHint } from "./error-hints.js";
-import { GlossaryNotConfiguredError, SdkError, type SdkErrorCode } from "./errors.js";
+import {
+  GlossaryNotConfiguredError,
+  InputFileError,
+  SdkError,
+  type SdkErrorCode,
+} from "./errors.js";
 import { selectProvider } from "./selection/select-provider.js";
 
 function unionMembers(relativePath: string, typeName: string): readonly string[] {
@@ -110,6 +115,28 @@ describe("errorHint: how the error is read", () => {
     });
 
     expect(errorHint(wrapped)).toBe(sdkErrorHint("PROVIDER_CONSTRUCTION_FAILED"));
+  });
+});
+
+describe("errorHint: a file an import reads", () => {
+  it("gives the input file's hint to the error and to a plain copy of it", () => {
+    const error = new InputFileError("tmx", "SOURCE_UNREADABLE", "No TMX file was found at a.tmx.");
+    const copy = { code: error.code, message: error.message, input: error.input };
+
+    expect(errorHint(error)).toBe(errorHint(copy));
+    expect(errorHint(error)).not.toBe(sdkErrorHint("SOURCE_UNREADABLE"));
+  });
+
+  it("keeps the code's own hint for an unknown input or a code the input has no hint for", () => {
+    expect(errorHint({ code: "SOURCE_UNREADABLE", input: "toString" })).toBe(
+      sdkErrorHint("SOURCE_UNREADABLE"),
+    );
+    expect(errorHint({ code: "SOURCE_UNREADABLE", input: 3 })).toBe(
+      sdkErrorHint("SOURCE_UNREADABLE"),
+    );
+    expect(errorHint({ code: "LOCK_CONTENDED", input: "handoff" })).toBe(
+      sdkErrorHint("LOCK_CONTENDED"),
+    );
   });
 });
 

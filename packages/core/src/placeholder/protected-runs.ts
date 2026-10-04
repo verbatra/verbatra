@@ -1,3 +1,4 @@
+import { isPlaceholderArgumentName } from "./argument-name.js";
 import {
   PRINTF_ANY_CONVERSION,
   PRINTF_FLAGS_WIDTH_PRECISION,
@@ -6,8 +7,6 @@ import {
 } from "./printf-syntax.js";
 
 const SUBMESSAGE_TYPES = new Set(["plural", "select", "selectordinal", "choice"]);
-
-const ARGUMENT_NAME = /^(?:\d+|[A-Za-z_$][\w$-]*)$/;
 
 const PROTECTED_TOKEN = new RegExp(
   [
@@ -79,7 +78,7 @@ function parseIcuArgument(value: string, open: number, close: number): IcuArgume
     return null;
   }
   const name = value.slice(open + 1, nameEnd).trim();
-  if (!ARGUMENT_NAME.test(name)) {
+  if (!isPlaceholderArgumentName(name)) {
     return null;
   }
   if (nameEnd === close) {

@@ -1,6 +1,11 @@
 import { ProviderError, type ProviderErrorCode } from "@verbatra/ai-providers";
 import type { AdapterErrorCode } from "@verbatra/format-adapters";
-import { GlossaryNotConfiguredError, type SdkErrorCode } from "./errors.js";
+import {
+  GlossaryNotConfiguredError,
+  type InputFileErrorCode,
+  type InputFileKind,
+  type SdkErrorCode,
+} from "./errors.js";
 
 const WRITABLE_OUTPUT_HINT = "Make the output file and its directory writable, then try again.";
 
@@ -78,6 +83,25 @@ const SDK_ERROR_HINTS = {
     "Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.",
   LOCALE_FAILED: "Fix the cause the locale's message names, then try again.",
 } as const satisfies Record<SdkErrorCode, string>;
+
+const HANDOFF_FILE_HINTS = {
+  SOURCE_UNREADABLE:
+    "Pass the path of the filled handoff file, or of the directory it was exported into, relative to the working directory or `--cwd`.",
+  SOURCE_INVALID:
+    "Fix the handoff file the message names, or pass its format with `--format` when its extension names none.",
+} as const satisfies Record<InputFileErrorCode, string>;
+
+const TMX_FILE_HINTS = {
+  SOURCE_UNREADABLE:
+    "Pass the path of an existing TMX file, relative to the working directory or `--cwd`.",
+  SOURCE_INVALID:
+    "Fix the TMX file the message names, or export it again from the tool that wrote it.",
+} as const satisfies Record<InputFileErrorCode, string>;
+
+const INPUT_FILE_HINTS: Readonly<Record<InputFileKind, Record<InputFileErrorCode, string>>> = {
+  handoff: HANDOFF_FILE_HINTS,
+  tmx: TMX_FILE_HINTS,
+};
 
 const PROVIDER_ERROR_HINTS = {
   MISSING_API_KEY:
@@ -182,6 +206,22 @@ function wrappedErrorHint(code: string, error: unknown): string | undefined {
   return code === "CONFIG_INVALID" ? configLoadHint(error) : undefined;
 }
 
+function inputOf(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("input" in error)) {
+    return undefined;
+  }
+  return typeof error.input === "string" ? error.input : undefined;
+}
+
+function inputFileHint(code: string, error: unknown): string | undefined {
+  const input = inputOf(error);
+  if (input === undefined || !Object.hasOwn(INPUT_FILE_HINTS, input)) {
+    return undefined;
+  }
+  const hints: Readonly<Record<string, string>> = INPUT_FILE_HINTS[input as InputFileKind];
+  return Object.hasOwn(hints, code) ? hints[code] : undefined;
+}
+
 /**
  * Returns the next step that resolves an error verbatra raised: one short imperative sentence,
  * such as "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project
@@ -189,12 +229,16 @@ function wrappedErrorHint(code: string, error: unknown): string | undefined {
  * "Run `verbatra init` to create a config, or pass the path of an existing config file.".
  *
  * Every {@link SdkErrorCode}, every {@link ProviderErrorCode}, and every {@link AdapterErrorCode}
- * has a hint. The error is matched by its `code` property, so a plain `{ code, message }` object,
- * such as the error of a failed watch run, gets the same hint as the error it was built from. A
+ * has a hint. The error is matched by its `code` property, and an error about a file an import
+ * reads also by its `input` property, so a plain object carrying the same properties, such as the
+ * `{ code, message }` error of a failed watch run, gets the same hint as the error it was built
+ * from. A
  * `PROVIDER_CONSTRUCTION_FAILED` error takes the hint of the provider error it wraps, so a missing
  * key names the exact environment variable to set, and a `CONFIG_INVALID` error caused by a config
- * file whose import could not be resolved says to install or fix that import. A code verbatra does not know, or a value with
- * no string `code`, has no hint.
+ * file whose import could not be resolved says to install or fix that import. A
+ * `SOURCE_UNREADABLE` or `SOURCE_INVALID` error about the file {@link importWorkbook} or
+ * {@link importTmx} was asked to read names that file rather than the source locale file. A code
+ * verbatra does not know, or a value with no string `code`, has no hint.
  *
  * A hint is built from fixed text and, for a missing key, the name of the environment variable
  * (a {@link ProviderError}'s `envVar`). It never contains an API key value, and never quotes the
@@ -225,5 +269,10 @@ export function errorHint(error: unknown): string | undefined {
   if (error instanceof GlossaryNotConfiguredError) {
     return NO_GLOSSARY_HINT;
   }
-  return wrappedErrorHint(code, error) ?? missingKeyHint(error) ?? hintOfCode(code);
+  return (
+    inputFileHint(code, error) ??
+    wrappedErrorHint(code, error) ??
+    missingKeyHint(error) ??
+    hintOfCode(code)
+  );
 }
