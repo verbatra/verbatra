@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -113,6 +114,29 @@ function spawnScript(project, file) {
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
+function projectSetupBlock() {
+  const block = fencedBlocks(readPage(QUICKSTART)).find(
+    (candidate) => candidate.opening === "```bash" && candidate.body.includes("npm pkg set"),
+  );
+  if (block === undefined) throw new Error("the SDK quickstart shows no project setup block");
+  return block.body.split("\n");
+}
+
+function spawnSetupCommand(project, command) {
+  return spawnSync(command, {
+    cwd: project,
+    encoding: "utf8",
+    env: keylessEnv(),
+    shell: true,
+    timeout: 60_000,
+  });
+}
+
+function runSetupCommand(project, command) {
+  const result = spawnSetupCommand(project, command);
+  if (result.status !== 0) throw new Error(`${command} failed: ${result.stderr}`);
+}
+
 function runScript(project, file) {
   const result = spawnScript(project, file);
   expect(result.stderr, result.stderr).not.toContain(TYPELESS_WARNING);
@@ -165,10 +189,13 @@ describe("the SDK examples run end to end without an API key", () => {
 
   beforeAll(() => {
     project = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-docs-project-"));
+    for (const command of projectSetupBlock()) {
+      if (command.startsWith("npm install")) continue;
+      runSetupCommand(project, command);
+    }
     mkdirSync(join(project, "locales"));
     mkdirSync(join(project, "node_modules/@verbatra"), { recursive: true });
     symlinkSync(SDK_DIR, join(project, "node_modules/@verbatra/sdk"), "junction");
-    writeFileSync(join(project, "package.json"), '{"type":"module","private":true}\n');
     const files = {
       [QUICKSTART]: [
         "locales/en.json",
@@ -177,17 +204,43 @@ describe("the SDK examples run end to end without an API key", () => {
         "safe-translate.ts",
         "check.ts",
       ],
-      [RECIPES]: ["fake-provider.ts", "review.ts"],
+      [RECIPES]: ["fake-provider.ts", "review.ts", "scan-values.ts"],
     };
     for (const [page, titles] of Object.entries(files)) {
       for (const title of titles) {
         writeFileSync(join(project, title), `${blockTitled(page, title)}\n`);
       }
     }
-  });
+  }, SLOW);
 
   afterAll(() => {
     rmSync(project, { recursive: true, force: true });
+  });
+
+  it(
+    "needs npm init -y first, since npm pkg set alone fails in an empty directory",
+    () => {
+      const empty = mkdtempSync(join(realpathSync(tmpdir()), "verbatra-docs-empty-"));
+      try {
+        expect(readdirSync(empty)).toEqual([]);
+        const alone = spawnSetupCommand(empty, "npm pkg set type=module");
+        expect(alone.status).not.toBe(0);
+        expect(readdirSync(empty)).toEqual([]);
+      } finally {
+        rmSync(empty, { recursive: true, force: true });
+      }
+    },
+    SLOW,
+  );
+
+  it("sets the project up from an empty directory with the page's own commands", () => {
+    expect(projectSetupBlock()).toEqual([
+      "npm init -y",
+      "npm pkg set type=module",
+      "npm install --save-dev @verbatra/sdk",
+    ]);
+    const manifest = JSON.parse(readFileSync(join(project, "package.json"), "utf8"));
+    expect(manifest.type).toBe("module");
   });
 
   it(
@@ -225,6 +278,18 @@ describe("the SDK examples run end to end without an API key", () => {
       const outOfSync = runScript(project, "check.ts");
       expect(outOfSync.status, outOfSync.stderr).toBe(1);
       expect(outOfSync.stdout).toContain("de: 2 missing, 0 stale");
+    },
+    SLOW,
+  );
+
+  it(
+    "scans the configured target locales in bulk, naming none the config lacks",
+    () => {
+      const scan = runScript(project, "scan-values.ts");
+      expect(scan.status, scan.stderr).toBe(0);
+      expect(scan.stderr).not.toContain("UNKNOWN_LOCALE");
+      expect(scan.stderr).toContain("de/greeting: not translated yet");
+      expect(scan.stderr).toContain("de/cart.empty: not translated yet");
     },
     SLOW,
   );
@@ -271,6 +336,17 @@ describe("the SDK examples run end to end without an API key", () => {
       expect(review.status, review.stderr).toBe(0);
       expect(review.stdout).toContain("approved de/greeting");
       expect(review.stdout).toContain("approved de/cart.empty");
+    },
+    SLOW,
+  );
+
+  it(
+    "finds nothing left to flag in the bulk scan after the translation",
+    () => {
+      const scan = runScript(project, "scan-values.ts");
+      expect(scan.status, scan.stderr).toBe(0);
+      expect(scan.stderr).not.toContain("not translated yet");
+      expect(scan.stdout).toBe("");
     },
     SLOW,
   );

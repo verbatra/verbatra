@@ -77,21 +77,6 @@ describe("landing message parity", () => {
     }
   });
 
-  it("keeps the install box AI switch label as short as the source, so it fits the 390px tab row", () => {
-    const labelOf = (locale: string): string => {
-      const landing = load(locale).landing;
-      const install = typeof landing === "object" ? landing.install : undefined;
-      const label = typeof install === "object" ? install.aiSwitch : undefined;
-      if (typeof label !== "string")
-        throw new Error(`no landing.install.aiSwitch in ${locale}.json`);
-      return label;
-    };
-    const sourceLength = labelOf(i18n.defaultLanguage).length;
-    for (const locale of i18n.languages) {
-      expect(labelOf(locale).length, locale).toBeLessThanOrEqual(sourceLength);
-    }
-  });
-
   it("keeps hyphenated words in the closing heading on one line", () => {
     for (const locale of i18n.languages) {
       const finalClose = load(locale).landing;

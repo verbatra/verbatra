@@ -15,13 +15,13 @@ agrupada por la tarea que hace cada punto de entrada. ¿Eres nuevo en el SDK? Em
 
 ## Instalación
 
-```npm
+```bash
 npm install --save-dev @verbatra/sdk
 ```
 
 Requiere Node.js `>=22.14.0`.
 
-La línea de pnpm instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`: pnpm bloquea los
+Con pnpm, `pnpm add --save-dev @verbatra/sdk` instala bien, pero sale con `1` y `ERR_PNPM_IGNORED_BUILDS`: pnpm bloquea los
 scripts de instalación del SDK de Gemini incluido y de su `protobufjs`, y deja un
 `pnpm-workspace.yaml` sin responder con el que cualquier comando pnpm posterior del proyecto falla
 igual. Ejecuta `pnpm approve-builds` una vez y no apruebes ninguna de las dos entradas, o consulta

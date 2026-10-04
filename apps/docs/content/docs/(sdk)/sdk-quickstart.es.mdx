@@ -5,7 +5,7 @@ type: tutorial
 ---
 Al final de esta página, un script tuyo en TypeScript traduce un archivo de locale en inglés al alemán, informa de lo que pasó y hace fallar un job de CI cuando un locale se desincroniza. Necesitas Node.js `>=22.14.0` y unos diez minutos. Los primeros tres pasos no necesitan clave de API.
 
-Cada paso es un script completo que ejecutas con `node`. Node.js ejecuta archivos TypeScript directamente desde `22.18.0`; de `22.14.0` a `22.17.x`, añade `--experimental-strip-types` a cada comando `node` de abajo. Los scripts usan `import` y `await` de nivel superior, así que primero marca tu proyecto como módulo ES con `npm pkg set type=module`.
+Cada paso es un script completo que ejecutas con `node`. Node.js ejecuta archivos TypeScript directamente desde `22.18.0`; de `22.14.0` a `22.17.x`, añade `--experimental-strip-types` a cada comando `node` de abajo. Los scripts usan `import` y `await` de nivel superior, así que el primer paso también marca el proyecto como módulo ES.
 
 ## Pasos
 
@@ -14,11 +14,13 @@ Cada paso es un script completo que ejecutas con `node`. Node.js ejecuta archivo
 
 ### Instala el SDK
 
-```npm
+```bash
+npm init -y
+npm pkg set type=module
 npm install --save-dev @verbatra/sdk
 ```
 
-Si pnpm sale con `ERR_PNPM_IGNORED_BUILDS`, consulta [Instalación](/docs/sdk#instalación).
+Ejecútalo en un directorio vacío: `npm init -y` crea el `package.json` que `npm pkg set type=module` marca como módulo ES. En un proyecto existente, omite `npm init -y`. Si pnpm sale con `ERR_PNPM_IGNORED_BUILDS`, consulta [Instalación](/docs/sdk#instalación).
 
 </Step>
 <Step>

@@ -5,7 +5,7 @@ type: tutorial
 ---
 Am Ende dieser Seite übersetzt ein TypeScript-Skript von dir eine englische Locale-Datei ins Deutsche, meldet, was passiert ist, und lässt einen CI-Job scheitern, sobald eine Locale nicht mehr synchron ist. Du brauchst Node.js `>=22.14.0` und etwa zehn Minuten. Die ersten drei Schritte brauchen keinen API-Schlüssel.
 
-Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.js führt TypeScript-Dateien ab `22.18.0` direkt aus; unter `22.14.0` bis `22.17.x` ergänzt du jeden `node`-Befehl unten um `--experimental-strip-types`. Die Skripte nutzen `import` und Top-Level-`await`, markiere dein Projekt also zuerst mit `npm pkg set type=module` als ES-Modul.
+Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.js führt TypeScript-Dateien ab `22.18.0` direkt aus; unter `22.14.0` bis `22.17.x` ergänzt du jeden `node`-Befehl unten um `--experimental-strip-types`. Die Skripte nutzen `import` und Top-Level-`await`, deshalb markiert der erste Schritt das Projekt auch als ES-Modul.
 
 ## Schritte
 
@@ -14,11 +14,13 @@ Jeder Schritt ist ein vollständiges Skript, das du mit `node` ausführst. Node.
 
 ### Das SDK installieren
 
-```npm
+```bash
+npm init -y
+npm pkg set type=module
 npm install --save-dev @verbatra/sdk
 ```
 
-Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` endet, sieh unter [Installation](/docs/sdk#installation) nach.
+Führ das in einem leeren Verzeichnis aus: `npm init -y` legt die `package.json` an, die `npm pkg set type=module` als ES-Modul markiert. In einem bestehenden Projekt lässt du `npm init -y` weg. Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` endet, sieh unter [Installation](/docs/sdk#installation) nach.
 
 </Step>
 <Step>
