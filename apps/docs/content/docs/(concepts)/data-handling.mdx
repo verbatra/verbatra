@@ -76,7 +76,7 @@ key goes only to the configured endpoint (`google-translate` sends it in the `?k
 ## Vendor retention and data processing terms
 
 Retention is set by the vendor and your contract, not by verbatra. Quotes are as of September
-2026; your contract wins.
+2026.
 
 | Provider | What the vendor says | Data processing terms |
 | --- | --- | --- |
@@ -87,8 +87,7 @@ Retention is set by the vendor and your contract, not by verbatra. Quotes are as
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", and "Google does not use the content you send to train and improve our Google Translation features" ([data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
 | openai-compatible, LibreTranslate | Whatever your own server does. A server you run yourself keeps the strings on hardware you control. | Yours |
 
-Free Gemini (outside the EEA, Switzerland and the UK) and free DeepL may train on what you send,
-and no hosted LLM vendor retains zero by default. For confidential strings, use a paid tier, your
+For confidential strings, use a paid tier, your
 own server, or no machine translation.
 
 ## Keeping strings in-house
@@ -140,9 +139,8 @@ redacted: an agent driving the tab can read the page anyway.
 
 The EU AI Act sets transparency obligations for AI-generated text
 ([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Whether they apply is for your legal counsel. verbatra keeps a
-[record](/docs/the-lock-file#provenance-who-wrote-each-value): every value a provider produced is
-marked `machine` origin, with provider and model.
+Whether they apply is for your legal counsel. verbatra [records](/docs/the-lock-file#provenance-who-wrote-each-value)
+the provider and model behind every machine-translated value.
 
 ### Audit file
 
@@ -153,8 +151,8 @@ marked `machine` origin, with provider and model.
 
 ## Checklist for a DPA or NDA review
 
-1. Decide whether strings may leave your network. If not, use provider `none` or a self-hosted
-   server, and pin `VERBATRA_NETWORK_POLICY=local-only` in CI.
+1. Decide whether strings may leave your network; if not, pick an option under
+   [Keeping strings in-house](#keeping-strings-in-house).
 2. For a hosted provider, use a paid tier and sign its data processing terms, with zero retention
    if you need it.
 3. Check what your key names, descriptions and glossary send with `verbatra check --sensitive`.

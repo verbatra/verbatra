@@ -79,7 +79,7 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 ## Aufbewahrung und Auftragsverarbeitung beim Anbieter
 
 Die Aufbewahrung bestimmen der Anbieter und dein Vertrag, nicht verbatra. Zitate im englischen
-Original, Stand September 2026; Bedingungen ändern sich und dein Vertrag geht vor.
+Original, Stand September 2026.
 
 | Provider | Was der Anbieter sagt | Auftragsverarbeitung |
 | --- | --- | --- |
@@ -90,8 +90,6 @@ Original, Stand September 2026; Bedingungen ändern sich und dein Vertrag geht v
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", und "Google does not use the content you send to train and improve our Google Translation features" ([Data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
 | openai-compatible, LibreTranslate | Was auch immer dein eigener Server tut. Ein Server, den du selbst betreibst, hält die Strings auf Hardware, die du kontrollierst. | Deine eigene |
 
-Gemini kostenlos (außerhalb von EWR, Schweiz und Vereinigtem Königreich) und DeepL Free dürfen mit
-dem, was du sendest, trainieren, und kein gehosteter LLM-Anbieter hat standardmäßig Zero Retention.
 Für vertrauliche Strings nimm ein bezahltes Kontingent, deinen eigenen Server oder keine
 maschinelle Übersetzung.
 
@@ -145,9 +143,9 @@ Seite ohnehin lesen.
 
 Artikel 50 des EU AI Act legt Transparenzpflichten für KI-Systeme fest, die Text erzeugen
 ([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Ob er für dein Produkt gilt, klärt deine Rechtsberatung. verbatra führt ein
-[Protokoll](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat): Jeder Wert, den ein
-Provider erzeugt hat, trägt die Herkunft `machine`, mit Provider und Modell.
+Ob er für dein Produkt gilt, klärt deine Rechtsberatung. verbatra
+[protokolliert](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) Provider und Modell
+hinter jedem maschinell übersetzten Wert.
 
 ### Prüfdatei
 
@@ -158,8 +156,8 @@ Provider erzeugt hat, trägt die Herkunft `machine`, mit Provider und Modell.
 
 ## Checkliste für ein AVV- oder NDA-Review
 
-1. Entscheide, ob Strings dein Netzwerk verlassen dürfen. Wenn nicht, nimm den Provider `none` oder
-   einen selbst gehosteten Server und leg `VERBATRA_NETWORK_POLICY=local-only` in der CI fest.
+1. Entscheide, ob Strings dein Netzwerk verlassen dürfen; wenn nicht, wähl eine Option unter
+   [Strings im Haus behalten](#strings-im-haus-behalten).
 2. Nimm für einen gehosteten Provider ein bezahltes Kontingent und unterschreib seine
    Auftragsverarbeitungsbedingungen, mit Zero Retention, wenn du sie brauchst.
 3. Prüf mit `verbatra check --sensitive`, was deine Key-Namen, Beschreibungen und das Glossar senden.

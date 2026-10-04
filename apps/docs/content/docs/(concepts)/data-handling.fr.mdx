@@ -80,7 +80,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 ## Conservation et traitement des données chez le fournisseur
 
 La conservation dépend du fournisseur et de ton contrat, pas de verbatra. Citations dans leur
-anglais d'origine, en septembre 2026 ; les conditions changent et ton contrat prime.
+anglais d'origine, en septembre 2026.
 
 | Fournisseur | Ce que dit le fournisseur | Traitement des données |
 | --- | --- | --- |
@@ -91,8 +91,7 @@ anglais d'origine, en septembre 2026 ; les conditions changent et ton contrat pr
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", et "Google does not use the content you send to train and improve our Google Translation features" ([data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
 | openai-compatible, LibreTranslate | Ce que fait ton propre serveur. Un serveur que tu fais tourner toi-même garde les textes sur du matériel que tu contrôles. | Les tiennes |
 
-Gemini gratuit (hors EEE, Suisse et Royaume-Uni) et DeepL Free peuvent s'entraîner sur ce que tu
-envoies, et aucun fournisseur LLM hébergé n'a la conservation zéro par défaut. Pour des textes
+Pour des textes
 confidentiels, utilise un niveau payant, ton propre serveur, ou aucune traduction automatique.
 
 ## Garder les textes en interne
@@ -146,9 +145,9 @@ déjà la page.
 L'article 50 du règlement européen sur l'IA fixe des obligations de transparence pour les systèmes
 d'IA qui génèrent du texte
 ([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-S'il s'applique à ton produit, ton conseil juridique le dira. verbatra garde une
-[trace](/docs/the-lock-file#la-provenance-de-chaque-valeur) : chaque valeur produite par un
-fournisseur porte l'origine `machine`, avec fournisseur et modèle.
+S'il s'applique à ton produit, ton conseil juridique le dira. verbatra
+[enregistre](/docs/the-lock-file#la-provenance-de-chaque-valeur) le fournisseur et le modèle de
+chaque valeur traduite automatiquement.
 
 ### Fichier d'audit
 
@@ -159,8 +158,8 @@ fournisseur porte l'origine `machine`, avec fournisseur et modèle.
 
 ## Liste de contrôle pour une revue DPA ou NDA
 
-1. Décide si les textes peuvent quitter ton réseau. Sinon, utilise le fournisseur `none` ou un
-   serveur auto-hébergé, et fixe `VERBATRA_NETWORK_POLICY=local-only` dans la CI.
+1. Décide si les textes peuvent quitter ton réseau ; sinon, choisis une option sous
+   [Garder les textes en interne](#garder-les-textes-en-interne).
 2. Pour un fournisseur hébergé, prends un niveau payant et signe ses conditions de traitement des
    données, avec la conservation zéro s'il te la faut.
 3. Vérifie avec `verbatra check --sensitive` ce que tes noms de clé, descriptions et glossaire envoient.
