@@ -69,7 +69,9 @@ deterministic test joins the required gate automatically.
   closes while a `translation.translatePending` call is held mid-request by the same kind of
   never-answering loopback endpoint, spending nothing, and `verbatra-mcp --allow-spend` exits 0
   within seconds of a SIGINT or SIGTERM sent during that held call, leaving no `*.lock` file
-  behind). It also covers `check --qa` and `--strict` on committed translations
+  behind, and a 2026-07-28 session answers `server/discover`, `tools/list` and a call, announces
+  the changed tool list on its `subscriptions/listen` stream once a config appears, and reports
+  progress for a `translation.translatePending` run against a loopback LibreTranslate stub). It also covers `check --qa` and `--strict` on committed translations
   (`tests/check-qa.e2e.test.ts`), `check --file` on one locale file (a good file, a broken
   placeholder, broken JSON syntax reported with its line and column, and a path that is not a
   locale file; `tests/check-file.e2e.test.ts`), `extract` (`tests/extract.e2e.test.ts`), per-language CLDR plural
@@ -89,8 +91,9 @@ deterministic test joins the required gate automatically.
   sent), and an XLIFF 2.0 handoff exported, filled as a CAT tool would, and imported with its
   review state (`tests/xliff-handoff.e2e.test.ts`). It calls no hosted provider and makes no
   network request outside 127.0.0.1: only the interrupt test and the `--allow-spend` MCP test point
-  an `openai-compatible` provider at a never-answering loopback endpoint the test serves, so the
-  tier is deterministic and free.
+  an `openai-compatible` provider at a never-answering loopback endpoint the test serves, and the
+  2026-07-28 MCP test translates against a loopback LibreTranslate stub it serves, so the tier is
+  deterministic and free.
 
   **This tier is the required release gate.** It runs as the `e2e` job in
   `.github/workflows/ci.yml`, feeds the `Build and test gate` job, and `release.yml` publishes only
