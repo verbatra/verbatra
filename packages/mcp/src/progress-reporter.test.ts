@@ -185,4 +185,45 @@ describe("createProgressReporter", () => {
     expect(() => reporter.onProgress(finished("de", 1, 1))).not.toThrow();
     await vi.runAllTimersAsync();
   });
+
+  it("drops a held update and sends nothing more once the signal aborts", () => {
+    const { updates, send } = recorder();
+    const controller = new AbortController();
+    const reporter = createProgressReporter({
+      send,
+      minIntervalMs: 250,
+      signal: controller.signal,
+    });
+
+    reporter.onProgress(planned("de", 3));
+    reporter.onProgress(finished("de", 1, 3));
+    reporter.onProgress(finished("de", 2, 3));
+    controller.abort();
+    reporter.onProgress(finished("de", 3, 3));
+    vi.advanceTimersByTime(1_000);
+    reporter.close();
+
+    expect(updates).toEqual([{ progress: 1, total: 3, message: "de: batch 1/3" }]);
+  });
+
+  it("still sends the final update on close when the signal never aborted", () => {
+    const { updates, send } = recorder();
+    const controller = new AbortController();
+    const reporter = createProgressReporter({
+      send,
+      minIntervalMs: 250,
+      signal: controller.signal,
+    });
+
+    reporter.onProgress(planned("de", 2));
+    reporter.onProgress(finished("de", 1, 2));
+    reporter.onProgress(finished("de", 2, 2));
+    reporter.close();
+    controller.abort();
+
+    expect(updates).toEqual([
+      { progress: 1, total: 2, message: "de: batch 1/2" },
+      { progress: 2, total: 2, message: "de: batch 2/2" },
+    ]);
+  });
 });

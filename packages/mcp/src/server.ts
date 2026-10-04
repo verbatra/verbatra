@@ -99,6 +99,7 @@ function executeFor(
 interface ProgressChannel {
   readonly mcpReq: {
     readonly _meta?: { readonly progressToken?: string | number | undefined } | undefined;
+    readonly signal: AbortSignal;
     notify(notification: Notification): Promise<void>;
   };
 }
@@ -117,8 +118,13 @@ function progressReporterFor(
         method: "notifications/progress",
         params: { progressToken, ...update },
       }),
+    signal: channel.mcpReq.signal,
     ...(onLog !== undefined ? { onLog } : {}),
   });
+}
+
+function callScope(signal: AbortSignal, progress: ProgressReporter | undefined): McpCallScope {
+  return { signal, ...(progress !== undefined ? { onProgress: progress.onProgress } : {}) };
 }
 
 export function createMcpServer(options: McpServerOptions): Server {
@@ -183,7 +189,7 @@ export function createMcpServer(options: McpServerOptions): Server {
     }
     const progress = progressReporterFor(ctx, options.onLog);
     try {
-      const scope: McpCallScope = progress !== undefined ? { onProgress: progress.onProgress } : {};
+      const scope = callScope(ctx.mcpReq.signal, progress);
       const outcome = await executeFor(tool, request.params.arguments ?? {}, state, seams, scope);
       if (outcome.kind === "ok") {
         return toOkResult(outcome);
@@ -193,6 +199,9 @@ export function createMcpServer(options: McpServerOptions): Server {
     } finally {
       progress?.close();
       inFlightGuard.leave(tool.name, dedupeKey);
+      if (ctx.mcpReq.signal.aborted) {
+        options.onLog?.(redact(`Tool "${tool.name}" cancelled by the client; no result was sent.`));
+      }
     }
   });
 

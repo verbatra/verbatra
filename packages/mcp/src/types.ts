@@ -29,6 +29,7 @@ export interface McpToolContext {
 
 export interface McpCallScope {
   readonly onProgress?: ProgressListener;
+  readonly signal?: AbortSignal;
 }
 
 export type McpToolCallContext = McpToolContext & McpCallScope;
