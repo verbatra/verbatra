@@ -46,9 +46,8 @@ la liste des langues de DeepL, Google Cloud Translation ou LibreTranslate.
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un
 texte partagé une seule fois. Une clé obsolète écrite par une personne n'est envoyée que pour une
-suggestion `humanEdits: "suggest"` ; une clé épinglée, jamais
-([Garder les traductions humaines](/docs/protecting-human-translations)). Ton résolveur DNS voit
-le nom d'hôte du fournisseur.
+suggestion `humanEdits: "suggest"` ; une clé [épinglée](/docs/protecting-human-translations),
+jamais. Ton résolveur DNS voit le nom d'hôte du fournisseur.
 
 ## Ce que reçoit chaque fournisseur
 
@@ -67,7 +66,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs par défaut trouvent les clés d'API, e-mails, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes, comme des noms de code. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`), donc `block` et `redact` retiennent la clé.
+`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs par défaut trouvent les clés d'API, e-mails, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`), donc `block` et `redact` retiennent la clé.
 
 | `mode` | Effet |
 | --- | --- |
@@ -75,7 +74,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 | `block` | Retient la clé, donc la locale se termine `partial`. |
 | `redact` | Envoie un jeton à la place de chaque correspondance dans la valeur et la restaure ; une correspondance dans une description ou un sens part en `[redacted]`. Une correspondance dans le nom de la clé, ou un jeton qui ne revient pas exactement une fois, retient la clé. Sur DeepL et Google, un jeton compte comme un placeholder, donc une valeur qu'ils ne peuvent pas protéger est retenue comme `PLACEHOLDER_UNSUPPORTED`. |
 
-`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. La protection est désactivée par défaut ; `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
+`block` et `redact` laissent aussi de côté un terme du glossaire qui correspond. `verbatra init` écrit `warn` pour un fournisseur automatique. Pour un faux positif, ajoute le texte à `allow` ou retire son détecteur. [`verbatra check --sensitive`](/docs/cli/check#contenu-sensible) analyse sans clé. Les noms dans du texte libre ne sont pas détectés.
 
 ## Conservation et traitement des données chez le fournisseur
 
@@ -91,7 +90,8 @@ anglais d'origine, en septembre 2026.
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", et "Google does not use the content you send to train and improve our Google Translation features" ([data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
 | openai-compatible, LibreTranslate | Ce que fait ton propre serveur. Un serveur que tu fais tourner toi-même garde les textes sur du matériel que tu contrôles. | Les tiennes |
 
-Pour des textes
+Gemini gratuit (hors EEE, Suisse et Royaume-Uni) et DeepL Free peuvent s'entraîner sur ce que tu
+envoies, et aucun fournisseur LLM hébergé n'a la conservation zéro par défaut. Pour des textes
 confidentiels, utilise un niveau payant, ton propre serveur, ou aucune traduction automatique.
 
 ## Garder les textes en interne
@@ -144,8 +144,8 @@ déjà la page.
 
 L'article 50 du règlement européen sur l'IA fixe des obligations de transparence pour les systèmes
 d'IA qui génèrent du texte
-([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-S'il s'applique à ton produit, ton conseil juridique le dira. verbatra
+([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)). S'il s'applique à ton
+produit, ton conseil juridique le dira. verbatra
 [enregistre](/docs/the-lock-file#la-provenance-de-chaque-valeur) le fournisseur et le modèle de
 chaque valeur traduite automatiquement.
 
