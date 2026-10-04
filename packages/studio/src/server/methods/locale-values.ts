@@ -15,11 +15,11 @@ function sdkDeps(deps: RpcHandlerDeps): LocaleValuesDeps {
   };
 }
 
-export function readAllLocaleValues(deps: RpcHandlerDeps): Promise<readonly LocaleValues[]> {
+function readAllLocaleValues(deps: RpcHandlerDeps): Promise<readonly LocaleValues[]> {
   return localeValues({ config: deps.config.config, cwd: deps.projectRoot }, sdkDeps(deps));
 }
 
-export function readLocaleValuesPage(
+function readLocaleValuesPage(
   params: LocaleValuesParams,
   deps: RpcHandlerDeps,
 ): Promise<LocaleValuesPage> {

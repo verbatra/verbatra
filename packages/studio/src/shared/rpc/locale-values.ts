@@ -7,12 +7,16 @@ export const LOCALE_VALUES_PAGE_LIMIT_DEFAULT = 200;
 
 export const LOCALE_VALUES_PAGE_LIMIT_CAP = 1000;
 
+export const LOCALE_VALUES_QUERY_MAX_LENGTH = 500;
+
+export const LOCALE_VALUES_CURSOR_MAX_LENGTH = 512;
+
 const pageShape = {
   locales: z.array(z.string().min(1)).min(1).optional(),
   keys: z.array(z.string().min(1)).min(1).max(LOCALE_VALUES_PAGE_LIMIT_CAP).optional(),
-  query: z.string().min(1).max(500).optional(),
+  query: z.string().min(1).max(LOCALE_VALUES_QUERY_MAX_LENGTH).optional(),
   limit: z.number().int().min(1).max(LOCALE_VALUES_PAGE_LIMIT_CAP).optional(),
-  cursor: z.string().min(1).max(512).optional(),
+  cursor: z.string().min(1).max(LOCALE_VALUES_CURSOR_MAX_LENGTH).optional(),
 };
 
 function keysOrQuery(params: { readonly keys?: unknown; readonly query?: unknown }): boolean {

@@ -4,7 +4,7 @@ import { AdapterRegistry, type LoadedConfig, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
-import { localeValuesHandler, readAllLocaleValues } from "./locale-values.js";
+import { localeValuesHandler } from "./locale-values.js";
 
 function deps(project: FixtureProject): RpcHandlerDeps {
   const loaded: LoadedConfig = {
@@ -28,23 +28,12 @@ async function writeTargetFile(
 }
 
 describe("localeValuesHandler", () => {
-  it("returns every value of every locale when called without parameters", async () => {
-    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
-    try {
-      expect(await localeValuesHandler({}, deps(project))).toEqual(
-        await readAllLocaleValues(deps(project)),
-      );
-    } finally {
-      await project.cleanup();
-    }
-  });
-
   it("returns source and target text for every configured target locale", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
-      const result = await readAllLocaleValues(deps(project));
+      const result = await localeValuesHandler({}, deps(project));
 
       expect(result).toEqual([
         {
@@ -67,9 +56,10 @@ describe("localeValuesHandler", () => {
   it("omits target for a key not yet translated", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
-      const result = await readAllLocaleValues(deps(project));
+      const result = await localeValuesHandler({}, deps(project));
 
-      expect(result[0]?.values.greeting).toEqual({ source: "hello" });
+      expect(result).toMatchObject([{ values: { greeting: { source: "hello" } } }]);
+      expect(result).not.toMatchObject([{ values: { greeting: { target: expect.anything() } } }]);
     } finally {
       await project.cleanup();
     }
@@ -80,12 +70,19 @@ describe("localeValuesHandler", () => {
     try {
       await writeTargetFile(project, "de", { greeting: "hallo", legacy: "old" });
 
-      const result = await readAllLocaleValues(deps(project));
+      const result = await localeValuesHandler({}, deps(project));
 
-      expect(result[0]?.values.legacy).toEqual({
-        target: "old",
-        provenance: { origin: "unrecorded", reviewState: "unreviewed" },
-      });
+      expect(result).toMatchObject([
+        {
+          values: {
+            legacy: {
+              target: "old",
+              provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+            },
+          },
+        },
+      ]);
+      expect(result).not.toMatchObject([{ values: { legacy: { source: expect.anything() } } }]);
     } finally {
       await project.cleanup();
     }
@@ -107,7 +104,7 @@ describe("localeValuesHandler", () => {
           "utf8",
         );
 
-        const result = await readAllLocaleValues(deps(project));
+        const result = await localeValuesHandler({}, deps(project));
 
         expect(JSON.stringify(result)).toBe(
           `[{"locale":"de","keys":[${JSON.stringify(key)}],"values":{${JSON.stringify(key)}:{"source":"source","target":"target","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]`,
