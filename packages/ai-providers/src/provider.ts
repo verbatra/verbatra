@@ -66,8 +66,9 @@ export interface TranslateRequest {
   /**
    * Optional tokens per entry key, beside the entry's own `placeholders`, that look like a
    * placeholder of another syntax than the format interpolates, such as `{name}` in an i18next
-   * value, or the head `{n, plural,` of an ICU argument there. The SDK sets it for every built-in
-   * format. DeepL, Google Cloud Translation and LibreTranslate protect these tokens like
+   * value, or the head `{n, plural,` of an ICU argument there. For a built-in format the SDK sets
+   * it only when at least one value in the batch holds such a token, and leaves it absent
+   * otherwise. DeepL, Google Cloud Translation and LibreTranslate protect these tokens like
    * placeholders, and withhold the entry with `PLACEHOLDER_UNSUPPORTED` when one cannot be
    * masked or restored; LLM providers do not read it.
    */
