@@ -559,6 +559,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         unchanged: diff.unchanged,
         orphaned,
         invalidIcuSource,
+        emptySource: diff.emptySource,
         translated,
         cacheHits: [],
         fuzzyHits: [],
@@ -724,6 +725,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
         unchanged: diff.unchanged,
         orphaned,
         invalidIcuSource,
+        emptySource: diff.emptySource,
         translated: [...accepted.keys()].filter((key) => !cacheHitKeys.has(key)),
         cacheHits: [...cacheHitKeys]
           .filter((key) => !fuzzyKeys.has(key) && !protection.suggest.has(key))
@@ -1105,6 +1107,7 @@ interface SummaryParts {
   readonly unchanged: readonly string[];
   readonly orphaned: readonly string[];
   readonly invalidIcuSource: readonly string[];
+  readonly emptySource: readonly string[];
   readonly translated: readonly string[];
   readonly cacheHits: readonly string[];
   readonly fuzzyHits: readonly FuzzyCacheHit[];
@@ -1131,6 +1134,7 @@ function baseSummary(parts: SummaryParts): LocaleSummary {
     orphaned: parts.orphaned,
     pruned: parts.pruned,
     invalidIcuSource: parts.invalidIcuSource,
+    emptySource: parts.emptySource,
     cacheHits: parts.cacheHits,
     fuzzyHits: parts.fuzzyHits,
     integrityMismatches: parts.integrityMismatches,

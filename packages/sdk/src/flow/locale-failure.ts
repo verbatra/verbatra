@@ -11,6 +11,7 @@ export function failureSummary(locale: string, error: unknown): LocaleSummary {
     orphaned: [],
     pruned: [],
     invalidIcuSource: [],
+    emptySource: [],
     cacheHits: [],
     fuzzyHits: [],
     integrityMismatches: [],

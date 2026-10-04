@@ -163,8 +163,9 @@ export interface PluralGenerationPlan {
 function representativeEntry(
   group: ReadonlyMap<PluralCategory, TranslationEntry>,
 ): TranslationEntry | undefined {
-  const filled = new Map([...group].filter(([, entry]) => !isBlankValue(entry.value)));
-  return filled.get("other") ?? filled.get("one") ?? [...filled.values()][0];
+  return [group.get("other"), group.get("one"), ...group.values()].find(
+    (entry) => entry !== undefined && !isBlankValue(entry.value),
+  );
 }
 
 export function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
