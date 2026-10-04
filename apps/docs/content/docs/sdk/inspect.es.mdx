@@ -12,8 +12,7 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 <AvailableFrom version="0.9.0" />
 
 Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, nunca lee el
-valor de una clave de API y no hace ninguna petición de red salvo que `live` pida una. Cada
-comprobación devuelve su propio veredicto `pass`, `fail` o `skipped`, y todas se ejecutan aunque una
+valor de una clave de API y no hace ninguna petición de red salvo que `live` pida una. Cada comprobación devuelve su propio veredicto, y todas se ejecutan aunque una
 anterior haya fallado, así que una sola llamada informa de cada problema independiente.
 [`verbatra doctor`](/docs/cli/doctor#qué-comprueba) enumera las comprobaciones. La clave de API se
 comprueba solo por nombre; el archivo de origen se analiza, no solo se localiza.
@@ -36,7 +35,7 @@ function doctor(
 La comprobación `network-policy` falla cuando la [política de red](/docs/network-policy) efectiva
 rechaza el host o el proxy del proveedor, o cuando una variable de entorno de red tiene un valor no
 válido; pasa para el proveedor `none`. Las comprobaciones `plural-rules`, `plural-completeness`,
-`locale-codes` y `locale-state` son informativas, siempre pasan y no renombran nada; la
+`locale-codes` y `locale-state` son informativas, nunca fallan y no renombran nada: cada una es `warn` cuando nombra algo y `pass` en caso contrario, y `locales` es `warn` cuando una locale lleva un aviso. Un `warn` deja `ok` en true; la
 [tabla de comprobaciones](/docs/cli/doctor#qué-comprueba) dice qué nombra cada una.
 
 <AvailableFrom version="0.12.0" />

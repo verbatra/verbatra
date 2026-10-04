@@ -29,7 +29,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 <AvailableFrom version="0.12.0" />
 
-A setup run reports these checks, in this order. Plural rules, Plural completeness, Locale codes and Locale state are informational and never fail.
+A setup run reports these checks, in this order. Plural rules, Plural completeness, Locale codes and Locale state are informational and never fail: each prints `[warn]` when it names something and `[ok  ]` otherwise.
 
 | Check | Passes when |
 | --- | --- |
@@ -45,7 +45,7 @@ A setup run reports these checks, in this order. Plural rules, Plural completene
 | Locale state | always: names every locale the lock file, cache or provenance file holds state for that the config does not list, and whether `translate` [carries it over](/docs/the-lock-file#a-respelled-locale-code) |
 | Locale support | the provider supports the source and every target locale (see [Locale support](#locale-support)) |
 
-Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON). A failed check also carries a `fix`, one imperative next step printed as a `fix:` line and sent as `"fix"` in JSON, so an agent can act without parsing `detail`.
+Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON). A check that found something worth attention without failing prints `[warn]` (`"status": "warn"` in JSON) and never changes the exit code. A failed check also carries a `fix`, one imperative next step printed as a `fix:` line and sent as `"fix"` in JSON, so an agent can act without parsing `detail`.
 
 A run with two problems:
 
@@ -60,6 +60,7 @@ verbatra doctor
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
          fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
   ...
+    [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
@@ -76,7 +77,7 @@ verbatra doctor
 
 <AvailableFrom version="0.12.0" />
 
-The Locale support check asks whether the provider can translate each configured locale. DeepL and Google Cloud Translation are judged against a dated language table verbatra ships; an LLM provider accepts any locale. It fails on exactly the locale [`verbatra translate`](/docs/cli/translate) would refuse with `LOCALE_UNSUPPORTED_BY_PROVIDER`, and otherwise passes with warnings. [Language support](/docs/language-support#checking-support-before-a-run) explains the verdicts.
+The Locale support check asks whether the provider can translate each configured locale. DeepL and Google Cloud Translation are judged against a dated language table verbatra ships; an LLM provider accepts any locale. It fails on exactly the locale [`verbatra translate`](/docs/cli/translate) would refuse with `LOCALE_UNSUPPORTED_BY_PROVIDER`, and otherwise prints `[warn]` when a locale carries a warning or `--live` could not fetch the list. [Language support](/docs/language-support#checking-support-before-a-run) explains the verdicts.
 
 `--locales` prints the verdict per locale after the checks:
 
@@ -147,7 +148,7 @@ interface DoctorCheck {
     | "locales"
     | "untranslated-literals";
   title: string;               // stable, human-readable name
-  status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
   fix?: string;                // the next step, only on a failed check
 }
@@ -211,7 +212,7 @@ verbatra doctor --live
 
 | Code | Meaning |
 | --- | --- |
-| `0` | every check passed |
+| `0` | no check failed (a `warn` still exits `0`) |
 | `1` | at least one check failed, including an unsupported locale; with `--literals`, a literal was found or a file could not be scanned |
 | `2` | could not run: a usage error, or an explicit `--config` path that does not exist |
 

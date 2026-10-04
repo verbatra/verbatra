@@ -29,7 +29,7 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd`, `--con
 
 <AvailableFrom version="0.12.0" />
 
-Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plural rules, Plural completeness, Locale codes et Locale state sont informatives et n'échouent jamais.
+Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plural rules, Plural completeness, Locale codes et Locale state sont informatives et n'échouent jamais : chacune affiche `[warn]` quand elle nomme quelque chose et `[ok  ]` sinon.
 
 | Vérification | Passe quand |
 | --- | --- |
@@ -45,7 +45,7 @@ Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plu
 | Locale state | toujours : nomme chaque locale pour laquelle le fichier de verrou, le cache ou le fichier de provenance gardent un état que la configuration ne liste pas, et si `translate` le [reprend](/docs/the-lock-file#un-code-de-locale-réécrit) |
 | Locale support | le fournisseur prend en charge la locale source et chaque locale cible (voir [Prise en charge des locales](#prise-en-charge-des-locales)) |
 
-Chaque vérification s'exécute même si une précédente a échoué. La seule exception est la configuration : si elle ne peut pas être chargée, les vérifications qui en dépendent s'affichent en `[skip]` (`"status": "skipped"` en JSON). Une vérification échouée porte aussi un `fix`, une prochaine étape à l'impératif affichée en ligne `fix:` et transmise comme `"fix"` en JSON, pour qu'un agent agisse sans analyser `detail`.
+Chaque vérification s'exécute même si une précédente a échoué. La seule exception est la configuration : si elle ne peut pas être chargée, les vérifications qui en dépendent s'affichent en `[skip]` (`"status": "skipped"` en JSON). Une vérification qui trouve quelque chose méritant attention sans échouer s'affiche en `[warn]` (`"status": "warn"` en JSON) et ne change jamais le code de sortie. Une vérification échouée porte aussi un `fix`, une prochaine étape à l'impératif affichée en ligne `fix:` et transmise comme `"fix"` en JSON, pour qu'un agent agisse sans analyser `detail`.
 
 Une exécution avec deux problèmes :
 
@@ -60,6 +60,7 @@ verbatra doctor
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
          fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
   ...
+    [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
@@ -76,7 +77,7 @@ verbatra doctor
 
 <AvailableFrom version="0.12.0" />
 
-La vérification Locale support demande si le fournisseur peut traduire chaque locale configurée. DeepL et Google Cloud Translation sont évalués d'après une table de langues datée que verbatra embarque ; un fournisseur LLM accepte toute locale. Elle échoue exactement sur la locale que [`verbatra translate`](/docs/cli/translate) refuserait avec `LOCALE_UNSUPPORTED_BY_PROVIDER`, et passe sinon avec des avertissements. [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) explique les verdicts.
+La vérification Locale support demande si le fournisseur peut traduire chaque locale configurée. DeepL et Google Cloud Translation sont évalués d'après une table de langues datée que verbatra embarque ; un fournisseur LLM accepte toute locale. Elle échoue exactement sur la locale que [`verbatra translate`](/docs/cli/translate) refuserait avec `LOCALE_UNSUPPORTED_BY_PROVIDER`, et affiche sinon `[warn]` quand une locale porte un avertissement ou que `--live` n'a pas pu récupérer la liste. [Prise en charge des langues](/docs/language-support#vérifier-la-prise-en-charge-avant-une-exécution) explique les verdicts.
 
 `--locales` affiche le verdict par locale après les vérifications :
 
@@ -147,7 +148,7 @@ interface DoctorCheck {
     | "locales"
     | "untranslated-literals";
   title: string;               // stable, human-readable name
-  status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
   fix?: string;                // the next step, only on a failed check
 }
@@ -211,7 +212,7 @@ verbatra doctor --live
 
 | Code | Signification |
 | --- | --- |
-| `0` | toutes les vérifications ont passé |
+| `0` | aucune vérification n'a échoué (un `warn` sort aussi avec `0`) |
 | `1` | au moins une vérification a échoué, y compris une locale non prise en charge ; avec `--literals`, un littéral trouvé ou un fichier non analysable |
 | `2` | impossible de s'exécuter : une erreur d'usage ou un chemin `--config` explicite qui n'existe pas |
 

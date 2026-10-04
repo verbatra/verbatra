@@ -104,6 +104,7 @@ Les résultats vont sur stdout. La progression, les avis, les suggestions, les a
 
 - Dans un terminal interactif, les libellés fixes comme `error`, `[ok]` et `next:` sont colorés, et une étape qui dure plus de 300 ms affiche un spinner ASCII (`| / - \`).
 - Quand stderr est redirigé ou envoyé dans un pipe, que `CI` a une valeur autre que `0` ou `false`, ou que `TERM` vaut `dumb`, la sortie se compose de lignes simples, uniquement ajoutées, sans couleur ni animation.
+- Les étiquettes de statut du rapport de [`doctor`](/docs/cli/doctor) sur stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) ne sont colorées que si stdout est lui-même un terminal interactif, pour qu'un rapport redirigé reste brut.
 - `--json` n'ajoute jamais de couleur, d'animation ni de nouvelles lignes : stdout et stderr restent exactement comme décrit dans [Sortie JSON](/docs/cli/output#sortie-json).
 
 | Flag ou variable | Effet |

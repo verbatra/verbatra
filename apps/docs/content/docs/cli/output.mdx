@@ -104,6 +104,7 @@ Results go to stdout. Progress, notices, hints, warnings and errors go to stderr
 
 - On an interactive terminal, fixed labels such as `error`, `[ok]` and `next:` are colored, and a step that takes longer than 300 ms shows an ASCII spinner (`| / - \`).
 - When stderr is piped or redirected, `CI` is set to anything but `0` or `false`, or `TERM` is `dumb`, the output is plain, append-only lines with no color and no animation.
+- The status labels of the [`doctor`](/docs/cli/doctor) report on stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) are colored only when stdout itself is an interactive terminal, so a redirected report stays plain.
 - `--json` never adds color, animation or new lines: stdout and stderr stay exactly as described in [JSON output](/docs/cli/output#json-output).
 
 | Flag or variable | Effect |
