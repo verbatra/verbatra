@@ -66,6 +66,7 @@ describe("lockStateHandler", () => {
           missing: 0,
           stale: 0,
           upToDate: 1,
+          emptySource: 0,
           provenance: expect.any(Object),
         },
       ]);
@@ -100,6 +101,7 @@ describe("lockStateHandler", () => {
           missing: 1,
           stale: 0,
           upToDate: 1,
+          emptySource: 0,
           provenance: expect.any(Object),
         },
         {
@@ -108,6 +110,7 @@ describe("lockStateHandler", () => {
           missing: 0,
           stale: 2,
           upToDate: 0,
+          emptySource: 0,
           provenance: expect.any(Object),
         },
       ]);
@@ -136,6 +139,7 @@ describe("lockStateHandler", () => {
             missing: 0,
             stale: 0,
             upToDate: 1,
+            emptySource: 0,
             provenance: expect.any(Object),
           },
         ],
