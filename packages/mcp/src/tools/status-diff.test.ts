@@ -38,6 +38,20 @@ describe("status.diff", () => {
     });
   });
 
+  it("lists a key with an empty source value apart from the pending keys", async () => {
+    const dir = await makeProject({ greeting: "Hello", empty: "" }, { de: { greeting: "Hallo" } });
+
+    const outcome = await statusDiffTool.execute({}, makeContext({ cwd: dir }));
+
+    expect(outcome).toMatchObject({
+      kind: "ok",
+      result: {
+        hasPendingChanges: false,
+        locales: [{ locale: "de", missing: [], emptySource: ["empty"], hasPendingChanges: false }],
+      },
+    });
+  });
+
   it("returns isError with the offending field for an out-of-range locales list", async () => {
     const dir = await makeProject({ greeting: "Hello" });
 

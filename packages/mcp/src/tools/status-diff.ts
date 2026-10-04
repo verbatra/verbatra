@@ -14,6 +14,7 @@ const localeDiffSchema = z.object({
   changed: z.array(z.string()).readonly(),
   orphaned: z.array(z.string()).readonly(),
   hasPendingChanges: z.boolean(),
+  emptySource: z.array(z.string()).readonly().optional(),
   changedOrigins: z.record(z.string(), keyOriginSchema).optional(),
   protected: z.array(z.string()).readonly().optional(),
 });
@@ -60,7 +61,10 @@ export const statusDiffTool = defineTool({
     "absent when verbatra.provenance.json is corrupt or from a newer verbatra. protected " +
     "lists the missing and changed keys a translate run would leave alone for a person, " +
     "under the config's humanEdits and pinnedKeys; when that file is unreadable it lists " +
-    "only the pinned keys. Read-only: it calls no provider and writes nothing.",
+    "only the pinned keys. emptySource lists the source keys whose value is empty or " +
+    "whitespace only: they are not pending, a translate run sends nothing for them, and they " +
+    "need a person to write the source text. Read-only: it calls no provider and writes " +
+    "nothing.",
   paramsSchema,
   outputSchema: statusDiffResultSchema,
   annotations: {

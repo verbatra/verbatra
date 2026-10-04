@@ -33,6 +33,7 @@ const localeCheckSchema = z.object({
   stale: z.number(),
   upToDate: z.number(),
   inSync: z.boolean(),
+  emptySource: z.number().optional(),
   provenance: provenanceSummarySchema.optional(),
   protected: z.number().optional(),
   incompletePlurals: z.array(incompletePluralSchema).readonly().optional(),
@@ -82,7 +83,10 @@ export const statusCheckTool = defineTool({
     "person resolves them, and only pinned keys are counted when that file is unreadable. " +
     "incompletePlurals lists each plural whose forms in that locale lack CLDR plural categories " +
     "the target language uses, with the missing categories; it is a warning and never changes " +
-    "the counts or inSync. Read-only: it calls no provider and writes nothing.",
+    "the counts or inSync. emptySource counts the source keys whose value is empty or " +
+    "whitespace only: they are left out of missing and stale and never make a locale out of " +
+    "sync, because there is nothing to translate until a person writes the source text. " +
+    "Read-only: it calls no provider and writes nothing.",
   paramsSchema,
   outputSchema: statusCheckResultSchema,
   annotations: {
