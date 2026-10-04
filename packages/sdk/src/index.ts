@@ -322,6 +322,14 @@ export {
   localeValues,
 } from "./flow/locale-values.js";
 export {
+  LOCALE_VALUES_QUERY_MAX_LENGTH,
+  type LocaleValuesPage,
+  type LocaleValuesPageEntry,
+  type LocaleValuesPageInput,
+  type LocaleValuesPageLocale,
+  localeValuesPage,
+} from "./flow/locale-values-page.js";
+export {
   type LockLocaleState,
   type LockStateDeps,
   type LockStateInput,
@@ -341,6 +349,13 @@ export {
   type ProvenanceReportResult,
   provenanceReport,
 } from "./flow/provenance-report.js";
+export {
+  type ProvenanceReportPage,
+  type ProvenanceReportPageInput,
+  type ProvenanceReportPageLocale,
+  type ProvenanceReportPageResult,
+  provenanceReportPage,
+} from "./flow/provenance-report-page.js";
 export {
   type PseudolocalizeDeps,
   type PseudolocalizeInput,
@@ -517,6 +532,11 @@ export {
   type ProvenanceReviewState,
 } from "./lock/provenance-file.js";
 export type { LockFile } from "./lock/types.js";
+export {
+  PAGE_CURSOR_MAX_LENGTH,
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
+} from "./paging/page-across-locales.js";
 export type {
   BatchFinishedEvent,
   ChangeDetectedEvent,

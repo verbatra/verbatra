@@ -446,6 +446,22 @@ El `maxTokens` por ejecución de `translate` se fijó pero no es un número ente
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza
 - **Siguiente paso**: Pass a lock timeout that is a whole number of at least 0.
 
+### PAGE_CURSOR_INVALID
+
+El `cursor` pasado a `localeValuesPage` o `provenanceReportPage` está mal formado, supera `PAGE_CURSOR_MAX_LENGTH` (512), se creó con otros filtros o apunta a una clave que se movió o ya no existe porque los archivos cambiaron entre páginas.
+
+- **Lo lanza**: el SDK; la herramienta de agente `verbatra_locale_values` de Studio (el servidor MCP lo informa como entrada no válida para `cursor`)
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Call again without a cursor to start from the first page.
+
+### PAGE_LIMIT_INVALID
+
+El `limit` pasado a `localeValuesPage` o `provenanceReportPage` no es un número entero de 1 a `PAGE_LIMIT_CAP` (1000).
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Pass a page limit that is a whole number from 1 to 1000.
+
 ### TARGET_UNWRITABLE
 
 Un archivo de locale de destino no se pudo escribir (su directorio no es escribible, no existe, es de solo lectura o se quedó sin espacio); el mensaje nombra el archivo de destino y el código del sistema de archivos, nunca el archivo temporal interno que usa la escritura atómica.

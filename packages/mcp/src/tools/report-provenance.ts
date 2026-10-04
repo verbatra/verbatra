@@ -1,21 +1,18 @@
 import {
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
   PROVENANCE_BUCKETS,
   type ProvenanceBucket,
-  type ProvenanceReport,
-  type ProvenanceReportEntry,
+  type ProvenanceReportDeps,
+  type ProvenanceReportInput,
   provenanceReport,
+  provenanceReportPage,
 } from "@verbatra/sdk";
 import { z } from "zod";
 import { readSdkManifest } from "../package-manifest.js";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import {
-  PAGE_LIMIT_CAP,
-  PAGE_LIMIT_DEFAULT,
-  pageAcrossLocales,
-  pageCursorSchema,
-  pageLimitSchema,
-} from "./page-cursor.js";
+import { asInvalidCursor, pageCursorSchema, pageLimitSchema } from "./page-cursor.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
 import { withoutReviewer } from "./value-redaction.js";
 
@@ -65,74 +62,55 @@ const reportProvenanceResultSchema = z.object({
 
 export type ReportProvenanceResult = z.infer<typeof reportProvenanceResultSchema>;
 
-function pagedEntries(
-  report: ProvenanceReport,
-  params: Params,
-): {
-  readonly entriesByLocale: ReadonlyMap<string, readonly ProvenanceReportEntry[]>;
-  readonly nextCursor?: string;
-} {
-  const wanted = params.buckets === undefined ? undefined : new Set(params.buckets);
-  const page = pageAcrossLocales(
-    report.locales.map((locale) => ({
-      locale: locale.locale,
-      items: locale.entries.filter((entry) => wanted === undefined || wanted.has(entry.bucket)),
-    })),
-    {
-      filters: {
-        locales: params.locales ?? null,
-        buckets: params.buckets === undefined ? null : [...new Set(params.buckets)].sort(),
-      },
-      limit: params.limit ?? PAGE_LIMIT_DEFAULT,
-      ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
-    },
-  );
+function reportInput(params: Params, context: McpToolContext): ProvenanceReportInput {
   return {
-    entriesByLocale: new Map(page.locales.map((entry) => [entry.locale, entry.items])),
-    ...(page.nextCursor !== undefined ? { nextCursor: page.nextCursor } : {}),
+    config: context.config.config,
+    cwd: context.cwd,
+    toolVersion: readSdkManifest().version,
+    ...(params.locales !== undefined ? { locales: params.locales } : {}),
   };
 }
 
-function withEntries(report: ProvenanceReport, params: Params): ReportProvenanceResult {
-  const { entriesByLocale, nextCursor } = pagedEntries(report, params);
+function reportDeps(context: McpToolContext): ProvenanceReportDeps {
   return {
-    ...report,
-    locales: report.locales.map(({ entries: _all, ...locale }) => {
-      const entries = entriesByLocale.get(locale.locale);
-      return entries === undefined ? locale : { ...locale, entries };
-    }),
-    ...(nextCursor !== undefined ? { nextCursor } : {}),
+    ...(context.fs !== undefined ? { fs: context.fs } : {}),
+    ...(context.adapterRegistry !== undefined ? { adapterRegistry: context.adapterRegistry } : {}),
   };
+}
+
+async function readEntryPage(
+  params: Params,
+  context: McpToolContext,
+): Promise<ReportProvenanceResult> {
+  const page = await asInvalidCursor(() =>
+    provenanceReportPage(
+      {
+        ...reportInput(params, context),
+        ...(params.buckets !== undefined ? { buckets: params.buckets } : {}),
+        ...(params.limit !== undefined ? { limit: params.limit } : {}),
+        ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
+      },
+      reportDeps(context),
+    ),
+  );
+  return page.available ? { ...page, locales: [...page.locales] } : page;
 }
 
 async function readProvenanceReport(
   params: Params,
   context: McpToolContext,
 ): Promise<ReportProvenanceResult> {
-  const report = await provenanceReport(
-    {
-      config: context.config.config,
-      cwd: context.cwd,
-      toolVersion: readSdkManifest().version,
-      ...(params.locales !== undefined ? { locales: params.locales } : {}),
-    },
-    {
-      ...(context.fs !== undefined ? { fs: context.fs } : {}),
-      ...(context.adapterRegistry !== undefined
-        ? { adapterRegistry: context.adapterRegistry }
-        : {}),
-    },
-  );
+  if (params.includeEntries === true) {
+    return readEntryPage(params, context);
+  }
+  const report = await provenanceReport(reportInput(params, context), reportDeps(context));
   if (!report.available) {
     return report;
   }
-  if (params.includeEntries !== true) {
-    return {
-      ...report,
-      locales: report.locales.map(({ entries: _entries, ...locale }) => locale),
-    };
-  }
-  return withEntries(report, params);
+  return {
+    ...report,
+    locales: report.locales.map(({ entries: _entries, ...locale }) => locale),
+  };
 }
 
 export const reportProvenanceTool = defineTool({

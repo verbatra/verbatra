@@ -1,6 +1,6 @@
 ---
 title: "Inspecter un projet"
-description: "Points d'entrée en lecture seule : doctor, check, diff, contrôles d'intégrité, état du verrou et de la provenance, et lectures en masse."
+description: "Points d'entrée en lecture seule : doctor, check, diff, contrôles d'intégrité, et état du verrou et de la provenance."
 type: reference
 ---
 ## Inspecter l'état sans écrire
@@ -358,27 +358,23 @@ function provenanceReport(
 
 `deps` accepte aussi `now`, l'horloge dont est tiré `generatedAt`. Renvoie `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`, chaque locale sous la forme `{ locale, total, counts, entries }` et chaque entrée sous la forme `{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` vaut `unknown` par défaut. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, il renvoie `{ available: false, reason: "provenance-unreadable" }`, puisqu'un rapport sans lui listerait chaque valeur comme `unrecorded`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Le rapport est un élément de preuve à l'appui, pas un conseil juridique ; le schéma complet figure sur [Preuves de traduction automatique](/docs/provenance-evidence#le-schéma-json).
 
-## Lectures de contenu en masse
+### provenanceReportPage
 
-<AvailableFrom version="0.10.0" />
+<AvailableFrom version="0.12.0" />
 
-### localeValues
-
-Lit le texte source et cible actuel de chaque clé, sur chaque locale cible demandée, en un seul passage sur les fichiers déjà présents sur le disque, par exemple pour chercher des valeurs plutôt que des noms de clé : le pendant en masse de `keyValue`, qui ne répond que pour une clé à la fois. En lecture seule.
+Construit le même rapport que `provenanceReport` et renvoie ses entrées page par page, si tu veux seulement celles de certains `buckets`, avec un curseur pour la page suivante. Chaque page garde complets les `total` et `counts` de chaque locale. `report.provenance` du serveur MCP pagine avec. En lecture seule.
 
 ```ts title="Signature"
-function localeValues(
-  input: LocaleValuesInput,
-  deps?: LocaleValuesDeps,
-): Promise<readonly LocaleValues[]>;
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
 ```
 
-<SdkTypeTable name="LocaleValuesInput" />
+<SdkTypeTable name="ProvenanceReportPageInput" />
 
-**Renvoie :** `readonly LocaleValues[]`
+**Renvoie :** `ProvenanceReportPageResult`
 
-**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
 
-Un `locales` omis couvre chaque locale cible configurée. Renvoie un tableau de `{ locale, keys, values }`, une entrée par locale : `keys` liste chaque clé dans l'ordre de la source, puis celles présentes seulement dans la cible, et `values` associe chaque clé à `{ source?, target? }`. Un `target` absent signifie que la clé n'a pas encore été traduite dans cette locale ; une `source` absente signifie que la clé est orpheline, présente dans la locale cible mais plus dans la source. `values` n'a pas de prototype : chaque clé, y compris une clé nommée `__proto__` ou `constructor`, est une propriété propre, et une clé absente du catalogue se lit comme `undefined`.
-
-Chaque paire avec une `target` porte aussi `provenance`, la même `KeyProvenance` que rapporte `keyValue`.
+Une locale ne porte `entries` que sur les pages qui contiennent une de ses entrées. Une page contient au plus `limit` entrées, `PAGE_LIMIT_DEFAULT` par défaut ; repasse `nextCursor` comme `cursor`, avec les mêmes `locales` et `buckets`, jusqu'à ce qu'il soit absent. Si le fichier de provenance est corrompu ou vient d'un verbatra plus récent, il renvoie `{ available: false, reason: "provenance-unreadable" }` comme `provenanceReport` ; un fichier source, cible ou de verrou illisible fait échouer l'appel.

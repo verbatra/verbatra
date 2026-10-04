@@ -44,7 +44,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_review_queue` | jeden maschinell geschriebenen Wert, den noch niemand freigegeben hat, aus den committeten Dateien <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_key_value` | Quelle und Ziel eines Keys, samt Angabe, wer das Ziel geschrieben hat |
 | `verbatra_key_context` | Beschreibung, Glossarbegriffe und `maxLength` eines Keys sowie die Prüfung eines optionalen `draft` <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
-| `verbatra_locale_values` | die Werte jedes Keys in jeder Ziel-Locale |
+| `verbatra_locale_values` | Key-Werte pro Ziel-Locale, standardmäßig 200 pro Seite, eingegrenzt mit `locales`, `keys` oder `query` |
 | `verbatra_locale_integrity` | jede Übersetzung, die die Integritätsprüfungen nicht besteht <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 | `verbatra_translation_estimate` | was ein Translate-Pending-Aufruf senden und kosten würde, ohne einen Provider aufzurufen |
 | `verbatra_usage_summary` | Token-Verbrauch und Budget des letzten Laufs |
@@ -65,7 +65,7 @@ Jedes Tool ist eine Studio-Aktion mit dem Präfix `verbatra_`. Lese-Tools sind a
 | `verbatra_translation_retranslateEntry` | einen Key in einer Locale neu übersetzen |
 | `verbatra_translation_translatePending` | alles Ausstehende übersetzen, optional nur für bestimmte `locales` und unter einer `maxTokens`-Obergrenze <AvailableFrom version="0.6.0" pkg="@verbatra/studio" /> |
 
-`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`; sein `locale.values` liefert Seiten, siehe [Weitere Eingaben und Ergebnisse](/docs/cli/mcp#weitere-eingaben-und-ergebnisse).
+`verbatra_key_integrity` liefert nur die Locales, in denen sich die Quelle des Keys geändert hat; eine leere Liste heißt also, dass nichts zu prüfen war. Seine Zeilen sind flacher als die von [`key.integrity`](/docs/cli/mcp#inputs-und-ergebnisse) im MCP-Server. Nur der MCP-Server hat `project.doctor` und `report.provenance`. `verbatra_locale_values` blättert wie sein `locale.values`, mit denselben `limit` und `cursor` ([Weitere Eingaben und Ergebnisse](/docs/cli/mcp#weitere-eingaben-und-ergebnisse)).
 
 ## Die Regeln der Tools kennen
 

@@ -1,6 +1,6 @@
 ---
 title: "Ein Projekt inspizieren"
-description: "Nur lesende Einstiegspunkte: doctor, check, diff, Integritätsprüfungen, Lock- und Provenienzzustand und Lesen in großen Mengen."
+description: "Nur lesende Einstiegspunkte: doctor, check, diff, Integritätsprüfungen sowie Lock- und Provenienzzustand."
 type: reference
 ---
 ## Zustand inspizieren, ohne zu schreiben
@@ -504,38 +504,23 @@ die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei `check`. Der Be
 unterstützender Nachweis, keine Rechtsberatung; das vollständige Schema steht unter
 [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#das-json-schema).
 
-## Inhalte in großen Mengen lesen
+### provenanceReportPage
 
-<AvailableFrom version="0.10.0" />
+<AvailableFrom version="0.12.0" />
 
-### localeValues
-
-Liest den aktuellen Quell- und Zielwert jedes Keys, über jede angefragte Ziel-Locale hinweg, in
-einem einzigen Durchgang über die bereits auf der Platte liegenden Dateien, etwa um Werte statt
-Key-Namen zu durchsuchen: das Gegenstück zu `keyValue` für große Mengen, das immer nur einen Key
-beantwortet. Nur lesend.
+Baut denselben Bericht wie `provenanceReport` und gibt seine Einträge seitenweise zurück, optional nur die aus bestimmten `buckets`, mit einem Cursor für die nächste Seite. Jede Seite behält `total` und `counts` jeder Locale vollständig. `report.provenance` im MCP-Server blättert damit. Nur lesend.
 
 ```ts title="Signatur"
-function localeValues(
-  input: LocaleValuesInput,
-  deps?: LocaleValuesDeps,
-): Promise<readonly LocaleValues[]>;
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
 ```
 
-<SdkTypeTable name="LocaleValuesInput" />
+<SdkTypeTable name="ProvenanceReportPageInput" />
 
-**Rückgabe:** `readonly LocaleValues[]`
+**Rückgabe:** `ProvenanceReportPageResult`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
 
-Ein weggelassenes `locales` deckt jedes konfigurierte
-Ziel-Locale ab. Gibt ein Array von `{ locale, keys, values }` zurück, ein Eintrag pro Locale:
-`keys` listet jeden Key in Quellreihenfolge, danach die nur im Ziel vorhandenen, und `values` bildet
-jeden Key auf `{ source?, target? }` ab. Ein fehlendes `target` bedeutet, dass der
-Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key
-verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle. `values` hat
-keinen Prototyp: Jeder Key, auch einer namens `__proto__` oder `constructor`, ist eine eigene
-Eigenschaft, und ein Key, der im Katalog fehlt, ergibt `undefined`.
-
-Jedes Paar mit einem `target` trägt außerdem `provenance`, dieselbe `KeyProvenance`, die `keyValue`
-meldet.
+Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Ist die Provenienzdatei beschädigt oder stammt sie von einem neueren verbatra, kommt wie bei `provenanceReport` `{ available: false, reason: "provenance-unreadable" }` zurück; eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufruf fehlschlagen.

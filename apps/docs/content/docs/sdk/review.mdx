@@ -1,6 +1,6 @@
 ---
 title: "Edit and review"
-description: "Read, edit, approve, reject and retranslate one key, or review and retranslate many at once."
+description: "Read, edit, approve, reject and retranslate one key, read values in bulk or page by page, or review and retranslate many at once."
 type: reference
 ---
 ## Single-key operations
@@ -245,6 +245,61 @@ function createValueMarker(salt?: Uint8Array): ValueMarker;
 ```
 
 **Returns:** `ValueMarker`
+
+## Bulk content reads
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Reads every key's current source and target text, across every requested target locale, in one
+pass over the files already on disk, for instance to search values rather than key names: the bulk
+counterpart to `keyValue`, which answers for one key at a time. Read-only.
+
+```ts title="Signature"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Returns:** `readonly LocaleValues[]`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+An omitted `locales` covers every configured target locale.
+Returns an array of `{ locale, keys, values }`, one entry per locale: `keys` lists every key in
+source order, then the target-only ones, and `values` maps each key to `{ source?, target? }`. An absent `target` means the key has not been translated in that locale
+yet; an absent `source` means the key is orphaned, present in the target locale but no longer in
+the source. `values` has no prototype, so every key, including one named `__proto__` or
+`constructor`, is an own property, and a key absent from the catalog reads as `undefined`.
+
+Each pair with a `target` also carries `provenance`, the same `KeyProvenance` `keyValue` reports.
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+Reads one page of `localeValues`, optionally narrowed to exact `keys` or to a `query` matched against key, source and target text, ignoring case, and returns a cursor for the next page. The MCP server and Studio's `verbatra_locale_values` agent tool page with it. Read-only.
+
+```ts title="Signature"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**Returns:** `LocaleValuesPage`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Returns `{ locales, nextCursor? }`: each locale with an entry on the page carries `entries`, each `{ key, source?, target?, provenance? }` as `localeValues` reports it, ordered by locale and then by key. A page holds at most `limit` entries: `PAGE_LIMIT_DEFAULT` (200) by default, `PAGE_LIMIT_CAP` (1000) at most. Pass `nextCursor` back as `cursor`, with the same filters, until it is absent. Every call reads the files again, so a cursor whose key moved or is gone is refused rather than skipping or repeating entries.
+
+A `cursor` is at most `PAGE_CURSOR_MAX_LENGTH` (512) characters. The MCP server and Studio accept a `query` of at most `LOCALE_VALUES_QUERY_MAX_LENGTH` (500) characters.
 
 ## Batch review and retranslation
 

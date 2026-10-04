@@ -1,15 +1,13 @@
-import { type KeyValuePair, type LocaleValues, localeValues } from "@verbatra/sdk";
+import {
+  LOCALE_VALUES_QUERY_MAX_LENGTH,
+  localeValuesPage,
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
+} from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import {
-  PAGE_LIMIT_CAP,
-  PAGE_LIMIT_DEFAULT,
-  type PagedLocale,
-  pageAcrossLocales,
-  pageCursorSchema,
-  pageLimitSchema,
-} from "./page-cursor.js";
+import { asInvalidCursor, pageCursorSchema, pageLimitSchema } from "./page-cursor.js";
 import { keyProvenanceSchema } from "./provenance-schema.js";
 import { markFields, withProvenanceRedacted } from "./value-redaction.js";
 
@@ -17,7 +15,7 @@ const paramsSchema = z
   .strictObject({
     locales: z.array(z.string().min(1)).min(1).optional(),
     keys: z.array(z.string().min(1)).min(1).max(PAGE_LIMIT_CAP).optional(),
-    query: z.string().min(1).max(500).optional(),
+    query: z.string().min(1).max(LOCALE_VALUES_QUERY_MAX_LENGTH).optional(),
     limit: pageLimitSchema,
     cursor: pageCursorSchema,
   })
@@ -35,8 +33,6 @@ const localeValueEntrySchema = z.object({
   provenance: keyProvenanceSchema.optional(),
 });
 
-type LocaleValueEntry = z.infer<typeof localeValueEntrySchema>;
-
 const localeValuesResultSchema = z.object({
   locales: z.array(
     z.object({
@@ -47,76 +43,32 @@ const localeValuesResultSchema = z.object({
   nextCursor: z.string().optional(),
 });
 
-type LocaleValuesResult = z.infer<typeof localeValuesResultSchema>;
-
-function entryOf(key: string, pair: KeyValuePair): LocaleValueEntry {
-  return { key, ...pair };
-}
-
-function matcherFor(params: Params): (entry: LocaleValueEntry) => boolean {
-  if (params.keys !== undefined) {
-    const wanted = new Set(params.keys);
-    return (entry) => wanted.has(entry.key);
-  }
-  if (params.query !== undefined) {
-    const needle = params.query.toLowerCase();
-    return (entry) =>
-      [entry.key, entry.source, entry.target].some(
-        (text) => text?.toLowerCase().includes(needle) === true,
-      );
-  }
-  return () => true;
-}
-
-function filteredLocale(
-  locale: LocaleValues,
-  matches: (entry: LocaleValueEntry) => boolean,
-): PagedLocale<LocaleValueEntry> {
-  const items = locale.keys.flatMap((key) => {
-    const pair = locale.values[key];
-    return pair === undefined ? [] : [entryOf(key, pair)];
-  });
-  return { locale: locale.locale, items: items.filter(matches) };
-}
-
-function canonicalFilters(params: Params): unknown {
-  return {
-    locales: params.locales ?? null,
-    keys: params.keys === undefined ? null : [...new Set(params.keys)].sort(),
-    query: params.query ?? null,
-  };
-}
+export type LocaleValuesResult = z.infer<typeof localeValuesResultSchema>;
 
 async function readLocaleValues(
   params: Params,
   context: McpToolContext,
 ): Promise<LocaleValuesResult> {
-  const locales = await localeValues(
-    {
-      config: context.config.config,
-      cwd: context.cwd,
-      ...(params.locales !== undefined ? { locales: params.locales } : {}),
-    },
-    {
-      ...(context.fs !== undefined ? { fs: context.fs } : {}),
-      ...(context.adapterRegistry !== undefined
-        ? { adapterRegistry: context.adapterRegistry }
-        : {}),
-    },
+  const page = await asInvalidCursor(() =>
+    localeValuesPage(
+      {
+        config: context.config.config,
+        cwd: context.cwd,
+        ...(params.locales !== undefined ? { locales: params.locales } : {}),
+        ...(params.keys !== undefined ? { keys: params.keys } : {}),
+        ...(params.query !== undefined ? { query: params.query } : {}),
+        ...(params.limit !== undefined ? { limit: params.limit } : {}),
+        ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
+      },
+      {
+        ...(context.fs !== undefined ? { fs: context.fs } : {}),
+        ...(context.adapterRegistry !== undefined
+          ? { adapterRegistry: context.adapterRegistry }
+          : {}),
+      },
+    ),
   );
-  const matches = matcherFor(params);
-  const page = pageAcrossLocales(
-    locales.map((locale) => filteredLocale(locale, matches)),
-    {
-      filters: canonicalFilters(params),
-      limit: params.limit ?? PAGE_LIMIT_DEFAULT,
-      ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
-    },
-  );
-  return {
-    locales: page.locales.map((entry) => ({ locale: entry.locale, entries: entry.items })),
-    ...(page.nextCursor !== undefined ? { nextCursor: page.nextCursor } : {}),
-  };
+  return { ...page, locales: [...page.locales] };
 }
 
 export const localeValuesTool = defineTool({

@@ -30,6 +30,12 @@ describe("toLocaleValuesOutcome", () => {
     expect(toLocaleValuesOutcome({ ok: true, result: DATA })).toEqual({ ok: true, result: DATA });
   });
 
+  it("reports a single page where every value was asked for as an error", () => {
+    const outcome = toLocaleValuesOutcome({ ok: true, result: { locales: [] } });
+
+    expect(outcome).toMatchObject({ ok: false, error: { code: "UNEXPECTED_RESULT" } });
+  });
+
   it("passes through a transport or domain error unchanged", () => {
     const error = { code: "SESSION_EXPIRED", message: "expired" };
     expect(toLocaleValuesOutcome({ ok: false, error })).toEqual({ ok: false, error });

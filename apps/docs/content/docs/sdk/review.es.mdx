@@ -1,6 +1,6 @@
 ---
 title: "Edita y revisa"
-description: "Lee, edita, aprueba, rechaza y retraduce una clave, o revisa y retraduce muchas a la vez."
+description: "Lee, edita, aprueba, rechaza y retraduce una clave, lee valores en bloque o por páginas, o revisa y retraduce muchas a la vez."
 type: reference
 ---
 ## Operaciones de una sola clave
@@ -249,6 +249,64 @@ function createValueMarker(salt?: Uint8Array): ValueMarker;
 ```
 
 **Devuelve:** `ValueMarker`
+
+## Lecturas de contenido en bloque
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Lee el texto de origen y de destino actual de cada clave, en cada locale de destino solicitado, en
+una sola pasada sobre los archivos que ya están en disco, por ejemplo para buscar valores en lugar de
+nombres de clave: la contraparte en bloque de `keyValue`, que responde para una clave a la vez.
+Solo lectura.
+
+```ts title="Firma"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Devuelve:** `readonly LocaleValues[]`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Un `locales` omitido cubre cada locale de destino
+configurado. Devuelve un array de `{ locale, keys, values }`, una entrada por locale: `keys`
+lista cada clave en el orden de origen, luego las que solo están en el destino, y `values` asigna
+cada clave a `{ source?, target? }`. Un `target` ausente significa que la clave todavía no
+se ha traducido en ese locale; un `source` ausente significa que la clave está huérfana, presente
+en el locale de destino pero ya no en el origen. `values` no tiene prototipo: cada clave, incluida
+una llamada `__proto__` o `constructor`, es una propiedad propia, y una clave que no está en el
+catálogo se lee como `undefined`.
+
+Cada par con un `target` lleva además `provenance`, la misma `KeyProvenance` que informa `keyValue`.
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+Lee una página de `localeValues`, acotada si quieres a `keys` exactas o a una `query` que se compara con la clave, el texto de origen y el de destino sin distinguir mayúsculas, y devuelve un cursor para la página siguiente. El servidor MCP y la herramienta de agente `verbatra_locale_values` de Studio paginan con ella. Solo lectura.
+
+```ts title="Firma"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**Devuelve:** `LocaleValuesPage`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Devuelve `{ locales, nextCursor? }`: cada locale con una entrada en la página lleva `entries`, cada una `{ key, source?, target?, provenance? }` como la informa `localeValues`, ordenadas por locale y luego por clave. Una página tiene como mucho `limit` entradas: `PAGE_LIMIT_DEFAULT` (200) por defecto, `PAGE_LIMIT_CAP` (1000) como máximo. Pasa `nextCursor` como `cursor`, con los mismos filtros, hasta que falte. Cada llamada vuelve a leer los archivos, así que un cursor cuya clave se movió o ya no existe se rechaza en vez de saltar o repetir entradas.
+
+Un `cursor` tiene como mucho `PAGE_CURSOR_MAX_LENGTH` (512) caracteres. El servidor MCP y Studio aceptan una `query` de como mucho `LOCALE_VALUES_QUERY_MAX_LENGTH` (500) caracteres.
 
 ## Revisión y retraducción por lotes
 

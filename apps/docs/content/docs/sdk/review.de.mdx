@@ -1,6 +1,6 @@
 ---
 title: "Bearbeiten und prüfen"
-description: "Einen Key lesen, bearbeiten, freigeben, ablehnen und neu übersetzen, oder viele auf einmal prüfen und neu übersetzen."
+description: "Einen Key lesen, bearbeiten, freigeben, ablehnen und neu übersetzen, Werte in großen Mengen oder seitenweise lesen, oder viele auf einmal prüfen und neu übersetzen."
 type: reference
 ---
 ## Operationen auf einzelnen Keys
@@ -254,6 +254,65 @@ function createValueMarker(salt?: Uint8Array): ValueMarker;
 ```
 
 **Rückgabe:** `ValueMarker`
+
+## Inhalte in großen Mengen lesen
+
+<AvailableFrom version="0.10.0" />
+
+### localeValues
+
+Liest den aktuellen Quell- und Zielwert jedes Keys, über jede angefragte Ziel-Locale hinweg, in
+einem einzigen Durchgang über die bereits auf der Platte liegenden Dateien, etwa um Werte statt
+Key-Namen zu durchsuchen: das Gegenstück zu `keyValue` für große Mengen, das immer nur einen Key
+beantwortet. Nur lesend.
+
+```ts title="Signatur"
+function localeValues(
+  input: LocaleValuesInput,
+  deps?: LocaleValuesDeps,
+): Promise<readonly LocaleValues[]>;
+```
+
+<SdkTypeTable name="LocaleValuesInput" />
+
+**Rückgabe:** `readonly LocaleValues[]`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+Ein weggelassenes `locales` deckt jedes konfigurierte
+Ziel-Locale ab. Gibt ein Array von `{ locale, keys, values }` zurück, ein Eintrag pro Locale:
+`keys` listet jeden Key in Quellreihenfolge, danach die nur im Ziel vorhandenen, und `values` bildet
+jeden Key auf `{ source?, target? }` ab. Ein fehlendes `target` bedeutet, dass der
+Key in dieser Locale noch nicht übersetzt wurde; eine fehlende `source` bedeutet, dass der Key
+verwaist ist, also in der Ziel-Locale vorhanden, aber nicht mehr in der Quelle. `values` hat
+keinen Prototyp: Jeder Key, auch einer namens `__proto__` oder `constructor`, ist eine eigene
+Eigenschaft, und ein Key, der im Katalog fehlt, ergibt `undefined`.
+
+Jedes Paar mit einem `target` trägt außerdem `provenance`, dieselbe `KeyProvenance`, die `keyValue`
+meldet.
+
+### localeValuesPage
+
+<AvailableFrom version="0.12.0" />
+
+Liest eine Seite von `localeValues`, optional eingegrenzt auf exakte `keys` oder auf eine `query`, die ohne Rücksicht auf Groß- und Kleinschreibung gegen Key, Quell- und Zieltext geprüft wird, und gibt einen Cursor für die nächste Seite zurück. Der MCP-Server und das Agent-Tool `verbatra_locale_values` in Studio blättern damit. Nur lesend.
+
+```ts title="Signatur"
+function localeValuesPage(
+  input: LocaleValuesPageInput,
+  deps?: LocaleValuesDeps,
+): Promise<LocaleValuesPage>;
+```
+
+<SdkTypeTable name="LocaleValuesPageInput" />
+
+**Rückgabe:** `LocaleValuesPage`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Gibt `{ locales, nextCursor? }` zurück: Jede Locale mit einem Eintrag auf der Seite trägt `entries`, jeweils `{ key, source?, target?, provenance? }` wie bei `localeValues`, sortiert nach Locale und dann nach Key. Eine Seite hält höchstens `limit` Einträge: standardmäßig `PAGE_LIMIT_DEFAULT` (200), höchstens `PAGE_LIMIT_CAP` (1000). Gib `nextCursor` mit denselben Filtern als `cursor` zurück, bis er fehlt. Jeder Aufruf liest die Dateien neu, deshalb wird ein Cursor, dessen Key verschoben wurde oder fehlt, abgelehnt, statt Einträge zu überspringen oder zu wiederholen.
+
+Ein `cursor` ist höchstens `PAGE_CURSOR_MAX_LENGTH` (512) Zeichen lang. Der MCP-Server und Studio nehmen eine `query` mit höchstens `LOCALE_VALUES_QUERY_MAX_LENGTH` (500) Zeichen an.
 
 ## Review und Neuübersetzung im Stapel
 
