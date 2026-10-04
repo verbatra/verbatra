@@ -4,6 +4,11 @@ import type { RpcCallResult, RpcClient } from "../client/rpc-client.js";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { agentEditEntryParamsSchema } from "../shared/rpc/edit-entry.js";
 import { HUMAN_ONLY_METHOD_NAMES } from "../shared/rpc/human-only.js";
+import {
+  agentLocaleValuesParamsSchema,
+  LOCALE_VALUES_PAGE_LIMIT_CAP,
+  LOCALE_VALUES_PAGE_LIMIT_DEFAULT,
+} from "../shared/rpc/locale-values.js";
 import { agentRetranslateEntryParamsSchema } from "../shared/rpc/retranslate-entry.js";
 import { agentReviewDecisionParamsSchema } from "../shared/rpc/review-decision.js";
 import type { ProjectSnapshotResult } from "../shared/rpc/snapshot.js";
@@ -436,6 +441,7 @@ function schemaParamNames(method: RpcMethodName): Set<string> {
     "translation.retranslateEntry": agentRetranslateEntryParamsSchema,
     "review.approve": agentReviewDecisionParamsSchema,
     "review.reject": agentReviewDecisionParamsSchema,
+    "locale.values": agentLocaleValuesParamsSchema,
   };
   const agentSchema = agentSchemas[method] ?? rpcParamsSchemas[method];
   const schema = z.toJSONSchema(agentSchema) as {
@@ -640,5 +646,34 @@ describe("registerAgentTools: the retranslateEntry tool never overrides a person
     expect(
       calls.filter((call) => call.method === "translation.retranslateEntry").at(0)?.params,
     ).toEqual({ locale: "de", key: "greeting", includeHuman: false });
+  });
+});
+
+describe("registerAgentTools: the locale values tool pages", () => {
+  it("advertises the paging parameters without the paged switch", async () => {
+    const { tools } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+    const schema = toolByName(tools, expectedName("locale.values")).inputSchema;
+
+    expect(schema).toEqual(z.toJSONSchema(agentLocaleValuesParamsSchema));
+    expect(JSON.stringify(schema)).not.toContain("paged");
+  });
+
+  it("always asks for one page, with or without parameters", async () => {
+    const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+    const tool = toolByName(tools, expectedName("locale.values"));
+
+    await tool.execute({});
+    await tool.execute({ query: "hello", limit: 5, paged: false });
+
+    expect(
+      calls.filter((call) => call.method === "locale.values").map((call) => call.params),
+    ).toEqual([{ paged: true }, { query: "hello", limit: 5, paged: true }]);
+  });
+
+  it("states the default page size and the cap", async () => {
+    const description = (await describedTools()).get("locale.values") ?? "";
+
+    expect(description).toContain(`default ${LOCALE_VALUES_PAGE_LIMIT_DEFAULT}`);
+    expect(description).toContain(`at most ${LOCALE_VALUES_PAGE_LIMIT_CAP}`);
   });
 });

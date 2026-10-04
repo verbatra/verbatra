@@ -13,7 +13,12 @@ import { KEY_CONTEXT_METHOD } from "../shared/rpc/key-context.js";
 import { KEY_INTEGRITY_METHOD } from "../shared/rpc/key-integrity.js";
 import { KEY_VALUE_METHOD } from "../shared/rpc/key-value.js";
 import { LOCALE_INTEGRITY_METHOD } from "../shared/rpc/locale-integrity.js";
-import { LOCALE_VALUES_METHOD } from "../shared/rpc/locale-values.js";
+import {
+  agentLocaleValuesParamsSchema,
+  LOCALE_VALUES_METHOD,
+  LOCALE_VALUES_PAGE_LIMIT_CAP,
+  LOCALE_VALUES_PAGE_LIMIT_DEFAULT,
+} from "../shared/rpc/locale-values.js";
 import { LOCK_STATE_METHOD } from "../shared/rpc/lock.js";
 import {
   agentRetranslateEntryParamsSchema,
@@ -278,15 +283,19 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
   },
   [LOCALE_VALUES_METHOD]: {
     description:
-      "Reads the current source value and, when it exists, the current target value for every key, across every configured target locale, in one call. " +
+      "Reads the current source value and, when it exists, the current target value of many keys at once, page by page, across the target locales. " +
       "Use it when you need translation content in bulk, for instance to search or scan values rather than key names, since verbatra_key_value only answers for one key at a time. " +
-      "Do not use it to change anything: it is read-only and its result can be large on a project with many keys and locales. " +
+      "Do not use it to change anything: it is read-only. " +
+      "The optional `locales` parameter narrows the target locales; the optional `keys` parameter lists exact key names, or the optional `query` parameter keeps keys whose name, source, or target contains that text, ignoring case, but not both. " +
+      `Each page holds at most \`limit\` entries (default ${LOCALE_VALUES_PAGE_LIMIT_DEFAULT}, at most ${LOCALE_VALUES_PAGE_LIMIT_CAP}), ordered by locale and then in source key order, and lists a locale only when it holds one of its entries. ` +
+      "When the result carries nextCursor, call again with the same parameters and the optional `cursor` parameter set to it; a cursor from other parameters, or one that no longer matches the files, is refused with PAGE_CURSOR_INVALID, so call again without it. " +
       "An absent target value means the key has not been translated in that locale yet; an absent source value means the key is orphaned, present in the target locale but no longer in the source. " +
       "Every present target value also carries who wrote it, the same provenance verbatra_key_value reports. " +
-      "Takes no parameters. Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
+      "Read-only: it reads fresh from disk on every call, calls no provider, and writes nothing.",
     readOnlyHint: true,
     untrustedContentHint: true,
     spendGated: false,
+    agentInput: { schema: agentLocaleValuesParamsSchema, stamp: { paged: true } },
   },
   [EDIT_ENTRY_METHOD]: {
     description:

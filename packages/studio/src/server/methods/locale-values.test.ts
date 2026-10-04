@@ -4,7 +4,7 @@ import { AdapterRegistry, type LoadedConfig, type SdkFs } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import type { RpcHandlerDeps } from "../rpc.js";
 import { type FixtureProject, makeFixtureProject } from "../test-support.js";
-import { localeValuesHandler } from "./locale-values.js";
+import { localeValuesHandler, readAllLocaleValues } from "./locale-values.js";
 
 function deps(project: FixtureProject): RpcHandlerDeps {
   const loaded: LoadedConfig = {
@@ -28,12 +28,23 @@ async function writeTargetFile(
 }
 
 describe("localeValuesHandler", () => {
+  it("returns every value of every locale when called without parameters", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      expect(await localeValuesHandler({}, deps(project))).toEqual(
+        await readAllLocaleValues(deps(project)),
+      );
+    } finally {
+      await project.cleanup();
+    }
+  });
+
   it("returns source and target text for every configured target locale", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
       await writeTargetFile(project, "de", { greeting: "hallo" });
 
-      const result = await localeValuesHandler({}, deps(project));
+      const result = await readAllLocaleValues(deps(project));
 
       expect(result).toEqual([
         {
@@ -56,7 +67,7 @@ describe("localeValuesHandler", () => {
   it("omits target for a key not yet translated", async () => {
     const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
     try {
-      const result = await localeValuesHandler({}, deps(project));
+      const result = await readAllLocaleValues(deps(project));
 
       expect(result[0]?.values.greeting).toEqual({ source: "hello" });
     } finally {
@@ -69,7 +80,7 @@ describe("localeValuesHandler", () => {
     try {
       await writeTargetFile(project, "de", { greeting: "hallo", legacy: "old" });
 
-      const result = await localeValuesHandler({}, deps(project));
+      const result = await readAllLocaleValues(deps(project));
 
       expect(result[0]?.values.legacy).toEqual({
         target: "old",
@@ -96,7 +107,7 @@ describe("localeValuesHandler", () => {
           "utf8",
         );
 
-        const result = await localeValuesHandler({}, deps(project));
+        const result = await readAllLocaleValues(deps(project));
 
         expect(JSON.stringify(result)).toBe(
           `[{"locale":"de","keys":[${JSON.stringify(key)}],"values":{${JSON.stringify(key)}:{"source":"source","target":"target","provenance":{"origin":"unrecorded","reviewState":"unreviewed"}}}}]`,
@@ -106,6 +117,101 @@ describe("localeValuesHandler", () => {
       }
     },
   );
+});
+
+describe("localeValuesHandler: paged for agents", () => {
+  it("returns one page of entries and a cursor that reaches the rest", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de"] },
+      { alpha: "a", beta: "b", gamma: "c" },
+    );
+    try {
+      const first = await localeValuesHandler({ paged: true, limit: 2 }, deps(project));
+      const cursor = "nextCursor" in first ? first.nextCursor : undefined;
+      const second = await localeValuesHandler(
+        { paged: true, limit: 2, ...(cursor !== undefined ? { cursor } : {}) },
+        deps(project),
+      );
+
+      expect(first).toEqual({
+        locales: [
+          {
+            locale: "de",
+            entries: [
+              { key: "alpha", source: "a" },
+              { key: "beta", source: "b" },
+            ],
+          },
+        ],
+        nextCursor: expect.any(String),
+      });
+      expect(second).toEqual({
+        locales: [{ locale: "de", entries: [{ key: "gamma", source: "c" }] }],
+      });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("narrows the page by query and locale", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de", "fr"] },
+      { greeting: "hello", title: "Welcome" },
+    );
+    try {
+      await writeTargetFile(project, "fr", { title: "Bienvenue" });
+
+      const result = await localeValuesHandler(
+        { paged: true, locales: ["fr"], query: "BIENVENUE" },
+        deps(project),
+      );
+
+      expect(result).toEqual({
+        locales: [
+          {
+            locale: "fr",
+            entries: [
+              {
+                key: "title",
+                source: "Welcome",
+                target: "Bienvenue",
+                provenance: { origin: "unrecorded", reviewState: "unreviewed" },
+              },
+            ],
+          },
+        ],
+      });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("returns only the listed keys", async () => {
+    const project = await makeFixtureProject(
+      { targetLocales: ["de"] },
+      { greeting: "hello", title: "Welcome" },
+    );
+    try {
+      const result = await localeValuesHandler({ paged: true, keys: ["title"] }, deps(project));
+
+      expect(result).toEqual({
+        locales: [{ locale: "de", entries: [{ key: "title", source: "Welcome" }] }],
+      });
+    } finally {
+      await project.cleanup();
+    }
+  });
+
+  it("refuses a cursor that no longer matches with PAGE_CURSOR_INVALID", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      await expect(
+        localeValuesHandler({ paged: true, cursor: "not-a-cursor" }, deps(project)),
+      ).rejects.toMatchObject({ code: "PAGE_CURSOR_INVALID" });
+    } finally {
+      await project.cleanup();
+    }
+  });
 });
 
 describe("localeValuesHandler: injected seams", () => {
