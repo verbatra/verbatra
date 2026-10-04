@@ -146,6 +146,8 @@ Deletes every write lock the current process holds, for a process about to exit 
 its in-flight runs finish: the CLI calls it when an interrupt stops `translate` or `import`, and
 when a second interrupt force-stops `watch`. The runs that took those locks lose their protection,
 so call it only immediately before the process exits. It takes no arguments and never rejects.
+A lock that a still-running operation is taking, or tries to take, while it runs is refused with
+`RUN_CANCELLED` and leaves no file behind; it waits at most three seconds for such an acquisition.
 
 ```ts title="Signature"
 function releaseHeldLocks(): Promise<void>;

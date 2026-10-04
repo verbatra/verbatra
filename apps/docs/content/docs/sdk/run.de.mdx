@@ -152,7 +152,9 @@ Löscht jede Schreibsperre, die der aktuelle Prozess hält, für einen Prozess, 
 wird, ohne seine laufenden Durchläufe abzuschließen: Die CLI ruft es auf, wenn ein Interrupt
 `translate` oder `import` stoppt, und wenn ein zweiter Interrupt `watch` hart beendet. Die
 Durchläufe, die diese Sperren genommen haben, verlieren ihren Schutz, ruf es also nur direkt vor dem
-Beenden des Prozesses auf. Es nimmt keine Argumente und lehnt nie ab.
+Beenden des Prozesses auf. Es nimmt keine Argumente und lehnt nie ab. Eine Sperre, die ein noch
+laufender Vorgang währenddessen nimmt oder nehmen will, wird mit `RUN_CANCELLED` abgelehnt und
+hinterlässt keine Datei; auf eine solche Übernahme wartet es höchstens drei Sekunden.
 
 ```ts title="Signatur"
 function releaseHeldLocks(): Promise<void>;
