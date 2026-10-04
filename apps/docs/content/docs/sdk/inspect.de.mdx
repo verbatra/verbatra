@@ -51,10 +51,11 @@ aktuelle Sprachliste des Providers ab, was kein Übersetzungskontingent verbrauc
 [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
 Mit gesetztem `literals` führt `doctor` nur die Prüfungen `config` und `untranslated-literals` aus,
-wie es [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. `doctor`
-lädt die Konfiguration selbst, ein Projekt ohne Konfiguration bekommt also trotzdem einen Bericht
-statt eines geworfenen Fehlers. `ok` ist genau dann true, wenn keine Prüfung fehlgeschlagen ist;
-`CONFIG_NOT_FOUND` wird nur für einen explizit angegebenen `configPath` geworfen, der nicht existiert.
+wie es [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. `doctor` lädt
+die Konfiguration selbst, ein Projekt ohne Konfiguration bekommt also trotzdem einen Bericht statt
+eines geworfenen Fehlers. `ok` ist genau dann true, wenn keine Prüfung fehlgeschlagen ist;
+`CONFIG_NOT_FOUND` wird nur für einen explizit angegebenen `configPath` geworfen, der nicht
+existiert.
 
 <AvailableFrom version="0.12.0" />
 
@@ -144,8 +145,8 @@ aus `REVIEW_REASON_CODES`, und die Schweregrade sind das Tupel `QA_SEVERITIES`;
 
 <AvailableFrom version="0.12.0" />
 
-Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`: ein `IncompletePlural` pro Plural, dessen
-eingecheckten Formen CLDR-Pluralkategorien fehlen, die die Zielsprache verwendet, als
+Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`: ein `IncompletePlural` pro Plural,
+dessen eingecheckten Formen CLDR-Pluralkategorien fehlen, die die Zielsprache verwendet, als
 `{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, nach Key sortiert. Es
 ist eine Warnung, die nie `inSync` oder eine Zahl ändert; Formate und Regeln stehen unter
 [Pluralkategorien](/docs/cli/check#pluralkategorien).
@@ -187,8 +188,8 @@ function checkFile(
 **Wirft:** [`NOT_A_LOCALE_FILE`](/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
 
 `file` ist absolut oder relativ zu `cwd`. [Eine Datei](/docs/cli/check#eine-datei) zeigt die Form
-der `CheckFileSummary`, jeder Eintrag in `locales` ein `LocaleFileCheck`. Eine Datei, die sich
-nicht parsen lässt, wird nicht geworfen: Ihr Locale trägt einen `QaSyntaxFinding`, bei JSON und
+der `CheckFileSummary`, jeder Eintrag in `locales` ein `LocaleFileCheck`. Eine Datei, die sich nicht
+parsen lässt, wird nicht geworfen: Die Locale der Datei trägt einen `QaSyntaxFinding`, bei JSON und
 YAML mit der Position, die `AdapterError.position` meldet. Eine Zieldatei wird wie bei `check` mit
 `qa: true` geprüft, die Quelldatei nur auf ihre Syntax. Ein Pfad, der zu keinem konfigurierten
 Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
@@ -215,9 +216,9 @@ function diff(
 Mit `unused: true` scannt es zusätzlich die `extract`-Roots der Konfiguration, nur lesend und ohne
 Key, und ergänzt einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der
 Quell-Locale, die keine statische Referenz nennt, in Katalogreihenfolge, jeder mit seinem
-dekodierten `key` und seinem `catalogKey`. [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys)
-erklärt die Listen `ignored` und `possiblyDynamic` und den `status`. Der Bericht kippt nie
-`hasPendingChanges`.
+dekodierten `key` und seinem `catalogKey`.
+[Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys) erklärt die Listen `ignored` und
+`possiblyDynamic` und den `status`. Der Bericht kippt nie `hasPendingChanges`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -437,8 +438,8 @@ Erstellt den Bericht pro Locale, den `verbatra report provenance` ausgibt: jeden
 sowohl in der Quelle als auch in einer Ziel-Locale, in der Reihenfolge der Quelle, mit Herkunft,
 Review-Status, Provider, Modell und Reviewer, gezählt in einer der Kategorien des Tupels
 `PROVENANCE_BUCKETS`, die [der Herkunftsbericht](/docs/provenance-evidence#der-herkunftsbericht)
-definiert. Er liest die Locale-Dateien,
-`verbatra.lock.json` und `verbatra.provenance.json`, ruft keinen Provider auf und schreibt nichts.
+definiert. Er liest die Locale-Dateien, `verbatra.lock.json` und `verbatra.provenance.json`, ruft
+keinen Provider auf und schreibt nichts.
 
 ```ts title="Signatur"
 function provenanceReport(

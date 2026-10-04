@@ -141,9 +141,9 @@ a CI gate reads `qa.errors`, and `qa.warnings` for a strict gate.
 
 Each `LocaleCheckSummary` also carries `incompletePlurals`: one `IncompletePlural` per plural whose
 committed forms lack CLDR plural categories the target language uses, as
-`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordered by key. It
-is a warning that never changes `inSync` or a count; [plural categories](/docs/cli/check#plural-categories)
-lists the formats and rules.
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordered by key. It is
+a warning that never changes `inSync` or a count;
+[plural categories](/docs/cli/check#plural-categories) lists the formats and rules.
 
 With `requireReviewed: true`, `check` also runs the
 [review gate](/docs/cli/check#require-reviewed-translations), keyless and without writing: each

@@ -49,9 +49,10 @@ proveedor, que no consume cuota de traducción; `LocaleCapabilityReport.live` di
 [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución).
 
 Con `literals` activado, `doctor` solo ejecuta las comprobaciones `config` y
-`untranslated-literals`, igual que [`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir).
-`doctor` carga la configuración por sí mismo, así que un proyecto sin configuración sigue obteniendo
-un informe en lugar de un error lanzado. `ok` es true exactamente cuando ninguna comprobación falló;
+`untranslated-literals`, igual que
+[`verbatra doctor --literals`](/docs/cli/doctor#literales-sin-traducir). `doctor` carga la
+configuración por sí mismo, así que un proyecto sin configuración sigue obteniendo un informe en
+lugar de un error lanzado. `ok` es true exactamente cuando ninguna comprobación falló;
 `CONFIG_NOT_FOUND` solo se lanza para un `configPath` explícito que no existe.
 
 <AvailableFrom version="0.12.0" />
@@ -141,8 +142,8 @@ son la tupla `QA_SEVERITIES`; `qaSeverity: "error"` omite las advertencias. El i
 
 Cada `LocaleCheckSummary` también lleva `incompletePlurals`: un `IncompletePlural` por cada plural
 cuyas formas confirmadas no tienen categorías de plural CLDR que usa el idioma de destino, como
-`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordenado por clave. Es
-una advertencia que nunca cambia `inSync` ni un recuento; los formatos y las reglas están en
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, ordenado por clave.
+Es una advertencia que nunca cambia `inSync` ni un recuento; los formatos y las reglas están en
 [categorías de plural](/docs/cli/check#categorías-de-plural).
 
 Con `requireReviewed: true`, `check` también ejecuta la
@@ -429,9 +430,10 @@ Hasta la 0.11 la cola eran solo las marcas de la última ejecución.
 Construye el informe por locale que imprime `verbatra report provenance`: cada clave con un valor
 tanto en el origen como en un locale de destino, en el orden del origen, con su origen, estado de
 revisión, proveedor, modelo y revisor, contada en uno de los grupos de la tupla
-`PROVENANCE_BUCKETS`, que define [el informe de procedencia](/docs/provenance-evidence#el-informe-de-procedencia).
-Lee los archivos de locale, `verbatra.lock.json` y `verbatra.provenance.json`, no llama a ningún
-proveedor y no escribe nada.
+`PROVENANCE_BUCKETS`, que define
+[el informe de procedencia](/docs/provenance-evidence#el-informe-de-procedencia). Lee los archivos
+de locale, `verbatra.lock.json` y `verbatra.provenance.json`, no llama a ningún proveedor y no
+escribe nada.
 
 ```ts title="Firma"
 function provenanceReport(
