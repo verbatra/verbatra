@@ -40,9 +40,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   when that file exists but cannot be parsed. Fix the source file, then import again.
 - `diff --unused` no longer counts a plain string such as `step_one` as used by `t("step")` in an
   Android, gettext or Apple catalog, where plural forms are marked: it is listed as unused and
-  `diff --unused` exits 1. `extract` no longer adds `step` next to a YAML or other unmarked
-  `step_one`, which it treats as a plural form. Rename such keys, or ignore them with
-  `extract.unused.ignore`.
+  `diff --unused` exits 1. `extract` no longer adds `step` next to a plain `step_one` in
+  i18next-json, YAML or another catalog under i18next, which it treats as a plural form. Rename
+  such keys, or ignore them with `extract.unused.ignore`.
 - `tmx import` takes the plural flag from the source file: a plural form whose text matches an
   imported unit is now an exact memory hit, filled without a provider call, where 0.11 sent it to
   the provider. Units imported with 0.11 stay keyed as plain strings: import the TMX file again.
