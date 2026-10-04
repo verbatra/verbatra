@@ -199,6 +199,7 @@ function entryIdentity(entry: TranslationEntry): string {
     entry.description ?? null,
     entry.meaning ?? null,
     entry.placeholders,
+    entry.isPlural,
   ]);
 }
 
