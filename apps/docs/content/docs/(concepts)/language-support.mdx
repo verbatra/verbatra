@@ -4,9 +4,10 @@ description: Which languages verbatra can translate, how locale codes reach each
 type: concept
 ---
 verbatra has no language list of its own. It accepts any valid BCP 47 locale code and leaves the
-translation to your provider, so the languages you can use are the ones your provider supports,
-and for a human-only project, all of them. verbatra's part is to spell each code the way the provider expects, hold every translation to
-its language's plural rules, and warn you before a run when a provider cannot serve a locale.
+translation to your provider, so the languages you can use are the ones your provider supports, and
+for a human-only project, all of them. verbatra's part is to spell each code the way the provider
+expects, hold every translation to its language's plural rules, and warn you before a run when a
+provider cannot serve a locale.
 
 ## Locale codes
 
@@ -57,8 +58,8 @@ What that means in practice:
 <AvailableFrom version="0.12.0" />
 
 DeepL and Google Cloud Translation get their own spelling of some codes, and DeepL refuses a bare
-`en` or `pt` target before any request. LLM providers get the code as written plus the English
-name of the language, script and region; see
+`en` or `pt` target before any request. LLM providers get the code as written plus the English name
+of the language, script and region; see
 [Language, script and region names](/docs/translation-safety#language-script-and-region-names).
 `localeMap` in the provider's `options` overrides the code per locale. The full mapping is under
 [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider).

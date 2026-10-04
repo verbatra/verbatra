@@ -113,14 +113,15 @@ breaks rendering, so the gate compares tag names and attribute names as a multis
 - **Not translated**: the content of `script`, `style` and similar elements must come back
   unchanged. Escape such a tag in prose (`&lt;script&gt;`) to translate the text around it.
 
-Markup invented into a string that had none is refused too, while an ordinary bracketed word such
-as `<Enter>` is read as text. Tags the format already reports as placeholders are left to the
-placeholder check. Comments, raw text and malformed sources: see [`markup`](/docs/error-codes#markup).
+Markup invented into a string that had none is refused too, while an ordinary bracketed word such as
+`<Enter>` is read as text. Tags the format already reports as placeholders are left to the
+placeholder check. Comments, raw text and malformed sources: see
+[`markup`](/docs/error-codes#markup).
 
 ## Review flags
 
-A second, advisory layer flags suspicious results for a person. A flag never withholds a key: the value is written,
-locked, and put on the needs-review queue.
+A second, advisory layer flags suspicious results for a person. A flag never withholds a key: the
+value is written, locked, and put on the needs-review queue.
 
 | Reason | Flags a translation that |
 | --- | --- |
@@ -146,9 +147,9 @@ approves, rejects or rewrites its value; see
 
 ## The token budget
 
-With `maxTokens` configured, verbatra counts a run's tokens across every call and locale. `budgetBehavior: "warn"`
-(the default) only flags an overrun; `"stop"` withholds the request that would pass the ceiling and
-every candidate after it, to be retried next run.
+With `maxTokens` configured, verbatra counts a run's tokens across every call and locale.
+`budgetBehavior: "warn"` (the default) only flags an overrun; `"stop"` withholds the request that
+would pass the ceiling and every candidate after it, to be retried next run.
 
 What the budget guarantees: work done before the ceiling stays written and locked, and nothing is
 left half-written. What it does not: a request in flight can cost more than projected, the ceiling

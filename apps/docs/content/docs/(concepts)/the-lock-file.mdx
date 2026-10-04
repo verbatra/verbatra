@@ -17,9 +17,9 @@ CRLF endings or another normalization changes nothing.
 ## How drift is detected
 
 A source key the target lacks is missing. For a key the target has, the current source hash is
-compared with the recorded one: a difference means the source changed, so the key is
-retranslated; a match means it is never sent, so a second run with no source edits costs nothing. The whole pipeline is on
-[How a run works](/docs/how-it-works).
+compared with the recorded one: a difference means the source changed, so the key is retranslated; a
+match means it is never sent, so a second run with no source edits costs nothing. The whole pipeline
+is on [How a run works](/docs/how-it-works).
 
 ### Protected keys
 

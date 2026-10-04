@@ -107,7 +107,8 @@ funcionan los plurales en los demás formatos está en
 
 El texto enriquecido llega a una cadena como marcado en línea: un `<b>` en un bloque `Trans` de
 i18next, un `&lt;b&gt;` escapado en un `<string>` de Android, un `<a href>` en un catálogo de
-gettext. Una etiqueta perdida o rota rompe la representación, así que la puerta compara nombres de etiqueta y de atributo como un multiconjunto:
+gettext. Una etiqueta perdida o rota rompe la representación, así que la puerta compara nombres de
+etiqueta y de atributo como un multiconjunto:
 
 - **Se rechaza**: una etiqueta quitada, inventada o renombrada; un conjunto distinto de nombres de
   atributo (incluido añadir `dir`); marcado desequilibrado o mal anidado; dos etiquetas fusionadas
@@ -128,8 +129,8 @@ texto sin procesar y orígenes mal formados: consulta [`markup`](/docs/error-cod
 
 ## Señales de revisión
 
-Una segunda capa, consultiva, marca los resultados sospechosos para una persona. Una señal nunca retiene
-una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
+Una segunda capa, consultiva, marca los resultados sospechosos para una persona. Una señal nunca
+retiene una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 
 | Motivo | Marca una traducción que |
 | --- | --- |

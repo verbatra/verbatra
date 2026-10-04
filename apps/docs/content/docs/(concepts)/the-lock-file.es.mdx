@@ -17,10 +17,10 @@ archivo de origen con finales CRLF u otra normalización no cambia nada.
 
 ## Cómo se detecta el desfase
 
-Una clave de origen que el destino no tiene está ausente (missing). Para una clave que el destino
-sí tiene, el hash de origen actual se compara con el registrado: una diferencia significa que el
-origen cambió, así que la clave se vuelve a traducir; una coincidencia significa que nunca se envía,
-así que una segunda ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
+Una clave de origen que el destino no tiene está ausente (missing). Para una clave que el destino sí
+tiene, el hash de origen actual se compara con el registrado: una diferencia significa que el origen
+cambió, así que la clave se vuelve a traducir; una coincidencia significa que nunca se envía, así
+que una segunda ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
 [Cómo funciona una ejecución](/docs/how-it-works).
 
 ### Claves protegidas
@@ -40,9 +40,9 @@ registra el hash de origen actual de cada clave, fijando la línea base sin cost
 
 La adopción se basa en la presencia de la clave, nunca en su valor, lo que tiene dos consecuencias:
 
-- **Un valor vacío o sin traducir cuenta como traducido.** Una clave cuyo valor de destino está vacío,
-  o aún es el texto de origen, existe, así que nunca se rellena. Borra la clave (vaciarla no basta)
-  y la siguiente ejecución la traduce.
+- **Un valor vacío o sin traducir cuenta como traducido.** Una clave cuyo valor de destino está
+  vacío, o aún es el texto de origen, existe, así que nunca se rellena. Borra la clave (vaciarla no
+  basta) y la siguiente ejecución la traduce.
 - **Una traducción desfasada se registra como actual.** Corrige o borra esas claves antes de la
   primera ejecución.
 

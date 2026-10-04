@@ -20,7 +20,8 @@ Speichern einer Quelldatei mit CRLF-Zeilenenden oder anderer Normalisierung änd
 Ein Quell-Key, der im Ziel fehlt, ist missing. Bei einem Key, den das Ziel hat, wird der aktuelle
 Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, dass sich die Quelle geändert
 hat, also wird der Key neu übersetzt; eine Übereinstimmung heißt, dass er nie gesendet wird, also
-kostet ein zweiter Lauf ohne Änderungen an der Quelle nichts. Die ganze Pipeline steht unter [Wie ein Lauf funktioniert](/docs/how-it-works).
+kostet ein zweiter Lauf ohne Änderungen an der Quelle nichts. Die ganze Pipeline steht unter
+[Wie ein Lauf funktioniert](/docs/how-it-works).
 
 ### Geschützte Keys
 
@@ -40,9 +41,9 @@ jeden Key den aktuellen Quell-Hash fest und setzt so die Baseline ohne Provider-
 Die Übernahme richtet sich nach dem Vorhandensein eines Keys, nie nach seinem Wert, und das hat zwei
 Folgen:
 
-- **Ein leerer oder unübersetzter Wert zählt als übersetzt.** Ein Key, dessen Zielwert leer oder noch
-  der Quelltext ist, existiert, wird also nie gefüllt. Lösch den Key (ihn zu leeren reicht nicht),
-  und der nächste Lauf übersetzt ihn.
+- **Ein leerer oder unübersetzter Wert zählt als übersetzt.** Ein Key, dessen Zielwert leer oder
+  noch der Quelltext ist, existiert, wird also nie gefüllt. Lösch den Key (ihn zu leeren reicht
+  nicht), und der nächste Lauf übersetzt ihn.
 - **Eine veraltete Übersetzung wird als aktuell festgehalten.** Korrigiere oder lösch solche Keys vor
   dem ersten Lauf.
 

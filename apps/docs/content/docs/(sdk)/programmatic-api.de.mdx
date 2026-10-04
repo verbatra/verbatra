@@ -52,7 +52,7 @@ auslässt.
 ## In CI prüfen, ohne zu schreiben
 
 `check` liest und vergleicht, ohne einen Provider aufzurufen oder irgendeine Datei anzufassen, und
-sein `inSync`-Flag ist genau dann true, wenn nichts fehlt und nichts veraltet ist. 
+sein `inSync`-Flag ist genau dann true, wenn nichts fehlt und nichts veraltet ist.
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -282,7 +282,7 @@ if (retry.accepted) {
 }
 ```
 
-Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry). 
+Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry).
 
 ### Werte von Menschen
 
@@ -345,7 +345,7 @@ for (const { locale, needsReview } of queue.locales) {
 
 `localeValues` ist das Gegenstück zu `keyValue` für große Mengen: ein Durchgang über die Dateien,
 die schon auf der Platte liegen, der pro Locale den aktuellen Quell- und Zieltext jedes Keys
-zurückgibt. 
+zurückgibt.
 
 ```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -464,5 +464,3 @@ const config = await loadConfig({
 
 await translate({ config });
 ```
-
-

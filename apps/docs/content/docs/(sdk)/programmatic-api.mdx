@@ -52,7 +52,7 @@ out.
 ## Check in CI without writing
 
 `check` reads and diffs without calling a provider or touching any file, and its `inSync` flag is
-true exactly when nothing is missing or stale. 
+true exactly when nothing is missing or stale.
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -277,7 +277,7 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists what each of them throws. 
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists what each of them throws.
 
 ### Values a person wrote
 
@@ -336,7 +336,7 @@ for (const { locale, needsReview } of queue.locales) {
 <AvailableFrom version="0.10.0" />
 
 `localeValues` is the bulk counterpart to `keyValue`: one pass over the files already on disk,
-returning every key's current source and target text per locale. 
+returning every key's current source and target text per locale.
 
 ```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -453,5 +453,3 @@ const config = await loadConfig({
 
 await translate({ config });
 ```
-
-

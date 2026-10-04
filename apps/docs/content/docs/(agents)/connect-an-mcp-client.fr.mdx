@@ -4,7 +4,7 @@ description: Branche le serveur MCP stdio de verbatra sur Claude Code, Codex, Ge
 type: how-to
 status: new
 ---
-Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP de verbatra. Le client démarre le serveur sur stdio, donc aucun port à gérer. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent. 
+Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP de verbatra. Le client démarre le serveur sur stdio, donc aucun port à gérer. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -31,7 +31,7 @@ Le serveur démarre seulement avec des outils de lecture et d'édition locale : 
 - la variable de clé de ton fournisseur, par exemple `ANTHROPIC_API_KEY` ([Fournisseurs](/docs/providers)).
 
 <Callout type="warn">
-N'écris jamais une clé dans un fichier versionné comme `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` ou `.vscode/mcp.json`. 
+N'écris jamais une clé dans un fichier versionné comme `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` ou `.vscode/mcp.json`.
 </Callout>
 
 Pour que les valeurs de traduction n'atteignent pas le modèle de l'agent, ajoute `--redact-values` ; voir [Studio et MCP](/docs/data-handling#studio-et-mcp).

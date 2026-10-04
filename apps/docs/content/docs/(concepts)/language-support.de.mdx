@@ -5,10 +5,9 @@ type: concept
 ---
 verbatra hat keine eigene Sprachliste. Es akzeptiert jeden gültigen BCP-47-Locale-Code und überlässt
 die Übersetzung deinem Provider. Du kannst also die Sprachen nutzen, die dein Provider unterstützt,
-und in einem reinen Handarbeits-Projekt alle. Der
-Teil von verbatra ist, jeden Code so zu schreiben, wie der Provider ihn erwartet, jede Übersetzung an
-den Pluralregeln ihrer Sprache zu messen und dich vor einem Lauf zu warnen, wenn ein Provider eine
-Locale nicht bedienen kann.
+und in einem reinen Handarbeits-Projekt alle. Der Teil von verbatra ist, jeden Code so zu schreiben,
+wie der Provider ihn erwartet, jede Übersetzung an den Pluralregeln ihrer Sprache zu messen und dich
+vor einem Lauf zu warnen, wenn ein Provider eine Locale nicht bedienen kann.
 
 ## Locale-Codes
 
@@ -87,11 +86,10 @@ Urteile aus. Jede Locale bekommt eines von dreien:
   und ein Retranslate eines einzelnen Keys lehnen den ganzen Lauf mit
   [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider) ab.
 
-Lass die Locale mit `--locales` weg, oder, wenn der
-Provider die Sprache nach dem Datum der Tabelle hinzugefügt hat, ordne sie in `localeMap` zu: Einem
-expliziten Eintrag wird vertraut. Die mitgelieferten Tabellen sind datierte Kopien der Listen der
-Anbieter (DeepL mit 125 Codes und Google mit 198, beide vom 2026-09-28); `verbatra doctor --live`
-prüft stattdessen gegen die aktuelle Liste.
+Lass die Locale mit `--locales` weg, oder, wenn der Provider die Sprache nach dem Datum der Tabelle
+hinzugefügt hat, ordne sie in `localeMap` zu: Einem expliziten Eintrag wird vertraut. Die
+mitgelieferten Tabellen sind datierte Kopien der Listen der Anbieter (DeepL mit 125 Codes und Google
+mit 198, beide vom 2026-09-28); `verbatra doctor --live` prüft stattdessen gegen die aktuelle Liste.
 
 LLM-Provider akzeptieren jede Sprache, für sie wird also nichts abgelehnt. Ein Ziel außerhalb der
 Sprachen, die LLMs bekanntermaßen gut übersetzen, bekommt die Warnung `LOCALE_NOT_WELL_TESTED` als

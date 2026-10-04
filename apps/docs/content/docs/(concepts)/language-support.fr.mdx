@@ -3,11 +3,12 @@ title: Langues et locales
 description: Quelles langues verbatra peut traduire, comment les codes de locale arrivent chez chaque fournisseur, et comment sont traités les pluriels, les écritures, les variantes régionales et le texte de droite à gauche.
 type: concept
 ---
-verbatra n'a pas de liste de langues à lui. Il accepte tout code de locale BCP 47 valide et laisse la
-traduction à ton fournisseur : les langues que tu peux utiliser sont donc celles que ton
-fournisseur prend en charge, et pour un projet sans traduction automatique, toutes. Le rôle de verbatra est d'écrire chaque code comme le fournisseur
-l'attend, de tenir chaque traduction aux règles de pluriel de sa langue, et de te prévenir avant une
-exécution quand un fournisseur ne peut pas servir une locale.
+verbatra n'a pas de liste de langues à lui. Il accepte tout code de locale BCP 47 valide et laisse
+la traduction à ton fournisseur : les langues que tu peux utiliser sont donc celles que ton
+fournisseur prend en charge, et pour un projet sans traduction automatique, toutes. Le rôle de
+verbatra est d'écrire chaque code comme le fournisseur l'attend, de tenir chaque traduction aux
+règles de pluriel de sa langue, et de te prévenir avant une exécution quand un fournisseur ne peut
+pas servir une locale.
 
 ## Codes de locale
 
@@ -61,9 +62,9 @@ Ce que cela veut dire en pratique :
 
 <AvailableFrom version="0.12.0" />
 
-DeepL et Google Cloud Translation reçoivent certains codes sous leur propre graphie, et DeepL
-refuse une cible `en` ou `pt` nue avant toute requête. Les fournisseurs LLM reçoivent le code tel
-qu'écrit, plus le nom anglais de la langue, de l'écriture et de la région ; voir
+DeepL et Google Cloud Translation reçoivent certains codes sous leur propre graphie, et DeepL refuse
+une cible `en` ou `pt` nue avant toute requête. Les fournisseurs LLM reçoivent le code tel qu'écrit,
+plus le nom anglais de la langue, de l'écriture et de la région ; voir
 [Noms de langue, d'écriture et de région](/docs/translation-safety#noms-de-langue-décriture-et-de-région).
 `localeMap` dans les `options` du fournisseur remplace le code par locale. La correspondance
 complète est sous
@@ -86,11 +87,11 @@ verdicts. Chaque locale en reçoit un des trois :
   retraduction d'une seule clé refusent toute l'exécution avec
   [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider).
 
-Laisse la locale de côté avec `--locales`, ou,
-si le fournisseur a ajouté la langue après la date de la table, fais-la correspondre dans
-`localeMap` : une entrée explicite est considérée comme fiable. Les tables livrées sont des copies
-datées des listes des fournisseurs (DeepL avec 125 codes et Google avec 198, toutes deux du
-2026-09-28) ; `verbatra doctor --live` vérifie plutôt avec la liste actuelle.
+Laisse la locale de côté avec `--locales`, ou, si le fournisseur a ajouté la langue après la date de
+la table, fais-la correspondre dans `localeMap` : une entrée explicite est considérée comme fiable.
+Les tables livrées sont des copies datées des listes des fournisseurs (DeepL avec 125 codes et
+Google avec 198, toutes deux du 2026-09-28) ; `verbatra doctor --live` vérifie plutôt avec la liste
+actuelle.
 
 Les fournisseurs LLM acceptent toute langue, donc rien n'est refusé pour eux. Une cible hors des
 langues que les LLM traduisent bien reçoit l'avertissement `LOCALE_NOT_WELL_TESTED`, comme incitation

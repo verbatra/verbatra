@@ -5,10 +5,9 @@ type: concept
 ---
 verbatra no tiene una lista de idiomas propia. Acepta cualquier código de locale BCP 47 válido y
 deja la traducción a tu proveedor, así que los idiomas que puedes usar son los que admite tu
-proveedor, y en un proyecto solo humano, todos. Lo que
-hace verbatra es escribir cada código como lo espera el proveedor, exigir a cada traducción las
-reglas de plural de su idioma y avisarte antes de una ejecución cuando un proveedor no puede servir
-un locale.
+proveedor, y en un proyecto solo humano, todos. Lo que hace verbatra es escribir cada código como lo
+espera el proveedor, exigir a cada traducción las reglas de plural de su idioma y avisarte antes de
+una ejecución cuando un proveedor no puede servir un locale.
 
 ## Códigos de locale
 
@@ -86,11 +85,10 @@ locale recibe uno de tres:
   traducción de una sola clave rechazan la ejecución entera con
   [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider).
 
-Deja fuera el locale con `--locales` o, si el proveedor añadió
-el idioma después de la fecha de la tabla, mapéalo en `localeMap`: una entrada explícita se da por
-buena. Las tablas incluidas son copias fechadas de las listas de los proveedores (DeepL con 125
-códigos y Google con 198, ambas del 2026-09-28); `verbatra doctor --live` comprueba en cambio contra
-la lista actual.
+Deja fuera el locale con `--locales` o, si el proveedor añadió el idioma después de la fecha de la
+tabla, mapéalo en `localeMap`: una entrada explícita se da por buena. Las tablas incluidas son
+copias fechadas de las listas de los proveedores (DeepL con 125 códigos y Google con 198, ambas del
+2026-09-28); `verbatra doctor --live` comprueba en cambio contra la lista actual.
 
 Los proveedores LLM aceptan cualquier idioma, así que para ellos no se rechaza nada. Un destino fuera
 de los idiomas que los LLM traducen bien de forma probada recibe el aviso `LOCALE_NOT_WELL_TESTED`,

@@ -109,7 +109,8 @@ jetzt schon. Wie Plurale in den anderen Formaten funktionieren, steht unter
 
 Rich Text erreicht einen String als Inline-Markup: ein `<b>` in einem i18next-`Trans`-Block, ein
 maskiertes `&lt;b&gt;` in einem Android-`<string>`, ein `<a href>` in einem gettext-Katalog. Ein
-weggelassenes oder kaputtes Tag zerbricht die Darstellung, deshalb vergleicht das Gate Tag-Namen und Attributnamen als Multimenge:
+weggelassenes oder kaputtes Tag zerbricht die Darstellung, deshalb vergleicht das Gate Tag-Namen und
+Attributnamen als Multimenge:
 
 - **Abgelehnt**: ein weggelassenes, erfundenes oder umbenanntes Tag; eine geänderte Menge von
   Attributnamen (auch ein hinzugefügtes `dir`); unausgeglichenes oder falsch verschachteltes Markup;
@@ -125,8 +126,8 @@ weggelassenes oder kaputtes Tag zerbricht die Darstellung, deshalb vergleicht da
 
 Markup, das in einen String ohne Markup erfunden wird, wird ebenfalls abgelehnt, während ein
 gewöhnliches Wort in spitzen Klammern wie `<Enter>` als Text gelesen wird. Tags, die das Format
-schon als Platzhalter meldet, überlässt es der Platzhalterprüfung. Kommentare, Rohtext und fehlerhafte Quellen:
-siehe [`markup`](/docs/error-codes#markup).
+schon als Platzhalter meldet, überlässt es der Platzhalterprüfung. Kommentare, Rohtext und
+fehlerhafte Quellen: siehe [`markup`](/docs/error-codes#markup).
 
 ## Review-Flags
 

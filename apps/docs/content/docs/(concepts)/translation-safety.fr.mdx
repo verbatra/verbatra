@@ -110,7 +110,8 @@ maintenant. Le fonctionnement des pluriels dans les autres formats est sur
 
 Le texte enrichi arrive dans une chaîne sous forme de balisage en ligne : un `<b>` dans un bloc
 `Trans` d'i18next, un `&lt;b&gt;` échappé dans un `<string>` Android, un `<a href>` dans un
-catalogue gettext. Une balise perdue ou cassée casse le rendu, donc la barrière compare les noms de balise et d'attribut comme un multiensemble :
+catalogue gettext. Une balise perdue ou cassée casse le rendu, donc la barrière compare les noms de
+balise et d'attribut comme un multiensemble :
 
 - **Refusé** : une balise supprimée, inventée ou renommée ; un ensemble de noms d'attribut modifié
   (ajout de `dir` compris) ; un balisage déséquilibré ou mal imbriqué ; deux balises fusionnées en
@@ -126,8 +127,8 @@ catalogue gettext. Une balise perdue ou cassée casse le rendu, donc la barrièr
 
 Un balisage inventé dans une chaîne qui n'en avait pas est refusé aussi, tandis qu'un simple mot
 entre chevrons comme `<Enter>` est lu comme du texte. Les balises que le format signale déjà comme
-placeholders sont laissées à la vérification des placeholders. Commentaires, texte brut et sources mal formées :
-voir [`markup`](/docs/error-codes#markup).
+placeholders sont laissées à la vérification des placeholders. Commentaires, texte brut et sources
+mal formées : voir [`markup`](/docs/error-codes#markup).
 
 ## Signalements de révision
 

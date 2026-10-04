@@ -47,7 +47,7 @@ de côté.
 
 ## Vérifier en CI sans écrire
 
-`check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète. 
+`check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète.
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -265,7 +265,7 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) liste ce que chacune lève. 
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) liste ce que chacune lève.
 
 ### Valeurs écrites par une personne
 
@@ -434,5 +434,3 @@ const config = await loadConfig({
 
 await translate({ config });
 ```
-
-
