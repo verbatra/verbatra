@@ -118,14 +118,14 @@ describe("diffResources", () => {
     expect(result.emptySource).toEqual(["a"]);
   });
 
-  it("keeps a blank source key that the target holds and the baseline matches as unchanged", () => {
+  it("files a blank source key as emptySource even when the target holds it and the baseline matches", () => {
     const blank = entry({ key: "a", value: "" });
     const baseline = new Map([["a", contentHash(blank)]]);
     const result = diffResources(resource("en", [blank]), resource("de", [entry({ key: "a" })]), {
       baseline,
     });
-    expect(result.unchanged).toEqual(["a"]);
-    expect(result.emptySource).toEqual([]);
+    expect(result.unchanged).toEqual([]);
+    expect(result.emptySource).toEqual(["a"]);
   });
 
   it("never counts a blank source key as orphaned", () => {

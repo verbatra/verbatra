@@ -23,14 +23,6 @@ export function isBlankValue(value: string): boolean {
   return value.trim() === "";
 }
 
-function pendingBucket(
-  sourceEntry: TranslationEntry,
-  bucket: string[],
-  emptySource: string[],
-): string[] {
-  return isBlankValue(sourceEntry.value) ? emptySource : bucket;
-}
-
 export function diffResources(
   source: LocaleResource,
   target: LocaleResource,
@@ -43,10 +35,12 @@ export function diffResources(
   const emptySource: string[] = [];
 
   for (const [key, sourceEntry] of source.entries) {
-    if (!target.entries.has(key)) {
-      pendingBucket(sourceEntry, missing, emptySource).push(key);
+    if (isBlankValue(sourceEntry.value)) {
+      emptySource.push(key);
+    } else if (!target.entries.has(key)) {
+      missing.push(key);
     } else if (isStale(key, sourceEntry, options.baseline)) {
-      pendingBucket(sourceEntry, changed, emptySource).push(key);
+      changed.push(key);
     } else {
       unchanged.push(key);
     }
