@@ -129,7 +129,7 @@ Avec `--json`, `result.review` vaut `{ reviewed, unreviewed, code? }`, où `code
 
 `--sensitive` lance l'analyse de la [protection des contenus sensibles](/docs/data-handling#protection-des-contenus-sensibles) sur chaque clé source (nom de clé, valeur, description et sens) et le glossaire de chaque locale vérifiée, avec les détecteurs, motifs et la liste `allow` de `sensitiveData` (sans bloc, les détecteurs par défaut), quels que soient le `mode` et le fournisseur, `none` compris : les valeurs quittent quand même la machine lors des transmissions par export, XLIFF et TMX. Il signale les clés et les détecteurs, jamais le texte trouvé hors d'un nom de clé, et sort avec `1` à la moindre trouvaille.
 
-Le détecteur `email` ignore les adresses des domaines réservés `example.com`, `example.org` et `example.net` et de leurs sous-domaines, ainsi que de tout domaine se terminant par `.example`, `.test`, `.invalid` ou `.localhost` : teste donc la protection avec une adresse d'apparence réelle.
+Le détecteur `email` ignore les [domaines d'exemple réservés](/docs/data-handling#protection-des-contenus-sensibles) : teste donc avec une adresse d'apparence réelle.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive

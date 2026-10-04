@@ -129,7 +129,7 @@ Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei
 
 `--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jedes geprüften Locales aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
 
-Der Detektor `email` ignoriert Adressen an den reservierten Domains `example.com`, `example.org` und `example.net` samt ihren Subdomains sowie an jeder Domain, die auf `.example`, `.test`, `.invalid` oder `.localhost` endet. Teste den Schutz also mit einer realistisch wirkenden Adresse.
+Der Detektor `email` überspringt [reservierte Beispiel-Domains](/docs/data-handling#schutz-für-sensible-inhalte), teste also mit einer realistisch wirkenden Adresse.
 
 ```text output
 sensitive: 1 key and 0 glossary terms hold content that looks sensitive
