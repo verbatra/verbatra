@@ -13,8 +13,9 @@ import {
 import type { TranslationEntry } from "@verbatra/core";
 import { describe, expect, it } from "vitest";
 import { selectAdapter } from "../selection/select-adapter.js";
-import { createSensitiveGuard } from "../sensitive/guard.js";
-import { guardProvider } from "../sensitive/guarded-provider.js";
+import { createSensitiveGuard, type SensitiveGuard } from "../sensitive/guard.js";
+import { guardProvider, sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
+import { planSensitive } from "../sensitive/locale-plan.js";
 import { buildTranslateRequest, type TranslateRequestContext } from "./translate-request.js";
 
 const SECRET = "ops@acme.io";
@@ -166,6 +167,26 @@ describe("a foreign token that cannot be kept intact", () => {
   });
 });
 
+function redactGuard(kind: "llm" | "machine-translation"): SensitiveGuard {
+  const guard = createSensitiveGuard({ mode: "redact", patterns: ["secretToken"] }, kind);
+  if (guard === undefined) {
+    throw new Error("expected a guard");
+  }
+  return guard;
+}
+
+const I18NEXT = contextFor("i18next-json");
+
+function i18nextEntry(key: string, value: string): TranslationEntry {
+  return {
+    key,
+    namespace: "",
+    value,
+    placeholders: I18NEXT.adapter.extractPlaceholders(value),
+    isPlural: false,
+  };
+}
+
 describe("an LLM request", () => {
   it("is byte-identical with and without the foreign tokens in the placeholders", async () => {
     const entries = [entry("greeting", "Hi {name}, use {{x}} and %s here"), entry("plain", "Save")];
@@ -180,6 +201,74 @@ describe("an LLM request", () => {
     expect(built.entries[0]?.placeholders).toContain("{{x}}");
     expect(withForeign.sent).toHaveLength(1);
     expect(withForeign.sent).toEqual(without.sent);
+  });
+
+  it("is byte-identical through the redacting guard, and a match inside a foreign token is still redacted", async () => {
+    const entries = [
+      i18nextEntry("token", "Your {secretToken} here"),
+      i18nextEntry("plain", "Save"),
+    ];
+    const built = buildTranslateRequest(I18NEXT, entries);
+    const raw: TranslateRequest = { ...built, entries };
+    const withForeign = gemini();
+    const without = gemini();
+
+    const result = await guardProvider(withForeign.provider, redactGuard("llm")).translateBatch(
+      built,
+    );
+    await guardProvider(without.provider, redactGuard("llm")).translateBatch(raw);
+
+    expect(built.entries[0]?.placeholders).toEqual(["{secretToken}"]);
+    expect(withForeign.sent).toHaveLength(1);
+    expect(withForeign.sent).toEqual(without.sent);
+    expect(withForeign.sent[0]).not.toContain("secretToken");
+    expect(result.values.get("token")).toBe("DE Your {secretToken} here");
+    expect(sensitiveWithheldOf(result).size).toBe(0);
+  });
+});
+
+describe("the sensitive-data guard and the planned verdict", () => {
+  it("decides on the entry the dry-run plan saw, so the memo hits and the verdict matches", async () => {
+    const guard = redactGuard("llm");
+    const seen: TranslationEntry[] = [];
+    const recording: SensitiveGuard = {
+      ...guard,
+      entry: (candidate) => {
+        seen.push(candidate);
+        return guard.entry(candidate);
+      },
+    };
+    const entries = [i18nextEntry("token", "Your {secretToken} here")];
+    const plan = planSensitive(recording, entries, undefined);
+
+    const result = await guardProvider(gemini().provider, recording).translateBatch(
+      buildTranslateRequest(I18NEXT, entries),
+    );
+
+    expect(plan.redacted).toEqual(new Set(["token"]));
+    expect(seen).toHaveLength(2);
+    expect(seen[1]).toBe(entries[0]);
+    expect(guard.entry(entries[0] as TranslationEntry)).toBe(
+      guard.entry(seen[1] as TranslationEntry),
+    );
+    expect(result.values.has("token")).toBe(true);
+    expect(sensitiveWithheldOf(result).size).toBe(0);
+  });
+
+  it("keeps the redact verdict for machine translation, which then masks or withholds the value", async () => {
+    const { sent, provider } = libreTranslate();
+    const entries = [i18nextEntry("token", "Your {secretToken} here")];
+    const plan = planSensitive(redactGuard("machine-translation"), entries, undefined);
+
+    const result = await guardProvider(provider, redactGuard("machine-translation")).translateBatch(
+      buildTranslateRequest(I18NEXT, entries),
+    );
+
+    expect(plan.redacted).toEqual(new Set(["token"]));
+    expect(sensitiveWithheldOf(result).size).toBe(0);
+    expect(sent.join("\n")).not.toContain("secretToken");
+    expect(result.values.has("token")).toBe(false);
+    expect(result.notices?.map((notice) => notice.code)).toEqual(["PLACEHOLDER_UNSUPPORTED"]);
   });
 });
 

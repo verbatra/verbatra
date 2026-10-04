@@ -18,6 +18,7 @@ import {
   sourceForeignPlaceholderNotice,
   withForeignPlaceholderReason,
   withForeignPlaceholders,
+  withoutForeignPlaceholders,
 } from "./foreign-placeholders.js";
 
 const SAMPLES: Readonly<Record<PlaceholderSyntax, string>> = {
@@ -294,6 +295,15 @@ describe("withForeignPlaceholders", () => {
     const entry = entryOf("i18next-json", "Hi {{name}}, 50%off");
 
     expect(withForeignPlaceholders(entry, "i18next-json")).toBe(entry);
+  });
+
+  it("hands back the original entry object to code that must not see the foreign tokens", () => {
+    const entry = entryOf("vue-i18n-json", "Use {{x}}");
+    const extended = withForeignPlaceholders(entry, "vue-i18n-json");
+
+    expect(extended).not.toBe(entry);
+    expect(withoutForeignPlaceholders(extended)).toBe(entry);
+    expect(withoutForeignPlaceholders(entry)).toBe(entry);
   });
 
   it("returns the entry itself for a third-party format", () => {

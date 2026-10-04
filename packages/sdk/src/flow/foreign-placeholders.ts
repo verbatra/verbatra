@@ -38,6 +38,24 @@ function nativeSyntaxesOf(format: FormatId): readonly PlaceholderSyntax[] | unde
   return isCustomFormatId(format) ? undefined : NATIVE_PLACEHOLDER_SYNTAXES[format];
 }
 
+interface ForeignOrigin {
+  readonly entry: TranslationEntry;
+  readonly format: FormatId;
+}
+
+const ORIGIN_OF_EXTENDED = new WeakMap<TranslationEntry, ForeignOrigin>();
+
+function addedForeignTokens(entry: TranslationEntry, native: readonly PlaceholderSyntax[]) {
+  const known = new Set(entry.placeholders);
+  const added = new Set<string>();
+  for (const token of foreignPlaceholderTokens(entry.value, native)) {
+    if (!known.has(token)) {
+      added.add(token);
+    }
+  }
+  return [...added];
+}
+
 export function withForeignPlaceholders(
   entry: TranslationEntry,
   format: FormatId,
@@ -46,13 +64,25 @@ export function withForeignPlaceholders(
   if (native === undefined) {
     return entry;
   }
-  const known = new Set(entry.placeholders);
-  const added = foreignPlaceholderTokens(entry.value, native).filter((token) => {
-    const fresh = !known.has(token);
-    known.add(token);
-    return fresh;
-  });
-  return added.length === 0 ? entry : { ...entry, placeholders: [...entry.placeholders, ...added] };
+  const added = addedForeignTokens(entry, native);
+  if (added.length === 0) {
+    return entry;
+  }
+  const extended = { ...entry, placeholders: [...entry.placeholders, ...added] };
+  ORIGIN_OF_EXTENDED.set(extended, { entry, format });
+  return extended;
+}
+
+export function withoutForeignPlaceholders(entry: TranslationEntry): TranslationEntry {
+  return ORIGIN_OF_EXTENDED.get(entry)?.entry ?? entry;
+}
+
+export function reapplyForeignPlaceholders(
+  sent: TranslationEntry,
+  requested: TranslationEntry,
+): TranslationEntry {
+  const origin = ORIGIN_OF_EXTENDED.get(requested);
+  return origin === undefined ? sent : withForeignPlaceholders(sent, origin.format);
 }
 
 export function droppedForeignPlaceholders(
