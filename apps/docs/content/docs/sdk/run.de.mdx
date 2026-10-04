@@ -65,8 +65,8 @@ Siehe [die Anatomie der `RunSummary`](/docs/sdk/run-summary#die-anatomie-der-run
 | `split-retry` | ein Batch, dessen Ausgabe abgeschnitten wurde, wird in zwei Hälften wiederholt | `locale`, `keys` |
 | `batch-finished` | ein Batch ist fertig, ob erfolgreich oder nicht | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
 | `writing` | direkt bevor die Datei einer Locale geschrieben wird | `locale` |
-| `locale-finished` | die Arbeit an einer Locale endet | `locale`, `translated`, `localeIndex`, `totalLocales` |
-| `run-finished` | alle Locales sind fertig | `localesCompleted` |
+| `locale-finished` | die Arbeit an einer Locale endet | `locale`, `status`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | alle Locales sind fertig | `localesCompleted`, `localesFailed` |
 | `change-detected` | nur `watch`: eine Änderung an der Quelldatei hat sich gesetzt | `paths` |
 | `idle` | nur `watch`: ein Lauf ist fertig und keiner steht an | keine |
 
