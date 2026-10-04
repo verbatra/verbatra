@@ -15,7 +15,7 @@ import { createUi } from "./ui.js";
 const BASE = resolve("/work/app");
 
 function terminal(mode: OutputMode, animate = false): TerminalMode {
-  return { mode, color: false, animate, stdinIsTty: false };
+  return { mode, color: false, stdoutColor: false, animate, stdinIsTty: false };
 }
 
 const run: readonly ProgressEvent[] = [

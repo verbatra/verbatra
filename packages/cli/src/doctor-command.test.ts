@@ -47,6 +47,8 @@ function failingReport(): DoctorResult {
   });
 }
 
+const ESC = "\x1b[";
+
 function warningReport(): DoctorResult {
   return makeDoctorResult({
     ok: true,
@@ -172,6 +174,21 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
       command: "doctor",
       result: { ok: true, checks: [{ status: "pass" }, { status: "warn" }] },
     });
+  });
+
+  it("colors each status label on a color stdout and leaves a piped stdout plain", async () => {
+    const { deps } = recordingDeps({ doctor: async () => warningReport() });
+    const colored = captureStreams();
+    const piped = captureStreams();
+    const facts = { env: {}, stdinIsTty: true, stderrIsTty: true, stdoutIsTty: true };
+
+    await run(["doctor"], deps, colored.streams, {}, facts);
+    await run(["doctor"], deps, piped.streams, {}, { ...facts, stdoutIsTty: false });
+
+    expect(colored.out()).toContain(`${ESC}32m[ok  ]${ESC}39m Configuration`);
+    expect(colored.out()).toContain(`${ESC}33m[warn]${ESC}39m Locale codes`);
+    expect(piped.out()).not.toContain(ESC);
+    expect(piped.out()).toContain("[warn] Locale codes");
   });
 
   it("--json prints one success envelope carrying the per-check verdicts, and still exits 1", async () => {

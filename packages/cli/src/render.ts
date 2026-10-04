@@ -769,11 +769,13 @@ function renderLocaleCapabilities(report: LocaleCapabilityReport | undefined): r
 
 export interface DoctorRenderOptions {
   readonly locales?: boolean;
+  readonly paintStatus?: (status: DoctorCheckStatus, label: string) => string;
 }
 
 export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOptions = {}): string {
+  const paint = options.paintStatus ?? ((_status: DoctorCheckStatus, label: string) => label);
   const lines = result.checks.flatMap((entry) => [
-    `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
+    `  ${paint(entry.status, `[${DOCTOR_STATUS_LABELS[entry.status]}]`)} ${entry.title}: ${entry.detail}`,
     ...(entry.fix === undefined ? [] : [`         fix: ${entry.fix}`]),
   ]);
   const failed = result.checks.filter((entry) => entry.status === "fail").length;

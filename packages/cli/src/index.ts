@@ -84,6 +84,7 @@ const code = await run(
     env: process.env,
     stdinIsTty: process.stdin.isTTY === true,
     stderrIsTty: process.stderr.isTTY === true,
+    stdoutIsTty: process.stdout.isTTY === true,
   },
 );
 

@@ -22,8 +22,18 @@ import {
 } from "./test-support.js";
 import type { RunHooks, Session } from "./types.js";
 
-const INTERACTIVE: TerminalFacts = { env: { NO_COLOR: "1" }, stdinIsTty: true, stderrIsTty: true };
-const PIPED: TerminalFacts = { env: {}, stdinIsTty: false, stderrIsTty: false };
+const INTERACTIVE: TerminalFacts = {
+  env: { NO_COLOR: "1" },
+  stdinIsTty: true,
+  stderrIsTty: true,
+  stdoutIsTty: true,
+};
+const PIPED: TerminalFacts = {
+  env: {},
+  stdinIsTty: false,
+  stderrIsTty: false,
+  stdoutIsTty: false,
+};
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolvePromise!: () => void;
