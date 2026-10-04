@@ -481,3 +481,24 @@ each locale `{ locale, total, counts, entries }` and each entry
 every value as `unrecorded`. A source, target, or lock file that cannot be read fails the call as it
 fails `check`. The report is supporting evidence, not legal advice; the full schema is on
 [Machine-translation evidence](/docs/provenance-evidence#the-json-schema).
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+Builds the same report as `provenanceReport` and returns its entries one page at a time, optionally only those in some `buckets`, with a cursor for the next page. Every page keeps each locale's full `total` and `counts`. The MCP server's `report.provenance` pages with it. Read-only.
+
+```ts title="Signature"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**Returns:** `ProvenanceReportPageResult`
+
+**Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Each locale carries `entries` only on the pages that hold one of them. A page holds at most `limit` entries, `PAGE_LIMIT_DEFAULT` by default; pass `nextCursor` back as `cursor`, with the same `locales` and `buckets`, until it is absent. A report that cannot be built returns `{ available: false, reason: "provenance-unreadable" }` as `provenanceReport` does.

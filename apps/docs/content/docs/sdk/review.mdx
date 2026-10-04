@@ -299,26 +299,7 @@ function localeValuesPage(
 
 Returns `{ locales, nextCursor? }`: each locale with an entry on the page carries `entries`, each `{ key, source?, target?, provenance? }` as `localeValues` reports it, ordered by locale and then by key. A page holds at most `limit` entries: `PAGE_LIMIT_DEFAULT` (200) by default, `PAGE_LIMIT_CAP` (1000) at most. Pass `nextCursor` back as `cursor`, with the same filters, until it is absent. Every call reads the files again, so a cursor whose key moved or is gone is refused rather than skipping or repeating entries.
 
-### pageAcrossLocales
-
-<AvailableFrom version="0.12.0" />
-
-Cuts one page from a per-locale list of your own, such as the entries of `provenanceReport`, with the cursor `localeValuesPage` uses. It reads nothing.
-
-```ts title="Signature"
-function pageAcrossLocales<Item extends { readonly key: string }>(
-  locales: readonly PagedLocale<Item>[],
-  request: PageRequest,
-): LocalePage<Item>;
-```
-
-<SdkTypeTable name="PageRequest" />
-
-**Returns:** `LocalePage<Item>`
-
-**Throws:** [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
-
-`filters` is the JSON-serializable filter set the list was built with, in a canonical order; the cursor keeps a digest of it and is refused under other filters. Every item needs a `key`.
+A `cursor` is at most `PAGE_CURSOR_MAX_LENGTH` (512) characters. The MCP server and Studio accept a `query` of at most `LOCALE_VALUES_QUERY_MAX_LENGTH` (500) characters.
 
 ## Batch review and retranslation
 

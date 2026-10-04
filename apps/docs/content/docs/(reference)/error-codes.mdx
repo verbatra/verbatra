@@ -448,15 +448,15 @@ A live run set `concurrency` above 1 while a token budget applies, configured or
 
 ### PAGE_CURSOR_INVALID
 
-The `cursor` passed to `localeValuesPage` or `pageAcrossLocales` is malformed, was made under other filters, or points at a key that moved or is gone because the files changed between pages.
+The `cursor` passed to `localeValuesPage` or `provenanceReportPage` is malformed, longer than `PAGE_CURSOR_MAX_LENGTH` (512), was made under other filters, or points at a key that moved or is gone because the files changed between pages.
 
-- **Raised by**: the SDK; Studio's `verbatra_locale_values` agent tool (the MCP server reports it as invalid input for `cursor`)
+- **Raised by**: the SDK; Studio's `verbatra_locale_values` agent tool (the MCP server's `locale.values` and `report.provenance` report it as invalid input for `cursor`)
 - **Exit code**: none: no CLI command raises it
 - **Next step**: Call again without a cursor to start from the first page.
 
 ### PAGE_LIMIT_INVALID
 
-The `limit` passed to `localeValuesPage` or `pageAcrossLocales` is not a whole number from 1 to `PAGE_LIMIT_CAP` (1000).
+The `limit` passed to `localeValuesPage` or `provenanceReportPage` is not a whole number from 1 to `PAGE_LIMIT_CAP` (1000).
 
 - **Raised by**: the SDK only
 - **Exit code**: none: no CLI command raises it

@@ -500,3 +500,24 @@ listaría cada valor como `unrecorded`. Un archivo de origen, de destino o de bl
 leer hace fallar la llamada igual que en `check`. El informe es evidencia de apoyo, no asesoramiento
 jurídico; el esquema completo está en
 [Evidencia de traducción automática](/docs/provenance-evidence#el-esquema-json).
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+Construye el mismo informe que `provenanceReport` y devuelve sus entradas página a página, si quieres solo las de algunos `buckets`, con un cursor para la página siguiente. Cada página conserva completos `total` y `counts` de cada locale. `report.provenance` del servidor MCP pagina con ella. Solo lectura.
+
+```ts title="Firma"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**Devuelve:** `ProvenanceReportPageResult`
+
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Un locale lleva `entries` solo en las páginas que contienen alguna de sus entradas. Una página tiene como mucho `limit` entradas, `PAGE_LIMIT_DEFAULT` por defecto; pasa `nextCursor` como `cursor`, con los mismos `locales` y `buckets`, hasta que falte. Si el informe no se puede construir, devuelve `{ available: false, reason: "provenance-unreadable" }` como `provenanceReport`.

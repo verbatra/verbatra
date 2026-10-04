@@ -357,3 +357,24 @@ function provenanceReport(
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
 
 `deps` accepte aussi `now`, l'horloge dont est tiré `generatedAt`. Renvoie `{ available: true, generatedAt, toolVersion, sourceLocale, locales }`, chaque locale sous la forme `{ locale, total, counts, entries }` et chaque entrée sous la forme `{ key, bucket, origin, reviewState, provider?, model?, reviewer? }`. `toolVersion` vaut `unknown` par défaut. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, il renvoie `{ available: false, reason: "provenance-unreadable" }`, puisqu'un rapport sans lui listerait chaque valeur comme `unrecorded`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Le rapport est un élément de preuve à l'appui, pas un conseil juridique ; le schéma complet figure sur [Preuves de traduction automatique](/docs/provenance-evidence#le-schéma-json).
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+Construit le même rapport que `provenanceReport` et renvoie ses entrées page par page, si tu veux seulement celles de certains `buckets`, avec un curseur pour la page suivante. Chaque page garde complets les `total` et `counts` de chaque locale. `report.provenance` du serveur MCP pagine avec. En lecture seule.
+
+```ts title="Signature"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**Renvoie :** `ProvenanceReportPageResult`
+
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Une locale ne porte `entries` que sur les pages qui contiennent une de ses entrées. Une page contient au plus `limit` entrées, `PAGE_LIMIT_DEFAULT` par défaut ; repasse `nextCursor` comme `cursor`, avec les mêmes `locales` et `buckets`, jusqu'à ce qu'il soit absent. Si le rapport ne peut pas être construit, il renvoie `{ available: false, reason: "provenance-unreadable" }` comme `provenanceReport`.

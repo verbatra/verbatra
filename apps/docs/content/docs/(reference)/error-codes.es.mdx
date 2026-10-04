@@ -448,7 +448,7 @@ El `maxTokens` por ejecución de `translate` se fijó pero no es un número ente
 
 ### PAGE_CURSOR_INVALID
 
-El `cursor` pasado a `localeValuesPage` o `pageAcrossLocales` está mal formado, se creó con otros filtros o apunta a una clave que se movió o ya no existe porque los archivos cambiaron entre páginas.
+El `cursor` pasado a `localeValuesPage` o `provenanceReportPage` está mal formado, supera `PAGE_CURSOR_MAX_LENGTH` (512), se creó con otros filtros o apunta a una clave que se movió o ya no existe porque los archivos cambiaron entre páginas.
 
 - **Lo lanza**: el SDK; la herramienta de agente `verbatra_locale_values` de Studio (el servidor MCP lo informa como entrada no válida para `cursor`)
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza
@@ -456,7 +456,7 @@ El `cursor` pasado a `localeValuesPage` o `pageAcrossLocales` está mal formado,
 
 ### PAGE_LIMIT_INVALID
 
-El `limit` pasado a `localeValuesPage` o `pageAcrossLocales` no es un número entero de 1 a `PAGE_LIMIT_CAP` (1000).
+El `limit` pasado a `localeValuesPage` o `provenanceReportPage` no es un número entero de 1 a `PAGE_LIMIT_CAP` (1000).
 
 - **Lo lanza**: solo el SDK
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza

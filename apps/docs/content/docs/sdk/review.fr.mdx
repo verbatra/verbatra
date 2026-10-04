@@ -236,26 +236,7 @@ function localeValuesPage(
 
 Renvoie `{ locales, nextCursor? }` : chaque locale ayant une entrée sur la page porte `entries`, chacune `{ key, source?, target?, provenance? }` comme `localeValues` la rapporte, triées par locale puis par clé. Une page contient au plus `limit` entrées : `PAGE_LIMIT_DEFAULT` (200) par défaut, `PAGE_LIMIT_CAP` (1000) au maximum. Repasse `nextCursor` comme `cursor`, avec les mêmes filtres, jusqu'à ce qu'il soit absent. Chaque appel relit les fichiers, donc un curseur dont la clé a bougé ou disparu est refusé au lieu de sauter ou de répéter des entrées.
 
-### pageAcrossLocales
-
-<AvailableFrom version="0.12.0" />
-
-Découpe une page dans une liste par locale que tu construis toi-même, comme les entrées de `provenanceReport`, avec le curseur qu'utilise `localeValuesPage`. Ne lit rien.
-
-```ts title="Signature"
-function pageAcrossLocales<Item extends { readonly key: string }>(
-  locales: readonly PagedLocale<Item>[],
-  request: PageRequest,
-): LocalePage<Item>;
-```
-
-<SdkTypeTable name="PageRequest" />
-
-**Renvoie :** `LocalePage<Item>`
-
-**Lève :** [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
-
-`filters` est l'ensemble de filtres sérialisable en JSON avec lequel la liste a été construite, dans un ordre canonique ; le curseur en garde un condensé et est refusé avec d'autres filtres. Chaque élément a besoin d'une `key`.
+Un `cursor` fait au plus `PAGE_CURSOR_MAX_LENGTH` (512) caractères. Le serveur MCP et Studio acceptent une `query` d'au plus `LOCALE_VALUES_QUERY_MAX_LENGTH` (500) caractères.
 
 ## Révision et retraduction par lots
 

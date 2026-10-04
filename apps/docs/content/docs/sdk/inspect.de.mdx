@@ -503,3 +503,24 @@ Bericht ohne sie würde jeden Wert als `unrecorded` aufführen. Eine Quell-, Zie
 die sich nicht lesen lässt, lässt den Aufruf scheitern wie bei `check`. Der Bericht ist ein
 unterstützender Nachweis, keine Rechtsberatung; das vollständige Schema steht unter
 [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#das-json-schema).
+
+### provenanceReportPage
+
+<AvailableFrom version="0.12.0" />
+
+Baut denselben Bericht wie `provenanceReport` und gibt seine Einträge seitenweise zurück, optional nur die aus bestimmten `buckets`, mit einem Cursor für die nächste Seite. Jede Seite behält `total` und `counts` jeder Locale vollständig. `report.provenance` im MCP-Server blättert damit. Nur lesend.
+
+```ts title="Signatur"
+function provenanceReportPage(
+  input: ProvenanceReportPageInput,
+  deps?: ProvenanceReportDeps,
+): Promise<ProvenanceReportPageResult>;
+```
+
+<SdkTypeTable name="ProvenanceReportPageInput" />
+
+**Rückgabe:** `ProvenanceReportPageResult`
+
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
+
+Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Lässt sich der Bericht nicht bauen, kommt wie bei `provenanceReport` `{ available: false, reason: "provenance-unreadable" }` zurück.
