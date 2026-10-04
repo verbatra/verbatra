@@ -193,6 +193,84 @@ describe("computeReviewFlags: EQUALS_SOURCE with fixed terms", () => {
     ).toEqual([]);
   });
 
+  it("discounts a value covered by case-sensitive and case-insensitive terms together", () => {
+    expect(
+      reasons({
+        sourceValue: "verbatra API",
+        translatedValue: "verbatra API",
+        glossary: glossary(
+          [],
+          [
+            { term: "API", caseSensitive: true },
+            { term: "VERBATRA", caseSensitive: false },
+          ],
+        ),
+      }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["a case-insensitive", false],
+    ["a case-sensitive", true],
+  ])("discounts %s term when case folding lengthens the value", (_label, caseSensitive) => {
+    expect(
+      reasons({
+        sourceValue: "İstanbul",
+        translatedValue: "İstanbul",
+        glossary: glossary([], [{ term: "İstanbul", caseSensitive }]),
+      }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ["en", "İstanbul API", "İstanbul"],
+    ["tr", "I\u0307stanbul API", "istanbul"],
+    ["lt", "\u00cctaka API", "\u00ccTAKA"],
+  ])(
+    "discounts a %s value whose case folding changes its length when two kinds of term cover it",
+    (sourceLocale, value, caseInsensitiveTerm) => {
+      expect(
+        reasons({
+          sourceValue: value,
+          translatedValue: value,
+          sourceLocale,
+          glossary: glossary(
+            [],
+            [
+              { term: "API", caseSensitive: true },
+              { term: caseInsensitiveTerm, caseSensitive: false },
+            ],
+          ),
+        }),
+      ).not.toContain("EQUALS_SOURCE");
+    },
+  );
+
+  it("is still raised when a letter outside a length-changing folded term stays uncovered", () => {
+    expect(
+      reasons({
+        sourceValue: "İstanbul docs",
+        translatedValue: "İstanbul docs",
+        glossary: glossary([], [{ term: "İstanbul", caseSensitive: false }]),
+      }),
+    ).toEqual(["EQUALS_SOURCE"]);
+  });
+
+  it.each([
+    ["ΟΔΟΣ", "οδος"],
+    ["οδος", "ΟΔΟΣ"],
+    ["ΟΔΟΣ", "ΟΔΟΣ"],
+  ])("matches the case-insensitive Greek term %s in the value %s", (fixedTerm, value) => {
+    expect(
+      reasons({
+        sourceValue: value,
+        translatedValue: value,
+        sourceLocale: "el",
+        glossary: glossary([], [{ term: fixedTerm, caseSensitive: false }]),
+      }),
+    ).toEqual([]);
+  });
+
   it("is still raised for an untranslated copy when the glossary has no fixed terms", () => {
     expect(
       reasons({
