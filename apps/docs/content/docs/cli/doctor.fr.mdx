@@ -40,7 +40,7 @@ Une exécution de configuration rapporte ces vérifications, dans cet ordre. Plu
 | Network policy | la [politique réseau](/docs/network-policy) effective autorise l'hôte du fournisseur et tout proxy qu'il utiliserait |
 | Source locale file | le fichier de locale source existe à son chemin résolu, est un fichier ordinaire et s'analyse avec le format configuré |
 | Plural rules | toujours : nomme les versions d'ICU et de CLDR utilisées et toute locale cible sans règles de pluriel dans ICU |
-| Plural completeness | toujours : nomme chaque pluriel cible auquel il manque une catégorie CLDR utilisée par sa langue (dix au plus ; [`verbatra check`](/docs/cli/check#catégories-de-pluriel) les liste tous) |
+| Plural completeness | toujours : nomme chaque pluriel cible auquel il manque une catégorie CLDR utilisée par sa langue, et compte un pluriel sans formes dans la cible tel qu'une exécution l'écrirait, sauf si la génération des pluriels le complète (dix au plus ; [`verbatra check`](/docs/cli/check#catégories-de-pluriel) les liste tous) |
 | Locale codes | toujours : nomme chaque code valide mais non canonique, comme `en-us` ou `iw`, avec sa forme canonique (voir [Codes de locale](/docs/config-file#codes-de-locale)) |
 | Locale state | toujours : nomme chaque locale pour laquelle le fichier de verrou, le cache ou le fichier de provenance gardent un état que la configuration ne liste pas, et si `translate` le [reprend](/docs/the-lock-file#un-code-de-locale-réécrit) |
 | Locale support | le fournisseur prend en charge la locale source et chaque locale cible (voir [Prise en charge des locales](#prise-en-charge-des-locales)) |

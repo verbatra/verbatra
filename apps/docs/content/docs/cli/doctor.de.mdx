@@ -40,7 +40,7 @@ Ein Einrichtungslauf meldet diese Prüfungen in dieser Reihenfolge. Plural rules
 | Network policy | die wirksame [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers und jeden Proxy erlaubt, den er nutzen würde |
 | Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad existiert, eine reguläre Datei ist und sich im konfigurierten Format parsen lässt |
 | Plural rules | immer: nennt die genutzten ICU- und CLDR-Versionen und jede Ziel-Locale, für die ICU keine Pluralregeln hat |
-| Plural completeness | immer: nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt (höchstens zehn; [`verbatra check`](/docs/cli/check#pluralkategorien) listet alle) |
+| Plural completeness | immer: nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und zählt einen Plural ohne Formen im Ziel so, wie ein Lauf ihn schreiben würde, außer die Plural-Generierung füllt ihn (höchstens zehn; [`verbatra check`](/docs/cli/check#pluralkategorien) listet alle) |
 | Locale codes | immer: nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/docs/config-file#locale-codes)) |
 | Locale state | immer: nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/docs/the-lock-file#ein-umgeschriebener-locale-code) |
 | Locale support | der Provider die Quell-Locale und jede Ziel-Locale unterstützt (siehe [Locale-Unterstützung](#locale-unterstützung)) |

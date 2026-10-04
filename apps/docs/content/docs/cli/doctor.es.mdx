@@ -40,7 +40,7 @@ Una ejecución de configuración informa de estas comprobaciones, en este orden.
 | Network policy | la [política de red](/docs/network-policy) efectiva permite el host del proveedor y cualquier proxy que usaría |
 | Source locale file | el archivo de locale de origen existe en su ruta resuelta, es un archivo normal y se analiza con el formato configurado |
 | Plural rules | siempre: nombra las versiones de ICU y CLDR en uso y cualquier locale de destino sin reglas de plural en ICU |
-| Plural completeness | siempre: nombra cada plural de destino al que le falta una categoría CLDR que usa su idioma (diez como máximo; [`verbatra check`](/docs/cli/check#categorías-de-plural) los lista todos) |
+| Plural completeness | siempre: nombra cada plural de destino al que le falta una categoría CLDR que usa su idioma, y cuenta un plural sin formas en el destino tal como lo escribiría una ejecución, salvo que la generación de plurales lo complete (diez como máximo; [`verbatra check`](/docs/cli/check#categorías-de-plural) los lista todos) |
 | Locale codes | siempre: nombra cada código válido pero no canónico, como `en-us` o `iw`, con su forma canónica (ver [Códigos de locale](/docs/config-file#códigos-de-locale)) |
 | Locale state | siempre: nombra cada locale con estado en el archivo de bloqueo, la caché o el archivo de procedencia que la configuración no lista, y si `translate` lo [traslada](/docs/the-lock-file#un-código-de-locale-reescrito) |
 | Locale support | el proveedor admite la locale de origen y cada locale de destino (ver [Soporte de locales](#soporte-de-locales)) |
