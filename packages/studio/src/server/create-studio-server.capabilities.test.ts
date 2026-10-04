@@ -1,7 +1,7 @@
 import { access, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SdkFs } from "@verbatra/sdk";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   authenticatedCookie,
   fixtureLoader,
@@ -470,16 +470,13 @@ function deferred<T>(): { readonly promise: Promise<T>; resolve: (value: T) => v
   return { promise, resolve };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 async function waitUntil(hasArrived: () => boolean): Promise<void> {
-  while (!hasArrived()) {
-    await sleep(5);
-  }
+  await vi.waitFor(
+    () => {
+      expect(hasArrived()).toBe(true);
+    },
+    { timeout: 30_000, interval: 5 },
+  );
 }
 
 describe("translation.translatePending's process-wide in-flight guard, wired end to end", () => {

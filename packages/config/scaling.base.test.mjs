@@ -25,6 +25,6 @@ describe("cpuScalingRatio", () => {
   });
 
   it("flags a quadratic workload above the linear bound", () => {
-    expect(cpuScalingRatio(quadratic, 300, 300 * LINEAR_SCALE)).toBeGreaterThan(LINEAR_MAX_RATIO);
+    expect(cpuScalingRatio(quadratic, 40, 40 * LINEAR_SCALE, 3)).toBeGreaterThan(LINEAR_MAX_RATIO);
   });
 });
