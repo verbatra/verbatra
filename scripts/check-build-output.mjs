@@ -200,9 +200,8 @@ function endsJsDocBlock(lines, index) {
   }
   for (let cursor = index; cursor >= 0; cursor -= 1) {
     const line = (lines[cursor] ?? "").trim();
-    const opening = line.indexOf("/*");
-    if (opening !== -1) {
-      return line.slice(opening).startsWith("/**") && !line.slice(opening).startsWith("/**/");
+    if (line.startsWith("/*")) {
+      return line.startsWith("/**") && !line.startsWith("/**/");
     }
   }
   return false;

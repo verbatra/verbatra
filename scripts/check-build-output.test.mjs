@@ -333,6 +333,18 @@ describe("findUndocumentedExports", () => {
     ]);
   });
 
+  it("accepts a JSDoc block whose body holds a glob", () => {
+    const text = [
+      "/**",
+      " * Reads every file matching locales/*.json, and a/**/b.",
+      " */",
+      "declare function load(): void;",
+      "export { load };",
+    ].join("\n");
+
+    expect(findUndocumentedExports(text, "index.d.ts")).toEqual([]);
+  });
+
   it("requires a real JSDoc block, not a plain comment", () => {
     const text = [
       "/* plain */",
