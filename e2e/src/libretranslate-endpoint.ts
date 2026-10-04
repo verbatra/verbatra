@@ -29,10 +29,16 @@ function answer(path: string | undefined, body: string): unknown {
 
 export async function startLibreTranslateEndpoint(): Promise<LibreTranslateEndpoint> {
   const server: Server = createServer((request, response) => {
-    void readBody(request).then((body) => {
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify(answer(request.url, body)));
-    });
+    readBody(request)
+      .then((body) => {
+        const payload = JSON.stringify(answer(request.url, body));
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(payload);
+      })
+      .catch(() => {
+        response.writeHead(400, { "content-type": "application/json" });
+        response.end(JSON.stringify({ error: "bad request" }));
+      });
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as AddressInfo;
