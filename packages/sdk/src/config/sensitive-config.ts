@@ -29,8 +29,6 @@ export const DEFAULT_SENSITIVE_DETECTORS: readonly SensitiveDetectorId[] = [
 
 export const SENSITIVE_MODES = ["off", "warn", "block", "redact"] as const;
 
-export type SensitiveMode = (typeof SENSITIVE_MODES)[number];
-
 function compilesAsPattern(source: string): boolean {
   try {
     new RegExp(source, "u");
