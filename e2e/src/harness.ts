@@ -257,6 +257,35 @@ export async function writeJsonIn(
   await writeFileIn(dir, relativePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+export const UNREACHABLE_PROVIDER =
+  '{ id: "openai-compatible", options: { baseUrl: "http://127.0.0.1:1", model: "e2e-unreachable", maxOutputTokens: 256 } }';
+
+export interface WatchProjectLocales {
+  readonly source: Record<string, string>;
+  readonly target: Record<string, string>;
+}
+
+const IN_SYNC_LOCALES: WatchProjectLocales = {
+  source: { greeting: "Hello {{name}}" },
+  target: { greeting: "Hallo {{name}}" },
+};
+
+export async function seedWatchProject(
+  dir: string,
+  provider: string,
+  locales: WatchProjectLocales = IN_SYNC_LOCALES,
+): Promise<string> {
+  await mkdir(dir, { recursive: true });
+  await writeJsonIn(dir, "locales/en.json", locales.source);
+  await writeJsonIn(dir, "locales/de.json", locales.target);
+  await writeFileIn(
+    dir,
+    "verbatra.config.ts",
+    `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: ${provider},\n});\n`,
+  );
+  return dir;
+}
+
 export async function readJsonIn<T = unknown>(dir: string, relativePath: string): Promise<T> {
   return JSON.parse(await readFile(join(dir, relativePath), "utf8")) as T;
 }
