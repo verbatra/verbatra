@@ -11,6 +11,10 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
 - A spend method called while spending is off answers `SPEND_DISABLED` (HTTP 403), naming
   `--allow-spend` or `provider: none` as the reason, instead of `METHOD_UNKNOWN` (HTTP 400).
 - A logged RPC request names its method, such as `POST /rpc status.check 200`.
+- `verbatra_locale_values` returns one page of at most 200 entries by default, grouped per
+  locale under `entries`, with a `nextCursor` for the next page; 0.5 returned every value at once.
+  Pass `limit` (up to 1000) and `cursor`, and narrow with `locales`, `keys` or `query`, as the MCP
+  tool does.
 
 **Editor and keys**
 - The editor shows the source with highlighted placeholders, ICU syntax and markup, the key's
