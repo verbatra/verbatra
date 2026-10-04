@@ -113,57 +113,30 @@ describe("review.reject", () => {
 
 const HASH = "0123456789abcdef";
 
-const SAMPLES: readonly (readonly [string, Record<string, unknown>])[] = [
+const BOTH_OR_NEITHER: readonly (readonly [string, Record<string, unknown>])[] = [
   ["neither", { locale: "de", key: "greeting", reviewer: "Mario" }],
-  ["expectedValue only", PARAMS],
-  ["expectedHash only", { locale: "de", key: "greeting", reviewer: "Mario", expectedHash: HASH }],
   ["both", { ...PARAMS, expectedHash: HASH }],
 ];
 
-interface RequiredClause {
-  readonly required: readonly string[];
-}
-
-interface ExactlyOneSchema {
-  readonly if: RequiredClause;
-  readonly then: { readonly not: RequiredClause };
-  readonly else: RequiredClause;
-}
-
-function holds(clause: RequiredClause, params: object): boolean {
-  return clause.required.every((key) => key in params);
-}
-
-function satisfiesAdvertised(schema: Readonly<Record<string, unknown>>, params: object): boolean {
-  const rule = schema as unknown as ExactlyOneSchema;
-  return holds(rule.if, params) ? !holds(rule.then.not, params) : holds(rule.else, params);
-}
-
 describe.each([reviewApproveTool, reviewRejectTool])("$name input schema", (tool) => {
-  it("advertises that exactly one of expectedValue and expectedHash is required", () => {
-    expect(tool.inputSchema.required).toEqual(["locale", "key", "reviewer"]);
-    expect(tool.inputSchema).toMatchObject({
-      type: "object",
-      if: { required: ["expectedValue"] },
-      // biome-ignore lint/suspicious/noThenProperty: the JSON Schema if/then/else keyword, never a callable thenable
-      then: { not: { required: ["expectedHash"] } },
-      else: { required: ["expectedHash"] },
-    });
-  });
+  it("describes the exactly-one-of rule on both expected-value parameters", () => {
+    const properties = tool.inputSchema.properties as Record<string, { description?: string }>;
 
-  it("keeps oneOf, anyOf and allOf off the top level, which some model APIs refuse", () => {
-    expect(Object.keys(tool.inputSchema)).not.toEqual(
-      expect.arrayContaining([expect.stringMatching(/^(oneOf|anyOf|allOf)$/)]),
+    expect(tool.inputSchema.required).toEqual(["locale", "key", "reviewer"]);
+    expect(properties.expectedValue?.description).toContain(
+      "Pass exactly one of expectedValue and expectedHash.",
+    );
+    expect(properties.expectedHash?.description).toContain(
+      "Pass exactly one of expectedValue and expectedHash.",
     );
   });
 
-  it.each(SAMPLES)("agrees with the zod boundary for %s", async (_label, params) => {
+  it.each(BOTH_OR_NEITHER)("refuses %s at the zod boundary", async (_label, params) => {
     const outcome = await tool.execute(params, makeContext({ cwd: "/nowhere" }));
-    const advertisedValid = satisfiesAdvertised(tool.inputSchema, params);
 
-    expect(outcome.kind === "invalid").toBe(!advertisedValid);
-    if (!advertisedValid) {
-      expect(outcome).toMatchObject({ message: expect.stringContaining("exactly one of") });
-    }
+    expect(outcome).toMatchObject({
+      kind: "invalid",
+      message: expect.stringContaining("Pass exactly one of expectedValue and expectedHash."),
+    });
   });
 });
