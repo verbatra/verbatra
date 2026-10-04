@@ -9,6 +9,10 @@ import {
   spawnVerbatra,
   writeJsonIn,
 } from "../src/harness.js";
+import {
+  type LibreTranslateEndpoint,
+  startLibreTranslateEndpoint,
+} from "../src/libretranslate-endpoint.js";
 import { type StalledEndpoint, startStalledEndpoint } from "../src/stalled-endpoint.js";
 
 function jsonRpcLine(message: Record<string, unknown>): string {
@@ -41,6 +45,21 @@ const TRANSLATE_PENDING_REQUEST = jsonRpcLine({
   method: "tools/call",
   params: { name: "translation.translatePending", arguments: {} },
 });
+
+const MODERN_ENVELOPE = {
+  "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+  "io.modelcontextprotocol/clientInfo": { name: "verbatra-e2e", version: "0.0.0" },
+  "io.modelcontextprotocol/clientCapabilities": {},
+};
+
+function modernRequest(
+  id: number | string,
+  method: string,
+  params: Record<string, unknown> = {},
+  meta: Record<string, unknown> = {},
+): string {
+  return jsonRpcLine({ id, method, params: { ...params, _meta: { ...MODERN_ENVELOPE, ...meta } } });
+}
 
 function toolCall(id: number, name: string, args: Record<string, unknown> = {}): string {
   return jsonRpcLine({ id, method: "tools/call", params: { name, arguments: args } });
@@ -81,6 +100,18 @@ async function scaffoldStalledProject(dir: string, baseUrl: string): Promise<voi
       id: "openai-compatible",
       options: { baseUrl, model: "e2e-stalled", maxOutputTokens: 256, requestTimeoutMs: 600_000 },
     },
+  });
+}
+
+async function scaffoldLibreTranslateProject(dir: string, baseUrl: string): Promise<void> {
+  await writeJsonIn(dir, "locales/en.json", { greeting: "Hello", farewell: "Goodbye" });
+  await writeJsonIn(dir, ".verbatrarc.json", {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    maxBatchSize: 1,
+    provider: { id: "libretranslate", options: { baseUrl } },
   });
 }
 
@@ -129,12 +160,24 @@ async function exchangeThenCloseStdin(
   return { result: await server, stdout };
 }
 
-function responseTo(stdout: string, id: number): Record<string, unknown> | undefined {
+function messagesIn(stdout: string): Record<string, unknown>[] {
   return stdout
     .split("\n")
     .filter((line) => line.trim().length > 0)
-    .map((line) => JSON.parse(line) as Record<string, unknown>)
-    .find((message) => message.id === id);
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
+
+function responseTo(stdout: string, id: number): Record<string, unknown> | undefined {
+  return messagesIn(stdout).find((message) => message.id === id);
+}
+
+function notificationsIn(stdout: string, method: string): Record<string, unknown>[] {
+  return messagesIn(stdout).filter((message) => message.method === method);
+}
+
+function toolNamesIn(stdout: string, id: number): string[] {
+  const listed = (responseTo(stdout, id)?.result ?? {}) as { tools?: { name: string }[] };
+  return (listed.tools ?? []).map((tool) => tool.name);
 }
 
 describe("mcp (no key)", () => {
@@ -161,17 +204,95 @@ describe("mcp (no key)", () => {
   let consumer: Consumer;
   let dir: string;
   let endpoint: StalledEndpoint;
+  let libreTranslate: LibreTranslateEndpoint;
 
   beforeAll(async () => {
     consumer = await makeConsumer({ withMcp: true });
     dir = join(consumer.dir, "mcp-project");
     await scaffoldProject(dir);
     endpoint = await startStalledEndpoint();
+    libreTranslate = await startLibreTranslateEndpoint();
   }, 180_000);
 
   afterAll(async () => {
     await endpoint.close();
+    await libreTranslate.close();
   });
+
+  it("verbatra mcp serves a 2026-07-28 session: server/discover, tools/list, a call, list_changed and progress", async () => {
+    const modernDir = join(consumer.dir, "mcp-modern");
+    await mkdir(modernDir, { recursive: true });
+    const server = spawnVerbatra(consumer, ["mcp", "--cwd", modernDir, "--allow-spend"], {
+      env: { LIBRETRANSLATE_API_KEY: "" },
+    });
+
+    let stdout = "";
+    server.stdout?.on("data", (chunk: Buffer | string) => {
+      stdout += String(chunk);
+    });
+    async function send(request: string, awaited: string): Promise<void> {
+      server.stdin?.write(request);
+      await pollUntil(() => stdout.includes(awaited), { timeoutMs: 60_000, intervalMs: 100 });
+    }
+    try {
+      await send(
+        modernRequest("listen", "subscriptions/listen", {
+          notifications: { toolsListChanged: true },
+        }),
+        "notifications/subscriptions/acknowledged",
+      );
+      await send(modernRequest(1, "server/discover"), '"id":1');
+      await send(modernRequest(2, "tools/list"), '"id":2');
+      await send(
+        modernRequest(3, "tools/call", { name: "project.snapshot", arguments: {} }),
+        '"id":3',
+      );
+      await scaffoldLibreTranslateProject(modernDir, libreTranslate.baseUrl);
+      await send(
+        modernRequest(4, "tools/call", { name: "project.snapshot", arguments: {} }),
+        '"id":4',
+      );
+      await send(modernRequest(5, "tools/list"), '"id":5');
+      await send(
+        modernRequest(
+          6,
+          "tools/call",
+          { name: "translation.translatePending", arguments: {} },
+          { progressToken: "run" },
+        ),
+        '"id":6',
+      );
+    } finally {
+      server.stdin?.end();
+    }
+    const result = await server;
+
+    expect(responseTo(stdout, 1)?.result).toMatchObject({
+      supportedVersions: expect.arrayContaining(["2026-07-28"]),
+      capabilities: { tools: { listChanged: true } },
+      instructions: expect.stringContaining("project.snapshot"),
+    });
+    expect(toolNamesIn(stdout, 2)).toContain("project.doctor");
+    expect(toolNamesIn(stdout, 2)).not.toContain("translation.translatePending");
+    expect(toolResponse(stdout, 3).result?.structuredContent).toMatchObject({ configured: false });
+    expect(toolResponse(stdout, 4).result?.structuredContent).toMatchObject({ configured: true });
+    expect(notificationsIn(stdout, "notifications/tools/list_changed")).toHaveLength(1);
+    expect(toolNamesIn(stdout, 5)).toContain("translation.translatePending");
+    expect(toolResponse(stdout, 6).result?.structuredContent).toMatchObject({
+      succeeded: ["de"],
+      failed: [],
+    });
+    const progress = notificationsIn(stdout, "notifications/progress").map(
+      (message) => message.params as { progressToken: string; progress: number; total: number },
+    );
+    expect(progress.length).toBeGreaterThan(0);
+    expect(progress.at(-1)).toMatchObject({ progressToken: "run", progress: 2, total: 2 });
+    expect(JSON.parse(await readFile(join(modernDir, "locales/de.json"), "utf8"))).toEqual({
+      greeting: "de:Hello",
+      farewell: "de:Goodbye",
+    });
+    expect(result.exitCode).toBe(0);
+  }, 120_000);
 
   it("verbatra mcp exits 0 without an unsettled-await warning when the client closes stdin", async () => {
     const { result } = await exchangeThenCloseStdin(

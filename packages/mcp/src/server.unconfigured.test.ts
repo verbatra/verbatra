@@ -1,8 +1,6 @@
 import { utimes } from "node:fs/promises";
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { type LoadedConfig, SdkError } from "@verbatra/sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -53,7 +51,7 @@ async function connect(project: McpProjectSession, allowSpend: boolean): Promise
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "1.0.0" });
   let changes = 0;
-  client.setNotificationHandler(ToolListChangedNotificationSchema, () => {
+  client.setNotificationHandler("notifications/tools/list_changed", () => {
     changes += 1;
   });
   await server.connect(serverTransport);

@@ -25,8 +25,8 @@ export const MCP_SERVER_INSTRUCTIONS = [
     "tool except project.snapshot and project.doctor refuses with the config error (CONFIG_NOT_FOUND or " +
     "CONFIG_INVALID) and a Next step line. The server checks the config file and its glossary file for changes " +
     "before each call and loads them again, so once the config is created or fixed the next call uses it without " +
-    "a restart. Re-read project.snapshot after a config change, and re-list tools when the server sends " +
-    "notifications/tools/list_changed.",
+    "a restart. Re-read project.snapshot after a config change, and re-list tools when the server announces " +
+    "that its tool list changed.",
   "Spending: translation.retranslateEntry and translation.translatePending call the configured translation provider and bill it. " +
     "They are listed only when the operator started the server with --allow-spend (or VERBATRA_MCP_ALLOW_SPEND) " +
     "and the config's provider is not none. If they are absent, the operator chose not to spend: nothing is broken, " +

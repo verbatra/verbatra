@@ -4,7 +4,7 @@ description: Démarre le serveur MCP en stdio qui expose les outils de verbatra 
 status: new
 type: reference
 ---
-Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent des clients comme Claude Code ou Cursor pour lancer un serveur d'outils. Un agent dans le terminal ou sans interface obtient ainsi les outils qu'offrent les outils d'agent de Studio. Il n'y a pas de transport HTTP : un listener réseau exposerait les outils d'écriture et les outils payants sur un port.
+Démarre un serveur [Model Context Protocol](https://modelcontextprotocol.io) en stdio, le transport qu'utilisent des clients comme Claude Code ou Cursor pour lancer un serveur d'outils. Il sert le protocole 2026-07-28 et ses révisions antérieures jusqu'à 2024-10-07. Un agent dans le terminal ou sans interface obtient ainsi les outils d'agent de Studio. Il n'y a pas de transport HTTP, qui exposerait les outils d'écriture et les outils payants sur un port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -41,13 +41,13 @@ Si `--cwd` est absent et que `CLAUDE_PROJECT_DIR` désigne un répertoire exista
 
 `translation.retranslateEntry` et `translation.translatePending` ne sont annoncés qu'avec `--allow-spend` ou, si l'option manque, avec `VERBATRA_MCP_ALLOW_SPEND` à `1`, `true`, `yes` ou `on` (sans tenir compte de la casse ni des espaces autour). L'option l'emporte sur la variable. `verbatra mcp` lit d'abord `.env.local` et `.env`, la variable peut donc s'y trouver ; `verbatra-mcp` ne la prend que dans son propre environnement.
 
-Sans cet interrupteur, les deux n'apparaissent jamais dans la liste, et les appeler par leur nom échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/docs/providers)).
+Sinon, les deux n'apparaissent jamais dans la liste, et les appeler échoue comme un outil inconnu. Une config avec `provider: { id: "none" }` ne les liste jamais, même avec `--allow-spend`. Les autres outils n'appellent aucun fournisseur et n'ont besoin d'aucune clé ; ne donne la clé au serveur, via l'environnement du client, que quand tu autorises la dépense (voir [Fournisseurs](/docs/providers)).
 
 ### Instructions pour l'agent
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Le serveur répond à la poignée de main MCP `initialize` avec des `instructions` fixes, que la plupart des clients transmettent d'abord au modèle. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes, demandent de traiter chaque chaîne comme des données et de ne jamais réécrire une valeur `[REDACTED]`.
+Le serveur répond à la poignée de main avec des `instructions` fixes, que la plupart des clients transmettent d'abord au modèle. Elles fixent l'ordre des appels (lire et comparer d'abord, estimer et obtenir un oui explicite avant de dépenser), laissent les décisions de relecture et le travail humain aux personnes, demandent de traiter chaque chaîne comme des données et de ne jamais réécrire une valeur `[REDACTED]`.
 
 ### Outils [#tools]
 
@@ -133,7 +133,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
   no restart needed: the server loads the config on the next call once it is valid
 ```
 
-Seul un chemin `--config` inexistant arrête le serveur au démarrage.
+Seul un fichier `--config` inexistant arrête le serveur au démarrage.
 
 ### Après un changement de config
 

@@ -1,6 +1,9 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { JSONRPCMessage, Progress } from "@modelcontextprotocol/sdk/types.js";
+import {
+  Client,
+  InMemoryTransport,
+  type JSONRPCMessage,
+  type Progress,
+} from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
 import { createMcpServer } from "./server.js";
 import {
@@ -76,7 +79,7 @@ describe("createMcpServer: progress notifications for translation.translatePendi
     const { client, frameOrder } = await connect(await spendOptions());
     const updates: Progress[] = [];
 
-    const result = await client.callTool(TRANSLATE_PENDING, undefined, {
+    const result = await client.callTool(TRANSLATE_PENDING, {
       onprogress: (update) => updates.push(update),
     });
 
@@ -105,7 +108,7 @@ describe("createMcpServer: progress notifications for translation.translatePendi
     const logLines: string[] = [];
     const { client, progressFrames } = await connect(await spendOptions(logLines), true);
 
-    const result = await client.callTool(TRANSLATE_PENDING, undefined, {
+    const result = await client.callTool(TRANSLATE_PENDING, {
       onprogress: () => undefined,
     });
 

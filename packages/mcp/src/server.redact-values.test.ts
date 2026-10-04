@@ -1,8 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import type {
   TranslateRequest,
   TranslateResult,
@@ -235,7 +234,7 @@ describe("createMcpServer with redactValues: no value reaches the client", () =>
     answers.push(await ask(client, { name: "key.integrity", arguments: { key: "count" } }));
     answers.push(await ask(client, { name: "locale.integrity", arguments: {} }));
     const pending = { name: "translation.translatePending", arguments: {} };
-    const result = await client.callTool(pending, undefined, {
+    const result = await client.callTool(pending, {
       onprogress: (update) => progress.push(JSON.stringify(update)),
     });
     secondRun = {

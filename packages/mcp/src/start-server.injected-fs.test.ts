@@ -13,9 +13,9 @@ vi.mock("./server.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("./server.js")>();
   return {
     ...original,
-    connectMcpServer: (...args: Parameters<typeof original.connectMcpServer>) => {
+    serveMcpStdio: (...args: Parameters<typeof original.serveMcpStdio>) => {
       connected.contexts.push(args[0]);
-      return original.connectMcpServer(...args);
+      return original.serveMcpStdio(...args);
     },
   };
 });
