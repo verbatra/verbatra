@@ -24,7 +24,7 @@ verbatra studio --expose-agent-tools
 
 To let the agent call your provider, start Studio with `--allow-spend` as well ([Spend and agent tools](/docs/cli/studio#spend-and-agent-tools)).
 
-The agent reads every value unredacted, as the page shows it; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
+The agent reads every value unredacted, as the page shows it: Studio does not redact, because an agent on the tab can read the page anyway. To keep values from an agent, use the MCP server with [`--redact-values`](/docs/cli/mcp#redacted-values) instead; for an NDA project, see [Studio and MCP](/docs/data-handling#studio-and-mcp).
 
 ## Know what the agent can call
 
