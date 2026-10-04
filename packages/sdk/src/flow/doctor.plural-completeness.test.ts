@@ -146,4 +146,91 @@ describe("doctor: the plural-completeness check", () => {
       /^Not checked: The source locale file was not found/,
     );
   });
+
+  it("counts a plural a target with no file yet would lack after a run", async () => {
+    await writeConfig(androidConfig(["pl", "de"]));
+    await writeAndroid("values", plurals(["files"]));
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toBe(
+      "1 plural lacks CLDR plural categories the target language uses: pl: files (few, many). " +
+        "Add the missing forms by hand; verbatra check lists them all.",
+    );
+  });
+
+  it("counts a plural the target file lacks entirely next to its committed gaps", async () => {
+    await writeConfig(androidConfig(["pl"]));
+    await writeAndroid("values", plurals(["apples", "files"]));
+    await writeAndroid("values-pl", plurals(["files"]));
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toContain("pl: apples (few, many); pl: files (few, many)");
+  });
+
+  it("reports the i18next gap translate warns about for a locale with no file", async () => {
+    await writeConfig(i18nextConfig({ provider: { id: "none", options: {} } }));
+    await writeI18nextSource();
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toContain("fr: items (many)");
+  });
+
+  it("leaves out an absent plural that plural generation will fill", async () => {
+    await writeConfig(
+      i18nextConfig({
+        generatePlurals: true,
+        provider: { id: "anthropic", options: { model: "m", maxTokens: 256 } },
+      }),
+    );
+    await writeI18nextSource();
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toBe("Every target locale holds every CLDR plural category its language uses.");
+  });
+
+  it("still projects an absent plural when generation is on but the provider is no LLM", async () => {
+    await writeConfig(
+      i18nextConfig({ generatePlurals: true, provider: { id: "deepl", options: {} } }),
+    );
+    await writeI18nextSource();
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toContain("fr: items (many)");
+  });
+
+  it("does not project an ICU plural, whose arms a run translates for the target", async () => {
+    await writeConfig({
+      ...androidConfig(["pl"]),
+      format: "next-intl-json",
+      files: { pattern: "messages/{locale}.json" },
+    });
+    await mkdir(join(projectDir, "messages"));
+    const message = JSON.stringify({ files: "{count, plural, one {#} other {#}}" });
+    await writeFile(join(projectDir, "messages", "en.json"), message, "utf8");
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toBe("Every target locale holds every CLDR plural category its language uses.");
+  });
 });
+
+function i18nextConfig(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    sourceLocale: "en",
+    targetLocales: ["de", "fr"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    ...overrides,
+  };
+}
+
+async function writeI18nextSource(): Promise<void> {
+  await mkdir(join(projectDir, "locales"));
+  const source = JSON.stringify({ items_one: "{{count}} item", items_other: "{{count}} items" });
+  await writeFile(join(projectDir, "locales", "en.json"), source, "utf8");
+}
