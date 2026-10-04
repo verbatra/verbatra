@@ -432,6 +432,18 @@ function outOfSyncLine(summary: CheckSummary, machineTranslation: boolean): stri
     : "out of sync (run verbatra translate to update)";
 }
 
+function renderEmptySourceCount(summary: CheckSummary): readonly string[] {
+  const count = Math.max(0, ...summary.locales.map((locale) => locale.emptySource ?? 0));
+  if (count === 0) {
+    return [];
+  }
+  return [
+    count === 1
+      ? "1 source key has an empty value and is not counted: write its source text to translate it"
+      : `${count} source keys have an empty value and are not counted: write their source text to translate them`,
+  ];
+}
+
 export function renderCheckHuman(summary: CheckSummary, machineTranslation = true): string {
   const localeLines = summary.locales.map(
     (l) =>
@@ -446,6 +458,7 @@ export function renderCheckHuman(summary: CheckSummary, machineTranslation = tru
     "verbatra check",
     ...localeLines,
     overall,
+    ...renderEmptySourceCount(summary),
     ...renderIncompletePlurals(summary, "--qa --strict"),
     ...renderConsistencyReport(summary),
     ...renderQaReport(summary),
@@ -787,8 +800,12 @@ function renderDiffGroup(label: string, keys: readonly string[]): string | undef
 
 function renderDiffLocale(locale: LocaleDiff): readonly string[] {
   const total = locale.missing.length + locale.changed.length + locale.orphaned.length;
+  const emptySource = renderDiffGroup("empty source", locale.emptySource ?? []);
   if (total === 0) {
-    return [`  ${locale.locale}: no pending changes`];
+    return [
+      `  ${locale.locale}: no pending changes`,
+      ...(emptySource === undefined ? [] : [emptySource]),
+    ];
   }
   const header = `  ${locale.locale}: ${locale.missing.length} to add, ${locale.changed.length} to re-translate, ${locale.orphaned.length} orphaned`;
   const groups = [
@@ -796,6 +813,7 @@ function renderDiffLocale(locale: LocaleDiff): readonly string[] {
     renderDiffGroup("re-translate", locale.changed),
     renderDiffGroup("orphaned", locale.orphaned),
     renderDiffGroup("protected", locale.protected ?? []),
+    emptySource,
   ].filter((line): line is string => line !== undefined);
   return [header, ...groups];
 }
@@ -1180,7 +1198,7 @@ export function renderTmxImportHuman(result: ImportTmxResult, base?: string): st
 
 export function renderTmxExportHuman(result: ExportTmxResult, base?: string): string {
   const localeLines = result.locales.map(
-    (locale) => `  ${locale.locale}: ${plural(locale.units, "unit")}`,
+    (locale) => `  ${locale.locale}: ${plural(locale.units, "segment")}`,
   );
   const withoutSource =
     result.withoutSource > 0
