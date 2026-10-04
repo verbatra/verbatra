@@ -63,8 +63,8 @@ queda como `status: "failed"` en la entrada de ese locale mientras la ejecución
 | `split-retry` | un lote cuya salida se cortó se reintenta en dos mitades | `locale`, `keys` |
 | `batch-finished` | un lote ha terminado, con éxito o no | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
 | `writing` | justo antes de escribir el archivo de un locale | `locale` |
-| `locale-finished` | termina el trabajo de un locale | `locale`, `translated`, `localeIndex`, `totalLocales` |
-| `run-finished` | todos los locales han terminado | `localesCompleted` |
+| `locale-finished` | termina el trabajo de un locale | `locale`, `status`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | todos los locales han terminado | `localesCompleted`, `localesFailed` |
 | `change-detected` | solo `watch`: un cambio en el archivo de origen se ha asentado | `paths` |
 | `idle` | solo `watch`: una ejecución terminó y no hay otra en cola | ninguno |
 

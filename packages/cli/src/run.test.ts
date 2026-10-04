@@ -349,8 +349,15 @@ describe("run translate: progress reporting", () => {
   const events: readonly ProgressEvent[] = [
     { type: "locale-started", locale: "de", localeIndex: 0, totalLocales: 2 },
     { type: "sub-batch", locale: "de", batchIndex: 1, totalBatches: 2 },
-    { type: "locale-finished", locale: "de", translated: 3, localeIndex: 0, totalLocales: 2 },
-    { type: "run-finished", localesCompleted: 2 },
+    {
+      type: "locale-finished",
+      locale: "de",
+      status: "succeeded",
+      translated: 3,
+      localeIndex: 0,
+      totalLocales: 2,
+    },
+    { type: "run-finished", localesCompleted: 2, localesFailed: 0 },
   ];
 
   it("passes an onProgress function to the SDK translate call", async () => {

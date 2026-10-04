@@ -1,4 +1,4 @@
-import type { UsageSummary } from "../flow/summary.js";
+import type { LocaleSummary, UsageSummary } from "../flow/summary.js";
 
 /**
  * Any event a run emits while it works. Discriminate on `type`. Progress is reported rather than
@@ -171,6 +171,8 @@ export interface LocaleFinishedEvent {
   readonly type: "locale-finished";
   /** The locale that finished. */
   readonly locale: string;
+  /** The locale's {@link LocaleSummary.status}: `succeeded`, `partial`, or `failed`. */
+  readonly status: LocaleSummary["status"];
   /** The length of the locale's {@link LocaleSummary.translated} list. */
   readonly translated: number;
   /** This locale's 0-based position among the run's locales. */
@@ -188,6 +190,8 @@ export interface RunFinishedEvent {
   readonly type: "run-finished";
   /** How many locales completed, including those that failed. */
   readonly localesCompleted: number;
+  /** How many of the completed locales failed. A locale a cancelled run never started is not counted. */
+  readonly localesFailed: number;
 }
 
 /**

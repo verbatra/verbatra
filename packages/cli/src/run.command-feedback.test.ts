@@ -102,6 +102,58 @@ describe("translate: start, outcome and next step", () => {
     expect(err).not.toContain("next:");
   });
 
+  it("prints no start line when the SDK rejects the run before it starts", async () => {
+    const { code, err } = await stderrOf(["translate", "--locales", "xx"], {
+      translate: () =>
+        Promise.reject(new SdkError("UNKNOWN_LOCALE", "Requested locale not configured: xx.")),
+    });
+
+    expect(code).toBe(2);
+    expect(err).not.toContain("translating 1 locale");
+    expect(err).toMatch(/^verbatra: error \[UNKNOWN_LOCALE\] /);
+  });
+
+  it("prints the start line once, before the first progress event and the first lock wait", async () => {
+    const { err } = await stderrOf(["translate"], {
+      translate: async (input) => {
+        input.onLockWait?.({ lockPath: "/p/.verbatra/de.lock", elapsedMs: 0 });
+        input.onProgress?.({
+          type: "locale-started",
+          locale: "de",
+          localeIndex: 0,
+          totalLocales: 1,
+        });
+        input.onProgress?.({ type: "run-finished", localesCompleted: 1, localesFailed: 0 });
+        return makeSummary({ succeeded: ["de"] });
+      },
+    });
+
+    expect(err.indexOf("verbatra: translating 1 locale with")).toBe(0);
+    expect(err.split("translating 1 locale with")).toHaveLength(2);
+    expect(err.indexOf("waiting for the write lock")).toBeGreaterThan(0);
+  });
+
+  it("reports a failed locale as failed and the failed count on the closing line", async () => {
+    const { err } = await stderrOf(["translate"], {
+      translate: async (input) => {
+        input.onProgress?.({
+          type: "locale-finished",
+          locale: "de",
+          status: "failed",
+          translated: 0,
+          localeIndex: 0,
+          totalLocales: 2,
+        });
+        input.onProgress?.({ type: "run-finished", localesCompleted: 2, localesFailed: 1 });
+        return makeSummary({ failed: ["de"], succeeded: ["fr"] });
+      },
+    });
+
+    expect(err).toContain("verbatra: de failed\n");
+    expect(err).not.toContain("de done");
+    expect(err).toContain("verbatra: run finished, 2 locales processed, 1 failed\n");
+  });
+
   it("stays silent about all of it under --quiet and --json", async () => {
     for (const flag of ["--quiet", "--json"]) {
       const { err } = await stderrOf(["translate", flag]);
@@ -152,18 +204,77 @@ describe("export and import: task lines and hand-off hints", () => {
     expect(err).toContain("next: verbatra check (confirm every locale is in sync)\n");
   });
 
-  it("import suggests the real import after a dry run, and nothing after a partial one", async () => {
+  it("import suggests the real import after a dry run", async () => {
     const dry = await stderrOf(["import", "handoff.xlsx", "--dry-run"], {
       importWorkbook: async () => makeSummary({ dryRun: true }),
     });
     expect(dry.err).toContain(
       "next: verbatra import handoff.xlsx (without --dry-run to write the files)\n",
     );
+  });
 
-    const partial = await stderrOf(["import", "handoff.xlsx"], {
-      importWorkbook: async () => makeSummary({ partial: ["de"] }),
+  it("import suggests a corrected re-import when the integrity gate withheld rows", async () => {
+    const { code, err } = await stderrOf(["import", "handoff.xlsx", "--reviewer", "ana"], {
+      importWorkbook: async () =>
+        makeSummary({
+          partial: ["de"],
+          locales: [
+            makeLocale({
+              status: "partial",
+              translated: ["nav.home"],
+              integrityMismatches: ["nav.settings.save"],
+            }),
+          ],
+        }),
     });
-    expect(partial.err).not.toContain("next:");
+
+    expect(code).toBe(1);
+    expect(err).toContain(
+      "next: verbatra import handoff.xlsx --reviewer ana (after correcting the rows listed above)\n",
+    );
+    expect(err).not.toContain("verbatra check");
+  });
+
+  it("import passes on the cause's own next step when a locale failed without withheld rows", async () => {
+    const { code, err } = await stderrOf(["import", "handoff.xlsx"], {
+      importWorkbook: async () =>
+        makeSummary({
+          failed: ["de"],
+          locales: [
+            makeLocale({
+              status: "failed",
+              error: { code: "LOCK_CONTENDED", message: "Another process holds de.lock." },
+            }),
+          ],
+        }),
+    });
+
+    expect(code).toBe(1);
+    expect(err).toContain("next: Wait for the other verbatra process to finish");
+    expect(err).not.toContain("rows listed above");
+  });
+
+  it("import prints no rows hint for a missing sheet, whose cause has no next step", async () => {
+    const { code, err } = await stderrOf(["import", "handoff.xlsx"], {
+      importWorkbook: async () =>
+        makeSummary({
+          succeeded: ["fr"],
+          failed: ["de"],
+          locales: [
+            makeLocale({
+              status: "failed",
+              error: {
+                code: "WORKBOOK_SHEET_MISSING",
+                message: 'The workbook has no sheet (tab) for the configured target locale "de".',
+              },
+            }),
+            makeLocale({ locale: "fr", translated: ["nav.home"] }),
+          ],
+        }),
+    });
+
+    expect(code).toBe(1);
+    expect(err).not.toContain("next:");
   });
 });
 

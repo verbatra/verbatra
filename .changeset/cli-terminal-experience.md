@@ -9,6 +9,8 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 - Every command shows what it is doing on stderr, as a spinner on a terminal and plain lines in
   CI. `translate` and `watch` show each locale, batch, retry and write.
 - Commands end with a `next:` hint that runs as printed. stdout and `--json` are unchanged.
+  An `import` that withheld rows points at the re-import once they are corrected, and one whose
+  locale failed for another reason prints that cause's next step.
 - `-q`/`--quiet` keeps only results, warnings and errors. `--no-color`, `NO_COLOR`, `FORCE_COLOR`
   and `VERBATRA_NO_SPINNER` are honored.
 
@@ -25,7 +27,8 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 - Errors go to stderr, paths print relative to the working directory, dry runs read
   `would translate`, `--estimate` is headed `(estimate)`, `watch --help` has examples,
   `types --check` says a missing declaration is missing, counts of one read in the singular, and
-  a run's notices print one per line.
+  a run's notices print one per line. A failed locale's progress line says `failed` and a partial
+  one `partly done` instead of `done`, and the closing line counts the failed locales.
 - A missing or unreadable file passed to `import` or `tmx import` gets a `next:` hint about that
   file, not the source locale file, and a file read as xlsx because its extension names no format
   says so (SDK: `errorHint`).
@@ -34,5 +37,6 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 
 **SDK**
 - `onProgress` gains retry, repair, write and `watch` events, and `extract`, `diff` and `doctor`
-  report `files-scanned`. `watch` takes an `onReady` callback, and
+  report `files-scanned`. `locale-finished` carries the locale's `status` and `run-finished` its
+  `localesFailed`, also in the `--json` progress lines. `watch` takes an `onReady` callback, and
   `GenerateTypesResult` carries `missing`.

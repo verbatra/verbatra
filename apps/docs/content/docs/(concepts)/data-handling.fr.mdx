@@ -66,7 +66,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs par défaut trouvent les clés d'API, e-mails, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`), donc `block` et `redact` retiennent la clé.
+`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs par défaut trouvent les clés d'API, e-mails, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes. Le détecteur `email` ignore `example.com`, `example.org`, `example.net` et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`).
 
 | `mode` | Effet |
 | --- | --- |
@@ -91,7 +91,7 @@ anglais d'origine, en septembre 2026.
 | openai-compatible, LibreTranslate | Ce que fait ton propre serveur. Un serveur que tu fais tourner toi-même garde les textes sur du matériel que tu contrôles. | Les tiennes |
 
 Gemini gratuit (hors EEE, Suisse et Royaume-Uni) et DeepL Free peuvent s'entraîner sur ce que tu
-envoies, et aucun fournisseur LLM hébergé n'a la conservation zéro par défaut. Pour des textes
+envoies. Pour des textes
 confidentiels, utilise un niveau payant, ton propre serveur, ou aucune traduction automatique.
 
 ## Garder les textes en interne

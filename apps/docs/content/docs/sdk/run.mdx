@@ -60,8 +60,8 @@ A whole-run problem throws an `SdkError`; a single locale failing never throws a
 | `split-retry` | a batch whose output was cut off is retried in two halves | `locale`, `keys` |
 | `batch-finished` | a batch has finished, whether it succeeded or not | `locale`, `batchIndex`, `totalBatches`, `durationMs`, `usage?` |
 | `writing` | just before a locale's file is written | `locale` |
-| `locale-finished` | a locale's work ends | `locale`, `translated`, `localeIndex`, `totalLocales` |
-| `run-finished` | every locale has finished | `localesCompleted` |
+| `locale-finished` | a locale's work ends | `locale`, `status`, `translated`, `localeIndex`, `totalLocales` |
+| `run-finished` | every locale has finished | `localesCompleted`, `localesFailed` |
 | `change-detected` | `watch` only: a change to the source file has settled | `paths` |
 | `idle` | `watch` only: a run finished and none is queued | none |
 
