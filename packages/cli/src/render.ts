@@ -779,8 +779,9 @@ export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOpt
     ...(entry.fix === undefined ? [] : [`         fix: ${entry.fix}`]),
   ]);
   const failed = result.checks.filter((entry) => entry.status === "fail").length;
+  const warned = result.checks.filter((entry) => entry.status === "warn").length;
   const trailer = result.ok
-    ? "no problems found"
+    ? `no problems found${warned === 0 ? "" : `, ${plural(warned, "warning")}`}`
     : failed === 1
       ? "1 problem found (run verbatra doctor again after fixing it)"
       : `${failed} problems found (run verbatra doctor again after fixing them)`;

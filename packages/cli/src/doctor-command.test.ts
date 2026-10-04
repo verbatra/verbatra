@@ -84,7 +84,7 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     expect(calls.doctor).toEqual([{ cwd: "/proj" }]);
     expect(cap.out()).toContain("verbatra doctor");
     expect(cap.out()).toContain("[ok  ] Configuration: Loaded /proj/verbatra.config.ts.");
-    expect(cap.out()).toContain("no problems found");
+    expect(cap.out()).toMatch(/no problems found\n$/);
   });
 
   it("loads the config inside the SDK flow, never through the CLI loadConfig dependency", async () => {
@@ -161,7 +161,18 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     expect(await run(["doctor"], deps, cap.streams)).toBe(0);
     expect(cap.out()).toContain("[ok  ] Configuration: Loaded /proj/.verbatrarc.json.");
     expect(cap.out()).toContain('[warn] Locale codes: "iw" is canonically "he".');
-    expect(cap.out()).toContain("no problems found");
+    expect(cap.out()).toMatch(/no problems found, 1 warning\n$/);
+  });
+
+  it("counts several warnings in the plural in the no-problems trailer", async () => {
+    const report = warningReport();
+    const { deps } = recordingDeps({
+      doctor: async () => ({ ...report, checks: [...report.checks, ...report.checks.slice(1)] }),
+    });
+    const cap = captureStreams();
+
+    expect(await run(["doctor"], deps, cap.streams)).toBe(0);
+    expect(cap.out()).toMatch(/no problems found, 2 warnings\n$/);
   });
 
   it("carries a warn status in the --json envelope and exits 0", async () => {
