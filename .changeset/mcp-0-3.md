@@ -62,6 +62,8 @@ Config-less start, review, glossary and read tools, values-redacted mode, progre
   use project-relative paths, also when `--cwd` is a relative path.
 - An `apiKeyEnvVar` value is redacted from every result, and `startMcpServer` reads the glossary
   through an injected `fs`.
+- `status.check` and `status.diff` carry `emptySource`: source keys with an empty value, which
+  are no longer counted as missing or stale.
 
 **Values redacted**
 - `--redact-values` (also `verbatra mcp --redact-values`, or `VERBATRA_MCP_REDACT_VALUES`) replaces

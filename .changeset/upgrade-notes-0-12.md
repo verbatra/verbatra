@@ -36,6 +36,12 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `verbatra types` once and commit the file.
 
 **Translation behavior and spend**
+- A source key whose value is empty or whitespace only, such as one `extract` added without a
+  default, is no longer missing or stale. `check` and `diff` exit 0 when only such keys differ,
+  where 0.11 exited 1. `translate` sends nothing for them where 0.11 paid to translate an empty
+  string, and `export` writes no row. Their JSON envelopes only gain fields: `emptySource` on
+  every `check` locale (a count) and `diff` locale (the keys), and a `SOURCE_VALUE_EMPTY` notice
+  on `translate`; no other field changes meaning. Write the source text to translate such a key.
 - `tmx import` reads the project's source locale file and fails with `SOURCE_INVALID` (exit 2)
   when that file exists but cannot be parsed. Fix the source file, then import again.
 - `diff --unused` no longer counts a plain string such as `step_one` as used by `t("step")` in an

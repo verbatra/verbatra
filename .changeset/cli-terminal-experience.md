@@ -29,6 +29,8 @@ Progress and `next:` hints, `--quiet` and `--no-color`, session banners, finer `
 - A missing or unreadable file passed to `import` or `tmx import` gets a `next:` hint about that
   file, not the source locale file, and a file read as xlsx because its extension names no format
   says so (SDK: `errorHint`).
+- `tmx export` prints each locale's count as target segments, so they no longer read as a
+  breakdown of the unit total.
 
 **SDK**
 - `onProgress` gains retry, repair, write and `watch` events, and `extract`, `diff` and `doctor`
