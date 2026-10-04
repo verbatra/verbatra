@@ -29,23 +29,23 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config
 
 <AvailableFrom version="0.12.0" />
 
-Ein Einrichtungslauf meldet diese Prüfungen in dieser Reihenfolge. Plural rules, Plural completeness, Locale codes und Locale state sind rein informativ und schlagen nie fehl.
+Ein Einrichtungslauf meldet diese Prüfungen in dieser Reihenfolge. Plural rules, Plural completeness, Locale codes und Locale state sind rein informativ und schlagen nie fehl: Jede zeigt `[warn]`, wenn sie etwas nennt, und sonst `[ok  ]`.
 
-| Prüfung | Besteht, wenn |
+| Prüfung | Schlägt fehl, wenn |
 | --- | --- |
-| Configuration | eine Konfigurationsdatei gefunden wurde und die Validierung besteht |
-| Format adapter | das konfigurierte `format` zu einem Datei-Adapter auflöst |
-| Provider | die konfigurierte `provider.id` zu einer Provider-Factory auflöst |
-| API key environment variable | die Variable gesetzt ist, aus der dieser Provider seinen Key liest |
-| Network policy | die wirksame [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers und jeden Proxy erlaubt, den er nutzen würde |
-| Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad existiert, eine reguläre Datei ist und sich im konfigurierten Format parsen lässt |
-| Plural rules | immer: nennt die genutzten ICU- und CLDR-Versionen und jede Ziel-Locale, für die ICU keine Pluralregeln hat |
-| Plural completeness | immer: nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat) |
-| Locale codes | immer: nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/docs/config-file#locale-codes)) |
-| Locale state | immer: nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/docs/the-lock-file#ein-umgeschriebener-locale-code) |
-| Locale support | der Provider die Quell-Locale und jede Ziel-Locale unterstützt (siehe [Locale-Unterstützung](#locale-unterstützung)) |
+| Configuration | keine Konfigurationsdatei gefunden wird oder sie die Validierung nicht besteht |
+| Format adapter | das konfigurierte `format` zu keinem Datei-Adapter auflöst |
+| Provider | die konfigurierte `provider.id` zu keiner Provider-Factory auflöst |
+| API key environment variable | die Variable, aus der dieser Provider seinen Key liest, nicht gesetzt ist |
+| Network policy | die wirksame [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers oder einen Proxy abweist, den er nutzen würde |
+| Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad fehlt, keine reguläre Datei ist oder sich im konfigurierten Format nicht parsen lässt |
+| Plural rules | nie; nennt die genutzten ICU- und CLDR-Versionen und warnt, wenn eine Ziel-Locale keine ICU-Pluralregeln hat |
+| Plural completeness | nie; warnt und nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat); übersprungen bei einem Format, das Pluralformen nicht nach CLDR-Kategorie speichert |
+| Locale codes | nie; warnt und nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/docs/config-file#locale-codes)) |
+| Locale state | nie; warnt und nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/docs/the-lock-file#ein-umgeschriebener-locale-code) |
+| Locale support | der Provider die Quell-Locale oder eine Ziel-Locale nicht unterstützt; warnt, wenn eine Locale eine Warnung trägt (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 
-Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist. Die eine Ausnahme ist die Konfiguration: Kann sie nicht geladen werden, erscheinen die Prüfungen, die sie brauchen, als `[skip]` (`"status": "skipped"` in JSON). Eine fehlgeschlagene Prüfung trägt außerdem ein `fix`, einen nächsten Schritt im Imperativ, ausgegeben als `fix:`-Zeile und in JSON als `"fix"` mitgeliefert, damit ein Agent handeln kann, ohne `detail` zu parsen.
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist. Die eine Ausnahme ist die Konfiguration: Kann sie nicht geladen werden, erscheinen die Prüfungen, die sie brauchen, als `[skip]` (`"status": "skipped"` in JSON), ebenso Plural completeness bei einem Format ohne CLDR-Pluralformen. Eine Prüfung, die etwas Beachtenswertes findet, ohne fehlzuschlagen, erscheint als `[warn]` (`"status": "warn"` in JSON) und ändert nie den Exit-Code. Eine fehlgeschlagene Prüfung trägt außerdem ein `fix`, einen nächsten Schritt im Imperativ, ausgegeben als `fix:`-Zeile und in JSON als `"fix"` mitgeliefert, damit ein Agent handeln kann, ohne `detail` zu parsen.
 
 Ein Lauf mit zwei Problemen:
 
@@ -60,6 +60,7 @@ verbatra doctor
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
          fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
   ...
+  [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
@@ -76,7 +77,7 @@ verbatra doctor
 
 <AvailableFrom version="0.12.0" />
 
-Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale übersetzen kann. DeepL und Google Cloud Translation werden gegen eine datierte Sprachtabelle beurteilt, die verbatra mitliefert; ein LLM-Provider akzeptiert jede Locale. Sie scheitert genau an der Locale, die [`verbatra translate`](/docs/cli/translate) mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnen würde, und besteht sonst mit Warnungen. [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) erklärt die Urteile.
+Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale übersetzen kann. DeepL und Google Cloud Translation werden gegen eine datierte Sprachtabelle beurteilt, die verbatra mitliefert; ein LLM-Provider akzeptiert jede Locale. Sie scheitert genau an der Locale, die [`verbatra translate`](/docs/cli/translate) mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnen würde, und zeigt sonst `[warn]`, wenn eine Locale eine Warnung trägt oder `--live` die Liste nicht abrufen konnte. [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) erklärt die Urteile.
 
 `--locales` gibt nach den Prüfungen das Urteil je Locale aus:
 
@@ -91,7 +92,7 @@ Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale üb
 
 Jede Zeile nennt die Locale, den Code, den der Provider bekommt (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes), dann mit `(localeMap)` markiert), das Urteil und ob ein Glossar und ein `formal`- oder `informal`-Tonfall greifen. Eine Warnung ist nur ein Hinweis.
 
-`--live` urteilt stattdessen gegen die aktuelle Liste des Providers (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Für LibreTranslate, das keine Tabelle mitbringt, ist das der einzige Weg zu einem anderen Urteil als `unverified`. Die Anfrage geht nur raus, wenn die Key-Variable gesetzt ist (LibreTranslate braucht keine) und die [Netzwerkrichtlinie](/docs/network-policy) den Host erlaubt; sonst, oder wenn sie scheitert, gilt die mitgelieferte Tabelle, und eine Zeile `live language list` sagt, warum.
+`--live` urteilt stattdessen gegen die aktuelle Liste des Providers (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Für LibreTranslate, das keine Tabelle mitbringt, ist das der einzige Weg zu einem anderen Urteil als `unverified`, daher zeigt Locale support `[warn]`, bis `--live` läuft. Die Anfrage geht nur raus, wenn die Key-Variable gesetzt ist (LibreTranslate braucht keine) und die [Netzwerkrichtlinie](/docs/network-policy) den Host erlaubt; sonst, oder wenn sie scheitert, gilt die mitgelieferte Tabelle, und eine Zeile `live language list` sagt, warum.
 
 ### Nicht übersetzte Literale
 
@@ -147,7 +148,7 @@ interface DoctorCheck {
     | "locales"
     | "untranslated-literals";
   title: string;               // stable, human-readable name
-  status: "pass" | "fail" | "skipped";  // only "fail" makes ok false
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
   detail: string;              // why it reached that verdict; never an API key value
   fix?: string;                // the next step, only on a failed check
 }
@@ -211,7 +212,7 @@ verbatra doctor --live
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | alle Prüfungen bestanden |
+| `0` | keine Prüfung fehlgeschlagen (auch ein `warn` endet mit `0`) |
 | `1` | mindestens eine Prüfung ist fehlgeschlagen, auch bei einer nicht unterstützten Locale; mit `--literals`: ein Literal gefunden oder eine Datei nicht scannbar |
 | `2` | konnte nicht laufen: ein Verwendungsfehler oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
 

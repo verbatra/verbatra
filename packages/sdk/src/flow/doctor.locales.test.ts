@@ -57,10 +57,10 @@ describe("doctor: the locales check", () => {
     );
   });
 
-  it("passes an LLM provider for any locale and counts the warnings", async () => {
+  it("warns for an LLM provider whose locales carry warnings", async () => {
     const result = await doctorFor(baseConfig({ targetLocales: ["de", "sw", "yo"] }));
 
-    expect(localesCheck(result)?.status).toBe("pass");
+    expect(localesCheck(result)?.status).toBe("warn");
     expect(localesCheck(result)?.detail).toBe(
       'Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28). ' +
         "2 warnings.",
@@ -121,5 +121,19 @@ describe("doctor: the live language list", () => {
       detail:
         "DEEPL_API_KEY is not set, so no request was sent and the static table of 2026-09-28 was used.",
     });
+    expect(localesCheck(result)?.status).toBe("pass");
+  });
+
+  it("warns when the live language list could not be fetched", async () => {
+    vi.stubEnv("DEEPL_API_KEY", DEEPL_KEY);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("unavailable", { status: 503 })),
+    );
+
+    const result = await doctorFor(deepl({ targetLocales: ["de"] }), true);
+
+    expect(result.locales?.live?.status).toBe("failed");
+    expect(localesCheck(result)?.status).toBe("warn");
   });
 });

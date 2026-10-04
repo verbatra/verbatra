@@ -707,6 +707,7 @@ function renderConsistencyReport(summary: CheckSummary): readonly string[] {
 
 const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
   pass: "ok  ",
+  warn: "warn",
   fail: "fail",
   skipped: "skip",
 };
@@ -768,16 +769,19 @@ function renderLocaleCapabilities(report: LocaleCapabilityReport | undefined): r
 
 export interface DoctorRenderOptions {
   readonly locales?: boolean;
+  readonly paintStatus?: (status: DoctorCheckStatus, label: string) => string;
 }
 
 export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOptions = {}): string {
+  const paint = options.paintStatus ?? ((_status: DoctorCheckStatus, label: string) => label);
   const lines = result.checks.flatMap((entry) => [
-    `  [${DOCTOR_STATUS_LABELS[entry.status]}] ${entry.title}: ${entry.detail}`,
+    `  ${paint(entry.status, `[${DOCTOR_STATUS_LABELS[entry.status]}]`)} ${entry.title}: ${entry.detail}`,
     ...(entry.fix === undefined ? [] : [`         fix: ${entry.fix}`]),
   ]);
   const failed = result.checks.filter((entry) => entry.status === "fail").length;
+  const warned = result.checks.filter((entry) => entry.status === "warn").length;
   const trailer = result.ok
-    ? "no problems found"
+    ? `no problems found${warned === 0 ? "" : `, ${plural(warned, "warning")}`}`
     : failed === 1
       ? "1 problem found (run verbatra doctor again after fixing it)"
       : `${failed} problems found (run verbatra doctor again after fixing them)`;

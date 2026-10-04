@@ -19,6 +19,7 @@ import {
   provenanceLocalesWithState,
   readProvenanceFile,
 } from "../lock/provenance-file.js";
+import { type DoctorFinding, passFinding, warnFinding } from "./doctor-finding.js";
 import { type LocaleStateFile, planLocaleMoves, respellingsOf } from "./locale-carry-over.js";
 
 async function stateLocalesByFile(
@@ -81,17 +82,19 @@ export async function describeLocaleState(
   config: VerbatraConfig,
   cwd: string,
   fs: SdkFs,
-): Promise<string> {
+): Promise<DoctorFinding> {
   let byFile: Awaited<ReturnType<typeof stateLocalesByFile>>;
   try {
     byFile = await stateLocalesByFile(cwd, fs);
   } catch (error) {
-    return `The locale state could not be read: ${errorMessage(error)}`;
+    return warnFinding(`The locale state could not be read: ${errorMessage(error)}`);
   }
   const lines = byFile
     .map(([file, locales]) => describeFile(file, locales, config))
     .filter((line): line is string => line !== undefined);
   return lines.length === 0
-    ? ALL_CONFIGURED
-    : `State recorded for locales that are not configured. ${lines.join(" ")} ${REMEDY}`;
+    ? passFinding(ALL_CONFIGURED)
+    : warnFinding(
+        `State recorded for locales that are not configured. ${lines.join(" ")} ${REMEDY}`,
+      );
 }

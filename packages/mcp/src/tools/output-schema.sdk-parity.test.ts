@@ -1,7 +1,9 @@
 import type {
   approveEntry,
   check,
+  DoctorCheckStatus,
   diff,
+  doctor,
   editEntry,
   Glossary,
   glossaryForLocale,
@@ -25,6 +27,7 @@ import type { KeyContextResult } from "./key-context.js";
 import type { KeyValueResult } from "./key-value.js";
 import type { LocaleValuesResult } from "./locale-values.js";
 import type { LockStateResult } from "./lock-state.js";
+import type { ProjectDoctorResult } from "./project-doctor.js";
 import type { ReportProvenanceResult } from "./report-provenance.js";
 import type { RetranslateEntryResult } from "./retranslate-entry.js";
 import type { ReviewDecisionResult } from "./review-decision.js";
@@ -120,6 +123,15 @@ describe("output schemas declare every field the SDK result they pass through ca
     expectTypeOf<
       Undeclared<SdkResult<typeof provenanceReportPage>, ReportProvenanceResult>
     >().toEqualTypeOf<never>();
+  });
+
+  it("project.doctor", () => {
+    expectTypeOf<
+      Undeclared<SdkResult<typeof doctor>, ProjectDoctorResult, "literals" | "locales">
+    >().toEqualTypeOf<never>();
+    expectTypeOf<
+      ProjectDoctorResult["checks"][number]["status"]
+    >().toEqualTypeOf<DoctorCheckStatus>();
   });
 
   it("glossary.get and glossary.write", () => {

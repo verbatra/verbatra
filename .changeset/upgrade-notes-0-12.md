@@ -122,7 +122,11 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - A `--cwd` that names no existing directory exits 2 with `INVALID_OPTION` on every command,
   before anything is read, instead of a later `CONFIG_NOT_FOUND` or `SOURCE_UNREADABLE`.
 - Every command writes progress and `next:` lines to stderr (trim them with `--quiet` and
-  `--no-color`). stdout and `--json` are unchanged.
+  `--no-color`). stdout keeps its text, `doctor` colors its status labels when stdout is a color
+  terminal, and `--json` is unchanged.
+- `doctor --json` reports `"warn"` instead of `"pass"` for a check that names something worth
+  attention, and `"skipped"` for a plural-completeness check that did not run. A script that
+  requires every status to be `"pass"` should also accept `"warn"`, or check `ok` instead.
 - The `--json` envelope gains the optional `hint`, `causeCode`, `candidates` and `missing` fields
   and stays at version 1. New records: `lock-wait` on `import`, and `{"type":"interrupted"}`.
 - `check` lists `incompletePlurals` warnings (only `check --qa --strict` exits 1 on them), and
@@ -145,6 +149,10 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - `LocaleSummary.protected` and `LocaleSummary.sensitiveWithheld` are new required fields, and
   `SuggestionStatus` gains `"sensitive-withheld"`. `RunBudget.supported` is `true` for a run
   that sent no request, and `import`'s `unchanged` leaves out keys the handoff accepted or refused.
+- `DoctorCheckStatus` gains `"warn"`: a check that names something worth attention without
+  failing, such as a plural missing a CLDR category or a non-canonical locale code, reports
+  `warn` instead of `pass`, in `doctor --json` too, and `doctor` prints it as `[warn]`. `ok` and
+  the exit code do not change. Handle `"warn"` in an exhaustive `switch` or `Record`.
 - `localeValues().values` has a null prototype (use `Object.hasOwn`), and `scaffoldingMetadata` is
   deep-frozen.
 - `onProgress` has new event kinds, `ReviewReasonCode` gains `GLOSSARY_FORBIDDEN_TERM`,

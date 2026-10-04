@@ -1,5 +1,6 @@
 import { PLURAL_CATEGORIES, type PluralCategory, type PluralRuleType } from "@verbatra/core";
 import type { PluralCategoryLookup } from "@verbatra/format-adapters";
+import { type DoctorFinding, passFinding, warnFinding } from "./doctor-finding.js";
 
 const FALLBACK_CATEGORIES: Readonly<Record<PluralRuleType, readonly PluralCategory[]>> = {
   cardinal: ["one", "other"],
@@ -85,17 +86,17 @@ function describeRuntime(runtime: PluralRulesRuntime): string {
 export function describePluralRules(
   targetLocales: readonly string[],
   runtime: PluralRulesRuntime = pluralRulesRuntime(),
-): string {
+): DoctorFinding {
   const unknown = targetLocales.filter(
     (locale) => resolvePluralCategories(locale).kind === "fallback",
   );
   const prefix = describeRuntime(runtime);
   if (unknown.length === 0) {
-    return `${prefix}; every target locale has CLDR plural rules.`;
+    return passFinding(`${prefix}; every target locale has CLDR plural rules.`);
   }
   const quoted = unknown.map((locale) => `"${locale}"`).join(", ");
-  return (
+  return warnFinding(
     `${prefix}; it has none for ${quoted}, so plural checks there assume one and other ` +
-    "and no plural form is generated."
+      "and no plural form is generated.",
   );
 }

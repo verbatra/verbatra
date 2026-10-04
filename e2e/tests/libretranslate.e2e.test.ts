@@ -61,7 +61,7 @@ describe("libretranslate without a server or a key", () => {
       report.result.checks.find((check) => check.id === id)?.status;
     expect(statusOf("api-key")).toBe("pass");
     expect(statusOf("network-policy")).toBe("pass");
-    expect(statusOf("locales")).toBe("pass");
+    expect(statusOf("locales")).toBe("warn");
 
     const estimate = await runVerbatra(
       consumer,

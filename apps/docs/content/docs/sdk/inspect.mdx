@@ -12,8 +12,7 @@ None of these call a provider, write a file, or mutate the lock.
 <AvailableFrom version="0.9.0" />
 
 Validates the project setup and spends nothing: it constructs no provider, never reads an API key
-value, and makes no network request unless `live` asks for one. Each check returns its own `pass`,
-`fail`, or `skipped` verdict, and every check runs even when an earlier one failed, so one call
+value, and makes no network request unless `live` asks for one. Each check returns its own verdict, and every check runs even when an earlier one failed, so one call
 reports every independent problem. [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
 checks. The API key is checked by name only; the source file is parsed, not just found.
 
@@ -35,7 +34,7 @@ function doctor(
 The `network-policy` check fails when the effective [network policy](/docs/network-policy) refuses
 the provider's host or proxy, or a network environment variable holds an invalid value; it passes
 for the `none` provider. The `plural-rules`, `plural-completeness`, `locale-codes`, and
-`locale-state` checks are informational, always pass, and rename nothing; the
+`locale-state` checks are informational, never fail, and rename nothing: each is `warn` when it names something and `pass` otherwise, `plural-completeness` is `skipped` for a format without CLDR plural forms, and `locales` is `warn` when a locale carries a warning or a `live` fetch of the language list failed. A `warn` leaves `ok` true; the
 [check table](/docs/cli/doctor#what-it-checks) says what each names.
 
 <AvailableFrom version="0.12.0" />

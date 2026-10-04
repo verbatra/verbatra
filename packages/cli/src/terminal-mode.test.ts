@@ -11,11 +11,11 @@ import {
 const HUMAN: TerminalPreferences = { json: false, quiet: false, color: true };
 
 function tty(env: TerminalEnv = {}): TerminalFacts {
-  return { env, stdinIsTty: true, stderrIsTty: true };
+  return { env, stdinIsTty: true, stderrIsTty: true, stdoutIsTty: true };
 }
 
 function piped(env: TerminalEnv = {}): TerminalFacts {
-  return { env, stdinIsTty: false, stderrIsTty: false };
+  return { env, stdinIsTty: false, stderrIsTty: false, stdoutIsTty: false };
 }
 
 describe("resolveTerminalMode: output mode", () => {
@@ -65,6 +65,20 @@ describe("resolveTerminalMode: color", () => {
   });
 });
 
+describe("resolveTerminalMode: stdout color", () => {
+  it.each([
+    ["stdout and stderr on a terminal", tty(), HUMAN, true],
+    ["stdout piped while stderr is a terminal", { ...tty(), stdoutIsTty: false }, HUMAN, false],
+    ["stdout on a terminal while stderr is piped", { ...piped(), stdoutIsTty: true }, HUMAN, true],
+    ["NO_COLOR on a terminal", tty({ NO_COLOR: "1" }), HUMAN, false],
+    ["FORCE_COLOR=1 on a pipe", piped({ FORCE_COLOR: "1" }), HUMAN, true],
+    ["--no-color on a terminal", tty(), { ...HUMAN, color: false }, false],
+    ["--json on a terminal", tty(), { ...HUMAN, json: true }, false],
+  ] as const)("decides stdout color for %s", (_label, facts, preferences, stdoutColor) => {
+    expect(resolveTerminalMode(facts, preferences).stdoutColor).toBe(stdoutColor);
+  });
+});
+
 describe("resolveTerminalMode: animation", () => {
   it.each([
     ["an interactive stderr", tty(), HUMAN, true],
@@ -92,6 +106,12 @@ describe("DEFAULT_TERMINAL_SETTINGS", () => {
         quiet: DEFAULT_TERMINAL_SETTINGS.quiet,
         color: DEFAULT_TERMINAL_SETTINGS.color,
       }),
-    ).toEqual({ mode: "plain", color: false, animate: false, stdinIsTty: false });
+    ).toEqual({
+      mode: "plain",
+      color: false,
+      stdoutColor: false,
+      animate: false,
+      stdinIsTty: false,
+    });
   });
 });

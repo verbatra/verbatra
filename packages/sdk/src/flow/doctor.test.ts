@@ -345,7 +345,7 @@ describe("doctor: the API key check", () => {
     ["", "The libretranslate provider needs no API key."],
     ["lt-key-value", "LIBRETRANSLATE_API_KEY is set."],
   ])(
-    "passes libretranslate whether or not LIBRETRANSLATE_API_KEY is set (%j)",
+    "passes libretranslate's key check whether or not LIBRETRANSLATE_API_KEY is set (%j)",
     async (value, detail) => {
       vi.stubEnv("LIBRETRANSLATE_API_KEY", value);
       await writeConfig(
@@ -359,7 +359,7 @@ describe("doctor: the API key check", () => {
       expect(statusOf(result, "api-key")).toBe("pass");
       expect(detailOf(result, "api-key")).toContain(detail);
       expect(detailOf(result, "api-key")).not.toContain("lt-key-value");
-      expect(statusOf(result, "locales")).toBe("pass");
+      expect(statusOf(result, "locales")).toBe("warn");
     },
   );
 
@@ -669,14 +669,14 @@ describe("doctor: the locale-codes check", () => {
     );
   });
 
-  it("suggests the canonical form for non-canonical and deprecated codes without failing", async () => {
+  it("warns with the canonical form for non-canonical and deprecated codes without failing", async () => {
     await writeConfig(validConfig({ targetLocales: ["zh-hant-tw", "iw", "in", "tl"] }));
     await writeSourceFile();
 
     const result = await doctor({ cwd: projectDir });
 
     expect(result.ok).toBe(true);
-    expect(statusOf(result, "locale-codes")).toBe("pass");
+    expect(statusOf(result, "locale-codes")).toBe("warn");
     const detail = detailOf(result, "locale-codes");
     expect(detail).toContain('"zh-hant-tw" is canonically "zh-Hant-TW"');
     expect(detail).toContain('"iw" is canonically "he"');
@@ -690,7 +690,7 @@ describe("doctor: the locale-codes check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(statusOf(result, "locale-codes")).toBe("pass");
+    expect(statusOf(result, "locale-codes")).toBe("warn");
     expect(detailOf(result, "locale-codes")).toContain('"EN" is canonically "en"');
   });
 
@@ -717,14 +717,14 @@ describe("doctor: the plural-rules check", () => {
     expect(detailOf(result, "plural-rules")).toContain("every target locale has CLDR plural rules");
   });
 
-  it("lists a target locale ICU has no plural rules for without failing the run", async () => {
+  it("warns about a target locale ICU has no plural rules for without failing the run", async () => {
     await writeConfig(validConfig({ targetLocales: ["de", "tlh"] }));
     await writeSourceFile();
 
     const result = await doctor({ cwd: projectDir });
 
     expect(result.ok).toBe(true);
-    expect(statusOf(result, "plural-rules")).toBe("pass");
+    expect(statusOf(result, "plural-rules")).toBe("warn");
     expect(detailOf(result, "plural-rules")).toContain('"tlh"');
   });
 });

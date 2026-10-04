@@ -263,7 +263,7 @@ describe("mcp: the signal hook is installed before the ready lines", () => {
           session = started;
         },
       },
-      { env: { NO_COLOR: "1" }, stdinIsTty: true, stderrIsTty: true },
+      { env: { NO_COLOR: "1" }, stdinIsTty: true, stderrIsTty: true, stdoutIsTty: true },
     );
     await flush();
     session?.requestStop();

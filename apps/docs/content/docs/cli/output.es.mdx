@@ -104,6 +104,7 @@ Los resultados van a stdout. El progreso, los avisos, las sugerencias, las adver
 
 - En un terminal interactivo, las etiquetas fijas como `error`, `[ok]` y `next:` llevan color, y un paso que tarda más de 300 ms muestra un spinner ASCII (`| / - \`).
 - Cuando stderr se redirige o va a una tubería, `CI` tiene un valor distinto de `0` o `false`, o `TERM` vale `dumb`, la salida son líneas simples que solo se añaden, sin color ni animación.
+- Las etiquetas de estado del informe de [`doctor`](/docs/cli/doctor) en stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) tienen color cuando stdout es un terminal interactivo; un informe redirigido queda sin formato salvo que `FORCE_COLOR` active el color.
 - `--json` nunca añade color, animación ni líneas nuevas: stdout y stderr quedan exactamente como se describe en [Salida JSON](/docs/cli/output#salida-json).
 
 | Flag o variable | Efecto |
@@ -111,7 +112,7 @@ Los resultados van a stdout. El progreso, los avisos, las sugerencias, las adver
 | `-q`, `--quiet` | muestra solo resultados, advertencias y errores: omite las líneas de progreso, las sugerencias `next:` y las líneas informativas de stderr, mientras que el resumen del resultado, avisos incluidos, se mantiene. Funciona antes o después del nombre del comando |
 | `--no-color` | nunca colorea la salida |
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | cualquier valor no vacío desactiva el color; `VERBATRA_NO_COLOR` también se impone a `FORCE_COLOR` |
-| `FORCE_COLOR` | `1`, `2`, `3`, `true` o un valor vacío activa el color aunque stderr no sea un terminal, y `0` lo desactiva; `--no-color` y `VERBATRA_NO_COLOR` siguen teniendo prioridad |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` o un valor vacío activa el color aunque stderr o stdout no sea un terminal, y `0` lo desactiva; `--no-color` y `VERBATRA_NO_COLOR` siguen teniendo prioridad |
 | `VERBATRA_NO_SPINNER` | cualquier valor no vacío sustituye el spinner por líneas estáticas `label... done (1.2s)`, para lectores de pantalla y grabaciones del terminal |
 
 Las palabras de estado son ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), así que la salida se lee igual en cualquier terminal y registro. Cada línea pasa por la misma ocultación de claves que el resto de la salida, y solo se colorean las etiquetas fijas, nunca una clave, una ruta ni un mensaje.

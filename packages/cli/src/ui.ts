@@ -27,6 +27,7 @@ export interface Ui {
   readonly terminal: TerminalMode;
   readonly streams: Streams;
   label(format: LabelFormat, text: string): string;
+  outStatus(word: StatusWord, text: string): string;
   line(text: string): void;
   info(text: string): void;
   warn(text: string): void;
@@ -222,6 +223,10 @@ export function createUi(streams: Streams, terminal: TerminalMode, deps: UiDeps 
     terminal,
     streams: writer.streams,
     label,
+    outStatus: (word, text) =>
+      terminal.stdoutColor
+        ? styleText(STATUS_FORMATS[word], text, { validateStream: false })
+        : text,
     line: (text) => {
       if (!isSilent(terminal)) {
         writer.streams.err(`${text}\n`);

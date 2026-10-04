@@ -11,7 +11,7 @@ Aucune de ces fonctions n'appelle de fournisseur, n'écrit de fichier ni ne modi
 
 <AvailableFrom version="0.9.0" />
 
-Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne lit jamais la valeur d'une clé d'API et ne fait aucune requête réseau sauf si `live` en demande une. Chaque vérification rend son propre verdict `pass`, `fail` ou `skipped`, et toutes s'exécutent même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. [`verbatra doctor`](/docs/cli/doctor#ce-quil-vérifie) liste les vérifications. La clé d'API est vérifiée par son nom uniquement ; le fichier source est analysé, pas seulement trouvé.
+Valide la mise en place du projet et ne dépense rien : il ne construit aucun fournisseur, ne lit jamais la valeur d'une clé d'API et ne fait aucune requête réseau sauf si `live` en demande une. Chaque vérification rend son propre verdict, et toutes s'exécutent même si une précédente a échoué : un seul appel signale donc tous les problèmes indépendants. [`verbatra doctor`](/docs/cli/doctor#ce-quil-vérifie) liste les vérifications. La clé d'API est vérifiée par son nom uniquement ; le fichier source est analysé, pas seulement trouvé.
 
 ```ts title="Signature"
 function doctor(
@@ -28,7 +28,7 @@ function doctor(
 
 <AvailableFrom version="0.12.0" />
 
-La vérification `network-policy` échoue quand la [politique réseau](/docs/network-policy) effective refuse l'hôte ou le proxy du fournisseur, ou quand une variable d'environnement réseau contient une valeur invalide ; elle réussit pour le fournisseur `none`. Les vérifications `plural-rules`, `plural-completeness`, `locale-codes` et `locale-state` sont informatives, réussissent toujours et ne renomment rien ; le [tableau des vérifications](/docs/cli/doctor#ce-quil-vérifie) dit ce que chacune nomme.
+La vérification `network-policy` échoue quand la [politique réseau](/docs/network-policy) effective refuse l'hôte ou le proxy du fournisseur, ou quand une variable d'environnement réseau contient une valeur invalide ; elle réussit pour le fournisseur `none`. Les vérifications `plural-rules`, `plural-completeness`, `locale-codes` et `locale-state` sont informatives, n'échouent jamais et ne renomment rien : chacune vaut `warn` quand elle nomme quelque chose et `pass` sinon, `plural-completeness` vaut `skipped` pour un format sans formes de pluriel CLDR, et `locales` vaut `warn` quand une locale porte un avertissement ou qu'une récupération `live` de la liste des langues a échoué. Un `warn` laisse `ok` à true ; le [tableau des vérifications](/docs/cli/doctor#ce-quil-vérifie) dit ce que chacune nomme.
 
 <AvailableFrom version="0.12.0" />
 

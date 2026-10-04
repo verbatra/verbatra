@@ -12,7 +12,6 @@ import {
   type LoadedConfig,
   loadConfigWithMeta,
 } from "../config/load-config.js";
-import { describeLocaleCodes } from "../config/locale-code.js";
 import {
   hasProviderFactory,
   isMachineProvider,
@@ -27,6 +26,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import type { DoctorFinding } from "./doctor-finding.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
 import {
   assessProviderLocales,
@@ -34,6 +34,7 @@ import {
   unsupportedLocales,
 } from "./locale-capabilities.js";
 import { refreshLanguageTable } from "./locale-capabilities-live.js";
+import { describeLocaleCodes } from "./locale-codes-doctor.js";
 import { describeLocaleState } from "./locale-state-doctor.js";
 import { checkNetworkPolicy } from "./network-doctor.js";
 import { describePluralCompleteness } from "./plural-completeness-doctor.js";
@@ -58,7 +59,7 @@ import { readSourceResource } from "./source.js";
  *   parses under the configured format.
  * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
  *   plural categories from, and every target locale ICU has no plural rules for, which falls back to
- *   `one` and `other` and gets no generated plural forms.
+ *   `one` and `other` and gets no generated plural forms. It is `warn` when it names such a locale.
  * - `plural-completeness`: informational, never fails. Reads the source and every target locale
  *   file and names each plural whose committed forms lack CLDR plural categories the target
  *   language uses, the same finding {@link check} reports in
@@ -67,22 +68,24 @@ import { readSourceResource } from "./source.js";
  *   source's non-blank forms, plus the categories plural generation would add when it is on, the
  *   format is `i18next-json`, the provider is an LLM, and at least one source form is non-blank.
  *   That is deliberately stricter than the `PLURAL_CATEGORIES_INCOMPLETE` notice of
- *   {@link translate}, which covers `i18next-json` only. It says when the format does not store
- *   plural forms by CLDR category, or when a file could not be read.
+ *   {@link translate}, which covers `i18next-json` only. It is `warn` when it names a plural or a
+ *   file it could not read, and `skipped` when the format does not store plural forms by CLDR
+ *   category or resolves to no adapter.
  * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
  *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
- *   canonical form `Intl.getCanonicalLocales` suggests for it.
+ *   canonical form `Intl.getCanonicalLocales` suggests for it. It is `warn` when it names one.
  * - `locale-state`: informational, never fails. Names every locale that has state in the lock
  *   file, the translation memory, or the provenance file but is not configured, such as `pt_BR`
  *   left behind after the config respelled it `pt-BR`, says whether the next {@link translate} run
  *   carries it over to the configured spelling, and suggests removing it or respelling the
- *   configured locale otherwise.
+ *   configured locale otherwise. It is `warn` when it names one or cannot read that state.
  * - `locales`: the configured provider supports the source locale and every target locale, judged
  *   against the language table verbatra ships for a machine-translation provider (see
  *   {@link LocaleSupport}). It fails when a locale is `unsupported`, exactly the case
- *   {@link translate} refuses with `LOCALE_UNSUPPORTED_BY_PROVIDER`, and passes with warnings
- *   otherwise; the per-locale verdicts are in {@link DoctorResult.locales}. It is `skipped` for the
- *   provider `none`, which calls no provider.
+ *   {@link translate} refuses with `LOCALE_UNSUPPORTED_BY_PROVIDER`. Otherwise it is `warn` when a
+ *   locale carries a warning or a `live` fetch of the language list failed, and `pass` when nothing
+ *   needs attention; the per-locale verdicts are in {@link DoctorResult.locales}. It is `skipped`
+ *   for the provider `none`, which calls no provider.
  * - `untranslated-literals`: the application source configured in the `extract` block holds no
  *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
  *   {@link DoctorInput.literals} is set.
@@ -102,11 +105,20 @@ export type DoctorCheckId =
   | "untranslated-literals";
 
 /**
- * The verdict on one {@link DoctorCheck}. `skipped` is reported for the checks that need a loaded
- * config when the `config` check itself failed, and for the `locales` check under the provider
- * `none`, where it does not apply, so a skipped check is never a problem of its own.
+ * The verdict on one {@link DoctorCheck}.
+ *
+ * - `pass`: the check ran and found nothing that needs attention.
+ * - `warn`: the check ran and found something worth attention that does not fail the run, such as
+ *   a plural lacking a CLDR category, a non-canonical locale code, or a locale the provider only
+ *   possibly supports. Like `pass`, it leaves {@link DoctorResult.ok} true and the CLI exit code
+ *   at 0.
+ * - `fail`: the check found a problem; {@link DoctorResult.ok} is false.
+ * - `skipped`: the check did not run. Reported for the checks that need a loaded config when the
+ *   `config` check itself failed, for the `locales` check under the provider `none` or an unknown
+ *   provider, and for the `plural-completeness` check when the format does not store plural forms
+ *   by CLDR category or resolves to no adapter. A skipped check is never a problem of its own.
  */
-export type DoctorCheckStatus = "pass" | "fail" | "skipped";
+export type DoctorCheckStatus = "pass" | "warn" | "fail" | "skipped";
 
 /** One project-setup question and its verdict. */
 export interface DoctorCheck {
@@ -266,6 +278,10 @@ function check(
 
 function verdict(id: DoctorCheckId, passed: boolean, detail: string, fix?: string): DoctorCheck {
   return check(id, passed ? "pass" : "fail", detail, fix);
+}
+
+function informational(id: DoctorCheckId, finding: DoctorFinding): DoctorCheck {
+  return check(id, finding.status, finding.detail);
 }
 
 function failure(id: DoctorCheckId, error: unknown): DoctorCheck {
@@ -470,10 +486,22 @@ function describeOpen(report: LocaleCapabilityReport): string {
   return `Provider "${report.provider}" is an LLM and accepts any locale (well-tested list of ${report.tableVersion}).`;
 }
 
-function describeLocales(report: LocaleCapabilityReport): string {
-  const warnings =
+function warningCount(report: LocaleCapabilityReport): number {
+  return (
     report.source.warnings.length +
-    report.locales.reduce((total, entry) => total + entry.warnings.length, 0);
+    report.locales.reduce((total, entry) => total + entry.warnings.length, 0)
+  );
+}
+
+function localesStatus(report: LocaleCapabilityReport): DoctorCheckStatus {
+  if (unsupportedLocales(report).length > 0) {
+    return "fail";
+  }
+  return warningCount(report) > 0 || report.live?.status === "failed" ? "warn" : "pass";
+}
+
+function describeLocales(report: LocaleCapabilityReport): string {
+  const warnings = warningCount(report);
   const parts = [
     report.coverage === "open" ? describeOpen(report) : describeListed(report),
     ...(warnings > 0 ? [`${countOf(warnings, "warning")}.`] : []),
@@ -520,7 +548,7 @@ async function checkLocales(config: VerbatraConfig, live: boolean): Promise<Loca
   }
   const report = await assessForDoctor(config, provider, live);
   return {
-    check: verdict("locales", unsupportedLocales(report).length === 0, describeLocales(report)),
+    check: check("locales", localesStatus(report), describeLocales(report)),
     report,
   };
 }
@@ -562,7 +590,9 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * the config loads and validates, the configured format resolves to an adapter, the configured
  * provider ID resolves to a factory, the environment variable that provider reads its API key from
  * is set, the network policy permits the provider's host, the source locale file can be read, and
- * the provider supports every configured locale. The other four are informational and never fail.
+ * the provider supports every configured locale. The other four are informational and never fail:
+ * each reports `warn` when it names something worth attention and `pass` otherwise. A `warn`
+ * never makes {@link DoctorResult.ok} false.
  * Every check runs even when an earlier one failed, so one call reports every independent problem.
  * The API key is checked by variable name only: its value is never returned and never validated
  * against a provider, and it is read only when {@link DoctorInput.live} sends it to the provider's
@@ -594,7 +624,8 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * uses, such as a Polish Android `<plurals>` with only `one` and `other`. A plural a target holds
  * no form of yet is judged by the forms a run would write there, counting a blank source form as
  * absent, which is stricter than the notice {@link translate} raises. A file it cannot read is
- * named in its detail rather than failing the check.
+ * named in its detail and makes the check `warn` rather than fail it; a format that does not
+ * store plural forms by CLDR category makes it `skipped`.
  *
  * The informational `locale-codes` check names every configured locale code that is
  * valid but not in canonical BCP 47 form and suggests the canonical spelling. File names follow the
@@ -612,7 +643,7 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * {@link DoctorInput.live} asks for the provider's current list; an LLM provider accepts any
  * locale and only warns about a language outside its well-tested list. It fails on an
  * `unsupported` locale, the same one {@link translate} refuses, and reports a glossary or a tone
- * the provider cannot apply as a warning.
+ * the provider cannot apply as a warning, which makes the check `warn`.
  *
  * A config whose provider is `none` passes both the provider and the key check: its provider check
  * reports that machine translation is disabled by policy, and no key variable is looked at.
@@ -682,10 +713,9 @@ export async function doctor(
     checkApiKey(config.provider),
     networkPolicyCheck(config),
     await checkSourceFile(config, cwd, fs, adapter),
-    verdict("plural-rules", true, describePluralRules(config.targetLocales)),
-    verdict(
+    informational("plural-rules", describePluralRules(config.targetLocales)),
+    informational(
       "plural-completeness",
-      true,
       await describePluralCompleteness(
         config,
         cwd,
@@ -693,12 +723,11 @@ export async function doctor(
         adapter.kind === "resolved" ? adapter.adapter : undefined,
       ),
     ),
-    verdict(
+    informational(
       "locale-codes",
-      true,
       describeLocaleCodes([config.sourceLocale, ...config.targetLocales]),
     ),
-    verdict("locale-state", true, await describeLocaleState(config, cwd, fs)),
+    informational("locale-state", await describeLocaleState(config, cwd, fs)),
     locales.check,
   ]);
   return locales.report === undefined ? result : { ...result, locales: locales.report };

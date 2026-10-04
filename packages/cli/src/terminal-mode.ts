@@ -4,6 +4,7 @@ export interface TerminalFacts {
   readonly env: TerminalEnv;
   readonly stdinIsTty: boolean;
   readonly stderrIsTty: boolean;
+  readonly stdoutIsTty: boolean;
 }
 
 export interface TerminalPreferences {
@@ -17,6 +18,7 @@ export type OutputMode = "tty" | "plain" | "json" | "quiet";
 export interface TerminalMode {
   readonly mode: OutputMode;
   readonly color: boolean;
+  readonly stdoutColor: boolean;
   readonly animate: boolean;
   readonly stdinIsTty: boolean;
 }
@@ -31,6 +33,7 @@ export const NON_INTERACTIVE_FACTS: TerminalFacts = {
   env: {},
   stdinIsTty: false,
   stderrIsTty: false,
+  stdoutIsTty: false,
 };
 
 export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
@@ -66,7 +69,11 @@ function resolveOutputMode(facts: TerminalFacts, preferences: TerminalPreference
   return facts.stderrIsTty && !isCi(facts.env) && !isDumb(facts.env) ? "tty" : "plain";
 }
 
-function resolveColor(facts: TerminalFacts, preferences: TerminalPreferences): boolean {
+function resolveColor(
+  facts: TerminalFacts,
+  preferences: TerminalPreferences,
+  streamIsTty: boolean,
+): boolean {
   const env = facts.env;
   if (preferences.json || !preferences.color || isSetNonEmpty(env.VERBATRA_NO_COLOR)) {
     return false;
@@ -83,7 +90,7 @@ function resolveColor(facts: TerminalFacts, preferences: TerminalPreferences): b
   ) {
     return false;
   }
-  return facts.stderrIsTty;
+  return streamIsTty;
 }
 
 export function resolveTerminalMode(
@@ -93,7 +100,8 @@ export function resolveTerminalMode(
   const mode = resolveOutputMode(facts, preferences);
   return {
     mode,
-    color: resolveColor(facts, preferences),
+    color: resolveColor(facts, preferences, facts.stderrIsTty),
+    stdoutColor: resolveColor(facts, preferences, facts.stdoutIsTty),
     animate: mode === "tty" && !isSetNonEmpty(facts.env.VERBATRA_NO_SPINNER),
     stdinIsTty: facts.stdinIsTty,
   };

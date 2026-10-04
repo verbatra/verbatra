@@ -7,6 +7,7 @@ import {
   DEFAULT_TMX_PATH,
   DEFAULT_TYPES_PATH,
   type DiffSummary,
+  type DoctorCheckStatus,
   EXCHANGE_FORMATS,
   type ExchangeFormat,
   type ExportWorkbookInput,
@@ -67,7 +68,7 @@ import {
   type TerminalSettings,
 } from "./terminal-mode.js";
 import type { CliDeps, InitOpts, RunHooks, Streams } from "./types.js";
-import { createUi, formatElapsed, type Task, type Ui } from "./ui.js";
+import { createUi, formatElapsed, type StatusWord, type Task, type Ui } from "./ui.js";
 import { runWatch } from "./watch-session.js";
 
 const CLI_VERSION = readPackageManifest().version;
@@ -1601,6 +1602,13 @@ function parseDoctorOpts(rawOpts: unknown): DoctorOpts {
   return opts;
 }
 
+const DOCTOR_STATUS_WORDS: Record<DoctorCheckStatus, StatusWord> = {
+  pass: "ok",
+  warn: "warn",
+  fail: "fail",
+  skipped: "skip",
+};
+
 function doctorTaskLabel(opts: DoctorOpts): string {
   if (opts.literals === true) {
     return "scanning the source for literals";
@@ -1639,7 +1647,11 @@ async function runDoctor(
         context.streams.out(
           context.json
             ? `${renderSuccessEnvelope("doctor", result)}\n`
-            : `${renderDoctorHuman(result, { locales: showLocales })}\n`,
+            : `${renderDoctorHuman(result, {
+                locales: showLocales,
+                paintStatus: (status, label) =>
+                  context.ui.outStatus(DOCTOR_STATUS_WORDS[status], label),
+              })}\n`,
         );
         return result.ok ? 0 : 1;
       } catch (error) {

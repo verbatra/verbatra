@@ -53,6 +53,29 @@ describe("project.doctor", () => {
     expect(report.checks[5]?.detail).not.toContain(dir);
   });
 
+  it("reports a check that found something worth attention as warn, schema-valid and still ok", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { iw: {} });
+    const context = makeContext({
+      cwd: dir,
+      config: baseLoadedConfig({
+        config: baseVerbatraConfig({
+          provider: { id: "none", options: {} },
+          targetLocales: ["iw"],
+        }),
+      }),
+    });
+
+    const report = reportOf(await projectDoctorTool.execute({}, context));
+    const codes = report.checks.find((check) => check.id === "locale-codes");
+
+    expect(report.ok).toBe(true);
+    expect(codes).toMatchObject({
+      status: "warn",
+      detail: expect.stringContaining('"iw" is canonically "he"'),
+    });
+    expect(codes).not.toHaveProperty("fix");
+  });
+
   it("reports a failed check with its fix, relative to the project", async () => {
     const dir = await makeProject({ greeting: "Hello" });
     const context = makeContext({

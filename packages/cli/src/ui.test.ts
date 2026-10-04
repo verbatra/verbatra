@@ -10,7 +10,14 @@ import { createUi, formatElapsed } from "./ui.js";
 const ESC = "\x1b[";
 
 function terminal(mode: OutputMode, overrides: Partial<TerminalMode> = {}): TerminalMode {
-  return { mode, color: false, animate: false, stdinIsTty: false, ...overrides };
+  return {
+    mode,
+    color: false,
+    stdoutColor: false,
+    animate: false,
+    stdinIsTty: false,
+    ...overrides,
+  };
 }
 
 function steppedNow(...values: number[]): () => number {
@@ -123,6 +130,17 @@ describe("createUi: color", () => {
     expect(err).toContain(`verbatra: ${ESC}31merror${ESC}39m [CODE] message text\n`);
     expect(stripVTControlCharacters(err)).toBe(
       "[fail] value [x]\nnext: verbatra check (why)\nverbatra: error [CODE] message text\n",
+    );
+  });
+
+  it("styles a stdout status label by its status word only when stdout color is on", () => {
+    const streams = captureStreams().streams;
+
+    expect(
+      createUi(streams, terminal("tty", { stdoutColor: true })).outStatus("warn", "[warn]"),
+    ).toBe(`${ESC}33m[warn]${ESC}39m`);
+    expect(createUi(streams, terminal("tty", { color: true })).outStatus("warn", "[warn]")).toBe(
+      "[warn]",
     );
   });
 

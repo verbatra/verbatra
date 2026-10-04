@@ -20,6 +20,7 @@ const COLOR_TTY: TerminalFacts = {
   env: { FORCE_COLOR: "1" },
   stdinIsTty: true,
   stderrIsTty: true,
+  stdoutIsTty: true,
 };
 
 const events: readonly ProgressEvent[] = [
@@ -128,6 +129,7 @@ describe("run: plain human output is unchanged by the terminal layer", () => {
         env: {},
         stdinIsTty: false,
         stderrIsTty: false,
+        stdoutIsTty: false,
       },
     );
 

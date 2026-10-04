@@ -56,12 +56,12 @@ export const localeCodeSchema = z
     error: (issue) => invalidMessage(String(issue.input)),
   });
 
-interface NonCanonicalLocale {
+export interface NonCanonicalLocale {
   readonly locale: string;
   readonly canonical: string;
 }
 
-function nonCanonicalLocales(locales: readonly string[]): readonly NonCanonicalLocale[] {
+export function nonCanonicalLocales(locales: readonly string[]): readonly NonCanonicalLocale[] {
   const found: NonCanonicalLocale[] = [];
   for (const locale of locales) {
     const canonical = canonicalLocaleCode(locale);
@@ -70,18 +70,4 @@ function nonCanonicalLocales(locales: readonly string[]): readonly NonCanonicalL
     }
   }
   return found;
-}
-
-export function describeLocaleCodes(locales: readonly string[]): string {
-  const found = nonCanonicalLocales(locales);
-  if (found.length === 0) {
-    return "Every configured locale code is in canonical BCP 47 form.";
-  }
-  const suggestions = found
-    .map(({ locale, canonical }) => `"${locale}" is canonically "${canonical}"`)
-    .join(", ");
-  return (
-    `${suggestions}. Consider the canonical form in your config; file names follow the ` +
-    "configured code and are never renamed for you."
-  );
 }
