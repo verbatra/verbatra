@@ -19,12 +19,14 @@ const config: KnipConfig = {
 
     "packages/sdk": {
       ignoreDependencies: [
+        "@anthropic-ai/sdk",
         "@formatjs/icu-messageformat-parser",
         "@google/genai",
         "@xmldom/xmldom",
         "deepl-node",
         "jszip",
         "loglevel",
+        "openai",
         "yaml",
       ],
     },
