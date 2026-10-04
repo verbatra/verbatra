@@ -157,7 +157,7 @@ Ein JSON-Katalog, der jede Locale enthält, der Ersatz für `.strings` seit Xcod
 
 - **`msgctxt`** wird mit U+E000 an seine `msgid` zu einem Key gefügt; eine Quelle, die dieses Zeichen enthält, wird abgelehnt.
 - **Plurale** werden über den Index adressiert, `key[n]`, nicht über die CLDR-Kategorie. `Plural-Forms` bleibt wörtlich erhalten, und nur sein `nplurals` begrenzt die Indizes; Plural-Einträge ohne ihn werden abgelehnt, wie es `msgfmt --check` tut.
-- **Flags und Kommentare.** Ein `#, fuzzy`-Wert wird als aktuell gelesen und das Flag erhalten. `#.`-Kommentare sind nur lesbarer Kontext; `#:` und andere Flags bleiben erhalten, `#~`-Blöcke bleiben inert, und der Header wird nie angefasst. Eine `.pot` mit leerem `msgstr` wird sauber gelesen.
+- **Flags und Kommentare.** Ein `#, fuzzy`-Wert wird als aktuell gelesen und das Flag erhalten. `#.`-Kommentare sind nur lesbarer Kontext; `#:` und andere Flags bleiben erhalten, `#~`-Blöcke bleiben inert, und der Header wird nie angefasst. Eine `.pot` mit leerem `msgstr` wird sauber gelesen. Als Quellkatalog ist jedoch jeder `msgstr` der zu übersetzende Text: Ein Eintrag mit leerem Quell-`msgstr` wird mit [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty) übersprungen.
 - **Ein fehlendes Ziel** wird mit einem minimalen Header angelegt und, bei Pluralen, mit einem `Plural-Forms`, das auf den höchsten Index zugeschnitten ist (ab drei Formen ein sicherer Ersatzwert; für die exakte Grammatik leg das Ziel aus einer echten Vorlage an).
 - **Platzhalter sind printf**, `%(name)s` eingeschlossen.
 - **Fehler** nennen die `msgid` und die Zeile. `--prune` weiß nichts von Plural-Indizes und kann deshalb Formen löschen, die nur im Ziel vorkommen.

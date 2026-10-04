@@ -157,7 +157,7 @@ Entradas `msgid`/`msgstr` con clave por `msgid`.
 
 - **`msgctxt`** se une a su `msgid` en una sola clave con U+E000; un origen que contenga ese carácter se rechaza.
 - **Los plurales** tienen clave por índice, `key[n]`, no por categoría CLDR. `Plural-Forms` se conserva literalmente y solo su `nplurals` acota los índices; las entradas plurales sin él se rechazan, como hace `msgfmt --check`.
-- **Marcas y comentarios.** Un valor `#, fuzzy` se lee como actual y la marca se conserva. Los comentarios `#.` son contexto de solo lectura; `#:` y las demás marcas se conservan, los bloques `#~` quedan inertes y la cabecera nunca se toca. Un `.pot` con `msgstr` vacío se lee sin problemas.
+- **Marcas y comentarios.** Un valor `#, fuzzy` se lee como actual y la marca se conserva. Los comentarios `#.` son contexto de solo lectura; `#:` y las demás marcas se conservan, los bloques `#~` quedan inertes y la cabecera nunca se toca. Un `.pot` con `msgstr` vacío se lee sin problemas. Como catálogo de origen, sin embargo, cada `msgstr` es el texto que se traduce: una entrada cuyo `msgstr` de origen está vacío se omite con [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
 - **Un destino ausente** se crea con una cabecera mínima y, para plurales, un `Plural-Forms` dimensionado al índice más alto (un valor de respaldo seguro a partir de tres formas; siembra desde una plantilla real para la gramática exacta).
 - **Los placeholders son printf**, `%(name)s` incluido.
 - **Los errores** nombran el `msgid` y la línea. `--prune` no sabe nada de índices plurales, así que puede borrar formas que solo existen en el destino.

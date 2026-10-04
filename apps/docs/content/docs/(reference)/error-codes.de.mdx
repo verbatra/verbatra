@@ -1222,7 +1222,7 @@ DeepL, Google Cloud Translation und LibreTranslate bekommen ein solches Token wi
 
 ### SOURCE_VALUE_EMPTY
 
-Quell-Keys, deren Wert leer ist oder nur aus Leerraum besteht, etwa ein Key, den [`extract`](/docs/cli/extract) ohne Standardwert ergänzt hat, wären in diesem Locale sonst fehlend oder veraltet. Für sie wird nichts gesendet, geschrieben oder gezählt, und das Ziel behält den Wert, den es hat. Die Meldung nennt die Zahl der Keys und die ersten davon.
+Quell-Keys, deren Wert leer ist oder nur aus Leerraum besteht, etwa ein Key, den [`extract`](/docs/cli/extract) ohne Standardwert ergänzt hat, sind nie fehlend, veraltet oder aktuell, egal was Ziel oder Lock-Datei enthalten; in einem `gettext-po`-Quellkatalog ist das ein leerer `msgstr`. Für sie wird nichts gesendet, geschrieben oder gezählt, und das Ziel behält den Wert, den es hat. Die Meldung nennt die Zahl der Keys und die ersten davon.
 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: keiner

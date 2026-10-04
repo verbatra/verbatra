@@ -157,7 +157,7 @@ Des entrées `msgid`/`msgstr` indexées par `msgid`.
 
 - **`msgctxt`** se combine avec son `msgid` en une seule clé avec U+E000 ; une source contenant ce caractère est rejetée.
 - **Les pluriels** sont indexés par position, `key[n]`, pas par catégorie CLDR. `Plural-Forms` est conservé mot pour mot et seul son `nplurals` borne les index ; les entrées plurielles sans lui sont rejetées, comme le fait `msgfmt --check`.
-- **Marqueurs et commentaires.** Une valeur `#, fuzzy` est lue comme actuelle et le marqueur conservé. Les commentaires `#.` sont du contexte en lecture seule ; `#:` et les autres marqueurs sont conservés, les blocs `#~` restent inertes, et l'en-tête n'est jamais touché. Un `.pot` aux `msgstr` vides se lit sans accroc.
+- **Marqueurs et commentaires.** Une valeur `#, fuzzy` est lue comme actuelle et le marqueur conservé. Les commentaires `#.` sont du contexte en lecture seule ; `#:` et les autres marqueurs sont conservés, les blocs `#~` restent inertes, et l'en-tête n'est jamais touché. Un `.pot` aux `msgstr` vides se lit sans accroc. Comme catalogue source, en revanche, chaque `msgstr` est le texte à traduire : une entrée dont le `msgstr` source est vide est ignorée avec [`SOURCE_VALUE_EMPTY`](/docs/error-codes#source_value_empty).
 - **Une cible manquante** est créée avec un en-tête minimal et, pour les pluriels, un `Plural-Forms` dimensionné à l'index le plus élevé (une valeur de repli sûre à partir de trois formes ; amorce depuis un vrai modèle pour la grammaire exacte).
 - **Les placeholders sont de style printf**, `%(name)s` compris.
 - **Les erreurs** nomment le `msgid` et la ligne. `--prune` ne tient pas compte des index pluriels, donc il peut supprimer des formes présentes uniquement dans la cible.

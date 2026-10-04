@@ -40,7 +40,7 @@ A setup run reports these checks, in this order. Plural rules, Plural completene
 | Network policy | the effective [network policy](/docs/network-policy) permits the provider's host and any proxy it would use |
 | Source locale file | the source locale file exists at its resolved path, is a regular file, and parses under the configured format |
 | Plural rules | always: names the ICU and CLDR versions in use and any target locale ICU has no plural rules for |
-| Plural completeness | always: names each target plural that lacks a CLDR category its language uses, counting a plural the target has no forms for as a run would write it unless plural generation fills it (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists all) |
+| Plural completeness | always: names each target plural that lacks a CLDR category its language uses, judging a plural the target has no forms for by what a run would write there (a blank source form counts as absent, and plural generation only where it actually runs), deliberately stricter than the i18next-only notice of `translate` (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists the gaps in plurals a target already holds) |
 | Locale codes | always: names every valid but non-canonical code, such as `en-us` or `iw`, with the canonical form (see [Locale codes](/docs/config-file#locale-codes)) |
 | Locale state | always: names every locale the lock file, cache or provenance file holds state for that the config does not list, and whether `translate` [carries it over](/docs/the-lock-file#a-respelled-locale-code) |
 | Locale support | the provider supports the source and every target locale (see [Locale support](#locale-support)) |

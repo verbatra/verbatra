@@ -1208,7 +1208,7 @@ DeepL, Google Cloud Translation and LibreTranslate get such a token masked like 
 
 ### SOURCE_VALUE_EMPTY
 
-Source keys whose value is empty or whitespace only, such as a key [`extract`](/docs/cli/extract) added without a default, would otherwise be missing or stale in this locale. Nothing is sent, written or counted for them, and the target keeps whatever value it holds. The message gives the number of keys and names the first ones.
+Source keys whose value is empty or whitespace only, such as a key [`extract`](/docs/cli/extract) added without a default, are never missing, stale or up to date, whatever the target or the lock file holds; in a `gettext-po` source catalog that is an empty `msgstr`. Nothing is sent, written or counted for them, and the target keeps whatever value it holds. The message gives the number of keys and names the first ones.
 
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: none

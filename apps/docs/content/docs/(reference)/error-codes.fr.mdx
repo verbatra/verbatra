@@ -1223,7 +1223,7 @@ DeepL, Google Cloud Translation et LibreTranslate reçoivent un tel jeton masqu�
 
 ### SOURCE_VALUE_EMPTY
 
-Des clés source dont la valeur est vide ou ne contient que des espaces, comme une clé qu'[`extract`](/docs/cli/extract) a ajoutée sans valeur par défaut, seraient sinon manquantes ou obsolètes dans cette locale. Rien n'est envoyé, écrit ni compté pour elles, et la cible garde la valeur qu'elle a. Le message donne le nombre de clés et nomme les premières.
+Des clés source dont la valeur est vide ou ne contient que des espaces, comme une clé qu'[`extract`](/docs/cli/extract) a ajoutée sans valeur par défaut, ne sont jamais manquantes, obsolètes ni à jour, quoi que contiennent la cible ou le fichier de verrouillage ; dans un catalogue source `gettext-po`, c'est un `msgstr` vide. Rien n'est envoyé, écrit ni compté pour elles, et la cible garde la valeur qu'elle a. Le message donne le nombre de clés et nomme les premières.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : aucun

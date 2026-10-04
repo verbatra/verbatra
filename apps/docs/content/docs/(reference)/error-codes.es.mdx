@@ -1223,7 +1223,7 @@ DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado c
 
 ### SOURCE_VALUE_EMPTY
 
-Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/docs/cli/extract) añadió sin valor por defecto, que de otro modo faltarían o estarían desactualizadas en este locale. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
+Claves de origen cuyo valor está vacío o solo tiene espacios, como una clave que [`extract`](/docs/cli/extract) añadió sin valor por defecto, nunca faltan, están desactualizadas ni al día, tenga lo que tenga el destino o el archivo de bloqueo; en un catálogo de origen `gettext-po` es un `msgstr` vacío. No se envía, escribe ni cuenta nada para ellas, y el destino conserva el valor que tenga. El mensaje da el número de claves y nombra las primeras.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno
