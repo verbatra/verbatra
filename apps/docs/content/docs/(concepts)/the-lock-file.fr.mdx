@@ -19,10 +19,9 @@ rien.
 ## Comment la dérive est détectée
 
 Une clé source que la cible n'a pas est manquante. Pour une clé que la cible possède, le hash source
-actuel est comparé à celui enregistré : une différence signifie que la source a changé depuis la
-traduction de la clé, qui est donc retraduite ; une correspondance signifie qu'elle est inchangée et
-n'est jamais envoyée. C'est pourquoi une seconde exécution sans modification de la source ne coûte
-rien. Le pipeline complet est sur
+actuel est comparé à celui enregistré : une différence signifie que la source a changé, donc la clé
+est retraduite ; une correspondance signifie qu'elle n'est jamais envoyée, donc une seconde
+exécution sans modification de la source ne coûte rien. Le pipeline complet est sur
 [Comment se déroule une exécution](/docs/how-it-works).
 
 ### Clés protégées
@@ -36,15 +35,15 @@ est [protégée](/docs/protecting-human-translations) et reste obsolète au lieu
 
 Pointer verbatra vers des fichiers de locale qui contiennent déjà des traductions relues ne les
 retraduit pas. À la première exécution il n'y a pas de fichier de verrouillage, donc rien ne peut
-être périmé : une clé que la cible possède est inchangée et garde sa valeur, et seules les clés que
-la cible n'a pas sont traduites. L'exécution enregistre le hash source actuel de chaque clé, donc
-cette première exécution établit la référence sans coût fournisseur.
+être périmé : une clé que la cible possède garde sa valeur, seules les clés manquantes sont
+traduites, et l'exécution enregistre le hash source actuel de chaque clé, établissant la référence
+sans coût fournisseur.
 
 L'adoption se décide par la présence d'une clé, jamais par sa valeur, ce qui a deux conséquences :
 
-- **Une valeur vide ou non traduite compte comme traduite.** Une clé dont la valeur cible est une
-  chaîne vide, ou encore le texte source, existe, donc elle n'est jamais remplie. Supprime la clé du
-  fichier cible (la vider ne suffit pas) et l'exécution suivante la traduit.
+- **Une valeur vide ou non traduite compte comme traduite.** Une clé dont la valeur cible est vide, ou
+  encore le texte source, existe, donc elle n'est jamais remplie. Supprime la clé (la vider ne
+  suffit pas) et l'exécution suivante la traduit.
 - **Une traduction déjà périmée est enregistrée comme à jour.** Corrige ou supprime ces clés avant
   la première exécution.
 
@@ -75,9 +74,8 @@ premier. Des locales différentes ne se bloquent jamais.
 Ce que le verrou garantit :
 
 - **Un délai dépassé ne coûte rien.** `--lock-timeout` ne borne que l'attente avant tout appel
-  fournisseur, donc une locale qui abandonne n'a rien dépensé ni rien écrit. Enregistrer un fichier
-  déjà écrit attend toujours les dix minutes par défaut, donc un fichier écrit n'est jamais laissé
-  sans trace.
+  fournisseur, donc une locale qui abandonne n'a rien dépensé ni rien écrit ; enregistrer un fichier
+  déjà écrit attend toujours les dix minutes par défaut.
 - **Les verrous abandonnés ne te bloquent pas.** Un verrou dont le processus a disparu de cette
   machine est récupéré tout de suite, et un détenteur rafraîchit son verrou toutes les 10 secondes,
   donc un verrou non rafraîchi depuis 30 secondes est traité comme abandonné même si son processus
@@ -199,11 +197,9 @@ s'applique à la valeur exacte que le relecteur a vue et est refusée si cette v
   peut pas retirer une seule traduction, donc un rejet y est refusé avec
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Comme les
-décisions vivent dans ce fichier commité, la file de révision et la barrière de CI
+Les décisions vivent dans ce fichier commité, donc la file de révision et
 [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues) voient le même
-état sur chaque machine. Le nom `reviewer` est commité, donc public ; verbatra ne le remplit jamais
-de lui-même.
+état sur chaque machine, et le nom `reviewer` est public ; verbatra ne le remplit jamais.
 
 ## Commite-le
 
