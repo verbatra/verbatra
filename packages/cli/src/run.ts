@@ -791,17 +791,36 @@ function reportTranslateOutcome(
   }
 }
 
+function announceOnce(announce: () => void): () => void {
+  let announced = false;
+  return () => {
+    if (!announced) {
+      announced = true;
+      announce();
+    }
+  };
+}
+
 function buildTranslateInput(
   opts: ParsedTranslateOpts,
   config: TranslateInput["config"],
   cwd: string,
   context: CommandContext,
+  announceStart: () => void,
 ): TranslateInput {
+  const report = progressReporter(context, resolveDryRun(opts));
+  const reportLockWait = lockWaitReporter(context);
   return {
     config,
     cwd,
-    onLockWait: lockWaitReporter(context),
-    onProgress: progressReporter(context, resolveDryRun(opts)),
+    onLockWait: (event) => {
+      announceStart();
+      reportLockWait(event);
+    },
+    onProgress: (event) => {
+      announceStart();
+      report(event);
+    },
     ...(opts.locales !== undefined ? { locales: opts.locales } : {}),
     ...(opts.dryRun === true ? { dryRun: true } : {}),
     ...(opts.prune === true ? { prune: true } : {}),
@@ -835,8 +854,13 @@ export async function runTranslate(
         loadOptions(opts.config !== undefined ? { config: opts.config } : {}, cwd),
         async (config) => {
           const startedAt = Date.now();
-          context.ui.info(translateStartLine(opts, config));
-          const summary = await deps.translate(buildTranslateInput(opts, config, cwd, context));
+          const announceStart = announceOnce(() =>
+            context.ui.info(translateStartLine(opts, config)),
+          );
+          const summary = await deps.translate(
+            buildTranslateInput(opts, config, cwd, context, announceStart),
+          );
+          announceStart();
           context.streams.out(
             context.json
               ? `${renderSuccessEnvelope("translate", summary)}\n`

@@ -102,6 +102,37 @@ describe("translate: start, outcome and next step", () => {
     expect(err).not.toContain("next:");
   });
 
+  it("prints no start line when the SDK rejects the run before it starts", async () => {
+    const { code, err } = await stderrOf(["translate", "--locales", "xx"], {
+      translate: () =>
+        Promise.reject(new SdkError("UNKNOWN_LOCALE", "Requested locale not configured: xx.")),
+    });
+
+    expect(code).toBe(2);
+    expect(err).not.toContain("translating 1 locale");
+    expect(err).toMatch(/^verbatra: error \[UNKNOWN_LOCALE\] /);
+  });
+
+  it("prints the start line once, before the first progress event and the first lock wait", async () => {
+    const { err } = await stderrOf(["translate"], {
+      translate: async (input) => {
+        input.onLockWait?.({ lockPath: "/p/.verbatra/de.lock", elapsedMs: 0 });
+        input.onProgress?.({
+          type: "locale-started",
+          locale: "de",
+          localeIndex: 0,
+          totalLocales: 1,
+        });
+        input.onProgress?.({ type: "run-finished", localesCompleted: 1, localesFailed: 0 });
+        return makeSummary({ succeeded: ["de"] });
+      },
+    });
+
+    expect(err.indexOf("verbatra: translating 1 locale with")).toBe(0);
+    expect(err.split("translating 1 locale with")).toHaveLength(2);
+    expect(err.indexOf("waiting for the write lock")).toBeGreaterThan(0);
+  });
+
   it("reports a failed locale as failed and the failed count on the closing line", async () => {
     const { err } = await stderrOf(["translate"], {
       translate: async (input) => {
