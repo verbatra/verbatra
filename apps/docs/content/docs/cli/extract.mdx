@@ -67,6 +67,7 @@ A namespace-qualified key such as `t("common:nav.home")` is reported as dynamic 
 Only the source locale file, and only keys that are genuinely new:
 
 - A key already in the catalog keeps its value exactly as it stands; a call-site default never overwrites an edit.
+- A key the catalog holds only as plural forms counts as present: `t("cart.items", { count })` adds nothing next to `cart.items_one` and `cart.items_other`, and the same holds for a gettext `msgid_plural` entry and an Android `<plurals>` resource. In a format that does not mark plural forms, such as YAML, every key ending in an i18next plural suffix counts.
 - A catalog key no call site mentions is left alone. `extract` never deletes; [`verbatra diff --unused`](/docs/cli/diff#unused-source-keys) lists those keys.
 - A run that finds nothing new writes nothing, so the file stays byte-identical.
 - A target locale file is never written. Run [`verbatra translate`](/docs/cli/translate) afterwards to fill in the new keys.

@@ -564,3 +564,114 @@ describe("extract on a regular expression inside a template substitution", () =>
     },
   );
 });
+
+describe("extract on a key the catalog holds only as plural forms", () => {
+  const PLURAL_PO =
+    'msgid ""\nmsgstr "Content-Type: text/plain; charset=UTF-8\\nPlural-Forms: nplurals=2; plural=(n != 1);\\n"\n\nmsgid "apple"\nmsgid_plural "apples"\nmsgstr[0] "apple"\nmsgstr[1] "apples"\n';
+
+  it("adds no empty base key next to existing i18next plural forms", async () => {
+    const cwd = await project({
+      "src/cart.ts": 't("cart.items", { count });',
+      "locales/en.json": JSON.stringify({
+        cart: { items_one: "{{count}} item", items_other: "{{count}} items" },
+      }),
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added).toEqual([]);
+    expect(result.existingKeys).toBe(1);
+    expect(result.written).toBe(false);
+    expect(await readJsonFile(join(cwd, "locales/en.json"))).toEqual({
+      cart: { items_one: "{{count}} item", items_other: "{{count}} items" },
+    });
+  });
+
+  it("still adds a key whose plural forms are absent from the catalog", async () => {
+    const cwd = await project({
+      "src/cart.ts": 't("cart.items", { count });\nt("cart.total");',
+      "locales/en.json": JSON.stringify({ cart: { total_one: "one", total_other: "many" } }),
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added.map((entry) => entry.key)).toEqual(["cart.items"]);
+  });
+
+  it("adds no key for an i18next ordinal group, looked up without its ordinal suffix", async () => {
+    const cwd = await project({
+      "src/rank.ts": 't("place", { count, ordinal: true });',
+      "locales/en.json": JSON.stringify({
+        place_ordinal_one: "{{count}}st",
+        place_ordinal_other: "{{count}}th",
+      }),
+    });
+
+    const result = await extract({ config: config(), cwd });
+
+    expect(result.added).toEqual([]);
+  });
+
+  it("adds a key that a plain catalog key only resembles as a plural form", async () => {
+    const cwd = await project({
+      "src/wizard.ts": 't("step");',
+      "res/values/strings.xml":
+        '<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="step_one">First step</string></resources>\n',
+    });
+
+    const result = await extract({
+      config: config({
+        format: "android-xml",
+        files: { pattern: "res/{locale}/strings.xml", localeStyle: "android" },
+      }),
+      cwd,
+    });
+
+    expect(result.added.map((entry) => entry.key)).toEqual(["step"]);
+  });
+
+  it("adds no base key next to i18next plural forms held in a YAML catalog", async () => {
+    const cwd = await project({
+      "src/cart.ts": 't("items", { count });\nt("place", { count, ordinal: true });',
+      "locales/en.yml":
+        "items_one: one item\nitems_other: many items\nplace_ordinal_one: first\nplace_ordinal_other: nth\n",
+    });
+
+    const result = await extract({
+      config: config({ format: "yaml", files: { pattern: "locales/{locale}.yml" } }),
+      cwd,
+    });
+
+    expect(result.added).toEqual([]);
+    expect(result.written).toBe(false);
+  });
+
+  it("adds no key for a gettext msgid held only as plural forms", async () => {
+    const cwd = await project({ "src/a.ts": 't("apple", { count });', "locales/en.po": PLURAL_PO });
+
+    const result = await extract({
+      config: config({ format: "gettext-po", files: { pattern: "locales/{locale}.po" } }),
+      cwd,
+    });
+
+    expect(result.added).toEqual([]);
+  });
+
+  it("adds no key for an Android plurals resource", async () => {
+    const cwd = await project({
+      "src/a.ts": 't("apple", { count });',
+      "res/values/strings.xml":
+        '<?xml version="1.0" encoding="utf-8"?>\n<resources><plurals name="apple"><item quantity="one">apple</item><item quantity="other">apples</item></plurals></resources>\n',
+    });
+
+    const result = await extract({
+      config: config({
+        format: "android-xml",
+        files: { pattern: "res/{locale}/strings.xml", localeStyle: "android" },
+      }),
+      cwd,
+    });
+
+    expect(result.added).toEqual([]);
+  });
+});

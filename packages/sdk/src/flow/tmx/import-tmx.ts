@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { contentHash, type TranslationEntry } from "@verbatra/core";
+import { contentHash, normalizeText, type TranslationEntry } from "@verbatra/core";
 import {
   DEFAULT_TMX_LIMITS,
   ExchangeError,
@@ -16,7 +16,7 @@ import {
 } from "../../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../../cache/types.js";
 import type { VerbatraConfig } from "../../config/schema.js";
-import { errorMessage, SdkError } from "../../errors.js";
+import { errorMessage, InputFileError, SdkError } from "../../errors.js";
 import { defaultFs, type SdkFs } from "../../fs.js";
 import { selectAdapter } from "../../selection/select-adapter.js";
 import {
@@ -26,6 +26,7 @@ import {
 } from "../integrity-gate.js";
 import { readCarriedOverMemory } from "../locale-carry-over.js";
 import { selectLocales } from "../select-locales.js";
+import { readSource } from "../source.js";
 import { assertDistinctLocales, matchLanguageTag } from "./locale-match.js";
 
 /**
@@ -259,23 +260,53 @@ function emptyTally(): LocaleTally {
   };
 }
 
-function sourceEntryFor(sourceText: string, adapter: FormatAdapter): TranslationEntry {
-  return {
+type PluralFlagsByText = ReadonlyMap<string, readonly boolean[]>;
+
+const UNMATCHED_SOURCE_FLAGS: readonly boolean[] = [false];
+
+async function readPluralFlagsByText(
+  config: VerbatraConfig,
+  cwd: string,
+  fs: SdkFs,
+  adapter: FormatAdapter,
+): Promise<PluralFlagsByText> {
+  const byText = new Map<string, Set<boolean>>();
+  const catalog = await readSource(config, cwd, fs, adapter).catch((error: unknown) => {
+    if (error instanceof SdkError && error.code === "SOURCE_UNREADABLE") {
+      return undefined;
+    }
+    throw error;
+  });
+  for (const entry of catalog?.resource.entries.values() ?? []) {
+    const text = normalizeText(entry.value);
+    byText.set(text, (byText.get(text) ?? new Set<boolean>()).add(entry.isPlural));
+  }
+  return new Map([...byText].map(([text, flags]) => [text, [...flags]]));
+}
+
+function sourceEntriesFor(
+  sourceText: string,
+  adapter: FormatAdapter,
+  pluralFlags: PluralFlagsByText,
+): readonly TranslationEntry[] {
+  const placeholders = adapter.extractPlaceholders(sourceText);
+  return (pluralFlags.get(normalizeText(sourceText)) ?? UNMATCHED_SOURCE_FLAGS).map((isPlural) => ({
     key: "tmx",
     namespace: "",
     value: sourceText,
-    placeholders: adapter.extractPlaceholders(sourceText),
-    isPlural: false,
-  };
+    placeholders,
+    isPlural,
+  }));
 }
 
 async function readTmxText(path: string, fs: SdkFs): Promise<string> {
   const read = await fs.readFileBounded(path, DEFAULT_TMX_LIMITS.maxInputBytes);
   if (read.kind === "missing") {
-    throw new SdkError("SOURCE_UNREADABLE", `No TMX file was found at ${path}.`);
+    throw new InputFileError("tmx", "SOURCE_UNREADABLE", `No TMX file was found at ${path}.`);
   }
   if (read.kind === "too-large") {
-    throw new SdkError(
+    throw new InputFileError(
+      "tmx",
       "SOURCE_INVALID",
       `The TMX file at ${path} exceeds the maximum allowed size of ${DEFAULT_TMX_LIMITS.maxInputBytes} bytes.`,
     );
@@ -287,7 +318,9 @@ function parse(text: string, path: string): ReturnType<typeof readTmx> {
   try {
     return readTmx(text);
   } catch (error) {
-    throw new SdkError("SOURCE_INVALID", `${path}: ${errorMessage(error)}`, { cause: error });
+    throw new InputFileError("tmx", "SOURCE_INVALID", `${path}: ${errorMessage(error)}`, {
+      cause: error,
+    });
   }
 }
 
@@ -387,6 +420,7 @@ interface ApplyContext {
   readonly memory: TranslationMemory;
   readonly fingerprintFor: FingerprintFor;
   readonly adapter: FormatAdapter;
+  readonly pluralFlags: PluralFlagsByText;
   readonly overwrite: boolean;
 }
 
@@ -398,26 +432,65 @@ function unitRefusal(unit: number, rejection: IntegrityGateRejection): TmxUnitRe
     : { unit, reason: rejection.reason, details: rejection.details };
 }
 
-function applyTranslation(
+const DECISION_PRECEDENCE: readonly Decision[] = [
+  "added",
+  "overwritten",
+  "kept",
+  "unchanged",
+  "duplicates",
+];
+
+function firstRejection(
+  ctx: ApplyContext,
+  locale: string,
+  sourceEntries: readonly TranslationEntry[],
+  candidate: string,
+): IntegrityGateRejection | undefined {
+  for (const sourceEntry of sourceEntries) {
+    const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
+    if (!gate.accepted) {
+      return gate;
+    }
+  }
+  return undefined;
+}
+
+function decideKeying(
+  ctx: ApplyContext,
+  tally: LocaleTally,
+  locale: string,
+  sourceEntry: TranslationEntry,
+  candidate: string,
+): Decision {
+  const hash = contentHash(sourceEntry);
+  const existing = ctx.memory.entries[ctx.fingerprintFor(locale)]?.[locale]?.[hash];
+  const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
+  if (STAGED.has(decision)) {
+    tally.additions[hash] = { contentHash: hash, value: candidate, source: sourceEntry.value };
+  }
+  return decision;
+}
+
+function applyTranslations(
   ctx: ApplyContext,
   tally: LocaleTally,
   unit: number,
   locale: string,
-  sourceEntry: TranslationEntry,
+  sourceEntries: readonly TranslationEntry[],
   candidate: string,
 ): void {
-  const gate = gateCandidateValue(sourceEntry, candidate, ctx.adapter, locale);
-  if (!gate.accepted) {
-    tally.rejected[gate.reason] += 1;
-    tally.refusals.push(unitRefusal(unit, gate));
+  const rejection = firstRejection(ctx, locale, sourceEntries, candidate);
+  if (rejection !== undefined) {
+    tally.rejected[rejection.reason] += 1;
+    tally.refusals.push(unitRefusal(unit, rejection));
     return;
   }
-  const hash = contentHash(sourceEntry);
-  const existing = ctx.memory.entries[ctx.fingerprintFor(locale)]?.[locale]?.[hash];
-  const decision = decide(tally, existing, hash, candidate, ctx.overwrite);
-  tally[decision] += 1;
-  if (STAGED.has(decision)) {
-    tally.additions[hash] = { contentHash: hash, value: candidate, source: sourceEntry.value };
+  const decisions = new Set(
+    sourceEntries.map((sourceEntry) => decideKeying(ctx, tally, locale, sourceEntry, candidate)),
+  );
+  const counted = DECISION_PRECEDENCE.find((decision) => decisions.has(decision));
+  if (counted !== undefined) {
+    tally[counted] += 1;
   }
 }
 
@@ -440,8 +513,10 @@ function importUnit(
   }
   const refused = plan.kind === "conflicting-source";
   const blankSource = plan.kind === "ok" && plan.sourceText.trim() === "";
-  const sourceEntry =
-    plan.kind === "ok" && !blankSource ? sourceEntryFor(plan.sourceText, ctx.adapter) : undefined;
+  const sourceEntries =
+    plan.kind === "ok" && !blankSource
+      ? sourceEntriesFor(plan.sourceText, ctx.adapter, ctx.pluralFlags)
+      : [];
   for (const [locale, pick] of plan.targets) {
     const tally = tallies.get(locale);
     if (tally === undefined) {
@@ -450,8 +525,8 @@ function importUnit(
       tally.rejected.sourceBlank += 1;
     } else if (!refused && pick.conflicted) {
       tally.conflicting += 1;
-    } else if (sourceEntry !== undefined) {
-      applyTranslation(ctx, tally, unit, locale, sourceEntry, pick.text);
+    } else {
+      applyTranslations(ctx, tally, unit, locale, sourceEntries, pick.text);
     }
   }
   return plan.kind;
@@ -567,11 +642,17 @@ function additionsByLocale(
  * scores a changed string against. An imported source that DIFFERS from a string in the project can
  * therefore be served for that string by fuzzy reuse, which is what resemblance means.
  *
+ * A unit carries no plural flag, so the flag is taken from the project's source catalog: a unit
+ * whose source text a plural form holds there (`cart.items_one`, for example) is
+ * stored as that plural form's translation, and as a plain string's too when the catalog holds the
+ * text both ways, and is still counted once. A unit no catalog entry matches, or any unit when the
+ * project has no source locale file yet, is stored as a plain string.
+ *
  * An imported source that is identical to a project string but hashes differently is not reachable
  * at all. Fuzzy reuse discards any candidate whose normalized source equals the query, so a project
- * entry that carries a description, a meaning, or a plural flag the unit cannot carry falls through
- * to the provider rather than being served: the hashes differ, and the identical text disqualifies
- * the fuzzy candidate.
+ * entry that carries a description or a meaning the unit cannot carry falls through to the provider
+ * rather than being served: the hashes differ, and the identical text disqualifies the fuzzy
+ * candidate.
  *
  * A fuzzy reuse is still held to the integrity gate against the real entry and is reported as a
  * `FUZZY_CACHE_REUSE` review flag on the run summary, so it is visible rather than silent. A project
@@ -589,7 +670,7 @@ function additionsByLocale(
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
  * @throws {@link SdkError} `SOURCE_UNREADABLE`: no file exists at the given path.
  * @throws {@link SdkError} `SOURCE_INVALID`: the file is oversized, malformed, not a TMX document,
- * or declares an XML entity. When the problem has a place in the file, the message names its line,
+ * or declares an XML entity, or the project's source locale file exists but cannot be parsed. When the problem has a place in the file, the message names its line,
  * column and, inside a translation unit, the unit's 1-based ordinal, and `cause` is the interchange
  * reader's error carrying the same as a structured `location`.
  *
@@ -619,6 +700,7 @@ export async function importTmx(
     memory,
     fingerprintFor,
     adapter,
+    pluralFlags: await readPluralFlagsByText(input.config, cwd, fs, adapter),
     overwrite: input.overwrite ?? false,
   };
   const census = new LanguageCensus();

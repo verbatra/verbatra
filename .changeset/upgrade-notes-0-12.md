@@ -31,8 +31,22 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   verbatra writes becomes `translated`.
 - No empty target file is created for a new locale whose keys were all withheld, and `import`
   writes new keys in source order.
+- i18next: `verbatra types` also declares the base key of each plural group (`cart.items` next to
+  `cart.items_one`), so `types --check` reports a committed 0.11 declaration as out of date. Run
+  `verbatra types` once and commit the file.
 
 **Translation behavior and spend**
+- `tmx import` reads the project's source locale file and fails with `SOURCE_INVALID` (exit 2)
+  when that file exists but cannot be parsed. Fix the source file, then import again.
+- `diff --unused` no longer counts a plain string such as `step_one` as used by `t("step")` in an
+  Android, gettext or Apple catalog, where plural forms are marked: it is listed as unused and
+  `diff --unused` exits 1. `extract` no longer adds `step` next to a plain `step_one` in
+  i18next-json, YAML or another catalog under i18next, which it treats as a plural form. Rename
+  such keys, or ignore them with `extract.unused.ignore`.
+- `tmx import` takes the plural flag from the source file: a plural form whose text matches an
+  imported unit is now an exact memory hit, filled without a provider call, where 0.11 sent it to
+  the provider. Units imported with 0.11 stay keyed as plain strings: import the TMX file again.
+  A unit matching a plural form and a plain string is stored for both and counted once.
 - `humanEdits` defaults to `"protect"`: a stale key whose value a person wrote, imported or edited
   outside verbatra is no longer retranslated, and `check` keeps reporting it as stale. Set
   `humanEdits: "overwrite"`, or pass `translate --include-human` for one run, to get 0.11 behavior.

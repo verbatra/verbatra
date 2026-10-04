@@ -59,6 +59,7 @@ export type VerbatraUnknownArguments = Record<string, VerbatraArgument>;
 export interface VerbatraMessages {
   "app.title": VerbatraNoArguments;
   "greeting": { readonly "name": VerbatraArgument };
+  "cart.item": { readonly "count": VerbatraArgument };
   "cart.item_one": { readonly "count": VerbatraArgument };
   "cart.item_other": { readonly "count": VerbatraArgument };
 }
@@ -134,7 +135,7 @@ Only `next-intl-json` and `arb` validate message syntax. In every other format, 
 
 ### Plural keys
 
-Nothing is collapsed. i18next carries plural as a key suffix, so `cart.item_one` and `cart.item_other` are declared as the two keys your code actually looks up. `VerbatraPluralMessageKey` lists the keys the adapter marked as carrying plural forms, so you can narrow to them.
+Nothing is collapsed. i18next carries plural as a key suffix, so `cart.item_one` and `cart.item_other` are declared as written, and next to them the base key `cart.item` that `t("cart.item", { count })` looks up, requiring `count` and every argument any form takes. i18next's own typings accept both spellings too. An ordinal group such as `place_ordinal_one` declares `place`, and a base key the catalog already holds keeps its own declaration. `VerbatraPluralMessageKey` lists the keys the adapter marked as carrying plural forms, the suffixed ones, so you can narrow to them.
 
 ### Where the declaration goes
 

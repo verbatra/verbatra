@@ -13,6 +13,14 @@ CLDR plurals, ICU arm checks, other-syntax placeholder and direction control war
 - For next-intl and ARB, LLM providers receive the target's plural categories, and the integrity
   gate refuses `plural`, `selectordinal` or `select` arms that do not fit.
 - `keyIntegrity`, exports and imports report wrong arms (`icuArmsMatch`, `icu-arms`).
+- `extract` counts a key held only as plural forms as present: `t("cart.items", { count })` no
+  longer adds an empty `cart.items` next to `cart.items_one` and `cart.items_other`, and the same
+  holds for gettext `msgid_plural` entries and Android `<plurals>`.
+- `tmx import` fills plural forms: a unit whose text matches a plural form in the source file is
+  stored for it, so `cart.items_one` and `cart.items_other` are served from the imported memory.
+- `verbatra types` declares the base key i18next looks up for a plural group, so
+  `t("cart.items", { count })` type-checks: `cart.items` requires `count` and every argument its
+  forms take, and `place_ordinal_one` declares `place`.
 
 **Integrity gate**
 - Each locale carries `integrityRefusals` with the reason and details per withheld key.

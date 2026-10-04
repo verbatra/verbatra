@@ -59,6 +59,7 @@ export type VerbatraUnknownArguments = Record<string, VerbatraArgument>;
 export interface VerbatraMessages {
   "app.title": VerbatraNoArguments;
   "greeting": { readonly "name": VerbatraArgument };
+  "cart.item": { readonly "count": VerbatraArgument };
   "cart.item_one": { readonly "count": VerbatraArgument };
   "cart.item_other": { readonly "count": VerbatraArgument };
 }
@@ -134,7 +135,7 @@ Solo `next-intl-json` y `arb` validan la sintaxis de mensaje. En cualquier otro 
 
 ### Claves con plural
 
-No se agrupa nada. i18next lleva el plural como sufijo de clave, así que `cart.item_one` y `cart.item_other` se declaran como las dos claves que tu código busca de verdad. `VerbatraPluralMessageKey` lista las claves que el adaptador marcó como portadoras de formas plurales, para que puedas acotarte a ellas.
+No se agrupa nada. i18next lleva el plural como sufijo de clave, así que `cart.item_one` y `cart.item_other` se declaran tal como están escritas y, junto a ellas, la clave base `cart.item` que busca `t("cart.item", { count })`, que exige `count` y todos los argumentos que toma alguna de las formas. Los tipos propios de i18next también aceptan ambas formas de escribirla. Un grupo ordinal como `place_ordinal_one` declara `place`, y una clave base que el catálogo ya contiene conserva su propia declaración. `VerbatraPluralMessageKey` lista las claves que el adaptador marcó como portadoras de formas plurales, las que llevan sufijo, para que puedas acotarte a ellas.
 
 ### Dónde va la declaración
 

@@ -69,7 +69,7 @@ Les unités importées sont stockées sous l'empreinte de configuration actuelle
 
 ### Les unités importées et la réutilisation floue
 
-Le texte source d'une unité acceptée rejoint l'index contre lequel la [réutilisation floue](/docs/the-cache) évalue les chaînes modifiées, donc une source importée qui diffère d'une de tes chaînes peut servir pour celle-ci. Une telle réutilisation passe quand même le contrôle d'intégrité face à ta vraie entrée et porte le marqueur de relecture `FUZZY_CACHE_REUSE`. Une source importée identique à une de tes chaînes mais au hash différent (ton entrée a une description, un sens ou un marqueur de pluriel que TMX ne peut pas porter) n'est jamais réutilisée. Retire `fuzzyCache` de ta config pour n'autoriser que les correspondances exactes.
+Le texte source d'une unité acceptée rejoint l'index contre lequel la [réutilisation floue](/docs/the-cache) évalue les chaînes modifiées, donc une source importée qui diffère d'une de tes chaînes peut servir pour celle-ci. Une telle réutilisation passe quand même le contrôle d'intégrité face à ta vraie entrée et porte le marqueur de relecture `FUZZY_CACHE_REUSE`. Une source importée identique à une de tes chaînes mais au hash différent (ton entrée a une description ou un sens que TMX ne peut pas porter) n'est jamais réutilisée. Une forme plurielle est retrouvée par son texte : l'import reprend le marqueur de pluriel de ton fichier source, donc `cart.items_one` et `cart.items_other` se remplissent depuis la mémoire comme toute autre clé. Retire `fuzzyCache` de ta config pour n'autoriser que les correspondances exactes.
 
 ### Ce qu'écrit l'export
 

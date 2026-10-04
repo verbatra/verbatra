@@ -10,6 +10,16 @@ import type { SdkNotice } from "./summary.js";
 
 const ORDINAL_BASE_SUFFIX = "_ordinal";
 
+export function pluralLookupKey(key: string): string | undefined {
+  const baseKey = pluralBaseKey(key);
+  if (baseKey === undefined) {
+    return undefined;
+  }
+  return baseKey.endsWith(ORDINAL_BASE_SUFFIX)
+    ? baseKey.slice(0, -ORDINAL_BASE_SUFFIX.length)
+    : baseKey;
+}
+
 function ruleTypeOf(baseKey: string): PluralRuleType {
   return baseKey.endsWith(ORDINAL_BASE_SUFFIX) ? "ordinal" : "cardinal";
 }

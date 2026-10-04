@@ -8,10 +8,10 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { matchesKeyGlob } from "./key-glob.js";
-import { isGeneratedPluralKey } from "./plural-categories.js";
+import type { PluralSuffixRules } from "./plural-keys.js";
 import { readSource } from "./source.js";
 import { type CreateExtractor, requireExtractionConfig, runScan } from "./source-scan.js";
-import { type CatalogKeyForms, catalogKeyForms } from "./unused-key-forms.js";
+import { type CatalogKeyForms, callSiteKeysOf, catalogKeyForms } from "./unused-key-forms.js";
 
 /**
  * Why an unused-key report could not be produced at all.
@@ -276,10 +276,18 @@ function isUnderReferencedParent(key: string, referenced: ReadonlySet<string>): 
 
 function isReferencedLookup(lookup: string, referenced: ReadonlySet<string>): boolean {
   return (
-    referenced.has(lookup) ||
-    isGeneratedPluralKey(lookup, referenced) ||
-    isContextVariantOfReferenced(lookup, referenced) ||
-    isUnderReferencedParent(lookup, referenced)
+    isContextVariantOfReferenced(lookup, referenced) || isUnderReferencedParent(lookup, referenced)
+  );
+}
+
+function isReferencedEntry(
+  forms: CatalogKeyForms,
+  callSiteKeys: readonly string[],
+  referenced: ReadonlySet<string>,
+): boolean {
+  return (
+    callSiteKeys.some((key) => referenced.has(key)) ||
+    forms.lookups.some((lookup) => isReferencedLookup(lookup, referenced))
   );
 }
 
@@ -352,15 +360,17 @@ interface Classified {
 function classifyKeys(
   scan: ProjectScan,
   catalog: LocaleResource,
-  format: FormatId,
+  rules: PluralSuffixRules,
   ignorePatterns: readonly string[],
 ): Classified {
   const referenced = referencedKeys(scan);
   const prefixes = [...new Set(scan.usage.prefixes.map((site) => site.prefix))];
   const classified: Classified = { unused: [], possiblyDynamic: [], ignored: [] };
-  for (const catalogKey of catalog.entries.keys()) {
-    const forms = catalogKeyForms(format, catalogKey);
-    if (forms.lookups.some((lookup) => isReferencedLookup(lookup, referenced))) {
+  for (const [catalogKey, catalogEntry] of catalog.entries) {
+    const forms = catalogKeyForms(rules.format, catalogKey);
+    if (
+      isReferencedEntry(forms, callSiteKeysOf(rules, catalogKey, catalogEntry.isPlural), referenced)
+    ) {
       continue;
     }
     const entry = { key: forms.key, catalogKey };
@@ -387,7 +397,12 @@ function buildReport(
     status: reasons.length === 0 ? "complete" : "unreliable",
     unreliableBecause: reasons,
     scannedFiles: scan.scannedFiles,
-    ...classifyKeys(scan, catalog, input.config.format, extraction.unused?.ignore ?? []),
+    ...classifyKeys(
+      scan,
+      catalog,
+      { framework: extraction.framework, format: input.config.format },
+      extraction.unused?.ignore ?? [],
+    ),
     dynamicPrefixes: scan.usage.prefixes.map((site) => ({
       prefix: site.prefix,
       file: site.file,
