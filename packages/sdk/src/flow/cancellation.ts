@@ -1,28 +1,10 @@
-import { SdkError } from "../errors.js";
+import { cancelledError, isAbandoned, isCancelled } from "../cancellation.js";
+import type { SdkError } from "../errors.js";
 import type { LocaleSummary, SdkNotice } from "./summary.js";
-
-export function isCancelled(signal: AbortSignal | undefined): boolean {
-  return signal?.aborted === true;
-}
-
-export function signalField(signal: AbortSignal | undefined): { readonly signal?: AbortSignal } {
-  return signal === undefined ? {} : { signal };
-}
-
-export function cancelledError(message: string): SdkError {
-  return new SdkError("RUN_CANCELLED", message);
-}
 
 export function unstartedLocaleError(): SdkError {
   return cancelledError(
     "The run was cancelled before this locale started, so nothing was sent or written for it.",
-  );
-}
-
-export function lockWaitCancelledError(path: string): SdkError {
-  return cancelledError(
-    `The run was cancelled while waiting for the write lock at ${path}, so nothing was sent or ` +
-      "written under it.",
   );
 }
 
@@ -46,9 +28,23 @@ export function withCancelledKeys(
   }
   return {
     ...summary,
-    status: "partial",
+    status: summary.status === "failed" ? "failed" : "partial",
     notices: [...summary.notices, cancelledNotice(cancelled.length)],
   };
+}
+
+function cutShort(summary: LocaleSummary): boolean {
+  return (
+    summary.error?.code === "RUN_CANCELLED" ||
+    summary.notices.some((notice) => notice.code === "RUN_CANCELLED")
+  );
+}
+
+export function cancelledField(
+  signal: AbortSignal | undefined,
+  summaries: readonly LocaleSummary[],
+): { cancelled?: true } {
+  return isCancelled(signal) && summaries.some(cutShort) ? { cancelled: true } : {};
 }
 
 export async function unlessCancelled<T>(
@@ -56,15 +52,19 @@ export async function unlessCancelled<T>(
   message: string,
   run: () => Promise<T>,
 ): Promise<T> {
-  if (isCancelled(signal)) {
-    throw cancelledError(message);
-  }
+  throwIfCancelled(signal, message);
   try {
     return await run();
   } catch (error) {
-    if (isCancelled(signal)) {
+    if (isAbandoned(signal, error)) {
       throw cancelledError(message);
     }
     throw error;
+  }
+}
+
+export function throwIfCancelled(signal: AbortSignal | undefined, message: string): void {
+  if (isCancelled(signal)) {
+    throw cancelledError(message);
   }
 }

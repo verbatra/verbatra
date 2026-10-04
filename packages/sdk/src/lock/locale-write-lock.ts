@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import type { FormatId } from "@verbatra/core";
+import { cancelledError, isCancelled, signalField } from "../cancellation.js";
 import { errorMessage, SdkError } from "../errors.js";
-import { isCancelled, lockWaitCancelledError, signalField } from "../flow/cancellation.js";
 import type { BoundedFileRead, SdkFs } from "../fs.js";
 import { isSharedCatalogueFormat } from "../locale-path/shared-catalogue-format.js";
 import {
@@ -489,6 +489,13 @@ interface AcquireSettings extends ReclaimSettings {
   readonly deadline: number;
   readonly notify?: (observed: ObservedLock) => void;
   readonly signal?: AbortSignal;
+}
+
+function lockWaitCancelledError(path: string): SdkError {
+  return cancelledError(
+    `The operation was cancelled while waiting for the write lock at ${path}, so nothing was ` +
+      "sent or written under it.",
+  );
 }
 
 function contendedError(path: string, refusal: RenameRefusal | undefined): SdkError {

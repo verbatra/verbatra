@@ -20,6 +20,7 @@ import type { FormatAdapter } from "@verbatra/format-adapters";
 import { type FuzzyCacheMatch, findFuzzyMatch } from "../cache/fuzzy-lookup.js";
 import { lookupMemory, lookupSource } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
+import { isAbandoned, isCancelled, signalField } from "../cancellation.js";
 import type { SdkFs } from "../fs.js";
 import type { LocalePathResolver } from "../locale-path/resolver.js";
 import { carrySourcelessLockEntry } from "../lock/carry-forward.js";
@@ -50,7 +51,7 @@ import {
   reconcileBudget,
   reserveBudget,
 } from "./budget.js";
-import { isCancelled, signalField, withCancelledKeys } from "./cancellation.js";
+import { withCancelledKeys } from "./cancellation.js";
 import { type PayloadContext, payloadContextOf } from "./estimate.js";
 import {
   sourceForeignPlaceholderNotice,
@@ -678,7 +679,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
   }
 
   const pluralNotices = params.generatePlurals
-    ? pluralNoticeFor(params, merged.keys())
+    ? generatedPluralNotices(params, merged.keys(), generation)
     : sdkNotices;
   const notices: readonly LocaleNotice[] = [
     ...pluralNotices,
@@ -1074,6 +1075,14 @@ function sourceNoticesFor(
   return notice === undefined ? [] : [notice];
 }
 
+function generatedPluralNotices(
+  params: LocaleRunParams,
+  keys: Iterable<string>,
+  generation: PluralGenerationResult,
+): readonly LocaleNotice[] {
+  return generation.cancelled.length > 0 ? [] : pluralNoticeFor(params, keys);
+}
+
 function pluralNoticeFor(params: LocaleRunParams, keys: Iterable<string>): readonly LocaleNotice[] {
   if (params.format !== "i18next-json") {
     return [];
@@ -1287,7 +1296,7 @@ async function runSubBatch(
   } catch (error) {
     reconcileBudget(params.budget, decision.reservation, undefined);
     const tripped = checkBudgetTrip(params.budget);
-    if (isCancelled(params.signal)) {
+    if (isAbandoned(params.signal, error)) {
       cancelEntries(batch, outcome);
       return { ...NO_SUB_BATCH_RESULT, counted: tripped };
     }

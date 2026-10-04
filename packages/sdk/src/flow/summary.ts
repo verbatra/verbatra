@@ -80,7 +80,8 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   when the match is in its key name, overlaps a placeholder, or did not come back exactly once.
  * - `RUN_CANCELLED`: the run's `signal` aborted while this locale was running. The keys not yet
  *   translated were not sent, or their request was abandoned; they get no lock-file entry and stay
- *   pending for the next run, and the locale is `partial`. The message gives their number.
+ *   pending for the next run, and the locale is `partial`, or `failed` when other keys were
+ *   withheld and none landed. The message gives their number.
  *   Translations that arrived before the abort were written and recorded.
  *
  * `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`
@@ -565,9 +566,11 @@ export interface LocaleSummary {
    * `succeeded` when no key was withheld by the integrity gate, a provider failure, the token
    * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed`
    * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU
-   * source and handoff rows left blank do not change the status. A locale a cancelled run stopped
-   * while it was running is `partial` with a `RUN_CANCELLED` notice; one it kept from starting is
-   * `failed` with the `RUN_CANCELLED` error code.
+   * source and handoff rows left blank do not change the status. Either way, `partial` means the
+   * locale is incomplete: that includes a locale a cancelled run stopped while it was running, even
+   * before it sent anything, which carries a `RUN_CANCELLED` notice. Such a locale is `failed`
+   * instead when other keys were withheld and none landed. Locales a cancelled run kept from
+   * starting are `failed` with the `RUN_CANCELLED` error code.
    */
   readonly status: "succeeded" | "partial" | "failed";
   /**
@@ -714,10 +717,11 @@ export interface RunSummary {
    */
   readonly estimate?: RunEstimate;
   /**
-   * Present, and true, only when the run's `signal` aborted before the run finished. The locales
-   * it kept from starting are `failed` with the `RUN_CANCELLED` error code, and the locale it
-   * stopped while running is `partial` with a `RUN_CANCELLED` notice. Treat a cancelled run as
-   * incomplete, whatever the other fields say.
+   * Present, and true, only when the run's `signal` aborted and cut something short: a locale
+   * it kept from starting or whose write-lock wait it stopped, which is `failed` with the
+   * `RUN_CANCELLED` error code, or keys it left unsent in locales that were running, which carry
+   * a `RUN_CANCELLED` notice and are `partial` (or `failed` when no key landed and others were
+   * withheld). An abort that arrives after every locale finished leaves it absent.
    */
   readonly cancelled?: true;
 }

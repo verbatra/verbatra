@@ -7,6 +7,7 @@ import { contentHash, type LocaleResource, type TranslationEntry } from "@verbat
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import { fingerprintsFor } from "../cache/fingerprint.js";
 import { feedTranslationMemory } from "../cache/translation-memory.js";
+import { signalField } from "../cancellation.js";
 import { glossaryForLocale } from "../config/glossary.js";
 import { assertMachineTranslationEnabled } from "../config/machine-translation.js";
 import { toMaxLengthMap } from "../config/max-length.js";
@@ -31,7 +32,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { type SensitiveGuard, sensitiveGuardFor } from "../sensitive/guard.js";
 import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
-import { signalField, unlessCancelled } from "./cancellation.js";
+import { throwIfCancelled, unlessCancelled } from "./cancellation.js";
 import { readTarget } from "./diff-locales.js";
 import { withForeignPlaceholderReason } from "./foreign-placeholders.js";
 import { gateCandidateValue, type IntegrityGateReason } from "./integrity-gate.js";
@@ -350,7 +351,8 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * `lockAcquireTimeoutMs` elapsed.
  * @throws {@link SdkError} `RUN_CANCELLED`: `signal` aborted before the provider answered, whether
  * before the write lock was taken, while waiting for it, or during the provider request. Nothing
- * was written.
+ * was written. A failure the provider reported itself is thrown as is, and an abort while a
+ * respelled locale's state is being moved surfaces as `LOCALE_STATE_NOT_CARRIED_OVER`.
  * @throws {@link SdkError} `TARGET_UNWRITABLE`: the target locale file could not be written because
  * of a file-system failure. The message names the target file and the file-system code, never the
  * internal temporary file.
@@ -411,9 +413,8 @@ export async function retranslateEntry(
   });
   assertSendable(sensitive, sourceEntry, locale);
   await assertProvenanceReadable(cwd, fs);
-  await unlessCancelled(input.signal, RETRANSLATION_CANCELLED, () =>
-    carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input)),
-  );
+  throwIfCancelled(input.signal, RETRANSLATION_CANCELLED);
+  await carryOverBeforeWrite(cwd, fs, locale, writeLockOptions(input));
 
   return withLocaleWriteLock(
     cwd,

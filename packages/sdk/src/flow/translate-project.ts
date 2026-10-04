@@ -11,6 +11,7 @@ import {
   writeTranslationMemory,
 } from "../cache/translation-memory.js";
 import type { CacheAddition, TranslationMemory } from "../cache/types.js";
+import { isCancelled, signalField } from "../cancellation.js";
 import { glossaryForLocale } from "../config/glossary.js";
 import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
@@ -64,7 +65,7 @@ import {
 import { createSensitiveGuard } from "../sensitive/guard.js";
 import type { BudgetTracker } from "./budget.js";
 import { createBudgetTracker, resolveRunBudget, toBudgetSummary } from "./budget.js";
-import { isCancelled, signalField, unstartedLocaleError } from "./cancellation.js";
+import { cancelledField, unstartedLocaleError } from "./cancellation.js";
 import { type EstimateForRunInput, estimateForRun } from "./estimate.js";
 import { assertConfiguredLocalesSupported, withCapabilityNotices } from "./locale-capabilities.js";
 import {
@@ -195,13 +196,14 @@ export interface TranslateInput {
   readonly maxTokens?: number;
   /**
    * Cancels the run when aborted. No further locale starts, and a wait for a write lock stops. The
-   * locale running at the time sends no further request, and an in-flight request is abandoned
-   * rather than counted as a provider failure. What already arrived is still written and recorded,
-   * the keys left over get no lock-file entry and stay pending for the next run, the run status is
-   * recorded, and every lock is released. The call then resolves rather than rejects: the result
-   * carries {@link RunSummary.cancelled}, each locale kept from starting is `failed` with the
-   * `RUN_CANCELLED` error code, and a locale stopped while running is `partial` with a
-   * `RUN_CANCELLED` notice. A dry run only stops early. Defaults to none.
+   * locales running at the time send no further request, and an in-flight request is abandoned
+   * rather than counted as a provider failure, unless the provider reported a failure of its own.
+   * What already arrived is still written and recorded, the keys left over get no lock-file entry
+   * and stay pending for the next run, the run status is recorded, and every lock is released.
+   * The call then resolves rather than rejects: the result carries {@link RunSummary.cancelled},
+   * each locale kept from starting is `failed` with the `RUN_CANCELLED` error code, and locales
+   * stopped while running carry a `RUN_CANCELLED` notice and are `partial`, or `failed` when no
+   * key landed and others were withheld. A dry run only stops early. Defaults to none.
    */
   readonly signal?: AbortSignal;
 }
@@ -498,10 +500,6 @@ function withUnstartedCancelled(
   return targetLocales.map(
     (locale) => ran.get(locale) ?? failureSummary(locale, unstartedLocaleError()),
   );
-}
-
-function cancelledField(signal: AbortSignal | undefined): { cancelled?: true } {
-  return isCancelled(signal) ? { cancelled: true } : {};
 }
 
 function unlessWithheld(
@@ -887,7 +885,7 @@ export async function translate(
       config,
       maxBatchSize,
     }),
-    ...cancelledField(input.signal),
+    ...cancelledField(input.signal, locales),
   };
 
   await recordCacheAdditions(cwd, cache, fs);

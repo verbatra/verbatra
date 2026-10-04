@@ -11,11 +11,11 @@ import {
   type TranslationEntry,
 } from "@verbatra/core";
 import type { FormatAdapter } from "@verbatra/format-adapters";
+import { isAbandoned, isCancelled, signalField } from "../cancellation.js";
 import { sensitiveWithheldOf } from "../sensitive/guarded-provider.js";
 import type { SensitiveFindingSource } from "../sensitive/scan-text.js";
 import { chunk, subBatchFailedNotice } from "./batching.js";
 import { type BudgetTracker, checkBudgetTrip, reconcileBudget, reserveBudget } from "./budget.js";
-import { isCancelled, signalField } from "./cancellation.js";
 import { payloadContextOf } from "./estimate.js";
 import { gateCandidateValue, refusalOf } from "./integrity-gate.js";
 import { readNotices } from "./notices.js";
@@ -232,7 +232,7 @@ async function runGenerationSubBatch(
       ...signalField(context.signal),
     });
   } catch (error) {
-    if (isCancelled(context.signal)) {
+    if (isAbandoned(context.signal, error)) {
       buckets.cancelled.push(...batch.map((item) => item.targetKey));
       return { notices: [], usage: undefined };
     }

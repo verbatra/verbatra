@@ -192,7 +192,7 @@ describe("translate: cancelling a running locale", () => {
     expect(pl.translated).toEqual(["item_one", "item_other"]);
     expect(pl.generated).toEqual([]);
     expect(pl.providerFailures).toEqual([]);
-    expect(noticeCodes(pl)).toContain("RUN_CANCELLED");
+    expect(noticeCodes(pl)).toEqual(["RUN_CANCELLED"]);
   });
 
   it("sends no plural generation request once the run is cancelled", async () => {
@@ -216,6 +216,7 @@ describe("translate: cancelling a running locale", () => {
     expect(gated.requests).toHaveLength(1);
     expect(pl.status).toBe("partial");
     expect(pl.generated).toEqual([]);
+    expect(noticeCodes(pl)).toEqual(["RUN_CANCELLED"]);
     expect(await defaultFs.fileExists(join(dir, "locales", "pl.json"))).toBe(false);
   });
 
@@ -252,6 +253,90 @@ describe("translate: cancelling a running locale", () => {
       greeting: "Hallo",
       farewell: "[de] Bye",
     });
+  });
+});
+
+describe("translate: cancelling never hides a real failure", () => {
+  it("keeps a locale failed when its finished batch failed before the cancellation", async () => {
+    const dir = await project();
+    const controller = new AbortController();
+    const requests: TranslateRequest[] = [];
+    const arrived = deferred();
+    const provider: TranslationProvider = {
+      id: "failing",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async (request) => {
+        requests.push(request);
+        if (requests.length === 1) {
+          throw new ProviderError("PROVIDER_UNAVAILABLE", "server error");
+        }
+        arrived.resolve();
+        return abandoned(request.signal);
+      },
+    };
+
+    const running = translate(
+      { config: config(), cwd: dir, signal: controller.signal },
+      { createProvider: () => provider },
+    );
+    await arrived.promise;
+    controller.abort();
+    const summary = await running;
+
+    const de = locale(summary, "de");
+    expect(summary.cancelled).toBe(true);
+    expect(de.status).toBe("failed");
+    expect(de.providerFailures).toEqual(["a"]);
+    expect(noticeCodes(de)).toEqual(["SUB_BATCH_FAILED", "RUN_CANCELLED"]);
+  });
+
+  it("records a provider's own failure that arrives with the abort as a provider failure", async () => {
+    const dir = await project();
+    const controller = new AbortController();
+    const provider: TranslationProvider = {
+      id: "failing",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async () => {
+        controller.abort();
+        throw new ProviderError("PROVIDER_UNAVAILABLE", "server error");
+      },
+    };
+
+    const summary = await translate(
+      { config: config({ maxBatchSize: 10 }), cwd: dir, signal: controller.signal },
+      { createProvider: () => provider },
+    );
+
+    const de = locale(summary, "de");
+    expect(summary.cancelled).toBeUndefined();
+    expect(de.status).toBe("failed");
+    expect(de.providerFailures).toEqual(["a", "b", "c"]);
+    expect(noticeCodes(de)).toEqual(["SUB_BATCH_FAILED"]);
+  });
+
+  it("does not report a run cancelled when the abort arrives after every locale finished", async () => {
+    const dir = await project();
+    const controller = new AbortController();
+
+    const summary = await translate(
+      {
+        config: config({ targetLocales: ["de", "fr"] }),
+        cwd: dir,
+        signal: controller.signal,
+        onProgress: (event) => {
+          if (event.type === "run-finished") {
+            controller.abort();
+          }
+        },
+      },
+      { createProvider: () => makeStubProvider().provider },
+    );
+
+    expect(controller.signal.aborted).toBe(true);
+    expect("cancelled" in summary).toBe(false);
+    expect(summary.succeeded).toEqual(["de", "fr"]);
   });
 });
 
@@ -429,6 +514,27 @@ describe("retranslateEntry: cancelling", () => {
     expect(await defaultFs.fileExists(join(dir, "locales", "de.json"))).toBe(false);
     expect(await defaultFs.fileExists(lockFilePath(dir))).toBe(false);
     expect(await heldLocks(dir)).toEqual([]);
+  });
+
+  it("throws the provider's own failure when it arrives with the abort", async () => {
+    const dir = await project();
+    const controller = new AbortController();
+    const provider: TranslationProvider = {
+      id: "failing",
+      kind: "llm",
+      supportsGlossary: true,
+      translateBatch: async () => {
+        controller.abort();
+        throw new ProviderError("RATE_LIMITED", "slow down");
+      },
+    };
+
+    await expect(
+      retranslateEntry(
+        { config: config(), cwd: dir, locale: "de", key: "a", signal: controller.signal },
+        { createProvider: () => provider },
+      ),
+    ).rejects.toMatchObject({ code: "RATE_LIMITED" });
   });
 
   it("calls no provider when the signal is already aborted", async () => {
