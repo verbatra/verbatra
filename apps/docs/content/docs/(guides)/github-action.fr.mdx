@@ -69,7 +69,7 @@ Ajoute `qa: "true"` à `command: check` pour lancer [`verbatra check --qa`](/doc
 
 - Chaque constat devient une annotation intitulée `verbatra qa: <locale>` : une erreur pour une valeur que le contrôle d'intégrité refuserait, un avertissement pour un motif de relecture.
 - L'étape échoue sur tout constat d'erreur. Ajoute `qa-strict: "true"` pour échouer aussi sur les avertissements et les pluriels incomplets, ou `qa-severity: error` pour ne signaler que les erreurs.
-- Une `version` inférieure à `0.12.0`, ou une préversion telle que `0.12.0-next.0`, fait échouer l'étape avant toute installation. Il en va de même pour `require-reviewed`.
+- Une `version` inférieure à `0.12.0`, ou une préversion telle que `0.12.0-next.0`, fait échouer l'étape avant toute installation.
 
 ## Exiger des traductions relues
 
@@ -87,6 +87,7 @@ Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra che
 
 - Chaque locale avec des clés non approuvées reçoit une annotation d'erreur [`REVIEW_REQUIRED`](/docs/error-codes#review_required) qui les nomme, et le résumé de job ajoute une colonne `unreviewed`.
 - Un `verbatra.provenance.json` corrompu ou écrit par un verbatra plus récent fait échouer le contrôle avec une seule annotation `REVIEW_STATE_UNREADABLE`.
+- Comme `qa`, il demande une `version` `0.12.0` ou plus récente, et une préversion fait échouer l'étape.
 
 ## Mode humain uniquement
 

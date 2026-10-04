@@ -69,7 +69,7 @@ Ergänze `command: check` um `qa: "true"`, um [`verbatra check --qa`](/docs/cli/
 
 - Jeder Befund wird zu einer Annotation mit dem Titel `verbatra qa: <locale>`: ein Fehler für einen Wert, den das Integritäts-Gate ablehnen würde, eine Warnung für einen Review-Grund.
 - Der Schritt schlägt bei jedem Fehler-Befund fehl. Mit `qa-strict: "true"` schlägt er auch bei Warnungen und unvollständigen Pluralen fehl, mit `qa-severity: error` meldet er nur Fehler.
-- Eine `version` unter `0.12.0` oder ein Prerelease wie `0.12.0-next.0` lässt den Schritt fehlschlagen, bevor irgendetwas installiert wird. Dasselbe gilt für `require-reviewed`.
+- Eine `version` unter `0.12.0` oder ein Prerelease wie `0.12.0-next.0` lässt den Schritt fehlschlagen, bevor irgendetwas installiert wird.
 
 ## Freigegebene Übersetzungen verlangen
 
@@ -87,6 +87,7 @@ Ergänze `command: check` um `require-reviewed: "true"`, um [`verbatra check --r
 
 - Jede Locale mit nicht freigegebenen Keys bekommt eine [`REVIEW_REQUIRED`](/docs/error-codes#review_required)-Fehler-Annotation, die sie nennt, und die Job-Zusammenfassung ergänzt eine Spalte `unreviewed`.
 - Ist `verbatra.provenance.json` beschädigt oder stammt sie von einem neueren verbatra, schlägt das Gate mit einer einzigen `REVIEW_STATE_UNREADABLE`-Annotation fehl.
+- Wie `qa` braucht es eine `version` ab `0.12.0`, und ein Prerelease lässt den Schritt fehlschlagen.
 
 ## Rein menschlicher Modus
 

@@ -69,7 +69,7 @@ Add `qa: "true"` to `command: check` to run [`verbatra check --qa`](/docs/cli/ch
 
 - Each finding becomes one annotation titled `verbatra qa: <locale>`: an error for a value the integrity gate would refuse, a warning for a review reason.
 - The step fails on any error finding. Add `qa-strict: "true"` to fail on warnings and incomplete plurals too, or `qa-severity: error` to report errors only.
-- A `version` below `0.12.0`, or a prerelease such as `0.12.0-next.0`, fails the step before anything is installed. The same holds for `require-reviewed`.
+- A `version` below `0.12.0`, or a prerelease such as `0.12.0-next.0`, fails the step before anything is installed.
 
 ## Require reviewed translations
 
@@ -87,6 +87,7 @@ Add `require-reviewed: "true"` to `command: check` to run [`verbatra check --req
 
 - Each locale with unapproved keys gets one [`REVIEW_REQUIRED`](/docs/error-codes#review_required) error annotation naming them, and the job summary adds an `unreviewed` column.
 - A `verbatra.provenance.json` that is corrupt or from a newer verbatra fails the gate with one `REVIEW_STATE_UNREADABLE` annotation.
+- Like `qa`, it needs a `version` of `0.12.0` or newer, and a prerelease fails the step.
 
 ## Human-only mode
 

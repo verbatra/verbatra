@@ -69,7 +69,7 @@ Añade `qa: "true"` a `command: check` para ejecutar [`verbatra check --qa`](/do
 
 - Cada hallazgo se convierte en una anotación titulada `verbatra qa: <locale>`: un error para un valor que la puerta de integridad rechazaría, un aviso para un motivo de revisión.
 - El paso falla con cualquier hallazgo de error. Añade `qa-strict: "true"` para fallar también con avisos y plurales incompletos, o `qa-severity: error` para informar solo de errores.
-- Una `version` menor que `0.12.0`, o una prerelease como `0.12.0-next.0`, hace fallar el paso antes de instalar nada. Lo mismo vale para `require-reviewed`.
+- Una `version` menor que `0.12.0`, o una prerelease como `0.12.0-next.0`, hace fallar el paso antes de instalar nada.
 
 ## Exigir traducciones revisadas
 
@@ -87,6 +87,7 @@ Añade `require-reviewed: "true"` a `command: check` para ejecutar [`verbatra ch
 
 - Cada locale con claves sin aprobar recibe una anotación de error [`REVIEW_REQUIRED`](/docs/error-codes#review_required) que las nombra, y el resumen del job añade una columna `unreviewed`.
 - Un `verbatra.provenance.json` dañado o escrito por un verbatra más reciente hace fallar la puerta con una sola anotación `REVIEW_STATE_UNREADABLE`.
+- Como `qa`, necesita una `version` `0.12.0` o posterior, y una prerelease hace fallar el paso.
 
 ## Modo solo humano
 
