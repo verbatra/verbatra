@@ -17,6 +17,7 @@ interface RunSummary {
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
   estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
 }
 
 interface LocaleSummary {
@@ -65,9 +66,7 @@ The parts worth knowing:
 - **budget** appears only when `maxTokens` is configured: `{ maxTokens, behavior, supported,
   tokensUsed, exceeded }`. `supported` says whether `tokensUsed` is entirely the provider's own
   reported usage; it is `false` as soon as one request came back without a usable figure, and the
-  total is then partly verbatra's projection, which is counted and enforced just the same. A dry run,
-  or any run that sent no request, reports `supported: true` with `tokensUsed: 0`: nothing was sent,
-  so nothing was projected. Under `behavior: "stop"` the ceiling is
+  total is then partly verbatra's projection, which is counted and enforced just the same. A run that sent no request, a dry run included, reports `supported: true` with `tokensUsed: 0`. Under `behavior: "stop"` the ceiling is
   checked before every request the run sends, each half of a re-split request included, so
   `tokensUsed` lands at or below `maxTokens` apart from one residual: the last request admitted is
   reconciled to what the provider reported, which can push the total past the ceiling after the
@@ -84,6 +83,7 @@ The parts worth knowing:
   reason is in those lists and in its `notices`, such as `SUB_BATCH_FAILED` for a failed provider
   batch or `BUDGET_TOKENS_EXCEEDED` for the token budget. Test `status`, never the presence of
   `error`.
+- **cancelled** appears only when the run's `signal` aborted it. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) says what that leaves behind.
 - **estimate** appears only when the run was asked for a pre-run estimate. Its `caveats` list is
   never empty and names what the figure leaves out, as `EstimateCaveatCode` members:
   - `CACHE_NOT_CONSULTED`: the translation memory is not read, so keys a live run would serve from
@@ -109,7 +109,7 @@ The parts worth knowing:
   reader could not parse, and a duplicated key whose first occurrence won. The optional `line` on
   the last two is the file line the record starts on, present only for a delimited (`csv` or `tsv`)
   import. The one exception is a [human-only](/docs/human-only-workflow) project: there `translate` and `watch` list in **unfilled** every key the translation memory had no exact entry for, and **fuzzyHits** stays empty because fuzzy reuse is never applied there.
-- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, a `suggestion` (the provider's answer or an exact translation-memory entry, never a fuzzy match), which was not written, and a `suggestionStatus`: `planned` on a dry run, `suggested`, or why not (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). A failed suggestion never changes the locale's status. They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
+- **protected** lists the keys a `translate` run left alone, each with its `reason` (`human`, `import`, `external`, or `pinned`) and, under `humanEdits: "suggest"`, a `suggestion` (the provider's answer or an exact translation-memory entry, never a fuzzy match), which was not written, and a `suggestionStatus`: `planned` on a dry run, `suggested`, or why not (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). They are not in **translated**, never change a locale's status, and stay stale for `check`. `importWorkbook` leaves it empty. See [Protecting human translations](/docs/protecting-human-translations).
 
 ### budgetStanding
 

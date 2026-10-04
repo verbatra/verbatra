@@ -566,6 +566,14 @@ Der konfigurierte Provider DeepL oder Google Cloud Translation führt die Quell-
 - **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
 - **Nächster Schritt**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
+### RUN_CANCELLED
+
+Das an `translate` oder `retranslateEntry` übergebene `signal` wurde abgebrochen. `retranslateEntry` wirft ihn, wenn der Abbruch kommt, bevor der Provider antwortet, und hat dann nichts geschrieben. `translate` vermerkt ihn auf jeder Locale, die durch den Abbruch nicht mehr startete, und markiert die Zusammenfassung als [`cancelled`](/docs/sdk/run-summary).
+
+- **Ausgelöst von**: nur das SDK
+- **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
+- **Nächster Schritt**: Run the operation again to finish the work the cancellation left pending.
+
 ### LOCALE_FAILED
 
 Wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen Locale.
@@ -1229,6 +1237,14 @@ Unter `"block"` oder `"redact"` wurden Keys wegen eines Treffers nicht gesendet 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: `1`, da ein zurückgehaltener Key die Locale `partial` oder `failed` lässt
 - **Nächster Schritt**: Entferne den Inhalt oder erlaube ihn in `sensitiveData.allow`; die Keys werden beim nächsten Lauf erneut versucht.
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+Das `signal` des Laufs wurde abgebrochen, während diese Locale lief. Noch nicht übersetzte Keys wurden nicht gesendet oder ihr Request wurde aufgegeben: Sie bleiben für den nächsten Lauf ausstehend, und die Locale ist `partial`. Übersetzungen, die vor dem Abbruch ankamen, wurden geschrieben und erfasst. Die Meldung nennt die Zahl der ausstehenden Keys.
+
+- **Ausgelöst von**: nur das SDK
+- **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus
+- **Nächster Schritt**: Führe `translate` erneut aus, um die ausstehenden Keys zu senden.
 
 ## Provider-Hinweise [#provider-notice-codes]
 

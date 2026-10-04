@@ -17,6 +17,7 @@ interface RunSummary {
   usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
   budget?: RunBudget;       // present only when maxTokens is configured
   estimate?: RunEstimate;   // present only when the run was asked for a pre-run estimate
+  cancelled?: true;         // present only when the run's signal aborted it
 }
 
 interface LocaleSummary {
@@ -67,9 +68,7 @@ Die Teile, die du kennen solltest:
 - **budget** erscheint nur, wenn `maxTokens` konfiguriert ist: `{ maxTokens, behavior, supported,
   tokensUsed, exceeded }`. `supported` sagt, ob `tokensUsed` vollständig der vom Provider selbst
   gemeldete Verbrauch ist; es ist `false`, sobald eine Anfrage ohne brauchbare Zahl zurückkam, und
-  die Summe ist dann teils verbatras Projektion, die genauso gezählt und durchgesetzt wird. Ein
-  Dry-Run, oder jeder Lauf ohne Anfrage, meldet `supported: true` mit `tokensUsed: 0`: Es wurde
-  nichts gesendet, also nichts projiziert. Unter `behavior: "stop"` wird
+  die Summe ist dann teils verbatras Projektion, die genauso gezählt und durchgesetzt wird. Ein Lauf ohne Anfrage, auch ein Dry-Run, meldet `supported: true` mit `tokensUsed: 0`. Unter `behavior: "stop"` wird
   die Obergrenze vor jeder Anfrage geprüft, die der Lauf sendet, auch vor jeder Hälfte einer neu
   aufgeteilten Anfrage. `tokensUsed` landet also auf oder unter `maxTokens`, bis auf einen Rest: Die
   zuletzt zugelassene Anfrage wird auf das abgeglichen, was der Provider gemeldet hat, was die Summe
@@ -87,6 +86,7 @@ Die Teile, die du kennen solltest:
   `budgetWithheld` stehen, scheitert, ohne dass etwas geworfen wurde. Der Grund steht in diesen
   Listen und in ihren `notices`, etwa `SUB_BATCH_FAILED` für einen gescheiterten Provider-Batch oder
   `BUDGET_TOKENS_EXCEEDED` für das Token-Budget. Prüf `status`, nie, ob `error` vorhanden ist.
+- **cancelled** erscheint nur, wenn das `signal` des Laufs ihn abgebrochen hat. [`RUN_CANCELLED`](/docs/error-codes#run_cancelled) sagt, was das hinterlässt.
 - **estimate** erscheint nur, wenn der Lauf eine Schätzung vor dem Lauf angefordert hat. Seine
   Liste `caveats` ist nie leer und nennt, was die Zahl auslässt, als Member von `EstimateCaveatCode`:
   - `CACHE_NOT_CONSULTED`: Der Übersetzungsspeicher wird nicht gelesen, Keys, die ein echter Lauf
@@ -115,7 +115,7 @@ Die Teile, die du kennen solltest:
   doppelter Key, dessen erstes Vorkommen gewonnen hat. Das optionale `line` bei den letzten beiden
   ist die Dateizeile, in der der Datensatz beginnt; es ist nur bei einem Import mit Trennzeichen
   (`csv` oder `tsv`) vorhanden. Die einzige Ausnahme ist ein [rein menschliches](/docs/human-only-workflow) Projekt: Dort listen `translate` und `watch` in **unfilled** jeden Key, für den das Translation Memory keinen exakten Eintrag hatte, und **fuzzyHits** bleibt leer, weil dort nie unscharf wiederverwendet wird.
-- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Ein fehlgeschlagener Vorschlag ändert nie den Status einer Locale. Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
+- **protected** listet die Keys, die ein `translate`-Lauf in Ruhe gelassen hat, jeweils mit ihrem `reason` (`human`, `import`, `external` oder `pinned`) und, unter `humanEdits: "suggest"`, einer `suggestion` (die Antwort des Providers oder ein exakter Translation-Memory-Eintrag, nie ein Fuzzy-Treffer), die nicht geschrieben wurde, sowie einem `suggestionStatus`: `planned` bei einem Dry Run, `suggested` oder warum nicht (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Sie stehen nicht in **translated**, ändern nie den Status einer Locale und bleiben für `check` veraltet. `importWorkbook` lässt das Feld leer. Siehe [Menschliche Übersetzungen schützen](/docs/protecting-human-translations).
 
 ### budgetStanding
 

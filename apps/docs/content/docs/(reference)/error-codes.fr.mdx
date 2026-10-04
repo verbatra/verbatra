@@ -566,6 +566,14 @@ Le fournisseur DeepL ou Google Cloud Translation configuré ne liste pas la loca
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
+### RUN_CANCELLED
+
+Le `signal` passé à `translate` ou `retranslateEntry` a été interrompu. `retranslateEntry` la lève quand l'interruption arrive avant la réponse du fournisseur, sans avoir rien écrit. `translate` l'enregistre sur chaque locale que l'annulation a empêchée de démarrer et marque le résumé comme [`cancelled`](/docs/sdk/run-summary).
+
+- **Levé par** : le SDK uniquement
+- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
+- **Étape suivante** : Run the operation again to finish the work the cancellation left pending.
+
 ### LOCALE_FAILED
 
 Jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échouée.
@@ -1230,6 +1238,14 @@ Avec `"block"` ou `"redact"`, des clés n'ont pas été envoyées à cause d'une
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : `1`, puisqu'une clé retenue laisse la locale `partial` ou `failed`
 - **Étape suivante** : Retire le contenu ou autorise-le dans `sensitiveData.allow` ; les clés sont retentées à la prochaine exécution.
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+Le `signal` de l'exécution a été interrompu pendant que cette locale tournait. Les clés pas encore traduites n'ont pas été envoyées, ou leur requête a été abandonnée : elles restent en attente pour la prochaine exécution, et la locale est `partial`. Les traductions arrivées avant l'interruption ont été écrites et enregistrées. Le message donne le nombre de clés en attente.
+
+- **Levé par** : le SDK uniquement
+- **Code de sortie** : aucun : aucune commande de la CLI ne le lève
+- **Étape suivante** : Relance `translate` pour envoyer les clés en attente.
 
 ## Avis des fournisseurs [#provider-notice-codes]
 

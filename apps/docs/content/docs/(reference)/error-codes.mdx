@@ -566,6 +566,14 @@ The configured DeepL or Google Cloud Translation provider does not list the sour
 - **Exit code**: none: no CLI command raises it
 - **Next step**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
+### RUN_CANCELLED
+
+The `signal` passed to `translate` or `retranslateEntry` aborted. `retranslateEntry` throws it when the abort comes before the provider answers, having written nothing. `translate` records it on each locale the cancellation kept from starting and marks the summary [`cancelled`](/docs/sdk/run-summary).
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Run the operation again to finish the work the cancellation left pending.
+
 ### LOCALE_FAILED
 
 Never thrown: the fallback `code` recorded on a failed locale's `error`.
@@ -1214,6 +1222,14 @@ Under `"block"` or `"redact"`, keys were not sent because of a match and are lis
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: `1`, since a withheld key leaves the locale `partial` or `failed`
 - **Next step**: Remove the content, or allow it in `sensitiveData.allow`; the keys are retried on the next run.
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+The run's `signal` aborted while this locale was running. Keys not yet translated were not sent, or their request was abandoned: they stay pending for the next run, and the locale is `partial`. Translations that arrived before the abort were written and recorded. The message gives the number of pending keys.
+
+- **Raised by**: the SDK only
+- **Exit code**: none: no CLI command raises it
+- **Next step**: Run `translate` again to send the pending keys.
 
 ## Provider notices [#provider-notice-codes]
 

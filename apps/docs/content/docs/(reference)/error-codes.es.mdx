@@ -566,6 +566,14 @@ El proveedor DeepL o Google Cloud Translation configurado no incluye el locale d
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza
 - **Siguiente paso**: Remove the content from the key, list it in `sensitiveData.allow`, or turn the detector off in `sensitiveData.detectors`.
 
+### RUN_CANCELLED
+
+Se abortó el `signal` pasado a `translate` o `retranslateEntry`. `retranslateEntry` lo lanza cuando el aborto llega antes de que el proveedor responda, sin haber escrito nada. `translate` lo registra en cada locale que la cancelación dejó sin empezar y marca el resumen como [`cancelled`](/docs/sdk/run-summary).
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Run the operation again to finish the work the cancellation left pending.
+
 ### LOCALE_FAILED
 
 Nunca se lanza: el `code` de reserva registrado en el `error` de un locale fallido.
@@ -1229,6 +1237,14 @@ Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y ap
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: `1`, ya que una clave retenida deja el locale `partial` o `failed`
 - **Siguiente paso**: Quita el contenido o permítelo en `sensitiveData.allow`; las claves se reintentan en la siguiente ejecución.
+
+### RUN_CANCELLED [#notice-run_cancelled]
+
+Se abortó el `signal` de la ejecución mientras este locale estaba en curso. Las claves aún sin traducir no se enviaron, o se abandonó su petición: quedan pendientes para la siguiente ejecución, y el locale queda `partial`. Las traducciones que llegaron antes del aborto se escribieron y se registraron. El mensaje indica el número de claves pendientes.
+
+- **Lo lanza**: solo el SDK
+- **Código de salida**: ninguno: ningún comando de la CLI lo lanza
+- **Siguiente paso**: Vuelve a ejecutar `translate` para enviar las claves pendientes.
 
 ## Avisos del proveedor [#provider-notice-codes]
 
