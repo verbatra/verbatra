@@ -201,19 +201,19 @@ En `i18next-json`, `vue-i18n-json` y `next-intl-json`, una hoja literal con punt
 - **Escrituras atómicas.** Un archivo temporal se renombra a su sitio, así que una interrupción nunca deja medio archivo.
 - **Formato.** Los formatos XML conservan el fin de línea y el salto de línea final y sangran los elementos nuevos como sus vecinos. Una entrada nueva de gettext va tras una línea en blanco, y un `.po` creado nombra su locale en `Language` (`pt_BR`).
 - **Hojas que no son cadenas.** En los formatos JSON, YAML y ARB, una hoja numérica, booleana o null se acepta pero nunca se traduce, y una reescritura de ese archivo no la conserva; un array falla con `INVALID_STRUCTURE`.
-- **Los errores** son estructurados y sin secretos: `INVALID_JSON`, `INVALID_YAML`, `INVALID_XML`, `INVALID_STRUCTURE`, `MIXED_STRUCTURE` y, para adaptadores, `ADAPTER_FAILED` y `DUPLICATE_FORMAT`. Consulta los [códigos de error de adaptador](/docs/error-codes#adapter-error-codes).
+- **Los errores** son estructurados y sin secretos; consulta los [códigos de error de adaptador](/docs/error-codes#adapter-error-codes).
 
 ## Formatos externos a verbatra
 
 <AvailableFrom version="0.11.0" />
 
-Un formato que verbatra no trae puede venir de un adaptador en tu propio paquete, nombrado con un id `custom:` como `custom:toml`. Ningún id integrado contiene dos puntos, así que nunca puede ocultar uno. Es solo una vía del SDK, ya que el binario `verbatra` no carga plugins, y el adaptador se ejecuta como código de confianza. Consulta [Escribe un adaptador de formato propio](/docs/custom-format-adapters).
+Un formato que verbatra no trae puede venir de un adaptador en tu propio paquete, nombrado con un id `custom:` como `custom:toml`. Se ejecuta solo a través del SDK, como código de confianza: consulta [Escribe un adaptador de formato propio](/docs/custom-format-adapters).
 
 ## Marcado en línea en los valores
 
 <AvailableFrom version="0.11.0" />
 
-Un valor puede llevar su propio HTML o XML, como `<b>` en un bloque `Trans` de i18next o un `&lt;b&gt;` escapado en un `<string>` de Android. La [comprobación de paridad del marcado](/docs/translation-safety#paridad-del-marcado-en-línea) rechaza una traducción que pierda, invente, renombre o desequilibre una etiqueta, en todos los formatos, etiqueta por etiqueta:
+La [comprobación de paridad del marcado](/docs/translation-safety#paridad-del-marcado-en-línea) se aplica en todos los formatos, etiqueta por etiqueta:
 
 - `xliff` protege sus propios elementos en línea como placeholders; el resto del HTML, como `<b>`, se compara como marcado.
 - `next-intl-json` y `arb` tratan un `<b>...</b>` emparejado como placeholder, mientras que un `<br/>` autocerrado se compara como marcado. Una etiqueta con atributos es ICU no válido y se rechaza.

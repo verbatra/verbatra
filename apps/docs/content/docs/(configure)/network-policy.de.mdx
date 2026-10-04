@@ -23,7 +23,7 @@ network: {
 | `local-only` | Loopback (`127.0.0.0/8`, `::1` sowie `localhost` oder `*.localhost`, wenn sie nur auf Loopback auflösen), private IPv4 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), Unique-Local-IPv6 (`fc00::/7`) und `allowedHosts` |
 | `allowlist` | nur, was `allowedHosts` auflistet, mit mindestens einem Eintrag |
 
-Jeder Eintrag in `allowedHosts` ist ein Hostname (`llm.internal`, ohne Rücksicht auf Groß- und Kleinschreibung), ein Platzhalter (`*.corp.example`, nur Subdomains, mindestens zwei Labels nach `*.`), eine IP-Adresse oder ein CIDR-Bereich wie `100.64.0.0/10`. Schreib kein Schema, keinen Port und keinen Pfad.
+Jeder Eintrag in `allowedHosts` ist ein Hostname (`llm.internal`, ohne Rücksicht auf Groß- und Kleinschreibung), ein Platzhalter (`*.corp.example`, nur Subdomains, mindestens zwei Labels nach `*.`), eine IP-Adresse oder ein CIDR-Bereich wie `100.64.0.0/10`. Schreib kein Schema, keinen Port und keinen Pfad. Ein Oktett über 255, ein Präfix länger als die Adresse (über `/32` oder `/128`) oder eine fehlerhafte IPv6-Adresse wird schon beim Laden der Konfiguration oder der Umgebung abgelehnt.
 
 `local-only` lässt Link-Local-Adressen aus (`169.254.0.0/16`, das die Cloud-Metadaten-Adresse enthält, und `fe80::/10`), den Carrier-Grade-NAT-Bereich `100.64.0.0/10` sowie `0.0.0.0` und `::`. Lauscht dein Server auf `0.0.0.0`, richte `baseUrl` auf `127.0.0.1`; nutzt du einen VPN-Bereich, trag ihn in `allowedHosts` ein.
 

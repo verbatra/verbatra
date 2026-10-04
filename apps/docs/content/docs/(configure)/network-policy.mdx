@@ -23,7 +23,7 @@ network: {
 | `local-only` | loopback (`127.0.0.0/8`, `::1`, and `localhost` or `*.localhost` when they resolve only to loopback), private IPv4 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), unique-local IPv6 (`fc00::/7`), and `allowedHosts` |
 | `allowlist` | only what `allowedHosts` lists, with at least one entry |
 
-Each `allowedHosts` entry is a host name (`llm.internal`, any case), a wildcard (`*.corp.example`, subdomains only, at least two labels after `*.`), an IP address, or a CIDR range such as `100.64.0.0/10`. Write no scheme, port or path.
+Each `allowedHosts` entry is a host name (`llm.internal`, any case), a wildcard (`*.corp.example`, subdomains only, at least two labels after `*.`), an IP address, or a CIDR range such as `100.64.0.0/10`. Write no scheme, port or path. An octet above 255, a prefix longer than the address (over `/32` or `/128`) or a malformed IPv6 address is rejected when the config or environment is loaded.
 
 `local-only` leaves out link-local addresses (`169.254.0.0/16`, which holds the cloud metadata address, and `fe80::/10`), the carrier-grade NAT range `100.64.0.0/10`, and `0.0.0.0` and `::`. If your server listens on `0.0.0.0`, point `baseUrl` at `127.0.0.1`; if you use a VPN range, list it in `allowedHosts`.
 

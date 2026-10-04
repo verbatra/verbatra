@@ -23,7 +23,7 @@ network: {
 | `local-only` | le loopback (`127.0.0.0/8`, `::1`, et `localhost` ou `*.localhost` s'ils ne résolvent que vers du loopback), les IPv4 privées (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), les IPv6 unique-local (`fc00::/7`) et `allowedHosts` |
 | `allowlist` | seulement ce que liste `allowedHosts`, avec au moins une entrée |
 
-Chaque entrée de `allowedHosts` est un nom d'hôte (`llm.internal`, sans tenir compte de la casse), un joker (`*.corp.example`, sous-domaines seulement, au moins deux labels après `*.`), une adresse IP ou une plage CIDR comme `100.64.0.0/10`. N'écris ni schéma, ni port, ni chemin.
+Chaque entrée de `allowedHosts` est un nom d'hôte (`llm.internal`, sans tenir compte de la casse), un joker (`*.corp.example`, sous-domaines seulement, au moins deux labels après `*.`), une adresse IP ou une plage CIDR comme `100.64.0.0/10`. N'écris ni schéma, ni port, ni chemin. Un octet supérieur à 255, un préfixe plus long que l'adresse (au-delà de `/32` ou `/128`) ou une adresse IPv6 malformée est rejeté dès le chargement de la configuration ou de l'environnement.
 
 `local-only` exclut les adresses link-local (`169.254.0.0/16`, qui contient l'adresse de métadonnées du cloud, et `fe80::/10`), la plage NAT d'opérateur `100.64.0.0/10`, ainsi que `0.0.0.0` et `::`. Si ton serveur écoute sur `0.0.0.0`, pointe `baseUrl` vers `127.0.0.1` ; si tu utilises une plage VPN, ajoute-la à `allowedHosts`.
 

@@ -13,7 +13,7 @@ Deux codes appartiennent à deux familles : `CONFIG_INVALID` (le SDK, et `init` 
 
 ## Codes d'erreur de la CLI [#cli-error-codes]
 
-La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_ERROR_CODES` (avec le type `CliErrorCode`) depuis `@verbatra/cli`, donc un script peut vérifier un code avec elle au lieu de recopier cette page. Tous sortent avec `2`.
+La CLI lève ces codes elle-même. La même liste est publiée sous le nom `CLI_ERROR_CODES` (avec le type `CliErrorCode`) depuis `@verbatra/cli`. Tous sortent avec `2`.
 
 ### AGENT_FILE_INVALID
 
@@ -520,7 +520,7 @@ Le fichier de déclarations que produit `generateTypes` n'a pas pu être écrit 
 
 ### TMX_OUTPUT_CONFLICT
 
-`exportTmx` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier (ou se termine par un séparateur de chemin) ou qui tombe hors de `cwd` ou sur `cwd` lui-même, et un chemin nommant un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire de la configuration, y compris une fois les liens symboliques résolus ; refusé avant toute lecture de la mémoire.
+`exportTmx` a refusé son chemin de sortie : un chemin qui ne nomme aucun fichier (ou se termine par un séparateur de chemin) ou qui tombe hors de `cwd` ou sur `cwd` lui-même, et un chemin nommant un fichier que verbatra gère, tels que les liste [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), y compris une fois les liens symboliques résolus ; refusé avant toute lecture de la mémoire.
 
 - **Levé par** : `tmx export`
 - **Code de sortie** : `2`
@@ -536,7 +536,7 @@ Le fichier TMX que produit `exportTmx` n'a pas pu être écrit (son répertoire 
 
 ### EXPORT_OUTPUT_CONFLICT
 
-`exportWorkbook` a refusé son chemin de sortie : un chemin qui tombe hors de `cwd`, et un chemin qui, lui-même ou par un fichier que l'export écrirait dedans, nomme un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier de configuration chargé par l'exécution, ou le fichier de glossaire de la configuration, y compris une fois les liens symboliques résolus ; un chemin `xlsx` qui ne nomme aucun fichier ou nomme `cwd` lui-même est aussi refusé ; refusé avant toute lecture.
+`exportWorkbook` a refusé son chemin de sortie : un chemin qui tombe hors de `cwd`, et un chemin qui, lui-même ou par un fichier que l'export écrirait dedans, nomme un fichier que verbatra gère, tels que les liste [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), y compris une fois les liens symboliques résolus ; un chemin `xlsx` qui ne nomme aucun fichier ou nomme `cwd` lui-même est aussi refusé ; refusé avant toute lecture.
 
 - **Levé par** : `export`
 - **Code de sortie** : `2`
@@ -600,7 +600,7 @@ Jamais levé : le `code` de repli enregistré sur l'`error` d'une locale échou�
 
 ## Codes d'erreur des fournisseurs [#provider-error-codes]
 
-Un échec de fournisseur n'apparaît jamais comme une erreur brute du SDK ou HTTP : verbatra lève une `ProviderError` avec l'un de ces codes et un message fixe, sans secret. Dans `translate` et `watch`, un échec ne touche que sa propre requête : ses clés sont retenues, la locale reçoit un avis `SUB_BATCH_FAILED` qui nomme le code, et les clés sont reprises à la prochaine exécution. Une retraduction d'une seule clé depuis Studio ou le serveur MCP relève la `ProviderError`. La façon dont chaque fournisseur classe ses échecs est décrite dans [Fournisseurs](/docs/providers#erreurs-structurées).
+Un échec de fournisseur lève une `ProviderError` avec l'un de ces codes ([Erreurs structurées](/docs/providers#erreurs-structurées)). Dans `translate` et `watch`, seule sa propre requête échoue : ses clés sont retenues, la locale reçoit un avis `SUB_BATCH_FAILED` qui nomme le code, et les clés sont reprises à la prochaine exécution. Une retraduction d'une seule clé depuis Studio ou le serveur MCP relève la `ProviderError`.
 
 ### MISSING_API_KEY
 
@@ -612,7 +612,7 @@ La variable d'environnement requise est absente ou vide. Le message nomme la var
 
 ### INVALID_REQUEST
 
-La requête a échoué à la validation avant tout appel réseau : un champ malformé, un code que DeepL n'accepte pas (une entrée de `localeMap` donnant un code source régional, ou une cible qui aboutit à un `en` ou `pt` nu), ou un code qui n'est pas du BCP-47 bien formé pour Google Cloud Translation. Pour LibreTranslate, cela couvre aussi une langue pour laquelle ton serveur n'a pas de modèle et une requête qui dépasse son `--char-limit` ou son `--batch-limit`. Corrige la configuration ou la requête ; réessayer n'aidera pas.
+La requête a échoué à la validation avant tout appel réseau : un champ malformé, un code que DeepL n'accepte pas (une entrée de `localeMap` donnant un code source régional, ou une cible qui aboutit à un `en` ou `pt` nu), ou un code qui n'est pas du BCP-47 bien formé pour Google Cloud Translation. Pour LibreTranslate, cela couvre aussi une langue pour laquelle ton serveur n'a pas de modèle et une requête qui dépasse son `--char-limit` ou son `--batch-limit`. Réessayer n'aidera pas.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -652,7 +652,7 @@ La requête ou la réponse a été bloquée ou filtrée pour raison de sécurit�
 
 ### RATE_LIMITED
 
-HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute), car l'API de Google réutilise le 403 à la fois pour les échecs de quota et d'identifiants. Attends et réessaie plus tard, ou augmente le quota Cloud Translation de ton projet.
+HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation, cela couvre aussi un HTTP 403 dont le corps nomme un motif de quota (une limite quotidienne ou par minute). Google réutilise le 403 à la fois pour les échecs de quota et d'identifiants, donc augmente le quota Cloud Translation de ton projet.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -660,7 +660,7 @@ HTTP 429 ou une erreur de limite de débit du SDK. Pour Google Cloud Translation
 
 ### TIMEOUT
 
-Un délai réseau ou de requête dépassé ; aucune réponse n'est arrivée à temps. Réessayer peut aider, et [`requestTimeoutMs`](/docs/providers#délai-de-requête) relève la borne.
+Un délai réseau ou de requête dépassé ; [`requestTimeoutMs`](/docs/providers#délai-de-requête) relève la borne.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -676,7 +676,7 @@ HTTP 401 ou 403 : la clé est invalide, révoquée ou sans permission. Pour Goog
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx : le fournisseur a échoué de son côté, et la requête elle-même n'a jamais été en cause. Les couches de [nouvelles tentatives](/docs/providers#nouvelles-tentatives) absorbent déjà un 5xx transitoire, donc un 5xx qui atteint ce code est une panne durable. Attends et réessaie plus tard.
+HTTP 5xx : le fournisseur a échoué de son côté, et la requête elle-même n'a jamais été en cause. Les couches de [nouvelles tentatives](/docs/providers#nouvelles-tentatives) absorbent déjà un 5xx transitoire, donc un 5xx qui atteint ce code est une panne durable.
 
 - **Levé par** : `translate`, `watch` ; Studio et le serveur MCP quand ils retraduisent
 - **Code de sortie** : `1` : les clés de la requête échouée sont retenues, et la locale se termine en `partial` ou `failed`
@@ -784,11 +784,11 @@ Un adaptateur a été enregistré sous un identifiant `custom:` mal formé.
 
 ## Codes de la barrière de révision [#check-result-codes]
 
-`check --require-reviewed` fait échouer le job tant qu'une traduction écrite par la machine n'est pas approuvée. Il indique pourquoi dans `result.review.code`, stable d'une version à l'autre, pour qu'un script de CI puisse se brancher dessus. Voir [`verbatra check`](/docs/cli/check).
+`check --require-reviewed` indique pourquoi il échoue dans `result.review.code` ([`verbatra check`](/docs/cli/check)).
 
 ### REVIEW_REQUIRED
 
-Au moins une traduction écrite par la machine (origine `machine`, `memory`, `fuzzy` ou `agent`) n'est pas approuvée dans le `verbatra.provenance.json` commité. Il figure dans `result.review.code` ; l'enveloppe reste `ok: true`, et `result.locales[].review.unreviewed` nomme les clés.
+Au moins une traduction écrite par la machine (origine `machine`, `memory`, `fuzzy` ou `agent`) n'est pas approuvée dans le `verbatra.provenance.json` commité. L'enveloppe reste `ok: true`, et `result.locales[].review.unreviewed` nomme les clés.
 
 - **Levé par** : `check --require-reviewed`
 - **Code de sortie** : `1`
@@ -804,7 +804,7 @@ Au moins une traduction écrite par la machine (origine `machine`, `memory`, `fu
 
 ## Motifs de refus d'intégrité [#integrity-refusal-reasons]
 
-La [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) refuse une valeur candidate avec exactement un de ces motifs, le premier qui s'applique dans l'ordre `empty`, `icu` (ne s'analyse pas), `placeholder`, `markup`, `icu` (branches plurielles), `degenerate`. Une valeur refusée n'est jamais écrite : la clé garde sa référence et est retentée à l'exécution suivante. Le motif apparaît dans les `integrityRefusals` d'une locale après `translate`, `watch` et `import` (`integrity-withheld` dans la sortie lisible), dans le résultat de `editEntry` et comme erreur de `check --qa`, souvent avec des `details` qui nomment ce qui diffère. L'ensemble est publié sous la forme du tuple `INTEGRITY_GATE_REASONS`.
+La [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité) refuse une valeur candidate avec exactement un de ces motifs, le premier qui s'applique dans l'ordre donné sur cette page. Le motif apparaît dans les `integrityRefusals` d'une locale après `translate`, `watch` et `import` (`integrity-withheld` dans la sortie lisible), dans le résultat de `editEntry` et comme erreur de `check --qa`, souvent avec des `details` qui nomment ce qui diffère. L'ensemble est publié sous la forme du tuple `INTEGRITY_GATE_REASONS`.
 
 ### placeholder
 
@@ -824,27 +824,22 @@ Le balisage HTML ou XML en ligne de la candidate diffère de celui de sa source,
 
 #### Comment le balisage est comparé
 
-Les balises sont comparées comme un multiensemble de noms de balise plus noms d'attribut, et c'est
-ce qui décide si quelque chose est un constat :
+Les balises sont comparées comme un multiensemble de noms de balise plus noms d'attribut :
 
 - Refusé : une balise perdue, une balise inventée, une balise renommée, un ensemble de noms
-  d'attribut différent, un balisage qui revient déséquilibré ou mal imbriqué, comme
+  d'attribut différent (y compris l'ajout d'un attribut `dir` pour une cible écrite de droite à
+  gauche), un balisage qui revient déséquilibré ou mal imbriqué, comme
   `<b>a<i>b</b></i>`, et une balise qui revient imbriquée dans une autre du même nom alors que la
   source les avait côte à côte, ce qui transforme silencieusement deux liens en un seul.
-- Accepté : les mêmes balises dans un autre ordre, parce que traduire une phrase déplace son
-  balisage, une valeur d'attribut différente, parce qu'un `title` traduit ou un `href` localisé est
-  une traduction correcte et non une traduction cassée (dans les limites décrites plus bas pour les
+- Accepté : les mêmes balises dans un autre ordre, une valeur d'attribut différente, comme un
+  `title` traduit ou un `href` localisé (dans les limites décrites plus bas pour les
   valeurs d'attribut), et l'une ou l'autre graphie d'un élément vide, `<br>` et `<br/>` étant la
   même balise.
 - Comptées, pas seulement remarquées : la fusion de deux paires adjacentes en une seule
-  (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusée, parce que la comparaison ne peut pas
-  distinguer une fusion cosmétique de deux liens qui n'en font plus qu'un.
+  (`<b>a</b> <b>b</b>` devenant `<b>a b</b>`) est refusée.
 - Comparées exactement : un changement de casse est un constat. Les éléments vides HTML (`<br>`,
   `<img>`, `<hr>` et les autres) n'ont besoin d'aucune balise fermante, quelle que soit leur casse,
   donc `<BR>` est reconnu comme élément vide au même titre que `<br>`.
-- Refusées quand un nom d'attribut est ajouté ou retiré, ce qui inclut l'ajout d'un attribut `dir`
-  pour une cible écrite de droite à gauche. Les valeurs d'attribut sont libres, hormis ces limites ;
-  l'ensemble des noms ne l'est pas.
 
 Une source sans aucun balisage reste protégée contre le balisage qu'on y invente. La candidate est
 refusée pour toute paire de balises, tout élément vide ou toute balise auto-fermante qu'elle ajoute,
@@ -868,28 +863,28 @@ ton texte source : une traduction qui porte les mêmes mots entre chevrons que s
 acceptée.
 
 Les commentaires, les sections CDATA, les déclarations et les instructions de traitement ne sont pas
-des balises, et ils sont lus comme un analyseur HTML les lit, puisque c'est là que finissent les
-valeurs. `<!-->` et `<!--->` sont des commentaires vides complets, un commentaire se termine au
-premier `-->` ou `--!>`, et un commentaire sans fin masque le reste de la valeur. `<![CDATA[`,
-`<!DOCTYPE html>`, tout autre `<!...`, `<?...` et un `</` suivi d'autre chose qu'une lettre, comme
-`</1 x>`, se terminent tous au premier `>`, tandis qu'un `</>` vide est écarté, comme un analyseur
-l'écarte, et qu'une balise fermante numérique comme `</0>` est comparée comme une balise. Chacune de
-ces constructions est comparée comme un multiensemble de son texte, les suites d'espaces étant
-réduites à une seule, donc une construction que la candidate ajoute, perd ou réécrit est refusée, y
-compris un commentaire dont le texte a été traduit. Les balises qui suivent la fin d'une
-construction sont comparées normalement, donc `Hallo <![CDATA[><img src=x onerror=...>]]>` est
-refusé à la fois pour la construction et pour le `<img>`.
+des balises, et ils sont lus comme un analyseur HTML les lit. `<!-->` et `<!--->` sont des
+commentaires vides complets, un commentaire se termine au premier `-->` ou `--!>`, et un commentaire
+sans fin masque le reste de la valeur. `<![CDATA[`, `<!DOCTYPE html>`, tout autre `<!...`, `<?...`
+et un `</` suivi d'autre chose qu'une lettre, comme `</1 x>`, se terminent tous au premier `>`,
+tandis qu'un `</>` vide est écarté, comme un analyseur l'écarte, et qu'une balise fermante numérique
+comme `</0>` est comparée comme une balise. Chacune de ces constructions est comparée comme un
+multiensemble de son texte, les suites d'espaces étant réduites à une seule, donc une construction
+que la candidate ajoute, perd ou réécrit est refusée, y compris un commentaire dont le texte a été
+traduit. Les balises qui suivent la fin d'une construction sont comparées normalement, donc
+`Hallo <![CDATA[><img src=x onerror=...>]]>` est refusé à la fois pour la construction et pour le
+`<img>`.
 
-Le contenu d'un élément de texte brut est lui aussi du texte, car c'est ainsi qu'un analyseur le
-lit. Après une balise ouvrante `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`,
-`noembed` ou `noframes`, tout ce qui précède sa balise fermante, quelle que soit sa casse et suivie
-d'un espace, de `/` ou de `>`, est du texte, et tout ce qui suit `<plaintext>` est du texte jusqu'à
-la fin de la valeur. Une balise écrite dans un tel élément n'est pas comparée, et une valeur
-d'attribut entre guillemets ne peut pas s'étendre au-delà de la balise fermante pour masquer ce qui
-suit : `Füge ein <script><b x="</script><img src=x onerror=...>` est refusé pour le `<img>`. Là où
-un analyseur peut lire ce contenu de deux façons, la candidate est refusée sauf si elle est la
-source inchangée, avec un détail comme `+<noscript>...</noscript>` : un `script` dont le contenu
-ouvre `<!--`, un `noscript` dont le contenu contient un `<`, puisque sa lecture dépend alors de
+Le contenu d'un élément de texte brut est lui aussi du texte. Après une balise ouvrante `script`,
+`style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`, `noembed` ou `noframes`, tout ce qui
+précède sa balise fermante, quelle que soit sa casse et suivie d'un espace, de `/` ou de `>`, est du
+texte, et tout ce qui suit `<plaintext>` est du texte jusqu'à la fin de la valeur. Une balise écrite
+dans un tel élément n'est pas comparée, et une valeur d'attribut entre guillemets ne peut pas
+s'étendre au-delà de la balise fermante pour masquer ce qui suit :
+`Füge ein <script><b x="</script><img src=x onerror=...>` est refusé pour le `<img>`. Là où un
+analyseur peut lire ce contenu de deux façons, la candidate est refusée sauf si elle est la source
+inchangée, avec un détail comme `+<noscript>...</noscript>` : un `script` dont le contenu ouvre
+`<!--`, un `noscript` dont le contenu contient un `<`, puisque sa lecture dépend alors de
 l'activation des scripts, et tout élément de texte brut dont le contenu contient un `<` après une
 balise `svg`, `math` ou `select`, où ce n'est peut-être pas du texte brut du tout. Pour la même
 raison, une section CDATA ou une balise `image` dans une valeur où la source ou la candidate ouvre
@@ -903,8 +898,7 @@ position parmi ceux de son nom dans la source, sinon la candidate est refusée a
 traduit. Un texte ordinaire qui contient littéralement l'une de ces balises devient ainsi
 intraduisible, car dans `Add a <script> tag` tout ce qui suit `<script>` est son contenu :
 `Füge ein <script> Tag` est refusé. Échappe plutôt la balise dans la source, sous la forme
-`Add a &lt;script&gt; tag`, qui est du texte dans tous les formats et se traduit comme n'importe
-quel autre mot.
+`Add a &lt;script&gt; tag`.
 
 La vérification est volontairement discrète, mais elle lit les balises comme le fait un analyseur
 HTML. Une balise commence à `<` ou `</` suivi d'une lettre ou, pour une balise numérique de texte
@@ -928,26 +922,25 @@ pour être comparée. Une candidate n'est refusée que lorsqu'elle porte plus du
 de constructions que sa source, ou plus de 256 pour une source plus petite, avec le détail
 `+more than N inline tags` qui nomme cette limite.
 
-Les valeurs d'attribut sont libres, à quelques exceptions près, qui existent parce qu'une valeur
-traduite finit dans une page. La valeur d'un attribut d'URL (`href`, `src`, `action`, `formaction`,
-`xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`,
-`codebase`, `archive`, ainsi que les attributs d'animation SVG `to`, `from`, `values` et `by`) est
-lue après décodage des références numériques de caractères et de `&colon;`, `&Tab;`, `&NewLine;`,
-`&sol;` et `&bsol;`, en ignorant les tabulations, les sauts de ligne et les caractères de contrôle
-qui l'entourent. Un schéma `javascript:`, `vbscript:` ou `data:` y est refusé sauf si la source
-porte exactement cette valeur sur la même balise et le même attribut, avec un détail comme
-`+<a href="javascript:...">`. Au-delà, chaque URL de la valeur, y compris chaque URL d'une liste
-`srcset`, `ping`, `archive` ou `values`, doit garder un schéma et une autorité (hôte et port, ou
-l'hôte d'une URL relative au schéma `//host`) qu'une valeur source de la même balise et du même
-attribut possède, et une URL relative doit rester relative. Ainsi `/docs` peut devenir `/de/docs` et
-`https://verbatra.dev/en` peut devenir `https://verbatra.dev/de`, mais `/docs` ne peut pas devenir
-`https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu localisé doit garder le même
-hôte ; le détail nomme la nouvelle origine, comme `+<a href="https://evil.example...">`, ou
-`+<a href="./...">` pour un lien absolu rendu relatif. Le chemin, la requête et le fragment peuvent
-changer librement. Une URL modifiée sans schéma explicite `http`, `https`, `ws`, `wss`, `ftp` ou
-`file` est aussi refusée quand une barre oblique inversée (`\` ou `%5C`) se trouve dans ses barres
-obliques initiales ou dans son hôte, car une page sur un autre schéma lit
-`//verbatra.dev\@evil.example/` comme un lien vers evil.example.
+Les valeurs d'attribut sont libres, à ces exceptions près. La valeur d'un attribut d'URL (`href`,
+`src`, `action`, `formaction`, `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`,
+`longdesc`, `srcset`, `manifest`, `codebase`, `archive`, ainsi que les attributs d'animation SVG
+`to`, `from`, `values` et `by`) est lue après décodage des références numériques de caractères et de
+`&colon;`, `&Tab;`, `&NewLine;`, `&sol;` et `&bsol;`, en ignorant les tabulations, les sauts de
+ligne et les caractères de contrôle qui l'entourent. Un schéma `javascript:`, `vbscript:` ou `data:`
+y est refusé sauf si la source porte exactement cette valeur sur la même balise et le même attribut,
+avec un détail comme `+<a href="javascript:...">`. Au-delà, chaque URL de la valeur, y compris
+chaque URL d'une liste `srcset`, `ping`, `archive` ou `values`, doit garder un schéma et une
+autorité (hôte et port, ou l'hôte d'une URL relative au schéma `//host`) qu'une valeur source de la
+même balise et du même attribut possède, et une URL relative doit rester relative. Ainsi `/docs`
+peut devenir `/de/docs` et `https://verbatra.dev/en` peut devenir `https://verbatra.dev/de`, mais
+`/docs` ne peut pas devenir `https://evil.example/docs` ni `//evil.example/docs`, et un lien absolu
+localisé doit garder le même hôte ; le détail nomme la nouvelle origine, comme
+`+<a href="https://evil.example...">`, ou `+<a href="./...">` pour un lien absolu rendu relatif. Le
+chemin, la requête et le fragment peuvent changer librement. Une URL modifiée sans schéma explicite
+`http`, `https`, `ws`, `wss`, `ftp` ou `file` est aussi refusée quand une barre oblique inversée
+(`\` ou `%5C`) se trouve dans ses barres obliques initiales ou dans son hôte, car une page sur un
+autre schéma lit `//verbatra.dev\@evil.example/` comme un lien vers evil.example.
 
 Certaines valeurs d'attribut doivent revenir exactement telles que la source les a, comparées après
 décodage des références de caractères, avec un détail comme `+<meta content="...">` : `http-equiv`
@@ -964,9 +957,8 @@ traduction qui ajoute les formes dont sa langue a besoin répète le balisage de
 refusée. Il en va de même pour un pluriel de style ICU (`{count, plural, one {...} other {...}}`)
 dans un format qui le stocke comme texte brut au lieu de l'analyser comme ICU (i18next,
 ngx-translate et YAML) : une traduction avec un nombre de formes différent de celui de la source
-répète ou perd le balisage qu'elles contiennent et est refusée. Dans les deux cas, la valeur est
-retenue et la traduction précédente reste en place, donc rien n'est perdu, mais les formes doivent
-être ajoutées sans multiplier aussi le balisage.
+répète ou perd le balisage qu'elles contiennent et est refusée. Dans les deux cas, la traduction
+précédente reste en place.
 
 La vérification se retire aussi balise par balise. Une balise que le format signale déjà comme
 placeholder (un élément en ligne XLIFF, une balise de texte enrichi ICU next-intl ou ARB) est
@@ -977,9 +969,7 @@ pour une balise dont l'imbrication avec les autres balises ne correspond plus à
 `<b>` qui revient en croisant le `<g>` dans lequel il se trouvait, et pour une balise que la source
 ne porte que comme texte, dans un commentaire ou un élément de texte brut, parce que l'en sortir
 créerait l'élément. Toute autre balise de la même valeur reste comparée, y compris une balise
-fermante en trop comme un second `</g>`. Un refus nomme les balises en cause, chacune préfixée de
-`-` pour une que la source avait et que la candidate a perdue, ou de `+` pour une que la candidate a
-inventée.
+fermante en trop comme un second `</g>`.
 
 ### icu
 
@@ -1013,7 +1003,7 @@ Un signalement de révision marque une traduction acceptée comme méritant un s
 
 La traduction est bien plus courte ou plus longue que sa source.
 
-Il se déclenche en dessous de 0.35 fois ou au-dessus de 3.0 fois la longueur rognée de la source ; les sources très courtes sont ignorées. La longueur se compte en groupes de graphèmes, et chaque caractère est pondéré selon son écriture : un caractère chinois compte 3.5, un kana japonais 1.5 et une syllabe coréenne 2, si bien qu'une traduction correcte vers ces langues n'est pas signalée juste parce qu'elle est compacte.
+Il se déclenche en dessous de 0.35 fois ou au-dessus de 3.0 fois la longueur rognée de la source ; les sources très courtes sont ignorées. La longueur se compte en groupes de graphèmes, et chaque caractère est pondéré selon son écriture : un caractère chinois compte 3.5, un kana japonais 1.5 et une syllabe coréenne 2.
 
 - **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
@@ -1023,7 +1013,7 @@ Il se déclenche en dessous de 0.35 fois ou au-dessus de 3.0 fois la longueur ro
 
 La traduction est plus longue que le budget `maxLength` configuré pour sa clé.
 
-La longueur se compte en groupes de graphèmes sur la valeur telle qu'elle est écrite. La limite est inclusive : une valeur d'exactement le budget n'est pas signalée, et une clé sans budget n'est jamais mesurée. La valeur est tout de même écrite et verrouillée, car une traduction correcte qui déborde d'une mise en page vaut mieux que rien.
+La longueur se compte en groupes de graphèmes sur la valeur telle qu'elle est écrite. La limite est inclusive : une valeur d'exactement le budget n'est pas signalée, et une clé sans budget n'est jamais mesurée. La valeur est tout de même écrite et verrouillée.
 
 - **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`

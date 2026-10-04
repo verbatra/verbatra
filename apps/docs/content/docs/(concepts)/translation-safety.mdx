@@ -101,8 +101,7 @@ other formats is on [Languages and locales](/docs/language-support#plurals).
 
 Rich text reaches a string as inline markup: a `<b>` in an i18next `Trans` block, an escaped
 `&lt;b&gt;` in an Android `<string>`, an `<a href>` in a gettext catalog. A dropped or broken tag
-breaks rendering the way a dropped placeholder breaks interpolation, so the gate compares tag names
-and attribute names as a multiset:
+breaks rendering, so the gate compares tag names and attribute names as a multiset:
 
 - **Refused**: a dropped, invented or renamed tag; a changed set of attribute names (adding `dir`
   included); unbalanced or mis-nested markup; two tags merged into one.
@@ -114,16 +113,15 @@ and attribute names as a multiset:
 - **Not translated**: the content of `script`, `style` and similar elements must come back
   unchanged. Escape such a tag in prose (`&lt;script&gt;`) to translate the text around it.
 
-Markup invented into a string that had none is refused too, while an ordinary bracketed word such
-as `<Enter>` is read as text. Tags the format already reports as placeholders are left to the
-placeholder check. The full rules, including how comments, raw text and malformed sources are read,
-are under [`markup`](/docs/error-codes#markup).
+Markup invented into a string that had none is refused too, while an ordinary bracketed word such as
+`<Enter>` is read as text. Tags the format already reports as placeholders are left to the
+placeholder check. Comments, raw text and malformed sources: see
+[`markup`](/docs/error-codes#markup).
 
 ## Review flags
 
-Passing the gate proves a translation is structurally safe, not that it is good. A second, advisory
-layer flags suspicious results for a person. A flag never withholds a key: the value is written,
-locked, and put on the needs-review queue.
+A second, advisory layer flags suspicious results for a person. A flag never withholds a key: the
+value is written, locked, and put on the needs-review queue.
 
 | Reason | Flags a translation that |
 | --- | --- |
@@ -149,10 +147,9 @@ approves, rejects or rewrites its value; see
 
 ## The token budget
 
-Provider spend should have a ceiling you set, not one you find on the invoice. With `maxTokens`
-configured, verbatra counts a run's tokens across every call and locale. `budgetBehavior: "warn"`
-(the default) only flags an overrun; `"stop"` withholds the request that would pass the ceiling and
-every candidate after it, to be retried next run.
+With `maxTokens` configured, verbatra counts a run's tokens across every call and locale.
+`budgetBehavior: "warn"` (the default) only flags an overrun; `"stop"` withholds the request that
+would pass the ceiling and every candidate after it, to be retried next run.
 
 What the budget guarantees: work done before the ceiling stays written and locked, and nothing is
 left half-written. What it does not: a request in flight can cost more than projected, the ceiling

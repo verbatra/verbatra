@@ -107,8 +107,8 @@ funcionan los plurales en los demás formatos está en
 
 El texto enriquecido llega a una cadena como marcado en línea: un `<b>` en un bloque `Trans` de
 i18next, un `&lt;b&gt;` escapado en un `<string>` de Android, un `<a href>` en un catálogo de
-gettext. Una etiqueta perdida o rota rompe la representación igual que un placeholder perdido rompe
-la interpolación, así que la puerta compara nombres de etiqueta y de atributo como un multiconjunto:
+gettext. Una etiqueta perdida o rota rompe la representación, así que la puerta compara nombres de
+etiqueta y de atributo como un multiconjunto:
 
 - **Se rechaza**: una etiqueta quitada, inventada o renombrada; un conjunto distinto de nombres de
   atributo (incluido añadir `dir`); marcado desequilibrado o mal anidado; dos etiquetas fusionadas
@@ -124,15 +124,13 @@ la interpolación, así que la puerta compara nombres de etiqueta y de atributo 
 
 También se rechaza el marcado inventado en una cadena que no tenía ninguno, mientras que una
 palabra entre corchetes angulares corriente como `<Enter>` se lee como texto. Las etiquetas que el
-formato ya informa como placeholders se dejan a la comprobación de placeholders. Las reglas
-completas, incluido cómo se leen los comentarios, el texto sin procesar y los orígenes mal formados,
-están en [`markup`](/docs/error-codes#markup).
+formato ya informa como placeholders se dejan a la comprobación de placeholders. Comentarios,
+texto sin procesar y orígenes mal formados: consulta [`markup`](/docs/error-codes#markup).
 
 ## Señales de revisión
 
-Pasar la puerta demuestra que una traducción es segura en su estructura, no que sea buena. Una
-segunda capa, consultiva, marca los resultados sospechosos para una persona. Una señal nunca retiene
-una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
+Una segunda capa, consultiva, marca los resultados sospechosos para una persona. Una señal nunca
+retiene una clave: el valor se escribe, se bloquea y entra en la cola de revisión.
 
 | Motivo | Marca una traducción que |
 | --- | --- |
@@ -159,7 +157,6 @@ aprueba, rechaza o reescribe su valor; consulta
 
 ## El presupuesto de tokens
 
-El gasto en el proveedor debería tener un techo que fijas tú, no uno que descubres en la factura.
 Con `maxTokens` configurado, verbatra cuenta los tokens de una ejecución en todas las llamadas y
 todos los locales. `budgetBehavior: "warn"` (el valor por defecto) solo marca el exceso; `"stop"`
 retiene la petición que superaría el techo y todos los candidatos posteriores, para reintentarlos en
