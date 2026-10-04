@@ -201,19 +201,19 @@ In `i18next-json`, `vue-i18n-json` and `next-intl-json`, a literal dotted leaf s
 - **Atomic writes.** A temporary file is renamed into place, so an interrupt never leaves half a file.
 - **Layout.** The XML formats keep the line terminator and final newline and indent new elements like their neighbors. A new gettext entry follows a blank line, and a created `.po` names its locale in `Language` (`pt_BR`).
 - **Non-string leaves.** In the JSON formats, YAML and ARB, a number, boolean or null leaf is accepted but never translated, and a rewrite of that file does not keep it; an array fails with `INVALID_STRUCTURE`.
-- **Errors** are structured and secret-free: `INVALID_JSON`, `INVALID_YAML`, `INVALID_XML`, `INVALID_STRUCTURE`, `MIXED_STRUCTURE`, and for adapters `ADAPTER_FAILED` and `DUPLICATE_FORMAT`. See [adapter error codes](/docs/error-codes#adapter-error-codes).
+- **Errors** are structured and secret-free; see [adapter error codes](/docs/error-codes#adapter-error-codes).
 
 ## Formats from outside verbatra
 
 <AvailableFrom version="0.11.0" />
 
-A format verbatra does not ship can come from an adapter in your own package, named with a `custom:` id such as `custom:toml`. No built-in id contains a colon, so it can never shadow one. It is an SDK path only, since the `verbatra` binary loads no plugins, and the adapter runs as trusted code. See [Write a custom format adapter](/docs/custom-format-adapters).
+A format verbatra does not ship can come from an adapter in your own package, named with a `custom:` id such as `custom:toml`. It runs through the SDK only, as trusted code: see [Write a custom format adapter](/docs/custom-format-adapters).
 
 ## Inline markup in values
 
 <AvailableFrom version="0.11.0" />
 
-A value may carry its own HTML or XML, such as `<b>` in an i18next `Trans` block or an escaped `&lt;b&gt;` in an Android `<string>`. The [markup parity check](/docs/translation-safety#inline-markup-parity) refuses a translation that drops, invents, renames or unbalances a tag, in every format, per tag:
+The [markup parity check](/docs/translation-safety#inline-markup-parity) applies to every format, per tag:
 
 - `xliff` guards its own inline elements as placeholders; other HTML such as `<b>` is compared as markup.
 - `next-intl-json` and `arb` treat a paired `<b>...</b>` as a placeholder, while a self-closing `<br/>` is compared as markup. An attribute-bearing tag is invalid ICU and refused.

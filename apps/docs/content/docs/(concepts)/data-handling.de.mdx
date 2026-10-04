@@ -45,9 +45,8 @@ Sprachliste von DeepL, Google Cloud Translation oder LibreTranslate abzurufen.
 Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file) fehlen
 oder geändert sind, abzüglich der Treffer im [Cache](/docs/the-cache), und geteilten Text nur
 einmal. Ein veralteter Key, den ein Mensch geschrieben hat, wird nur für einen Vorschlag mit
-`humanEdits: "suggest"` gesendet, ein gepinnter Key nie
-([Menschliche Übersetzungen behalten](/docs/protecting-human-translations)). Dein DNS-Resolver
-sieht den Hostnamen des Providers.
+`humanEdits: "suggest"` gesendet, ein [gepinnter](/docs/protecting-human-translations) Key nie. Dein
+DNS-Resolver sieht den Hostnamen des Providers.
 
 ## Was jeder Provider bekommt
 
@@ -66,7 +65,7 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` durchsucht vor jedem Request, was laut der Tabelle oben gesendet wird. Standard-Detektoren finden API-Keys, E-Mails, IBANs und Kartennummern; `phone`, `ip` und `private-host` schaltest du bei Bedarf zu, und `patterns` ergänzt eigene Begriffe, etwa Codenamen. Ein Muster wird abgelehnt, wenn es eine Gruppe mit einem Quantor oder einer Alternative wiederholt, mehr als ein `*`, `+` oder `{n,}` enthält oder zu oft verzweigt. Es liest die ersten 2.000 Zeichen eines Felds und bricht nach einer Sekunde ab; ein Abbruch ist ein Fund (`pattern-timeout-<n>`), `block` und `redact` halten den Key also zurück.
+`sensitiveData` durchsucht vor jedem Request, was laut der Tabelle oben gesendet wird. Standard-Detektoren finden API-Keys, E-Mails, IBANs und Kartennummern; `phone`, `ip` und `private-host` schaltest du bei Bedarf zu, und `patterns` ergänzt eigene Begriffe. Ein Muster wird abgelehnt, wenn es eine Gruppe mit einem Quantor oder einer Alternative wiederholt, mehr als ein `*`, `+` oder `{n,}` enthält oder zu oft verzweigt. Es liest die ersten 2.000 Zeichen eines Felds und bricht nach einer Sekunde ab; ein Abbruch ist ein Fund (`pattern-timeout-<n>`), `block` und `redact` halten den Key also zurück.
 
 | `mode` | Wirkung |
 | --- | --- |
@@ -74,12 +73,12 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 | `block` | Hält den Key zurück, die Locale endet also `partial`. |
 | `redact` | Sendet für jeden Treffer im Wert ein Token und setzt den Treffer wieder ein; ein Treffer in einer Beschreibung oder Bedeutung geht als `[redacted]` hinaus. Ein Treffer im Key-Namen oder ein Token, das nicht genau einmal zurückkommt, hält den Key zurück. Bei DeepL und Google zählt ein Token als Platzhalter, ein Wert, den sie nicht schützen können, wird also als `PLACEHOLDER_UNSUPPORTED` zurückgehalten. |
 
-`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. Standardmäßig ist der Schutz aus; `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
+`block` und `redact` lassen außerdem einen passenden Glossarbegriff weg. `verbatra init` schreibt bei einem maschinellen Provider `warn`. Bei einem Fehlalarm trägst du den Text in `allow` ein oder entfernst seinen Detektor. [`verbatra check --sensitive`](/docs/cli/check#sensible-inhalte) prüft ohne Key. Namen in freiem Text werden nicht gefunden.
 
 ## Aufbewahrung und Auftragsverarbeitung beim Anbieter
 
 Die Aufbewahrung bestimmen der Anbieter und dein Vertrag, nicht verbatra. Zitate im englischen
-Original, Stand September 2026; Bedingungen ändern sich und dein Vertrag geht vor.
+Original, Stand September 2026.
 
 | Provider | Was der Anbieter sagt | Auftragsverarbeitung |
 | --- | --- | --- |
@@ -144,10 +143,10 @@ Seite ohnehin lesen.
 ## KI-erzeugte Übersetzungen und Provenance
 
 Artikel 50 des EU AI Act legt Transparenzpflichten für KI-Systeme fest, die Text erzeugen
-([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Ob er für dein Produkt gilt, klärt deine Rechtsberatung. verbatra führt ein
-[Protokoll](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat): Jeder Wert, den ein
-Provider erzeugt hat, trägt die Herkunft `machine`, mit Provider und Modell.
+([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)). Ob er für dein
+Produkt gilt, klärt deine Rechtsberatung. verbatra
+[protokolliert](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) Provider und Modell
+hinter jedem maschinell übersetzten Wert.
 
 ### Prüfdatei
 
@@ -158,8 +157,8 @@ Provider erzeugt hat, trägt die Herkunft `machine`, mit Provider und Modell.
 
 ## Checkliste für ein AVV- oder NDA-Review
 
-1. Entscheide, ob Strings dein Netzwerk verlassen dürfen. Wenn nicht, nimm den Provider `none` oder
-   einen selbst gehosteten Server und leg `VERBATRA_NETWORK_POLICY=local-only` in der CI fest.
+1. Entscheide, ob Strings dein Netzwerk verlassen dürfen; wenn nicht, wähl eine Option unter
+   [Strings im Haus behalten](#strings-im-haus-behalten).
 2. Nimm für einen gehosteten Provider ein bezahltes Kontingent und unterschreib seine
    Auftragsverarbeitungsbedingungen, mit Zero Retention, wenn du sie brauchst.
 3. Prüf mit `verbatra check --sensitive`, was deine Key-Namen, Beschreibungen und das Glossar senden.

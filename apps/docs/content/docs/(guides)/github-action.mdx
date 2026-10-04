@@ -3,7 +3,7 @@ title: Use the GitHub Action
 description: "Run verbatra in GitHub Actions with the composite action: translate on a push or gate a pull request, with annotations and a job summary."
 type: how-to
 ---
-Use the action when a GitHub Actions job should run verbatra and show you what happened. It runs the CLI with `--json`, turns failures into annotations, writes a job summary and exits with the CLI's exit code. It runs `translate`, `check` or `diff`; for any other command or flag, such as `--prune`, run the [CLI directly](/docs/ci-and-exit-codes).
+Use the action when a GitHub Actions job should run verbatra and show you what happened. It runs `translate`, `check` or `diff` with `--json`; for any other command or flag, such as `--prune`, run the [CLI directly](/docs/ci-and-exit-codes).
 
 Before you start, you need:
 
@@ -13,7 +13,7 @@ Before you start, you need:
 
 ## Add the action to a workflow
 
-The action lives in [verbatra/action](https://github.com/verbatra/action) and on the [GitHub Marketplace](https://github.com/marketplace/actions/verbatra). There is no npm package; you reference it with `uses:`. Pin it to a commit SHA, as below, or use the moving `verbatra/action@v1` tag. The old path form from the verbatra monorepo no longer resolves.
+The action lives in [verbatra/action](https://github.com/verbatra/action) and on the [GitHub Marketplace](https://github.com/marketplace/actions/verbatra); there is no npm package. Pin it to a commit SHA, as below, or use the moving `verbatra/action@v1` tag. The old path form from the verbatra monorepo no longer resolves.
 
 ```yaml title=".github/workflows/translate.yml"
 name: translate
@@ -36,7 +36,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version into a scratch directory, so the job needs no install step of its own. Check [`@verbatra/cli` on npm](https://www.npmjs.com/package/@verbatra/cli) for the current release and bump the pin deliberately.
+The action installs `@verbatra/cli` and `@verbatra/sdk` at exactly that version into a scratch directory, so the job needs no install step of its own. Bump the pin deliberately; [npm](https://www.npmjs.com/package/@verbatra/cli) shows the current release.
 
 ### Pass the provider key
 
@@ -69,7 +69,7 @@ Add `qa: "true"` to `command: check` to run [`verbatra check --qa`](/docs/cli/ch
 
 - Each finding becomes one annotation titled `verbatra qa: <locale>`: an error for a value the integrity gate would refuse, a warning for a review reason.
 - The step fails on any error finding. Add `qa-strict: "true"` to fail on warnings and incomplete plurals too, or `qa-severity: error` to report errors only.
-- `qa` needs a `version` of `0.12.0` or newer. A lower pin fails the step before anything is installed, and so does a prerelease such as `0.12.0-next.0`, so pin the release.
+- A `version` below `0.12.0`, or a prerelease such as `0.12.0-next.0`, fails the step before anything is installed.
 
 ## Require reviewed translations
 
@@ -116,7 +116,7 @@ With `config-path` empty, the action requires a recognized config file directly 
         working-directory: apps/docs
 ```
 
-If no config is found, the step fails before installing the CLI and names the directory it checked. To load a config from elsewhere, set `config-path`: a relative path resolves against `working-directory`. The action always passes the resolved file to the CLI with `--config`.
+If no config is found, the step fails before installing the CLI and names the directory it checked. To load a config from elsewhere, set `config-path`: a relative path resolves against `working-directory`.
 
 ## Persist translations
 
@@ -131,10 +131,10 @@ If no config is found, the step fails before installing the CLI and names the di
 | `config-path` | `""` | config file to load (`--config`); relative to `working-directory` |
 | `working-directory` | `""` | directory to run in (`--cwd`); the repository root when empty |
 | `dry-run` | `"false"` | `"true"` previews without calling a provider or writing (`--dry-run`); `translate` only |
-| `qa` | `"false"` | `"true"` adds the quality check (`--qa`); `check` only, needs `0.12.0` or newer |
+| `qa` | `"false"` | `"true"` adds the quality check (`--qa`); `check` only |
 | `qa-severity` | `""` | lowest severity to report, `error` or `warning` (`--severity`); requires `qa` |
 | `qa-strict` | `"false"` | `"true"` also fails on warnings (`--strict`); requires `qa` |
-| `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only, needs `0.12.0` or newer |
+| `require-reviewed` | `"false"` | `"true"` also fails on unapproved machine-written translations (`--require-reviewed`); `check` only |
 | `node-version` | `"24"` | Node.js version the action sets up to run the CLI |
 
 The boolean inputs accept only `"true"` or `"false"`. An invalid value or combination fails the step with exit `1` before anything is installed.
@@ -148,15 +148,15 @@ The boolean inputs accept only `"true"` or `"false"`. An invalid value or combin
 ## What a run shows you
 
 - **Annotations.** Under `translate`, each failed or partial locale becomes one error annotation titled `verbatra: <locale>`. Under `check` or `diff`, each drifted locale gets one titled `verbatra check: <locale>` or `verbatra diff: <locale>`. A partial locale's `LOCALE_PARTIAL` annotation names the withheld keys, grouped by cause. Every `check` adds one `PLURAL_CATEGORIES_INCOMPLETE` warning per locale whose plurals lack a CLDR category the language uses. A run that fails as a whole gets one `verbatra` annotation with the error code, its cause as `(cause: X)` and a `Next step:` hint when the CLI gives them. GitHub shows at most 10 annotations per severity, so the action orders them drift, review, quality errors, warnings, and adds one notice counting the rest.
-- **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings, with `require-reviewed` an `unreviewed` column; incomplete plurals get their own section.
-- **Exit status.** The action emits the annotations and the summary first, then exits with the CLI's own code, so the step fails on `1` or `2` only after showing why. The codes are on [Exit codes and JSON output](/docs/cli/output#exit-codes).
+- **Job summary.** One row per locale with the counts for the command that ran, an aggregate line, and the partial and failed locales. With `qa` it adds a findings table of up to 1000 findings; incomplete plurals get their own section.
+- **Exit status.** The action emits the annotations and the summary first, then exits with the CLI's own [exit code](/docs/cli/output#exit-codes), so the step fails only after showing why.
 
 ## Security
 
-Pin both references: `uses:` to a commit SHA and `version` to an exact release; the action rejects anything that could resolve `latest`. Keep the workflow at `contents: read` unless a later step writes. Inputs reach the CLI as a quoted argument array, never spliced into shell text, so a crafted input stays an argument.
+Pin both references: `uses:` to a commit SHA and `version` to an exact release; the action rejects anything that could resolve `latest`. Inputs reach the CLI as a quoted argument array, never spliced into shell text, so a crafted input stays an argument.
 
 ## Related
 
-- [Run verbatra in CI](/docs/ci-and-exit-codes): the same gates as plain CLI steps, in any CI system.
-- [`verbatra check`](/docs/cli/check) and [`verbatra translate`](/docs/cli/translate): the commands the action runs.
+- [Run verbatra in CI](/docs/ci-and-exit-codes): the same gates in any CI system.
+- [`verbatra check`](/docs/cli/check) and [`verbatra translate`](/docs/cli/translate).
 - [verbatra/action](https://github.com/verbatra/action): the release notes and the input reference generated from `action.yml`.

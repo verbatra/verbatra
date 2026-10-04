@@ -4,7 +4,7 @@ description: Branche le serveur MCP stdio de verbatra sur Claude Code, Codex, Ge
 type: how-to
 status: new
 ---
-Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP de verbatra. Le client démarre le serveur sur stdio, donc aucun port à gérer. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent. Les outils sont décrits dans [`verbatra mcp`](/docs/cli/mcp#tools).
+Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP de verbatra. Le client démarre le serveur sur stdio, donc aucun port à gérer. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -25,13 +25,13 @@ Le serveur figure aussi dans le [registre MCP officiel](https://registry.modelco
 
 ## Décider si l'agent peut dépenser
 
-Le serveur démarre avec des outils de lecture et d'édition locale, sans dépense : les deux outils payants restent masqués et aucun outil ne lit de clé. Pour que l'agent puisse dépenser, ajoute les deux :
+Le serveur démarre seulement avec des outils de lecture et d'édition locale : les outils payants restent masqués et aucun outil ne lit de clé. Pour que l'agent puisse dépenser, ajoute les deux :
 
 - `--allow-spend` dans les arguments, ou `VERBATRA_MCP_ALLOW_SPEND=1` dans l'environnement ([Outils payants](/docs/cli/mcp#outils-payants)) ;
 - la variable de clé de ton fournisseur, par exemple `ANTHROPIC_API_KEY` ([Fournisseurs](/docs/providers)).
 
 <Callout type="warn">
-N'écris jamais une clé dans un fichier versionné comme `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` ou `.vscode/mcp.json`. Chaque section ci-dessous passe la clé par référence ou depuis ton environnement.
+N'écris jamais une clé dans un fichier versionné comme `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` ou `.vscode/mcp.json`.
 </Callout>
 
 Pour que les valeurs de traduction n'atteignent pas le modèle de l'agent, ajoute `--redact-values` ; voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
@@ -316,6 +316,6 @@ Demande à l'agent d'appeler `project.snapshot`, qui renvoie les locales, le for
 
 ## Voir aussi
 
-- [`verbatra mcp`](/docs/cli/mcp) : les flags, chaque outil et les codes de sortie.
+- [`verbatra mcp`](/docs/cli/mcp) : les flags et chaque outil.
 - [Scripter verbatra avec JSON](/docs/agent-recipes#le-pack-de-skills) : la skill `verbatra-mcp-tools`.
-- [Configure verbatra avec un agent IA](/docs/start-with-ai) : ajouter verbatra avant de brancher un client.
+- [Configure verbatra avec un agent IA](/docs/start-with-ai).

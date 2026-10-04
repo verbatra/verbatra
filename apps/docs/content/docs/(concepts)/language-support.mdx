@@ -3,11 +3,11 @@ title: Languages and locales
 description: Which languages verbatra can translate, how locale codes reach each provider, and how plurals, scripts, regional variants and right-to-left text are handled.
 type: concept
 ---
-verbatra has no language list of its own. It accepts any valid BCP 47 locale code, handles the
-strings of every language the same way, and leaves the translation to your provider. So the
-languages you can use are the ones your provider supports, and for a human-only project, all of
-them. verbatra's part is to spell each code the way the provider expects, hold every translation to
-its language's plural rules, and warn you before a run when a provider cannot serve a locale.
+verbatra has no language list of its own. It accepts any valid BCP 47 locale code and leaves the
+translation to your provider, so the languages you can use are the ones your provider supports, and
+for a human-only project, all of them. verbatra's part is to spell each code the way the provider
+expects, hold every translation to its language's plural rules, and warn you before a run when a
+provider cannot serve a locale.
 
 ## Locale codes
 
@@ -48,8 +48,7 @@ What that means in practice:
   [Review flags](/docs/translation-safety#review-flags) point at the most suspicious results.
 - **DeepL and Google Cloud Translation** have a closed list, checked before a run. Like
   LibreTranslate, they [mask placeholders](/docs/providers#deepl) and withhold a value they cannot
-  protect, such as ICU plural, select or number syntax, markup beside a placeholder, or, on Google,
-  a line break, tab or double space.
+  protect.
 - **LibreTranslate** serves whatever models your server installed.
 - A `tone` or glossary a provider cannot honor is reported as a notice, never dropped silently. See
   [Tone and glossary across providers](/docs/providers#tone-and-glossary-across-providers).
@@ -58,15 +57,11 @@ What that means in practice:
 
 <AvailableFrom version="0.12.0" />
 
-DeepL gets its own variants (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) and drops any other region or
-script; it has no generic English or Portuguese target, so a bare `en` or `pt` target fails before
-any request. Google Cloud Translation gets Chinese as `zh-CN` or `zh-TW` and `nb` as `no`.
-LLM providers get the code as written, plus the English name of the language, script and region,
-and are told to write in that script and variant; see
+DeepL and Google Cloud Translation get their own spelling of some codes, and DeepL refuses a bare
+`en` or `pt` target before any request. LLM providers get the code as written plus the English name
+of the language, script and region; see
 [Language, script and region names](/docs/translation-safety#language-script-and-region-names).
-
-When the built-in mapping is not what you want, `localeMap` in the provider's `options` sets the
-exact code per locale. The full mapping is under
+`localeMap` in the provider's `options` overrides the code per locale. The full mapping is under
 [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider).
 
 ## Checking support before a run
@@ -85,8 +80,7 @@ Each locale gets one of three:
   single-key retranslation refuse the whole run with
   [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider).
 
-The whole run is refused, not just one locale, so a pipeline never ends up half translated because
-of a config mistake. Leave the locale out with `--locales`, or, if the provider added the language
+Leave the locale out with `--locales`, or, if the provider added the language
 after the table's date, map it in `localeMap`: an explicit entry is trusted. The shipped tables are
 dated copies of the vendors' lists (DeepL with 125 codes and Google with 198, both of 2026-09-28);
 `verbatra doctor --live` checks against the current list instead.

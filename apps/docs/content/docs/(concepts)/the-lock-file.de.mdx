@@ -18,10 +18,10 @@ Speichern einer Quelldatei mit CRLF-Zeilenenden oder anderer Normalisierung änd
 ## Wie Drift erkannt wird
 
 Ein Quell-Key, der im Ziel fehlt, ist missing. Bei einem Key, den das Ziel hat, wird der aktuelle
-Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, dass sich die Quelle seit der
-Übersetzung geändert hat, also wird er neu übersetzt; eine Übereinstimmung heißt, dass er
-unverändert ist und nie gesendet wird. Deshalb kostet ein zweiter Lauf ohne Änderungen an der Quelle
-nichts. Die ganze Pipeline steht unter [Wie ein Lauf funktioniert](/docs/how-it-works).
+Quell-Hash mit dem festgehaltenen verglichen: Ein Unterschied heißt, dass sich die Quelle geändert
+hat, also wird der Key neu übersetzt; eine Übereinstimmung heißt, dass er nie gesendet wird, also
+kostet ein zweiter Lauf ohne Änderungen an der Quelle nichts. Die ganze Pipeline steht unter
+[Wie ein Lauf funktioniert](/docs/how-it-works).
 
 ### Geschützte Keys
 
@@ -35,16 +35,15 @@ standardmäßig [geschützt](/docs/protecting-human-translations) und bleibt ver
 
 Richtest du verbatra auf Locale-Dateien, die schon reviewte Übersetzungen enthalten, werden sie
 nicht neu übersetzt. Beim ersten Lauf gibt es keine Lock-Datei, also kann nichts veraltet sein: Ein
-Key, den das Ziel hat, ist unverändert und behält seinen Wert, und nur Keys, die im Ziel fehlen,
-werden übersetzt. Der Lauf hält für jeden Key den aktuellen Quell-Hash fest, dieser erste Lauf setzt
-also die Baseline ohne Provider-Kosten.
+Key, den das Ziel hat, behält seinen Wert, nur fehlende Keys werden übersetzt, und der Lauf hält für
+jeden Key den aktuellen Quell-Hash fest und setzt so die Baseline ohne Provider-Kosten.
 
 Die Übernahme richtet sich nach dem Vorhandensein eines Keys, nie nach seinem Wert, und das hat zwei
 Folgen:
 
-- **Ein leerer oder unübersetzter Wert zählt als übersetzt.** Ein Key, dessen Zielwert ein leerer
-  String oder noch der Quelltext ist, existiert, wird also nie gefüllt. Lösch den Key aus der
-  Zieldatei (ihn zu leeren reicht nicht), und der nächste Lauf übersetzt ihn.
+- **Ein leerer oder unübersetzter Wert zählt als übersetzt.** Ein Key, dessen Zielwert leer oder
+  noch der Quelltext ist, existiert, wird also nie gefüllt. Lösch den Key (ihn zu leeren reicht
+  nicht), und der nächste Lauf übersetzt ihn.
 - **Eine veraltete Übersetzung wird als aktuell festgehalten.** Korrigiere oder lösch solche Keys vor
   dem ersten Lauf.
 
@@ -75,9 +74,8 @@ Verschiedene Locales blockieren sich nie gegenseitig.
 Was die Sperre garantiert:
 
 - **Ein Timeout kostet nichts.** `--lock-timeout` begrenzt nur das Warten vor jedem
-  Provider-Aufruf, eine Locale, die aufgibt, hat also nichts ausgegeben und nichts geschrieben. Das
-  Festhalten einer bereits geschriebenen Datei wartet immer die vollen zehn Minuten des Standards,
-  sodass eine geschriebene Datei nie unerfasst bleibt.
+  Provider-Aufruf, eine Locale, die aufgibt, hat also nichts ausgegeben und nichts geschrieben; das
+  Festhalten einer geschriebenen Datei wartet immer die vollen zehn Minuten des Standards.
 - **Verwaiste Sperren blockieren dich nicht.** Eine Sperre, deren Prozess auf diesem Rechner nicht
   mehr existiert, wird sofort übernommen, und ein Halter frischt seine Sperre alle 10 Sekunden auf,
   sodass eine Sperre, die 30 Sekunden lang nicht aufgefrischt wurde, als verwaist gilt, selbst wenn
@@ -200,10 +198,10 @@ hat.
   Übersetzung weglassen, eine Ablehnung wird dort also mit
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported) abgelehnt.
 
-Weil die Entscheidungen in dieser committeten Datei stehen, sehen die Review-Warteschlange und das
-CI-Gate [`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen)
-auf jedem Rechner denselben Zustand. Der Name unter `reviewer` wird committet und ist damit
-öffentlich; verbatra trägt ihn nie von sich aus ein.
+Die Entscheidungen stehen in dieser committeten Datei, also sehen die Review-Warteschlange und
+[`verbatra check --require-reviewed`](/docs/cli/check#freigegebene-übersetzungen-verlangen) auf
+jedem Rechner denselben Zustand, und der Name unter `reviewer` ist öffentlich; verbatra trägt ihn
+nie ein.
 
 ## Committe sie
 

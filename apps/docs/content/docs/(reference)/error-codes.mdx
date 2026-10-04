@@ -13,7 +13,7 @@ Two codes belong to two families: `CONFIG_INVALID` (the SDK, and `init` in the C
 
 ## CLI error codes [#cli-error-codes]
 
-The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (with the type `CliErrorCode`) from `@verbatra/cli`, so a script can check a code against it instead of copying this page. Every one of them exits `2`.
+The CLI raises these codes itself. The same list ships as `CLI_ERROR_CODES` (with the type `CliErrorCode`) from `@verbatra/cli`. Every one of them exits `2`.
 
 ### AGENT_FILE_INVALID
 
@@ -520,7 +520,7 @@ The declaration file `generateTypes` produces could not be written (its director
 
 ### TMX_OUTPUT_CONFLICT
 
-`exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; refused before the memory is read.
+`exportTmx` refused its output path: one that names no file (or ends in a path separator) or resolves outside `cwd` or to `cwd` itself, and one naming a file verbatra manages, as listed under [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), also after symbolic links are resolved; refused before the memory is read.
 
 - **Raised by**: `tmx export`
 - **Exit code**: `2`
@@ -536,7 +536,7 @@ The TMX file `exportTmx` produces could not be written (its directory is not wri
 
 ### EXPORT_OUTPUT_CONFLICT
 
-`exportWorkbook` refused its output path: one that resolves outside `cwd`, and one that, or a file the export would write into it, names a configured locale file, the lock file, the provenance file, the translation-memory cache, a file verbatra searches for its configuration, the config file the run loaded, or the glossary file the config names, also after symbolic links are resolved; an `xlsx` path that names no file or names `cwd` itself is refused too; refused before anything is read.
+`exportWorkbook` refused its output path: one that resolves outside `cwd`, and one that, or a file the export would write into it, names a file verbatra manages, as listed under [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict), also after symbolic links are resolved; an `xlsx` path that names no file or names `cwd` itself is refused too; refused before anything is read.
 
 - **Raised by**: `export`
 - **Exit code**: `2`
@@ -600,7 +600,7 @@ Never thrown: the fallback `code` recorded on a failed locale's `error`.
 
 ## Provider error codes [#provider-error-codes]
 
-A provider failure never surfaces as a raw SDK or HTTP error: verbatra raises a `ProviderError` with one of these codes and a fixed, secret-free message. Inside `translate` and `watch` a failure affects only its own request: its keys are withheld, the locale gets a `SUB_BATCH_FAILED` notice naming the code, and the keys are picked up again on the next run. A single-key retranslation from Studio or the MCP server re-throws the `ProviderError`. How each provider classifies its failures is on [Providers](/docs/providers#structured-errors).
+A provider failure raises a `ProviderError` with one of these codes ([Structured errors](/docs/providers#structured-errors)). Inside `translate` and `watch` only its own request fails: its keys are withheld, the locale gets a `SUB_BATCH_FAILED` notice naming the code, and the keys are picked up again on the next run. A single-key retranslation from Studio or the MCP server re-throws the `ProviderError`.
 
 ### MISSING_API_KEY
 
@@ -612,7 +612,7 @@ The required environment variable is unset or empty. The message names the varia
 
 ### INVALID_REQUEST
 
-The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Fix the config or the request; retrying will not help.
+The request failed validation before any network call: a malformed field, a code DeepL does not accept (a `localeMap` entry giving a regional source code, or a target that resolves to a bare `en` or `pt`), or a code that is not well-formed BCP-47 for Google Cloud Translation. For LibreTranslate it also covers a language your server has no model for and a request over its `--char-limit` or `--batch-limit`. Retrying will not help.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -652,7 +652,7 @@ The request or response was safety-blocked or filtered.
 
 ### RATE_LIMITED
 
-HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit), since Google's API reuses 403 for both quota and credential failures. Back off and retry later, or raise your project's Cloud Translation quota.
+HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also covers an HTTP 403 whose body names a quota reason (a daily or per-minute limit). Google reuses 403 for both quota and credential failures, so raise your project's Cloud Translation quota.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -660,7 +660,7 @@ HTTP 429 or an SDK rate-limit error. For Google Cloud Translation, this also cov
 
 ### TIMEOUT
 
-A network or request timeout; no response arrived in time. Retrying may help, and [`requestTimeoutMs`](/docs/providers#request-timeout) raises the bound.
+A network or request timeout; [`requestTimeoutMs`](/docs/providers#request-timeout) raises the bound.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -676,7 +676,7 @@ HTTP 401 or 403: the key is invalid, revoked, or lacks permission. For Google Cl
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The [retry layers](/docs/providers#retries) already absorb a transient 5xx, so one that reaches this code is a sustained outage. Wait and retry later.
+HTTP 5xx: the provider failed on its own side, and the request itself was never at fault. The [retry layers](/docs/providers#retries) already absorb a transient 5xx, so one that reaches this code is a sustained outage.
 
 - **Raised by**: `translate`, `watch`; Studio and the MCP server when they retranslate
 - **Exit code**: `1`: the failed request's keys are withheld, and the locale ends `partial` or `failed`
@@ -784,11 +784,11 @@ An adapter was registered under a malformed `custom:` identifier.
 
 ## Review gate codes [#check-result-codes]
 
-`check --require-reviewed` fails the job while a machine-written translation is not approved. It reports why as `result.review.code`, stable across releases, so a CI script can branch on it. See [Require reviewed translations](/docs/cli/check#require-reviewed-translations).
+`check --require-reviewed` reports why it failed as `result.review.code` ([Require reviewed translations](/docs/cli/check#require-reviewed-translations)).
 
 ### REVIEW_REQUIRED
 
-At least one machine-written translation (origin `machine`, `memory`, `fuzzy` or `agent`) is not approved in the committed `verbatra.provenance.json`. It is reported as `result.review.code`; the envelope stays `ok: true`, and `result.locales[].review.unreviewed` names the keys.
+At least one machine-written translation (origin `machine`, `memory`, `fuzzy` or `agent`) is not approved in the committed `verbatra.provenance.json`. The envelope stays `ok: true`, and `result.locales[].review.unreviewed` names the keys.
 
 - **Raised by**: `check --require-reviewed`
 - **Exit code**: `1`
@@ -804,7 +804,7 @@ At least one machine-written translation (origin `machine`, `memory`, `fuzzy` or
 
 ## Integrity refusal reasons [#integrity-refusal-reasons]
 
-The [integrity gate](/docs/translation-safety#the-integrity-gate) refuses a candidate value with exactly one of these reasons, the first that applies in the order `empty`, `icu` (does not parse), `placeholder`, `markup`, `icu` (plural arms), `degenerate`. A refused value is never written: the key keeps its baseline and is retried next run. The reason appears in a locale's `integrityRefusals` after `translate`, `watch` and `import` (`integrity-withheld` in the human output), in the result of `editEntry`, and as an error of `check --qa`, often with `details` naming what differs. The set ships as the `INTEGRITY_GATE_REASONS` tuple.
+The [integrity gate](/docs/translation-safety#the-integrity-gate) refuses a candidate value with exactly one of these reasons, the first that applies in the order that page gives. The reason appears in a locale's `integrityRefusals` after `translate`, `watch` and `import` (`integrity-withheld` in the human output), in the result of `editEntry`, and as an error of `check --qa`, often with `details` naming what differs. The set ships as the `INTEGRITY_GATE_REASONS` tuple.
 
 ### placeholder
 
@@ -824,25 +824,20 @@ The candidate's inline HTML or XML markup differs from its source's, or is not w
 
 #### How markup is compared
 
-Tags are compared as a multiset of tag names plus attribute names, which is what decides whether
-something is a finding:
+Tags are compared as a multiset of tag names plus attribute names:
 
-- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names, markup
-  that comes back unbalanced or mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back
-  nested inside another of the same name when the source had them as siblings, which is how two
-  links silently become one.
-- Accepted: the same tags in a different order, because translating a sentence moves its markup
-  around, a changed attribute value, because a translated `title` or a localized `href` is a correct
-  translation rather than a broken one (within the limits on attribute values described below), and
-  either spelling of a void element, so `<br>` and `<br/>` are one tag.
+- Refused: a dropped tag, an invented tag, a renamed tag, a changed set of attribute names (adding a
+  `dir` attribute for a right-to-left target included), markup that comes back unbalanced or
+  mis-nested, such as `<b>a<i>b</b></i>`, and a tag that comes back nested inside another of the
+  same name when the source had them as siblings, which is how two links silently become one.
+- Accepted: the same tags in a different order, a changed attribute value such as a translated
+  `title` or a localized `href` (within the limits on attribute values described below), and either
+  spelling of a void element, so `<br>` and `<br/>` are one tag.
 - Counted, not just noticed: two adjacent pairs merged into one (`<b>a</b> <b>b</b>` becoming
-  `<b>a b</b>`) is refused, because the comparison cannot tell a cosmetic merge from two links
-  collapsing into one.
+  `<b>a b</b>`) is refused.
 - Compared exactly, so a case change is a finding. The HTML void elements (`<br>`, `<img>`, `<hr>`
   and the rest) need no closing tag in any letter case, so `<BR>` is recognised as one just like
   `<br>`.
-- Refused when an attribute name is added or removed, which includes adding a `dir` attribute for a
-  right-to-left target. Attribute values are free apart from those limits; the set of names is not.
 
 A source with no markup at all is still protected against markup invented into it. The candidate is
 refused for any tag pair, void element or self-closing tag it adds, for a closing tag with no
@@ -864,29 +859,29 @@ it to a source that does not have it. The workaround is to keep the bracketed wo
 string too: a translation that carries the same bracketed words as its source is accepted.
 
 Comments, CDATA sections, declarations and processing instructions are not tags, and they are read
-the way an HTML parser reads them, because that is where the values end up. `<!-->` and `<!--->` are
-complete empty comments, a comment ends at the first `-->` or `--!>`, and a comment with no end
-hides the rest of the value. `<![CDATA[`, `<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</`
-followed by anything but a letter, such as `</1 x>`, all end at the first `>`, while an empty `</>`
-is dropped, as a parser drops it, and a numeric closing tag such as `</0>` is compared as a tag.
-Each such construct is compared as a multiset of its text with runs of whitespace collapsed, so one
-the candidate adds, drops or rewrites is refused, including a comment whose text was translated.
-Tags after a construct's end are compared as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>`
-is refused for both the construct and the `<img>`.
+the way an HTML parser reads them. `<!-->` and `<!--->` are complete empty comments, a comment ends
+at the first `-->` or `--!>`, and a comment with no end hides the rest of the value. `<![CDATA[`,
+`<!DOCTYPE html>`, any other `<!...`, `<?...` and a `</` followed by anything but a letter, such as
+`</1 x>`, all end at the first `>`, while an empty `</>` is dropped, as a parser drops it, and a
+numeric closing tag such as `</0>` is compared as a tag. Each such construct is compared as a
+multiset of its text with runs of whitespace collapsed, so one the candidate adds, drops or rewrites
+is refused, including a comment whose text was translated. Tags after a construct's end are compared
+as usual, so `Hallo <![CDATA[><img src=x onerror=...>]]>` is refused for both the construct and the
+`<img>`.
 
-The content of a raw text element is text too, because that is how a parser reads it. After an
-opening `script`, `style`, `title`, `textarea`, `xmp`, `iframe`, `noscript`, `noembed` or `noframes`
-tag, everything up to its closing tag, in any letter case and followed by whitespace, `/` or `>`, is
-text, and everything after `<plaintext>` is text to the end of the value. A tag written inside such
-an element is not compared, and a quoted attribute value cannot reach across the closing tag to hide
-what follows: `Füge ein <script><b x="</script><img src=x onerror=...>` is refused for the `<img>`.
-Where a parser can read that content two ways, the candidate is refused unless it is the source
-unchanged, with a detail such as `+<noscript>...</noscript>`: a `script` whose content opens `<!--`,
-a `noscript` whose content holds a `<`, since whether scripting is enabled decides how it is read,
-and any raw text element whose content holds a `<` after an `svg`, `math` or `select` tag, where it
-may not be raw text at all. For the same reason, a CDATA section or an `image` tag in a value where
-the source or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the
-source unchanged.
+The content of a raw text element is text too. After an opening `script`, `style`, `title`,
+`textarea`, `xmp`, `iframe`, `noscript`, `noembed` or `noframes` tag, everything up to its closing
+tag, in any letter case and followed by whitespace, `/` or `>`, is text, and everything after
+`<plaintext>` is text to the end of the value. A tag written inside such an element is not compared,
+and a quoted attribute value cannot reach across the closing tag to hide what follows:
+`Füge ein <script><b x="</script><img src=x onerror=...>` is refused for the `<img>`. Where a parser
+can read that content two ways, the candidate is refused unless it is the source unchanged, with a
+detail such as `+<noscript>...</noscript>`: a `script` whose content opens `<!--`, a `noscript`
+whose content holds a `<`, since whether scripting is enabled decides how it is read, and any raw
+text element whose content holds a `<` after an `svg`, `math` or `select` tag, where it may not be
+raw text at all. For the same reason, a CDATA section or an `image` tag in a value where the source
+or the candidate opens `svg`, `math` or `select` is refused unless the candidate is the source
+unchanged.
 
 The content of a `script`, `style`, `iframe`, `noembed`, `noframes`, `noscript`, `xmp` or
 `plaintext` element runs or styles the page instead of being shown, so it is never translated: each
@@ -895,8 +890,7 @@ among those of its name in the source, or the candidate is refused with a detail
 `+<script> content`. `title` and `textarea` content is shown as text and may be translated. This
 makes prose that literally contains one of those tags untranslatable, because in
 `Add a <script> tag` everything after `<script>` is its content: `Füge ein <script> Tag` is refused.
-Escape the tag in the source instead, as `Add a &lt;script&gt; tag`, which is text in every format
-and translates like any other word.
+Escape the tag in the source instead, as `Add a &lt;script&gt; tag`.
 
 The check is deliberately quiet, but it reads tags the way an HTML parser does. A tag starts at `<`
 or `</` followed by a letter or, for a numeric rich-text tag such as `<0>`, by digits. Its name runs
@@ -917,24 +911,24 @@ attribute. No source is too large to compare either. A candidate is refused only
 more than twice as many tags and constructs as its source, or more than 256 for a smaller source,
 with the detail `+more than N inline tags` naming that limit.
 
-Attribute values are free with exceptions, which exist because a translated value ends up in a page.
-The value of a URL attribute (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`, `data`,
-`background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive`, and the SVG
-animation attributes `to`, `from`, `values` and `by`) is read after decoding numeric character
-references and `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` and `&bsol;` and ignoring tabs, line breaks
-and surrounding control characters. A `javascript:`, `vbscript:` or `data:` scheme in it is refused
-unless the source carries that exact value on the same tag and attribute, with a detail such as
-`+<a href="javascript:...">`. Beyond that, every URL in the value, including each URL of a `srcset`,
-`ping`, `archive` or `values` list, must keep a scheme and authority (host and port, or the host of
-a scheme-relative `//host` URL) that a source value of the same tag and attribute has, and a
-relative URL must stay relative. So `/docs` may become `/de/docs` and `https://verbatra.dev/en` may
-become `https://verbatra.dev/de`, but `/docs` may not become `https://evil.example/docs` or
-`//evil.example/docs`, and a localized absolute link has to keep the same host; the detail names the
-new origin, such as `+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute
-link made relative. The path, query and fragment may change freely. A changed URL without an
-explicit `http`, `https`, `ws`, `wss`, `ftp` or `file` scheme is also refused when a backslash (`\`
-or `%5C`) sits in its leading slashes or its host, because a page on another scheme reads
-`//verbatra.dev\@evil.example/` as a link to evil.example.
+Attribute values are free with these exceptions. The value of a URL attribute (`href`, `src`,
+`action`, `formaction`, `xlink:href`, `poster`, `data`, `background`, `ping`, `cite`, `longdesc`,
+`srcset`, `manifest`, `codebase`, `archive`, and the SVG animation attributes `to`, `from`, `values`
+and `by`) is read after decoding numeric character references and `&colon;`, `&Tab;`, `&NewLine;`,
+`&sol;` and `&bsol;` and ignoring tabs, line breaks and surrounding control characters. A
+`javascript:`, `vbscript:` or `data:` scheme in it is refused unless the source carries that exact
+value on the same tag and attribute, with a detail such as `+<a href="javascript:...">`. Beyond
+that, every URL in the value, including each URL of a `srcset`, `ping`, `archive` or `values` list,
+must keep a scheme and authority (host and port, or the host of a scheme-relative `//host` URL) that
+a source value of the same tag and attribute has, and a relative URL must stay relative. So `/docs`
+may become `/de/docs` and `https://verbatra.dev/en` may become `https://verbatra.dev/de`, but
+`/docs` may not become `https://evil.example/docs` or `//evil.example/docs`, and a localized
+absolute link has to keep the same host; the detail names the new origin, such as
+`+<a href="https://evil.example...">`, or `+<a href="./...">` for an absolute link made relative.
+The path, query and fragment may change freely. A changed URL without an explicit `http`, `https`,
+`ws`, `wss`, `ftp` or `file` scheme is also refused when a backslash (`\` or `%5C`) sits in its
+leading slashes or its host, because a page on another scheme reads `//verbatra.dev\@evil.example/`
+as a link to evil.example.
 
 Some attribute values must come back exactly as the source has them, compared after decoding
 character references, with a detail such as `+<meta content="...">`: `http-equiv` and `content` on
@@ -950,9 +944,8 @@ arms into one value separated by a pipe (Vue I18n), a translation that adds the 
 needs repeats the source's markup and is refused. The same happens for an ICU-style plural
 (`{count, plural, one {...} other {...}}`) in a format that stores it as plain text rather than
 parsing it as ICU (i18next, ngx-translate and YAML): a translation with a different number of arms
-than the source repeats or drops the markup inside them and is refused. In both cases the value is
-withheld and the previous translation stays, so nothing is lost, but the arms have to be added
-without also multiplying the markup.
+than the source repeats or drops the markup inside them and is refused. In both cases the previous
+translation stays.
 
 The check also stands down per tag. A tag the format already reports as a placeholder (an XLIFF
 inline element, a next-intl or ARB ICU rich-text tag) is left to the placeholder check, together
@@ -961,9 +954,7 @@ kind that the candidate leaves unclosed is still refused, named by the closing t
 such as `-</g>`. So is one whose nesting with the other tags no longer matches the source, such as a
 `<b>` that comes back crossing the `<g>` it sat inside, and one the source carries only as text,
 inside a comment or a raw text element, because moving it out would create the element. Every other
-tag in the same value is still compared, including a surplus closing tag such as a second `</g>`. A
-refusal names the tags behind it, each prefixed with `-` for one the source had and the candidate
-dropped or `+` for one the candidate invented.
+tag in the same value is still compared, including a surplus closing tag such as a second `</g>`.
 
 ### icu
 
@@ -997,7 +988,7 @@ A review flag marks an accepted translation as worth a second look; it never wit
 
 The translation is far shorter or longer than its source.
 
-It fires below 0.35 times or above 3.0 times the trimmed source length; very short sources are skipped. Length is counted in grapheme clusters, and each character is weighted by its script: a Chinese character counts 3.5, a Japanese kana 1.5 and a Korean syllable 2, so a correct translation into those languages is not flagged just for being compact.
+It fires below 0.35 times or above 3.0 times the trimmed source length; very short sources are skipped. Length is counted in grapheme clusters, and each character is weighted by its script: a Chinese character counts 3.5, a Japanese kana 1.5 and a Korean syllable 2.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
@@ -1007,7 +998,7 @@ It fires below 0.35 times or above 3.0 times the trimmed source length; very sho
 
 The translation is longer than the `maxLength` budget configured for its key.
 
-Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured. The value is still written and locked, because a correct translation that overruns a layout beats none.
+Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured. The value is still written and locked.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`

@@ -13,7 +13,7 @@ Zwei Codes gehören zu zwei Familien: `CONFIG_INVALID` (das SDK und `init` in de
 
 ## CLI-Fehlercodes [#cli-error-codes]
 
-Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` (mit dem Typ `CliErrorCode`) aus `@verbatra/cli` ausgeliefert, sodass ein Skript einen Code damit abgleichen kann, statt diese Seite abzuschreiben. Jeder von ihnen endet mit Exit-Code `2`.
+Diese Codes löst die CLI selbst aus. Dieselbe Liste wird als `CLI_ERROR_CODES` (mit dem Typ `CliErrorCode`) aus `@verbatra/cli` ausgeliefert. Jeder von ihnen endet mit Exit-Code `2`.
 
 ### AGENT_FILE_INVALID
 
@@ -520,7 +520,7 @@ Die von `generateTypes` erzeugte Deklarationsdatei konnte nicht geschrieben werd
 
 ### TMX_OUTPUT_CONFLICT
 
-`exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird.
+`exportTmx` hat seinen Ausgabepfad abgelehnt: einen, der keine Datei benennt (oder auf ein Pfadtrennzeichen endet) oder außerhalb von `cwd` oder auf `cwd` selbst landet, und einen, der eine von verbatra verwaltete Datei benennt, wie unter [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) aufgeführt, auch nach dem Auflösen symbolischer Links; wird abgelehnt, bevor der Übersetzungsspeicher gelesen wird.
 
 - **Ausgelöst von**: `tmx export`
 - **Exit-Code**: `2`
@@ -536,7 +536,7 @@ Die von `exportTmx` erzeugte TMX-Datei konnte nicht geschrieben werden (ihr Verz
 
 ### EXPORT_OUTPUT_CONFLICT
 
-`exportWorkbook` hat seinen Ausgabepfad abgelehnt: einen, der außerhalb von `cwd` landet, und einen, der selbst oder über eine Datei, die der Export hineinschreiben würde, eine konfigurierte Locale-Datei, die Lock-Datei, die Herkunftsdatei, den Übersetzungsspeicher-Cache, eine Datei, nach der verbatra seine Konfiguration sucht, die geladene Konfigurationsdatei oder die Glossardatei der Konfiguration benennt, auch nach dem Auflösen symbolischer Links; ein `xlsx`-Pfad, der keine Datei oder `cwd` selbst benennt, wird ebenfalls abgelehnt; wird abgelehnt, bevor irgendetwas gelesen wird.
+`exportWorkbook` hat seinen Ausgabepfad abgelehnt: einen, der außerhalb von `cwd` landet, und einen, der selbst oder über eine Datei, die der Export hineinschreiben würde, eine von verbatra verwaltete Datei benennt, wie unter [`TYPES_OUTPUT_CONFLICT`](#types_output_conflict) aufgeführt, auch nach dem Auflösen symbolischer Links; ein `xlsx`-Pfad, der keine Datei oder `cwd` selbst benennt, wird ebenfalls abgelehnt; wird abgelehnt, bevor irgendetwas gelesen wird.
 
 - **Ausgelöst von**: `export`
 - **Exit-Code**: `2`
@@ -600,7 +600,7 @@ Wird nie geworfen: der Rückfall-`code` auf dem `error` einer fehlgeschlagenen L
 
 ## Provider-Fehlercodes [#provider-error-codes]
 
-Ein Provider-Fehler taucht nie als roher SDK- oder HTTP-Fehler auf: verbatra wirft einen `ProviderError` mit einem dieser Codes und einer festen, geheimnisfreien Meldung. Innerhalb von `translate` und `watch` betrifft ein Fehler nur seine eigene Anfrage: Ihre Keys werden zurückgehalten, das Locale bekommt einen Hinweis `SUB_BATCH_FAILED` mit dem Code, und die Keys werden beim nächsten Lauf wieder aufgegriffen. Eine Neuübersetzung eines einzelnen Keys aus Studio oder dem MCP-Server wirft den `ProviderError` weiter. Wie jeder Provider seine Fehler einordnet, steht unter [Provider](/docs/providers#strukturierte-fehler).
+Ein Provider-Fehler wirft einen `ProviderError` mit einem dieser Codes ([Strukturierte Fehler](/docs/providers#strukturierte-fehler)). Innerhalb von `translate` und `watch` scheitert nur seine eigene Anfrage: Ihre Keys werden zurückgehalten, das Locale bekommt einen Hinweis `SUB_BATCH_FAILED` mit dem Code, und die Keys werden beim nächsten Lauf wieder aufgegriffen. Eine Neuübersetzung eines einzelnen Keys aus Studio oder dem MCP-Server wirft den `ProviderError` weiter.
 
 ### MISSING_API_KEY
 
@@ -612,7 +612,7 @@ Die erforderliche Umgebungsvariable ist ungesetzt oder leer. Die Meldung nennt d
 
 ### INVALID_REQUEST
 
-Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Code, den DeepL nicht akzeptiert (ein `localeMap`-Eintrag mit einem regionalen Quell-Code oder ein Ziel, das auf ein bloßes `en` oder `pt` hinausläuft), oder ein Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Bei LibreTranslate deckt es auch eine Sprache ab, für die dein Server kein Modell hat, und eine Anfrage über seinem `--char-limit` oder `--batch-limit`. Korrigiere die Konfiguration oder die Anfrage; Wiederholen hilft nicht.
+Die Anfrage ist vor jedem Netzwerkaufruf an der Validierung gescheitert: ein fehlerhaftes Feld, ein Code, den DeepL nicht akzeptiert (ein `localeMap`-Eintrag mit einem regionalen Quell-Code oder ein Ziel, das auf ein bloßes `en` oder `pt` hinausläuft), oder ein Code, der bei Google Cloud Translation kein wohlgeformtes BCP-47 ist. Bei LibreTranslate deckt es auch eine Sprache ab, für die dein Server kein Modell hat, und eine Anfrage über seinem `--char-limit` oder `--batch-limit`. Wiederholen hilft nicht.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -652,7 +652,7 @@ Anfrage oder Antwort wurde aus Sicherheitsgründen blockiert oder gefiltert.
 
 ### RATE_LIMITED
 
-HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit), da Googles API 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler nutzt. Warte und versuche es später erneut, oder erhöhe das Cloud-Translation-Kontingent deines Projekts.
+HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hierzu auch ein HTTP 403, dessen Rumpf einen Kontingentgrund nennt (ein Tages- oder Minutenlimit). Google nutzt 403 sowohl für Kontingent- als auch für Zugangsdaten-Fehler, erhöhe also das Cloud-Translation-Kontingent deines Projekts.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -660,7 +660,7 @@ HTTP 429 oder ein SDK-Rate-Limit-Fehler. Bei Google Cloud Translation gehört hi
 
 ### TIMEOUT
 
-Ein Netzwerk- oder Anfrage-Timeout; keine Antwort kam rechtzeitig an. Wiederholen kann helfen, und [`requestTimeoutMs`](/docs/providers#anfrage-timeout) hebt die Grenze an.
+Ein Netzwerk- oder Anfrage-Timeout; [`requestTimeoutMs`](/docs/providers#anfrage-timeout) hebt die Grenze an.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -676,7 +676,7 @@ HTTP 401 oder 403: Der Key ist ungültig, widerrufen oder ohne Berechtigung. Pr�
 
 ### PROVIDER_UNAVAILABLE
 
-HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die [Wiederholungsebenen](/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung. Warte und versuche es später erneut.
+HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage selbst war nie schuld. Die [Wiederholungsebenen](/docs/providers#wiederholungen) fangen ein vorübergehendes 5xx bereits ab; ein 5xx, das diesen Code erreicht, ist also eine anhaltende Störung.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -684,7 +684,7 @@ HTTP 5xx: Der Provider ist auf seiner eigenen Seite gescheitert, die Anfrage sel
 
 ### NETWORK_POLICY_VIOLATION [#provider-network_policy_violation]
 
-Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Ein neuer Versuch hilft nicht.
+Die [Netzwerkrichtlinie](/docs/network-policy) hat die Anfrage direkt vor dem Senden abgelehnt: Der Hostname löste zu einer Adresse auf, die die Richtlinie nicht erlaubt, oder eine Antwort leitete zu einem abgelehnten Host weiter. Die Meldung nennt nur den Host. Wiederholen hilft nicht.
 
 - **Ausgelöst von**: `translate`, `watch`; Studio und der MCP-Server beim Neuübersetzen
 - **Exit-Code**: `1`: die Keys der gescheiterten Anfrage werden zurückgehalten, und das Locale endet `partial` oder `failed`
@@ -784,11 +784,11 @@ Ein Adapter wurde unter einer fehlerhaften `custom:`-Kennung registriert.
 
 ## Codes des Review-Gates [#check-result-codes]
 
-`check --require-reviewed` lässt den Job scheitern, solange eine maschinell geschriebene Übersetzung nicht freigegeben ist. Den Grund meldet es als `result.review.code`, stabil über Releases hinweg, sodass ein CI-Skript darauf verzweigen kann. Siehe [`verbatra check`](/docs/cli/check).
+`check --require-reviewed` meldet, warum es scheitert, als `result.review.code` ([`verbatra check`](/docs/cli/check)).
 
 ### REVIEW_REQUIRED
 
-Mindestens eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memory`, `fuzzy` oder `agent`) ist in der committeten `verbatra.provenance.json` nicht freigegeben. Er steht in `result.review.code`; der Envelope bleibt `ok: true`, und `result.locales[].review.unreviewed` nennt die Keys.
+Mindestens eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memory`, `fuzzy` oder `agent`) ist in der committeten `verbatra.provenance.json` nicht freigegeben. Der Envelope bleibt `ok: true`, und `result.locales[].review.unreviewed` nennt die Keys.
 
 - **Ausgelöst von**: `check --require-reviewed`
 - **Exit-Code**: `1`
@@ -804,7 +804,7 @@ Mindestens eine maschinell geschriebene Übersetzung (Herkunft `machine`, `memor
 
 ## Gründe für Integritätsablehnungen [#integrity-refusal-reasons]
 
-Das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) lehnt einen Kandidatenwert mit genau einem dieser Gründe ab, dem ersten, der in der Reihenfolge `empty`, `icu` (lässt sich nicht parsen), `placeholder`, `markup`, `icu` (Plural-Zweige), `degenerate` zutrifft. Ein abgelehnter Wert wird nie geschrieben: Der Key behält seine Baseline und wird beim nächsten Lauf erneut versucht. Der Grund steht nach `translate`, `watch` und `import` in den `integrityRefusals` einer Locale (`integrity-withheld` in der Ausgabe für Menschen), im Ergebnis von `editEntry` und als Fehler von `check --qa`, oft mit `details`, die nennen, was abweicht. Die Menge wird als Tupel `INTEGRITY_GATE_REASONS` ausgeliefert.
+Das [Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) lehnt einen Kandidatenwert mit genau einem dieser Gründe ab, dem ersten, der in der dort genannten Reihenfolge zutrifft. Der Grund steht nach `translate`, `watch` und `import` in den `integrityRefusals` einer Locale (`integrity-withheld` in der Ausgabe für Menschen), im Ergebnis von `editEntry` und als Fehler von `check --qa`, oft mit `details`, die nennen, was abweicht. Die Menge wird als Tupel `INTEGRITY_GATE_REASONS` ausgeliefert.
 
 ### placeholder
 
@@ -824,27 +824,22 @@ Das Inline-HTML- oder -XML-Markup des Kandidaten weicht von dem seiner Quelle ab
 
 #### Wie Markup verglichen wird
 
-Tags werden als Multimenge aus Tag-Namen plus Attributnamen verglichen, und genau das entscheidet,
-was ein Befund ist:
+Tags werden als Multimenge aus Tag-Namen plus Attributnamen verglichen:
 
 - Abgelehnt: ein weggelassenes Tag, ein erfundenes Tag, ein umbenanntes Tag, ein geänderter Satz von
-  Attributnamen, Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
+  Attributnamen (auch ein ergänztes `dir`-Attribut für ein Ziel mit Schreibrichtung von rechts nach
+  links), Markup, das unausgeglichen oder falsch verschachtelt zurückkommt, etwa
   `<b>a<i>b</b></i>`, sowie ein Tag, das in einem anderen gleichen Namens verschachtelt zurückkommt,
   obwohl die Quelle sie nebeneinander hatte, denn so werden aus zwei Links still und leise einer.
-- Akzeptiert: dieselben Tags in anderer Reihenfolge, weil das Übersetzen eines Satzes dessen Markup
-  verschiebt, ein geänderter Attributwert, weil ein übersetztes `title` oder ein lokalisiertes
-  `href` eine korrekte Übersetzung ist und keine kaputte (innerhalb der weiter unten beschriebenen
+- Akzeptiert: dieselben Tags in anderer Reihenfolge, ein geänderter Attributwert wie ein übersetztes
+  `title` oder ein lokalisiertes `href` (innerhalb der weiter unten beschriebenen
   Grenzen für Attributwerte), und beide Schreibweisen eines leeren Elements, `<br>` und `<br/>` sind
   dasselbe Tag.
 - Gezählt, nicht nur bemerkt: zwei benachbarte Paare, die zu einem verschmolzen werden
-  (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt, weil der Vergleich eine kosmetische
-  Verschmelzung nicht davon unterscheiden kann, dass zwei Links zu einem werden.
+  (`<b>a</b> <b>b</b>` wird `<b>a b</b>`), werden abgelehnt.
 - Exakt verglichen: Eine Änderung der Groß- und Kleinschreibung ist ein Befund. Die leeren
   HTML-Elemente (`<br>`, `<img>`, `<hr>` und die übrigen) brauchen in jeder Schreibweise kein
   schließendes Tag, `<BR>` wird also genauso als leeres Element erkannt wie `<br>`.
-- Abgelehnt, wenn ein Attributname hinzukommt oder wegfällt, also auch, wenn für ein Ziel mit
-  Schreibrichtung von rechts nach links ein `dir`-Attribut ergänzt wird. Attributwerte sind bis auf diese Grenzen frei, die
-  Menge der Namen ist es nicht.
 
 Auch eine Quelle ganz ohne Markup ist gegen hineinerfundenes Markup geschützt. Der Kandidat wird
 abgelehnt für jedes Tag-Paar, jedes leere Element und jedes selbstschließende Tag, das er ergänzt,
@@ -869,7 +864,7 @@ auch in deinem Quellstring: Eine Übersetzung, die dieselben Wörter in spitzen 
 Quelle, wird angenommen.
 
 Kommentare, CDATA-Abschnitte, Deklarationen und Verarbeitungsanweisungen sind keine Tags, und sie
-werden so gelesen, wie ein HTML-Parser sie liest, denn genau dort landen die Werte. `<!-->` und
+werden so gelesen, wie ein HTML-Parser sie liest. `<!-->` und
 `<!--->` sind vollständige leere Kommentare, ein Kommentar endet beim ersten `-->` oder `--!>`, und
 ein Kommentar ohne Ende verbirgt den Rest des Werts. `<![CDATA[`, `<!DOCTYPE html>`, jedes andere
 `<!...`, `<?...` und ein `</`, auf das etwas anderes als ein Buchstabe folgt, etwa `</1 x>`, enden
@@ -881,7 +876,7 @@ Kandidat ergänzt, weglässt oder umschreibt, wird also abgelehnt, auch ein Komm
 `Hallo <![CDATA[><img src=x onerror=...>]]>` wird also sowohl für das Konstrukt als auch für das
 `<img>` abgelehnt.
 
-Auch der Inhalt eines Raw-Text-Elements ist Text, denn so liest ihn ein Parser. Nach einem öffnenden
+Auch der Inhalt eines Raw-Text-Elements ist Text. Nach einem öffnenden
 `script`-, `style`-, `title`-, `textarea`-, `xmp`-, `iframe`-, `noscript`-, `noembed`- oder
 `noframes`-Tag ist alles bis zu seinem schließenden Tag Text, in beliebiger Schreibweise und gefolgt
 von Leerraum, `/` oder `>`, und nach `<plaintext>` ist alles bis zum Ende des Werts Text. Ein Tag,
@@ -905,7 +900,7 @@ der Kandidat mit einem Detail wie `+<script> content` abgelehnt. Der Inhalt von 
 `textarea` wird als Text angezeigt und darf übersetzt werden. Damit ist normaler Text, der eines dieser Tags wörtlich
 enthält, nicht übersetzbar, denn in `Add a <script> tag` ist alles nach `<script>` sein Inhalt:
 `Füge ein <script> Tag` wird abgelehnt. Maskiere das Tag stattdessen in der Quelle, als
-`Add a &lt;script&gt; tag`, das ist in jedem Format Text und wird wie jedes andere Wort übersetzt.
+`Add a &lt;script&gt; tag`.
 
 Die Prüfung ist bewusst zurückhaltend, liest Tags aber so, wie ein HTML-Parser es tut. Ein Tag
 beginnt bei `<` oder `</`, gefolgt von einem Buchstaben oder, bei einem numerischen Rich-Text-Tag
@@ -929,8 +924,7 @@ Quelle zu groß für den Vergleich. Ein Kandidat wird erst abgelehnt, wenn er me
 viele Tags und Konstrukte trägt wie seine Quelle, bei einer kleineren Quelle mehr als 256, mit dem
 Detail `+more than N inline tags`, das diese Grenze nennt.
 
-Attributwerte sind frei, mit Ausnahmen, die es gibt, weil ein übersetzter Wert in einer Seite
-landet. Der Wert eines URL-Attributs (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
+Attributwerte sind frei, mit diesen Ausnahmen. Der Wert eines URL-Attributs (`href`, `src`, `action`, `formaction`, `xlink:href`, `poster`,
 `data`, `background`, `ping`, `cite`, `longdesc`, `srcset`, `manifest`, `codebase`, `archive` sowie
 die SVG-Animationsattribute `to`, `from`, `values` und `by`) wird gelesen, nachdem numerische
 Zeichenreferenzen sowie `&colon;`, `&Tab;`, `&NewLine;`, `&sol;` und `&bsol;` dekodiert und Tabs,
@@ -964,9 +958,7 @@ Pluralformen durch einen senkrechten Strich getrennt in einen Wert packt (Vue I1
 Dasselbe passiert bei einem Plural im ICU-Stil (`{count, plural, one {...} other {...}}`) in einem
 Format, das ihn als reinen Text speichert, statt ihn als ICU zu parsen (i18next, ngx-translate und
 YAML): Eine Übersetzung mit einer anderen Zahl von Formen als die Quelle wiederholt das Markup darin
-oder lässt es weg und wird abgelehnt. In beiden Fällen wird der Wert zurückgehalten und die
-bisherige Übersetzung bleibt, es geht also nichts verloren, aber die Formen müssen ergänzt werden,
-ohne das Markup mitzuvervielfachen.
+oder lässt es weg und wird abgelehnt. In beiden Fällen bleibt die bisherige Übersetzung.
 
 Die Prüfung tritt außerdem pro Tag zurück. Ein Tag, das das Format ohnehin als Platzhalter meldet
 (ein XLIFF-Inline-Element, ein ICU-Rich-Text-Tag von next-intl oder ARB), bleibt zusammen mit so
@@ -976,9 +968,7 @@ und über das fehlende schließende Tag benannt, etwa `-</g>`. Ebenso eines, des
 mit den übrigen Tags nicht mehr der Quelle entspricht, etwa ein `<b>`, das das `<g>`, in dem es
 stand, jetzt kreuzt, und eines, das die Quelle nur als Text trägt, in einem Kommentar oder einem
 Raw-Text-Element, weil es herausgezogen das Element erzeugen würde. Jedes andere Tag im selben Wert
-wird weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`. Eine
-Ablehnung nennt die betroffenen Tags, jeweils mit `-` für eines, das die Quelle hatte und der
-Kandidat weggelassen hat, oder `+` für eines, das der Kandidat erfunden hat.
+wird weiterhin verglichen, auch ein überzähliges schließendes Tag wie ein zweites `</g>`.
 
 ### icu
 
@@ -1012,7 +1002,7 @@ Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick w
 
 Die Übersetzung ist viel kürzer oder länger als ihre Quelle.
 
-Er greift unter dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Quelllänge; sehr kurze Quellen werden übersprungen. Gezählt wird in Graphem-Clustern, und jedes Zeichen wird nach seiner Schrift gewichtet: Ein chinesisches Zeichen zählt 3.5, ein japanisches Kana 1.5 und eine koreanische Silbe 2, damit eine korrekte Übersetzung in diese Sprachen nicht nur wegen ihrer Kürze markiert wird.
+Er greift unter dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Quelllänge; sehr kurze Quellen werden übersprungen. Gezählt wird in Graphem-Clustern, und jedes Zeichen wird nach seiner Schrift gewichtet: Ein chinesisches Zeichen zählt 3.5, ein japanisches Kana 1.5 und eine koreanische Silbe 2.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -1022,7 +1012,7 @@ Er greift unter dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Quelll�
 
 Die Übersetzung ist länger als das für ihren Key konfigurierte `maxLength`-Budget.
 
-Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die Grenze ist inklusiv, ein Wert von genau der Budgethöhe wird also nicht markiert, und ein Key ohne Budget wird nie gemessen. Der Wert wird trotzdem geschrieben und gelockt, denn eine korrekte Übersetzung, die ein Layout sprengt, ist besser als gar keine.
+Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die Grenze ist inklusiv, ein Wert von genau der Budgethöhe wird also nicht markiert, und ein Key ohne Budget wird nie gemessen. Der Wert wird trotzdem geschrieben und gelockt.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`

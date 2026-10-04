@@ -3,12 +3,11 @@ title: Sprachen und Locales
 description: Welche Sprachen verbatra übersetzen kann, wie Locale-Codes bei jedem Provider ankommen und wie Plurale, Schriften, regionale Varianten und Rechts-nach-links-Text behandelt werden.
 type: concept
 ---
-verbatra hat keine eigene Sprachliste. Es akzeptiert jeden gültigen BCP-47-Locale-Code, behandelt
-die Strings jeder Sprache gleich und überlässt die Übersetzung deinem Provider. Du kannst also die
-Sprachen nutzen, die dein Provider unterstützt, und in einem reinen Handarbeits-Projekt alle. Der
-Teil von verbatra ist, jeden Code so zu schreiben, wie der Provider ihn erwartet, jede Übersetzung an
-den Pluralregeln ihrer Sprache zu messen und dich vor einem Lauf zu warnen, wenn ein Provider eine
-Locale nicht bedienen kann.
+verbatra hat keine eigene Sprachliste. Es akzeptiert jeden gültigen BCP-47-Locale-Code und überlässt
+die Übersetzung deinem Provider. Du kannst also die Sprachen nutzen, die dein Provider unterstützt,
+und in einem reinen Handarbeits-Projekt alle. Der Teil von verbatra ist, jeden Code so zu schreiben,
+wie der Provider ihn erwartet, jede Übersetzung an den Pluralregeln ihrer Sprache zu messen und dich
+vor einem Lauf zu warnen, wenn ein Provider eine Locale nicht bedienen kann.
 
 ## Locale-Codes
 
@@ -52,8 +51,7 @@ Was das in der Praxis heißt:
   verdächtigsten Ergebnisse.
 - **DeepL und Google Cloud Translation** haben eine geschlossene Liste, die vor einem Lauf geprüft
   wird. Wie LibreTranslate [maskieren sie Platzhalter](/docs/providers#deepl) und halten einen Wert
-  zurück, den sie nicht schützen können, etwa ICU-Plural-, -Select- oder -Number-Syntax, Markup
-  neben einem Platzhalter oder, bei Google, einen Zeilenumbruch, einen Tab oder doppelte Leerzeichen.
+  zurück, den sie nicht schützen können.
 - **LibreTranslate** bedient die Modelle, die dein Server installiert hat.
 - Einen `tone` oder ein Glossar, das ein Provider nicht umsetzen kann, meldet verbatra als Hinweis,
   nie stillschweigend. Siehe
@@ -63,16 +61,12 @@ Was das in der Praxis heißt:
 
 <AvailableFrom version="0.12.0" />
 
-DeepL bekommt seine eigenen Varianten (`EN-GB`, `PT-BR`, `ES-419`, `ZH-HANT`) und lässt jede andere
-Region oder Schrift weg; es hat kein generisches Englisch- oder Portugiesisch-Ziel, ein reines `en`-
-oder `pt`-Ziel scheitert also vor jedem Request. Google Cloud Translation bekommt Chinesisch als
-`zh-CN` oder `zh-TW` und `nb` als `no`. LLM-Provider bekommen den Code wie geschrieben,
-plus den englischen Namen von Sprache, Schrift und Region, und werden angewiesen, in dieser Schrift
-und Variante zu schreiben; siehe
+DeepL und Google Cloud Translation bekommen manche Codes in ihrer eigenen Schreibweise, und DeepL
+lehnt ein reines `en`- oder `pt`-Ziel vor jedem Request ab. LLM-Provider bekommen den Code wie
+geschrieben plus den englischen Namen von Sprache, Schrift und Region; siehe
 [Namen von Sprache, Schrift und Region](/docs/translation-safety#namen-von-sprache-schrift-und-region).
-
-Ist die eingebaute Zuordnung nicht, was du willst, setzt `localeMap` in den `options` des Providers
-den genauen Code pro Locale. Die vollständige Zuordnung steht unter
+`localeMap` in den `options` des Providers überschreibt den Code pro Locale. Die vollständige
+Zuordnung steht unter
 [An den Provider gesendete Locale-Codes](/docs/providers#an-den-provider-gesendete-locale-codes).
 
 ## Unterstützung vor einem Lauf prüfen
@@ -92,12 +86,10 @@ Urteile aus. Jede Locale bekommt eines von dreien:
   und ein Retranslate eines einzelnen Keys lehnen den ganzen Lauf mit
   [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider) ab.
 
-Der ganze Lauf wird abgelehnt, nicht nur eine Locale, damit eine Pipeline nie wegen eines
-Konfigurationsfehlers halb übersetzt endet. Lass die Locale mit `--locales` weg, oder, wenn der
-Provider die Sprache nach dem Datum der Tabelle hinzugefügt hat, ordne sie in `localeMap` zu: Einem
-expliziten Eintrag wird vertraut. Die mitgelieferten Tabellen sind datierte Kopien der Listen der
-Anbieter (DeepL mit 125 Codes und Google mit 198, beide vom 2026-09-28); `verbatra doctor --live`
-prüft stattdessen gegen die aktuelle Liste.
+Lass die Locale mit `--locales` weg, oder, wenn der Provider die Sprache nach dem Datum der Tabelle
+hinzugefügt hat, ordne sie in `localeMap` zu: Einem expliziten Eintrag wird vertraut. Die
+mitgelieferten Tabellen sind datierte Kopien der Listen der Anbieter (DeepL mit 125 Codes und Google
+mit 198, beide vom 2026-09-28); `verbatra doctor --live` prüft stattdessen gegen die aktuelle Liste.
 
 LLM-Provider akzeptieren jede Sprache, für sie wird also nichts abgelehnt. Ein Ziel außerhalb der
 Sprachen, die LLMs bekanntermaßen gut übersetzen, bekommt die Warnung `LOCALE_NOT_WELL_TESTED` als

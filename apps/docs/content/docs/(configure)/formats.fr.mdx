@@ -201,19 +201,19 @@ Dans `i18next-json`, `vue-i18n-json` et `next-intl-json`, une feuille littérale
 - **Écritures atomiques.** Un fichier temporaire est renommé en place, donc une interruption ne laisse jamais un fichier à moitié écrit.
 - **Mise en forme.** Les formats XML conservent la fin de ligne et le saut de ligne final, et indentent les nouveaux éléments comme leurs voisins. Une nouvelle entrée gettext suit une ligne vide, et un `.po` créé nomme sa locale dans `Language` (`pt_BR`).
 - **Feuilles qui ne sont pas des chaînes.** Dans les formats JSON, YAML et ARB, une feuille nombre, booléen ou null est acceptée mais jamais traduite, et une réécriture de ce fichier ne la conserve pas ; un tableau échoue avec `INVALID_STRUCTURE`.
-- **Les erreurs** sont structurées et sans secret : `INVALID_JSON`, `INVALID_YAML`, `INVALID_XML`, `INVALID_STRUCTURE`, `MIXED_STRUCTURE`, et pour les adaptateurs `ADAPTER_FAILED` et `DUPLICATE_FORMAT`. Voir les [codes d'erreur des adaptateurs](/docs/error-codes#adapter-error-codes).
+- **Les erreurs** sont structurées et sans secret ; voir les [codes d'erreur des adaptateurs](/docs/error-codes#adapter-error-codes).
 
 ## Formats extérieurs à verbatra
 
 <AvailableFrom version="0.11.0" />
 
-Un format que verbatra ne fournit pas peut venir d'un adaptateur dans ton propre paquet, nommé avec un id `custom:` comme `custom:toml`. Aucun id intégré ne contient de deux-points, donc il ne peut jamais en masquer un. C'est une voie SDK uniquement, puisque le binaire `verbatra` ne charge aucun plugin, et l'adaptateur s'exécute comme du code de confiance. Voir [Écrire un adaptateur de format personnalisé](/docs/custom-format-adapters).
+Un format que verbatra ne fournit pas peut venir d'un adaptateur dans ton propre paquet, nommé avec un id `custom:` comme `custom:toml`. Il passe uniquement par le SDK, comme du code de confiance : voir [Écrire un adaptateur de format personnalisé](/docs/custom-format-adapters).
 
 ## Balisage en ligne dans les valeurs
 
 <AvailableFrom version="0.11.0" />
 
-Une valeur peut porter son propre HTML ou XML, comme `<b>` dans un bloc `Trans` d'i18next ou un `&lt;b&gt;` échappé dans un `<string>` Android. La [vérification de parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne) refuse une traduction qui perd, invente, renomme ou déséquilibre une balise, dans tous les formats, balise par balise :
+La [vérification de parité du balisage](/docs/translation-safety#parité-du-balisage-en-ligne) s'applique dans tous les formats, balise par balise :
 
 - `xliff` protège ses propres éléments en ligne comme placeholders ; tout autre HTML comme `<b>` est comparé comme du balisage.
 - `next-intl-json` et `arb` traitent un `<b>...</b>` apparié comme un placeholder, tandis qu'un `<br/>` auto-fermant est comparé comme du balisage. Une balise portant des attributs est de l'ICU invalide et refusée.

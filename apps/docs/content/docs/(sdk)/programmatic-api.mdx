@@ -52,7 +52,7 @@ out.
 ## Check in CI without writing
 
 `check` reads and diffs without calling a provider or touching any file, and its `inSync` flag is
-true exactly when nothing is missing or stale. That makes it the natural CI gate.
+true exactly when nothing is missing or stale.
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -277,8 +277,7 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists what each of them throws. See
-[Review in Studio](/docs/review-in-studio) for the same seams behind a UI.
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) lists what each of them throws.
 
 ### Values a person wrote
 
@@ -337,8 +336,7 @@ for (const { locale, needsReview } of queue.locales) {
 <AvailableFrom version="0.10.0" />
 
 `localeValues` is the bulk counterpart to `keyValue`: one pass over the files already on disk,
-returning every key's current source and target text per locale. Reach for it when a caller needs
-to search or scan translation content rather than key names.
+returning every key's current source and target text per locale.
 
 ```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -365,8 +363,7 @@ It covers every configured target locale; pass `locales` to narrow it to some of
 
 Export the strings that need translating into an Excel workbook, hand it to a translator, then
 import the filled file back. `importWorkbook` runs the same drift and integrity checks as
-`translate` and returns the same `RunSummary` shape, so a manual handoff slots into the exact
-reporting you use for an automated run.
+`translate` and returns the same `RunSummary` shape.
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -456,6 +453,3 @@ const config = await loadConfig({
 
 await translate({ config });
 ```
-
-For every input shape, the full `RunSummary` anatomy, and the `SdkError` code table, see the
-[SDK reference](/docs/sdk).
