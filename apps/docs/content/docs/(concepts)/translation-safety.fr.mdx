@@ -110,8 +110,8 @@ maintenant. Le fonctionnement des pluriels dans les autres formats est sur
 
 Le texte enrichi arrive dans une chaîne sous forme de balisage en ligne : un `<b>` dans un bloc
 `Trans` d'i18next, un `&lt;b&gt;` échappé dans un `<string>` Android, un `<a href>` dans un
-catalogue gettext. Une balise perdue ou cassée casse le rendu comme un placeholder perdu casse
-l'interpolation, donc la barrière compare les noms de balise et d'attribut comme un multiensemble :
+catalogue gettext. Une balise perdue ou cassée casse le rendu, donc la barrière compare les noms de
+balise et d'attribut comme un multiensemble :
 
 - **Refusé** : une balise supprimée, inventée ou renommée ; un ensemble de noms d'attribut modifié
   (ajout de `dir` compris) ; un balisage déséquilibré ou mal imbriqué ; deux balises fusionnées en
@@ -127,14 +127,12 @@ l'interpolation, donc la barrière compare les noms de balise et d'attribut comm
 
 Un balisage inventé dans une chaîne qui n'en avait pas est refusé aussi, tandis qu'un simple mot
 entre chevrons comme `<Enter>` est lu comme du texte. Les balises que le format signale déjà comme
-placeholders sont laissées à la vérification des placeholders. Les règles complètes, y compris la
-lecture des commentaires, du texte brut et des sources mal formées, sont sous
-[`markup`](/docs/error-codes#markup).
+placeholders sont laissées à la vérification des placeholders. Commentaires, texte brut et sources
+mal formées : voir [`markup`](/docs/error-codes#markup).
 
 ## Signalements de révision
 
-Passer la barrière prouve qu'une traduction est structurellement sûre, pas qu'elle est bonne. Une
-seconde couche, consultative, signale les résultats suspects à une personne. Un signalement ne
+Une seconde couche, consultative, signale les résultats suspects à une personne. Un signalement ne
 retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la file de révision.
 
 | Motif | Signale une traduction qui |
@@ -161,8 +159,7 @@ rejette ou réécrit sa valeur ; voir [Décisions de revue](/docs/the-lock-file#
 
 ## Le budget de tokens
 
-La dépense fournisseur devrait avoir un plafond que tu fixes, pas un que tu découvres sur la
-facture. Avec `maxTokens` configuré, verbatra compte les tokens d'une exécution sur tous les appels
+Avec `maxTokens` configuré, verbatra compte les tokens d'une exécution sur tous les appels
 et toutes les locales. `budgetBehavior: "warn"` (par défaut) signale seulement le dépassement ;
 `"stop"` retient la requête qui dépasserait le plafond et toutes les candidates après elle, à
 retenter à l'exécution suivante.

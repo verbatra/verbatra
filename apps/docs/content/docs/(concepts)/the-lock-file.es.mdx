@@ -17,11 +17,10 @@ archivo de origen con finales CRLF u otra normalización no cambia nada.
 
 ## Cómo se detecta el desfase
 
-Una clave de origen que el destino no tiene está ausente (missing). Para una clave que el destino
-sí tiene, el hash de origen actual se compara con el registrado: una diferencia significa que el
-origen cambió desde que se tradujo la clave, así que se vuelve a traducir; una coincidencia
-significa que no ha cambiado y nunca se envía. Por eso una segunda ejecución sin cambios en el
-origen no cuesta nada. La canalización completa está en
+Una clave de origen que el destino no tiene está ausente (missing). Para una clave que el destino sí
+tiene, el hash de origen actual se compara con el registrado: una diferencia significa que el origen
+cambió, así que la clave se vuelve a traducir; una coincidencia significa que nunca se envía, así
+que una segunda ejecución sin cambios en el origen no cuesta nada. La canalización completa está en
 [Cómo funciona una ejecución](/docs/how-it-works).
 
 ### Claves protegidas
@@ -36,15 +35,14 @@ traducirse.
 
 Apuntar verbatra a archivos de locale que ya contienen traducciones revisadas no las vuelve a
 traducir. En la primera ejecución no hay archivo de bloqueo, así que nada puede estar desfasado:
-una clave que el destino tiene no ha cambiado y conserva su valor, y solo se traducen las claves que
-le faltan. La ejecución registra el hash de origen actual de cada clave, así que esta primera
-ejecución fija la línea base sin coste de proveedor.
+una clave que el destino tiene conserva su valor, solo se traducen las que le faltan, y la ejecución
+registra el hash de origen actual de cada clave, fijando la línea base sin coste de proveedor.
 
 La adopción se basa en la presencia de la clave, nunca en su valor, lo que tiene dos consecuencias:
 
-- **Un valor vacío o sin traducir cuenta como traducido.** Una clave cuyo valor de destino es una
-  cadena vacía, o aún el texto de origen, existe, así que nunca se rellena. Borra la clave del
-  archivo de destino (vaciarla no basta) y la siguiente ejecución la traduce.
+- **Un valor vacío o sin traducir cuenta como traducido.** Una clave cuyo valor de destino está
+  vacío, o aún es el texto de origen, existe, así que nunca se rellena. Borra la clave (vaciarla no
+  basta) y la siguiente ejecución la traduce.
 - **Una traducción desfasada se registra como actual.** Corrige o borra esas claves antes de la
   primera ejecución.
 
@@ -75,9 +73,8 @@ nunca se bloquean entre sí.
 Lo que garantiza el bloqueo:
 
 - **Un tiempo de espera agotado no cuesta nada.** `--lock-timeout` acota solo la espera previa a
-  cualquier llamada al proveedor, así que un locale que se rinde no ha gastado ni escrito nada.
-  Registrar un archivo ya escrito siempre espera los diez minutos por defecto, así que un archivo
-  escrito nunca se queda sin registrar.
+  cualquier llamada al proveedor, así que un locale que se rinde no ha gastado ni escrito nada;
+  registrar un archivo ya escrito siempre espera los diez minutos por defecto.
 - **Los bloqueos abandonados no te frenan.** Un bloqueo cuyo proceso ya no existe en esta máquina se
   recupera al instante, y quien lo tiene lo refresca cada 10 segundos, así que un bloqueo sin
   refrescar durante 30 segundos se trata como abandonado aunque su proceso siga en marcha.
@@ -198,11 +195,9 @@ si ese valor cambió desde entonces.
   sola traducción, así que ahí un rechazo se deniega con
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Como las
-decisiones viven en este archivo confirmado, la cola de revisión y la puerta de CI
+Las decisiones viven en este archivo confirmado, así que la cola de revisión y
 [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas) ven el mismo
-estado en todas las máquinas. El nombre de `reviewer` se confirma en el repositorio, así que es
-público; verbatra nunca lo rellena por su cuenta.
+estado en todas las máquinas, y el nombre de `reviewer` es público; verbatra nunca lo rellena.
 
 ## Confírmalo
 

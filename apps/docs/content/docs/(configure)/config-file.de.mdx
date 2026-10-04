@@ -3,7 +3,7 @@ title: Konfigurationsdatei
 description: Jeder Konfigurations-Key mit Typ, Default und der Version, die ihn eingeführt hat, dazu wo die Datei liegen kann und wie eine fehlerhafte Konfiguration fehlschlägt.
 type: reference
 ---
-verbatra liest ein kleines, geheimnisfreies Konfigurationsobjekt und validiert es, bevor es irgendetwas tut. Kein API-Schlüssel wird je daraus gelesen: Jeder Provider liest seinen Key aus einer Umgebungsvariable (siehe [Provider](/docs/providers#keys-kommen-aus-der-umgebung)), die Konfiguration bleibt also gefahrlos committbar.
+verbatra liest ein geheimnisfreies Konfigurationsobjekt und validiert es vor jeder Arbeit. Kein API-Schlüssel wird je daraus gelesen ([Provider](/docs/providers#keys-kommen-aus-der-umgebung)), die Konfiguration bleibt also gefahrlos committbar.
 
 ## Eine minimale Konfiguration
 
@@ -75,10 +75,10 @@ Unbekannte Keys werden auf jeder Ebene außer `$schema` abgelehnt. Genau deshalb
 - **`files.pattern`** muss `{locale}` enthalten, das einzige Token, das es versteht: `locales/{locale}.json` wird zu `locales/de.json`, aufgelöst gegen das Arbeitsverzeichnis. Es ist ein wörtlicher Pfad, nie ein Glob, eine Konfiguration adressiert also eine Datei pro Locale; für mehrere Namespace-Dateien siehe [Namespace-Layouts](/docs/formats#namespace-layouts). `apple-xcstrings` braucht das Token trotzdem, aber jede Locale löst sich zum selben Katalog auf ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** entscheidet, wozu das Token expandiert:
   - `literal` schreibt das Tag so, wie es konfiguriert ist; das brauchen die JSON-, YAML-, XLIFF-, ARB-, Properties- und Apple-`.lproj`-Layouts.
-  - `posix` ersetzt `-` durch `_`, für gettext und Javas `messages_{locale}.properties`: Aus `pt-BR` wird `pt_BR`, aus `zh-Hant-TW` wird `zh_Hant_TW`, aus `es-419` wird `es_419`. Eine Variante wie `de-1996` hat keine posix-Schreibweise. `gettext-po` schreibt Schriften auf die gettext-Art (nächster Abschnitt).
+  - `posix` ersetzt `-` durch `_`, für gettext und Javas `messages_{locale}.properties`: Aus `pt-BR` wird `pt_BR`, aus `zh-Hant-TW` wird `zh_Hant_TW`. Eine Variante wie `de-1996` hat keine posix-Schreibweise. `gettext-po` schreibt Schriften auf die gettext-Art (nächster Abschnitt).
   - `android` expandiert zu einem kompletten Ressourcenverzeichnis, geschrieben als `res/{locale}/strings.xml`: `values` für die Quelle, dann `values-de`, `values-pt-rBR`, `values-b+zh+Hans`.
 
-  Ein Style lehnt eine Locale ab, die er nicht schreiben kann, statt ein Verzeichnis zu schreiben, das die Plattform ignorieren würde.
+  Ein Style lehnt eine Locale ab, die er nicht schreiben kann, statt ein Verzeichnis zu schreiben, das die Plattform ignoriert.
 
 ### gettext-Locale-Namen
 
@@ -159,9 +159,9 @@ Version 2 gibt jedem Begriff eine Übersetzung pro Locale, verbotene Wiedergaben
 | `terms[].note`, `terms[].partOfSpeech` | Freitext-Kontext, den ein LLM-Provider als Daten erhält. |
 | `doNotTranslate` | Begriffe, die unübersetzt übernommen werden. Ein reiner String behält auch seine Groß- und Kleinschreibung; bei `{ "term", "caseSensitive": false }` darf sie sich ändern. |
 
-Jeder Begriff braucht ein `target`, einen Eintrag in `targets` oder eine `forbidden`-Liste und darf seine eigene Übersetzung nicht verbieten, keine Locale doppelt nennen und nicht zusätzlich in `doNotTranslate` stehen. Eine Anfrage enthält nur die Begriffe ihrer Ziel-Locale, und der [Cache](/docs/the-cache)-Fingerprint jeder Locale deckt nur diese ab. Eine Datei der Version 1 funktioniert mit demselben Fingerprint weiter; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) aus dem SDK schreibt sie nur für eine Änderung, die Version 1 nicht ausdrücken kann, als Version 2 neu.
+Jeder Begriff braucht ein `target`, einen Eintrag in `targets` oder eine `forbidden`-Liste und darf seine eigene Übersetzung nicht verbieten, keine Locale doppelt nennen und nicht zusätzlich in `doNotTranslate` stehen. Der [Cache](/docs/the-cache)-Fingerprint jeder Locale deckt nur ihre eigenen Begriffe ab. Eine Datei der Version 1 funktioniert mit demselben Fingerprint weiter; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) aus dem SDK schreibt sie nur für eine Änderung, die Version 1 nicht ausdrücken kann, als Version 2 neu.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Nur die Dateiform lässt sich aus [Studio](/docs/review-in-studio) heraus bearbeiten, Begriff für Begriff; ein Inline-Glossar ist dort nur lesbar. LLM-Provider werden angewiesen, Übersetzungen als bindend zu behandeln, verbotene Wiedergaben zu meiden und Begriffe aus `doNotTranslate` beizubehalten; DeepL, Google Cloud Translation und LibreTranslate können sie nicht anwenden. Die Ausgabe jedes Providers wird danach geprüft und mit `GLOSSARY_TERM_MISSED` oder `GLOSSARY_FORBIDDEN_TERM` markiert ([Review-Gründe](/docs/error-codes#review-reason-codes)).
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Nur die Dateiform lässt sich aus [Studio](/docs/review-in-studio) heraus bearbeiten, Begriff für Begriff; ein Inline-Glossar ist dort nur lesbar. Welche Provider das Glossar anwenden, steht unter [Provider](/docs/providers#tonfall-und-glossar-über-die-provider-hinweg); die Ausgabe jedes Providers wird danach geprüft und mit `GLOSSARY_TERM_MISSED` oder `GLOSSARY_FORBIDDEN_TERM` markiert ([Review-Gründe](/docs/error-codes#review-reason-codes)).
 
 ### generatePlurals
 
@@ -191,7 +191,7 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 
 ### maxBatchSize
 
-Fehlende und geänderte Einträge gehen in sequenziellen Sub-Batches von höchstens dieser Größe hinaus; ein fehlgeschlagener Sub-Batch wird beim nächsten Lauf erneut versucht, während die anderen weiterlaufen. Kein CLI-Flag überschreibt es.
+Fehlende und geänderte Einträge gehen in sequenziellen [Sub-Batches](/docs/providers#batching) von höchstens dieser Größe hinaus. Kein CLI-Flag überschreibt es.
 
 ### maxLength
 
@@ -205,38 +205,33 @@ maxLength: {
 ```
 
 - **Nur hier.** Kein Budget wird aus einer Beschreibung oder den Metadaten eines Formats abgeleitet. Keys werden wörtlich verglichen, nie als Globs; ein Key, der nicht in der Zuordnung steht, wird nie gemessen.
-- **Graphemcluster.** Die Länge zählt wahrgenommene Zeichen: Ein Emoji aus mehreren Codepunkten oder ein Buchstabe mit kombinierendem Akzent zählt als eines, ebenso ein CJK-Zeichen, obwohl es etwa doppelt so breit dargestellt wird. Leerraum zählt mit, und die Grenze ist inklusiv.
+- **Graphemcluster.** Die Länge zählt wahrgenommene Zeichen, Leerraum eingeschlossen: Ein Emoji oder ein Buchstabe mit Akzent zählt als eines, ebenso ein CJK-Zeichen, obwohl es etwa doppelt so breit dargestellt wird. Die Grenze ist inklusiv.
 - **Wann geprüft wird.** Bei jedem Wert, den `translate` für den Key erzeugt, Cache-Wiederverwendungen eingeschlossen. Ein aktueller Key wird nicht gemessen, ein neues Budget markiert also nichts, bis sich seine Quelle ändert; [`verbatra export --include-unchanged`](/docs/cli/export) misst jeden aktuellen Wert sofort.
-- **Beratend.** Eine Überschreitung wird trotzdem geschrieben und gelockt und als `MAX_LENGTH_EXCEEDED` in `needsReview`, der Review-Warteschlange von Studio und den Review-Spalten der Arbeitsmappe gemeldet.
+- **Beratend.** Eine Überschreitung wird trotzdem geschrieben und gelockt und als [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded) zum Review markiert.
 
 ### maxTokens und budgetBehavior
 
 `maxTokens` ist ein Budget für den ganzen Lauf: Eingabe- plus Ausgabe-Tokens, summiert über jeden Provider-Aufruf (Übersetzung und Pluralgenerierung) und jede Ziel-Locale. `translate --max-tokens <n>` setzt für einen Lauf eine strengere Obergrenze, die immer stoppt; es gilt der niedrigere Wert (ab 0.12.0).
 
-`budgetBehavior` entscheidet, was das Erreichen bewirkt:
+`budgetBehavior` entscheidet, was dann passiert:
 
 - `"warn"`, der Default, zählt die Ausgaben und vermerkt die Überschreitung; der Lauf geht weiter, als wäre kein Budget gesetzt.
 - `"stop"` <AvailableFrom version="0.11.0" /> macht es zur Obergrenze (DeepL, Google Cloud Translation und LibreTranslate eingeschlossen). Vor jeder Anfrage projiziert der Lauf ihre Kosten genauso wie [die Vorab-Schätzung](/docs/estimating-cost) und lehnt eine ab, die `maxTokens` überschreiten würde. Die Keys dieser Anfrage werden zurückgehalten, ebenso jeder noch nicht versuchte Key: der Rest der aktuellen Locale und jede spätere Locale, deren Vergleich und Verwaisten-Meldung trotzdem laufen. Zurückgehaltene Keys behalten ihren vorherigen Lock-Hash und werden beim nächsten Lauf erneut versucht.
 
 Zählung unter `"stop"`:
 
-- Jede Anfrage wird geprüft, auch jede Hälfte einer Anfrage, die nach einer abgeschnittenen Antwort neu aufgeteilt wird.
-- Nach jeder Anfrage wird die Summe auf den vom Provider gemeldeten Verbrauch abgeglichen, ein Lauf kann also um die Differenz der letzten Anfrage über `maxTokens` enden; danach wird nichts mehr gesendet.
-- Eine zugelassene Anfrage kann durch die eigene Reparatur-Anfrage der Provider-Schicht für fehlende Keys bis zu etwa das Doppelte ihrer Projektion kosten; auch das landet beim Abgleich.
-- Eine fehlgeschlagene oder abgeschnittene Anfrage bleibt voll belastet.
-- Ein gestoppter Lauf hinterlässt keine halb geschriebene Datei und keinen Lock-Eintrag für zurückgehaltene Arbeit.
+- Nach jeder Anfrage wird die Summe auf den vom Provider gemeldeten Verbrauch abgeglichen, ein Lauf kann also knapp über `maxTokens` enden; wie weit und warum, steht unter [dem `budget` der Laufzusammenfassung](/docs/sdk/run-summary#die-anatomie-der-runsummary). Maschinenübersetzungs-Provider melden keine Tokens und werden über die Projektion budgetiert.
+- Eine fehlgeschlagene oder abgeschnittene Anfrage bleibt voll belastet, und zurückgehaltene Arbeit bekommt keinen Lock-Eintrag.
 - Die Projektion enthält einen festen Aufschlag für den LLM-Prompt (Systemregeln und Antwortschema), der auch für die Maschinenübersetzungs-Provider angerechnet wird. Eine Anfrage wird als ganzer Batch projiziert, ein `maxTokens` unterhalb der Projektion eines Batches lehnt ihn also bei jedem Lauf ab; der Hinweis sagt dann, `maxBatchSize` zu senken oder `maxTokens` zu erhöhen.
-- Maschinenübersetzungs-Provider melden keinen Token-Verbrauch und werden über die Projektion budgetiert (`budget.supported: false`).
 
 Geltungsbereich und Exit-Codes:
 
-- Das Budget begrenzt einen `translate`-Lauf. `watch` startet für jeden ausgelösten Lauf ein frisches Budget, und eine Neuübersetzung eines einzelnen Eintrags aus [Studio](/docs/review-in-studio) oder einem Agent-Tool wird nie begrenzt.
-- Ein echter Lauf mit `maxTokens` und `--concurrency` über `1` wird mit Exit `2` (`CONCURRENCY_BUDGET_CONFLICT`) abgelehnt, weil sonst von der Verschränkung abhinge, welche Locale Arbeit verliert. Ein Dry Run ist ausgenommen.
+- Das Budget begrenzt einen `translate`-Lauf, nie eine Neuübersetzung eines einzelnen Eintrags; `watch` startet pro Lauf ein frisches. Ein echter Lauf mit Budget lehnt `--concurrency` über `1` ab ([`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict)).
 - Unter `"warn"` ändert sich der Exit-Code nie. Unter `"stop"` ist eine Locale mit zurückgehaltenen Keys `partial`, wenn einige Keys angekommen sind, und `failed`, wenn keiner ankam; beide enden mit Exit `1`.
 - `budgetBehavior` ohne `maxTokens` hat keine Wirkung.
 
 <Callout title="Zwei verschiedene maxTokens">
-Das Top-Level-`maxTokens` ist dieses Budget für den ganzen Lauf. Anthropics `provider.options.maxTokens` begrenzt eine einzelne Antwort; die beiden haben nichts miteinander zu tun. Siehe [Provider](/docs/providers#anthropic).
+Das Top-Level-`maxTokens` ist dieses Budget für den ganzen Lauf; Anthropics davon unabhängiges `provider.options.maxTokens` begrenzt eine Antwort ([Provider](/docs/providers#anthropic)).
 </Callout>
 
 ### rates
@@ -270,11 +265,11 @@ extract: {
 }
 ```
 
-- **`framework`** ist eine geschlossene Menge; `i18next` deckt `t(...)`, `$t(...)` und `<object>.t(...)` ab. Ein Framework ohne Extractor wird abgelehnt.
+- **`framework`** ist eine geschlossene Menge ([Aufrufformen](/docs/cli/extract#was-er-findet)); ein Framework ohne Extractor wird abgelehnt.
 - **`roots`** werden gegen das Arbeitsverzeichnis aufgelöst; nichts außerhalb davon wird gelesen.
-- **`exclude`** ergänzt Verzeichnisnamen (keine Pfade), die überall unterhalb eines Roots passen, zu den immer übersprungenen `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` und `coverage`.
-- **`literals.ignore`** trifft den ganzen Text eines Literals nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen, also schreib `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird als unterdrückt gemeldet.
-- **`unused.ignore`** nimmt exakte Keys oder `*`-Muster für Keys, die nur außerhalb des gescannten Quellcodes verwendet werden (ein Server-Template, ein CMS). Es trifft den dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`, nicht `Welcome\. Enjoy`), und ein Treffer wird als ignoriert gemeldet.
+- **`exclude`** ergänzt Verzeichnisnamen (keine Pfade), die überall unterhalb eines Roots passen, zur [immer übersprungenen Menge](/docs/cli/extract#grenzen-des-scans).
+- **`literals.ignore`** trifft den ganzen Text eines Literals nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen (`Tom & Jerry`); ein zurückgehaltenes Literal wird als unterdrückt gemeldet.
+- **`unused.ignore`** nimmt exakte Keys oder `*`-Muster für Keys, die nur außerhalb des gescannten Quellcodes verwendet werden, abgeglichen mit dem dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`); ein Treffer wird als ignoriert gemeldet.
 
 ## Suchreihenfolge
 
@@ -350,15 +345,7 @@ Die `package.json`-Eigenschaft kann kein Schema bekommen; die ausführbaren Form
 
 ### Was das Dokument nicht prüfen kann
 
-Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nur das Laden der Konfiguration:
-
-- `targetLocales` darf `sourceLocale` nicht enthalten, und keine zwei Locales, die sich nur in der Groß- und Kleinschreibung unterscheiden.
-- Ein Locale-Code muss `Intl.getCanonicalLocales` bestehen.
-- Jeder Key von `provider.options.localeMap` muss `sourceLocale` oder eine Ziel-Locale sein.
-- `apiKeyEnvVar` (openai-compatible) darf keine Key-Variable eines gehosteten Providers nennen.
-- Ein Eintrag in `network.allowedHosts` muss eine gültige Adresse oder ein gültiger Bereich sein (kein Oktett über 255, kein zu langes CIDR-Präfix, kein fehlerhaftes IPv6).
-- Ein Eintrag in `sensitiveData.patterns` muss ein gültiger regulärer Ausdruck innerhalb der [Sicherheitsregeln für Muster](/docs/data-handling#schutz-für-sensible-inhalte) sein.
-- Ein Inline-Glossar der Version 2 muss die Begriffsregeln unter [glossary](#glossar-pro-locale-version-2) erfüllen.
+Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nur das Laden der Konfiguration: die Regeln für `targetLocales` und [Locale-Codes](#locale-codes), die Keys von [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes) und [`apiKeyEnvVar`](/docs/providers#openai-compatible), gültige Adressen und Bereiche in [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` innerhalb der [Sicherheitsregeln für Muster](/docs/data-handling#schutz-für-sensible-inhalte) und die Begriffsregeln eines Inline-Glossars der [Version 2](#glossar-pro-locale-version-2).
 
 ## Das Arbeitsverzeichnis und .env
 
@@ -367,6 +354,6 @@ Das Arbeitsverzeichnis (wo du verbatra ausführst, oder `--cwd`) ist der Anker f
 ## Wenn das Laden fehlschlägt
 
 - [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found): an keinem der durchsuchten Orte eine Konfiguration, oder der `--config`-Pfad existiert nicht.
-- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): Eine Konfiguration wurde gefunden, ist aber nicht verwendbar: Sie parst nicht, besteht die Validierung nicht oder nennt eine unlesbare Glossardatei. Die Meldung listet jedes Problem mit seinem Key-Pfad, und ein unbekannter Key auf jeder Ebene bekommt den Hinweis, dass API-Schlüssel aus der Umgebung kommen. Ein Parse-Fehler nennt die Datei (bei YAML mit Zeile und Spalte), zitiert aber nie ihren Inhalt, und jede Meldung läuft durch die Schlüssel-Redaktion.
+- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): Eine Konfiguration wurde gefunden, ist aber nicht verwendbar. Die Meldung listet jedes Problem mit seinem Key-Pfad, und ein unbekannter Key auf jeder Ebene bekommt den Hinweis, dass API-Schlüssel aus der Umgebung kommen. Ein Parse-Fehler nennt die Datei (bei YAML mit Zeile und Spalte), zitiert aber nie ihren Inhalt, und jede Meldung läuft durch die Schlüssel-Redaktion.
 
 Die CLI endet in beiden Fällen mit Exit `2`.

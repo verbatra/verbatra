@@ -42,8 +42,8 @@ except `verbatra doctor --live`: it sends only your API key, to fetch the machin
 provider's language list.
 
 A `translate` run sends only keys missing or changed against [the lock file](/docs/the-lock-file),
-minus [cache](/docs/the-cache) hits, and shared text once. A pinned key is never sent
-([Protecting human translations](/docs/protecting-human-translations)). Your DNS resolver sees the
+minus [cache](/docs/the-cache) hits, and shared text once; a
+[pinned](/docs/protecting-human-translations) key is never sent. Your DNS resolver sees the
 provider's host name.
 
 ## What each provider receives
@@ -63,7 +63,7 @@ key goes only to the configured endpoint (`google-translate` sends it in the `?k
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` scans what the table above sends, before any request. Default detectors find API keys, emails, IBANs and card numbers; `phone`, `ip` and `private-host` are opt-in, and `patterns` adds your own terms, such as codenames. A pattern is rejected if it repeats a group holding a quantifier or an alternative, holds more than one `*`, `+` or `{n,}`, or branches too often. It reads a field's first 2,000 characters and stops after one second; a timeout is a finding (`pattern-timeout-<n>`), so `block` and `redact` withhold the key.
+`sensitiveData` scans what the table above sends, before any request. Default detectors find API keys, emails, IBANs and card numbers; `phone`, `ip` and `private-host` are opt-in, and `patterns` adds your own terms. A pattern is rejected if it repeats a group holding a quantifier or an alternative, holds more than one `*`, `+` or `{n,}`, or branches too often. It reads a field's first 2,000 characters and stops after one second; a timeout is a finding (`pattern-timeout-<n>`), so `block` and `redact` withhold the key.
 
 | `mode` | Effect |
 | --- | --- |
@@ -71,12 +71,12 @@ key goes only to the configured endpoint (`google-translate` sends it in the `?k
 | `block` | Withholds the key, so the locale ends `partial`. |
 | `redact` | Sends a token for each match in the value and restores the match; a match in a description or meaning is sent as `[redacted]`. A match in a key name, or a token that does not come back exactly once, withholds the key. On DeepL and Google a token is a placeholder, so an unprotectable value is withheld (`PLACEHOLDER_UNSUPPORTED`). |
 
-`block` and `redact` also drop a matching glossary term. Off by default; `verbatra init` writes `warn` for a machine provider. For a false positive, add the text to `allow` or drop its detector. [`verbatra check --sensitive`](/docs/cli/check#sensitive-content) runs the scan without a key. Names in free text are not found.
+`block` and `redact` also drop a matching glossary term. `verbatra init` writes `warn` for a machine provider. For a false positive, add the text to `allow` or drop its detector. [`verbatra check --sensitive`](/docs/cli/check#sensitive-content) runs the scan without a key. Names in free text are not found.
 
 ## Vendor retention and data processing terms
 
 Retention is set by the vendor and your contract, not by verbatra. Quotes are as of September
-2026; your contract wins.
+2026.
 
 | Provider | What the vendor says | Data processing terms |
 | --- | --- | --- |
@@ -139,10 +139,9 @@ redacted: an agent driving the tab can read the page anyway.
 ## AI-generated translations and provenance
 
 The EU AI Act sets transparency obligations for AI-generated text
-([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Whether they apply is for your legal counsel. verbatra keeps a
-[record](/docs/the-lock-file#provenance-who-wrote-each-value): every value a provider produced is
-marked `machine` origin, with provider and model.
+([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)). Whether they apply is
+for your legal counsel. verbatra [records](/docs/the-lock-file#provenance-who-wrote-each-value) the
+provider and model behind every machine-translated value.
 
 ### Audit file
 
@@ -153,8 +152,8 @@ marked `machine` origin, with provider and model.
 
 ## Checklist for a DPA or NDA review
 
-1. Decide whether strings may leave your network. If not, use provider `none` or a self-hosted
-   server, and pin `VERBATRA_NETWORK_POLICY=local-only` in CI.
+1. Decide whether strings may leave your network; if not, pick an option under
+   [Keeping strings in-house](#keeping-strings-in-house).
 2. For a hosted provider, use a paid tier and sign its data processing terms, with zero retention
    if you need it.
 3. Check what your key names, descriptions and glossary send with `verbatra check --sensitive`.

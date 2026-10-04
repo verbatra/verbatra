@@ -46,9 +46,9 @@ obtener la lista de idiomas de DeepL, Google Cloud Translation o LibreTranslate.
 Una ejecución de `translate` envía solo las claves ausentes o cambiadas respecto a
 [el archivo de bloqueo](/docs/the-lock-file), menos los aciertos de [la caché](/docs/the-cache), y
 el texto compartido una sola vez. Una clave desactualizada que escribió una persona solo se envía
-para una sugerencia de `humanEdits: "suggest"`; una clave fijada, nunca
-([Conserva las traducciones humanas](/docs/protecting-human-translations)). Tu resolutor DNS ve el
-nombre del host del proveedor.
+para una sugerencia de `humanEdits: "suggest"`; una clave
+[fijada](/docs/protecting-human-translations), nunca. Tu resolutor DNS ve el nombre del host del
+proveedor.
 
 ## Qué recibe cada proveedor
 
@@ -67,7 +67,7 @@ solo va al endpoint configurado (`google-translate` la envía en la cadena de co
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` revisa, antes de cada petición, lo que la tabla anterior envía. Los detectores por defecto encuentran claves de API, correos, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos, como nombres en clave. Se rechaza un patrón que repite un grupo con un cuantificador o una alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado. Lee los primeros 2.000 caracteres de un campo y se detiene al cabo de un segundo; agotar el tiempo es un hallazgo (`pattern-timeout-<n>`), así que `block` y `redact` retienen la clave.
+`sensitiveData` revisa, antes de cada petición, lo que la tabla anterior envía. Los detectores por defecto encuentran claves de API, correos, IBAN y números de tarjeta; `phone`, `ip` y `private-host` se activan a voluntad, y `patterns` añade tus propios términos. Se rechaza un patrón que repite un grupo con un cuantificador o una alternativa, contiene más de un `*`, `+` o `{n,}`, o se ramifica demasiado. Lee los primeros 2.000 caracteres de un campo y se detiene al cabo de un segundo; agotar el tiempo es un hallazgo (`pattern-timeout-<n>`), así que `block` y `redact` retienen la clave.
 
 | `mode` | Efecto |
 | --- | --- |
@@ -75,12 +75,12 @@ solo va al endpoint configurado (`google-translate` la envía en la cadena de co
 | `block` | Retiene la clave, así que el locale termina `partial`. |
 | `redact` | Envía un token por cada coincidencia en el valor y restaura la coincidencia; una coincidencia en una descripción o un significado se envía como `[redacted]`. Una coincidencia en el nombre de la clave, o un token que no vuelve exactamente una vez, retiene la clave. En DeepL y Google un token cuenta como placeholder, así que un valor que no pueden proteger se retiene como `PLACEHOLDER_UNSUPPORTED`. |
 
-`block` y `redact` además dejan fuera un término del glosario que coincide. La protección está desactivada por defecto; `verbatra init` escribe `warn` para un proveedor automático. Ante un falso positivo, añade el texto a `allow` o quita su detector. [`verbatra check --sensitive`](/docs/cli/check#contenido-sensible) revisa sin clave. Los nombres en texto libre no se detectan.
+`block` y `redact` además dejan fuera un término del glosario que coincide. `verbatra init` escribe `warn` para un proveedor automático. Ante un falso positivo, añade el texto a `allow` o quita su detector. [`verbatra check --sensitive`](/docs/cli/check#contenido-sensible) revisa sin clave. Los nombres en texto libre no se detectan.
 
 ## Retención y tratamiento de datos del proveedor
 
 La retención la deciden el proveedor y tu contrato, no verbatra. Citas en su inglés original, a
-septiembre de 2026; las condiciones cambian y tu contrato manda.
+septiembre de 2026.
 
 | Proveedor | Qué dice el proveedor | Tratamiento de datos |
 | --- | --- | --- |
@@ -143,10 +143,10 @@ herramientas de agente de Studio nunca se ocultan: un agente que maneja la pesta
 
 El artículo 50 del Reglamento de IA de la UE (AI Act) fija obligaciones de transparencia para los
 sistemas de IA que generan texto
-([artículo 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)).
-Si se aplica a tu producto lo decide tu asesoría jurídica. verbatra lleva un
-[registro](/docs/the-lock-file#procedencia-quién-escribió-cada-valor): cada valor que produjo un
-proveedor lleva el origen `machine`, con proveedor y modelo.
+([artículo 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)). Si se aplica a tu
+producto lo decide tu asesoría jurídica. verbatra
+[registra](/docs/the-lock-file#procedencia-quién-escribió-cada-valor) el proveedor y el modelo de
+cada valor traducido automáticamente.
 
 ### Archivo de auditoría
 
@@ -157,8 +157,8 @@ proveedor lleva el origen `machine`, con proveedor y modelo.
 
 ## Lista de comprobación para una revisión de DPA o NDA
 
-1. Decide si los textos pueden salir de tu red. Si no, usa el proveedor `none` o un servidor
-   autoalojado, y fija `VERBATRA_NETWORK_POLICY=local-only` en CI.
+1. Decide si los textos pueden salir de tu red; si no, elige una opción de
+   [Mantener los textos en casa](#mantener-los-textos-en-casa).
 2. Con un proveedor alojado, usa un nivel de pago y firma sus condiciones de tratamiento de datos,
    con retención cero si la necesitas.
 3. Comprueba con `verbatra check --sensitive` qué envían tus nombres de clave, descripciones y glosario.

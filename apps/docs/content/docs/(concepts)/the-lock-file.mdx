@@ -17,10 +17,9 @@ CRLF endings or another normalization changes nothing.
 ## How drift is detected
 
 A source key the target lacks is missing. For a key the target has, the current source hash is
-compared with the recorded one: a difference means the source changed since the key was
-translated, so it is retranslated; a match means it is unchanged and never sent. That is why a
-second run with no source edits costs nothing. The whole pipeline is on
-[How a run works](/docs/how-it-works).
+compared with the recorded one: a difference means the source changed, so the key is retranslated; a
+match means it is never sent, so a second run with no source edits costs nothing. The whole pipeline
+is on [How a run works](/docs/how-it-works).
 
 ### Protected keys
 
@@ -32,15 +31,15 @@ The exception is a changed key whose value a person wrote or imported: by defaul
 ## Adopting an existing project
 
 Pointing verbatra at locale files that already hold reviewed translations does not retranslate
-them. On the first run there is no lock file, so nothing can be stale: a key the target has is
-unchanged and keeps its value, and only keys the target lacks are translated. The run records the
-current source hash for every key, so this first run sets the baseline at no provider cost.
+them. On the first run there is no lock file, so nothing can be stale: a key the target has keeps
+its value, only keys it lacks are translated, and the run records the current source hash for
+every key, setting the baseline at no provider cost.
 
 Adoption goes by key presence, never by value, which has two consequences:
 
-- **An empty or untranslated value counts as translated.** A key whose target value is an empty
-  string, or still the source text, exists, so it is never filled in. Delete the key from the
-  target file (emptying it is not enough) and the next run translates it.
+- **An empty or untranslated value counts as translated.** A key whose target value is empty, or
+  still the source text, exists, so it is never filled in. Delete the key (emptying it is not
+  enough) and the next run translates it.
 - **An outdated translation is recorded as current.** Fix or delete such keys before the first run.
 
 The same rule keeps hand-written plural forms, so `generatePlurals` is safe while adopting. To
@@ -65,8 +64,8 @@ the first writer's result. Different locales never block each other.
 What the lock guarantees:
 
 - **A timeout costs nothing.** `--lock-timeout` bounds only the wait before any provider call, so a
-  locale that gives up has spent and written nothing. Recording a file that was already written
-  always waits the full ten-minute default, so a written file is never left unrecorded.
+  locale that gives up has spent and written nothing; recording a written file always waits the
+  full ten-minute default.
 - **Abandoned locks do not block you.** A lock whose process is gone from this machine is reclaimed
   at once, and a holder refreshes its lock every 10 seconds, so a lock not refreshed for 30 seconds
   is treated as abandoned even if its process still runs.
@@ -174,10 +173,9 @@ refused if that value changed since.
   back. XLIFF cannot drop one translation, so a rejection there is refused with
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Because decisions live in this committed file, the review queue and the CI gate
+Decisions live in this committed file, so the review queue and
 [`verbatra check --require-reviewed`](/docs/cli/check#require-reviewed-translations) see the same
-state on every machine. The `reviewer` name is committed, so it is public; verbatra never fills it
-in on its own.
+state on every machine, and the `reviewer` name is public; verbatra never fills it in.
 
 ## Commit it
 

@@ -4,7 +4,7 @@ description: Conecta el servidor MCP stdio de verbatra a Claude Code, Codex, Gem
 type: how-to
 status: new
 ---
-Úsalo para que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP de verbatra. El cliente arranca el servidor por stdio, así que no hay puerto que gestionar. Necesitas un proyecto con configuración de verbatra ([`npx verbatra init`](/docs/cli/init)) y Node.js 22.14 o posterior. Las herramientas están en [`verbatra mcp`](/docs/cli/mcp#tools).
+Úsalo para que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP de verbatra. El cliente arranca el servidor por stdio, así que no hay puerto que gestionar. Necesitas un proyecto con configuración de verbatra ([`npx verbatra init`](/docs/cli/init)) y Node.js 22.14 o posterior.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -25,13 +25,13 @@ El servidor también aparece en el [registro oficial de MCP](https://registry.mo
 
 ## Decide si el agente puede gastar
 
-El servidor arranca con herramientas de lectura y edición local, sin gasto: las dos herramientas de gasto quedan ocultas y ninguna herramienta lee una clave. Para que el agente pueda gastar, añade las dos cosas:
+El servidor arranca solo con herramientas de lectura y edición local: las herramientas de gasto quedan ocultas y ninguna herramienta lee una clave. Para que el agente pueda gastar, añade las dos cosas:
 
 - `--allow-spend` en los argumentos, o `VERBATRA_MCP_ALLOW_SPEND=1` en el entorno ([Herramientas de gasto](/docs/cli/mcp#herramientas-de-gasto));
 - la variable de la clave de tu proveedor, como `ANTHROPIC_API_KEY` ([Proveedores](/docs/providers)).
 
 <Callout type="warn">
-Nunca escribas una clave en un archivo del repositorio como `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` o `.vscode/mcp.json`. Cada sección de abajo pasa la clave por referencia o desde tu entorno.
+Nunca escribas una clave en un archivo del repositorio como `.mcp.json`, `.codex/config.toml`, `.cursor/mcp.json` o `.vscode/mcp.json`.
 </Callout>
 
 Para que los valores de traducción no lleguen al modelo del agente, añade `--redact-values`; consulta [Studio y MCP](/docs/data-handling#studio-y-mcp).
@@ -316,6 +316,6 @@ Pídele al agente que llame a `project.snapshot`, que devuelve los locales, el f
 
 ## Relacionado
 
-- [`verbatra mcp`](/docs/cli/mcp): flags, cada herramienta y los códigos de salida.
+- [`verbatra mcp`](/docs/cli/mcp): flags y cada herramienta.
 - [Programa verbatra con JSON](/docs/agent-recipes#el-paquete-de-skills): la skill `verbatra-mcp-tools`.
-- [Configura verbatra con un agente de IA](/docs/start-with-ai): añade verbatra antes de conectar un cliente.
+- [Configura verbatra con un agente de IA](/docs/start-with-ai).

@@ -201,19 +201,19 @@ In `i18next-json`, `vue-i18n-json` und `next-intl-json` übersteht ein wörtlich
 - **Atomares Schreiben.** Eine temporäre Datei wird an ihren Platz umbenannt, ein Abbruch hinterlässt also nie eine halbe Datei.
 - **Layout.** Die XML-Formate behalten Zeilenende und abschließenden Zeilenumbruch und rücken neue Elemente wie ihre Nachbarn ein. Ein neuer gettext-Eintrag folgt nach einer Leerzeile, und eine neu angelegte `.po` nennt ihre Locale in `Language` (`pt_BR`).
 - **Nicht-String-Blätter.** In den JSON-Formaten, YAML und ARB wird ein Blatt vom Typ Zahl, Boolean oder null akzeptiert, aber nie übersetzt, und ein Neuschrieb dieser Datei behält es nicht; ein Array scheitert mit `INVALID_STRUCTURE`.
-- **Fehler** sind strukturiert und geheimnisfrei: `INVALID_JSON`, `INVALID_YAML`, `INVALID_XML`, `INVALID_STRUCTURE`, `MIXED_STRUCTURE` und für Adapter `ADAPTER_FAILED` und `DUPLICATE_FORMAT`. Siehe [Fehlercodes der Format-Adapter](/docs/error-codes#adapter-error-codes).
+- **Fehler** sind strukturiert und geheimnisfrei; siehe [Fehlercodes der Format-Adapter](/docs/error-codes#adapter-error-codes).
 
 ## Formate von außerhalb verbatra
 
 <AvailableFrom version="0.11.0" />
 
-Ein Format, das verbatra nicht mitbringt, kann aus einem Adapter in deinem eigenen Paket kommen, benannt mit einer `custom:`-Id wie `custom:toml`. Keine eingebaute Id enthält einen Doppelpunkt, sie kann also nie eine überdecken. Das ist nur ein SDK-Weg, denn das `verbatra`-Binary lädt keine Plugins, und der Adapter läuft als vertrauenswürdiger Code. Siehe [Einen eigenen Format-Adapter schreiben](/docs/custom-format-adapters).
+Ein Format, das verbatra nicht mitbringt, kann aus einem Adapter in deinem eigenen Paket kommen, benannt mit einer `custom:`-Id wie `custom:toml`. Er läuft nur über das SDK, als vertrauenswürdiger Code: siehe [Einen eigenen Format-Adapter schreiben](/docs/custom-format-adapters).
 
 ## Inline-Markup in Werten
 
 <AvailableFrom version="0.11.0" />
 
-Ein Wert kann eigenes HTML oder XML tragen, etwa `<b>` in einem i18next-`Trans`-Block oder ein maskiertes `&lt;b&gt;` in einem Android-`<string>`. Die [Markup-Paritätsprüfung](/docs/translation-safety#inline-markup-parität) lehnt eine Übersetzung ab, die ein Tag weglässt, erfindet, umbenennt oder aus dem Gleichgewicht bringt, in jedem Format und pro Tag:
+Die [Markup-Paritätsprüfung](/docs/translation-safety#inline-markup-parität) gilt in jedem Format, pro Tag:
 
 - `xliff` schützt seine eigenen Inline-Elemente als Platzhalter; anderes HTML wie `<b>` wird als Markup verglichen.
 - `next-intl-json` und `arb` behandeln ein gepaartes `<b>...</b>` als Platzhalter, während ein selbstschließendes `<br/>` als Markup verglichen wird. Ein Tag mit Attributen ist ungültiges ICU und wird abgelehnt.
