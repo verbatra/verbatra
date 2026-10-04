@@ -322,6 +322,13 @@ export {
   localeValues,
 } from "./flow/locale-values.js";
 export {
+  type LocaleValueEntry,
+  type LocaleValuesPage,
+  type LocaleValuesPageInput,
+  localeValuesPage,
+  type PagedLocaleValues,
+} from "./flow/locale-values-page.js";
+export {
   type LockLocaleState,
   type LockStateDeps,
   type LockStateInput,
@@ -517,6 +524,14 @@ export {
   type ProvenanceReviewState,
 } from "./lock/provenance-file.js";
 export type { LockFile } from "./lock/types.js";
+export {
+  type LocalePage,
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
+  type PagedLocale,
+  type PageRequest,
+  pageAcrossLocales,
+} from "./paging/page-across-locales.js";
 export type {
   BatchFinishedEvent,
   ChangeDetectedEvent,

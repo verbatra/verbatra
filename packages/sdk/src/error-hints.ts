@@ -57,6 +57,8 @@ const SDK_ERROR_HINTS = {
     "Run with a concurrency of 1 while a token budget applies, or remove the budget.",
   MAX_TOKENS_INVALID: "Pass a token budget that is a whole number of at least 1.",
   LOCK_TIMEOUT_INVALID: "Pass a lock timeout that is a whole number of at least 0.",
+  PAGE_CURSOR_INVALID: "Call again without a cursor to start from the first page.",
+  PAGE_LIMIT_INVALID: "Pass a page limit that is a whole number from 1 to 1000.",
   TARGET_UNWRITABLE: "Make the target locale file and its directory writable, then try again.",
   PSEUDO_OUTPUT_CONFLICT:
     "Choose a pseudolocale and an output path inside the project that name no configured locale.",

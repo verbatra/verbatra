@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { McpInvalidParamsError } from "./define-tool.js";
-import { filtersFingerprint, type PagedLocale, pageAcrossLocales } from "./page-cursor.js";
+import { sdkErrorHint } from "../error-hints.js";
+import { SdkError } from "../errors.js";
+import {
+  filtersFingerprint,
+  PAGE_LIMIT_CAP,
+  PAGE_LIMIT_DEFAULT,
+  type PagedLocale,
+  pageAcrossLocales,
+} from "./page-across-locales.js";
 
 interface Item {
   readonly key: string;
@@ -29,9 +36,9 @@ function flatten(page: ReturnType<typeof pageAcrossLocales<Item>>): string[] {
   return page.locales.flatMap((entry) => entry.items.map((item) => `${entry.locale}:${item.key}`));
 }
 
-function expectInvalid(run: () => unknown): void {
-  expect(run).toThrow(McpInvalidParamsError);
-  expect(run).toThrow(/^Invalid input for field "cursor": /);
+function expectInvalid(run: () => unknown, code = "PAGE_CURSOR_INVALID"): void {
+  expect(run).toThrow(SdkError);
+  expect(run).toThrow(expect.objectContaining({ code }));
 }
 
 describe("pageAcrossLocales", () => {
@@ -134,5 +141,33 @@ describe("pageAcrossLocales", () => {
     const data = [locale("de", filters.keys)];
 
     expect(cursorAfter(10, data, filters).length).toBeLessThan(200);
+  });
+
+  it("holds the default number of items when no limit is passed", () => {
+    const data = [
+      locale(
+        "de",
+        Array.from({ length: PAGE_LIMIT_DEFAULT + 1 }, (_, i) => `k${i}`),
+      ),
+    ];
+
+    const page = pageAcrossLocales(data, { filters: FILTERS });
+
+    expect(page.locales[0]?.items).toHaveLength(PAGE_LIMIT_DEFAULT);
+    expect(page.nextCursor).toBeDefined();
+  });
+
+  it("accepts a limit at the cap", () => {
+    expect(pageAcrossLocales(DATA, { filters: FILTERS, limit: PAGE_LIMIT_CAP })).toEqual({
+      locales: [locale("de", ["a", "b", "c"]), locale("fr", ["a", "b"])],
+    });
+  });
+
+  it.each([0, -1, 1.5, PAGE_LIMIT_CAP + 1, Number.NaN])("rejects the limit %s", (limit) => {
+    expectInvalid(() => pageAcrossLocales(DATA, { filters: FILTERS, limit }), "PAGE_LIMIT_INVALID");
+  });
+
+  it("names the cap in the limit hint", () => {
+    expect(sdkErrorHint("PAGE_LIMIT_INVALID")).toContain(String(PAGE_LIMIT_CAP));
   });
 });
