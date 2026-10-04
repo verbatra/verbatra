@@ -34,18 +34,11 @@ function doctor(
 <AvailableFrom version="0.12.0" />
 
 Die Prüfung `network-policy` schlägt fehl, wenn die wirksame
-[Netzwerkrichtlinie](/docs/network-policy) den Host, zu dem sich der konfigurierte Provider verbindet,
-oder seinen Proxy abweist oder eine Netzwerk-Umgebungsvariable einen ungültigen Wert hat. Für den
-Provider `none` besteht sie. Die Prüfung `plural-rules` ist rein informativ und besteht immer; ihr
-Detail nennt die ICU- und CLDR-Versionen hinter den Pluralkategorien jeder Zielsprache.
-
-<AvailableFrom version="0.12.0" />
-
-Die Prüfungen `plural-completeness`, `locale-codes` und `locale-state` sind ebenfalls rein informativ
-und bestehen immer. Ihre Details nennen Plurale, denen eine CLDR-Kategorie ihrer Zielsprache fehlt
-(was `check` als `incompletePlurals` meldet), konfigurierte Locale-Codes, die nicht in kanonischer
-BCP-47-Form sind, und Locales, für die Lock-Datei, Translation Memory oder Provenance-Datei noch
-Zustand halten, die die Konfiguration aber nicht mehr aufführt. Umbenannt wird nichts.
+[Netzwerkrichtlinie](/docs/network-policy) den Host oder Proxy des Providers abweist oder eine
+Netzwerk-Umgebungsvariable einen ungültigen Wert hat; für den Provider `none` besteht sie. Die
+Prüfungen `plural-rules`, `plural-completeness`, `locale-codes` und `locale-state` sind rein
+informativ, bestehen immer und benennen nichts um; was jede nennt, steht in der
+[Prüfungstabelle](/docs/cli/doctor#was-geprüft-wird).
 
 <AvailableFrom version="0.12.0" />
 
@@ -57,29 +50,24 @@ aktuelle Sprachliste des Providers ab, was kein Übersetzungskontingent verbrauc
 `LocaleCapabilityReport.live` sagt, wie das ausging. Siehe
 [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen).
 
-Mit gesetztem `literals` führt `doctor` nur die
-Prüfung `config` aus und statt der übrigen eine Prüfung `untranslated-literals`, die die
-Quellverzeichnisse aus dem `extract`-Block der Konfiguration durchsucht, wie es
-[`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. Keine geladene
-Konfiguration nötig: `doctor` lädt sie selbst, ein Projekt ganz ohne Konfiguration bekommt also
-trotzdem einen Bericht statt eines geworfenen Fehlers. Gibt ein `DoctorResult` zurück, dessen `ok`
-genau dann true ist, wenn keine Prüfung fehlgeschlagen ist. Es wirft `CONFIG_NOT_FOUND` nur für
-einen explizit angegebenen `configPath`, der nicht existiert.
+Mit gesetztem `literals` führt `doctor` nur die Prüfungen `config` und `untranslated-literals` aus,
+wie es [`verbatra doctor --literals`](/docs/cli/doctor#nicht-übersetzte-literale) tut. `doctor`
+lädt die Konfiguration selbst, ein Projekt ohne Konfiguration bekommt also trotzdem einen Bericht
+statt eines geworfenen Fehlers. `ok` ist genau dann true, wenn keine Prüfung fehlgeschlagen ist;
+`CONFIG_NOT_FOUND` wird nur für einen explizit angegebenen `configPath` geworfen, der nicht existiert.
 
 <AvailableFrom version="0.12.0" />
 
-Jede fehlgeschlagene Prüfung trägt `fix`, einen kurzen nächsten Schritt im Imperativ. Eine bestandene
-oder übersprungene Prüfung hat kein `fix`. Wie `detail` nennt es Variablen und Pfade, nie den Wert
-eines Keys.
+Nur eine fehlgeschlagene Prüfung trägt `fix`, einen nächsten Schritt im Imperativ; wie `detail`
+nennt es Variablen und Pfade, nie den Wert eines Keys.
 
 ### extract
 
 <AvailableFrom version="0.11.0" />
 
 Durchsucht deinen Anwendungscode nach Übersetzungsaufrufen und führt die Funde in den
-Quell-Locale-Katalog zusammen, funktioniert also auch in einem Projekt, das noch keinen Katalog
-hat. Der Lauf kostet nichts: Es wird kein Provider konstruiert, keine API-Key-Umgebungsvariable
-gelesen und keine Netzwerkanfrage gestellt.
+Quell-Locale-Katalog zusammen, auch wenn es ihn noch nicht gibt. Es konstruiert keinen Provider,
+liest keinen API-Key und stellt keine Netzwerkanfrage.
 
 ```ts title="Signatur"
 function extract(
@@ -94,13 +82,11 @@ function extract(
 
 **Wirft:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
-Geschrieben wird ausschließlich die Quell-Locale-Datei, und nur wirklich neue Keys werden ergänzt:
-Ein Key, der bereits im Katalog steht, behält seinen Wert unverändert, und ein Key im Katalog, den
-keine Aufrufstelle nennt, bleibt unangetastet. Ein Lauf, der nichts Neues findet, schreibt gar
-nichts. Alles, was der Scan nicht auflösen kann, kommt als Daten zurück, statt geworfen zu werden:
-ein nicht statisches Key-Argument in `dynamic`, ein Key mit zwei verschiedenen Standardwerten in
-`conflicts` (kein Wert wird geschrieben) und eine nicht lesbare Datei in `diagnostics`. Das Ergebnis
-trägt nur Keys, Werte sowie Datei- und Zeilenangaben, nie den Inhalt einer Quelldatei.
+Nur wirklich neue Keys werden in der Quell-Locale-Datei ergänzt; siehe
+[Was er schreibt](/docs/cli/extract#was-er-schreibt). Was der Scan nicht auflösen kann, kommt als
+Daten in `dynamic`, `conflicts` und `diagnostics` zurück, nie geworfen
+([Was er meldet](/docs/cli/extract#was-er-meldet-statt-zu-raten)). Das Ergebnis trägt nie den
+Inhalt einer Quelldatei.
 
 `config.extract` benennt das Framework und die Quellverzeichnisse. Die Dateisuche läuft über das
 optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member wird als
@@ -124,8 +110,7 @@ function check(
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
-Gibt eine `CheckSummary` zurück, deren `inSync`
-genau dann true ist, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
+`inSync` ist genau dann true, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
 <AvailableFrom version="0.11.0" />
 
@@ -149,35 +134,28 @@ Jede `LocaleCheckSummary` enthält außerdem `protected`: wie viele ihrer veralt
 
 <AvailableFrom version="0.12.0" />
 
-Mit `qa: true` lässt `check` zusätzlich die Qualitätsprüfung über jeden eingecheckten Wert laufen,
-ohne Key und ohne etwas zu schreiben: Jede `LocaleCheckSummary` trägt einen `qa`-Bericht aus
-`{ checked, errors, warnings, findings }`, und die Zusammenfassung trägt die `qa`-Summen aus
-`{ errors, warnings, invalidSourceKeys }`. Ein Befund ist `{ key, severity: "error", reason, details? }`
-für einen Wert, den das Integritäts-Gate ablehnen würde (`reason` aus `INTEGRITY_GATE_REASONS`),
-oder `{ key, severity: "warning", reason }` für einen Wert, der besteht, aber einen Review-Grund
-aus `REVIEW_REASON_CODES` trägt. `qaSeverity: "error"` lässt die Review-Gründe weg. Die
-Schweregrade sind als Tupel `QA_SEVERITIES` veröffentlicht (`"error"`, `"warning"`). Der Bericht
-ändert `inSync` nie; ein CI-Gate liest `qa.errors` und für ein strenges Gate auch `qa.warnings`.
-Welche Werte geprüft werden, steht unter [die Qualitätsprüfung](/docs/cli/check#qualitätsprüfung).
+Mit `qa: true` lässt `check` zusätzlich die [Qualitätsprüfung](/docs/cli/check#qualitätsprüfung)
+über jeden eingecheckten Wert laufen, ohne Key und ohne zu schreiben: Jede `LocaleCheckSummary`
+trägt einen `qa`-Bericht und die Zusammenfassung die `qa`-Summen, in den Formen, die dieser
+Abschnitt zeigt. Der `reason` eines Fehlers stammt aus `INTEGRITY_GATE_REASONS`, der einer Warnung
+aus `REVIEW_REASON_CODES`, und die Schweregrade sind das Tupel `QA_SEVERITIES`;
+`qaSeverity: "error"` lässt die Warnungen weg. Der Bericht ändert `inSync` nie; ein CI-Gate liest
+`qa.errors` und für ein strenges Gate auch `qa.warnings`.
 
 <AvailableFrom version="0.12.0" />
 
 Jede `LocaleCheckSummary` trägt außerdem `incompletePlurals`: ein `IncompletePlural` pro Plural, dessen
 eingecheckten Formen CLDR-Pluralkategorien fehlen, die die Zielsprache verwendet, als
-`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, nach Key sortiert und
-leer, wenn jeder Plural vollständig ist. Abgedeckt sind `i18next-json`, `android-xml`, `apple-strings`,
-`apple-xcstrings` und die ICU-Nachrichten mit `plural` und `selectordinal` von `next-intl-json` und
-`arb`. `other` ist immer Pflicht, ein Zweig mit exaktem Wert wie `=1` ersetzt nie eine Kategorie, und
-eine Kategorie, die die Sprache nicht verwendet, wird nicht gemeldet. Es ist eine Warnung: Sie ändert
-nie `inSync` oder eine Zahl. Siehe [Pluralkategorien](/docs/cli/check#pluralkategorien).
+`{ code: "PLURAL_CATEGORIES_INCOMPLETE", key, argument?, ruleType, missing }`, nach Key sortiert. Es
+ist eine Warnung, die nie `inSync` oder eine Zahl ändert; Formate und Regeln stehen unter
+[Pluralkategorien](/docs/cli/check#pluralkategorien).
 
-Mit `requireReviewed: true` führt `check` zusätzlich das Review-Gate aus, ohne Key und ohne etwas
-zu schreiben: Jede `LocaleCheckSummary` trägt `review: { unreviewed }`, die Keys, deren Wert eine
-maschinelle Herkunft hat und nicht freigegeben ist, und die Zusammenfassung trägt
-`review: { reviewed, unreviewed, code? }`. `code` ist `REVIEW_REQUIRED`, wenn ein Wert nicht
-freigegeben ist, oder `REVIEW_STATE_UNREADABLE`, wenn die Herkunftsdatei beschädigt ist oder von
-einer neueren verbatra-Version stammt; dann scheitert das Gate, statt durchzulassen. Der Bericht
-ändert `inSync` nie; ein CI-Gate liest `review.reviewed`. Siehe [`verbatra check`](/docs/cli/check).
+Mit `requireReviewed: true` führt `check` zusätzlich das
+[Review-Gate](/docs/cli/check#freigegebene-übersetzungen-verlangen) aus, ohne Key und ohne zu
+schreiben: Jede `LocaleCheckSummary` trägt `review: { unreviewed }`, die nicht freigegebenen
+maschinellen Keys, und die Zusammenfassung trägt `review: { reviewed, unreviewed, code? }` mit den
+Codes, die dieser Abschnitt nennt. Der Bericht ändert `inSync` nie; ein CI-Gate liest
+`review.reviewed`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -191,10 +169,9 @@ beidem.
 
 <AvailableFrom version="0.12.0" />
 
-Prüft eine einzelne Locale-Datei, der schnelle Weg, eine Datei direkt nach einer Änderung durch eine
-Person oder einen Agenten zu validieren. Es liest diese Datei und, für ein Ziel-Locale, die Datei des
-Quell-Locales, und sonst nichts: kein anderes Locale, keine Lock-Datei, keinen Quellcode, keinen
-Provider, keinen API-Key, und es schreibt nichts.
+Prüft eine einzelne Locale-Datei direkt nach einer Änderung durch eine Person oder einen Agenten.
+Es liest nur diese Datei und, für ein Ziel-Locale, die Quelldatei; es ruft keinen Provider auf,
+liest keinen API-Key und schreibt nichts.
 
 ```ts title="Signatur"
 function checkFile(
@@ -209,16 +186,12 @@ function checkFile(
 
 **Wirft:** [`NOT_A_LOCALE_FILE`](/docs/error-codes#not_a_locale_file), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
 
-`file` ist absolut oder relativ zu `cwd`. Die `CheckFileSummary` besteht aus `{ file, role, locales, qa }`: `role` ist `"source"`, `"target"`
-oder `"catalogue"` (die eine Datei von `apple-xcstrings`), jeder Eintrag in `locales` ist ein
-`LocaleFileCheck` aus `{ locale, incompletePlurals, qa }`, dessen `qa` die Form des `qa`-Berichts hat,
-den `check` mit `qa: true` liefert, und `qa` enthält die Summen. Eine Datei, die sich nicht parsen
-lässt, wird nicht geworfen: Ihr Locale trägt einen `QaSyntaxFinding` aus
-`{ severity: "error", reason: "syntax", code, message, line?, column? }` mit dem Code des
-Format-Adapters und, bei JSON und YAML, der Position, die `AdapterError.position` meldet. Eine
-Zieldatei, die sich parsen lässt, wird wie bei `check` mit `qa: true` gegen die Quelle geprüft; die
-Quelldatei nur auf ihre Syntax. Ein Pfad, der zu keinem konfigurierten Locale gehört, oder eine
-Datei, die es nicht gibt, wirft `NOT_A_LOCALE_FILE`. Siehe [Eine Datei](/docs/cli/check#eine-datei).
+`file` ist absolut oder relativ zu `cwd`. [Eine Datei](/docs/cli/check#eine-datei) zeigt die Form
+der `CheckFileSummary`, jeder Eintrag in `locales` ein `LocaleFileCheck`. Eine Datei, die sich
+nicht parsen lässt, wird nicht geworfen: Ihr Locale trägt einen `QaSyntaxFinding`, bei JSON und
+YAML mit der Position, die `AdapterError.position` meldet. Eine Zieldatei wird wie bei `check` mit
+`qa: true` geprüft, die Quelldatei nur auf ihre Syntax. Ein Pfad, der zu keinem konfigurierten
+Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
 
 ### diff
 
@@ -239,15 +212,12 @@ function diff(
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
-Mit `unused: true` scannt es zusätzlich die Roots des `extract`-Blocks der Konfiguration und ergänzt
-einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der Quell-Locale, die keine
-statische Referenz nennt, in Katalogreihenfolge. Er ist nur lesend, braucht keinen Key und bildet die i18next-Laufzeit nach. Jeder gelistete Key trägt seinen
-dekodierten `key` und seinen `catalogKey`. Keys, die `extract.unused.ignore` trifft, landen in
-`ignored`, und Keys, die ein Template-Literal mit statischem Anfang erreichen könnte, in
-`possiblyDynamic`. Sein `status` ist `complete`, `unreliable` (mit `unreliableBecause`, das jeden
-Grund mit seinen Fundstellen nennt) oder `not-run` (mit einem `reason` und ohne Key-Liste). Alle
-Gründe findest du unter [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys). Der Bericht
-kippt nie `hasPendingChanges`.
+Mit `unused: true` scannt es zusätzlich die `extract`-Roots der Konfiguration, nur lesend und ohne
+Key, und ergänzt einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der
+Quell-Locale, die keine statische Referenz nennt, in Katalogreihenfolge, jeder mit seinem
+dekodierten `key` und seinem `catalogKey`. [Ungenutzte Quell-Keys](/docs/cli/diff#ungenutzte-quell-keys)
+erklärt die Listen `ignored` und `possiblyDynamic` und den `status`. Der Bericht kippt nie
+`hasPendingChanges`.
 
 <AvailableFrom version="0.12.0" />
 
@@ -289,9 +259,7 @@ Schreiben, und ein kurzes Problem pro fehlendem oder überzähligem Zweig, etwa 
 missing arm "few" required by the target language`. `icuArmsMatch` ist immer true für ein Format,
 das keine Zweige prüft (jedes mitgelieferte Format außer next-intl und ARB).
 
-`keys` engt die Prüfung ein; geprüft werden immer
-nur Keys, die für eine Locale "geändert" sind. Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale
-zurück.
+`keys` engt die Prüfung ein; geprüft werden immer nur Keys, die für eine Locale "geändert" sind.
 
 ### localeIntegrity
 
@@ -322,9 +290,6 @@ function localeIntegrity(
 Die Kosten sind ein Lesen und Parsen der Quelldatei und jeder angefragten Zieldatei plus eine
 Prüfung pro übersetztem Key. Nichts wird zwischengespeichert; jeder Aufruf liest frisch von der
 Platte.
-
-Gibt ein `LocaleKeyIntegrity` pro geprüfter Locale zurück,
-das nur ihre fehlerhaften Einträge enthält.
 
 ### lockState
 
@@ -369,7 +334,7 @@ function loadLockFile(
 
 **Wirft:** [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
 
-Keine Konfiguration nötig. Gibt ein `LockFile` zurück.
+Keine Konfiguration nötig.
 
 ### loadProvenance
 
@@ -397,7 +362,7 @@ function loadProvenance(
 
 **Wirft:** [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
-Keine Konfiguration nötig. Gibt eine `ProvenanceFile` zurück.
+Keine Konfiguration nötig.
 
 ### runStatus
 
@@ -420,17 +385,12 @@ function runStatus(
 Keine Konfiguration nötig. Gibt `{ available: false, reason }` (siehe `RUN_STATUS_UNAVAILABLE_REASONS`)
 oder `{ available: true, version, generatedAt, usage?, budget?, locales }` zurück.
 
-Ein Schnappschuss, den eine Version von vor dem durchgesetzten Token-Budget geschrieben hat, wird
-weiter gelesen, aber sein `budget` entfällt, wenn es `supported: false` meldet: damals hieß das,
-dass gar nichts gezählt wurde, also ist sein `tokensUsed: 0` keine Zählung. Neu geschriebene
-Schnappschüsse behalten dieselbe `version` und ergänzen nur ein Markierungsfeld, das ein älteres
-Studio oder ein älterer Agent-Server ignoriert, ein älterer Leser zeigt die Review-Warteschlange und
-den Verbrauch also weiter an. Bis zum Upgrade kann er ein geschätztes Budget als nicht erfasst
-anzeigen.
-
-Ein Review-Grund aus einer neueren Version, den diese Version nicht kennt, wird ignoriert, statt
-den ganzen Schnappschuss unbrauchbar zu machen: der Eintrag behält seine bekannten Gründe, und ein
-Eintrag ohne bekannten Grund entfällt.
+Ein Schnappschuss von vor dem durchgesetzten Token-Budget wird weiter gelesen, aber ein `budget`
+mit `supported: false` entfällt: Sein `tokensUsed: 0` war keine Zählung. Neue Schnappschüsse
+behalten dieselbe `version` und ergänzen nur ein Markierungsfeld, sodass ein älteres Studio oder
+ein älterer Agent-Server Warteschlange und Verbrauch weiter anzeigt, ein geschätztes Budget aber
+eventuell als nicht erfasst. Ein unbekannter Review-Grund aus einer neueren Version wird ignoriert:
+Der Eintrag behält seine bekannten Gründe, und einer ohne bekannten Grund entfällt.
 
 ### reviewQueue
 
@@ -475,9 +435,9 @@ Eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufr
 
 Erstellt den Bericht pro Locale, den `verbatra report provenance` ausgibt: jeden Key mit einem Wert
 sowohl in der Quelle als auch in einer Ziel-Locale, in der Reihenfolge der Quelle, mit Herkunft,
-Review-Status, Provider, Modell und Reviewer, gezählt in einer von sieben Kategorien
-(`machine-unreviewed`, `machine-reviewed`, `human`, `import`, `external`, `unrecorded`, `unknown`,
-in dieser Reihenfolge veröffentlicht als Tupel `PROVENANCE_BUCKETS`). Er liest die Locale-Dateien,
+Review-Status, Provider, Modell und Reviewer, gezählt in einer der Kategorien des Tupels
+`PROVENANCE_BUCKETS`, die [der Herkunftsbericht](/docs/provenance-evidence#der-herkunftsbericht)
+definiert. Er liest die Locale-Dateien,
 `verbatra.lock.json` und `verbatra.provenance.json`, ruft keinen Provider auf und schreibt nichts.
 
 ```ts title="Signatur"
@@ -523,4 +483,4 @@ function provenanceReportPage(
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PAGE_CURSOR_INVALID`](/docs/error-codes#page_cursor_invalid), [`PAGE_LIMIT_INVALID`](/docs/error-codes#page_limit_invalid)
 
-Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Ist die Provenienzdatei beschädigt oder stammt sie von einem neueren verbatra, kommt wie bei `provenanceReport` `{ available: false, reason: "provenance-unreadable" }` zurück; eine Quell-, Ziel- oder Lock-Datei, die sich nicht lesen lässt, lässt den Aufruf fehlschlagen.
+Eine Locale trägt `entries` nur auf den Seiten, die einen ihrer Einträge enthalten. Eine Seite hält höchstens `limit` Einträge, standardmäßig `PAGE_LIMIT_DEFAULT`; gib `nextCursor` mit denselben `locales` und `buckets` als `cursor` zurück, bis er fehlt. Er ist genau dann nicht verfügbar oder schlägt fehl, wenn `provenanceReport` es tut.
