@@ -1,5 +1,6 @@
 import type { AdapterRegistry } from "@verbatra/format-adapters";
 import { assertProviderNetworkPermitted } from "../config/network-policy.js";
+import { isMachineProvider } from "../config/provider-config.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorHint } from "../error-hints.js";
 import { causeCodeOf, describeError, SdkError } from "../errors.js";
@@ -12,10 +13,19 @@ import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { assertLockAcquireTimeout, type LockWaitListener } from "../lock/locale-write-lock.js";
 import type { ProgressListener } from "../progress/types.js";
 import { projectRelativeMessage } from "../project-relative.js";
-import type { CreateProvider } from "../selection/select-provider.js";
+import { type CreateProvider, selectProvider } from "../selection/select-provider.js";
 import { defaultCreateWatcher, defaultRunTranslate } from "./wiring.js";
 
 const DEFAULT_DEBOUNCE_MS = 300;
+
+function assertProviderConstructs(
+  config: VerbatraConfig,
+  createProvider: CreateProvider | undefined,
+): void {
+  if (isMachineProvider(config.provider)) {
+    selectProvider(config.provider, createProvider, { network: config.network });
+  }
+}
 
 /**
  * The minimal file-watching surface {@link watch} needs. Supplying your own through
@@ -122,7 +132,11 @@ export interface WatchInput {
 export interface WatchDeps {
   /** Format-adapter registry to resolve the configured format. Defaults to the built-in registry. */
   readonly adapterRegistry?: AdapterRegistry;
-  /** Provider factory. Defaults to constructing the provider named in the config. */
+  /**
+   * Provider factory. Defaults to constructing the provider named in the config. Called once at
+   * startup to check that the provider can be built, then again by every run. Never called under
+   * the provider `none`.
+   */
   readonly createProvider?: CreateProvider;
   /** File-system port. Defaults to the real file system. */
   readonly fs?: SdkFs;
@@ -151,7 +165,7 @@ export interface WatchController {
  * so every run outcome arrives through `onRun`. A run that throws is delivered as a failed
  * {@link WatchRunResult} rather than escaping the session, because a watcher that died on the first
  * bad save would be useless. Only startup problems throw: the inputs validated before any watching
- * begins, and a failure to construct the watcher itself.
+ * begins, a provider that cannot be constructed, and a failure to construct the watcher itself.
  *
  * Rapid saves are coalesced by `debounceMs`, and runs never overlap, so an editor writing a file
  * several times in a moment produces one run rather than a queue of them.
@@ -180,6 +194,10 @@ export interface WatchController {
  * @throws {@link SdkError} `NETWORK_POLICY_VIOLATION`: the effective network policy does not permit
  * the configured provider's endpoint or its proxy. Thrown once at startup, before any watching
  * begins or any API key is read.
+ * @throws {@link SdkError} `PROVIDER_CONSTRUCTION_FAILED`: the configured machine-translation
+ * provider could not be constructed, most often because its API key environment variable is unset.
+ * Thrown once at startup, before any watching begins, since no later run could construct it either.
+ * Never thrown under the provider `none`.
  * @throws {@link SdkError} `CONFIG_INVALID`: `VERBATRA_NETWORK_POLICY` or
  * `VERBATRA_NETWORK_ALLOWED_HOSTS` holds a value that is not valid.
  * @throws Whatever the watcher factory raised, unwrapped, when it could not build a watcher over
@@ -214,6 +232,7 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   resolveRunConcurrency(input.concurrency, false, input.config.maxTokens, false);
   assertLockAcquireTimeout(input.lockAcquireTimeoutMs);
   assertProviderNetworkPermitted(input.config);
+  assertProviderConstructs(input.config, deps.createProvider);
 
   const resolver = createLocalePathResolver(cwd, input.config);
   const sourcePath = resolver.pathFor(input.config.sourceLocale);

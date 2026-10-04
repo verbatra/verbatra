@@ -24,7 +24,7 @@ verbatra studio --expose-agent-tools
 
 Pour que l'agent puisse appeler ton fournisseur, lance aussi Studio avec `--allow-spend` ([Dépenses et outils d'agent](/docs/cli/studio#dépenses-et-outils-dagent)).
 
-L'agent lit chaque valeur sans masquage, comme la page l'affiche ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
+L'agent lit chaque valeur sans masquage, comme la page l'affiche : Studio ne masque rien, car un agent dans l'onglet peut de toute façon lire la page. Pour cacher les valeurs à un agent, utilise plutôt le serveur MCP avec [`--redact-values`](/docs/cli/mcp#redacted-values) ; pour un projet sous NDA, voir [Studio et MCP](/docs/data-handling#studio-et-mcp).
 
 ## Savoir ce que l'agent peut appeler
 
@@ -89,7 +89,8 @@ Chaque outil renvoie l'enveloppe du tableau de bord, donc un échec se lit `{ "o
 | Code | Signification |
 | --- | --- |
 | `REQUEST_INVALID` | la requête ou la réponse n'était pas une enveloppe lisible |
-| `METHOD_UNKNOWN` | la méthode n'est pas enregistrée dans cette session, comme un outil payant sans `--allow-spend` |
+| `METHOD_UNKNOWN` | la méthode n'existe pas dans cette version de Studio |
+| `SPEND_DISABLED` | une méthode payante alors que la dépense est coupée : Studio tourne sans `--allow-spend`, ou le fournisseur est `none` ; le message dit lequel |
 | `PARAMS_INVALID` | un paramètre a échoué à la validation ; `issues` nomme chaque champ |
 | `METHOD_RATE_LIMITED` | limite de débit dépassée ; `retryAfterSeconds` dit quand l'appel passera |
 | `SESSION_EXPIRED` | Studio a redémarré avec un nouveau token ; ouvre l'URL qu'il a affichée |

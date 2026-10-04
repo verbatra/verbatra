@@ -53,7 +53,7 @@ Diese Flags bedeuten bei jedem Befehl, der sie nimmt, dasselbe. Die Befehlsseite
 | `-h`, `--help` | keins | aus | gibt die Hilfe des Programms oder des Befehls aus und endet mit `0` | keinem |
 | `-V`, `--version` | keins | aus | gibt die Version der CLI aus und endet mit `0` | keinem |
 
-Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nacktes `verbatra` ohne Befehl: Es gibt die Hilfe auf stderr aus und schlägt `verbatra init` vor, wenn keine Konfiguration gefunden wird. `mcp` schreibt nie auf stdout, weil stdout sein Protokollkanal ist, und lehnt `--json` deshalb mit `USAGE_ERROR` ab.
+Ein unbekannter Befehl oder ein unbekanntes Flag endet mit `2`, ebenso ein nacktes `verbatra` ohne Befehl: Es gibt die Hilfe auf stderr aus und schlägt `verbatra init` vor, wenn keine Konfiguration gefunden wird. `mcp` schreibt nie auf stdout, weil stdout sein Protokollkanal ist, und lehnt `--json` deshalb mit `USAGE_ERROR` ab. Ab 0.12.0 endet ein `--cwd`, das kein vorhandenes Verzeichnis nennt, bei jedem Befehl mit `2` und [`INVALID_OPTION`](/docs/error-codes#invalid_option), bevor etwas gelesen oder geschrieben wird.
 
 ## Umgebungsdateien
 

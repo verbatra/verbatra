@@ -31,6 +31,8 @@ Every run translates the `--locales` subset, or every target, with a fresh token
 
 A `--concurrency` above `1` together with a configured `maxTokens` budget is refused at startup with exit `2`, before the initial run, because which locale loses its remaining work would depend on how the locales interleave.
 
+A provider that cannot be built, most often because its API key variable is unset, is refused at startup too: `watch` exits `2` with `PROVIDER_CONSTRUCTION_FAILED` and a `next:` line naming the variable, exactly like `translate`, instead of waiting for changes no run could translate. Before 0.12.0 it kept waiting.
+
 ### Stopping
 
 <AvailableFrom version="0.12.0" />

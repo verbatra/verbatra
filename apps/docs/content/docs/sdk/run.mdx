@@ -116,7 +116,7 @@ function watch(
 
 **Returns:** `WatchController`
 
-**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 `debounceMs` defaults to 300. `onRun` is called once per run with a `WatchRunResult`:
 `{ status: "succeeded", summary }` or `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
@@ -129,11 +129,13 @@ only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
 cycle.
 
 Returns a `WatchController` with one method, `stop()`, which closes the watcher and awaits the
-in-flight run. Three problems are refused at startup, before the watcher exists, so `watch` itself
+in-flight run. Four problems are refused at startup, before the watcher exists, so `watch` itself
 rejects rather than returning a controller: a `concurrency` that is not an integer of at least 1
 throws `CONCURRENCY_INVALID`, a `concurrency` above 1 against a config that sets `maxTokens` throws
 `CONCURRENCY_BUDGET_CONFLICT` (there is no dry-run watch, so the budget conflict always applies),
-and a missing source file throws `SOURCE_UNREADABLE`. Every failure after startup is surfaced
+a missing source file throws `SOURCE_UNREADABLE`, and, from 0.12.0, a provider that cannot be
+constructed, such as one whose API key variable is unset, throws `PROVIDER_CONSTRUCTION_FAILED`.
+Every failure after startup is surfaced
 through `onRun` and watching continues.
 
 ### releaseHeldLocks

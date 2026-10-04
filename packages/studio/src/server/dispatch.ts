@@ -215,7 +215,9 @@ async function handlePost(
     response.setHeader("Retry-After", String(result.retryAfterSeconds));
   }
   response.end(result.body);
-  context.log(formatRequestLog({ method, path, status: result.statusCode }));
+  context.log(
+    formatRequestLog({ method, path, status: result.statusCode, rpcMethod: result.rpcMethod }),
+  );
 }
 
 export async function handleRequest(

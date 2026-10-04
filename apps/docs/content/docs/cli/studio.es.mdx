@@ -49,7 +49,7 @@ verbatra: spend tools off (pass --allow-spend to retranslate from Studio)
 verbatra: agent tools off (pass --expose-agent-tools to register them)
 ```
 
-Con `--allow-spend` y el proveedor `none`, la primera línea dice `verbatra: spend tools off (provider none)`. En un terminal interactivo añade `verbatra: press Ctrl-C to stop`, e imprime `verbatra: Studio stopped` tras apagarse. `--verbose` reenvía una línea por petición (como `GET / 200`); la línea de arranque propia de Studio siempre se descarta. `--quiet` deja solo la línea de la URL. Una línea `verbatra: studio error: ...`, que aparece cuando una acción por lotes del panel se detiene por un error inesperado del servidor, sale siempre, incluso con `--quiet`. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+Con `--allow-spend` y el proveedor `none`, la primera línea dice `verbatra: spend tools off (provider none)`. En un terminal interactivo añade `verbatra: press Ctrl-C to stop`, e imprime `verbatra: Studio stopped` tras apagarse. `--verbose` reenvía una línea por petición (como `GET / 200`, o `POST /rpc status.check 200`, que nombra el método RPC, nunca sus parámetros); la línea de arranque propia de Studio siempre se descarta. `--quiet` deja solo la línea de la URL. Una línea `verbatra: studio error: ...`, que aparece cuando una acción por lotes del panel se detiene por un error inesperado del servidor, sale siempre, incluso con `--quiet`. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
 
 ### Gasto y herramientas de agente
 

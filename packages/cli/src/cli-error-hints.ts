@@ -5,7 +5,7 @@ export const CLI_ERROR_HINTS = {
     "Repair the .mcp.json or the verbatra markers in the file the message names, then run `verbatra init --agent` again.",
   CLI_ERROR: undefined,
   CONFIG_EXISTS:
-    "Pass --force to overwrite the existing config, or remove the other config file the message names.",
+    "Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.",
   CONFIG_INVALID: "Correct the init answers the message names, then run `verbatra init` again.",
   FORMAT_AMBIGUOUS: "Pass --format with one of the candidates.",
   INIT_UNWRITABLE: "Make the directory writable, then run `verbatra init` again.",
@@ -28,7 +28,7 @@ export const CLI_ERROR_HINTS = {
   INVALID_QA_OPTION: "Add --qa or --file, and do not combine --strict with --severity error.",
   INVALID_SEVERITY: "Pass --severity error or --severity warning.",
   LAYOUT_AMBIGUOUS: "Pass --path with one of the candidates.",
-  MISSING_OPTIONS: "Pass every flag the message names, or add --yes to accept the defaults.",
+  MISSING_OPTIONS: "Pass the flags the message names, or --yes where the message offers it.",
   REDACTION_UNSUPPORTED:
     "Upgrade @verbatra/mcp to the version that ships with this CLI, then start `verbatra mcp --redact-values` again.",
   USAGE_ERROR: "Run the command with --help to see the options and arguments it accepts.",

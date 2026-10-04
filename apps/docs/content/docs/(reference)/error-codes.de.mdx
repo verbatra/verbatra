@@ -36,7 +36,7 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 - **Ausgelöst von**: `init`
 - **Exit-Code**: `2`
-- **Nächster Schritt**: Pass --force to overwrite the existing config, or remove the other config file the message names.
+- **Nächster Schritt**: Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
 
 ### CONFIG_INVALID [#cli-config_invalid]
 
@@ -128,9 +128,9 @@ Ein Fehlschlag keinen eigenen Code mitbrachte (der Ausweich-Code).
 
 ### INVALID_OPTION
 
-Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `init --cwd` kein vorhandenes Verzeichnis nennt oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` kommt.
+Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` oder `libretranslate`, `--model` bei DeepL), `--api-key-env-var` kein Variablenname ist `--base-url` Zugangsdaten, einen Query-String oder ein Fragment enthält `--cwd` kein vorhandenes Verzeichnis nennt (bei jedem Befehl, bevor er läuft) oder `doctor` `--locales` oder `--live` zusammen mit `--literals` bekam oder `check --file` keine Datei nennt oder zusammen mit `--locales`, `--consistency`, `--require-reviewed` oder `--sensitive` kommt.
 
-- **Ausgelöst von**: `init`, `doctor`, `check`
+- **Ausgelöst von**: jedem Befehl mit `--cwd`, dazu `init`, `doctor`, `check`
 - **Exit-Code**: `2`
 - **Nächster Schritt**: Correct or remove the flag the message names.
 
@@ -188,7 +188,7 @@ Ein `init`-Flag nicht zum Provider passt (`--base-url` ohne `openai-compatible` 
 
 - **Ausgelöst von**: `init`
 - **Exit-Code**: `2`
-- **Nächster Schritt**: Pass every flag the message names, or add --yes to accept the defaults.
+- **Nächster Schritt**: Pass the flags the message names, or --yes where the message offers it.
 
 ### REDACTION_UNSUPPORTED
 
@@ -384,7 +384,7 @@ Die Schreibsperre einer Locale oder die Glossarsperre, die `updateGlossaryTerm` 
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-Das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`).
+Das Glossar der Konfiguration ist inline oder fehlt, es gibt also keine Glossardatei zum Lesen oder Neuschreiben (`readGlossaryFile`, `updateGlossaryTerm`). Ist gar kein Glossar konfiguriert, lautet der Hinweis stattdessen: Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Ausgelöst von**: Studio und der MCP-Server
 - **Exit-Code**: keiner: kein CLI-Befehl löst ihn aus

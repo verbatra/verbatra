@@ -3,10 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
 import { type InitDeps, runInit } from "./init.js";
+import { DEFAULT_TERMINAL_SETTINGS } from "./terminal-mode.js";
 import { captureStreams, parseEnvelope } from "./test-support.js";
 
 const nonInteractive: InitDeps = { isTty: () => false };
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function queuedAsk(answers: readonly string[]): InitDeps & { readonly asked: () => number } {
   let index = 0;
@@ -49,7 +55,7 @@ describe("runInit: the --cwd directory", () => {
     expect(code).toBe(2);
     const envelope = parseEnvelope(cap.out());
     expect(envelope).toMatchObject({ ok: false, code: "INVALID_OPTION" });
-    expect(envelope.message).toContain(`--cwd names ${cwd}, which is not an existing directory`);
+    expect(envelope.message).toContain(`--cwd names "${cwd}", which is not an existing directory`);
     expect(existsSync(join(dir, "missing"))).toBe(false);
   });
 
@@ -271,6 +277,44 @@ describe("runInit: an existing config is reported first", () => {
     expect(code).toBe(2);
     expect(deps.asked()).toBe(0);
     expect(cap.err()).toContain("[CONFIG_EXISTS] verbatra.config.ts already exists");
+  });
+
+  it("prints the next step after the CONFIG_EXISTS error line", async () => {
+    const cap = captureStreams();
+
+    const code = await runInit({ cwd: dir, yes: true, provider: "none" }, cap.streams);
+
+    expect(code).toBe(2);
+    expect(cap.err()).toMatch(
+      new RegExp(
+        `^verbatra: error \\[CONFIG_EXISTS\\] .*\\nnext: ${escapeRegExp(CLI_ERROR_HINTS.CONFIG_EXISTS)}\\n$`,
+      ),
+    );
+  });
+
+  it("keeps the next step off stderr under --json and --quiet, and in the envelope", async () => {
+    const json = captureStreams();
+    await runInit({ cwd: dir, json: true, provider: "none" }, json.streams);
+    expect(json.err()).not.toContain("next:");
+    expect(parseEnvelope(json.out())).toMatchObject({ hint: CLI_ERROR_HINTS.CONFIG_EXISTS });
+
+    const quiet = captureStreams();
+    await runInit(
+      { cwd: dir, yes: true, provider: "none" },
+      quiet.streams,
+      {},
+      {
+        ...DEFAULT_TERMINAL_SETTINGS,
+        quiet: true,
+      },
+    );
+    expect(quiet.err()).toContain("[CONFIG_EXISTS]");
+    expect(quiet.err()).not.toContain("next:");
+  });
+
+  it("points a competing config file at removal, since --force does not replace it", () => {
+    expect(CLI_ERROR_HINTS.CONFIG_EXISTS).toContain("--force to replace verbatra.config.ts");
+    expect(CLI_ERROR_HINTS.CONFIG_EXISTS).toContain("remove any other config file");
   });
 
   it("still plans and overwrites under --force", async () => {

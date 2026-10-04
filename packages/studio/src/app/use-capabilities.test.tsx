@@ -16,7 +16,7 @@ function Probe(): ReactNode {
 
 function snapshotResult(spend: boolean): { readonly ok: true; readonly result: unknown } {
   const capabilities: StudioCapabilities = { spend, writeToDisk: true };
-  return { ok: true, result: { capabilities } };
+  return { ok: true, result: { capabilities, sourceLocale: "en" } };
 }
 
 describe("useCapabilities", () => {
@@ -35,7 +35,11 @@ describe("useCapabilities", () => {
     const view = await renderAsync(<Probe />);
 
     expect(view.text()).toBe("loaded");
-    expect(seen).toEqual({ kind: "loaded", capabilities: { spend: true, writeToDisk: true } });
+    expect(seen).toStrictEqual({
+      kind: "loaded",
+      capabilities: { spend: true, writeToDisk: true },
+      sourceLocale: "en",
+    });
   });
 
   it("carries a refused spend capability through unchanged, so a caller can hide the affordance", async () => {
@@ -43,7 +47,11 @@ describe("useCapabilities", () => {
 
     await renderAsync(<Probe />);
 
-    expect(seen).toEqual({ kind: "loaded", capabilities: { spend: false, writeToDisk: true } });
+    expect(seen).toStrictEqual({
+      kind: "loaded",
+      capabilities: { spend: false, writeToDisk: true },
+      sourceLocale: "en",
+    });
   });
 
   it("reads capabilities from project.snapshot exactly once per mount", async () => {

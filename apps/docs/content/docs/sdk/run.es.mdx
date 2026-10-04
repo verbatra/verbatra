@@ -120,7 +120,7 @@ function watch(
 
 **Devuelve:** `WatchController`
 
-**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+**Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
 `{ status: "succeeded", summary }` o `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
@@ -133,11 +133,13 @@ acota cada ejecución de la sesión a ese subconjunto y se valida una sola vez a
 ciclo.
 
 Devuelve un `WatchController` con un solo método, `stop()`, que cierra el watcher y espera la ejecución
-en curso. Tres problemas se rechazan al arrancar, antes de que el watcher exista, así que `watch` mismo
+en curso. Cuatro problemas se rechazan al arrancar, antes de que el watcher exista, así que `watch` mismo
 rechaza en lugar de devolver un controlador: un `concurrency` que no es un entero de al menos 1 lanza
 `CONCURRENCY_INVALID`, un `concurrency` mayor que 1 contra una configuración que fija `maxTokens` lanza
 `CONCURRENCY_BUDGET_CONFLICT` (no existe un watch en dry run, así que el conflicto de presupuesto siempre
-se aplica), y un archivo de origen ausente lanza `SOURCE_UNREADABLE`. Todo fallo posterior al arranque se
+se aplica), un archivo de origen ausente lanza `SOURCE_UNREADABLE`, y, desde 0.12.0, un proveedor que no se
+puede construir, por ejemplo porque falta su variable de API key, lanza `PROVIDER_CONSTRUCTION_FAILED`.
+Todo fallo posterior al arranque se
 comunica a través de `onRun` y la vigilancia continúa.
 
 ### releaseHeldLocks

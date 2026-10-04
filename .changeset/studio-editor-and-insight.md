@@ -8,6 +8,9 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
 - Retranslating a protected key is refused and offers **Replace anyway**.
 - Spend is withheld under `provider: none`, even with `--allow-spend`, and the Settings page says
   why.
+- A spend method called while spending is off answers `SPEND_DISABLED` (HTTP 403), naming
+  `--allow-spend` or `provider: none` as the reason, instead of `METHOD_UNKNOWN` (HTTP 400).
+- A logged RPC request names its method, such as `POST /rpc status.check 200`.
 
 **Editor and keys**
 - The editor shows the source with highlighted placeholders, ICU syntax and markup, the key's
@@ -30,6 +33,8 @@ Side-by-side editor, state filters, provenance badges, per-locale glossary, RTL 
 **Display**
 - Right-to-left text follows the browser's direction for each locale, with placeholders and
   markup isolated left to right, and only the value takes that direction.
+- Review rows show the source text above the translation. Dates and token counts use the
+  English format of the interface, and a run without token usage says why it has no count.
 - **Translate pending** counts keys the config's `sensitiveData` guard kept from the provider among
   the withheld keys, and a retranslation it refuses explains why.
 - The session-expired screen says to reopen the printed URL, and an unexpected server error is

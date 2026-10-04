@@ -24,6 +24,7 @@ import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import {
   PROJECT_SNAPSHOT_METHOD,
+  type SpendWithheldReason,
   type StudioCapabilities,
   type StudioRateLimits,
 } from "../shared/rpc/snapshot.js";
@@ -66,6 +67,7 @@ export interface RpcHandlerDeps
   readonly inFlightEntries?: () => readonly InFlightEntry[];
   readonly rateLimits?: StudioRateLimits;
   readonly log?: (line: string) => void;
+  readonly spendWithheld?: SpendWithheldReason;
 }
 
 export type RpcHandler<M extends RpcMethodName> = (
@@ -91,6 +93,13 @@ const readOnlyHandlers: HandlersRegistry = {
   [ESTIMATE_METHOD]: estimateHandler,
 };
 
+const spendHandlers: HandlersRegistry = {
+  [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,
+  [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesHandler,
+  [IN_FLIGHT_METHOD]: inFlightHandler,
+  [TRANSLATE_PENDING_METHOD]: translatePendingHandler,
+};
+
 export function createRpcHandlers(capabilities: StudioCapabilities): HandlersRegistry {
   return {
     ...readOnlyHandlers,
@@ -102,13 +111,10 @@ export function createRpcHandlers(capabilities: StudioCapabilities): HandlersReg
     [REVIEW_APPROVE_MANY_METHOD]: reviewApproveManyHandler,
     [REVIEW_REJECT_MANY_METHOD]: reviewRejectManyHandler,
     [REVIEW_APPROVE_LOCALE_METHOD]: reviewApproveLocaleHandler,
-    ...(capabilities.spend
-      ? {
-          [RETRANSLATE_ENTRY_METHOD]: retranslateEntryHandler,
-          [RETRANSLATE_ENTRIES_METHOD]: retranslateEntriesHandler,
-          [IN_FLIGHT_METHOD]: inFlightHandler,
-          [TRANSLATE_PENDING_METHOD]: translatePendingHandler,
-        }
-      : {}),
+    ...(capabilities.spend ? spendHandlers : {}),
   };
+}
+
+export function isSpendMethod(method: RpcMethodName): boolean {
+  return Object.hasOwn(spendHandlers, method);
 }

@@ -36,7 +36,7 @@ Un échec ne portait aucun code propre (le code de repli).
 
 - **Levé par** : `init`
 - **Code de sortie** : `2`
-- **Étape suivante** : Pass --force to overwrite the existing config, or remove the other config file the message names.
+- **Étape suivante** : Edit the existing config, or pass --force to replace verbatra.config.ts; remove any other config file the message names first.
 
 ### CONFIG_INVALID [#cli-config_invalid]
 
@@ -128,9 +128,9 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_OPTION
 
-Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `init --cwd` ne nomme aucun répertoire existant, ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`.
+Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `--cwd` ne nomme aucun répertoire existant (pour toute commande, avant son exécution), ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`.
 
-- **Levé par** : `init`, `doctor`, `check`
+- **Levé par** : toute commande qui accepte `--cwd`, ainsi que `init`, `doctor`, `check`
 - **Code de sortie** : `2`
 - **Étape suivante** : Correct or remove the flag the message names.
 
@@ -188,7 +188,7 @@ Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-
 
 - **Levé par** : `init`
 - **Code de sortie** : `2`
-- **Étape suivante** : Pass every flag the message names, or add --yes to accept the defaults.
+- **Étape suivante** : Pass the flags the message names, or --yes where the message offers it.
 
 ### REDACTION_UNSUPPORTED
 
@@ -384,7 +384,7 @@ Le verrou d'écriture d'une locale, ou le verrou du glossaire que prend `updateG
 
 ### GLOSSARY_NOT_FILE_BACKED
 
-Le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`).
+Le glossaire de la config est inline ou absent : il n'y a donc aucun fichier de glossaire à lire ou à réécrire (`readGlossaryFile`, `updateGlossaryTerm`). Sans aucun glossaire configuré, l'indice dit à la place : Create a glossary file, such as glossary.json holding `{}`, and set the config's `glossary` to its path, such as `"glossary.json"`.
 
 - **Levé par** : Studio et le serveur MCP
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
