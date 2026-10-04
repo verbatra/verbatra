@@ -220,7 +220,7 @@ maxLength: {
 
 Zählung unter `"stop"`:
 
-- Nach jeder Anfrage wird die Summe auf den vom Provider gemeldeten Verbrauch abgeglichen, ein Lauf kann also knapp über `maxTokens` enden; wie weit und warum, steht unter [dem `budget` der Laufzusammenfassung](/docs/sdk/run-summary). Maschinenübersetzungs-Provider melden keine Tokens und werden über die Projektion budgetiert.
+- Nach jeder Anfrage wird die Summe auf den vom Provider gemeldeten Verbrauch abgeglichen, ein Lauf kann also knapp über `maxTokens` enden; wie weit und warum, steht unter [dem `budget` der Laufzusammenfassung](/docs/sdk/run-summary#die-anatomie-der-runsummary). Maschinenübersetzungs-Provider melden keine Tokens und werden über die Projektion budgetiert.
 - Eine fehlgeschlagene oder abgeschnittene Anfrage bleibt voll belastet, und zurückgehaltene Arbeit bekommt keinen Lock-Eintrag.
 - Die Projektion enthält einen festen Aufschlag für den LLM-Prompt (Systemregeln und Antwortschema), der auch für die Maschinenübersetzungs-Provider angerechnet wird. Eine Anfrage wird als ganzer Batch projiziert, ein `maxTokens` unterhalb der Projektion eines Batches lehnt ihn also bei jedem Lauf ab; der Hinweis sagt dann, `maxBatchSize` zu senken oder `maxTokens` zu erhöhen.
 
@@ -265,9 +265,9 @@ extract: {
 }
 ```
 
-- **`framework`** ist eine geschlossene Menge ([Aufrufformen](/docs/cli/extract)); ein Framework ohne Extractor wird abgelehnt.
+- **`framework`** ist eine geschlossene Menge ([Aufrufformen](/docs/cli/extract#was-er-findet)); ein Framework ohne Extractor wird abgelehnt.
 - **`roots`** werden gegen das Arbeitsverzeichnis aufgelöst; nichts außerhalb davon wird gelesen.
-- **`exclude`** ergänzt Verzeichnisnamen (keine Pfade), die überall unterhalb eines Roots passen, zur [immer übersprungenen Menge](/docs/cli/extract).
+- **`exclude`** ergänzt Verzeichnisnamen (keine Pfade), die überall unterhalb eines Roots passen, zur [immer übersprungenen Menge](/docs/cli/extract#grenzen-des-scans).
 - **`literals.ignore`** trifft den ganzen Text eines Literals nach dem Zusammenfassen von Leerraum und dem Auflösen von Zeichenreferenzen (`Tom & Jerry`); ein zurückgehaltenes Literal wird als unterdrückt gemeldet.
 - **`unused.ignore`** nimmt exakte Keys oder `*`-Muster für Keys, die nur außerhalb des gescannten Quellcodes verwendet werden, abgeglichen mit dem dekodierten Key, den der Bericht zeigt (`Welcome. Enjoy`); ein Treffer wird als ignoriert gemeldet.
 
@@ -345,7 +345,7 @@ Die `package.json`-Eigenschaft kann kein Schema bekommen; die ausführbaren Form
 
 ### Was das Dokument nicht prüfen kann
 
-Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nur das Laden der Konfiguration: die Regeln für `targetLocales` und [Locale-Codes](#locale-codes), die Keys von `localeMap` und `apiKeyEnvVar` ([Provider](/docs/providers)), gültige Adressen und Bereiche in [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` innerhalb der [Sicherheitsregeln für Muster](/docs/data-handling#schutz-für-sensible-inhalte) und die Begriffsregeln eines Inline-Glossars der [Version 2](#glossar-pro-locale-version-2).
+Diese Regeln lassen sich in JSON Schema nicht ausdrücken, deshalb prüft sie nur das Laden der Konfiguration: die Regeln für `targetLocales` und [Locale-Codes](#locale-codes), die Keys von [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes) und [`apiKeyEnvVar`](/docs/providers#openai-compatible), gültige Adressen und Bereiche in [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` innerhalb der [Sicherheitsregeln für Muster](/docs/data-handling#schutz-für-sensible-inhalte) und die Begriffsregeln eines Inline-Glossars der [Version 2](#glossar-pro-locale-version-2).
 
 ## Das Arbeitsverzeichnis und .env
 

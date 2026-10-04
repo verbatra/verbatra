@@ -220,7 +220,7 @@ maxLength: {
 
 Cómo cuenta `"stop"`:
 
-- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar algo por encima de `maxTokens`; cuánto y por qué está en [el `budget` del resumen de ejecución](/docs/sdk/run-summary). Los proveedores de traducción automática no informan de tokens y se presupuestan a partir de la proyección.
+- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar algo por encima de `maxTokens`; cuánto y por qué está en [el `budget` del resumen de ejecución](/docs/sdk/run-summary#la-anatomía-de-runsummary). Los proveedores de traducción automática no informan de tokens y se presupuestan a partir de la proyección.
 - Una petición fallida o truncada sigue cargada por completo, y el trabajo retenido no recibe entrada de bloqueo.
 - La proyección incluye una asignación fija para el prompt del LLM (reglas de sistema y esquema de respuesta), que se suma también para los proveedores de traducción automática. Una petición se proyecta como un lote entero, así que un `maxTokens` por debajo de la proyección de un lote lo rechaza en cada ejecución; el aviso indica entonces que bajes `maxBatchSize` o subas `maxTokens`.
 
@@ -265,9 +265,9 @@ extract: {
 }
 ```
 
-- **`framework`** es un conjunto cerrado ([formas de llamada](/docs/cli/extract)); un framework sin extractor se rechaza.
+- **`framework`** es un conjunto cerrado ([formas de llamada](/docs/cli/extract#qué-encuentra)); un framework sin extractor se rechaza.
 - **`roots`** se resuelven contra el directorio de trabajo; nunca se lee nada fuera de ellas.
-- **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, al [conjunto que siempre se omite](/docs/cli/extract).
+- **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, al [conjunto que siempre se omite](/docs/cli/extract#límites-del-análisis).
 - **`literals.ignore`** coincide con el texto completo de un literal con los espacios reducidos y las referencias de caracteres decodificadas (`Tom & Jerry`); un literal retenido se notifica como suprimido.
 - **`unused.ignore`** acepta claves exactas o patrones `*` para claves usadas solo fuera del código analizado, comparados con la clave decodificada que muestra el informe (`Welcome. Enjoy`); una coincidencia se notifica como ignorada.
 
@@ -345,7 +345,7 @@ La propiedad de `package.json` no puede recibir un esquema; las formas ejecutabl
 
 ### Lo que el documento no puede comprobar
 
-Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la carga de la configuración: las reglas de `targetLocales` y de los [códigos de locale](#códigos-de-locale), las claves de `localeMap` y `apiKeyEnvVar` ([Proveedores](/docs/providers)), direcciones y rangos válidos en [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` dentro de las [reglas de seguridad de patrones](/docs/data-handling#protección-de-contenido-sensible) y las reglas de términos de un glosario en línea de la [versión 2](#glosario-por-locale-versión-2).
+Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la carga de la configuración: las reglas de `targetLocales` y de los [códigos de locale](#códigos-de-locale), las claves de [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor) y [`apiKeyEnvVar`](/docs/providers#openai-compatible), direcciones y rangos válidos en [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` dentro de las [reglas de seguridad de patrones](/docs/data-handling#protección-de-contenido-sensible) y las reglas de términos de un glosario en línea de la [versión 2](#glosario-por-locale-versión-2).
 
 ## El directorio de trabajo y .env
 

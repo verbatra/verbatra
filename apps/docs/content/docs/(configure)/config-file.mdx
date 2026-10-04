@@ -220,7 +220,7 @@ maxLength: {
 
 Counting under `"stop"`:
 
-- After each request the total is reconciled to the provider's reported usage, so a run can end slightly above `maxTokens`; how far, and why, is under [the run summary's `budget`](/docs/sdk/run-summary). Machine-translation providers report no tokens and are budgeted from the projection.
+- After each request the total is reconciled to the provider's reported usage, so a run can end slightly above `maxTokens`; how far, and why, is under [the run summary's `budget`](/docs/sdk/run-summary#the-runsummary-anatomy). Machine-translation providers report no tokens and are budgeted from the projection.
 - A failed or truncated request stays charged in full, and withheld work gets no lock entry.
 - The projection includes a fixed allowance for the LLM prompt (system rules and response schema), added for the machine-translation providers too. A request is projected as a whole batch, so a `maxTokens` below one batch's projection refuses it every run; the notice then says to lower `maxBatchSize` or raise `maxTokens`.
 
@@ -265,9 +265,9 @@ extract: {
 }
 ```
 
-- **`framework`** is a closed set ([call shapes](/docs/cli/extract)); a framework without an extractor is rejected.
+- **`framework`** is a closed set ([call shapes](/docs/cli/extract#what-it-finds)); a framework without an extractor is rejected.
 - **`roots`** resolve against the working directory; nothing outside them is read.
-- **`exclude`** adds directory names (not paths), matched anywhere under a root, to the [always-skipped set](/docs/cli/extract).
+- **`exclude`** adds directory names (not paths), matched anywhere under a root, to the [always-skipped set](/docs/cli/extract#scan-boundaries).
 - **`literals.ignore`** matches a literal's whole text with whitespace collapsed and character references decoded (`Tom & Jerry`); a held-back literal is reported as suppressed.
 - **`unused.ignore`** takes exact keys or `*` patterns for keys used only outside the scanned source, matched against the decoded key the report shows (`Welcome. Enjoy`); a match is reported as ignored.
 
@@ -345,7 +345,7 @@ The `package.json` property cannot get a schema; the executable forms are typed 
 
 ### What the document cannot check
 
-These rules have no JSON Schema expression, so only loading the config checks them: the `targetLocales` rules and [locale codes](#locale-codes), `localeMap` keys and `apiKeyEnvVar` ([Providers](/docs/providers)), valid [`network.allowedHosts`](/docs/network-policy) addresses and ranges, `sensitiveData.patterns` within the [safety rules](/docs/data-handling#sensitive-content-guard), and an inline [version 2 glossary](#per-locale-glossary-version-2)'s term rules.
+These rules have no JSON Schema expression, so only loading the config checks them: the `targetLocales` rules and [locale codes](#locale-codes), [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider) keys and [`apiKeyEnvVar`](/docs/providers#openai-compatible), valid [`network.allowedHosts`](/docs/network-policy) addresses and ranges, `sensitiveData.patterns` within the [safety rules](/docs/data-handling#sensitive-content-guard), and an inline [version 2 glossary](#per-locale-glossary-version-2)'s term rules.
 
 ## The working directory and .env
 
