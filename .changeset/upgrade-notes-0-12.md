@@ -44,7 +44,8 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `emptySource` on every `check` and `lockState` locale (a count) and on every `diff` and
   `translate` locale (the keys), and a `SOURCE_VALUE_EMPTY` notice on `translate`; no other field
   changes meaning. A target value such a key already has, from 0.11 or by hand, is kept until
-  the source is written; the next run then reports the key as changed and translates it. Write the
+  the source is written; the key then reports as stale, and under the default `humanEdits:
+  "protect"` a value verbatra did not write stays protected until a person resolves it. Write the
   source text to translate such a key.
 - `tmx import` reads the project's source locale file and fails with `SOURCE_INVALID` (exit 2)
   when that file exists but cannot be parsed. Fix the source file, then import again.
