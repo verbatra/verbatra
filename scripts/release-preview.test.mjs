@@ -81,7 +81,7 @@ afterEach(() => {
 
 describe("release-preview: the changeset config rewrite", () => {
   it("replaces the GitHub changelog with the offline changesets one when no token is set", () => {
-    expect(CHANGESET_CONFIG.changelog[0]).toBe("@changesets/changelog-github");
+    expect(CHANGESET_CONFIG.changelog[0]).toBe("../scripts/changelog-unique-commits.mjs");
     expect(previewConfig(CHANGESET_CONFIG, {})).toEqual({
       ...CHANGESET_CONFIG,
       changelog: PREVIEW_CHANGELOG,
