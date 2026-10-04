@@ -23,6 +23,9 @@ const SCRIPT_GRAPHEME_WEIGHTS: readonly (readonly [RegExp, number])[] = [
 ];
 
 const UNICODE_LETTER = /\p{L}/u;
+const FOLD_UNIT = /\P{M}\p{M}*|\p{M}+/gu;
+const FINAL_SIGMA = /ς/gu;
+const SIGMA = "σ";
 
 const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
@@ -79,16 +82,89 @@ function isLengthRatioOutlier(sourceValue: string, translatedValue: string): boo
   return ratio < LENGTH_RATIO_MIN || ratio > LENGTH_RATIO_MAX;
 }
 
-function removeWholeTerms(text: string, term: string): string {
-  let remaining = "";
-  let covered = 0;
-  for (const index of wholeTermIndices(text, term)) {
-    if (index >= covered) {
-      remaining += `${text.slice(covered, index)} `;
+function coveredPositions(text: string, terms: readonly string[]): boolean[] {
+  const covered = new Array<boolean>(text.length).fill(false);
+  for (const term of terms) {
+    for (const index of wholeTermIndices(text, term)) {
+      covered.fill(true, index, index + term.length);
     }
-    covered = index + term.length;
   }
-  return remaining + text.slice(covered);
+  return covered;
+}
+
+function hasUncoveredLetter(text: string, covered: readonly boolean[]): boolean {
+  let uncovered = "";
+  for (let index = 0; index < text.length; index += 1) {
+    uncovered += covered[index] === true ? " " : text.charAt(index);
+  }
+  return UNICODE_LETTER.test(uncovered);
+}
+
+function unionOf(first: readonly boolean[], second: readonly boolean[]): boolean[] {
+  return first.map((covered, index) => covered || second[index] === true);
+}
+
+interface FoldSpan {
+  readonly start: number;
+  readonly end: number;
+  readonly foldedStart: number;
+  readonly foldedEnd: number;
+}
+
+interface UnitFolding {
+  readonly folded: string;
+  readonly spans: readonly FoldSpan[];
+}
+
+function foldUnit(unit: string, locale: string): string {
+  return foldGlossaryCase(unit, locale, false).replace(FINAL_SIGMA, SIGMA);
+}
+
+function foldByUnit(text: string, locale: string): UnitFolding {
+  let folded = "";
+  const spans: FoldSpan[] = [];
+  for (const match of text.matchAll(FOLD_UNIT)) {
+    const foldedStart = folded.length;
+    folded += foldUnit(match[0], locale);
+    spans.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      foldedStart,
+      foldedEnd: folded.length,
+    });
+  }
+  return { folded, spans };
+}
+
+function lettersCovered(folded: string, covered: readonly boolean[], span: FoldSpan): boolean {
+  let index = span.foldedStart;
+  for (const character of folded.slice(span.foldedStart, span.foldedEnd)) {
+    const end = index + character.length;
+    if (UNICODE_LETTER.test(character) && !covered.slice(index, end).every(Boolean)) {
+      return false;
+    }
+    index = end;
+  }
+  return true;
+}
+
+function caseInsensitiveCoverage(
+  text: string,
+  terms: readonly string[],
+  locale: string,
+): boolean[] {
+  const { folded, spans } = foldByUnit(text, locale);
+  const foldedCovered = coveredPositions(
+    folded,
+    terms.map((term) => foldByUnit(term, locale).folded),
+  );
+  const covered = new Array<boolean>(text.length).fill(false);
+  for (const span of spans) {
+    if (lettersCovered(folded, foldedCovered, span)) {
+      covered.fill(true, span.start, span.end);
+    }
+  }
+  return covered;
 }
 
 function fixedTermsOf(glossary: LocaleGlossary | undefined): readonly DoNotTranslateTerm[] {
@@ -106,15 +182,17 @@ function consistsOfFixedTerms(input: ReviewFlagInput): boolean {
   if (fixed.length === 0) {
     return false;
   }
-  let remaining = input.sourceValue;
-  for (const { term } of fixed.filter((entry) => entry.caseSensitive)) {
-    remaining = removeWholeTerms(remaining, term);
-  }
-  remaining = foldGlossaryCase(remaining, input.sourceLocale, false);
-  for (const { term } of fixed.filter((entry) => !entry.caseSensitive)) {
-    remaining = removeWholeTerms(remaining, foldGlossaryCase(term, input.sourceLocale, false));
-  }
-  return !UNICODE_LETTER.test(remaining);
+  const source = input.sourceValue;
+  const exactCoverage = coveredPositions(
+    source,
+    fixed.filter((entry) => entry.caseSensitive).map(({ term }) => term),
+  );
+  const foldedCoverage = caseInsensitiveCoverage(
+    source,
+    fixed.filter((entry) => !entry.caseSensitive).map(({ term }) => term),
+    input.sourceLocale,
+  );
+  return !hasUncoveredLetter(source, unionOf(exactCoverage, foldedCoverage));
 }
 
 function isEqualsSource(input: ReviewFlagInput): boolean {
