@@ -9,12 +9,11 @@ import {
   JSON_ENVELOPE_VERSION,
   type JsonEnvelope,
   parseEnvelope,
-  readEnvelopeStream,
   readJsonIn,
   readSharedConsumer,
   runVerbatra,
-  type Subprocess,
-  spawnVerbatra,
+  seedWatchProject,
+  UNREACHABLE_PROVIDER,
   writeFileIn,
   writeJsonIn,
 } from "../src/harness.js";
@@ -549,53 +548,36 @@ describe("CLI boundary hardening (subprocess-level proof, no provider)", () => {
   });
 });
 
-describe("watch SIGINT contract (no provider key needed)", () => {
-  it("exits 0 on a single interrupt after emitting at least one NDJSON record", async () => {
-    const dir = join(consumer.dir, "watch-sigint");
-    await mkdir(dir, { recursive: true });
-    await writeJsonIn(dir, "locales/en.json", { greeting: "Hello {{name}}" });
-    await writeJsonIn(dir, "locales/de.json", { greeting: "Hallo {{name}}" });
-    await writeFileIn(
-      dir,
-      "verbatra.config.ts",
-      `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },\n});\n`,
-    );
+const ANTHROPIC_PROVIDER =
+  '{ id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } }';
 
-    const watcher: Subprocess = spawnVerbatra(consumer, ["watch", "--json", "--cwd", dir], {
+describe("watch startup refusal (no provider key needed)", () => {
+  it("exits 2 with PROVIDER_CONSTRUCTION_FAILED and MISSING_API_KEY when a hosted provider has no key", async () => {
+    const dir = await seedWatchProject(join(consumer.dir, "watch-missing-key"), ANTHROPIC_PROVIDER);
+
+    const result = await runVerbatra(consumer, ["watch", "--json", "--cwd", dir], {
       env: { ANTHROPIC_API_KEY: "" },
+      timeoutMs: 30_000,
     });
-    const stream = readEnvelopeStream(watcher);
 
-    try {
-      const first = await stream.next({ timeoutMs: 30_000 });
-      const failure = expectErrorEnvelope(first, "watch");
-      expect(failure.code.length).toBeGreaterThan(0);
-      expect(failure.message.length).toBeGreaterThan(0);
-
-      watcher.kill("SIGINT");
-      const result = await watcher;
-      expect(result.signal).toBeUndefined();
-      expect(result.exitCode).toBe(0);
-    } finally {
-      watcher.kill("SIGKILL");
-    }
+    expect(result.signal).toBeNull();
+    expect(result.exitCode).toBe(2);
+    expectSingleJsonDocument(result.stdout);
+    const envelope = expectErrorEnvelope(parseEnvelope(result.stdout), "watch");
+    expect(envelope.code).toBe("PROVIDER_CONSTRUCTION_FAILED");
+    expect(envelope.causeCode).toBe("MISSING_API_KEY");
+    expect(envelope.message).toContain("ANTHROPIC_API_KEY");
   }, 45_000);
 });
 
 describe("runVerbatra signal-death (no provider key needed)", () => {
   it("reports a null exit code and the killing signal when the process is force-killed", async () => {
-    const dir = join(consumer.dir, "watch-signal-death");
-    await mkdir(dir, { recursive: true });
-    await writeJsonIn(dir, "locales/en.json", { greeting: "Hello {{name}}" });
-    await writeJsonIn(dir, "locales/de.json", { greeting: "Hallo {{name}}" });
-    await writeFileIn(
-      dir,
-      "verbatra.config.ts",
-      `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: { id: "anthropic", options: { model: "claude-sonnet-4-6", maxTokens: 4096 } },\n});\n`,
+    const dir = await seedWatchProject(
+      join(consumer.dir, "watch-signal-death"),
+      UNREACHABLE_PROVIDER,
     );
 
     const result = await runVerbatra(consumer, ["watch", "--json", "--cwd", dir], {
-      env: { ANTHROPIC_API_KEY: "" },
       timeoutMs: 3000,
     });
 

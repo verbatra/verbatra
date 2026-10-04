@@ -139,19 +139,52 @@ export function glossaryGuardPath(cwd: string): string {
   return lockPath(cwd, GLOSSARY_GUARD_STEM);
 }
 
+const sleepers = new Set<() => void>();
+
 function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
   return new Promise((res) => {
     const wake = (): void => {
       clearTimeout(timer);
       signal?.removeEventListener("abort", wake);
+      sleepers.delete(wake);
       res();
     };
     const timer = setTimeout(wake, ms);
     signal?.addEventListener("abort", wake, { once: true });
+    sleepers.add(wake);
   });
 }
 
+function wakeSleepers(): void {
+  for (const wake of [...sleepers]) {
+    wake();
+  }
+}
+
 const heldLocks = new Set<OwnedLock>();
+
+const acquisitions = new Set<Promise<unknown>>();
+
+let releasesInProgress = 0;
+
+export const RELEASE_SETTLE_DEADLINE_MS = 3_000;
+
+function isReleasingHeldLocks(): boolean {
+  return releasesInProgress > 0;
+}
+
+function refuseWhileReleasing(path: string): void {
+  if (isReleasingHeldLocks()) {
+    throw stoppingError(path);
+  }
+}
+
+function stoppingError(path: string): SdkError {
+  return cancelledError(
+    `The process is stopping, so the write lock at ${path} was not taken and nothing was ` +
+      "written under it.",
+  );
+}
 
 interface PayloadSettings {
   readonly liveness: LivenessContext;
@@ -517,12 +550,14 @@ function contendedError(path: string, refusal: RenameRefusal | undefined): SdkEr
 }
 
 async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): Promise<string> {
+  refuseWhileReleasing(path);
   await sweepAbandonedAsides(dirname(path), fs, {
     liveness: settings.liveness,
     staleAfterMs: STALE_HEARTBEATS * settings.heartbeatIntervalMs,
   });
   const state: AcquireState = { sighting: undefined, refusal: undefined };
   for (;;) {
+    refuseWhileReleasing(path);
     const content = lockPayload(fs, settings);
     if (await fs.createExclusive(path, content)) {
       await fs.touch?.(path).catch(() => undefined);
@@ -539,6 +574,7 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
     if (Date.now() >= settings.deadline) {
       throw markUnacquired(path, contendedError(path, state.refusal));
     }
+    refuseWhileReleasing(path);
     await sleep(settings.pollIntervalMs + Math.random() * settings.pollIntervalMs, settings.signal);
   }
 }
@@ -555,6 +591,51 @@ async function settle<T>(run: () => Promise<T>): Promise<Settled<T>> {
   }
 }
 
+async function acquireHeldLock(
+  path: string,
+  fs: SdkFs,
+  settings: AcquireSettings,
+): Promise<OwnedLock> {
+  const owned: OwnedLock = { path, fs, content: await acquireLock(path, fs, settings) };
+  if (isReleasingHeldLocks()) {
+    await releaseOwned(owned, settings.liveness, DEFAULT_POLL_INTERVAL_MS).catch(() => undefined);
+    throw stoppingError(path);
+  }
+  heldLocks.add(owned);
+  return owned;
+}
+
+function trackAcquisition<T>(acquisition: Promise<T>): Promise<T> {
+  acquisitions.add(acquisition);
+  const forget = (): void => {
+    acquisitions.delete(acquisition);
+  };
+  acquisition.then(forget, forget);
+  return acquisition;
+}
+
+async function settleAcquisitions(deadline: Promise<"elapsed">): Promise<void> {
+  while (acquisitions.size > 0) {
+    wakeSleepers();
+    const settled = Promise.allSettled([...acquisitions]).then(() => "settled" as const);
+    if ((await Promise.race([settled, deadline])) === "elapsed") {
+      return;
+    }
+  }
+}
+
+function startReleaseDeadline(): {
+  readonly elapsed: Promise<"elapsed">;
+  readonly stop: () => void;
+} {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const elapsed = new Promise<"elapsed">((res) => {
+    timer = setTimeout(() => res("elapsed"), RELEASE_SETTLE_DEADLINE_MS);
+    timer.unref?.();
+  });
+  return { elapsed, stop: () => clearTimeout(timer) };
+}
+
 async function withFileLock<T>(
   path: string,
   fs: SdkFs,
@@ -566,18 +647,18 @@ async function withFileLock<T>(
   const heartbeatIntervalMs = options.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS;
   const start = Date.now();
   const liveness = options.liveness ?? currentHostLiveness();
-  const content = await acquireLock(path, fs, {
-    pollIntervalMs,
-    heartbeatIntervalMs,
-    deadline: start + acquireTimeoutMs,
-    liveness,
-    ...(options.onWait !== undefined
-      ? { notify: makeWaitNotifier(path, options.onWait, start, liveness) }
-      : {}),
-    ...signalField(options.signal),
-  });
-  const owned: OwnedLock = { path, fs, content };
-  heldLocks.add(owned);
+  const owned = await trackAcquisition(
+    acquireHeldLock(path, fs, {
+      pollIntervalMs,
+      heartbeatIntervalMs,
+      deadline: start + acquireTimeoutMs,
+      liveness,
+      ...(options.onWait !== undefined
+        ? { notify: makeWaitNotifier(path, options.onWait, start, liveness) }
+        : {}),
+      ...signalField(options.signal),
+    }),
+  );
   const stopHeartbeat = startHeartbeat(owned, heartbeatIntervalMs);
   const outcome = await settle(() => runOwning(owned, fn));
   stopHeartbeat();
@@ -598,19 +679,32 @@ async function withFileLock<T>(
  * without letting its in-flight operations finish, such as a CLI force-stopped by a second
  * interrupt. A lock is deleted only while it still holds this process's own ownership token, so a
  * lock another process has taken over is left alone, and an operation still running after this
- * call finds its lock gone and writes nothing more. Call it only immediately before the process
- * exits. A lock left behind anyway, by a process killed outright, is reclaimed by the next run on
- * the same machine once the holding process is gone.
+ * call finds its lock gone and writes nothing more. A lock still being taken when it is called,
+ * or one an operation tries to take before it resolves, is refused with `RUN_CANCELLED` and leaves
+ * no file behind, so a run that is still unwinding cannot leave a lock the exit strands. It waits
+ * at most three seconds for such acquisitions to settle, then releases what is held regardless.
+ * Call it only immediately before the process exits. A lock left behind anyway, by a process
+ * killed outright, is reclaimed by the next run on the same machine once the holding process is
+ * gone.
  *
  * @returns Resolves once every deletion has been attempted; never rejects.
  */
 export async function releaseHeldLocks(): Promise<void> {
-  const locks = [...heldLocks];
-  heldLocks.clear();
-  const liveness = currentHostLiveness();
-  await Promise.allSettled(
-    locks.map((owned) => releaseOwned(owned, liveness, DEFAULT_POLL_INTERVAL_MS)),
-  );
+  releasesInProgress += 1;
+  const deadline = startReleaseDeadline();
+  try {
+    await settleAcquisitions(deadline.elapsed);
+    const locks = [...heldLocks];
+    heldLocks.clear();
+    const liveness = currentHostLiveness();
+    await Promise.allSettled(
+      locks.map((owned) => releaseOwned(owned, liveness, DEFAULT_POLL_INTERVAL_MS)),
+    );
+    await settleAcquisitions(deadline.elapsed);
+  } finally {
+    deadline.stop();
+    releasesInProgress -= 1;
+  }
 }
 
 export type LockProbe = "free" | "held" | "unreadable";

@@ -150,7 +150,9 @@ Elimina todos los bloqueos de escritura que tiene el proceso actual, para un pro
 terminar sin dejar que acaben sus ejecuciones en curso: la CLI lo llama cuando una interrupción
 detiene `translate` o `import`, y cuando una segunda interrupción fuerza la parada de `watch`. Las
 ejecuciones que tomaron esos bloqueos pierden su protección, así que llámalo solo justo antes de
-que el proceso termine. No recibe argumentos y nunca rechaza.
+que el proceso termine. No recibe argumentos y nunca rechaza. Un bloqueo que una operación aún en
+curso está tomando, o intenta tomar, mientras se ejecuta se rechaza con `RUN_CANCELLED` y no deja
+ningún archivo; espera como máximo tres segundos a esa adquisición.
 
 ```ts title="Firma"
 function releaseHeldLocks(): Promise<void>;

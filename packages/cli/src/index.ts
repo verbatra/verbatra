@@ -26,12 +26,16 @@ const stderr = createLineSettler((text) => {
   process.stderr.write(text);
 });
 
+const RELEASE_LOCKS_DEADLINE_MS = 5_000;
+
 function exitAfterReleasingLocks(code: number, signal: InterruptSignal, json: boolean): void {
   stderr.settle();
-  void releaseHeldLocks().finally(() => {
+  const exit = (): void => {
     process.stderr.write(`${renderInterrupted(signal, json)}\n`);
     process.exit(code);
-  });
+  };
+  setTimeout(exit, RELEASE_LOCKS_DEADLINE_MS).unref();
+  void releaseHeldLocks().finally(exit);
 }
 
 const code = await run(

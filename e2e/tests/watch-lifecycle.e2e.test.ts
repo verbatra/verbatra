@@ -1,16 +1,17 @@
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
   type EnvelopeStream,
+  JSON_ENVELOPE_VERSION,
   type JsonEnvelope,
   pollUntil,
   readEnvelopeStream,
   readSharedConsumer,
   type Subprocess,
+  seedWatchProject,
   spawnVerbatra,
-  writeFileIn,
+  UNREACHABLE_PROVIDER,
   writeJsonIn,
 } from "../src/harness.js";
 import type { RunLocaleSummary, RunSummary } from "../src/run-outcome.js";
@@ -20,10 +21,9 @@ const TARGET_FILE = "locales/de.json";
 
 const RUN_RECORD_TIMEOUT_MS = 30_000;
 
-const UNREACHABLE_PROVIDER =
-  '{ id: "openai-compatible", options: { baseUrl: "http://127.0.0.1:1", model: "e2e-unreachable", maxOutputTokens: 256 } }';
-
 function expectLocaleSummary(envelope: JsonEnvelope<RunSummary>, locale: string): RunLocaleSummary {
+  expect(envelope.version).toBe(JSON_ENVELOPE_VERSION);
+  expect(envelope.command).toBe("watch");
   if (!envelope.ok) {
     throw new Error(`Expected a successful watch run, got ${envelope.code}: ${envelope.message}`);
   }
@@ -48,15 +48,7 @@ describe("watch lifecycle (no provider key, no network)", () => {
   }, 180_000);
 
   it("runs successfully on startup, runs again when the source changes, and exits 0 on interrupt", async () => {
-    const dir = join(consumer.dir, "watch-lifecycle");
-    await mkdir(dir, { recursive: true });
-    await writeJsonIn(dir, SOURCE_FILE, { greeting: "Hello {{name}}" });
-    await writeJsonIn(dir, TARGET_FILE, { greeting: "Hallo {{name}}" });
-    await writeFileIn(
-      dir,
-      "verbatra.config.ts",
-      `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: ${UNREACHABLE_PROVIDER},\n});\n`,
-    );
+    const dir = await seedWatchProject(join(consumer.dir, "watch-lifecycle"), UNREACHABLE_PROVIDER);
 
     const watcher: Subprocess = spawnVerbatra(consumer, ["watch", "--json", "--cwd", dir], {});
     const stream: EnvelopeStream<RunSummary> = readEnvelopeStream(watcher);
@@ -92,14 +84,10 @@ describe("watch lifecycle (no provider key, no network)", () => {
   }, 90_000);
 
   it("says in human mode that it is waiting after a run and that it stopped", async () => {
-    const dir = join(consumer.dir, "watch-lifecycle-human");
-    await mkdir(dir, { recursive: true });
-    await writeJsonIn(dir, SOURCE_FILE, { greeting: "Hello" });
-    await writeJsonIn(dir, TARGET_FILE, { greeting: "Hallo" });
-    await writeFileIn(
-      dir,
-      "verbatra.config.ts",
-      `import { defineConfig } from "@verbatra/cli";\n\nexport default defineConfig({\n  sourceLocale: "en",\n  targetLocales: ["de"],\n  format: "i18next-json",\n  files: { pattern: "locales/{locale}.json" },\n  provider: ${UNREACHABLE_PROVIDER},\n});\n`,
+    const dir = await seedWatchProject(
+      join(consumer.dir, "watch-lifecycle-human"),
+      UNREACHABLE_PROVIDER,
+      { source: { greeting: "Hello" }, target: { greeting: "Hallo" } },
     );
 
     const watcher: Subprocess = spawnVerbatra(consumer, ["watch", "--cwd", dir], {});

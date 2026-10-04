@@ -129,7 +129,9 @@ Supprime tous les verrous d'écriture que détient le processus courant, pour un
 point de se terminer sans laisser finir ses exécutions en cours : la CLI l'appelle quand une
 interruption arrête `translate` ou `import`, et quand une seconde interruption force l'arrêt de
 `watch`. Les exécutions qui ont pris ces verrous perdent leur protection, appelle-le donc seulement
-juste avant la fin du processus. Il ne prend aucun argument et ne rejette jamais.
+juste avant la fin du processus. Il ne prend aucun argument et ne rejette jamais. Un verrou qu'une
+opération encore en cours prend, ou tente de prendre, pendant son exécution est refusé avec
+`RUN_CANCELLED` et ne laisse aucun fichier ; il attend au plus trois secondes une telle acquisition.
 
 ```ts title="Signature"
 function releaseHeldLocks(): Promise<void>;

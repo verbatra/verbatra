@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createShutdown, GRACEFUL_CLOSE_DEADLINE_MS, type ShutdownDeps } from "./shutdown.js";
+import {
+  createShutdown,
+  GRACEFUL_CLOSE_DEADLINE_MS,
+  RELEASE_LOCKS_DEADLINE_MS,
+  type ShutdownDeps,
+} from "./shutdown.js";
 
 interface Harness {
   readonly deps: ShutdownDeps;
@@ -9,7 +14,13 @@ interface Harness {
   readonly deadlines: number[];
 }
 
-function harness(options: { closeRejects?: boolean; releaseRejects?: boolean } = {}): Harness {
+interface HarnessOptions {
+  readonly closeRejects?: boolean;
+  readonly releaseRejects?: boolean;
+  readonly releaseHangs?: boolean;
+}
+
+function harness(options: HarnessOptions = {}): Harness {
   const events: string[] = [];
   const deadlines: number[] = [];
   let settleClose = (): void => undefined;
@@ -22,6 +33,9 @@ function harness(options: { closeRejects?: boolean; releaseRejects?: boolean } =
       }),
     releaseLocks: async () => {
       events.push("release");
+      if (options.releaseHangs === true) {
+        await new Promise<never>(() => undefined);
+      }
       if (options.releaseRejects === true) {
         throw new Error("unlink failed");
       }
@@ -168,5 +182,48 @@ describe("createShutdown: stdin closed", () => {
 
     expect(exit).toHaveBeenCalledTimes(1);
     expect(exit).toHaveBeenCalledWith(0);
+  });
+});
+
+describe("createShutdown: releasing the locks hangs", () => {
+  it("arms the default release deadline once it starts releasing", () => {
+    const h = harness();
+
+    createShutdown(h.deps).onClosed();
+
+    expect(h.deadlines).toEqual([RELEASE_LOCKS_DEADLINE_MS]);
+  });
+
+  it("uses an injected release deadline", () => {
+    const h = harness();
+
+    createShutdown({ ...h.deps, releaseDeadlineMs: 70 }).onClosed();
+
+    expect(h.deadlines).toEqual([70]);
+  });
+
+  it("exits 0 once the release deadline elapses", async () => {
+    const h = harness({ releaseHangs: true });
+
+    createShutdown(h.deps).onClosed();
+    await flush();
+    expect(h.events).toEqual(["stopped stdin-closed", "release"]);
+    h.elapseDeadline();
+    await flush();
+
+    expect(h.events).toEqual(["stopped stdin-closed", "release", "exit 0"]);
+  });
+
+  it("exits with the forced code when a second signal's release hangs", async () => {
+    const h = harness({ releaseHangs: true });
+    const shutdown = createShutdown(h.deps);
+
+    shutdown.onSignal("SIGINT");
+    shutdown.onSignal("SIGTERM");
+    h.elapseDeadline();
+    await flush();
+
+    expect(h.deadlines).toEqual([GRACEFUL_CLOSE_DEADLINE_MS, RELEASE_LOCKS_DEADLINE_MS]);
+    expect(h.events).toEqual(["close", "release", "exit 143"]);
   });
 });

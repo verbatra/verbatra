@@ -12,6 +12,7 @@ import {
   localeLockPath,
   lockFileGuardPath,
   probeLock,
+  RELEASE_SETTLE_DEADLINE_MS,
   releaseHeldLocks,
   withLocaleWriteLock,
   withLockFileGuard,
@@ -889,6 +890,188 @@ describe("releaseHeldLocks: a forced exit", () => {
     await releaseHeldLocks();
 
     expect(memory.content(LOCK)).toBe(FOREIGN);
+    holder.open();
+    await held;
+  });
+
+  it("waits for a lock still being taken and leaves no file behind for it", async () => {
+    const guard = lockFileGuardPath("/proj");
+    const touching = gate();
+    const memory = memoryLockFs({}, { touch: () => touching.wait() });
+    const ran = vi.fn();
+
+    const guarded = withLockFileGuard("/proj", memory.fs, async () => ran(), FAIL_FAST).catch(
+      (error: unknown) => error,
+    );
+    await touching.entered;
+    expect(memory.files.has(guard)).toBe(true);
+    const releasing = releaseHeldLocks();
+    touching.open();
+    await releasing;
+
+    expect(memory.files.has(guard)).toBe(false);
+    expect(await guarded).toMatchObject({ code: "RUN_CANCELLED" });
+    expect(ran).not.toHaveBeenCalled();
+  });
+
+  it("wakes a waiter sleeping out its poll interval and refuses it", async () => {
+    const memory = memoryLockFs();
+    memory.put(LOCK, FOREIGN);
+    const sleeping = gate();
+    vi.spyOn(Math, "random").mockImplementation(() => {
+      void sleeping.wait();
+      return 0;
+    });
+    const waiting = withLocaleWriteLock("/proj", "de", memory.fs, async () => undefined, {
+      ...PATIENT,
+      pollIntervalMs: 60_000,
+    }).catch((error: unknown) => error);
+    await sleeping.entered;
+
+    await releaseHeldLocks();
+
+    expect(await waiting).toMatchObject({ code: "RUN_CANCELLED" });
+    expect(memory.content(LOCK)).toBe(FOREIGN);
+  });
+
+  it("refuses a waiter that was mid file-system call when the release started", async () => {
+    const memory = memoryLockFs();
+    memory.put(LOCK, FOREIGN);
+    const reading = gate();
+    let gated = false;
+    const fs: SdkFs = {
+      ...memory.fs,
+      readFileBounded: async (path, limit) => {
+        if (path === LOCK && !gated) {
+          gated = true;
+          await reading.wait();
+        }
+        return memory.fs.readFileBounded(path, limit);
+      },
+    };
+    const waiting = withLocaleWriteLock("/proj", "de", fs, async () => undefined, {
+      ...PATIENT,
+      pollIntervalMs: 60_000,
+    }).catch((error: unknown) => error);
+    await reading.entered;
+
+    const releasing = releaseHeldLocks();
+    reading.open();
+    await releasing;
+
+    expect(await waiting).toMatchObject({ code: "RUN_CANCELLED" });
+    expect(memory.content(LOCK)).toBe(FOREIGN);
+  });
+
+  it("returns after its deadline when an acquisition hangs, still releasing what is held", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const guard = lockFileGuardPath("/proj");
+    const memory = memoryLockFs();
+    const creating = gate();
+    const fs: SdkFs = {
+      ...memory.fs,
+      createExclusive: async (path, data) => {
+        if (path === guard) {
+          await creating.wait();
+        }
+        return memory.fs.createExclusive(path, data);
+      },
+    };
+    const holder = gate();
+    const held = withLocaleWriteLock("/proj", "de", fs, () => holder.wait(), FAIL_FAST).catch(
+      (error: unknown) => error,
+    );
+    await holder.entered;
+    const hung = withLockFileGuard("/proj", fs, async () => undefined, FAIL_FAST).catch(
+      (error: unknown) => error,
+    );
+    await creating.entered;
+
+    let returned = false;
+    const releasing = releaseHeldLocks().then(() => {
+      returned = true;
+    });
+    await vi.advanceTimersByTimeAsync(RELEASE_SETTLE_DEADLINE_MS - 1);
+    expect(returned).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await releasing;
+
+    expect(returned).toBe(true);
+    expect(memory.files.has(LOCK)).toBe(false);
+    creating.open();
+    holder.open();
+    await hung;
+    await held;
+  });
+
+  it("lets a lock be taken again once it has resolved", async () => {
+    const memory = memoryLockFs();
+    const ran = vi.fn();
+
+    await releaseHeldLocks();
+    await withLocaleWriteLock("/proj", "de", memory.fs, async () => ran(), FAIL_FAST);
+
+    expect(ran).toHaveBeenCalledTimes(1);
+    expect(memory.files.has(LOCK)).toBe(false);
+  });
+
+  it("refuses acquisitions until the last of two concurrent releases resolves", async () => {
+    const memory = memoryLockFs();
+    const holder = gate();
+    const held = withLocaleWriteLock(
+      "/proj",
+      "de",
+      memory.fs,
+      () => holder.wait(),
+      FAIL_FAST,
+    ).catch((error: unknown) => error);
+    await holder.entered;
+
+    const first = releaseHeldLocks();
+    const second = releaseHeldLocks();
+    const during = withLockFileGuard("/proj", memory.fs, async () => undefined, FAIL_FAST).catch(
+      (error: unknown) => error,
+    );
+    await Promise.all([first, second]);
+
+    expect(memory.files.has(LOCK)).toBe(false);
+    expect(await during).toMatchObject({ code: "RUN_CANCELLED" });
+    await expect(
+      withLockFileGuard("/proj", memory.fs, async () => "taken", FAIL_FAST),
+    ).resolves.toBe("taken");
+    holder.open();
+    await held;
+  });
+
+  it("refuses a lock an unwinding operation tries to take while it releases", async () => {
+    const guard = lockFileGuardPath("/proj");
+    const ran = vi.fn();
+    let late: Promise<unknown> = Promise.resolve();
+    const memory = memoryLockFs({
+      beforeRename: once((from: string) => {
+        if (from === LOCK) {
+          late = withLockFileGuard("/proj", memory.fs, async () => ran(), FAIL_FAST).catch(
+            (error: unknown) => error,
+          );
+        }
+      }),
+    });
+    const holder = gate();
+
+    const held = withLocaleWriteLock(
+      "/proj",
+      "de",
+      memory.fs,
+      () => holder.wait(),
+      FAIL_FAST,
+    ).catch((error: unknown) => error);
+    await holder.entered;
+    await releaseHeldLocks();
+
+    expect(memory.files.has(LOCK)).toBe(false);
+    expect(memory.files.has(guard)).toBe(false);
+    expect(await late).toMatchObject({ code: "RUN_CANCELLED" });
+    expect(ran).not.toHaveBeenCalled();
     holder.open();
     await held;
   });
