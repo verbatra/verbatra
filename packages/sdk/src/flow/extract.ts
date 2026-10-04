@@ -110,10 +110,14 @@ async function readExistingResource(
   }
 }
 
-function presentCallSiteKeys(resource: LocaleResource): ReadonlySet<string> {
+function presentCallSiteKeys(
+  resource: LocaleResource,
+  framework: SourceFramework,
+): ReadonlySet<string> {
+  const rules = { framework, format: resource.format };
   return new Set(
     [...resource.entries].flatMap(([catalogKey, entry]) =>
-      callSiteKeysOf(resource.format, catalogKey, entry.isPlural),
+      callSiteKeysOf(rules, catalogKey, entry.isPlural),
     ),
   );
 }
@@ -221,7 +225,7 @@ export async function extract(input: ExtractInput, deps: ExtractDeps = {}): Prom
   const sourcePath = resolver.pathFor(input.config.sourceLocale);
   const scan = await runScan(extraction, cwd, fs, deps.createExtractor, input.onProgress);
   const resource = await readExistingResource(sourcePath, input.config, fs, adapter);
-  const present = presentCallSiteKeys(resource);
+  const present = presentCallSiteKeys(resource, extraction.framework);
   const added = scan.keys.filter((key) => !present.has(key.key));
   const dryRun = input.dryRun === true;
   const written = added.length > 0 && !dryRun;

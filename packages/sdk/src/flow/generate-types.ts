@@ -12,6 +12,7 @@ import {
   type MessageArguments,
   type UnresolvedArgumentReason,
 } from "./message-arguments.js";
+import { pluralLookupKey } from "./plural-categories.js";
 import {
   asWrittenRefusal,
   createOutputPathGuard,
@@ -27,7 +28,6 @@ import {
   GENERATED_HEADER,
   renderTypesDeclaration,
 } from "./types-declaration.js";
-import { pluralSuffixLookup } from "./unused-key-forms.js";
 import { unwritableFileMessage } from "./write-target.js";
 
 /**
@@ -244,13 +244,17 @@ function declareMessage(
 
 const COUNT_PLACEHOLDER = "{{count}}";
 
+function typedPluralLookup(format: FormatId, key: string, isPlural: boolean): string | undefined {
+  return isPlural && format === "i18next-json" ? pluralLookupKey(key) : undefined;
+}
+
 function pluralLookupPlaceholders(
   entries: ReadonlyMap<string, TranslationEntry>,
   format: FormatId,
 ): ReadonlyMap<string, readonly string[]> {
   const byLookup = new Map<string, string[]>();
   for (const [key, entry] of entries) {
-    const lookup = pluralSuffixLookup(format, key, entry.isPlural);
+    const lookup = typedPluralLookup(format, key, entry.isPlural);
     if (lookup !== undefined && !entries.has(lookup)) {
       byLookup.set(lookup, [...(byLookup.get(lookup) ?? []), ...entry.placeholders]);
     }
@@ -266,7 +270,7 @@ function withPluralLookupKeys(
   const placeholders = pluralLookupPlaceholders(entries, format);
   const declared = new Set<string>();
   return messages.flatMap((message) => {
-    const lookup = pluralSuffixLookup(format, message.key, message.isPlural);
+    const lookup = typedPluralLookup(format, message.key, message.isPlural);
     const tokens = lookup === undefined ? undefined : placeholders.get(lookup);
     if (lookup === undefined || tokens === undefined || declared.has(lookup)) {
       return [message];

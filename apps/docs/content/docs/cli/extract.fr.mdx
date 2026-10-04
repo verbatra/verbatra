@@ -67,7 +67,7 @@ Une clé avec espace de noms comme `t("common:nav.home")` est signalée comme dy
 Uniquement le fichier de la locale source, et uniquement des clés vraiment nouvelles :
 
 - Une clé déjà présente dans le catalogue garde sa valeur telle quelle ; une valeur par défaut dans un appel n'écrase jamais une modification.
-- Une clé que le catalogue ne contient que sous ses formes plurielles compte comme présente : `t("cart.items", { count })` n'ajoute rien à côté de `cart.items_one` et `cart.items_other`, et il en va de même pour une entrée gettext avec `msgid_plural` et une ressource Android `<plurals>`.
+- Une clé que le catalogue ne contient que sous ses formes plurielles compte comme présente : `t("cart.items", { count })` n'ajoute rien à côté de `cart.items_one` et `cart.items_other`, et il en va de même pour une entrée gettext avec `msgid_plural` et une ressource Android `<plurals>`. Dans un format qui ne marque pas les formes plurielles, comme YAML, toute clé terminée par un suffixe de pluriel i18next compte.
 - Une clé du catalogue qu'aucun appel ne mentionne reste en place. `extract` ne supprime jamais rien ; [`verbatra diff --unused`](/docs/cli/diff#clés-source-inutilisées) liste ces clés.
 - Une exécution qui ne trouve rien de nouveau n'écrit rien, le fichier reste donc identique à l'octet près.
 - Aucun fichier de locale cible n'est écrit. Lance ensuite [`verbatra translate`](/docs/cli/translate) pour remplir les nouvelles clés.

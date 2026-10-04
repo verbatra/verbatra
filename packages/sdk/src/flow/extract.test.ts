@@ -615,7 +615,26 @@ describe("extract on a key the catalog holds only as plural forms", () => {
   it("adds a key that a plain catalog key only resembles as a plural form", async () => {
     const cwd = await project({
       "src/wizard.ts": 't("step");',
-      "locales/en.yml": "step_one: First step\n",
+      "res/values/strings.xml":
+        '<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="step_one">First step</string></resources>\n',
+    });
+
+    const result = await extract({
+      config: config({
+        format: "android-xml",
+        files: { pattern: "res/{locale}/strings.xml", localeStyle: "android" },
+      }),
+      cwd,
+    });
+
+    expect(result.added.map((entry) => entry.key)).toEqual(["step"]);
+  });
+
+  it("adds no base key next to i18next plural forms held in a YAML catalog", async () => {
+    const cwd = await project({
+      "src/cart.ts": 't("items", { count });\nt("place", { count, ordinal: true });',
+      "locales/en.yml":
+        "items_one: one item\nitems_other: many items\nplace_ordinal_one: first\nplace_ordinal_other: nth\n",
     });
 
     const result = await extract({
@@ -623,7 +642,8 @@ describe("extract on a key the catalog holds only as plural forms", () => {
       cwd,
     });
 
-    expect(result.added.map((entry) => entry.key)).toEqual(["step"]);
+    expect(result.added).toEqual([]);
+    expect(result.written).toBe(false);
   });
 
   it("adds no key for a gettext msgid held only as plural forms", async () => {

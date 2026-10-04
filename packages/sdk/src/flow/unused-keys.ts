@@ -8,6 +8,7 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { matchesKeyGlob } from "./key-glob.js";
+import type { PluralSuffixRules } from "./plural-keys.js";
 import { readSource } from "./source.js";
 import { type CreateExtractor, requireExtractionConfig, runScan } from "./source-scan.js";
 import { type CatalogKeyForms, callSiteKeysOf, catalogKeyForms } from "./unused-key-forms.js";
@@ -359,20 +360,16 @@ interface Classified {
 function classifyKeys(
   scan: ProjectScan,
   catalog: LocaleResource,
-  format: FormatId,
+  rules: PluralSuffixRules,
   ignorePatterns: readonly string[],
 ): Classified {
   const referenced = referencedKeys(scan);
   const prefixes = [...new Set(scan.usage.prefixes.map((site) => site.prefix))];
   const classified: Classified = { unused: [], possiblyDynamic: [], ignored: [] };
   for (const [catalogKey, catalogEntry] of catalog.entries) {
-    const forms = catalogKeyForms(format, catalogKey);
+    const forms = catalogKeyForms(rules.format, catalogKey);
     if (
-      isReferencedEntry(
-        forms,
-        callSiteKeysOf(format, catalogKey, catalogEntry.isPlural),
-        referenced,
-      )
+      isReferencedEntry(forms, callSiteKeysOf(rules, catalogKey, catalogEntry.isPlural), referenced)
     ) {
       continue;
     }
@@ -400,7 +397,12 @@ function buildReport(
     status: reasons.length === 0 ? "complete" : "unreliable",
     unreliableBecause: reasons,
     scannedFiles: scan.scannedFiles,
-    ...classifyKeys(scan, catalog, input.config.format, extraction.unused?.ignore ?? []),
+    ...classifyKeys(
+      scan,
+      catalog,
+      { framework: extraction.framework, format: input.config.format },
+      extraction.unused?.ignore ?? [],
+    ),
     dynamicPrefixes: scan.usage.prefixes.map((site) => ({
       prefix: site.prefix,
       file: site.file,
