@@ -104,7 +104,7 @@ Les résultats vont sur stdout. La progression, les avis, les suggestions, les a
 
 - Dans un terminal interactif, les libellés fixes comme `error`, `[ok]` et `next:` sont colorés, et une étape qui dure plus de 300 ms affiche un spinner ASCII (`| / - \`).
 - Quand stderr est redirigé ou envoyé dans un pipe, que `CI` a une valeur autre que `0` ou `false`, ou que `TERM` vaut `dumb`, la sortie se compose de lignes simples, uniquement ajoutées, sans couleur ni animation.
-- Les étiquettes de statut du rapport de [`doctor`](/docs/cli/doctor) sur stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) ne sont colorées que si stdout est lui-même un terminal interactif, pour qu'un rapport redirigé reste brut.
+- Les étiquettes de statut du rapport de [`doctor`](/docs/cli/doctor) sur stdout (`[ok  ]`, `[warn]`, `[fail]`, `[skip]`) sont colorées quand stdout est lui-même un terminal interactif ; un rapport redirigé reste brut, sauf si `FORCE_COLOR` active la couleur.
 - `--json` n'ajoute jamais de couleur, d'animation ni de nouvelles lignes : stdout et stderr restent exactement comme décrit dans [Sortie JSON](/docs/cli/output#sortie-json).
 
 | Flag ou variable | Effet |
@@ -112,7 +112,7 @@ Les résultats vont sur stdout. La progression, les avis, les suggestions, les a
 | `-q`, `--quiet` | n'affiche que les résultats, les avertissements et les erreurs : supprime les lignes de progression, les suggestions `next:` et les lignes informatives sur stderr, tandis que le résumé du résultat, avis compris, reste. Il fonctionne avant ou après le nom de la commande |
 | `--no-color` | ne colore jamais la sortie |
 | `NO_COLOR`, `NODE_DISABLE_COLORS`, `VERBATRA_NO_COLOR` | toute valeur non vide désactive la couleur ; `VERBATRA_NO_COLOR` l'emporte aussi sur `FORCE_COLOR` |
-| `FORCE_COLOR` | `1`, `2`, `3`, `true` ou une valeur vide active la couleur même quand stderr n'est pas un terminal, et `0` la désactive ; `--no-color` et `VERBATRA_NO_COLOR` restent prioritaires |
+| `FORCE_COLOR` | `1`, `2`, `3`, `true` ou une valeur vide active la couleur même quand stderr ou stdout n'est pas un terminal, et `0` la désactive ; `--no-color` et `VERBATRA_NO_COLOR` restent prioritaires |
 | `VERBATRA_NO_SPINNER` | toute valeur non vide remplace le spinner par des lignes statiques `label... done (1.2s)`, pour les lecteurs d'écran et les enregistrements de terminal |
 
 Les mots d'état sont en ASCII simple (`[ok]`, `[warn]`, `[fail]`, `[skip]`), pour que la sortie se lise de la même façon dans tout terminal et tout journal. Chaque ligne passe par le même masquage des clés que le reste de la sortie, et seuls les libellés fixes sont colorés, jamais une clé, un chemin ni un message.

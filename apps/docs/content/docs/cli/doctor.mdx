@@ -31,21 +31,21 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd`, `--config` and `-
 
 A setup run reports these checks, in this order. Plural rules, Plural completeness, Locale codes and Locale state are informational and never fail: each prints `[warn]` when it names something and `[ok  ]` otherwise.
 
-| Check | Passes when |
+| Check | Fails when |
 | --- | --- |
-| Configuration | a config file was found and passes validation |
-| Format adapter | the configured `format` resolves to a file adapter |
-| Provider | the configured `provider.id` resolves to a provider factory |
-| API key environment variable | the variable that provider reads its key from is set |
-| Network policy | the effective [network policy](/docs/network-policy) permits the provider's host and any proxy it would use |
-| Source locale file | the source locale file exists at its resolved path, is a regular file, and parses under the configured format |
-| Plural rules | always: names the ICU and CLDR versions in use and any target locale ICU has no plural rules for |
-| Plural completeness | always: names each target plural that lacks a CLDR category its language uses, judging a plural the target has no forms for by what a run would write there (a blank source form counts as absent, and plural generation only where it actually runs), deliberately stricter than the i18next-only notice of `translate` (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists the gaps in plurals a target already holds) |
-| Locale codes | always: names every valid but non-canonical code, such as `en-us` or `iw`, with the canonical form (see [Locale codes](/docs/config-file#locale-codes)) |
-| Locale state | always: names every locale the lock file, cache or provenance file holds state for that the config does not list, and whether `translate` [carries it over](/docs/the-lock-file#a-respelled-locale-code) |
-| Locale support | the provider supports the source and every target locale (see [Locale support](#locale-support)) |
+| Configuration | no config file is found, or it fails validation |
+| Format adapter | the configured `format` resolves to no file adapter |
+| Provider | the configured `provider.id` resolves to no provider factory |
+| API key environment variable | the variable that provider reads its key from is not set |
+| Network policy | the effective [network policy](/docs/network-policy) refuses the provider's host or a proxy it would use |
+| Source locale file | the source locale file is missing at its resolved path, is not a regular file, or does not parse under the configured format |
+| Plural rules | never; names the ICU and CLDR versions in use, and warns when a target locale has no ICU plural rules |
+| Plural completeness | never; warns and names each target plural that lacks a CLDR category its language uses, judging a plural the target has no forms for by what a run would write there (a blank source form counts as absent, and plural generation only where it actually runs), deliberately stricter than the i18next-only notice of `translate` (at most ten; [`verbatra check`](/docs/cli/check#plural-categories) lists the gaps in plurals a target already holds); skipped for a format that does not store plural forms by CLDR category |
+| Locale codes | never; warns and names every valid but non-canonical code, such as `en-us` or `iw`, with the canonical form (see [Locale codes](/docs/config-file#locale-codes)) |
+| Locale state | never; warns and names every locale the lock file, cache or provenance file holds state for that the config does not list, and whether `translate` [carries it over](/docs/the-lock-file#a-respelled-locale-code) |
+| Locale support | the provider does not support the source or a target locale; warns when a locale carries a warning (see [Locale support](#locale-support)) |
 
-Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON). A check that found something worth attention without failing prints `[warn]` (`"status": "warn"` in JSON) and never changes the exit code. A failed check also carries a `fix`, one imperative next step printed as a `fix:` line and sent as `"fix"` in JSON, so an agent can act without parsing `detail`.
+Every check runs even when an earlier one failed. The one exception is the config: when it cannot be loaded, the checks that need it print as `[skip]` (`"status": "skipped"` in JSON), as does Plural completeness for a format without CLDR plural forms. A check that found something worth attention without failing prints `[warn]` (`"status": "warn"` in JSON) and never changes the exit code. A failed check also carries a `fix`, one imperative next step printed as a `fix:` line and sent as `"fix"` in JSON, so an agent can act without parsing `detail`.
 
 A run with two problems:
 
@@ -60,7 +60,7 @@ verbatra doctor
   [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
          fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
   ...
-    [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
+  [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
   [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
 2 problems found (run verbatra doctor again after fixing them)
 ```
@@ -92,7 +92,7 @@ The Locale support check asks whether the provider can translate each configured
 
 Each line names the locale, the code the provider receives (after [`localeMap`](/docs/providers#locale-codes-sent-to-the-provider), marked `(localeMap)`), the verdict, and whether a glossary and a `formal` or `informal` tone apply. A warning is advisory.
 
-`--live` judges against the provider's current list instead (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). For LibreTranslate, which ships no table, it is the only way to get a verdict other than `unverified`. The request is sent only when the key variable is set (LibreTranslate needs none) and the [network policy](/docs/network-policy) permits the host; otherwise, or on failure, the shipped table is used and a `live language list` line says why.
+`--live` judges against the provider's current list instead (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). For LibreTranslate, which ships no table, it is the only way to get a verdict other than `unverified`, so Locale support shows `[warn]` until `--live` runs. The request is sent only when the key variable is set (LibreTranslate needs none) and the [network policy](/docs/network-policy) permits the host; otherwise, or on failure, the shipped table is used and a `live language list` line says why.
 
 ### Untranslated literals
 

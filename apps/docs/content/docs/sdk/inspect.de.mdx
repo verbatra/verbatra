@@ -35,7 +35,7 @@ function doctor(
 Die Prüfung `network-policy` schlägt fehl, wenn die wirksame
 [Netzwerkrichtlinie](/docs/network-policy) den Host oder Proxy des Providers abweist oder eine
 Netzwerk-Umgebungsvariable einen ungültigen Wert hat; für den Provider `none` besteht sie. Die
-Prüfungen `plural-rules`, `plural-completeness`, `locale-codes` und `locale-state` sind rein informativ, schlagen nie fehl und benennen nichts um: Jede ist `warn`, wenn sie etwas nennt, und sonst `pass`, und `locales` ist `warn`, wenn eine Locale eine Warnung trägt. Ein `warn` lässt `ok` auf true; was jede nennt, steht in der
+Prüfungen `plural-rules`, `plural-completeness`, `locale-codes` und `locale-state` sind rein informativ, schlagen nie fehl und benennen nichts um: Jede ist `warn`, wenn sie etwas nennt, und sonst `pass`, `plural-completeness` ist `skipped` bei einem Format ohne CLDR-Pluralformen, und `locales` ist `warn`, wenn eine Locale eine Warnung trägt oder ein `live`-Abruf der Sprachliste fehlschlug. Ein `warn` lässt `ok` auf true; was jede nennt, steht in der
 [Prüfungstabelle](/docs/cli/doctor#was-geprüft-wird).
 
 <AvailableFrom version="0.12.0" />
