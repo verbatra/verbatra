@@ -3,7 +3,7 @@ title: Archivo de configuración
 description: Cada clave de configuración con su tipo, su valor por defecto y la versión que la añadió, más dónde puede vivir el archivo y cómo falla una configuración mala.
 type: reference
 ---
-verbatra lee un único objeto de configuración pequeño y sin secretos, y lo valida antes de hacer ningún trabajo. Ninguna clave de API se lee jamás de él: cada proveedor lee su clave de una variable de entorno (consulta [Proveedores](/docs/providers#las-claves-vienen-del-entorno)), así que la configuración se puede confirmar sin riesgo.
+verbatra lee un único objeto de configuración sin secretos y lo valida antes de cualquier trabajo. Ninguna clave de API se lee jamás de él ([Proveedores](/docs/providers#las-claves-vienen-del-entorno)), así que la configuración se puede confirmar sin riesgo.
 
 ## Una configuración mínima
 
@@ -75,10 +75,10 @@ Las claves desconocidas se rechazan en todos los niveles salvo `$schema`, y por 
 - **`files.pattern`** debe contener `{locale}`, el único token que entiende: `locales/{locale}.json` se resuelve a `locales/de.json`, contra el directorio de trabajo. Es una ruta literal, nunca un glob, así que una configuración direcciona un archivo por locale; para varios archivos de namespace consulta [Diseños con namespaces](/docs/formats#diseños-con-namespaces). `apple-xcstrings` sigue necesitando el token, pero todos los locales se resuelven al mismo catálogo ([Xcode String Catalogs](/docs/formats#xcode-string-catalogs-xcstrings)).
 - **`files.localeStyle`** decide en qué se expande el token:
   - `literal` escribe la etiqueta tal como está configurada, que es lo que necesitan los diseños JSON, YAML, XLIFF, ARB, properties y `.lproj` de Apple.
-  - `posix` reemplaza `-` por `_`, para gettext y el diseño Java `messages_{locale}.properties`: `pt-BR` pasa a `pt_BR`, `zh-Hant-TW` a `zh_Hant_TW`, `es-419` a `es_419`. Una variante como `de-1996` no tiene escritura posix. `gettext-po` escribe los scripts a la manera de gettext (siguiente sección).
+  - `posix` reemplaza `-` por `_`, para gettext y el diseño Java `messages_{locale}.properties`: `pt-BR` pasa a `pt_BR`, `zh-Hant-TW` a `zh_Hant_TW`. Una variante como `de-1996` no tiene escritura posix. `gettext-po` escribe los scripts a la manera de gettext (siguiente sección).
   - `android` se expande a un directorio de recursos completo, escrito como `res/{locale}/strings.xml`: `values` para el origen, y luego `values-de`, `values-pt-rBR`, `values-b+zh+Hans`.
 
-  Un estilo rechaza un locale que no puede escribir en lugar de escribir un directorio que la plataforma ignoraría.
+  Un estilo rechaza un locale que no puede escribir en lugar de escribir un directorio que la plataforma ignora.
 
 ### Nombres de locale de gettext
 
@@ -159,9 +159,9 @@ La versión 2 da a cada término una traducción por locale, traducciones prohib
 | `terms[].note`, `terms[].partOfSpeech` | Contexto en texto libre, que un proveedor LLM recibe como datos. |
 | `doNotTranslate` | Términos que se copian sin traducir. Un string simple conserva además sus mayúsculas; `{ "term", "caseSensitive": false }` puede cambiarlas. |
 
-Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`, y no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer también en `doNotTranslate`. Una petición solo lleva los términos de su locale de destino, y la huella de [caché](/docs/the-cache) de cada locale solo cubre esos. Un archivo de la versión 1 sigue funcionando con la misma huella; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) del SDK lo reescribe como versión 2 solo para una edición que la versión 1 no puede expresar.
+Cada término necesita un `target`, una entrada en `targets` o una lista `forbidden`, y no puede prohibir su propia traducción, nombrar un locale dos veces ni aparecer también en `doNotTranslate`. La huella de [caché](/docs/the-cache) de cada locale solo cubre sus propios términos. Un archivo de la versión 1 sigue funcionando con la misma huella; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) del SDK lo reescribe como versión 2 solo para una edición que la versión 1 no puede expresar.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Solo la forma de archivo se puede editar desde [Studio](/docs/review-in-studio), término a término; un glosario en línea es de solo lectura allí. A los proveedores LLM se les instruye para tratar las traducciones como vinculantes, evitar las traducciones prohibidas y conservar los términos que no se traducen; DeepL, Google Cloud Translation y LibreTranslate no pueden aplicarlos. La salida de cada proveedor se comprueba después y se marca con `GLOSSARY_TERM_MISSED` o `GLOSSARY_FORBIDDEN_TERM` ([motivos de revisión](/docs/error-codes#review-reason-codes)).
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Solo la forma de archivo se puede editar desde [Studio](/docs/review-in-studio), término a término; un glosario en línea es de solo lectura allí. Qué proveedores aplican el glosario está en [Proveedores](/docs/providers#tono-y-glosario-entre-proveedores); la salida de cada proveedor se comprueba después y se marca con `GLOSSARY_TERM_MISSED` o `GLOSSARY_FORBIDDEN_TERM` ([motivos de revisión](/docs/error-codes#review-reason-codes)).
 
 ### generatePlurals
 
@@ -191,7 +191,7 @@ network: { policy: "local-only", allowedHosts: ["gpu.lan"] }
 
 ### maxBatchSize
 
-Las entradas faltantes y modificadas se envían en sublotes secuenciales que no superan este tamaño; un sublote fallido se reintenta en la siguiente ejecución mientras los demás siguen avanzando. Ninguna opción de CLI lo sobrescribe.
+Las entradas faltantes y modificadas se envían en [sublotes](/docs/providers#lotes) secuenciales que no superan este tamaño. Ninguna opción de CLI lo sobrescribe.
 
 ### maxLength
 
@@ -205,38 +205,33 @@ maxLength: {
 ```
 
 - **Solo aquí.** Ningún presupuesto se deduce de una descripción ni de los metadatos de un formato. Las claves se comparan literalmente, nunca como globs; una clave ausente del mapa nunca se mide.
-- **Clústeres de grafemas.** La longitud cuenta caracteres percibidos: un emoji de varios puntos de código o una letra con un acento combinante cuentan como uno, y también un carácter CJK aunque se dibuje cerca del doble de ancho. Los espacios cuentan, y el límite es inclusivo.
+- **Clústeres de grafemas.** La longitud cuenta caracteres percibidos, espacios incluidos: un emoji o una letra acentuada cuentan como uno, y también un carácter CJK aunque se dibuje cerca del doble de ancho. El límite es inclusivo.
 - **Cuándo se comprueba.** En cada valor que `translate` produce para la clave, reutilizaciones de caché incluidas. Una clave al día no se mide, así que un presupuesto nuevo no marca nada hasta que su origen cambie; [`verbatra export --include-unchanged`](/docs/cli/export) mide ahora mismo cada valor actual.
-- **Informativo.** Un exceso se sigue escribiendo y bloqueando, y se informa como `MAX_LENGTH_EXCEEDED` en `needsReview`, en la cola de revisión de Studio y en las columnas de revisión del libro de Excel.
+- **Informativo.** Un exceso se sigue escribiendo y bloqueando, y se marca para revisión como [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded).
 
 ### maxTokens y budgetBehavior
 
 `maxTokens` es un presupuesto para toda la ejecución: tokens de entrada más de salida, sumados en cada llamada al proveedor (traducción y generación de plurales) y en cada locale de destino. `translate --max-tokens <n>` fija para una ejecución un techo más estricto que siempre detiene; se aplica la cifra menor (desde 0.12.0).
 
-`budgetBehavior` decide qué pasa al alcanzarlo:
+`budgetBehavior` decide qué pasa entonces:
 
 - `"warn"`, el valor por defecto, cuenta el gasto y señala el exceso; la ejecución continúa como si no hubiera presupuesto.
 - `"stop"` <AvailableFrom version="0.11.0" /> lo convierte en un techo (DeepL, Google Cloud Translation y LibreTranslate incluidos). Antes de cada petición, la ejecución proyecta su coste igual que [la estimación previa](/docs/estimating-cost) y rechaza una que superaría `maxTokens`. Las claves de esa petición se retienen, y también cada clave aún no intentada: el resto del locale actual y cada locale posterior, cuyo diff e informe de huérfanas siguen ejecutándose. Las claves retenidas conservan su hash anterior en el bloqueo y se reintentan en la siguiente ejecución.
 
 Cómo cuenta `"stop"`:
 
-- Se comprueba cada petición, incluida cada mitad de una petición que se vuelve a dividir tras una respuesta truncada.
-- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar por encima de `maxTokens` por la diferencia de la última petición; no se envía nada más.
-- Una petición admitida puede costar hasta cerca del doble de su proyección por la propia petición de reparación de la capa de proveedor para claves que faltan; eso también llega en la reconciliación.
-- Una petición fallida o truncada sigue cargada por completo.
-- Una ejecución detenida no deja ningún archivo a medio escribir ni ninguna entrada de bloqueo para trabajo retenido.
+- Después de cada petición el total se reconcilia con el uso que informó el proveedor, así que una ejecución puede terminar algo por encima de `maxTokens`; cuánto y por qué está en [el `budget` del resumen de ejecución](/docs/sdk/run-summary). Los proveedores de traducción automática no informan de tokens y se presupuestan a partir de la proyección.
+- Una petición fallida o truncada sigue cargada por completo, y el trabajo retenido no recibe entrada de bloqueo.
 - La proyección incluye una asignación fija para el prompt del LLM (reglas de sistema y esquema de respuesta), que se suma también para los proveedores de traducción automática. Una petición se proyecta como un lote entero, así que un `maxTokens` por debajo de la proyección de un lote lo rechaza en cada ejecución; el aviso indica entonces que bajes `maxBatchSize` o subas `maxTokens`.
-- Los proveedores de traducción automática no informan de uso de tokens y se presupuestan a partir de la proyección (`budget.supported: false`).
 
 Alcance y códigos de salida:
 
-- El presupuesto acota una ejecución de `translate`. `watch` arranca un presupuesto nuevo para cada ejecución que dispara, y retraducir una sola entrada desde [Studio](/docs/review-in-studio) o desde una herramienta de agente nunca tiene tope.
-- Una ejecución real con `maxTokens` y `--concurrency` por encima de `1` se rechaza con salida `2` (`CONCURRENCY_BUDGET_CONFLICT`), porque qué locale pierde trabajo dependería del entrelazado. Un dry run queda exento.
+- El presupuesto acota una ejecución de `translate`, nunca la retraducción de una sola entrada; `watch` arranca uno nuevo por ejecución. Una ejecución real con presupuesto rechaza `--concurrency` por encima de `1` ([`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict)).
 - Con `"warn"` el código de salida nunca cambia. Con `"stop"`, un locale con claves retenidas es `partial` si algunas claves llegaron y `failed` si no llegó ninguna; ambos salen con `1`.
 - `budgetBehavior` sin `maxTokens` no tiene efecto.
 
 <Callout title="Dos maxTokens distintos">
-El `maxTokens` de nivel superior es este presupuesto de toda la ejecución. El `provider.options.maxTokens` de Anthropic limita una sola respuesta; no tienen relación. Consulta [Proveedores](/docs/providers#anthropic).
+El `maxTokens` de nivel superior es este presupuesto de toda la ejecución; el `provider.options.maxTokens` de Anthropic, sin relación con él, limita una respuesta ([Proveedores](/docs/providers#anthropic)).
 </Callout>
 
 ### rates
@@ -270,11 +265,11 @@ extract: {
 }
 ```
 
-- **`framework`** es un conjunto cerrado; `i18next` cubre `t(...)`, `$t(...)` y `<object>.t(...)`. Un framework sin extractor se rechaza.
+- **`framework`** es un conjunto cerrado ([formas de llamada](/docs/cli/extract)); un framework sin extractor se rechaza.
 - **`roots`** se resuelven contra el directorio de trabajo; nunca se lee nada fuera de ellas.
-- **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, a los que siempre se omiten: `node_modules`, `.git`, `.next`, `.turbo`, `.verbatra`, `dist`, `build` y `coverage`.
-- **`literals.ignore`** coincide con el texto completo de un literal con los espacios reducidos y las referencias de caracteres decodificadas, así que escribe `Tom & Jerry`, no `Tom &amp; Jerry`. Un literal retenido se notifica como suprimido.
-- **`unused.ignore`** acepta claves exactas o patrones `*` para claves usadas solo fuera del código analizado (una plantilla de servidor, un CMS). Coincide con la clave decodificada que muestra el informe (`Welcome. Enjoy`, no `Welcome\. Enjoy`), y una coincidencia se notifica como ignorada.
+- **`exclude`** añade nombres de directorio (no rutas), que coinciden en cualquier punto bajo una raíz, al [conjunto que siempre se omite](/docs/cli/extract).
+- **`literals.ignore`** coincide con el texto completo de un literal con los espacios reducidos y las referencias de caracteres decodificadas (`Tom & Jerry`); un literal retenido se notifica como suprimido.
+- **`unused.ignore`** acepta claves exactas o patrones `*` para claves usadas solo fuera del código analizado, comparados con la clave decodificada que muestra el informe (`Welcome. Enjoy`); una coincidencia se notifica como ignorada.
 
 ## Orden de descubrimiento
 
@@ -350,15 +345,7 @@ La propiedad de `package.json` no puede recibir un esquema; las formas ejecutabl
 
 ### Lo que el documento no puede comprobar
 
-Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la carga de la configuración:
-
-- `targetLocales` no debe incluir `sourceLocale`, ni dos locales que solo difieran en mayúsculas.
-- Un código de locale debe pasar `Intl.getCanonicalLocales`.
-- Cada clave de `provider.options.localeMap` debe ser `sourceLocale` o un locale de destino.
-- `apiKeyEnvVar` (openai-compatible) no debe nombrar la variable de clave de un proveedor alojado.
-- Una entrada de `network.allowedHosts` debe ser una dirección o un rango válidos (no un octeto mayor que 255, un prefijo CIDR demasiado largo ni un IPv6 mal formado).
-- Una entrada de `sensitiveData.patterns` debe ser una expresión regular válida dentro de las [reglas de seguridad de patrones](/docs/data-handling#protección-de-contenido-sensible).
-- Un glosario en línea de la versión 2 debe cumplir las reglas de términos de [glossary](#glosario-por-locale-versión-2).
+Estas reglas no tienen expresión en JSON Schema, así que solo las comprueba la carga de la configuración: las reglas de `targetLocales` y de los [códigos de locale](#códigos-de-locale), las claves de `localeMap` y `apiKeyEnvVar` ([Proveedores](/docs/providers)), direcciones y rangos válidos en [`network.allowedHosts`](/docs/network-policy), `sensitiveData.patterns` dentro de las [reglas de seguridad de patrones](/docs/data-handling#protección-de-contenido-sensible) y las reglas de términos de un glosario en línea de la [versión 2](#glosario-por-locale-versión-2).
 
 ## El directorio de trabajo y .env
 
@@ -367,6 +354,6 @@ El directorio de trabajo (donde ejecutas verbatra, o `--cwd`) ancla la búsqueda
 ## Cuando la carga falla
 
 - [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found): no hay configuración en ningún sitio buscado, o la ruta de `--config` no existe.
-- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): se encontró una configuración pero no se puede usar: no se puede parsear, falla la validación o nombra un archivo de glosario ilegible. El mensaje lista cada problema con la ruta de su clave, y una clave desconocida en cualquier nivel añade la pista de que las claves de API vienen del entorno. Un fallo de parseo nombra el archivo (con línea y columna en YAML) pero nunca cita su contenido, y cada mensaje pasa por la redacción de claves.
+- [`CONFIG_INVALID`](/docs/error-codes#config_invalid): se encontró una configuración pero no se puede usar. El mensaje lista cada problema con la ruta de su clave, y una clave desconocida en cualquier nivel añade la pista de que las claves de API vienen del entorno. Un fallo de parseo nombra el archivo (con línea y columna en YAML) pero nunca cita su contenido, y cada mensaje pasa por la redacción de claves.
 
 La CLI sale con `2` en ambos casos.
