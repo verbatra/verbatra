@@ -203,11 +203,49 @@ function headingSlug(heading) {
     .replace(/ /g, "-");
 }
 
-function stackTableRows(page) {
-  const intro = page.split(/^## /m)[0];
-  return [...intro.matchAll(/^\| \[[^\]]+\]\(#([^)]+)\) \| `([^`]+)` \| `([^`]+)` \|$/gm)].map(
-    (match) => ({ anchor: match[1], format: match[2], pattern: match[3] }),
-  );
+function stackCardsBlock(page) {
+  return /<StackCards\n[\s\S]*?\n\/>/.exec(page)?.[0] ?? "";
+}
+
+function cardField(card, name) {
+  return new RegExp(`\\b${name}: "([^"]*)"`).exec(card)?.[1];
+}
+
+function stackCards(page) {
+  return [...stackCardsBlock(page).matchAll(/\{([^{}]*)\}/g)].map(([, card]) => {
+    const href = cardField(card, "href") ?? "";
+    const formats = /\bformats: \[([^\]]*)\]/.exec(card)?.[1] ?? "";
+    return {
+      label: cardField(card, "label"),
+      formats: [...formats.matchAll(/"([a-z0-9-]+)"/g)].map((format) => format[1]),
+      path: href.split("#")[0],
+      anchor: href.split("#")[1],
+    };
+  });
+}
+
+function expectEveryCardParsed(page) {
+  const labels = stackCardsBlock(page).match(/\blabel: /g) ?? [];
+  expect(labels.length).toBeGreaterThan(0);
+  expect(stackCards(page)).toHaveLength(labels.length);
+}
+
+function sectionAnchors(page) {
+  return page
+    .split(/^## /m)
+    .slice(1)
+    .map((section) => headingSlug(section.split("\n", 1)[0]));
+}
+
+function expectCardsCoverEveryFormat(cards, stackPage, formats) {
+  expect(cards.flatMap((card) => card.formats).sort()).toEqual([...formats].sort());
+  const anchors = sectionAnchors(stackPage);
+  for (const card of cards) {
+    expect(anchors, card.label).toContain(card.anchor);
+    for (const format of card.formats) {
+      expect(card.anchor, format).toBe(stackSectionAnchor(stackPage, format));
+    }
+  }
 }
 
 function stackSectionAnchor(page, format) {
@@ -233,27 +271,53 @@ describe("the pick-your-stack page covers every built-in format", () => {
         expect(sections[0], format).toContain(`\`${patterns.get(format)}\``);
         expect(sections[0], format).toMatch(/\]\(\/docs\/formats#[^)]+\)/);
       }
-      const rows = stackTableRows(page);
-      expect(rows.map((row) => row.format).sort()).toEqual([...formats].sort());
-      for (const row of rows) {
-        expect(row.pattern, row.format).toBe(patterns.get(row.format));
-        expect(row.anchor, row.format).toBe(stackSectionAnchor(page, row.format));
-      }
+      const cards = stackCards(page);
+      expect(cards.every((card) => card.path === "")).toBe(true);
+      expectEveryCardParsed(page);
+      expect(page).toContain('<StackCards\n  labelledBy="page-title"');
+      expectCardsCoverEveryFormat(cards, page, formats);
       const commands = [...page.matchAll(/npx verbatra init --format ([a-z0-9-]+)/g)];
       expect(commands.map((match) => match[1]).sort()).toEqual([...formats].sort());
     },
   );
 
-  it("sees a format whose section, table row, or layout is missing or wrong", () => {
+  it.each(LOCALE_SUFFIXES)(
+    "links the docs home stack cards to the section of every format in index%s.mdx",
+    (suffix) => {
+      const home = readDocPage("index", suffix);
+      const cards = stackCards(home);
+      expectEveryCardParsed(home);
+      expect(home).toMatch(
+        /<DocsHomeSection id="pick-your-stack" [^>]*>\n\n<StackCards\n {2}labelledBy="pick-your-stack"/,
+      );
+      expect(cards.every((card) => card.path === "/docs/pick-your-stack")).toBe(true);
+      expectCardsCoverEveryFormat(
+        cards,
+        readDocPage("(get-started)/pick-your-stack", suffix),
+        formats,
+      );
+    },
+  );
+
+  it("sees a format whose section, card, or layout is missing or wrong", () => {
     const page = readDocPage("(get-started)/pick-your-stack", "");
     const withoutIni = page.replace("npx verbatra init --format ini\n", "");
     expect(stackSectionsFor(withoutIni, "ini")).toHaveLength(0);
-    const wrongRow = page.replace("| [INI](#ini) | `ini` |", "| [INI](#yaml) | `ini` |");
-    const iniRow = stackTableRows(wrongRow).find((row) => row.format === "ini");
-    expect(iniRow?.anchor).not.toBe(stackSectionAnchor(wrongRow, "ini"));
-    expect(stackTableRows(page.replace("| [INI](#ini) | `ini` |", "| INI | `ini` |"))).toHaveLength(
-      formats.length - 1,
+    const covers = (variant) => () =>
+      expectCardsCoverEveryFormat(stackCards(variant), page, supportedFormats());
+    expect(covers(page)).not.toThrow();
+    expect(covers(page.replace('href: "#ini"', 'href: "#yaml"'))).toThrow();
+    expect(covers(page.replace('formats: ["ini"]', "formats: []"))).toThrow();
+    expect(covers(page.replace('formats: ["ini"]', 'formats: ["ini", "yaml"]'))).toThrow();
+    expect(covers(page.replace('href: "#ini"', 'href: "#nowhere"'))).toThrow();
+    const reordered = page.replace(
+      '{ label: "INI", icon: "ini", formats: ["ini"], href: "#ini" }',
+      '{ href: "#ini", formats: ["ini"], icon: "ini", label: "INI" }',
     );
+    expect(reordered).not.toBe(page);
+    expect(stackCards(reordered)).toEqual(stackCards(page));
+    const unparsable = page.replace('href: "#ini" },', 'href: "#ini",');
+    expect(() => expectEveryCardParsed(unparsable)).toThrow();
     const wrongLayout = page.replaceAll("`locales/{locale}.ini`", "`config/{locale}.ini`");
     expect(stackSectionsFor(wrongLayout, "ini")[0]).not.toContain("`locales/{locale}.ini`");
   });

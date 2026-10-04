@@ -30,6 +30,11 @@ export type BoundedFileRead =
   | {
       /** No readable file exists at the path. */
       readonly kind: "missing";
+      /**
+       * `true` when something exists at the path but could not be read as a regular file, such as
+       * a file the process may not open or a directory. Absent when nothing exists at the path.
+       */
+      readonly unreadable?: boolean;
     }
   | {
       /** The file exists but exceeds the requested byte limit, so nothing was read. */
@@ -50,6 +55,11 @@ export type BoundedBytesRead =
   | {
       /** No readable file exists at the path. */
       readonly kind: "missing";
+      /**
+       * `true` when something exists at the path but could not be read as a regular file, such as
+       * a file the process may not open or a directory. Absent when nothing exists at the path.
+       */
+      readonly unreadable?: boolean;
     }
   | {
       /** The file exists but exceeds the requested byte limit, so nothing was read. */
@@ -207,6 +217,17 @@ function entryKind(entry: Dirent): DirectoryEntry["kind"] {
   return entry.isDirectory() ? "directory" : "other";
 }
 
+const NOT_FOUND_CODES: ReadonlySet<string | undefined> = new Set(["ENOENT", "ENOTDIR"]);
+
+const NOT_FOUND = { kind: "missing" } as const;
+
+const UNREADABLE = { kind: "missing", unreadable: true } as const;
+
+function openFailure(error: unknown): typeof NOT_FOUND | typeof UNREADABLE {
+  const code = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+  return NOT_FOUND_CODES.has(code) ? NOT_FOUND : UNREADABLE;
+}
+
 async function readBoundedUtf8(handle: FileHandle, size: number): Promise<string> {
   const buffer = Buffer.allocUnsafe(size);
   let offset = 0;
@@ -224,13 +245,13 @@ async function readBounded(path: string, maxBytes: number): Promise<BoundedFileR
   let handle: FileHandle;
   try {
     handle = await open(path, "r");
-  } catch {
-    return { kind: "missing" };
+  } catch (error) {
+    return openFailure(error);
   }
   try {
     const info = await handle.stat();
     if (!info.isFile()) {
-      return { kind: "missing" };
+      return UNREADABLE;
     }
     if (info.size > maxBytes) {
       return { kind: "too-large" };
@@ -258,13 +279,13 @@ async function readBoundedBytes(path: string, maxBytes: number): Promise<Bounded
   let handle: FileHandle;
   try {
     handle = await open(path, "r");
-  } catch {
-    return { kind: "missing" };
+  } catch (error) {
+    return openFailure(error);
   }
   try {
     const info = await handle.stat();
     if (!info.isFile()) {
-      return { kind: "missing" };
+      return UNREADABLE;
     }
     if (info.size > maxBytes) {
       return { kind: "too-large" };

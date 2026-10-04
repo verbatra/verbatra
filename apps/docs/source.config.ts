@@ -32,7 +32,7 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkNpmOptions: { persist: { id: "package-manager" } },
+    remarkNpmOptions: false,
     rehypeCodeOptions,
     remarkPlugins: [
       remarkIntroducedIn,

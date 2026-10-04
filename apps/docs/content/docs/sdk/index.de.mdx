@@ -14,13 +14,13 @@ stehen in [SDK-Rezepte](/docs/programmatic-api).
 
 ## Installation
 
-```npm
+```bash
 npm install --save-dev @verbatra/sdk
 ```
 
 Benötigt Node.js `>=22.14.0`.
 
-Die pnpm-Zeile installiert korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS`: pnpm
+Mit pnpm installiert `pnpm add --save-dev @verbatra/sdk` korrekt, beendet sich aber mit `1` und `ERR_PNPM_IGNORED_BUILDS`: pnpm
 sperrt die Installationsskripte des mitgelieferten Gemini-SDK und dessen `protobufjs` und
 hinterlässt eine unbeantwortete `pnpm-workspace.yaml`, an der jeder spätere pnpm-Befehl im Projekt
 genauso scheitert. Führe einmal `pnpm approve-builds` aus und bestätige keinen der beiden Einträge,

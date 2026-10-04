@@ -35,7 +35,7 @@ export function HighlightedCommand({ command, link }: HighlightedCommandProps): 
         target="_blank"
         rel="noreferrer noopener"
         onClick={(event) => event.stopPropagation()}
-        className="inline-flex min-h-6 items-center rounded underline decoration-fd-border underline-offset-4 align-middle transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]"
+        className="inline-flex min-h-6 items-center rounded underline decoration-fd-border underline-offset-4 align-middle transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-offset-[-2px]"
       >
         {link.token}
       </a>

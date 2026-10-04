@@ -1,74 +1,11 @@
-import {
-  SiAndroid,
-  SiAngular,
-  SiApple,
-  SiAstro,
-  SiDotnet,
-  SiExpo,
-  SiFlutter,
-  SiGnu,
-  SiJson,
-  SiNextdotjs,
-  SiNodedotjs,
-  SiNuxt,
-  SiReact,
-  SiSpring,
-  SiSvelte,
-  SiVuedotjs,
-  SiXcode,
-  SiXml,
-  SiYaml,
-} from "@icons-pack/react-simple-icons";
 import type { SupportedFormat } from "@verbatra/sdk";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { StackIcon, type StackIconKey, StackIconSprite } from "@/components/stack-icons";
 import { type Locale, localizedPath } from "@/lib/i18n";
 
 const ICON = 20;
-const VIEWBOX = 24;
-const SI = { size: VIEWBOX, color: "currentColor", title: "" } as const;
-
-function IniGlyph(): ReactNode {
-  return (
-    <svg
-      width={VIEWBOX}
-      height={VIEWBOX}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      aria-hidden="true"
-    >
-      <path d="M6 3h8l5 5v13H6z" />
-      <path d="M14 3v5h5M9 12h6M9 16h6" />
-    </svg>
-  );
-}
-
-const ICONS = {
-  android: <SiAndroid {...SI} />,
-  angular: <SiAngular {...SI} />,
-  apple: <SiApple {...SI} />,
-  astro: <SiAstro {...SI} />,
-  dotnet: <SiDotnet {...SI} />,
-  expo: <SiExpo {...SI} />,
-  flutter: <SiFlutter {...SI} />,
-  gnu: <SiGnu {...SI} />,
-  ini: <IniGlyph />,
-  json: <SiJson {...SI} />,
-  next: <SiNextdotjs {...SI} />,
-  node: <SiNodedotjs {...SI} />,
-  nuxt: <SiNuxt {...SI} />,
-  react: <SiReact {...SI} />,
-  spring: <SiSpring {...SI} />,
-  svelte: <SiSvelte {...SI} />,
-  vue: <SiVuedotjs {...SI} />,
-  xcode: <SiXcode {...SI} />,
-  xml: <SiXml {...SI} />,
-  yaml: <SiYaml {...SI} />,
-} as const satisfies Record<string, ReactNode>;
-
-type IconKey = keyof typeof ICONS;
+const ICON_PREFIX = "vk-marquee-icon";
 
 type FrameworkKey =
   | "react"
@@ -86,8 +23,8 @@ type FrameworkKey =
   | "android"
   | "dotnet";
 
-type Framework = { key: FrameworkKey; name: string; icon: IconKey };
-type Format = { id: SupportedFormat; name: string; icon: IconKey };
+type Framework = { key: FrameworkKey; name: string; icon: StackIconKey };
+type Format = { id: SupportedFormat; name: string; icon: StackIconKey };
 
 const FRAMEWORKS: ReadonlyArray<Framework> = [
   { key: "react", name: "React", icon: "react" },
@@ -111,7 +48,7 @@ const FORMATS: ReadonlyArray<Format> = [
   { id: "vue-i18n-json", name: "vue-i18n JSON", icon: "vue" },
   { id: "next-intl-json", name: "next-intl JSON", icon: "next" },
   { id: "ngx-translate-json", name: "ngx-translate JSON", icon: "angular" },
-  { id: "xliff", name: "XLIFF", icon: "xml" },
+  { id: "xliff", name: "XLIFF", icon: "xliff" },
   { id: "yaml", name: "YAML", icon: "yaml" },
   { id: "arb", name: "Flutter ARB", icon: "flutter" },
   { id: "properties", name: "Java .properties", icon: "spring" },
@@ -123,33 +60,20 @@ const FORMATS: ReadonlyArray<Format> = [
   { id: "resx", name: ".NET .resx", icon: "dotnet" },
 ];
 
-function symbolId(icon: IconKey): string {
-  return `vk-marquee-icon-${icon}`;
-}
-
 function IconSprite(): ReactNode {
   return (
-    <svg width="0" height="0" aria-hidden="true" className="absolute">
-      <defs>
-        {Object.entries(ICONS).map(([key, icon]) => (
-          <symbol key={key} id={symbolId(key as IconKey)} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
-            {icon}
-          </symbol>
-        ))}
-      </defs>
-    </svg>
+    <StackIconSprite
+      prefix={ICON_PREFIX}
+      icons={[...FRAMEWORKS, ...FORMATS].map((item) => item.icon)}
+    />
   );
 }
 
-function Icon({ icon }: { icon: IconKey }): ReactNode {
-  return (
-    <svg width={ICON} height={ICON} aria-hidden="true" className="vk-marquee-icon">
-      <use href={`#${symbolId(icon)}`} />
-    </svg>
-  );
+function Icon({ icon }: { icon: StackIconKey }): ReactNode {
+  return <StackIcon prefix={ICON_PREFIX} icon={icon} size={ICON} className="vk-marquee-icon" />;
 }
 
-type TrackItem = { key: string; name: string; icon: IconKey; tip: string };
+type TrackItem = { key: string; name: string; icon: StackIconKey; tip: string };
 
 function Track({
   items,

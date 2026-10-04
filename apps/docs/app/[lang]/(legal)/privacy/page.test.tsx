@@ -112,19 +112,19 @@ const UMAMI_DEVICE_READS: Record<Locale, RegExp> = {
 
 const UMAMI_EVENT_PAYLOADS: Record<Locale, ReadonlyArray<RegExp>> = {
   en: [
-    /copying a command or prompt \(with the copied command text/,
+    /copying a command or prompt \(with the copied command text for a command, and no data for the prompt\)/,
     /previous and the newly selected language/,
   ],
   de: [
-    /Kopieren eines Befehls oder Prompts \(mit dem kopierten Befehlstext/,
+    /Kopieren eines Befehls oder Prompts \(mit dem kopierten Befehlstext bei einem Befehl, ohne Daten beim Prompt\)/,
     /bisherigen und der neu gewählten Sprache/,
   ],
   es: [
-    /copiar un comando o un prompt \(con el texto del comando copiado/,
+    /copiar un comando o un prompt \(con el texto del comando copiado en un comando, y sin datos en el prompt\)/,
     /idioma anterior y el recién seleccionado/,
   ],
   fr: [
-    /copier une commande ou un prompt \(avec le texte de la commande copiée/,
+    /copier une commande ou un prompt \(avec le texte de la commande copiée pour une commande, et sans données pour le prompt\)/,
     /langue précédente et la langue nouvellement sélectionnée/,
   ],
 };
