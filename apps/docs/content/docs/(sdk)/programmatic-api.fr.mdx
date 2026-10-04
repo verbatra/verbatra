@@ -47,7 +47,7 @@ de côté.
 
 ## Vérifier en CI sans écrire
 
-`check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète. Cela en fait le garde-fou de CI naturel.
+`check` lit et compare sans appeler de fournisseur ni toucher aucun fichier, et son champ `inSync` est vrai exactement quand rien n'est manquant ni obsolète. 
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -265,7 +265,7 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) liste ce que chacune lève. Voir [Réviser les traductions dans Studio](/docs/review-in-studio) pour les mêmes points d'accroche derrière une UI.
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) liste ce que chacune lève. 
 
 ### Valeurs écrites par une personne
 
@@ -321,8 +321,7 @@ for (const { locale, needsReview } of queue.locales) {
 
 `localeValues` est le pendant en masse de `keyValue` : une passe sur les fichiers déjà présents sur
 le disque, qui renvoie par locale le texte source et le texte cible actuels de chaque clé.
-Utilise-le quand l'appelant doit chercher ou parcourir du contenu traduit plutôt que des noms de
-clés.
+
 
 ```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -347,7 +346,7 @@ verrouillage ni au cache. Il couvre toutes les locales cibles configurées ; pas
 
 ## L'aller-retour du classeur
 
-Exporte les chaînes à traduire dans un classeur Excel, confie-le à un traducteur, puis réimporte le fichier rempli. `importWorkbook` exécute les mêmes vérifications de dérive et d'intégrité que `translate` et renvoie la même forme `RunSummary`, donc une remise manuelle s'insère exactement dans les rapports que tu utilises pour une exécution automatisée.
+Exporte les chaînes à traduire dans un classeur Excel, confie-le à un traducteur, puis réimporte le fichier rempli. `importWorkbook` exécute les mêmes vérifications de dérive et d'intégrité que `translate` et renvoie la même forme `RunSummary`.
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -436,4 +435,4 @@ const config = await loadConfig({
 await translate({ config });
 ```
 
-Pour chaque forme d'entrée, l'anatomie complète du `RunSummary` et la table des codes `SdkError`, voir la [référence SDK](/docs/sdk).
+

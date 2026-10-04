@@ -52,8 +52,7 @@ auslässt.
 ## In CI prüfen, ohne zu schreiben
 
 `check` liest und vergleicht, ohne einen Provider aufzurufen oder irgendeine Datei anzufassen, und
-sein `inSync`-Flag ist genau dann true, wenn nichts fehlt und nichts veraltet ist. Das macht es
-zum natürlichen CI-Gate.
+sein `inSync`-Flag ist genau dann true, wenn nichts fehlt und nichts veraltet ist. 
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -283,8 +282,7 @@ if (retry.accepted) {
 }
 ```
 
-Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry). Dieselben
-Nahtstellen hinter einer Oberfläche zeigt [Review in Studio](/docs/review-in-studio).
+Was jede davon wirft, listet [`retranslateEntry`](/docs/sdk/review#retranslateentry). 
 
 ### Werte von Menschen
 
@@ -347,8 +345,7 @@ for (const { locale, needsReview } of queue.locales) {
 
 `localeValues` ist das Gegenstück zu `keyValue` für große Mengen: ein Durchgang über die Dateien,
 die schon auf der Platte liegen, der pro Locale den aktuellen Quell- und Zieltext jedes Keys
-zurückgibt. Greif darauf zurück, wenn ein Aufrufer Übersetzungsinhalte statt Key-Namen durchsuchen
-oder scannen muss.
+zurückgibt. 
 
 ```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -375,9 +372,7 @@ Cache. Es deckt jede konfigurierte Ziel-Locale ab; mit `locales` grenzt du es au
 
 Exportiere die zu übersetzenden Strings in eine Excel-Arbeitsmappe, gib sie an eine Übersetzerin,
 dann importiere die ausgefüllte Datei zurück. `importWorkbook` führt dieselben Drift- und
-Integritätsprüfungen aus wie `translate` und gibt dieselbe `RunSummary`-Form zurück; eine
-manuelle Übergabe fügt sich also in exakt das Reporting ein, das du für einen automatischen Lauf
-nutzt.
+Integritätsprüfungen aus wie `translate` und gibt dieselbe `RunSummary`-Form zurück.
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -470,5 +465,4 @@ const config = await loadConfig({
 await translate({ config });
 ```
 
-Jede Eingabeform, die vollständige `RunSummary`-Anatomie und die `SdkError`-Code-Tabelle stehen in
-der [SDK-Referenz](/docs/sdk).
+

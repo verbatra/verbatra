@@ -52,7 +52,7 @@ Acota el plan, no la factura; [Estimar el coste](/docs/estimating-cost) explica 
 ## Comprueba en CI sin escribir
 
 `check` lee y compara sin llamar a un proveedor ni tocar ningún archivo, y su indicador `inSync` es true
-exactamente cuando no hay nada faltante ni obsoleto. Eso lo convierte en la puerta natural de CI.
+exactamente cuando no hay nada faltante ni obsoleto. 
 
 ```ts
 import { check, loadConfig } from "@verbatra/sdk";
@@ -283,9 +283,7 @@ if (retry.accepted) {
 }
 ```
 
-[`retranslateEntry`](/docs/sdk/review#retranslateentry) enumera lo que lanza cada una. Consulta
-[Revisión en Studio](/docs/review-in-studio) para los mismos puntos de integración detrás de una
-interfaz.
+[`retranslateEntry`](/docs/sdk/review#retranslateentry) enumera lo que lanza cada una. 
 
 ### Valores escritos por personas
 
@@ -345,8 +343,7 @@ for (const { locale, needsReview } of queue.locales) {
 <AvailableFrom version="0.10.0" />
 
 `localeValues` es la contraparte en bloque de `keyValue`: una pasada sobre los archivos que ya están
-en disco, que devuelve el texto de origen y de destino actual de cada clave por locale. Recurre a
-él cuando quien llama necesita buscar o escanear contenido traducido en lugar de nombres de clave.
+en disco, que devuelve el texto de origen y de destino actual de cada clave por locale. 
 
 ```ts title="scan-values.ts"
 import { loadConfig, localeValues } from "@verbatra/sdk";
@@ -373,8 +370,7 @@ caché. Cubre todos los locales de destino configurados; pasa `locales` para lim
 
 Exporta las cadenas que necesitan traducción a un libro de Excel, entrégaselo a un traductor y luego
 importa el archivo rellenado de vuelta. `importWorkbook` ejecuta las mismas comprobaciones de desfase
-e integridad que `translate` y devuelve la misma forma `RunSummary`, así que una entrega
-manual encaja exactamente en los mismos informes que usas para una ejecución automática.
+e integridad que `translate` y devuelve la misma forma `RunSummary`.
 
 ```ts
 import { exportWorkbook, importWorkbook, loadConfig } from "@verbatra/sdk";
@@ -466,5 +462,4 @@ const config = await loadConfig({
 await translate({ config });
 ```
 
-Para cada forma de entrada, la anatomía completa de `RunSummary` y la tabla de códigos de `SdkError`,
-consulta la [referencia del SDK](/docs/sdk).
+
