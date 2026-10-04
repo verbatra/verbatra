@@ -45,6 +45,14 @@ export interface LocaleCheckSummary {
   /** True when this locale has nothing missing and nothing stale. */
   readonly inSync: boolean;
   /**
+   * Number of source keys left out of `missing` and `stale` because their source value is empty or
+   * whitespace only, such as a key `extract` added without a default. There is nothing to
+   * translate yet, so they never make `inSync` false; a {@link translate} run reports them with a
+   * `SOURCE_VALUE_EMPTY` notice. {@link check} always sets it; it is optional only so a summary
+   * built by hand, such as a test double, can leave it out.
+   */
+  readonly emptySource?: number;
+  /**
    * Counts by origin and review state over the keys this locale has a value for, read from the
    * provenance file. See {@link KeyProvenance} for what each origin means. Absent when that file is
    * corrupt or was written by a newer verbatra, since a report never fails over it.
@@ -228,6 +236,7 @@ function toCheckSummary(
     missing: diff.missing.length,
     stale: diff.changed.length,
     upToDate: diff.unchanged.length,
+    emptySource: diff.emptySource.length,
     inSync: diff.missing.length === 0 && diff.changed.length === 0,
     ...(provenance !== undefined
       ? { provenance: summarizeProvenance(provenance, source, target) }

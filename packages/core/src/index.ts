@@ -4,7 +4,7 @@ export {
   type InconsistentTranslation,
   type InconsistentTranslationsOptions,
 } from "./consistency/inconsistent-translations.js";
-export { diffResources } from "./diff/diff-resources.js";
+export { diffResources, isBlankValue } from "./diff/diff-resources.js";
 export { similarityAtLeast, similarityRatio } from "./diff/similarity.js";
 export type { DiffOptions, DiffResult } from "./diff/types.js";
 export { contentHash } from "./hash/content-hash.js";

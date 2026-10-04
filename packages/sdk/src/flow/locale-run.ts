@@ -52,6 +52,7 @@ import {
   reserveBudget,
 } from "./budget.js";
 import { withCancelledKeys } from "./cancellation.js";
+import { emptySourceNotice } from "./empty-source.js";
 import { type PayloadContext, payloadContextOf } from "./estimate.js";
 import {
   sourceForeignPlaceholderNotice,
@@ -90,6 +91,7 @@ import type {
   NeedsReviewEntry,
   ProtectedKey,
   ProtectionReason,
+  SdkNotice,
   SuggestionStatus,
   UsageSummary,
 } from "./summary.js";
@@ -532,7 +534,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     params.format,
   );
   const sdkNotices: readonly LocaleNotice[] = pluralNotice ? [pluralNotice] : [];
-  const sourceNotices = sourceNoticesFor(params, toTranslate);
+  const sourceNotices = sourceNoticesFor(params, toTranslate, diff.emptySource);
 
   if (params.mode.kind === "plan") {
     const planned = plannedGenerationKeys(
@@ -702,6 +704,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     ...integrityMismatches,
     ...providerFailures,
     ...invalidIcuSource,
+    ...diff.emptySource,
     ...generation.withheld,
     ...generation.providerFailures,
     ...budgetWithheld,
@@ -1065,14 +1068,18 @@ function sourceEntriesOf(
 function sourceNoticesFor(
   params: LocaleRunParams,
   pendingKeys: readonly string[],
+  emptySourceKeys: readonly string[],
 ): readonly LocaleNotice[] {
-  const notice = sourceForeignPlaceholderNotice(
-    params.adapter.format,
-    params.source,
-    pendingKeys,
-    params.mode.kind === "memory-only" ? "human-only" : "machine",
-  );
-  return notice === undefined ? [] : [notice];
+  const notices = [
+    emptySourceNotice(emptySourceKeys),
+    sourceForeignPlaceholderNotice(
+      params.adapter.format,
+      params.source,
+      pendingKeys,
+      params.mode.kind === "memory-only" ? "human-only" : "machine",
+    ),
+  ];
+  return notices.filter((notice): notice is SdkNotice => notice !== undefined);
 }
 
 function generatedPluralNotices(

@@ -28,6 +28,14 @@ export interface LocaleDiff {
    */
   readonly hasPendingChanges: boolean;
   /**
+   * Source keys left out of `missing` and `changed` because their source value is empty or
+   * whitespace only, such as a key `extract` added without a default. They are not pending: a
+   * {@link translate} run sends nothing for them and reports them with a `SOURCE_VALUE_EMPTY`
+   * notice. {@link diff} always sets it; it is optional only so a value built by hand, such as a
+   * test double, can leave it out.
+   */
+  readonly emptySource?: readonly string[];
+  /**
    * The interpreted origin of each `changed` key's current value, read from the provenance file,
    * so a caller can see before a run whose work a retranslation would replace. See
    * {@link KeyOrigin}. Absent when that file is corrupt or was written by a newer verbatra, since a
@@ -104,6 +112,7 @@ function toLocaleDiff(locale: string, diff: DiffResult): LocaleDiff {
     missing: diff.missing,
     changed: diff.changed,
     orphaned: diff.orphaned,
+    emptySource: diff.emptySource,
     hasPendingChanges: diff.missing.length > 0 || diff.changed.length > 0,
   };
 }

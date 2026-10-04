@@ -19,6 +19,18 @@ function isStale(
   return contentHash(sourceEntry) !== previousHash;
 }
 
+export function isBlankValue(value: string): boolean {
+  return value.trim() === "";
+}
+
+function pendingBucket(
+  sourceEntry: TranslationEntry,
+  bucket: string[],
+  emptySource: string[],
+): string[] {
+  return isBlankValue(sourceEntry.value) ? emptySource : bucket;
+}
+
 export function diffResources(
   source: LocaleResource,
   target: LocaleResource,
@@ -28,12 +40,13 @@ export function diffResources(
   const changed: string[] = [];
   const unchanged: string[] = [];
   const orphaned: string[] = [];
+  const emptySource: string[] = [];
 
   for (const [key, sourceEntry] of source.entries) {
     if (!target.entries.has(key)) {
-      missing.push(key);
+      pendingBucket(sourceEntry, missing, emptySource).push(key);
     } else if (isStale(key, sourceEntry, options.baseline)) {
-      changed.push(key);
+      pendingBucket(sourceEntry, changed, emptySource).push(key);
     } else {
       unchanged.push(key);
     }
@@ -50,5 +63,6 @@ export function diffResources(
     changed: sorted(changed),
     orphaned: sorted(orphaned),
     unchanged: sorted(unchanged),
+    emptySource: sorted(emptySource),
   };
 }

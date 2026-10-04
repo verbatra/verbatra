@@ -68,6 +68,11 @@ import type { IntegrityGateReason } from "./integrity-gate.js";
  *   The message gives the number of affected values and names the first keys. Raised per locale,
  *   only when that locale has such a key missing or stale, for every provider and on a dry run
  *   too. Never raised for a format a third-party adapter supplies.
+ * - `SOURCE_VALUE_EMPTY`: source keys whose value is empty or whitespace only, such as a key
+ *   `extract` added without a default, would otherwise be missing or stale in this locale. They
+ *   are never sent to a provider, written, or counted as translated or unfilled, and the target
+ *   keeps whatever value it holds. The message gives the number of keys and names the first ones.
+ *   Raised per locale, on a dry run too, until the source text is written.
  * - `SENSITIVE_CONTENT_SENT`: under `sensitiveData.mode: "warn"`, keys this locale sent to the
  *   provider, or glossary terms sent with them, hold content a configured detector or pattern
  *   matched, such as an email address or an API key. They were sent unchanged. The message names
@@ -106,6 +111,7 @@ export type SdkNoticeCode =
   | "GLOSSARY_UNSUPPORTED_BY_PROVIDER"
   | "FORMALITY_UNSUPPORTED_BY_PROVIDER"
   | "SOURCE_FOREIGN_PLACEHOLDERS"
+  | "SOURCE_VALUE_EMPTY"
   | "SENSITIVE_CONTENT_SENT"
   | "SENSITIVE_CONTENT_REDACTED"
   | "SENSITIVE_CONTENT_WITHHELD"

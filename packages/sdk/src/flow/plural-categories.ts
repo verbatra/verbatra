@@ -4,6 +4,7 @@ import type {
   PluralRuleType,
   TranslationEntry,
 } from "@verbatra/core";
+import { isBlankValue } from "@verbatra/core";
 import { makePluralKey, pluralBaseKey, pluralCategoryOf } from "@verbatra/format-adapters";
 import { pluralCategoriesFor, resolvePluralCategories } from "./plural-rules.js";
 import type { SdkNotice } from "./summary.js";
@@ -162,7 +163,8 @@ export interface PluralGenerationPlan {
 function representativeEntry(
   group: ReadonlyMap<PluralCategory, TranslationEntry>,
 ): TranslationEntry | undefined {
-  return group.get("other") ?? group.get("one") ?? [...group.values()][0];
+  const filled = new Map([...group].filter(([, entry]) => !isBlankValue(entry.value)));
+  return filled.get("other") ?? filled.get("one") ?? [...filled.values()][0];
 }
 
 export function syntheticEntry(item: PluralGenerationItem): TranslationEntry {
