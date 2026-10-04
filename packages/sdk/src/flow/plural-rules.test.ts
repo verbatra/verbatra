@@ -137,32 +137,35 @@ describe("describePluralRules", () => {
   const runtime = { icu: "78.3", cldr: "48.0" };
 
   it("names the ICU and CLDR versions when every target locale is known", () => {
-    expect(describePluralRules(["de", "fr", "ja"], runtime)).toBe(
-      "ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.",
-    );
+    expect(describePluralRules(["de", "fr", "ja"], runtime)).toEqual({
+      status: "pass",
+      detail:
+        "ICU 78.3 (CLDR 48.0) supplies the plural rules; every target locale has CLDR plural rules.",
+    });
   });
 
-  it("lists every target locale ICU has no rules for", () => {
-    const detail = describePluralRules(["de", "tlh", "x-pseudo"], runtime);
+  it("warns and lists every target locale ICU has no rules for", () => {
+    const { status, detail } = describePluralRules(["de", "tlh", "x-pseudo"], runtime);
+    expect(status).toBe("warn");
     expect(detail).toContain('"tlh", "x-pseudo"');
     expect(detail).not.toContain('"de"');
     expect(detail).toContain("assume one and other");
   });
 
   it("omits the CLDR version when the runtime does not report one", () => {
-    expect(describePluralRules(["de"], { icu: "78.3", cldr: undefined })).toMatch(
+    expect(describePluralRules(["de"], { icu: "78.3", cldr: undefined }).detail).toMatch(
       /^ICU 78\.3 supplies/,
     );
   });
 
   it("says so when the runtime reports no ICU version", () => {
-    expect(describePluralRules(["de"], { icu: undefined, cldr: undefined })).toMatch(
+    expect(describePluralRules(["de"], { icu: undefined, cldr: undefined }).detail).toMatch(
       /^The runtime reports no ICU version;/,
     );
   });
 
   it("defaults to the running process's versions", () => {
-    expect(describePluralRules(["de"])).toContain(`ICU ${process.versions.icu}`);
+    expect(describePluralRules(["de"]).detail).toContain(`ICU ${process.versions.icu}`);
   });
 });
 

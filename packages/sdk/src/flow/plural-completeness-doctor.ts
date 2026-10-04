@@ -6,6 +6,7 @@ import { errorMessage } from "../errors.js";
 import type { SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { readTarget } from "./diff-locales.js";
+import { type DoctorFinding, passing, warning } from "./doctor-finding.js";
 import {
   findIncompleteAbsentPlurals,
   findIncompletePlurals,
@@ -62,20 +63,20 @@ function describePlural(plural: IncompletePlural): string {
   return `${plural.key}${argument} (${plural.missing.join(", ")})`;
 }
 
-function describeGaps(gaps: readonly LocalePluralGaps[]): string {
+function describeGaps(gaps: readonly LocalePluralGaps[]): DoctorFinding {
   const listed = gaps.flatMap(({ locale, plurals }) =>
     plurals.map((plural) => `${locale}: ${describePlural(plural)}`),
   );
   if (listed.length === 0) {
-    return "Every target locale holds every CLDR plural category its language uses.";
+    return passing("Every target locale holds every CLDR plural category its language uses.");
   }
   const shown = listed.slice(0, LISTED_PLURALS).join("; ");
   const more = listed.length > LISTED_PLURALS ? `; and ${listed.length - LISTED_PLURALS} more` : "";
-  return (
+  return warning(
     `${listed.length} ${listed.length === 1 ? "plural lacks" : "plurals lack"} CLDR plural ` +
-    `categories the target language uses: ${shown}${more}. Add the missing forms by hand; ` +
-    "verbatra check lists every gap in a plural a target already holds and counts a plural it " +
-    "lacks entirely as missing keys."
+      `categories the target language uses: ${shown}${more}. Add the missing forms by hand; ` +
+      "verbatra check lists every gap in a plural a target already holds and counts a plural it " +
+      "lacks entirely as missing keys.",
   );
 }
 
@@ -84,16 +85,18 @@ export async function describePluralCompleteness(
   cwd: string,
   fs: SdkFs,
   adapter: FormatAdapter | undefined,
-): Promise<string> {
+): Promise<DoctorFinding> {
   if (!tracksPluralCategories(config.format)) {
-    return `Not checked: the "${config.format}" format does not store plural forms by CLDR category.`;
+    return passing(
+      `Not checked: the "${config.format}" format does not store plural forms by CLDR category.`,
+    );
   }
   if (adapter === undefined) {
-    return "Not checked: the configured format resolves to no adapter.";
+    return passing("Not checked: the configured format resolves to no adapter.");
   }
   try {
     return describeGaps(await incompletePluralsByLocale(config, cwd, fs, adapter));
   } catch (error) {
-    return `Not checked: ${errorMessage(error)}`;
+    return warning(`Not checked: ${errorMessage(error)}`);
   }
 }

@@ -45,12 +45,12 @@ describe("doctor: the locale-state check", () => {
     });
   });
 
-  it("names an underscore spelling the next translate run will carry over", async () => {
+  it("warns and names an underscore spelling the next translate run will carry over", async () => {
     const dir = await projectWith({ "verbatra.lock.json": lockOf({ pt_BR: { a: "h" } }) });
 
     const check = await localeState(dir);
 
-    expect(check?.status).toBe("pass");
+    expect(check?.status).toBe("warn");
     expect(check?.detail).toBe(
       "State recorded for locales that are not configured. verbatra.lock.json: " +
         '"pt_BR" (carried over to "pt-BR" by the next translate run). Remove the state of a ' +
@@ -109,13 +109,13 @@ describe("doctor: the locale-state check", () => {
     expect(detail).not.toContain('"fr"');
   });
 
-  it("passes with the read error when the lock file cannot be read", async () => {
+  it("warns with the read error when the lock file cannot be read", async () => {
     const dir = await makeTempDir();
     await writeFile(join(dir, "verbatra.lock.json"), "{ not json", "utf8");
 
     const check = await localeState(dir);
 
-    expect(check?.status).toBe("pass");
+    expect(check?.status).toBe("warn");
     expect(check?.detail).toMatch(
       /^The locale state could not be read: The lock-file at .* is not valid JSON\.$/,
     );

@@ -707,6 +707,7 @@ function renderConsistencyReport(summary: CheckSummary): readonly string[] {
 
 const DOCTOR_STATUS_LABELS: Record<DoctorCheckStatus, string> = {
   pass: "ok  ",
+  warn: "warn",
   fail: "fail",
   skipped: "skip",
 };

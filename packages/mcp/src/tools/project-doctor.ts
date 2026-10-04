@@ -15,7 +15,7 @@ const paramsSchema = z.strictObject({});
 const doctorCheckSchema = z.object({
   id: z.string(),
   title: z.string(),
-  status: z.enum(["pass", "fail", "skipped"]),
+  status: z.enum(["pass", "warn", "fail", "skipped"]),
   detail: z.string(),
   fix: z.string().optional(),
 });
@@ -25,7 +25,7 @@ const projectDoctorResultSchema = z.object({
   checks: z.array(doctorCheckSchema).readonly(),
 });
 
-type ProjectDoctorResult = z.infer<typeof projectDoctorResultSchema>;
+export type ProjectDoctorResult = z.infer<typeof projectDoctorResultSchema>;
 
 type DoctorContext = Omit<McpToolContext, "config">;
 
@@ -96,8 +96,9 @@ export const projectDoctorTool = defineTool({
     "environment variable is set (by name only; a value is never read or returned), the " +
     "network policy permits the provider's host, and the source locale file parses, plus " +
     "informational checks on plural rules, plural completeness, locale codes, and leftover " +
-    "locale state. Each check has an id, a title, a status (pass, fail, or skipped), a detail, " +
-    "and, on a failure, a fix: one imperative sentence naming the next step. ok is true only " +
+    "locale state. Each check has an id, a title, a status (pass, warn, fail, or skipped), a " +
+    "detail, and, on a failure, a fix: one imperative sentence naming the next step. warn means " +
+    "the check found something worth attention that does not fail the run. ok is true only " +
     "when no check failed. Use it when project.snapshot reports configured: false, when any " +
     "tool fails with CONFIG_NOT_FOUND or CONFIG_INVALID, or before the first spend. It works " +
     "with or without a usable config; without one, the config check carries the load error " +

@@ -94,7 +94,7 @@ describe("plural completeness of a Polish Android file with only one and other",
       throw new Error(`Expected a doctor success envelope, got [${envelope.code}]`);
     }
     const check = envelope.result.checks.find((entry) => entry.id === "plural-completeness");
-    expect(check?.status).toBe("pass");
+    expect(check?.status).toBe("warn");
     expect(check?.detail).toContain("pl: files (few, many)");
   });
 });

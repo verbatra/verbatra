@@ -47,6 +47,26 @@ function failingReport(): DoctorResult {
   });
 }
 
+function warningReport(): DoctorResult {
+  return makeDoctorResult({
+    ok: true,
+    checks: [
+      {
+        id: "config",
+        title: "Configuration",
+        status: "pass",
+        detail: "Loaded /proj/.verbatrarc.json.",
+      },
+      {
+        id: "locale-codes",
+        title: "Locale codes",
+        status: "warn",
+        detail: '"iw" is canonically "he".',
+      },
+    ],
+  });
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
 });
@@ -130,6 +150,28 @@ describe("run doctor: SDK delegation, rendering, and exit codes", () => {
     expect(cap.out()).toContain("[fail] Configuration: No verbatra configuration found.");
     expect(cap.out()).toContain("[skip] Provider: Not checked");
     expect(cap.out()).toContain("1 problem found");
+  });
+
+  it("renders a warn check as [warn] and keeps exit code 0 and the no-problems trailer", async () => {
+    const { deps } = recordingDeps({ doctor: async () => warningReport() });
+    const cap = captureStreams();
+
+    expect(await run(["doctor"], deps, cap.streams)).toBe(0);
+    expect(cap.out()).toContain("[ok  ] Configuration: Loaded /proj/.verbatrarc.json.");
+    expect(cap.out()).toContain('[warn] Locale codes: "iw" is canonically "he".');
+    expect(cap.out()).toContain("no problems found");
+  });
+
+  it("carries a warn status in the --json envelope and exits 0", async () => {
+    const { deps } = recordingDeps({ doctor: async () => warningReport() });
+    const cap = captureStreams();
+
+    expect(await run(["doctor", "--json"], deps, cap.streams)).toBe(0);
+    expect(parseEnvelope(cap.out())).toMatchObject({
+      ok: true,
+      command: "doctor",
+      result: { ok: true, checks: [{ status: "pass" }, { status: "warn" }] },
+    });
   });
 
   it("--json prints one success envelope carrying the per-check verdicts, and still exits 1", async () => {
@@ -376,7 +418,7 @@ describe("run doctor --literals", () => {
 });
 
 describe("run doctor: the informational plural-rules check", () => {
-  it("names a target locale without plural rules yet still reports no problems and exits 0", async () => {
+  it("warns about a target locale without plural rules yet still reports no problems and exits 0", async () => {
     const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-plural-rules-"));
     vi.stubEnv("ANTHROPIC_API_KEY", KEY_CANARY);
     try {
@@ -399,7 +441,7 @@ describe("run doctor: the informational plural-rules check", () => {
       const code = await run(["doctor", "--cwd", dir], deps, cap.streams);
 
       expect(code).toBe(0);
-      expect(cap.out()).toMatch(/\[ok {2}\] Plural rules: .*"tlh"/);
+      expect(cap.out()).toMatch(/\[warn\] Plural rules: .*"tlh"/);
       expect(cap.out()).toContain("no problems found");
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -408,7 +450,7 @@ describe("run doctor: the informational plural-rules check", () => {
 });
 
 describe("run doctor: the informational locale-codes check", () => {
-  it("suggests the canonical form of a deprecated target locale yet still exits 0", async () => {
+  it("warns with the canonical form of a deprecated target locale yet still exits 0", async () => {
     const dir = await mkdtemp(join(tmpdir(), "verbatra-cli-locale-codes-"));
     vi.stubEnv("ANTHROPIC_API_KEY", KEY_CANARY);
     try {
@@ -431,7 +473,7 @@ describe("run doctor: the informational locale-codes check", () => {
       const code = await run(["doctor", "--cwd", dir], deps, cap.streams);
 
       expect(code).toBe(0);
-      expect(cap.out()).toMatch(/\[ok {2}\] Locale codes: "iw" is canonically "he"/);
+      expect(cap.out()).toMatch(/\[warn\] Locale codes: "iw" is canonically "he"/);
       expect(cap.out()).toContain("no problems found");
     } finally {
       await rm(dir, { recursive: true, force: true });

@@ -53,7 +53,7 @@ afterEach(async () => {
 });
 
 describe("doctor: the plural-completeness check", () => {
-  it("names each plural lacking categories without failing the run", async () => {
+  it("warns and names each plural lacking categories without failing the run", async () => {
     await writeConfig(androidConfig(["pl", "de"]));
     await writeAndroid("values", plurals(["files"]));
     await writeAndroid("values-pl", plurals(["files"]));
@@ -63,7 +63,7 @@ describe("doctor: the plural-completeness check", () => {
 
     expect(result.ok).toBe(true);
     expect(pluralCheck(result)).toMatchObject({
-      status: "pass",
+      status: "warn",
       detail:
         "1 plural lacks CLDR plural categories the target language uses: pl: files (few, many). " +
         "Add the missing forms by hand; verbatra check lists every gap in a plural a target already " +
@@ -78,9 +78,10 @@ describe("doctor: the plural-completeness check", () => {
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(pluralCheck(result).detail).toBe(
-      "Every target locale holds every CLDR plural category its language uses.",
-    );
+    expect(pluralCheck(result)).toMatchObject({
+      status: "pass",
+      detail: "Every target locale holds every CLDR plural category its language uses.",
+    });
   });
 
   it("lists at most ten plurals and counts the rest", async () => {
@@ -137,12 +138,12 @@ describe("doctor: the plural-completeness check", () => {
     });
   });
 
-  it("names a file it could not read instead of failing", async () => {
+  it("warns and names a file it could not read instead of failing", async () => {
     await writeConfig(androidConfig(["pl"]));
 
     const result = await doctor({ cwd: projectDir });
 
-    expect(pluralCheck(result).status).toBe("pass");
+    expect(pluralCheck(result).status).toBe("warn");
     expect(pluralCheck(result).detail).toMatch(
       /^Not checked: The source locale file was not found/,
     );
