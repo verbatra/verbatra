@@ -122,7 +122,11 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
 - A `--cwd` that names no existing directory exits 2 with `INVALID_OPTION` on every command,
   before anything is read, instead of a later `CONFIG_NOT_FOUND` or `SOURCE_UNREADABLE`.
 - Every command writes progress and `next:` lines to stderr (trim them with `--quiet` and
-  `--no-color`). stdout and `--json` are unchanged.
+  `--no-color`). stdout keeps its text, `doctor` colors its status labels when stdout is a color
+  terminal, and `--json` is unchanged.
+- `doctor --json` reports `"warn"` instead of `"pass"` for a check that names something worth
+  attention, and `"skipped"` for a plural-completeness check that did not run. A script that
+  requires every status to be `"pass"` should also accept `"warn"`, or check `ok` instead.
 - The `--json` envelope gains the optional `hint`, `causeCode`, `candidates` and `missing` fields
   and stays at version 1. New records: `lock-wait` on `import`, and `{"type":"interrupted"}`.
 - `check` lists `incompletePlurals` warnings (only `check --qa --strict` exits 1 on them), and
