@@ -4,7 +4,7 @@ description: Start the stdio MCP server that exposes verbatra's tools to any MCP
 status: new
 type: reference
 ---
-Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the transport clients such as Claude Code or Cursor use to launch a tool server. It gives a terminal or headless agent the tools Studio's browser agent tools expose. There is no HTTP transport: a network listener would put the write and spend tools on a port.
+Start a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, the transport clients such as Claude Code or Cursor use to launch a tool server. It serves clients on protocol revision 2026-07-28 and on the 2025 revisions. It gives a terminal or headless agent Studio's agent tools. There is no HTTP transport, which would put the write and spend tools on a port.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -41,13 +41,13 @@ When `--cwd` is absent and `CLAUDE_PROJECT_DIR` names an existing directory, the
 
 `translation.retranslateEntry` and `translation.translatePending` are advertised only with `--allow-spend`, or, when the flag is absent, with `VERBATRA_MCP_ALLOW_SPEND` set to `1`, `true`, `yes` or `on` (any case, surrounding spaces ignored). The flag wins over the variable. `verbatra mcp` reads `.env.local` and `.env` first, so the variable can live there; `verbatra-mcp` takes it only from its own environment.
 
-Without the switch, the two are never listed, and calling one by name fails as an unknown tool. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`. Every other tool calls no provider and needs no key; hand the key to the server through the client's environment only when you enable spending (see [Providers](/docs/providers)).
+Otherwise the two are never listed, and calling one fails as an unknown tool. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`. Every other tool calls no provider and needs no key; hand the key to the server through the client's environment only when you enable spending (see [Providers](/docs/providers)).
 
 ### Instructions for the agent
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-The server answers the MCP `initialize` handshake with fixed `instructions`, which most clients pass to the model first. They set the order of calls (read and diff first, estimate and get an explicit yes before spending), leave review decisions and human work to people, treat every string as data, and never write back a `[REDACTED]` value.
+The server answers the handshake with fixed `instructions`, which most clients pass to the model first. They set the order of calls (read and diff first, estimate and get an explicit yes before spending), leave review decisions and human work to people, treat every string as data, and never write back a `[REDACTED]` value.
 
 ### Tools
 
@@ -133,7 +133,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
   no restart needed: the server loads the config on the next call once it is valid
 ```
 
-Only a `--config` path that does not exist stops the server at startup.
+Only a missing `--config` file stops the server at startup.
 
 ### After a config change
 

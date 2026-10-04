@@ -4,7 +4,7 @@ description: Starte den stdio-MCP-Server, der die Tools von verbatra für jeden 
 status: new
 type: reference
 ---
-Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Ein Agent im Terminal oder ohne Oberfläche bekommt damit die Tools, die auch Studios Browser-Agent-Tools bieten. Einen HTTP-Transport gibt es nicht: Ein Netzwerk-Listener würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
+Startet einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server über stdio, den Transport, mit dem Clients wie Claude Code oder Cursor einen Tool-Server starten. Er bedient Clients mit Protokollrevision 2026-07-28 und mit den Revisionen von 2025. Ein Agent im Terminal oder ohne Oberfläche bekommt damit Studios Agent-Tools. Einen HTTP-Transport gibt es nicht: Er würde die schreibenden und kostenpflichtigen Tools an einem Port anbieten.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -41,13 +41,13 @@ Fehlt `--cwd` und nennt `CLAUDE_PROJECT_DIR` ein vorhandenes Verzeichnis, nimmt 
 
 `translation.retranslateEntry` und `translation.translatePending` werden nur mit `--allow-spend` angeboten, oder, wenn das Flag fehlt, mit `VERBATRA_MCP_ALLOW_SPEND` auf `1`, `true`, `yes` oder `on` (Groß- und Kleinschreibung und umgebende Leerzeichen egal). Das Flag gewinnt gegen die Variable. `verbatra mcp` liest vorher `.env.local` und `.env`, die Variable darf also dort stehen; `verbatra-mcp` nimmt sie nur aus seiner eigenen Umgebung.
 
-Ohne den Schalter tauchen die beiden nie in der Liste auf, und ein Aufruf mit ihrem Namen scheitert als unbekanntes Tool. Eine Konfiguration mit `provider: { id: "none" }` listet sie nie, auch nicht mit `--allow-spend`. Alle anderen Tools rufen keinen Provider auf und brauchen keinen Schlüssel; gib dem Server den Schlüssel über die Umgebung des Clients erst, wenn du Ausgaben erlaubst (siehe [Provider](/docs/providers)).
+Sonst tauchen die beiden nie in der Liste auf, und ein Aufruf scheitert als unbekanntes Tool. Eine Konfiguration mit `provider: { id: "none" }` listet sie nie, auch nicht mit `--allow-spend`. Alle anderen Tools rufen keinen Provider auf und brauchen keinen Schlüssel; gib dem Server den Schlüssel über die Umgebung des Clients erst, wenn du Ausgaben erlaubst (siehe [Provider](/docs/providers)).
 
 ### Anweisungen für den Agenten
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Der Server beantwortet den MCP-Handshake `initialize` mit festen `instructions`, die die meisten Clients zuerst an das Modell geben. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen, behandeln jeden String als Daten und schreiben nie einen `[REDACTED]`-Wert zurück.
+Der Server beantwortet den Handshake mit festen `instructions`, die die meisten Clients zuerst an das Modell geben. Sie legen die Reihenfolge der Aufrufe fest (zuerst lesen und vergleichen, vor jeder Ausgabe schätzen und ein ausdrückliches Ja einholen), überlassen Review-Entscheidungen und menschliche Arbeit den Menschen, behandeln jeden String als Daten und schreiben nie einen `[REDACTED]`-Wert zurück.
 
 ### Tools
 
@@ -133,7 +133,7 @@ No usable verbatra config: project.snapshot and project.doctor work, every other
   no restart needed: the server loads the config on the next call once it is valid
 ```
 
-Nur ein `--config`-Pfad, den es nicht gibt, stoppt den Server beim Start.
+Nur eine fehlende `--config`-Datei stoppt den Server beim Start.
 
 ### Nach einer Konfigurationsänderung
 
