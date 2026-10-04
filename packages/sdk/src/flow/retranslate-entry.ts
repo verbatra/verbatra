@@ -1,6 +1,7 @@
 import {
   ProviderError,
   type ReviewReasonCode,
+  type TranslateResult,
   type TranslationProvider,
 } from "@verbatra/ai-providers";
 import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
@@ -175,10 +176,7 @@ async function translateOne(context: UnderLockContext) {
     throw sensitiveWithheldError(context.key, locale);
   }
   if (value === undefined) {
-    throw new ProviderError(
-      "INVALID_RESPONSE",
-      `The provider returned no translated value for key "${context.key}".`,
-    );
+    throw missingValueError(result, context.key);
   }
   const flag = withForeignPlaceholderReason(
     result.reviewFlags?.get(context.key),
@@ -187,6 +185,16 @@ async function translateOne(context: UnderLockContext) {
     value,
   );
   return { value, reviewReasons: flag?.reasons ?? [] };
+}
+
+function missingValueError(result: TranslateResult, key: string): ProviderError {
+  const unsupported = result.notices?.find((notice) => notice.code === "PLACEHOLDER_UNSUPPORTED");
+  return new ProviderError(
+    "INVALID_RESPONSE",
+    unsupported === undefined
+      ? `The provider returned no translated value for key "${key}".`
+      : `The provider left key "${key}" untranslated. ${unsupported.message}`,
+  );
 }
 
 function sensitiveWithheldError(key: string, locale: string): SdkError {
@@ -353,7 +361,9 @@ async function retranslateUnderLock(context: UnderLockContext): Promise<Retransl
  * @throws `AdapterError`: the adapter itself refused the target locale file, on the read because it
  * is malformed or on the write because the entries cannot be represented in the configured format.
  * Its own code is preserved rather than remapped onto an {@link SdkErrorCode}.
- * @throws `ProviderError` `INVALID_RESPONSE`: the provider returned no value for the key. Provider
+ * @throws `ProviderError` `INVALID_RESPONSE`: the provider returned no value for the key. When a
+ * machine-translation provider withheld it because its placeholders could not be protected, the
+ * message carries that provider's `PLACEHOLDER_UNSUPPORTED` notice text. Provider
  * transport and rate-limit failures propagate as `ProviderError` too, since a single-key call has
  * no per-locale summary to record them on.
  */
