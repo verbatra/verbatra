@@ -1241,7 +1241,7 @@ Avec `"block"` ou `"redact"`, des clés n'ont pas été envoyées à cause d'une
 
 ### RUN_CANCELLED [#notice-run_cancelled]
 
-Le `signal` de l'exécution a été interrompu pendant que cette locale tournait. Les clés pas encore traduites n'ont pas été envoyées, ou leur requête a été abandonnée : elles restent en attente pour la prochaine exécution, et la locale est `partial`. Les traductions arrivées avant l'interruption ont été écrites et enregistrées. Le message donne le nombre de clés en attente.
+Le `signal` de l'exécution a été interrompu pendant que cette locale tournait. Les clés pas encore traduites n'ont pas été envoyées, ou leur requête a été abandonnée : elles restent en attente pour la prochaine exécution, et la locale est `partial`, ou `failed` si d'autres clés ont été retenues et qu'aucune n'est arrivée. Les traductions arrivées avant l'interruption ont été écrites et enregistrées. Le message donne le nombre de clés en attente.
 
 - **Levé par** : le SDK uniquement
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève

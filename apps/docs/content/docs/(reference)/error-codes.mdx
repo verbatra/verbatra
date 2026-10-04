@@ -1225,7 +1225,7 @@ Under `"block"` or `"redact"`, keys were not sent because of a match and are lis
 
 ### RUN_CANCELLED [#notice-run_cancelled]
 
-The run's `signal` aborted while this locale was running. Keys not yet translated were not sent, or their request was abandoned: they stay pending for the next run, and the locale is `partial`. Translations that arrived before the abort were written and recorded. The message gives the number of pending keys.
+The run's `signal` aborted while this locale was running. Keys not yet translated were not sent, or their request was abandoned: they stay pending for the next run, and the locale is `partial`, or `failed` when other keys were withheld and none landed. Translations that arrived before the abort were written and recorded. The message gives the number of pending keys.
 
 - **Raised by**: the SDK only
 - **Exit code**: none: no CLI command raises it

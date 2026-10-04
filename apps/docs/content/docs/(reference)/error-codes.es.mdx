@@ -1240,7 +1240,7 @@ Con `"block"` o `"redact"`, unas claves no se enviaron por una coincidencia y ap
 
 ### RUN_CANCELLED [#notice-run_cancelled]
 
-Se abortó el `signal` de la ejecución mientras este locale estaba en curso. Las claves aún sin traducir no se enviaron, o se abandonó su petición: quedan pendientes para la siguiente ejecución, y el locale queda `partial`. Las traducciones que llegaron antes del aborto se escribieron y se registraron. El mensaje indica el número de claves pendientes.
+Se abortó el `signal` de la ejecución mientras este locale estaba en curso. Las claves aún sin traducir no se enviaron, o se abandonó su petición: quedan pendientes para la siguiente ejecución, y el locale queda `partial`, o `failed` si se retuvieron otras claves y ninguna llegó. Las traducciones que llegaron antes del aborto se escribieron y se registraron. El mensaje indica el número de claves pendientes.
 
 - **Lo lanza**: solo el SDK
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza

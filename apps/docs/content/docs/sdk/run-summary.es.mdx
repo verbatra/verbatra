@@ -69,7 +69,9 @@ Las partes que conviene conocer:
 - **budget** aparece solo cuando `maxTokens` está configurado: `{ maxTokens, behavior, supported,
   tokensUsed, exceeded }`. `supported` dice si `tokensUsed` es enteramente el uso que informa el
   propio proveedor; es `false` en cuanto una petición vuelve sin una cifra utilizable, y entonces el
-  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Una ejecución que no envió ninguna petición, dry run incluido, informa `supported: true` con `tokensUsed: 0`. Con `behavior: "stop"` el techo
+  total es en parte la proyección de verbatra, que se cuenta y se aplica igualmente. Un dry run, o
+  cualquier ejecución que no envió ninguna petición, informa `supported: true` con `tokensUsed: 0`:
+  no se envió nada, así que no se proyectó nada. Con `behavior: "stop"` el techo
   se comprueba antes de cada petición que envía la ejecución, incluida cada mitad de una petición
   vuelta a partir, así que `tokensUsed` queda en el techo o por debajo salvo por un residuo: la
   última petición admitida se reconcilia con lo que informó el proveedor, lo que puede empujar el
@@ -115,7 +117,7 @@ Las partes que conviene conocer:
   se exportó como `changed`), una fila del libro que el lector no pudo parsear y una clave duplicada
   cuya primera aparición ganó. El `line` opcional de las dos últimas es la línea del archivo en la
   que empieza el registro, y solo está presente en una importación delimitada (`csv` o `tsv`). La única excepción es un proyecto [solo humano](/docs/human-only-workflow): ahí `translate` y `watch` listan en **unfilled** cada clave para la que la memoria de traducción no tenía una entrada exacta, y **fuzzyHits** queda vacía porque ahí nunca se aplica una reutilización aproximada.
-- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
+- **protected** lista las claves que una ejecución de `translate` dejó en paz, cada una con su `reason` (`human`, `import`, `external` o `pinned`) y, con `humanEdits: "suggest"`, una `suggestion` (la respuesta del proveedor o una entrada exacta de la memoria de traducción, nunca una coincidencia aproximada), que no se escribió, y un `suggestionStatus`: `planned` en un dry run, `suggested` o por qué no (`integrity-mismatch`, `provider-failure`, `budget-withheld`, `sensitive-withheld`). Una sugerencia fallida nunca cambia el estado de un locale. No están en **translated**, nunca cambian el estado de un locale y siguen obsoletas para `check`. `importWorkbook` lo deja vacío. Consulta [Proteger traducciones humanas](/docs/protecting-human-translations).
 
 ### budgetStanding
 
