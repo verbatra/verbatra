@@ -612,6 +612,21 @@ describe("ReviewPanel", () => {
     expect(source?.textContent).not.toBe("");
     expect(source?.className).toContain("truncate");
     expect(labels).toEqual(["Source", "Target"]);
+    expect(source?.getAttribute("lang")).toBe(SNAPSHOT.sourceLocale);
+  });
+
+  it("unfolds a row's source and translation in full while the row has keyboard focus", async () => {
+    stubDecisionReady();
+
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    const row = view.all("tbody tr").find((candidate) => rowKeyOf(candidate) === "cart.badge");
+
+    expect(row?.className).toContain("group");
+    for (const selector of ["[data-row-source]", "[data-row-value]"]) {
+      const text = row?.querySelector(selector);
+      expect(text?.className).toContain("group-focus-within:whitespace-pre-wrap");
+      expect(text?.className).toContain("group-focus-within:break-words");
+    }
   });
 
   it("gives a right-to-left value its own direction, isolates its tokens, and starts it at the key's edge", async () => {
@@ -655,7 +670,8 @@ describe("ReviewPanel", () => {
       Array.from(shown.querySelectorAll("bdi[dir='ltr']")).map((node) => node.textContent),
     ).toEqual(["#{orderId}", "{count, plural,", "one {", "#", "} other {", "#", "}", "}"]);
     const source = view.get("[data-row-source]");
-    expect(source.getAttribute("dir")).toBe("auto");
+    expect(source.getAttribute("dir")).toBe("ltr");
+    expect(source.getAttribute("lang")).toBe(SNAPSHOT.sourceLocale);
     expect(
       view
         .all("[dir]")
