@@ -1,5 +1,6 @@
 import {
   type FormatId,
+  isBlankValue,
   type LocaleResource,
   PLURAL_CATEGORIES,
   type PluralCategory,
@@ -106,17 +107,45 @@ export function findIncompletePlurals(
   );
 }
 
+function withoutBlankValues(resource: LocaleResource): LocaleResource {
+  return {
+    ...resource,
+    entries: new Map([...resource.entries].filter(([, entry]) => !isBlankValue(entry.value))),
+  };
+}
+
+function projectedCategories(
+  set: PluralFormSet,
+  filled: readonly string[],
+  generation: boolean,
+): readonly string[] {
+  if (!generation || filled.length === 0) {
+    return filled;
+  }
+  return PLURAL_CATEGORIES.filter(
+    (category) => filled.includes(category) || !set.categories.includes(category),
+  );
+}
+
 export function findIncompleteAbsentPlurals(
   format: FormatId,
   source: LocaleResource,
   target: LocaleResource,
   locale: string,
+  generation: boolean,
 ): readonly IncompletePlural[] {
   const targetPlurals = new Set(pluralFormSets(format, target).map(identityOf));
-  return incompleteAmong(
-    pluralFormSets(format, source).filter(
-      (set) => set.argument === undefined && !targetPlurals.has(identityOf(set)),
-    ),
-    locale,
+  const filled = new Map(
+    pluralFormSets(format, withoutBlankValues(source)).map((set) => [
+      identityOf(set),
+      set.categories,
+    ]),
   );
+  const projected = pluralFormSets(format, source)
+    .filter((set) => set.argument === undefined && !targetPlurals.has(identityOf(set)))
+    .map((set) => ({
+      ...set,
+      categories: projectedCategories(set, filled.get(identityOf(set)) ?? [], generation),
+    }));
+  return incompleteAmong(projected, locale);
 }

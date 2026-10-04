@@ -62,8 +62,13 @@ import { readSourceResource } from "./source.js";
  * - `plural-completeness`: informational, never fails. Reads the source and every target locale
  *   file and names each plural whose committed forms lack CLDR plural categories the target
  *   language uses, the same finding {@link check} reports in
- *   {@link LocaleCheckSummary.incompletePlurals}. It says when the format does not store plural
- *   forms by CLDR category, or when a file could not be read.
+ *   {@link LocaleCheckSummary.incompletePlurals}. A plural a target holds no form of yet (in a
+ *   format that stores each form under its own key) is judged by the forms a run would write: the
+ *   source's non-blank forms, plus the categories plural generation would add when it is on, the
+ *   format is `i18next-json`, the provider is an LLM, and at least one source form is non-blank.
+ *   That is deliberately stricter than the `PLURAL_CATEGORIES_INCOMPLETE` notice of
+ *   {@link translate}, which covers `i18next-json` only. It says when the format does not store
+ *   plural forms by CLDR category, or when a file could not be read.
  * - `locale-codes`: informational, never fails. Names every configured locale code that is valid
  *   but not in canonical BCP 47 form, such as `zh-hant-tw` or the deprecated `iw`, with the
  *   canonical form `Intl.getCanonicalLocales` suggests for it.
@@ -586,7 +591,9 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  *
  * The informational `plural-completeness` check reads the source and every target locale file
  * and names each plural whose committed forms lack CLDR plural categories the target language
- * uses, such as a Polish Android `<plurals>` with only `one` and `other`. A file it cannot read is
+ * uses, such as a Polish Android `<plurals>` with only `one` and `other`. A plural a target holds
+ * no form of yet is judged by the forms a run would write there, counting a blank source form as
+ * absent, which is stricter than the notice {@link translate} raises. A file it cannot read is
  * named in its detail rather than failing the check.
  *
  * The informational `locale-codes` check names every configured locale code that is

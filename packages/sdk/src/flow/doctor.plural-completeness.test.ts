@@ -66,7 +66,8 @@ describe("doctor: the plural-completeness check", () => {
       status: "pass",
       detail:
         "1 plural lacks CLDR plural categories the target language uses: pl: files (few, many). " +
-        "Add the missing forms by hand; verbatra check lists them all.",
+        "Add the missing forms by hand; verbatra check lists every gap in a plural a target already " +
+        "holds and counts a plural it lacks entirely as missing keys.",
     });
   });
 
@@ -155,7 +156,8 @@ describe("doctor: the plural-completeness check", () => {
 
     expect(detail).toBe(
       "1 plural lacks CLDR plural categories the target language uses: pl: files (few, many). " +
-        "Add the missing forms by hand; verbatra check lists them all.",
+        "Add the missing forms by hand; verbatra check lists every gap in a plural a target already " +
+        "holds and counts a plural it lacks entirely as missing keys.",
     );
   });
 
@@ -203,6 +205,45 @@ describe("doctor: the plural-completeness check", () => {
     expect(detail).toContain("fr: items (many)");
   });
 
+  it("counts a blank source form as absent from the projected target", async () => {
+    await writeConfig(i18nextConfig({ provider: { id: "none", options: {} } }));
+    await writeI18nextSource({ items_one: "", items_other: "{{count}} items" });
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toContain("fr: items (one, many)");
+  });
+
+  it("leaves out only the gaps generation fills when a source form is blank", async () => {
+    await writeConfig(
+      i18nextConfig({
+        generatePlurals: true,
+        provider: { id: "anthropic", options: { model: "m", maxTokens: 256 } },
+      }),
+    );
+    await writeI18nextSource({ items_one: "", items_other: "{{count}} items" });
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toContain("fr: items (one)");
+    expect(detail).not.toContain("many");
+  });
+
+  it("reports every category of a plural whose source forms are all blank, generation or not", async () => {
+    await writeConfig(
+      i18nextConfig({
+        generatePlurals: true,
+        provider: { id: "anthropic", options: { model: "m", maxTokens: 256 } },
+      }),
+    );
+    await writeI18nextSource({ items_one: "", items_other: " " });
+
+    const detail = pluralCheck(await doctor({ cwd: projectDir })).detail;
+
+    expect(detail).toContain("fr: items (one, many, other)");
+    expect(detail).toContain("de: items (one, other)");
+  });
+
   it("does not project an ICU plural, whose arms a run translates for the target", async () => {
     await writeConfig({
       ...androidConfig(["pl"]),
@@ -229,8 +270,10 @@ function i18nextConfig(overrides: Record<string, unknown>): Record<string, unkno
   };
 }
 
-async function writeI18nextSource(): Promise<void> {
+async function writeI18nextSource(
+  values: Record<string, string> = { items_one: "{{count}} item", items_other: "{{count}} items" },
+): Promise<void> {
   await mkdir(join(projectDir, "locales"));
-  const source = JSON.stringify({ items_one: "{{count}} item", items_other: "{{count}} items" });
+  const source = JSON.stringify(values);
   await writeFile(join(projectDir, "locales", "en.json"), source, "utf8");
 }

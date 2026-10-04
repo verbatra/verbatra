@@ -20,7 +20,7 @@ interface LocalePluralGaps {
   readonly plurals: readonly IncompletePlural[];
 }
 
-function generationFillsGaps(config: VerbatraConfig): boolean {
+function pluralGenerationRuns(config: VerbatraConfig): boolean {
   return (
     config.format === "i18next-json" &&
     config.generatePlurals === true &&
@@ -45,9 +45,13 @@ async function incompletePluralsByLocale(
     config.targetLocales.map(async (locale) => {
       const target = await readTarget(cwd, config, adapter, fs, locale);
       const committed = findIncompletePlurals(config.format, source, target, locale);
-      const projected = generationFillsGaps(config)
-        ? []
-        : findIncompleteAbsentPlurals(config.format, source, target, locale);
+      const projected = findIncompleteAbsentPlurals(
+        config.format,
+        source,
+        target,
+        locale,
+        pluralGenerationRuns(config),
+      );
       return { locale, plurals: [...committed, ...projected].sort(compareGaps) };
     }),
   );
@@ -70,7 +74,8 @@ function describeGaps(gaps: readonly LocalePluralGaps[]): string {
   return (
     `${listed.length} ${listed.length === 1 ? "plural lacks" : "plurals lack"} CLDR plural ` +
     `categories the target language uses: ${shown}${more}. Add the missing forms by hand; ` +
-    "verbatra check lists them all."
+    "verbatra check lists every gap in a plural a target already holds and counts a plural it " +
+    "lacks entirely as missing keys."
   );
 }
 
