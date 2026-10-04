@@ -6,7 +6,7 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
   METHOD_UNKNOWN:
     "This action is not recognized by the running Studio server. Make sure the CLI and Studio versions match.",
   SPEND_DISABLED:
-    "This action calls the translation provider, and spending is off in this session: start Studio with --allow-spend, or configure a provider other than none.",
+    "This action belongs to the spend set, which is off in this session: start Studio with --allow-spend, or configure a provider other than none.",
   PARAMS_INVALID: "The request parameters failed validation. Reload the page and try again.",
   METHOD_RATE_LIMITED:
     "Studio is limiting how often this action can run. Wait a moment and try again.",

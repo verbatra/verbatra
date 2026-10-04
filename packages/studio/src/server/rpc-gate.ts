@@ -1,7 +1,8 @@
-import { isMachineTranslationEnabled, projectRelativeMessage, redact } from "@verbatra/sdk";
+import { projectRelativeMessage, redact } from "@verbatra/sdk";
 import { z } from "zod";
 import { RPC_METHOD_NAMES, type RpcMethodName, rpcParamsSchemas } from "../shared/rpc/contract.js";
 import { entryIdentity, uniqueByIdentity } from "../shared/rpc/entry-identity.js";
+import type { SpendWithheldReason } from "../shared/rpc/snapshot.js";
 import { causeText, studioErrorLine } from "./error-line.js";
 import type { InFlightEntryRef, RpcInFlightGuard } from "./in-flight-guard.js";
 import type { RpcRateLimiter } from "./rate-limiter.js";
@@ -23,16 +24,20 @@ const BATCH_TOO_LARGE_MESSAGE =
 const ALREADY_IN_PROGRESS_MESSAGE =
   "A matching call is already in progress; wait for it to finish.";
 const INTERNAL_ERROR_MESSAGE = "An unexpected error occurred.";
-const SPEND_OFF_BY_FLAG_MESSAGE =
-  "This method calls the translation provider, and spending is off in this session. Restart Studio with `verbatra studio --allow-spend` to enable it.";
-const SPEND_OFF_BY_POLICY_MESSAGE =
-  "This method calls the translation provider, and the config's provider is none, so machine translation is disabled; --allow-spend does not change that.";
+const SPEND_SET_MESSAGE =
+  "This method belongs to the spend set, which Studio registers only when it may call the translation provider";
+
+const SPEND_WITHHELD_MESSAGES: Readonly<Record<SpendWithheldReason, string>> = {
+  flag: `${SPEND_SET_MESSAGE}, and this session was started without --allow-spend. Restart it with \`verbatra studio --allow-spend\` to enable the spend set.`,
+  policy: `${SPEND_SET_MESSAGE}, and the config's provider is none, so machine translation is disabled; --allow-spend does not change that.`,
+};
 
 function spendDisabledEnvelope(deps: RpcHandlerDeps): RpcResult {
-  const message = isMachineTranslationEnabled(deps.config.config)
-    ? SPEND_OFF_BY_FLAG_MESSAGE
-    : SPEND_OFF_BY_POLICY_MESSAGE;
-  return errorEnvelope(403, "SPEND_DISABLED", message);
+  return errorEnvelope(
+    403,
+    "SPEND_DISABLED",
+    SPEND_WITHHELD_MESSAGES[deps.spendWithheld ?? "flag"],
+  );
 }
 
 interface ParsedIssue {
@@ -185,6 +190,12 @@ async function invokeHandler(
   rateLimiter: RpcRateLimiter | undefined,
   inFlightGuard: RpcInFlightGuard | undefined,
 ): Promise<RpcResult> {
+  const handler = handlers[method];
+  if (handler === undefined) {
+    return isSpendMethod(method)
+      ? spendDisabledEnvelope(deps)
+      : errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
+  }
   const schema = rpcParamsSchemas[method];
   const parsedParams = schema.safeParse(params);
   if (!parsedParams.success) {
@@ -194,12 +205,6 @@ async function invokeHandler(
       PARAMS_INVALID_MESSAGE,
       toParsedIssues(parsedParams.error),
     );
-  }
-  const handler = handlers[method];
-  if (handler === undefined) {
-    return isSpendMethod(method)
-      ? spendDisabledEnvelope(deps)
-      : errorEnvelope(400, "METHOD_UNKNOWN", METHOD_UNKNOWN_MESSAGE);
   }
   const dedupeKey = entryDedupeKey(parsedParams.data);
   if (inFlightGuard?.tryEnter(method, dedupeKey, requestEntryRefs(parsedParams.data)) === false) {

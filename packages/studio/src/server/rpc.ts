@@ -24,6 +24,7 @@ import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import { REVIEW_QUEUE_METHOD } from "../shared/rpc/review-queue.js";
 import {
   PROJECT_SNAPSHOT_METHOD,
+  type SpendWithheldReason,
   type StudioCapabilities,
   type StudioRateLimits,
 } from "../shared/rpc/snapshot.js";
@@ -66,6 +67,7 @@ export interface RpcHandlerDeps
   readonly inFlightEntries?: () => readonly InFlightEntry[];
   readonly rateLimits?: StudioRateLimits;
   readonly log?: (line: string) => void;
+  readonly spendWithheld?: SpendWithheldReason;
 }
 
 export type RpcHandler<M extends RpcMethodName> = (

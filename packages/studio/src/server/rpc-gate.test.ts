@@ -18,6 +18,8 @@ function deps(): RpcHandlerDeps {
   };
 }
 
+const READ_HANDLERS = createRpcHandlers({ spend: false, writeToDisk: true });
+
 function body(value: unknown): Buffer {
   return Buffer.from(JSON.stringify(value));
 }
@@ -84,23 +86,39 @@ describe("dispatchRpc envelope", () => {
     });
   });
 
-  it("names the provider none as the reason when the config disables machine translation", async () => {
-    const humanOnly: RpcHandlerDeps = {
-      ...deps(),
-      config: {
-        ...deps().config,
-        config: baseStudioConfig({ provider: { id: "none", options: {} } }),
-      },
-    };
+  it("names the provider none as the reason the server withheld spend for", async () => {
     const result = await dispatchRpc(
       body({ method: "translation.inFlight", params: {} }),
-      humanOnly,
+      { ...deps(), spendWithheld: "policy" },
       createRpcHandlers({ spend: false, spendWithheld: "policy", writeToDisk: true }),
     );
 
     expect(await parseBody(result)).toMatchObject({
       error: { code: "SPEND_DISABLED", message: expect.stringContaining("provider is none") },
     });
+  });
+
+  it("never claims a read-only spend-set method calls the provider", async () => {
+    const result = await dispatchRpc(
+      body({ method: "translation.inFlight", params: {} }),
+      { ...deps(), spendWithheld: "flag" },
+      createRpcHandlers({ spend: false, spendWithheld: "flag", writeToDisk: true }),
+    );
+    const parsed = (await parseBody(result)) as { error: { message: string } };
+
+    expect(parsed.error.message).toContain("belongs to the spend set");
+    expect(parsed.error.message).not.toContain("This method calls");
+  });
+
+  it("refuses a withheld spend method before validating its params", async () => {
+    const result = await dispatchRpc(
+      body({ method: "translation.translatePending", params: { unexpected: true } }),
+      { ...deps(), spendWithheld: "flag" },
+      createRpcHandlers({ spend: false, spendWithheld: "flag", writeToDisk: true }),
+    );
+
+    expect(result.statusCode).toBe(403);
+    expect(await parseBody(result)).toMatchObject({ error: { code: "SPEND_DISABLED" } });
   });
 
   it("answers 400 METHOD_UNKNOWN for a contract method with no registered handler", async () => {
@@ -115,7 +133,7 @@ describe("dispatchRpc envelope", () => {
     const result = await dispatchRpc(
       body({ method: "status.check", params: { locales: [] } }),
       deps(),
-      {},
+      READ_HANDLERS,
     );
 
     expect(result.statusCode).toBe(400);
@@ -130,7 +148,7 @@ describe("dispatchRpc envelope", () => {
     const result = await dispatchRpc(
       body({ method: "status.diff", params: { locales: [] } }),
       deps(),
-      {},
+      READ_HANDLERS,
     );
 
     expect(result.statusCode).toBe(400);

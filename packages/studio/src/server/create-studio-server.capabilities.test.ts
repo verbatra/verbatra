@@ -405,14 +405,15 @@ describe("translation.translatePending reachability across the spend table", () 
     );
   });
 
-  it("the params schema still rejects an unexpected key even without the spend capability", async () => {
+  it("refuses a withheld spend method before validating its params", async () => {
     await withServer(
       async (server) => {
         const cookie = await authenticatedCookie(server.url, TOKEN);
-        const { body } = await postRpc(server.url, cookie, "translation.translatePending", {
+        const { status, body } = await postRpc(server.url, cookie, "translation.translatePending", {
           locale: "de",
         });
-        expect(body).toMatchObject({ ok: false, error: { code: "PARAMS_INVALID" } });
+        expect(status).toBe(403);
+        expect(body).toMatchObject({ ok: false, error: { code: "SPEND_DISABLED" } });
       },
       { token: TOKEN, loader: stubLoader() },
     );
