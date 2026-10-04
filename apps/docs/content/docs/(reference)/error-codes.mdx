@@ -1047,7 +1047,7 @@ The value was reused from the cache for an earlier, near-identical source that h
 
 ### FOREIGN_PLACEHOLDER_CHANGED
 
-The translation dropped or changed a token shaped like a placeholder that the project's format does not protect, such as `{name}` in an i18next value or `%{count}` in a YAML value.
+The translation dropped or changed a token shaped like a placeholder that the project's format does not interpolate, such as `{name}` in an i18next value or `%{count}` in a YAML value.
 
 It fires when such a token occurs in the source more often than, verbatim, in the translation. The format's own placeholders are left to the integrity gate, a token the translation only adds is not flagged, and an ICU argument counts once, by its head such as `{n, plural,`, so translated arms never raise it. Tokens inside ICU arms, a printf token glued to a letter or digit, percent-encoded bytes such as `%2F` and anything inside a URL are never checked, and neither are formats from third-party adapters. Which syntaxes each format protects is listed under [Formats](/docs/formats).
 
@@ -1183,9 +1183,9 @@ The provider cannot apply the configured tone for this locale.
 
 ### SOURCE_FOREIGN_PLACEHOLDERS
 
-Source values this locale is about to translate hold a token shaped like a placeholder that the project's format does not protect. The message gives the number of such values and names the first keys.
+Source values this locale is about to translate hold a token shaped like a placeholder that the project's format does not interpolate. The message gives the number of such values and names the first keys.
 
-Nothing keeps such a token intact during translation, so a translation that drops or changes it is flagged [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). The notice is raised per locale, only when that locale has such a key to translate, and never for formats from third-party adapters.
+DeepL, Google Cloud Translation and LibreTranslate get such a token masked like a placeholder, and withhold a value they cannot mask or restore ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). An LLM provider or a person must keep it unchanged; a translation that drops or changes it is flagged [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). The notice is raised per locale, only when that locale has such a key to translate, and never for formats from third-party adapters.
 
 - **Raised by**: `translate` (a dry run too), `watch`
 - **Exit code**: none
@@ -1237,7 +1237,7 @@ A glossary with required translations or terms to keep was not applied: DeepL ap
 
 ### PLACEHOLDER_UNSUPPORTED
 
-At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate. A value is withheld when a placeholder is not literal in it, or when its text outside the placeholders holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a placeholder, or a comparison sign (LibreTranslate keeps markup, so only braces count there). Google also withholds a value with a line break, tab or double space. A result is dropped when a marker comes back lost, duplicated, rewritten or bare, or with an unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked.
+At least one value was left untranslated by DeepL, Google Cloud Translation or LibreTranslate. A value is withheld when a placeholder is not literal in it, or when its text outside the placeholders holds `<`, `>`, `{` or `}`: ICU arguments such as plural, select or number, markup beside a placeholder, or a comparison sign (LibreTranslate keeps markup, so only braces count there). Google also withholds a value with a line break, tab or double space. A result is dropped when a marker comes back lost, duplicated, rewritten or bare, or with an unknown entity or a stray tag. A value with markup and no placeholders is sent unmasked. A token of another placeholder syntax than the format's counts as a placeholder here.
 
 - **Raised by**: `translate`, `watch`
 - **Exit code**: `1`: the keys are listed under `providerFailures`, and the locale ends `partial` or `failed`

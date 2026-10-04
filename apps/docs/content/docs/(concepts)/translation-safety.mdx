@@ -22,8 +22,7 @@ instructions"), so verbatra treats every string as untrusted input. The system r
 provider are compile-time constants. Everything variable (the entries, your glossary and tone, the
 language names, a plural's target categories) travels only in the user-turn JSON payload, never in
 the instruction channel. The response must match a fixed schema; a response with a key that was
-never requested fails its whole sub-batch, because there is no safe partial accept around invented
-content.
+never requested fails its whole sub-batch.
 
 ### Language, script and region names
 
@@ -136,8 +135,11 @@ locked, and put on the needs-review queue.
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | keeps every placeholder but in another order |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | came from a batch the provider degraded, such as a dropped formality |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | was [reused from a similar, edited source](/docs/the-cache#fuzzy-reuse) <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | drops or changes a placeholder-like token its [format](/docs/formats) does not protect, such as `{name}` in i18next <AvailableFrom version="0.12.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | drops or changes a placeholder-like token its [format](/docs/formats) does not interpolate, such as `{name}` in i18next <AvailableFrom version="0.12.0" /> |
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | leaves a direction control unclosed, or adds an override that reverses text <AvailableFrom version="0.12.0" /> |
+
+DeepL, Google and LibreTranslate get such a token masked, and withhold a value they cannot mask
+([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); the flag covers LLMs and people.
 
 Cache hits and values shared between keys go through the same heuristics as fresh translations.
 Flagged keys appear per locale as `needsReview` on the run summary, in the workbook's review
@@ -163,8 +165,7 @@ exact rules are under
 When a provider call fails, the raw SDK error (which can carry request headers or credentials) is
 discarded, never bound, logged or re-thrown. In its place verbatra raises a structured error with a
 stable code and a fixed, secret-free message; the codes are under
-[Provider error codes](/docs/error-codes#provider-error-codes). Notices and summaries carry codes and
-counts, never secrets. Where keys come from and how they are redacted is on
+[Provider error codes](/docs/error-codes#provider-error-codes). Where keys come from and how they are redacted is on
 [Data handling](/docs/data-handling#api-keys).
 
 ## Where you see it
