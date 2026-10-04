@@ -54,12 +54,20 @@ describe("run: a --cwd that names no directory", () => {
 
       expect(code).toBe(2);
       expect(cap.err()).toBe(
-        `verbatra: error [INVALID_OPTION] --cwd names ${missing}, which is not an existing directory. Create it first, or pass the project directory.\nnext: ${CLI_ERROR_HINTS.INVALID_OPTION}\n`,
+        `verbatra: error [INVALID_OPTION] --cwd names "${missing}", which is not an existing directory. Create it first, or pass the project directory.\nnext: ${CLI_ERROR_HINTS.INVALID_OPTION}\n`,
       );
       expect(cap.out()).toBe("");
       expect(totalCalls(calls)).toBe(0);
     },
   );
+
+  it("quotes an empty --cwd so the message shows what was passed", async () => {
+    const { deps } = recordingDeps({ isDirectory });
+    const cap = captureStreams();
+
+    expect(await run(["check", "--cwd", ""], deps, cap.streams)).toBe(2);
+    expect(cap.err()).toContain('--cwd names "", which is not an existing directory');
+  });
 
   it("refuses a --cwd that names a file", async () => {
     const file = join(root, "file");

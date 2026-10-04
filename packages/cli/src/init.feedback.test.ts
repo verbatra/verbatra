@@ -55,7 +55,7 @@ describe("runInit: the --cwd directory", () => {
     expect(code).toBe(2);
     const envelope = parseEnvelope(cap.out());
     expect(envelope).toMatchObject({ ok: false, code: "INVALID_OPTION" });
-    expect(envelope.message).toContain(`--cwd names ${cwd}, which is not an existing directory`);
+    expect(envelope.message).toContain(`--cwd names "${cwd}", which is not an existing directory`);
     expect(existsSync(join(dir, "missing"))).toBe(false);
   });
 

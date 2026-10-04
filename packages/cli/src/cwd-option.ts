@@ -16,7 +16,7 @@ export function assertCwdDirectory(
   if (!directoryExists(cwd)) {
     throw new CliUsageError(
       "INVALID_OPTION",
-      `--cwd names ${cwd}, which is not an existing directory. Create it first, or pass the project directory.`,
+      `--cwd names ${JSON.stringify(cwd)}, which is not an existing directory. Create it first, or pass the project directory.`,
     );
   }
 }
