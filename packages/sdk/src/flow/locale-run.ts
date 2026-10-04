@@ -12,6 +12,7 @@ import {
   contentHash,
   diffResources,
   type FormatId,
+  isBlankValue,
   type LocaleResource,
   type PlaceholderIntegrityResult,
   type TranslationEntry,
@@ -1448,6 +1449,10 @@ function refusalsFor(
   return [...listed, ...generated].sort((left, right) => (left.key < right.key ? -1 : 1));
 }
 
+function blankSourceBaseline(sourceEntry: TranslationEntry): string | undefined {
+  return isBlankValue(sourceEntry.value) ? contentHash(sourceEntry) : undefined;
+}
+
 function computeLockEntries(
   params: LocaleRunParams,
   merged: ReadonlyMap<string, TranslationEntry>,
@@ -1462,7 +1467,7 @@ function computeLockEntries(
       continue;
     }
     if (withheld.has(key)) {
-      const prior = params.baseline.get(key);
+      const prior = params.baseline.get(key) ?? blankSourceBaseline(sourceEntry);
       if (prior !== undefined) {
         lockEntries.set(key, prior);
       }

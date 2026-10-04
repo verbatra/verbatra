@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { contentHash } from "@verbatra/core";
+import { buildDelimited, readDelimited } from "@verbatra/exchange";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
 import {
@@ -19,6 +20,7 @@ import { lockState } from "./lock-state.js";
 import type { RunSummary } from "./summary.js";
 import { translate } from "./translate-project.js";
 import { exportWorkbook } from "./workbook/export-workbook.js";
+import { importWorkbook } from "./workbook/import-workbook.js";
 
 type LockFile = { locales: Record<string, Record<string, string>> };
 
@@ -449,5 +451,73 @@ describe("watch", () => {
       "SOURCE_VALUE_EMPTY",
     );
     expect(sentKeys(stub)).toEqual(["greeting"]);
+  });
+});
+
+describe("a target value for a key whose source is blank and that has no lock baseline", () => {
+  async function heldWhileBlank(): Promise<string> {
+    return project({ title: "", other: "World" }, { de: { title: "Mein Titel" } });
+  }
+
+  async function expectFillDetected(dir: string): Promise<void> {
+    const whileBlank = await check({ config: cfg(), cwd: dir });
+    expect(whileBlank.locales[0]).toMatchObject({ emptySource: 1, stale: 0, upToDate: 1 });
+
+    await writeJsonFile(join(dir, "locales", "en.json"), { title: "Welcome", other: "World" });
+
+    expect((await diff({ config: cfg(), cwd: dir })).locales[0]?.changed).toEqual(["title"]);
+    expect((await check({ config: cfg(), cwd: dir })).locales[0]).toMatchObject({
+      stale: 1,
+      emptySource: 0,
+    });
+    const stub = makeStubProvider();
+    const summary = await translate(
+      { config: cfg({ humanEdits: "overwrite" }), cwd: dir },
+      { createProvider: () => stub.provider },
+    );
+    expect(summary.locales[0]?.translated).toEqual(["title"]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toMatchObject({
+      title: "[de] Welcome",
+    });
+  }
+
+  it("is kept by translate and retranslated once the source is written", async () => {
+    const dir = await heldWhileBlank();
+    const stub = makeStubProvider();
+    await translate({ config: cfg(), cwd: dir }, { createProvider: () => stub.provider });
+
+    expect(sentKeys(stub)).toEqual(["other"]);
+    expect(await readJsonFile(join(dir, "locales", "de.json"))).toMatchObject({
+      title: "Mein Titel",
+    });
+    await expectFillDetected(dir);
+  });
+
+  it("is detected after an import once the source is written", async () => {
+    const dir = await heldWhileBlank();
+    await exportWorkbook({ config: cfg(), cwd: dir, format: "csv", out: "handoff" });
+    const path = join(dir, "handoff", "de.csv");
+    const sheet = readDelimited({ text: await readFile(path, "utf8"), locale: "de", format: "csv" })
+      .sheets[0];
+    const rows = (sheet?.rows ?? []).map((row) => ({ ...row, translation: "Welt" }));
+    await writeFile(path, buildDelimited({ locale: "de", rows }, "csv"), "utf8");
+    await importWorkbook({ config: cfg(), cwd: dir, workbook: "handoff", format: "csv" });
+
+    await expectFillDetected(dir);
+  });
+
+  it("is detected after a watch run once the source is written", async () => {
+    const dir = await heldWhileBlank();
+    const stub = makeStubProvider();
+    const controller = await watch(
+      { config: cfg(), cwd: dir, onRun: () => {} },
+      {
+        createProvider: () => stub.provider,
+        createWatcher: () => ({ onChange: () => {}, close: async () => {} }),
+      },
+    );
+    await controller.stop();
+
+    await expectFillDetected(dir);
   });
 });
