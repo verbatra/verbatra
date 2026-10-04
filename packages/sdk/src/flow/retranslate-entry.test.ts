@@ -305,6 +305,27 @@ describe("retranslateEntry: provider errors", () => {
     expect((error as ProviderError).code).toBe("INVALID_RESPONSE");
   });
 
+  it("names the PLACEHOLDER_UNSUPPORTED reason when a machine-translation provider withheld the key", async () => {
+    const dir = await project({ greeting: "Hello" });
+    const stub = makeStubProvider({
+      missingValues: new Set(["greeting"]),
+      notices: [
+        { code: "PLACEHOLDER_UNSUPPORTED", message: "Some entries were left untranslated." },
+      ],
+    });
+
+    const error = await retranslateEntry(
+      { config: cfg(), cwd: dir, locale: "de", key: "greeting" },
+      { createProvider: () => stub.provider },
+    ).catch((e: unknown) => e);
+
+    expect(error).toMatchObject({
+      code: "INVALID_RESPONSE",
+      message:
+        'The provider left key "greeting" untranslated. Some entries were left untranslated.',
+    });
+  });
+
   it("throws the ProviderError class the SDK exports, so a caller can test for it", async () => {
     const dir = await project({ greeting: "Hello" });
     const stub = makeStubProvider({ missingValues: new Set(["greeting"]) });

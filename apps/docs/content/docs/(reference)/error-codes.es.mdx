@@ -1078,7 +1078,7 @@ El valor se reutilizó de la caché para una fuente anterior casi idéntica que 
 
 ### FOREIGN_PLACEHOLDER_CHANGED
 
-La traducción perdió o cambió un token con forma de placeholder que el formato del proyecto no protege, como `{name}` en un valor de i18next o `%{count}` en un valor de YAML.
+La traducción perdió o cambió un token con forma de placeholder que el formato del proyecto no interpola, como `{name}` en un valor de i18next o `%{count}` en un valor de YAML.
 
 Se activa cuando ese token aparece en la fuente más veces que, literalmente, en la traducción. Los placeholders propios del formato quedan para la puerta de integridad, un token que la traducción solo añade no se marca, y un argumento ICU cuenta una vez, por su cabecera como `{n, plural,`, así que las ramas traducidas nunca lo activan. Los tokens dentro de ramas ICU, un token printf pegado a una letra o un dígito, los bytes codificados en porcentaje como `%2F` y todo lo que está dentro de una URL nunca se comprueban, ni tampoco los formatos de adaptadores de terceros. Qué sintaxis protege cada formato se indica en [Formatos](/docs/formats).
 
@@ -1214,9 +1214,9 @@ El proveedor no puede aplicar el tono configurado para este locale.
 
 ### SOURCE_FOREIGN_PLACEHOLDERS
 
-Valores de origen que este locale va a traducir contienen un token con forma de placeholder que el formato del proyecto no protege. El mensaje da el número de esos valores y nombra las primeras claves.
+Valores de origen que este locale va a traducir contienen un token con forma de placeholder que el formato del proyecto no interpola. El mensaje da el número de esos valores y nombra las primeras claves.
 
-Nada mantiene intacto ese token durante la traducción, así que una traducción que lo pierde o lo cambia se marca con [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). El aviso se emite por locale, solo cuando ese locale tiene una clave así que traducir, y nunca para formatos de adaptadores de terceros.
+DeepL, Google Cloud Translation y LibreTranslate reciben ese token enmascarado como un placeholder y retienen un valor que no pueden enmascarar ni restaurar ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). Un proveedor LLM o una persona debe mantenerlo sin cambios; una traducción que lo pierde o lo cambia se marca con [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). El aviso se emite por locale, solo cuando ese locale tiene una clave así que traducir, y nunca para formatos de adaptadores de terceros.
 
 - **Lo lanza**: `translate` (también una ejecución de prueba), `watch`
 - **Código de salida**: ninguno
@@ -1268,7 +1268,7 @@ No se aplicó un glosario con traducciones obligatorias o términos que conserva
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Al menos un valor quedó sin traducir con DeepL, Google Cloud Translation o LibreTranslate. Un valor se retiene cuando un placeholder no aparece literal en él, o cuando su texto fuera de los placeholders contiene `<`, `>`, `{` o `}`: argumentos ICU como plural, select o number, marcado junto a un placeholder o un signo de comparación (LibreTranslate conserva el marcado, así que allí solo cuentan las llaves). Google retiene además un valor con un salto de línea, un tabulador o un doble espacio. Un resultado se descarta cuando un marcador vuelve perdido, duplicado, reescrito o sin etiqueta, o con una entidad desconocida o una etiqueta ajena. Un valor con marcado y sin placeholders se envía sin enmascarar.
+Al menos un valor quedó sin traducir con DeepL, Google Cloud Translation o LibreTranslate. Un valor se retiene cuando un placeholder no aparece literal en él, o cuando su texto fuera de los placeholders contiene `<`, `>`, `{` o `}`: argumentos ICU como plural, select o number, marcado junto a un placeholder o un signo de comparación (LibreTranslate conserva el marcado, así que allí solo cuentan las llaves). Google retiene además un valor con un salto de línea, un tabulador o un doble espacio. Un resultado se descarta cuando un marcador vuelve perdido, duplicado, reescrito o sin etiqueta, o con una entidad desconocida o una etiqueta ajena. Un valor con marcado y sin placeholders se envía sin enmascarar. Un token de otra sintaxis de placeholder distinta de la del formato cuenta aquí como placeholder.
 
 - **Lo lanza**: `translate`, `watch`
 - **Código de salida**: `1`: las claves aparecen en `providerFailures`, y el locale termina `partial` o `failed`

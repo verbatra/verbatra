@@ -24,7 +24,7 @@ envoyées à un fournisseur LLM sont des constantes fixées à la compilation. T
 entrées, ton glossaire et ton ton, les noms de langue, les catégories cibles d'un pluriel) voyage
 uniquement dans la charge JSON du tour utilisateur, jamais dans le canal d'instructions. La réponse
 doit correspondre à un schéma fixe ; une réponse avec une clé jamais demandée fait échouer tout son
-sous-lot, car il n'existe pas d'acceptation partielle sûre autour d'un contenu inventé.
+sous-lot.
 
 ### Noms de langue, d'écriture et de région
 
@@ -147,8 +147,11 @@ retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la f
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | garde chaque placeholder mais dans un autre ordre |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | vient d'un lot que le fournisseur a dégradé, comme une formalité abandonnée |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | a été [réutilisée depuis une source proche et modifiée](/docs/the-cache#réutilisation-approximative) <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | perd ou modifie un jeton en forme de placeholder que son [format](/docs/formats) ne protège pas, comme `{name}` dans i18next <AvailableFrom version="0.12.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | perd ou modifie un jeton en forme de placeholder que son [format](/docs/formats) n'interpole pas, comme `{name}` dans i18next <AvailableFrom version="0.12.0" /> |
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | laisse un contrôle de direction ouvert, ou ajoute un forçage qui inverse le texte <AvailableFrom version="0.12.0" /> |
+
+DeepL, Google et LibreTranslate reçoivent ce jeton masqué et retiennent une valeur qu'ils ne peuvent
+ni masquer ni restaurer ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)) ; le signalement couvre les LLM et les personnes.
 
 Les succès du cache et les valeurs partagées entre clés passent par les mêmes heuristiques que les
 traductions fraîches. Les clés signalées apparaissent par locale sous `needsReview` dans le résumé
@@ -175,8 +178,7 @@ ou par un agent ne sont pas couvertes. Les règles exactes sont sous
 Quand un appel fournisseur échoue, l'erreur brute du SDK (qui peut contenir des en-têtes de requête
 ou des identifiants) est jetée, jamais conservée, journalisée ni relancée. À sa place, verbatra lève
 une erreur structurée avec un code stable et un message fixe sans secret ; les codes sont sous
-[Codes d'erreur des fournisseurs](/docs/error-codes#provider-error-codes). Avis et résumés portent
-des codes et des compteurs, jamais de secrets. D'où viennent les clés et comment elles sont masquées
+[Codes d'erreur des fournisseurs](/docs/error-codes#provider-error-codes). D'où viennent les clés et comment elles sont masquées
 dans la sortie est sur [Traitement des données](/docs/data-handling#clés-dapi).
 
 ## Où tu vois tout ça

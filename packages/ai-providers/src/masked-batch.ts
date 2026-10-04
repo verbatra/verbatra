@@ -9,6 +9,7 @@ import {
   partitionForMasking,
   restoreTranslations,
   type WireDecoder,
+  withForeignPlaceholders,
 } from "./placeholder-protection.js";
 import type {
   ProviderNotice,
@@ -90,7 +91,10 @@ export async function translateMaskedBatch<G extends string>(
   notices: readonly ProviderNotice[],
   strategy: MaskedBatchStrategy<G>,
 ): Promise<MaskedBatchResult> {
-  const { plain, masked, unprotectable } = partitionForMasking(data.entries, strategy.masking);
+  const { plain, masked, unprotectable } = partitionForMasking(
+    withForeignPlaceholders(data.entries, data.foreignPlaceholders),
+    strategy.masking,
+  );
   const encoded = encodeAll(masked, strategy.encode);
   const outgoing = [
     ...plain.map((entry): OutgoingText => ({ entry, text: entry.value })),

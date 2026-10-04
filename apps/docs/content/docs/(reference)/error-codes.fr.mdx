@@ -1079,7 +1079,7 @@ La valeur a été réutilisée depuis le cache pour une source antérieure presq
 
 ### FOREIGN_PLACEHOLDER_CHANGED
 
-La traduction a perdu ou modifié un jeton qui ressemble à un placeholder que le format du projet ne protège pas, comme `{name}` dans une valeur i18next ou `%{count}` dans une valeur YAML.
+La traduction a perdu ou modifié un jeton qui ressemble à un placeholder que le format du projet n'interpole pas, comme `{name}` dans une valeur i18next ou `%{count}` dans une valeur YAML.
 
 Il se déclenche quand un tel jeton apparaît dans la source plus souvent que, mot pour mot, dans la traduction. Les placeholders propres au format relèvent du contrôle d'intégrité, un jeton que la traduction ne fait qu'ajouter n'est pas signalé, et un argument ICU compte une fois, par sa tête comme `{n, plural,`, si bien que des branches traduites ne le déclenchent jamais. Les jetons dans des branches ICU, un jeton printf collé à une lettre ou un chiffre, les octets encodés en pourcentage comme `%2F` et tout ce qui se trouve dans une URL ne sont jamais vérifiés, pas plus que les formats d'adaptateurs tiers. La syntaxe que protège chaque format est indiquée dans [Formats](/docs/formats).
 
@@ -1215,9 +1215,9 @@ Le fournisseur ne peut pas appliquer le ton configuré pour cette locale.
 
 ### SOURCE_FOREIGN_PLACEHOLDERS
 
-Des valeurs source que cette locale s'apprête à traduire contiennent un jeton qui ressemble à un placeholder que le format du projet ne protège pas. Le message donne le nombre de ces valeurs et nomme les premières clés.
+Des valeurs source que cette locale s'apprête à traduire contiennent un jeton qui ressemble à un placeholder que le format du projet n'interpole pas. Le message donne le nombre de ces valeurs et nomme les premières clés.
 
-Rien ne garde un tel jeton intact pendant la traduction, donc une traduction qui le perd ou le modifie est signalée [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). L'avis est émis par locale, seulement quand cette locale a une telle clé à traduire, et jamais pour les formats d'adaptateurs tiers.
+DeepL, Google Cloud Translation et LibreTranslate reçoivent un tel jeton masqué comme un placeholder et retiennent une valeur qu'ils ne peuvent ni masquer ni restaurer ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). Un fournisseur LLM ou une personne doit le garder tel quel ; une traduction qui le perd ou le modifie est signalée [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed). L'avis est émis par locale, seulement quand cette locale a une telle clé à traduire, et jamais pour les formats d'adaptateurs tiers.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch`
 - **Code de sortie** : aucun
@@ -1269,7 +1269,7 @@ Un glossaire avec des traductions imposées ou des termes à garder n'a pas ét�
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Au moins une valeur est restée non traduite par DeepL, Google Cloud Translation ou LibreTranslate. Une valeur est retenue quand un placeholder n'y figure pas littéralement, ou quand son texte hors des placeholders contient `<`, `>`, `{` ou `}` : arguments ICU comme plural, select ou number, balisage à côté d'un placeholder ou signe de comparaison (LibreTranslate conserve le balisage, seules les accolades comptent alors). Google retient aussi une valeur avec un saut de ligne, une tabulation ou un double espace. Un résultat est écarté quand un marqueur revient perdu, dupliqué, réécrit ou nu, ou avec une entité inconnue ou une balise étrangère. Une valeur avec du balisage et sans placeholder est envoyée sans masquage.
+Au moins une valeur est restée non traduite par DeepL, Google Cloud Translation ou LibreTranslate. Une valeur est retenue quand un placeholder n'y figure pas littéralement, ou quand son texte hors des placeholders contient `<`, `>`, `{` ou `}` : arguments ICU comme plural, select ou number, balisage à côté d'un placeholder ou signe de comparaison (LibreTranslate conserve le balisage, seules les accolades comptent alors). Google retient aussi une valeur avec un saut de ligne, une tabulation ou un double espace. Un résultat est écarté quand un marqueur revient perdu, dupliqué, réécrit ou nu, ou avec une entité inconnue ou une balise étrangère. Une valeur avec du balisage et sans placeholder est envoyée sans masquage. Un jeton d'une autre syntaxe de placeholder que celle du format compte ici comme un placeholder.
 
 - **Levé par** : `translate`, `watch`
 - **Code de sortie** : `1` : les clés figurent sous `providerFailures`, et la locale se termine en `partial` ou `failed`

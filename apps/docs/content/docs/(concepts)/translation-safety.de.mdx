@@ -23,8 +23,7 @@ Anweisungen"), deshalb behandelt verbatra jeden String als nicht vertrauenswürd
 Systemregeln an einen LLM-Provider sind Konstanten zur Compile-Zeit. Alles Variable (die Einträge,
 dein Glossar und Tonfall, die Sprachnamen, die Zielkategorien eines Plurals) reist nur in der
 JSON-Nutzlast des User-Turns, nie im Anweisungskanal. Die Antwort muss zu einem festen Schema passen;
-eine Antwort mit einem nie angefragten Key lässt ihren ganzen Teil-Batch scheitern, weil es rund um
-erfundene Inhalte keine sichere teilweise Annahme gibt.
+eine Antwort mit einem nie angefragten Key lässt ihren ganzen Teil-Batch scheitern.
 
 ### Namen von Sprache, Schrift und Region
 
@@ -147,8 +146,11 @@ einen Key zurück: Der Wert wird geschrieben, gelockt und in die Review-Wartesch
 | [`INTEGRITY_REORDERED`](/docs/error-codes#integrity_reordered) | jeden Platzhalter behält, aber in anderer Reihenfolge |
 | [`PROVIDER_DEGRADED`](/docs/error-codes#provider_degraded) | aus einem Batch stammt, den der Provider herabgestuft hat, etwa durch eine weggefallene Formalität |
 | [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse) | [von einer ähnlichen, bearbeiteten Quelle wiederverwendet](/docs/the-cache#unscharfe-wiederverwendung) wurde <AvailableFrom version="0.11.0" /> |
-| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | ein platzhalterartiges Token verliert oder ändert, das ihr [Format](/docs/formats) nicht schützt, etwa `{name}` in i18next <AvailableFrom version="0.12.0" /> |
+| [`FOREIGN_PLACEHOLDER_CHANGED`](/docs/error-codes#foreign_placeholder_changed) | ein platzhalterartiges Token verliert oder ändert, das ihr [Format](/docs/formats) nicht interpoliert, etwa `{name}` in i18next <AvailableFrom version="0.12.0" /> |
 | [`BIDI_CONTROLS_CHANGED`](/docs/error-codes#bidi_controls_changed) | ein Richtungssteuerzeichen offen lässt oder eine Überschreibung hinzufügt, die Text umkehrt <AvailableFrom version="0.12.0" /> |
+
+DeepL, Google und LibreTranslate bekommen so ein Token maskiert und halten einen Wert zurück, den sie
+nicht maskieren oder wiederherstellen können ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placeholder_unsupported)); die Markierung deckt LLMs und Menschen ab.
 
 Cache-Treffer und Werte, die sich Keys teilen, durchlaufen dieselben Heuristiken wie frische
 Übersetzungen. Markierte Keys erscheinen pro Locale als `needsReview` in der Lauf-Zusammenfassung,
@@ -175,8 +177,7 @@ Retranslates aus Studio oder von Agenten sind nicht abgedeckt. Die genauen Regel
 Scheitert ein Provider-Aufruf, wird der rohe SDK-Fehler (der Request-Header oder Zugangsdaten tragen
 kann) verworfen, nie gebunden, geloggt oder erneut geworfen. An seiner Stelle erzeugt verbatra einen
 strukturierten Fehler mit stabilem Code und fester, geheimnisfreier Meldung; die Codes stehen unter
-[Provider-Fehlercodes](/docs/error-codes#provider-error-codes). Hinweise und Zusammenfassungen
-tragen Codes und Zahlen, nie Secrets. Woher Keys kommen und wie sie aus der Ausgabe entfernt werden,
+[Provider-Fehlercodes](/docs/error-codes#provider-error-codes). Woher Keys kommen und wie sie aus der Ausgabe entfernt werden,
 steht unter [Datenverarbeitung](/docs/data-handling#api-keys).
 
 ## Wo du das siehst

@@ -178,7 +178,8 @@ const summary = await translate({ config }, { createProvider });
   optional `glossary` (the result of [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) for the target
   locale), `tone`, `maxLength`, and `pluralCategories`. It also carries `extractPlaceholders` and,
   for some formats, `comparePlaceholders`, which your provider uses for the integrity check, plus
-  `signal`, which aborts an in-flight call, and `onRepair`.
+  `signal`, which aborts an in-flight call, `onRepair`, and `foreignPlaceholders`:
+  per key, the tokens of another placeholder syntax to protect like placeholders.
 - `TranslateResult` returns `values` and `integrity` keyed by entry key, plus optional `usage`,
   `notices`, and `reviewFlags`. A key missing from `values` counts as not translated, so a provider
   can leave out a value it cannot translate safely. The SDK runs its own integrity gate on every

@@ -1078,7 +1078,7 @@ Der Wert wurde aus dem Cache für eine frühere, fast gleiche Quelle wiederverwe
 
 ### FOREIGN_PLACEHOLDER_CHANGED
 
-Die Übersetzung hat ein Token verloren oder verändert, das wie ein Platzhalter aussieht, den das Format des Projekts nicht schützt, etwa `{name}` in einem i18next-Wert oder `%{count}` in einem YAML-Wert.
+Die Übersetzung hat ein Token verloren oder verändert, das wie ein Platzhalter aussieht, den das Format des Projekts nicht interpoliert, etwa `{name}` in einem i18next-Wert oder `%{count}` in einem YAML-Wert.
 
 Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, in der Übersetzung. Die eigenen Platzhalter des Formats prüft das Integritäts-Gate, ein Token, das die Übersetzung nur hinzufügt, wird nicht markiert, und ein ICU-Argument zählt einmal, über seinen Kopf wie `{n, plural,`, sodass übersetzte Zweige ihn nie auslösen. Tokens in ICU-Zweigen, ein printf-Token direkt an einem Buchstaben oder einer Ziffer, prozentkodierte Bytes wie `%2F` und alles in einer URL werden nie geprüft, ebenso wenig Formate aus Adaptern von Drittanbietern. Welche Syntax jedes Format schützt, steht unter [Formate](/docs/formats).
 
@@ -1214,9 +1214,9 @@ Der Provider kann den konfigurierten Ton für dieses Locale nicht anwenden.
 
 ### SOURCE_FOREIGN_PLACEHOLDERS
 
-Quellwerte, die dieses Locale gleich übersetzt, enthalten ein Token, das wie ein Platzhalter aussieht, den das Format des Projekts nicht schützt. Die Meldung nennt die Zahl solcher Werte und die ersten Keys.
+Quellwerte, die dieses Locale gleich übersetzt, enthalten ein Token, das wie ein Platzhalter aussieht, den das Format des Projekts nicht interpoliert. Die Meldung nennt die Zahl solcher Werte und die ersten Keys.
 
-Nichts hält ein solches Token beim Übersetzen intakt, daher wird eine Übersetzung, die es verliert oder verändert, mit [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed) markiert. Der Hinweis kommt pro Locale, nur wenn dieses Locale einen solchen Key zu übersetzen hat, und nie für Formate aus Adaptern von Drittanbietern.
+DeepL, Google Cloud Translation und LibreTranslate bekommen ein solches Token wie einen Platzhalter maskiert und halten einen Wert zurück, den sie nicht maskieren oder wiederherstellen können ([`PLACEHOLDER_UNSUPPORTED`](#placeholder_unsupported)). Ein LLM-Provider oder ein Mensch muss es unverändert lassen; eine Übersetzung, die es verliert oder verändert, wird mit [`FOREIGN_PLACEHOLDER_CHANGED`](#foreign_placeholder_changed) markiert. Der Hinweis kommt pro Locale, nur wenn dieses Locale einen solchen Key zu übersetzen hat, und nie für Formate aus Adaptern von Drittanbietern.
 
 - **Ausgelöst von**: `translate` (auch ein Probelauf), `watch`
 - **Exit-Code**: keiner
@@ -1268,7 +1268,7 @@ Ein Glossar mit vorgeschriebenen Übersetzungen oder beizubehaltenden Begriffen 
 
 ### PLACEHOLDER_UNSUPPORTED
 
-Mindestens ein Wert blieb bei DeepL, Google Cloud Translation oder LibreTranslate unübersetzt. Ein Wert wird zurückgehalten, wenn ein Platzhalter nicht wörtlich darin steht oder sein Text außerhalb der Platzhalter `<`, `>`, `{` oder `}` enthält: ICU-Argumente wie plural, select oder number, Markup neben einem Platzhalter oder ein Vergleichszeichen (LibreTranslate behält Markup, dort zählen nur geschweifte Klammern). Google hält außerdem einen Wert mit Zeilenumbruch, Tab oder doppeltem Leerzeichen zurück. Ein Ergebnis wird verworfen, wenn eine Markierung verloren, doppelt, verändert oder bloß zurückkommt, oder mit unbekannter Entity oder fremdem Tag. Ein Wert mit Markup und ohne Platzhalter wird unmaskiert gesendet.
+Mindestens ein Wert blieb bei DeepL, Google Cloud Translation oder LibreTranslate unübersetzt. Ein Wert wird zurückgehalten, wenn ein Platzhalter nicht wörtlich darin steht oder sein Text außerhalb der Platzhalter `<`, `>`, `{` oder `}` enthält: ICU-Argumente wie plural, select oder number, Markup neben einem Platzhalter oder ein Vergleichszeichen (LibreTranslate behält Markup, dort zählen nur geschweifte Klammern). Google hält außerdem einen Wert mit Zeilenumbruch, Tab oder doppeltem Leerzeichen zurück. Ein Ergebnis wird verworfen, wenn eine Markierung verloren, doppelt, verändert oder bloß zurückkommt, oder mit unbekannter Entity oder fremdem Tag. Ein Wert mit Markup und ohne Platzhalter wird unmaskiert gesendet. Ein Token einer anderen Platzhalter-Syntax als der des Formats zählt hier als Platzhalter.
 
 - **Ausgelöst von**: `translate`, `watch`
 - **Exit-Code**: `1`: die Keys stehen unter `providerFailures`, und das Locale endet `partial` oder `failed`

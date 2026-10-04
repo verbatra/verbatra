@@ -26,6 +26,23 @@ export function partitionByPlaceholders(
   return { protectable, unprotectable };
 }
 
+function withForeignTokens(
+  entry: TranslationEntry,
+  tokens: readonly string[] | undefined,
+): TranslationEntry {
+  const added = (tokens ?? []).filter((token) => !entry.placeholders.includes(token));
+  return added.length === 0 ? entry : { ...entry, placeholders: [...entry.placeholders, ...added] };
+}
+
+export function withForeignPlaceholders(
+  entries: readonly TranslationEntry[],
+  foreign: ReadonlyMap<string, readonly string[]> | undefined,
+): readonly TranslationEntry[] {
+  return foreign === undefined
+    ? entries
+    : entries.map((entry) => withForeignTokens(entry, foreign.get(entry.key)));
+}
+
 export interface MaskedValue {
   readonly text: string;
   readonly originals: readonly string[];

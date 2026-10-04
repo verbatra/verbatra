@@ -14,6 +14,7 @@ import { selectAdapter } from "../selection/select-adapter.js";
 import {
   droppedForeignPlaceholders,
   type ForeignPlaceholderTranslation,
+  foreignPlaceholdersOf,
   NATIVE_PLACEHOLDER_SYNTAXES,
   sourceForeignPlaceholderNotice,
   withForeignPlaceholderReason,
@@ -258,6 +259,56 @@ describe("withForeignPlaceholderReason", () => {
   });
 });
 
+describe("foreignPlaceholdersOf", () => {
+  function entryOf(format: SupportedFormat, key: string, value: string): TranslationEntry {
+    return {
+      key,
+      namespace: "",
+      value,
+      placeholders: selectAdapter(format).extractPlaceholders(value),
+      isPlural: false,
+    };
+  }
+
+  it("lists each foreign token once, in source order, per key that holds one", () => {
+    const entries = [
+      entryOf("vue-i18n-json", "a", "{{b}} and {name} and {{a}} then {{b}} and %s"),
+      entryOf("vue-i18n-json", "plain", "Hi {name}"),
+    ];
+
+    expect(foreignPlaceholdersOf(entries, "vue-i18n-json")).toEqual(
+      new Map([["a", ["{{b}}", "{{a}}", "%s"]]]),
+    );
+  });
+
+  it("leaves out a foreign token the native placeholders already list", () => {
+    const entry: TranslationEntry = {
+      ...entryOf("i18next-json", "k", "Hi {name}"),
+      placeholders: ["{name}"],
+    };
+
+    expect(foreignPlaceholdersOf([entry], "i18next-json")).toBeUndefined();
+  });
+
+  it("is undefined when no value holds a foreign token", () => {
+    const entries = [entryOf("i18next-json", "k", "Hi {{name}}, 50%off")];
+
+    expect(foreignPlaceholdersOf(entries, "i18next-json")).toBeUndefined();
+  });
+
+  it("is undefined for a third-party format", () => {
+    const entry: TranslationEntry = {
+      key: "k",
+      namespace: "",
+      value: "Hi {name} %s",
+      placeholders: [],
+      isPlural: false,
+    };
+
+    expect(foreignPlaceholdersOf([entry], "custom:kv")).toBeUndefined();
+  });
+});
+
 describe("sourceForeignPlaceholderNotice", () => {
   it("names the count and the keys of the affected pending values, without prescribing a syntax", () => {
     const notice = noticeFor("i18next-json", {
@@ -269,7 +320,7 @@ describe("sourceForeignPlaceholderNotice", () => {
     expect(notice).toEqual({
       code: "SOURCE_FOREIGN_PLACEHOLDERS",
       message:
-        '2 source values hold a placeholder-like token that i18next-json does not protect: "greeting", "total". These tokens are not protected during translation, so review the translations, or switch the syntax if your library does not interpolate them.',
+        '2 source values hold a placeholder-like token of another syntax than i18next-json uses: "greeting", "total". Machine translation providers get these tokens masked and leave a value untranslated when that fails, but an LLM provider or a person must keep them unchanged, so review the translations, or switch the syntax if your library does not interpolate them.',
     });
   });
 
@@ -277,14 +328,14 @@ describe("sourceForeignPlaceholderNotice", () => {
     const notice = noticeFor("i18next-json", { greeting: "Hello {name}" }, "human-only");
 
     expect(notice?.message).toBe(
-      '1 source value holds a placeholder-like token that i18next-json does not protect: "greeting". Machine translation is off, so keep these tokens unchanged when you translate the values, or switch the syntax if your library does not interpolate them.',
+      '1 source value holds a placeholder-like token of another syntax than i18next-json uses: "greeting". Machine translation is off, so keep these tokens unchanged when you translate the values, or switch the syntax if your library does not interpolate them.',
     );
     expect(notice?.message).not.toContain("during translation");
   });
 
   it("uses the singular for one value", () => {
     expect(noticeFor("yaml", { items: "%{count} items" })?.message).toContain(
-      "1 source value holds a placeholder-like token that yaml does not protect",
+      "1 source value holds a placeholder-like token of another syntax than yaml uses",
     );
   });
 

@@ -64,6 +64,16 @@ export interface TranslateRequest {
   /** The entries to translate; at least one is required. */
   readonly entries: readonly TranslationEntry[];
   /**
+   * Optional tokens per entry key, beside the entry's own `placeholders`, that look like a
+   * placeholder of another syntax than the format interpolates, such as `{name}` in an i18next
+   * value, or the head `{n, plural,` of an ICU argument there. For a built-in format the SDK sets
+   * it only when at least one value in the batch holds such a token, and leaves it absent
+   * otherwise. DeepL, Google Cloud Translation and LibreTranslate protect these tokens like
+   * placeholders, and withhold the entry with `PLACEHOLDER_UNSUPPORTED` when one cannot be
+   * masked or restored; LLM providers do not read it.
+   */
+  readonly foreignPlaceholders?: ReadonlyMap<string, readonly string[]>;
+  /**
    * Optional glossary for this batch's target locale only: required translations, forbidden
    * renderings, and terms to keep untranslated. An LLM provider sends it to the model as data; a
    * machine-translation provider cannot apply it and reports `GLOSSARY_IGNORED` when it holds a
@@ -384,6 +394,7 @@ const requestDataSchema = z.object({
   sourceLocale: z.string().min(1),
   targetLocale: z.string().min(1),
   entries: z.array(translationEntrySchema).min(1),
+  foreignPlaceholders: z.map(z.string(), z.array(z.string()).readonly()).optional(),
   glossary: localeGlossarySchema.optional(),
   tone: z.enum(["formal", "informal", "neutral"]).optional(),
   maxLength: z.map(z.string().min(1), z.number().int().nonnegative()).optional(),
