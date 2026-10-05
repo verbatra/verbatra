@@ -41,14 +41,44 @@ tasks.
 `pnpm knip` is informational and is not part of `pnpm verify` or of any required
 check. It exits non-zero when it has findings, so read them and decide; the
 `Unused code` workflow runs it with `--no-exit-code` and reports in the step log.
-Every suppression lives in `knip.config.ts` with the structural reason for it, so
-add a new one only when the repository's layout genuinely explains the finding.
+Every suppression lives in `knip.config.ts`; add a new one only when the
+repository's layout genuinely explains the finding, and record that reason here:
+
+- `ignoreExportsUsedInFile`: an export its own module uses is over-exported, not
+  dead, and the no-prose-comments rule rules out knip's per-symbol comment tags.
+- `ignoreBinaries: ["jq"]`: `release.yml` runs `jq` on the GitHub-hosted runners,
+  which preinstall it, and `scripts/verify-skills-dispatch.test.mjs` executes that
+  workflow's own `jq` program, skipping that one case where `jq` is not installed.
+  No package provides it.
+- Root `entry`: `scripts/*.mjs` are the guards `pnpm verify` runs, and the
+  `scripts/dts-fixture` consumers are compiled by `check:dts`, never imported.
+- `apps/docs`: `verbatra.config.ts` is loaded at runtime by `verbatra translate`,
+  and `@verbatra/studio` is reached only through the CLI's dynamic import.
+- `apps/docs` `ignoreFiles: ["lib/security-headers.d.mts"]`: `tsc` resolves every
+  `./security-headers.mjs` import to this declaration, which types the plain-JS
+  module `next.config.mjs` needs, while knip follows the import to the `.mjs` and
+  reports the declaration as unused.
+- `packages/sdk` `ignoreDependencies`: every `catalog:bundled` runtime dependency
+  no sdk source imports directly. tsup bundles the internal packages that import
+  them, so they ship to consumers; all are listed so the result is the same with
+  and without built `dist` output.
+- `packages/studio` `entry`: each `src/shared/rpc` module exports its method name,
+  params schema, inferred params type and result type as one wire contract.
+- `e2e`: not a pnpm workspace member, so it is named here to keep its harness,
+  vitest configs and devDependencies from reading as unused.
 
 Run a task for a single package with a filter, for example:
 
 ```
 pnpm --filter @verbatra/core test
 ```
+
+Turborepo's local cache lives in `.turbo/cache` inside each checkout (`cacheDir`
+in `turbo.json`), so a linked git worktree never replays another checkout's
+cached output, and the docs build excludes `.next/cache/**` and `.next/dev/**`
+from its cached outputs because Next.js writes absolute checkout paths there.
+`scripts/verify-turbo-cache-isolation.test.mjs` fails if either setting is
+removed.
 
 ## Tests and coverage
 
@@ -82,6 +112,27 @@ Describe the change and select the affected package(s) and bump type. Changes
 that do not affect published packages (for example internal tooling) do not need
 one.
 
+Until 0.12.0 is released, `.changeset/` holds one file per release theme: extend
+the matching theme file instead of adding a new one, and add nothing for a
+test-only, docs-only or internal change or for a fix to an unreleased feature.
+The full policy is the changeset bullet in `.claude/rules/git-conventions.md`.
+
+To see what the next release would ship before the release workflow opens its
+`Version Packages` pull request, run:
+
+```
+pnpm release:preview
+```
+
+It checks out `HEAD` into a temporary git worktree, runs `changeset version` and
+the `server.json` sync there, prints each version bump and the new `CHANGELOG.md`
+section of every bumped package with its line and word count, and removes the
+worktree again, also when a step fails. Uncommitted changes are not included.
+Without a token it swaps the GitHub changelog generator for the plain
+`@changesets/cli/changelog` one, so entries carry commit hashes but no pull
+request links or author names. For the exact GitHub-flavoured output, pass a
+token: `GITHUB_TOKEN=$(gh auth token) pnpm release:preview`.
+
 ## Pull requests
 
 1. Branch from `main`.
@@ -92,7 +143,8 @@ one.
    bundle guards, the build config typecheck, and the root script tests). A test
    fails if the two ever drift apart.
 4. Use Conventional Commit messages.
-5. Add a changeset if a publishable package changed.
+5. Add a changeset if a publishable package changed in a user-observable way,
+   following the policy in `.claude/rules/git-conventions.md`.
 6. Open a pull request with the template, describing what changed and how you
    tested it. Keep the pull request scoped and make sure CI is green.
 
@@ -151,9 +203,13 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
      enforce the prompt-injection boundary and schema-bound output.
    - A **machine-translation API** that takes strings and returns strings, with
      no prompt. Set `kind: "machine-translation"` and implement `translateBatch`
-     directly. DeepL and Google Cloud Translation are the two such providers
-     today; see `deepl/deepl-provider.ts` and
-     `google-translate/google-translate-provider.ts`.
+     directly. DeepL, Google Cloud Translation and LibreTranslate are the three
+     such providers today; see `deepl/deepl-provider.ts`,
+     `google-translate/google-translate-provider.ts` and
+     `libretranslate/libretranslate-provider.ts`. Keep placeholders away from
+     the engine through `translateMaskedBatch` (`masked-batch.ts`), which masks
+     with `placeholder-protection.ts` and encodes markers for the wire with
+     `masked-wire-codec.ts`, never with a new mechanism of your own.
 
    The `kind` field is descriptive, not dispatch. Nothing branches on it; both
    kinds satisfy the same interface. Choose by asking whether you send a prompt.
@@ -161,21 +217,26 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    Errors must be structured `ProviderError`s. Never let a raw upstream SDK error
    escape.
 
-3. **`packages/ai-providers/src/env.ts`** - key handling. Add the entry to
-   `PROVIDER_ENV` (around `:3`) and a `require<Name>Key()` helper next to the
-   existing five (around `:19-37`), both delegating to `readRequiredEnv`.
+3. **`packages/ai-providers/src/key-env-vars.ts` and `env.ts`** - key handling.
+   Add the entry to `PROVIDER_ENV` in `key-env-vars.ts` (around `:1-7`), then a
+   `require<Name>Key()` helper in `env.ts` next to the existing five (around
+   `:17-37`), delegating to `readRequiredEnv`.
 
    This is a hard rule, not a convention: **API keys come only from environment
    variables. Never from a config file, never from a CLI argument, never from a
    function argument.** An error message names the variable and never contains a
    key value. If your provider needs a user-selectable variable name, follow
-   `resolveOpenAiCompatibleKey` (around `:38`) rather than inventing a third
-   pattern, and note that it still only ever reads `process.env`.
+   `resolveOpenAiCompatibleKey` (around `:39`) rather than inventing a third
+   pattern, and note that it still only ever reads `process.env`. A key a
+   self-hosted server may not need at all follows `readLibreTranslateKey`: a
+   constant of its own in `key-env-vars.ts` (kept out of `PROVIDER_ENV`, which
+   lists required keys), included in `keyEnvVarNames` so its value is redacted,
+   and an optional reader that returns `undefined` instead of throwing.
 
 4. **`packages/ai-providers/src/scaffold.ts`** - only if `verbatra init` should
    offer the provider. Add a default model to `SCAFFOLD_MODELS` (around `:5`) and
    the name of its output-token-limit option to `SCAFFOLD_TOKEN_LIMIT_KEYS`
-   (around `:11`). The `satisfies` clause (around `:15-19`) constrains each value
+   (around `:11`). The `satisfies` clause (around `:15`) constrains each value
    to `keyof <Name>Config`, so a wrong option name is a compile error rather than
    a config the scaffolder writes and the schema then rejects.
 
@@ -186,18 +247,20 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    schema. The SDK imports both from the package root.
 
 6. **`packages/sdk/src/config/provider-config.ts`** - add the variant to the
-   `providerConfigSchema` discriminated union (around `:22-31`). Call `.strict()`
+   `providerConfigSchema` discriminated union (around `:27-41`). Call `.strict()`
    on the options schema exactly as the others do, so an option belonging to a
    different provider is reported as an error instead of silently ignored.
    Without this variant, config loading rejects the provider outright and nothing
    downstream ever runs.
 
 7. **`packages/sdk/src/config/provider-config.ts`** - add the entry to
-   `providerFactories` (around `:57-63`). **This is the registration step.**
-   `buildProvider` (around `:71`) reads this table, `selectProvider`
-   (`packages/sdk/src/selection/select-provider.ts`, around `:15-18`) wraps it,
-   and the two call sites are `flow/translate-project.ts` (around `:496`) and
-   `flow/retranslate-entry.ts` (around `:138`).
+   `providerFactories` (around `:115-124`). **This is the registration step.**
+   The table is a mapped type over `MachineProviderId`, every `ProviderId` except
+   the human-only `none`, which never builds a provider. `buildProvider` (around
+   `:145`) reads this table, `selectProvider`
+   (`packages/sdk/src/selection/select-provider.ts`, around `:95`) wraps it,
+   and the two call sites are `flow/translate-project.ts` (around `:611`) and
+   `flow/retranslate-entry.ts` (around `:348`).
 
    `ProviderRegistry` in `packages/ai-providers/src/registry.ts` is **not** the
    registration path. It is exported from the package, but nothing outside its
@@ -209,7 +272,7 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 8. **`packages/sdk/src/config/provider-billing.ts`** - add the entry to
    `PROVIDER_BILLING`: whether the provider bills by `tokens` or by `characters`,
    and whether a hosted API bills for it at all. The table is a mapped type over
-   `ProviderId`, so a missing entry is a compile error, and
+   `ProviderId` (`none` included), so a missing entry is a compile error, and
    `provider-billing.test.ts` fails it a second time by iterating `PROVIDER_IDS`.
    If the provider takes a model, add its case to `modelOf` in the same file so a
    rate can be filed under `provider/model`; the switch is exhaustive and will not
@@ -217,9 +280,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
-   `_envCoversAllProviders` (around `:12`) requires an env entry for every
-   provider except `openai-compatible`, and
-   `_tokenLimitKeysCoverAllModelProviders` (around `:17`) requires a token-limit
+   `_envCoversAllProviders` (around `:20`) requires an env entry for every
+   provider except `openai-compatible`, `libretranslate` and `none`, and
+   `_tokenLimitKeysCoverAllModelProviders` (around `:25`) requires a token-limit
    key for every one of those except `deepl` and `google-translate`, the two that
    take no model. Both are unused declarations that exist only to fail the
    build.
@@ -227,8 +290,11 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 10. **Tests.** A `*.test.ts` beside each new file, covering the happy path, the
     missing-key error, and upstream failures mapped to `ProviderError` codes.
 
-11. **A changeset** (`pnpm changeset`). `@verbatra/sdk` and `@verbatra/cli` are
-    published and version-locked together, so a change here ships in a release.
+11. **A changeset.** Extend the matching theme file in `.changeset/`; run
+    `pnpm changeset` for a new file only when no theme covers the change.
+    `@verbatra/sdk` and `@verbatra/cli` are published and version-locked
+    together, so a change here ships in a release. The full policy is in
+    `.claude/rules/git-conventions.md`.
 
 12. **Docs.** Add the provider to `apps/docs/content/docs/(configure)/providers.mdx`
     and to `(configure)/config-file.mdx`, and update the `.de.mdx`, `.es.mdx` and
@@ -253,8 +319,8 @@ This section is about adding a format *to this repository*, so that it ships
 with verbatra under its own built-in name. If you only need verbatra to handle a
 format in your own project, you do not need a pull request at all: build the
 adapter in your own package, name it with a `custom:` identifier, and hand
-verbatra a registry holding it. See `docs/decisions/0001-third-party-format-adapters.md`
-for why that path exists and what it deliberately does not promise, and
+verbatra a registry holding it. That path exists so a format can ship without a core
+release; the adapter is trusted code, is never sandboxed, and is never loaded by name. See
 `apps/docs/content/docs/(guides)/custom-format-adapters.mdx` for how to use it.
 
 Work outward from `packages/core`, then `packages/format-adapters`. Replace
@@ -298,7 +364,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
 
 3. **`packages/format-adapters/src/default-registry.ts`** - add
    `.register(create<Format>Adapter(fs))` to the chain in `createDefaultRegistry`
-   (calls around `:14-21`). Forward the `fs` parameter; do not let the default
+   (calls around `:35-48`). Forward the `fs` parameter; do not let the default
    apply here.
 
 4. **`packages/format-adapters/src/index.ts`** - export the factory.
@@ -307,11 +373,13 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    read a fixture, write it back, and assert the output is byte-identical.
    Key order and structure must survive the round trip.
 
-6. **A changeset** (`pnpm changeset`).
+6. **A changeset.** Extend the matching theme file in `.changeset/`; run
+   `pnpm changeset` for a new file only when no theme covers the change. The
+   full policy is in `.claude/rules/git-conventions.md`.
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
-   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` (around `:12-21`) is
+   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` (around `:36-51`) is
    a total `Record<SupportedFormat, string>` and will not compile until the new
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
@@ -466,10 +534,73 @@ this list can be trusted even after the line numbers drift:
   [verbatra/skills](https://github.com/verbatra/skills) fails when the skills
   pack's command, format, provider, tool or method tables, or the counts in its
   prose, drift from the sources above. That one runs in another repository, so it
-  reports after a merge here rather than blocking one.
+  reports after a merge here rather than blocking one; the release workflow asks
+  it to re-run against every commit that lands on `main` (see
+  [Dispatching the skills parity check](#dispatching-the-skills-parity-check)).
 
 If you find yourself wanting a new lint rule or checklist item, check first
 whether one of these already covers it.
+
+## Dispatching the skills parity check
+
+The `dispatch-skills-parity` job in `.github/workflows/release.yml` runs after
+the `publish` job succeeds, on every push to `main` that passed CI, whether that
+run published packages or only opened the Version Packages pull request. It
+starts the `Tool parity` workflow (`parity.yml`) of
+[verbatra/skills](https://github.com/verbatra/skills) on its `main` branch
+through a `workflow_dispatch` event, passing the released commit as the
+`source_ref` input, so the skill tables are asserted against exactly that
+commit. A registry change is therefore reported minutes after it merges instead
+of at the next nightly run.
+
+The workflow `GITHUB_TOKEN` cannot do this: its permissions are limited to the
+repository that runs the workflow
+([GitHub docs](https://docs.github.com/en/actions/concepts/security/github_token)).
+The job authenticates as a GitHub App instead, through
+`actions/create-github-app-token`, and the token it mints is scoped to
+`verbatra/skills` alone with `actions: write`, the one permission the
+[create a workflow dispatch event](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
+endpoint requires of an app
+([permissions required for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-actions)).
+The token is revoked when the job ends, and the job grants the workflow token no
+permissions at all.
+
+The job deliberately does not send a `repository_dispatch` event, and
+`parity.yml` does not listen for one. That endpoint requires `contents: write`
+([permissions required for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps#repository-permissions-for-contents)),
+which would also let a leaked token push commits, create branches and publish
+releases in the skills repository. `actions: write` reaches workflow runs,
+artifacts and caches there (start, cancel, rerun, delete), but cannot change a
+single file, and a workflow dispatch can only start a workflow that already
+exists on the named branch.
+
+One-time setup, done by an organization owner:
+
+1. Create a GitHub App owned by the `verbatra` organization. Disable the
+   webhook. Under repository permissions, grant **Actions: Read and write**
+   (Metadata: Read-only is added automatically) and nothing else. Allow
+   installation on this account only.
+2. Install the app on the `verbatra` organization for **only** the
+   `verbatra/skills` repository.
+3. Generate a private key for the app.
+4. In this repository, add two Actions secrets:
+   - `SKILLS_DISPATCH_APP_CLIENT_ID`: the app's Client ID (from its settings
+     page; the numeric App ID is deprecated as an input of
+     `actions/create-github-app-token`).
+   - `SKILLS_DISPATCH_APP_PRIVATE_KEY`: the full contents of the `.pem` file.
+
+Until both secrets exist the job fails with an error naming the missing one.
+That failure is deliberate: the job runs after publishing and nothing depends on
+it, so it can never block or undo a release, and a silent skip would hide that
+the skills drift guard had fallen back to its nightly schedule. Rotating the key
+means generating a new one, replacing the secret, and deleting the old key from
+the app.
+
+Renaming `parity.yml` or its `source_ref` input in verbatra/skills breaks this
+job, so change both sides together. `scripts/verify-skills-dispatch.test.mjs`
+pins this side (the workflow file, branch and input it targets, the token scope,
+the empty permissions block, the secret check running before the token is
+minted), so run `pnpm test:scripts` after editing the job.
 
 ## Refreshing the Studio screenshots
 
@@ -517,3 +648,20 @@ Two conventions to preserve:
   the docs site itself is dark-only by design, so that toggle switches the image
   and nothing else. Adding a shot means adding both themes and registering its
   pixel dimensions in that component.
+
+## Refreshing the contributor list
+
+The avatars in the docs site footer are self-hosted, so a visitor's browser
+never requests an image from GitHub. The list lives in
+`apps/docs/lib/contributors.json` and the images in
+`apps/docs/public/contributors/`. Both are committed, and the build reads them
+without any network access, so they only change when someone refreshes them:
+
+```
+pnpm --filter @verbatra/docs run contributors
+```
+
+The script reads the GitHub contributors API, downloads a 64px avatar per
+contributor, validates the result, and only then replaces the manifest and the
+image folder. Set `GITHUB_TOKEN` if the anonymous GitHub API rate limit gets in
+the way. Commit the updated JSON file and images together.

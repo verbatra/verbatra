@@ -27,18 +27,22 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
   `devDependency`, and it joins the graph at the sdk. It is a distinct capability class from
   `format-adapters` (code to IR rather than file to IR) with its own Strategy family
   (`SourceExtractor`) and its own file-system port (`packages/extract/src/source-fs-port.ts`,
-  enforced by `source-fs-port.no-direct-node-fs.test.ts`). The decision record is
-  `packages/extract/docs/adr/0001-source-string-extraction.md`.
+  enforced by `source-fs-port.no-direct-node-fs.test.ts`).
 - `@verbatra/sdk` depends on `@verbatra/core`, `@verbatra/ai-providers`, `@verbatra/exchange`,
   `@verbatra/extract`, `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles
   them into `dist/index.js`; see `packages/sdk/package.json`).
 - `@verbatra/cli` depends on `@verbatra/sdk` only, plus `commander` and `zod`
   (`packages/cli/package.json`). It carries `@verbatra/studio` as a `devDependency` only, reached
   through a dynamic import at runtime (`packages/cli/src/studio-command.ts`), never a static
-  import, so a missing or broken studio build never breaks the rest of the CLI.
+  import, so a missing or broken studio build never breaks the rest of the CLI. `@verbatra/mcp` is
+  carried the same way: a `devDependency` reached through `importMcp: () => import("@verbatra/mcp")`
+  (`packages/cli/src/index.ts`), with only type-only imports elsewhere
+  (`packages/cli/src/mcp-command.ts`, `packages/cli/src/types.ts`).
 - `@verbatra/mcp` depends on `@verbatra/sdk` (`packages/mcp/package.json`), the same way `cli`
   does: a thin, sdk-backed surface, here a stdio MCP server rather than a CLI binary. It versions
-  independently, like `studio`, not in the `sdk`/`cli` fixed group.
+  independently, like `studio`, not in the `sdk`/`cli` fixed group. Its `devDependencies` also list
+  `@verbatra/core`, `@verbatra/ai-providers`, and `@verbatra/format-adapters`, used only by tests and
+  `packages/mcp/src/test-support.ts`, never by runtime source.
 - `@verbatra/studio` depends on `@verbatra/sdk` at runtime (`packages/studio/package.json`
   `dependencies`), not on cli. It also lists `@verbatra/format-adapters` as a `devDependency`
   (`packages/studio/package.json` `devDependencies`); the only source usage is
@@ -106,8 +110,9 @@ package.
 explicit format or by `canHandle` detection, returning a structured `resolved` / `no-match` /
 `ambiguous` result rather than throwing.
 
-Third-party formats do not join `SupportedFormat`, which stays a closed set. The decision record
-is `docs/decisions/0001-third-party-format-adapters.md`. An outside adapter names itself with a
+Third-party formats do not join `SupportedFormat`, which stays a closed set: an outside package
+ships its adapter against the sdk's re-exported construction surface instead of waiting for a core
+release, and verbatra never sandboxes or loads it by name. An outside adapter names itself with a
 `custom:` identifier (`CustomFormatId`, `FormatId`, `formatIdSchema` in
 `packages/core/src/model/format-id.ts`). The construction surface (`createTreeFileAdapter`,
 `createFlatFileAdapter`, `createDefaultRegistry`, `AdapterRegistry`, `AdapterFs`,
@@ -130,26 +135,35 @@ descriptive only, nothing branches on it), `supportsGlossary`, and `translateBat
   `runLlmTranslation` layer (`packages/ai-providers/src/llm/run.ts`) by implementing an
   `LlmMechanism` that performs one HTTP call; they share one canonical response schema and one
   set of system rules. Do not fork this layer.
-- DeepL and Google Cloud Translation (Basic, v2) are the two `machine-translation` providers and
-  implement `translateBatch` directly (`packages/ai-providers/src/deepl/deepl-provider.ts`,
-  `packages/ai-providers/src/google-translate/`), since they take strings and return strings with
-  no prompt.
+- DeepL, Google Cloud Translation (Basic, v2) and a self-hosted LibreTranslate server are the three
+  `machine-translation` providers and implement `translateBatch` directly
+  (`packages/ai-providers/src/deepl/deepl-provider.ts`, `packages/ai-providers/src/google-translate/`,
+  `packages/ai-providers/src/libretranslate/`), since they take strings and return strings with no
+  prompt. How a placeholder-blind engine is kept away from placeholders lives in one place:
+  `translateMaskedBatch` in `packages/ai-providers/src/masked-batch.ts`, which masks with
+  `placeholder-protection.ts` and encodes markers for the wire with `masked-wire-codec.ts`. All
+  three mask placeholders as numbered markers and restore them (DeepL inside an ignored `<x>` tag,
+  Google inside a `translate="no"` span, LibreTranslate as bare markers with markup kept).
 
 Resolution is a factory table, not the exported `ProviderRegistry`:
 `packages/sdk/src/config/provider-config.ts` defines `providerFactories`, a `ProviderFactories`
-mapped type over `ProviderId` (`"anthropic" | "openai" | "gemini" | "deepl" |
-"google-translate" | "openai-compatible"`), so a provider present in the config union but missing
-from the factory table fails to compile. `buildProvider(config)` reads this table; `selectProvider`
+mapped type over `MachineProviderId` (`"anthropic" | "openai" | "gemini" | "deepl" |
+"google-translate" | "openai-compatible" | "libretranslate"`), so a provider present in the config union but missing
+from the factory table fails to compile. `ProviderId` additionally holds `"none"`, the human-only
+variant that disables machine translation by policy: it has no factory, no provider is ever
+constructed for it, and `isMachineProvider` / `machineTranslationDisabledError` in the
+same file are how a flow honours it. `buildProvider(config)` reads this table; `selectProvider`
 (`packages/sdk/src/selection/select-provider.ts`) wraps it. `ProviderRegistry`
 (`packages/ai-providers/src/registry.ts`) is exported from the package but is not on this path:
 nothing outside its own tests resolves a provider through it. Registering a new provider there and
 stopping produces something that compiles and appears registered but is never reached at runtime.
 
 Adding a provider: config schema in `<provider>/config.ts`, factory in
-`<provider>/<provider>-provider.ts`, key handling in `packages/ai-providers/src/env.ts`
-(`PROVIDER_ENV` plus a `require<Name>Key()` helper), export from
-`packages/ai-providers/src/index.ts`, then the two `provider-config.ts` steps (discriminated
-union variant, `providerFactories` entry). See `CONTRIBUTING.md` "Adding a translation provider"
+`<provider>/<provider>-provider.ts`, key handling in `packages/ai-providers/src/key-env-vars.ts`
+(`PROVIDER_ENV`) plus a `require<Name>Key()` helper in `packages/ai-providers/src/env.ts`, export
+from `packages/ai-providers/src/index.ts`, then the two `provider-config.ts` steps (discriminated
+union variant, `providerFactories` entry) and the `PROVIDER_BILLING` entry in
+`packages/sdk/src/config/provider-billing.ts`. See `CONTRIBUTING.md` "Adding a translation provider"
 for the full ordered list with line-number pointers.
 
 ## Core stays pure
