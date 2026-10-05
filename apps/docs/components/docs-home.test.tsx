@@ -1,39 +1,36 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
-vi.mock("@/components/landing/hero-facts", () => ({ HeroFacts: () => null }));
 vi.mock("@/components/landing/package-install", () => ({
   PackageInstall: () => <div data-testid="install" />,
 }));
 
-const { DocsHomeHero } = await import("./docs-home");
+const { DocsHomeHeader } = await import("./docs-home");
 
-function renderHero(): Document {
-  const markup = renderToStaticMarkup(
-    <DocsHomeHero
-      headline="Translate only what changed"
-      lead="Lead"
-      primary={{ label: "Start", href: "/docs/first" }}
-      secondary={{ label: "CLI", href: "/docs/cli" }}
-      locale="de"
-    />,
-  );
+const GLOBAL_CSS = readFileSync(join(process.cwd(), "app/global.css"), "utf8");
+
+function parse(markup: string): Document {
   return new DOMParser().parseFromString(markup, "text/html");
 }
 
-describe("DocsHomeHero: phone width", () => {
-  it("caps the hero grid track at the panel width instead of the install box's content", () => {
-    const install = renderHero().querySelector('[data-testid="install"]');
-    const wrapper = install?.parentElement;
-    const grid = wrapper?.parentElement;
-
-    expect(grid?.classList.contains("grid")).toBe(true);
-    expect(grid?.classList.contains("grid-cols-[minmax(0,1fr)]")).toBe(true);
-    expect(wrapper?.classList.contains("min-w-0")).toBe(true);
-    expect(wrapper?.classList.contains("w-full")).toBe(true);
+describe("DocsHomeHeader", () => {
+  it("is a compact docs header: one headline, one lead, then the install box, with no call-to-action buttons or facts row", () => {
+    const doc = parse(
+      renderToStaticMarkup(
+        <DocsHomeHeader headline="Set up verbatra" lead="Run `verbatra init` first." />,
+      ),
+    );
+    const header = doc.querySelector("header");
+    expect(header?.querySelectorAll("h1")).toHaveLength(1);
+    expect(header?.querySelectorAll("p")).toHaveLength(1);
+    expect(header?.querySelector("p code")?.textContent).toBe("verbatra init");
+    expect(header?.querySelector('[data-testid="install"]')).not.toBeNull();
+    expect(header?.querySelectorAll("a")).toHaveLength(0);
   });
 });
 
@@ -75,5 +72,46 @@ describe("DocsHomeSection", () => {
     const heading = new DOMParser().parseFromString(markup, "text/html").querySelector("h2");
     expect(heading?.id).toBe("pick-your-stack");
     expect(heading?.textContent).toBe("Pick your stack");
+  });
+});
+
+describe("DocsHomePaths: title rhythm", () => {
+  it("keeps a hyphenated compound in a goal title on one line", async () => {
+    const { DocsHomePaths } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomePaths
+        cards={[{ goal: "Mit einem KI-Agenten arbeiten", page: "P", body: "B", href: "/docs/x" }]}
+        locale="de"
+      />,
+    );
+    const title = parse(markup).querySelector("a > span");
+    expect(title?.textContent).toBe("Mit einem KI-Agenten arbeiten");
+    expect(title?.querySelector(".whitespace-nowrap")?.textContent).toBe("KI-Agenten");
+  });
+});
+
+describe("DocsHomeSection", () => {
+  it("starts the lead at its column edge and sets a backticked command in code type", async () => {
+    const { DocsHomeSection } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomeSection
+        title="Every run is a diff"
+        lead="What happens when you run `verbatra translate`."
+      >
+        <p>body</p>
+      </DocsHomeSection>,
+    );
+    const lead = parse(markup).querySelector(".vk-lead");
+    expect(lead?.className).not.toMatch(/justify-self-end/);
+    expect(lead?.querySelector("code")?.textContent).toBe("verbatra translate");
+  });
+});
+
+describe("prose measure", () => {
+  it("leaves an element that is itself not-prose at full width, like its descendants", () => {
+    const rule = GLOBAL_CSS.replace(/\s+/g, " ").match(
+      /#nd-page \.prose :where\(p, ul, ol, blockquote, \.vk-callout\):not\(:where\(([^)]*)\)\)/,
+    );
+    expect(rule?.[1]?.split(",").map((part) => part.trim())).toContain(".not-prose");
   });
 });

@@ -107,6 +107,18 @@ describe("StackCards", () => {
     expect(doc.body.innerHTML).not.toMatch(/dark:/);
   });
 
+  it("lets the last card fill the rest of its row, so neither two nor three columns leave an empty slot", () => {
+    expect(renderCards("en").querySelector("ul")?.classList.contains("vk-stack-grid")).toBe(true);
+    const css = GLOBAL_CSS.replace(/\s+/g, " ");
+    expect(css).toContain(
+      ".vk-stack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .vk-stack-grid > li:last-child:nth-child(odd) { grid-column: span 2; }",
+    );
+    const threeColumns = css.match(/@container \(min-width: 50rem\) \{(.*?)\} \}/)?.[1] ?? "";
+    expect(threeColumns).toContain("repeat(3, minmax(0, 1fr))");
+    expect(threeColumns).toContain("li:last-child:nth-child(3n + 2) { grid-column: span 2;");
+    expect(threeColumns).toContain("li:last-child:nth-child(3n + 1) { grid-column: span 3;");
+  });
+
   it("drops the card and chip transitions for readers who prefer reduced motion", () => {
     const blocks = [
       ...GLOBAL_CSS.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g),

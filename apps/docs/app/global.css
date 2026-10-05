@@ -483,6 +483,40 @@ samp {
   color: var(--accent);
 }
 
+.vk-stack-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vk-stack-grid > li:last-child:nth-child(odd) {
+  grid-column: span 2;
+}
+
+@container (max-width: 29.99rem) {
+  .vk-stack-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.625rem;
+  }
+}
+
+@container (min-width: 50rem) {
+  .vk-stack-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vk-stack-grid > li:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .vk-stack-grid > li:last-child:nth-child(3n + 2) {
+    grid-column: span 2;
+  }
+
+  .vk-stack-grid > li:last-child:nth-child(3n + 1) {
+    grid-column: span 3;
+  }
+}
+
 .vk-stack-card-name {
   font-family: var(--font-display);
   font-weight: 600;
@@ -540,7 +574,9 @@ samp {
   line-height: var(--leading-snug);
 }
 
-#nd-page .prose :where(p, ul, ol, blockquote, .vk-callout):not(:where(td *, th *, .not-prose *)) {
+#nd-page
+  .prose
+  :where(p, ul, ol, blockquote, .vk-callout):not(:where(td *, th *, .not-prose, .not-prose *)) {
   max-width: var(--width-measure);
 }
 

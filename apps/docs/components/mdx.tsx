@@ -12,7 +12,7 @@ import { DiffPanel } from "@/components/diff-panel";
 import {
   DocsHomeBody,
   DocsHomeFeatures,
-  DocsHomeHero,
+  DocsHomeHeader,
   DocsHomePaths,
   DocsHomeSection,
   DocsHomeSteps,
@@ -92,9 +92,7 @@ export function getMDXComponents(
     Badge,
     VTabs: Tabs,
     VMark,
-    DocsHomeHero: (props: Omit<ComponentProps<typeof DocsHomeHero>, "locale">) => (
-      <DocsHomeHero {...props} locale={locale} />
-    ),
+    DocsHomeHeader,
     DocsHomeBody,
     DocsHomeSection,
     DocsHomeSteps,
