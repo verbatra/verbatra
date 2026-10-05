@@ -15,8 +15,9 @@ Non-interactive `init` for agents, and errors with a `hint` and a `causeCode`.
   there is no `AGENTS.md`) and adds the MCP server to `.mcp.json` with spending off. Run in a
   project that already has a config, it keeps the config and adds only the agent files
   (`agent.configKept` in `--json`).
-- An unpaired or repeated verbatra marker, or a `.mcp.json` that is not a JSON object, exits 2
-  with `AGENT_FILE_INVALID` before anything is written.
+- An unpaired or repeated verbatra marker, or a `.mcp.json` that is not valid JSON, does not hold
+  a JSON object, or has an `mcpServers` value that is not an object, exits 2 with
+  `AGENT_FILE_INVALID` before anything is written.
 
 **Errors**
 - `errorHint(error)` returns the next step for any error code, printed as a `next:` line and a
