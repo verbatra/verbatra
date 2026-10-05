@@ -6,6 +6,7 @@ export interface SecurityHeader {
 export interface CspOptions {
   readonly enforce: boolean;
   readonly isDev: boolean;
+  readonly scriptHashes?: readonly string[];
 }
 
 export declare const UMAMI_ORIGIN: string;

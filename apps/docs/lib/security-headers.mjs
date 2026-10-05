@@ -1,11 +1,14 @@
 export const UMAMI_ORIGIN = "https://umami.kreitz-webdev.de";
 
-export const CSP_ENFORCED = false;
+export const CSP_ENFORCED = true;
 
-export function contentSecurityPolicy({ enforce, isDev }) {
+const DEV_SCRIPT_SOURCES = ["'unsafe-inline'", "'unsafe-eval'"];
+
+export function contentSecurityPolicy({ enforce, isDev, scriptHashes = [] }) {
+  const inlineScripts = isDev ? DEV_SCRIPT_SOURCES : scriptHashes;
   const directives = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${UMAMI_ORIGIN}`,
+    ["script-src 'self'", ...inlineScripts, UMAMI_ORIGIN].join(" "),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",

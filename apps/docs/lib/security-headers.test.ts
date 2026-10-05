@@ -7,9 +7,14 @@ import {
   UMAMI_ORIGIN,
 } from "./security-headers.mjs";
 
-const REPORT_ONLY_POLICY = [
+const SCRIPT_HASHES = [
+  "'sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='",
+  "'sha256-U9enSfdMGNYMKuQiy+D/nx8SR+dwM4pFuk2q1aglmg0='",
+];
+
+const BASE_DIRECTIVES = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' ${UMAMI_ORIGIN}`,
+  `script-src 'self' ${UMAMI_ORIGIN}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
@@ -18,7 +23,9 @@ const REPORT_ONLY_POLICY = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-].join("; ");
+];
+
+const ENFORCED_POLICY = [...BASE_DIRECTIVES, "upgrade-insecure-requests"].join("; ");
 
 function directives(value: string): Map<string, string> {
   return new Map(
@@ -30,25 +37,51 @@ function directives(value: string): Map<string, string> {
 }
 
 describe("contentSecurityPolicy", () => {
-  it("ships in report-only mode until enforcement is switched on", () => {
-    expect(CSP_ENFORCED).toBe(false);
+  it("is enforced, not report-only", () => {
+    expect(CSP_ENFORCED).toBe(true);
     expect(securityHeaders()).toContainEqual({
-      key: "Content-Security-Policy-Report-Only",
-      value: REPORT_ONLY_POLICY,
+      key: "Content-Security-Policy",
+      value: ENFORCED_POLICY,
     });
+    expect(securityHeaders().map((header) => header.key)).not.toContain(
+      "Content-Security-Policy-Report-Only",
+    );
   });
 
-  it("switches the header name and upgrades insecure requests once enforced", () => {
-    const header = contentSecurityPolicy({ enforce: true, isDev: false });
-    expect(header.key).toBe("Content-Security-Policy");
-    expect(header.value).toBe(`${REPORT_ONLY_POLICY}; upgrade-insecure-requests`);
+  it("falls back to the report-only header name without upgrading requests", () => {
+    const header = contentSecurityPolicy({ enforce: false, isDev: false });
+    expect(header.key).toBe("Content-Security-Policy-Report-Only");
+    expect(header.value).toBe(BASE_DIRECTIVES.join("; "));
   });
 
-  it("allows eval only in development, where React needs it for debugging", () => {
-    const dev = directives(contentSecurityPolicy({ enforce: false, isDev: true }).value);
-    const prod = directives(contentSecurityPolicy({ enforce: false, isDev: false }).value);
-    expect(dev.get("script-src")).toContain("'unsafe-eval'");
-    expect(prod.get("script-src")).not.toContain("'unsafe-eval'");
+  it("never allows inline or eval scripts in production, enforced or not", () => {
+    for (const enforce of [true, false]) {
+      const scriptSrc = directives(
+        contentSecurityPolicy({ enforce, isDev: false, scriptHashes: SCRIPT_HASHES }).value,
+      ).get("script-src");
+      expect(scriptSrc).not.toContain("'unsafe-inline'");
+      expect(scriptSrc).not.toContain("'unsafe-eval'");
+      expect(scriptSrc).not.toContain("'strict-dynamic'");
+    }
+  });
+
+  it("allows exactly the given inline script hashes in production", () => {
+    const policy = directives(
+      contentSecurityPolicy({ enforce: true, isDev: false, scriptHashes: SCRIPT_HASHES }).value,
+    );
+    expect(policy.get("script-src")).toBe(`'self' ${SCRIPT_HASHES.join(" ")} ${UMAMI_ORIGIN}`);
+  });
+
+  it("allows inline and eval scripts only in development, where nothing is prerendered", () => {
+    const dev = directives(
+      contentSecurityPolicy({ enforce: true, isDev: true, scriptHashes: SCRIPT_HASHES }).value,
+    );
+    expect(dev.get("script-src")).toBe(`'self' 'unsafe-inline' 'unsafe-eval' ${UMAMI_ORIGIN}`);
+  });
+
+  it("keeps inline styles allowed, since React renders style attributes", () => {
+    const policy = directives(contentSecurityPolicy({ enforce: true, isDev: false }).value);
+    expect(policy.get("style-src")).toBe("'self' 'unsafe-inline'");
   });
 
   it("allows the self-hosted Umami origin for its script and its event beacon only", () => {

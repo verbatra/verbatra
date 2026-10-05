@@ -18,6 +18,15 @@ pnpm test       # the site's own Vitest suite
 pnpm typecheck
 ```
 
+The site enforces a Content-Security-Policy that allows no inline script except the ones it
+prerendered: `pnpm build` ends by hashing every inline script of every prerendered page into
+`.next/csp-script-hashes.json`, and `proxy.ts` sends each page the hashes of its own scripts. A
+page rendered at request time would have none, so every HTML route is prerendered
+(`dynamicParams = false`). After a build, `pnpm start` and then
+`pnpm csp:smoke http://localhost:3000` loads the key pages in Chromium and fails on any CSP
+violation, on analytics that did not load, or on a search that did not answer (it needs
+`pnpm exec playwright install chromium` once).
+
 No API key is needed to run, build, or test the site. A provider key is needed only to re-translate
 the interface strings with `pnpm i18n` (see below).
 
