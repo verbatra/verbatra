@@ -21,7 +21,9 @@ describe("ReviewDecisionStatus", () => {
   it("renders nothing but an empty live region before any decision", () => {
     const view = render(<ReviewDecisionStatus notice={null} />);
 
-    expect(view.get("[data-decision-status]").getAttribute("role")).toBe("status");
+    expect(
+      view.all("[data-decision-status] > [role]").map((node) => node.getAttribute("role")),
+    ).toEqual(["status", "alert"]);
     expect(view.text()).toBe("");
   });
 
@@ -46,12 +48,32 @@ describe("ReviewDecisionStatus", () => {
       />,
     );
 
-    expect(view.get("[data-decision-status]").getAttribute("role")).toBe("alert");
+    expect(view.get('[role="alert"]').textContent).toContain("Value changed.");
+    expect(view.get('[role="status"]').textContent).toBe("");
     expect(view.all("[data-batch-failures] li").map((item) => item.textContent)).toEqual([
       "Value changed.k0 (de), k1 (de)",
       "Locked.k2 (de)",
     ]);
     expect(view.query("button")).toBeNull();
+  });
+
+  it("keeps the same status and alert regions mounted while a success turns into a failure", () => {
+    const view = render(
+      <ReviewDecisionStatus notice={{ kind: "approved", locale: "de", key: "k" }} />,
+    );
+    const status = view.get('[role="status"]');
+    const alert = view.get('[role="alert"]');
+
+    view.rerender(
+      <ReviewDecisionStatus
+        notice={{ kind: "failed", action: "approve", locale: "de", key: "k", message: "Nope." }}
+      />,
+    );
+
+    expect(view.get('[role="status"]')).toBe(status);
+    expect(view.get('[role="alert"]')).toBe(alert);
+    expect(status.textContent).toBe("");
+    expect(alert.textContent).toBe("Could not approve k (de): Nope.");
   });
 
   it("caps a long failure list behind an expander", () => {

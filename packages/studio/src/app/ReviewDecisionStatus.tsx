@@ -129,6 +129,15 @@ function FailureList({ summary }: { readonly summary: BatchSummary }): ReactNode
   );
 }
 
+function NoticeBody({ notice }: { readonly notice: DecisionNotice }): ReactNode {
+  return (
+    <>
+      <p className="m-0">{noticeText(notice)}</p>
+      {notice.kind === "batch" ? <FailureList summary={notice.summary} /> : null}
+    </>
+  );
+}
+
 export function ReviewDecisionStatus({
   notice,
 }: {
@@ -141,15 +150,10 @@ export function ReviewDecisionStatus({
         "mb-3 min-h-4",
         actionStatusTextClassName(notice === null ? undefined : failed ? "failure" : "success"),
       )}
-      role={failed ? "alert" : "status"}
       data-decision-status=""
     >
-      {notice === null ? null : (
-        <>
-          <p className="m-0">{noticeText(notice)}</p>
-          {notice.kind === "batch" ? <FailureList summary={notice.summary} /> : null}
-        </>
-      )}
+      <div role="status">{notice !== null && !failed ? <NoticeBody notice={notice} /> : null}</div>
+      <div role="alert">{notice !== null && failed ? <NoticeBody notice={notice} /> : null}</div>
     </div>
   );
 }
