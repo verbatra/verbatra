@@ -27,8 +27,9 @@ Reach for those when you are holding tools rather than a shell.
 
 1. Keys live in environment variables only. verbatra reads `ANTHROPIC_API_KEY`,
    `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPL_API_KEY`,
-   `GOOGLE_TRANSLATE_API_KEY`, or `OPENAI_COMPATIBLE_API_KEY` from the process
-   environment. There is no key argument and no key field in the config file.
+   `GOOGLE_TRANSLATE_API_KEY`, `OPENAI_COMPATIBLE_API_KEY`, or
+   `LIBRETRANSLATE_API_KEY` from the process environment. There is no key
+   argument and no key field in the config file.
    Never write a key value into a file, a command line, a commit, or your own
    output. Name the variable and let the human fill it in.
 2. Ask before spending. A real translate run bills the provider the moment it
@@ -67,9 +68,50 @@ bills per key sent, so the cheap read-only question comes first.
   `warnings`, `invalidSourceKeys`) and each locale's findings in
   `result.locales[].qa`. An integrity error exits `1`; a review warning exits `1`
   only under `--strict`, and `--severity error` drops the warnings from the report.
-  `--severity` or `--strict` without `--qa`, and `--strict` with `--severity error`,
-  fail with `INVALID_QA_OPTION`; a severity other than `error` or `warning` fails
+  Review warnings carry a reason code and, where one part is at fault, `details`:
+  `FOREIGN_PLACEHOLDER_CHANGED` means a translation dropped or changed a token
+  shaped like a placeholder the format does not protect (such as `{name}` in an
+  i18next value, named in `details` as `-{name}`), and `BIDI_CONTROLS_CHANGED`
+  that it holds unclosed or added direction controls that can reorder the text.
+  Fix the translation; never edit the source to silence either.
+  Every `check` also lists, in `result.locales[].incompletePlurals`, each plural
+  that lacks a CLDR category its target language uses (code
+  `PLURAL_CATEGORIES_INCOMPLETE`, with `key`, `argument` for an ICU message,
+  `ruleType` and `missing`), such as a Polish Android `<plurals>` with only `one`
+  and `other`. That is a warning: it never changes `inSync` or the exit code, except
+  that `--qa --strict` exits `1` on it. Add the missing forms by hand; do not
+  delete the plural.
+  `--severity` or `--strict` without `--qa` or `--file`, and `--strict` with
+  `--severity error`, fail with `INVALID_QA_OPTION`; a severity other than `error` or `warning` fails
   with `INVALID_SEVERITY`.
+  Add `--require-reviewed` to gate on review decisions: it exits `1` while any
+  value whose origin is `machine`, `memory`, `fuzzy` or `agent` is not approved in
+  the committed `verbatra.provenance.json`. `result.review` carries `reviewed`,
+  the `unreviewed` count and a stable `code`, `REVIEW_REQUIRED` or
+  `REVIEW_STATE_UNREADABLE` (the provenance file is corrupt or from a newer
+  verbatra, which fails the gate), and each locale lists its keys in
+  `result.locales[].review.unreviewed`. It is keyless. Approving is a person's
+  decision, made in Studio or relayed through an MCP client; never approve values
+  to make the gate pass.
+  Add `--sensitive` to scan every source key (name, value, description, meaning)
+  and the glossary for content that looks sensitive, with the detectors, patterns
+  and allow list of the config's `sensitiveData` block, or the default detectors
+  without one. It exits `1` on any finding and is keyless. `result.sensitive` is
+  `{ findings, glossaryTerms }`, each finding `{ key, fields, detectors }`; it
+  names detectors, never the matched text except where it is part of a key name.
+  Report the keys; removing the content, allowing it or turning a detector off is
+  the human's call.
+- `verbatra check --file <path> --json` checks only the locale file you just
+  edited, reading no other locale: run it after every hand edit of a locale file.
+  `result` has the per-locale shape of `--qa` (`role` is `source`, `target` or
+  `catalogue`, `locales[].qa.findings`, totals in `result.qa`), and a file that no
+  longer parses is one finding with `reason` `syntax`, the adapter's `code`
+  (`INVALID_JSON`, `INVALID_YAML`, ...) and, for JSON and YAML, `line` and
+  `column`. The source locale file is checked for syntax only. An error finding
+  exits `1`, warnings only under `--strict`. A path that is no configured
+  locale's file exits `2` with `NOT_A_LOCALE_FILE`; `--locales`,
+  `--consistency`, `--require-reviewed` or `--sensitive` next to `--file` exit
+  `2` with `INVALID_OPTION`.
 - `verbatra translate --dry-run --json` produces the full run summary a real run
   would produce. A dry run constructs no provider object at all, so it reads no
   key, opens no connection, and writes nothing. It is safe on a machine that has
@@ -82,6 +124,18 @@ bills per key sent, so the cheap read-only question comes first.
   is withheld rather than sent, and its keys are listed under `budgetWithheld`. A
   token budget and `--concurrency` above `1` cannot be combined.
 
+Before the first run against DeepL or Google Cloud Translation, or after adding
+a target locale, `verbatra doctor --locales` shows what the provider supports for
+every target locale: the code it is sent as, `supported`, `unverified` or
+`unsupported`, and whether a glossary and a formality setting can be applied.
+It is judged against a dated table verbatra ships, calls no provider and needs no
+key; `--live` checks a machine-translation provider against its current list
+instead (DeepL and Google only when their key is set), and sends nothing for an LLM
+provider or `none`. `translate` refuses an `unsupported` locale up front with
+`LOCALE_UNSUPPORTED_BY_PROVIDER` (exit `2`, nothing started, nothing spent), so
+drop it with `--locales` or ask the human; never map it in `localeMap` on your own
+to get past the refusal.
+
 Never run `verbatra translate` to find out whether there is anything to do.
 
 ## Commands
@@ -91,27 +145,37 @@ Read this table before running anything unattended.
 | Command | Provider spend | Writes files | Needs a key |
 | --- | --- | --- | --- |
 | `translate` | yes, unless `--dry-run`, `--estimate` or provider `none` | yes | yes, for a real run with a provider |
-| `watch` | yes, once per source change | yes | yes |
-| `export` | no | yes, the translator handoff workbook | no |
+| `watch` | yes, once per source change, unless provider `none` | yes | yes, unless provider `none` |
+| `export` | no | yes, the translator handoff: a workbook, CSV, TSV or XLIFF | no |
 | `import` | no | yes, target locales and the lock file | no |
 | `tmx` | no | yes on import, the translation memory; yes on export, the TMX file | no |
 | `check` | no | no | no |
 | `diff` | no | no | no |
+| `report` | no | no | no |
 | `pseudo` | no | yes, a pseudolocale under the out directory | no |
 | `types` | no | yes, the generated declaration, unless `--check` | no |
-| `doctor` | no | no | no, it never reads a key value; `--literals` does not even check for one |
+| `doctor` | no | no | no, it never reads a key value; `--literals` does not even check for one; `--live` fetches a machine-translation provider's language list, sending the key DeepL and Google need, which uses no translation quota |
 | `studio` | only with `--allow-spend` or `VERBATRA_STUDIO_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
-| `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` | yes, through in-place edits | only when spend is granted |
-| `init` | no | yes, the config, the env example unless the provider is `none`, and `.gitignore` | no |
+| `mcp` | only with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND` (also read from `.env.local` and `.env`) | yes, through in-place edits | only when spend is granted |
+| `init` | no | yes, the config, the env example unless the provider is `none`, and `.gitignore`; with `--agent` also `AGENTS.md` or `CLAUDE.md` and `.mcp.json` | no |
 | `extract` | no | yes, the source locale, unless `--dry-run` | no |
 
 `import` is worth calling out: it applies human translations from a workbook and
 holds them to the same integrity gate as provider output, at no provider cost.
 When a human has already done the work, `export` then `import` is the free path.
 
+For a translation agency working in a CAT tool (Trados, memoQ, OmegaT, Phrase),
+`verbatra export --format xliff2` (or `xliff12` for an older tool) writes one
+`<locale>.xlf` per locale into the `--out` directory, with placeholders protected
+as inline codes. `verbatra import` reads it back through the same gate; a path
+ending in `.xlf` or `.xliff` needs no `--format`. A unit the agency marked
+`reviewed` or `final` is recorded as approved and reported with the notice
+`HANDOFF_REVIEWS_RECORDED`. `--reviewer <name>` names who approved it; that is a
+person's decision, so pass only the name the human gave you.
+
 A human-readable `import` or `translate` summary counts each locale's outcome
 (`1 notice` / `2 notices`, `malformed-row(s)`, `duplicate-key(s)`,
-`integrity-withheld`, and so on) and lists every key the integrity gate withheld
+`integrity-withheld`, `sensitive-withheld`, and so on) and lists every key the integrity gate withheld
 under `integrity-withheld:` as `key: reason (details)`, the reason being
 `placeholder`, `markup`, `icu`, `degenerate` or `empty`. The same refusals are in
 `--json` as `result.locales[].integrityRefusals` (`key`, `reason`, `details`).
@@ -129,6 +193,22 @@ the gate `rejected` by reason, and lists each refused unit as
 `unit N: reason (details)` (in `--json`, `result.locales[].refusals` with `unit`,
 `reason` and `details`), `N` being the unit's position in the file.
 
+`verbatra report provenance --json` lists, per target locale, every key's origin
+(`machine`, `memory`, `fuzzy` and `agent` are machine-written; `human`, `import`,
+`external`, `unrecorded`, `unknown`), its review state, and a `bucket`
+(`machine-unreviewed`, `machine-reviewed`, `human`, `import`, `external`,
+`unrecorded`, `unknown`) with per-bucket `counts`, stamped with `generatedAt`,
+`toolVersion` and `sourceLocale`. It is read-only and keyless; its only argument
+is the report name, and `provenance` is the only one. Exit `1` with
+`result.available: false` means `verbatra.provenance.json` is corrupt or from a
+newer verbatra, not an empty report. The report is supporting evidence of which
+text was machine-generated, never legal advice: do not tell the human that a
+project is compliant with anything because of it. XLIFF and TMX exports carry
+the same marking (`state-qualifier="mt-suggestion"` in XLIFF 1.2, `origin` and
+`review-state` metadata in XLIFF 2.0, `x-origin` and `x-review` properties in
+TMX), and imports ignore it; `result.provenanceMarkers: "unavailable"` on an
+export means no marker could be written.
+
 Three commands read application source through the config's `extract` block, and
 none of them calls a provider: `extract` adds keys found at translation call
 sites to the source locale, `diff --unused` lists source keys nothing references,
@@ -141,6 +221,13 @@ flag, so an inherited shell or a CI job can grant it with nothing on the command
 line. Ask the tool surface what it was granted rather than inferring it from the
 command you can see.
 
+`verbatra mcp --redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) starts the MCP
+server with every translation value in its tool results replaced by a marker
+carrying the value's length and a per-session hash; `verbatra-mcp-tools` covers
+what that changes for a client. With an installed `@verbatra/mcp` too old to
+confirm it redacts, the command exits `2` with `REDACTION_UNSUPPORTED` before
+serving anything: upgrade `@verbatra/mcp`, never drop the flag the operator chose.
+
 `watch` is the one command that asks for standing consent rather than one-off
 consent. A confirmation to translate once authorises one run; starting a watcher
 authorises an unbounded series of them, one per source-file save, for as long as
@@ -148,18 +235,45 @@ the process lives, with no further prompt. Say that in those words before you
 start one, and prefer a single `translate` when the human only wanted the keys
 that are pending right now translated.
 
+## Sensitive content
+
+The config's `sensitiveData` block scans what a run would send to the provider
+before any request: by default for API keys, email addresses, IBANs and card
+numbers (`phone`, `ip` and `private-host` are opt-in `detectors`), plus the
+project's own `patterns` and minus anything in `allow`. `mode` decides what a run
+does with a match: `off` (the default without the block), `warn` (send as usual
+and raise the notice `SENSITIVE_CONTENT_SENT`), `block` (withhold the key), or
+`redact` (send a token in place of each match and restore it, withholding the key
+when the match is in its key name, overlaps a placeholder, or the token does not
+come back exactly once). Withheld keys are listed under
+`result.locales[].sensitiveWithheld` and leave the locale `partial` or `failed`,
+so the run exits `1`; they are retried on the next run. `verbatra init` writes
+`sensitiveData: { mode: "warn" }` unless the provider is `none`, and
+`check --sensitive` runs the same scan without a key. Never weaken the block, add
+to `allow` or drop a detector to get a run through; say what was found and let
+the human decide.
+
 ## What the lock file means
 
 `verbatra.lock.json` records, per locale, the content hash of the source text each
 key was translated from. It is the only thing that separates the two reasons a key
 needs work:
 
-- **missing**: the key is in the source locale and absent from the target file. It
-  is translated on the next run.
-- **stale** (reported as `changed` by `diff`): the key is present in the target
-  file, the lock has a baseline hash for it, and the current source text hashes
-  differently. It is re-translated on the next run, overwriting the existing
-  target value.
+- **missing**: the key has a non-empty value in the source locale and is absent
+  from the target file. It is translated on the next run.
+- **stale** (reported as `changed` by `diff`): the key has a non-empty source value,
+  is present in the target file, the lock has a baseline hash for it, and the
+  current source text hashes differently. It is re-translated on the next run,
+  overwriting the existing target value.
+- **empty source**: the key's source value is empty or whitespace only (for
+  `gettext-po`, the source catalog's `msgstr`), such as a key `extract` added
+  without a default. Whatever the target or the lock holds, it is never missing,
+  stale, up to date, `would translate` or `unfilled`, never sent to a provider,
+  and `export` writes no row for it; the target keeps its value. `check` counts it
+  as `emptySource` per locale, `diff` lists the keys under `emptySource`, and a
+  `translate` run lists them in `result.locales[].emptySource` with the notice
+  `SOURCE_VALUE_EMPTY`. It never makes `check` or `diff` exit `1`. Write the source
+  text to translate it.
 
 A key with no lock baseline can never be stale. That is the trap: delete or never
 commit the lock file and verbatra stops noticing that source text changed, so
@@ -204,9 +318,9 @@ run" with "did the work land".
 | Code | Meaning |
 | --- | --- |
 | `0` | Success: nothing outstanding, or everything requested completed. |
-| `1` | It ran, the result is not clean: a locale failed or is partial, `check` found drift or, with `--qa`, an integrity error (a review warning too under `--strict`), `diff` found pending keys or, with `--unused`, a complete scan found unused source keys, `doctor` found a failed check or, with `--literals`, an untranslated literal or an unreadable source file, `types --check` found the committed declaration out of date. |
-| `2` | It could not run: bad config, unreadable source, corrupt lock file, a network policy that refuses the provider's host, or a usage error such as an unknown `--locales` value. `init` also exits `2` when a flag it needs is missing, when several formats or file patterns fit, or when it refuses to replace an existing config. |
-| `3` | `translate` in a human-only project (provider `none`) finished cleanly but left keys that need a human translation. |
+| `1` | It ran, the result is not clean: a locale failed or is partial, `check` found drift or, with `--qa`, an integrity error (a review warning or an incomplete plural too under `--strict`), with `--require-reviewed`, an unapproved machine-written value, or, with `--sensitive`, sensitive content, `check --file` found a syntax or integrity error (a review warning or an incomplete plural too under `--strict`), `diff` found pending keys or, with `--unused`, a complete scan found unused source keys, `report provenance` could not read the provenance file, `doctor` found a failed check or, with `--literals`, an untranslated literal or an unreadable source file, `types --check` found the committed declaration out of date. |
+| `2` | It could not run: bad config, unreadable source, corrupt lock file, a network policy that refuses the provider's host, a locale the provider does not support, `mcp --redact-values` with a `@verbatra/mcp` too old to redact, a `watch` that could not start (such as a provider whose key variable is unset), or a usage error such as an unknown `--locales` value. `init` also exits `2` when a flag it needs is missing, when several formats or file patterns fit, or when it refuses to replace an existing config. |
+| `3` | `translate` (a dry run and `--estimate` included) in a human-only project (provider `none`) finished cleanly but left keys that need a human translation. |
 | `130` | `watch`, `studio` or `mcp` was force-stopped by a second interrupt (all three return the same stoppable session), or `translate` or `import` was interrupted with SIGINT. |
 | `143` | `translate` or `import` was stopped with SIGTERM. |
 
@@ -224,7 +338,9 @@ Two things that catch scripts out:
   Hand them off with `export`; retrying `translate` changes nothing.
 
 An interrupted `translate` or `import` deletes the write locks it holds before it
-exits, so the next run does not wait on them. A lock left behind by a process that
+exits, so the next run does not wait on them, and ends stderr with
+`verbatra: interrupted (SIGINT), released locks` (under `--json`, the record
+`{"type":"interrupted","signal":"SIGINT","locksReleased":true}`). A lock left behind by a process that
 was killed outright is reclaimed automatically by the next run on the same machine
 once that process is gone; one left by another machine or an older verbatra is
 not, and the locale fails with `LOCK_CONTENDED` naming the lock file under
@@ -258,8 +374,10 @@ type Envelope<TResult> =
       command: string | null;
       code: string;
       message: string;
+      causeCode?: string;
       candidates?: string[];
       missing?: string[];
+      hint?: string;
     };
 ```
 
@@ -268,14 +386,24 @@ appear without a bump, so ignore fields you do not recognize. On an `ok: false`
 record, branch on `code`, never on `message`. A command line commander itself
 rejects, such as an unknown flag, carries `USAGE_ERROR`. `candidates` lists the values that
 would have been accepted and `missing` the flags that still have to be passed, so
-an agent can retry with a flag instead of parsing prose. Progress records and the
+an agent can retry with a flag instead of parsing prose. `causeCode` names the
+coded error a failure wraps, such as `MISSING_API_KEY` under
+`PROVIDER_CONSTRUCTION_FAILED`, and the stderr line ends with `(cause: <code>)`. `hint`, when
+present, is one imperative next step, such as `Set GEMINI_API_KEY in the environment, or, with the CLI,
+in a .env file in the project directory.` or, for `USAGE_ERROR`, `` Run `verbatra check --help` ... ``:
+act on it instead of parsing `message`. It names a variable, never a key value, so never ask the
+user for the value it names; ask them to set the variable. Without `--json` the same text follows
+the error line on stderr as `next: ...`. Progress records and the
 human-readable error line always go to stderr, so stdout is a clean stream of
 envelopes.
 
 `watch --json` is a stream, not a payload: one envelope per run as NDJSON for the
 life of the process. A failed run is a record on that stream. It does not stop the
 watcher and does not change the exit code, so treat it as an event to report, not
-a reason to restart the process.
+a reason to restart the process. A failure before watching starts is different:
+a config that does not load, a missing source file or a provider that cannot
+be built, most often because its key variable is unset, ends `watch` with exit `2`
+and one error envelope, and it never waits for changes.
 
 ## Human output on stderr
 
@@ -285,9 +413,10 @@ the envelope, never these lines.
 
 Two global flags go before or after the command name:
 
-- `-q, --quiet` prints only results and errors: no progress, no notices, no
-  `next:` hints. Warnings a person must see, such as a lock wait or keys left
-  protected, still print.
+- `-q, --quiet` prints only results and errors: no progress lines, no `next:`
+  hints, no informational stderr lines. A result summary keeps its notices, and
+  warnings a person must see, such as a lock wait or keys left protected, still
+  print.
 - `--no-color` never colours the output. `VERBATRA_NO_COLOR` does the same from
   the environment. `NO_COLOR`, `NODE_DISABLE_COLORS`, `TERM=dumb` and a truthy
   `CI` also turn colour off, and `FORCE_COLOR` turns it on or off unless
@@ -305,7 +434,8 @@ What a human-readable run prints:
   `[warn] finished in ..., see the summary above` when the exit code is not `0`.
 - `next:` hints with the command to run after it, such as `verbatra check` after a
   successful translate. A hint repeats the `--cwd` and `--config` the command was
-  given, so it can be run as printed.
+  given, the `--format` of a `csv`, `tsv`, `xliff2` or `xliff12` export or import,
+  and the `--reviewer` of an import, so it can be run as printed.
 - A dry run counts keys as `would translate` (`would import` for `import`) and
   `would prune`, never as translated.
 - File paths inside the working directory print relative to it; paths outside it
@@ -314,57 +444,81 @@ What a human-readable run prints:
   `waiting for changes...` between runs, `change detected: <paths>` when a source
   file is saved, and `stopped` at the end.
 - `studio` prints its URL with the session token on stdout, then on stderr whether
-  spend tools and agent tools are on or off, and `Studio stopped` at the end.
+  spend tools and agent tools are on or off (`spend tools off (provider none)` when
+  spend was granted but the config disables machine translation), and
+  `Studio stopped` at the end.
   `studio --verbose` also prints one `METHOD path status` line per request, with
   the token masked.
 - `mcp` prints `verbatra MCP server running on stdio (project <dir>, spend tools
-  on|off)` once it is ready and `verbatra MCP server stopped (client closed stdin)`
-  or `(interrupted)` at the end. Started by hand in a terminal, it also prints how
+  on|off|off (provider none)|off until a config loads)` once it is ready, with
+  `, values redacted` before the closing parenthesis under `--redact-values`, and
+  `verbatra MCP server stopped (client closed stdin)` or `(interrupted)` at the
+  end. Without a usable config it still starts, says that only `project.snapshot`
+  and `project.doctor` work until one loads, and picks up a fixed config on the
+  next call with no restart. Started by hand in a terminal, it also prints how
   to add it to a client, how to inspect it, and `Press Ctrl-C to stop.`
 - `watch` and `studio` print `press Ctrl-C to stop` when stdin is a terminal.
 
 ## Error and notice codes
 
-A whole-command failure exits `2` with one of these as `code`. The same codes, and
+A whole-command failure exits `2` with one of these as `code`. Each code has an
+entry with its next step at `https://verbatra.kreitz-webdev.de/docs/error-codes#<code>`,
+the code in lower case, such as `#config_not_found`. The same codes, and
 a provider's own error codes, appear on a failed locale as
 `result.locales[].error.code`, where the run went on with the other locales and
 exits `1`.
 
 | Code | What it means for you |
 | --- | --- |
-| `CONFIG_NOT_FOUND`, `CONFIG_INVALID` | No config, or one that does not validate (including a strict `provider` block, a glossary file, or an invalid network variable). Fix the config; nothing ran. |
+| `CONFIG_NOT_FOUND`, `CONFIG_INVALID` | No config, or one that does not validate (including a strict `provider` block, a glossary file, or an invalid network variable). Fix the config; nothing ran. A `causeCode` such as `MODULE_NOT_FOUND` means an import in the config file could not be resolved: install that package rather than editing config fields. A `.cjs` config can `require("@verbatra/cli")`. |
 | `UNKNOWN_FORMAT`, `UNKNOWN_LOCALE`, `UNKNOWN_KEY` | A format, locale or key that is not configured or not in the source. Take the values from the config. |
+| `NOT_A_LOCALE_FILE` | `check --file` named a path that is no configured locale's file, or no file exists there. Pass the file `files.pattern` maps to a locale. |
 | `SOURCE_UNREADABLE`, `SOURCE_INVALID`, `SOURCE_UNWRITABLE` | The source locale file (or an import file) is missing, unparseable, or, for `extract`, unwritable. |
 | `LOCK_FILE_INVALID`, `PROVENANCE_FILE_INVALID`, `PROVENANCE_FILE_UNWRITABLE` | `verbatra.lock.json` or `verbatra.provenance.json` is corrupt, too large or from a newer verbatra. Restore it from version control; never delete it to get past this. |
 | `LOCK_CONTENDED` | Another process holds a write lock past the timeout, took over a lock this run held, or a lock was left by another machine or an older verbatra. See the lock paragraph under Exit codes. |
 | `LOCK_TIMEOUT_INVALID` | An SDK caller passed a `lockAcquireTimeoutMs` that is not a whole number of milliseconds of at least 0. The CLI refuses a bad `--lock-timeout` first, as `INVALID_LOCK_TIMEOUT`. |
+| `PAGE_CURSOR_INVALID`, `PAGE_LIMIT_INVALID` | An SDK caller of `localeValuesPage` or `provenanceReportPage` passed a cursor made under other filters or one the files no longer match, or a `limit` that is not a whole number from 1 to 1000. No CLI command pages. Call again without the cursor. |
+| `RUN_CANCELLED` | An SDK caller's `signal` aborted the work: `retranslateEntry` throws it before writing anything, and `translate` records it on each locale it kept from starting and sets `cancelled: true` on the summary. The MCP server's spend tools pass the client's cancellation as that signal; the CLI and Studio pass none, and an interrupted CLI run exits `130` or `143` instead. Run again to finish what is pending. |
 | `LOCALE_STATE_NOT_CARRIED_OVER` | Never thrown; a locale whose respelled state could not be moved did not run. Re-run once the other process is done. |
 | `KEY_PROTECTED`, `KEY_PINNED` | A single-key machine write refused a person's value or a `pinnedKeys` key. Leave it for a person. |
+| `SENSITIVE_CONTENT_WITHHELD` | A single-key retranslation in Studio or the MCP server kept the key from the provider because `sensitiveData` matched it; no CLI command raises it, since `translate` and `watch` list such keys under `sensitiveWithheld`. Report it; do not loosen `sensitiveData`. |
+| `REDACTION_UNSUPPORTED` | `mcp --redact-values` found a `@verbatra/mcp` that does not confirm it redacts values, and stopped before serving anything. Upgrade `@verbatra/mcp`. |
 | `MACHINE_TRANSLATION_DISABLED` | Provider `none`: a provider-spending action was refused before any key was read. |
-| `PROVIDER_CONSTRUCTION_FAILED` | The provider could not be built, most often because its key variable is not set. Name the variable; never ask for the value. |
+| `PROVIDER_CONSTRUCTION_FAILED` | The provider could not be built, most often because its key variable is not set (`causeCode` `MISSING_API_KEY`). Name the variable; never ask for the value. |
 | `NETWORK_POLICY_VIOLATION` | The network policy refuses the provider's host. Report it; do not loosen the policy yourself. |
+| `LOCALE_UNSUPPORTED_BY_PROVIDER` | DeepL or Google Cloud Translation does not list a configured locale, so the whole run was refused before anything started or was spent. Run `doctor --locales`, then drop the locale with `--locales` or ask the human. |
 | `GLOSSARY_NOT_FILE_BACKED`, `GLOSSARY_UNWRITABLE` | The glossary is inline or absent, or its file or lock could not be written. |
 | `CONCURRENCY_INVALID`, `CONCURRENCY_BUDGET_CONFLICT`, `MAX_TOKENS_INVALID` | Bad `--concurrency` or `--max-tokens`, or a concurrency above `1` together with a token budget. |
-| `LOCALE_LAYOUT_INVALID`, `LOCALE_PATH_COLLISION` | `files.pattern` and `files.localeStyle` do not fit, or two locales map to one file. |
+| `LOCALE_LAYOUT_INVALID`, `LOCALE_PATH_COLLISION` | `files.pattern` and `files.localeStyle` do not fit, a `gettext-po` locale has a script with no gettext modifier, or two locales map to one file. |
 | `TARGET_UNWRITABLE`, `TYPES_UNWRITABLE`, `TMX_UNWRITABLE`, `EXPORT_UNWRITABLE` | The file the command writes could not be written. |
 | `PSEUDO_OUTPUT_CONFLICT`, `TYPES_OUTPUT_CONFLICT`, `TMX_OUTPUT_CONFLICT`, `EXPORT_OUTPUT_CONFLICT` | The output path would overwrite a locale, lock, provenance, cache, config or glossary file, or leaves the working directory. Pick another path. |
 | `EXTRACT_NOT_CONFIGURED`, `EXTRACT_FS_UNSUPPORTED` | `extract` needs an `extract` block in the config. |
 | `REVIEW_VALUE_CHANGED`, `REVIEW_SOURCE_CHANGED`, `REVIEW_REJECT_UNSUPPORTED`, `REVIEW_RESTORE_FAILED`, `REVIEWER_INVALID` | Review decisions, which only a person makes. `xliff` cannot reject a value, since a unit without a target reads as its source; every other format, `arb` included, can. |
 | `LOCALE_FAILED`, `CLI_ERROR` | Fallbacks for a failed locale, or a command failure, that carried no code of its own. |
-| `USAGE_ERROR`, `INVALID_LOCALES`, `INVALID_LOCALE`, `INVALID_OUT`, `INVALID_FORMAT`, `INVALID_DIRECTION`, `INVALID_QA_OPTION`, `INVALID_SEVERITY`, `INVALID_CONCURRENCY`, `INVALID_MAX_TOKENS`, `INVALID_LOCK_TIMEOUT`, `INVALID_DEBOUNCE`, `INVALID_PORT` | A flag value the CLI refused before anything ran. |
+| `USAGE_ERROR`, `INVALID_LOCALES`, `INVALID_LOCALE`, `INVALID_OUT`, `INVALID_FORMAT`, `INVALID_DIRECTION`, `INVALID_QA_OPTION`, `INVALID_SEVERITY`, `INVALID_CONCURRENCY`, `INVALID_MAX_TOKENS`, `INVALID_LOCK_TIMEOUT`, `INVALID_DEBOUNCE`, `INVALID_PORT` | A flag value the CLI refused before anything ran; for `init`, `INVALID_LOCALE` and `INVALID_LOCALES` come only from an interactive answer. |
 
 The codes the CLI raises itself, as opposed to the ones it passes through from the
 SDK or a provider, are exported as `CLI_ERROR_CODES` from `@verbatra/cli`: the
-fallback `CLI_ERROR`, the flag codes in the last row above, and the `init` codes
+fallback `CLI_ERROR`, `REDACTION_UNSUPPORTED`, the flag codes in the last row above, and the `init` codes
 under Setting a project up. A script that validates a `code` can import that list
 instead of copying this table.
 
 A run that completed can still carry notices, each in
 `result.locales[].notices` with a `code`: `PLURAL_CATEGORIES_INCOMPLETE`,
-`SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `BUDGET_TOKENS_EXCEEDED`,
+`SUB_BATCH_FAILED`, `BLANK_ROW_BASELINE_RETAINED`, `HANDOFF_REVIEWS_RECORDED`,
+`BUDGET_TOKENS_EXCEEDED`,
 `CACHE_VERSION_UNRECOGNIZED`, `PROVENANCE_VERSION_UNRECOGNIZED`,
-`PROVENANCE_FILE_TOO_LARGE`, `LOCALE_STATE_CARRIED_OVER` and
-`LOCALE_STATE_CARRY_OVER_SKIPPED`, plus the codes a provider raises. A notice is
+`PROVENANCE_FILE_TOO_LARGE`, `LOCALE_STATE_CARRIED_OVER`,
+`LOCALE_STATE_CARRY_OVER_SKIPPED`, and the locale support warnings
+`LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`,
+`GLOSSARY_UNSUPPORTED_BY_PROVIDER` and `FORMALITY_UNSUPPORTED_BY_PROVIDER`,
+`SOURCE_FOREIGN_PLACEHOLDERS` (source values to translate hold a placeholder-shaped
+token the format does not protect), `SOURCE_VALUE_EMPTY` (source keys with an empty
+value, left untranslated until their source text is written), and the sensitive content notices
+`SENSITIVE_CONTENT_SENT`, `SENSITIVE_CONTENT_REDACTED` and
+`SENSITIVE_CONTENT_WITHHELD`, and `RUN_CANCELLED` (an SDK or MCP run was cancelled while
+the locale ran, so its unsent keys stay pending and the locale is partial),
+plus the codes a provider raises. A notice is
 something to report, not a failure; the exit code already says whether the run was
 clean.
 
@@ -393,6 +547,12 @@ adapter.
 | `ini` | Classic INI; a key under `[section]` is addressed as `section.key` | `locales/{locale}.ini` |
 | `resx` | .NET XML resources; typed and designer entries are preserved untouched | `Resources/Strings.{locale}.resx` |
 
+Under the `posix` style, `gettext-po` spells a locale the gettext way: a script
+the region implies is dropped (`zh-Hant-TW` is `zh_TW`), and `Latn`, `Cyrl` and
+`Deva` become `@latin`, `@cyrillic` and `@devanagari` (`sr-Latn-RS` is
+`sr_RS@latin`). Configure the BCP 47 code (`sr-Latn`), never `sr@latin`; every
+other format keeps `sr_Latn`.
+
 Plain JSON with no matching library: pick by placeholder syntax. `{{name}}` means
 `i18next-json`, single-brace `{name}` means `vue-i18n-json`.
 
@@ -403,10 +563,32 @@ finds and falls back to the `package.json` dependencies only when no locale file
 decides it. Unattended, run it with `--json` (which never prompts) and every
 choice you already know as a flag: `--provider`, `--format`, `--source`,
 `--targets`, `--path`, and for `openai-compatible` also `--base-url`, `--model` and
-optionally `--api-key-env-var`, which names a variable and never holds a key. Add
+optionally `--api-key-env-var`, which names a variable and never holds a key, or for
+`libretranslate` only `--base-url`. Add
 `--yes` to accept a default for anything neither passed nor detected. The success
 record names the files it wrote, the resolved config, where each value came from
 (`sources`), what was detected with its `confidence`, and `nextSteps`.
+
+`--agent` (off by default) also sets the project up for coding agents: it writes
+a verbatra section between `<!-- verbatra:start -->` and `<!-- verbatra:end -->`
+markers into `AGENTS.md`, or into `CLAUDE.md` when that is the only instruction
+file (`AGENTS.md` wins when both exist), and adds the `verbatra` server,
+`npx -y @verbatra/mcp` with spending off, to `.mcp.json`. In a file that already
+holds the section, the text between the markers is replaced with the current
+text and reported `updated`, or `unchanged` when it already matches; never put
+your own notes between the markers. Text outside the markers and other servers
+are kept, a rerun with the same verbatra leaves both files byte-identical,
+and a `verbatra` server that differs is left as it is and reported as
+`mcpServer: "differs"` in the record's `agent` field, which is `null` without
+the flag. Never hand-edit a differing server back without asking the human.
+Never also install the verbatra Claude Code plugin next to that `.mcp.json`
+entry: the plugin brings its own server, so the two register it twice.
+In a project that already has a config, run `verbatra init --agent --json` with
+no config flag and no `--force`: it keeps the config untouched (listed
+`unchanged`, `agent.configKept: true`, and `config`, `sources`, `apiKeyEnvVar`
+and `detection` are `null`) and writes only the agent files. Adding a config flag
+puts the config back into the run, so a differing answer is refused with
+`CONFIG_EXISTS`.
 
 What neither a flag nor detection decides falls back to a default: format
 `i18next-json`, source `en`, targets `de`, and the path (with its
@@ -421,12 +603,14 @@ Branch on the failure `code`, all of them exit `2`:
 
 | Code | What to do |
 | --- | --- |
-| `MISSING_OPTIONS` | Pass the flags listed in `missing`, or `--yes` to take the defaults. |
+| `MISSING_OPTIONS` | Pass the flags listed in `missing`, or `--yes` to take the defaults. `--yes` cannot fill a flag without a default: `openai-compatible` still needs `--base-url` and `--model`, and `libretranslate` needs `--base-url`. |
 | `INVALID_PROVIDER`, `INVALID_FORMAT` | Pass one of the values listed in `candidates`. |
-| `INVALID_OPTION` | A flag does not fit the chosen provider, such as `--base-url` without `openai-compatible`. |
+| `INVALID_OPTION` | A flag does not fit the chosen provider, such as `--base-url` without `openai-compatible` or `libretranslate`, or `--cwd` names no existing directory. `doctor` raises it too, for `--locales` or `--live` together with `--literals`, and `check` for an empty `--file` or `--file` with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`. |
+| `INIT_UNWRITABLE` | `init` could not write a file into its directory, for example a read-only one. The message names the file, the file-system code and any file already written; tell the human rather than retrying. |
 | `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS` | Several fit; ask the human which of `candidates` is right and pass `--format` or `--path`. |
-| `CONFIG_EXISTS` | A different `verbatra.config.ts` is already there; never add `--force` unless the human asked to replace it. Another config file verbatra would read first (or a `verbatra` key in `package.json`) is refused even with `--force`. |
-| `CONFIG_INVALID` | The answers do not form a valid config; the message says which field. |
+| `CONFIG_EXISTS` | A `verbatra.config.ts` is already there (reported before any missing or ambiguous answer); an identical one passes as `unchanged`, a different one is refused; never add `--force` unless the human asked to replace it. Another config file verbatra would read first (or a `verbatra` key in `package.json`) is refused even with `--force`. |
+| `CONFIG_INVALID` | The answers do not form a valid config, including a `--source` or `--targets` locale that is not a BCP 47 code; the message says which field. |
+| `AGENT_FILE_INVALID` | With `--agent`: `.mcp.json` is not a JSON object with an `mcpServers` object, or the instruction file has unpaired or repeated verbatra markers. Nothing was written; show the human the message and let them fix the file. |
 
 Re-running `init` with the same answers is safe: an identical
 `verbatra.config.ts` is reported `unchanged`, and a missing key variable is
@@ -442,12 +626,23 @@ appended to `.env.example` rather than replacing it. Run `doctor` afterwards.
 | `deepl` | `DEEPL_API_KEY` |
 | `google-translate` | `GOOGLE_TRANSLATE_API_KEY` |
 | `openai-compatible` | `OPENAI_COMPATIBLE_API_KEY`, or a custom variable named in the config |
+| `libretranslate` | `LIBRETRANSLATE_API_KEY`, optional: only a server started with `--api-keys` needs it |
 | `none` | none; no provider is constructed and no key is read |
 
 Ask the human which provider to use unless the project already answers it. Do not
 pick one that spends against a service nobody agreed to. `openai-compatible`
-points at a local or self-hosted server and is the one that may legitimately need
-no key at all.
+points at a local or self-hosted server and `libretranslate` at a self-hosted
+LibreTranslate server (machine translation with no language model); both may
+legitimately need no key at all. The three machine-translation providers,
+`deepl`, `google-translate` and `libretranslate`, translate placeholder-bearing
+strings through numbered markers and restore them. Each withholds a value it
+cannot mask safely, such as one still carrying ICU syntax or, for DeepL and Google,
+markup or a comparison sign beside a placeholder (Google also a line break, tab or
+double space in a value with placeholders), and drops a result whose markers came back lost or changed; those
+keys land under `providerFailures` with the notice `PLACEHOLDER_UNSUPPORTED` and
+the locale ends `partial` or `failed`. Translate them by hand or with an LLM provider.
+`libretranslate` locales stay `unverified` until
+`doctor --locales --live` checks them against the server.
 
 `provider: { id: "none" }` is the human-only mode. `translate` and `watch` fill
 keys from the translation memory alone and report every other key as `unfilled`,
@@ -472,8 +667,8 @@ sent. `doctor` reports the effective policy in its `network-policy` check.
 ## doctor
 
 `verbatra doctor --json` returns `result.ok` and one entry per check in
-`result.checks`, each with an `id` and a `status` of `pass`, `fail` or `skipped`,
-always these nine in this order:
+`result.checks`, each with an `id` and a `status` of `pass`, `warn`, `fail` or
+`skipped`, always these eleven in this order:
 
 | Check id | What it answers |
 | --- | --- |
@@ -484,13 +679,20 @@ always these nine in this order:
 | `network-policy` | The effective network policy permits the provider's host. |
 | `source-file` | The source locale file exists and parses. |
 | `plural-rules` | Informational: the ICU and CLDR versions plural categories come from, and any target locale ICU has no rules for. |
+| `plural-completeness` | Informational: each plural in a target locale file that lacks CLDR categories its language uses, as `check` reports them; `skipped` when the format does not store plural forms by CLDR category. |
 | `locale-codes` | Informational: configured codes that are valid but not canonical BCP 47, with the canonical spelling. Nothing is renamed. |
 | `locale-state` | Informational: locales the lock file, translation memory or provenance file hold state for that the config does not list, and what the next `translate` does about them. |
+| `locales` | The provider supports the source and every target locale; fails on the locale `translate` would refuse, `warn` when a locale carries a support warning or a `--live` fetch failed, `skipped` for provider `none`. The per-locale report is in `result.locales`. |
 
-The informational checks never fail. Every check but `config` reports `skipped`
-when `config` itself failed. With `--literals` the run has exactly two checks,
+The informational checks never fail: they report `warn` when they name something
+worth attention and `pass` otherwise. Only `fail` sets `result.ok` to false and
+makes `doctor` exit `1`; `warn` and `skipped` never change `ok` or the exit code.
+The human report prints `[warn]` for such a check and ends with `no problems found`
+(`no problems found, 2 warnings` when checks warned). Every check but `config`
+reports `skipped` when `config` itself failed. With `--literals` the run has exactly two checks,
 `config` and `untranslated-literals`. Branch on `id`, never on `title` or
-`detail`.
+`detail`. A failed check also carries `fix`, one imperative next step (printed as a
+`fix:` line in the human report); a passed or skipped check has none.
 
 ## Respelled locale codes
 
@@ -506,13 +708,16 @@ provenance file is among those left behind, the locale does not run at all: it
 fails with `LOCALE_STATE_NOT_CARRIED_OVER`, so its protection and rejection records
 are not lost, and the next run tries again. When only the translation memory stayed
 behind, the locale runs without those cached translations. `doctor`'s
-`locale-state` check shows what is waiting to move.
+`locale-state` check shows what is waiting to move. `check` and `diff` read the
+old spelling's state as the configured code without moving anything, so a CI gate
+reports its stale keys and exits `1` before the next `translate`.
 
 ## A safe unattended shape
 
 1. `verbatra doctor` first. It is the cheapest preflight: it validates the config,
-   the format, the provider id, the key variable name, the network policy and the
-   source file, with no network call and no key read.
+   the format, the provider id, the key variable name, the network policy, the
+   source file and the provider's locale support, with no network call and no key
+   read. A failed check carries `fix`, the step to take.
 2. `verbatra diff --json` to learn the exact pending keys. Exit `0` means stop
    here, there is nothing to do and nothing to spend.
 3. `verbatra translate --estimate --json` for what the run would send and cost.
@@ -521,8 +726,8 @@ behind, the locale runs without those cached translations. `doctor`'s
 5. Only after an explicit yes: `verbatra translate --json`, with
    `--max-tokens <n>` when the human agreed to a ceiling.
 6. Report from `result.succeeded`, `result.partial` and `result.failed`, and name
-   what `protected`, `unfilled`, `budgetWithheld` and `integrityRefusals` left
-   behind. Report what
+   what `protected`, `unfilled`, `budgetWithheld`, `sensitiveWithheld` and
+   `integrityRefusals` left behind. Report what
    landed, not what you asked for.
 
 Commit `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`,
@@ -531,11 +736,14 @@ Commit `verbatra.config.ts`, `.env.example`, `verbatra.lock.json`,
 
 ## Reference
 
-- [CI and exit codes](https://verbatra.kreitz-webdev.de/docs/ci-and-exit-codes)
-- [Recipes for agents and scripts](https://verbatra.kreitz-webdev.de/docs/agent-recipes)
-- [The lock file](https://verbatra.kreitz-webdev.de/docs/the-lock-file)
+- [Exit codes and JSON output](https://verbatra.kreitz-webdev.de/docs/cli/output)
+- [Error codes](https://verbatra.kreitz-webdev.de/docs/error-codes)
+- [Run verbatra in CI](https://verbatra.kreitz-webdev.de/docs/ci-and-exit-codes)
+- [Script verbatra with JSON](https://verbatra.kreitz-webdev.de/docs/agent-recipes)
+- [The lock file and provenance](https://verbatra.kreitz-webdev.de/docs/the-lock-file)
 - [Providers](https://verbatra.kreitz-webdev.de/docs/providers)
-- [Protecting human translations](https://verbatra.kreitz-webdev.de/docs/protecting-human-translations)
-- [Human-only workflow](https://verbatra.kreitz-webdev.de/docs/human-only-workflow)
-- [Estimating cost](https://verbatra.kreitz-webdev.de/docs/estimating-cost)
-- [Network policy](https://verbatra.kreitz-webdev.de/docs/network-policy)
+- [Keep human translations](https://verbatra.kreitz-webdev.de/docs/protecting-human-translations)
+- [Run without machine translation](https://verbatra.kreitz-webdev.de/docs/human-only-workflow)
+- [Estimate cost before a run](https://verbatra.kreitz-webdev.de/docs/estimating-cost)
+- [Restrict network access](https://verbatra.kreitz-webdev.de/docs/network-policy)
+- [Data handling](https://verbatra.kreitz-webdev.de/docs/data-handling)

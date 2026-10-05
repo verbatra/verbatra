@@ -47,16 +47,15 @@ the module. Reuse count is not what decides placement: a type does not move into
 `types.ts` just because a second sibling file starts importing it. A folder earns its own
 `types.ts` only when the types it holds have no single owning module in that folder.
 
-- `packages/sdk/src/flow/summary.ts` (643 lines) is almost entirely type and interface
-  declarations (`SdkNoticeCode`, `UsageSummary`, `RunBudget`, `RunEstimate` and its estimate
-  family, `SdkNotice`, `LocaleNotice`, `NeedsReviewEntry`, `ProtectedKey`, `FuzzyCacheHit`,
+- `packages/sdk/src/flow/summary.ts` is almost entirely type and interface declarations
+  (`SdkNoticeCode`, `UsageSummary`, `RunBudget`, `RunEstimate` and its estimate family,
+  `SdkNotice`, `LocaleNotice`, `NeedsReviewEntry`, `ProtectedKey`, `FuzzyCacheHit`,
   `IntegrityRefusal`, `MalformedRowReport`, `DuplicateKeyReport`, `LocaleSummary`, `RunSummary`).
-  Thirteen sibling files import from it (`batching.ts`, `budget.ts`, `estimate.ts`,
-  `integrity-gate.ts`, `locale-carry-over.ts`, `locale-failure.ts`, `locale-run.ts`,
-  `plural-categories.ts`, `plural-generation.ts`, `protection.ts`, `review-queue.ts`,
-  `translate-project.ts`, `usage.ts`), plus several `*.test.ts` files in the same folder. It is
-  correctly named `summary.ts`, not `types.ts`: "summary" is the concept these types describe, and
-  that concept owns the file regardless of how many siblings import it.
+  Many sibling files in `flow/` import from it (`batching.ts`, `budget.ts`, `estimate.ts`,
+  `integrity-gate.ts`, `locale-run.ts`, `translate-project.ts` among them), plus several
+  `*.test.ts` files in the same folder. It is correctly named `summary.ts`, not `types.ts`:
+  "summary" is the concept these types describe, and that concept owns the file regardless of how
+  many siblings import it.
 - `packages/studio/src/app/panel-props.ts` (3 lines, one interface: `PanelProps`) is consumed by
   `App.tsx` and three files under `panels/` (`ReviewPanel.tsx`, `ActivityPanel.tsx`,
   `TranslationsPanel.tsx`). Same reasoning: `PanelProps` is the concept, the file name already
