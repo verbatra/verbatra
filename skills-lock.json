@@ -137,19 +137,19 @@
       "source": "verbatra/skills",
       "sourceType": "github",
       "skillPath": "skills/verbatra-cli/SKILL.md",
-      "computedHash": "4d86aa8697e2ea381299d360aa237bef91f3b2ed1440decc96c414aa6dbc29c0"
+      "computedHash": "0b14a4c610de9325ab156ce5b6a49b84023e7ad3fb28a68bcd94c0f0ca6f7186"
     },
     "verbatra-mcp-tools": {
       "source": "verbatra/skills",
       "sourceType": "github",
       "skillPath": "skills/verbatra-mcp-tools/SKILL.md",
-      "computedHash": "ab2c849bbeedadd7af852df0a7bd36213b3d0139dfbd7b8d74dcccc3d2a23b87"
+      "computedHash": "e6caf28f87acccfd86e472a62203acebfa9977af9c10d15c4fbd83110e67700a"
     },
     "verbatra-studio-agent-tools": {
       "source": "verbatra/skills",
       "sourceType": "github",
       "skillPath": "skills/verbatra-studio-agent-tools/SKILL.md",
-      "computedHash": "88a9daaef654a93cdfd2dac9f09144e2a3657157e79989390a7be24df2646af1"
+      "computedHash": "81ac07e0d3f5797e19c01cf2ede622e9b624462a28063b5371a0fc8ed634a8f6"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
