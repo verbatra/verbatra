@@ -7,7 +7,21 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const PUBLISHED_PACKAGES = new Set(["@verbatra/sdk", "@verbatra/studio"]);
+const PUBLISHED_PACKAGES = new Set([
+  "@verbatra/sdk",
+  "@verbatra/cli",
+  "@verbatra/studio",
+  "@verbatra/mcp",
+]);
+
+const PUBLISHED_DECLARATIONS = [
+  "packages/sdk/dist/index.d.ts",
+  "packages/sdk/dist/index.d.cts",
+  "packages/cli/dist/lib.d.ts",
+  "packages/cli/dist/lib.d.cts",
+  "packages/studio/dist/index.d.ts",
+  "packages/mcp/dist/index.d.ts",
+];
 
 const PUBLISHED_PACKAGE_DIRS = ["sdk", "cli", "studio", "mcp"];
 
@@ -299,14 +313,7 @@ function runTsc(tsconfig) {
 }
 
 function checkDts() {
-  const declarations = [
-    "packages/sdk/dist/index.d.ts",
-    "packages/sdk/dist/index.d.cts",
-    "packages/cli/dist/lib.d.ts",
-    "packages/cli/dist/lib.d.cts",
-    "packages/studio/dist/index.d.ts",
-  ];
-  const hits = declarations.flatMap(findForbiddenSpecifiers);
+  const hits = PUBLISHED_DECLARATIONS.flatMap(findForbiddenSpecifiers);
   if (hits.length > 0) {
     throw new Error(
       `published declarations reference ${hits.length} unpublished @verbatra/* package(s); ` +
@@ -494,6 +501,8 @@ export {
   getConfigSchemaFilesPattern,
   getConfigSchemaProviderRequired,
   hasZodJitlessConfig,
+  PUBLISHED_DECLARATIONS,
+  PUBLISHED_PACKAGES,
   staticImportPattern,
   staticRequirePattern,
 };

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DECLARATION_SPECIFIER,
@@ -12,6 +12,8 @@ import {
   getConfigSchemaFilesPattern,
   getConfigSchemaProviderRequired,
   hasZodJitlessConfig,
+  PUBLISHED_DECLARATIONS,
+  PUBLISHED_PACKAGES,
   staticImportPattern,
   staticRequirePattern,
 } from "./check-build-output.mjs";
@@ -585,4 +587,44 @@ describe("published manifests", () => {
     const manifest = JSON.parse(readFileSync(`packages/${dir}/package.json`, "utf8"));
     expect(manifest.exports["./package.json"]).toBe("./package.json");
   });
+});
+
+function publishedManifests() {
+  return readdirSync("packages")
+    .map((dir) => ({
+      dir,
+      manifest: JSON.parse(readFileSync(`packages/${dir}/package.json`, "utf8")),
+    }))
+    .filter(({ manifest }) => manifest.private !== true);
+}
+
+function declarationPaths(node) {
+  if (typeof node !== "object" || node === null) {
+    return [];
+  }
+  return Object.entries(node).flatMap(([key, value]) =>
+    key === "types" && typeof value === "string" ? [value] : declarationPaths(value),
+  );
+}
+
+describe("the declaration check covers every published package", () => {
+  it("allows a reference to each published package and no other", () => {
+    const names = publishedManifests().map(({ manifest }) => manifest.name);
+
+    expect([...PUBLISHED_PACKAGES].sort()).toEqual([...names].sort());
+  });
+
+  it.each(publishedManifests().map(({ dir, manifest }) => [manifest.name, dir, manifest]))(
+    "scans every declaration file %s publishes",
+    (_name, dir, manifest) => {
+      const published = [manifest.types, ...declarationPaths(manifest.exports)]
+        .filter((path) => typeof path === "string")
+        .map((path) => `packages/${dir}/${path.replace(/^\.\//, "")}`);
+
+      expect(published.length).toBeGreaterThan(0);
+      for (const path of published) {
+        expect(PUBLISHED_DECLARATIONS).toContain(path);
+      }
+    },
+  );
 });
