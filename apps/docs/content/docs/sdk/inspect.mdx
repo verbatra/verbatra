@@ -89,6 +89,8 @@ a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
 
+<AvailableFrom version="0.4.0" />
+
 Reports per-locale drift as counts: `missing` (in source, absent from target), `stale` (source
 changed since last translated), and `upToDate`. Use it as a CI gate.
 
@@ -186,6 +188,8 @@ for syntax alone. A path that is no configured locale's file, or a missing file,
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 The detailed sibling of `check`: the same computation, but it returns the key lists per locale
 (`missing`, `changed`, `orphaned`) instead of counts. Orphaned keys are report-only and never flip
 `hasPendingChanges`, since a default run does not prune.
@@ -220,6 +224,8 @@ retranslation would replace before you run it.
 Each `LocaleDiff` also carries `protected`, the missing and changed keys a `translate` run would leave alone, sorted. They still count as pending. When the provenance file is unreadable, only pinned keys are listed.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Reports, for each locale's changed keys, whether the current target value still matches the source's
 placeholders, whether it still carries the source's inline markup, and whether it is valid ICU. Each
@@ -281,6 +287,8 @@ check per translated key. Nothing is cached; every call reads fresh from disk.
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Reports the lock file's existence, version, and per-locale drift (baseline key count plus missing,
 stale, and up-to-date counts). `exists` comes from an explicit probe, so "no lock file yet" and "an
 empty but present lock file" stay distinguishable. When the file is absent the result is
@@ -302,6 +310,8 @@ function lockState(
 Each locale also carries the same `provenance` counts `check` reports.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Reads the lock file itself (`verbatra.lock.json`, also exported as `LOCK_FILE_NAME`) and returns
 its parsed shape: `{ version, locales }`, where each locale maps keys to the source content hash
@@ -351,6 +361,8 @@ function loadProvenance(
 No config needed.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Reads the review-flag and token-usage snapshot the most recent non-dry-run `translate` or `watch`
 run persisted to `.verbatra-local/run-status.json`. Never throws: an unusable file

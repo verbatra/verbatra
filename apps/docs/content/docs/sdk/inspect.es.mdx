@@ -91,6 +91,8 @@ de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
 
+<AvailableFrom version="0.4.0" />
+
 Informa del desfase por locale como contadores: `missing` (en el origen, ausente del destino), `stale`
 (el origen cambió desde la última traducción) y `upToDate`. Úsalo como puerta de CI.
 
@@ -189,6 +191,8 @@ archivo que falta, lanza `NOT_A_LOCALE_FILE`.
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de claves por locale
 (`missing`, `changed`, `orphaned`) en lugar de contadores. Las claves huérfanas son solo informativas y
 nunca activan `hasPendingChanges`, porque una ejecución por defecto no elimina claves.
@@ -224,6 +228,8 @@ trabajo reemplazaría una retraducción.
 Cada `LocaleDiff` lleva además `protected`, las claves ausentes y cambiadas que una ejecución de `translate` dejaría en paz, ordenadas. Siguen contando como pendientes. Si el archivo de procedencia no se puede leer, solo se listan las claves fijadas.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Informa, para las claves modificadas de cada locale, de si el valor de destino actual sigue
 coincidiendo con los placeholders del origen, de si sigue llevando el marcado en línea del
@@ -288,6 +294,8 @@ disco.
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Informa de la existencia del archivo de bloqueo, su versión y el desfase por locale (número de claves de
 la línea base más contadores de faltantes, obsoletas y al día). `exists` viene de una sonda explícita,
 así que "todavía no hay archivo de bloqueo" y "un archivo de bloqueo vacío pero presente" siguen siendo
@@ -309,6 +317,8 @@ function lockState(
 Cada locale lleva además los mismos contadores `provenance` que informa `check`.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Lee el propio archivo de bloqueo (`verbatra.lock.json`, exportado también como `LOCK_FILE_NAME`) y
 devuelve su forma parseada: `{ version, locales }`, donde cada locale asigna claves al hash del
@@ -360,6 +370,8 @@ function loadProvenance(
 No necesita configuración.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de
 `translate` o `watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca

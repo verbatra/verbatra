@@ -65,6 +65,8 @@ Seules les clés réellement nouvelles sont ajoutées au fichier de la locale so
 
 ### check
 
+<AvailableFrom version="0.4.0" />
+
 Rapporte la dérive par locale sous forme de comptes : `missing` (dans la source, absent de la cible), `stale` (source modifiée depuis la dernière traduction) et `upToDate`. Utilise-le comme garde-fou de CI.
 
 ```ts title="Signature"
@@ -148,6 +150,8 @@ locale configurée, ou un fichier absent, lève `NOT_A_LOCALE_FILE`.
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 Le pendant détaillé de `check` : le même calcul, mais il renvoie les listes de clés par locale (`missing`, `changed`, `orphaned`) au lieu de comptes. Les clés orphelines ne font l'objet que d'un rapport et ne font jamais basculer `hasPendingChanges`, puisqu'une exécution par défaut ne les supprime pas.
 
 ```ts title="Signature"
@@ -174,6 +178,8 @@ Chaque `LocaleDiff` porte aussi `changedOrigins`, l'origine interprétée de la 
 Chaque `LocaleDiff` porte aussi `protected`, les clés manquantes et modifiées qu'une exécution de `translate` laisserait tranquilles, triées. Elles comptent toujours comme en attente. Si le fichier de provenance est illisible, seules les clés épinglées sont listées.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Rapporte, pour les clés modifiées de chaque locale, si la valeur cible actuelle correspond toujours aux placeholders de la source, si elle porte toujours le balisage en ligne de la source et si elle est de l'ICU valide. Chaque entrée porte `key`, `hasPlaceholders`, `matches`, les jetons de placeholder `missing` et `extra` en cas de discordance, `icuValid`, `markupMatches` et `markupDetails` qui nomme les balises à l'origine d'une discordance de balisage. Les entrées ne portent jamais de valeur de chaîne source ou cible. Une valeur écrite avant l'existence de la barrière d'intégrité appliquée à l'écriture ou modifiée hors de verbatra est jugée selon la même règle. C'est le rapport d'intégrité par clé que Studio affiche.
 
@@ -219,6 +225,8 @@ Le coût est une lecture et une analyse du fichier source et de chaque fichier c
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Rapporte l'existence du fichier de verrouillage, sa version et la dérive par locale (nombre de clés de la ligne de base, plus les comptes de clés manquantes, obsolètes et à jour). `exists` vient d'une sonde explicite, donc "pas encore de fichier de verrouillage" et "un fichier de verrouillage présent mais vide" restent distinguables. Quand le fichier est absent, le résultat est `{ exists: false }` et rien d'autre n'est lu.
 
 ```ts title="Signature"
@@ -237,6 +245,8 @@ function lockState(
 Chaque locale porte aussi les mêmes comptes `provenance` que `check` rapporte.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Lit le fichier de verrouillage lui-même (`verbatra.lock.json`, aussi exporté sous `LOCK_FILE_NAME`) et renvoie sa forme analysée : `{ version, locales }`, où chaque locale associe les clés au hash du contenu source depuis lequel elles ont été traduites pour la dernière fois. Un fichier manquant se dégrade en verrou vide, le même comportement de première exécution sur lequel `translate` s'appuie ; utilise `lockState` quand tu dois distinguer l'absence.
 
@@ -277,6 +287,8 @@ function loadProvenance(
 Aucune config nécessaire.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Lit l'instantané des signalements de révision et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier inutilisable se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
 

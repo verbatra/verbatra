@@ -9,6 +9,8 @@ Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour cons
 
 ### keyValue
 
+<AvailableFrom version="0.5.0" />
+
 Lit la valeur source actuelle d'une clé et, quand elle existe, sa valeur cible actuelle pour une locale. En lecture seule.
 
 ```ts title="Signature"
@@ -76,6 +78,8 @@ Chaque commit porte `hash`, `author`, `authorDate`, `subject` et `touchedPaths`.
 
 ### editEntry
 
+<AvailableFrom version="0.5.0" />
+
 Écrit une correction saisie par un humain pour une clé et une locale. La valeur candidate passe la même barrière d'intégrité qu'une traduction de fournisseur avant que quoi que ce soit n'atteigne le disque ; à l'acceptation, le fichier de locale et l'entrée de verrou de cette clé sont mis à jour sous le verrou d'écriture de la locale. N'appelle jamais de fournisseur.
 
 ```ts title="Signature"
@@ -104,6 +108,8 @@ Avec `actor: "agent"`, une clé qui correspond aux `pinnedKeys` de la config lè
 `lockAcquireTimeoutMs` borne l'attente du verrou d'écriture de la locale avant que l'appel échoue avec `LOCK_CONTENDED` (dix minutes par défaut), `onLockWait` signale cette attente, et une borne invalide échoue avec `LOCK_TIMEOUT_INVALID` avant toute lecture.
 
 ### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
 
 Relance le fournisseur pour exactement une clé et une locale : un appel à entrée unique via le même chemin de fournisseur que `translate`, passé par les mêmes contrôles d'intégrité. À l'acceptation, il écrit le fichier de locale et l'entrée de verrou pour cette clé seulement.
 

@@ -35,6 +35,8 @@ ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
 
 ### loadConfigWithMeta
 
+<AvailableFrom version="0.5.0" />
+
 Dasselbe Laden, plus Herkunft: gibt `{ config, source, glossary }` zurück, wobei `source` sagt, ob
 die Konfiguration aus einem Suchtreffer, einem expliziten Pfad oder einer Übersteuerung im
 Speicher kam (mit dem absoluten `filepath`, wenn es einen gibt), und `glossary` festhält, ob das
@@ -365,6 +367,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Nur lesbare Metadaten, aus denen der CLI-Befehl `init` seine Abfragen ableitet:
 `providerEnv` (Provider-ID zur Umgebungsvariable, aus der sein Key gelesen wird),

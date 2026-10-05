@@ -11,6 +11,8 @@ either does not exist.
 
 ### keyValue
 
+<AvailableFrom version="0.5.0" />
+
 Reads one key's current source value and, when present, its current target value for one locale.
 Read-only.
 
@@ -83,6 +85,8 @@ Each commit carries `hash`, `author`, `authorDate`, `subject` and `touchedPaths`
 
 ### editEntry
 
+<AvailableFrom version="0.5.0" />
+
 Writes one human-typed correction for one key and locale. The candidate value passes the same
 integrity gate as a provider translation before anything reaches disk; on acceptance the
 locale file and the lock entry for that key are updated inside the locale's write lock. Never
@@ -127,6 +131,8 @@ With `actor: "agent"`, a key matching the config's `pinnedKeys` throws `KEY_PINN
 `lockAcquireTimeoutMs` bounds the wait for the locale's write lock before the call fails with `LOCK_CONTENDED` (ten minutes by default), `onLockWait` reports that wait, and an invalid bound fails with `LOCK_TIMEOUT_INVALID` before anything is read.
 
 ### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
 
 Re-runs the provider for exactly one key and locale: a single-entry call through the same provider
 path `translate` uses, gated through the same integrity checks. On acceptance it writes the

@@ -34,6 +34,8 @@ describe en [El punto de inyección de dependencias](/docs/sdk#el-punto-de-inyec
 
 ### loadConfigWithMeta
 
+<AvailableFrom version="0.5.0" />
+
 La misma carga, más la procedencia: devuelve `{ config, source, glossary }`, donde `source` dice si la
 configuración vino de un acierto de búsqueda, de una ruta explícita o de una anulación en memoria (con
 el `filepath` absoluto cuando lo hay), y `glossary` registra si el glosario estaba ausente, en línea o
@@ -361,6 +363,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Metadatos de solo lectura de los que el comando `init` de la CLI deriva sus preguntas: `providerEnv` (de
 id de proveedor a la variable de entorno de la que se lee su clave), `scaffoldModels` (un modelo de

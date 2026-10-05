@@ -25,6 +25,8 @@ Lève `CONFIG_NOT_FOUND` quand rien n'est trouvé, `CONFIG_INVALID` quand une co
 
 ### loadConfigWithMeta
 
+<AvailableFrom version="0.5.0" />
+
 Le même chargement, plus la provenance : renvoie `{ config, source, glossary }`, où `source` dit si la config vient d'une recherche, d'un chemin explicite ou d'une surcharge en mémoire (avec le `filepath` absolu quand il y en a un), et `glossary` note si le glossaire était absent, inline ou résolu depuis un fichier. Utilise-le quand tu dois afficher d'où vient la config.
 
 ```ts title="Signature"
@@ -263,6 +265,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Métadonnées en lecture seule dont la commande `init` de la CLI dérive ses questions : `providerEnv` (id de fournisseur vers la variable d'environnement où sa clé est lue), `scaffoldModels` (un modèle d'échafaudage par défaut par fournisseur LLM), `providerTokenLimitKeys` (la clé d'option sous laquelle chaque fournisseur LLM reçoit sa limite de tokens de sortie) et `supportedFormats` (l'ensemble fermé des ids de format). Lis la clé de limite de tokens dans `providerTokenLimitKeys` plutôt que d'en supposer une : Anthropic l'appelle `maxTokens` et les autres `maxOutputTokens`, le schéma valide strictement les options de chaque fournisseur, et DeepL et Google Cloud Translation n'ont pas d'entrée car ils ne prennent aucune limite de tokens. Le type `ScaffoldableProviderId` vaut `Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` et couvre donc chaque fournisseur qui n'a besoin que de son id ; `openai-compatible` et `libretranslate` en sont exclus parce que chacun a besoin d'une `baseUrl` que toi seul connais et qu'aucun n'a de variable d'environnement requise.
 

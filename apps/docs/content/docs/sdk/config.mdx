@@ -33,6 +33,8 @@ glossary file is read through, as described under [The dependency seam](/docs/sd
 
 ### loadConfigWithMeta
 
+<AvailableFrom version="0.5.0" />
+
 The same load, plus provenance: returns `{ config, source, glossary }`, where `source` says whether
 the config came from a search hit, an explicit path, or an in-memory override (with the absolute
 `filepath` when there is one), and `glossary` records whether the glossary was absent, inline, or
@@ -348,6 +350,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Read-only metadata the CLI `init` command derives its prompts from: `providerEnv` (provider id to
 the environment variable its key is read from), `scaffoldModels` (a default scaffold model per LLM

@@ -10,6 +10,8 @@ count what changed since.
 
 ### readLocaleFileSnapshot
 
+<AvailableFrom version="0.5.0" />
+
 Reads one locale file (the source locale or any target locale) and reduces it to a content hash per
 key. A file that does not exist yet reads as an empty snapshot rather than throwing.
 
@@ -30,6 +32,8 @@ Returns `{ locale, hashes }`.
 
 ### diffLocaleSnapshots
 
+<AvailableFrom version="0.5.0" />
+
 Compares two snapshots of the same file, taken at different times, and counts the keys added,
 changed, and removed between them. A plain synchronous function: `diffLocaleSnapshots(previous,
 current)` returns `{ added, changed, removed }`. Counts only, never key names.
@@ -46,6 +50,8 @@ function diffLocaleSnapshots(
 ## Locale paths
 
 ### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
 
 Resolves the project's locale-to-path mapping in both directions, from `files.pattern`, the
 configured locales, and `files.localeStyle`. `createLocalePathResolver(cwd, config)` returns
@@ -128,6 +134,8 @@ The translator handoff, as an Excel workbook or as delimited text; see [Manual t
 
 ### exportWorkbook
 
+<AvailableFrom version="0.2.0" />
+
 Writes the strings that still need translating (missing and changed keys per locale; add unchanged
 ones with `includeUnchanged`) into a styled `.xlsx` workbook. Rows carry the same review-flag
 signal a translate run computes. No provider call, no lock write.
@@ -169,6 +177,8 @@ the file and the file-system code, with the file-system error as its `cause`.
 Each unit with a target also carries its origin: XLIFF 1.2 qualifies an unapproved machine-class target with `state-qualifier="mt-suggestion"`, and XLIFF 2.0 adds `origin` and `review-state` entries to the unit's `verbatra` metadata group. The result then also carries `provenanceMarkers`: `"written"`, or `"unavailable"` when the provenance file could not be read and no marker was written. See [Machine-translation evidence](/docs/provenance-evidence#markers-in-exports).
 
 ### importWorkbook
+
+<AvailableFrom version="0.2.0" />
 
 Reads a filled workbook back into the locale files, running the same source-drift and integrity
 checks as `translate`. Only accepted rows advance their lock baseline; a blank or rejected

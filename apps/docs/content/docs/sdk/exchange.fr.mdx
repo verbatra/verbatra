@@ -9,6 +9,8 @@ Les briques d'un observateur à rafraîchissement en direct comme celui de Studi
 
 ### readLocaleFileSnapshot
 
+<AvailableFrom version="0.5.0" />
+
 Lit un fichier de locale (la locale source ou n'importe quelle locale cible) et le réduit à un hash de contenu par clé. Un fichier qui n'existe pas encore se lit comme un instantané vide plutôt que de lever.
 
 ```ts title="Signature"
@@ -28,6 +30,8 @@ Renvoie `{ locale, hashes }`.
 
 ### diffLocaleSnapshots
 
+<AvailableFrom version="0.5.0" />
+
 Compare deux instantanés du même fichier, pris à des moments différents, et compte les clés ajoutées, modifiées et supprimées entre les deux. Une fonction synchrone ordinaire : `diffLocaleSnapshots(previous, current)` renvoie `{ added, changed, removed }`. Des comptes seulement, jamais de noms de clés.
 
 ```ts title="Signature"
@@ -42,6 +46,8 @@ function diffLocaleSnapshots(
 ## Chemins de locale
 
 ### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
 
 Résout la correspondance entre locales et chemins du projet dans les deux sens, à partir de
 `files.pattern`, des locales configurées et de `files.localeStyle`. `createLocalePathResolver(cwd,
@@ -129,6 +135,8 @@ La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte
 
 ### exportWorkbook
 
+<AvailableFrom version="0.2.0" />
+
 Écrit les chaînes encore à traduire (clés manquantes et modifiées par locale ; ajoute les inchangées avec `includeUnchanged`) dans un classeur `.xlsx` stylisé. Les lignes portent le même signal de révision que calcule une exécution translate. Aucun appel de fournisseur, aucune écriture du verrou.
 
 ```ts title="Signature"
@@ -155,6 +163,8 @@ Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de 
 Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/docs/provenance-evidence#marqueurs-dans-les-exports).
 
 ### importWorkbook
+
+<AvailableFrom version="0.2.0" />
 
 Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes contrôles de dérive de source et d'intégrité que `translate`. Seules les lignes acceptées font avancer leur ligne de base du verrou ; une ligne vide ou rejetée continue de se réexporter jusqu'à sa vraie résolution.
 

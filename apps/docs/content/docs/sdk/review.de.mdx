@@ -11,6 +11,8 @@ Review-Tooling zu bauen. Alle lösen `locale` und `key` bei jedem Aufruf frisch 
 
 ### keyValue
 
+<AvailableFrom version="0.5.0" />
+
 Liest den aktuellen Quellwert eines Keys und, falls vorhanden, seinen aktuellen Zielwert für eine
 Locale. Nur lesend.
 
@@ -83,6 +85,8 @@ Jeder Commit trägt `hash`, `author`, `authorDate`, `subject` und `touchedPaths`
 
 ### editEntry
 
+<AvailableFrom version="0.5.0" />
+
 Schreibt eine von Hand getippte Korrektur für einen Key und eine Locale. Der Kandidatenwert
 durchläuft dasselbe Integritäts-Gate wie eine Provider-Übersetzung, bevor irgendetwas die Platte
 erreicht; bei Annahme werden die Locale-Datei und der Lock-Eintrag für diesen Key innerhalb der
@@ -128,6 +132,8 @@ Mit `actor: "agent"` wirft ein Key, der auf die `pinnedKeys` der Konfiguration p
 `lockAcquireTimeoutMs` begrenzt die Wartezeit auf die Schreibsperre der Locale, bevor der Aufruf mit `LOCK_CONTENDED` scheitert (standardmäßig zehn Minuten), `onLockWait` meldet diese Wartezeit, und eine ungültige Grenze scheitert mit `LOCK_TIMEOUT_INVALID`, bevor etwas gelesen wird.
 
 ### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
 
 Lässt den Provider für genau einen Key und eine Locale neu laufen: ein Einzeleintrag-Aufruf durch
 denselben Provider-Pfad, den `translate` nutzt, abgesichert durch dieselben

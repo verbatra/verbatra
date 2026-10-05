@@ -10,6 +10,8 @@ estado de un archivo de locale y luego cuenta qué cambió desde entonces.
 
 ### readLocaleFileSnapshot
 
+<AvailableFrom version="0.5.0" />
+
 Lee un archivo de locale (el locale de origen o cualquier locale de destino) y lo reduce a un hash de
 contenido por clave. Un archivo que todavía no existe se lee como una instantánea vacía en lugar de
 lanzar.
@@ -31,6 +33,8 @@ Devuelve `{ locale, hashes }`.
 
 ### diffLocaleSnapshots
 
+<AvailableFrom version="0.5.0" />
+
 Compara dos instantáneas del mismo archivo, tomadas en momentos distintos, y cuenta las claves añadidas,
 modificadas y eliminadas entre ambas. Una función síncrona normal: `diffLocaleSnapshots(previous,
 current)` devuelve `{ added, changed, removed }`. Solo contadores, nunca nombres de claves.
@@ -47,6 +51,8 @@ function diffLocaleSnapshots(
 ## Rutas de locale
 
 ### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
 
 Resuelve la correspondencia entre locales y rutas del proyecto en ambos sentidos, a partir de
 `files.pattern`, los locales configurados y `files.localeStyle`. `createLocalePathResolver(cwd,
@@ -133,6 +139,8 @@ La entrega para traductores humanos, como libro de Excel o como texto delimitado
 
 ### exportWorkbook
 
+<AvailableFrom version="0.2.0" />
+
 Escribe las cadenas que todavía necesitan traducción (claves faltantes y modificadas por locale; añade
 las sin cambios con `includeUnchanged`) en un libro `.xlsx` con estilos. Las filas llevan la misma señal
 de revisión que calcula una ejecución de translate. Sin llamada al proveedor, sin escritura del bloqueo.
@@ -176,6 +184,8 @@ mensaje, y el error del sistema de archivos como `cause`.
 Cada unidad con destino lleva además su origen: XLIFF 1.2 califica un destino de clase máquina sin aprobar con `state-qualifier="mt-suggestion"`, y XLIFF 2.0 añade las entradas `origin` y `review-state` al grupo de metadatos `verbatra` de la unidad. El resultado lleva entonces también `provenanceMarkers`: `"written"`, o `"unavailable"` cuando no se pudo leer el archivo de procedencia y no se escribió ninguna marca. Consulta [Evidencia de traducción automática](/docs/provenance-evidence#marcas-en-las-exportaciones).
 
 ### importWorkbook
+
+<AvailableFrom version="0.2.0" />
 
 Lee un libro rellenado de vuelta a los archivos de locale, ejecutando las mismas comprobaciones de
 desfase del origen e integridad que `translate`. Solo las filas aceptadas avanzan su

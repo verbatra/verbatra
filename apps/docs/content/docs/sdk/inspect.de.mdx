@@ -93,6 +93,8 @@ optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member w
 
 ### check
 
+<AvailableFrom version="0.4.0" />
+
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
 (Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
 
@@ -194,6 +196,8 @@ Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
 Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
 und kippen nie `hasPendingChanges`, da ein Standardlauf kein `prune` ausführt.
@@ -229,6 +233,8 @@ wessen Arbeit eine Neuübersetzung ersetzen würde.
 Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert. Sie zählen weiter als ausstehend. Ist die Provenienz-Datei nicht lesbar, werden nur gepinnte Keys gelistet.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Meldet für die geänderten Keys jeder Locale, ob der aktuelle Zielwert noch zu den Platzhaltern der
 Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
@@ -292,6 +298,8 @@ Platte.
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Meldet für die Lock-Datei Existenz, Version und Drift pro Locale (Baseline-Key-Anzahl plus Zähler
 für fehlend, veraltet und aktuell). `exists` stammt aus einer expliziten Prüfung, sodass "noch keine
 Lock-Datei" und "eine leere, aber vorhandene Lock-Datei" unterscheidbar bleiben. Fehlt die Datei,
@@ -313,6 +321,8 @@ function lockState(
 Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Liest die Lock-Datei selbst (`verbatra.lock.json`, auch als `LOCK_FILE_NAME` exportiert) und gibt
 ihre geparste Form zurück: `{ version, locales }`, wobei jede Locale Keys auf den Hash des
@@ -364,6 +374,8 @@ function loadProvenance(
 Keine Konfiguration nötig.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `translate`- oder
 `watch`-Lauf ohne Dry-Run nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine

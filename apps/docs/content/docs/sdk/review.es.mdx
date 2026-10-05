@@ -11,6 +11,8 @@ de revisión. Todas resuelven `locale` y `key` de nuevo en cada llamada y lanzan
 
 ### keyValue
 
+<AvailableFrom version="0.5.0" />
+
 Lee el valor de origen actual de una clave y, cuando existe, su valor de destino actual para un locale.
 Solo lectura.
 
@@ -83,6 +85,8 @@ Cada commit lleva `hash`, `author`, `authorDate`, `subject` y `touchedPaths`. `a
 
 ### editEntry
 
+<AvailableFrom version="0.5.0" />
+
 Escribe una corrección tecleada por un humano para una clave y un locale. El valor candidato pasa por la
 misma puerta de integridad que una traducción del proveedor antes de que nada llegue
 al disco; al aceptarse, el archivo de locale y la entrada del bloqueo de esa clave se actualizan dentro
@@ -128,6 +132,8 @@ Con `actor: "agent"`, una clave que coincide con los `pinnedKeys` de la configur
 `lockAcquireTimeoutMs` limita la espera del bloqueo de escritura del locale antes de que la llamada falle con `LOCK_CONTENDED` (diez minutos por defecto), `onLockWait` informa de esa espera, y un límite no válido falla con `LOCK_TIMEOUT_INVALID` antes de leer nada.
 
 ### retranslateEntry
+
+<AvailableFrom version="0.5.0" />
 
 Vuelve a ejecutar el proveedor para exactamente una clave y un locale: una llamada de una sola entrada a
 través de la misma ruta de proveedor que usa `translate`, protegida por las mismas comprobaciones de
