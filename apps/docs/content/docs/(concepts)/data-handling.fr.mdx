@@ -13,7 +13,7 @@ CI. Ce site relève de sa [politique de confidentialité](/privacy).
   aucune avec `provider: { id: "none" }`.
 - **Seul ce qui doit être traduit est envoyé** : ni clés inchangées, ni succès du cache, ni clés
   protégées (sauf les modifications humaines obsolètes avec `humanEdits: "suggest"`).
-- **Tout le reste reste local** : Studio sur `127.0.0.1`, le serveur MCP via stdio.
+- **Tout le reste reste local**, Studio et le serveur MCP compris.
 - **Les clés d'API viennent uniquement de variables d'environnement** et n'apparaissent jamais dans
   un message.
 
@@ -66,7 +66,7 @@ qu'au point de terminaison configuré (`google-translate` l'envoie dans la chaî
 
 <AvailableFrom version="0.12.0" />
 
-`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs par défaut trouvent les clés d'API, e-mails, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes. Le détecteur `email` ignore `example.com`, `.org` et `.net`, et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`).
+`sensitiveData` analyse, avant chaque requête, ce que le tableau ci-dessus envoie. Les détecteurs par défaut trouvent les clés d'API, e-mails, IBAN et numéros de carte ; `phone`, `ip` et `private-host` s'activent au besoin, et `patterns` ajoute tes propres termes. Le détecteur `email` ignore `example.com`, `example.org`, `example.net` et les domaines sous `.example`, `.test`, `.invalid` ou `.localhost`. Un motif est refusé s'il répète un groupe contenant un quantificateur ou une alternative, contient plus d'un `*`, `+` ou `{n,}`, ou se ramifie trop. Il lit les 2 000 premiers caractères d'un champ et s'arrête après une seconde ; un dépassement est une trouvaille (`pattern-timeout-<n>`).
 
 | `mode` | Effet |
 | --- | --- |
@@ -85,10 +85,10 @@ septembre 2026.
 | --- | --- | --- |
 | Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([conservation](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products [...] to train our models" ([entraînement](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). La conservation zéro est un accord par organisation ([détails](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
 | OpenAI | "data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)"; "abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law". Zero Data Retention et Modified Abuse Monitoring "are subject to prior approval by OpenAI", et `/v1/chat/completions`, le endpoint qu'appelle verbatra, y figure comme éligible ([your data](https://developers.openai.com/api/docs/guides/your-data)). | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
-| Gemini | Sur le niveau gratuit (Unpaid Services), "human reviewers may read, annotate, and process your API input and output". Sur les Paid Services, "Google doesn't use your prompts [...] or responses to improve our products" et les journalise "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy". Dans l'EEE, en Suisse et au Royaume-Uni, les conditions des Paid Services s'appliquent à tout usage, niveau gratuit compris ([Gemini API terms](https://ai.google.dev/gemini-api/terms)). verbatra n'utilise ni le grounding ni le cache explicite, que la page de [conservation zéro](https://ai.google.dev/gemini-api/docs/zdr) de Google exclut. | [Processor terms](https://business.safety.google/processorterms/), que les Gemini API terms citent pour les Paid Services |
+| Gemini | Sur le niveau gratuit (Unpaid Services), "human reviewers may read, annotate, and process your API input and output", et les conditions disent "Do not submit sensitive, confidential, or personal information to the Unpaid Services". Sur les Paid Services, "Google doesn't use your prompts [...] or responses to improve our products" et les journalise "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy". Dans l'EEE, en Suisse et au Royaume-Uni, les conditions des Paid Services s'appliquent à tout usage, niveau gratuit compris ([Gemini API terms](https://ai.google.dev/gemini-api/terms)). verbatra n'utilise ni le grounding ni le cache explicite, que la page de [conservation zéro](https://ai.google.dev/gemini-api/docs/zdr) de Google exclut. | [Processor terms](https://business.safety.google/processorterms/), que les Gemini API terms citent pour les Paid Services |
 | DeepL | Pour DeepL API Free, la [politique de confidentialité](https://www.deepl.com/en/privacy) dit : "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Pour Pro, "your texts will not be used to improve the quality of our services", et "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auquel renvoient les [conditions DeepL Pro](https://www.deepl.com/en/pro-license) |
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", et "Google does not use the content you send to train and improve our Google Translation features" ([data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
-| openai-compatible, LibreTranslate | Ce que fait ton propre serveur. Un serveur que tu fais tourner toi-même garde les textes sur du matériel que tu contrôles. | Les tiennes |
+| openai-compatible, LibreTranslate | Ce que fait ton propre serveur. | Les tiennes |
 
 ## Garder les textes en interne
 
@@ -123,8 +123,8 @@ affiche au démarrage, et sa Content-Security-Policy bloque les accès à Intern
 
 **Le serveur MCP** parle via stdio sans ouvrir de port. Ses outils de lecture renvoient textes,
 glossaire et statut ; [`--redact-values`](/docs/cli/mcp#redacted-values) fait de chaque valeur un
-marqueur, avec les limites décrites là-bas. `history.list` donne pour chaque commit le hash, la
-date, le nom de l'auteur (pas avec `--redact-values`), le sujet et les chemins, jamais l'e-mail.
+marqueur, avec les limites décrites là-bas. `history.list` donne l'auteur de chaque commit (pas
+avec `--redact-values`), jamais l'e-mail.
 
 Un client MCP, ou un agent navigateur qui utilise `--expose-agent-tools` de Studio, envoie ce qu'il
 lit à son modèle d'IA, sous les conditions de ce fournisseur. Les outils d'agent de Studio ne sont
@@ -133,8 +133,8 @@ jamais masqués.
 ## Traductions générées par IA et provenance
 
 Si les obligations de transparence du règlement européen sur l'IA pour le texte généré par IA
-([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)) s'appliquent à ton
-produit, ton conseil juridique le dira. verbatra
+([Article 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)) s'appliquent, ton
+conseil juridique le dira. verbatra
 [enregistre](/docs/the-lock-file#la-provenance-de-chaque-valeur) le fournisseur et le modèle de
 chaque valeur traduite automatiquement.
 
@@ -149,12 +149,12 @@ chaque valeur traduite automatiquement.
 
 1. Décide si les textes peuvent quitter ton réseau ; sinon, voir
    [Garder les textes en interne](#garder-les-textes-en-interne).
-2. Pour un fournisseur hébergé, prends un niveau payant (Gemini gratuit et DeepL Free peuvent
-   s'entraîner sur ce que tu envoies) et signe ses conditions de traitement des données.
+2. Pour un fournisseur hébergé, prends un niveau payant (Gemini gratuit hors EEE, Suisse et
+   Royaume-Uni, et DeepL Free, peuvent s'entraîner sur ce que tu envoies) et signe ses conditions de traitement des données.
 3. Lance `verbatra check --sensitive` sur tes noms de clé, descriptions et glossaire.
 4. Garde les clés d'API dans un coffre à secrets ou un `.env` ignoré par git, et lance
    `verbatra doctor`.
-5. Décide quels agents IA peuvent utiliser Studio ou le serveur MCP, et si c'est avec
+5. Décide quels agents IA peuvent utiliser Studio ou le serveur MCP, et s'ils ont besoin de
    `--redact-values`.
 6. Commite `verbatra.provenance.json`, et archive `verbatra report provenance --json` à chaque
    version.
