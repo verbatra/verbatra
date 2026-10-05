@@ -137,6 +137,8 @@ opération encore en cours prend, ou tente de prendre, pendant son exécution es
 function releaseHeldLocks(): Promise<void>;
 ```
 
+**Renvoie :** `void`
+
 Un verrou resté en place malgré tout, parce qu'un processus a été tué net, n'en a pas besoin : une
 exécution en attente sur la même machine voit que le processus enregistré n'existe plus et reprend
 le verrou elle-même. Voir [le verrou d'écriture](/docs/the-lock-file#le-verrou-décriture).

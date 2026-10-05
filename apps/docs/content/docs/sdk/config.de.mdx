@@ -266,6 +266,8 @@ function sharedGlossaryTranslations(
 ): Readonly<Record<string, string>>;
 ```
 
+<SdkTypeTable name="Glossary" />
+
 **Rückgabe:** `Readonly<Record<string, string>>`
 
 ### redactGlossary
@@ -282,6 +284,8 @@ deinem eigenen Werkzeug genauso.
 ```ts title="Signatur"
 function redactGlossary(glossary: Glossary): RedactedGlossary;
 ```
+
+<SdkTypeTable name="Glossary" />
 
 **Rückgabe:** `RedactedGlossary`
 
@@ -459,5 +463,7 @@ function assertMachineTranslationEnabled(
   action: string,
 ): void;
 ```
+
+**Rückgabe:** `void`
 
 **Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

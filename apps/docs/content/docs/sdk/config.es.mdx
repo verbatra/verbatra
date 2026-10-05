@@ -262,6 +262,8 @@ function sharedGlossaryTranslations(
 ): Readonly<Record<string, string>>;
 ```
 
+<SdkTypeTable name="Glossary" />
+
 **Devuelve:** `Readonly<Record<string, string>>`
 
 ### redactGlossary
@@ -278,6 +280,8 @@ en tu propia herramienta.
 ```ts title="Firma"
 function redactGlossary(glossary: Glossary): RedactedGlossary;
 ```
+
+<SdkTypeTable name="Glossary" />
 
 **Devuelve:** `RedactedGlossary`
 
@@ -454,5 +458,7 @@ function assertMachineTranslationEnabled(
   action: string,
 ): void;
 ```
+
+**Devuelve:** `void`
 
 **Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

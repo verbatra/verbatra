@@ -157,6 +157,8 @@ ningún archivo; espera como máximo tres segundos a esa adquisición.
 function releaseHeldLocks(): Promise<void>;
 ```
 
+**Devuelve:** `void`
+
 Un bloqueo que queda atrás de todos modos, porque un proceso se mató de golpe, no lo necesita: una
 ejecución en espera en la misma máquina ve que el proceso registrado ya no existe y recupera el
 bloqueo por sí misma. Consulta [el bloqueo de escritura](/docs/the-lock-file#el-bloqueo-de-escritura).

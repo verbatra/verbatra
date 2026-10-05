@@ -190,6 +190,8 @@ function sharedGlossaryTranslations(
 ): Readonly<Record<string, string>>;
 ```
 
+<SdkTypeTable name="Glossary" />
+
 **Renvoie :** `Readonly<Record<string, string>>`
 
 ### redactGlossary
@@ -201,6 +203,8 @@ Fait passer chaque terme source, traduction, traduction interdite, note, catégo
 ```ts title="Signature"
 function redactGlossary(glossary: Glossary): RedactedGlossary;
 ```
+
+<SdkTypeTable name="Glossary" />
 
 **Renvoie :** `RedactedGlossary`
 
@@ -347,5 +351,7 @@ function assertMachineTranslationEnabled(
   action: string,
 ): void;
 ```
+
+**Renvoie :** `void`
 
 **Lève :** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

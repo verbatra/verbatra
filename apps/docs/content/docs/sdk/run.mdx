@@ -152,6 +152,8 @@ A lock that a still-running operation is taking, or tries to take, while it runs
 function releaseHeldLocks(): Promise<void>;
 ```
 
+**Returns:** `void`
+
 A lock left behind anyway, by a process killed outright, does not need it: a waiting run on the
 same machine sees that the recorded process is gone and reclaims the lock itself. See
 [the write lock](/docs/the-lock-file#the-write-lock).

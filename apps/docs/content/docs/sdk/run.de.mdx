@@ -159,6 +159,8 @@ hinterlässt keine Datei; auf eine solche Übernahme wartet es höchstens drei S
 function releaseHeldLocks(): Promise<void>;
 ```
 
+**Rückgabe:** `void`
+
 Eine Sperre, die trotzdem liegen bleibt, weil ein Prozess hart beendet wurde, braucht es nicht: Ein
 wartender Durchlauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr läuft,
 und übernimmt die Sperre selbst. Siehe [die Schreibsperre](/docs/the-lock-file#die-schreibsperre).
