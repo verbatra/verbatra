@@ -139,8 +139,8 @@ footer's oversized watermark only; do not clip it onto a heading.
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
   the install box's second row is `AiSetupPrompt` (`components/ai-setup-prompt.tsx`, `variant="row"`):
   the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
-  prompt's small Copy button; its URL breaks only after a `/` through `breakUrlsAtSlashes` in
-  `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
+  prompt's small Copy button; its URL breaks only after a path `/`, never inside the scheme or
+  host, through `breakUrlsAtSlashes` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
@@ -151,7 +151,7 @@ footer's oversized watermark only; do not clip it onto a heading.
   `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
   recaptured.
 - **Docs-facing:** `<AiSetupPrompt />` in `start-with-ai*.mdx` renders the same prompt as a
-  void panel, so `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) is its one source;
+  void panel in `text-sm` `--text-body`, capped at the prose measure like a callout, so `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) is its one source;
   `remarkAiSetupPromptMarkdown` gives the page's `.md` output the prompt as a `text` fence.
   `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
@@ -162,15 +162,20 @@ footer's oversized watermark only; do not clip it onto a heading.
   one lead, and `PackageInstall` beside it from `lg` up), with no hero wash, no buttons and no
   facts row, so the first section head sits above the fold. The header and the body share one
   frame (`HOME_FRAME`: one max width, one gutter), so they start and end on the same edges; a
-  section head sets its lead on the heading's last baseline, starting at its column's edge. A
-  backticked span in a header or section lead renders in code type (`withInlineCode`,
-  `lib/inline-code-text.tsx`), and a path card title keeps a hyphenated compound on one line.
+  section head sets its `vk-h3` heading and its lead on the header's column template, so each
+  lead starts on the install box's edge, on the heading's last baseline. A backticked span in a
+  header or section lead renders in code type (`withInlineCode`, `lib/inline-code-text.tsx`),
+  and a path card title keeps a hyphenated compound on one line (`keepCompoundsWhole`,
+  `lib/word-breaks.tsx`).
   `StackCards` (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top
-  of `pick-your-stack`: one flat grid of flat-panel cards (`.vk-stack-grid`: two columns, three from
-  a 50rem container, with the last card spanning the rest of its row so no slot stays empty;
-  under a 30rem container a card stacks its chip above the name), each a single-colour logo in a round `--surface-card` chip, the stack name in
-  the display face, and its `--format` ids in mono `--text-faint`, with no group labels and no
-  arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
+  of `pick-your-stack`: one flat grid of flat-panel cards (`.vk-stack-grid`: two columns, three
+  from a 50rem container, with the last card spanning the rest of its row so no slot stays
+  empty; under a 30rem container a card stacks its chip above the name), each a single-colour
+  logo in a round `--surface-card` chip, the stack name in the display face, and its `--format`
+  ids in mono `--text-faint`, each id `whitespace-nowrap` (a list breaks at its comma; only
+  under a 21rem container does an id wrap, and then only after a hyphen, since no
+  `overflow-wrap` is set; a `<wbr>` would not do, as Chrome breaks at it even inside
+  `nowrap`), with no group labels and no arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
   (shared with the marquee), always `currentColor`, never a brand colour, since several brand
   colours are black on this dark-only site; a format with no brand mark gets an outline glyph
   there. The grid is a `nav` named by `labelledBy`, the id of the heading above it (the docs home
