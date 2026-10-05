@@ -6,6 +6,7 @@ import { TypeTable } from "fumadocs-ui/components/type-table";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import type { ComponentProps } from "react";
+import { AiSetupPrompt } from "@/components/ai-setup-prompt";
 import { AvailableFrom, type AvailableFromProps } from "@/components/available-from";
 import { DiffPanel } from "@/components/diff-panel";
 import {
@@ -81,6 +82,7 @@ export function getMDXComponents(
       );
     },
     AvailableFrom: (props: AvailableFromProps) => <AvailableFrom {...props} locale={locale} />,
+    AiSetupPrompt: () => <AiSetupPrompt variant="panel" />,
     DiffPanel,
     Step,
     Steps,

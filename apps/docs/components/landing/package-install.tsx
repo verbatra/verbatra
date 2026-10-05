@@ -2,12 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
+import { AiSetupPrompt } from "@/components/ai-setup-prompt";
 import { HighlightedCommand } from "@/components/ui/command-line";
 import { CopyButton } from "@/components/ui/copy-button";
-import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { trackUmamiEvent } from "@/lib/umami";
-import { breakUrlsAtSeparators } from "@/lib/word-breaks";
 import { NPM_CLI } from "./links";
 
 export function PackageInstall(): ReactNode {
@@ -40,26 +39,7 @@ export function PackageInstall(): ReactNode {
             }
           />
         </div>
-        <figure
-          className="m-0 grid gap-1 border-t px-3.5 py-2"
-          style={{ borderColor: "var(--border-default)" }}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <figcaption className="vk-label min-w-0 leading-6">{t("aiLabel")}</figcaption>
-            <CopyButton
-              text={AI_SETUP_PROMPT}
-              label={t("copyPromptAria")}
-              className="min-h-6 px-2 text-xs"
-              onCopied={() => trackUmamiEvent("copy-ai-prompt")}
-            />
-          </div>
-          <p
-            lang="en"
-            className="m-0 font-sans text-xs leading-[18px] text-[color:var(--text-muted)]"
-          >
-            {breakUrlsAtSeparators(AI_SETUP_PROMPT)}
-          </p>
-        </figure>
+        <AiSetupPrompt variant="row" />
       </div>
     </div>
   );
