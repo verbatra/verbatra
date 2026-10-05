@@ -359,3 +359,20 @@ function assertMachineTranslationEnabled(
 **Renvoie :** `void`
 
 **Lève :** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
+
+### assertTargetLocale
+
+<AvailableFrom version="0.12.0" />
+
+Prend la configuration et une locale, et lève une `SdkError` `UNKNOWN_LOCALE` quand la locale ne fait pas partie des `targetLocales` configurées, avec le même message que chaque fonction du SDK qui accepte un filtre `locales`. Appelle-le dans une surface qui prend elle-même une seule locale, comme le fait `glossary.get` du serveur MCP, pour qu'une mauvaise locale échoue exactement comme dans le SDK.
+
+```ts title="Signature"
+function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void;
+```
+
+**Renvoie :** `void`
+
+**Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
