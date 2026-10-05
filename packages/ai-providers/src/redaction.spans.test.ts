@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PROVIDER_ENV } from "./key-env-vars.js";
 import { findKeyShapes, redactKeys } from "./redaction.js";
 
-const SK = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
+const SK = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`;
 const AIZA = `AIza${"B".repeat(35)}`;
 const UUID = "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b";
 

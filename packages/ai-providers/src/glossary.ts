@@ -58,7 +58,8 @@ export const localeGlossarySchema = z.object({
 export function appliesTerms(glossary: LocaleGlossary | undefined): boolean {
   return (
     glossary !== undefined &&
-    (glossary.doNotTranslate.length > 0 || glossary.terms.some((term) => term.target !== undefined))
+    (glossary.doNotTranslate.length > 0 ||
+      glossary.terms.some((term) => term.target !== undefined && term.target !== ""))
   );
 }
 
