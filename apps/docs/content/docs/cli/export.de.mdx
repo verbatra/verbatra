@@ -30,7 +30,7 @@ Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`
 
 Eine Datei mit Trennzeichen lässt sich diffen und überall öffnen, hat aber keinen Zellschutz: Jede Spalte ist bearbeitbar, und die Spalte `Source hash` ist sichtbar. Einem geänderten Hash wird nie vertraut: Der Import vergleicht ihn mit der aktuellen Quelle und hält die Zeile zurück.
 
-Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die geschriebenen Locales benennt. Ein späterer Export mit engerem `--locales` legt die weggefallenen Locales still: Ihre Dateien bleiben liegen, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück. Der Export löscht nie etwas aus dem Ausgabeverzeichnis.
+Jeder Export mit Trennzeichen schreibt zusätzlich ein verstecktes Manifest, `.verbatra-export-csv.json` oder `.verbatra-export-tsv.json`, das die geschriebenen Locales benennt. Ein späterer Export mit engerem `--locales` legt die weggefallenen Locales still: ihre Dateien bleiben liegen, und [`verbatra import`](/docs/cli/import) weist sie als Überbleibsel zurück. Der Export löscht nie etwas aus dem Ausgabeverzeichnis.
 
 ### XLIFF
 

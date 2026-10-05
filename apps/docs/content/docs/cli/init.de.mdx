@@ -17,7 +17,7 @@ verbatra init [flags]
 | --- | --- | --- | --- |
 | `--provider` | `<id>` | keiner (erforderlich) | Provider, der aufgesetzt wird: `anthropic`, `openai`, `gemini`, `deepl`, `google-translate`, `openai-compatible`, `libretranslate` oder `none` |
 | `--format` | `<id>` | erkannt, sonst `i18next-json` | das Format der Locale-Dateien, eine der IDs unter [Formate](/docs/formats) |
-| `--source` | `<locale>` | erkannt, sonst `en` | das Quell-Locale, in dem deine Strings geschrieben sind |
+| `--source` | `<locale>` | erkannt, sonst `en` | die Quell-Locale, in der deine Strings geschrieben sind |
 | `--targets` | `<locales>` | erkannt, sonst `de` | kommagetrennte Ziel-Locales, in die übersetzt wird |
 | `--path` | `<pattern>` | erkannt, sonst das übliche Layout des Formats ([Erkennung](#erkennung)) | Muster der Locale-Dateien; muss das Token `{locale}` enthalten |
 | `--model` | `<name>` | der Standard des Scaffolds | das Modell; erforderlich für `openai-compatible`, optional für `anthropic`, `openai` und `gemini` |
@@ -41,14 +41,14 @@ Jede Antwort wird sofort geprüft. Eine ungültige wird auf stderr erklärt und 
 
 ### Erkennung
 
-`init` durchsucht das Verzeichnis nach Dateien, die ein Format-Adapter beansprucht, überspringt versteckte Verzeichnisse, `node_modules` und Build-Ausgabe und findet den Teil jedes Pfads, der ein Locale ausschreibt, etwa `de.json`, `messages_pt_BR.properties`, `de.lproj/` oder Androids `values-de/`. Das Dateimuster, das die meisten Locales abdeckt, gewinnt, und daraus ergeben sich:
+`init` durchsucht das Verzeichnis nach Dateien, die ein Format-Adapter beansprucht, überspringt versteckte Verzeichnisse, `node_modules` und Build-Ausgabe und findet den Teil jedes Pfads, der eine Locale ausschreibt, etwa `de.json`, `messages_pt_BR.properties`, `de.lproj/` oder Androids `values-de/`. Das Dateimuster, das die meisten Locales abdeckt, gewinnt, und daraus ergeben sich:
 
 - `format`: das eine Format, dessen Adapter jede gefundene Datei liest. Jeder JSON-Adapter liest `.json`, deshalb entscheidet bei JSON-Dateien eine einzelne passende Dependency in `package.json` (`i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`).
 - `files.pattern` und `files.localeStyle`: `posix`, wenn die Dateien `pt_BR` schreiben, `android` für `values-*`-Verzeichnisse, sonst `literal`.
-- `sourceLocale`: die Quellsprache eines `.xcstrings`-Katalogs, sonst `en` oder das einzige gefundene `en-*`-Locale, sonst das einzige gefundene Locale.
-- `targetLocales`: jedes andere gefundene Locale.
+- `sourceLocale`: die Quellsprache eines `.xcstrings`-Katalogs, sonst `en` oder die einzige gefundene `en-*`-Locale, sonst die einzige gefundene Locale.
+- `targetLocales`: jede andere gefundene Locale.
 
-Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties`, `Strings.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra kann die Quelle nicht aus so einer Datei lesen, deshalb rät `init` das Quell-Locale nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte nennen die Datei, in die du die Basisdatei umbenennen oder kopieren sollst.
+Eine Datei neben den Locale-Dateien, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties`, `Strings.resx` oder eine gettext-Datei `app.pot`, wird als `unqualifiedSourceFile` gemeldet. verbatra kann die Quelle nicht aus so einer Datei lesen, deshalb rät `init` die Quell-Locale nicht: Übergib `--source`, auch mit `--yes`, und die nächsten Schritte nennen die Datei, in die du die Basisdatei umbenennen oder kopieren sollst.
 
 Gibt es gar keine Locale-Datei, entscheiden allein die Dependencies über das Format, und das Muster folgt dem üblichen Layout des Formats, wie es für jedes Format unter [Wähle deinen Stack](/docs/pick-your-stack) steht.
 
@@ -111,7 +111,7 @@ interface InitResult {
 }
 ```
 
-`confidence` ist `high`, wenn allein die Dateien alles entschieden haben, `medium`, wenn eine Konvention oder eine Dependency eine Lücke gefüllt hat (etwa `en` als Quelle) oder eine Lücke offen blieb (etwa das Quell-Locale von Androids unqualifiziertem `values`-Verzeichnis), `low`, wenn keine Locale-Datei das Format gestützt hat, und `none`, wenn nichts erkannt wurde. Ein `default` in `sources` ist der Wert, den du noch einmal prüfen solltest. `nextSteps` endet mit den genauen nächsten Befehlen, etwa `npx verbatra doctor`.
+`confidence` ist `high`, wenn allein die Dateien alles entschieden haben, `medium`, wenn eine Konvention oder eine Dependency eine Lücke gefüllt hat (etwa `en` als Quelle) oder eine Lücke offen blieb (etwa die Quell-Locale von Androids unqualifiziertem `values`-Verzeichnis), `low`, wenn keine Locale-Datei das Format gestützt hat, und `none`, wenn nichts erkannt wurde. Ein `default` in `sources` ist der Wert, den du noch einmal prüfen solltest. `nextSteps` endet mit den genauen nächsten Befehlen, etwa `npx verbatra doctor`.
 
 Ein Fehler-Envelope für `FORMAT_AMBIGUOUS`, `LAYOUT_AMBIGUOUS`, `INVALID_PROVIDER` oder `INVALID_FORMAT` trägt zusätzlich `candidates`, die Werte zur Auswahl. Jeder Verwendungsfehler, der Flags unbeantwortet lässt, trägt `missing` mit ihren Namen, etwa `"--source <locale>"`.
 

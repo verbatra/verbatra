@@ -77,7 +77,7 @@ In einem [rein menschlichen](/docs/human-only-workflow) Projekt (`provider: { id
 
 <AvailableFrom version="0.9.0" />
 
-Eine fehlgeschlagene Locale ist nicht fatal: Der Lauf wird fertig und endet mit `1`. Auch eine **partielle** Locale endet mit `1`: Ihre Datei wurde geschrieben, aber es fehlen noch Keys, meist weil ein Provider-Teilbatch scheiterte oder das Integritäts-Gate eine Übersetzung ablehnte. Die menschenlesbare Ausgabe listet jeden abgelehnten Key unter `integrity-withheld` mit Grund (`placeholder`, `markup`, `icu`, `degenerate` oder `empty`); mit `--json` trägt jede Locale sie in `integrityRefusals`.
+Eine fehlgeschlagene Locale ist nicht fatal: Der Lauf wird fertig und endet mit `1`. Auch eine **partielle** Locale endet mit `1`: ihre Datei wurde geschrieben, aber es fehlen noch Keys, meist weil ein Provider-Teilbatch scheiterte oder das Integritäts-Gate eine Übersetzung ablehnte. Die menschenlesbare Ausgabe listet jeden abgelehnten Key unter `integrity-withheld` mit Grund (`placeholder`, `markup`, `icu`, `degenerate` oder `empty`); mit `--json` trägt jede Locale sie in `integrityRefusals`.
 
 ### Nicht unterstützte Locales
 

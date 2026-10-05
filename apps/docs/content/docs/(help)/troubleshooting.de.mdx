@@ -86,10 +86,10 @@ SDK mit einer Registry, die seinen Adapter enthält: siehe
 
 **Symptom**: `Requested locale not in the configured target locales: ...`
 
-**Ursache**: `--locales` (oder eine `locales`-Eingabe im SDK) nennt ein Locale, das nicht in
+**Ursache**: `--locales` (oder eine `locales`-Eingabe im SDK) nennt eine Locale, die nicht in
 `targetLocales` steht. Ein Filter wählt aus der konfigurierten Liste aus; er ergänzt sie nie.
 
-**Lösung**: Nimm das Locale in `targetLocales` auf, oder korrigiere den Tippfehler. Code:
+**Lösung**: Nimm die Locale in `targetLocales` auf, oder korrigiere den Tippfehler. Code:
 [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale).
 
 ## Die Quelldatei fehlt oder lässt sich nicht parsen (SOURCE_UNREADABLE, SOURCE_INVALID)
@@ -131,7 +131,7 @@ Timeout oder HTTP 401/403.
 
 **Lösung**: Nichts geht verloren; die Keys werden beim nächsten Lauf wieder aufgegriffen. Starte
 bei [`RATE_LIMITED`](/docs/error-codes#rate_limited) später erneut, bei einem strengen Kontingent
-ein Locale nach dem anderen mit `--locales`. Für ein langsames Modell heb gegen
+eine Locale nach der anderen mit `--locales`. Für ein langsames Modell heb gegen
 [`TIMEOUT`](/docs/error-codes#timeout) den Wert [`requestTimeoutMs`](/docs/providers#anfrage-timeout)
 an. [`AUTH_FAILED`](/docs/error-codes#auth_failed) löst sich nicht durch Wiederholen: Ersetze den
 Schlüssel.
@@ -159,8 +159,8 @@ veraltet erkannt werden. Siehe [Die Lock-Datei](/docs/the-lock-file). Code:
 Verzeichnis, ein schreibgeschützter Mount oder eine volle Platte. Geschrieben wird über eine
 temporäre Datei im selben Verzeichnis, also muss auch das Verzeichnis beschreibbar sein.
 
-**Lösung**: Behebe, was der Dateisystem-Code nennt, und starte erneut. Nur dieses Locale scheitert,
-und es behält seine vorige Datei und Baseline. Code:
+**Lösung**: Behebe, was der Dateisystem-Code nennt, und starte erneut. Nur diese Locale scheitert,
+und sie behält ihre vorige Datei und Baseline. Code:
 [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable).
 
 ## Ein anderer Prozess hält die Schreibsperre (LOCK_CONTENDED)
@@ -168,7 +168,7 @@ und es behält seine vorige Datei und Baseline. Code:
 **Symptom**: `Could not acquire the write lock at <path>: another process is holding it. ...`
 
 **Ursache**: Ein anderes `translate`, `watch`, `import` oder ein Schreibvorgang aus Studio hält die
-Sperre des Locales. Eine Sperre eines beendeten Prozesses auf diesem Rechner wird automatisch
+Sperre der Locale. Eine Sperre eines beendeten Prozesses auf diesem Rechner wird automatisch
 zurückgeholt, eine verbliebene stammt also von einem anderen Rechner oder einem verbatra älter als
 0.12.0.
 
