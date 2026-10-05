@@ -1,14 +1,18 @@
 import { SiNpm } from "@icons-pack/react-simple-icons";
-import { getTranslations } from "next-intl/server";
+import Image from "next/image";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { VMark } from "@/components/landing";
 import { NewBadge } from "@/components/new-badge";
-import { fetchContributors, type GithubContributor } from "@/lib/contributors";
+import { CONTRIBUTORS, type Contributor } from "@/lib/contributors";
+import { type Locale, localizedPath } from "@/lib/i18n";
 import { GRID_PATTERN_STYLE } from "./fx/grid-pattern";
 import { GithubIcon } from "./github-icon";
 import {
   CODE_OF_CONDUCT_URL,
   GITHUB_URL,
+  LEGAL_PAGE_LINKS,
+  LICENSE_URL,
   NPM_CLI,
   NPM_MCP,
   NPM_SDK,
@@ -24,6 +28,7 @@ type FooterLink = {
   external?: boolean;
   trackingTarget?: string;
   isNew?: boolean;
+  localized?: boolean;
 };
 type FooterCol = { col: string; titleKey: string; links: ReadonlyArray<FooterLink> };
 
@@ -32,12 +37,12 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "product",
     titleKey: "cols.product.title",
     links: [
-      { labelKey: "cols.product.documentation", href: "/docs" },
-      { labelKey: "cols.product.cliReference", href: "/docs/cli" },
-      { labelKey: "cols.product.sdk", href: "/docs/sdk" },
-      { labelKey: "cols.product.studio", href: "/docs/cli/studio" },
-      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true },
-      { labelKey: "cols.product.githubAction", href: "/docs/github-action" },
+      { labelKey: "cols.product.documentation", href: "/docs", localized: true },
+      { labelKey: "cols.product.cliReference", href: "/docs/cli", localized: true },
+      { labelKey: "cols.product.sdk", href: "/docs/sdk", localized: true },
+      { labelKey: "cols.product.studio", href: "/docs/cli/studio", localized: true },
+      { labelKey: "cols.product.mcpServer", href: "/docs/cli/mcp", isNew: true, localized: true },
+      { labelKey: "cols.product.githubAction", href: "/docs/github-action", localized: true },
     ],
   },
   {
@@ -53,11 +58,11 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     col: "learn",
     titleKey: "cols.learn.title",
     links: [
-      { labelKey: "cols.learn.howItWorks", href: "/docs/how-it-works" },
-      { labelKey: "cols.learn.providers", href: "/docs/providers" },
-      { labelKey: "cols.learn.formats", href: "/docs/formats" },
-      { labelKey: "cols.learn.lockFile", href: "/docs/the-lock-file" },
-      { labelKey: "cols.learn.configFile", href: "/docs/config-file" },
+      { labelKey: "cols.learn.howItWorks", href: "/docs/how-it-works", localized: true },
+      { labelKey: "cols.learn.providers", href: "/docs/providers", localized: true },
+      { labelKey: "cols.learn.formats", href: "/docs/formats", localized: true },
+      { labelKey: "cols.learn.lockFile", href: "/docs/the-lock-file", localized: true },
+      { labelKey: "cols.learn.configFile", href: "/docs/config-file", localized: true },
     ],
   },
   {
@@ -104,13 +109,15 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
     links: [
       {
         literal: "MIT License",
-        href: `${GITHUB_URL}/blob/main/LICENSE`,
+        href: LICENSE_URL,
         external: true,
         trackingTarget: "license",
       },
-      { labelKey: "cols.legal.privacy", href: "/privacy" },
-      { labelKey: "cols.legal.imprint", href: "/imprint" },
-      { labelKey: "cols.legal.contact", href: "/contact" },
+      ...LEGAL_PAGE_LINKS.map(({ key, path }) => ({
+        labelKey: `cols.legal.${key}`,
+        href: path,
+        localized: true,
+      })),
     ],
   },
 ];
@@ -118,7 +125,17 @@ const FOOTER_COLS: ReadonlyArray<FooterCol> = [
 const LINK_CLASS =
   "inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 transition-colors hover:text-fd-foreground hover:decoration-[color:color-mix(in_srgb,var(--v-glow)_45%,transparent)]";
 
-function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): ReactNode {
+function FooterLinkItem({
+  link,
+  label,
+  newLabel,
+  locale,
+}: {
+  link: FooterLink;
+  label: string;
+  newLabel: string;
+  locale: Locale;
+}): ReactNode {
   if (link.external) {
     return (
       <a
@@ -130,14 +147,15 @@ function FooterLinkItem({ link, label }: { link: FooterLink; label: string }): R
         data-umami-event-target={link.trackingTarget}
       >
         {label}
-        {link.isNew ? <NewBadge>new</NewBadge> : null}
+        {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
       </a>
     );
   }
+  const href = link.localized ? localizedPath(locale, link.href) : link.href;
   return (
-    <a href={link.href} className={LINK_CLASS}>
+    <a href={href} className={LINK_CLASS}>
       {label}
-      {link.isNew ? <NewBadge>new</NewBadge> : null}
+      {link.isNew ? <NewBadge>{newLabel}</NewBadge> : null}
     </a>
   );
 }
@@ -147,7 +165,7 @@ function ContributorsRow({
   title,
   ariaFor,
 }: {
-  contributors: ReadonlyArray<GithubContributor>;
+  contributors: ReadonlyArray<Contributor>;
   title: string;
   ariaFor: (login: string) => string;
 }): ReactNode {
@@ -169,15 +187,12 @@ function ContributorsRow({
               data-umami-event="outbound-link"
               data-umami-event-target="contributor"
             >
-              {/* biome-ignore lint/performance/noImgElement: contributor avatar URLs come from the GitHub API at build/ISR time and are not known to next/image's static remotePatterns allowlist. */}
-              <img
-                src={contributor.avatarUrl}
+              <Image
+                src={contributor.avatarPath}
                 alt={ariaFor(contributor.login)}
                 width={32}
                 height={32}
                 className="h-8 w-8 rounded-full"
-                loading="lazy"
-                decoding="async"
               />
             </a>
           </li>
@@ -188,10 +203,9 @@ function ContributorsRow({
 }
 
 export async function FullFooter(): Promise<ReactNode> {
-  const [t, contributors] = await Promise.all([
-    getTranslations("landing.footer"),
-    fetchContributors(),
-  ]);
+  const t = await getTranslations("landing.footer");
+  const tStatus = await getTranslations("docs.statusBadges");
+  const locale = (await getLocale()) as Locale;
   return (
     <footer
       className="relative overflow-hidden"
@@ -300,7 +314,12 @@ export async function FullFooter(): Promise<ReactNode> {
                 <ul className="flex flex-col gap-2.5 text-sm text-fd-muted-foreground">
                   {col.links.map((link) => (
                     <li key={link.literal ?? link.labelKey}>
-                      <FooterLinkItem link={link} label={link.literal ?? t(link.labelKey ?? "")} />
+                      <FooterLinkItem
+                        link={link}
+                        label={link.literal ?? t(link.labelKey ?? "")}
+                        newLabel={tStatus("new")}
+                        locale={locale}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -309,17 +328,18 @@ export async function FullFooter(): Promise<ReactNode> {
           })}
         </div>
         <ContributorsRow
-          contributors={contributors}
+          contributors={CONTRIBUTORS}
           title={t("contributorsTitle")}
           ariaFor={(login) => t("contributorAria", { name: login })}
         />
         <div
-          className="mt-14 flex flex-wrap items-center gap-x-4 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
+          className="mt-14 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-fd-muted-foreground"
           style={{
             borderTop: "1px solid color-mix(in srgb, var(--border-default) 80%, transparent)",
           }}
         >
-          <span>{t("legalLine")}</span>
+          <span>{t("legalLicense")}</span>
+          <span>{t("legalCopyright")}</span>
         </div>
       </div>
     </footer>

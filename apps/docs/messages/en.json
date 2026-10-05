@@ -5,13 +5,20 @@
       "text": "This page was translated automatically, so it may contain mistakes or read a little oddly. The English version is the source of truth.",
       "viewOriginal": "Read the English original"
     },
+    "outdatedTranslation": {
+      "title": "Translation may be out of date",
+      "text": "The English page changed after this translation."
+    },
     "notTranslated": {
       "title": "Not available in your language",
       "text": "This page has not been translated yet, so it is shown in English."
     },
+    "codeBlock": {
+      "output": "Output"
+    },
     "availableFrom": {
       "title": "Available from {version}",
-      "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with verbatra --version and upgrade if it is older.",
+      "text": "This needs verbatra {version} or newer. Earlier releases do not have it, so check your installed version with <code>verbatra --version</code> and upgrade if it is older.",
       "packageTitle": "Available from {version}",
       "packageText": "This needs {version} or newer. Earlier releases do not have it, so upgrade that package if yours is older."
     },
@@ -25,6 +32,13 @@
       "tablistLabel": "Screenshot theme",
       "dark": "Dark",
       "light": "Light"
+    },
+    "diffPanel": {
+      "label": "A diff showing only the changed translation key being re-translated",
+      "caption": "Only the changed key is sent to the provider. Current keys are left untouched."
+    },
+    "statusBadges": {
+      "new": "new"
     }
   },
   "landing": {
@@ -46,31 +60,26 @@
         "formats": "File formats",
         "providers": "Providers",
         "license": "License"
+      },
+      "demo": {
+        "tablistLabel": "Demo",
+        "cli": "Terminal",
+        "studio": "Studio",
+        "studioAlt": "The Verbatra Studio Translations page: a grid of keys against the de, es and fr locales with missing and in-sync badges, and a coverage table per locale.",
+        "sessionLabel": "verbatra check reports one missing and one stale key in each of three locales, verbatra translate sends only those two keys per locale to the provider, and a second check reports every locale in sync.",
+        "caption": "Output of the real CLI on an eight-key project. Nothing on this page calls a provider.",
+        "captionStudio": "Verbatra Studio, the local dashboard: coverage per locale and every key that still needs work."
       }
     },
     "terminal": {
-      "sessionLabel": "An example verbatra command-line session.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 new · 1 changed · 117 unchanged",
-          "l2": "de  3 translated · 117 untouched · 0 withheld",
-          "l3": "es  3 translated · 117 untouched · 0 withheld",
-          "l4": "fr  3 translated · 117 untouched · 0 withheld",
-          "l5": "✓ 9 keys translated in 1.8s · 351 untouched · lock updated"
-        }
-      }
+      "sessionLabel": "An example verbatra command-line session."
     },
     "install": {
-      "tablistLabel": "Package manager",
       "copy": "Copy",
       "copied": "Copied",
       "copyAria": "Copy install command",
+      "aiLabel": "Prompt for AI agents",
       "copyPromptAria": "Copy the AI agent setup prompt",
-      "pnpmNote": "pnpm installs correctly but exits 1 with ERR_PNPM_IGNORED_BUILDS, because it gates a dependency's install scripts. Run pnpm approve-builds once, or see",
-      "pnpmNoteLink": "Troubleshooting",
-      "aiTabLabel": "AI",
-      "aiCaption": "This is a truncated preview. Read the full prompt and setup walkthrough on",
-      "aiCaptionLink": "the setup guide",
       "copyCommand": "Copy {command}"
     },
     "gate": {
@@ -120,20 +129,28 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Six, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), and openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call."
+          "answer": "Seven, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
+        },
+        "languages": {
+          "question": "Which languages does verbatra support?",
+          "answer": "Any language your provider supports. verbatra accepts every valid BCP 47 locale code, such as pt-BR, sr-Latn, or zh-Hant, and checks plural forms against each language's CLDR plural rules. DeepL and Google Cloud Translation have fixed language lists, the LLM providers have none. The <languages>language support page</languages> links each vendor's list and covers scripts, regional variants, and right-to-left text."
         },
         "safety": {
           "question": "What stops a bad translation from breaking my app?",
           "answer": "Every result passes a placeholder and ICU integrity check before it is written. A translation that drops, invents, or reorders a placeholder, or produces invalid ICU message syntax, is withheld rather than saved to your locale file. The same gate applies to edits and retranslations made in Verbatra Studio."
         },
+        "privacy": {
+          "question": "Does verbatra send my strings anywhere?",
+          "answer": "Only to the translation provider you configure, and only when a command translates. verbatra has no telemetry, analytics, or update check. You can switch machine translation off entirely, or run a model on your own hardware so nothing leaves your network. The <dataHandling>data handling page</dataHandling> lists what each provider receives and links each vendor's retention terms."
+        },
         "cost": {
           "question": "What does verbatra cost?",
-          "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model."
+          "answer": "verbatra itself is free and open source under the MIT license. The only cost is your provider's usage, which you control: it translates only what changed, and you can run it for free on Gemini's free tier or a local OpenAI-compatible model. Outside the EEA, Switzerland and the UK, Google may use free-tier requests to improve its products, so keep confidential strings on a paid tier or a local model; the <dataHandling>data handling page</dataHandling> has the details."
         }
       }
     },
     "finalClose": {
-      "heading": "Stop hand-syncing locale files.",
+      "heading": "Stop hand‑syncing locale files.",
       "docs": "Read the docs"
     },
     "footer": {
@@ -175,7 +192,8 @@
           "contact": "Contact"
         }
       },
-      "legalLine": "Open-source under the MIT License · © 2026 Mario Kreitz",
+      "legalLicense": "Open-source under the MIT License",
+      "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra on GitHub",
       "npmAria": "verbatra on npm",
       "contributorsTitle": "Contributors",
@@ -186,6 +204,7 @@
     },
     "nav": {
       "docs": "Docs",
+      "reference": "Reference",
       "providers": "Providers",
       "formats": "Formats",
       "contributing": "Contributing",
@@ -238,8 +257,8 @@
       }
     },
     "providers": {
-      "heading": "Six providers, one interface.",
-      "lead": "Switch by changing one line of config.",
+      "heading": "Seven providers, one interface.",
+      "lead": "Switch by changing one line of config, or set it to none and keep every string in human hands.",
       "hint": "Hover or tab through the cards.",
       "kinds": {
         "anthropic": "Claude models",
@@ -247,7 +266,65 @@
         "gemini": "free tier available",
         "deepl": "machine translation",
         "googleTranslate": "machine translation",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+        "openaiCompatible": "Ollama, vLLM, LM Studio",
+        "libretranslate": "self-hosted, no LLM"
+      }
+    },
+    "control": {
+      "heading": "You decide what ships.",
+      "lead": "People keep the last word, every language gets its own rules, and strings go only where you allow.",
+      "groups": {
+        "people": {
+          "title": "People have the last word",
+          "items": {
+            "humanOnly": {
+              "title": "Machine translation off, by policy",
+              "body": "With provider none, no string reaches any service: a run fills keys from your translation memory and lists the rest for a person."
+            },
+            "protect": {
+              "title": "A translator's edit survives a source change",
+              "body": "Values a person wrote or imported are kept by default when the source changes, marked stale, never overwritten."
+            },
+            "review": {
+              "title": "Approve or reject what a run flagged",
+              "body": "Decisions are saved next to the lock file, so the review queue only lists what nobody has looked at yet."
+            }
+          }
+        },
+        "correct": {
+          "title": "Correct in every language",
+          "items": {
+            "plurals": {
+              "title": "Plural forms from CLDR",
+              "body": "Each target gets the plural categories its language needs, and ICU plural arms that do not fit are refused."
+            },
+            "locales": {
+              "title": "Locale codes that are valid",
+              "body": "Every locale must be a valid BCP 47 tag, so a typo fails when the config loads, not in production."
+            },
+            "qa": {
+              "title": "Quality checks on committed files",
+              "body": "The checks a run applies to provider output, run over what is already in your locale files. No key needed."
+            }
+          }
+        },
+        "network": {
+          "title": "Strings go only where you allow",
+          "items": {
+            "policy": {
+              "title": "A network policy verbatra enforces",
+              "body": "Local-only or an allowlist: a host you did not permit is refused before any request leaves the machine."
+            },
+            "preview": {
+              "title": "See what a run would send first",
+              "body": "A dry run needs no API key and writes nothing: it lists exactly which keys a real run would send."
+            },
+            "private": {
+              "title": "No telemetry, and local models welcome",
+              "body": "Strings go only to the provider you configure, and a self-hosted model keeps them on your own hardware."
+            }
+          }
+        }
       }
     },
     "loop": {
@@ -260,7 +337,7 @@
         },
         "studio": {
           "title": "See every locale's state in Verbatra Studio.",
-          "body": "Coverage, flagged entries, in-place edits. No provider call.",
+          "body": "Coverage, flagged entries, in-place edits, approve or reject. No provider call.",
           "cta": "Review translations in Studio",
           "alt": "The Verbatra Studio Review page listing five flagged entries across the de, es and fr locales, each row showing the key, its review reasons, and Edit, Approve and Reject actions."
         },
@@ -271,14 +348,15 @@
         },
         "agent": {
           "title": "Or hand it to your agent.",
-          "body": "An MCP server, plus installable skills for the CLI, MCP and Studio.",
+          "body": "An MCP server for Claude Code, Cursor, VS Code and GitHub Copilot, plus installable skills for the CLI, MCP and Studio.",
           "cta": "Start with AI"
         }
       },
       "links": {
         "llms": "llms.txt",
         "llmsFull": "llms-full.txt",
-        "mcpDocs": "MCP server docs"
+        "mcpDocs": "MCP server docs",
+        "skillsDocs": "Skills pack docs"
       },
       "table": {
         "key": "key",
@@ -318,7 +396,7 @@
         "handoff": {
           "title": "People and other tools can take over.",
           "body": "Excel export and import for translators, TMX for translation memory, generated TypeScript types for your keys.",
-          "note": "four of the fourteen commands"
+          "note": "the export, import, tmx and types commands"
         }
       }
     }
@@ -331,10 +409,10 @@
       },
       "title": "Privacy policy",
       "lastUpdatedLabel": "Last updated",
-      "disclaimer": "This is a translation for convenience. In case of any discrepancy, the English version prevails.",
+      "languageVersions": "This privacy policy is available in English, German, Spanish, and French. All four language versions have the same content and are equally binding.",
       "s1": {
         "heading": "1. Responsible party",
-        "body": "The party responsible for data processing on this site is Mario Kreitz, Germany. You can reach us by email at <email>info@kreitz-webdev.de</email>."
+        "body": "The party responsible for data processing on this site is Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Germany (the same details as in the <imprint>imprint</imprint>). You can reach us by email at <email>info@kreitz-webdev.de</email>. No data protection officer has been appointed, because neither Art. 37 GDPR nor § 38 BDSG (German Federal Data Protection Act) requires one for this site."
       },
       "s2": {
         "heading": "2. Overview",
@@ -342,11 +420,20 @@
       },
       "s3": {
         "heading": "3. Server logs and hosting",
-        "body": "The site is self-hosted on a virtual server at <contabo>Contabo</contabo>, managed with Plesk. When you visit, the server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). These logs are retained only for a short period."
+        "body": "The site is self-hosted on a virtual server rented from <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 Munich, Germany) and managed with Plesk. Contabo provides the server infrastructure and, in doing so, processes the data described in this section and in section 4 on our behalf as a processor (Art. 28 GDPR). When you visit, the web server processes standard access logs that may include your IP address, the date and time of the request, the requested URL, the referring page, and your browser's user-agent string. The application that serves the site also writes operational and error messages to its own container log, for example when a contact form notification cannot be sent. This data is used to operate and secure the site, for example to deliver pages, diagnose errors, and defend against abuse. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in a secure, functioning service). The web server's access logs are deleted as soon as they are no longer needed for these purposes. The container log is rotated automatically and limited to 3 files of 10 MB each; once that limit is reached, the oldest file is deleted."
       },
       "s4": {
         "heading": "4. Analytics",
-        "body": "We use Umami, a privacy-friendly analytics tool that we self-host. Umami is <strong>cookieless and does not collect personal data or use cross-site fingerprinting</strong>. It records only aggregated metrics such as page views, referrers, approximate country, and browser, operating system, and device type. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used). You can read more about Umami in its <umami>documentation</umami>."
+        "body": "We use Umami, an open-source analytics tool that we host ourselves on the same server as this site (see section 3), so no analytics data is passed to a third party. When a page loads, the Umami script reads the page address and title, the referring page, your screen size and your browser language, and sends them to our Umami server. A few interactions are recorded as events as well: following an outbound link (with a label naming its destination), copying a command or prompt (with the copied command text for a command, and no data for the prompt), and switching the language (with the previous and the newly selected language). Umami sets <strong>no cookies and writes nothing to your device</strong>; it only reads the opt-out setting described below. The Umami server processes your IP address and your browser's user-agent string transiently: it derives your approximate location (country, region and city) and your browser, operating system and device type from them, and it computes a pseudonymous session identifier by hashing them together with a salt that is rotated regularly. <strong>Your IP address and user-agent string themselves are not stored.</strong> Because the session identifier is derived from your IP address, this is pseudonymous rather than anonymous processing of personal data. We only look at the results in aggregate and do not try to identify individual visitors. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in understanding how the site is used). The analytics records are stored in the Umami database on this server. If your browser sends a Do Not Track signal, the Umami script sends nothing. You can also opt out with the button below: it saves the entry umami.disabled in your browser's local storage, which stops the script from sending anything from this browser until you allow analytics again or clear the site's data. You can read more about Umami in its <umami>documentation</umami>.",
+        "optOut": {
+          "optOut": "Opt out of analytics",
+          "optIn": "Allow analytics again",
+          "statusPending": "The opt-out needs JavaScript. Without JavaScript, the analytics script does not run and nothing is counted.",
+          "statusCounted": "Your visits to this site are currently counted by Umami.",
+          "statusOptedOut": "You have opted out: your visits to this site are not counted in this browser.",
+          "statusDoNotTrack": "Your browser sends a Do Not Track signal, so your visits are not counted. You can also opt out explicitly.",
+          "statusUnavailable": "Your browser does not let this site use local storage, so the opt-out cannot be saved. Turn on Do Not Track in your browser to stop the counting instead."
+        }
       },
       "s5": {
         "heading": "5. Cookies",
@@ -354,7 +441,7 @@
       },
       "s6": {
         "heading": "6. Fonts and assets",
-        "body": "Fonts are self-hosted: they are bundled at build time, so no requests are made to Google Fonts or any other third party when you load a page. The one exception is status badges: the home page and the testing page embed live badge images from GitHub, Codecov, and shields.io that show the current build, coverage, version, and license. Loading these images transmits your IP address to those providers, which act as independent controllers under their own privacy policies. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in showing accurate project status). Apart from these badges and the self-hosted Umami script described above, no third-party scripts or embeds load at runtime."
+        "body": "Fonts and images, including the contributor avatars on the home page, are self-hosted: they are served from this site's own server, so loading a page makes no request to Google Fonts, GitHub, or any other third party. The site embeds no status badges. Apart from the self-hosted Umami script described above, no third-party scripts, images, or embeds load at runtime. External sites such as GitHub or npm are only contacted when you follow a link to them."
       },
       "s7": {
         "heading": "7. GitHub and npm",
@@ -362,23 +449,27 @@
       },
       "s8": {
         "heading": "8. Your rights",
-        "body": "Under the GDPR you have the rights of access, rectification, erasure, restriction of processing, objection, and data portability (Art. 15–21 GDPR). You also have the right to lodge a complaint with a supervisory authority. To exercise any of these rights, contact us using the details below."
+        "body": "Under the GDPR you have the rights of access, rectification, erasure, restriction of processing, objection, and data portability (Art. 15–21 GDPR); the right to object is set out separately in section 9. You also have the right to lodge a complaint with a supervisory authority (Art. 77 GDPR). The supervisory authority responsible for us is \"Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg\" (the State Commissioner for Data Protection and Freedom of Information of Baden-Württemberg), Heilbronner Straße 35, 70191 Stuttgart, Germany, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. To exercise any of these rights, contact us using the details below."
+      },
+      "objection": {
+        "heading": "9. Right to object (Art. 21 GDPR)",
+        "body": "Where we process your personal data on the basis of Art. 6(1)(f) GDPR (legitimate interests), as described in sections 3, 4, and 12, <strong>you have the right to object to that processing at any time</strong>, on grounds relating to your particular situation. If you object, we will no longer process the personal data concerned unless we can demonstrate compelling legitimate grounds for the processing that override your interests, rights, and freedoms, or the processing serves the establishment, exercise, or defence of legal claims. An informal message to <email>info@kreitz-webdev.de</email> is enough to object."
       },
       "s9": {
-        "heading": "9. Contact",
+        "heading": "10. Contact",
         "body": "For any privacy-related questions or requests, email <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Changes to this policy",
+        "heading": "11. Changes to this policy",
         "body": "We may update this privacy policy as the site evolves or as legal requirements change. The date below reflects the most recent revision."
       },
       "s11": {
-        "heading": "11. Contact form",
-        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. The only third-party processor involved under Art. 28 GDPR is Arcjet, which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse; this data is retained for a period set by our Arcjet plan, currently up to one hour on the free tier. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are retained only as long as necessary to handle the inquiry and are not stored anywhere beyond the operator's inbox."
+        "heading": "12. Contact form",
+        "body": "When you use the <contact>contact form</contact>, we process the name, email address, and message you submit in order to respond to your inquiry. The notification email is sent directly through our own mail server, hosted in Germany; no third-party email provider is involved in delivering it, and delivering it involves no transfer of data outside the EU. Besides the hosting provider (see section 3), the only processor involved under Art. 28 GDPR is Arcjet (Arcjet Labs, Inc., San Francisco, USA), which processes the request's IP address and headers (not the message content) through its Cloud API to protect the form against bots and abuse. According to <arcjetprivacy>Arcjet's privacy documentation</arcjetprivacy>, Arcjet retains this request data for 30 days and retains aggregated data derived from it for longer. Arcjet is based in the United States and does not guarantee that requests are processed in the EU, so this data may be transferred to the United States, a third country (Art. 44 ff. GDPR). Arcjet is not certified under the EU-U.S. Data Privacy Framework, so the European Commission's adequacy decision for that framework does not cover this transfer; it is instead based on the EU Standard Contractual Clauses (Art. 46(2)(c) GDPR). You can request a copy of these safeguards by emailing <email>info@kreitz-webdev.de</email>. The legal basis is Art. 6(1)(f) GDPR (our legitimate interest in operating the form securely and responding to inquiries). Your submission and the resulting notification email are not stored anywhere beyond the operator's inbox. They are deleted once your inquiry has been fully handled."
       },
       "s12": {
-        "heading": "12. AI-assisted translation",
-        "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself: the interface text is translated into German, Spanish, and French with the help of AI language models. The longer documentation pages are AI-translated too, in a separate step outside that automated pipeline. Translated content is reviewed before publication. We note this here voluntarily, for transparency, not because a specific legal disclosure requirement applies to it."
+        "heading": "13. AI-assisted translation",
+        "body": "This project, verbatra, is an AI-assisted translation tool, and this documentation site uses it on itself. English is the source language. The interface text (navigation, buttons, and similar strings) is machine-translated into German, Spanish, and French by verbatra with Google's Gemini language model. The documentation pages are translated with AI as well, in a separate step outside that automated pipeline. Some texts, including parts of these legal pages, were written or corrected directly instead of being generated by that pipeline. Translations are checked on a best-effort basis: not every translated text is reviewed by a person before it is published, so a translation may contain errors. If you notice one, please tell us through the <contact>contact form</contact>. We provide this information voluntarily, for transparency."
       }
     },
     "imprint": {
@@ -386,7 +477,7 @@
         "title": "Imprint",
         "description": "Legal disclosure (Impressum) for the verbatra documentation site."
       },
-      "intro": "This legal notice (Impressum) is provided in German as required by German law.",
+      "intro": "Legal notice (Impressum) for this website. The details below are given in German.",
       "lastUpdatedLabel": "Last updated",
       "contactLinkNote": "For a fast electronic response, you can also use our <link>online contact form</link>."
     },
@@ -396,7 +487,8 @@
         "description": "Get in touch with the verbatra documentation site operator."
       },
       "title": "Contact",
-      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the Imprint.",
+      "intro": "Use this form to reach the site operator directly. This is a second, direct electronic contact channel alongside the email address in the <imprint>Imprint</imprint>.",
+      "privacyNotice": "We use your name, email address, and message only to answer your inquiry and delete them once it has been handled. Details are in the <privacy>privacy policy</privacy>.",
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "Your name",

@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { CSSProperties, ReactNode } from "react";
 import { HERO_BACKGROUND, HERO_BORDER } from "@/components/landing/fx/hero-wash";
 import { GithubIcon } from "@/components/landing/github-icon";
+import { HeroDemo } from "@/components/landing/hero-demo";
 import { HeroFacts } from "@/components/landing/hero-facts";
 import { GITHUB_URL } from "@/components/landing/links";
 import { PackageInstall } from "@/components/landing/package-install";
@@ -10,19 +11,26 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const RISE_STEP_MS = 90;
+const DEMO_HALO =
+  "radial-gradient(ellipse 50% 60% at 50% 40%, color-mix(in srgb, var(--v-purple) 30%, transparent), transparent 70%)";
 
 function Rise({
   order,
+  visibleAtFirstPaint = false,
   className,
   children,
 }: {
   order: number;
+  visibleAtFirstPaint?: boolean;
   className?: string;
   children: ReactNode;
 }): ReactNode {
   const style: CSSProperties = { animationDelay: `${order * RISE_STEP_MS}ms` };
   return (
-    <div className={cn("vk-rise", className)} style={style}>
+    <div
+      className={cn(visibleAtFirstPaint ? "vk-rise-settle" : "vk-rise", className)}
+      style={style}
+    >
       {children}
     </div>
   );
@@ -38,32 +46,19 @@ export async function LandingHero(): Promise<ReactNode> {
         className="relative overflow-hidden rounded-xl border"
         style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
       >
-        <div className="relative grid grid-cols-[minmax(0,1fr)] justify-items-center px-4 pt-[76px] pb-10 text-center md:px-10 md:pt-32 md:pb-11">
-          <Rise order={0}>
-            <h1
-              className="max-w-[10ch] font-semibold text-[color:var(--text-strong)]"
-              style={{
-                fontFamily: "var(--font-display)",
-                letterSpacing: "-0.03em",
-                fontSize: "var(--text-hero)",
-                lineHeight: 0.96,
-                textWrap: "balance",
-              }}
-            >
-              {t("headline")}
-            </h1>
+        <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pt-[72px] pb-10 text-center md:px-10 md:pt-[88px] xl:px-14">
+          <Rise order={0} visibleAtFirstPaint>
+            <h1 className="vk-display mx-auto max-w-[15ch]">{t("headline")}</h1>
           </Rise>
-          <Rise order={1}>
-            <p className="mt-6 max-w-[54ch] text-[17px] leading-relaxed text-fd-muted-foreground md:text-[19px]">
-              {t("lead")}
-            </p>
+          <Rise order={1} visibleAtFirstPaint>
+            <p className="vk-lead mx-auto mt-6 max-w-[52ch] max-sm:text-base">{t("lead")}</p>
           </Rise>
           <Rise
             order={2}
             className="mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-3"
           >
             <Button
-              href={localizedPath(locale, "/docs/your-first-translation")}
+              href={localizedPath(locale, "/docs/quickstart")}
               variant="primary"
               size="lg"
               className="shadow-[0_10px_34px_-12px_color-mix(in_srgb,var(--v-purple)_85%,transparent)]"
@@ -82,12 +77,30 @@ export async function LandingHero(): Promise<ReactNode> {
               {t("ctaGithub")}
             </a>
           </Rise>
-          <Rise order={3} className="mt-11 flex w-full justify-center text-left">
+          <Rise order={3} className="mt-8 flex w-full justify-center text-left">
             <PackageInstall />
           </Rise>
-          <Rise order={4} className="w-full">
-            <HeroFacts className="mt-[72px]" />
+          <Rise order={4} className="relative mt-14 w-full min-w-0 max-w-3xl md:mt-16">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-[8%] -top-10 bottom-1/3"
+              style={{ background: DEMO_HALO }}
+            />
+            <div className="relative">
+              <HeroDemo
+                labels={{
+                  tablist: t("demo.tablistLabel"),
+                  cli: t("demo.cli"),
+                  studio: t("demo.studio"),
+                  studioAlt: t("demo.studioAlt"),
+                  session: t("demo.sessionLabel"),
+                  captionCli: t("demo.caption"),
+                  captionStudio: t("demo.captionStudio"),
+                }}
+              />
+            </div>
           </Rise>
+          <HeroFacts className="mt-14 w-full max-w-3xl text-center" />
         </div>
       </div>
     </section>

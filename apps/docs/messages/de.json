@@ -9,7 +9,7 @@
       "definition": "verbatra ist eine CLI und ein SDK, die deine i18n-Locale-Dateien synchron halten und über den Provider deiner Wahl (KI oder maschinelle Übersetzung) nur die Keys übersetzen, die sich geändert haben."
     },
     "hero": {
-      "headline": "Übersetze nur, was sich geändert hat.",
+      "headline": "Übersetze nur, was sich ändert.",
       "lead": "verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, schickt nur die neuen und geänderten Keys an den Provider deiner Wahl und lässt jeden anderen Key unberührt.",
       "ctaGithub": "Star auf GitHub",
       "ctaStart": "Loslegen",
@@ -18,31 +18,26 @@
         "formats": "Dateiformate",
         "providers": "Provider",
         "license": "Lizenz"
+      },
+      "demo": {
+        "tablistLabel": "Demo",
+        "cli": "Terminal",
+        "studio": "Studio",
+        "studioAlt": "Die Translations-Seite in Verbatra Studio: ein Raster aus Keys gegen die Locales de, es und fr mit Badges für fehlend und synchron sowie eine Abdeckungstabelle pro Locale.",
+        "sessionLabel": "verbatra check meldet in jeder der drei Locales einen fehlenden und einen veralteten Key, verbatra translate schickt pro Locale nur diese zwei Keys an den Provider, und ein zweiter check meldet alle Locales als synchron.",
+        "caption": "Ausgabe der echten CLI in einem Projekt mit acht Keys. Nichts auf dieser Seite ruft einen Provider auf.",
+        "captionStudio": "Verbatra Studio, das lokale Dashboard: Abdeckung pro Locale und jeder Key, der noch Arbeit braucht."
       }
     },
     "terminal": {
-      "sessionLabel": "Eine Beispielsitzung mit verbatra auf der Kommandozeile.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 neu · 1 geändert · 117 unverändert",
-          "l2": "de  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l3": "es  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l4": "fr  3 übersetzt · 117 unberührt · 0 zurückgehalten",
-          "l5": "✓ 9 Keys in 1,8 s übersetzt · 351 unberührt · Lock aktualisiert"
-        }
-      }
+      "sessionLabel": "Eine Beispielsitzung mit verbatra auf der Kommandozeile."
     },
     "install": {
-      "tablistLabel": "Paketmanager",
       "copy": "Kopieren",
       "copied": "Kopiert",
       "copyAria": "Installationsbefehl kopieren",
-      "pnpmNote": "pnpm installiert korrekt, beendet sich aber mit Exit-Code 1 und ERR_PNPM_IGNORED_BUILDS, weil es die Install-Skripte einer Abhängigkeit blockiert. Führ einmal pnpm approve-builds aus, oder lies die Seite",
-      "pnpmNoteLink": "Fehlerbehebung",
+      "aiLabel": "Prompt für KI-Agenten",
       "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
-      "aiTabLabel": "KI",
-      "aiCaption": "Dies ist eine gekürzte Vorschau. Den vollständigen Prompt und die Einrichtung Schritt für Schritt findest du in",
-      "aiCaptionLink": "der Einrichtungsanleitung",
       "copyCommand": "{command} kopieren"
     },
     "gate": {
@@ -88,7 +83,11 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Sechs, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung) sowie openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts."
+          "answer": "Sieben, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
+        },
+        "languages": {
+          "question": "Welche Sprachen unterstützt verbatra?",
+          "answer": "Jede Sprache, die dein Provider unterstützt. verbatra akzeptiert jeden gültigen BCP-47-Locale-Code, etwa pt-BR, sr-Latn oder zh-Hant, und prüft Pluralformen gegen die CLDR-Pluralregeln der jeweiligen Sprache. DeepL und Google Cloud Translation haben feste Sprachlisten, die LLM-Provider keine. Die Seite <languages>Sprachunterstützung</languages> verlinkt die Liste jedes Anbieters und behandelt Schriften, regionale Varianten und Rechts-nach-links-Text."
         },
         "formats": {
           "question": "Welche Formate und Frameworks unterstützt verbatra?",
@@ -98,18 +97,22 @@
           "question": "Was verhindert, dass eine schlechte Übersetzung meine App kaputtmacht?",
           "answer": "Jedes Ergebnis durchläuft vor dem Schreiben eine Platzhalter- und ICU-Integritätsprüfung. Eine Übersetzung, die einen Platzhalter weglässt, erfindet oder umsortiert oder ungültige ICU-Nachrichtensyntax erzeugt, wird zurückgehalten statt in deine Locale-Datei geschrieben. Dasselbe Integritäts-Gate gilt für Bearbeitungen und Neuübersetzungen in Verbatra Studio."
         },
+        "privacy": {
+          "question": "Schickt verbatra meine Strings irgendwohin?",
+          "answer": "Nur an den Übersetzungs-Provider, den du konfigurierst, und nur, wenn ein Befehl übersetzt. verbatra hat keine Telemetrie, keine Analytics und keinen Update-Check. Du kannst die maschinelle Übersetzung ganz abschalten oder ein Modell auf deiner eigenen Hardware betreiben, sodass nichts dein Netz verlässt. Die <dataHandling>Seite zur Datenverarbeitung</dataHandling> listet, was jeder Provider bekommt, und verlinkt die Aufbewahrungsbedingungen jedes Anbieters."
+        },
         "cost": {
           "question": "Was kostet verbatra?",
-          "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben."
+          "answer": "verbatra selbst ist kostenlos und Open Source unter der MIT-Lizenz. Der einzige Kostenfaktor ist die Nutzung deines Providers, und die steuerst du: Es übersetzt nur, was sich geändert hat, und du kannst es kostenlos mit Geminis kostenlosem Kontingent oder einem lokalen OpenAI-kompatiblen Modell betreiben. Außerhalb von EWR, Schweiz und Vereinigtem Königreich darf Google Anfragen im kostenlosen Kontingent zur Verbesserung seiner Produkte nutzen, halte vertrauliche Strings also bei einem bezahlten Kontingent oder einem lokalen Modell; Details stehen auf der <dataHandling>Seite zur Datenverarbeitung</dataHandling>."
         }
       }
     },
     "finalClose": {
-      "heading": "Schluss mit dem manuellen Synchronisieren von Locale-Dateien.",
+      "heading": "Schluss mit dem manuellen Synchronisieren von Locale‑Dateien.",
       "docs": "Zur Dokumentation"
     },
     "footer": {
-      "tagline": "Übersetze nur, was sich geändert hat. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
+      "tagline": "Übersetze nur, was sich ändert. Eine Open-Source-CLI und ein SDK, die deine i18n-Locale-Dateien über den Provider deiner Wahl synchron halten.",
       "cols": {
         "product": {
           "title": "Produkt",
@@ -147,7 +150,8 @@
           "aiTxt": "ai.txt (Nutzungsrichtlinie)"
         }
       },
-      "legalLine": "Open Source unter der MIT-Lizenz · © 2026 Mario Kreitz",
+      "legalLicense": "Open Source unter der MIT-Lizenz",
+      "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra auf GitHub",
       "npmAria": "verbatra auf npm",
       "contributorsTitle": "Mitwirkende",
@@ -158,6 +162,7 @@
     },
     "nav": {
       "docs": "Docs",
+      "reference": "Referenz",
       "providers": "Provider",
       "formats": "Formate",
       "contributing": "Mitwirken",
@@ -216,22 +221,80 @@
         },
         "handoff": {
           "body": "Excel-Export und -Import für Übersetzer, TMX für den Übersetzungsspeicher, generierte TypeScript-Typen für deine Keys.",
-          "note": "vier der vierzehn Befehle",
+          "note": "die Befehle export, import, tmx und types",
           "title": "Menschen und andere Tools können übernehmen."
         }
       },
       "lead": "Die deutsche, spanische und französische Fassung dieser Seite stammt daraus."
+    },
+    "control": {
+      "heading": "Du entscheidest, was live geht.",
+      "lead": "Menschen haben das letzte Wort, jede Sprache bekommt ihre eigenen Regeln, und Strings gehen nur dorthin, wo du es erlaubst.",
+      "groups": {
+        "people": {
+          "title": "Menschen haben das letzte Wort",
+          "items": {
+            "humanOnly": {
+              "title": "Maschinelle Übersetzung aus, per Richtlinie",
+              "body": "Mit Provider none erreicht kein String irgendeinen Dienst: Ein Lauf füllt Keys aus deinem Translation Memory und listet den Rest für einen Menschen auf."
+            },
+            "protect": {
+              "title": "Die Änderung einer Übersetzerin übersteht eine Quelländerung",
+              "body": "Werte, die ein Mensch geschrieben oder importiert hat, bleiben standardmäßig erhalten, wenn sich die Quelle ändert: als veraltet markiert, nie überschrieben."
+            },
+            "review": {
+              "title": "Freigeben oder ablehnen, was ein Lauf markiert hat",
+              "body": "Entscheidungen werden neben der Lock-Datei gespeichert, damit die Review-Warteschlange nur zeigt, was sich noch niemand angesehen hat."
+            }
+          }
+        },
+        "correct": {
+          "title": "Korrekt in jeder Sprache",
+          "items": {
+            "plurals": {
+              "title": "Pluralformen aus CLDR",
+              "body": "Jedes Ziel bekommt die Pluralkategorien, die seine Sprache braucht, und ICU-Pluralzweige, die nicht passen, werden abgelehnt."
+            },
+            "locales": {
+              "title": "Gültige Locale-Codes",
+              "body": "Jede Locale muss ein gültiges BCP-47-Tag sein, damit ein Tippfehler schon beim Laden der Konfiguration scheitert, nicht in Produktion."
+            },
+            "qa": {
+              "title": "Qualitätsprüfungen für committete Dateien",
+              "body": "Die Prüfungen, die ein Lauf auf Provider-Ausgaben anwendet, laufen über das, was schon in deinen Locale-Dateien steht. Kein Key nötig."
+            }
+          }
+        },
+        "network": {
+          "title": "Strings gehen nur dorthin, wo du es erlaubst",
+          "items": {
+            "policy": {
+              "title": "Eine Netzwerkrichtlinie, die verbatra durchsetzt",
+              "body": "Nur lokal oder per Allowlist: Ein Host, den du nicht erlaubt hast, wird abgelehnt, bevor eine Anfrage den Rechner verlässt."
+            },
+            "preview": {
+              "title": "Erst sehen, was ein Lauf senden würde",
+              "body": "Ein Dry Run braucht keinen API-Key und schreibt nichts: Er zeigt genau, welche Keys ein echter Lauf senden würde."
+            },
+            "private": {
+              "title": "Keine Telemetrie, lokale Modelle willkommen",
+              "body": "Strings gehen nur an den Provider, den du konfigurierst, und ein selbst gehostetes Modell hält sie auf deiner eigenen Hardware."
+            }
+          }
+        }
+      }
     },
     "loop": {
       "heading": "Der Rest des Übersetzungskreislaufs, im selben Tool.",
       "links": {
         "llms": "llms.txt",
         "llmsFull": "llms-full.txt",
-        "mcpDocs": "Doku zum MCP-Server"
+        "mcpDocs": "Doku zum MCP-Server",
+        "skillsDocs": "Doku zum Skills-Paket"
       },
       "rows": {
         "agent": {
-          "body": "Ein MCP-Server plus installierbare Skills für CLI, MCP und Studio.",
+          "body": "Ein MCP-Server für Claude Code, Cursor, VS Code und GitHub Copilot, plus installierbare Skills für CLI, MCP und Studio.",
           "cta": "Mit KI starten",
           "title": "Oder überlass es deinem Agenten."
         },
@@ -247,7 +310,7 @@
         },
         "studio": {
           "alt": "Die Review-Seite in Verbatra Studio mit fünf markierten Einträgen über die Locales de, es und fr; jede Zeile zeigt den Key, seine Review-Gründe und die Aktionen Edit, Approve und Reject.",
-          "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle. Kein Provider-Aufruf.",
+          "body": "Abdeckung, markierte Einträge, Bearbeitung an Ort und Stelle, Freigeben oder Ablehnen. Kein Provider-Aufruf.",
           "cta": "Übersetzungen in Studio prüfen",
           "title": "Sieh den Stand jeder Locale in Verbatra Studio."
         }
@@ -282,7 +345,7 @@
       "label": "Unterstützte Frameworks und Formate"
     },
     "providers": {
-      "heading": "Sechs Provider, eine Schnittstelle.",
+      "heading": "Sieben Provider, eine Schnittstelle.",
       "hint": "Fahr mit der Maus über die Karten oder geh sie mit Tab durch.",
       "kinds": {
         "anthropic": "Claude-Modelle",
@@ -290,9 +353,10 @@
         "gemini": "kostenloses Kontingent verfügbar",
         "googleTranslate": "maschinelle Übersetzung",
         "openai": "GPT-Modelle",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+        "openaiCompatible": "Ollama, vLLM, LM Studio",
+        "libretranslate": "selbst gehostet, ohne LLM"
       },
-      "lead": "Wechsle, indem du eine Zeile in der Konfiguration änderst."
+      "lead": "Wechsle, indem du eine Zeile in der Konfiguration änderst, oder setze ihn auf none und lass jeden String in menschlicher Hand."
     }
   },
   "legal": {
@@ -303,10 +367,10 @@
       },
       "title": "Datenschutzerklärung",
       "lastUpdatedLabel": "Zuletzt aktualisiert",
-      "disclaimer": "Dies ist eine Übersetzung zur besseren Verständlichkeit. Bei etwaigen Abweichungen ist die englische Fassung maßgeblich.",
+      "languageVersions": "Diese Datenschutzerklärung gibt es auf Englisch, Deutsch, Spanisch und Französisch. Alle vier Sprachfassungen sind inhaltlich gleich und gleichermaßen verbindlich.",
       "s1": {
         "heading": "1. Verantwortliche Stelle",
-        "body": "Verantwortlich für die Datenverarbeitung auf dieser Website ist Mario Kreitz, Deutschland. Du erreichst uns per E-Mail unter <email>info@kreitz-webdev.de</email>."
+        "body": "Verantwortlich für die Datenverarbeitung auf dieser Website ist Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Deutschland (dieselben Angaben wie im <imprint>Impressum</imprint>). Du erreichst uns per E-Mail unter <email>info@kreitz-webdev.de</email>. Ein Datenschutzbeauftragter ist nicht benannt, da weder Art. 37 DSGVO noch § 38 BDSG für diese Website eine Benennung vorschreiben."
       },
       "s2": {
         "heading": "2. Überblick",
@@ -314,11 +378,20 @@
       },
       "s3": {
         "heading": "3. Server-Logs und Hosting",
-        "body": "Die Seite wird selbst auf einem virtuellen Server bei <contabo>Contabo</contabo> gehostet und mit Plesk verwaltet. Wenn du sie besuchst, verarbeitet der Server standardmäßige Zugriffs-Logs, die deine IP-Adresse, Datum und Uhrzeit der Anfrage, die angeforderte URL, die verweisende Seite und die User-Agent-Zeichenkette deines Browsers enthalten können. Diese Daten werden verwendet, um die Seite zu betreiben und abzusichern, zum Beispiel um Seiten auszuliefern, Fehler zu diagnostizieren und Missbrauch abzuwehren. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an einem sicheren, funktionierenden Dienst). Diese Logs werden nur für einen kurzen Zeitraum aufbewahrt."
+        "body": "Die Seite wird selbst auf einem virtuellen Server gehostet, der bei <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 München, Deutschland) gemietet ist, und mit Plesk verwaltet. Contabo stellt die Server-Infrastruktur bereit und verarbeitet dabei die in diesem Abschnitt und in Abschnitt 4 beschriebenen Daten in unserem Auftrag als Auftragsverarbeiter (Art. 28 DSGVO). Wenn du die Seite besuchst, verarbeitet der Webserver standardmäßige Zugriffs-Logs, die deine IP-Adresse, Datum und Uhrzeit der Anfrage, die angeforderte URL, die verweisende Seite und die User-Agent-Zeichenkette deines Browsers enthalten können. Die Anwendung, die die Seite ausliefert, schreibt außerdem Betriebs- und Fehlermeldungen in ein eigenes Container-Log, zum Beispiel wenn eine Benachrichtigung aus dem Kontaktformular nicht versendet werden kann. Diese Daten werden verwendet, um die Seite zu betreiben und abzusichern, zum Beispiel um Seiten auszuliefern, Fehler zu diagnostizieren und Missbrauch abzuwehren. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an einem sicheren, funktionierenden Dienst). Die Zugriffs-Logs des Webservers werden gelöscht, sobald sie für diese Zwecke nicht mehr benötigt werden. Das Container-Log wird automatisch rotiert und ist auf 3 Dateien mit je 10 MB begrenzt; ist diese Grenze erreicht, wird die älteste Datei gelöscht."
       },
       "s4": {
         "heading": "4. Analyse",
-        "body": "Wir verwenden Umami, ein datenschutzfreundliches Analysewerkzeug, das wir selbst hosten. Umami ist <strong>cookiefrei, erhebt keine personenbezogenen Daten und nutzt kein seitenübergreifendes Fingerprinting</strong>. Es erfasst nur aggregierte Kennzahlen wie Seitenaufrufe, Verweisquellen, ungefähres Land sowie Browser, Betriebssystem und Gerätetyp. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird). Mehr über Umami erfährst du in seiner <umami>Dokumentation</umami>."
+        "body": "Wir verwenden Umami, ein Open-Source-Analysewerkzeug, das wir selbst auf demselben Server wie diese Seite hosten (siehe Abschnitt 3), sodass keine Analysedaten an Dritte weitergegeben werden. Beim Laden einer Seite liest das Umami-Skript die Adresse und den Titel der Seite, die verweisende Seite, deine Bildschirmgröße und deine Browsersprache aus und sendet sie an unseren Umami-Server. Außerdem werden einige Interaktionen als Ereignisse erfasst: das Folgen eines externen Links (mit einer Bezeichnung für sein Ziel), das Kopieren eines Befehls oder Prompts (mit dem kopierten Befehlstext bei einem Befehl, ohne Daten beim Prompt) und der Wechsel der Sprache (mit der bisherigen und der neu gewählten Sprache). Umami setzt <strong>keine Cookies und schreibt nichts auf dein Gerät</strong>; es liest nur die unten beschriebene Widerspruchseinstellung. Der Umami-Server verarbeitet deine IP-Adresse und die User-Agent-Zeichenkette deines Browsers flüchtig: Er leitet daraus deinen ungefähren Standort (Land, Region und Stadt) sowie Browser, Betriebssystem und Gerätetyp ab und berechnet eine pseudonyme Sitzungskennung, indem er sie zusammen mit einem regelmäßig wechselnden Salt hasht. <strong>Deine IP-Adresse und deine User-Agent-Zeichenkette selbst werden nicht gespeichert.</strong> Da die Sitzungskennung aus deiner IP-Adresse abgeleitet wird, handelt es sich um eine pseudonyme und keine anonyme Verarbeitung personenbezogener Daten. Wir werten die Ergebnisse nur zusammengefasst aus und versuchen nicht, einzelne Besucher zu identifizieren. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse daran zu verstehen, wie die Seite genutzt wird). Die Analysedaten werden in der Umami-Datenbank auf diesem Server gespeichert. Wenn dein Browser ein Do-Not-Track-Signal sendet, sendet das Umami-Skript nichts. Du kannst außerdem über die Schaltfläche unten widersprechen: Sie speichert den Eintrag umami.disabled im lokalen Speicher (Local Storage) deines Browsers, woraufhin das Skript aus diesem Browser nichts mehr sendet, bis du die Analyse wieder erlaubst oder die Websitedaten löschst. Mehr über Umami erfährst du in seiner <umami>Dokumentation</umami>.",
+        "optOut": {
+          "optOut": "Analyse widersprechen",
+          "optIn": "Analyse wieder erlauben",
+          "statusPending": "Der Widerspruch benötigt JavaScript. Ohne JavaScript läuft das Analyseskript nicht und es wird nichts gezählt.",
+          "statusCounted": "Deine Besuche auf dieser Seite werden derzeit von Umami gezählt.",
+          "statusOptedOut": "Du hast widersprochen: Deine Besuche auf dieser Seite werden in diesem Browser nicht gezählt.",
+          "statusDoNotTrack": "Dein Browser sendet ein Do-Not-Track-Signal, deshalb werden deine Besuche nicht gezählt. Du kannst zusätzlich ausdrücklich widersprechen.",
+          "statusUnavailable": "Dein Browser erlaubt dieser Seite keinen lokalen Speicher, deshalb kann der Widerspruch nicht gespeichert werden. Aktiviere stattdessen Do Not Track in deinem Browser, um die Zählung zu beenden."
+        }
       },
       "s5": {
         "heading": "5. Cookies",
@@ -326,7 +399,7 @@
       },
       "s6": {
         "heading": "6. Schriften und Assets",
-        "body": "Schriftarten werden selbst gehostet: Sie werden zur Build-Zeit gebündelt, sodass beim Laden einer Seite keine Anfragen an Google Fonts oder andere Drittanbieter gestellt werden. Die einzige Ausnahme sind Status-Badges: Die Startseite und die Testseite betten Live-Badge-Bilder von GitHub, Codecov und shields.io ein, die den aktuellen Build, die Abdeckung, die Version und die Lizenz anzeigen. Das Laden dieser Bilder übermittelt deine IP-Adresse an diese Anbieter, die als unabhängige Verantwortliche gemäß ihren eigenen Datenschutzrichtlinien handeln. Die Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse an der Anzeige eines genauen Projektstatus). Abgesehen von diesen Badges und dem oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte oder -Einbettungen geladen."
+        "body": "Schriftarten und Bilder, einschließlich der Avatare der Mitwirkenden auf der Startseite, werden selbst gehostet und vom eigenen Server dieser Website ausgeliefert, sodass beim Laden einer Seite keine Anfragen an Google Fonts, GitHub oder andere Drittanbieter gestellt werden. Die Website bettet keine Status-Badges ein. Abgesehen vom oben beschriebenen selbst gehosteten Umami-Skript werden zur Laufzeit keine Drittanbieter-Skripte, -Bilder oder -Einbettungen geladen. Externe Websites wie GitHub oder npm werden erst kontaktiert, wenn du einem Link dorthin folgst."
       },
       "s7": {
         "heading": "7. GitHub und npm",
@@ -334,23 +407,27 @@
       },
       "s8": {
         "heading": "8. Deine Rechte",
-        "body": "Nach der DSGVO hast du die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch und Datenübertragbarkeit (Art. 15–21 DSGVO). Du hast außerdem das Recht, dich bei einer Aufsichtsbehörde zu beschweren. Um eines dieser Rechte auszuüben, kontaktiere uns über die unten stehenden Angaben."
+        "body": "Nach der DSGVO hast du die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch und Datenübertragbarkeit (Art. 15–21 DSGVO); das Widerspruchsrecht ist in Abschnitt 9 gesondert dargestellt. Du hast außerdem das Recht, dich bei einer Aufsichtsbehörde zu beschweren (Art. 77 DSGVO). Die für uns zuständige Aufsichtsbehörde ist der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg, Heilbronner Straße 35, 70191 Stuttgart, Deutschland, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. Um eines dieser Rechte auszuüben, kontaktiere uns über die unten stehenden Angaben."
+      },
+      "objection": {
+        "heading": "9. Widerspruchsrecht (Art. 21 DSGVO)",
+        "body": "Soweit wir deine personenbezogenen Daten auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO (berechtigte Interessen) verarbeiten, wie in den Abschnitten 3, 4 und 12 beschrieben, <strong>hast du das Recht, jederzeit gegen diese Verarbeitung Widerspruch einzulegen</strong>, und zwar aus Gründen, die sich aus deiner besonderen Situation ergeben. Legst du Widerspruch ein, verarbeiten wir die betroffenen personenbezogenen Daten nicht mehr, es sei denn, wir können zwingende schutzwürdige Gründe für die Verarbeitung nachweisen, die deine Interessen, Rechte und Freiheiten überwiegen, oder die Verarbeitung dient der Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen. Für den Widerspruch genügt eine formlose Nachricht an <email>info@kreitz-webdev.de</email>."
       },
       "s9": {
-        "heading": "9. Kontakt",
+        "heading": "10. Kontakt",
         "body": "Für alle datenschutzbezogenen Fragen oder Anfragen sende eine E-Mail an <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Änderungen dieser Erklärung",
+        "heading": "11. Änderungen dieser Erklärung",
         "body": "Wir können diese Datenschutzerklärung aktualisieren, wenn sich die Seite weiterentwickelt oder sich rechtliche Anforderungen ändern. Das untenstehende Datum spiegelt die jüngste Überarbeitung wider."
       },
       "s11": {
-        "heading": "11. Kontaktformular",
-        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver versendet, der in Deutschland gehostet wird; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübermittlung außerhalb der EU. Der einzige beteiligte Auftragsverarbeiter nach Art. 28 DSGVO ist Arcjet, das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen; diese Daten werden für einen Zeitraum aufbewahrt, den unser Arcjet-Tarif festlegt, derzeit bis zu einer Stunde im kostenlosen Tarif. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und an der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nur so lange aufbewahrt, wie es zur Bearbeitung der Anfrage nötig ist, und nirgends außerhalb des Postfachs des Betreibers gespeichert."
+        "heading": "12. Kontaktformular",
+        "body": "Wenn du das <contact>Kontaktformular</contact> nutzt, verarbeiten wir den von dir übermittelten Namen, die E-Mail-Adresse und die Nachricht, um deine Anfrage zu beantworten. Die Benachrichtigungs-E-Mail wird direkt über unseren eigenen Mailserver versendet, der in Deutschland gehostet wird; kein externer E-Mail-Anbieter ist am Versand beteiligt, und der Versand beinhaltet keine Datenübermittlung außerhalb der EU. Neben dem Hosting-Anbieter (siehe Abschnitt 3) ist der einzige beteiligte Auftragsverarbeiter nach Art. 28 DSGVO Arcjet (Arcjet Labs, Inc., San Francisco, USA), das die IP-Adresse und die Header der Anfrage (nicht den Nachrichteninhalt) über seine Cloud-API verarbeitet, um das Formular vor Bots und Missbrauch zu schützen. Laut der <arcjetprivacy>Datenschutzdokumentation von Arcjet</arcjetprivacy> speichert Arcjet diese Anfragedaten 30 Tage lang und daraus abgeleitete aggregierte Daten länger. Arcjet hat seinen Sitz in den USA und garantiert nicht, dass Anfragen in der EU verarbeitet werden; diese Daten können daher in die USA, ein Drittland, übermittelt werden (Art. 44 ff. DSGVO). Arcjet ist nicht unter dem EU-US-Datenschutzrahmen zertifiziert, sodass der Angemessenheitsbeschluss der Europäischen Kommission zu diesem Rahmen diese Übermittlung nicht abdeckt; sie stützt sich stattdessen auf die EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO). Eine Kopie dieser Garantien kannst du per E-Mail an <email>info@kreitz-webdev.de</email> anfordern. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am sicheren Betrieb des Formulars und an der Beantwortung von Anfragen). Deine Übermittlung und die daraus resultierende Benachrichtigungs-E-Mail werden nirgends außerhalb des Postfachs des Betreibers gespeichert. Sie werden gelöscht, sobald deine Anfrage abschließend bearbeitet ist."
       },
       "s12": {
-        "heading": "12. KI-gestützte Übersetzung",
-        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein: Die Oberfläche wird mithilfe von KI-Sprachmodellen ins Deutsche, Spanische und Französische übersetzt. Auch die längeren Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Übersetzte Inhalte werden vor der Veröffentlichung geprüft. Wir weisen hier freiwillig aus Transparenzgründen darauf hin, nicht weil dafür eine bestimmte gesetzliche Offenlegungspflicht gilt."
+        "heading": "13. KI-gestützte Übersetzung",
+        "body": "Dieses Projekt, verbatra, ist ein Werkzeug für KI-gestützte Übersetzung, und diese Dokumentationsseite setzt es auch bei sich selbst ein. Ausgangssprache ist Englisch. Die Oberflächentexte (Navigation, Schaltflächen und ähnliche Texte) werden von verbatra mit dem Sprachmodell Gemini von Google maschinell ins Deutsche, Spanische und Französische übersetzt. Auch die Dokumentationsseiten werden mit KI übersetzt, allerdings in einem separaten Schritt außerhalb dieser automatisierten Pipeline. Einige Texte, darunter Teile dieser rechtlichen Seiten, wurden direkt verfasst oder korrigiert, statt von dieser Pipeline erzeugt zu werden. Übersetzungen werden nach bestem Bemühen geprüft: Nicht jeder übersetzte Text wird vor der Veröffentlichung von einem Menschen durchgesehen, daher kann eine Übersetzung Fehler enthalten. Wenn dir einer auffällt, sag uns bitte über das <contact>Kontaktformular</contact> Bescheid. Wir geben diese Information freiwillig, aus Transparenzgründen."
       }
     },
     "imprint": {
@@ -358,7 +435,7 @@
         "title": "Impressum",
         "description": "Rechtliche Angaben (Impressum) für die verbatra-Dokumentationsseite."
       },
-      "intro": "Dieses Impressum wird, wie nach deutschem Recht erforderlich, auf Deutsch bereitgestellt.",
+      "intro": "Anbieterkennzeichnung für diese Website.",
       "lastUpdatedLabel": "Zuletzt aktualisiert",
       "contactLinkNote": "Für eine schnelle elektronische Antwort kannst du auch unser <link>Online-Kontaktformular</link> nutzen."
     },
@@ -368,7 +445,8 @@
         "description": "Nimm Kontakt mit dem Betreiber der verbatra-Dokumentationsseite auf."
       },
       "title": "Kontakt",
-      "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im Impressum.",
+      "intro": "Nutze dieses Formular, um den Seitenbetreiber direkt zu erreichen. Dies ist ein zweiter, direkter elektronischer Kontaktkanal neben der E-Mail-Adresse im <imprint>Impressum</imprint>.",
+      "privacyNotice": "Wir nutzen deinen Namen, deine E-Mail-Adresse und deine Nachricht nur, um deine Anfrage zu beantworten, und löschen sie, sobald die Anfrage erledigt ist. Details findest du in der <privacy>Datenschutzerklärung</privacy>.",
       "form": {
         "nameLabel": "Name",
         "namePlaceholder": "Dein Name",
@@ -399,6 +477,10 @@
       "title": "Maschinell übersetzte Seite",
       "viewOriginal": "Das englische Original lesen"
     },
+    "outdatedTranslation": {
+      "title": "Übersetzung möglicherweise veraltet",
+      "text": "Die englische Seite wurde nach dieser Übersetzung geändert."
+    },
     "notTranslated": {
       "text": "Diese Seite ist noch nicht übersetzt und wird deshalb auf Englisch angezeigt.",
       "title": "Nicht in deiner Sprache verfügbar"
@@ -408,9 +490,12 @@
       "heading": "Für KI-Agenten",
       "index": "llms.txt (Index)"
     },
+    "codeBlock": {
+      "output": "Ausgabe"
+    },
     "availableFrom": {
       "title": "Verfügbar ab {version}",
-      "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit verbatra --version und aktualisiere, falls sie älter ist.",
+      "text": "Dafür brauchst du verbatra {version} oder neuer. Frühere Releases haben es nicht: Prüf deine installierte Version mit <code>verbatra --version</code> und aktualisiere, falls sie älter ist.",
       "packageTitle": "Verfügbar ab {version}",
       "packageText": "Dafür brauchst du {version} oder neuer. Frühere Releases haben es nicht: Aktualisiere das Paket, falls deines älter ist."
     },
@@ -419,6 +504,13 @@
       "tablistLabel": "Screenshot-Theme",
       "dark": "Dunkel",
       "light": "Hell"
+    },
+    "diffPanel": {
+      "label": "Ein Diff, in dem nur der geänderte Übersetzungs-Key neu übersetzt wird",
+      "caption": "Nur der geänderte Key geht an den Provider. Aktuelle Keys bleiben unverändert."
+    },
+    "statusBadges": {
+      "new": "neu"
     }
   }
 }

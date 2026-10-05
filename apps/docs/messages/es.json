@@ -11,38 +11,33 @@
     "hero": {
       "headline": "Traduce solo lo que cambió.",
       "lead": "verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que elijas y deja intactas todas las demás.",
-      "ctaGithub": "Dale una estrella en GitHub",
-      "ctaStart": "Empezar",
+      "ctaGithub": "Estrella en GitHub",
+      "ctaStart": "Guía de inicio",
       "facts": {
         "release": "Última versión",
         "formats": "Formatos de archivo",
         "providers": "Proveedores",
         "license": "Licencia"
+      },
+      "demo": {
+        "tablistLabel": "Demo",
+        "cli": "Terminal",
+        "studio": "Studio",
+        "studioAlt": "La página Translations de Verbatra Studio: una cuadrícula de claves frente a los locales de, es y fr con insignias de falta y sincronizado, y una tabla de cobertura por locale.",
+        "sessionLabel": "verbatra check informa de una clave que falta y una desactualizada en cada uno de los tres locales, verbatra translate envía al proveedor solo esas dos claves por locale, y un segundo check informa de que todos los locales están sincronizados.",
+        "caption": "Salida de la CLI real en un proyecto de ocho claves. Nada en esta página llama a un proveedor.",
+        "captionStudio": "Verbatra Studio, el panel local: cobertura por locale y cada clave que aún necesita trabajo."
       }
     },
     "terminal": {
-      "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos.",
-      "transcript": {
-        "run": {
-          "l1": "diff en.json · 2 nuevas · 1 cambiada · 117 sin cambios",
-          "l2": "de  3 traducidas · 117 sin tocar · 0 retenidas",
-          "l3": "es  3 traducidas · 117 sin tocar · 0 retenidas",
-          "l4": "fr  3 traducidas · 117 sin tocar · 0 retenidas",
-          "l5": "✓ 9 claves traducidas en 1,8 s · 351 sin tocar · bloqueo actualizado"
-        }
-      }
+      "sessionLabel": "Una sesión de ejemplo de verbatra en la línea de comandos."
     },
     "install": {
-      "tablistLabel": "Gestor de paquetes",
       "copy": "Copiar",
       "copied": "Copiado",
       "copyAria": "Copiar el comando de instalación",
-      "pnpmNote": "pnpm instala correctamente, pero termina con código 1 y ERR_PNPM_IGNORED_BUILDS porque bloquea los scripts de instalación de una dependencia. Ejecuta pnpm approve-builds una vez, o consulta la página de",
-      "pnpmNoteLink": "Solución de problemas",
+      "aiLabel": "Prompt para agentes IA",
       "copyPromptAria": "Copiar el prompt de configuración para el agente de IA",
-      "aiTabLabel": "IA",
-      "aiCaption": "Esta es una vista previa recortada. El prompt completo y los pasos de configuración están en",
-      "aiCaptionLink": "la guía de configuración",
       "copyCommand": "Copiar {command}"
     },
     "gate": {
@@ -88,7 +83,11 @@
         },
         "providers": {
           "question": "¿Qué proveedores de traducción puedo usar?",
-          "answer": "Seis, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), y openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada."
+          "answer": "Siete, detrás de una sola interfaz: Anthropic, OpenAI y Gemini (LLM), DeepL y Google Cloud Translation (traducción automática), openai-compatible, que apunta verbatra a un servidor local o autoalojado como Ollama, LM Studio o vLLM, y libretranslate, un servidor LibreTranslate autoalojado para traducción automática sin ningún modelo de lenguaje. Eliges uno por su id en tu configuración y puedes cambiarlo más adelante editando esa única línea. Gemini tiene un nivel gratuito de verdad, y un modelo local no cuesta nada por llamada. O pon el proveedor en none para desactivar por completo la traducción automática."
+        },
+        "languages": {
+          "question": "¿Qué idiomas admite verbatra?",
+          "answer": "Cualquier idioma que admita tu proveedor. verbatra acepta cualquier código de locale BCP 47 válido, como pt-BR, sr-Latn o zh-Hant, y comprueba las formas de plural con las reglas de plural de CLDR de cada idioma. DeepL y Google Cloud Translation tienen listas de idiomas fijas; los proveedores LLM, ninguna. La página de <languages>soporte de idiomas</languages> enlaza la lista de cada proveedor y cubre escrituras, variantes regionales y texto de derecha a izquierda."
         },
         "formats": {
           "question": "¿Qué formatos y frameworks soporta verbatra?",
@@ -98,9 +97,13 @@
           "question": "¿Qué impide que una mala traducción rompa mi app?",
           "answer": "Cada resultado pasa unas comprobaciones de integridad de placeholders e ICU antes de escribirse. Una traducción que omite, inventa o reordena un placeholder, o que produce una sintaxis de mensaje ICU inválida, se retiene en lugar de guardarse en tu archivo de locale. La misma puerta de integridad se aplica a las ediciones y retraducciones hechas en Verbatra Studio."
         },
+        "privacy": {
+          "question": "¿verbatra envía mis textos a algún sitio?",
+          "answer": "Solo al proveedor de traducción que configures, y solo cuando un comando traduce. verbatra no tiene telemetría, ni analítica, ni comprobación de actualizaciones. Puedes desactivar del todo la traducción automática o ejecutar un modelo en tu propio hardware para que nada salga de tu red. La <dataHandling>página de tratamiento de datos</dataHandling> detalla qué recibe cada proveedor y enlaza las condiciones de retención de cada empresa."
+        },
         "cost": {
           "question": "¿Cuánto cuesta verbatra?",
-          "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI."
+          "answer": "verbatra en sí es gratuito y de código abierto bajo la licencia MIT. El único coste es el uso de tu proveedor, y ese lo controlas tú: traduce solo lo que cambió, y puedes ejecutarlo gratis en el nivel gratuito de Gemini o en un modelo local compatible con OpenAI. Fuera del EEE, Suiza y el Reino Unido, Google puede usar las peticiones del nivel gratuito para mejorar sus productos, así que deja los textos confidenciales en un nivel de pago o en un modelo local; la <dataHandling>página de tratamiento de datos</dataHandling> tiene los detalles."
         }
       }
     },
@@ -147,7 +150,8 @@
           "aiTxt": "ai.txt (política de uso)"
         }
       },
-      "legalLine": "Código abierto bajo la licencia MIT · © 2026 Mario Kreitz",
+      "legalLicense": "Código abierto bajo la licencia MIT",
+      "legalCopyright": "© 2026 Mario Kreitz",
       "githubAria": "verbatra en GitHub",
       "npmAria": "verbatra en npm",
       "contributorsTitle": "Colaboradores",
@@ -158,6 +162,7 @@
     },
     "nav": {
       "docs": "Docs",
+      "reference": "Referencia",
       "providers": "Proveedores",
       "formats": "Formatos",
       "contributing": "Contribuir",
@@ -216,22 +221,80 @@
         },
         "handoff": {
           "body": "Exportación e importación de Excel para traductores, TMX para la memoria de traducción y tipos de TypeScript generados para tus claves.",
-          "note": "cuatro de los catorce comandos",
+          "note": "los comandos export, import, tmx y types",
           "title": "Personas y otras herramientas pueden tomar el relevo."
         }
       },
       "lead": "El alemán, el español y el francés de esta página salen de ahí."
+    },
+    "control": {
+      "heading": "Tú decides qué se publica.",
+      "lead": "Las personas tienen la última palabra, cada idioma recibe sus propias reglas y las cadenas solo van a donde tú permites.",
+      "groups": {
+        "people": {
+          "title": "Las personas tienen la última palabra",
+          "items": {
+            "humanOnly": {
+              "title": "Traducción automática desactivada por política",
+              "body": "Con el proveedor none, ninguna cadena llega a ningún servicio: una ejecución rellena claves desde tu memoria de traducción y deja el resto listado para una persona."
+            },
+            "protect": {
+              "title": "La edición de un traductor sobrevive a un cambio en el origen",
+              "body": "Los valores que una persona escribió o importó se conservan por defecto cuando cambia el origen: marcados como desactualizados, nunca sobrescritos."
+            },
+            "review": {
+              "title": "Aprueba o rechaza lo que marcó una ejecución",
+              "body": "Las decisiones se guardan junto al archivo de bloqueo, así que la cola de revisión solo muestra lo que nadie ha mirado todavía."
+            }
+          }
+        },
+        "correct": {
+          "title": "Correcto en cada idioma",
+          "items": {
+            "plurals": {
+              "title": "Formas plurales de CLDR",
+              "body": "Cada destino recibe las categorías de plural que necesita su idioma, y las ramas de plural ICU que no encajan se rechazan."
+            },
+            "locales": {
+              "title": "Códigos de locale válidos",
+              "body": "Cada locale debe ser una etiqueta BCP 47 válida, así que una errata falla al cargar la configuración, no en producción."
+            },
+            "qa": {
+              "title": "Controles de calidad sobre archivos confirmados",
+              "body": "Los controles que una ejecución aplica a la salida del proveedor, aplicados a lo que ya hay en tus archivos de locale. Sin clave."
+            }
+          }
+        },
+        "network": {
+          "title": "Las cadenas solo van a donde tú permites",
+          "items": {
+            "policy": {
+              "title": "Una política de red que verbatra hace cumplir",
+              "body": "Solo local o una lista de permitidos: un host que no permitiste se rechaza antes de que ninguna petición salga de la máquina."
+            },
+            "preview": {
+              "title": "Mira primero qué enviaría una ejecución",
+              "body": "Una ejecución de prueba no necesita clave de API ni escribe nada: muestra exactamente qué claves enviaría una ejecución real."
+            },
+            "private": {
+              "title": "Sin telemetría, y los modelos locales son bienvenidos",
+              "body": "Las cadenas solo van al proveedor que configuras, y un modelo autoalojado las mantiene en tu propio hardware."
+            }
+          }
+        }
+      }
     },
     "loop": {
       "heading": "El resto del ciclo de traducción, en la misma herramienta.",
       "links": {
         "llms": "llms.txt",
         "llmsFull": "llms-full.txt",
-        "mcpDocs": "Documentación del servidor MCP"
+        "mcpDocs": "Documentación del servidor MCP",
+        "skillsDocs": "Documentación del paquete de skills"
       },
       "rows": {
         "agent": {
-          "body": "Un servidor MCP, más skills instalables para la CLI, MCP y Studio.",
+          "body": "Un servidor MCP para Claude Code, Cursor, VS Code y GitHub Copilot, más skills instalables para la CLI, MCP y Studio.",
           "cta": "Empezar con IA",
           "title": "O déjaselo a tu agente."
         },
@@ -247,7 +310,7 @@
         },
         "studio": {
           "alt": "La página de Revisión de Verbatra Studio con cinco entradas marcadas en los locales de, es y fr; cada fila muestra la clave, sus motivos de revisión y las acciones Edit, Approve y Reject.",
-          "body": "Cobertura, entradas marcadas, ediciones in situ. Sin llamadas al proveedor.",
+          "body": "Cobertura, entradas marcadas, ediciones in situ, aprobar o rechazar. Sin llamadas al proveedor.",
           "cta": "Revisar traducciones en Studio",
           "title": "Consulta el estado de cada locale en Verbatra Studio."
         }
@@ -282,7 +345,7 @@
       "label": "Frameworks y formatos compatibles"
     },
     "providers": {
-      "heading": "Seis proveedores, una interfaz.",
+      "heading": "Siete proveedores, una interfaz.",
       "hint": "Pasa el cursor por las tarjetas o recórrelas con Tab.",
       "kinds": {
         "anthropic": "modelos Claude",
@@ -290,9 +353,10 @@
         "gemini": "nivel gratuito disponible",
         "googleTranslate": "traducción automática",
         "openai": "modelos GPT",
-        "openaiCompatible": "Ollama, vLLM, LM Studio"
+        "openaiCompatible": "Ollama, vLLM, LM Studio",
+        "libretranslate": "autoalojado, sin LLM"
       },
-      "lead": "Cambia modificando una línea de la configuración."
+      "lead": "Cambia modificando una línea de la configuración, o ponlo en none y deja cada cadena en manos humanas."
     }
   },
   "legal": {
@@ -303,10 +367,10 @@
       },
       "title": "Política de privacidad",
       "lastUpdatedLabel": "Última actualización",
-      "disclaimer": "Esta es una traducción por comodidad. En caso de cualquier discrepancia, prevalece la versión en inglés.",
+      "languageVersions": "Esta política de privacidad está disponible en inglés, alemán, español y francés. Las cuatro versiones lingüísticas tienen el mismo contenido y son igualmente vinculantes.",
       "s1": {
         "heading": "1. Responsable del tratamiento",
-        "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Alemania. Puedes contactarnos por correo electrónico en <email>info@kreitz-webdev.de</email>."
+        "body": "El responsable del tratamiento de datos en este sitio es Mario Kreitz, Mönchfeldstraße 7, 70378 Stuttgart, Alemania (los mismos datos que figuran en el <imprint>aviso legal</imprint>). Puedes contactarnos por correo electrónico en <email>info@kreitz-webdev.de</email>. No se ha designado un delegado de protección de datos, ya que ni el art. 37 del RGPD ni el § 38 de la BDSG (Ley Federal alemana de Protección de Datos) lo exigen para este sitio."
       },
       "s2": {
         "heading": "2. Resumen",
@@ -314,11 +378,20 @@
       },
       "s3": {
         "heading": "3. Registros del servidor y alojamiento",
-        "body": "El sitio se aloja de forma autogestionada en un servidor virtual en <contabo>Contabo</contabo>, gestionado con Plesk. Cuando lo visitas, el servidor procesa registros de acceso estándar que pueden incluir tu dirección IP, la fecha y hora de la solicitud, la URL solicitada, la página de referencia y la cadena de user-agent de tu navegador. Estos datos se usan para operar y proteger el sitio, por ejemplo para entregar páginas, diagnosticar errores y defenderse frente a abusos. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en un servicio seguro y funcional). Estos registros se conservan solo durante un periodo breve."
+        "body": "El sitio se aloja de forma autogestionada en un servidor virtual alquilado a <contabo>Contabo</contabo> (Contabo GmbH, Welfenstraße 22, 81541 Múnich, Alemania), gestionado con Plesk. Contabo proporciona la infraestructura del servidor y, al hacerlo, trata por nuestra cuenta, como encargado del tratamiento (art. 28 del RGPD), los datos descritos en esta sección y en la sección 4. Cuando visitas el sitio, el servidor web procesa registros de acceso estándar que pueden incluir tu dirección IP, la fecha y hora de la solicitud, la URL solicitada, la página de referencia y la cadena de user-agent de tu navegador. La aplicación que sirve el sitio también escribe mensajes de funcionamiento y de error en su propio registro de contenedor, por ejemplo cuando no se puede enviar una notificación del formulario de contacto. Estos datos se usan para operar y proteger el sitio, por ejemplo para entregar páginas, diagnosticar errores y defenderse frente a abusos. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en un servicio seguro y funcional). Los registros de acceso del servidor web se eliminan en cuanto dejan de ser necesarios para estos fines. El registro del contenedor se rota automáticamente y está limitado a 3 archivos de 10 MB cada uno; cuando se alcanza ese límite, se elimina el archivo más antiguo."
       },
       "s4": {
         "heading": "4. Analítica",
-        "body": "Usamos Umami, una herramienta de analítica respetuosa con la privacidad que alojamos nosotros mismos. Umami <strong>no usa cookies y no recopila datos personales ni utiliza fingerprinting entre sitios</strong>. Solo registra métricas agregadas como visitas de página, referencias, país aproximado y navegador, sistema operativo y tipo de dispositivo. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en entender cómo se usa el sitio). Puedes leer más sobre Umami en su <umami>documentación</umami>."
+        "body": "Usamos Umami, una herramienta de analítica de código abierto que alojamos nosotros mismos en el mismo servidor que este sitio (ver la sección 3), por lo que ningún dato de analítica se cede a terceros. Cuando se carga una página, el script de Umami lee la dirección y el título de la página, la página de referencia, el tamaño de tu pantalla y el idioma de tu navegador, y los envía a nuestro servidor de Umami. También se registran algunas interacciones como eventos: seguir un enlace externo (con una etiqueta que nombra su destino), copiar un comando o un prompt (con el texto del comando copiado en un comando, y sin datos en el prompt) y cambiar de idioma (con el idioma anterior y el recién seleccionado). Umami <strong>no usa cookies ni escribe nada en tu dispositivo</strong>; solo lee el ajuste de exclusión descrito más abajo. El servidor de Umami trata tu dirección IP y la cadena de user-agent de tu navegador de forma transitoria: deriva de ellas tu ubicación aproximada (país, región y ciudad) y tu navegador, sistema operativo y tipo de dispositivo, y calcula un identificador de sesión seudónimo aplicando un hash a ambas junto con una sal que se rota periódicamente. <strong>Tu dirección IP y tu cadena de user-agent en sí no se almacenan.</strong> Como el identificador de sesión se deriva de tu dirección IP, se trata de un tratamiento seudónimo, y no anónimo, de datos personales. Solo consultamos los resultados de forma agregada y no intentamos identificar a visitantes individuales. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en entender cómo se usa el sitio). Los registros de analítica se almacenan en la base de datos de Umami de este servidor. Si tu navegador envía una señal Do Not Track, el script de Umami no envía nada. También puedes oponerte con el botón de abajo: guarda la entrada umami.disabled en el almacenamiento local de tu navegador, lo que impide que el script envíe nada desde este navegador hasta que vuelvas a permitir la analítica o borres los datos del sitio. Puedes leer más sobre Umami en su <umami>documentación</umami>.",
+        "optOut": {
+          "optOut": "Excluirme de la analítica",
+          "optIn": "Volver a permitir la analítica",
+          "statusPending": "La exclusión necesita JavaScript. Sin JavaScript, el script de analítica no se ejecuta y no se cuenta nada.",
+          "statusCounted": "Umami cuenta actualmente tus visitas a este sitio.",
+          "statusOptedOut": "Te has excluido: tus visitas a este sitio no se cuentan en este navegador.",
+          "statusDoNotTrack": "Tu navegador envía una señal Do Not Track, así que tus visitas no se cuentan. También puedes excluirte de forma explícita.",
+          "statusUnavailable": "Tu navegador no permite que este sitio use el almacenamiento local, así que la exclusión no se puede guardar. Activa Do Not Track en tu navegador para detener el recuento."
+        }
       },
       "s5": {
         "heading": "5. Cookies",
@@ -326,7 +399,7 @@
       },
       "s6": {
         "heading": "6. Fuentes y recursos",
-        "body": "Las fuentes están autoalojadas: se empaquetan en el momento de la compilación, por lo que no se hace ninguna solicitud a Google Fonts ni a ningún otro tercero cuando cargas una página. La única excepción son las insignias de estado: la página de inicio y la página de pruebas incrustan imágenes de insignias en vivo de GitHub, Codecov y shields.io que muestran la compilación actual, la cobertura, la versión y la licencia. Cargar estas imágenes transmite tu dirección IP a esos proveedores, que actúan como responsables del tratamiento independientes bajo sus propias políticas de privacidad. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en mostrar un estado preciso del proyecto). Aparte de estas insignias y del script autoalojado de Umami descrito arriba, no se carga ningún script ni elemento incrustado de terceros en tiempo de ejecución."
+        "body": "Las fuentes y las imágenes, incluidos los avatares de los colaboradores de la página de inicio, están autoalojadas: se sirven desde el propio servidor de este sitio, por lo que cargar una página no hace ninguna solicitud a Google Fonts, GitHub ni a ningún otro tercero. El sitio no incrusta insignias de estado. Aparte del script autoalojado de Umami descrito arriba, no se carga ningún script, imagen ni elemento incrustado de terceros en tiempo de ejecución. Los sitios externos como GitHub o npm solo se contactan cuando sigues un enlace hacia ellos."
       },
       "s7": {
         "heading": "7. GitHub y npm",
@@ -334,23 +407,27 @@
       },
       "s8": {
         "heading": "8. Tus derechos",
-        "body": "Bajo el RGPD tienes los derechos de acceso, rectificación, supresión, limitación del tratamiento, oposición y portabilidad de los datos (arts. 15–21 del RGPD). También tienes derecho a presentar una reclamación ante una autoridad de control. Para ejercer cualquiera de estos derechos, contáctanos usando los datos que aparecen abajo."
+        "body": "Bajo el RGPD tienes los derechos de acceso, rectificación, supresión, limitación del tratamiento, oposición y portabilidad de los datos (arts. 15–21 del RGPD); el derecho de oposición se expone por separado en la sección 9. También tienes derecho a presentar una reclamación ante una autoridad de control (art. 77 del RGPD). La autoridad de control competente para nosotros es \"Der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg\" (Comisionado de Protección de Datos y Libertad de Información de Baden-Wurtemberg), Heilbronner Straße 35, 70191 Stuttgart, Alemania, <lfdi>www.baden-wuerttemberg.datenschutz.de</lfdi>. Para ejercer cualquiera de estos derechos, contáctanos usando los datos que aparecen abajo."
+      },
+      "objection": {
+        "heading": "9. Derecho de oposición (art. 21 del RGPD)",
+        "body": "Cuando tratamos tus datos personales sobre la base del art. 6.1.f) del RGPD (intereses legítimos), como se describe en las secciones 3, 4 y 12, <strong>tienes derecho a oponerte a ese tratamiento en cualquier momento</strong>, por motivos relacionados con tu situación particular. Si te opones, dejaremos de tratar los datos personales afectados, salvo que acreditemos motivos legítimos imperiosos para el tratamiento que prevalezcan sobre tus intereses, derechos y libertades, o que el tratamiento sirva para la formulación, el ejercicio o la defensa de reclamaciones. Para oponerte basta con un mensaje informal a <email>info@kreitz-webdev.de</email>."
       },
       "s9": {
-        "heading": "9. Contacto",
+        "heading": "10. Contacto",
         "body": "Para cualquier pregunta o solicitud relacionada con la privacidad, envía un correo electrónico a <email>info@kreitz-webdev.de</email>."
       },
       "s10": {
-        "heading": "10. Cambios en esta política",
+        "heading": "11. Cambios en esta política",
         "body": "Podemos actualizar esta política de privacidad a medida que el sitio evoluciona o cambian los requisitos legales. La fecha que aparece abajo refleja la revisión más reciente."
       },
       "s11": {
-        "heading": "11. Formulario de contacto",
-        "body": "Cuando usas el <contact>formulario de contacto</contact>, tratamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo externo participa en su entrega, y esa entrega no implica ninguna transferencia de datos fuera de la UE. El único encargado del tratamiento externo en el sentido del art. 28 del RGPD es Arcjet, que trata la dirección IP y las cabeceras de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario frente a bots y abusos; esos datos se conservan durante el periodo que fija nuestro plan de Arcjet, actualmente hasta una hora en el nivel gratuito. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo de notificación resultante se conservan solo el tiempo necesario para gestionar la consulta y no se almacenan en ningún sitio más allá de la bandeja de entrada del operador."
+        "heading": "12. Formulario de contacto",
+        "body": "Cuando usas el <contact>formulario de contacto</contact>, tratamos el nombre, la dirección de correo electrónico y el mensaje que envías para responder a tu consulta. El correo de notificación se envía directamente a través de nuestro propio servidor de correo, alojado en Alemania; ningún proveedor de correo externo participa en su entrega, y esa entrega no implica ninguna transferencia de datos fuera de la UE. Aparte del proveedor de alojamiento (ver la sección 3), el único encargado del tratamiento en el sentido del art. 28 del RGPD es Arcjet (Arcjet Labs, Inc., San Francisco, EE. UU.), que trata la dirección IP y las cabeceras de la solicitud (no el contenido del mensaje) a través de su Cloud API para proteger el formulario frente a bots y abusos. Según la <arcjetprivacy>documentación de privacidad de Arcjet</arcjetprivacy>, Arcjet conserva estos datos de la solicitud durante 30 días y conserva durante más tiempo los datos agregados derivados de ellos. Arcjet tiene su sede en Estados Unidos y no garantiza que las solicitudes se traten en la UE, por lo que estos datos pueden transferirse a Estados Unidos, un tercer país (art. 44 y ss. del RGPD). Arcjet no está certificada en el marco del EU-U.S. Data Privacy Framework, por lo que la decisión de adecuación de la Comisión Europea para ese marco no cubre esta transferencia; en su lugar, se basa en las cláusulas contractuales tipo de la UE (art. 46.2.c) del RGPD). Puedes solicitar una copia de estas garantías escribiendo a <email>info@kreitz-webdev.de</email>. La base jurídica es el art. 6.1.f) del RGPD (nuestro interés legítimo en operar el formulario de forma segura y responder a las consultas). Tu envío y el correo de notificación resultante no se almacenan en ningún sitio más allá de la bandeja de entrada del operador. Se eliminan una vez que tu consulta se ha gestionado por completo."
       },
       "s12": {
-        "heading": "12. Traducción asistida por IA",
-        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo: la interfaz se traduce al alemán, español y francés con la ayuda de modelos de lenguaje de IA. Las páginas de documentación más extensas también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. El contenido traducido se revisa antes de publicarse. Lo indicamos aquí de forma voluntaria, por transparencia, no porque se aplique una obligación legal de divulgación específica."
+        "heading": "13. Traducción asistida por IA",
+        "body": "Este proyecto, verbatra, es una herramienta de traducción asistida por IA, y este sitio de documentación la usa también en sí mismo. El idioma de origen es el inglés. verbatra traduce automáticamente los textos de la interfaz (navegación, botones y textos similares) al alemán, español y francés con el modelo de lenguaje Gemini de Google. Las páginas de documentación también se traducen con IA, aunque en un paso aparte, fuera de esa canalización automatizada. Algunos textos, entre ellos partes de estas páginas legales, se redactaron o corrigieron directamente en lugar de generarse con esa canalización. Las traducciones se revisan en la medida de lo posible: no todos los textos traducidos los revisa una persona antes de publicarse, por lo que una traducción puede contener errores. Si detectas alguno, avísanos a través del <contact>formulario de contacto</contact>. Ofrecemos esta información de forma voluntaria, por transparencia."
       }
     },
     "imprint": {
@@ -358,7 +435,7 @@
         "title": "Aviso legal",
         "description": "Información legal (Impressum) del sitio de documentación de verbatra."
       },
-      "intro": "Este aviso legal (Impressum) se proporciona en alemán tal como exige la ley alemana.",
+      "intro": "Aviso legal (Impressum) de este sitio web. Los datos se indican en alemán.",
       "lastUpdatedLabel": "Última actualización",
       "contactLinkNote": "Para una respuesta electrónica rápida, también puedes usar nuestro <link>formulario de contacto en línea</link>."
     },
@@ -368,7 +445,8 @@
         "description": "Ponte en contacto con el operador del sitio de documentación de verbatra."
       },
       "title": "Contacto",
-      "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el Aviso legal.",
+      "intro": "Utiliza este formulario para contactar directamente con el operador del sitio. Este es un segundo canal de contacto electrónico directo, además de la dirección de correo electrónico que figura en el <imprint>Aviso legal</imprint>.",
+      "privacyNotice": "Usamos tu nombre, tu dirección de correo electrónico y tu mensaje solo para responder a tu consulta, y los eliminamos una vez gestionada. Encontrarás los detalles en la <privacy>política de privacidad</privacy>.",
       "form": {
         "nameLabel": "Nombre",
         "namePlaceholder": "Tu nombre",
@@ -399,6 +477,10 @@
       "title": "Página traducida automáticamente",
       "viewOriginal": "Leer el original en inglés"
     },
+    "outdatedTranslation": {
+      "title": "La traducción puede estar desactualizada",
+      "text": "La página en inglés cambió después de esta traducción."
+    },
     "notTranslated": {
       "text": "Esta página todavía no está traducida, así que se muestra en inglés.",
       "title": "No disponible en tu idioma"
@@ -408,9 +490,12 @@
       "heading": "Para agentes de IA",
       "index": "llms.txt (índice)"
     },
+    "codeBlock": {
+      "output": "Salida"
+    },
     "availableFrom": {
       "title": "Disponible a partir de {version}",
-      "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con verbatra --version y actualiza si es más antigua.",
+      "text": "Esto requiere verbatra {version} o posterior. Las versiones anteriores no lo tienen: comprueba tu versión instalada con <code>verbatra --version</code> y actualiza si es más antigua.",
       "packageTitle": "Disponible a partir de {version}",
       "packageText": "Esto requiere {version} o posterior. Las versiones anteriores no lo tienen: actualiza ese paquete si el tuyo es más antiguo."
     },
@@ -419,6 +504,13 @@
       "tablistLabel": "Tema de la captura",
       "dark": "Oscuro",
       "light": "Claro"
+    },
+    "diffPanel": {
+      "label": "Un diff en el que solo se vuelve a traducir la clave de traducción modificada",
+      "caption": "Solo la clave modificada se envía al proveedor. Las claves actuales no se tocan."
+    },
+    "statusBadges": {
+      "new": "nuevo"
     }
   }
 }

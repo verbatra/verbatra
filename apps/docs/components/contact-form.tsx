@@ -112,7 +112,7 @@ function Field({
   );
 }
 
-export function ContactForm(): ReactNode {
+export function ContactForm({ privacyNotice }: { privacyNotice: ReactNode }): ReactNode {
   const t = useTranslations("legal.contact.form");
   const nameId = useId();
   const emailId = useId();
@@ -185,6 +185,7 @@ export function ContactForm(): ReactNode {
       >
         {state === "loading" ? t("submitting") : t("submit")}
       </button>
+      <p className="-mt-2 text-sm text-[color:var(--text-muted)]">{privacyNotice}</p>
       <div role="status" aria-live="polite" className="text-sm">
         <StatusMessage state={state} hasFieldErrors={Object.keys(fieldErrors).length > 0} t={t} />
       </div>

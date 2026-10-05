@@ -2,8 +2,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { GATE_CLI_LINE } from "@/lib/gate-demo";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { EVIDENCE_LINK_CLASS } from "./evidence";
 import { GITHUB_URL } from "./links";
-import { Reveal } from "./reveal";
 import { Section } from "./section";
 import { SectionHead } from "./section-head";
 
@@ -29,28 +30,32 @@ function gains(docs: (path: string) => string): ReadonlyArray<Gain> {
   ];
 }
 
-const EVIDENCE_CLASS =
-  "inline-block max-w-full overflow-x-auto whitespace-nowrap rounded-md border border-fd-border px-2.5 py-1.5 font-mono text-[12.5px] text-[color:var(--accent)]";
+const PROOF_CLASS =
+  "block overflow-x-auto whitespace-nowrap border-s-[3px] py-3 ps-4 pe-4 font-mono text-sm text-fd-foreground";
 
-function Evidence({ gain }: { gain: Gain }): ReactNode {
-  const style = { background: "var(--surface-bg)" };
-  if (gain.href) {
-    const external = gain.href.startsWith("http");
+const PROOF_STYLE = {
+  background: "var(--v-void)",
+  borderInlineStartColor: "var(--v-purple)",
+} as const;
+
+function ProofLine({ text, href }: { text: string; href?: string | undefined }): ReactNode {
+  if (!href) {
     return (
-      <a
-        href={gain.href}
-        className={EVIDENCE_CLASS}
-        style={style}
-        {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
-      >
-        {gain.evidence}
-      </a>
+      <code className={PROOF_CLASS} style={PROOF_STYLE}>
+        {text}
+      </code>
     );
   }
+  const external = href.startsWith("http");
   return (
-    <code className={EVIDENCE_CLASS} style={style}>
-      {gain.evidence}
-    </code>
+    <a
+      href={href}
+      className={cn(PROOF_CLASS, EVIDENCE_LINK_CLASS, "border-y border-e border-transparent")}
+      style={PROOF_STYLE}
+      {...(external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+    >
+      {text}
+    </a>
   );
 }
 
@@ -60,43 +65,36 @@ export async function Gains(): Promise<ReactNode> {
   const items = gains((path) => localizedPath(locale, path));
   const codeTags = {
     code: (chunks: ReactNode) => (
-      <code className="whitespace-nowrap font-mono text-[13.5px] text-fd-foreground">{chunks}</code>
+      <code className="whitespace-nowrap font-mono text-sm text-fd-foreground">{chunks}</code>
     ),
   };
 
   return (
     <Section width="wide" rhythm="lg" id="gains">
-      <Reveal>
+      <div>
         <SectionHead title={t("heading")} lead={t("lead")} />
-      </Reveal>
-      <Reveal order={1}>
-        <dl className="mt-12 grid border-t border-fd-border md:grid-cols-2 md:gap-x-16">
+      </div>
+      <div>
+        <dl className="mt-12 border-t border-fd-border">
           {items.map((gain) => (
-            <div key={gain.key} className="border-b border-fd-border py-6">
-              <dt
-                className="max-w-[26ch] font-semibold text-fd-foreground"
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "1.15rem",
-                  lineHeight: 1.3,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                {t(`items.${gain.key}.title`)}
-              </dt>
-              <dd className="mt-2 max-w-[50ch] text-[15px] leading-relaxed text-fd-muted-foreground">
+            <div
+              key={gain.key}
+              className="grid gap-x-16 gap-y-2 border-b border-fd-border py-7 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center"
+            >
+              <dt className="vk-h4 max-w-[30ch]">{t(`items.${gain.key}.title`)}</dt>
+              <dd className="m-0 max-w-[52ch] text-base leading-relaxed text-fd-muted-foreground lg:col-start-1">
                 {t.rich(`items.${gain.key}.body`, codeTags)}
               </dd>
-              <dd className="mt-3.5 grid gap-1">
-                <Evidence gain={gain} />
-                <span className="text-[13px] text-[color:var(--text-faint)]">
+              <dd className="m-0 mt-3 grid min-w-0 gap-2 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0">
+                <ProofLine text={gain.evidence} href={gain.href} />
+                <span className="text-sm text-[color:var(--text-faint)]">
                   {t(`items.${gain.key}.note`)}
                 </span>
               </dd>
             </div>
           ))}
         </dl>
-      </Reveal>
+      </div>
     </Section>
   );
 }

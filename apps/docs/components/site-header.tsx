@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from "fumadocs-core/framework";
+import Link from "fumadocs-core/link";
 import {
   SidebarDrawerContent,
   SidebarDrawerOverlay,
@@ -10,8 +12,15 @@ import {
 import { buttonVariants } from "fumadocs-ui/components/ui/button";
 import { useHomeLayout } from "fumadocs-ui/layouts/home";
 import { useNotebookLayout } from "fumadocs-ui/layouts/notebook";
-import { type BaseSlots, LinkItem, type LinkItemType } from "fumadocs-ui/layouts/shared";
+import {
+  type BaseSlots,
+  isLinkItemActive,
+  LinkItem,
+  type LinkItemType,
+} from "fumadocs-ui/layouts/shared";
 import type { ComponentProps, ReactNode } from "react";
+import { useRootTabs } from "@/components/root-tabs";
+import { headerActiveTab, isRootTabLinkActive } from "@/lib/root-tabs";
 import { cn } from "@/lib/utils";
 
 export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "languageSelect">;
@@ -19,7 +28,7 @@ export type HeaderSlots = Pick<BaseSlots, "navTitle" | "searchTrigger" | "langua
 type IconItem = Extract<LinkItemType, { type: "icon" }>;
 
 const TEXT_LINK =
-  "vk-header-link text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
+  "vk-header-link whitespace-nowrap text-sm text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary";
 
 const ICON_BUTTON = cn(
   buttonVariants({ size: "icon-sm", variant: "ghost" }),
@@ -79,9 +88,27 @@ function itemKey(item: LinkItemType): string {
   return "url" in item && item.url ? item.url : "custom";
 }
 
-function TextLink({ item, className }: { item: LinkItemType; className: string }): ReactNode {
+type ActiveOverride = (url: string) => boolean | undefined;
+
+function TextLink({
+  item,
+  className,
+  activeOverride,
+}: {
+  item: LinkItemType;
+  className: string;
+  activeOverride?: ActiveOverride | undefined;
+}): ReactNode {
   if (item.type === "custom") return item.children;
   if (item.type === "menu" || item.type === "icon") return null;
+  const active = activeOverride?.(item.url);
+  if (active !== undefined) {
+    return (
+      <Link href={item.url} external={item.external} className={className} data-active={active}>
+        {item.text}
+      </Link>
+    );
+  }
   return (
     <LinkItem item={item} className={className}>
       {item.text}
@@ -117,6 +144,7 @@ export type SiteHeaderFrameProps = ComponentProps<"header"> & {
   navItems: ReadonlyArray<LinkItemType>;
   mobileTrigger: ReactNode;
   trailing?: ReactNode;
+  activeOverride?: ActiveOverride;
 };
 
 export function SiteHeaderFrame({
@@ -124,6 +152,7 @@ export function SiteHeaderFrame({
   navItems,
   mobileTrigger,
   trailing,
+  activeOverride,
   className,
   ...props
 }: SiteHeaderFrameProps): ReactNode {
@@ -146,7 +175,12 @@ export function SiteHeaderFrame({
         <div className="flex flex-1 items-center justify-end md:gap-2">
           <nav className="flex items-center gap-6 empty:hidden max-lg:hidden">
             {textItems.map((item) => (
-              <TextLink key={itemKey(item)} item={item} className={TEXT_LINK} />
+              <TextLink
+                key={itemKey(item)}
+                item={item}
+                className={TEXT_LINK}
+                activeOverride={activeOverride}
+              />
             ))}
           </nav>
           {iconItems.map((item) => (
@@ -172,6 +206,11 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
   const { slots, navItems, isNavTransparent } = useNotebookLayout();
   const sidebar = slots.sidebar;
   const { open } = sidebar.useSidebar();
+  const { tabs, active } = useRootTabs();
+  const pathname = usePathname();
+  const activeTab = headerActiveTab(navItems, tabs, active, (item) =>
+    isLinkItemActive(item, pathname),
+  );
   return (
     <SiteHeaderFrame
       id="nd-subnav"
@@ -183,6 +222,7 @@ export function DocsSiteHeader(props: ComponentProps<"header">): ReactNode {
       )}
       slots={slots}
       navItems={navItems}
+      activeOverride={(url) => isRootTabLinkActive(url, tabs, activeTab)}
       mobileTrigger={
         <sidebar.trigger className={MOBILE_TRIGGER}>
           <SidebarIcon />

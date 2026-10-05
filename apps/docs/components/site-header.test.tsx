@@ -16,6 +16,16 @@ vi.mock("fumadocs-ui/layouts/shared", () => ({
   ),
 }));
 
+vi.mock("fumadocs-core/link", () => ({
+  default: ({
+    children,
+    external: _external,
+    ...props
+  }: ComponentProps<"a"> & { external?: boolean }) => <a {...props}>{children}</a>,
+}));
+
+vi.mock("@/components/root-tabs", () => ({ useRootTabs: () => ({ tabs: [] }) }));
+
 vi.mock("fumadocs-ui/layouts/home", () => ({ useHomeLayout: () => ({}) }));
 vi.mock("fumadocs-ui/layouts/notebook", () => ({ useNotebookLayout: () => ({}) }));
 vi.mock("fumadocs-ui/components/sidebar/base", () => ({
@@ -72,7 +82,9 @@ const ITEMS: ComponentProps<typeof SiteHeaderFrame>["navItems"] = [
 
 let mounted: { container: HTMLDivElement; root: Root } | undefined;
 
-function render(): HTMLDivElement {
+function render(
+  activeOverride?: ComponentProps<typeof SiteHeaderFrame>["activeOverride"],
+): HTMLDivElement {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -84,6 +96,7 @@ function render(): HTMLDivElement {
         navItems={ITEMS}
         mobileTrigger={<button type="button" data-mobile />}
         trailing={<span data-trailing />}
+        {...(activeOverride ? { activeOverride } : {})}
       />,
     );
   });
@@ -117,5 +130,30 @@ describe("SiteHeaderFrame", () => {
     const icon = container.querySelector('a[aria-label="GitHub"]');
     expect(icon).not.toBeNull();
     expect(icon?.closest("nav")).toBeNull();
+  });
+
+  it("keeps each text link on one line, since the squeezed nav wraps them at 1024px otherwise", () => {
+    const container = render();
+    for (const link of container.querySelectorAll("nav a.vk-header-link")) {
+      expect(link.classList.contains("whitespace-nowrap")).toBe(true);
+    }
+  });
+
+  it("takes the active state of a tab link from the override, on nested pages too", () => {
+    const container = render((url) => (url === "/docs" ? true : undefined));
+    const states = Array.from(container.querySelectorAll("nav a.vk-header-link")).map((link) => [
+      link.textContent,
+      link.getAttribute("data-active"),
+    ]);
+    expect(states).toEqual([
+      ["Docs", "true"],
+      ["Start with AI", "false"],
+    ]);
+  });
+
+  it("renders a tab link inactive when the override says so", () => {
+    const container = render((url) => (url === "/docs" ? false : undefined));
+    const docs = container.querySelector('nav a[href="/docs"]');
+    expect(docs?.getAttribute("data-active")).toBe("false");
   });
 });

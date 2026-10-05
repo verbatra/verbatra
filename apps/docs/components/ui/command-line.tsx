@@ -11,23 +11,35 @@ export type HighlightedCommandProps = {
   link?: CommandLineLink;
 };
 
+function Words({ text }: { text: string }): ReactNode {
+  return text.split(/(\s+)/).map((part, index) =>
+    part.trim() === "" ? (
+      part
+    ) : (
+      <span key={`${index}-${part}`} className="whitespace-nowrap">
+        {part}
+      </span>
+    ),
+  );
+}
+
 export function HighlightedCommand({ command, link }: HighlightedCommandProps): ReactNode {
   const tokenAt = link ? command.indexOf(link.token) : -1;
-  if (!link || tokenAt < 0) return <>{command}</>;
+  if (!link || tokenAt < 0) return <Words text={command} />;
 
   return (
     <>
-      {command.slice(0, tokenAt)}
+      <Words text={command.slice(0, tokenAt)} />
       <a
         href={link.href}
         target="_blank"
         rel="noreferrer noopener"
         onClick={(event) => event.stopPropagation()}
-        className="inline-flex min-h-6 items-center rounded underline decoration-fd-border underline-offset-4 align-middle transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)]"
+        className="inline-flex min-h-6 items-center rounded underline decoration-fd-border underline-offset-4 align-middle transition-colors hover:text-[var(--accent)] hover:decoration-[var(--accent)] focus-visible:outline-offset-[-2px]"
       >
         {link.token}
       </a>
-      {command.slice(tokenAt + link.token.length)}
+      <Words text={command.slice(tokenAt + link.token.length)} />
     </>
   );
 }
