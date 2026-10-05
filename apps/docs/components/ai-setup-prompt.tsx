@@ -10,7 +10,12 @@ import { breakUrlsAtSlashes } from "@/lib/word-breaks";
 
 const VARIANT = {
   row: "border-t",
-  panel: "not-prose my-6 rounded-xl border",
+  panel: "not-prose my-6 max-w-(--width-measure) rounded-xl border",
+} as const;
+
+const PROMPT_TEXT = {
+  row: "text-xs text-[color:var(--text-muted)]",
+  panel: "text-sm text-[color:var(--text-body)]",
 } as const;
 
 export function AiSetupPrompt({
@@ -29,7 +34,9 @@ export function AiSetupPrompt({
       }}
     >
       <div className="flex items-center justify-between gap-2">
-        <figcaption className="vk-label min-w-0 text-balance leading-6">{t("aiLabel")}</figcaption>
+        <figcaption className="vk-label flex min-h-6 min-w-0 items-center text-balance leading-snug">
+          {t("aiLabel")}
+        </figcaption>
         <CopyButton
           text={AI_SETUP_PROMPT}
           label={t("copyPromptAria")}
@@ -39,7 +46,7 @@ export function AiSetupPrompt({
       </div>
       <p
         lang="en"
-        className="m-0 font-sans text-xs leading-(--leading-normal) text-[color:var(--text-muted)]"
+        className={cn("m-0 font-sans leading-(--leading-normal) text-pretty", PROMPT_TEXT[variant])}
       >
         {breakUrlsAtSlashes(AI_SETUP_PROMPT)}
       </p>
