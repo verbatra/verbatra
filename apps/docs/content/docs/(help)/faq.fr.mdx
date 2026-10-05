@@ -92,11 +92,12 @@ aucune télémétrie. Avec `provider: { id: "none" }`, rien ne quitte la machine
 
 <AvailableFrom version="0.9.0" />
 
-L'installation en une seule passe, sans appel au fournisseur ni lecture de la valeur d'une clé : la
-config, le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier
-source et la prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes
-de locale et l'état de locale restant. [`verbatra doctor`](/docs/cli/doctor) a le tableau complet
-des vérifications.
+L'installation en une seule passe, sans appel de traduction et sans lire la valeur d'une clé, sauf
+si tu passes `--live`, qui l'envoie pour récupérer la liste des langues du fournisseur : la config,
+le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier source et la
+prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale et
+l'état de locale restant. [`verbatra doctor`](/docs/cli/doctor) a le tableau complet des
+vérifications.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 
