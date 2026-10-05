@@ -187,15 +187,25 @@ describe("the SDK quickstart and recipes", () => {
   );
 });
 
-function referenceExamples(page, suffix = "") {
-  return typeScriptBlocks(readPage(page, suffix))
+function examplesIn(source, suffix = "") {
+  return typeScriptBlocks(source)
     .filter((block) => blockTitle(block) === EXAMPLE_TITLES[suffix])
     .map(({ body }) => body);
 }
 
+function referenceExamples(page, suffix = "") {
+  return examplesIn(readPage(page, suffix), suffix);
+}
+
+const SUMMARY_LISTING_PAGE = "sdk/run-summary";
+
+function isSummaryListing(page, block) {
+  return page === SUMMARY_LISTING_PAGE && block.body.startsWith("interface RunSummary {\n");
+}
+
 function untitledFragments(page, suffix) {
   return typeScriptBlocks(readPage(page, suffix)).filter(
-    (block) => blockTitle(block) === undefined && !block.body.startsWith("interface "),
+    (block) => blockTitle(block) === undefined && !isSummaryListing(page, block),
   );
 }
 
@@ -226,9 +236,8 @@ describe("the SDK reference examples", () => {
   it(
     "typechecks every Example block against the built @verbatra/sdk declarations",
     () => {
-      const sources = REFERENCE_PAGES.flatMap((page) =>
-        referenceExamples(page).map(({ body }) => body),
-      );
+      const sources = REFERENCE_PAGES.flatMap((page) => referenceExamples(page));
+      expect(sources.every((source) => source.includes("@verbatra/sdk"))).toBe(true);
       const result = typecheck(sources);
       expect(result.output).toBe("");
       expect(result.status).toBe(0);
@@ -236,12 +245,25 @@ describe("the SDK reference examples", () => {
     SLOW,
   );
 
+  it("exempts only the RunSummary listing on its owner page from the title rule", () => {
+    const listing = { opening: "```ts", body: "interface RunSummary {\n  dryRun: boolean;\n}" };
+    const other = { opening: "```ts", body: "interface WatchInput {\n  config: unknown;\n}" };
+
+    expect(isSummaryListing(SUMMARY_LISTING_PAGE, listing)).toBe(true);
+    expect(isSummaryListing("sdk/run", listing)).toBe(false);
+    expect(isSummaryListing(SUMMARY_LISTING_PAGE, other)).toBe(false);
+  });
+
   it(
-    "fails the typecheck on an Example that uses a given it never declares",
+    "fails the typecheck on an extracted Example that uses a given it never declares",
     () => {
-      const result = typecheck([
-        'import { translate } from "@verbatra/sdk";\nawait translate({ config });\n',
-      ]);
+      const broken = 'import { translate } from "@verbatra/sdk";\nawait translate({ config });';
+      const fence = "`".repeat(3);
+      const page = `${readPage("sdk/run")}\n${fence}ts title="Example"\n${broken}\n${fence}\n`;
+      const sources = examplesIn(page);
+
+      expect(sources).toContain(broken);
+      const result = typecheck(sources);
       expect(result.status).not.toBe(0);
       expect(result.output).toContain("config");
     },

@@ -36,12 +36,12 @@ function readPage(page, suffix) {
   return readFileSync(resolve(CONTENT_DIR, `${page}${suffix}.mdx`), "utf8");
 }
 
+const PRINTED_INTERFACE = /^interface (?:RunSummary|LocaleSummary) \{$/m;
+
 function pagesPrintingRunSummary() {
   return readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
     .filter((file) => file.endsWith(".mdx"))
-    .filter((file) =>
-      /^interface RunSummary \{$/m.test(readFileSync(resolve(CONTENT_DIR, file), "utf8")),
-    )
+    .filter((file) => PRINTED_INTERFACE.test(readFileSync(resolve(CONTENT_DIR, file), "utf8")))
     .map((file) => file.replace(/\.(de|es|fr)\.mdx$/, "").replace(/\.mdx$/, ""))
     .filter((page, index, pages) => pages.indexOf(page) === index)
     .sort();
@@ -72,7 +72,14 @@ describe("the RunSummary anatomy lists exactly the published fields", () => {
     expect(documentedFields(required, "RunSummary")).not.toEqual(declaredFields("RunSummary"));
   });
 
-  it("leaves the field list to its one owner page", () => {
+  it("counts a page that prints either interface", () => {
+    expect(
+      PRINTED_INTERFACE.test("```ts\ninterface LocaleSummary {\n  locale: string;\n}\n```"),
+    ).toBe(true);
+    expect(PRINTED_INTERFACE.test("Each `LocaleSummary` lists the keys.")).toBe(false);
+  });
+
+  it("leaves both field lists to their one owner page", () => {
     expect(pagesPrintingRunSummary()).toEqual([OWNER]);
   });
 });

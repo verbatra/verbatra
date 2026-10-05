@@ -128,8 +128,8 @@ A function that declares no `@throws` gets no **Throws** line at all, never "Thr
 absent line is the statement that the function throws no `SdkError` code. A function that never
 throws anything says so in its lead paragraph, as `runStatus` does.
 
-After the Throws line, an entry may close with an `**Example:**` line (`**Beispiel:**`,
-`**Ejemplo:**`, `**Exemple :**` in de, es, fr) linking to the quickstart step or recipe in
+An `**Example:**` line (`**Beispiel:**`, `**Ejemplo:**`, `**Exemple :**` in de, es, fr) may
+close the entry, linking to the quickstart step or recipe in
 `(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx`, or the how-to such as
 `(guides)/custom-format-adapters.mdx`, that owns a full script using the entry point, with the
 locale's own anchor and heading text. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
@@ -139,8 +139,9 @@ every import is written out, and every given the snippet does not build itself i
 (or a `declare function`). `scripts/verify-docs-sdk-examples.test.mjs` typechecks every such block
 on the pages `sdk/meta.json` lists against the built `packages/sdk/dist/index.d.ts` in strict mode,
 fails when a de, es or fr block's body differs from the English one, so its comments stay in
-English, and fails on an untitled TypeScript fragment there (the `RunSummary` interface listing
-aside).
+English, and fails on an untitled TypeScript fragment there. The one exemption is the
+`RunSummary` and `LocaleSummary` listing on `sdk/run-summary*.mdx`, a block that opens with
+`interface RunSummary {`.
 
 ## The `<AvailableFrom />` badge
 
