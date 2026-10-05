@@ -129,23 +129,31 @@ Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, 
 `--data-flow` beschreibt statt der Einrichtung, wohin die Daten dieses Projekts gehen, als Nachweis für ein AVV- oder NDA-Review; [Datenverarbeitung](/docs/data-handling) erklärt jede Kategorie. Es liest keinen API-Key und macht keinen Netzwerk-Request. Nur zwei Prüfungen laufen: Configuration und Data flow. Data flow schlägt nie fehl: Es zeigt `[warn]`, wenn die [Network Policy](/docs/network-policy) einen Host ablehnt oder einen ungültigen Wert hat, oder wenn die Quelldatei für die Zählungen nicht lesbar ist.
 
 ```text output
-  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes, formality, glossary-id to api.deepl.com (permitted), api-free.deepl.com (permitted).
+  [ok  ] Data flow: Provider "deepl" sends source-text, placeholder-markers, language-codes to api.deepl.com (permitted), api-free.deepl.com (permitted).
   data flow (manifest version 1)
     provider     deepl (machine-translation)
     network      any host (no policy set)
     destination  api.deepl.com  default  paid-key  before-construction  permitted
     destination  api-free.deepl.com  default  free-key  before-construction  permitted
-    sent         source-text, placeholder-markers, language-codes, formality, glossary-id
-    counts       3 source keys, 0 with a description or meaning, 1 withheld
+    sent         source-text, placeholder-markers, language-codes
+    api key      required
+    placeholders masked
+    sensitive    off
+    counts       3 source keys, 0 with a description or meaning, 1 with placeholders it cannot mask (withheld)
     locale       de  sent as DE  glossary terms: 0
-    local        cache  /app/verbatra.cache.json  (source text and translations, gitignored by init)
+    local        lock  verbatra.lock.json  (no source text, translations or personal data)
+    local        provenance  verbatra.provenance.json  (reviewer names)
+    local        cache  verbatra.cache.json  (source text, translations, gitignored by init)
+    local        local-state  .verbatra-local  (source text, gitignored by init)
     request      language-list  verbatra doctor --live  sends the API key
-    ...
+    request      dns-lookup  each connection to a destination host
+    agent        mcp  verbatra mcp  redactable
+    agent        studio-agent-tools  verbatra studio --expose-agent-tools
 ```
 
-Das Manifest nennt den Provider; jeden Ziel-Host, woher er kommt (eingebaut, `provider.options.baseUrl` oder eine `*_BASE_URL`-Variable) und das Urteil der Policy (`permitted`, `deferred`, `refused` oder `invalid-policy`); die Arten gesendeter Daten, mit der Zahl der Quell-Keys, der Keys mit Beschreibung oder Bedeutung und der Keys, die zurückgehalten werden, weil sich ihre Platzhalter nicht maskieren lassen; Code und Zahl der Glossarbegriffe je Ziel-Locale; die lokalen Dateien mit ihren Pfaden; und die übrigen Requests und Agent-Schnittstellen. DeepL steht mit beiden Hosts drin, weil der Key, der einen davon wählt, nie gelesen wird. Mit `provider: { id: "none" }` sagt es, dass nichts gesendet wird. Es nennt Hosts, Datenkategorien und Bedingungen, nie einen Key-Wert oder Dateiinhalte.
+Das Manifest nennt den Provider; jeden Ziel-Host, woher er kommt (eingebaut, `provider.options.baseUrl` oder eine `*_BASE_URL`-Variable) und das Urteil der Policy (`permitted`, `deferred`, `refused` oder `invalid-policy`); die Arten gesendeter Daten, mit der Zahl der Quell-Keys, der Keys mit Beschreibung oder Bedeutung und der Keys, deren Platzhalter der Provider nicht maskieren kann (eine Schätzung über die Quell-Keys: Ein Lauf sendet nur fehlende oder geänderte Keys und kann unter `sensitiveData: redact` mehr zurückhalten); Code und Zahl der Glossarbegriffe je Ziel-Locale; die lokalen Dateien mit ihren projektrelativen Pfaden und ob sie Quelltext, Übersetzungen oder personenbezogene Daten enthalten; und die übrigen Requests und Agent-Schnittstellen. DeepL steht mit beiden Hosts drin, weil der Key, der einen davon wählt, nie gelesen wird. Ein wirksamer Proxy steht mit Variable und Host drin, nie mit seinen Zugangsdaten, und die Felder nennen nur, was diese Config senden kann. Mit `provider: { id: "none" }` sagt es, dass nichts gesendet wird. Es nennt Hosts, Datenkategorien und Bedingungen, nie einen Key-Wert oder Dateiinhalte.
 
-Mit `--json` steht das Manifest unter `result.dataFlow`. Sein Feld `version` ändert sich nur, wenn ein Feld umbenannt oder entfernt wird, und [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema) aus dem SDK validiert es.
+Mit `--json` steht das Manifest unter `result.dataFlow`. Sein Feld `version` ändert sich nur, wenn ein Feld umbenannt oder entfernt wird; neue Felder können ohne Erhöhung dazukommen, ignoriere also die, die du nicht kennst. [`dataFlowManifestSchema`](/docs/sdk/inspect#dataflowmanifestschema) aus dem SDK validiert es.
 
 ### JSON-Ausgabe
 

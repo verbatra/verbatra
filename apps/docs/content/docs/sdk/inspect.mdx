@@ -81,7 +81,7 @@ function dataFlow(
 
 <AvailableFrom version="0.12.0" />
 
-The zod schema for a `DataFlowManifest`, exported so a CI step or a reviewer's tooling can validate a manifest. Every object is strict, so a field that version 1 does not define fails validation. `DATA_FLOW_MANIFEST_VERSION` is the `version` this build writes.
+The zod schema for a `DataFlowManifest`, exported so a CI step or a reviewer's tooling can validate a manifest. Unknown fields are allowed and kept, because a newer verbatra may add fields within version 1; ignore the ones you do not know. `DATA_FLOW_MANIFEST_VERSION` is the `version` this build writes.
 
 ```ts title="Signature"
 const dataFlowManifestSchema: z.ZodType<DataFlowManifest>;
