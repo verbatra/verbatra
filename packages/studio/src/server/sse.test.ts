@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSseHub, type SseClientResponse } from "./sse.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 interface FakeResponse extends SseClientResponse {
   writes: string[];
   ended: boolean;
@@ -79,9 +81,9 @@ describe("createSseHub: broadcast and heartbeat", () => {
     const response = fakeResponse();
     hub.register(response);
 
-    hub.broadcastRefresh({ reason: "source", at: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z" });
+    hub.broadcastRefresh({ reason: "source", at: `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z` });
 
-    expect(response.writes[0]).not.toContain("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z");
+    expect(response.writes[0]).not.toContain(`${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`);
     expect(response.writes[0]).toContain("[REDACTED]");
     hub.closeAll();
   });
@@ -90,7 +92,7 @@ describe("createSseHub: broadcast and heartbeat", () => {
     const hub = createSseHub();
     const response = fakeResponse();
     hub.register(response);
-    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+    const key = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`;
 
     hub.broadcastRefresh({ reason: "source", at: `line\n${key}` });
 

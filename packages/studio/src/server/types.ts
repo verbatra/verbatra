@@ -97,7 +97,8 @@ export interface StudioServerDeps {
   readonly token?: string;
   /**
    * Sink for every line the server writes: the startup banner, which carries the session token;
-   * one `<METHOD> <path> <status>` line per request, its path without the query string; and a
+   * one `<METHOD> <path> [<rpc method>] <status>` line per request, its path without the query
+   * string and the RPC method name present only on an `/rpc` call that named a known one; and a
    * line starting `studio error: ` for an unexpected server error or an interrupted batch, redacted
    * with every control character replaced by a space. Defaults to writing to the console.
    */
