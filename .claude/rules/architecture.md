@@ -27,8 +27,7 @@ config <- core <- format-adapters / ai-providers <- sdk (+ exchange, extract) <-
   `devDependency`, and it joins the graph at the sdk. It is a distinct capability class from
   `format-adapters` (code to IR rather than file to IR) with its own Strategy family
   (`SourceExtractor`) and its own file-system port (`packages/extract/src/source-fs-port.ts`,
-  enforced by `source-fs-port.no-direct-node-fs.test.ts`). The decision record is
-  `packages/extract/docs/adr/0001-source-string-extraction.md`.
+  enforced by `source-fs-port.no-direct-node-fs.test.ts`).
 - `@verbatra/sdk` depends on `@verbatra/core`, `@verbatra/ai-providers`, `@verbatra/exchange`,
   `@verbatra/extract`, `@verbatra/format-adapters` (all as `devDependencies` because tsup bundles
   them into `dist/index.js`; see `packages/sdk/package.json`).
