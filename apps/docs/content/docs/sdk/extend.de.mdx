@@ -19,8 +19,16 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Rückgabe:** `AdapterRegistry`
 
-```ts
-import { createDefaultRegistry, translate } from "@verbatra/sdk";
+```ts title="Beispiel"
+import {
+  createDefaultRegistry,
+  translate,
+  type FormatAdapter,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare const tomlAdapter: FormatAdapter;
 
 const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
@@ -182,14 +190,21 @@ eingebauten Provider implementieren. Dazu gehören die Typen seiner Felder: `Ton
 `ProviderNotice`, `ProviderNoticeCode` und `ReviewFlag` im Ergebnis sowie `NetworkPolicy` und
 `NetworkRule` in `ProviderNetwork`.
 
-```ts
+```ts title="Beispiel"
 import {
   translate,
   type CreateProvider,
   type TranslateRequest,
   type TranslateResult,
   type TranslationProvider,
+  type VerbatraConfig,
 } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare function callInHouseService(
+  locale: string,
+  entries: TranslateRequest["entries"],
+): Promise<ReadonlyMap<string, string>>;
 
 const provider: TranslationProvider = {
   id: "in-house",

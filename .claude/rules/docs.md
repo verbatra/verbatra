@@ -130,12 +130,14 @@ After the Throws line, an entry may close with an `**Example:**` line (`**Beispi
 `**Ejemplo:**`, `**Exemple:**` in de, es, fr) linking to the quickstart step or recipe in
 `(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx` that owns a full script using the entry
 point, with the locale's own anchor. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
-`Exemple`) belongs in a reference section only where no recipe or quickstart step owns the example.
-It is self-contained: every import is written out, and every given the snippet does not build
-itself is a `declare const`. `scripts/verify-docs-sdk-examples.test.mjs` typechecks every such block
+`Exemple`) in a reference section is either an example no recipe or quickstart step owns, or a short
+one that shows this entry point alone; a full script stays with its recipe. It is self-contained:
+every import is written out, and every given the snippet does not build itself is a `declare const`
+(or a `declare function`). `scripts/verify-docs-sdk-examples.test.mjs` typechecks every such block
 on the pages `sdk/meta.json` lists against the built `packages/sdk/dist/index.d.ts` in strict mode,
-and fails when a de, es or fr block's body differs from the English one, so its comments stay in
-English.
+fails when a de, es or fr block's body differs from the English one, so its comments stay in
+English, and fails on an untitled TypeScript fragment there (the `RunSummary` interface listing
+aside).
 
 ## The `<AvailableFrom />` badge
 

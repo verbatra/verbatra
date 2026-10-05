@@ -93,8 +93,10 @@ function resolveDryRun(input: {
 
 **Devuelve:** `boolean`
 
-```ts
-import { resolveDryRun, translate } from "@verbatra/sdk";
+```ts title="Ejemplo"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 const options = { dryRun: false, estimate: true };
 resolveDryRun(options); // true

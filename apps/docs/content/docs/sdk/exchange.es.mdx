@@ -127,13 +127,15 @@ function errorHint(error: unknown): string | undefined;
 
 **Devuelve:** `string | undefined`
 
-```ts
-import { errorHint, translate } from "@verbatra/sdk";
+```ts title="Ejemplo"
+import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 try {
   await translate({ config });
 } catch (error) {
-  console.error(errorHint(error)); // p. ej. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
 }
 ```
 
@@ -322,7 +324,11 @@ function tmxErrorLocation(
 
 **Devuelve:** `TmxErrorLocation | undefined`
 
-```ts
+```ts title="Ejemplo"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
 try {
   await importTmx({ config, file: "legacy.tmx" });
 } catch (error) {

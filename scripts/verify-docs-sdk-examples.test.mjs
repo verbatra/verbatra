@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { sdkReferencePages } from "./sdk-reference-pages.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT_DIR = resolve(REPO_ROOT, "apps/docs/content/docs");
@@ -22,6 +23,8 @@ const TSC = resolve(REPO_ROOT, "node_modules/typescript/bin/tsc");
 const QUICKSTART = "(sdk)/sdk-quickstart";
 const RECIPES = "(sdk)/programmatic-api";
 const EXAMPLE_PAGES = [QUICKSTART, RECIPES];
+const REFERENCE_PAGES = sdkReferencePages().map((page) => `sdk/${page}`);
+const EXAMPLE_TITLES = { "": "Example", ".de": "Beispiel", ".es": "Ejemplo", ".fr": "Exemple" };
 const LOCALE_SUFFIXES = ["", ".de", ".es", ".fr"];
 const SLOW = 180_000;
 
@@ -179,6 +182,68 @@ describe("the SDK quickstart and recipes", () => {
       const result = typecheck(['import { translateEverything } from "@verbatra/sdk";\n']);
       expect(result.status).not.toBe(0);
       expect(result.output).toContain("translateEverything");
+    },
+    SLOW,
+  );
+});
+
+function referenceExamples(page, suffix = "") {
+  return typeScriptBlocks(readPage(page, suffix))
+    .filter((block) => blockTitle(block) === EXAMPLE_TITLES[suffix])
+    .map(({ body }) => body);
+}
+
+function untitledFragments(page, suffix) {
+  return typeScriptBlocks(readPage(page, suffix)).filter(
+    (block) => blockTitle(block) === undefined && !block.body.startsWith("interface "),
+  );
+}
+
+describe("the SDK reference examples", () => {
+  it("finds Example blocks on the reference pages, so the checks cannot pass vacuously", () => {
+    expect(REFERENCE_PAGES).toEqual(expect.arrayContaining(["sdk/index", "sdk/run"]));
+    expect(
+      REFERENCE_PAGES.flatMap((page) => referenceExamples(page)).length,
+    ).toBeGreaterThanOrEqual(7);
+    expect(referenceExamples("sdk/index").every((body) => body.includes("@verbatra/sdk"))).toBe(
+      true,
+    );
+  });
+
+  it.each(
+    REFERENCE_PAGES.flatMap((page) => LOCALE_SUFFIXES.slice(1).map((suffix) => [page, suffix])),
+  )("%s%s.mdx carries the English page's Example bodies verbatim", (page, suffix) => {
+    expect(referenceExamples(page, suffix)).toEqual(referenceExamples(page));
+  });
+
+  it.each(REFERENCE_PAGES.flatMap((page) => LOCALE_SUFFIXES.map((suffix) => [page, suffix])))(
+    "%s%s.mdx shows no untitled TypeScript fragment",
+    (page, suffix) => {
+      expect(untitledFragments(page, suffix)).toEqual([]);
+    },
+  );
+
+  it(
+    "typechecks every Example block against the built @verbatra/sdk declarations",
+    () => {
+      const sources = REFERENCE_PAGES.flatMap((page) =>
+        referenceExamples(page).map(({ body }) => body),
+      );
+      const result = typecheck(sources);
+      expect(result.output).toBe("");
+      expect(result.status).toBe(0);
+    },
+    SLOW,
+  );
+
+  it(
+    "fails the typecheck on an Example that uses a given it never declares",
+    () => {
+      const result = typecheck([
+        'import { translate } from "@verbatra/sdk";\nawait translate({ config });\n',
+      ]);
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain("config");
     },
     SLOW,
   );

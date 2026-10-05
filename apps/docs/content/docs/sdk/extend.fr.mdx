@@ -19,8 +19,16 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Renvoie :** `AdapterRegistry`
 
-```ts
-import { createDefaultRegistry, translate } from "@verbatra/sdk";
+```ts title="Exemple"
+import {
+  createDefaultRegistry,
+  translate,
+  type FormatAdapter,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare const tomlAdapter: FormatAdapter;
 
 const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
@@ -169,14 +177,21 @@ inclut les types de ses champs : `Tone`, `PluralCategories`, `PlaceholderExtract
 `PlaceholderComparator` dans la requête, `Usage`, `ProviderNotice`, `ProviderNoticeCode` et
 `ReviewFlag` dans le résultat, et `NetworkPolicy` et `NetworkRule` dans `ProviderNetwork`.
 
-```ts
+```ts title="Exemple"
 import {
   translate,
   type CreateProvider,
   type TranslateRequest,
   type TranslateResult,
   type TranslationProvider,
+  type VerbatraConfig,
 } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare function callInHouseService(
+  locale: string,
+  entries: TranslateRequest["entries"],
+): Promise<ReadonlyMap<string, string>>;
 
 const provider: TranslationProvider = {
   id: "in-house",

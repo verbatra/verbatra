@@ -122,8 +122,10 @@ function errorHint(error: unknown): string | undefined;
 
 **Returns:** `string | undefined`
 
-```ts
-import { errorHint, translate } from "@verbatra/sdk";
+```ts title="Example"
+import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 try {
   await translate({ config });
@@ -307,7 +309,11 @@ function tmxErrorLocation(
 
 **Returns:** `TmxErrorLocation | undefined`
 
-```ts
+```ts title="Example"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
 try {
   await importTmx({ config, file: "legacy.tmx" });
 } catch (error) {
