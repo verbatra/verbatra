@@ -125,10 +125,19 @@ async function replaceDirectory(
   for (const file of files) {
     await writeFile(join(staging, file.fileName), file.bytes);
   }
-  await rename(target, previous).catch((error: NodeJS.ErrnoException) => {
-    if (error.code !== "ENOENT") throw error;
-  });
-  await rename(staging, target);
+  const movedAside = await rename(target, previous).then(
+    () => true,
+    (error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+      return false;
+    },
+  );
+  try {
+    await rename(staging, target);
+  } catch (error) {
+    if (movedAside) await rename(previous, target);
+    throw error;
+  }
   await rm(previous, { recursive: true, force: true });
 }
 
