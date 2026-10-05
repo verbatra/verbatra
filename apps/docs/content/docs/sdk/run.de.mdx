@@ -205,6 +205,15 @@ Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert u
 genannt, statt kaputt geschrieben zu werden; der Eintrag ist also weiterhin vorhanden und wird
 weiterhin gerendert.
 
+<AvailableFrom version="0.12.0" />
+
+`mode` wählt die Transformation aus `PSEUDO_MODES`: `accented`, der Standard, oder `bidi`, das
+stattdessen jedes Wort übersetzbaren Textes in eine Rechts-nach-links-Marke und -Überschreibung
+fasst und Platzhalter, ICU-Syntax, Markup, Ziffern und Satzzeichen draußen lässt, ohne etwas zu
+akzentuieren. Im Modus `bidi` ist `locale` standardmäßig `ar-XB`, ein Code, der zur Richtung rechts
+nach links aufgelöst wird; wie seine arabischen Pluralregeln auf die Pluralformen deiner Quelle
+treffen, steht bei [`verbatra pseudo`](/docs/cli/pseudo).
+
 `locale` ist standardmäßig `en-XA` und `out`
 `.verbatra-local/pseudo`, was `verbatra init` bereits in `.gitignore` einträgt; das konfigurierte
 `files.pattern` wird darin expandiert, die Datei behält also das Layout, das die Anwendung
@@ -218,7 +227,7 @@ Locale-Datei oder auf einer anderen Datei, von der das Projekt abhängt. Weil di
 außerhalb von `files.pattern` liegt, gibt `translate` nie Geld für sie aus, und `check` und `diff`
 melden sie nie als abgedriftet.
 
-Gibt ein `PseudolocalizeResult` zurück: die `locale`, den absoluten `path`, wie viele `entries`
+Gibt ein `PseudolocalizeResult` zurück: die `locale`, den `mode`, den absoluten `path`, wie viele `entries`
 verarbeitet wurden, wie viele `transformed` wurden, die `copied` Keys und ob überhaupt etwas
 `written` wurde. Die Transformation ist deterministisch, ein zweiter Lauf über unveränderte Quellen
 schreibt also nichts neu und meldet `written` als false. Bei `xliff` und `apple-xcstrings`, deren

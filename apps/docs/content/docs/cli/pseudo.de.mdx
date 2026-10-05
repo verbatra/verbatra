@@ -6,7 +6,7 @@ type: reference
 ---
 <AvailableFrom version="0.11.0" />
 
-Lass deine App in einer Sprache laufen, die es nicht gibt. `pseudo` baut aus deinen Quellstrings eine Fake-Locale: Jeder Wert bekommt Akzente, wird länger und steckt zwischen sichtbaren Markern, sodass abgeschnittene Buttons, zusammengestückelte Sätze und nie extrahierte Labels auffallen. Der Befehl erstellt keinen Provider, liest keinen API-Key und macht keine Netzwerkanfrage, er funktioniert also, bevor es einen API-Key gibt.
+Lass deine App in einer Sprache laufen, die es nicht gibt. `pseudo` baut aus deinen Quellstrings eine Fake-Locale: Jeder Wert bekommt Akzente, wird länger und steckt zwischen sichtbaren Markern, sodass abgeschnittene Buttons, zusammengestückelte Sätze und nie extrahierte Labels auffallen. Mit `--mode bidi` zeigt er stattdessen jeden String von rechts nach links. Der Befehl erstellt keinen Provider, liest keinen API-Key und macht keine Netzwerkanfrage, er funktioniert also, bevor es einen API-Key gibt.
 
 ## Synopsis
 
@@ -18,7 +18,8 @@ verbatra pseudo [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--locale` | `<code>` | `en-XA` | die zu erzeugende Pseudo-Locale; nur Buchstaben, Ziffern und Bindestriche (sonst `INVALID_LOCALE`) |
+| `--mode` | `<mode>` | `accented` | <AvailableFrom version="0.12.0" /> die Transformation: `accented` oder `bidi`, das jedes Wort von rechts nach links darstellt (sonst `INVALID_OPTION`) |
+| `--locale` | `<code>` | `en-XA` (`ar-XB` mit `--mode bidi`) | die zu erzeugende Pseudo-Locale; nur Buchstaben, Ziffern und Bindestriche (sonst `INVALID_LOCALE`) |
 | `--out` | `<path>` | `.verbatra-local/pseudo` | Verzeichnis, unter das die Pseudo-Locale geschrieben wird, relativ zum Arbeitsverzeichnis und darin |
 
 Außerdem nimmt der Befehl die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`.
@@ -37,6 +38,23 @@ Aus `Hello {{name}}, you have {{count}} unread messages` wird
 `[Ĥéĺĺó {{name}}, ýóú ĥáṽé {{count}} úńŕéáḋ ṁéśśáġéś············]`.
 
 Nur übersetzbarer Text ändert sich. Platzhalter überleben in jeder Syntax, die die [Format-Adapter](/docs/formats) kennen, und in einer ICU-Nachricht bleiben Argumentnamen, die Schlüsselwörter `plural` und `select` und die Zweig-Selektoren unverändert. Durch Pipes getrennte Pluralformen von vue-i18n werden einzeln umgewandelt: `car | cars` wird zu `[ćáŕ··] | [ćáŕś··]`. Die Transformation ist deterministisch, die Datei lässt sich also sauber diffen.
+
+### Rechts-nach-links-Modus
+
+<AvailableFrom version="0.12.0" />
+
+`--mode bidi` ersetzt die Akzente durch eine Rechts-nach-links-Überschreibung, so wie Android und Chromium ihre Pseudo-Locale `ar-XB` bauen. Ein Layout, das Links-nach-rechts-Text voraussetzt, fällt so auf, bevor es irgendeine Rechts-nach-links-Übersetzung gibt.
+
+| Schritt | Was du siehst |
+| --- | --- |
+| Überschreiben | jedes Wort steht zwischen Rechts-nach-links-Marke und -Überschreibung (`U+200F U+202E` davor, `U+202C U+200F` danach), `Save` erscheint also als `evaS` |
+| Behalten | Platzhalter, ICU-Syntax, Markup, Ziffern und Satzzeichen bleiben außerhalb der Überschreibung und laufen von links nach rechts, wie in echtem Rechts-nach-links-Text |
+
+Nichts bekommt Akzente, wird länger oder steht in Klammern: Die Breite testet der Standardmodus. Die Datei behält die Buchstaben in ihrer gespeicherten Reihenfolge, und jeder Wert besteht dasselbe Integritäts-Gate, Platzhalter und Plural-Zweige bleiben also Byte für Byte gleich.
+
+Standard ist die Pseudo-Locale `ar-XB`, die `Intl.Locale` und die meisten i18n-Bibliotheken als rechts nach links auflösen, eine App, die `dir` aus der Locale ableitet, dreht also von selbst um. `ar-XB` folgt den arabischen Pluralregeln, während die Datei die Pluralformen deiner Quelle behält: Eine ICU-Nachricht fällt auf ihren `other`-Zweig zurück, aber eine Bibliothek, die Plurale über Suffixe sucht, etwa i18next, findet keinen `_few`- oder `_many`-Key und greift für diese Anzahlen auf ihren Fallback zurück. Mit `--locale en-XB` behältst du die englischen Pluralregeln und setzt `dir="rtl"` selbst.
+
+Ein Sanitizer, der Unicode-Formatzeichen entfernt, nimmt die Überschreibung mit, und der String läuft wieder von links nach rechts. Editoren und Code-Scanner, die vor versteckten bidirektionalen Zeichen warnen, markieren die Datei, ein Grund mehr, dass sie unter `.verbatra-local` bleibt.
 
 ### Nichts Kaputtes landet je in der Datei
 
@@ -60,7 +78,7 @@ Die Writer für `xliff` und `apple-xcstrings` patchen Einheiten, die schon im Zi
 
 ### JSON-Ausgabe
 
-Mit `--json` trägt der [JSON-Envelope](/docs/cli/output#json-ausgabe) `locale`, `path`, `entries` (Quelleinträge), `transformed` (pseudolokalisiert), `copied` (unverändert kopierte Keys) und `written` (`false`, wenn die Datei schon aktuell war).
+Mit `--json` trägt der [JSON-Envelope](/docs/cli/output#json-ausgabe) `locale`, `mode` (`accented` oder `bidi`), `path`, `entries` (Quelleinträge), `transformed` (pseudolokalisiert), `copied` (unverändert kopierte Keys) und `written` (`false`, wenn die Datei schon aktuell war).
 
 ### Rückmeldung im Terminal
 
@@ -71,7 +89,7 @@ Das Ergebnis geht auf stdout; die Fortschrittszeile und der nächste Schritt geh
 ```text output
 verbatra: pseudolocalizing the source... done (0.1s)
 verbatra pseudo
-  en-XA: 118 of 120 entries pseudolocalized
+  en-XA (accented): 118 of 120 entries pseudolocalized
     copied verbatim: legal.disclaimer, brand.name
   wrote .verbatra-local/pseudo/locales/en-XA.json
 next: load .verbatra-local/pseudo/locales/en-XA.json as the en-XA locale in your dev server
@@ -85,8 +103,8 @@ Ein zweiter Lauf über eine unveränderte Quelle meldet `unchanged` statt `wrote
 # en-XA unter .verbatra-local/pseudo erzeugen
 verbatra pseudo
 
-# eine zweite Pseudo-Locale daneben erzeugen
-verbatra pseudo --locale en-XB
+# jeden String in ar-XB von rechts nach links darstellen
+verbatra pseudo --mode bidi
 
 # dorthin schreiben, wo der Dev-Server schon statische Dateien ausliefert
 verbatra pseudo --out public/locales-pseudo

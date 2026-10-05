@@ -167,8 +167,10 @@ que cela veut dire pour toi :
 - **Studio affiche les valeurs de droite à gauche** pour chaque locale dont l'écriture va dans ce
   sens, en demandant la direction au navigateur et sinon d'après l'écriture probable de la locale
   (`ku-Arab` de droite à gauche, `ku` de gauche à droite). Seul l'affichage change.
-- **`verbatra pseudo` n'a pas de mode de droite à gauche** : il teste la largeur de la mise en page,
-  pas le miroir.
+- **[`verbatra pseudo --mode bidi`](/docs/cli/pseudo) affiche ta source de droite à gauche** dans
+  une pseudo-locale `ar-XB`, pour qu'une mise en page qui suppose un texte de gauche à droite se
+  voie avant toute traduction. Les placeholders restent de gauche à droite ; les images et icônes
+  en miroir, c'est à toi de les vérifier.
 
 ## Langues peu dotées et modèles locaux
 

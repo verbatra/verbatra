@@ -202,6 +202,15 @@ Cada valor generado pasa por la misma puerta de integridad que debe superar la t
 un proveedor. Uno que no la superaría se copia literalmente del origen y se nombra en `copied` en
 lugar de escribirse roto, así que la entrada sigue presente y sigue renderizándose.
 
+<AvailableFrom version="0.12.0" />
+
+`mode` elige la transformación de `PSEUDO_MODES`: `accented`, la de por defecto, o `bidi`, que en
+su lugar envuelve cada palabra de texto traducible en una marca y una anulación de derecha a
+izquierda y deja fuera los placeholders, la sintaxis ICU, el marcado, los dígitos y la puntuación,
+sin acentuar nada. En modo `bidi`, `locale` es `ar-XB` por defecto, un código que se resuelve con
+dirección de derecha a izquierda; consulta [`verbatra pseudo`](/docs/cli/pseudo) para ver cómo sus
+reglas de plural del árabe encajan con las formas de plural de tu origen.
+
 `locale` es `en-XA` por defecto y `out` es
 `.verbatra-local/pseudo`, que `verbatra init` ya añade a `.gitignore`; el `files.pattern`
 configurado se expande dentro, así que el archivo conserva la disposición que espera la aplicación.
@@ -214,7 +223,7 @@ archivo del que depende el proyecto, una vez resueltos los enlaces simbólicos. 
 `files.pattern`, `translate` nunca gasta en él y `check` y `diff` nunca informan de él como
 desfasado.
 
-Devuelve un `PseudolocalizeResult`: el `locale`, el `path` absoluto, cuántas `entries` se
+Devuelve un `PseudolocalizeResult`: el `locale`, el `mode`, el `path` absoluto, cuántas `entries` se
 procesaron, cuántas se `transformed`, las claves que se `copied` y si se escribió algo (`written`).
 La transformación es determinista, así que una segunda ejecución sobre un origen sin cambios no
 reescribe nada e informa de `written` como false. Para `xliff` y `apple-xcstrings`, cuyos escritores
