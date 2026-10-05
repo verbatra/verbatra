@@ -982,7 +982,7 @@ The candidate is empty or only whitespace although its source is not. Clearing a
 
 ## Review reasons [#review-reason-codes]
 
-A review flag marks an accepted translation as worth a second look; it never withholds a key. `translate` and `watch` list flagged keys under `needsReview`, and `check --qa` reports the reasons computed from the value, its source and the config as warnings, which fail the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple. Each entry says how its reason is measured; [Translation safety](/docs/translation-safety#review-flags) explains the review layer as a whole.
+A review flag marks an accepted translation as worth a second look; it never withholds a key, and a `check --qa` warning fails the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple. Each entry says how its reason is measured; [Translation safety](/docs/translation-safety#review-flags) explains the review layer as a whole.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -998,7 +998,7 @@ It fires below 0.35 times or above 3.0 times the trimmed source length; very sho
 
 The translation is longer than the `maxLength` budget configured for its key.
 
-Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured. The value is still written and locked.
+Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
@@ -1074,7 +1074,7 @@ It fires when such a token occurs in the source more often than, verbatim, in th
 
 The translation holds invisible direction controls that can reorder the text around it: an embedding, override or isolate it never closes, or an override the source does not have.
 
-It fires when the translation's embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each paragraph while the source's do, or when it holds more left-to-right or right-to-left overrides than the source. An unclosed control leaks its direction into the text your app puts after the value, and an override visually reverses text. Directional marks such as U+200F never raise it, and neither does a translation that drops balanced controls the source has.
+It fires when the translation's embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each paragraph while the source's do, or when it holds more left-to-right or right-to-left overrides than the source. Directional marks such as U+200F never raise it, and neither does a translation that drops balanced controls the source has.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`

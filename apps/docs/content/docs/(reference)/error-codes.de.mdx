@@ -996,7 +996,7 @@ Der Kandidat ist leer oder besteht nur aus Leerraum, obwohl seine Quelle es nich
 
 ## Review-Gründe [#review-reason-codes]
 
-Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück. `translate` und `watch` führen markierte Keys unter `needsReview`, und `check --qa` meldet die Gründe, die sich aus dem Wert, seiner Quelle und der Konfiguration ergeben, als Warnungen, die den Job nur mit `--strict` scheitern lassen. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. Jeder Eintrag sagt, wie sein Grund gemessen wird; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht als Ganzes.
+Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück, und eine Warnung von `check --qa` lässt den Job nur mit `--strict` scheitern. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. Jeder Eintrag sagt, wie sein Grund gemessen wird; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht als Ganzes.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1012,7 +1012,7 @@ Er greift unter dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Quelll�
 
 Die Übersetzung ist länger als das für ihren Key konfigurierte `maxLength`-Budget.
 
-Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die Grenze ist inklusiv, ein Wert von genau der Budgethöhe wird also nicht markiert, und ein Key ohne Budget wird nie gemessen. Der Wert wird trotzdem geschrieben und gelockt.
+Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die Grenze ist inklusiv, ein Wert von genau der Budgethöhe wird also nicht markiert, und ein Key ohne Budget wird nie gemessen.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -1088,7 +1088,7 @@ Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, 
 
 Die Übersetzung enthält unsichtbare Richtungssteuerzeichen, die den Text um sie herum umordnen können: eine Einbettung, Überschreibung oder Isolierung, die sie nie schließt, oder eine Überschreibung, die die Quelle nicht hat.
 
-Er greift, wenn die Einbettungen (U+202A, U+202B), Überschreibungen (U+202D, U+202E) und Isolierungen (U+2066 bis U+2068) der Übersetzung innerhalb eines Absatzes nicht zu ihren Abschlusszeichen (U+202C, U+2069) passen, die der Quelle aber schon, oder wenn sie mehr Links-nach-rechts- oder Rechts-nach-links-Überschreibungen enthält als die Quelle. Ein offenes Steuerzeichen überträgt seine Richtung auf den Text, den deine App hinter den Wert setzt, und eine Überschreibung kehrt Text sichtbar um. Richtungsmarken wie U+200F lösen ihn nie aus, ebenso wenig eine Übersetzung, die ausgeglichene Steuerzeichen der Quelle weglässt.
+Er greift, wenn die Einbettungen (U+202A, U+202B), Überschreibungen (U+202D, U+202E) und Isolierungen (U+2066 bis U+2068) der Übersetzung innerhalb eines Absatzes nicht zu ihren Abschlusszeichen (U+202C, U+2069) passen, die der Quelle aber schon, oder wenn sie mehr Links-nach-rechts- oder Rechts-nach-links-Überschreibungen enthält als die Quelle. Richtungsmarken wie U+200F lösen ihn nie aus, ebenso wenig eine Übersetzung, die ausgeglichene Steuerzeichen der Quelle weglässt.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
