@@ -453,3 +453,20 @@ function assertMachineTranslationEnabled(
 **Returns:** `void`
 
 **Throws:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
+
+### assertTargetLocale
+
+<AvailableFrom version="0.12.0" />
+
+Takes the config and one locale, and throws `SdkError` `UNKNOWN_LOCALE` when the locale is not one of the configured `targetLocales`, with the same message every SDK function taking a `locales` filter uses. Call it in a surface that takes a single locale of its own, as the MCP server's `glossary.get` does, so a wrong locale fails exactly as it does in the SDK.
+
+```ts title="Signature"
+function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void;
+```
+
+**Returns:** `void`
+
+**Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)

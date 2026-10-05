@@ -88,8 +88,9 @@ With `provider: { id: "none" }` nothing leaves the machine. See
 
 <AvailableFrom version="0.9.0" />
 
-The setup, in one pass, without a provider call or reading a key value: the config, the format,
-the provider, the API key variable, the network policy, the source file and locale support, plus
+The setup, in one pass, without a translation call and without reading a key value unless you
+pass `--live`, which sends it to fetch the provider's language list: the config, the format, the
+provider, the API key variable, the network policy, the source file and locale support, plus
 informational reports on plurals, locale codes and leftover locale state. [`verbatra doctor`](/docs/cli/doctor) has the
 full check table.
 

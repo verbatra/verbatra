@@ -34,7 +34,7 @@ Exit `0` means, per command:
 - `watch`, `studio` or `mcp`: it stopped cleanly
 - `--help` or `--version`: it printed the help or the version
 
-On `130` and `143`, stderr ends with `verbatra: interrupted (SIGINT), released locks` (or `SIGTERM`), or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`.
+On `130` and `143`, stderr ends with `verbatra: interrupted (SIGINT), released locks` (or `SIGTERM`), or under `--json` with the record `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. If releasing the locks fails or does not finish within 5 seconds, the line says so instead (`could not release locks: <reason>` or `lock release did not finish within 5s`), and the JSON record carries `"locksReleased":false` with `"reason":"failed"` (plus `message`) or `"reason":"timed-out"` (plus `deadlineMs`).
 
 Some edge cases worth knowing:
 
