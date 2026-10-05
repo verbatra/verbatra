@@ -73,6 +73,48 @@ describe("DocsHomeSection", () => {
     expect(heading?.id).toBe("pick-your-stack");
     expect(heading?.textContent).toBe("Pick your stack");
   });
+
+  it("sets its heading one step of the type scale under the page title", async () => {
+    const { DocsHomeSection } = await import("./docs-home");
+    const heading = parse(
+      renderToStaticMarkup(<DocsHomeSection title="Pick your stack">{null}</DocsHomeSection>),
+    ).querySelector("h2");
+    expect(heading?.classList.contains("vk-h3")).toBe(true);
+    expect(heading?.getAttribute("style")).toBeNull();
+  });
+
+  it("puts its lead on the header's column template, so leads and the install box share an edge", async () => {
+    const { DocsHomeSection } = await import("./docs-home");
+    const head = parse(
+      renderToStaticMarkup(
+        <DocsHomeSection title="Pick your stack" lead="Lead">
+          {null}
+        </DocsHomeSection>,
+      ),
+    ).querySelector("section > div");
+    const header = parse(
+      renderToStaticMarkup(<DocsHomeHeader headline="H" lead="L" />),
+    ).querySelector("header");
+    const template = (element: Element | null | undefined) =>
+      [...(element?.classList ?? [])].filter((name) => /^lg:(grid-cols|gap-x)-/.test(name));
+    expect(template(head)).toEqual(template(header));
+    expect(template(head)).toHaveLength(2);
+  });
+
+  it("starts the lead at its column edge and sets a backticked command in code type", async () => {
+    const { DocsHomeSection } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomeSection
+        title="Every run is a diff"
+        lead="What happens when you run `verbatra translate`."
+      >
+        <p>body</p>
+      </DocsHomeSection>,
+    );
+    const lead = parse(markup).querySelector(".vk-lead");
+    expect(lead?.className).not.toMatch(/justify-self-end/);
+    expect(lead?.querySelector("code")?.textContent).toBe("verbatra translate");
+  });
 });
 
 describe("DocsHomePaths: title rhythm", () => {
@@ -87,23 +129,6 @@ describe("DocsHomePaths: title rhythm", () => {
     const title = parse(markup).querySelector("a > span");
     expect(title?.textContent).toBe("Mit einem KI-Agenten arbeiten");
     expect(title?.querySelector(".whitespace-nowrap")?.textContent).toBe("KI-Agenten");
-  });
-});
-
-describe("DocsHomeSection", () => {
-  it("starts the lead at its column edge and sets a backticked command in code type", async () => {
-    const { DocsHomeSection } = await import("./docs-home");
-    const markup = renderToStaticMarkup(
-      <DocsHomeSection
-        title="Every run is a diff"
-        lead="What happens when you run `verbatra translate`."
-      >
-        <p>body</p>
-      </DocsHomeSection>,
-    );
-    const lead = parse(markup).querySelector(".vk-lead");
-    expect(lead?.className).not.toMatch(/justify-self-end/);
-    expect(lead?.querySelector("code")?.textContent).toBe("verbatra translate");
   });
 });
 

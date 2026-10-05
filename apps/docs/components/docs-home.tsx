@@ -6,6 +6,7 @@ import { type Locale, localizedPath } from "@/lib/i18n";
 import { withInlineCode } from "@/lib/inline-code-text";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { keepCompoundsWhole } from "@/lib/word-breaks";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
@@ -31,7 +32,7 @@ export function DocsHomeHeader({ headline, lead }: { headline: string; lead: str
   return (
     <header
       className={cn(
-        "not-prose grid gap-x-12 gap-y-6 pt-8 md:pt-12 lg:grid-cols-[minmax(0,1fr)_var(--width-install)] lg:items-end",
+        "not-prose grid gap-y-6 pt-8 md:pt-12 lg:grid-cols-[minmax(0,1fr)_var(--width-install)] lg:items-end lg:gap-x-12",
         HOME_FRAME,
       )}
     >
@@ -63,38 +64,14 @@ export function DocsHomeSection({
 }): ReactNode {
   return (
     <section>
-      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-baseline-last lg:gap-x-16">
-        <h2
-          id={id}
-          className="max-w-[16ch] font-semibold text-fd-foreground"
-          style={{
-            ...DISPLAY,
-            letterSpacing: "-0.03em",
-            fontSize: "clamp(1.75rem, 3.4vw, 2.5rem)",
-            lineHeight: 1,
-            textWrap: "balance",
-          }}
-        >
+      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1fr)_var(--width-install)] lg:items-baseline-last lg:gap-x-12">
+        <h2 id={id} className="vk-h3 max-w-[20ch]">
           {title}
         </h2>
-        {lead ? (
-          <p className="vk-lead max-w-[46ch] text-fd-muted-foreground">{withInlineCode(lead)}</p>
-        ) : null}
+        {lead ? <p className="vk-lead max-w-[46ch]">{withInlineCode(lead)}</p> : null}
       </div>
       <div className="mt-8">{children}</div>
     </section>
-  );
-}
-
-function keepCompoundsWhole(text: string): ReactNode {
-  return text.split(/(\S*-\S*)/).map((part, index) =>
-    index % 2 === 1 ? (
-      <span key={`${index}-${part}`} className="whitespace-nowrap">
-        {part}
-      </span>
-    ) : (
-      part
-    ),
   );
 }
 
