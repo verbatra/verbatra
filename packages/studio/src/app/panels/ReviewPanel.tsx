@@ -596,7 +596,10 @@ function runRowShortcut(
   row: ReviewQueueRow,
   actions: RowActions,
 ): void {
-  if (actions.busyOf(row) !== undefined) {
+  if (
+    actions.busyOf(row) !== undefined ||
+    (action === "approve" && row.reviewState === "approved")
+  ) {
     return;
   }
   const value = actions.currentValueOf(row);
