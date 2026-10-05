@@ -15,9 +15,9 @@ export interface RunStatusLocale {
   /**
    * Translations reused for a source string that had changed, with the score and the earlier
    * source behind each one. Every key listed here also carries `FUZZY_CACHE_REUSE` in
-   * {@link RunStatusLocale.needsReview}; this is the evidence a reviewer needs to judge the reuse without
-   * re-running. Absent for a locale that reused nothing, and for a file written before the field
-   * existed.
+   * {@link RunStatusLocale.needsReview}; this is the evidence a reviewer needs to judge the reuse
+   * without re-running. Absent for a locale that reused nothing, and for a file written before the
+   * field existed.
    */
   readonly fuzzyHits?: readonly FuzzyCacheHit[];
   /** Token usage for this locale. Absent when the provider does not report usage. */

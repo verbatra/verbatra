@@ -67,8 +67,8 @@ export interface SourceLocaleCapability {
   /** The code verbatra sends the provider for it. */
   readonly providerCode: string;
   /**
-   * True when {@link SourceLocaleCapability.providerCode} comes from `provider.options.localeMap` rather than the
-   * provider's own normalization.
+   * True when {@link SourceLocaleCapability.providerCode} comes from `provider.options.localeMap`
+   * rather than the provider's own normalization.
    */
   readonly mapped: boolean;
   /** Whether the provider can translate from it. */
@@ -84,8 +84,8 @@ export interface LocaleCapability {
   /** The code verbatra sends the provider for it. */
   readonly providerCode: string;
   /**
-   * True when {@link LocaleCapability.providerCode} comes from `provider.options.localeMap` rather than the
-   * provider's own normalization.
+   * True when {@link LocaleCapability.providerCode} comes from `provider.options.localeMap` rather
+   * than the provider's own normalization.
    */
   readonly mapped: boolean;
   /** Whether the provider can translate into it. */
