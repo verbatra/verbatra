@@ -26,32 +26,32 @@ packages:
 # pull request that moves any of them without one. Dependabot no longer proposes majors for these
 # entries either; taking one is a deliberate act that verifies the affected seam first.
 catalog:
-  "@types/node": 26.6.1
+  "@types/node": 26.6.2
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@vitest/coverage-v8": 5.0.1
+  "@vitest/coverage-v8": 5.0.2
   chokidar: 5.0.0
-  knip: 6.37.0
+  knip: 6.38.0
   parse5: 8.0.1
   playwright: 1.63.0
   react: 19.3.0
   react-dom: 19.3.0
   tsup: 8.5.1
   typescript: 6.0.3
-  vitest: 5.0.1
+  vitest: 5.0.2
   zod: 4.6.5
 
 catalogs:
   bundled:
-    "@anthropic-ai/sdk": 0.127.0
-    "@formatjs/icu-messageformat-parser": 3.5.19
-    "@google/genai": 2.23.0
+    "@anthropic-ai/sdk": 0.128.0
+    "@formatjs/icu-messageformat-parser": 3.5.20
+    "@google/genai": 2.24.0
     "@xmldom/xmldom": 0.9.12
     deepl-node: 1.28.0
     exceljs: 4.4.0
     jszip: 3.10.2
     loglevel: 1.9.2
-    openai: 7.19.0
+    openai: 7.23.0
     yaml: 2.9.1
 
 overrides:
@@ -81,9 +81,15 @@ overrides:
   # GHSA-gcfj-64vw-6mp9 (high, Node adapter reuses an inherited proxy across cloned configs) plus the
   # axios moderate cluster (GHSA-mwf2-3pr3-8698, GHSA-f4gw-2p7v-4548, GHSA-hcpx-6fm6-wx23,
   # GHSA-xj6q-8x83-jv6g and the rest of the 1.15.2-1.17.x line). All patched in 1.18.0; lifts the
-  # 1.17.0 copy deepl-node pulls on the published ai-providers/sdk path. deepl-node declares
-  # axios ^1.7.4, so the <2 ceiling keeps it inside 1.x (currently 1.18.1).
-  axios@<1.18.0: ">=1.18.0 <2"
+  # 1.17.0 copy deepl-node pulls on the published ai-providers/sdk path. The 1.19.0 floor this override
+  # used to resolve is vulnerable in its own right: GHSA-3pq3-5fj3-cg6v, GHSA-542g-h47m-68v8,
+  # GHSA-c29m-xwm3-cm6r, GHSA-m8m8-qj5v-23w3, GHSA-mghh-pgcx-3jjj, GHSA-r4gj-5m52-g5wh and
+  # GHSA-x97p-jq2g-jp4f (high: HTTP/2 proxy and DNS bypass, HTTP/2 DoS, data: URL and NO_PROXY ReDoS,
+  # prototype-pollution gadgets, maxRedirects: 0 ignored by the fetch adapter) plus the moderate
+  # GHSA-44g4-m2mj-wpvx, GHSA-4hqw-qxg8-jxx2, GHSA-9fr6-4gfg-395g, GHSA-j8rh-479h-cp32 and
+  # GHSA-vh66-26gq-q6x8 all extend the vulnerable range to <1.20.0. deepl-node declares axios ^1.7.4,
+  # so the <2 ceiling keeps it inside 1.x.
+  axios@<1.20.0: ">=1.20.0 <2"
   # GHSA-j3f2-48v5-ccww: protobufjs DoS via an infinite loop parsing a crafted descriptor.
   # Vulnerable >=7.5.0 <=7.6.4; lifts the 7.6.4 copy @google/genai pulls on the published sdk path.
   # The <8 ceiling is required: @google/genai declares protobufjs ^7.5.4, so an unbounded ">=7.6.5"
@@ -105,21 +111,37 @@ overrides:
   # GHSA-3jxr-9vmj-r5cp (ReDoS via exponential-time expansion) and GHSA-mh99-v99m-4gvg (DoS via
   # unbounded expansion length causing an out-of-memory crash, patched in 1.1.17 and 2.1.3). Both
   # vulnerable majors reach the published sdk/exchange path through exceljs>archiver>...>minimatch.
-  # Lift each to its patched release, bounded to its own major.
-  brace-expansion@<1.1.17: ">=1.1.17 <2"
-  "brace-expansion@>=2.0.0 <2.1.3": ">=2.1.3 <3"
+  # GHSA-6j4f-fj2g-mc7p and GHSA-qhr7-859c-m2p7 (high, stack exhaustion through uncontrolled
+  # recursion) and GHSA-q2hr-2g5m-vwhr (moderate, quadratic-time `{a},b}` rewrite) extend the
+  # vulnerable ranges to <1.1.21 and >=2.0.0 <2.1.7, so the 1.1.17 and 2.1.3 floors this override used
+  # to set are vulnerable in their own right. Lift each to its patched release, bounded to its own major.
+  brace-expansion@<1.1.21: ">=1.1.21 <2"
+  "brace-expansion@>=2.0.0 <2.1.7": ">=2.1.7 <3"
   # GHSA-v2hh-gcrm-f6hx (high): fast-uri host confusion via a literal backslash as the authority
-  # delimiter. Vulnerable >=3.0.0 <=3.1.3; lifts the copy commitlint pulls through ajv (dev-only),
-  # bounded to the v3 line ajv expects.
-  "fast-uri@>=3.0.0 <3.1.4": ">=3.1.4 <4"
+  # delimiter, vulnerable >=3.0.0 <=3.1.3. GHSA-qw65-cvwx-89v3 (high) extends the vulnerable range to
+  # >=3.0.0 <3.1.7 and GHSA-58mr-gqgx-xq4g (high) names 3.1.6 itself, so the 3.1.4 floor this override
+  # used to set is vulnerable in its own right. Lifts the copies ajv pulls through commitlint (dev-only)
+  # and through @google/genai > @modelcontextprotocol/sdk (published sdk path), bounded to the v3 line
+  # ajv expects.
+  "fast-uri@>=3.0.0 <3.1.7": ">=3.1.7 <4"
+  # GHSA-hxh3-vqpv-xpqv: hono/jsx renders plain strings unescaped in boundary components (XSS).
+  # Vulnerable <4.13.7; lifts the 4.13.5 copy @hono/node-server pulls through
+  # @google/genai > @modelcontextprotocol/sdk on the published sdk path. The <5 ceiling matches the
+  # hono ^4 peer range @hono/node-server declares.
+  hono@<4.13.7: ">=4.13.7 <5"
+  # GHSA-h3mg-xc3c-68pw (Address6 builds an unbounded parse diagnostic, stalling or crashing the
+  # process) and GHSA-j6r3-76f7-8jcv (isInSubnet compares addresses of different families, admitting
+  # an address outside an allowlist). Vulnerable <=10.7.0; lifts the copy express-rate-limit pulls
+  # through @google/genai > @modelcontextprotocol/sdk on the published sdk path, bounded to the v10 line.
+  ip-address@<10.7.1: ">=10.7.1 <11"
   # GHSA-f88m-g3jw-g9cj (high): sharp inherits libvips vulnerabilities. Vulnerable <0.35.0; lifts the
   # copy next pulls for image optimization (apps/docs only, private, not published to npm).
   sharp@<0.35.0: ">=0.35.0"
   # Next.js highs patched in 16.2.11: App Router middleware/proxy bypass, App Router DoS, Server
   # Actions SSRF, and rewrites SSRF (all >=16.0.0 <16.2.11, apps/docs only, private). The direct pin in
-  # apps/docs/package.json is bumped to 16.2.11; this override lifts any transitive fumadocs copy too,
-  # bounded to the 16.2 line to avoid an unintended minor jump.
-  "next@>=16.0.0 <16.2.11": ">=16.2.11 <16.3"
+  # apps/docs/package.json is at or above 16.2.11; this override lifts any transitive fumadocs copy too,
+  # bounded to the 16 major so a patched minor like 16.3 still satisfies the peer ranges it rewrites.
+  "next@>=16.0.0 <16.2.11": ">=16.2.11 <17"
   # GHSA-2v37-7h3g-55p8 (CVE-2026-67213, high): customAlphabet and customRandom loop forever when
   # called with a size of 0, hanging the calling thread. Vulnerable <3.3.17 on the v3 line; lifts the
   # 3.3.16 copy postcss pulls (dev-only, via tsup and @tailwindcss/postcss) to the patched release.

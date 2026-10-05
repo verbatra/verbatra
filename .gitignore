@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Local-only architecture decision records
+/docs/
+
 # verbatra team workspace (audit trail, specs, ADRs, and agent memory; local only)
 .verbatra
 

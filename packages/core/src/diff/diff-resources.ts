@@ -19,6 +19,10 @@ function isStale(
   return contentHash(sourceEntry) !== previousHash;
 }
 
+export function isBlankValue(value: string): boolean {
+  return value.trim() === "";
+}
+
 export function diffResources(
   source: LocaleResource,
   target: LocaleResource,
@@ -28,9 +32,12 @@ export function diffResources(
   const changed: string[] = [];
   const unchanged: string[] = [];
   const orphaned: string[] = [];
+  const emptySource: string[] = [];
 
   for (const [key, sourceEntry] of source.entries) {
-    if (!target.entries.has(key)) {
+    if (isBlankValue(sourceEntry.value)) {
+      emptySource.push(key);
+    } else if (!target.entries.has(key)) {
       missing.push(key);
     } else if (isStale(key, sourceEntry, options.baseline)) {
       changed.push(key);
@@ -50,5 +57,6 @@ export function diffResources(
     changed: sorted(changed),
     orphaned: sorted(orphaned),
     unchanged: sorted(unchanged),
+    emptySource: sorted(emptySource),
   };
 }
