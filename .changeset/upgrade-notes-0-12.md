@@ -142,6 +142,8 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   with the CLI, or delete that file to read it with the old versions again.
 - `verbatra mcp` exits 0 when the client closes stdin (it exited 13). `verbatra mcp --json` is
   refused with a stderr line only, so stdout stays clean for the client.
+- `verbatra init` exits 2 with `MISSING_OPTIONS` when stdin ends at a prompt (it exited 13).
+  Answer each prompt, or pass the options as flags.
 
 **SDK callers (TypeScript and JavaScript)**
 - `readGlossaryFile` and `updateGlossaryTerm` return a `Glossary`, and `translation: null` removes

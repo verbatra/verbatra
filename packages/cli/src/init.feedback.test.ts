@@ -2,9 +2,11 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
 import { type InitDeps, runInit } from "./init.js";
+import { askLine } from "./prompt.js";
 import { DEFAULT_TERMINAL_SETTINGS } from "./terminal-mode.js";
 import { captureStreams, parseEnvelope } from "./test-support.js";
 
@@ -158,6 +160,25 @@ describe("runInit: interactive answers are checked as they are given", () => {
     expect(code).toBe(0);
     expect(cap.err()).toContain('"localhost 1234" is not a URL');
     expect(cap.err()).toContain("must not carry credentials");
+  });
+
+  it("exits 2 with a usage error when stdin ends during a prompt", async () => {
+    const cap = captureStreams();
+    const input = new PassThrough();
+    const deps: InitDeps = {
+      isTty: () => true,
+      ask: (question) => {
+        const answer = askLine(question, cap.streams, input);
+        input.end();
+        return answer;
+      },
+    };
+
+    const code = await runInit({ cwd: dir }, cap.streams, deps);
+
+    expect(code).toBe(2);
+    expect(cap.err()).toContain("[MISSING_OPTIONS] Input ended before init got an answer to");
+    expect(existsSync(join(dir, "verbatra.config.ts"))).toBe(false);
   });
 
   it("gives up after three invalid answers and reports the last one", async () => {
