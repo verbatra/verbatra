@@ -123,7 +123,7 @@ Il prend aussi `lockAcquireTimeoutMs`, qui borne l'attente du verrou du glossair
 
 <AvailableFrom version="0.12.0" />
 
-Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme [`TranslateRequest.glossary`](/docs/sdk/extend#fournisseurs-personnalisés), et ce que voient les contrôles de révision et l'empreinte de cache de cette locale.
+Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme [`TranslateRequest.glossary`](/docs/sdk/extend#fournisseurs-personnalisés), et ce que voient les contrôles de relecture et l'empreinte de cache de cette locale.
 
 ```ts title="Signature"
 function glossaryForLocale(
@@ -359,3 +359,20 @@ function assertMachineTranslationEnabled(
 **Renvoie :** `void`
 
 **Lève :** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
+
+### assertTargetLocale
+
+<AvailableFrom version="0.12.0" />
+
+Prend la configuration et une locale, et lève une `SdkError` `UNKNOWN_LOCALE` quand la locale ne fait pas partie des `targetLocales` configurées, avec le même message que chaque fonction du SDK qui accepte un filtre `locales`. Appelle-le dans une surface qui prend elle-même une seule locale, comme le fait `glossary.get` du serveur MCP, pour qu'une mauvaise locale échoue exactement comme dans le SDK.
+
+```ts title="Signature"
+function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void;
+```
+
+**Renvoie :** `void`
+
+**Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)

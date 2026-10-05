@@ -54,7 +54,7 @@ verbatra check --qa
 - Ajoute `--strict` pour échouer aussi sur les avertissements de relecture et les catégories de pluriel manquantes.
 - Dans un hook d'édition, `verbatra check --file <path>` contrôle un seul fichier de locale.
 
-Vois [le contrôle qualité](/docs/cli/check#contrôle-qualité) et [Un seul fichier](/docs/cli/check#un-seul-fichier). La [GitHub Action](/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `qa: "true"`.
+Consulte [le contrôle qualité](/docs/cli/check#contrôle-qualité) et [Un seul fichier](/docs/cli/check#un-seul-fichier). La [GitHub Action](/docs/github-action#vérifier-la-qualité-des-traductions) exécute le même contrôle avec `qa: "true"`.
 
 ### Bloquer sur les décisions de relecture
 
@@ -79,7 +79,7 @@ Lance [`verbatra translate`](/docs/cli/translate) et fais passer la clé du four
 ```
 
 - L'étape écrit les fichiers de locale dans le checkout et s'arrête là. Ajoute ta propre étape qui les commite ou ouvre une pull request, et n'accorde `contents: write` ou `pull-requests: write` qu'à ce job.
-- Pour prévisualiser d'abord, lance `verbatra translate --dry-run` ou `--estimate` : aucun des deux n'appelle un fournisseur ni ne demande de clé. Vois [Estimer le coût](/docs/estimating-cost).
+- Pour prévisualiser d'abord, lance `verbatra translate --dry-run` ou `--estimate` : aucun des deux n'appelle un fournisseur ni ne demande de clé. Consulte [Estimer le coût](/docs/estimating-cost).
 - Face à un fournisseur limité en débit, traduis une locale par étape avec `--locales`.
 
 ## Vérifier d'abord avec doctor

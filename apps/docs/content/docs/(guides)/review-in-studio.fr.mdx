@@ -1,6 +1,6 @@
 ---
 title: Réviser dans Studio
-description: Démarre Verbatra Studio, traite la file de révision, corrige les entrées sur place et retraduis les clés signalées depuis le tableau de bord local.
+description: Démarre Verbatra Studio, traite la file de relecture, corrige les entrées sur place et retraduis les clés signalées depuis le tableau de bord local.
 type: how-to
 ---
 Utilise ceci pour vérifier les traductions automatiques avant leur mise en ligne : trouve ce qui est en attente, corrige des valeurs à la main, et approuve ou rejette ce qu'un fournisseur a écrit, dans Verbatra Studio, un tableau de bord local au-dessus de ton projet.
@@ -46,21 +46,21 @@ La vue List filtre aussi par locale et par état, notamment **Review queue** et 
 
 L'éditeur montre la source et ton brouillon côte à côte, avec la description de la clé, les termes du glossaire que ton brouillon utilise ou oublie, et sa longueur par rapport à la source et à `maxLength`. Ctrl ou Cmd avec Entrée enregistre.
 
-## Traiter la file de révision
+## Traiter la file de relecture
 
-La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source au-dessus de la traduction, son origine et les éventuels [signalements de révision](/docs/translation-safety#signalements-de-révision) de la dernière exécution sur cette machine.
+La page Review liste chaque valeur écrite par une machine que personne n'a approuvée : une ligne par locale et par clé, avec le texte source au-dessus de la traduction, son origine et les éventuels [signalements de relecture](/docs/translation-safety#signalements-de-relecture) de la dernière exécution sur cette machine.
 
 <StudioScreenshot
   shot="review"
-  alt="La page Review de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr, chaque ligne montrant la clé, ses raisons de révision et les actions Edit, Approve et Reject."
-  caption="La file de révision après une exécution. Studio existe en clair et en sombre ; change la capture pour comparer."
+  alt="La page Review de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr, chaque ligne montrant la clé, ses raisons de relecture et les actions Edit, Approve et Reject."
+  caption="La file de relecture après une exécution. Studio existe en clair et en sombre ; change la capture pour comparer."
 />
 
 ### Libellés des signalements
 
 <AvailableFrom version="0.5.1" pkg="@verbatra/studio" />
 
-Deux signalements de révision s'affichent comme **Over length budget** et **Reused after source edit**.
+Deux signalements de relecture s'affichent comme **Over length budget** et **Reused after source edit**.
 
 ### Actions par ligne
 
@@ -76,7 +76,7 @@ Filtre par locale ou par texte dans la clé, la source ou la traduction, puis tr
 
 <AvailableFrom version="0.6.0" pkg="@verbatra/studio" />
 
-Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les règles des [Décisions de revue](/docs/the-lock-file#décisions-de-revue), y compris ce qu'un rejet retire. Une approbation exige aussi que la valeur soit à jour par rapport à sa source. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance ; dans un projet XLIFF, modifie au lieu de rejeter.
+Les deux décisions sont enregistrées dans `verbatra.provenance.json` selon les règles des [Décisions de relecture](/docs/the-lock-file#décisions-de-relecture), y compris ce qu'un rejet retire. Une approbation exige aussi que la valeur soit à jour par rapport à sa source. Commite ensemble le fichier de locale, le fichier de verrouillage et le fichier de provenance ; dans un projet XLIFF, modifie au lieu de rejeter.
 
 ### Une seule file pour toute l'équipe
 
@@ -146,5 +146,5 @@ Une modification du glossaire change ce que la prochaine exécution reçoit comm
 ## Voir aussi
 
 - [Piloter Studio avec un agent de navigateur](/docs/agent-tools-in-studio) : le même flux depuis un agent d'IA dans le navigateur.
-- [Consigner les preuves de traduction automatique](/docs/provenance-evidence) : transforme les décisions de revue en fichier d'audit.
+- [Consigner les preuves de traduction automatique](/docs/provenance-evidence) : transforme les décisions de relecture en fichier d'audit.
 - [Modifier et relire depuis le SDK](/docs/sdk/review) : les fonctions derrière ces boutons.

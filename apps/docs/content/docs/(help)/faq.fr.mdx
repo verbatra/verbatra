@@ -46,11 +46,11 @@ n'en ont aucune. Voir [Prise en charge des langues](/docs/language-support).
 Les clés existantes gardent leur position et les nouvelles sont ajoutées dans l'ordre de la source,
 donc un fichier traduit donne un diff propre. Voir [Formats](/docs/formats).
 
-## Pourquoi une traduction a-t-elle été signalée pour révision ?
+## Pourquoi une traduction a-t-elle été signalée pour relecture ?
 
-Une heuristique de révision a trouvé quelque chose qui mérite un second regard, comme une
+Une heuristique de relecture a trouvé quelque chose qui mérite un second regard, comme une
 traduction identique à sa source, et l'a signalée sans la retenir. Chaque code de motif figure dans
-[Motifs de révision](/docs/error-codes#review-reason-codes).
+[Motifs de relecture](/docs/error-codes#review-reason-codes).
 
 ## verbatra fonctionne-t-il dans un monorepo ?
 
@@ -92,11 +92,12 @@ aucune télémétrie. Avec `provider: { id: "none" }`, rien ne quitte la machine
 
 <AvailableFrom version="0.9.0" />
 
-L'installation en une seule passe, sans appel au fournisseur ni lecture de la valeur d'une clé : la
-config, le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier
-source et la prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes
-de locale et l'état de locale restant. [`verbatra doctor`](/docs/cli/doctor) a le tableau complet
-des vérifications.
+L'installation en une seule passe, sans appel de traduction et sans lire la valeur d'une clé, sauf
+si tu passes `--live`, qui l'envoie pour récupérer la liste des langues du fournisseur : la config,
+le format, le fournisseur, la variable de la clé d'API, la politique réseau, le fichier source et la
+prise en charge des locales, plus des rapports informatifs sur les pluriels, les codes de locale et
+l'état de locale restant. [`verbatra doctor`](/docs/cli/doctor) a le tableau complet des
+vérifications.
 
 ## Un agent IA peut-il configurer ou piloter verbatra à ma place ?
 

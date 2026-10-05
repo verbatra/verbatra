@@ -7,7 +7,7 @@ Utilise l'action quand un job GitHub Actions doit exécuter verbatra et te montr
 
 Avant de commencer, il te faut :
 
-- Une configuration verbatra directement dans le répertoire où l'action s'exécute (vois [Découverte de la configuration](#découverte-de-la-configuration)).
+- Une configuration verbatra directement dans le répertoire où l'action s'exécute (consulte [Découverte de la configuration](#découverte-de-la-configuration)).
 - Une version exacte de `@verbatra/cli` à épingler, `0.9.3` ou plus récente.
 - Pour `translate` uniquement : la clé d'API de ton fournisseur en secret du dépôt.
 
@@ -93,7 +93,7 @@ Ajoute `require-reviewed: "true"` à `command: check` pour lancer [`verbatra che
 
 <AvailableFrom version="0.12.0" />
 
-Avec `provider: { id: "none" }` (vois [Flux 100 % humain](/docs/human-only-workflow)), `translate` sort avec `3` quand il laisse des clés à une personne. L'action le traite comme du travail à transmettre, pas comme un échec : l'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN`, le résumé de job liste les clés et la sortie `needs-human` vaut `"true"`. Branche-toi dessus :
+Avec `provider: { id: "none" }` (consulte [Flux 100 % humain](/docs/human-only-workflow)), `translate` sort avec `3` quand il laisse des clés à une personne. L'action le traite comme du travail à transmettre, pas comme un échec : l'étape réussit, chaque locale concernée reçoit un avertissement `NEEDS_HUMAN`, le résumé de job liste les clés et la sortie `needs-human` vaut `"true"`. Branche-toi dessus :
 
 ```yaml
       - uses: verbatra/action@<commit-sha> # a commit on the v1 line

@@ -36,9 +36,9 @@ Chaque export délimité écrit en plus un manifeste caché, `.verbatra-export-c
 
 <AvailableFrom version="0.12.0" />
 
-`--format xliff2` écrit du XLIFF 2.0 et `--format xliff12` du XLIFF 1.2 : un `<locale>.xlf` par locale exportée dans le répertoire de `--out`, plus un manifeste `.verbatra-export-xliff.json` qui fonctionne comme celui du CSV. Chaque clé devient une unité portant le nom de la clé, les espaces réservés et le balisage deviennent des codes en ligne protégés, la description et le sens de la clé deviennent des notes, et l'état du segment suit l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Vois [Confier à une agence de traduction](/docs/translation-agency).
+`--format xliff2` écrit du XLIFF 2.0 et `--format xliff12` du XLIFF 1.2 : un `<locale>.xlf` par locale exportée dans le répertoire de `--out`, plus un manifeste `.verbatra-export-xliff.json` qui fonctionne comme celui du CSV. Chaque clé devient une unité portant le nom de la clé, les espaces réservés et le balisage deviennent des codes en ligne protégés, la description et le sens de la clé deviennent des notes, et l'état du segment suit l'état de verrouillage et de relecture (`initial` pour une clé manquante ou obsolète, `translated` quand elle est à jour, `reviewed` quand elle est approuvée). Consulte [Confier à une agence de traduction](/docs/translation-agency).
 
-Chaque cible dit aussi d'où elle vient. En XLIFF 1.2, une cible écrite par un fournisseur, la mémoire de traduction ou un agent d'IA, et qu'aucune personne n'a approuvée, porte `state-qualifier="mt-suggestion"` ; en XLIFF 2.0, le groupe de métadonnées `verbatra` de l'unité porte `origin` et `review-state`. L'import ignore les deux. Quand `verbatra.provenance.json` ne peut pas être lu, aucun marqueur n'est écrit et le résultat `--json` porte `provenanceMarkers: "unavailable"`. Vois [Preuves de traduction automatique](/docs/provenance-evidence#marqueurs-dans-les-exports).
+Chaque cible dit aussi d'où elle vient. En XLIFF 1.2, une cible écrite par un fournisseur, la mémoire de traduction ou un agent d'IA, et qu'aucune personne n'a approuvée, porte `state-qualifier="mt-suggestion"` ; en XLIFF 2.0, le groupe de métadonnées `verbatra` de l'unité porte `origin` et `review-state`. L'import ignore les deux. Quand `verbatra.provenance.json` ne peut pas être lu, aucun marqueur n'est écrit et le résultat `--json` porte `provenanceMarkers: "unavailable"`. Consulte [Preuves de traduction automatique](/docs/provenance-evidence#marqueurs-dans-les-exports).
 
 ### Où la remise est écrite
 
@@ -59,7 +59,7 @@ verbatra: exporting to xlsx... done (0.3s)
 next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
 ```
 
-Ces lignes vont sur stderr, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ### Sortie JSON
 
@@ -100,6 +100,6 @@ verbatra export --format xliff2 --out handoff
 
 ## Voir aussi
 
-- [Traduction humaine](/docs/manual-translation) couvre la disposition du classeur, les colonnes de révision et l'aller-retour complet.
+- [Traduction humaine](/docs/manual-translation) couvre la disposition du classeur, les colonnes de relecture et l'aller-retour complet.
 - [Confier à une agence de traduction](/docs/translation-agency) couvre la remise XLIFF pour un outil de TAO.
 - [`verbatra import`](/docs/cli/import) relit la remise remplie.

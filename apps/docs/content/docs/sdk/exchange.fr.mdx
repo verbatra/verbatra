@@ -87,7 +87,7 @@ La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte
 
 <AvailableFrom version="0.2.0" />
 
-Écrit les chaînes encore à traduire (clés manquantes et modifiées par locale ; ajoute les inchangées avec `includeUnchanged`) dans un classeur `.xlsx` stylisé. Les lignes portent le même signal de révision que calcule une exécution translate. Aucun appel de fournisseur, aucune écriture du verrou.
+Écrit les chaînes encore à traduire (clés manquantes et modifiées par locale ; ajoute les inchangées avec `includeUnchanged`) dans un classeur `.xlsx` stylisé. Les lignes portent le même signal de relecture que calcule une exécution translate. Aucun appel de fournisseur, aucune écriture du verrou.
 
 ```ts title="Signature"
 function exportWorkbook(
@@ -143,7 +143,7 @@ Avec `csv` ou `tsv`, `workbook` est soit un seul fichier d'échange, soit le ré
 
 <AvailableFrom version="0.12.0" />
 
-`integrityRefusals` de chaque locale nomme les lignes que la barrière d'intégrité a refusées, avec le motif et ses `details`, comme chaque branche ICU qui ne convient pas à la langue cible. Une ligne retenue parce que sa source a changé depuis l'export n'apparaît que dans `integrityMismatches`. `exportWorkbook` signale comme `icu-arms` dans ses colonnes de révision une traduction actuelle aux branches incorrectes.
+`integrityRefusals` de chaque locale nomme les lignes que la barrière d'intégrité a refusées, avec le motif et ses `details`, comme chaque branche ICU qui ne convient pas à la langue cible. Une ligne retenue parce que sa source a changé depuis l'export n'apparaît que dans `integrityMismatches`. `exportWorkbook` signale comme `icu-arms` dans ses colonnes de relecture une traduction actuelle aux branches incorrectes.
 
 <AvailableFrom version="0.12.0" />
 

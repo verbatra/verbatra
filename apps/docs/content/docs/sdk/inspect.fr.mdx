@@ -200,7 +200,7 @@ function keyIntegrity(
 
 **Renvoie :** `readonly LocaleKeyIntegrity[]`
 
-**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
 
 <AvailableFrom version="0.12.0" />
 
@@ -296,7 +296,7 @@ Aucune config nécessaire.
 
 <AvailableFrom version="0.5.0" />
 
-Lit l'instantané des signalements de révision et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier inutilisable se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
+Lit l'instantané des signalements de relecture et de la consommation de tokens que la dernière exécution `translate` ou `watch` hors dry run a persisté dans `.verbatra-local/run-status.json`. Ne lève jamais : un fichier inutilisable se dégrade en `available: false`. Ce fichier est de la télémétrie sans garantie, pas une référence d'exactitude.
 
 ```ts title="Signature"
 function runStatus(
@@ -311,13 +311,13 @@ function runStatus(
 
 Aucune config requise. Renvoie `{ available: false, reason }` (voir `RUN_STATUS_UNAVAILABLE_REASONS`) ou `{ available: true, version, generatedAt, usage?, budget?, locales }`.
 
-Un instantané antérieur à l'application du budget de tokens est toujours lu, mais un `budget` avec `supported: false` est omis : son `tokensUsed: 0` n'était pas un décompte. Les nouveaux instantanés gardent la même `version` et ajoutent seulement un champ marqueur, donc un Studio ou un serveur d'agents plus ancien affiche toujours la file et l'usage, mais peut afficher un budget estimé comme non suivi. Un motif de révision inconnu issu d'une version plus récente est ignoré : l'entrée garde ses motifs connus, et une entrée qui n'en a plus aucun est retirée.
+Un instantané antérieur à l'application du budget de tokens est toujours lu, mais un `budget` avec `supported: false` est omis : son `tokensUsed: 0` n'était pas un décompte. Les nouveaux instantanés gardent la même `version` et ajoutent seulement un champ marqueur, donc un Studio ou un serveur d'agents plus ancien affiche toujours la file et l'usage, mais peut afficher un budget estimé comme non suivi. Un motif de relecture inconnu issu d'une version plus récente est ignoré : l'entrée garde ses motifs connus, et une entrée qui n'en a plus aucun est retirée.
 
 ### reviewQueue
 
 <AvailableFrom version="0.12.0" />
 
-Lit la file de révision dans les fichiers commités : chaque clé dont la valeur actuelle a une origine de machine (`machine`, `memory`, `fuzzy` ou `agent`, publiées dans le tuple `MACHINE_CLASS_ORIGINS`) et n'est pas approuvée, par locale cible et dans l'ordre de la source. Elle lit les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, donc chaque personne de ton équipe avec le même commit voit la même file. Une clé en sort dès que sa valeur est approuvée ou rejetée, ou qu'une personne écrit ou importe une nouvelle valeur ; une valeur réécrite par un agent reste, tout comme une approbation antérieure à une modification de la source de la clé. L'instantané de la dernière exécution de `runStatus` n'ajoute que des détails : les `reasons` de chaque entrée (vides si l'exécution ne l'a pas signalée, ou ne l'a signalée qu'avec des motifs issus d'une version plus récente que celle-ci ne connaît pas), les `fuzzyHits` de la locale et `lastRunAt`.
+Lit la file de relecture dans les fichiers commités : chaque clé dont la valeur actuelle a une origine de machine (`machine`, `memory`, `fuzzy` ou `agent`, publiées dans le tuple `MACHINE_CLASS_ORIGINS`) et n'est pas approuvée, par locale cible et dans l'ordre de la source. Elle lit les fichiers de locale, `verbatra.lock.json` et `verbatra.provenance.json`, donc chaque personne de ton équipe avec le même commit voit la même file. Une clé en sort dès que sa valeur est approuvée ou rejetée, ou qu'une personne écrit ou importe une nouvelle valeur ; une valeur réécrite par un agent reste, tout comme une approbation antérieure à une modification de la source de la clé. L'instantané de la dernière exécution de `runStatus` n'ajoute que des détails : les `reasons` de chaque entrée (vides si l'exécution ne l'a pas signalée, ou ne l'a signalée qu'avec des motifs issus d'une version plus récente que celle-ci ne connaît pas), les `fuzzyHits` de la locale et `lastRunAt`.
 
 ```ts title="Signature"
 function reviewQueue(

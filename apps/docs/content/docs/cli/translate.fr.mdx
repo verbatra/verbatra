@@ -37,9 +37,9 @@ Par défaut, une exécution ne supprime rien : les clés orphelines sont signal�
 
 ### Estimation du coût
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.11.0" />
 
-`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM, des caractères source pour DeepL ou Google Cloud Translation, rien pour un point d'accès `openai-compatible` auto-hébergé ou un projet entièrement humain). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/docs/estimating-cost).
+`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM, des caractères source pour DeepL ou Google Cloud Translation, rien pour un point d'accès `openai-compatible` auto-hébergé). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/docs/estimating-cost).
 
 ### Un sous-ensemble de locales
 
@@ -145,7 +145,7 @@ verbatra translate --include-human
 | `130` | interrompu avec Ctrl-C (SIGINT) après libération des verrous d'écriture |
 | `143` | arrêté avec SIGTERM après libération des verrous d'écriture |
 
-Après une interruption, stderr se termine par `verbatra: interrupted (SIGINT), released locks`, ou avec `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
+Après une interruption, stderr se termine par `verbatra: interrupted (SIGINT), released locks`, ou avec `--json` par l'enregistrement `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Si la libération des verrous échoue ou ne se termine pas en 5 secondes, la ligne le dit à la place (`could not release locks: <reason>` ou `lock release did not finish within 5s`), et l'enregistrement JSON porte `"locksReleased":false` avec `"reason":"failed"` (plus `message`) ou `"reason":"timed-out"` (plus `deadlineMs`). Voir [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 

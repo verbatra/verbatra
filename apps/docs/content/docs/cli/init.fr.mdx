@@ -35,7 +35,7 @@ Accepte aussi les [options globales](/docs/cli#options-globales) `--cwd` et `--j
 
 <AvailableFrom version="0.12.0" />
 
-Une option l'emporte toujours. Ce que tu omets est détecté depuis le projet, puis demandé quand stdin est un terminal et que ni `--yes` ni `--json` n'est passé, et sinon pris à sa valeur par défaut uniquement avec `--yes`. Entrée accepte la valeur suggérée. Une option avec une valeur vide, comme `--targets ''`, est une erreur d'utilisation (`INVALID_OPTION`), jamais une demande de valeur par défaut.
+Une option l'emporte toujours. Ce que tu omets est détecté depuis le projet, puis demandé quand stdin est un terminal et que ni `--yes` ni `--json` n'est passé, et sinon pris à sa valeur par défaut uniquement avec `--yes`. Entrée accepte la valeur suggérée. Une option avec une valeur vide, comme `--targets ''`, est une erreur d'utilisation (`INVALID_OPTION`), jamais une demande de valeur par défaut. Si stdin se termine pendant une question (Ctrl-D), `init` sort avec `2` et `MISSING_OPTIONS`.
 
 Chaque réponse est vérifiée dès que tu la donnes. Une réponse invalide est expliquée sur stderr et redemandée, jusqu'à trois fois, en gardant tes réponses précédentes ; une troisième réponse invalide arrête `init` avec le code d'erreur de cette réponse (comme `INVALID_LOCALE`), nomme l'option à passer à la place et n'écrit rien.
 

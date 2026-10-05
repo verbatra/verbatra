@@ -359,6 +359,6 @@ Les fournisseurs LLM plafonnent les tokens de chaque réponse. Un modèle qui s'
 
 verbatra redécoupe d'abord un sous-lot tronqué en deux moitiés, en descendant jusqu'à une seule entrée, et ne retient qu'une entrée qui déborde encore. Pour régler cela durablement, baisse `maxBatchSize` ou augmente `maxTokens` (Anthropic) ou `maxOutputTokens`. Un modèle de raisonnement puise ses tokens de raisonnement cachés dans le même budget et peut l'épuiser avant d'écrire quoi que ce soit : donne-lui donc une marge généreuse. Les fournisseurs de traduction automatique n'ont pas de cas de troncature.
 
-### Signalements de révision
+### Signalements de relecture
 
-Une traduction suspecte est signalée pour révision, quel que soit le fournisseur, plutôt que rejetée. Voir les [raisons de révision](/docs/error-codes#review-reason-codes) et [Réviser dans Studio](/docs/review-in-studio).
+Une traduction suspecte est signalée pour relecture, quel que soit le fournisseur, plutôt que rejetée. Voir les [raisons de relecture](/docs/error-codes#review-reason-codes) et [Réviser dans Studio](/docs/review-in-studio).

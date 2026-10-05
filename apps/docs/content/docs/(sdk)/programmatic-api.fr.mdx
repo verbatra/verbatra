@@ -273,7 +273,7 @@ déterministe : une seconde exécution sur une source inchangée ne réécrit ri
 
 ## Modifier et retraduire une seule clé
 
-Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre flux de révision. Lis les valeurs actuelles avec `keyValue`, enregistre une correction humaine avec `editEntry`, ou relance le fournisseur pour une clé avec `retranslateEntry`. Les deux fonctions d'écriture passent la valeur candidate par les mêmes contrôles d'intégrité qu'une exécution complète et renvoient un résultat à deux branches au lieu de lever sur une valeur rejetée.
+Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre flux de relecture. Lis les valeurs actuelles avec `keyValue`, enregistre une correction humaine avec `editEntry`, ou relance le fournisseur pour une clé avec `retranslateEntry`. Les deux fonctions d'écriture passent la valeur candidate par les mêmes contrôles d'intégrité qu'une exécution complète et renvoient un résultat à deux branches au lieu de lever sur une valeur rejetée.
 
 ```ts
 import { editEntry, keyValue, loadConfig, retranslateEntry } from "@verbatra/sdk";
