@@ -23,6 +23,7 @@ import {
   publishBillingObservation,
   readWireLog,
   sendUnmaskedGoogleBatch,
+  successfulDeepLExchanges,
   sumBilled,
   unmaskedDeepLBody,
   type WireRecord,
@@ -237,19 +238,16 @@ async function observeMaskingBilling(
   records: readonly WireRecord[],
 ): Promise<void> {
   if (live.id === "deepl") {
-    const bodies = records.flatMap((record) =>
-      record.provider === "deepl" && record.kind === "request" ? [record.body] : [],
-    );
-    const billed = records.flatMap((record) =>
-      record.provider === "deepl" && record.kind === "response" ? [record.billedCharacters] : [],
-    );
+    const exchanges = successfulDeepLExchanges(records);
+    expect(exchanges.length).toBeGreaterThan(0);
+    const bodies = exchanges.map((exchange) => exchange.body);
     const rows: BillingRow[] = [
       {
         provider: live.id,
         variant: "masked",
         requests: bodies.length,
         texts: bodies.flatMap(deeplTexts),
-        billedCharacters: sumBilled(billed),
+        billedCharacters: sumBilled(exchanges.map((exchange) => exchange.billedCharacters)),
       },
       {
         provider: live.id,

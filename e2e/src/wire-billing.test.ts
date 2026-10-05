@@ -12,6 +12,7 @@ import {
   prepareWireRecorder,
   readWireLog,
   sendUnmaskedGoogleBatch,
+  successfulDeepLExchanges,
   sumBilled,
   unmaskedDeepLBody,
   withoutMarkupTags,
@@ -32,11 +33,16 @@ const DEEPL_REPLY = JSON.stringify({
   translations: [{ text: "Hallo <x>{0}</x> &amp; du", billed_characters: 12 }],
 });
 
-const DEEPL_CLIENT = `
+const DEEPL_THROTTLED_REPLY = JSON.stringify({ message: "Too many requests" });
+
+const MASKED_HEAD = MASKED_DEEPL_BODY.slice(0, 20);
+
+function deeplClient(statusLine: string, reply: string): string {
+  return `
 import https from "node:https";
 import { Duplex } from "node:stream";
-const reply = ${JSON.stringify(DEEPL_REPLY)};
-const head = "HTTP/1.1 200 OK\\r\\ncontent-type: application/json\\r\\ncontent-length: " +
+const reply = ${JSON.stringify(reply)};
+const head = "HTTP/1.1 ${statusLine}\\r\\ncontent-type: application/json\\r\\ncontent-length: " +
   Buffer.byteLength(reply) + "\\r\\nconnection: close\\r\\n\\r\\n";
 class OfflineAgent extends https.Agent {
   createConnection() {
@@ -63,11 +69,15 @@ const request = https.request({
 });
 request.on("response", (response) => {
   response.on("data", () => {});
-  response.on("end", () => setImmediate(() => process.exit(0)));
+  response.on("end", () => {
+    process.stdout.write("answered " + response.statusCode);
+    setImmediate(() => process.exit(0));
+  });
 });
-request.write(${JSON.stringify(MASKED_DEEPL_BODY.slice(0, 20))});
+request.write(${JSON.stringify(Buffer.from(MASKED_HEAD).toString("base64"))}, "base64");
 request.end(${JSON.stringify(MASKED_DEEPL_BODY.slice(20))});
 `;
+}
 
 const GOOGLE_CLIENT = `
 await globalThis
@@ -95,14 +105,47 @@ async function runThroughRecorder(client: string): Promise<string> {
   return readWireLog(recorder.logPath);
 }
 
+const unrecordableLog = join(
+  tmpdir(),
+  "verbatra-e2e-wire-missing-dir",
+  "nested",
+  "wire-log.ndjson",
+);
+
 describe("wire recorder preload", () => {
   it("records the DeepL form body and the billed count from its reply, never the auth header", async () => {
-    const log = await runThroughRecorder(DEEPL_CLIENT);
+    const log = await runThroughRecorder(deeplClient("200 OK", DEEPL_REPLY));
     expect(log).not.toContain(FAKE_KEY);
     expect(parseWireLog(log)).toEqual([
-      { provider: "deepl", kind: "request", body: MASKED_DEEPL_BODY },
-      { provider: "deepl", kind: "response", status: 200, billedCharacters: [12] },
+      { provider: "deepl", kind: "request", exchange: 1, body: MASKED_DEEPL_BODY },
+      { provider: "deepl", kind: "response", exchange: 1, status: 200, billedCharacters: [12] },
     ]);
+  });
+
+  it("records no billed count for a DeepL error reply that carries no translations", async () => {
+    const log = await runThroughRecorder(
+      deeplClient("429 Too Many Requests", DEEPL_THROTTLED_REPLY),
+    );
+    expect(parseWireLog(log)).toEqual([
+      { provider: "deepl", kind: "request", exchange: 1, body: MASKED_DEEPL_BODY },
+      { provider: "deepl", kind: "response", exchange: 1, status: 429, billedCharacters: null },
+    ]);
+  });
+
+  it("never breaks the request when the log cannot be written", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "verbatra-e2e-wire-"));
+    const recorder = await prepareWireRecorder(dir);
+    const result = await execa(
+      "node",
+      ["--input-type=module", "--eval", deeplClient("200 OK", DEEPL_REPLY)],
+      {
+        env: { ...process.env, ...recorder.env, VERBATRA_E2E_WIRE_LOG: unrecordableLog },
+        reject: false,
+      },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe("answered 200");
+    expect(result.stderr).toBe("");
   });
 
   it("records the Google texts and format, never the keyed URL, and survives a body it cannot parse", async () => {
@@ -129,6 +172,24 @@ describe("billing arithmetic", () => {
     expect(withoutMarkupTags(['Hi <span translate="no">{0}</span> &amp;'])).toEqual([
       "Hi {0} &amp;",
     ]);
+  });
+
+  it("keeps only the DeepL exchanges that succeeded, so a retried request counts once", () => {
+    const exchanges = successfulDeepLExchanges(
+      parseWireLog(
+        [
+          { provider: "deepl", kind: "request", exchange: 1, body: "text=first" },
+          { provider: "deepl", kind: "response", exchange: 1, status: 429, billedCharacters: null },
+          { provider: "deepl", kind: "request", exchange: 2, body: "text=retry" },
+          { provider: "deepl", kind: "request", exchange: 3, body: "text=unanswered" },
+          { provider: "deepl", kind: "response", exchange: 2, status: 200, billedCharacters: [5] },
+        ]
+          .map((record) => JSON.stringify(record))
+          .join("\n"),
+      ),
+    );
+    expect(exchanges).toEqual([{ body: "text=retry", billedCharacters: [5] }]);
+    expect(successfulDeepLExchanges([])).toEqual([]);
   });
 
   it("sums billed counts across responses and refuses to sum a missing one", () => {

@@ -6,9 +6,17 @@ const logPath = process.env.VERBATRA_E2E_WIRE_LOG;
 const GOOGLE_HOST = "translation.googleapis.com";
 const DEEPL_HOST = /(^|\.)deepl\.com$/;
 const DECODERS = { gzip: gunzipSync, deflate: inflateSync, br: brotliDecompressSync };
+const SUCCESS_MIN = 200;
+const SUCCESS_MAX = 299;
+
+let nextExchange = 0;
 
 function record(entry) {
-  appendFileSync(logPath, `${JSON.stringify(entry)}\n`);
+  try {
+    appendFileSync(logPath, `${JSON.stringify(entry)}\n`);
+  } catch {
+    return;
+  }
 }
 
 function attempt(action) {
@@ -36,45 +44,71 @@ globalThis.fetch = (input, init) => {
 };
 
 function billedFrom(response, body) {
+  const status = response.statusCode ?? 0;
+  if (status < SUCCESS_MIN || status > SUCCESS_MAX) {
+    return null;
+  }
   const decode = DECODERS[String(response.headers["content-encoding"] ?? "").toLowerCase()];
   const text = (decode ? decode(body) : body).toString("utf8");
-  const billed = (JSON.parse(text).translations ?? []).map((item) => item.billed_characters);
+  const translations = JSON.parse(text).translations;
+  if (!Array.isArray(translations) || translations.length === 0) {
+    return null;
+  }
+  const billed = translations.map((item) => item.billed_characters);
   return billed.every((value) => typeof value === "number") ? billed : null;
 }
 
-function recordResponse(response) {
-  const chunks = [];
-  response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-  response.on("end", () => {
-    let billedCharacters = null;
-    try {
-      billedCharacters = billedFrom(response, Buffer.concat(chunks));
-    } catch {
-      billedCharacters = null;
-    }
-    record({ provider: "deepl", kind: "response", status: response.statusCode, billedCharacters });
-  });
+function recordResponse(exchange) {
+  return (response) => {
+    const chunks = [];
+    response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    response.on("end", () => {
+      let billedCharacters = null;
+      try {
+        billedCharacters = billedFrom(response, Buffer.concat(chunks));
+      } catch {
+        billedCharacters = null;
+      }
+      record({
+        provider: "deepl",
+        kind: "response",
+        exchange,
+        status: response.statusCode,
+        billedCharacters,
+      });
+    });
+  };
 }
 
-function recordRequestBody(request) {
+function recordRequestBody(request, exchange) {
   const chunks = [];
-  const collect = (chunk) => {
-    if (chunk !== undefined && chunk !== null && typeof chunk !== "function") {
-      chunks.push(Buffer.from(chunk));
+  const collect = (chunk, encoding) => {
+    if (chunk === undefined || chunk === null || typeof chunk === "function") {
+      return;
     }
+    chunks.push(
+      typeof chunk === "string"
+        ? Buffer.from(chunk, typeof encoding === "string" ? encoding : "utf8")
+        : Buffer.from(chunk),
+    );
   };
   const write = request.write;
-  request.write = function (chunk, ...rest) {
-    attempt(() => collect(chunk));
-    return write.call(this, chunk, ...rest);
+  request.write = function (chunk, encoding, ...rest) {
+    attempt(() => collect(chunk, encoding));
+    return write.call(this, chunk, encoding, ...rest);
   };
   const end = request.end;
-  request.end = function (chunk, ...rest) {
+  request.end = function (chunk, encoding, ...rest) {
     attempt(() => {
-      collect(chunk);
-      record({ provider: "deepl", kind: "request", body: Buffer.concat(chunks).toString("utf8") });
+      collect(chunk, encoding);
+      record({
+        provider: "deepl",
+        kind: "request",
+        exchange,
+        body: Buffer.concat(chunks).toString("utf8"),
+      });
     });
-    return end.call(this, chunk, ...rest);
+    return end.call(this, chunk, encoding, ...rest);
   };
 }
 
@@ -85,8 +119,9 @@ https.request = function (...args) {
     DEEPL_HOST.test(String(request.host ?? "")) &&
     String(request.path ?? "").startsWith("/v2/translate");
   if (isDeepLTranslate) {
-    recordRequestBody(request);
-    request.on("response", recordResponse);
+    nextExchange += 1;
+    recordRequestBody(request, nextExchange);
+    request.on("response", recordResponse(nextExchange));
   }
   return request;
 };

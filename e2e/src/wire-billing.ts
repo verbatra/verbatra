@@ -14,10 +14,16 @@ export type WireRecord =
       readonly texts: readonly string[];
       readonly format: string;
     }
-  | { readonly provider: "deepl"; readonly kind: "request"; readonly body: string }
+  | {
+      readonly provider: "deepl";
+      readonly kind: "request";
+      readonly exchange: number;
+      readonly body: string;
+    }
   | {
       readonly provider: "deepl";
       readonly kind: "response";
+      readonly exchange: number;
       readonly status: number;
       readonly billedCharacters: readonly number[] | null;
     }
@@ -114,6 +120,34 @@ interface DeepLBilledResponse {
 
 function transportFailure(error: unknown): string {
   return `unavailable (${error instanceof Error ? error.name : "unknown error"})`;
+}
+
+export interface DeepLExchange {
+  readonly body: string;
+  readonly billedCharacters: readonly number[] | null;
+}
+
+const HTTP_SUCCESS_MIN = 200;
+const HTTP_SUCCESS_MAX = 299;
+
+export function successfulDeepLExchanges(records: readonly WireRecord[]): DeepLExchange[] {
+  const bodies = new Map<number, string>();
+  const exchanges: DeepLExchange[] = [];
+  for (const record of records) {
+    if (record.provider !== "deepl") {
+      continue;
+    }
+    if (record.kind === "request") {
+      bodies.set(record.exchange, record.body);
+      continue;
+    }
+    const body = bodies.get(record.exchange);
+    const succeeded = record.status >= HTTP_SUCCESS_MIN && record.status <= HTTP_SUCCESS_MAX;
+    if (body !== undefined && succeeded) {
+      exchanges.push({ body, billedCharacters: record.billedCharacters });
+    }
+  }
+  return exchanges;
 }
 
 export function sumBilled(billed: readonly (readonly number[] | null)[]): string {
