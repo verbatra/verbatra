@@ -1,11 +1,28 @@
 {
   "title": "Guías",
   "pages": [
+    "---Día a día---",
+    "../(get-started)/add-a-language",
+    "extract-keys",
     "estimating-cost",
+    "protecting-human-translations",
+    "../(help)/recovery-and-rollback",
+    "---Automatizar---",
     "ci-and-exit-codes",
     "github-action",
+    "../(agents)/agent-recipes",
+    "---Trabajar con traductores---",
     "manual-translation",
+    "translation-agency",
     "review-in-studio",
-    "custom-format-adapters"
+    "human-only-workflow",
+    "provenance-evidence",
+    "---Agentes de IA---",
+    "../(agents)/connect-an-mcp-client",
+    "../(agents)/agent-tools-in-studio",
+    "---Ampliar---",
+    "../(sdk)/programmatic-api",
+    "custom-format-adapters",
+    "../(configure)/network-policy"
   ]
 }

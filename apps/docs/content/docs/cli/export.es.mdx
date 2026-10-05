@@ -1,8 +1,9 @@
 ---
 title: verbatra export
-description: Exporta las cadenas sin traducir a una entrega para traductores, como libro de Excel con estilos o como un archivo CSV o TSV por locale.
+description: Exporta las cadenas sin traducir a una entrega para traductores, como libro de Excel con estilos, como un archivo CSV o TSV por locale o como un archivo XLIFF por locale para una herramienta TAO.
+type: reference
 ---
-Escribe las cadenas que necesitan traducción en un libro de Excel con estilos que un humano puede rellenar y devolver para [`verbatra import`](/docs/cli/import). Por defecto el libro lleva solo las cadenas faltantes y modificadas: las mismas claves que una ejecución automática enviaría a un proveedor. `export` nunca llama a un proveedor y no necesita clave de API.
+Escribe las cadenas que necesitan traducción en una entrega que una persona rellena y devuelve para [`verbatra import`](/docs/cli/import). Por defecto lleva solo las cadenas faltantes y modificadas, las mismas claves que una ejecución automática enviaría a un proveedor. Una clave cuyo valor de origen está vacío o solo tiene espacios no tiene fila hasta que escribas su texto de origen. `export` nunca llama a un proveedor y no necesita clave de API.
 
 ## Sinopsis
 
@@ -14,15 +15,63 @@ verbatra export [flags]
 
 | Flag | Argumento | Por defecto | Efecto |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | directorio actual | resuelve la configuración y los archivos de locale desde este directorio |
-| `--config` | `<path>` | busca uno | carga este archivo de configuración en lugar de buscar uno |
-| `--out` | `<path>` | `verbatra-translations.xlsx`, o `verbatra-translations` para `csv` y `tsv` | escribe la entrega aquí: una ruta de archivo para `xlsx`, un directorio para `csv` y `tsv` |
-| `--format` | `<format>` | `xlsx` | escribe un libro de Excel (`xlsx`) o un archivo delimitado por locale (`csv`, `tsv`) |
-| `--locales` | `<list>` | todos los destinos configurados | subconjunto de locales de destino que exportar, separados por comas |
+| `--out` | `<path>` | `verbatra-translations.xlsx`, o `verbatra-translations` para los otros formatos | dónde se escribe la entrega: un archivo para `xlsx`, un directorio para `csv`, `tsv`, `xliff2` y `xliff12` |
+| `--format` | `<format>` | `xlsx` | `xlsx` (libro de Excel), `csv` o `tsv` (un archivo por locale), `xliff2` o `xliff12` (un archivo XLIFF por locale) |
+| `--locales` | `<list>` | cada locale de destino configurado | exporta solo este subconjunto separado por comas; un valor vacío o desconocido es un error de uso, salida `2` |
 | `--include-unchanged` | ninguno | desactivado | exporta también las cadenas que ya están al día |
-| `--json` | ninguno | desactivado | imprime un [envoltorio JSON](/docs/ci-and-exit-codes#salida-json) en stdout que lleva el resultado de la exportación (ruta y número de filas por locale) bajo `result`, o el código de error si la ejecución falla; la línea de error legible por humanos sigue yendo a stderr |
 
-Un valor `--locales` vacío o desconocido se rechaza con salida `2` en lugar de exportar nada en silencio.
+También acepta los [flags globales](/docs/cli#flags-globales) `--cwd`, `--config` y `--json`.
+
+## Comportamiento
+
+### CSV y TSV
+
+`--format csv` y `--format tsv` escriben un `<locale>.csv` o `<locale>.tsv` por locale exportado, con las mismas columnas en el mismo orden que una hoja del libro. `--out` nombra el directorio, que se crea si no existe.
+
+Un archivo delimitado se puede comparar con diff y se abre en cualquier parte, pero no tiene protección de celdas: todas las columnas son editables y la columna `Source hash` está a la vista. Nunca se confía en un hash editado: el import lo compara con la fuente actual y retiene la fila.
+
+Cada exportación delimitada escribe además un manifiesto oculto, `.verbatra-export-csv.json` o `.verbatra-export-tsv.json`, que nombra los locales que escribió. Una exportación posterior con un `--locales` más estrecho retira los locales que dejó fuera: sus archivos siguen en el disco, y [`verbatra import`](/docs/cli/import) los rechaza como restos. La exportación nunca borra nada del directorio de salida.
+
+### XLIFF
+
+<AvailableFrom version="0.12.0" />
+
+`--format xliff2` escribe XLIFF 2.0 y `--format xliff12` XLIFF 1.2: un `<locale>.xlf` por locale exportado en el directorio de `--out`, más un manifiesto `.verbatra-export-xliff.json` que funciona como el de CSV. Cada clave se convierte en una unidad con el nombre de la clave, los placeholders y el marcado pasan a ser códigos en línea protegidos, la descripción y el significado de la clave pasan a ser notas, y el estado del segmento sigue el estado del bloqueo y de la revisión (`initial` para una clave faltante o desactualizada, `translated` cuando está al día, `reviewed` cuando está aprobada). Consulta [Entregar a una agencia de traducción](/docs/translation-agency).
+
+Cada destino dice además de dónde viene. En XLIFF 1.2, un destino que escribió un proveedor, la memoria de traducción o un agente de IA, y que ninguna persona aprobó, lleva `state-qualifier="mt-suggestion"`; en XLIFF 2.0 el grupo de metadatos `verbatra` de la unidad lleva `origin` y `review-state`. El import ignora ambos. Si `verbatra.provenance.json` no se puede leer, no se escribe ninguna marca y el resultado de `--json` lleva `provenanceMarkers: "unavailable"`. Consulta [Evidencia de traducción automática](/docs/provenance-evidence#marcas-en-las-exportaciones).
+
+### Dónde se escribe la entrega
+
+La entrega solo se escribe dentro del directorio de trabajo. Antes de leer nada, `export` rechaza con `EXPORT_OUTPUT_CONFLICT` un `--out` que sale del directorio de trabajo o que (por sí mismo o mediante un archivo que escribiría) nombra un archivo del que depende el proyecto: un archivo de locale configurado, el archivo de bloqueo, el archivo de procedencia, la caché de la memoria de traducción, un archivo de configuración que verbatra busca, la configuración que cargó la ejecución o el archivo `glossary` configurado. Para `xlsx` también se rechaza una ruta que no nombra un archivo (como `out/`) o que es el propio directorio de trabajo. Los nombres se comparan sin distinguir mayúsculas, y las comprobaciones se repiten tras resolver los enlaces simbólicos.
+
+Una ruta que pasa puede fallar igualmente al escribir (sin permisos, algo en medio, disco lleno): la ejecución se detiene con `EXPORT_UNWRITABLE` y nombra el archivo y el código del sistema de archivos.
+
+Un locale de destino que no puede nombrar su hoja o su archivo detiene la exportación con `WORKBOOK_INVALID`. Un nombre de hoja xlsx debe tener de 1 a 31 caracteres, no puede contener ninguno de `: \ / ? * [ ]` y no puede coincidir, sin distinguir mayúsculas, con `Instructions` ni con el nombre de hoja de otro locale de destino. Un nombre de archivo `csv`, `tsv` o `xlf` no puede estar vacío ni ser `.` o `..`, y no puede contener un separador de ruta, un carácter de control ni ninguno de `: * ? " < > |`. El mismo código cubre un libro que no se pudo serializar.
+
+### Información en el terminal
+
+<AvailableFrom version="0.12.0" />
+
+`export` muestra una línea mientras escribe y, si había algo que entregar, nombra el import que trae de vuelta el archivo rellenado:
+
+```text output
+verbatra: exporting to xlsx... done (0.3s)
+next: verbatra import verbatra-translations.xlsx (once your translators have filled it in)
+```
+
+Estas líneas van a stderr, y `--quiet` las omite. Consulta [Salida en el terminal](/docs/cli/output#salida-en-el-terminal).
+
+### Salida JSON
+
+Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva dónde quedó la entrega y el número de filas por locale:
+
+```ts
+{
+  path: string;                // absolute path: the workbook for xlsx, the output directory otherwise
+  locales: { locale: string; rows: number }[];
+  provenanceMarkers?: "written" | "unavailable"; // XLIFF formats only
+}
+```
 
 ## Ejemplos
 
@@ -35,28 +84,22 @@ verbatra export --locales de,fr --out handoff/round-2.xlsx
 
 # one de.csv and fr.csv under handoff/
 verbatra export --format csv --out handoff
+
+# one de.xlf and fr.xlf in XLIFF 2.0 for a CAT tool
+verbatra export --format xliff2 --out handoff
 ```
-
-## CSV y TSV
-
-`--format csv` y `--format tsv` escriben texto plano en lugar de un libro: un `<locale>.csv` o `<locale>.tsv` por cada locale exportado, con las mismas columnas y en el mismo orden que una hoja del libro. `--out` nombra entonces el directorio donde se escriben los archivos, y el directorio se crea si falta.
-
-Un archivo delimitado se puede comparar con diff y se abre en cualquier parte, pero no lleva protección de celdas: todas las columnas son editables y la columna `Source hash` es visible. Un hash editado nunca se da por bueno: la importación lo compara con la fuente viva y retiene la fila.
-
-Cada exportación delimitada escribe además un manifiesto oculto en el directorio, `.verbatra-export-csv.json` o `.verbatra-export-tsv.json`, que nombra los locales que acaba de escribir. Es lo que permite que una reexportación con una selección `--locales` más estrecha retire los locales que ha dejado fuera: sus archivos siguen en disco, y [`verbatra import`](/docs/cli/import) los rechaza como restos en lugar de aplicar una traducción desactualizada. La exportación no borra nada del directorio de salida, así que un archivo tuyo que esté ahí nunca corre peligro.
 
 ## Códigos de salida
 
 | Código | Significado |
 | --- | --- |
-| `0` | la entrega se escribió |
-| `2` | no se pudo ejecutar: un error de toda la ejecución, o un error de uso (incluido un valor `--locales` vacío o desconocido) |
+| `0` | se escribió la entrega |
+| `2` | no se pudo ejecutar: un error de toda la ejecución, una ruta de salida rechazada (`EXPORT_OUTPUT_CONFLICT`), una entrega que no se pudo escribir (`EXPORT_UNWRITABLE`, `WORKBOOK_INVALID`) o un error de uso |
 
-`export` no tiene modo de fallo por locale, así que nunca sale con `1`.
-
-Un locale de destino que no puede dar nombre a su hoja o a su archivo detiene la exportación con `WORKBOOK_INVALID`. El nombre de una hoja xlsx debe tener de 1 a 31 caracteres, no debe contener ninguno de `: \ / ? * [ ]` y no debe coincidir con `Instructions` ni con el nombre de hoja de otro locale de destino, sin distinguir mayúsculas. El nombre de un archivo `csv` o `tsv` no debe estar vacío, ni ser `.` o `..`, y no debe contener un separador de ruta, un carácter de control ni ninguno de `: * ? " < > |`. El mismo código cubre un libro que no se pudo serializar.
+`export` no tiene un modo de fallo por locale, así que nunca sale con `1`. El contrato que sigue cada comando está en [Códigos de salida](/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
-- [Traducción humana](/docs/manual-translation) cubre la disposición del libro, la variante CSV y TSV, las columnas de revisión y el ciclo completo de ida y vuelta.
-- [`verbatra import`](/docs/cli/import) lee de vuelta la entrega rellenada.
+- [Traducción humana](/docs/manual-translation) cubre la estructura del libro, las columnas de revisión y el ciclo completo.
+- [Entregar a una agencia de traducción](/docs/translation-agency) cubre la entrega XLIFF para una herramienta TAO.
+- [`verbatra import`](/docs/cli/import) vuelve a leer la entrega rellenada.
