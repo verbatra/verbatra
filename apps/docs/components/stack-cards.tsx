@@ -6,6 +6,8 @@ import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 20;
 
+export const FORMAT_ID_CLASS = "whitespace-nowrap @max-[23.5rem]:whitespace-normal";
+
 export type StackCard = {
   label: string;
   href: string;
@@ -24,7 +26,7 @@ function FormatIds({ formats }: { formats: ReadonlyArray<SupportedFormat> }): Re
       {formats.map((format, index) => (
         <Fragment key={format}>
           {index > 0 ? ", " : null}
-          <span className="whitespace-nowrap">{format}</span>
+          <span className={FORMAT_ID_CLASS}>{format}</span>
         </Fragment>
       ))}
     </span>
@@ -44,7 +46,7 @@ export function StackCards({
   return (
     <nav aria-labelledby={labelledBy} className="not-prose @container my-6">
       <StackIconSprite prefix={prefix} icons={cards.map((card) => card.icon)} />
-      <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 @[30rem]:grid-cols-2 @[50rem]:grid-cols-3">
+      <ul className="vk-stack-grid m-0 grid list-none gap-3 p-0">
         {cards.map((card) => (
           <li key={card.href} className="m-0 flex p-0">
             <Link

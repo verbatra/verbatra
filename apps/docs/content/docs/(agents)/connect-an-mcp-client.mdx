@@ -4,7 +4,7 @@ description: Wire verbatra's stdio MCP server into Claude Code, Codex, Gemini CL
 type: how-to
 status: new
 ---
-Use this to let a coding agent read translation status and fix values through verbatra's stdio MCP server. Register it once per client: a second entry starts a second server. You need a project with a verbatra config ([`npx verbatra init`](/docs/cli/init)) and Node.js 22.14 or later.
+Let a coding agent read translation status and fix values through verbatra's stdio MCP server. Register it once per client: a second entry starts a second server. You need a project with a verbatra config ([`npx verbatra init`](/docs/cli/init)) and Node.js 22.14 or later.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -44,10 +44,6 @@ The server still tells the agent to run `translation.estimate` and wait for your
 
 ## Claude Code
 
-<Callout type="warn">
-Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`: the plugin brings a second server.
-</Callout>
-
 ### Let init write it
 
 <AvailableFrom version="0.12.0" />
@@ -82,6 +78,8 @@ Run `claude mcp list` to check the connection. See the [Claude Code MCP document
 
 ### Other routes
 
+Two alternatives to `init --agent`:
+
 #### Without the CLI
 
 ```bash
@@ -94,7 +92,11 @@ This writes the same `.mcp.json` entry. Never add `--env KEY=value` to a project
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Instead of `.mcp.json`, the plugin bundles the [verbatra skills](/docs/agent-recipes#the-skills-pack), this server, and a hook that checks a locale file after Claude edits it:
+Instead of `.mcp.json`, the plugin bundles the [verbatra skills](/docs/agent-recipes#the-skills-pack), this server, and a hook that checks a locale file after Claude edits it.
+
+<Callout type="warn">
+Never combine the verbatra plugin with a `verbatra` entry in `.mcp.json`: the plugin brings a second server.
+</Callout>
 
 ```bash
 claude plugin marketplace add verbatra/skills

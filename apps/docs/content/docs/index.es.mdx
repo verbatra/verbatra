@@ -4,11 +4,9 @@ description: Qué es verbatra, el problema que resuelve y cómo encajan la CLI, 
 type: overview
 ---
 
-<DocsHomeHero
-  headline="Cómo traducir solo lo que cambió."
-  lead="verbatra compara tu locale de origen con un archivo de bloqueo confirmado, envía solo las claves nuevas y modificadas al proveedor que configures, comprueba cada resultado y escribe los archivos de vuelta en su sitio. Estas páginas cubren la CLI, el SDK, Studio y el servidor MCP."
-  primary={{ label: "Inicio rápido", href: "/docs/quickstart" }}
-  secondary={{ label: "Referencia de la CLI", href: "/docs/cli" }}
+<DocsHomeHeader
+  headline="Configura verbatra y mantén cada locale al día."
+  lead="Guías y referencia para la CLI, el SDK, Studio y el servidor MCP. Instala la CLI o pásale el prompt a tu agente de programación."
 />
 
 <DocsHomeBody>
@@ -71,7 +69,7 @@ type: overview
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Cada ejecución es un diff, no una reescritura." lead="Qué pasa cuando ejecutas verbatra translate.">
+<DocsHomeSection title="Cada ejecución es un diff, no una reescritura." lead="Qué pasa cuando ejecutas `verbatra translate`.">
 
 Mantener a mano un locale de origen significa que todos los demás archivos de locale se desfasan: las claves nuevas faltan en los destinos, las cadenas editadas dejan atrás traducciones obsoletas y las claves eliminadas se quedan como huérfanas. verbatra cierra esa brecha comparando cada destino contra un archivo de bloqueo confirmado, `verbatra.lock.json`, y enviando al proveedor que configures solo lo que cambió; una segunda ejecución sin nada nuevo que traducir no hace ni una llamada al proveedor. Cada resultado se comprueba antes de escribirse, así que un placeholder roto se retiene y se reintenta, nunca se publica. Consulta [Cómo funciona](/docs/how-it-works) para ver la canalización completa.
 

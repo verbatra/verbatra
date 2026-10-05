@@ -4,7 +4,7 @@ description: Branche le serveur MCP stdio de verbatra sur Claude Code, Codex, Ge
 type: how-to
 status: new
 ---
-Sers-t'en pour qu'un agent de code lise l'état des traductions et corrige des valeurs via le serveur MCP stdio de verbatra. Enregistre-le une fois par client : une deuxième entrée démarre un deuxième serveur. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
+Laisse un agent de code lire l'état des traductions et corriger des valeurs via le serveur MCP stdio de verbatra. Enregistre-le une fois par client : une deuxième entrée démarre un deuxième serveur. Il te faut un projet avec une config verbatra ([`npx verbatra init`](/docs/cli/init)) et Node.js 22.14 ou plus récent.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -44,10 +44,6 @@ Le serveur demande quand même à l'agent de lancer `translation.estimate` et d'
 
 ## Claude Code
 
-<Callout type="warn">
-Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json` : le plugin apporte un second serveur.
-</Callout>
-
 ### Laisser init l'écrire
 
 <AvailableFrom version="0.12.0" />
@@ -82,6 +78,8 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 
 ### Autres voies
 
+Deux alternatives à `init --agent` :
+
 #### Sans la CLI
 
 ```bash
@@ -94,7 +92,11 @@ Cette commande écrit la même entrée dans `.mcp.json`. N'ajoute jamais `--env 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-À la place de `.mcp.json`, le plugin regroupe les [skills verbatra](/docs/agent-recipes#le-pack-de-skills), ce serveur et un hook qui vérifie un fichier de locale après que Claude l'a modifié :
+À la place de `.mcp.json`, le plugin regroupe les [skills verbatra](/docs/agent-recipes#le-pack-de-skills), ce serveur et un hook qui vérifie un fichier de locale après que Claude l'a modifié.
+
+<Callout type="warn">
+Ne combine jamais le plugin verbatra avec une entrée `verbatra` dans `.mcp.json` : le plugin apporte un second serveur.
+</Callout>
 
 ```bash
 claude plugin marketplace add verbatra/skills

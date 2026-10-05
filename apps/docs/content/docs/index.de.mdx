@@ -4,11 +4,9 @@ description: Was verbatra ist, welches Problem es löst und wie CLI, SDK, Studio
 type: overview
 ---
 
-<DocsHomeHero
-  headline="So übersetzt du nur, was sich geändert hat."
-  lead="verbatra vergleicht deine Quell-Locale mit einer committeten Lock-Datei, sendet nur die neuen und geänderten Keys an den Provider, den du konfigurierst, prüft jedes Ergebnis und schreibt die Dateien direkt zurück. Diese Seiten decken die CLI, das SDK, Studio und den MCP-Server ab."
-  primary={{ label: "Schnellstart", href: "/docs/quickstart" }}
-  secondary={{ label: "CLI-Referenz", href: "/docs/cli" }}
+<DocsHomeHeader
+  headline="Richte verbatra ein und halte jede Locale synchron."
+  lead="Anleitungen und Referenz für die CLI, das SDK, Studio und den MCP-Server. Installiere die CLI oder gib den Prompt an deinen Coding-Agenten."
 />
 
 <DocsHomeBody>
@@ -71,7 +69,7 @@ type: overview
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Jeder Lauf ist ein Diff, keine Neuübersetzung." lead="Was passiert, wenn du verbatra translate ausführst.">
+<DocsHomeSection title="Jeder Lauf ist ein Diff, keine Neuübersetzung." lead="Was passiert, wenn du `verbatra translate` ausführst.">
 
 Eine Quell-Locale von Hand zu pflegen bedeutet, dass jede andere Locale-Datei abdriftet: Neue Keys fehlen in den Zielen, bearbeitete Strings hinterlassen veraltete Übersetzungen, und gelöschte Keys bleiben als Waisen zurück. verbatra schließt diese Lücke, indem es jedes Ziel gegen eine committete Lock-Datei, `verbatra.lock.json`, vergleicht und nur das Geänderte an den von dir konfigurierten Provider sendet; ein zweiter Lauf, bei dem es nichts Neues zu übersetzen gibt, ruft den Provider überhaupt nicht auf. Jedes Ergebnis wird vor dem Schreiben geprüft, sodass ein kaputter Platzhalter zurückgehalten und erneut versucht wird, statt ausgeliefert zu werden. Siehe [Wie es funktioniert](/docs/how-it-works) für die vollständige Pipeline.
 

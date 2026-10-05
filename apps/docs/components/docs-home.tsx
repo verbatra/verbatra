@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { HERO_BACKGROUND, HERO_BORDER } from "@/components/landing/fx/hero-wash";
-import { HeroFacts } from "@/components/landing/hero-facts";
 import { PackageInstall } from "@/components/landing/package-install";
-import Button from "@/components/ui/button";
 import { type Locale, localizedPath } from "@/lib/i18n";
+import { withInlineCode } from "@/lib/inline-code-text";
 import { MCP_VERSION, PACKAGE_VERSION, STUDIO_VERSION } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { keepCompoundsWhole } from "@/lib/word-breaks";
 
 const DISPLAY = { fontFamily: "var(--font-display)" } as const;
 
@@ -29,67 +28,27 @@ const PACKAGE_VERSIONS: Readonly<Record<PackageKey, string>> = {
 
 const STEP_KEYS = ["configure", "diff", "translate", "verifyWrite"] as const;
 
-export function DocsHomeHero({
-  headline,
-  lead,
-  primary,
-  secondary,
-  locale,
-}: {
-  headline: string;
-  lead: string;
-  primary: { label: string; href: string };
-  secondary: { label: string; href: string };
-  locale: Locale;
-}): ReactNode {
+export function DocsHomeHeader({ headline, lead }: { headline: string; lead: string }): ReactNode {
   return (
-    <section className={cn("not-prose pt-4 md:pt-6", HOME_FRAME)}>
-      <div
-        className="relative overflow-hidden rounded-xl border"
-        style={{ background: HERO_BACKGROUND, borderColor: HERO_BORDER }}
-      >
-        <div className="grid grid-cols-[minmax(0,1fr)] justify-items-center px-4 pt-16 pb-9 text-center md:px-10 md:pt-24 md:pb-10">
-          <h1
-            className="max-w-[16ch] font-semibold text-[color:var(--text-strong)]"
-            style={{
-              ...DISPLAY,
-              letterSpacing: "-0.03em",
-              fontSize: "clamp(2.4rem, 5.6vw, 4.4rem)",
-              lineHeight: 0.98,
-              textWrap: "balance",
-            }}
-          >
-            {headline}
-          </h1>
-          <p className="mt-5 max-w-[54ch] vk-lead text-fd-muted-foreground">{lead}</p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
-            <Button
-              href={localizedPath(locale, primary.href)}
-              variant="primary"
-              size="lg"
-              className="shadow-[0_10px_34px_-12px_color-mix(in_srgb,var(--v-purple)_85%,transparent)]"
-            >
-              {primary.label}
-            </Button>
-            <Link
-              href={localizedPath(locale, secondary.href)}
-              className="inline-flex min-h-11 items-center font-medium text-fd-foreground transition-colors hover:text-[color:var(--accent)]"
-            >
-              {secondary.label}
-            </Link>
-          </div>
-          <div className="mt-10 flex w-full min-w-0 justify-center text-left">
-            <PackageInstall />
-          </div>
-          <HeroFacts className="mt-14 w-full" />
-        </div>
+    <header
+      className={cn(
+        "not-prose grid gap-y-6 pt-8 md:pt-12 lg:grid-cols-[minmax(0,1fr)_var(--width-install)] lg:items-end lg:gap-x-12",
+        HOME_FRAME,
+      )}
+    >
+      <div className="min-w-0">
+        <h1 className="max-w-[22ch] font-semibold text-[color:var(--text-strong)]">{headline}</h1>
+        <p className="mt-4 vk-lead">{withInlineCode(lead)}</p>
       </div>
-    </section>
+      <div className="flex min-w-0">
+        <PackageInstall />
+      </div>
+    </header>
   );
 }
 
 export function DocsHomeBody({ children }: { children: ReactNode }): ReactNode {
-  return <div className={cn("grid gap-[72px] pt-16 pb-20", HOME_FRAME)}>{children}</div>;
+  return <div className={cn("grid gap-[72px] pt-14 pb-20", HOME_FRAME)}>{children}</div>;
 }
 
 export function DocsHomeSection({
@@ -105,25 +64,11 @@ export function DocsHomeSection({
 }): ReactNode {
   return (
     <section>
-      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-baseline-last lg:gap-x-16">
-        <h2
-          id={id}
-          className="max-w-[16ch] font-semibold text-fd-foreground"
-          style={{
-            ...DISPLAY,
-            letterSpacing: "-0.03em",
-            fontSize: "clamp(1.75rem, 3.4vw, 2.5rem)",
-            lineHeight: 1,
-            textWrap: "balance",
-          }}
-        >
+      <div className="not-prose grid gap-3 lg:grid-cols-[minmax(0,1fr)_var(--width-install)] lg:items-baseline-last lg:gap-x-12">
+        <h2 id={id} className="vk-h3 max-w-[20ch]">
           {title}
         </h2>
-        {lead ? (
-          <p className="vk-lead max-w-[46ch] text-fd-muted-foreground lg:justify-self-end">
-            {lead}
-          </p>
-        ) : null}
+        {lead ? <p className="vk-lead max-w-[46ch]">{withInlineCode(lead)}</p> : null}
       </div>
       <div className="mt-8">{children}</div>
     </section>
@@ -172,7 +117,7 @@ export function DocsHomePaths({
               color: card.primary ? undefined : "var(--text-strong)",
             }}
           >
-            {card.goal}
+            {keepCompoundsWhole(card.goal)}
           </span>
           <span
             className="text-sm leading-relaxed"

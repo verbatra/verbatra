@@ -4,11 +4,9 @@ description: What verbatra is, the problem it solves, and how the CLI, SDK, Stud
 type: overview
 ---
 
-<DocsHomeHero
-  headline="How to translate only what changed."
-  lead="verbatra diffs your source locale against a committed lock file, sends only the new and changed keys to the provider you configure, checks every result, and writes the files back in place. These pages cover the CLI, the SDK, Studio, and the MCP server."
-  primary={{ label: "Quickstart", href: "/docs/quickstart" }}
-  secondary={{ label: "CLI reference", href: "/docs/cli" }}
+<DocsHomeHeader
+  headline="Set up verbatra and keep every locale in sync."
+  lead="Guides and reference for the CLI, the SDK, Studio, and the MCP server. Install the CLI, or hand the prompt to your coding agent."
 />
 
 <DocsHomeBody>
@@ -71,7 +69,7 @@ type: overview
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run verbatra translate.">
+<DocsHomeSection title="Every run is a diff, not a rewrite." lead="What happens when you run `verbatra translate`.">
 
 Hand-maintaining one source locale means every other locale file drifts: new keys go missing from the targets, edited strings leave stale translations behind, and deleted keys linger as orphans. verbatra closes that gap by diffing every target against a committed lock file, `verbatra.lock.json`, and sending only what changed to the provider you configure; a second run with nothing new to translate makes no provider call at all. Every result is checked before it is written, so a broken placeholder is withheld and retried, never shipped. See [How it works](/docs/how-it-works) for the full pipeline.
 

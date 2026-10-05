@@ -4,11 +4,9 @@ description: Ce qu'est verbatra, le problème qu'il résout, et comment la CLI, 
 type: overview
 ---
 
-<DocsHomeHero
-  headline="Comment traduire seulement ce qui a changé."
-  lead="verbatra compare ta locale source avec un fichier de verrouillage commité, n'envoie que les clés nouvelles et modifiées au fournisseur que tu configures, vérifie chaque résultat, et réécrit les fichiers en place. Ces pages couvrent la CLI, le SDK, Studio et le serveur MCP."
-  primary={{ label: "Démarrage rapide", href: "/docs/quickstart" }}
-  secondary={{ label: "Référence CLI", href: "/docs/cli" }}
+<DocsHomeHeader
+  headline="Configure verbatra et garde chaque locale à jour."
+  lead="Guides et référence pour la CLI, le SDK, Studio et le serveur MCP. Installe la CLI ou donne le prompt à ton agent de code."
 />
 
 <DocsHomeBody>
@@ -71,7 +69,7 @@ type: overview
 
 </DocsHomeSection>
 
-<DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances verbatra translate.">
+<DocsHomeSection title="Chaque exécution est un diff, pas une réécriture." lead="Ce qui se passe quand tu lances `verbatra translate`.">
 
 Maintenir à la main une seule locale source signifie que tous les autres fichiers de locale dérivent : les nouvelles clés manquent dans les cibles, les chaînes modifiées laissent derrière elles des traductions périmées, et les clés supprimées traînent en orphelines. verbatra comble cet écart en comparant chaque cible à un fichier de verrouillage commité, `verbatra.lock.json`, et en n'envoyant que ce qui a changé au fournisseur que tu configures ; une deuxième exécution sans rien de nouveau à traduire ne fait aucun appel au fournisseur. Chaque résultat est vérifié avant d'être écrit, donc un placeholder cassé est retenu et retenté, jamais livré. Voir [Comment ça marche](/docs/how-it-works) pour le pipeline complet.
 
