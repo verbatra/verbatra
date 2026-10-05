@@ -27,13 +27,12 @@ import Tabs from "@/components/ui/tabs";
 import { OUTPUT_ATTRIBUTE } from "@/lib/code-block-meta";
 import { duplicatesFooter } from "@/lib/docs-neighbours";
 import { type Locale, localizeHref } from "@/lib/i18n";
-import { isShortInlineCode } from "@/lib/inline-code";
+import { isShortInlineCode, SHORT_CODE_CLASS } from "@/lib/inline-code";
 import { cn } from "@/lib/utils";
 import { breakAfterUnderscores } from "@/lib/word-breaks";
 
 export const CALLOUT_CLASS = "vk-callout";
 export const LINK_CARD_CLASS = "vk-link-card";
-export const SHORT_CODE_CLASS = "vk-code-short";
 
 const NO_NEIGHBOURS: ReadonlySet<string> = new Set();
 

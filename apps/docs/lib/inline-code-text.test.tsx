@@ -18,4 +18,22 @@ describe("withInlineCode", () => {
       "One engine, four ways to drive it.",
     );
   });
+
+  it("sets every backticked span on its own and keeps the text between them", () => {
+    const markup = renderToStaticMarkup(<p>{withInlineCode("Run `init`, then `translate`.")}</p>);
+    expect([...markup.matchAll(/<code [^>]*>([^<]*)<\/code>/g)].map((match) => match[1])).toEqual([
+      "init",
+      "translate",
+    ]);
+    expect(markup).toMatch(/<\/code>, then <code /);
+  });
+
+  it("leaves an unmatched backtick and an empty pair as literal text", () => {
+    expect(renderToStaticMarkup(<p>{withInlineCode("A `stray tick")}</p>)).toBe(
+      "<p>A `stray tick</p>",
+    );
+    expect(renderToStaticMarkup(<p>{withInlineCode("An `` empty pair")}</p>)).toBe(
+      "<p>An `` empty pair</p>",
+    );
+  });
 });

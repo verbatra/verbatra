@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { SHORT_CODE_CLASS } from "@/lib/inline-code";
+import { cn } from "@/lib/utils";
 
 export function withInlineCode(text: string): ReactNode {
   if (!text.includes("`")) return text;
@@ -6,7 +8,7 @@ export function withInlineCode(text: string): ReactNode {
     index % 2 === 1 ? (
       <code
         key={`${index}-${part}`}
-        className="vk-code-short font-mono text-[0.9em] text-[color:var(--text-strong)]"
+        className={cn(SHORT_CODE_CLASS, "font-mono text-[0.9em] text-[color:var(--text-strong)]")}
       >
         {part}
       </code>
