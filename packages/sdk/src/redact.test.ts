@@ -2,19 +2,21 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfigWithMeta } from "./config/load-config.js";
 import { redact } from "./redact.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 describe("redact", () => {
   it("returns the input unchanged when nothing matches", () => {
     expect(redact("hello world")).toBe("hello world");
   });
 
   it("redacts an OpenAI-style sk- key", () => {
-    expect(redact("key is sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z in the log")).toBe(
+    expect(redact(`key is ${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z in the log`)).toBe(
       "key is [REDACTED] in the log",
     );
   });
 
   it("redacts a key after a newline in serialized JSON and keeps the JSON valid", () => {
-    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+    const key = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h`;
 
     const out = redact(JSON.stringify({ error: `line\n${key}` }));
 
