@@ -16,10 +16,17 @@ on:
           - gemini
           - deepl
           - google-translate
+      google_batch:
+        description: Google Cloud Translation batch to send (masked through the CLI, or unmasked directly)
+        type: choice
+        default: masked
+        options:
+          - masked
+          - unmasked
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.provider || 'all' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read
@@ -33,9 +40,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        provider: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.provider != 'all') && format('["{0}"]', inputs.provider) || '["gemini","deepl","google-translate"]') }}
+        provider: ${{ fromJSON((github.event_name != 'workflow_dispatch' && '["gemini"]') || (inputs.provider == 'all' && '["gemini","deepl","google-translate"]') || format('["{0}"]', inputs.provider)) }}
     env:
       E2E_PROVIDER: ${{ matrix.provider }}
+      E2E_REQUIRE_LIVE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
     steps:
       - name: Check the provider key
         id: key
@@ -44,6 +52,9 @@ jobs:
         run: |
           if [ -n "$PROVIDER_KEY" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
+          elif [ "$E2E_REQUIRE_LIVE" = "1" ]; then
+            echo "::error title=Live E2E key missing (${E2E_PROVIDER})::A manual dispatch needs the ${E2E_PROVIDER} key in the live-e2e environment."
+            exit 1
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "::notice title=Live E2E skipped (${E2E_PROVIDER})::The live-e2e environment holds no key for ${E2E_PROVIDER}, so this provider's live tier did not run."
@@ -98,9 +109,10 @@ jobs:
           if [ "$E2E_PROVIDER" = "gemini" ]; then
             npm test
           else
-            npm run test:live
+            npm run test:masking
           fi
         env:
+          E2E_GOOGLE_BATCH: ${{ inputs.google_batch || 'masked' }}
           GEMINI_API_KEY: ${{ matrix.provider == 'gemini' && secrets.GEMINI_API_KEY || '' }}
           DEEPL_API_KEY: ${{ matrix.provider == 'deepl' && secrets.DEEPL_API_KEY || '' }}
           GOOGLE_TRANSLATE_API_KEY: ${{ matrix.provider == 'google-translate' && secrets.GOOGLE_TRANSLATE_API_KEY || '' }}
@@ -109,9 +121,12 @@ jobs:
         if: always()
         env:
           SUITE_OUTCOME: ${{ steps.suite.outcome }}
+          KEY_OUTCOME: ${{ steps.key.outcome }}
           KEY_PRESENT: ${{ steps.key.outputs.present }}
         run: |
-          if [ "$KEY_PRESENT" = "false" ]; then
+          if [ "$KEY_OUTCOME" = "failure" ]; then
+            SUITE_OUTCOME="failure, no ${E2E_PROVIDER} key in the live-e2e environment"
+          elif [ "$KEY_PRESENT" = "false" ]; then
             SUITE_OUTCOME="skipped, no ${E2E_PROVIDER} key in the live-e2e environment"
           fi
           {

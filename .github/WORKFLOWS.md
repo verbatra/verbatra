@@ -40,7 +40,7 @@ raises on top of that.
 | Unused code | `knip.yml` | pull request and push to `main` | none (report only, never fails) |
 | Deploy Docs | `docs-deploy.yml` | push to `main` | `packages: write` (push the docs image to GHCR) |
 | Docs i18n check | `docs-i18n-check.yml` | pull request touching `apps/docs` messages, content, config, or lock file | none |
-| E2E (live) | `e2e-live.yml` | push to `main`, nightly schedule, manual dispatch (optional `provider` input) | none (one job per provider in the `live-e2e` environment, each given only its own key) |
+| E2E (live) | `e2e-live.yml` | push to `main` and nightly schedule (`gemini` only), manual dispatch (`provider` and `google_batch` inputs) | none (one job per provider in the `live-e2e` environment, each given only its own key) |
 
 ## The SHA-pin convention
 

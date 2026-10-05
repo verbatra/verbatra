@@ -64,13 +64,13 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   `npm test` (which runs both tiers), plus `tests/libretranslate.live.e2e.test.ts`, which skips
   unless `LIBRETRANSLATE_URL` points at a LibreTranslate server you started yourself (no workflow
   starts one; see `e2e/README.md`). Drives real `translate`/`watch` against a live provider
-  (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var; `npm run
-  test:live` runs the live tier alone). `.github/workflows/e2e-live.yml` runs one job each for
-  `gemini`, `deepl` and `google-translate` (a job whose key is missing skips with a notice), so the
-  DeepL and Google placeholder-masking case and its billing observation (`e2e/src/wire-billing.ts`)
-  run there. Runs nightly, on push to `main`, and on manual dispatch, never on a pull
-  request, and is advisory: it never gates a publish, since its outcome depends on a third party's
-  rate limiter.
+  (default `gemini`, controlled by `E2E_PROVIDER` and the matching API key env var). Runs
+  nightly and on push to `main` against `gemini` only (a missing key skips with a notice), and on
+  manual dispatch via `.github/workflows/e2e-live.yml` against a chosen provider, never on a pull
+  request. A dispatch of `deepl` or `google-translate` runs only the placeholder-masking case
+  (`npm run test:masking`) and its billing observation (`e2e/src/wire-billing.ts`), and sets
+  `E2E_REQUIRE_LIVE=1`, so a missing key or a throttled run fails instead of skipping. The tier is
+  advisory: it never gates a publish, since its outcome depends on a third party's rate limiter.
 
 **CLI e2e is not a gap.** It exists, is deterministic-gated in CI, and is documented in
 `e2e/README.md`, which is the primary source if extending it.
