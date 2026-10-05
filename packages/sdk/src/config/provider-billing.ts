@@ -8,8 +8,9 @@ import type { ProviderConfig, ProviderId } from "./provider-config.js";
 export type BillingUnit = "tokens" | "characters";
 
 /**
- * How one provider bills. `billedByApi` is false for a self-hosted endpoint, which still consumes
- * tokens but sends no invoice, so an estimate reports its quantity and no currency figure.
+ * How one provider bills. `billedByApi` is false for a self-hosted endpoint, which still does the
+ * work but sends no invoice, so an estimate reports its quantity and no currency figure. It is
+ * false for `none` too, which sends nothing anywhere.
  */
 export interface ProviderBilling {
   /** The quantity this provider charges for. */
@@ -27,6 +28,8 @@ export const PROVIDER_BILLING: ProviderBillingTable = {
   deepl: { unit: "characters", billedByApi: true },
   "google-translate": { unit: "characters", billedByApi: true },
   "openai-compatible": { unit: "tokens", billedByApi: false },
+  libretranslate: { unit: "characters", billedByApi: false },
+  none: { unit: "characters", billedByApi: false },
 };
 
 export function billingFor(id: ProviderId): ProviderBilling {
@@ -42,6 +45,8 @@ export function modelOf(provider: ProviderConfig): string | undefined {
       return provider.options.model;
     case "deepl":
     case "google-translate":
+    case "libretranslate":
+    case "none":
       return undefined;
   }
 }

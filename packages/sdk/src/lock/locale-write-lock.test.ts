@@ -1,36 +1,103 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SdkError } from "../errors.js";
-import type { SdkFs } from "../fs.js";
-import { makeFakeFs } from "../test-support.js";
+import type { BoundedFileRead, SdkFs } from "../fs.js";
+import { deferred, makeFakeFs } from "../test-support.js";
+import type { LivenessContext } from "./holder-liveness.js";
 import {
+  isUnreadableLockError,
+  type LocaleWriteLockOptions,
   type LockWaitEvent,
   localeLockPath,
   lockFileGuardPath,
+  unacquiredLockPath,
   withLocaleWriteLock,
   withLockFileGuard,
 } from "./locale-write-lock.js";
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((res) => {
-    setTimeout(res, ms);
-  });
+function barrier(parties: number): { readonly arrive: () => Promise<void> } {
+  const allArrived = deferred();
+  let arrived = 0;
+  return {
+    arrive: (): Promise<void> => {
+      arrived += 1;
+      if (arrived === parties) {
+        allArrived.resolve();
+      }
+      return allArrived.promise;
+    },
+  };
+}
+
+function refusalWatchingFs(): { readonly fs: SdkFs; readonly refused: Promise<void> } {
+  const inner = makeLockFs();
+  const refusal = deferred();
+  return {
+    fs: {
+      ...inner,
+      createExclusive: async (path, data): Promise<boolean> => {
+        const created = await inner.createExclusive(path, data);
+        if (!created) {
+          refusal.resolve();
+        }
+        return created;
+      },
+    },
+    refused: refusal.promise,
+  };
+}
+
+interface HeldSection {
+  readonly entered: Promise<void>;
+  readonly release: () => void;
+  readonly run: () => Promise<void>;
+}
+
+function heldSection(
+  id: string,
+  order: string[],
+  tracker: { inside: number; max: number },
+): HeldSection {
+  const entered = deferred();
+  const released = deferred();
+  return {
+    entered: entered.promise,
+    release: released.resolve,
+    run: async (): Promise<void> => {
+      tracker.inside += 1;
+      tracker.max = Math.max(tracker.max, tracker.inside);
+      order.push(`${id}-start`);
+      entered.resolve();
+      await released.promise;
+      order.push(`${id}-end`);
+      tracker.inside -= 1;
+    },
+  };
 }
 
 function makeLockFs(): SdkFs {
-  const held = new Set<string>();
-  return makeFakeFs({
-    createExclusive: async (path: string): Promise<boolean> => {
-      if (held.has(path)) {
+  return makeFakeFs();
+}
+
+function scriptedUntilCreated(
+  succeeds: () => boolean,
+  payload: SdkFs["readFileBounded"],
+): Partial<SdkFs> {
+  let created: string | undefined;
+  return {
+    createExclusive: async (_path, data): Promise<boolean> => {
+      if (!succeeds()) {
         return false;
       }
-      held.add(path);
+      created = data;
       return true;
     },
-    deleteFile: async (path: string): Promise<void> => {
-      held.delete(path);
+    readFileBounded: async (path, maxBytes): Promise<BoundedFileRead> =>
+      created !== undefined ? { kind: "ok", content: created } : payload(path, maxBytes),
+    deleteFile: async (): Promise<void> => {
+      created = undefined;
     },
-  });
+  };
 }
 
 describe("localeLockPath", () => {
@@ -49,61 +116,59 @@ describe("lockFileGuardPath", () => {
 
 describe("withLockFileGuard: mutual exclusion", () => {
   it("never runs two callbacks for the same cwd concurrently", async () => {
-    const fs = makeLockFs();
-    let insideCount = 0;
-    let maxInsideCount = 0;
+    const { fs, refused } = refusalWatchingFs();
+    const order: string[] = [];
+    const tracker = { inside: 0, max: 0 };
+    const first = heldSection("A", order, tracker);
+    const second = heldSection("B", order, tracker);
+    second.release();
 
-    async function criticalSection(): Promise<void> {
-      insideCount += 1;
-      maxInsideCount = Math.max(maxInsideCount, insideCount);
-      await sleep(20);
-      insideCount -= 1;
-    }
+    const options = { pollIntervalMs: 5, acquireTimeoutMs: 30_000 };
+    const a = withLockFileGuard("/proj", fs, first.run, options);
+    await first.entered;
+    const b = withLockFileGuard("/proj", fs, second.run, options);
+    await Promise.race([refused, second.entered]);
+    first.release();
+    await Promise.all([a, b]);
 
-    const options = { pollIntervalMs: 5, acquireTimeoutMs: 2000 };
-    await Promise.all([
-      withLockFileGuard("/proj", fs, criticalSection, options),
-      withLockFileGuard("/proj", fs, criticalSection, options),
-    ]);
-
-    expect(maxInsideCount).toBe(1);
+    expect(tracker.max).toBe(1);
+    expect(order).toEqual(["A-start", "A-end", "B-start", "B-end"]);
   });
 });
 
 describe("withLocaleWriteLock: mutual exclusion", () => {
   it("never runs two callbacks for the same (cwd, locale) concurrently (proof by construction, not timing luck)", async () => {
-    const fs = makeLockFs();
-    let insideCount = 0;
-    let maxInsideCount = 0;
+    const { fs, refused } = refusalWatchingFs();
     const order: string[] = [];
+    const tracker = { inside: 0, max: 0 };
+    const first = heldSection("A", order, tracker);
+    const second = heldSection("B", order, tracker);
+    second.release();
 
-    async function criticalSection(id: string, workMs: number): Promise<void> {
-      insideCount += 1;
-      maxInsideCount = Math.max(maxInsideCount, insideCount);
-      order.push(`${id}-start`);
-      await sleep(workMs);
-      order.push(`${id}-end`);
-      insideCount -= 1;
-    }
-
-    const options = { pollIntervalMs: 5, acquireTimeoutMs: 2000 };
-    const a = withLocaleWriteLock("/proj", "de", fs, () => criticalSection("A", 30), options);
-    const b = withLocaleWriteLock("/proj", "de", fs, () => criticalSection("B", 5), options);
-
+    const options = { pollIntervalMs: 5, acquireTimeoutMs: 30_000 };
+    const a = withLocaleWriteLock("/proj", "de", fs, first.run, options);
+    await first.entered;
+    const b = withLocaleWriteLock("/proj", "de", fs, second.run, options);
+    await Promise.race([refused, second.entered]);
+    first.release();
     await Promise.all([a, b]);
 
-    expect(maxInsideCount).toBe(1);
+    expect(tracker.max).toBe(1);
     expect(order).toEqual(["A-start", "A-end", "B-start", "B-end"]);
   });
 
   it("a different locale never contends with another locale's lock", async () => {
-    const fs = makeLockFs();
+    const { fs, refused } = refusalWatchingFs();
     const order: string[] = [];
-    const options = { pollIntervalMs: 5, acquireTimeoutMs: 2000 };
+    const options = { pollIntervalMs: 5, acquireTimeoutMs: 30_000 };
+    const bothInside = barrier(2);
+    const contended = refused.then(() => {
+      throw new Error("one locale's lock refused the other locale");
+    });
 
     async function section(id: string): Promise<void> {
       order.push(`${id}-start`);
-      await sleep(10);
+      await Promise.race([bothInside.arrive(), contended]);
       order.push(`${id}-end`);
     }
 
@@ -182,6 +247,99 @@ describe("withLocaleWriteLock: contention timeout", () => {
   });
 });
 
+describe("withLocaleWriteLock: a lock file too large to be a lock", () => {
+  it.each([
+    [
+      "a locale write lock",
+      (fs: SdkFs, fn: () => Promise<void>) =>
+        withLocaleWriteLock("/proj", "de", fs, fn, { acquireTimeoutMs: 600_000 }),
+      localeLockPath("/proj", "de"),
+    ],
+    [
+      "the lock-file guard",
+      (fs: SdkFs, fn: () => Promise<void>) =>
+        withLockFileGuard("/proj", fs, fn, { acquireTimeoutMs: 600_000 }),
+      lockFileGuardPath("/proj"),
+    ],
+  ] as const)(
+    "fails %s at once with an unreadable LOCK_CONTENDED naming the path, and never runs fn",
+    async (_, acquire, path) => {
+      const fs = makeFakeFs({
+        createExclusive: async (): Promise<boolean> => false,
+        readFileBounded: async (): Promise<BoundedFileRead> => ({ kind: "too-large" }),
+      });
+      let ran = false;
+      const startedAt = Date.now();
+
+      const error = await acquire(fs, async () => {
+        ran = true;
+      }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(SdkError);
+      expect((error as SdkError).code).toBe("LOCK_CONTENDED");
+      expect((error as SdkError).message).toContain(
+        `The lock file at ${path} is too large to be a lock and cannot be read.`,
+      );
+      expect(isUnreadableLockError(error)).toBe(true);
+      expect(Date.now() - startedAt).toBeLessThan(5_000);
+      expect(ran).toBe(false);
+    },
+  );
+
+  it("does not mark a contention timeout or a non-SdkError as unreadable", async () => {
+    const fs = makeFakeFs({ createExclusive: async (): Promise<boolean> => false });
+
+    const timeout = await withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      pollIntervalMs: 5,
+      acquireTimeoutMs: 20,
+    }).catch((e: unknown) => e);
+
+    expect((timeout as SdkError).code).toBe("LOCK_CONTENDED");
+    expect(isUnreadableLockError(timeout)).toBe(false);
+    expect(isUnreadableLockError(new Error("too large"))).toBe(false);
+  });
+});
+
+describe("unacquiredLockPath: only an acquire timeout marks a lock as busy", () => {
+  it("names the lock path of a contention timeout", async () => {
+    const fs = makeFakeFs({ createExclusive: async (): Promise<boolean> => false });
+
+    const error = await withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      pollIntervalMs: 5,
+      acquireTimeoutMs: 20,
+    }).catch((e: unknown) => e);
+
+    expect(unacquiredLockPath(error)).toBe(localeLockPath("/proj", "de"));
+  });
+
+  it("names no path for a lock file too large to be a lock", async () => {
+    const fs = makeFakeFs({
+      createExclusive: async (): Promise<boolean> => false,
+      readFileBounded: async (): Promise<BoundedFileRead> => ({ kind: "too-large" }),
+    });
+
+    const error = await withLocaleWriteLock("/proj", "de", fs, async () => {}, {
+      acquireTimeoutMs: 600_000,
+    }).catch((e: unknown) => e);
+
+    expect((error as SdkError).code).toBe("LOCK_CONTENDED");
+    expect(unacquiredLockPath(error)).toBeUndefined();
+  });
+
+  it("names no path for an error thrown inside the lock or for a non-SdkError", async () => {
+    const fs = makeFakeFs();
+    const inside = new SdkError("LOCK_CONTENDED", "taken over");
+
+    const error = await withLocaleWriteLock("/proj", "de", fs, async () => {
+      throw inside;
+    }).catch((e: unknown) => e);
+
+    expect(error).toBe(inside);
+    expect(unacquiredLockPath(error)).toBeUndefined();
+    expect(unacquiredLockPath(new Error("busy"))).toBeUndefined();
+  });
+});
+
 describe("withLocaleWriteLock: wait progress", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -190,20 +348,52 @@ describe("withLocaleWriteLock: wait progress", () => {
 
   function makeContendedFs(failures: number, payload: SdkFs["readFileBounded"]): SdkFs {
     let attempts = 0;
-    return makeFakeFs({
-      createExclusive: async (): Promise<boolean> => {
+    return makeFakeFs(
+      scriptedUntilCreated(() => {
         attempts += 1;
         return attempts > failures;
-      },
-      readFileBounded: payload,
-    });
+      }, payload),
+    );
   }
 
-  it("reports the wait even when the acquire budget has already elapsed", async () => {
-    const fs = makeContendedFs(Number.POSITIVE_INFINITY, async () => ({
-      kind: "ok",
-      content: JSON.stringify({ pid: 9876, acquiredAt: "2026-08-05T00:00:00.000Z" }),
-    }));
+  const PAST_GRACE_FAILURES = 25;
+
+  async function waitEventsFor(
+    failures: number,
+    payload: SdkFs["readFileBounded"],
+    options: Omit<LocaleWriteLockOptions, "onWait"> = {},
+  ): Promise<LockWaitEvent[]> {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const events: LockWaitEvent[] = [];
+    const promise = withLocaleWriteLock(
+      "/proj",
+      "de",
+      makeContendedFs(failures, payload),
+      async () => {},
+      {
+        pollIntervalMs: 50,
+        acquireTimeoutMs: 5_000,
+        ...options,
+        onWait: (event) => events.push(event),
+      },
+    );
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(promise).resolves.toBeUndefined();
+    return events;
+  }
+
+  const foreignHolder = async (): Promise<BoundedFileRead> => ({
+    kind: "ok",
+    content: JSON.stringify({ pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" }),
+  });
+
+  it("does not report a wait that ends within the first second", async () => {
+    expect(await waitEventsFor(1, foreignHolder)).toHaveLength(0);
+  });
+
+  it("does not report a wait whose acquire budget elapses within the first second", async () => {
+    const fs = makeContendedFs(Number.POSITIVE_INFINITY, foreignHolder);
     const events: LockWaitEvent[] = [];
 
     await expect(
@@ -214,117 +404,153 @@ describe("withLocaleWriteLock: wait progress", () => {
       }),
     ).rejects.toMatchObject({ code: "LOCK_CONTENDED" });
 
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      lockPath: localeLockPath("/proj", "de"),
-      holder: { pid: 9876 },
-    });
+    expect(events).toHaveLength(0);
   });
 
-  it("invokes onWait once after the first failed acquire, carrying the holder pid and acquiredAt", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({
-      kind: "ok",
-      content: JSON.stringify({ pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" }),
-    }));
-    const events: LockWaitEvent[] = [];
-    let ran = false;
+  it("invokes onWait once the wait passes a second, carrying the holder pid and acquiredAt", async () => {
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, foreignHolder);
 
-    const promise = withLocaleWriteLock(
-      "/proj",
-      "de",
-      fs,
-      async () => {
-        ran = true;
-      },
-      { pollIntervalMs: 50, acquireTimeoutMs: 5_000, onWait: (event) => events.push(event) },
-    );
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
-
-    expect(ran).toBe(true);
     expect(events).toHaveLength(1);
+    expect(events[0]?.elapsedMs).toBeGreaterThanOrEqual(1_000);
     expect(events[0]).toMatchObject({
       lockPath: localeLockPath("/proj", "de"),
       holder: { pid: 4321, acquiredAt: "2026-07-18T00:00:00.000Z" },
     });
   });
 
-  it("still invokes onWait, without holder fields, when the lock payload is malformed and never throws", async () => {
+  it.each<[string, BoundedFileRead]>([
+    ["a malformed payload", { kind: "ok", content: "{ not valid json" }],
+    ["valid JSON that is not an object", { kind: "ok", content: "42" }],
+    ["an empty lock file", { kind: "ok", content: "" }],
+  ])(
+    "still invokes onWait, without holder fields, for %s seen on consecutive polls",
+    async (_, read) => {
+      const events = await waitEventsFor(PAST_GRACE_FAILURES, async () => read);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]?.holder).toBeUndefined();
+      expect(events[0]?.lockPath).toBe(localeLockPath("/proj", "de"));
+    },
+  );
+
+  it("never invokes onWait while the lock file is missing", async () => {
+    const missing = async (): Promise<BoundedFileRead> => ({ kind: "missing" });
+
+    expect(await waitEventsFor(PAST_GRACE_FAILURES, missing)).toHaveLength(0);
+  });
+
+  it("does not report a released lock whose next holder has not written its payload yet", async () => {
+    let reads = 0;
+    const releasedThenEmpty = async (): Promise<BoundedFileRead> => {
+      reads += 1;
+      if (reads === 1) {
+        return { kind: "missing" };
+      }
+      return reads === 2 ? { kind: "ok", content: "" } : { kind: "missing" };
+    };
     vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({ kind: "ok", content: "{ not valid json" }));
+    vi.setSystemTime(0);
     const events: LockWaitEvent[] = [];
+    let attempts = 0;
+    const fs = makeFakeFs(
+      scriptedUntilCreated(() => {
+        attempts += 1;
+        if (attempts === 1) {
+          vi.setSystemTime(1_500);
+        }
+        return attempts > 2;
+      }, releasedThenEmpty),
+    );
 
     const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
       pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
       onWait: (event) => events.push(event),
     });
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(500);
+
     await expect(promise).resolves.toBeUndefined();
-
-    expect(events).toHaveLength(1);
-    expect(events[0]?.holder).toBeUndefined();
-    expect(events[0]?.lockPath).toBe(localeLockPath("/proj", "de"));
+    expect(reads).toBe(2);
+    expect(events).toEqual([]);
   });
 
-  it("still invokes onWait, without holder fields, when the payload is valid JSON but not an object", async () => {
+  it("reports an unreadable payload only once the same state is seen on two consecutive polls", async () => {
+    const states: BoundedFileRead[] = [
+      { kind: "ok", content: "" },
+      { kind: "ok", content: "{" },
+      { kind: "missing" },
+      { kind: "ok", content: "{" },
+      { kind: "ok", content: "{" },
+    ];
+    let reads = 0;
     vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({ kind: "ok", content: "42" }));
-    const events: LockWaitEvent[] = [];
+    vi.setSystemTime(0);
+    const readsAtEvent: number[] = [];
+    const fs = makeFakeFs(
+      scriptedUntilCreated(
+        () => {
+          vi.setSystemTime(1_500);
+          return reads >= states.length;
+        },
+        async (): Promise<BoundedFileRead> => {
+          const state = states[reads] ?? { kind: "missing" };
+          reads += 1;
+          return state;
+        },
+      ),
+    );
 
     const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
       pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
+      onWait: () => readsAtEvent.push(reads),
     });
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
+    await vi.advanceTimersByTimeAsync(1_000);
 
-    expect(events).toHaveLength(1);
-    expect(events[0]?.holder).toBeUndefined();
-  });
-
-  it("still invokes onWait, without holder fields, when the lock file cannot be read", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({ kind: "missing" }));
-    const events: LockWaitEvent[] = [];
-
-    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
-      pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
-    });
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
-
-    expect(events).toHaveLength(1);
-    expect(events[0]?.holder).toBeUndefined();
+    await expect(promise).resolves.toBeUndefined();
+    expect(readsAtEvent).toEqual([5]);
   });
 
   it("carries only the fields present in a partial payload (pid without acquiredAt)", async () => {
-    vi.useFakeTimers();
-    const fs = makeContendedFs(1, async () => ({
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, async () => ({
       kind: "ok",
       content: JSON.stringify({ pid: 5 }),
     }));
-    const events: LockWaitEvent[] = [];
-
-    const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
-      pollIntervalMs: 50,
-      acquireTimeoutMs: 5_000,
-      onWait: (event) => events.push(event),
-    });
-    await vi.advanceTimersByTimeAsync(100);
-    await promise;
 
     expect(events[0]?.holder).toEqual({ pid: 5 });
+  });
+
+  it("never invokes onWait for a lock this process holds on this machine", async () => {
+    const liveness: LivenessContext = { host: "this-host", probe: () => undefined };
+    const selfHeld = async (): Promise<BoundedFileRead> => ({
+      kind: "ok",
+      content: JSON.stringify({ pid: process.pid, hostname: "this-host" }),
+    });
+
+    expect(await waitEventsFor(PAST_GRACE_FAILURES, selfHeld, { liveness })).toHaveLength(0);
+  });
+
+  it.each([
+    ["another pid on this machine", { pid: process.pid + 1, hostname: "this-host" }],
+    ["this pid on another machine", { pid: process.pid, hostname: "other-host" }],
+  ])("still invokes onWait for a lock held by %s", async (_, recorded) => {
+    const liveness: LivenessContext = { host: "this-host", probe: () => undefined };
+    const read = async (): Promise<BoundedFileRead> => ({
+      kind: "ok",
+      content: JSON.stringify(recorded),
+    });
+
+    const events = await waitEventsFor(PAST_GRACE_FAILURES, read, { liveness });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]?.holder).toEqual(recorded);
   });
 
   it("invokes onWait periodically while waiting, with a non-decreasing elapsed time", async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, "random").mockReturnValue(0);
-    const fs = makeFakeFs({ createExclusive: async (): Promise<boolean> => false });
+    const fs = makeFakeFs({
+      createExclusive: async (): Promise<boolean> => false,
+      readFileBounded: foreignHolder,
+    });
     const events: LockWaitEvent[] = [];
 
     const promise = withLocaleWriteLock("/proj", "de", fs, async () => {}, {
@@ -339,6 +565,7 @@ describe("withLocaleWriteLock: wait progress", () => {
     expect((error as SdkError).code).toBe("LOCK_CONTENDED");
     const elapsed = events.map((event) => event.elapsedMs);
     expect(new Set(elapsed).size).toBeGreaterThanOrEqual(3);
+    expect(elapsed[0]).toBeGreaterThanOrEqual(1_000);
     expect(elapsed).toEqual([...elapsed].sort((a, b) => a - b));
     expect(events.length).toBeLessThanOrEqual(5);
     const gaps = elapsed.slice(1).map((ms, index) => ms - (elapsed[index] ?? 0));

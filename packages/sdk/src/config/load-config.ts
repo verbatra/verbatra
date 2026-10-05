@@ -1,14 +1,25 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { cosmiconfig } from "cosmiconfig";
+import { cosmiconfig, type Loader } from "cosmiconfig";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import type { z } from "zod";
-import { errorMessage, SdkError } from "../errors.js";
+import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
+import { redact } from "../redact.js";
+import { freshConfigLoaders } from "./fresh-loaders.js";
+import {
+  describeGlossaryIssues,
+  isGlossaryDefinition,
+  rawLocaleKeyIssues,
+  version1Entries,
+} from "./glossary.js";
+import { configLoadFailure } from "./load-failure.js";
 import { resolveSelfPackageAliases } from "./module-aliases.js";
+import { declareProviderKeyEnvVar } from "./provider-key-env.js";
+import { findDroppedLocaleMapKeys } from "./provider-locale-map.js";
 import { type GlossaryProvenance, resolveGlossary } from "./resolve-glossary.js";
-import { type VerbatraConfig, type VerbatraConfigInput, verbatraConfigSchema } from "./schema.js";
+import { type ParsedVerbatraConfig, type VerbatraConfig, verbatraConfigSchema } from "./schema.js";
 
 const MODULE_NAME = "verbatra";
 
@@ -40,6 +51,24 @@ export interface LoadConfigOptions {
   readonly configPath?: string;
   /** File-system port used to read the glossary file. Defaults to the real file system. */
   readonly fs?: SdkFs;
+  /**
+   * Re-evaluate a JavaScript or TypeScript config file instead of reusing what an earlier load in
+   * the same process evaluated. A `.ts` config is re-evaluated together with the modules it
+   * imports; a `.js` or `.cjs` config is re-evaluated alone, so a module it imports or requires
+   * keeps its first evaluation until the process restarts. Without it, a process that loads the
+   * config twice keeps the first result of a `verbatra.config.ts`, `.js`, or `.cjs` file even after
+   * the file changed. A long-running process that reloads the config after an edit sets it. JSON,
+   * YAML, and `package.json` configs are always read afresh. Defaults to `false`.
+   */
+  readonly fresh?: boolean;
+}
+
+/** Where {@link configCandidatePaths} looks: the working directory and an optional explicit config file. */
+export interface ConfigCandidateOptions {
+  /** Directory the config search starts from. Defaults to the process working directory. */
+  readonly cwd?: string;
+  /** An explicit config file, resolved against `cwd`. When set, it is the only candidate. */
+  readonly configPath?: string;
 }
 
 /**
@@ -124,19 +153,44 @@ function collectSearchChain(startDir: string, stopDir: string): ReadonlySet<stri
   return chain;
 }
 
-function formatIssues(error: z.ZodError): string {
-  return error.issues
-    .map((issue) => {
-      const path = issue.path.join(".");
-      const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
-      return issue.code === "unrecognized_keys"
-        ? `${base} (API keys are read from the environment, not the config)`
-        : base;
-    })
-    .join("; ");
+/**
+ * Lists every file {@link loadConfigWithMeta} could load a config from with the same `cwd` and
+ * `configPath`: the explicit file alone when `configPath` is set, otherwise each search place in
+ * each directory of the search chain, nearest directory first, whether or not the file exists. A
+ * long-running process can watch these paths to notice a config being created, edited, or removed
+ * without loading it again on every request. A glossary file the config points at is not included;
+ * {@link LoadedConfig.glossary} names it.
+ *
+ * @param options - The working directory and an optional explicit config file.
+ * @returns Absolute paths, in the order the search would try them.
+ */
+export function configCandidatePaths(options: ConfigCandidateOptions = {}): readonly string[] {
+  const cwd = options.cwd ?? process.cwd();
+  if (options.configPath !== undefined) {
+    return [resolve(cwd, options.configPath)];
+  }
+  return [...collectSearchChain(cwd, findSearchStopDir(cwd))].flatMap((dir) =>
+    CONFIG_SEARCH_PLACES.map((place) => join(dir, place)),
+  );
 }
 
-function parseConfig(input: unknown): VerbatraConfigInput {
+function configLoaders(fresh: boolean): Readonly<Record<string, Loader>> {
+  const alias = resolveSelfPackageAliases();
+  return fresh ? freshConfigLoaders(alias) : { ".ts": TypeScriptLoader({ alias }) };
+}
+
+function formatIssues(error: z.ZodError): string {
+  const described = error.issues.map((issue) => {
+    const path = issue.path.join(".");
+    const base = path.length > 0 ? `${path}: ${issue.message}` : issue.message;
+    return issue.code === "unrecognized_keys"
+      ? `${base} (API keys are read from the environment, not the config)`
+      : base;
+  });
+  return redact([...new Set(described)].join("; "));
+}
+
+function parseConfig(input: unknown): ParsedVerbatraConfig {
   const parsed = verbatraConfigSchema.safeParse(input);
   if (!parsed.success) {
     throw new SdkError(
@@ -144,15 +198,56 @@ function parseConfig(input: unknown): VerbatraConfigInput {
       `The verbatra configuration is invalid: ${formatIssues(parsed.error)}`,
     );
   }
-  return parsed.data;
+  const dropped = findDroppedLocaleMapKeys(parsed.data, input);
+  if (dropped.length > 0) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      `The verbatra configuration is invalid: ${redact(
+        dropped
+          .map(({ key, message }) => `provider.options.localeMap.${key}: ${message}`)
+          .join("; "),
+      )}`,
+    );
+  }
+  return withRawInlineGlossary(parsed.data, input);
+}
+
+function withRawInlineGlossary(parsed: ParsedVerbatraConfig, input: unknown): ParsedVerbatraConfig {
+  if (typeof parsed.glossary !== "object") {
+    return parsed;
+  }
+  const raw = (input as { readonly glossary?: unknown }).glossary;
+  if (isGlossaryDefinition(parsed.glossary)) {
+    const issues = rawLocaleKeyIssues(raw);
+    if (issues.length > 0) {
+      throw new SdkError(
+        "CONFIG_INVALID",
+        `The verbatra configuration is invalid: ${redact(
+          describeGlossaryIssues(
+            issues.map((issue) => ({ ...issue, path: ["glossary", ...issue.path] })),
+          ),
+        )}`,
+      );
+    }
+    return parsed;
+  }
+  const entries = version1Entries(raw);
+  if (entries === undefined) {
+    throw new SdkError(
+      "CONFIG_INVALID",
+      "The verbatra configuration is invalid: glossary: must be a flat object of string keys to string values",
+    );
+  }
+  return { ...parsed, glossary: Object.fromEntries(entries) };
 }
 
 async function finalizeConfig(
-  parsed: VerbatraConfigInput,
+  parsed: ParsedVerbatraConfig,
   baseDir: string,
   fs: SdkFs,
 ): Promise<{ config: VerbatraConfig; glossary: GlossaryProvenance }> {
   const { glossary: glossaryInput, ...rest } = parsed;
+  declareProviderKeyEnvVar(rest.provider);
   const resolved = await resolveGlossary(glossaryInput, baseDir, fs);
   const config: VerbatraConfig = {
     ...rest,
@@ -176,8 +271,7 @@ async function loadExplicitWithMeta(
   try {
     result = await explorer.load(resolved);
   } catch (error) {
-    const detail = errorMessage(error);
-    throw new SdkError("CONFIG_INVALID", `Failed to load the verbatra configuration: ${detail}`);
+    throw configLoadFailure(error);
   }
 
   const parsed = parseConfig(result?.config);
@@ -234,7 +328,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
 
   const explorer = cosmiconfig(MODULE_NAME, {
     searchPlaces: CONFIG_SEARCH_PLACES,
-    loaders: { ".ts": TypeScriptLoader({ alias: resolveSelfPackageAliases() }) },
+    loaders: configLoaders(options.fresh ?? false),
     searchStrategy: "global",
     stopDir,
   });
@@ -247,8 +341,7 @@ export async function loadConfigWithMeta(options: LoadConfigOptions = {}): Promi
   try {
     result = await explorer.search(cwd);
   } catch (error) {
-    const detail = errorMessage(error);
-    throw new SdkError("CONFIG_INVALID", `Failed to load the verbatra configuration: ${detail}`);
+    throw configLoadFailure(error);
   }
 
   if (result !== null && result.isEmpty !== true) {

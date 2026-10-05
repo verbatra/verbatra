@@ -65,21 +65,21 @@ describe("loadConfig upward search: stops at the nearest .git boundary", () => {
     const outer = await makeTempDir();
     await writeFile(
       join(outer, "verbatra.config.ts"),
-      `export default ${JSON.stringify(baseConfig({ sourceLocale: "decoy" }))};`,
+      `export default ${JSON.stringify(baseConfig({ sourceLocale: "it" }))};`,
       "utf8",
     );
     const repoRoot = await makeNestedDir(outer, "repo");
     await mkdir(join(repoRoot, ".git"), { recursive: true });
     await writeFile(
       join(repoRoot, ".verbatrarc.json"),
-      JSON.stringify(baseConfig({ sourceLocale: "real" })),
+      JSON.stringify(baseConfig({ sourceLocale: "fr" })),
       "utf8",
     );
     const nested = await makeNestedDir(repoRoot, "packages", "app");
 
     const config = await loadConfig({ cwd: nested });
 
-    expect(config.sourceLocale).toBe("real");
+    expect(config.sourceLocale).toBe("fr");
   });
 });
 
