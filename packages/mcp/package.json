@@ -2,6 +2,7 @@
   "name": "@verbatra/mcp",
   "version": "0.2.2",
   "type": "module",
+  "mcpName": "io.github.verbatra/verbatra",
   "description": "Stdio MCP server exposing verbatra's translation status, glossary, and editing capabilities as tools for any MCP client, without a browser.",
   "keywords": [
     "i18n",
@@ -36,7 +37,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
@@ -56,11 +58,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/server": "2.3.0",
     "@verbatra/sdk": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.0",
     "@types/node": "catalog:",
     "@verbatra/ai-providers": "workspace:*",
     "@verbatra/config": "workspace:*",

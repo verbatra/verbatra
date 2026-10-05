@@ -31,9 +31,11 @@ Node.js `>=22.14.0`.
 ```bash
 npm install --save-dev @verbatra/mcp
 # pnpm
-pnpm add -D @verbatra/mcp
+pnpm add --save-dev @verbatra/mcp
 # yarn
-yarn add -D @verbatra/mcp
+yarn add --dev @verbatra/mcp
+# bun
+bun add --dev @verbatra/mcp
 ```
 
 Most MCP clients spawn the server for you and need no local install at all: point the client at `npx -y @verbatra/mcp` and npx fetches it on demand. The server is also reachable through `verbatra mcp` once both `@verbatra/cli` and `@verbatra/mcp` are installed.
@@ -54,31 +56,46 @@ Point your client at the `verbatra-mcp` binary. The shape below is the one most 
 }
 ```
 
+In Claude Code, `npx verbatra init --agent` (or `claude mcp add --transport stdio --scope project verbatra -- npx -y @verbatra/mcp`) writes an equivalent entry to a committed `.mcp.json`. The [verbatra plugin](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client#the-verbatra-plugin) bundles the agent skills with its own copy of this server, so use it instead of the `.mcp.json` entry, never both: together they register the server twice. VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level key is `servers` rather than `mcpServers`. The exact file, key, and working-directory handling for every client is in [Connect an MCP client](https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client).
+
 That configuration is read-only plus local editing: no provider is called and no API key is needed. Add `--allow-spend` to `args`, and the environment variable your configured provider reads its key from, once you also want the two provider-calling tools. `--config <path>` loads a specific config file instead of searching for one, and `VERBATRA_MCP_ALLOW_SPEND` is the environment equivalent of the flag, which the flag always wins over.
 
 ## Tools
 
-Thirteen tools, listed here in the order the server advertises them.
+Every tool, listed here in the order the server advertises them.
 
 | Tool | What it does |
 | --- | --- |
-| `project.snapshot` | Read the resolved project configuration: locales, format, path pattern, provider id, where the config came from, whether a glossary is configured |
+| `project.snapshot` | Read the resolved project configuration: whether a usable config is loaded (`configured`), locales, format, path pattern, provider id, where the config came from, whether a glossary is configured |
+| `project.doctor` | Check the project setup (config, format, provider, API key variable by name, network policy, source file) and get a `fix` for every failed check, with or without a usable config |
 | `status.check` | Per target locale, how many keys are missing, stale, or up to date, and whether the locale is in sync |
 | `status.diff` | Per target locale, the exact keys the next translate run would add, re-translate, or orphan |
-| `glossary.get` | Every configured term and its translation, plus where the glossary comes from |
-| `glossary.write` | Add, replace, or remove one glossary term, and return the glossary afterward |
+| `glossary.get` | Every glossary term with its translation for all locales, per-locale translations, forbidden renderings, case sensitivity, note and part of speech, the terms kept untranslated, the glossary version and where it comes from; with `locale`, also the terms that locale is held to |
+| `glossary.write` | Change one glossary term (a translation for all locales or one `locale`, `forbidden` renderings, `note`, `partOfSpeech`, `caseSensitive`, or `doNotTranslate`) and return the glossary afterward |
 | `lock.state` | The lock file's version and its per-locale key counts, or `exists: false` before the first run |
+| `history.list` | Recent git commits that touched a locale file, with hash, author name (never the email), date, subject and touched paths |
 | `key.integrity` | One key's placeholder, inline markup, and ICU drift against the lock-file baseline, per locale |
-| `key.value` | One key's current source text and, if translated, its current text in one target locale |
+| `locale.integrity` | Every translation that fails the placeholder, markup or ICU checks right now, per target locale |
+| `key.value` | One key's current source text, its source file description, and, if translated, its current text in one target locale with who wrote it |
+| `key.context` | What `key.value` returns plus the glossary terms that apply, the key's `maxLength`, and a check of an optional `draft` |
+| `locale.values` | Source and target text of many keys, filtered by `keys` or a `query`, in pages of up to 1,000 entries |
 | `translation.editEntry` | Write a manual translation for one key in one locale, accepted only if it passes the integrity gate |
+| `translation.estimate` | Estimate what `translation.translatePending` would send and cost, optionally for a subset of locales, without calling a provider |
 | `translation.retranslateEntry` | Ask the configured provider for a fresh translation of one key in one locale |
-| `translation.translatePending` | Translate every missing or stale key across every configured target locale in one run |
-| `review.queue` | The keys the last run flagged for human review, with the reason for each |
+| `translation.translatePending` | Translate every missing or stale key across the configured target locales, or a named subset, in one run, within an optional `maxTokens` ceiling |
+| `review.queue` | Every machine-written translation nobody has approved yet, read from the committed files, with the last run's flags |
+| `report.provenance` | Per locale, how many values fall into each provenance bucket; with `includeEntries`, the keys, paged |
+| `review.approve` | Record, on the user's instruction, that a named person approves one key's current translation |
+| `review.reject` | Record, on the user's instruction, that a named person rejects one key's current translation, removing it so it gets replaced |
 | `usage.summary` | Token usage and budget status left behind by the last run |
 
-`translation.retranslateEntry` and `translation.translatePending` are the two that call a provider and spend budget. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, a client listing tools never sees them and calling one by name fails as an unknown tool: the gate is per process, so a spend tool is structurally uncallable rather than refused at call time.
+`translation.retranslateEntry` and `translation.translatePending` are the two that call a provider and spend budget. They are advertised only when the server is started with `--allow-spend` or `VERBATRA_MCP_ALLOW_SPEND`. Without either, a client listing tools never sees them and calling one by name fails as an unknown tool: the gate is per process, so a spend tool is structurally uncallable rather than refused at call time. A config with `provider: { id: "none" }` never lists them, even with `--allow-spend`.
 
 Every tool's input, and every closed-shape tool output, is a JSON Schema derived from the same zod schema the server validates the call against. Every result and log line passes through a secret-redaction pass first, so a value shaped like a provider API key, or the exact current value of a configured provider environment variable, is replaced with `[REDACTED]` before it reaches the client or stderr.
+
+Start the server with `--redact-values` (or `VERBATRA_MCP_REDACT_VALUES`) to keep translation values away from the client: every source text, translation, description, and glossary term in a result becomes a marker such as `[redacted length=12 hash=3f9a0c1d2e4b5a6c]`, and reviewer and author names are left out. Key names, counts, statuses, integrity verdicts, commit subjects and paths stay. Equal values share a hash for the life of the server. The message of an error that can carry values, in a result or a log line, is replaced by a marker; the error code and the next step stay. `review.approve` and `review.reject` then take only the marker's hash as `expectedHash`, `glossary.write` answers with counts, `locale.values` refuses `query`, and `key.context` refuses `draft`. This keeps values out of results; it does not stop an agent that probes on purpose, for example through glossary writes. What a provider receives does not change, and a CLI that loads an `@verbatra/mcp` too old to confirm redaction exits 2 with `REDACTION_UNSUPPORTED`.
+
+The server starts even without a usable config: `project.snapshot` then reports `configured: false`, `project.doctor` says what to fix, and every other tool refuses with the config error. Before each call it checks the config file and its glossary file for changes and loads them again, so creating or editing the config needs no restart. `--allow-spend` is fixed at startup, and a config change never widens it.
 
 See the [`verbatra mcp` docs](https://verbatra.kreitz-webdev.de/docs/cli/mcp) for the full tool reference, the exit-code contract, and worked examples.
 
