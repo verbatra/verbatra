@@ -60,6 +60,20 @@ describe("buildXliff 2.0", () => {
     expect(text).toContain('<segment state="reviewed">');
   });
 
+  it("writes a note as plain text, dropping a control character a note cannot carry", () => {
+    const noted = build("2.0", [
+      {
+        key: "k",
+        source: [{ kind: "text", text: "s" }],
+        state: "initial",
+        sourceHash: "h",
+        notes: [{ category: "description", text: "bell\u0007 & ring" }],
+      },
+    ]);
+    expect(noted).toContain('<note category="description">bell &amp; ring</note>');
+    expect(noted).not.toContain("<cp ");
+  });
+
   it("writes no notes or original data element for a unit that has none", () => {
     const plain = build("2.0", [
       {
