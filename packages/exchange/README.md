@@ -6,7 +6,8 @@
 > install [`@verbatra/sdk`](https://www.npmjs.com/package/@verbatra/sdk).
 
 Translator interchange for verbatra: build and read styled Excel workbooks over a neutral,
-format-agnostic row model, and read and write TMX translation memory. This is the handoff layer
+format-agnostic row model, read and write TMX translation memory, and build and read XLIFF 1.2 and
+2.0 handoff files for CAT tools. This is the handoff layer
 between verbatra and a human translator, or between verbatra and another translation tool.
 
 ## Responsibilities
@@ -18,9 +19,14 @@ between verbatra and a human translator, or between verbatra and another transla
   `<locale>.csv` or `<locale>.tsv` per locale, for a handoff meant to be diffed and reviewed.
 - **TMX translation memory.** `buildTmx` and `readTmx` export and import the project's memory as
   TMX, including the units another tool produced and the reasons a unit was skipped.
+- **XLIFF handoffs.** `buildXliff` and `readXliff` write and read one XLIFF 1.2 or 2.0 file per
+  locale over neutral units: a key, source and target as runs of text and inline codes, a segment
+  state, notes, and the source hash. Protected syntax becomes `<ph>` inline codes a CAT tool shows
+  and protects, and reading resolves every code back to its exact original text.
 - **Bounds and guards.** Explicit workbook, delimited, and TMX limits, a formula guard so a cell
   starting with `=` cannot become a spreadsheet formula, a zip guard against archive bombs, and XML
-  prolog and character handling for the TMX side.
+  prolog and character handling for the TMX and XLIFF side: an entity declaration or internal DTD
+  subset is refused before the parser runs.
 
 ## What it must not do
 
