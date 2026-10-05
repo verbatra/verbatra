@@ -982,7 +982,7 @@ The candidate is empty or only whitespace although its source is not. Clearing a
 
 ## Review reasons [#review-reason-codes]
 
-A review flag marks an accepted translation as worth a second look; it never withholds a key, and a `check --qa` warning fails the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple. Each entry says how its reason is measured; [Translation safety](/docs/translation-safety#review-flags) explains the review layer as a whole.
+A review flag marks an accepted translation as worth a second look; it never withholds a key, and a `check --qa` warning fails the job only under `--strict`. The set ships as the `REVIEW_REASON_CODES` tuple; [Translation safety](/docs/translation-safety#review-flags) explains the review layer.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1008,7 +1008,7 @@ Length is counted in grapheme clusters on the value exactly as written. The budg
 
 The translation equals its source verbatim although the target locale differs.
 
-It fires only when the target locale differs from the source locale and the source has translatable text: a source made only of `doNotTranslate` terms, or of terms whose translation is the term itself, is not flagged.
+It fires only when the source has translatable text: a source made only of `doNotTranslate` terms, or of terms whose translation is the term itself, is not flagged.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
@@ -1018,7 +1018,7 @@ It fires only when the target locale differs from the source locale and the sour
 
 A glossary term in the source is missing its translation for the target locale, or a `doNotTranslate` term is missing or altered.
 
-Each locale is checked against its own translation of the term from a per-locale glossary. Matching ignores case unless the term is `caseSensitive`, and folds case by each locale's rules (Turkish `İ` included). The source side needs a whole word, so `AI` is not found inside `Airport`; the target side only needs the term somewhere in the value, because a translated term fuses with the text around it (German compounds, Korean particles). A term in a script without word separators (Han, kana, Thai and similar) is matched by containment.
+Each locale is checked against its own translation of the term from a per-locale glossary. Matching ignores case unless the term is `caseSensitive`, and folds case by each locale's rules (Turkish `İ` included). The source side needs a whole word, so `AI` is not found inside `Airport`; the target side only needs the term somewhere in the value, because a translated term fuses with the text around it. A term in a script without word separators (Han, kana, Thai and similar) is matched by containment.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
@@ -1074,7 +1074,7 @@ It fires when such a token occurs in the source more often than, verbatim, in th
 
 The translation holds invisible direction controls that can reorder the text around it: an embedding, override or isolate it never closes, or an override the source does not have.
 
-It fires when the translation's embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each paragraph while the source's do, or when it holds more left-to-right or right-to-left overrides than the source. Directional marks such as U+200F never raise it, and neither does a translation that drops balanced controls the source has.
+It fires when the translation's embeddings (U+202A, U+202B), overrides (U+202D, U+202E) and isolates (U+2066 to U+2068) do not pair up with their closers (U+202C, U+2069) within each paragraph while the source's do, or when it holds more left-to-right or right-to-left overrides than the source. An unclosed control leaks its direction into the text your app puts after the value. Directional marks such as U+200F never raise it, and neither does a translation that drops balanced controls the source has.
 
 - **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`

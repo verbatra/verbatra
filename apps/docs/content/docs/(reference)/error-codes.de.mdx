@@ -996,7 +996,7 @@ Der Kandidat ist leer oder besteht nur aus Leerraum, obwohl seine Quelle es nich
 
 ## Review-Gründe [#review-reason-codes]
 
-Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück, und eine Warnung von `check --qa` lässt den Job nur mit `--strict` scheitern. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert. Jeder Eintrag sagt, wie sein Grund gemessen wird; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht als Ganzes.
+Ein Review-Flag markiert eine angenommene Übersetzung als einen zweiten Blick wert; es hält nie einen Key zurück, und eine Warnung von `check --qa` lässt den Job nur mit `--strict` scheitern. Die Menge wird als Tupel `REVIEW_REASON_CODES` ausgeliefert; [Übersetzungssicherheit](/docs/translation-safety#review-flags) erklärt die Review-Schicht.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1022,7 +1022,7 @@ Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die
 
 Die Übersetzung gleicht ihrer Quelle wörtlich, obwohl das Ziel-Locale ein anderes ist.
 
-Er greift nur, wenn sich die Ziel-Locale von der Quell-Locale unterscheidet und die Quelle übersetzbaren Text hat: Eine Quelle, die nur aus `doNotTranslate`-Begriffen besteht oder aus Begriffen, deren Übersetzung der Begriff selbst ist, wird nicht markiert.
+Er greift nur, wenn die Quelle übersetzbaren Text hat: Eine Quelle, die nur aus `doNotTranslate`-Begriffen besteht oder aus Begriffen, deren Übersetzung der Begriff selbst ist, wird nicht markiert.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -1032,7 +1032,7 @@ Er greift nur, wenn sich die Ziel-Locale von der Quell-Locale unterscheidet und 
 
 Einem Glossarbegriff aus der Quelle fehlt seine Übersetzung für das Ziel-Locale, oder ein `doNotTranslate`-Begriff fehlt oder wurde verändert.
 
-Jede Locale wird gegen ihre eigene Übersetzung des Begriffs aus einem Glossar pro Locale geprüft. Der Abgleich ignoriert Groß- und Kleinschreibung, außer der Begriff ist `caseSensitive`, und richtet sich dabei nach den Regeln der jeweiligen Locale (auch beim türkischen `İ`). Die Quellseite verlangt ein ganzes Wort, `AI` wird also in `Airport` nicht gefunden; die Zielseite verlangt nur, dass der Begriff irgendwo im Wert steht, weil ein übersetzter Begriff mit seinem Umfeld verschmilzt (deutsche Komposita, koreanische Partikel). Ein Begriff in einer Schrift ohne Worttrenner (Han, Kana, Thai und ähnliche) wird als bloßes Enthaltensein abgeglichen.
+Jede Locale wird gegen ihre eigene Übersetzung des Begriffs aus einem Glossar pro Locale geprüft. Der Abgleich ignoriert Groß- und Kleinschreibung, außer der Begriff ist `caseSensitive`, und richtet sich dabei nach den Regeln der jeweiligen Locale (auch beim türkischen `İ`). Die Quellseite verlangt ein ganzes Wort, `AI` wird also in `Airport` nicht gefunden; die Zielseite verlangt nur, dass der Begriff irgendwo im Wert steht, weil ein übersetzter Begriff mit seinem Umfeld verschmilzt. Ein Begriff in einer Schrift ohne Worttrenner (Han, Kana, Thai und ähnliche) wird als bloßes Enthaltensein abgeglichen.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
@@ -1088,7 +1088,7 @@ Er greift, wenn ein solches Token in der Quelle öfter vorkommt als, wörtlich, 
 
 Die Übersetzung enthält unsichtbare Richtungssteuerzeichen, die den Text um sie herum umordnen können: eine Einbettung, Überschreibung oder Isolierung, die sie nie schließt, oder eine Überschreibung, die die Quelle nicht hat.
 
-Er greift, wenn die Einbettungen (U+202A, U+202B), Überschreibungen (U+202D, U+202E) und Isolierungen (U+2066 bis U+2068) der Übersetzung innerhalb eines Absatzes nicht zu ihren Abschlusszeichen (U+202C, U+2069) passen, die der Quelle aber schon, oder wenn sie mehr Links-nach-rechts- oder Rechts-nach-links-Überschreibungen enthält als die Quelle. Richtungsmarken wie U+200F lösen ihn nie aus, ebenso wenig eine Übersetzung, die ausgeglichene Steuerzeichen der Quelle weglässt.
+Er greift, wenn die Einbettungen (U+202A, U+202B), Überschreibungen (U+202D, U+202E) und Isolierungen (U+2066 bis U+2068) der Übersetzung innerhalb eines Absatzes nicht zu ihren Abschlusszeichen (U+202C, U+2069) passen, die der Quelle aber schon, oder wenn sie mehr Links-nach-rechts- oder Rechts-nach-links-Überschreibungen enthält als die Quelle. Ein offenes Steuerzeichen überträgt seine Richtung auf den Text, den deine App hinter den Wert setzt. Richtungsmarken wie U+200F lösen ihn nie aus, ebenso wenig eine Übersetzung, die ausgeglichene Steuerzeichen der Quelle weglässt.
 
 - **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`

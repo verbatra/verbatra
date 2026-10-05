@@ -997,7 +997,7 @@ El candidato está vacío o solo tiene espacios aunque su fuente no lo esté. Va
 
 ## Motivos de revisión [#review-reason-codes]
 
-Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave, y un aviso de `check --qa` solo hace fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`. Cada entrada dice cómo se mide su motivo; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión en conjunto.
+Una señal de revisión marca una traducción aceptada como digna de una segunda mirada; nunca retiene una clave, y un aviso de `check --qa` solo hace fallar el trabajo con `--strict`. El conjunto se publica como la tupla `REVIEW_REASON_CODES`; [Seguridad de la traducción](/docs/translation-safety#señales-de-revisión) explica la capa de revisión.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1023,7 +1023,7 @@ La longitud se cuenta en clústeres de grafemas sobre el valor tal como está es
 
 La traducción es idéntica a su fuente aunque el locale de destino sea otro.
 
-Solo salta cuando el locale de destino difiere del de origen y la fuente tiene texto traducible: una fuente hecha solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
+Solo salta cuando la fuente tiene texto traducible: una fuente hecha solo de términos `doNotTranslate`, o de términos cuya traducción es el propio término, no se marca.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1033,7 +1033,7 @@ Solo salta cuando el locale de destino difiere del de origen y la fuente tiene t
 
 A un término del glosario de la fuente le falta su traducción para el locale de destino, o falta o se alteró un término `doNotTranslate`.
 
-Cada locale se comprueba contra su propia traducción del término de un glosario por locale. La comparación ignora mayúsculas salvo que el término sea `caseSensitive`, y las pliega según las reglas de cada locale (incluida la `İ` turca). El lado de la fuente exige una palabra completa, así que `AI` no se encuentra dentro de `Airport`; el lado del destino solo exige que el término aparezca en algún lugar del valor, porque un término traducido se funde con el texto que lo rodea (compuestos alemanes, partículas coreanas). Un término en una escritura sin separadores de palabras (han, kana, tailandés y similares) se compara por inclusión.
+Cada locale se comprueba contra su propia traducción del término de un glosario por locale. La comparación ignora mayúsculas salvo que el término sea `caseSensitive`, y las pliega según las reglas de cada locale (incluida la `İ` turca). El lado de la fuente exige una palabra completa, así que `AI` no se encuentra dentro de `Airport`; el lado del destino solo exige que el término aparezca en algún lugar del valor, porque un término traducido se funde con el texto que lo rodea. Un término en una escritura sin separadores de palabras (han, kana, tailandés y similares) se compara por inclusión.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
@@ -1089,7 +1089,7 @@ Se activa cuando ese token aparece en la fuente más veces que, literalmente, en
 
 La traducción contiene caracteres invisibles de control de dirección que pueden reordenar el texto a su alrededor: una incrustación, anulación o aislamiento que nunca cierra, o una anulación que la fuente no tiene.
 
-Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada párrafo mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
+Se activa cuando las incrustaciones (U+202A, U+202B), anulaciones (U+202D, U+202E) y aislamientos (U+2066 a U+2068) de la traducción no se emparejan con sus cierres (U+202C, U+2069) dentro de cada párrafo mientras que los de la fuente sí, o cuando contiene más anulaciones de izquierda a derecha o de derecha a izquierda que la fuente. Un control sin cerrar extiende su dirección al texto que tu app pone después del valor. Las marcas de dirección como U+200F nunca lo activan, ni tampoco una traducción que quita controles equilibrados de la fuente.
 
 - **Lo lanza**: `translate`, `watch` (en `needsReview`); `retranslateEntry` (en `reviewReasons`); `export` (en la columna de revisión); `check --qa` (como aviso)
 - **Código de salida**: ninguno desde `translate`; `1` desde `check --qa --strict`
