@@ -83,7 +83,7 @@
         },
         "providers": {
           "question": "Welche Übersetzungs-Provider kann ich verwenden?",
-          "answer": "Sieben, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
+          "answer": "Jeder davon, hinter einer Schnittstelle: Anthropic, OpenAI und Gemini (LLMs), DeepL und Google Cloud Translation (maschinelle Übersetzung), openai-compatible, das verbatra auf einen lokalen oder selbst gehosteten Server wie Ollama, LM Studio oder vLLM richtet, sowie libretranslate, ein selbst gehosteter LibreTranslate-Server für maschinelle Übersetzung ganz ohne Sprachmodell. Du wählst einen über seine ID in deiner Konfiguration und wechselst später, indem du diese eine Zeile änderst. Gemini hat ein echtes kostenloses Kontingent, und ein lokales Modell kostet pro Aufruf nichts. Oder setz den Provider auf none, um maschinelle Übersetzung ganz abzuschalten."
         },
         "languages": {
           "question": "Welche Sprachen unterstützt verbatra?",
@@ -345,7 +345,7 @@
       "label": "Unterstützte Frameworks und Formate"
     },
     "providers": {
-      "heading": "Sieben Provider, eine Schnittstelle.",
+      "heading": "Eine Schnittstelle für jeden Provider.",
       "hint": "Fahr mit der Maus über die Karten oder geh sie mit Tab durch.",
       "kinds": {
         "anthropic": "Claude-Modelle",

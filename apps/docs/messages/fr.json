@@ -83,7 +83,7 @@
         },
         "providers": {
           "question": "Quels fournisseurs de traduction puis-je utiliser ?",
-          "answer": "Sept, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
+          "answer": "N'importe lequel de ceux-ci, derrière une seule interface : Anthropic, OpenAI et Gemini (LLM), DeepL et Google Cloud Translation (traduction automatique), openai-compatible, qui pointe verbatra vers un serveur local ou auto-hébergé comme Ollama, LM Studio ou vLLM, et libretranslate, un serveur LibreTranslate auto-hébergé pour la traduction automatique sans aucun modèle de langage. Tu en choisis un par son id dans ta configuration, et tu en changes plus tard en modifiant cette seule ligne. Gemini a une vraie offre gratuite, et un modèle local ne coûte rien par appel. Ou mets le fournisseur sur none pour désactiver complètement la traduction automatique."
         },
         "languages": {
           "question": "Quelles langues verbatra prend-il en charge ?",
@@ -244,7 +244,7 @@
             },
             "review": {
               "title": "Approuve ou rejette ce qu'une exécution a signalé",
-              "body": "Les décisions sont enregistrées à côté du fichier de verrouillage, donc la file de révision ne montre que ce que personne n'a encore regardé."
+              "body": "Les décisions sont enregistrées à côté du fichier de verrouillage, donc la file de relecture ne montre que ce que personne n'a encore regardé."
             }
           }
         },
@@ -309,7 +309,7 @@
           "title": "Confie un classeur aux traducteurs, puis réimporte-le."
         },
         "studio": {
-          "alt": "La page Révision de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de révision et les actions Edit, Approve et Reject.",
+          "alt": "La page Review de Verbatra Studio affichant cinq entrées signalées dans les locales de, es et fr ; chaque ligne montre la clé, ses motifs de relecture et les actions Edit, Approve et Reject.",
           "body": "Couverture, entrées signalées, modifications sur place, approuver ou rejeter. Aucun appel au fournisseur.",
           "cta": "Réviser les traductions dans Studio",
           "title": "Consulte l'état de chaque locale dans Verbatra Studio."
@@ -345,7 +345,7 @@
       "label": "Frameworks et formats pris en charge"
     },
     "providers": {
-      "heading": "Sept fournisseurs, une interface.",
+      "heading": "Une interface pour chaque fournisseur.",
       "hint": "Survole les cartes ou parcours-les avec Tab.",
       "kinds": {
         "anthropic": "modèles Claude",
