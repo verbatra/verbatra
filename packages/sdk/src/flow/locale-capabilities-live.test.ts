@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MachineProviderConfig } from "../config/provider-config.js";
-import { refreshLanguageTable } from "./locale-capabilities-live.js";
+import { SdkError } from "../errors.js";
+import { liveFetchFailureDetail, refreshLanguageTable } from "./locale-capabilities-live.js";
 
 const DEEPL: MachineProviderConfig = { id: "deepl", options: {} };
 const GOOGLE: MachineProviderConfig = { id: "google-translate", options: {} };
@@ -144,7 +145,7 @@ describe("refreshLanguageTable: LibreTranslate", () => {
     const outcome = await refreshLanguageTable(LIBRETRANSLATE, { policy: "local-only" }, {});
 
     expect(outcome.refresh.status).toBe("refreshed");
-    expect(outcome.refresh.detail).toContain("Fetched 1 languages from 127.0.0.1");
+    expect(outcome.refresh.detail).toContain("Fetched 1 language from 127.0.0.1;");
     expect(outcome.table?.languages.map((language) => language.code)).toEqual(["en"]);
     expect(String(send.mock.calls[0]?.[0])).toBe("http://127.0.0.1:5000/languages");
   });
@@ -162,5 +163,19 @@ describe("refreshLanguageTable: LibreTranslate", () => {
     expect(outcome.refresh.status).toBe("skipped");
     expect(outcome.refresh.detail).toContain("203.0.113.7");
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe("liveFetchFailureDetail", () => {
+  it("closes a message that has no final period before naming the fallback", () => {
+    expect(liveFetchFailureDetail(new SdkError("CONFIG_INVALID", "socket hang up"))).toBe(
+      "The live language list could not be fetched [CONFIG_INVALID]: socket hang up. The static table was used.",
+    );
+  });
+
+  it("keeps a message that already ends with a period as it is", () => {
+    expect(liveFetchFailureDetail(new SdkError("CONFIG_INVALID", "Bad value."))).toBe(
+      "The live language list could not be fetched [CONFIG_INVALID]: Bad value. The static table was used.",
+    );
   });
 });

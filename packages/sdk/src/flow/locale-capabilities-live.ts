@@ -35,9 +35,14 @@ function isSet(env: EnvironmentSource, name: string): boolean {
   return value !== undefined && value.length > 0;
 }
 
-function failureDetail(error: unknown): string {
+export function liveFetchFailureDetail(error: unknown): string {
   const { code, message } = describeError(error, "PROVIDER_ERROR");
-  return `The live language list could not be fetched [${code}]: ${message} The static table was used.`;
+  const sentence = message.endsWith(".") ? message : `${message}.`;
+  return `The live language list could not be fetched [${code}]: ${sentence} The static table was used.`;
+}
+
+function languageCount(count: number): string {
+  return count === 1 ? "1 language" : `${count} languages`;
 }
 
 export async function refreshLanguageTable(
@@ -71,11 +76,11 @@ export async function refreshLanguageTable(
     return {
       refresh: {
         status: "refreshed",
-        detail: `Fetched ${table.languages.length} languages from ${judgement.host}; no translation quota was used.`,
+        detail: `Fetched ${languageCount(table.languages.length)} from ${judgement.host}; no translation quota was used.`,
       },
       table,
     };
   } catch (error) {
-    return failed(failureDetail(error));
+    return failed(liveFetchFailureDetail(error));
   }
 }
