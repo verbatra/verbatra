@@ -11,7 +11,7 @@ const { verbatraConfigSchema } = await import(
   pathToFileURL(resolve(PACKAGE_ROOT, "dist/index.js")).href
 );
 
-const document = z.toJSONSchema(verbatraConfigSchema);
+const document = z.toJSONSchema(verbatraConfigSchema, { io: "input" });
 const target = resolve(PACKAGE_ROOT, "dist/config-schema.json");
 
 writeFileSync(target, `${JSON.stringify(document, null, 2)}\n`, "utf8");

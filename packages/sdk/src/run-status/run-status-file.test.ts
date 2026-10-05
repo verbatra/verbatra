@@ -1,9 +1,9 @@
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { REVIEW_REASON_CODES } from "@verbatra/ai-providers";
 import { describe, expect, it } from "vitest";
 import type { LocaleSummary, RunSummary } from "../flow/summary.js";
-import { defaultFs } from "../fs.js";
+import { defaultFs, type SdkFs } from "../fs.js";
 import { makeFakeFs, makeTempDir } from "../test-support.js";
 import {
   buildRunStatusFile,
@@ -11,6 +11,12 @@ import {
   runStatusFilePath,
   writeRunStatusFile,
 } from "./run-status-file.js";
+import type { RunStatusFile } from "./types.js";
+
+async function readPersisted(path: string, fs: SdkFs): Promise<RunStatusFile | undefined> {
+  const read = await readRunStatusFile(path, fs);
+  return read.kind === "ok" ? read.file : undefined;
+}
 
 function succeededLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummary {
   return {
@@ -27,9 +33,11 @@ function succeededLocale(overrides: Partial<LocaleSummary> = {}): LocaleSummary 
     providerFailures: [],
     generated: [],
     budgetWithheld: [],
+    sensitiveWithheld: [],
     notices: [],
     needsReview: [],
     unfilled: [],
+    protected: [],
     malformedRows: [],
     duplicateKeys: [],
     ...overrides,
@@ -122,7 +130,7 @@ describe("writeRunStatusFile + readRunStatusFile: round trip", () => {
 
     await writeRunStatusFile(path, file, defaultFs);
 
-    const read = await readRunStatusFile(path, defaultFs);
+    const read = await readPersisted(path, defaultFs);
     expect(read).toEqual(file);
   });
 
@@ -146,7 +154,7 @@ describe("writeRunStatusFile + readRunStatusFile: round trip", () => {
 
     await writeRunStatusFile(path, file, defaultFs);
 
-    const read = await readRunStatusFile(path, defaultFs);
+    const read = await readPersisted(path, defaultFs);
     expect(read).toEqual(file);
   });
 
@@ -165,7 +173,7 @@ describe("writeRunStatusFile + readRunStatusFile: round trip", () => {
 
     await writeRunStatusFile(path, second, defaultFs);
 
-    const read = await readRunStatusFile(path, defaultFs);
+    const read = await readPersisted(path, defaultFs);
     expect(read).toEqual(second);
   });
 
@@ -240,20 +248,26 @@ describe("writeRunStatusFile: honors the injected fs seam", () => {
   });
 });
 
-describe("readRunStatusFile: degrade-to-undefined cases", () => {
-  it("a missing file reads as undefined", async () => {
+describe("readRunStatusFile: unavailable cases name their reason", () => {
+  it("a missing file reads as no-status-file", async () => {
     const dir = await makeTempDir();
-    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toBeUndefined();
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "no-status-file",
+    });
   });
 
-  it("invalid JSON reads as undefined", async () => {
+  it("invalid JSON reads as invalid", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, ".verbatra-local"));
     await writeFile(join(dir, ".verbatra-local", "run-status.json"), "{ not json", "utf8");
-    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toBeUndefined();
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
+    });
   });
 
-  it("valid JSON with an unexpected shape reads as undefined", async () => {
+  it("valid JSON with an unexpected shape reads as invalid", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, ".verbatra-local"));
     await writeFile(
@@ -261,10 +275,13 @@ describe("readRunStatusFile: degrade-to-undefined cases", () => {
       JSON.stringify({ version: 1, generatedAt: "x", locales: [{ locale: "de" }] }),
       "utf8",
     );
-    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toBeUndefined();
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
+    });
   });
 
-  it("a schema-valid file with an unrecognized version reads as undefined", async () => {
+  it("a schema-valid file with an unrecognized version reads as unsupported-version", async () => {
     const dir = await makeTempDir();
     await mkdir(join(dir, ".verbatra-local"));
     await writeFile(
@@ -272,14 +289,67 @@ describe("readRunStatusFile: degrade-to-undefined cases", () => {
       JSON.stringify({ version: 99, generatedAt: "x", locales: [] }),
       "utf8",
     );
-    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toBeUndefined();
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "unsupported-version",
+    });
   });
 
-  it("a file over the size cap reads as undefined", async () => {
+  it("a directory at the path reads as unreadable", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local", "run-status.json"), { recursive: true });
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "unreadable",
+    });
+  });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "a file the process may not open reads as unreadable",
+    async () => {
+      const dir = await makeTempDir();
+      await mkdir(join(dir, ".verbatra-local"));
+      await writeFile(runStatusFilePath(dir), "{}", "utf8");
+      await chmod(runStatusFilePath(dir), 0o000);
+      expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+        kind: "unavailable",
+        reason: "unreadable",
+      });
+    },
+  );
+
+  it("a file at another version reads as unsupported-version even when its shape changed", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(
+      runStatusFilePath(dir),
+      JSON.stringify({ version: 2, writtenAt: 1767225600, runs: { de: { flagged: 3 } } }),
+      "utf8",
+    );
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "unsupported-version",
+    });
+  });
+
+  it("valid JSON without a numeric version reads as invalid", async () => {
+    const dir = await makeTempDir();
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(runStatusFilePath(dir), JSON.stringify({ locales: [] }), "utf8");
+    expect(await readRunStatusFile(runStatusFilePath(dir), defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
+    });
+  });
+
+  it("a file over the size cap reads as unreadable", async () => {
     const overCap = makeFakeFs({
       readFileBounded: async () => ({ kind: "too-large" as const }),
     });
-    expect(await readRunStatusFile("/anywhere/run-status.json", overCap)).toBeUndefined();
+    expect(await readRunStatusFile("/anywhere/run-status.json", overCap)).toEqual({
+      kind: "unavailable",
+      reason: "unreadable",
+    });
   });
 });
 
@@ -370,7 +440,7 @@ describe("run status: a fuzzy reuse reaches a tool that reads the file later", (
       defaultFs,
     );
 
-    const read = await readRunStatusFile(path, defaultFs);
+    const read = await readPersisted(path, defaultFs);
 
     expect(read?.locales[0]?.fuzzyHits).toEqual(FUZZY_LOCALE.fuzzyHits);
     expect(read?.locales[0]?.needsReview).toEqual(FUZZY_LOCALE.needsReview);
@@ -389,7 +459,7 @@ describe("run status: a fuzzy reuse reaches a tool that reads the file later", (
       }),
     );
 
-    const read = await readRunStatusFile(path, defaultFs);
+    const read = await readPersisted(path, defaultFs);
 
     expect(read?.locales[0]?.locale).toBe("de");
     expect(read?.locales[0]?.fuzzyHits).toBeUndefined();
@@ -428,9 +498,129 @@ describe("readRunStatusFile: every review reason code survives a round trip", ()
       "utf8",
     );
 
-    const file = await readRunStatusFile(path, defaultFs);
+    const file = await readPersisted(path, defaultFs);
 
     expect(file?.usage).toEqual({ inputTokens: 120, outputTokens: 80 });
     expect(file?.locales[0]?.needsReview).toEqual([{ key: "greeting", reasons: [reason] }]);
+  });
+});
+
+describe("readRunStatusFile: a review reason from a newer version", () => {
+  const FUTURE_REASON = "FUTURE_REASON_FROM_A_LATER_VERSION";
+
+  async function writeRaw(content: unknown): Promise<string> {
+    const dir = await makeTempDir();
+    const path = runStatusFilePath(dir);
+    await mkdir(join(dir, ".verbatra-local"));
+    await writeFile(path, JSON.stringify(content), "utf8");
+    return path;
+  }
+
+  function fileWith(needsReview: readonly unknown[]): unknown {
+    return {
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      usage: { inputTokens: 120, outputTokens: 80 },
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview,
+          fuzzyHits: [{ key: "billing", previousSource: "Your plan renews", similarity: 0.94 }],
+          usage: { inputTokens: 70, outputTokens: 50 },
+        },
+        {
+          locale: "fr",
+          status: "partial",
+          needsReview: [{ key: "title", reasons: ["MAX_LENGTH_EXCEEDED"] }],
+          usage: { inputTokens: 50, outputTokens: 30 },
+        },
+      ],
+    };
+  }
+
+  it("keeps the entry with only its known reasons and leaves the rest of the file intact", async () => {
+    const path = await writeRaw(
+      fileWith([{ key: "greeting", reasons: [FUTURE_REASON, "EQUALS_SOURCE"] }]),
+    );
+
+    const file = await readPersisted(path, defaultFs);
+
+    expect(file).toEqual({
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      usage: { inputTokens: 120, outputTokens: 80 },
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview: [{ key: "greeting", reasons: ["EQUALS_SOURCE"] }],
+          fuzzyHits: [{ key: "billing", previousSource: "Your plan renews", similarity: 0.94 }],
+          usage: { inputTokens: 70, outputTokens: 50 },
+        },
+        {
+          locale: "fr",
+          status: "partial",
+          needsReview: [{ key: "title", reasons: ["MAX_LENGTH_EXCEEDED"] }],
+          usage: { inputTokens: 50, outputTokens: 30 },
+        },
+      ],
+    });
+  });
+
+  it("drops an entry whose only reasons are unknown", async () => {
+    const path = await writeRaw(
+      fileWith([
+        { key: "greeting", reasons: [FUTURE_REASON] },
+        { key: "billing", reasons: ["FUZZY_CACHE_REUSE"] },
+      ]),
+    );
+
+    const file = await readPersisted(path, defaultFs);
+
+    expect(file?.locales[0]?.needsReview).toEqual([
+      { key: "billing", reasons: ["FUZZY_CACHE_REUSE"] },
+    ]);
+  });
+
+  it("still rejects a reason that is not a string", async () => {
+    const path = await writeRaw(fileWith([{ key: "greeting", reasons: [42] }]));
+
+    expect(await readRunStatusFile(path, defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
+    });
+  });
+
+  it("still rejects an unknown locale status", async () => {
+    const path = await writeRaw({
+      version: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      locales: [{ locale: "de", status: "FUTURE_STATUS", needsReview: [] }],
+    });
+
+    expect(await readRunStatusFile(path, defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "invalid",
+    });
+  });
+
+  it("still rejects a file at another version", async () => {
+    const path = await writeRaw({
+      version: 2,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      locales: [
+        {
+          locale: "de",
+          status: "succeeded",
+          needsReview: [{ key: "a", reasons: [FUTURE_REASON] }],
+        },
+      ],
+    });
+
+    expect(await readRunStatusFile(path, defaultFs)).toEqual({
+      kind: "unavailable",
+      reason: "unsupported-version",
+    });
   });
 });
