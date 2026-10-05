@@ -18,6 +18,7 @@ import {
   translate,
   watch,
 } from "@verbatra/sdk";
+import { releaseLocksWithin } from "./lock-release.js";
 import { type InterruptSignal, renderInterrupted } from "./render.js";
 import { run } from "./run.js";
 import { createLineSettler } from "./spinner.js";
@@ -30,12 +31,10 @@ const RELEASE_LOCKS_DEADLINE_MS = 5_000;
 
 function exitAfterReleasingLocks(code: number, signal: InterruptSignal, json: boolean): void {
   stderr.settle();
-  const exit = (): void => {
-    process.stderr.write(`${renderInterrupted(signal, json)}\n`);
+  void releaseLocksWithin(releaseHeldLocks, RELEASE_LOCKS_DEADLINE_MS).then((outcome) => {
+    process.stderr.write(`${renderInterrupted(signal, json, outcome)}\n`);
     process.exit(code);
-  };
-  setTimeout(exit, RELEASE_LOCKS_DEADLINE_MS).unref();
-  void releaseHeldLocks().finally(exit);
+  });
 }
 
 const code = await run(

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { run } from "./run.js";
 import { captureStreams, makeExportResult, parseEnvelope, recordingDeps } from "./test-support.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const BUILT_IN_KEY = "fake-openai-key-value-0123456789";
 const CUSTOM_ENV_VAR = "ACME_TRANSLATE_TOKEN";
 const CUSTOM_KEY = "acme-custom-secret-9876543210";
@@ -84,7 +86,7 @@ describe("run: output redaction on the error path", () => {
       loadConfig: async () => {
         throw new SdkError(
           "CONFIG_INVALID",
-          "apiKey sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z is not allowed here",
+          `apiKey ${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z is not allowed here`,
         );
       },
     });

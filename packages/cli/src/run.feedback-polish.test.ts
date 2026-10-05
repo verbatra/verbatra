@@ -275,14 +275,46 @@ describe("mcp: the signal hook is installed before the ready lines", () => {
 });
 
 describe("interrupt: the stop line", () => {
-  it("renders a human line and a JSON record", () => {
-    expect(renderInterrupted("SIGINT", false)).toBe(
+  const released = { status: "released" } as const;
+  const failed = { status: "failed", message: "EACCES: permission denied" } as const;
+  const timedOut = { status: "timed-out", deadlineMs: 5_000 } as const;
+
+  it("renders a human line and a JSON record after the locks were released", () => {
+    expect(renderInterrupted("SIGINT", false, released)).toBe(
       "verbatra: interrupted (SIGINT), released locks",
     );
-    expect(JSON.parse(renderInterrupted("SIGTERM", true))).toEqual({
+    expect(JSON.parse(renderInterrupted("SIGTERM", true, released))).toEqual({
       type: "interrupted",
       signal: "SIGTERM",
       locksReleased: true,
+    });
+  });
+
+  it("says the locks were not released when the release failed", () => {
+    const human = renderInterrupted("SIGINT", false, failed);
+
+    expect(human).toContain("verbatra: interrupted (SIGINT), could not release locks");
+    expect(human).toContain("EACCES: permission denied");
+    expect(human).not.toContain("released locks");
+    expect(JSON.parse(renderInterrupted("SIGINT", true, failed))).toEqual({
+      type: "interrupted",
+      signal: "SIGINT",
+      locksReleased: false,
+      reason: "failed",
+      message: "EACCES: permission denied",
+    });
+  });
+
+  it("says the release did not finish when the deadline elapsed", () => {
+    expect(renderInterrupted("SIGTERM", false, timedOut)).toContain(
+      "verbatra: interrupted (SIGTERM), lock release did not finish within 5s",
+    );
+    expect(JSON.parse(renderInterrupted("SIGTERM", true, timedOut))).toEqual({
+      type: "interrupted",
+      signal: "SIGTERM",
+      locksReleased: false,
+      reason: "timed-out",
+      deadlineMs: 5_000,
     });
   });
 
