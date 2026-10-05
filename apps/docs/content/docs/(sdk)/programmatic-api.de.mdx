@@ -73,6 +73,19 @@ Du brauchst die Key-Namen statt der Anzahlen? Tausche `diff` ein, das die Key-Li
 `changed` und `orphaned` pro Locale zurückgibt, mit demselben `hasPendingChanges`-Gate. Du führst
 stattdessen die CLI in CI aus? Siehe [CI und Exit-Codes](/docs/ci-and-exit-codes).
 
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
 ## Deine Integration ohne Schlüssel testen
 
 Ein als `createProvider` übergebener Fake-Provider durchläuft den ganzen Flow, Dateien und
@@ -138,6 +151,30 @@ process.on("SIGINT", () => {
 
 Ein Lauf-Fehlschlag nach dem Start wirft nie; er kommt als `{ status: "failed" }` an, und das
 Beobachten geht weiter.
+
+## Einen Lauf abbrechen
+
+<AvailableFrom version="0.12.0" />
+
+Übergib ein `AbortSignal` als `signal`. `translate` löst dann auf, statt fehlzuschlagen: Es
+schreibt, was schon angekommen ist, lässt den Rest offen und setzt `cancelled: true`.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(`cancelled: ${succeeded.length} done, ${partial.length} partial, ${failed.length} failed or not started`);
+  process.exitCode = 130;
+}
+```
+
+[`RUN_CANCELLED`](/docs/error-codes#run_cancelled) sagt, was jede gestoppte Locale meldet.
 
 ## Keys aus deinem Quellcode extrahieren
 
@@ -223,9 +260,8 @@ listet alles, was ein schreibender Lauf ablehnt.
 
 `pseudolocalize` baut allein aus den Quellstrings eine künstliche Locale, sodass abgeschnittene
 Layouts und nie extrahierte Strings auftauchen, bevor es überhaupt einen API-Key gibt. Es
-konstruiert keinen Provider und stellt keine Netzwerkanfrage, und seine Ausgabe landet außerhalb
-von `files.pattern`, `translate` gibt also nie Geld dafür aus, und `check` und `diff` melden sie
-nie als abgedriftet.
+ruft keinen Provider auf, und seine Ausgabe landet außerhalb von `files.pattern`, sodass kein Lauf
+Geld dafür ausgibt oder sie als abgedriftet meldet.
 
 ```ts
 import { loadConfig, pseudolocalize } from "@verbatra/sdk";
@@ -401,9 +437,8 @@ in [Menschliche Übersetzung](/docs/manual-translation).
 
 `importTmx` und `exportTmx` bewegen den [Übersetzungsspeicher](/docs/the-cache) in TMX hinein und
 wieder heraus, in das Austauschformat, das die gängigen Übersetzungsplattformen erzeugen und lesen.
-Das ist nicht das Arbeitsmappen-Paar in einem anderen Format: Die Arbeitsmappe gibt das ausstehende
-Delta einer Locale an eine menschliche Übersetzerin, dieses Paar bewegt den ganzen
-Übersetzungsspeicher als eine mehrsprachige Datei zwischen Werkzeugen.
+Anders als das Arbeitsmappen-Paar bewegt dieses Paar den ganzen Speicher als eine mehrsprachige
+Datei zwischen Werkzeugen.
 
 ```ts
 import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";

@@ -66,6 +66,19 @@ if (!summary.inSync) {
 
 Besoin des noms de clés plutôt que des comptes ? Remplace par `diff`, qui renvoie les listes de clés `missing`, `changed` et `orphaned` par locale, avec le même verdict `hasPendingChanges`. Tu lances plutôt la CLI en CI ? Voir [CI et codes de sortie](/docs/ci-and-exit-codes).
 
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
 ## Tester ton intégration sans clé
 
 Un faux fournisseur passé en `createProvider` exécute tout le flux, fichiers et contrôle d'intégrité compris, sans clé, sans appel réseau et avec une sortie déterministe : ce dont un test unitaire de ton propre outillage a besoin.
@@ -125,6 +138,30 @@ process.on("SIGINT", () => {
 ```
 
 Un échec d'exécution après le démarrage ne lève jamais ; il arrive comme `{ status: "failed" }` et la surveillance continue.
+
+## Annuler une exécution
+
+<AvailableFrom version="0.12.0" />
+
+Passe un `AbortSignal` comme `signal`. `translate` se résout alors au lieu de rejeter : il écrit ce
+qui est déjà arrivé, laisse le reste en attente et fixe `cancelled: true`.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(`cancelled: ${succeeded.length} done, ${partial.length} partial, ${failed.length} failed or not started`);
+  process.exitCode = 130;
+}
+```
+
+[`RUN_CANCELLED`](/docs/error-codes#run_cancelled) dit ce que signale chaque locale arrêtée.
 
 ## Extraire les clés de ton code source
 
@@ -211,9 +248,9 @@ chemin de sortie. Une exécution avec `check` n'écrit rien et ne signale que `s
 
 `pseudolocalize` construit une locale factice à partir des seules chaînes source, pour que les
 troncatures de mise en page et les chaînes jamais extraites apparaissent avant même qu'une clé
-d'API existe. Il ne construit aucun fournisseur et ne fait aucune requête réseau, et sa sortie
-atterrit hors de `files.pattern` : `translate` ne dépense donc jamais dessus, et `check` et `diff`
-ne la signalent jamais comme ayant dérivé.
+d'API existe. Il n'appelle aucun fournisseur, et sa sortie
+atterrit hors de `files.pattern` : aucune exécution ne dépense dessus ni ne la signale comme ayant
+dérivé.
 
 ```ts
 import { loadConfig, pseudolocalize } from "@verbatra/sdk";
@@ -373,9 +410,8 @@ Passe `dryRun: true` à `importWorkbook` pour valider un fichier renvoyé sans r
 
 `importTmx` et `exportTmx` font entrer et sortir la [mémoire de traduction](/docs/the-cache) au
 format TMX, le format d'échange que produisent et lisent les plateformes de traduction courantes.
-Ce n'est pas la paire classeur dans un autre format : le classeur remet à un traducteur humain
-le delta en attente d'une locale, tandis que cette paire déplace la mémoire entière comme un seul
-fichier multilingue entre outils.
+Contrairement à la paire classeur, elle déplace la mémoire entière comme un seul fichier
+multilingue entre outils.
 
 ```ts
 import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";

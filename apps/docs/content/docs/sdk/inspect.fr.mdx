@@ -171,6 +171,8 @@ function diff(
 
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
 
+**Exemple :** [Vérifier en CI sans écrire](/docs/programmatic-api#vérifier-en-ci-sans-écrire)
+
 Avec `unused: true`, il analyse aussi les racines `extract` de la config, en lecture seule et sans clé, et ajoute un rapport `unused`, séparé de chaque liste `orphaned` : les clés de la locale source qu'aucune référence statique ne nomme, dans l'ordre du catalogue, chacune avec sa `key` décodée et son `catalogKey`. [Clés source inutilisées](/docs/cli/diff#clés-source-inutilisées) explique les listes `ignored` et `possiblyDynamic` et le `status`. Le rapport ne fait jamais basculer `hasPendingChanges`.
 
 <AvailableFrom version="0.12.0" />

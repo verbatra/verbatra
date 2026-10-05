@@ -160,7 +160,7 @@ describe("the SDK quickstart and recipes", () => {
       { opening: "~~~bash", body: "ls" },
     ]);
     expect(typeScriptBlocks(readPage(QUICKSTART)).length).toBeGreaterThanOrEqual(5);
-    expect(typeScriptBlocks(readPage(RECIPES)).length).toBeGreaterThanOrEqual(13);
+    expect(typeScriptBlocks(readPage(RECIPES)).length).toBeGreaterThanOrEqual(15);
   });
 
   it(
