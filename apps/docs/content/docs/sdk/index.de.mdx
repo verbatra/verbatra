@@ -164,7 +164,7 @@ Diese Adapter hat der Aufrufer konstruiert, ihr Dateizugriff ist also genau das,
 darin verdrahtet hat. Beides zu übergeben heißt, dass der Aufrufer diese Verdrahtung besitzt.
 
 Auch das Laden der Konfiguration liegt außerhalb der Nahtstelle. `loadConfig` und
-`loadConfigWithMeta` nehmen keine `deps`: Sie lesen die Konfigurationsdatei selbst von der echten
+`loadConfigWithMeta` nehmen keine `deps`: sie lesen die Konfigurationsdatei selbst von der echten
 Platte und eine Glossardatei, die die Konfiguration nennt, über ihre eigene Option `fs`, das
 `deps.fs` eines späteren Flows erreicht also keinen der beiden Lesevorgänge. Um ein ganzes Projekt
 im Speicher zu halten, übergib dasselbe `SdkFs` als `loadConfig({ fs })` und reich die

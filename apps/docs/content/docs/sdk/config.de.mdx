@@ -415,7 +415,7 @@ const scaffoldingMetadata: {
 
 <AvailableFrom version="0.12.0" />
 
-Erkennt Format und Layout der Locale-Dateien eines Projekts anhand seiner Dateien, so wie `verbatra init` es tut, bevor es eine Konfiguration schreibt. Es schreibt nichts und ruft keinen Provider auf. Es durchsucht das Verzeichnis (versteckte Verzeichnisse, `node_modules` und Build-Ausgabe ausgenommen, mit begrenzter Tiefe und Eintragszahl) nach Dateien, die ein registrierter Adapter beansprucht, findet in jeder das Pfadsegment, das ein Locale ausschreibt, und behält das Dateimuster, das die meisten Locales abdeckt. Das Format ist dasjenige, dessen Adapter mit `canHandle` jede gefundene Datei anhand ihres Inhalts beansprucht; bei JSON, wo das jeder JSON-Adapter tut, entscheidet eine einzelne passende i18n-Bibliothek in `package.json`.
+Erkennt Format und Layout der Locale-Dateien eines Projekts anhand seiner Dateien, so wie `verbatra init` es tut, bevor es eine Konfiguration schreibt. Es schreibt nichts und ruft keinen Provider auf. Es durchsucht das Verzeichnis (versteckte Verzeichnisse, `node_modules` und Build-Ausgabe ausgenommen, mit begrenzter Tiefe und Eintragszahl) nach Dateien, die ein registrierter Adapter beansprucht, findet in jeder das Pfadsegment, das eine Locale ausschreibt, und behält das Dateimuster, das die meisten Locales abdeckt. Das Format ist dasjenige, dessen Adapter mit `canHandle` jede gefundene Datei anhand ihres Inhalts beansprucht; bei JSON, wo das jeder JSON-Adapter tut, entscheidet eine einzelne passende i18n-Bibliothek in `package.json`.
 
 ```ts title="Signatur"
 function detectProject(
@@ -439,7 +439,7 @@ const format = detection.format?.id;          // for example "yaml"
 const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
 ```
 
-Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (jeweils mit einem `subject` von `format` oder `layout` und seinen `candidates`), eine `confidence` von `high`, `medium`, `low` oder `none` und `reasons`, einen Satz pro Entscheidung. Gleichstände werden als Mehrdeutigkeiten gemeldet, nie geraten. Die optionalen Eingaben `format`, `pattern` und `sourceLocale` grenzen die Suche ein, und `deps.fs` und `deps.adapterRegistry` tauschen Dateisystem und Adapter aus, sodass auch die Dateien eines Drittanbieter-Adapters erkannt werden. Es wirft nie wegen einer fehlenden, unlesbaren oder fehlerhaften Datei; es meldet stattdessen weniger. `layout.unqualifiedSourceFile` nennt eine Datei neben dem Layout, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` oder eine gettext-Vorlage `.pot`; das Quell-Locale bleibt dann offen statt geraten zu werden, da die Quelle aus der Datei gelesen wird, die das Muster dafür benennt.
+Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (jeweils mit einem `subject` von `format` oder `layout` und seinen `candidates`), eine `confidence` von `high`, `medium`, `low` oder `none` und `reasons`, einen Satz pro Entscheidung. Gleichstände werden als Mehrdeutigkeiten gemeldet, nie geraten. Die optionalen Eingaben `format`, `pattern` und `sourceLocale` grenzen die Suche ein, und `deps.fs` und `deps.adapterRegistry` tauschen Dateisystem und Adapter aus, sodass auch die Dateien eines Drittanbieter-Adapters erkannt werden. Es wirft nie wegen einer fehlenden, unlesbaren oder fehlerhaften Datei; es meldet stattdessen weniger. `layout.unqualifiedSourceFile` nennt eine Datei neben dem Layout, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` oder eine gettext-Vorlage `.pot`; die Quell-Locale bleibt dann offen statt geraten zu werden, da die Quelle aus der Datei gelesen wird, die das Muster dafür benennt.
 
 ### isMachineTranslationEnabled
 
@@ -471,3 +471,20 @@ function assertMachineTranslationEnabled(
 **Rückgabe:** `void`
 
 **Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)
+
+### assertTargetLocale
+
+<AvailableFrom version="0.12.0" />
+
+Nimmt die Konfiguration und eine Locale und wirft einen `SdkError` mit `UNKNOWN_LOCALE`, wenn die Locale nicht zu den konfigurierten `targetLocales` gehört, mit derselben Meldung, die jede SDK-Funktion mit einem `locales`-Filter verwendet. Ruf es in einer Oberfläche auf, die selbst eine einzelne Locale annimmt, wie `glossary.get` im MCP-Server, damit eine falsche Locale genauso fehlschlägt wie im SDK.
+
+```ts title="Signatur"
+function assertTargetLocale(
+  config: Pick<VerbatraConfig, "targetLocales">,
+  locale: string,
+): void;
+```
+
+**Rückgabe:** `void`
+
+**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)

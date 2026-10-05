@@ -132,9 +132,11 @@ function watch(
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
 aufgerufen: `{ status: "succeeded", summary }` oder
 `{ status: "failed", error: { code, message, causeCode?, hint? } }`, wobei `causeCode` den Code des
-Fehlers nennt, den der Fehlschlag umhüllt, und `hint` der nächste Schritt ist, den `errorHint` liefert.
-`onReady` wird einmal aufgerufen, nachdem die Startprüfungen bestanden sind und direkt vor dem ersten
-Lauf, damit du die Sitzung vor dessen Ausgabe ankündigen kannst. Das SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
+Fehlers nennt, den der Fehlschlag umhüllt, und `hint` der nächste Schritt ist, den `errorHint`
+liefert. `onReady` wird einmal aufgerufen, nachdem die Startprüfungen bestanden sind und direkt vor
+dem ersten Lauf, damit du die Sitzung vor dessen Ausgabe ankündigen kannst. Wirft `onReady`, wird
+der Watcher geschlossen, und `watch` lehnt mit genau diesem Fehler ab, bevor ein Lauf startet. Das
+SDK loggt nichts; `onRun` ist die einzige Ausgabe. `concurrency`, `cache`, `onProgress`,
 `onLockWait` und `lockAcquireTimeoutMs` werden an jeden Lauf durchgereicht und verhalten sich genau
 wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge ein und wird einmal
 beim Start geprüft, nicht pro Zyklus.
@@ -157,9 +159,11 @@ Löscht jede Schreibsperre, die der aktuelle Prozess hält, für einen Prozess, 
 wird, ohne seine laufenden Durchläufe abzuschließen: Die CLI ruft es auf, wenn ein Interrupt
 `translate` oder `import` stoppt, und wenn ein zweiter Interrupt `watch` hart beendet. Die
 Durchläufe, die diese Sperren genommen haben, verlieren ihren Schutz, ruf es also nur direkt vor dem
-Beenden des Prozesses auf. Es nimmt keine Argumente und lehnt nie ab. Eine Sperre, die ein noch
-laufender Vorgang währenddessen nimmt oder nehmen will, wird mit `RUN_CANCELLED` abgelehnt und
-hinterlässt keine Datei; auf eine solche Übernahme wartet es höchstens drei Sekunden.
+Beenden des Prozesses auf. Es nimmt keine Argumente und lehnt nur dann mit einem `AggregateError`
+ab, der die Pfade der Sperren nennt, wenn sich eine gehaltene Sperre nicht löschen ließ, nachdem
+jede Sperre versucht wurde. Eine Sperre, die ein noch laufender Vorgang währenddessen nimmt oder
+nehmen will, wird mit `RUN_CANCELLED` abgelehnt und hinterlässt keine Datei; auf eine solche
+Übernahme wartet es höchstens drei Sekunden.
 
 ```ts title="Signatur"
 function releaseHeldLocks(): Promise<void>;

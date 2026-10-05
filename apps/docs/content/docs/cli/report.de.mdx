@@ -35,7 +35,7 @@ verbatra report provenance (source en, verbatra 0.12.0, 2026-09-29T08:00:00.000Z
 Supporting evidence from verbatra.provenance.json, not legal advice. --json lists every key.
 ```
 
-Die erste Zeile nennt die Quell-Locale, die verbatra-Version und wann der Bericht erstellt wurde. Jede Zeile zählt die Keys, die sowohl in der Quelle als auch in diesem Locale einen Wert haben. [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#der-herkunftsbericht) beschreibt die Kategorien, was der Bericht zeigen kann und was nicht, und das vollständige JSON-Schema.
+Die erste Zeile nennt die Quell-Locale, die verbatra-Version und wann der Bericht erstellt wurde. Jede Zeile zählt die Keys, die sowohl in der Quelle als auch in dieser Locale einen Wert haben. [Nachweis maschineller Übersetzungen](/docs/provenance-evidence#der-herkunftsbericht) beschreibt die Kategorien, was der Bericht zeigen kann und was nicht, und das vollständige JSON-Schema.
 
 Es gibt kein `--out`: Der Bericht geht wie bei `check` und `diff` auf stdout, also leite ihn um, wenn du ihn aufbewahren willst.
 
@@ -67,7 +67,7 @@ verbatra report provenance
 # Herkunft und Review-Status jedes Keys, für eine Audit-Datei
 verbatra report provenance --json > provenance-report.json
 
-# nur das deutsche Locale
+# nur die deutsche Locale
 verbatra report provenance --locales de
 ```
 

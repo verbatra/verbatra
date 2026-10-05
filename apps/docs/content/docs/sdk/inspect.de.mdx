@@ -176,7 +176,7 @@ beidem.
 <AvailableFrom version="0.12.0" />
 
 Prüft eine einzelne Locale-Datei direkt nach einer Änderung durch eine Person oder einen Agenten.
-Es liest nur diese Datei und, für ein Ziel-Locale, die Quelldatei; es ruft keinen Provider auf,
+Es liest nur diese Datei und, für eine Ziel-Locale, die Quelldatei; es ruft keinen Provider auf,
 liest keinen API-Key und schreibt nichts.
 
 ```ts title="Signatur"
@@ -261,7 +261,7 @@ function keyIntegrity(
 
 **Rückgabe:** `readonly LocaleKeyIntegrity[]`
 
-**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
 
 <AvailableFrom version="0.12.0" />
 

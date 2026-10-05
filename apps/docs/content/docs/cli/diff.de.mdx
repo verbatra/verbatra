@@ -120,7 +120,7 @@ Sind alle ausstehenden Keys geschützt, schlägt es stattdessen `verbatra studio
 # die ausstehenden Keys pro Locale auflisten (Exit 1, wenn welche ausstehen)
 verbatra diff
 
-# nur das deutsche und das französische Locale
+# nur die deutsche und die französische Locale
 verbatra diff --locales de,fr
 
 # maschinenlesbare Key-Listen für Tools oder einen PR-Kommentar
@@ -134,8 +134,8 @@ verbatra diff --unused
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | kein Locale hat einen Key zum Hinzufügen oder Neuübersetzen, und kein vollständiger `--unused`-Scan hat einen ungenutzten Key gefunden |
-| `1` | mindestens ein Locale hat einen fehlenden oder geänderten Key, oder ein `complete`-Scan mit `--unused` hat einen ungenutzten Key gefunden |
+| `0` | keine Locale hat einen Key zum Hinzufügen oder Neuübersetzen, und kein vollständiger `--unused`-Scan hat einen ungenutzten Key gefunden |
+| `1` | mindestens eine Locale hat einen fehlenden oder geänderten Key, oder ein `complete`-Scan mit `--unused` hat einen ungenutzten Key gefunden |
 | `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf oder ein Bedienfehler wie ein leerer oder unbekannter `--locales`-Wert |
 
 Verwaiste, möglicherweise dynamische und ignorierte Keys sowie ein Bericht mit `unreliable` oder `not-run` führen nie allein zu `1`. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
