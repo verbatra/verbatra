@@ -125,14 +125,15 @@ function watch(
 **Example:** [Watch in a long-running process](/docs/programmatic-api#watch-in-a-long-running-process)
 
 `debounceMs` defaults to 300. `onRun` is called once per run with a `WatchRunResult`:
-`{ status: "succeeded", summary }` or `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
-where `causeCode` names the coded error the failure wraps and `hint` is the next step `errorHint`
-gives. `onReady` is called once, after the startup checks pass and right before the initial run, so
-you can announce the session ahead of that run's output. The SDK does no logging; `onRun` is the
-only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
-`lockAcquireTimeoutMs` are passed through to every run and behave exactly as on `translate`.
-`locales` narrows every run of the session to that subset and is validated once at startup, not per
-cycle.
+`{ status: "succeeded", summary }` or
+`{ status: "failed", error: { code, message, causeCode?, hint? } }`, where `causeCode` names the
+coded error the failure wraps and `hint` is the next step `errorHint` gives. `onReady` is called
+once, after the startup checks pass and right before the initial run, so you can announce the
+session ahead of that run's output. If `onReady` throws, the watcher is closed and `watch` rejects
+with that error before any run starts. The SDK does no logging; `onRun` is the only output.
+`concurrency`, `cache`, `onProgress`, `onLockWait`, and `lockAcquireTimeoutMs` are passed through to
+every run and behave exactly as on `translate`. `locales` narrows every run of the session to that
+subset and is validated once at startup, not per cycle.
 
 Returns a `WatchController` with one method, `stop()`, which closes the watcher and awaits the
 in-flight run. Every code on the **Throws** line is refused at startup, before the watcher exists,
@@ -147,12 +148,14 @@ surfaced through `onRun` and watching continues.
 
 <AvailableFrom version="0.12.0" />
 
-Deletes every write lock the current process holds, for a process about to exit without letting
-its in-flight runs finish: the CLI calls it when an interrupt stops `translate` or `import`, and
-when a second interrupt force-stops `watch`. The runs that took those locks lose their protection,
-so call it only immediately before the process exits. It takes no arguments and never rejects.
-A lock that a still-running operation is taking, or tries to take, while it runs is refused with
-`RUN_CANCELLED` and leaves no file behind; it waits at most three seconds for such an acquisition.
+Deletes every write lock the current process holds, for a process about to exit without letting its
+in-flight runs finish: the CLI calls it when an interrupt stops `translate` or `import`, and when a
+second interrupt force-stops `watch`. The runs that took those locks lose their protection, so call
+it only immediately before the process exits. It takes no arguments and rejects with an
+`AggregateError` naming the lock paths only when a held lock could not be deleted, after attempting
+every lock. A lock that a still-running operation is taking, or tries to take, while it runs is
+refused with `RUN_CANCELLED` and leaves no file behind; it waits at most three seconds for such an
+acquisition.
 
 ```ts title="Signature"
 function releaseHeldLocks(): Promise<void>;

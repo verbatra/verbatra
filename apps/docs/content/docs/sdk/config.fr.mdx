@@ -123,7 +123,7 @@ Il prend aussi `lockAcquireTimeoutMs`, qui borne l'attente du verrou du glossair
 
 <AvailableFrom version="0.12.0" />
 
-Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme [`TranslateRequest.glossary`](/docs/sdk/extend#fournisseurs-personnalisés), et ce que voient les contrôles de révision et l'empreinte de cache de cette locale.
+Résout la partie d'un glossaire qui s'applique à une locale cible : `glossaryForLocale(config.glossary, "de")` renvoie `{ terms, doNotTranslate }`, chaque terme avec le `target` de la locale (sa propre entrée, puis celle de sa langue de base, puis celle partagée), ses traductions `forbidden`, `caseSensitive`, ainsi que sa `note` et son `partOfSpeech`, ou `undefined` quand rien du glossaire ne s'y applique. C'est exactement ce qu'une requête de traduction vers cette locale porte comme [`TranslateRequest.glossary`](/docs/sdk/extend#fournisseurs-personnalisés), et ce que voient les contrôles de relecture et l'empreinte de cache de cette locale.
 
 ```ts title="Signature"
 function glossaryForLocale(

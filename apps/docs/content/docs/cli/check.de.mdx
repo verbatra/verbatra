@@ -41,7 +41,7 @@ Ein Key fehlt, wenn die Quelle ihn hat und das Ziel nicht, und er ist veraltet, 
 - Keys mit unterschiedlicher Beschreibung, Bedeutung, Plural-Kennzeichnung oder gettext-`msgctxt` werden nie gruppiert.
 - Pluralformen werden pro Form verglichen: Die Formen `one` und `other` eines Keys werden nie miteinander gruppiert.
 
-Bekannte Fehlalarme: i18next-Kontextvarianten (`invite_male`, `invite_female`), gettext-Einträge mit `#, fuzzy`, pluralartige Keys in einem Format ohne Plurale (`yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini`, `resx`) und die Pluralformen eines `custom:`-Formats. Gib solchen Keys eine abweichende Beschreibung oder Bedeutung oder ignoriere den Befund. Mit `--json` trägt jedes Locale `inconsistencies: { source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }[]`.
+Bekannte Fehlalarme: i18next-Kontextvarianten (`invite_male`, `invite_female`), gettext-Einträge mit `#, fuzzy`, pluralartige Keys in einem Format ohne Plurale (`yaml`, `ngx-translate-json`, `xliff`, `properties`, `ini`, `resx`) und die Pluralformen eines `custom:`-Formats. Gib solchen Keys eine abweichende Beschreibung oder Bedeutung oder ignoriere den Befund. Mit `--json` trägt jede Locale `inconsistencies: { source, context?, description?, meaning?, isPlural, pluralForm?, translations: [{ value, keys }] }[]`.
 
 ### Geschützte Keys
 
@@ -69,10 +69,10 @@ Die Kategorien stammen aus den CLDR-Regeln von Node.js (siehe [Sprachunterstütz
 | `i18next-json` | die Key-Suffixe `_one`, `_few`, ... und `_ordinal_`-Plurale gegen die Ordinalregeln |
 | `android-xml` | die `<item quantity>`-Einträge jedes `<plurals>` |
 | `apple-strings` | die Pluralregeln in der `.stringsdict` neben der `.strings`-Datei |
-| `apple-xcstrings` | die `variations.plural`-Kategorien jedes Locales |
+| `apple-xcstrings` | die `variations.plural`-Kategorien jeder Locale |
 | `next-intl-json`, `arb` | jedes ICU-`plural` und -`selectordinal`, auch verschachtelte |
 
-`other` ist immer Pflicht. Ein exakter Zweig wie `=1` ersetzt nie eine Kategorie, `select`-Zweige werden nie geprüft, und geprüft wird nur ein Plural, von dem das Ziel mindestens eine Form hat. Es ist eine Warnung: Ein einfaches `check` behält seinen Exit-Code, `--qa --strict` schlägt daran fehl. [`verbatra doctor`](/docs/cli/doctor) meldet dieselben Plurale. Mit `--json` trägt jedes Locale `incompletePlurals`, nach Key sortiert:
+`other` ist immer Pflicht. Ein exakter Zweig wie `=1` ersetzt nie eine Kategorie, `select`-Zweige werden nie geprüft, und geprüft wird nur ein Plural, von dem das Ziel mindestens eine Form hat. Es ist eine Warnung: Ein einfaches `check` behält seinen Exit-Code, `--qa --strict` schlägt daran fehl. [`verbatra doctor`](/docs/cli/doctor) meldet dieselben Plurale. Mit `--json` trägt jede Locale `incompletePlurals`, nach Key sortiert:
 
 ```ts
 interface IncompletePlural {
@@ -100,7 +100,7 @@ qa: 1 error, 1 warning
     title: warning EQUALS_SOURCE
 ```
 
-Verwaiste und fehlende Keys werden übersprungen, und Quell-Keys, die kein gültiges ICU sind, stehen einmal unter `invalidSourceKeys`. Geschützte, gepinnte und abgelehnte Werte werden wie alle anderen geprüft. Mit `--json` hält `result.qa` die Summen und jedes Locale sein eigenes `qa`:
+Verwaiste und fehlende Keys werden übersprungen, und Quell-Keys, die kein gültiges ICU sind, stehen einmal unter `invalidSourceKeys`. Geschützte, gepinnte und abgelehnte Werte werden wie alle anderen geprüft. Mit `--json` hält `result.qa` die Summen und jede Locale ihr eigenes `qa`:
 
 ```ts
 interface CheckQaSummary { errors: number; warnings: number; invalidSourceKeys: string[] }
@@ -127,7 +127,7 @@ Mit `--json` ist `result.review` gleich `{ reviewed, unreviewed, code? }`, wobei
 
 <AvailableFrom version="0.12.0" />
 
-`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jedes geprüften Locales aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
+`--sensitive` führt die Prüfung des [Schutzes für sensible Inhalte](/docs/data-handling#schutz-für-sensible-inhalte) über jeden Quell-Key (Key-Name, Wert, Beschreibung und Bedeutung) und das Glossar jeder geprüften Locale aus, mit den Detektoren, Mustern und der Allow-Liste aus `sensitiveData` (ohne Block den Standard-Detektoren), bei jedem `mode` und Provider, auch `none`: Werte verlassen den Rechner trotzdem über Export-, XLIFF- und TMX-Übergaben. Es meldet Keys und Detektoren, nie gefundenen Text außerhalb eines Key-Namens, und endet bei jedem Fund mit Exit `1`.
 
 Der Detektor `email` überspringt [reservierte Beispiel-Domains](/docs/data-handling#schutz-für-sensible-inhalte), teste also mit einer realistisch wirkenden Adresse.
 
@@ -142,10 +142,10 @@ Mit `--json` ist `result.sensitive` gleich `{ findings, glossaryTerms }`, jeder 
 
 <AvailableFrom version="0.12.0" />
 
-`--file <path>` prüft eine einzelne Locale-Datei, gedacht für Editor- und Agent-Hooks nach einer Änderung. Es liest diese Datei und, bei einem Ziel-Locale, die Quelldatei, sonst nichts. Der Pfad wird gegen `--cwd` aufgelöst und über `files.pattern` einem Locale zugeordnet.
+`--file <path>` prüft eine einzelne Locale-Datei, gedacht für Editor- und Agent-Hooks nach einer Änderung. Es liest diese Datei und, bei einer Ziel-Locale, die Quelldatei, sonst nichts. Der Pfad wird gegen `--cwd` aufgelöst und über `files.pattern` einer Locale zugeordnet.
 
 - Eine Datei, die sich nicht parsen lässt, ergibt einen `syntax`-Fehler mit dem Code des Adapters (`INVALID_JSON`, `INVALID_YAML`, ...) und Zeile und Spalte, wenn der Parser eine Position meldet.
-- Eine Zieldatei wird wie bei [`--qa`](#qualitätsprüfung) geprüft, Pluralkategorien eingeschlossen, eine Quelldatei nur auf Syntax. Ein `apple-xcstrings`-Katalog wird für jedes Ziel-Locale geprüft.
+- Eine Zieldatei wird wie bei [`--qa`](#qualitätsprüfung) geprüft, Pluralkategorien eingeschlossen, eine Quelldatei nur auf Syntax. Ein `apple-xcstrings`-Katalog wird für jede Ziel-Locale geprüft.
 - Ein Pfad, der keine konfigurierte Locale-Datei ist, schlägt mit `NOT_A_LOCALE_FILE` und Exit `2` fehl.
 
 Mit `--json` verwendet `result` den Bericht von `--qa` wieder, sodass ein Hook nur eine Form parst:
@@ -198,7 +198,7 @@ interface LocaleCheckSummary {
 }
 ```
 
-Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, den `extract` ohne Standardwert ergänzt hat, hat noch nichts zu übersetzen: Er wird in `emptySource` statt in `missing` oder `stale` gezählt, macht ein Locale nie asynchron, und die Terminalausgabe nennt die Zahl.
+Ein Quell-Key, dessen Wert leer ist oder nur aus Leerraum besteht, etwa einer, den `extract` ohne Standardwert ergänzt hat, hat noch nichts zu übersetzen: Er wird in `emptySource` statt in `missing` oder `stale` gezählt, bringt eine Locale nie aus dem Takt, und die Terminalausgabe nennt die Zahl.
 
 ### Rückmeldung im Terminal
 
@@ -236,7 +236,7 @@ verbatra check --file locales/de.json --json
 | Code | Bedeutung |
 | --- | --- |
 | `0` | synchron, und kein Befund, den die übergebenen Flags zum Fehlschlag machen |
-| `1` | ein Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden, oder `--sensitive` hat sensible Inhalte gefunden |
+| `1` | eine Locale hat einen fehlenden oder veralteten Key, `--qa` oder `--file` hat einen Fehler gefunden (oder unter `--strict` eine Warnung oder einen unvollständigen Plural), `--require-reviewed` hat eine nicht freigegebene Übersetzung gefunden, oder `--sensitive` hat sensible Inhalte gefunden |
 | `2` | konnte nicht laufen: ein Fehler für den ganzen Lauf wie `SOURCE_UNREADABLE` oder `NOT_A_LOCALE_FILE`, oder ein Nutzungsfehler wie `INVALID_QA_OPTION` oder `INVALID_SEVERITY` |
 
 Exit `1` heißt, dass das Ergebnis nicht sauber ist, nicht dass der Lauf gescheitert ist; der Bericht wird trotzdem ausgegeben. Bei einem Projekt, dessen Quelldatei noch fehlt, meldet [`verbatra doctor`](/docs/cli/doctor) weiterhin. Den Vertrag findest du unter [Exit-Codes](/docs/cli/output#exit-codes).

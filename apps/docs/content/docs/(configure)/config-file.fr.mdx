@@ -161,11 +161,11 @@ La version 2 donne à chaque terme une traduction par locale, des traductions in
 
 Chaque terme a besoin d'un `target`, d'une entrée dans `targets` ou d'une liste `forbidden`, et ne peut pas interdire sa propre traduction, nommer deux fois une locale ni figurer aussi dans `doNotTranslate`. L'empreinte de [cache](/docs/the-cache) de chaque locale ne couvre que ses propres termes. Un fichier version 1 continue de fonctionner avec la même empreinte ; [`updateGlossaryTerm`](/docs/sdk/config#updateglossaryterm) du SDK ne le réécrit en version 2 que pour une modification que la version 1 ne sait pas exprimer.
 
-<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Seule la forme fichier se modifie depuis [Studio](/docs/review-in-studio), un terme à la fois ; un glossaire en ligne y reste en lecture seule. Les fournisseurs qui appliquent le glossaire sont indiqués dans [Fournisseurs](/docs/providers#ton-et-glossaire-selon-les-fournisseurs) ; la sortie de chaque fournisseur est vérifiée ensuite et signalée `GLOSSARY_TERM_MISSED` ou `GLOSSARY_FORBIDDEN_TERM` ([raisons de révision](/docs/error-codes#review-reason-codes)).
+<AvailableFrom version="0.4.0" pkg="@verbatra/studio" /> Seule la forme fichier se modifie depuis [Studio](/docs/review-in-studio), un terme à la fois ; un glossaire en ligne y reste en lecture seule. Les fournisseurs qui appliquent le glossaire sont indiqués dans [Fournisseurs](/docs/providers#ton-et-glossaire-selon-les-fournisseurs) ; la sortie de chaque fournisseur est vérifiée ensuite et signalée `GLOSSARY_TERM_MISSED` ou `GLOSSARY_FORBIDDEN_TERM` ([raisons de relecture](/docs/error-codes#review-reason-codes)).
 
 ### generatePlurals
 
-Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cible a besoin mais que la source n'a pas, comme few et many pour le polonais ; les clés ordinales (`<key>_ordinal_<category>`) suivent les règles ordinales CLDR. Seul `i18next-json` avec un fournisseur LLM le prend en charge. Tout le reste, et une locale sans règles CLDR, reçoit à la place l'avertissement de pluriel par locale (en supposant `one` et `other` pour les cardinaux, `other` pour les ordinaux). Il n'y a pas d'option CLI ; `translate()` du SDK accepte une surcharge par exécution.
+Quand il vaut true, verbatra synthétise les formes plurielles CLDR dont une cible a besoin mais que la source n'a pas, comme `few` et `many` pour le polonais ; les clés ordinales (`<key>_ordinal_<category>`) suivent les règles ordinales CLDR. Seul `i18next-json` avec un fournisseur LLM le prend en charge. Tout le reste, et une locale sans règles CLDR, reçoit à la place l'avertissement de pluriel par locale (en supposant `one` et `other` pour les cardinaux, `other` pour les ordinaux). Il n'y a pas d'option CLI ; `translate()` du SDK accepte une surcharge par exécution.
 
 ### fuzzyCache
 
@@ -207,7 +207,7 @@ maxLength: {
 - **Seulement ici.** Aucun budget n'est déduit d'une description ni des métadonnées d'un format. Les clés sont comparées littéralement, jamais comme des globs ; une clé absente de la table n'est jamais mesurée.
 - **Groupes de graphèmes.** La longueur compte les caractères perçus, espaces compris : un emoji ou une lettre accentuée compte pour un, tout comme un caractère CJK, bien qu'il s'affiche environ deux fois plus large. La limite est inclusive.
 - **Quand c'est vérifié.** Sur chaque valeur que `translate` produit pour la clé, réutilisations du cache comprises. Une clé à jour n'est pas mesurée, donc un nouveau budget ne signale rien tant que sa source ne change pas ; [`verbatra export --include-unchanged`](/docs/cli/export) mesure tout de suite chaque valeur actuelle.
-- **Consultatif.** Un dépassement est quand même écrit et verrouillé, et signalé pour révision comme [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded).
+- **Consultatif.** Un dépassement est quand même écrit et verrouillé, et signalé pour relecture comme [`MAX_LENGTH_EXCEEDED`](/docs/error-codes#max_length_exceeded).
 
 ### maxTokens et budgetBehavior
 

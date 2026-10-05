@@ -80,8 +80,8 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 
 - **Un appel à la fois.** Un second appel à `translation.editEntry` ou `translation.retranslateEntry` pour la même entrée, ou une seconde exécution de `translation.translatePending`, est refusé avec `isError` tant que le premier tourne.
 - **Travail humain.** `translation.retranslateEntry` refuse une clé épinglée avec `KEY_PINNED` et, sauf avec `humanEdits: "overwrite"`, la valeur d'une personne avec `KEY_PROTECTED` ; `translation.editEntry` refuse une clé épinglée. `translation.translatePending` liste ces clés sous `protected`. Voir [Protéger les traductions humaines](/docs/protecting-human-translations).
-- **Provenance.** Une valeur écrite par `translation.editEntry` reçoit l'origine `agent`. `review.queue` est la même file que celle de Studio : chaque valeur non approuvée d'origine `machine`, `memory`, `fuzzy` ou `agent`. Voir [Décisions de revue](/docs/the-lock-file#décisions-de-revue).
-- **Décisions de relecture.** `review.approve` et `review.reject` prennent `locale`, `key`, `expectedValue` ou `expectedHash` (une valeur qui a changé entre-temps est refusée avec `REVIEW_VALUE_CHANGED`) et un nom dans `reviewer`. Une approbation compte pour [`verbatra check --require-reviewed`](/docs/cli/check).
+- **Provenance.** Une valeur écrite par `translation.editEntry` reçoit l'origine `agent`. `review.queue` est la même file que celle de Studio : chaque valeur non approuvée d'origine `machine`, `memory`, `fuzzy` ou `agent`. Voir [Décisions de relecture](/docs/the-lock-file#décisions-de-relecture).
+- **Décisions de relecture.** `review.approve` et `review.reject` prennent `locale`, `key`, `expectedValue` ou `expectedHash` (une valeur qui a changé entre-temps est refusée avec `REVIEW_VALUE_CHANGED`) et un nom dans `reviewer`. Une approbation compte pour [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues).
 
 ### Entrées et résultats
 
@@ -101,7 +101,7 @@ Le serveur répond à la poignée de main avec des `instructions` fixes, que la 
 - `glossary.get` prend une `locale` optionnelle et ajoute alors `effective`, les termes auxquels cette locale est tenue.
 - `key.value`, `lock.state`, `status.check` et `status.diff` portent la provenance, absente quand `verbatra.provenance.json` est illisible.
 - `locale.values` et `report.provenance` renvoient leurs entrées par pages dans l'ordre des clés source : `limit` (200 par défaut, 1 000 au plus), puis le `nextCursor` de la page précédente comme `cursor`. Une page ne nomme que les locales dont elle contient des entrées, et un curseur périmé échoue comme entrée invalide.
-- `locale.values` prend `keys` ou une `query` insensible à la casse et renvoie des tableaux d'entrées, pas la map par clé de Studio. `report.provenance` renvoie toujours des comptes complets ; `includeEntries` ajoute les clés, si tu veux seulement pour certains `buckets`.
+- `locale.values` prend `keys` ou une `query` insensible à la casse et renvoie des tableaux d'entrées, pas la map par clé de Studio. `report.provenance` renvoie toujours des comptes complets ; `includeEntries` ajoute les clés, éventuellement limitées à certains `buckets`.
 - `history.list` prend `limit` (50 par défaut, 200 au plus). Avec `available: false`, sa `reason` vaut `git-missing`, `not-a-repository`, `timeout` ou `output-too-large`.
 - Les outils qui écrivent prennent un `lockTimeoutMs` optionnel, de `0` à `600000`, par défaut `30000` : la durée d'attente d'un verrou d'écriture occupé avant d'échouer avec `LOCK_CONTENDED`, sans rien avoir écrit.
 - Les entrées et sorties sont des JSON Schemas ; une entrée invalide renvoie un résultat qui nomme le champ. Un résultat qui ne correspond pas à son `outputSchema` échoue avec `OUTPUT_SCHEMA_MISMATCH` ; pour un outil qui écrit, la modification a été appliquée, donc ne relance pas l'appel.

@@ -22,7 +22,7 @@ Une valeur réutilisée n'est pas acceptée aveuglément. Elle passe la même
 qu'une traduction fraîche, et une valeur qui ne convient plus est écartée puis traduite à nouveau.
 Les succès du cache sont signalés par locale, à part des clés traduites pendant l'exécution.
 
-Une valeur qu'un relecteur a [rejetée](/docs/the-lock-file#décisions-de-revue) n'est jamais
+Une valeur qu'un relecteur a [rejetée](/docs/the-lock-file#décisions-de-relecture) n'est jamais
 réutilisée pour cette clé : le fichier de provenance garde un hash du texte refusé, et une exécution
 saute tout succès qui y correspond. La seule faille est un fichier de provenance que l'exécution ne
 peut pas lire (écrit par un verbatra plus récent, ou corrompu sous `humanEdits: "overwrite"`) ;
@@ -61,9 +61,9 @@ inversent ce que dit la phrase. Le seuil décide combien de dépense fournisseur
 point une réutilisation est sûre. La sûreté vient de règles qui ne dépendent pas du chiffre :
 
 - **C'est désactivé tant que tu ne l'actives pas.**
-- **Chaque réutilisation approximative est signalée pour révision** avec
+- **Chaque réutilisation approximative est signalée pour relecture** avec
   [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), à chaque exécution, quel que soit son
-  score. Si personne ne traite la [file de révision](/docs/review-in-studio), laisse-la désactivée.
+  score. Si personne ne traite la [file de relecture](/docs/review-in-studio), laisse-la désactivée.
 - **Des nombres modifiés refusent la réutilisation.** Si les nombres des deux sources diffèrent en
   quantité, en valeur ou en ordre, l'entrée n'est pas candidate. Cela couvre tout caractère
   numérique Unicode (`m²` vers `m³`, `½` vers `¼`), mais pas les nombres écrits en toutes lettres.

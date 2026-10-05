@@ -36,10 +36,10 @@ Le classeur s'ouvre sur une feuille **Instructions**, puis une feuille par local
 | `Translation` | **oui** | la seule cellule que le traducteur remplit |
 | `Source hash` | non | masquée ; détecte une source modifiée après l'export |
 | `Context` | non | la description de la clé, quand le format source en porte une ; jamais importée |
-| `Review status` | non | `ok`, ou `review` quand un [signalement de révision](/docs/translation-safety#signalements-de-révision) suggère un second regard |
-| `Review reasons` | non | les [raisons de révision](/docs/error-codes#review-reason-codes) derrière un statut `review` |
+| `Review status` | non | `ok`, ou `review` quand un [signalement de relecture](/docs/translation-safety#signalements-de-relecture) suggère un second regard |
+| `Review reasons` | non | les [raisons de relecture](/docs/error-codes#review-reason-codes) derrière un statut `review` |
 
-Chaque colonne sauf `Translation` est verrouillée par la protection de feuille, et `Translation` utilise le format texte d'Excel, donc une valeur comme `007` ou commençant par `=` reste du texte littéral. Les colonnes de révision sont consultatives : l'import ne les lit jamais.
+Chaque colonne sauf `Translation` est verrouillée par la protection de feuille, et `Translation` utilise le format texte d'Excel, donc une valeur comme `007` ou commençant par `=` reste du texte littéral. Les colonnes de relecture sont consultatives : l'import ne les lit jamais.
 
 ## La remise
 
@@ -118,7 +118,7 @@ verbatra export --out handoff/round-2.xlsx
 
 Utilise `--include-unchanged` quand un traducteur veut une locale entière pour le contexte. `--out` doit rester dans le projet et ne doit pas désigner un fichier dont le projet dépend. Voir [`verbatra export`](/docs/cli/export) pour chaque option et chaque règle.
 
-## Les colonnes de révision
+## Les colonnes de relecture
 
 Les deux colonnes sont calculées à l'export à partir de la source et des valeurs actuelles, donc une ligne sans traduction est toujours `ok`. `Review reasons` écrit chaque raison en minuscules avec des tirets (`length-ratio-outlier`), sauf les deux que seule une exécution peut voir (`provider-degraded`, `fuzzy-cache-reuse`), qui n'apparaissent jamais. Elle ajoute `icu-arms` avec les branches manquantes ou en trop quand les branches ICU d'une valeur ne conviennent pas à la langue cible ; la barrière d'intégrité refuse cette valeur, donc corrige-la avant le retour de la ligne. Pour effacer un signalement, corrige la traduction.
 

@@ -129,7 +129,7 @@
         },
         "providers": {
           "question": "Which translation providers can I use?",
-          "answer": "Seven, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
+          "answer": "Any of these, behind one interface: Anthropic, OpenAI, and Gemini (LLMs), DeepL and Google Cloud Translation (machine translation), openai-compatible, which points verbatra at a local or self-hosted server like Ollama, LM Studio, or vLLM, and libretranslate, a self-hosted LibreTranslate server for machine translation with no language model. You pick one by id in your config and can switch later by editing that one line. Gemini has a real free tier, and a local model costs nothing per call. Or set the provider to none to switch machine translation off entirely."
         },
         "languages": {
           "question": "Which languages does verbatra support?",
@@ -257,7 +257,7 @@
       }
     },
     "providers": {
-      "heading": "Seven providers, one interface.",
+      "heading": "One interface for every provider.",
       "lead": "Switch by changing one line of config, or set it to none and keep every string in human hands.",
       "hint": "Hover or tab through the cards.",
       "kinds": {

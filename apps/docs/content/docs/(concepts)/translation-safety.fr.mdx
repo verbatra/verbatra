@@ -1,6 +1,6 @@
 ---
 title: Sûreté de la traduction
-description: "Le modèle de sûreté : chaînes non fiables, barrière d'intégrité, signalements de révision, budget de tokens, et erreurs qui ne fuient jamais."
+description: "Le modèle de sûreté : chaînes non fiables, barrière d'intégrité, signalements de relecture, budget de tokens, et erreurs qui ne fuient jamais."
 type: concept
 ---
 verbatra ne fait confiance ni aux chaînes qu'il traduit ni à ce qu'un fournisseur renvoie. Chaque
@@ -12,7 +12,7 @@ chemin d'erreur.
 | --- | --- | --- |
 | Frontière contre l'injection de prompt | une chaîne qui ressemble à une instruction | rien à faire échouer : les chaînes ne sont jamais que des données |
 | Barrière d'intégrité | placeholders, ICU ou balisage cassés, valeurs vides ou dégénérées | la clé est retenue et retentée à l'exécution suivante |
-| Signalements de révision | une valeur valide mais suspecte | la clé est écrite et mise en file pour une personne |
+| Signalements de relecture | une valeur valide mais suspecte | la clé est écrite et mise en file pour une personne |
 | Budget de tokens | une dépense au-delà d'un plafond que tu fixes | le reste de l'exécution est retenu, ou signalé |
 | Erreurs structurées | une clé ou un en-tête qui fuit dans un message | un code stable avec un message fixe |
 
@@ -130,10 +130,10 @@ entre chevrons comme `<Enter>` est lu comme du texte. Les balises que le format 
 placeholders sont laissées à la vérification des placeholders. Commentaires, texte brut et sources
 mal formées : voir [`markup`](/docs/error-codes#markup).
 
-## Signalements de révision
+## Signalements de relecture
 
 Une seconde couche, consultative, signale les résultats suspects à une personne. Un signalement ne
-retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la file de révision.
+retient jamais une clé : la valeur est écrite, verrouillée, et mise dans la file de relecture.
 
 | Motif | Signale une traduction qui |
 | --- | --- |
@@ -153,9 +153,9 @@ ni masquer ni restaurer ([`PLACEHOLDER_UNSUPPORTED`](/docs/error-codes#placehold
 
 Les succès du cache et les valeurs partagées entre clés passent par les mêmes heuristiques que les
 traductions fraîches. Les clés signalées apparaissent par locale sous `needsReview` dans le résumé
-de l'exécution, dans les colonnes de révision du classeur, et sur la
+de l'exécution, dans les colonnes de relecture du classeur, et sur la
 [page Review de Studio](/docs/review-in-studio). Une clé quitte la file dès qu'une personne approuve,
-rejette ou réécrit sa valeur ; voir [Décisions de revue](/docs/the-lock-file#décisions-de-revue).
+rejette ou réécrit sa valeur ; voir [Décisions de relecture](/docs/the-lock-file#décisions-de-relecture).
 
 ## Le budget de tokens
 
@@ -188,7 +188,7 @@ et l'échec d'une locale n'arrête jamais les autres.
 <AvailableFrom version="0.12.0" />
 
 [`verbatra check --qa`](/docs/cli/check#contrôle-qualité) applique la barrière et les signalements
-de révision aux valeurs commitées, sans appel fournisseur.
+de relecture aux valeurs commitées, sans appel fournisseur.
 
 ## Voir aussi
 

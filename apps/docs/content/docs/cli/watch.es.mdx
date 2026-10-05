@@ -41,7 +41,7 @@ La primera interrupción (Ctrl-C o SIGTERM) deja terminar la ejecución en curso
 
 ### Salida JSON
 
-Con `--json`, stdout es NDJSON: un [sobre](/docs/cli/output#salida-json) por ejecución, con `command: "watch"`. Una ejecución correcta es un registro `ok: true` con el [`RunSummary`](/docs/cli/translate#salida-json) de esa ejecución; una fallida es un registro `ok: false` con el código propio del fallo, o `WATCH_RUN_FAILED` si no tenía, más su `hint` cuando lo hay. Una ejecución fallida es solo un registro: no detiene el vigilante ni cambia el código de salida. La línea de arranque, el aviso de parada y el progreso van a stderr. Sin `--json`, el resumen de una ejecución va a stdout y la línea `verbatra: error [CODE] message` de una fallida a stderr.
+Con `--json`, stdout es NDJSON: un [envoltorio](/docs/cli/output#salida-json) por ejecución, con `command: "watch"`. Una ejecución correcta es un registro `ok: true` con el [`RunSummary`](/docs/cli/translate#salida-json) de esa ejecución; una fallida es un registro `ok: false` con el código propio del fallo, o `WATCH_RUN_FAILED` si no tenía, más su `hint` cuando lo hay. Una ejecución fallida es solo un registro: no detiene el vigilante ni cambia el código de salida. La línea de arranque, el aviso de parada y el progreso van a stderr. Sin `--json`, el resumen de una ejecución va a stdout y la línea `verbatra: error [CODE] message` de una fallida a stderr.
 
 ### Información en el terminal
 

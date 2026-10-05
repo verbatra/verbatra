@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT_DIR = resolve(REPO_ROOT, "apps/docs/content/docs");
+const MESSAGES_DIR = resolve(REPO_ROOT, "apps/docs/messages");
 
 const SPELLED_COUNTS = {
   en: {
@@ -63,6 +64,20 @@ const PAGES = readdirSync(CONTENT_DIR, { recursive: true, encoding: "utf8" })
   .filter((file) => file.endsWith(".mdx"))
   .sort();
 
+const MESSAGE_FILES = readdirSync(MESSAGES_DIR)
+  .filter((file) => /^(en|de|es|fr)\.json$/.test(file))
+  .sort();
+
+function messageStrings(value) {
+  if (typeof value === "string") {
+    return [value];
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.values(value).flatMap(messageStrings);
+  }
+  return [];
+}
+
 describe("docs prose never spells out a registry size", () => {
   it("finds pages in every locale", () => {
     for (const locale of Object.keys(SPELLED_COUNTS)) {
@@ -74,6 +89,19 @@ describe("docs prose never spells out a registry size", () => {
     const source = readFileSync(join(CONTENT_DIR, file), "utf8");
 
     expect(spelledCounts(source, localeOf(file))).toEqual([]);
+  });
+});
+
+describe("docs UI strings never spell out a registry size", () => {
+  it("finds a message file per locale", () => {
+    expect(MESSAGE_FILES).toEqual(["de.json", "en.json", "es.json", "fr.json"]);
+  });
+
+  it.each(MESSAGE_FILES)("%s names no count of formats, providers or commands", (file) => {
+    const messages = JSON.parse(readFileSync(join(MESSAGES_DIR, file), "utf8"));
+    const locale = file.slice(0, 2);
+
+    expect(messageStrings(messages).flatMap((text) => spelledCounts(text, locale))).toEqual([]);
   });
 });
 

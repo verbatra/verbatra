@@ -35,7 +35,7 @@ También acepta los [flags globales](/docs/cli#flags-globales) `--cwd` y `--json
 
 <AvailableFrom version="0.12.0" />
 
-Un flag siempre gana. Lo que dejes fuera se detecta a partir del proyecto; después se pregunta cuando stdin es una terminal y no se da ni `--yes` ni `--json`, y en otro caso se toma su valor por defecto solo con `--yes`. Pulsar Intro acepta el valor sugerido. Un flag con un valor vacío, como `--targets ''`, es un error de uso (`INVALID_OPTION`), nunca una petición del valor por defecto.
+Un flag siempre gana. Lo que dejes fuera se detecta a partir del proyecto; después se pregunta cuando stdin es una terminal y no se da ni `--yes` ni `--json`, y en otro caso se toma su valor por defecto solo con `--yes`. Pulsar Intro acepta el valor sugerido. Un flag con un valor vacío, como `--targets ''`, es un error de uso (`INVALID_OPTION`), nunca una petición del valor por defecto. Si stdin termina en una pregunta (Ctrl-D), `init` sale con `2` y `MISSING_OPTIONS`.
 
 Cada respuesta se comprueba en cuanto la das. Una no válida se explica en stderr y se vuelve a preguntar, hasta tres veces, conservando tus respuestas anteriores; una tercera respuesta no válida detiene `init` con el código de error de esa respuesta (como `INVALID_LOCALE`), nombra el flag que puedes pasar en su lugar y no escribe nada.
 

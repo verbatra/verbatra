@@ -20,20 +20,20 @@ Este sitio web se rige por su [política de privacidad](/privacy).
 ## Cómo fluyen los datos
 
 ```text
- tu proyecto (disco local)                               proveedor (solo en translate, watch,
-                                                         retranslateEntry del SDK, o retraducir
- +-----------------------------------------+             o traducir pendientes en Studio / MCP)
- | archivos de locale, verbatra.config.ts, |   HTTPS     +--------------------------+
- | glosario         -- lo lee verbatra --  |------------>| Anthropic / OpenAI /     |
- |                                         |  textos     | Gemini / DeepL / Google  |
- | verbatra.lock.json, procedencia,        |  cambiados  | o tu propio servidor     |
- | verbatra.cache.json, .verbatra-local/   |<------------| (autoalojado)            |
- |                 -- lo escribe verbatra  | traducciones+--------------------------+
+ your project (local disk)                               provider (only on translate, watch,
+                                                         SDK retranslateEntry, or a Studio /
+ +-----------------------------------------+             MCP retranslate or translate-pending)
+ | locale files, verbatra.config.ts,       |   HTTPS     +--------------------------+
+ | glossary          -- read by verbatra --|------------>| Anthropic / OpenAI /     |
+ |                                         |  changed    | Gemini / DeepL / Google  |
+ | verbatra.lock.json, provenance file,    |  strings    | or your own server       |
+ | verbatra.cache.json, .verbatra-local/   |<------------| (self-hosted)            |
+ |                 -- written by verbatra  | translations+--------------------------+
  +-----------------------------------------+
         |                        |
-        | solo 127.0.0.1         | stdio
+        | 127.0.0.1 only         | stdio
         v                        v
-  Studio en tu navegador   cliente MCP (tu agente de IA)
+  Studio in your browser   MCP client (your AI agent)
 ```
 
 ## Cuándo se hace una petición
@@ -45,10 +45,8 @@ proveedor de traducción automática enviando tu clave de API (ninguna a LibreTr
 
 Una ejecución de `translate` envía solo las claves ausentes o cambiadas respecto a
 [el archivo de bloqueo](/docs/the-lock-file), menos los aciertos de [la caché](/docs/the-cache), y
-el texto compartido una sola vez. Una clave desactualizada que escribió una persona solo se envía
-para una sugerencia de `humanEdits: "suggest"`; una clave
-[fijada](/docs/protecting-human-translations), nunca. Tu resolutor DNS ve el nombre del host del
-proveedor.
+el texto compartido una sola vez; una clave [fijada](/docs/protecting-human-translations) nunca se
+envía. Tu resolutor DNS ve el nombre del host del proveedor.
 
 ## Qué recibe cada proveedor
 

@@ -103,7 +103,7 @@ cp .env.example .env
 npx verbatra translate
 ```
 
-verbatra schickt die zwei fehlenden Schlüssel an Gemini, prüft jedes Ergebnis und schreibt die deutsche Datei. Die Zusammenfassung beginnt mit `de: 2 translated, 0 unchanged` und nennt die Tokens, die der Lauf verbraucht hat. Der Wortlaut hängt vom Modell ab, zum Beispiel:
+verbatra schickt die zwei fehlenden Keys an Gemini, prüft jedes Ergebnis und schreibt die deutsche Datei. Die Zusammenfassung beginnt mit `de: 2 translated, 0 unchanged` und nennt die Tokens, die der Lauf verbraucht hat. Der Wortlaut hängt vom Modell ab, zum Beispiel:
 
 ```json title="locales/de.json"
 {
@@ -137,8 +137,8 @@ all locales in sync
 
 ## Was gerade passiert ist
 
-- `locales/de.json` hat dieselben Schlüssel in derselben Reihenfolge wie deine Quelle, und `{{name}}` ist erhalten geblieben: Ein Ergebnis, das einen Platzhalter verliert, wird zurückgehalten und nie geschrieben. Siehe [Übersetzungssicherheit](/docs/translation-safety).
-- `verbatra.lock.json` speichert einen Hash des Quelltexts hinter jeder Übersetzung, damit der nächste Lauf nur neue und geänderte Schlüssel schickt. Siehe [Die Lock-Datei](/docs/the-lock-file).
+- `locales/de.json` hat dieselben Keys in derselben Reihenfolge wie deine Quelle, und `{{name}}` ist erhalten geblieben: Ein Ergebnis, das einen Platzhalter verliert, wird zurückgehalten und nie geschrieben. Siehe [Übersetzungssicherheit](/docs/translation-safety).
+- `verbatra.lock.json` speichert einen Hash des Quelltexts hinter jeder Übersetzung, damit der nächste Lauf nur neue und geänderte Keys schickt. Siehe [Die Lock-Datei](/docs/the-lock-file).
 - `verbatra.provenance.json` hält fest, welcher Provider und welches Modell jeden Wert geschrieben hat. Siehe [Herkunft](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
 - `verbatra.cache.json` und `.verbatra-local/` enthalten den neu erzeugbaren Übersetzungscache und den lokalen Laufzustand. `init` hat beide schon in die `.gitignore` eingetragen. Siehe [Der Cache](/docs/the-cache).
 
