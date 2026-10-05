@@ -97,7 +97,10 @@ export const LOCALE_HISTORY_LIMIT_DEFAULT = 50;
 export const LOCALE_HISTORY_LIMIT_CAP = 200;
 
 export function clampHistoryLimit(limit: number | undefined): number {
-  return Math.min(limit ?? LOCALE_HISTORY_LIMIT_DEFAULT, LOCALE_HISTORY_LIMIT_CAP);
+  if (limit === undefined || !Number.isFinite(limit)) {
+    return LOCALE_HISTORY_LIMIT_DEFAULT;
+  }
+  return Math.min(Math.max(Math.floor(limit), 1), LOCALE_HISTORY_LIMIT_CAP);
 }
 
 function withoutTrailingSep(path: string): string {
