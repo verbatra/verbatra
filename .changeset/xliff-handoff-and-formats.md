@@ -26,5 +26,7 @@ XLIFF 1.2 and 2.0 agency handoff, spec-accurate XLIFF, and layout-keeping writes
 - Android, XLIFF and gettext writes keep line endings and indentation, and a created `.po` file
   gets a `Language` header.
 - A Flutter ARB target starts with `@@locale`, and prune and reject remove ARB keys.
+- In Apple `.strings`, a block comment quoted inside a `//` line comment no longer becomes the
+  next entry's description; only a real `/* ... */` comment does.
 - No empty target file is created for a locale whose keys were all withheld, and `import` writes
   new keys in source order.
