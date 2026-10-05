@@ -54,6 +54,16 @@ describe("keyValue: locale and key resolution", () => {
       expect((error as SdkError).code).toBe("UNKNOWN_KEY");
     },
   );
+
+  it("reads a __proto__ key that the source really holds as an ordinary key", async () => {
+    const dir = await project(JSON.parse('{"__proto__":"Hello","greeting":"Hi"}'), {
+      de: JSON.parse('{"__proto__":"Hallo"}'),
+    });
+
+    const result = await keyValue({ config: cfg(), cwd: dir, locale: "de", key: "__proto__" });
+
+    expect(result).toMatchObject({ source: "Hello", target: "Hallo" });
+  });
 });
 
 describe("keyValue: reads", () => {
