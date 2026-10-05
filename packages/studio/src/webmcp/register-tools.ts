@@ -367,11 +367,38 @@ function buildAnnotations(descriptor: ToolDescriptor): WebMcpToolAnnotations {
   };
 }
 
-function stampAgentInput(input: unknown, agentInput: AgentInput | undefined): unknown {
-  if (agentInput === undefined || typeof input !== "object" || input === null) {
+const PARAMS_INVALID_MESSAGE = "The tool input failed validation against its input schema.";
+
+type AgentParams =
+  | { readonly ok: true; readonly params: unknown }
+  | { readonly ok: false; readonly refusal: string };
+
+function withoutStampedKeys(input: unknown, stamp: AgentInput["stamp"]): unknown {
+  if (typeof input !== "object" || input === null) {
     return input;
   }
-  return { ...input, ...agentInput.stamp };
+  return Object.fromEntries(Object.entries(input).filter(([key]) => !Object.hasOwn(stamp, key)));
+}
+
+function agentParams(input: unknown, agentInput: AgentInput | undefined): AgentParams {
+  if (agentInput === undefined) {
+    return { ok: true, params: input };
+  }
+  const parsed = agentInput.schema.safeParse(withoutStampedKeys(input, agentInput.stamp));
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((issue) => ({
+      path: issue.path.map(String),
+      code: issue.code,
+    }));
+    return {
+      ok: false,
+      refusal: JSON.stringify({
+        ok: false,
+        error: { code: "PARAMS_INVALID", message: PARAMS_INVALID_MESSAGE, issues },
+      }),
+    };
+  }
+  return { ok: true, params: { ...(parsed.data as object), ...agentInput.stamp } };
 }
 
 function buildTool<M extends RpcMethodName>(
@@ -385,8 +412,11 @@ function buildTool<M extends RpcMethodName>(
     inputSchema: z.toJSONSchema(descriptor.agentInput?.schema ?? deps.schemas[method]),
     annotations: buildAnnotations(descriptor),
     execute: async (input: unknown): Promise<string> => {
-      const params = stampAgentInput(input, descriptor.agentInput);
-      const result = await deps.rpcClient.call(method, params as RpcParamsFor<M>);
+      const checked = agentParams(input, descriptor.agentInput);
+      if (!checked.ok) {
+        return checked.refusal;
+      }
+      const result = await deps.rpcClient.call(method, checked.params as RpcParamsFor<M>);
       return JSON.stringify(result);
     },
   };
