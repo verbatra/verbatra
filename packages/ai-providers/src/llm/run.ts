@@ -1,16 +1,16 @@
 import type { TranslationEntry } from "@verbatra/core";
 import { checkBatchIntegrity } from "../integrity.js";
+import type { LocaleMap } from "../locale-map.js";
 import {
   type ProviderNotice,
   type TranslateRequest,
   type TranslateResult,
   type Usage,
-  type ValidatedRequestData,
   validateRequest,
 } from "../provider.js";
 import { applyProviderDegraded, buildEntryReviewFlags } from "../review-flags.js";
 import { toIntegrityInputs } from "./integrity-inputs.js";
-import { buildDataPayload } from "./payload.js";
+import { buildDataPayload, type DataPayloadInput } from "./payload.js";
 import { type ReconcileOutcome, reconcileResult } from "./response.js";
 
 const MAX_REPAIR_ROUNDS = 1;
@@ -33,17 +33,20 @@ export interface LlmMechanism {
 export async function runLlmTranslation(
   request: TranslateRequest,
   mechanism: LlmMechanism,
+  localeMap?: LocaleMap,
 ): Promise<TranslateResult> {
   const data = validateRequest(request);
   const signal = request.signal;
+  const sent: DataPayloadInput = { ...data, localeMap };
 
-  const first = await requestTranslations(mechanism, data, signal);
+  const first = await requestTranslations(mechanism, sent, signal);
   const values = first.outcome.accepted;
   let usage = first.completion.usage;
 
   let toRepair = entriesFor(data.entries, first.outcome.missingKeys);
   for (let round = 0; round < MAX_REPAIR_ROUNDS && toRepair.length > 0; round += 1) {
-    const repair = await requestTranslations(mechanism, { ...data, entries: toRepair }, signal);
+    request.onRepair?.(toRepair.length);
+    const repair = await requestTranslations(mechanism, { ...sent, entries: toRepair }, signal);
     for (const [key, value] of repair.outcome.accepted) {
       values.set(key, value);
     }
@@ -77,7 +80,7 @@ export async function runLlmTranslation(
 
 async function requestTranslations(
   mechanism: LlmMechanism,
-  data: ValidatedRequestData,
+  data: DataPayloadInput,
   signal: AbortSignal | undefined,
 ): Promise<{ readonly completion: LlmCompletion; readonly outcome: ReconcileOutcome }> {
   const payloadJson = JSON.stringify(buildDataPayload(data));

@@ -39,6 +39,62 @@ describe("withGeminiRetry: success paths", () => {
   });
 });
 
+describe("withGeminiRetry: timed-out attempts", () => {
+  it("retries an attempt that timed out and returns the eventual success", async () => {
+    const call = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new ProviderError("TIMEOUT", "timed out"))
+      .mockResolvedValueOnce("ok");
+    await expect(withGeminiRetry(call, undefined, FAST)).resolves.toBe("ok");
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops after the configured attempts and rethrows the last timeout", async () => {
+    const timeout = new ProviderError("TIMEOUT", "timed out");
+    const call = vi.fn<() => Promise<string>>().mockRejectedValue(timeout);
+    await expect(withGeminiRetry(call, undefined, FAST)).rejects.toBe(timeout);
+    expect(call).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry another ProviderError", async () => {
+    const refused = new ProviderError("AUTH_FAILED", "no");
+    const call = vi.fn<() => Promise<string>>().mockRejectedValue(refused);
+    await expect(withGeminiRetry(call, undefined, FAST)).rejects.toBe(refused);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("withGeminiRetry: retry listener", () => {
+  it("reports each retry with its attempt, delay and status before waiting", async () => {
+    const retries: unknown[] = [];
+    const call = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new ApiError(429))
+      .mockRejectedValueOnce(new ApiError(503))
+      .mockResolvedValueOnce("ok");
+
+    await expect(
+      withGeminiRetry(call, undefined, { attempts: 3, baseDelayMs: 2 }, (retry) =>
+        retries.push(retry),
+      ),
+    ).resolves.toBe("ok");
+    expect(retries).toEqual([
+      { attempt: 2, delayMs: 2, status: 429 },
+      { attempt: 3, delayMs: 4, status: 503 },
+    ]);
+  });
+
+  it("never reports a failure it does not retry", async () => {
+    const retries: unknown[] = [];
+    const call = vi.fn<() => Promise<string>>().mockRejectedValue(new ApiError(400));
+
+    await expect(
+      withGeminiRetry(call, undefined, FAST, (retry) => retries.push(retry)),
+    ).rejects.toThrow();
+    expect(retries).toEqual([]);
+  });
+});
+
 describe("withGeminiRetry: exhaustion", () => {
   it("throws the last attempt's raw error, unwrapped, once attempts are exhausted", async () => {
     const errors = [new ApiError(429), new ApiError(429), new ApiError(429)];
