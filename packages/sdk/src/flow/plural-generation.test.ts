@@ -321,6 +321,41 @@ describe("translate: plural generation fallbacks (never a hard failure)", () => 
     expect(hasNotice(summary.locales[0]?.notices ?? [])).toBe(true);
   });
 
+  const SOURCE_SHORT_NOTICE =
+    'The source does not supply all CLDR plural categories the target language "pl" requires ' +
+    "(missing: few, many); verbatra translates only the source's plural forms and does not " +
+    "synthesize the others. Add the missing forms manually.";
+
+  it.each([
+    ["deepl", false],
+    ["deepl", true],
+    ["none", false],
+    ["none", true],
+  ] as const)(
+    "provider %s (dry run %s): names the forms the source lacks, never a failed generation",
+    async (id, dryRun) => {
+      const dir = await project(PLURAL_SOURCE, { pl: {} });
+
+      const summary = await translate(
+        {
+          config: cfg({ provider: { id, options: {} } }),
+          cwd: dir,
+          generatePlurals: true,
+          dryRun,
+        },
+        {
+          createProvider: () =>
+            makeStubProvider({ id: "deepl", kind: "machine-translation" }).provider,
+        },
+      );
+
+      const notices = (summary.locales[0]?.notices ?? []).filter(
+        (notice) => notice.code === "PLURAL_CATEGORIES_INCOMPLETE",
+      );
+      expect(notices.map((notice) => notice.message)).toEqual([SOURCE_SHORT_NOTICE]);
+    },
+  );
+
   it("non-i18next format: generation is a no-op, run succeeds, no notice", async () => {
     const dir = await project(PLURAL_SOURCE, { pl: {} });
 

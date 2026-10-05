@@ -682,7 +682,7 @@ export async function runLocale(params: LocaleRunParams): Promise<LocaleRunResul
     written = await readWrittenTarget(params, pending.size > 0, written);
   }
 
-  const pluralNotices = params.generatePlurals
+  const pluralNotices = generationEnabled(params)
     ? generatedPluralNotices(params, merged.keys(), generation)
     : sdkNotices;
   const notices: readonly LocaleNotice[] = [
