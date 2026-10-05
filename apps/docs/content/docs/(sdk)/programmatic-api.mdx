@@ -275,7 +275,7 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` defaults to `en-XA` and `out` to `.verbatra-local/pseudo`. The transform is deterministic,
+`locale` defaults to `en-XA`, or to `ar-XB` with `mode: "bidi"`, and `out` to `.verbatra-local/pseudo`. The transform is deterministic,
 so a second run over unchanged source rewrites nothing and reports `written` as false.
 
 ## Edit and retranslate a single key

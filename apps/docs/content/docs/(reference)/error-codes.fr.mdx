@@ -128,9 +128,9 @@ Un échec ne portait aucun code propre (le code de repli).
 
 ### INVALID_OPTION
 
-Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `--cwd` ne nomme aucun répertoire existant (pour toute commande, avant son exécution), ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`.
+Une option d'`init` ne correspond pas au fournisseur (`--base-url` sans `openai-compatible` ni `libretranslate`, `--model` pour DeepL), `--api-key-env-var` n'est pas un nom de variable, `--base-url` contient des identifiants, une query string ou un fragment, `--cwd` ne nomme aucun répertoire existant (pour toute commande, avant son exécution), ou `doctor` a reçu `--locales` ou `--live` avec `--literals`, ou `check --file` ne nomme aucun fichier ou arrive avec `--locales`, `--consistency`, `--require-reviewed` ou `--sensitive`, ou `pseudo --mode` nomme un autre mode que `accented` ou `bidi`.
 
-- **Levé par** : toute commande qui accepte `--cwd`, ainsi que `init`, `doctor`, `check`
+- **Levé par** : toute commande qui accepte `--cwd`, ainsi que `init`, `doctor`, `check`, `pseudo`
 - **Code de sortie** : `2`
 - **Étape suivante** : Correct or remove the flag the message names.
 

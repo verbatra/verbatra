@@ -52,7 +52,7 @@ Solo cambia el texto traducible. Los placeholders sobreviven en cualquier sintax
 
 Nada se acentúa, se alarga ni va entre corchetes: la anchura es lo que prueba el modo por defecto. El archivo guarda las letras en su orden original, y cada valor pasa la misma puerta de integridad, así que los placeholders y las ramas de plural quedan idénticos byte a byte.
 
-El pseudolocale por defecto es `ar-XB`, que `Intl.Locale` y la mayoría de las bibliotecas de i18n resuelven de derecha a izquierda, así que una app que deduce `dir` del locale se invierte sola. `ar-XB` sigue las reglas de plural del árabe mientras el archivo conserva las formas de plural de tu origen: un mensaje ICU recurre a su rama `other`, pero una biblioteca que busca los plurales por sufijo, como i18next, no encuentra ninguna clave `_few` ni `_many` y recurre a su respaldo para esas cantidades. Pasa `--locale en-XB` para conservar las reglas de plural del inglés, y pon tú `dir="rtl"`.
+El pseudolocale por defecto es `ar-XB`, que `Intl.Locale` y la mayoría de las bibliotecas de i18n resuelven de derecha a izquierda, así que una app que deduce `dir` del locale se invierte sola. `ar-XB` sigue las reglas de plural del árabe (`zero`, `one`, `two`, `few`, `many`, `other`). Los mensajes ICU, los `<plurals>` de Android, gettext, los catálogos de Apple y las barras de vue-i18n resuelven una cantidad con las formas que el archivo ya tiene. `i18next-json` guarda cada forma en su propia clave `_one` u `_other`, así que el archivo recibe además cada categoría que le falta al origen (`_zero`, `_two`, `_few`, `_many`, y las formas ordinales igual), rellenada con la forma `other` del origen, y ninguna cantidad recurre a tu idioma de respaldo. Pasa `--locale en-XB` para conservar las reglas de plural del inglés, y pon tú `dir="rtl"`.
 
 Un sanitizador que elimina los caracteres de formato Unicode quita la anulación, y la cadena vuelve a mostrarse de izquierda a derecha. Los editores y escáneres de código que avisan de caracteres bidireccionales ocultos marcan el archivo, un motivo más para que se quede en `.verbatra-local`.
 
@@ -78,7 +78,7 @@ Los escritores de `xliff` y `apple-xcstrings` parchean unidades que ya están en
 
 ### Salida JSON
 
-Con `--json`, el [envoltorio JSON](/docs/cli/output#salida-json) lleva `locale`, `mode` (`accented` o `bidi`), `path`, `entries` (entradas de origen), `transformed` (pseudolocalizadas), `copied` (claves copiadas tal cual) y `written` (`false` cuando el archivo ya estaba al día).
+Con `--json`, el [envoltorio JSON](/docs/cli/output#salida-json) lleva `locale`, `mode` (`accented` o `bidi`), `path`, `entries` (entradas escritas, incluidas las formas de plural añadidas en modo bidi), `transformed` (valores que difieren del origen), `copied` (claves copiadas tal cual) y `written` (`false` cuando el archivo ya estaba al día).
 
 ### Información en el terminal
 
@@ -106,7 +106,7 @@ verbatra pseudo
 # mostrar cada cadena de derecha a izquierda en ar-XB
 verbatra pseudo --mode bidi
 
-# escribirlo donde el servidor de desarrollo ya sirve archivos estáticos
+# escribirlo donde el servidor de desarrollo ya sirve archivos estáticos (no hagas commit de un archivo bidi: GitHub marca su Unicode oculto)
 verbatra pseudo --out public/locales-pseudo
 
 # resultado legible por máquina para un script

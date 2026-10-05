@@ -52,7 +52,7 @@ Seul le texte traduisible change. Les placeholders survivent dans toutes les syn
 
 Rien n'est accentué, allongé ni mis entre crochets : la largeur, c'est le mode par défaut qui la teste. Le fichier garde les lettres dans leur ordre d'origine, et chaque valeur passe le même contrôle d'intégrité, donc les placeholders et les branches de pluriel restent identiques à l'octet près.
 
-La pseudo-locale par défaut est `ar-XB`, que `Intl.Locale` et la plupart des bibliothèques i18n résolvent de droite à gauche, donc une app qui déduit `dir` de la locale bascule toute seule. `ar-XB` suit les règles de pluriel de l'arabe alors que le fichier garde les formes de pluriel de ta source : un message ICU se rabat sur sa branche `other`, mais une bibliothèque qui cherche les pluriels par suffixe, comme i18next, ne trouve aucune clé `_few` ni `_many` et se rabat sur son repli pour ces nombres. Passe `--locale en-XB` pour garder les règles de pluriel de l'anglais, et pose `dir="rtl"` toi-même.
+La pseudo-locale par défaut est `ar-XB`, que `Intl.Locale` et la plupart des bibliothèques i18n résolvent de droite à gauche, donc une app qui déduit `dir` de la locale bascule toute seule. `ar-XB` suit les règles de pluriel de l'arabe (`zero`, `one`, `two`, `few`, `many`, `other`). Les messages ICU, les `<plurals>` Android, gettext, les catalogues Apple et les barres verticales vue-i18n résolvent un nombre avec les formes que le fichier a déjà. `i18next-json` range chaque forme sous sa propre clé `_one` ou `_other`, donc le fichier reçoit aussi chaque catégorie qui manque à la source (`_zero`, `_two`, `_few`, `_many`, et les formes ordinales de même), remplie à partir de la forme `other` de la source, et aucun nombre ne se rabat sur ta langue de repli. Passe `--locale en-XB` pour garder les règles de pluriel de l'anglais, et pose `dir="rtl"` toi-même.
 
 Un assainisseur qui retire les caractères de formatage Unicode enlève le forçage, et la chaîne s'affiche de nouveau de gauche à droite. Les éditeurs et scanners de code qui signalent les caractères bidirectionnels cachés marquent le fichier, une raison de plus pour qu'il reste sous `.verbatra-local`.
 
@@ -78,7 +78,7 @@ Les writers de `xliff` et `apple-xcstrings` retouchent des unités déjà prése
 
 ### Sortie JSON
 
-Avec `--json`, l'[enveloppe JSON](/docs/cli/output#sortie-json) porte `locale`, `mode` (`accented` ou `bidi`), `path`, `entries` (entrées source), `transformed` (pseudo-localisées), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
+Avec `--json`, l'[enveloppe JSON](/docs/cli/output#sortie-json) porte `locale`, `mode` (`accented` ou `bidi`), `path`, `entries` (entrées écrites, y compris les formes de pluriel ajoutées en mode bidi), `transformed` (valeurs qui diffèrent de la source), `copied` (clés copiées telles quelles) et `written` (`false` quand le fichier était déjà à jour).
 
 ### Retour dans le terminal
 
@@ -106,7 +106,7 @@ verbatra pseudo
 # afficher chaque chaîne de droite à gauche en ar-XB
 verbatra pseudo --mode bidi
 
-# l'écrire là où le serveur de dev sert déjà des fichiers statiques
+# l'écrire là où le serveur de dev sert déjà des fichiers statiques (ne commite pas un fichier bidi : GitHub signale son Unicode caché)
 verbatra pseudo --out public/locales-pseudo
 
 # résultat lisible par une machine pour un script

@@ -128,9 +128,9 @@ A failure carried no code of its own (the fallback).
 
 ### INVALID_OPTION
 
-An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `--cwd` names no existing directory (any command, before it runs), or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`.
+An `init` flag does not fit the provider (`--base-url` without `openai-compatible` or `libretranslate`, `--model` for DeepL), `--api-key-env-var` is not a variable name, `--base-url` carries credentials, a query string, or a fragment, `--cwd` names no existing directory (any command, before it runs), or `doctor` got `--locales` or `--live` together with `--literals`, or `check --file` names no file or comes with `--locales`, `--consistency`, `--require-reviewed` or `--sensitive`, or `pseudo --mode` names a mode other than `accented` or `bidi`.
 
-- **Raised by**: every command that takes `--cwd`, plus `init`, `doctor`, `check`
+- **Raised by**: every command that takes `--cwd`, plus `init`, `doctor`, `check`, `pseudo`
 - **Exit code**: `2`
 - **Next step**: Correct or remove the flag the message names.
 

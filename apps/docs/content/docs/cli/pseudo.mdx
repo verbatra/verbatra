@@ -52,7 +52,7 @@ Only translatable text changes. Placeholders survive in every syntax the [format
 
 Nothing is accented, lengthened or bracketed: width is what the default mode tests. The file keeps the letters in their stored order, and every value passes the same integrity gate, so placeholders and plural arms stay byte-identical.
 
-The pseudolocale defaults to `ar-XB`, which `Intl.Locale` and most i18n libraries resolve to right to left, so an app that derives `dir` from the locale flips on its own. `ar-XB` follows Arabic plural rules while the file keeps your source's plural forms: an ICU message falls back to its `other` arm, but a library that keys plurals by suffix, such as i18next, finds no `_few` or `_many` key and falls back for those counts. Pass `--locale en-XB` to keep English plural rules, and set `dir="rtl"` yourself.
+The pseudolocale defaults to `ar-XB`, which `Intl.Locale` and most i18n libraries resolve to right to left, so an app that derives `dir` from the locale flips on its own. `ar-XB` follows Arabic plural rules (`zero`, `one`, `two`, `few`, `many`, `other`). ICU messages, Android `<plurals>`, gettext, Apple catalogs and vue-i18n pipes resolve a count against the forms the file already has. `i18next-json` keeps each form under its own `_one` or `_other` key, so the file also gets every category the source lacks (`_zero`, `_two`, `_few`, `_many`, and ordinal forms the same way), filled from the source's `other` form, and no count falls back to your fallback language. Pass `--locale en-XB` to keep English plural rules, and set `dir="rtl"` yourself.
 
 A sanitiser that strips Unicode format characters removes the override, and the string renders left to right again. Editors and code scanners that warn about hidden bidirectional characters flag the file, one more reason it stays under `.verbatra-local`.
 
@@ -78,7 +78,7 @@ Because the file sits outside `files.pattern`, [`translate`](/docs/cli/translate
 
 ### JSON output
 
-With `--json`, the [envelope](/docs/cli/output#json-output) carries `locale`, `mode` (`accented` or `bidi`), `path`, `entries` (source entries), `transformed` (pseudolocalized), `copied` (keys copied verbatim) and `written` (`false` when the file was already current).
+With `--json`, the [envelope](/docs/cli/output#json-output) carries `locale`, `mode` (`accented` or `bidi`), `path`, `entries` (entries written, including plural forms added in bidi mode), `transformed` (values that differ from the source), `copied` (keys copied verbatim) and `written` (`false` when the file was already current).
 
 ### Terminal feedback
 
@@ -106,7 +106,7 @@ verbatra pseudo
 # render every string right to left in ar-XB
 verbatra pseudo --mode bidi
 
-# write it where the dev server already serves static files
+# write it where the dev server already serves static files (do not commit a bidi file: GitHub flags its hidden Unicode)
 verbatra pseudo --out public/locales-pseudo
 
 # machine-readable result for a script

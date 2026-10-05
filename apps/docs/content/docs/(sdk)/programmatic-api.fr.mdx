@@ -267,7 +267,7 @@ for (const key of result.copied) {
 }
 ```
 
-`locale` vaut `en-XA` par défaut et `out` vaut `.verbatra-local/pseudo`. La transformation est
+`locale` vaut `en-XA` par défaut, ou `ar-XB` avec `mode: "bidi"`, et `out` vaut `.verbatra-local/pseudo`. La transformation est
 déterministe : une seconde exécution sur une source inchangée ne réécrit rien et signale `written`
 à false.
 
