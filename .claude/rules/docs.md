@@ -104,6 +104,9 @@ parity tests (`pnpm test:scripts`):
   its page's flags table naming exactly its own `.option(...)` flags, and the global flags table in
   `cli/index*.mdx` naming, per shared flag (`--cwd`, `--config`, `--json`), exactly the commands
   that do not take it.
+- `verify-docs-run-summary-fields.test.mjs`: the `RunSummary` and `LocaleSummary` blocks on
+  `sdk/run-summary*.mdx` name exactly the fields, with their optionality, of the two interfaces in
+  `packages/sdk/dist/index.d.ts`, and no other page prints the `RunSummary` interface.
 - `verify-docs-registry-counts.test.mjs`: no MDX page spells out a count of formats, providers,
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
@@ -195,6 +198,7 @@ and a link to the owner.
 | The integrity gate, review reasons | `translation-safety` |
 | What leaves the machine | `data-handling` |
 | Every error, notice and review code | `error-codes` |
+| The `RunSummary` and `LocaleSummary` fields | `sdk/run-summary` |
 
 ### Growth rules
 

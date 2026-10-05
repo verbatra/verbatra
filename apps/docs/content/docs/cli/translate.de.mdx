@@ -87,22 +87,7 @@ Eine Locale, die der konfigurierte DeepL- oder Google-Cloud-Translation-Provider
 
 ### JSON-Ausgabe
 
-Mit `--json` trägt stdout einen [Envelope](/docs/cli/output#json-ausgabe), dessen `result` eine `RunSummary` ist:
-
-```ts
-interface RunSummary {
-  dryRun: boolean;          // whether this was a dry run (no provider calls, no writes)
-  locales: LocaleSummary[]; // one entry per target locale, in config order
-  succeeded: string[];      // locales whose run succeeded
-  partial: string[];        // locales written with keys still missing; these exit 1 too
-  failed: string[];         // locales whose run failed
-  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
-  budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
-  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
-}
-```
-
-Jede `LocaleSummary` trägt die Key-Listen pro Locale (übersetzt, unverändert, verwaist, zurückgehalten, zur Prüfung markiert und mehr); die vollständige Form steht in der [SDK-Referenz](/docs/sdk/run-summary).
+Mit `--json` trägt stdout einen [Envelope](/docs/cli/output#json-ausgabe), dessen `result` eine `RunSummary` ist; [RunSummary](/docs/sdk/run-summary) listet jedes Feld auf, für den Lauf und für jede Locale.
 
 ### Rückmeldung im Terminal
 
