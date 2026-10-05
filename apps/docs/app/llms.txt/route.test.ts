@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 const PAGES = [
@@ -76,6 +78,16 @@ describe("llms.txt", () => {
     expect(agents).toBeLessThan(body.indexOf("## Introduction"));
     expect(body).toContain("npx -y @verbatra/mcp");
     expect(body).toContain("Accept: text/markdown");
+  });
+
+  it("points an agent at the MCP client setup page from the agent section", () => {
+    const agents = body.slice(body.indexOf("## For AI agents"), body.indexOf("## Introduction"));
+    expect(agents).toContain(
+      "Client setup: https://verbatra.kreitz-webdev.de/docs/connect-an-mcp-client.md",
+    );
+    expect(existsSync(join(process.cwd(), "content/docs/(agents)/connect-an-mcp-client.mdx"))).toBe(
+      true,
+    );
   });
 
   it("tells an agent every page type a Markdown response can declare", () => {
