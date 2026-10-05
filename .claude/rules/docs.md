@@ -122,6 +122,21 @@ published English JSDoc on every locale; everything around it is translated. The
 test-pinned to each function's `@throws` tags (`scripts/verify-docs-reference-parity.test.mjs`), so
 a new `@throws` code fails `pnpm test:scripts` until all four locales list it.
 
+A function that declares no `@throws` gets no **Throws** line at all, never "Throws: nothing": the
+absent line is the statement that the function throws no `SdkError` code. A function that never
+throws anything says so in its lead paragraph, as `runStatus` does.
+
+After the Throws line, an entry may close with an `**Example:**` line (`**Beispiel:**`,
+`**Ejemplo:**`, `**Exemple:**` in de, es, fr) linking to the quickstart step or recipe in
+`(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx` that owns a full script using the entry
+point, with the locale's own anchor. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
+`Exemple`) belongs in a reference section only where no recipe or quickstart step owns the example.
+It is self-contained: every import is written out, and every given the snippet does not build
+itself is a `declare const`. `scripts/verify-docs-sdk-examples.test.mjs` typechecks every such block
+on the pages `sdk/meta.json` lists against the built `packages/sdk/dist/index.d.ts` in strict mode,
+and fails when a de, es or fr block's body differs from the English one, so its comments stay in
+English.
+
 ## The `<AvailableFrom />` badge
 
 Component: `apps/docs/components/available-from.tsx`. Renders a small inline badge ("Available
