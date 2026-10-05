@@ -37,9 +37,9 @@ Par défaut, une exécution ne supprime rien : les clés orphelines sont signal�
 
 ### Estimation du coût
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.11.0" />
 
-`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM, des caractères source pour DeepL ou Google Cloud Translation, rien pour un point d'accès `openai-compatible` auto-hébergé ou un projet entièrement humain). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/docs/estimating-cost).
+`--estimate` ajoute à l'exécution à blanc une estimation préalable : combien de clés seraient envoyées, combien de requêtes au fournisseur cela ferait et la quantité que le fournisseur facture (des tokens pour un LLM, des caractères source pour DeepL ou Google Cloud Translation, rien pour un point d'accès `openai-compatible` auto-hébergé). Un montant n'apparaît que si la configuration contient un bloc `rates` couvrant le fournisseur et le modèle ; sinon, la clé de tarif manquante est nommée au lieu d'inventer `0.00`. Voir [Estimer le coût](/docs/estimating-cost).
 
 ### Un sous-ensemble de locales
 

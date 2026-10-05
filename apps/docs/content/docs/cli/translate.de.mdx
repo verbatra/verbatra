@@ -37,9 +37,9 @@ Standardmäßig löscht ein Lauf nichts: Verwaiste Keys werden gemeldet und blei
 
 ### Kostenschätzung
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.11.0" />
 
-`--estimate` ergänzt den Dry Run um eine Schätzung vor dem Lauf: wie viele Keys gesendet würden, wie viele Provider-Requests das wären und welche Menge der Provider abrechnet (Tokens bei einem LLM, Quellzeichen bei DeepL oder Google Cloud Translation, nichts bei einem selbst gehosteten `openai-compatible`-Endpunkt oder einem rein menschlichen Projekt). Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block für Provider und Modell hat; sonst wird der fehlende Raten-Key benannt, statt `0.00` zu erfinden. Siehe [Kosten abschätzen](/docs/estimating-cost).
+`--estimate` ergänzt den Dry Run um eine Schätzung vor dem Lauf: wie viele Keys gesendet würden, wie viele Provider-Requests das wären und welche Menge der Provider abrechnet (Tokens bei einem LLM, Quellzeichen bei DeepL oder Google Cloud Translation, nichts bei einem selbst gehosteten `openai-compatible`-Endpunkt). Ein Geldbetrag erscheint nur, wenn die Konfiguration einen `rates`-Block für Provider und Modell hat; sonst wird der fehlende Raten-Key benannt, statt `0.00` zu erfinden. Siehe [Kosten abschätzen](/docs/estimating-cost).
 
 ### Eine Teilmenge der Locales
 

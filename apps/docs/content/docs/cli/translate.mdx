@@ -37,9 +37,9 @@ By default a run deletes nothing: orphaned keys are reported and left in place. 
 
 ### Cost estimate
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.11.0" />
 
-`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM, source characters for DeepL or Google Cloud Translation, nothing for a self-hosted `openai-compatible` endpoint or a human-only project). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. See [Estimating cost](/docs/estimating-cost).
+`--estimate` adds a pre-run estimate to the dry run: how many keys would be sent, how many provider requests they would take, and the quantity the provider bills for (tokens for an LLM, source characters for DeepL or Google Cloud Translation, nothing for a self-hosted `openai-compatible` endpoint). A currency figure appears only when the config has a `rates` block covering the provider and model; otherwise the missing rate key is named instead of inventing `0.00`. See [Estimating cost](/docs/estimating-cost).
 
 ### A subset of locales
 
