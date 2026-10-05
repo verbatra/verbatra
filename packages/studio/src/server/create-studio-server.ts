@@ -1,20 +1,29 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { fileURLToPath } from "node:url";
-import type { LoadedConfig } from "@verbatra/sdk";
+import { declareProviderKeyEnvVar, type LoadedConfig } from "@verbatra/sdk";
 import { EDIT_ENTRY_METHOD } from "../shared/rpc/edit-entry.js";
 import { GLOSSARY_WRITE_METHOD } from "../shared/rpc/glossary.js";
+import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
 import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import {
+  REVIEW_APPROVE_MANY_METHOD,
+  REVIEW_REJECT_MANY_METHOD,
+} from "../shared/rpc/review-batch.js";
+import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
+import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
+import type { StudioRateLimit, StudioRateLimits } from "../shared/rpc/snapshot.js";
 import { TRANSLATE_PENDING_METHOD } from "../shared/rpc/translate-pending.js";
 import { buildBanner } from "./banner.js";
+import { resolveCapabilities } from "./capabilities.js";
 import { cookieName } from "./cookie.js";
 import { resolvePort } from "./default-port.js";
 import { type DispatchContext, handleRequest } from "./dispatch.js";
 import { StudioServerStartError } from "./errors.js";
 import { createRpcInFlightGuard, type RpcInFlightGuard } from "./in-flight-guard.js";
-import { createRpcRateLimiter, type RpcRateLimiter } from "./rate-limiter.js";
+import { createRpcRateLimiter, type RateLimitRule, type RpcRateLimiter } from "./rate-limiter.js";
 import { resolveBoundAddress } from "./resolve-bound-port.js";
-import { createRpcHandlers, type RpcHandlerDeps, type StudioCapabilities } from "./rpc.js";
+import { createRpcHandlers, type RpcHandlerDeps } from "./rpc.js";
 import { createSseHub, type SseHub } from "./sse.js";
 import { generateToken } from "./token.js";
 import { FORBIDDEN_BODY } from "./transport-responses.js";
@@ -33,12 +42,35 @@ const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_TRANSLATE_PENDING_RATE_LIMIT_MAX = 5;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX = 20;
+const DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX = 60;
 
-function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
-  return createRpcRateLimiter({
-    [RETRANSLATE_ENTRY_METHOD]: {
+export function studioRateLimits(options: StudioServerOptions): StudioRateLimits {
+  return {
+    retranslate: {
       windowMs: options.retranslateRateLimitWindowMs ?? DEFAULT_RETRANSLATE_RATE_LIMIT_WINDOW_MS,
-      maxCalls: options.retranslateRateLimitMax ?? DEFAULT_RETRANSLATE_RATE_LIMIT_MAX,
+      max: options.retranslateRateLimitMax ?? DEFAULT_RETRANSLATE_RATE_LIMIT_MAX,
+    },
+    reviewDecision: {
+      windowMs:
+        options.reviewDecisionRateLimitWindowMs ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_WINDOW_MS,
+      max: options.reviewDecisionRateLimitMax ?? DEFAULT_REVIEW_DECISION_RATE_LIMIT_MAX,
+    },
+  };
+}
+
+function ruleOf(limit: StudioRateLimit): RateLimitRule {
+  return { windowMs: limit.windowMs, maxCalls: limit.max };
+}
+
+function buildRateLimiter(options: StudioServerOptions, limits: StudioRateLimits): RpcRateLimiter {
+  const reviewDecision = ruleOf(limits.reviewDecision);
+  return createRpcRateLimiter({
+    [RETRANSLATE_ENTRY_METHOD]: ruleOf(limits.retranslate),
+    [RETRANSLATE_ENTRIES_METHOD]: {
+      ...ruleOf(limits.retranslate),
+      bucket: RETRANSLATE_ENTRY_METHOD,
+      perEntry: true,
     },
     [EDIT_ENTRY_METHOD]: {
       windowMs: options.editEntryRateLimitWindowMs ?? DEFAULT_EDIT_ENTRY_RATE_LIMIT_WINDOW_MS,
@@ -54,12 +86,29 @@ function buildRateLimiter(options: StudioServerOptions): RpcRateLimiter {
         options.glossaryWriteRateLimitWindowMs ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_WINDOW_MS,
       maxCalls: options.glossaryWriteRateLimitMax ?? DEFAULT_GLOSSARY_WRITE_RATE_LIMIT_MAX,
     },
+    [REVIEW_APPROVE_METHOD]: reviewDecision,
+    [REVIEW_REJECT_METHOD]: reviewDecision,
+    [REVIEW_APPROVE_MANY_METHOD]: reviewDecision,
+    [REVIEW_REJECT_MANY_METHOD]: reviewDecision,
+    [REVIEW_APPROVE_LOCALE_METHOD]: reviewDecision,
   });
 }
 
 function buildInFlightGuard(): RpcInFlightGuard {
   return createRpcInFlightGuard(
-    new Set([TRANSLATE_PENDING_METHOD, RETRANSLATE_ENTRY_METHOD, EDIT_ENTRY_METHOD]),
+    new Set([
+      TRANSLATE_PENDING_METHOD,
+      RETRANSLATE_ENTRY_METHOD,
+      EDIT_ENTRY_METHOD,
+      REVIEW_APPROVE_METHOD,
+      REVIEW_REJECT_METHOD,
+      REVIEW_APPROVE_MANY_METHOD,
+      REVIEW_REJECT_MANY_METHOD,
+      REVIEW_APPROVE_LOCALE_METHOD,
+      RETRANSLATE_ENTRIES_METHOD,
+    ]),
+    Date.now,
+    new Set([RETRANSLATE_ENTRY_METHOD, RETRANSLATE_ENTRIES_METHOD]),
   );
 }
 
@@ -91,14 +140,14 @@ function defaultOutput(line: string): void {
 function buildRpcHandlerDeps(
   config: LoadedConfig,
   projectRoot: string,
-  capabilities: StudioCapabilities,
+  spendGranted: boolean,
   exposeAgentTools: boolean,
   options: StudioServerOptions,
 ): RpcHandlerDeps {
   return {
     config,
     projectRoot,
-    spend: capabilities.spend,
+    spend: spendGranted,
     exposeAgentTools,
     ...(options.fs !== undefined ? { fs: options.fs } : {}),
     ...(options.adapterRegistry !== undefined ? { adapterRegistry: options.adapterRegistry } : {}),
@@ -168,7 +217,8 @@ async function closeServer(server: Server, sseHub: SseHub, watcher: ProjectWatch
  * calls are allowed only when {@link StudioServerDeps.spend} is set, so nothing the project's own
  * config module does can widen what this process was granted. Then `options.loader` resolves,
  * exactly once, before the server listens; every RPC handler reuses that one config for the life of
- * the process.
+ * the process. The config can only narrow the grant: a provider of `none` disables machine
+ * translation by policy, and then the provider-calling methods are absent even with `spend` set.
  *
  * @param options - The loader, where to bind and run, the granted capabilities, and any injection seams.
  * @returns The running server: its loopback URL, the port actually bound, and a `close` to stop it.
@@ -200,12 +250,11 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   const assetsRootPath = fileURLToPath(options.assetsRoot ?? defaultAssetsRoot());
   const output = options.output ?? defaultOutput;
   const token = options.token ?? generateToken();
-  const capabilities: StudioCapabilities = {
-    spend: options.spend ?? false,
-    writeToDisk: true,
-  };
+  const granted = options.spend ?? false;
   const exposeAgentTools = options.exposeAgentTools ?? false;
   const config = await options.loader();
+  declareProviderKeyEnvVar(config.config.provider);
+  const capabilities = resolveCapabilities(granted, config.config);
   const projectRoot = options.cwd ?? process.cwd();
 
   const watcher = await createProjectWatcher(
@@ -226,7 +275,8 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
   watcher.onRefresh((event) => sseHub.broadcastRefresh(event));
 
   const handlers = createRpcHandlers(capabilities);
-  const rateLimiter = buildRateLimiter(options);
+  const rateLimits = studioRateLimits(options);
+  const rateLimiter = buildRateLimiter(options, rateLimits);
   const inFlightGuard = buildInFlightGuard();
 
   const server = createServer();
@@ -241,7 +291,15 @@ export async function startStudioServer(options: StudioServerOptions): Promise<S
     cookieName: cookieName(port),
     assetsRootPath,
     log: output,
-    rpcDeps: buildRpcHandlerDeps(config, projectRoot, capabilities, exposeAgentTools, options),
+    rpcDeps: {
+      ...buildRpcHandlerDeps(config, projectRoot, granted, exposeAgentTools, options),
+      rateLimits,
+      inFlightEntries: () => inFlightGuard.entries(),
+      log: output,
+      ...(capabilities.spendWithheld !== undefined
+        ? { spendWithheld: capabilities.spendWithheld }
+        : {}),
+    },
     handlers,
     rateLimiter,
     inFlightGuard,

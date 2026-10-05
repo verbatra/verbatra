@@ -24,6 +24,10 @@ export type ExecFileImpl = (
   options: {
     /** Absolute directory to run the process in, which for the history view is the project root. */
     readonly cwd: string;
+    /** Milliseconds after which the process should be stopped. */
+    readonly timeout: number;
+    /** The most bytes of output to accept before the process should be stopped. */
+    readonly maxBuffer: number;
   },
 ) => Promise<ExecFileResult>;
 
@@ -92,8 +96,10 @@ export interface StudioServerDeps {
    */
   readonly token?: string;
   /**
-   * Sink for the startup banner and the per-request log line. Defaults to writing to the console.
-   * Pass a no-op when the caller prints its own banner, as the verbatra CLI does.
+   * Sink for every line the server writes: the startup banner, which carries the session token;
+   * one `<METHOD> <path> <status>` line per request, its path without the query string; and a
+   * line starting `studio error: ` for an unexpected server error or an interrupted batch, redacted
+   * with every control character replaced by a space. Defaults to writing to the console.
    */
   readonly output?: (line: string) => void;
   /**
@@ -104,8 +110,11 @@ export interface StudioServerDeps {
   /**
    * Authorizes provider invocations: network egress, an API key read from its environment variable,
    * and a billable call. Read once at startup to decide which RPC methods exist at all, so a method
-   * it does not cover answers `METHOD_UNKNOWN` rather than failing later. Off by default. This is
-   * the only capability option; writing a local locale file always needs no flag.
+   * it does not cover answers `SPEND_DISABLED`, naming `--allow-spend` or the provider `none` as the
+   * reason, rather than failing later. Off by default. This is
+   * the only capability option; writing a local locale file always needs no flag. A config whose
+   * provider is `none` withholds it regardless, since machine translation is then disabled by
+   * policy.
    */
   readonly spend?: boolean;
   /**
@@ -117,9 +126,16 @@ export interface StudioServerDeps {
   readonly exposeAgentTools?: boolean;
   /** Builds the provider for the spend-gated handlers. Defaults to the sdk constructing the configured one. */
   readonly createProvider?: CreateProvider;
-  /** Rolling window in milliseconds for `translation.retranslateEntry`'s rate limit. Defaults to 60000. */
+  /**
+   * Rolling window in milliseconds for the retranslate rate limit, shared by
+   * `translation.retranslateEntry` and `translation.retranslateEntries`. Defaults to 60000.
+   */
   readonly retranslateRateLimitWindowMs?: number;
-  /** How many `translation.retranslateEntry` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 20. */
+  /**
+   * How many entries the window allows `translation.retranslateEntry` and
+   * `translation.retranslateEntries` to retranslate together before `METHOD_RATE_LIMITED`: a
+   * single call counts one, a batch counts one per entry. Defaults to 20.
+   */
   readonly retranslateRateLimitMax?: number;
   /** Rolling window in milliseconds for `translation.editEntry`'s rate limit. Defaults to 60000. */
   readonly editEntryRateLimitWindowMs?: number;
@@ -133,6 +149,18 @@ export interface StudioServerDeps {
   readonly glossaryWriteRateLimitWindowMs?: number;
   /** How many `glossary.write` calls the window allows before `METHOD_RATE_LIMITED`. Defaults to 20. */
   readonly glossaryWriteRateLimitMax?: number;
+  /**
+   * Rolling window in milliseconds for the rate limits of `review.approve`, `review.reject`,
+   * `review.approveMany`, `review.rejectMany`, and `review.approveLocale`, each counted on its
+   * own. Defaults to 60000.
+   */
+  readonly reviewDecisionRateLimitWindowMs?: number;
+  /**
+   * How many calls of each of `review.approve`, `review.reject`, `review.approveMany`,
+   * `review.rejectMany`, and `review.approveLocale` the window allows before
+   * `METHOD_RATE_LIMITED`, a batch or a whole locale counting as one call. Defaults to 60.
+   */
+  readonly reviewDecisionRateLimitMax?: number;
 }
 
 /** Everything {@link startStudioServer} accepts: every {@link StudioServerDeps} seam, plus where to bind and run. */

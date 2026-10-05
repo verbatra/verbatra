@@ -112,7 +112,7 @@ describe("buildProjectSnapshot", () => {
 
   it("redacts a secret-shaped substring in a free-form config string", () => {
     const loaded: LoadedConfig = {
-      config: baseStudioConfig({ sourceLocale: "sk-abcdEFGH12345678" }),
+      config: baseStudioConfig({ sourceLocale: "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z" }),
       source: { kind: "override" },
       glossary: { source: "none" },
     };

@@ -14,13 +14,23 @@ const EXPECTED_METHOD_NAMES = [
   "review.queue",
   "translation.editEntry",
   "key.value",
+  "key.context",
   "locale.values",
+  "locale.integrity",
+  "translation.estimate",
   "translation.translatePending",
   "usage.summary",
+  "review.approve",
+  "review.reject",
+  "review.approveMany",
+  "review.rejectMany",
+  "translation.retranslateEntries",
+  "translation.inFlight",
+  "review.approveLocale",
 ];
 
 describe("RPC_METHOD_NAMES", () => {
-  it("contains exactly the fifteen agreed method names, no more, no fewer", () => {
+  it("contains exactly the twenty-five agreed method names, no more, no fewer", () => {
     expect(new Set(RPC_METHOD_NAMES)).toEqual(new Set(EXPECTED_METHOD_NAMES));
     expect(RPC_METHOD_NAMES).toHaveLength(EXPECTED_METHOD_NAMES.length);
   });
@@ -51,7 +61,8 @@ describe("rpcParamsSchemas", () => {
       { locale: "de", key: "greeting" },
       { locale: "", key: "greeting" },
     ],
-    ["review.queue", {}, { extra: true }],
+    ["review.queue", { includeApproved: true }, { extra: true }],
+    ["review.approveLocale", { locale: "de", origins: ["fuzzy"] }, { locale: "de", origins: [] }],
     [
       "translation.editEntry",
       { locale: "de", key: "greeting", value: "Hallo" },
@@ -59,8 +70,47 @@ describe("rpcParamsSchemas", () => {
     ],
     ["key.value", { locale: "de", key: "greeting" }, { locale: "", key: "greeting" }],
     ["locale.values", {}, { extra: true }],
+    ["locale.values", { paged: true, query: "hi", limit: 50 }, { query: "hi" }],
+    ["locale.values", { paged: true, keys: ["a"] }, { paged: true, keys: ["a"], query: "a" }],
+    ["locale.values", { paged: true, limit: 1000 }, { paged: true, limit: 1001 }],
+    ["locale.values", { paged: true, cursor: "abc" }, { paged: false }],
+    ["key.context", { locale: "de", key: "greeting" }, { locale: "de" }],
+    ["locale.integrity", { locales: ["de"] }, { locales: [] }],
+    ["translation.estimate", { locales: ["de"] }, { locales: [] }],
     ["translation.translatePending", {}, { locale: "de" }],
+    ["translation.translatePending", { locales: ["de"], maxTokens: 500 }, { maxTokens: 0 }],
     ["usage.summary", {}, { extra: true }],
+    [
+      "review.approve",
+      { locale: "de", key: "greeting", expectedValue: "Hallo", reviewer: "mk" },
+      { locale: "de", key: "greeting", expectedValue: "Hallo", reviewer: "" },
+    ],
+    [
+      "review.reject",
+      { locale: "de", key: "greeting", expectedValue: "" },
+      { locale: "de", key: "greeting" },
+    ],
+    [
+      "review.approveMany",
+      { entries: [{ locale: "de", key: "greeting", expectedValue: "Hallo" }] },
+      { entries: [] },
+    ],
+    [
+      "review.rejectMany",
+      { entries: [{ locale: "de", key: "greeting", expectedValue: "" }] },
+      { entries: [{ locale: "de", key: "greeting" }] },
+    ],
+    [
+      "translation.retranslateEntries",
+      { entries: [{ locale: "de", key: "greeting" }] },
+      { entries: [{ locale: "de", key: "greeting" }], includeHuman: true },
+    ],
+    ["translation.inFlight", {}, { locale: "de" }],
+    [
+      "key.context",
+      { locale: "de", key: "greeting", draft: "Hallo" },
+      { locale: "de", key: "greeting", draft: "x".repeat(20_001) },
+    ],
   ] as const)("%s accepts a valid shape and rejects an invalid shape", (method, valid, invalid) => {
     const schema = rpcParamsSchemas[method];
     expect(schema.safeParse(valid).success).toBe(true);
@@ -107,5 +157,27 @@ describe("rpcParamsSchemas", () => {
       writeToDisk: true,
     });
     expect(result.success).toBe(false);
+  });
+
+  it("caps a review batch at 100 entries and a retranslate batch at 20", () => {
+    const review = (count: number) => ({
+      entries: Array.from({ length: count }, (_, index) => ({
+        locale: "de",
+        key: `k${index}`,
+        expectedValue: "v",
+      })),
+    });
+    const retranslate = (count: number) => ({
+      entries: Array.from({ length: count }, (_, index) => ({ locale: "de", key: `k${index}` })),
+    });
+
+    expect(rpcParamsSchemas["review.approveMany"].safeParse(review(100)).success).toBe(true);
+    expect(rpcParamsSchemas["review.approveMany"].safeParse(review(101)).success).toBe(false);
+    expect(
+      rpcParamsSchemas["translation.retranslateEntries"].safeParse(retranslate(20)).success,
+    ).toBe(true);
+    expect(
+      rpcParamsSchemas["translation.retranslateEntries"].safeParse(retranslate(21)).success,
+    ).toBe(false);
   });
 });
