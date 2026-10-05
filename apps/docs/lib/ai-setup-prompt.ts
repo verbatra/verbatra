@@ -1,2 +1,24 @@
 export const AI_SETUP_PROMPT =
-  "Set up verbatra (`@verbatra/cli` on npm) in this project. Read\nhttps://verbatra.kreitz-webdev.de/docs/start-with-ai.md and follow its steps in\norder. Until I confirm, run only commands that spend nothing, and never run a\nreal `verbatra translate` without my explicit go-ahead. Never write, invent, or\nask for an API key value. If you cannot open the link, stop and tell me.\n";
+  "Follow https://verbatra.kreitz-webdev.de/docs/start-with-ai.md to set up verbatra here. Spend nothing until I confirm. Never write or ask for an API key. If the link fails, stop.";
+
+export const AI_SETUP_PROMPT_COMPONENT = "AiSetupPrompt";
+
+export const AI_SETUP_PROMPT_MARKDOWN = `\`\`\`text\n${AI_SETUP_PROMPT}\n\`\`\``;
+
+type MdxNode = {
+  type: string;
+  name?: string | null;
+  children?: MdxNode[];
+  data?: Record<string, unknown>;
+};
+
+function stringifyPromptAsFence(node: MdxNode): void {
+  if (node.type === "mdxJsxFlowElement" && node.name === AI_SETUP_PROMPT_COMPONENT) {
+    node.data = { ...node.data, _stringify: { text: AI_SETUP_PROMPT_MARKDOWN } };
+  }
+  for (const child of node.children ?? []) stringifyPromptAsFence(child);
+}
+
+export function remarkAiSetupPromptMarkdown() {
+  return (root: MdxNode) => stringifyPromptAsFence(root);
+}

@@ -36,7 +36,7 @@
       "copy": "Kopieren",
       "copied": "Kopiert",
       "copyAria": "Installationsbefehl kopieren",
-      "aiLabel": "Prompt für deinen KI-Agenten",
+      "aiLabel": "Prompt für KI-Agenten",
       "copyPromptAria": "Setup-Prompt für den KI-Agenten kopieren",
       "copyCommand": "{command} kopieren"
     },

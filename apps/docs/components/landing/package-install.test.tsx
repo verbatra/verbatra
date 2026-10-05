@@ -38,6 +38,16 @@ describe("PackageInstall", () => {
     expect(figure?.querySelector("p")?.textContent).toBe(AI_SETUP_PROMPT);
   });
 
+  it("lets the prompt wrap only at a space or the URL's offered breaks, with Copy in the caption row", () => {
+    const figure = renderInstall().querySelector("figure");
+    const prompt = figure?.querySelector("p");
+    expect(prompt?.className).not.toMatch(/overflow-wrap|break-all|break-words/);
+    expect(prompt?.querySelectorAll("wbr").length).toBeGreaterThan(0);
+    const captionRow = figure?.querySelector("figcaption")?.parentElement;
+    expect(captionRow?.className).not.toMatch(/flex-col/);
+    expect(captionRow?.querySelector("button")?.getAttribute("aria-label")).toBe("copyPromptAria");
+  });
+
   it("gives the command and the prompt a copy button each, named for what they copy", () => {
     const labels = [...renderInstall().querySelectorAll("button")].map((button) =>
       button.getAttribute("aria-label"),
