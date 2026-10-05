@@ -6,8 +6,8 @@ import { markdownUrl } from "./markdown-route";
 import { SITE_URL } from "./site";
 
 const LOCALES = ["", ".de", ".es", ".fr"];
-const TEXT_FENCE = /```text\n([\s\S]*?)```/g;
-const PROMPT_WORD_LIMIT = 80;
+const TEXT_FENCE = /```text\n([\s\S]*?)\n```/g;
+const PROMPT_CHARACTER_LIMIT = 200;
 
 function page(suffix: string): string {
   return readFileSync(
@@ -24,17 +24,21 @@ describe("AI_SETUP_PROMPT", () => {
 
   it("points the agent at the Markdown version of the setup page", () => {
     const url = `${SITE_URL}${markdownUrl("/docs/start-with-ai")}`;
-    expect(AI_SETUP_PROMPT.replace(/\s+/g, " ")).toContain(` ${url} `);
+    expect(AI_SETUP_PROMPT).toContain(` ${url}. `);
   });
 
-  it("keeps the spend gate and the key rule in the prompt itself, for an agent that cannot open the link", () => {
-    const prompt = AI_SETUP_PROMPT.replace(/\s+/g, " ");
-    expect(prompt).toContain("never run a real `verbatra translate` without my explicit go-ahead");
-    expect(prompt).toContain("If you cannot open the link, stop");
-    expect(prompt).toContain("Never write, invent, or ask for an API key value.");
+  it("keeps the spend gate, the key rule and the link-fail stop in the prompt itself, for an agent that cannot open the link", () => {
+    expect(AI_SETUP_PROMPT).toContain("Spend nothing until I confirm.");
+    expect(AI_SETUP_PROMPT).toContain("Never write or ask for an API key.");
+    expect(AI_SETUP_PROMPT).toContain("If the link fails, stop.");
   });
 
-  it(`stays short enough to read in the install box (under ${PROMPT_WORD_LIMIT} words)`, () => {
-    expect(AI_SETUP_PROMPT.trim().split(/\s+/).length).toBeLessThan(PROMPT_WORD_LIMIT);
+  it("is one line, so the install box shows the whole text that Copy pastes", () => {
+    expect(AI_SETUP_PROMPT).not.toMatch(/\n/);
+    expect(AI_SETUP_PROMPT).toBe(AI_SETUP_PROMPT.trim());
+  });
+
+  it(`stays short enough to read at a glance (at most ${PROMPT_CHARACTER_LIMIT} characters)`, () => {
+    expect(AI_SETUP_PROMPT.length).toBeLessThanOrEqual(PROMPT_CHARACTER_LIMIT);
   });
 });

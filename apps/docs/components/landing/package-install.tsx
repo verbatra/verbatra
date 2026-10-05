@@ -7,6 +7,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { AI_SETUP_PROMPT } from "@/lib/ai-setup-prompt";
 import { CLI_PACKAGE, NPM_INSTALL_COMMAND } from "@/lib/install-commands";
 import { trackUmamiEvent } from "@/lib/umami";
+import { breakUrlsAtSeparators } from "@/lib/word-breaks";
 import { NPM_CLI } from "./links";
 
 export function PackageInstall(): ReactNode {
@@ -40,23 +41,24 @@ export function PackageInstall(): ReactNode {
           />
         </div>
         <figure
-          className="m-0 grid gap-2 border-t px-3.5 py-3"
+          className="m-0 grid gap-1 border-t px-3.5 py-2"
           style={{ borderColor: "var(--border-default)" }}
         >
-          <figcaption className="vk-label">{t("aiLabel")}</figcaption>
-          <div className="flex items-start gap-3 @max-[30rem]:flex-col">
-            <p
-              lang="en"
-              className="m-0 min-w-0 flex-1 font-mono text-xs leading-relaxed text-[color:var(--text-muted)] [overflow-wrap:anywhere]"
-            >
-              {AI_SETUP_PROMPT}
-            </p>
+          <div className="flex items-center justify-between gap-2">
+            <figcaption className="vk-label min-w-0 leading-6">{t("aiLabel")}</figcaption>
             <CopyButton
               text={AI_SETUP_PROMPT}
               label={t("copyPromptAria")}
+              className="min-h-6 px-2 text-xs"
               onCopied={() => trackUmamiEvent("copy-ai-prompt")}
             />
           </div>
+          <p
+            lang="en"
+            className="m-0 font-sans text-xs leading-[18px] text-[color:var(--text-muted)]"
+          >
+            {breakUrlsAtSeparators(AI_SETUP_PROMPT)}
+          </p>
         </figure>
       </div>
     </div>

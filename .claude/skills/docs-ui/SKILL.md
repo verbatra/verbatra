@@ -137,8 +137,9 @@ footer's oversized watermark only; do not clip it onto a heading.
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
   `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  the install box's second row shows the whole AI setup prompt, wrapped, under a `.vk-label`
-  caption), `reveal.tsx` (the scroll
+  the install box's second row shows the whole one-line AI setup prompt, wrapped, under a
+  `.vk-label` caption that shares its row with the prompt's Copy button; its URL breaks only
+  after a `/` or `.` through `breakUrlsAtSeparators` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
