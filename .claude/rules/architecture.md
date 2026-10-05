@@ -141,7 +141,10 @@ descriptive only, nothing branches on it), `supportsGlossary`, and `translateBat
   `packages/ai-providers/src/libretranslate/`), since they take strings and return strings with no
   prompt. How a placeholder-blind engine is kept away from placeholders lives in one place:
   `translateMaskedBatch` in `packages/ai-providers/src/masked-batch.ts`, which masks with
-  `placeholder-protection.ts` and encodes markers for the wire with `masked-wire-codec.ts`. All
+  `placeholder-protection.ts`, and each provider's wire (masking options, encoder and decoder from
+  `masked-wire-codec.ts`) is its entry in `MASKED_WIRES` (`packages/ai-providers/src/masked-wire.ts`),
+  which `entriesWithheldByMasking` also reads so `doctor --data-flow` counts what the provider would
+  withhold. All
   three mask placeholders as numbered markers and restore them (DeepL inside an ignored `<x>` tag,
   Google inside a `translate="no"` span, LibreTranslate as bare markers with markup kept).
 
@@ -162,8 +165,10 @@ Adding a provider: config schema in `<provider>/config.ts`, factory in
 `<provider>/<provider>-provider.ts`, key handling in `packages/ai-providers/src/key-env-vars.ts`
 (`PROVIDER_ENV`) plus a `require<Name>Key()` helper in `packages/ai-providers/src/env.ts`, export
 from `packages/ai-providers/src/index.ts`, then the two `provider-config.ts` steps (discriminated
-union variant, `providerFactories` entry) and the `PROVIDER_BILLING` entry in
-`packages/sdk/src/config/provider-billing.ts`. See `CONTRIBUTING.md` "Adding a translation provider"
+union variant, `providerFactories` entry), the `PROVIDER_BILLING` entry in
+`packages/sdk/src/config/provider-billing.ts`, and the `PROVIDER_DATA_FLOW` entry in
+`packages/sdk/src/config/provider-data-flow.ts` (a mapped type over `MachineProviderId`, read by
+`doctor --data-flow`); a provider that masks placeholders also gets its `MASKED_WIRES` entry. See `CONTRIBUTING.md` "Adding a translation provider"
 for the full ordered list with line-number pointers.
 
 ## Core stays pure
