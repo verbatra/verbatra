@@ -176,8 +176,8 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
     description:
       "Reports, for one key, whether each target locale's current value keeps the source placeholders, stays valid ICU MessageFormat, and carries ICU plural, ordinal, and select arms that fit the target language, naming each wrong arm. " +
       "Use it to decide whether a translation is safe to keep, typically right after writing or requesting one. " +
-      "Do not read absence as a pass or a failure: a locale appears only while the key counts as changed there, so a locale where the key is missing, orphaned, or already in sync carries no entry at all. " +
-      "The required `key` parameter is the source key to inspect, the optional `locales` parameter narrows the check to the named target locales, and an omitted `locales` covers every configured target locale. " +
+      "Do not read absence as a pass or a failure: a locale appears only while the key counts as changed there, so a locale where the key is missing or already in sync carries no entry at all. " +
+      "The required `key` parameter is the source key to inspect, and a key the source does not have fails with UNKNOWN_KEY; the optional `locales` parameter narrows the check to the named target locales, and an omitted `locales` covers every configured target locale. " +
       "The result carries only the boolean outcomes, the specific placeholder tokens involved, and one short problem per wrong arm, never a full source or target string. " +
       "Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
