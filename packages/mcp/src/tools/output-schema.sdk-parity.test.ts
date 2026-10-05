@@ -127,7 +127,7 @@ describe("output schemas declare every field the SDK result they pass through ca
 
   it("project.doctor", () => {
     expectTypeOf<
-      Undeclared<SdkResult<typeof doctor>, ProjectDoctorResult, "literals" | "locales">
+      Undeclared<SdkResult<typeof doctor>, ProjectDoctorResult, "literals" | "locales" | "dataFlow">
     >().toEqualTypeOf<never>();
     expectTypeOf<
       ProjectDoctorResult["checks"][number]["status"]

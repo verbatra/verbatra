@@ -26,6 +26,8 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import type { ScanProgressListener } from "../progress/types.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { buildDataFlowManifest } from "./data-flow.js";
+import type { DataFlowManifest } from "./data-flow-manifest.js";
 import type { DoctorFinding } from "./doctor-finding.js";
 import { describeLiteralScan, isCleanLiteralScan, lintLiterals } from "./literal-lint.js";
 import {
@@ -90,6 +92,11 @@ import { readSourceResource } from "./source.js";
  * - `untranslated-literals`: the application source configured in the `extract` block holds no
  *   hardcoded user-facing string literal and no file the scan could not read. It runs only when
  *   {@link DoctorInput.literals} is set.
+ * - `data-flow`: informational, never fails. Summarizes the {@link DataFlowManifest} in
+ *   {@link DoctorResult.dataFlow}: the provider, the hosts it sends to and the network policy's
+ *   verdict on each. It is `warn` when the policy refuses a host or cannot be resolved, or when the
+ *   source locale file could not be read for the counts. It runs only when
+ *   {@link DoctorInput.dataFlow} is set.
  */
 export type DoctorCheckId =
   | "config"
@@ -103,7 +110,8 @@ export type DoctorCheckId =
   | "locale-codes"
   | "locale-state"
   | "locales"
-  | "untranslated-literals";
+  | "untranslated-literals"
+  | "data-flow";
 
 /**
  * The verdict on one {@link DoctorCheck}.
@@ -152,7 +160,8 @@ export interface DoctorResult {
    * Every check that ran, always in the same order. A setup run has eleven entries, one per setup
    * check: `config`, `format-adapter`, `provider`, `api-key`, `network-policy`, `source-file`,
    * `plural-rules`, `plural-completeness`, `locale-codes`, `locale-state`, and `locales`. A literal
-   * run ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`.
+   * run ({@link DoctorInput.literals}) has exactly two: `config` and `untranslated-literals`. A
+   * data-flow run ({@link DoctorInput.dataFlow}) has exactly two: `config` and `data-flow`.
    */
   readonly checks: readonly DoctorCheck[];
   /**
@@ -169,6 +178,11 @@ export interface DoctorResult {
    * verdict.
    */
   readonly locales?: LocaleCapabilityReport;
+  /**
+   * Where the project's data goes, as {@link dataFlow} describes it. Present only on a data-flow
+   * run ({@link DoctorInput.dataFlow}) whose config loaded.
+   */
+  readonly dataFlow?: DataFlowManifest;
 }
 
 /** Input for {@link doctor}. */
@@ -185,6 +199,14 @@ export interface DoctorInput {
    * `locales`), so no API key environment variable is looked at and a run with no key set can pass.
    */
   readonly literals?: boolean;
+  /**
+   * Describe where the project's data goes instead of running the setup checks: the config is
+   * loaded and {@link DoctorResult.dataFlow} carries the {@link DataFlowManifest} {@link dataFlow}
+   * builds. Only the `config` and `data-flow` checks run, no API key is read and no network request
+   * is made. Takes precedence over {@link DoctorInput.live}; ignored when
+   * {@link DoctorInput.literals} is set.
+   */
+  readonly dataFlow?: boolean;
   /**
    * Fetch the configured machine-translation provider's current language list before the `locales`
    * check, instead of judging against the table verbatra ships. It is the one doctor option that
@@ -230,6 +252,7 @@ const CHECK_TITLES: Record<DoctorCheckId, string> = {
   "locale-state": "Locale state",
   locales: "Locale support",
   "untranslated-literals": "Untranslated literals",
+  "data-flow": "Data flow",
 };
 
 const CONFIG_DEPENDENT_IDS: readonly DoctorCheckId[] = [
@@ -262,6 +285,7 @@ const CHECK_FIXES: Record<DoctorCheckId, string | undefined> = {
     "Remove the unsupported locale from `targetLocales`, map it to a supported code in `provider.options.localeMap`, or choose a provider that supports it.",
   "untranslated-literals":
     "Wrap each reported literal in a translation call, or suppress it with a `verbatra-ignore-next-line` comment or `extract.literals.ignore`.",
+  "data-flow": undefined,
 };
 
 const SKIPPED_DETAIL = "Not checked: the configuration could not be loaded.";
@@ -581,6 +605,51 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
   return { ...toResult([configCheck, literalCheck]), literals: lint.scan };
 }
 
+function describeDataFlow(manifest: DataFlowManifest): string {
+  if (manifest.sent.nothing) {
+    return 'Nothing is sent: machine translation is disabled by policy (provider "none").';
+  }
+  const hosts = manifest.destinations.map(
+    (destination) => `${destination.host} (${destination.verdict})`,
+  );
+  const counts =
+    manifest.sent.counts === undefined
+      ? ` Counts unavailable: ${manifest.sent.countsUnavailable ?? "the source was not read"}`
+      : "";
+  return `Provider "${manifest.provider.id}" sends ${manifest.sent.fields.join(", ")} to ${hosts.join(", ")}.${counts}`;
+}
+
+function dataFlowStatus(manifest: DataFlowManifest): DoctorCheckStatus {
+  const blocked = manifest.destinations.some(
+    (destination) => destination.verdict === "refused" || destination.verdict === "invalid-policy",
+  );
+  return blocked || manifest.sent.counts === undefined ? "warn" : "pass";
+}
+
+async function dataFlowDoctor(input: DoctorInput, deps: DoctorDeps): Promise<DoctorResult> {
+  const outcome = await loadForDoctor(input, deps);
+  if (outcome.kind === "failed") {
+    return toResult([
+      failure("config", outcome.error),
+      check("data-flow", "skipped", SKIPPED_DETAIL),
+    ]);
+  }
+  const { config, source } = outcome.loaded;
+  const manifest = await buildDataFlowManifest(config, {
+    cwd: input.cwd ?? process.cwd(),
+    fs: deps.fs ?? defaultFs,
+    adapterRegistry: deps.adapterRegistry,
+    env: processEnvironment(),
+  });
+  return {
+    ...toResult([
+      verdict("config", true, configDetail(source)),
+      check("data-flow", dataFlowStatus(manifest), describeDataFlow(manifest)),
+    ]),
+    dataFlow: manifest,
+  };
+}
+
 /**
  * Validates a project's setup and spends nothing: no provider is constructed, no network request is
  * made unless {@link DoctorInput.live} asks for a provider's language list, and no file is written.
@@ -667,6 +736,11 @@ async function literalDoctor(input: DoctorInput, deps: DoctorDeps): Promise<Doct
  * scanned, so a partial scan is never reported as clean. No provider is constructed and no API key
  * environment variable is read.
  *
+ * With `dataFlow: true` it describes where the project's data goes instead of running the setup
+ * checks: {@link DoctorResult.dataFlow} carries the {@link DataFlowManifest} {@link dataFlow}
+ * returns, and only the `config` and the informational `data-flow` checks run. No API key is read
+ * and no network request is made.
+ *
  * @param input - The working directory, an optional explicit config path, whether to run the
  *   untranslated-literal scan instead of the setup checks, and whether to fetch the provider's live
  *   language list.
@@ -694,6 +768,9 @@ export async function doctor(
 ): Promise<DoctorResult> {
   if (input.literals === true) {
     return literalDoctor(input, deps);
+  }
+  if (input.dataFlow === true) {
+    return dataFlowDoctor(input, deps);
   }
   const outcome = await loadForDoctor(input, deps);
   if (outcome.kind === "failed") {
