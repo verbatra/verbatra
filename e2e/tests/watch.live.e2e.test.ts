@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
   type EnvelopeStream,
+  liveRunRequired,
   parseNdjsonEnvelopes,
   providerConfigBlock,
   providerFromEnv,
@@ -126,6 +127,9 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
     expect(stopResult.stderr).not.toContain(provider.key);
 
     if (throttled !== undefined) {
+      if (liveRunRequired()) {
+        expect.fail(`E2E_REQUIRE_LIVE is set, but the provider did not answer: ${throttled}`);
+      }
       ctx.skip(
         `The provider rate-limited, timed out, or was unavailable during the watch run, so the translation half of this test could not run: ${throttled}`,
       );

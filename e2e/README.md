@@ -106,8 +106,13 @@ deterministic test joins the required gate automatically.
   `sr-Latn` in Latin rather than Cyrillic script; `watch` translates on startup,
   again on a source change, and stops on interrupt. It needs `E2E_PROVIDER` (default `gemini`) and
   the matching API key, and skips otherwise. `.github/workflows/e2e-live.yml` runs it on a nightly
-  schedule, on push to `main`, and on manual dispatch only, never on a pull request, with the key
-  scoped to the `live-e2e` GitHub Environment.
+  schedule, on push to `main`, and on manual dispatch only, never on a pull request, with the keys
+  scoped to the `live-e2e` GitHub Environment. The nightly and push runs drive `gemini` alone and
+  skip with a notice when its key is absent. A manual dispatch picks `gemini`, `deepl`,
+  `google-translate`, or `all` through its `provider` input; the `deepl` and `google-translate`
+  jobs run only the placeholder-masking case (`npm run test:masking`). Every dispatch, `gemini`
+  included, sets `E2E_REQUIRE_LIVE=1`, so a missing key, or a provider that rate-limits or does not
+  answer during a `translate` or `watch` run, fails the job instead of skipping.
 
   **This tier is advisory and never gates a publish**, because its result depends on a third
   party's availability. That is not licence to ignore it: both live tests read each run's `--json`
@@ -179,20 +184,46 @@ model loaded. Use a loopback URL, since the test pins the `local-only` network p
 `tests/translate.live.e2e.test.ts` holds one case that only runs when `E2E_PROVIDER` is `deepl` or
 `google-translate`: it translates a value with two `{{...}}` placeholders and an ampersand, then
 expects both placeholders back byte-exact, no `<x>`, `<span` or `&amp;` left in the result, and
-the project in sync. The nightly workflow runs `gemini`, so this case runs only locally:
+the project in sync. A manual dispatch of the live workflow with `provider` set to `deepl` or
+`google-translate` runs it alone; locally:
 
 ```sh
 cd e2e
-E2E_PROVIDER=deepl DEEPL_API_KEY=... npx vitest run tests/translate.live.e2e.test.ts
-E2E_PROVIDER=google-translate GOOGLE_TRANSLATE_API_KEY=... npx vitest run tests/translate.live.e2e.test.ts
+E2E_PROVIDER=deepl DEEPL_API_KEY=... npm run test:masking
+E2E_PROVIDER=google-translate GOOGLE_TRANSLATE_API_KEY=... npm run test:masking
 ```
 
-Without the key, every case in the file skips.
+Without the key, the case skips; with `E2E_REQUIRE_LIVE=1` it fails instead.
+
+### Billing observation
+
+The case records what the CLI put on the wire for that batch through `src/wire-recorder.mjs`, an
+`--import` preload that keeps request texts and DeepL's billed counts, never a URL or header, so
+no key reaches the log (the test asserts it). It prints a table to the test output and, in CI, to
+the job summary: characters sent, the same count without markup tags, and the billed count.
+
+- **DeepL** returns `billed_characters` per request. The masked row is what DeepL billed the CLI's
+  own request; the unmasked row is one direct request with the same text and no tag handling. One
+  dispatch with `provider=deepl` gives both.
+- **Google Cloud Translation** returns no billed count, and its console reports characters per
+  day. The `google_batch` dispatch input makes each run send exactly one batch: `masked` runs the
+  CLI, `unmasked` sends the same text once, directly, with no masking. Measure on two days on
+  which the key does nothing else:
+
+  1. Day 1: `gh workflow run e2e-live.yml --ref main -f provider=google-translate -f google_batch=masked`
+  2. Day 2: `gh workflow run e2e-live.yml --ref main -f provider=google-translate -f google_batch=unmasked`
+  3. Once both days are billed, open Cloud console, Billing, Reports, filter to the Cloud
+     Translation service, group by day, and read the characters for each day.
+  4. Compare day 1 with the masked row's two counts: a match on characters sent means the
+     `<span translate="no">` tags are billed, a match on the count without tags means they are not.
+     Day 2 should match the unmasked row.
 
 ## Choosing the live provider
 
 `E2E_PROVIDER` is one of `gemini`, `anthropic`, `openai`, `deepl`, `google-translate`.
-Gemini is the default because it has a free API tier, which keeps the nightly smoke
-translation at no cost. The matching key (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`,
-`OPENAI_API_KEY`, `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`) must be in the
-environment, otherwise the live tier skips.
+Gemini is the default, and the only provider the nightly and push runs drive, because it has a
+free API tier, which keeps the recurring smoke translation at no cost. DeepL and Google Cloud
+Translation bill per character, so the workflow runs them only on a manual dispatch. The matching
+key (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPL_API_KEY`,
+`GOOGLE_TRANSLATE_API_KEY`) must be in the environment, otherwise the live tier skips, or fails
+when `E2E_REQUIRE_LIVE=1` is set.

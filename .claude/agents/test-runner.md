@@ -74,8 +74,10 @@ behavior) and hand it back rather than patching the source yourself.
    deterministic, and is the tier CI's `e2e` job runs, gating every release. The
    live tier (`tests/translate.live.e2e.test.ts`, `tests/watch.live.e2e.test.ts`, run
    via `npm test`) hits a real provider (`E2E_PROVIDER`, default `gemini`), needs the
-   matching API key, skips otherwise, and is advisory only
-   (`.github/workflows/e2e-live.yml`), never gating a publish. Run it from inside
+   matching API key, skips otherwise (fails instead under `E2E_REQUIRE_LIVE=1`), and is
+   advisory only (`.github/workflows/e2e-live.yml`: `gemini` nightly and on push, any
+   provider on manual dispatch, where `deepl` and `google-translate` run only
+   `npm run test:masking`), never gating a publish. Run it from inside
    `e2e/` with `npm ci` then `npm run test:nokey` (or `npm run typecheck` first to
    catch harness drift); see `e2e/README.md` for the full tarball-pinning story if
    `VERBATRA_SDK_TARBALL`, `VERBATRA_CLI_TARBALL`, `VERBATRA_STUDIO_TARBALL`, and
