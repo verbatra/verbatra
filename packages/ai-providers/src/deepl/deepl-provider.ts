@@ -2,7 +2,7 @@ import { appliesTerms } from "../glossary.js";
 import { supportsFormality } from "../language-support.js";
 import { resolveProviderLocale } from "../locale-map.js";
 import { translateMaskedBatch } from "../masked-batch.js";
-import { decodeMaskedFromXml, encodeMaskedForXml } from "../masked-wire-codec.js";
+import { MASKED_WIRES } from "../masked-wire.js";
 import {
   type TranslateRequest,
   type TranslationProvider,
@@ -94,9 +94,7 @@ async function translate(
     signal: request.signal,
   };
   return translateMaskedBatch(data, request, notices, {
-    masking: { withholdMarkup: true },
-    encode: encodeMaskedForXml,
-    decode: decodeMaskedFromXml,
+    ...MASKED_WIRES.deepl,
     groups: ["plain", "masked"],
     groupOf: (item) => (item.masked === undefined ? "plain" : "masked"),
     send: (texts, group) =>

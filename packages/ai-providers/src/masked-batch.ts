@@ -1,14 +1,13 @@
 import { ProviderError } from "./errors.js";
 import { checkBatchIntegrity } from "./integrity.js";
+import type { MaskedWire } from "./masked-wire.js";
 import {
   type MaskedEntry,
   type MaskedValue,
-  type MaskingOptions,
   type OutgoingText,
   PLACEHOLDER_UNSUPPORTED_MESSAGE,
   partitionForMasking,
   restoreTranslations,
-  type WireDecoder,
   withForeignPlaceholders,
 } from "./placeholder-protection.js";
 import type {
@@ -39,10 +38,7 @@ export function zipTranslations<T>(
   return pairs;
 }
 
-export interface MaskedBatchStrategy<G extends string> {
-  readonly masking: MaskingOptions;
-  readonly encode: (masked: MaskedValue) => string | undefined;
-  readonly decode: WireDecoder;
+export interface MaskedBatchStrategy<G extends string> extends MaskedWire {
   readonly groups: readonly G[];
   readonly groupOf: (item: OutgoingText) => G;
   readonly send: (texts: readonly string[], group: G) => Promise<readonly string[]>;

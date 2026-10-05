@@ -48,13 +48,36 @@ function geminiEndpoint(env: EnvironmentSource): ProviderEndpoint {
       };
 }
 
-function deepLEndpoint(env: EnvironmentSource): ProviderEndpoint {
-  const freeAccount = env[PROVIDER_ENV.deepl]?.endsWith(":fx") === true;
+function deepLEndpointFor(freeAccount: boolean): ProviderEndpoint {
   return {
     url: freeAccount ? DEEPL_FREE_BASE_URL : DEEPL_BASE_URL,
     knownPublic: true,
     transport: "axios",
   };
+}
+
+function deepLEndpoint(env: EnvironmentSource): ProviderEndpoint {
+  return deepLEndpointFor(env[PROVIDER_ENV.deepl]?.endsWith(":fx") === true);
+}
+
+export type EndpointKeyCondition = "free-key" | "paid-key";
+
+export interface EndpointCandidate {
+  readonly endpoint: ProviderEndpoint;
+  readonly when?: EndpointKeyCondition;
+}
+
+export function endpointCandidates(
+  target: EndpointTarget,
+  env: EnvironmentSource,
+): readonly EndpointCandidate[] {
+  if (target.id === "deepl") {
+    return [
+      { endpoint: deepLEndpointFor(false), when: "paid-key" },
+      { endpoint: deepLEndpointFor(true), when: "free-key" },
+    ];
+  }
+  return [{ endpoint: resolveProviderEndpoint(target, env) }];
 }
 
 export function resolveProviderEndpoint(
