@@ -256,7 +256,11 @@ describe("approveEntry", () => {
         key: "greeting",
         expectedValue: "Hallo",
       }),
-    ).rejects.toMatchObject({ code: "REVIEW_SOURCE_CHANGED" });
+    ).rejects.toMatchObject({
+      code: "REVIEW_SOURCE_CHANGED",
+      message:
+        'The lock-file has no de entry for "greeting", so verbatra cannot tell which source text the translation was written for, and it cannot be approved as it stands. Edit or retranslate it first.',
+    });
   });
 
   it("is reset to unreviewed by a later edit of the value", async () => {

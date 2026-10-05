@@ -582,6 +582,12 @@ export async function approveEntry(
       context.fs,
       async () => {
         const sourceHash = await lockSourceHash(context);
+        if (sourceHash === undefined) {
+          throw new SdkError(
+            "REVIEW_SOURCE_CHANGED",
+            `The lock-file has no ${context.locale} entry for "${context.key}", so verbatra cannot tell which source text the translation was written for, and it cannot be approved as it stands. Edit or retranslate it first.`,
+          );
+        }
         if (sourceHash !== contentHash(context.sourceEntry)) {
           throw new SdkError(
             "REVIEW_SOURCE_CHANGED",
