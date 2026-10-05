@@ -90,6 +90,8 @@ parity tests (`pnpm test:scripts`):
   code. `cli/output`, `sdk/errors` and `providers` link there instead of repeating the tables. An old `/docs/sdk#<entry>` link still lands:
   `<SdkAnchorForward />` on `sdk/index*.mdx` forwards it to the page that now heads the anchor,
   and `apps/docs/lib/sdk-anchors.test.ts` pins every anchor of the former single page per locale.
+  `sdk/exchange*.mdx` carries one too, so `/docs/sdk/exchange#errorhint` and
+  `#projectrelativemessage` land on `sdk/errors`, where those sections moved; the same test pins it.
 - `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in
   `packages/mcp/README.md` follows `ALL_TOOLS_IN_ORDER`, with exactly the spend-gated tools marked
   as calling a provider, and the client allowlists name only registered, non-spend tools.

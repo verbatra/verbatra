@@ -7,7 +7,7 @@ codeHeadings: true
 ---
 Cada fallo que informa verbatra lleva un código estable: en la línea `verbatra: error [CODE] message` de stderr, como `code` o `causeCode` de un sobre `--json`, como `error.code` de un locale fallido o como aviso en el resumen de la ejecución. Ramifica según el código, nunca según el mensaje. Cada código tiene su propio ancla, `/docs/error-codes#` seguido del código en minúsculas, como [`#config_not_found`](#config_not_found).
 
-El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del sobre. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/docs/sdk/exchange#errorhint). Los códigos de salida y la forma del sobre están en [Códigos de salida y salida JSON](/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/docs/troubleshooting).
+El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del sobre. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/docs/sdk/errors#errorhint). Los códigos de salida y la forma del sobre están en [Códigos de salida y salida JSON](/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/docs/troubleshooting).
 
 Dos códigos pertenecen a dos familias: `CONFIG_INVALID` (el SDK, e `init` en la CLI) y `NETWORK_POLICY_VIOLATION` (el SDK y los proveedores). El ancla en minúsculas lleva a la entrada del SDK; la otra entrada tiene un ancla con prefijo.
 

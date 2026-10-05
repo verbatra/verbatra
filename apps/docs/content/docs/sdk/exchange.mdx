@@ -1,8 +1,10 @@
 ---
 title: "Handoff and exchange"
-description: "Workbook and TMX import and export, locale-file snapshots, locale paths, and error hints."
+description: "Workbook and TMX import and export, locale-file snapshots, and locale paths."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Locale-file snapshots
 
 The building blocks of a live-refresh watcher such as Studio's: capture a locale file's state, then
@@ -78,63 +80,6 @@ function createLocalePathResolver(
 Every check runs when the resolver is created, before any file is read: a pattern and style that
 cannot be combined, or a locale the style has no correct spelling for, throws
 `LOCALE_LAYOUT_INVALID`, and two locales resolving to one path throws `LOCALE_PATH_COLLISION`.
-
-### projectRelativeMessage
-
-<AvailableFrom version="0.12.0" />
-
-`projectRelativeMessage(message, cwd)` rewrites every absolute path inside the project in a message to
-a path relative to the project root: a path under `cwd` loses that prefix, `cwd` itself becomes
-`.`, and a path outside the project stays as it is. Every per-locale `error.message` and notice
-message on a `RunSummary` already names project files this way, relative to the run's `cwd`; call
-it on the message of an error a flow throws before you show it to a user, an agent, or a browser
-tab. `verbatra mcp` and Studio do the same for every error they return.
-
-```ts title="Signature"
-function projectRelativeMessage(
-  message: string,
-  cwd: string,
-): string;
-```
-
-**Returns:** `string`
-
-### errorHint
-
-<AvailableFrom version="0.12.0" />
-
-`errorHint(error)` returns the next step that resolves an error verbatra raised: one short
-imperative sentence, or `undefined` when there is none. Every `SdkError` code, every
-`ProviderError` code, and every format adapter error code has one, so an agent can act on a failure
-without parsing its message. It reads the error's `code`, so a plain `{ code, message }` object,
-such as a failed `watch` run's `error`, gets the same hint. A `PROVIDER_CONSTRUCTION_FAILED` error
-takes the hint of the provider error it wraps, so a missing key names the exact variable to set,
-read from the `envVar` a `MISSING_API_KEY` `ProviderError` carries. A `CONFIG_INVALID` error from a
-config file whose import could not be resolved (its `causeCode` is `MODULE_NOT_FOUND`,
-`ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` or `ERR_UNSUPPORTED_DIR_IMPORT`) says to
-install or fix that import instead. A hint is fixed text plus, at
-most, a variable name: it never contains a key value or quotes the message. The CLI's `--json`
-error envelope carries it as `hint`, and `verbatra mcp` ends a failed call's text with it.
-
-```ts title="Signature"
-function errorHint(error: unknown): string | undefined;
-```
-
-**Returns:** `string | undefined`
-
-**Example:** [Handle errors](/docs/sdk-quickstart#handle-errors)
-
-```ts title="Example"
-import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
-
-declare const config: VerbatraConfig;
-
-try {
-  await translate({ config });
-} catch (error) {
-  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
-}
-```
 
 ## The workbook pair
 

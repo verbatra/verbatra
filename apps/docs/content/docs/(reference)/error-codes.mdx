@@ -7,7 +7,7 @@ codeHeadings: true
 ---
 Every failure verbatra reports carries a stable code: in the `verbatra: error [CODE] message` line on stderr, as the `code` or `causeCode` of a `--json` envelope, as the `error.code` of a failed locale, or as a notice on the run summary. Branch on the code, never on the message. Each code has its own anchor, `/docs/error-codes#` followed by the code in lower case, such as [`#config_not_found`](#config_not_found).
 
-The **Next step** of an error code is the hint verbatra prints after the error line as `next: ...` and puts in the envelope's `hint` field. It is quoted here exactly as verbatra prints it, in English, and the SDK returns the same text from [`errorHint`](/docs/sdk/exchange#errorhint). The exit codes themselves and the envelope shape are on [Exit codes and JSON output](/docs/cli/output); symptom-first help is on [Troubleshooting](/docs/troubleshooting).
+The **Next step** of an error code is the hint verbatra prints after the error line as `next: ...` and puts in the envelope's `hint` field. It is quoted here exactly as verbatra prints it, in English, and the SDK returns the same text from [`errorHint`](/docs/sdk/errors#errorhint). The exit codes themselves and the envelope shape are on [Exit codes and JSON output](/docs/cli/output); symptom-first help is on [Troubleshooting](/docs/troubleshooting).
 
 Two codes belong to two families: `CONFIG_INVALID` (the SDK, and `init` in the CLI) and `NETWORK_POLICY_VIOLATION` (the SDK and the providers). The lower-case anchor leads to the SDK entry; the other entry carries a prefixed anchor.
 

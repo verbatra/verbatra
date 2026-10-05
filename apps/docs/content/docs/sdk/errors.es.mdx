@@ -1,6 +1,6 @@
 ---
 title: "Errores"
-description: "El modelo SdkError: una sola clase de error, qué códigos llevan una causa y las excepciones a la regla."
+description: "El modelo SdkError: las clases de error, qué códigos llevan una causa, las excepciones a la regla y los ayudantes de errores."
 type: reference
 ---
 ## El modelo de errores
@@ -11,7 +11,7 @@ proveedor y los hallazgos de integridad se comunican como datos en el `RunSummar
 
 Cada código, qué significa, qué comandos de la CLI llegan a él y cuál es el siguiente paso están en [Códigos de error del SDK](/docs/error-codes#sdk-error-codes).
 
-`code` está tipado como la unión `SdkErrorCode`. [`errorHint`](/docs/sdk/exchange#errorhint) devuelve el siguiente paso que resuelve un error, y [`projectRelativeMessage`](/docs/sdk/exchange#projectrelativemessage) acorta las rutas del proyecto en su mensaje antes de que se lo muestres a una persona.
+`code` está tipado como la unión `SdkErrorCode`. [`errorHint`](#errorhint) devuelve el siguiente paso que resuelve un error, y [`projectRelativeMessage`](#projectrelativemessage) acorta las rutas del proyecto en su mensaje antes de que se lo muestres a una persona.
 
 Algunos códigos llevan además el error que envuelven como `cause` estándar: `SOURCE_INVALID` cuando
 falló un analizador o un adaptador (no cuando un archivo se rechaza por su tamaño),
@@ -105,3 +105,65 @@ class AdapterError extends Error {
 ```
 
 <SdkTypeTable name="AdapterError" />
+
+## Ayudantes de errores
+
+### projectRelativeMessage
+
+<AvailableFrom version="0.12.0" />
+
+`projectRelativeMessage(message, cwd)` reescribe cada ruta absoluta dentro del proyecto en un mensaje
+como una ruta relativa a la raíz del proyecto: una ruta bajo `cwd` pierde ese prefijo, el propio
+`cwd` pasa a ser `.`, y una ruta fuera del proyecto se queda como está. Cada `error.message` y
+cada mensaje de aviso por locale de un `RunSummary` ya nombra así los archivos del proyecto,
+relativos al `cwd` de la ejecución; llámalo sobre el mensaje de un error que lanza un flujo antes
+de mostrárselo a una persona, a un agente o a una pestaña del navegador. `verbatra mcp` y Studio
+hacen lo mismo con cada error que devuelven.
+
+```ts title="Firma"
+function projectRelativeMessage(
+  message: string,
+  cwd: string,
+): string;
+```
+
+**Devuelve:** `string`
+
+### errorHint
+
+<AvailableFrom version="0.12.0" />
+
+`errorHint(error)` devuelve el siguiente paso que resuelve un error que lanzó verbatra: una frase
+breve en imperativo, o `undefined` cuando no hay ninguna. Cada código de `SdkError`, cada código
+de `ProviderError` y cada código de error de un adaptador de formato tiene una, así que un agente
+puede actuar ante un fallo sin analizar su mensaje. Lee el `code` del error, así que un objeto
+simple `{ code, message }`, como el `error` de una ejecución fallida de `watch`, recibe la misma
+pista. Un error `PROVIDER_CONSTRUCTION_FAILED` toma la pista del error del proveedor que envuelve,
+así que una clave ausente nombra la variable exacta que tienes que definir, leída del `envVar` que
+lleva un `ProviderError` con `MISSING_API_KEY`. Un error `CONFIG_INVALID` de un archivo de
+configuración cuyo import no se pudo resolver (su `causeCode` es `MODULE_NOT_FOUND`,
+`ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` o `ERR_UNSUPPORTED_DIR_IMPORT`) te dice en
+cambio que instales o corrijas ese import. Una pista es texto fijo más, como mucho, el nombre
+de una variable: nunca contiene el valor de una clave ni cita el mensaje. El sobre de error
+`--json` de la CLI la lleva como `hint`, y `verbatra mcp` termina con ella el texto de una llamada
+fallida.
+
+```ts title="Firma"
+function errorHint(error: unknown): string | undefined;
+```
+
+**Devuelve:** `string | undefined`
+
+**Ejemplo:** [Gestiona los errores](/docs/sdk-quickstart#gestiona-los-errores)
+
+```ts title="Ejemplo"
+import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
+try {
+  await translate({ config });
+} catch (error) {
+  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
+}
+```

@@ -1,8 +1,10 @@
 ---
 title: "Transmission et échange"
-description: "Import et export de classeurs et de TMX, instantanés de fichiers de locale, chemins de locale et indices d'erreur."
+description: "Import et export de classeurs et de TMX, instantanés de fichiers de locale et chemins de locale."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Instantanés de fichiers de locale
 
 Les briques d'un observateur à rafraîchissement en direct comme celui de Studio : capture l'état d'un fichier de locale, puis compte ce qui a changé depuis.
@@ -76,66 +78,6 @@ Toutes les vérifications ont lieu à la création du résolveur, avant toute le
 pattern et un style incompatibles, ou une locale pour laquelle le style n'a pas d'écriture
 correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers le même chemin lèvent
 `LOCALE_PATH_COLLISION`.
-
-### projectRelativeMessage
-
-<AvailableFrom version="0.12.0" />
-
-`projectRelativeMessage(message, cwd)` réécrit chaque chemin absolu à l'intérieur du projet dans un
-message en chemin relatif à la racine du projet : un chemin sous `cwd` perd ce préfixe, `cwd`
-lui-même devient `.`, et un chemin hors du projet reste tel quel. Chaque `error.message` et chaque
-message de notice par locale d'un `RunSummary` nomme déjà ainsi les fichiers du projet, relatifs
-au `cwd` de l'exécution ; appelle-la sur le message d'une erreur qu'un flux lève avant de le
-montrer à une personne, à un agent ou à un onglet du navigateur. `verbatra mcp` et Studio font de
-même pour chaque erreur qu'ils renvoient.
-
-```ts title="Signature"
-function projectRelativeMessage(
-  message: string,
-  cwd: string,
-): string;
-```
-
-**Renvoie :** `string`
-
-### errorHint
-
-<AvailableFrom version="0.12.0" />
-
-`errorHint(error)` renvoie la prochaine étape qui résout une erreur levée par verbatra : une
-phrase courte à l'impératif, ou `undefined` quand il n'y en a pas. Chaque code de `SdkError`,
-chaque code de `ProviderError` et chaque code d'erreur d'un adaptateur de format en a une, donc un
-agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l'erreur, donc un
-simple objet `{ code, message }`, comme l'`error` d'une exécution de `watch` en échec, reçoit la
-même indication. Une erreur `PROVIDER_CONSTRUCTION_FAILED` reprend l'indication de l'erreur de
-fournisseur qu'elle enveloppe, donc une clé manquante nomme exactement la variable à définir, lue
-dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une erreur `CONFIG_INVALID` venant
-d'un fichier de configuration dont un import n'a pas pu être résolu (son `causeCode` vaut
-`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` ou
-`ERR_UNSUPPORTED_DIR_IMPORT`) te dit plutôt d'installer ou de corriger cet import. Une indication est un texte fixe
-plus, au plus, un nom de variable : elle ne contient jamais la valeur d'une clé et ne cite jamais
-le message. L'enveloppe d'erreur `--json` de la CLI la porte sous `hint`, et `verbatra mcp`
-termine avec elle le texte d'un appel en échec.
-
-```ts title="Signature"
-function errorHint(error: unknown): string | undefined;
-```
-
-**Renvoie :** `string | undefined`
-
-**Exemple :** [Gère les erreurs](/docs/sdk-quickstart#gère-les-erreurs)
-
-```ts title="Exemple"
-import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
-
-declare const config: VerbatraConfig;
-
-try {
-  await translate({ config });
-} catch (error) {
-  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
-}
-```
 
 ## La paire classeur
 

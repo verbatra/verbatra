@@ -7,7 +7,7 @@ codeHeadings: true
 ---
 Jeder Fehler, den verbatra meldet, trägt einen stabilen Code: in der Zeile `verbatra: error [CODE] message` auf stderr, als `code` oder `causeCode` eines `--json`-Envelopes, als `error.code` eines gescheiterten Locales oder als Hinweis in der Laufzusammenfassung. Verzweige auf den Code, nie auf die Meldung. Jeder Code hat seinen eigenen Anker, `/docs/error-codes#` gefolgt vom Code in Kleinbuchstaben, etwa [`#config_not_found`](#config_not_found).
 
-Der **Nächste Schritt** eines Fehlercodes ist der Hinweis, den verbatra nach der Fehlerzeile als `next: ...` ausgibt und in das Feld `hint` des Envelopes schreibt. Er steht hier genau so, wie verbatra ihn ausgibt, auf Englisch, und das SDK liefert denselben Text aus [`errorHint`](/docs/sdk/exchange#errorhint). Die Exit-Codes selbst und die Form des Envelopes stehen auf [Exit-Codes und JSON-Ausgabe](/docs/cli/output); Hilfe vom Symptom her findest du unter [Fehlerbehebung](/docs/troubleshooting).
+Der **Nächste Schritt** eines Fehlercodes ist der Hinweis, den verbatra nach der Fehlerzeile als `next: ...` ausgibt und in das Feld `hint` des Envelopes schreibt. Er steht hier genau so, wie verbatra ihn ausgibt, auf Englisch, und das SDK liefert denselben Text aus [`errorHint`](/docs/sdk/errors#errorhint). Die Exit-Codes selbst und die Form des Envelopes stehen auf [Exit-Codes und JSON-Ausgabe](/docs/cli/output); Hilfe vom Symptom her findest du unter [Fehlerbehebung](/docs/troubleshooting).
 
 Zwei Codes gehören zu zwei Familien: `CONFIG_INVALID` (das SDK und `init` in der CLI) und `NETWORK_POLICY_VIOLATION` (das SDK und die Provider). Der Anker in Kleinbuchstaben führt zum SDK-Eintrag; der andere Eintrag hat einen Anker mit Präfix.
 

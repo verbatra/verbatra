@@ -1,8 +1,10 @@
 ---
 title: "Entrega e intercambio"
-description: "Importación y exportación de libros y TMX, instantáneas de archivos de locale, rutas de locale y pistas de error."
+description: "Importación y exportación de libros y TMX, instantáneas de archivos de locale y rutas de locale."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Instantáneas de archivos de locale
 
 Los bloques con los que se construye un watcher de actualización en vivo como el de Studio: captura el
@@ -80,66 +82,6 @@ Todas las comprobaciones se ejecutan al crear el resolver, antes de leer ningún
 y un estilo que no se pueden combinar, o un locale para el que el estilo no tiene una escritura
 correcta, lanzan `LOCALE_LAYOUT_INVALID`, y dos locales que resuelven a la misma ruta lanzan
 `LOCALE_PATH_COLLISION`.
-
-### projectRelativeMessage
-
-<AvailableFrom version="0.12.0" />
-
-`projectRelativeMessage(message, cwd)` reescribe cada ruta absoluta dentro del proyecto en un mensaje
-como una ruta relativa a la raíz del proyecto: una ruta bajo `cwd` pierde ese prefijo, el propio
-`cwd` pasa a ser `.`, y una ruta fuera del proyecto se queda como está. Cada `error.message` y
-cada mensaje de aviso por locale de un `RunSummary` ya nombra así los archivos del proyecto,
-relativos al `cwd` de la ejecución; llámalo sobre el mensaje de un error que lanza un flujo antes
-de mostrárselo a una persona, a un agente o a una pestaña del navegador. `verbatra mcp` y Studio
-hacen lo mismo con cada error que devuelven.
-
-```ts title="Firma"
-function projectRelativeMessage(
-  message: string,
-  cwd: string,
-): string;
-```
-
-**Devuelve:** `string`
-
-### errorHint
-
-<AvailableFrom version="0.12.0" />
-
-`errorHint(error)` devuelve el siguiente paso que resuelve un error que lanzó verbatra: una frase
-breve en imperativo, o `undefined` cuando no hay ninguna. Cada código de `SdkError`, cada código
-de `ProviderError` y cada código de error de un adaptador de formato tiene una, así que un agente
-puede actuar ante un fallo sin analizar su mensaje. Lee el `code` del error, así que un objeto
-simple `{ code, message }`, como el `error` de una ejecución fallida de `watch`, recibe la misma
-pista. Un error `PROVIDER_CONSTRUCTION_FAILED` toma la pista del error del proveedor que envuelve,
-así que una clave ausente nombra la variable exacta que tienes que definir, leída del `envVar` que
-lleva un `ProviderError` con `MISSING_API_KEY`. Un error `CONFIG_INVALID` de un archivo de
-configuración cuyo import no se pudo resolver (su `causeCode` es `MODULE_NOT_FOUND`,
-`ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` o `ERR_UNSUPPORTED_DIR_IMPORT`) te dice en
-cambio que instales o corrijas ese import. Una pista es texto fijo más, como mucho, el nombre
-de una variable: nunca contiene el valor de una clave ni cita el mensaje. El sobre de error
-`--json` de la CLI la lleva como `hint`, y `verbatra mcp` termina con ella el texto de una llamada
-fallida.
-
-```ts title="Firma"
-function errorHint(error: unknown): string | undefined;
-```
-
-**Devuelve:** `string | undefined`
-
-**Ejemplo:** [Gestiona los errores](/docs/sdk-quickstart#gestiona-los-errores)
-
-```ts title="Ejemplo"
-import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
-
-declare const config: VerbatraConfig;
-
-try {
-  await translate({ config });
-} catch (error) {
-  console.error(errorHint(error)); // e.g. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
-}
-```
 
 ## El par del libro
 
