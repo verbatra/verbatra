@@ -11,7 +11,7 @@ Tout ce qu'il faut pour construire un adaptateur de format que verbatra ne fourn
 
 ### createDefaultRegistry
 
-Construit une `AdapterRegistry` contenant tous les adaptateurs fournis par verbatra, dans l'ordre de détection. Pars de là plutôt que d'un registre vide, pour que ton format rejoigne les adaptateurs intégrés au lieu de les remplacer, puis passe le résultat comme `deps.adapterRegistry` à n'importe quel flux. `register` renvoie le registre, les enregistrements s'enchaînent donc, et lève une `AdapterError` avec le code `DUPLICATE_FORMAT` si le format est déjà pris.
+Construit une `AdapterRegistry` contenant tous les adaptateurs fournis par verbatra, dans l'ordre de détection. Pars de là plutôt que d'un registre vide, pour que ton format rejoigne les adaptateurs intégrés au lieu de les remplacer, puis passe le résultat comme `deps.adapterRegistry` à n'importe quel flux. [`AdapterRegistry`](#adapterregistry) décrit `register` et `resolve`.
 
 ```ts title="Signature"
 function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
@@ -25,6 +25,24 @@ import { createDefaultRegistry, translate } from "@verbatra/sdk";
 const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
+
+### AdapterRegistry
+
+Contient les adaptateurs enregistrés et en résout un pour un fichier. `new AdapterRegistry()` démarre vide, il ne lit donc que les formats que tu enregistres ; `createDefaultRegistry` est le point de départ habituel. `register(adapter)` ajoute un adaptateur à la fin de l'ordre de détection et renvoie le registre, les enregistrements s'enchaînent donc. Il refuse un format que le registre détient déjà et un identifiant `custom:` mal formé, et enveloppe un adaptateur `custom:` pour qu'une exception inattendue de sa part arrive comme une `AdapterError` qui nomme le format. `resolve(filePath, options)` choisit l'adaptateur d'un fichier : par `options.format` s'il est donné, sinon par détection, que `options.sample`, un extrait du début du contenu, peut aider.
+
+```ts title="Signature"
+class AdapterRegistry {
+  constructor();
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+<SdkTypeTable name="ResolveOptions" />
+
+**Renvoie :** `register` renvoie le registre. `resolve` renvoie une `AdapterResolution`, discriminée par `status` : `resolved` porte l'`adapter`, `no-match` le `filePath` et les `triedFormats`, et `ambiguous` le `filePath` et les `candidates` en concurrence, que tu départages en en passant un comme `format`. Un fichier impossible à résoudre est un statut, jamais une exception.
+
+**Lève :** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) et [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) depuis `register`, et [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) depuis `resolve` quand le propre `canHandle` d'un adaptateur `custom:` lève pendant la détection
 
 ### createFlatFileAdapter
 

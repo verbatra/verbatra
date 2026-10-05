@@ -11,7 +11,7 @@ Everything needed to build a format adapter for a format verbatra does not ship,
 
 ### createDefaultRegistry
 
-Builds an `AdapterRegistry` holding every adapter verbatra ships, in detection order. Start here rather than from an empty registry, so your own format joins the built-in ones instead of replacing them, then pass the result as `deps.adapterRegistry` to any flow. `register` returns the registry so registrations chain, and raises an `AdapterError` with code `DUPLICATE_FORMAT` if the format is already taken.
+Builds an `AdapterRegistry` holding every adapter verbatra ships, in detection order. Start here rather than from an empty registry, so your own format joins the built-in ones instead of replacing them, then pass the result as `deps.adapterRegistry` to any flow. [`AdapterRegistry`](#adapterregistry) covers `register` and `resolve`.
 
 ```ts title="Signature"
 function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
@@ -25,6 +25,34 @@ import { createDefaultRegistry, translate } from "@verbatra/sdk";
 const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
+
+### AdapterRegistry
+
+Holds the registered adapters and resolves one for a file. `new AdapterRegistry()` starts empty, so
+it reads only the formats you register; `createDefaultRegistry` is the usual start.
+`register(adapter)` appends an adapter to the detection order and returns the registry, so
+registrations chain. It refuses a format the registry already holds and a malformed `custom:`
+identifier, and wraps a `custom:` adapter so that an unexpected throw from it surfaces as an
+`AdapterError` naming the format. `resolve(filePath, options)` picks the adapter for one file: by
+`options.format` when given, otherwise by detection, which `options.sample`, a leading content
+sample, can aid.
+
+```ts title="Signature"
+class AdapterRegistry {
+  constructor();
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+<SdkTypeTable name="ResolveOptions" />
+
+**Returns:** `register` returns the registry. `resolve` returns an `AdapterResolution`, discriminated
+on `status`: `resolved` carries the `adapter`, `no-match` the `filePath` and the `triedFormats`, and
+`ambiguous` the `filePath` and the competing `candidates`, which you settle by passing one as
+`format`. An unresolvable file is a status, never an exception.
+
+**Throws:** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) and [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) from `register`, and [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) from `resolve` when a `custom:` adapter's own `canHandle` throws during detection
 
 ### createFlatFileAdapter
 

@@ -11,7 +11,7 @@ Alles, was du brauchst, um einen Format-Adapter für ein Format zu bauen, das ve
 
 ### createDefaultRegistry
 
-Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. `register` gibt die Registry zurück, Registrierungen lassen sich also verketten, und wirft einen `AdapterError` mit dem Code `DUPLICATE_FORMAT`, wenn das Format schon vergeben ist.
+Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. [`AdapterRegistry`](#adapterregistry) beschreibt `register` und `resolve`.
 
 ```ts title="Signatur"
 function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
@@ -25,6 +25,36 @@ import { createDefaultRegistry, translate } from "@verbatra/sdk";
 const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
+
+### AdapterRegistry
+
+Hält die registrierten Adapter und löst einen davon für eine Datei auf. `new AdapterRegistry()`
+beginnt leer und liest also nur die Formate, die du registrierst; `createDefaultRegistry` ist der
+übliche Einstieg. `register(adapter)` hängt einen Adapter an die Erkennungsreihenfolge an und gibt
+die Registry zurück, Registrierungen lassen sich also verketten. Es weist ein Format ab, das die
+Registry schon hält, ebenso einen fehlerhaften `custom:`-Bezeichner, und hüllt einen
+`custom:`-Adapter so ein, dass ein unerwarteter Wurf aus ihm als `AdapterError` ankommt, der das
+Format nennt. `resolve(filePath, options)` wählt den Adapter für eine Datei: über
+`options.format`, wenn angegeben, sonst per Erkennung, der `options.sample`, ein Inhaltsauszug vom
+Dateianfang, helfen kann.
+
+```ts title="Signatur"
+class AdapterRegistry {
+  constructor();
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+<SdkTypeTable name="ResolveOptions" />
+
+**Rückgabe:** `register` gibt die Registry zurück. `resolve` gibt eine `AdapterResolution` zurück,
+unterschieden nach `status`: `resolved` trägt den `adapter`, `no-match` den `filePath` und die
+`triedFormats`, und `ambiguous` den `filePath` und die konkurrierenden `candidates`, zwischen denen
+du entscheidest, indem du einen davon als `format` übergibst. Eine nicht auflösbare Datei ist ein
+Status, nie eine Exception.
+
+**Wirft:** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) und [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) aus `register` sowie [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) aus `resolve`, wenn das eigene `canHandle` eines `custom:`-Adapters bei der Erkennung wirft
 
 ### createFlatFileAdapter
 
