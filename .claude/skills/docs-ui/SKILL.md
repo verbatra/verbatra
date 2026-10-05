@@ -155,14 +155,20 @@ footer's oversized watermark only; do not clip it onto a heading.
   `remarkAiSetupPromptMarkdown` gives the page's `.md` output the prompt as a `text` fence.
   `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
-  (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
+  (`DocsHomeHeader`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
   `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
-  `content/docs/index.mdx` and its three locale siblings. The hero and the body share one frame
-  (`HOME_FRAME`: one max width, one gutter), so the hero panel and the sections below it start and
-  end on the same edges; a section head sets its lead on the heading's last baseline.
+  `content/docs/index.mdx` and its three locale siblings. The docs home is a docs entry, not a
+  second landing: `DocsHomeHeader` is a compact header (its own headline at the docs `<h1>` size,
+  one lead, and `PackageInstall` beside it from `lg` up), with no hero wash, no buttons and no
+  facts row, so the first section head sits above the fold. The header and the body share one
+  frame (`HOME_FRAME`: one max width, one gutter), so they start and end on the same edges; a
+  section head sets its lead on the heading's last baseline, starting at its column's edge. A
+  backticked span in a header or section lead renders in code type (`withInlineCode`,
+  `lib/inline-code-text.tsx`), and a path card title keeps a hyphenated compound on one line.
   `StackCards` (`components/stack-cards.tsx`) is the stack picker on the docs home and at the top
-  of `pick-your-stack`: one flat grid of flat-panel cards (one column, two from a 30rem container,
-  three from 50rem), each a single-colour logo in a round `--surface-card` chip, the stack name in
+  of `pick-your-stack`: one flat grid of flat-panel cards (`.vk-stack-grid`: two columns, three from
+  a 50rem container, with the last card spanning the rest of its row so no slot stays empty;
+  under a 30rem container a card stacks its chip above the name), each a single-colour logo in a round `--surface-card` chip, the stack name in
   the display face, and its `--format` ids in mono `--text-faint`, with no group labels and no
   arrow. The logos come from `@icons-pack/react-simple-icons` through `components/stack-icons.tsx`
   (shared with the marquee), always `currentColor`, never a brand colour, since several brand
@@ -231,10 +237,11 @@ is a bug, since the drawer is a separate `aside` outside `#nd-sidebar`. It exist
 the landing page recognizes the same product. The shared vocabulary, and where each piece
 comes from:
 
-- **Solid white display headlines.** `DocsHomeHero` uses the same `HERO_BACKGROUND` /
-  `HERO_BORDER` panel as `LandingHero` and the same `HeroFacts` row. Neither hero uses a
+- **Solid white display headlines.** `LandingHero` and the docs home header both set a solid
+  `--text-strong` headline; only `LandingHero` sits on the `HERO_BACKGROUND` / `HERO_BORDER`
+  panel with the `HeroFacts` row. Neither uses a
   gradient headline: the former `.vk-gradient-text` class is gone, and `--gradient-headline`
-  remains only for the footer's watermark. Neither hero carries an eyebrow, and no card or
+  remains only for the footer's watermark. Neither carries an eyebrow, and no card or
   button on the docs home appends an arrow to its label: the hover border is the affordance.
 - **`.vk-label`**: the small mono, uppercase, `0.14em`-tracked, `--text-faint` label the
   landing footer uses for its column titles. The sidebar's top-level folders and separators
@@ -283,7 +290,7 @@ comes from:
   Do not bring back a filled purple pill.
 - **Prose measure**: paragraphs, lists, block quotes and callouts in `#nd-page` stop at
   `--width-measure` (about 72 characters of body text); tables and code blocks run the full
-  column.
+  column, and so does a `not-prose` element and everything inside it.
 - **Cards**: MDX `<Cards>` / `<Card>` are Fumadocs' own, mapped in `components/mdx.tsx` to add
   `.vk-link-card` (flat panel, glow border on hover, no prose underline) and to localize `href`.
   "Next" sections end in a `<Cards>` block. A card that points at the page's own prev/next footer
