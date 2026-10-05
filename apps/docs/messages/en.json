@@ -78,7 +78,7 @@
       "copy": "Copy",
       "copied": "Copied",
       "copyAria": "Copy install command",
-      "aiLabel": "Prompt for your AI agent",
+      "aiLabel": "Prompt for AI agents",
       "copyPromptAria": "Copy the AI agent setup prompt",
       "copyCommand": "Copy {command}"
     },
