@@ -96,7 +96,8 @@ export function describePluralRules(
   }
   const quoted = unknown.map((locale) => `"${locale}"`).join(", ");
   return warnFinding(
-    `${prefix}; it has none for ${quoted}, so plural checks there assume one and other ` +
+    `${prefix}; it has none for ${quoted}, so plural checks there require only other, ` +
+      "the i18next translate notice assumes one and other for cardinals and other for ordinals, " +
       "and no plural form is generated.",
   );
 }

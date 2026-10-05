@@ -1,5 +1,7 @@
 import { PLURAL_CATEGORIES } from "@verbatra/core";
+import { createNextIntlJsonAdapter } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
+import { branchArmProblems } from "./integrity-gate.js";
 import {
   describePluralRules,
   pluralCategoriesFor,
@@ -149,7 +151,23 @@ describe("describePluralRules", () => {
     expect(status).toBe("warn");
     expect(detail).toContain('"tlh", "x-pseudo"');
     expect(detail).not.toContain('"de"');
-    expect(detail).toContain("assume one and other");
+  });
+
+  it("describes the gate and the translate notice for a locale ICU has no rules for", () => {
+    const source = "{n, plural, one {# file} other {# files}}";
+    const adapter = createNextIntlJsonAdapter();
+    const { detail } = describePluralRules(["tlh"], runtime);
+    expect(branchArmProblems(source, "{n, plural, other {# x}}", adapter, "tlh")).toEqual([]);
+    expect(branchArmProblems(source, "{n, plural, few {# x} other {# y}}", adapter, "tlh")).toEqual(
+      [],
+    );
+    expect(branchArmProblems(source, "{n, plural, other {# x}}", adapter, "cs")).not.toEqual([]);
+    expect(detail).toContain("plural checks there require only other");
+    expect(detail).toContain(
+      "the i18next translate notice assumes one and other for cardinals and other for ordinals",
+    );
+    expect(pluralCategoriesFor("tlh")).toEqual(["one", "other"]);
+    expect(pluralCategoriesFor("tlh", "ordinal")).toEqual(["other"]);
   });
 
   it("omits the CLDR version when the runtime does not report one", () => {

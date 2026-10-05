@@ -58,8 +58,9 @@ import { readSourceResource } from "./source.js";
  * - `source-file`: the source locale file exists at its resolved path, is a regular file, and
  *   parses under the configured format.
  * - `plural-rules`: informational, never fails. Names the ICU and CLDR versions the runtime derives
- *   plural categories from, and every target locale ICU has no plural rules for, which falls back to
- *   `one` and `other` and gets no generated plural forms. It is `warn` when it names such a locale.
+ *   plural categories from, and every target locale ICU has no plural rules for, where plural checks
+ *   require only `other`, the i18next translate notice assumes `one` and `other` for cardinals and
+ *   `other` for ordinals, and no plural form is generated. It is `warn` when it names such a locale.
  * - `plural-completeness`: informational, never fails. Reads the source and every target locale
  *   file and names each plural whose committed forms lack CLDR plural categories the target
  *   language uses, the same finding {@link check} reports in
