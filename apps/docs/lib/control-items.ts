@@ -1,10 +1,10 @@
-import { type Locale, localizedPath } from "./i18n";
+import { type Locale, type LocalizedAnchors, localizedAnchorPath } from "./i18n";
 
 export type ControlItem = {
   readonly key: string;
   readonly evidence: string;
   readonly page: string;
-  readonly anchors?: Readonly<Record<Locale, string>>;
+  readonly anchors?: LocalizedAnchors;
 };
 
 export type ControlGroup = {
@@ -87,6 +87,5 @@ export const CONTROL_GROUPS: ReadonlyArray<ControlGroup> = [
 ];
 
 export function controlHref(locale: Locale, item: ControlItem): string {
-  const anchor = item.anchors?.[locale];
-  return localizedPath(locale, anchor === undefined ? item.page : `${item.page}#${anchor}`);
+  return localizedAnchorPath(locale, item.page, item.anchors);
 }

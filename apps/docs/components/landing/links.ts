@@ -1,4 +1,4 @@
-import type { Locale } from "@/lib/i18n";
+import type { LocalizedAnchors } from "@/lib/i18n";
 
 export const GITHUB_URL = "https://github.com/verbatra/verbatra";
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
@@ -15,7 +15,7 @@ export const SKILLS_PACK_ANCHORS = {
   de: "das-skills-paket",
   es: "el-paquete-de-skills",
   fr: "le-pack-de-skills",
-} as const satisfies Record<Locale, string>;
+} as const satisfies LocalizedAnchors;
 export const LICENSE_URL = `${GITHUB_URL}/blob/main/LICENSE`;
 
 export const LEGAL_PAGE_LINKS = [

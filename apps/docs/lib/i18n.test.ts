@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { i18n, isLocale, localizeHref, toLocale } from "./i18n";
+import { i18n, isLocale, localizedAnchorPath, localizeHref, toLocale } from "./i18n";
 
 describe("i18n configuration", () => {
   it("declares exactly the four supported locales, in order", () => {
@@ -42,6 +42,25 @@ describe("localizeHref", () => {
 
   it("leaves an internal absolute path unprefixed for the default locale", () => {
     expect(localizeHref("en", "/docs/config-file")).toBe("/docs/config-file");
+  });
+});
+
+describe("localizedAnchorPath", () => {
+  const anchors = { en: "plurals", de: "plurale", es: "plurales", fr: "pluriels" };
+
+  it("prefixes the locale and appends that locale's anchor", () => {
+    expect(localizedAnchorPath("en", "/docs/language-support", anchors)).toBe(
+      "/docs/language-support#plurals",
+    );
+    expect(localizedAnchorPath("fr", "/docs/language-support", anchors)).toBe(
+      "/fr/docs/language-support#pluriels",
+    );
+  });
+
+  it("links the bare page when there are no anchors", () => {
+    expect(localizedAnchorPath("de", "/docs/network-policy", undefined)).toBe(
+      "/de/docs/network-policy",
+    );
   });
 });
 
