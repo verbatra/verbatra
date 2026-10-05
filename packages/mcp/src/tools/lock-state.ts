@@ -2,15 +2,18 @@ import { lockState } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
+import { provenanceSummarySchema } from "./provenance-schema.js";
 
 const paramsSchema = z.strictObject({});
 
-const lockLocaleStateSchema = z.strictObject({
+const lockLocaleStateSchema = z.object({
   locale: z.string(),
   keyCount: z.number(),
   missing: z.number(),
   stale: z.number(),
   upToDate: z.number(),
+  emptySource: z.number().optional(),
+  provenance: provenanceSummarySchema.optional(),
 });
 
 const lockStateResultSchema = z.object({
@@ -19,7 +22,7 @@ const lockStateResultSchema = z.object({
   locales: z.array(lockLocaleStateSchema).readonly().optional(),
 });
 
-type LockStateResult = z.infer<typeof lockStateResultSchema>;
+export type LockStateResult = z.infer<typeof lockStateResultSchema>;
 
 async function readLockState(
   _params: z.infer<typeof paramsSchema>,
@@ -38,11 +41,18 @@ async function readLockState(
 
 export const lockStateTool = defineTool({
   name: "lock.state",
+  values: "none",
   description:
-    "Read the translation lock file: its version, and per configured target locale how many " +
-    "keys are missing, stale, or up to date. Reports exists: false when no lock file exists yet, " +
-    "which happens before the first successful translate run in this project. Read-only, calls " +
-    "no provider.",
+    "Reads the translation lock file: whether it exists and, when it does, its version and " +
+    "the per-locale count of keys that are missing, stale, or up to date against the " +
+    "recorded baseline. Use it to tell a project that has never been translated, which has " +
+    "no lock file (exists: false), from one whose recorded baseline has drifted. Do not " +
+    "confuse it with status.check, which compares the locale files themselves rather than " +
+    "the recorded baseline. Each locale also carries provenance: counts byOrigin and " +
+    "byReviewState over the keys present in both the source and that locale, read from " +
+    "verbatra.provenance.json and absent when that file is corrupt or from a newer " +
+    "verbatra. emptySource counts the source keys whose value is empty or whitespace only, " +
+    "kept out of the other counts so the four add up to the source's keys. Takes no parameters. Read-only: it calls no provider and writes nothing.",
   paramsSchema,
   outputSchema: lockStateResultSchema,
   annotations: {
