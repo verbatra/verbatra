@@ -5,13 +5,20 @@ description: "Install @verbatra/sdk, find the page for each entry point, and han
 type: reference
 ---
 `@verbatra/sdk` is the engine the `verbatra` command runs on. The CLI is a thin wrapper, so whatever
-the command line does, you can do in code. The pages listed below catalog the whole public surface, grouped by
-the job each entry point does. New to the SDK? Start here:
+the command line does, you can do in code.
+
+## Start here
+
+New to the SDK? Begin with one of these:
 
 <Cards>
   <Card title="SDK quickstart" href="/docs/sdk-quickstart">Install the SDK, preview a run without a key, translate from your own script, handle errors, and gate CI.</Card>
   <Card title="SDK recipes" href="/docs/programmatic-api">Complete scripts for estimates, watch mode, a fake provider, the review queue, and the workbook and TMX round-trips.</Card>
 </Cards>
+
+## Reference pages
+
+These pages catalog the whole public surface, grouped by the job each entry point does.
 
 <SdkEntryPoints />
 
@@ -157,6 +164,7 @@ import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
 
 const files = new Map<string, Uint8Array>();
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 function bounded(path: string, maxBytes: number) {
   const bytes = files.get(path);
@@ -169,7 +177,7 @@ const memoryFs: SdkFs = {
   fileExists: async (path) => files.has(path),
   readFileBounded: async (path, maxBytes) => {
     const read = bounded(path, maxBytes);
-    return read.kind === "ok" ? { kind: "ok", content: new TextDecoder().decode(read.bytes) } : read;
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
   },
   readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
   writeFile: async (path, data) => {

@@ -5,12 +5,21 @@ description: "Installiere @verbatra/sdk, finde die Seite zu jedem Einstiegspunkt
 type: reference
 ---
 `@verbatra/sdk` ist der Motor, auf dem der Befehl `verbatra` läuft. Die CLI ist ein dünner Wrapper;
-was die Kommandozeile kann, kannst du also auch im Code. Die unten aufgeführten Seiten katalogisieren die gesamte öffentliche Oberfläche, gruppiert nach der Aufgabe jedes Einstiegspunkts. Neu im SDK? Fang hier an:
+was die Kommandozeile kann, kannst du also auch im Code.
+
+## Hier anfangen
+
+Neu im SDK? Fang mit einer dieser Seiten an:
 
 <Cards>
   <Card title="SDK-Schnellstart" href="/docs/sdk-quickstart">Das SDK installieren, einen Lauf ohne Key vorab ansehen, aus deinem eigenen Skript übersetzen, Fehler behandeln und CI absichern.</Card>
   <Card title="SDK-Rezepte" href="/docs/programmatic-api">Vollständige Skripte für Schätzungen, den Watch-Modus, einen Fake-Provider, die Review-Warteschlange und die Hin- und Rückwege über Arbeitsmappe und TMX.</Card>
 </Cards>
+
+## Referenzseiten
+
+Diese Seiten katalogisieren die gesamte öffentliche Oberfläche, gruppiert nach der Aufgabe jedes
+Einstiegspunkts.
 
 <SdkEntryPoints />
 
@@ -171,6 +180,7 @@ import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
 
 const files = new Map<string, Uint8Array>();
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 function bounded(path: string, maxBytes: number) {
   const bytes = files.get(path);
@@ -183,7 +193,7 @@ const memoryFs: SdkFs = {
   fileExists: async (path) => files.has(path),
   readFileBounded: async (path, maxBytes) => {
     const read = bounded(path, maxBytes);
-    return read.kind === "ok" ? { kind: "ok", content: new TextDecoder().decode(read.bytes) } : read;
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
   },
   readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
   writeFile: async (path, data) => {

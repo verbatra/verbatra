@@ -5,13 +5,21 @@ description: "Instala @verbatra/sdk, encuentra la página de cada punto de entra
 type: reference
 ---
 `@verbatra/sdk` es el motor sobre el que corre el comando `verbatra`. La CLI es una envoltura fina, así que todo
-lo que hace la línea de comandos lo puedes hacer en código. Las páginas de abajo catalogan toda la superficie pública,
-agrupada por la tarea que hace cada punto de entrada. ¿Eres nuevo en el SDK? Empieza aquí:
+lo que hace la línea de comandos lo puedes hacer en código.
+
+## Empieza aquí
+
+¿Eres nuevo en el SDK? Empieza por una de estas páginas:
 
 <Cards>
   <Card title="Inicio rápido del SDK" href="/docs/sdk-quickstart">Instala el SDK, previsualiza una ejecución sin clave, traduce desde tu propio script, gestiona los errores y protege la CI.</Card>
   <Card title="Recetas del SDK" href="/docs/programmatic-api">Scripts completos para estimaciones, el modo watch, un proveedor falso, la cola de revisión y los viajes de ida y vuelta con libro y TMX.</Card>
 </Cards>
+
+## Páginas de referencia
+
+Estas páginas catalogan toda la superficie pública, agrupada por la tarea que hace cada punto de
+entrada.
 
 <SdkEntryPoints />
 
@@ -168,6 +176,7 @@ import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
 
 const files = new Map<string, Uint8Array>();
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 function bounded(path: string, maxBytes: number) {
   const bytes = files.get(path);
@@ -180,7 +189,7 @@ const memoryFs: SdkFs = {
   fileExists: async (path) => files.has(path),
   readFileBounded: async (path, maxBytes) => {
     const read = bounded(path, maxBytes);
-    return read.kind === "ok" ? { kind: "ok", content: new TextDecoder().decode(read.bytes) } : read;
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
   },
   readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
   writeFile: async (path, data) => {

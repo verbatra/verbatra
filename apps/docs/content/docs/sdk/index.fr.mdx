@@ -4,12 +4,20 @@ sidebarTitle: "Aperçu"
 description: "Installe @verbatra/sdk, trouve la page de chaque point d'entrée et donne au SDK ton propre système de fichiers."
 type: reference
 ---
-`@verbatra/sdk` est le moteur sur lequel tourne la commande `verbatra`. La CLI est une surcouche légère, donc tout ce que la ligne de commande fait, tu peux le faire en code. Les pages ci-dessous cataloguent toute la surface publique, groupée par la tâche de chaque point d'entrée. Nouveau dans le SDK ? Commence ici :
+`@verbatra/sdk` est le moteur sur lequel tourne la commande `verbatra`. La CLI est une surcouche légère, donc tout ce que la ligne de commande fait, tu peux le faire en code.
+
+## Par où commencer
+
+Nouveau dans le SDK ? Commence par l'une de ces pages :
 
 <Cards>
   <Card title="Démarrage rapide du SDK" href="/docs/sdk-quickstart">Installe le SDK, prévisualise une exécution sans clé, traduis depuis ton propre script, gère les erreurs et protège la CI.</Card>
   <Card title="Recettes SDK" href="/docs/programmatic-api">Des scripts complets pour les estimations, le mode watch, un faux fournisseur, la file de relecture et les allers-retours par classeur et TMX.</Card>
 </Cards>
+
+## Pages de référence
+
+Ces pages cataloguent toute la surface publique, groupée par la tâche de chaque point d'entrée.
 
 <SdkEntryPoints />
 
@@ -79,6 +87,7 @@ import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
 
 const files = new Map<string, Uint8Array>();
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 function bounded(path: string, maxBytes: number) {
   const bytes = files.get(path);
@@ -91,7 +100,7 @@ const memoryFs: SdkFs = {
   fileExists: async (path) => files.has(path),
   readFileBounded: async (path, maxBytes) => {
     const read = bounded(path, maxBytes);
-    return read.kind === "ok" ? { kind: "ok", content: new TextDecoder().decode(read.bytes) } : read;
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
   },
   readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
   writeFile: async (path, data) => {
