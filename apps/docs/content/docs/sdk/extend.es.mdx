@@ -127,8 +127,8 @@ variable de entorno de proveedor configurada, reemplazando cada coincidencia por
 que no han generado ellos mismos, como un término del glosario, una ruta de archivo o un mensaje de
 error de un sistema previo, así que una clave ya presente en tu entorno o escrita en un archivo del
 proyecto nunca puede llegar a una pestaña del navegador, un agente ni una línea de log. La CLI
-`verbatra` pasa por él, como último paso, todo lo que escribe en stdout y stderr, incluido el sobre
-`--json`.
+`verbatra` pasa por él, como último paso, todo lo que escribe en stdout y stderr, incluido el
+envoltorio `--json`.
 
 ```ts title="Firma"
 function redact(text: string): string;
@@ -229,7 +229,7 @@ const summary = await translate({ config }, { createProvider });
 - `ProviderKind` es `"llm"` o `"machine-translation"`. Es solo descriptivo: nada en el SDK se
   ramifica según su valor.
 - `TranslateRequest` lleva `sourceLocale`, `targetLocale`, las `entries` que traducir y, de forma
-  opcional, `glossary` (el resultado de [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) para la locale de
+  opcional, `glossary` (el resultado de [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) para el locale de
   destino), `tone`, `maxLength` y `pluralCategories`. También lleva `extractPlaceholders` y, en
   algunos formatos, `comparePlaceholders`, que tu proveedor usa para la comprobación de integridad,
   además de `signal`, que cancela una llamada en curso, `onRepair` y

@@ -81,7 +81,7 @@ El servidor responde al handshake con unas `instructions` fijas, que la mayoría
 - **Una llamada a la vez.** Una segunda llamada a `translation.editEntry` o `translation.retranslateEntry` para la misma entrada, o una segunda ejecución de `translation.translatePending`, se rechaza con `isError` mientras la primera sigue en marcha.
 - **Trabajo humano.** `translation.retranslateEntry` rechaza una clave fijada con `KEY_PINNED` y, salvo con `humanEdits: "overwrite"`, el valor de una persona con `KEY_PROTECTED`; `translation.editEntry` rechaza una clave fijada. `translation.translatePending` lista esas claves en `protected`. Consulta [Proteger las traducciones humanas](/docs/protecting-human-translations).
 - **Procedencia.** Un valor escrito con `translation.editEntry` recibe el origen `agent`. `review.queue` es la misma cola que muestra Studio: cada valor no aprobado con origen `machine`, `memory`, `fuzzy` o `agent`. Consulta [Decisiones de revisión](/docs/the-lock-file#decisiones-de-revisión).
-- **Decisiones de revisión.** `review.approve` y `review.reject` reciben `locale`, `key`, `expectedValue` o `expectedHash` (un valor que ya cambió se rechaza con `REVIEW_VALUE_CHANGED`) y el nombre en `reviewer`. Una aprobación cuenta para [`verbatra check --require-reviewed`](/docs/cli/check).
+- **Decisiones de revisión.** `review.approve` y `review.reject` reciben `locale`, `key`, `expectedValue` o `expectedHash` (un valor que ya cambió se rechaza con `REVIEW_VALUE_CHANGED`) y el nombre en `reviewer`. Una aprobación cuenta para [`verbatra check --require-reviewed`](/docs/cli/check#exigir-traducciones-revisadas).
 
 ### Entradas y resultados
 

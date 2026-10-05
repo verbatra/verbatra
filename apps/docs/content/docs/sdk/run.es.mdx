@@ -129,10 +129,12 @@ function watch(
 **Ejemplo:** [Vigila en un proceso de larga duración](/docs/programmatic-api#vigila-en-un-proceso-de-larga-duración)
 
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
-`{ status: "succeeded", summary }` o `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
-donde `causeCode` nombra el error con código que envuelve el fallo y `hint` es el siguiente paso que da
-`errorHint`. `onReady` se llama una vez, cuando pasan las comprobaciones de arranque y justo antes de la
-ejecución inicial, para que puedas anunciar la sesión antes de la salida de esa ejecución. El SDK no
+`{ status: "succeeded", summary }` o
+`{ status: "failed", error: { code, message, causeCode?, hint? } }`, donde `causeCode` nombra el
+error con código que envuelve el fallo y `hint` es el siguiente paso que da `errorHint`. `onReady`
+se llama una vez, cuando pasan las comprobaciones de arranque y justo antes de la ejecución inicial,
+para que puedas anunciar la sesión antes de la salida de esa ejecución. Si `onReady` lanza, el
+watcher se cierra y `watch` rechaza con ese error antes de que empiece ninguna ejecución. El SDK no
 registra nada; `onRun` es la única salida. `concurrency`, `cache`, `onProgress`, `onLockWait` y
 `lockAcquireTimeoutMs` se pasan a cada ejecución y se comportan igual que en `translate`. `locales`
 acota cada ejecución de la sesión a ese subconjunto y se valida una sola vez al arrancar, no en cada
@@ -154,10 +156,11 @@ Todo fallo posterior al arranque se comunica a través de `onRun` y la vigilanci
 Elimina todos los bloqueos de escritura que tiene el proceso actual, para un proceso que va a
 terminar sin dejar que acaben sus ejecuciones en curso: la CLI lo llama cuando una interrupción
 detiene `translate` o `import`, y cuando una segunda interrupción fuerza la parada de `watch`. Las
-ejecuciones que tomaron esos bloqueos pierden su protección, así que llámalo solo justo antes de
-que el proceso termine. No recibe argumentos y nunca rechaza. Un bloqueo que una operación aún en
-curso está tomando, o intenta tomar, mientras se ejecuta se rechaza con `RUN_CANCELLED` y no deja
-ningún archivo; espera como máximo tres segundos a esa adquisición.
+ejecuciones que tomaron esos bloqueos pierden su protección, así que llámalo solo justo antes de que
+el proceso termine. No recibe argumentos y rechaza con un `AggregateError` que nombra las rutas de
+los bloqueos solo cuando un bloqueo retenido no se pudo borrar, tras intentarlo con cada bloqueo. Un
+bloqueo que una operación aún en curso está tomando, o intenta tomar, mientras se ejecuta se rechaza
+con `RUN_CANCELLED` y no deja ningún archivo; espera como máximo tres segundos a esa adquisición.
 
 ```ts title="Firma"
 function releaseHeldLocks(): Promise<void>;

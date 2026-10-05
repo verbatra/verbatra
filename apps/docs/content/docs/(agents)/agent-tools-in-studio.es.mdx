@@ -84,11 +84,11 @@ Cada llamada pasa por el RPC de loopback autenticado del propio panel, con la mi
 
 ## Lee una llamada fallida
 
-Cada herramienta devuelve el sobre del panel, así que un fallo se lee `{ "ok": false, "error": { "code": ..., "message": ... } }`. Además de los códigos del SDK, como un rechazo de integridad o `UNKNOWN_KEY`, la capa RPC añade:
+Cada herramienta devuelve el envoltorio del panel, así que un fallo se lee `{ "ok": false, "error": { "code": ..., "message": ... } }`. Además de los códigos del SDK, como un rechazo de integridad o `UNKNOWN_KEY`, la capa RPC añade:
 
 | Código | Significado |
 | --- | --- |
-| `REQUEST_INVALID` | la petición o la respuesta no era un sobre legible |
+| `REQUEST_INVALID` | la petición o la respuesta no era un envoltorio legible |
 | `METHOD_UNKNOWN` | el método no existe en esta versión de Studio |
 | `SPEND_DISABLED` | un método de gasto con el gasto desactivado: Studio corre sin `--allow-spend`, o el proveedor es `none`; el mensaje dice cuál |
 | `PARAMS_INVALID` | un parámetro no pasó la validación; `issues` nombra cada campo |

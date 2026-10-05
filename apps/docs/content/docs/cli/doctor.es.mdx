@@ -39,11 +39,11 @@ Una ejecución de configuración informa de estas comprobaciones, en este orden.
 | API key environment variable | la variable de la que ese proveedor lee su clave no está definida |
 | Network policy | la [política de red](/docs/network-policy) efectiva rechaza el host del proveedor o un proxy que usaría |
 | Source locale file | el archivo de locale de origen falta en su ruta resuelta, no es un archivo normal o no se analiza con el formato configurado |
-| Plural rules | nunca; nombra las versiones de ICU y CLDR en uso y avisa cuando una locale de destino no tiene reglas de plural en ICU |
+| Plural rules | nunca; nombra las versiones de ICU y CLDR en uso y avisa cuando un locale de destino no tiene reglas de plural en ICU |
 | Plural completeness | nunca; avisa y nombra cada plural de destino al que le falta una categoría CLDR que usa su idioma, y juzga un plural sin formas en el destino por lo que una ejecución escribiría allí (una forma de origen vacía cuenta como ausente, y la generación de plurales solo donde de verdad se ejecuta), a propósito más estricto que el aviso de `translate`, solo para i18next (diez como máximo; [`verbatra check`](/docs/cli/check#categorías-de-plural) lista los huecos de los plurales que un destino ya tiene); se omite para un formato que no guarda las formas de plural por categoría CLDR |
 | Locale codes | nunca; avisa y nombra cada código válido pero no canónico, como `en-us` o `iw`, con su forma canónica (ver [Códigos de locale](/docs/config-file#códigos-de-locale)) |
 | Locale state | nunca; avisa y nombra cada locale con estado en el archivo de bloqueo, la caché o el archivo de procedencia que la configuración no lista, y si `translate` lo [traslada](/docs/the-lock-file#un-código-de-locale-reescrito) |
-| Locale support | el proveedor no admite la locale de origen o una locale de destino; avisa cuando una locale lleva un aviso (ver [Soporte de locales](#soporte-de-locales)) |
+| Locale support | el proveedor no admite el locale de origen o un locale de destino; avisa cuando un locale lleva un aviso (ver [Soporte de locales](#soporte-de-locales)) |
 
 Cada comprobación se ejecuta aunque una anterior haya fallado. La única excepción es la configuración: si no se puede cargar, las comprobaciones que la necesitan aparecen como `[skip]` (`"status": "skipped"` en JSON), igual que Plural completeness para un formato sin formas de plural CLDR. Una comprobación que encuentra algo que merece atención sin fallar aparece como `[warn]` (`"status": "warn"` en JSON) y nunca cambia el código de salida. Una comprobación fallida lleva además un `fix`, un siguiente paso en imperativo que se imprime como línea `fix:` y viaja como `"fix"` en JSON, para que un agente actúe sin analizar `detail`.
 
@@ -77,7 +77,7 @@ verbatra doctor
 
 <AvailableFrom version="0.12.0" />
 
-La comprobación Locale support pregunta si el proveedor puede traducir cada locale configurada. DeepL y Google Cloud Translation se evalúan contra una tabla de idiomas fechada que verbatra incluye; un proveedor LLM acepta cualquier locale. Falla justo en la locale que [`verbatra translate`](/docs/cli/translate) rechazaría con `LOCALE_UNSUPPORTED_BY_PROVIDER` y, si no, muestra `[warn]` cuando una locale lleva un aviso o `--live` no pudo obtener la lista. [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución) explica los veredictos.
+La comprobación Locale support pregunta si el proveedor puede traducir cada locale configurado. DeepL y Google Cloud Translation se evalúan contra una tabla de idiomas fechada que verbatra incluye; un proveedor LLM acepta cualquier locale. Falla justo en el locale que [`verbatra translate`](/docs/cli/translate) rechazaría con `LOCALE_UNSUPPORTED_BY_PROVIDER` y, si no, muestra `[warn]` cuando un locale lleva un aviso o `--live` no pudo obtener la lista. [Soporte de idiomas](/docs/language-support#comprobar-el-soporte-antes-de-una-ejecución) explica los veredictos.
 
 `--locales` imprime el veredicto por locale después de las comprobaciones:
 
@@ -90,7 +90,7 @@ La comprobación Locale support pregunta si el proveedor puede traducir cada loc
     chr  sent as CHR  unsupported  glossary: no  formality: no
 ```
 
-Cada línea nombra la locale, el código que recibe el proveedor (tras [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor), marcado con `(localeMap)`), el veredicto y si se aplican un glosario y un tono `formal` o `informal`. Un aviso es solo orientativo.
+Cada línea nombra el locale, el código que recibe el proveedor (tras [`localeMap`](/docs/providers#códigos-de-locale-enviados-al-proveedor), marcado con `(localeMap)`), el veredicto y si se aplican un glosario y un tono `formal` o `informal`. Un aviso es solo orientativo.
 
 `--live` evalúa en cambio contra la lista actual del proveedor (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Para LibreTranslate, que no incluye tabla, es la única forma de obtener un veredicto distinto de `unverified`, así que Locale support muestra `[warn]` hasta que se ejecute `--live`. La petición solo se envía si la variable de la clave está definida (LibreTranslate no la necesita) y la [política de red](/docs/network-policy) permite el host; si no, o si falla, se usa la tabla incluida y una línea `live language list` explica por qué.
 
@@ -123,7 +123,7 @@ La comprobación falla con un hallazgo y con un archivo que no pudo abrir, leer 
 
 ### Salida JSON
 
-Con `--json`, el [sobre](/docs/cli/output#salida-json) lleva el informe en `result`. `ok` es verdadero exactamente cuando el comando termina con `0`:
+Con `--json`, el [envoltorio](/docs/cli/output#salida-json) lleva el informe en `result`. `ok` es verdadero exactamente cuando el comando termina con `0`:
 
 ```ts
 interface DoctorResult {
@@ -213,7 +213,7 @@ verbatra doctor --live
 | Código | Significado |
 | --- | --- |
 | `0` | ninguna comprobación falló (un `warn` también sale con `0`) |
-| `1` | al menos una comprobación falló, incluida una locale no admitida; con `--literals`, se encontró un literal o no se pudo escanear un archivo |
+| `1` | al menos una comprobación falló, incluido un locale no admitido; con `--literals`, se encontró un literal o no se pudo escanear un archivo |
 | `2` | no pudo ejecutarse: un error de uso o una ruta `--config` explícita que no existe |
 
 Una configuración que la búsqueda no encuentra, o que no pasa la validación, es una comprobación fallida (salida `1`), porque informar de ello es justo la tarea del comando. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).

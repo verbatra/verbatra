@@ -36,7 +36,7 @@ function doctor(
 La comprobación `network-policy` falla cuando la [política de red](/docs/network-policy) efectiva
 rechaza el host o el proxy del proveedor, o cuando una variable de entorno de red tiene un valor no
 válido; pasa para el proveedor `none`. Las comprobaciones `plural-rules`, `plural-completeness`,
-`locale-codes` y `locale-state` son informativas, nunca fallan y no renombran nada: cada una es `warn` cuando nombra algo y `pass` en caso contrario, `plural-completeness` es `skipped` para un formato sin formas de plural CLDR, y `locales` es `warn` cuando una locale lleva un aviso o falló una obtención `live` de la lista de idiomas. Un `warn` deja `ok` en true; la
+`locale-codes` y `locale-state` son informativas, nunca fallan y no renombran nada: cada una es `warn` cuando nombra algo y `pass` en caso contrario, `plural-completeness` es `skipped` para un formato sin formas de plural CLDR, y `locales` es `warn` cuando un locale lleva un aviso o falló una obtención `live` de la lista de idiomas. Un `warn` deja `ok` en true; la
 [tabla de comprobaciones](/docs/cli/doctor#qué-comprueba) dice qué nombra cada una.
 
 <AvailableFrom version="0.12.0" />
@@ -257,7 +257,7 @@ function keyIntegrity(
 
 **Devuelve:** `readonly LocaleKeyIntegrity[]`
 
-**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+**Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`UNKNOWN_KEY`](/docs/error-codes#unknown_key)
 
 <AvailableFrom version="0.12.0" />
 

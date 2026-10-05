@@ -37,9 +37,9 @@ Por defecto una ejecución no borra nada: las claves huérfanas se informan y se
 
 ### Estimación de coste
 
-<AvailableFrom version="0.12.0" />
+<AvailableFrom version="0.11.0" />
 
-`--estimate` añade a la ejecución de prueba una estimación previa: cuántas claves se enviarían, cuántas peticiones al proveedor serían y la cantidad que factura el proveedor (tokens en un LLM, caracteres de origen en DeepL o Google Cloud Translation, nada en un endpoint `openai-compatible` autoalojado o en un proyecto solo humano). Una cifra en moneda solo aparece cuando la configuración tiene un bloque `rates` que cubre el proveedor y el modelo; si no, se nombra la clave de tarifa que falta en lugar de inventar `0.00`. Consulta [Estimar el coste](/docs/estimating-cost).
+`--estimate` añade a la ejecución de prueba una estimación previa: cuántas claves se enviarían, cuántas peticiones al proveedor serían y la cantidad que factura el proveedor (tokens en un LLM, caracteres de origen en DeepL o Google Cloud Translation, nada en un endpoint `openai-compatible` autoalojado). Una cifra en moneda solo aparece cuando la configuración tiene un bloque `rates` que cubre el proveedor y el modelo; si no, se nombra la clave de tarifa que falta en lugar de inventar `0.00`. Consulta [Estimar el coste](/docs/estimating-cost).
 
 ### Un subconjunto de locales
 
@@ -87,7 +87,7 @@ Un locale que el proveedor DeepL o Google Cloud Translation configurado no admit
 
 ### Salida JSON
 
-Con `--json`, stdout lleva un [sobre](/docs/cli/output#salida-json) cuyo `result` es un `RunSummary`; [RunSummary](/docs/sdk/run-summary) enumera cada campo, de la ejecución y de cada locale.
+Con `--json`, stdout lleva un [envoltorio](/docs/cli/output#salida-json) cuyo `result` es un `RunSummary`; [RunSummary](/docs/sdk/run-summary) enumera cada campo, de la ejecución y de cada locale.
 
 ### Información en el terminal
 
@@ -145,7 +145,7 @@ verbatra translate --include-human
 | `130` | interrumpido con Ctrl-C (SIGINT) tras liberar los bloqueos de escritura |
 | `143` | detenido con SIGTERM tras liberar los bloqueos de escritura |
 
-Tras una interrupción, stderr termina con `verbatra: interrupted (SIGINT), released locks`, o con `--json` con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
+Tras una interrupción, stderr termina con `verbatra: interrupted (SIGINT), released locks`, o con `--json` con el registro `{"type":"interrupted","signal":"SIGINT","locksReleased":true}`. Si liberar los bloqueos falla o no termina en 5 segundos, la línea lo dice en su lugar (`could not release locks: <reason>` o `lock release did not finish within 5s`), y el registro JSON lleva `"locksReleased":false` con `"reason":"failed"` (más `message`) o `"reason":"timed-out"` (más `deadlineMs`). Consulta [el contrato de códigos de salida](/docs/cli/output#códigos-de-salida).
 
 ## Relacionado
 
