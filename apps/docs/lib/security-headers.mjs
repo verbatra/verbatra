@@ -25,7 +25,7 @@ export function contentSecurityPolicy({ enforce, isDev, scriptHashes = [] }) {
   };
 }
 
-export function securityHeaders({ enforce = CSP_ENFORCED, isDev = false } = {}) {
+export function securityHeaders() {
   return [
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "X-Frame-Options", value: "DENY" },
@@ -34,6 +34,5 @@ export function securityHeaders({ enforce = CSP_ENFORCED, isDev = false } = {}) 
       key: "Permissions-Policy",
       value: "camera=(), microphone=(), geolocation=()",
     },
-    contentSecurityPolicy({ enforce, isDev }),
   ];
 }

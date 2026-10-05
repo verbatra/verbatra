@@ -15,4 +15,4 @@ export declare const CSP_ENFORCED: boolean;
 
 export declare function contentSecurityPolicy(options: CspOptions): SecurityHeader;
 
-export declare function securityHeaders(options?: Partial<CspOptions>): SecurityHeader[];
+export declare function securityHeaders(): SecurityHeader[];

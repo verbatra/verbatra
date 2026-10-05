@@ -39,13 +39,10 @@ function directives(value: string): Map<string, string> {
 describe("contentSecurityPolicy", () => {
   it("is enforced, not report-only", () => {
     expect(CSP_ENFORCED).toBe(true);
-    expect(securityHeaders()).toContainEqual({
+    expect(contentSecurityPolicy({ enforce: CSP_ENFORCED, isDev: false })).toEqual({
       key: "Content-Security-Policy",
       value: ENFORCED_POLICY,
     });
-    expect(securityHeaders().map((header) => header.key)).not.toContain(
-      "Content-Security-Policy-Report-Only",
-    );
   });
 
   it("falls back to the report-only header name without upgrading requests", () => {
@@ -105,5 +102,10 @@ describe("securityHeaders", () => {
   it("is what next.config serves on every path", async () => {
     const routes = await nextConfig.headers?.();
     expect(routes).toEqual([{ source: "/:path*", headers: securityHeaders() }]);
+  });
+
+  it("carries no content security policy, which proxy.ts alone sends with each page's hashes", () => {
+    const keys = securityHeaders().map((header) => header.key.toLowerCase());
+    expect(keys.filter((key) => key.startsWith("content-security-policy"))).toEqual([]);
   });
 });
