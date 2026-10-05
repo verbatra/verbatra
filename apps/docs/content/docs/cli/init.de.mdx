@@ -35,7 +35,7 @@ Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd` und `--jso
 
 <AvailableFrom version="0.12.0" />
 
-Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen. Enter übernimmt den vorgeschlagenen Wert. Ein Flag mit leerem Wert, etwa `--targets ''`, ist ein Verwendungsfehler (`INVALID_OPTION`) und nie eine Bitte um den Standardwert.
+Ein Flag gewinnt immer. Was du weglässt, wird aus dem Projekt erkannt, dann abgefragt, wenn stdin ein Terminal ist und weder `--yes` noch `--json` angegeben ist, und sonst nur unter `--yes` aus seinem Standardwert genommen. Enter übernimmt den vorgeschlagenen Wert. Ein Flag mit leerem Wert, etwa `--targets ''`, ist ein Verwendungsfehler (`INVALID_OPTION`) und nie eine Bitte um den Standardwert. Endet stdin bei einer Abfrage (Ctrl-D), bricht `init` mit `2` und `MISSING_OPTIONS` ab.
 
 Jede Antwort wird sofort geprüft. Eine ungültige wird auf stderr erklärt und bis zu dreimal neu abgefragt, deine bisherigen Antworten bleiben erhalten; nach der dritten ungültigen Antwort bricht `init` mit dem Fehlercode dieser Antwort ab (etwa `INVALID_LOCALE`), nennt das Flag, das du stattdessen übergeben kannst, und schreibt nichts.
 

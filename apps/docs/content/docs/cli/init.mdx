@@ -35,7 +35,7 @@ Also takes the [global flags](/docs/cli#global-flags) `--cwd` and `--json`, but 
 
 <AvailableFrom version="0.12.0" />
 
-A flag always wins. Anything you leave out is detected from the project, then prompted for when stdin is a terminal and neither `--yes` nor `--json` is given, and otherwise taken from its default only under `--yes`. Pressing Enter accepts the suggested value. A flag with an empty value, such as `--targets ''`, is a usage error (`INVALID_OPTION`), never a request for the default.
+A flag always wins. Anything you leave out is detected from the project, then prompted for when stdin is a terminal and neither `--yes` nor `--json` is given, and otherwise taken from its default only under `--yes`. Pressing Enter accepts the suggested value. A flag with an empty value, such as `--targets ''`, is a usage error (`INVALID_OPTION`), never a request for the default. If stdin ends at a prompt (Ctrl-D), `init` exits `2` with `MISSING_OPTIONS`.
 
 Each answer is checked as you give it. An invalid one is explained on stderr and asked again, up to three times, keeping your earlier answers; a third invalid answer stops `init` with that answer's error code (such as `INVALID_LOCALE`), names the flag to pass instead, and writes nothing.
 
