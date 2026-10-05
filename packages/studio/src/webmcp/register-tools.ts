@@ -176,8 +176,8 @@ const TOOL_DESCRIPTORS: Record<AgentMethodName, ToolDescriptor> = {
     description:
       "Reports, for one key, whether each target locale's current value keeps the source placeholders, stays valid ICU MessageFormat, and carries ICU plural, ordinal, and select arms that fit the target language, naming each wrong arm. " +
       "Use it to decide whether a translation is safe to keep, typically right after writing or requesting one. " +
-      "Do not read absence as a pass or a failure: a locale appears only while the key counts as changed there, so a locale where the key is missing, orphaned, or already in sync carries no entry at all. " +
-      "The required `key` parameter is the source key to inspect, the optional `locales` parameter narrows the check to the named target locales, and an omitted `locales` covers every configured target locale. " +
+      "Do not read absence as a pass or a failure: a locale appears only while the key counts as changed there, so a locale where the key is missing or already in sync carries no entry at all. " +
+      "The required `key` parameter is the source key to inspect, and a key the source does not have fails with UNKNOWN_KEY; the optional `locales` parameter narrows the check to the named target locales, and an omitted `locales` covers every configured target locale. " +
       "The result carries only the boolean outcomes, the specific placeholder tokens involved, and one short problem per wrong arm, never a full source or target string. " +
       "Read-only: it calls no provider and writes nothing.",
     readOnlyHint: true,
@@ -367,11 +367,38 @@ function buildAnnotations(descriptor: ToolDescriptor): WebMcpToolAnnotations {
   };
 }
 
-function stampAgentInput(input: unknown, agentInput: AgentInput | undefined): unknown {
-  if (agentInput === undefined || typeof input !== "object" || input === null) {
+const PARAMS_INVALID_MESSAGE = "The tool input failed validation against its input schema.";
+
+type AgentParams =
+  | { readonly ok: true; readonly params: unknown }
+  | { readonly ok: false; readonly refusal: string };
+
+function withoutStampedKeys(input: unknown, stamp: AgentInput["stamp"]): unknown {
+  if (typeof input !== "object" || input === null) {
     return input;
   }
-  return { ...input, ...agentInput.stamp };
+  return Object.fromEntries(Object.entries(input).filter(([key]) => !Object.hasOwn(stamp, key)));
+}
+
+function agentParams(input: unknown, agentInput: AgentInput | undefined): AgentParams {
+  if (agentInput === undefined) {
+    return { ok: true, params: input };
+  }
+  const parsed = agentInput.schema.safeParse(withoutStampedKeys(input, agentInput.stamp));
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((issue) => ({
+      path: issue.path.map(String),
+      code: issue.code,
+    }));
+    return {
+      ok: false,
+      refusal: JSON.stringify({
+        ok: false,
+        error: { code: "PARAMS_INVALID", message: PARAMS_INVALID_MESSAGE, issues },
+      }),
+    };
+  }
+  return { ok: true, params: { ...(parsed.data as object), ...agentInput.stamp } };
 }
 
 function buildTool<M extends RpcMethodName>(
@@ -385,8 +412,11 @@ function buildTool<M extends RpcMethodName>(
     inputSchema: z.toJSONSchema(descriptor.agentInput?.schema ?? deps.schemas[method]),
     annotations: buildAnnotations(descriptor),
     execute: async (input: unknown): Promise<string> => {
-      const params = stampAgentInput(input, descriptor.agentInput);
-      const result = await deps.rpcClient.call(method, params as RpcParamsFor<M>);
+      const checked = agentParams(input, descriptor.agentInput);
+      if (!checked.ok) {
+        return checked.refusal;
+      }
+      const result = await deps.rpcClient.call(method, checked.params as RpcParamsFor<M>);
       return JSON.stringify(result);
     },
   };
