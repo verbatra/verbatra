@@ -4,7 +4,7 @@ description: Conecta el servidor MCP stdio de verbatra a Claude Code, Codex, Gem
 type: how-to
 status: new
 ---
-Úsalo para que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx verbatra init`](/docs/cli/init)) y Node.js 22.14 o posterior.
+Deja que un agente de programación lea el estado de las traducciones y corrija valores a través del servidor MCP stdio de verbatra. Regístralo una vez por cliente: una segunda entrada arranca un segundo servidor. Necesitas un proyecto con configuración de verbatra ([`npx verbatra init`](/docs/cli/init)) y Node.js 22.14 o posterior.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -44,10 +44,6 @@ Aun así, el servidor le indica al agente que ejecute `translation.estimate` y e
 
 ## Claude Code
 
-<Callout type="warn">
-Nunca combines el plugin de verbatra con una entrada `verbatra` en `.mcp.json`: el plugin trae un segundo servidor.
-</Callout>
-
 ### Deja que init lo escriba
 
 <AvailableFrom version="0.12.0" />
@@ -82,6 +78,8 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 
 ### Otras vías
 
+Dos alternativas a `init --agent`:
+
 #### Sin la CLI
 
 ```bash
@@ -94,7 +92,11 @@ Esto escribe la misma entrada en `.mcp.json`. Nunca añadas `--env KEY=value` a 
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-En lugar de `.mcp.json`, el plugin reúne las [skills de verbatra](/docs/agent-recipes#el-paquete-de-skills), este servidor y un hook que revisa un archivo de locale después de que Claude lo edite:
+En lugar de `.mcp.json`, el plugin reúne las [skills de verbatra](/docs/agent-recipes#el-paquete-de-skills), este servidor y un hook que revisa un archivo de locale después de que Claude lo edite.
+
+<Callout type="warn">
+Nunca combines el plugin de verbatra con una entrada `verbatra` en `.mcp.json`: el plugin trae un segundo servidor.
+</Callout>
 
 ```bash
 claude plugin marketplace add verbatra/skills

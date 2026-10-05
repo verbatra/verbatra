@@ -4,7 +4,7 @@ description: Binde den stdio-MCP-Server von verbatra in Claude Code, Codex, Gemi
 type: how-to
 status: new
 ---
-Damit lässt du einen Coding-Agenten über den stdio-MCP-Server von verbatra den Übersetzungsstand lesen und Werte korrigieren. Registriere ihn einmal pro Client: Ein zweiter Eintrag startet einen zweiten Server. Du brauchst ein Projekt mit verbatra-Konfiguration ([`npx verbatra init`](/docs/cli/init)) und Node.js 22.14 oder neuer.
+Lass einen Coding-Agenten über den stdio-MCP-Server von verbatra den Übersetzungsstand lesen und Werte korrigieren. Registriere ihn einmal pro Client: Ein zweiter Eintrag startet einen zweiten Server. Du brauchst ein Projekt mit verbatra-Konfiguration ([`npx verbatra init`](/docs/cli/init)) und Node.js 22.14 oder neuer.
 
 <AvailableFrom version="0.2.0" pkg="@verbatra/mcp" />
 
@@ -44,10 +44,6 @@ Der Server weist den Agenten trotzdem an, erst `translation.estimate` auszuführ
 
 ## Claude Code
 
-<Callout type="warn">
-Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`: Das Plugin bringt einen zweiten Server mit.
-</Callout>
-
 ### Von init schreiben lassen
 
 <AvailableFrom version="0.12.0" />
@@ -82,6 +78,8 @@ VERBATRA_MCP_ALLOW_SPEND=1 claude
 
 ### Andere Wege
 
+Zwei Alternativen zu `init --agent`:
+
 #### Ohne die CLI
 
 ```bash
@@ -94,7 +92,11 @@ Das schreibt denselben Eintrag in `.mcp.json`. Ergänze bei einem Projekteintrag
 
 <AvailableFrom version="0.3.0" pkg="@verbatra/mcp" />
 
-Statt `.mcp.json` bündelt das Plugin die [verbatra-Skills](/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat:
+Statt `.mcp.json` bündelt das Plugin die [verbatra-Skills](/docs/agent-recipes#das-skills-paket), diesen Server und einen Hook, der eine Locale-Datei prüft, nachdem Claude sie bearbeitet hat.
+
+<Callout type="warn">
+Kombinier das verbatra-Plugin nie mit einem `verbatra`-Eintrag in `.mcp.json`: Das Plugin bringt einen zweiten Server mit.
+</Callout>
 
 ```bash
 claude plugin marketplace add verbatra/skills
