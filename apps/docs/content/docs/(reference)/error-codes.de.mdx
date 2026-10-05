@@ -1004,7 +1004,7 @@ Die Übersetzung ist viel kürzer oder länger als ihre Quelle.
 
 Er greift unter dem 0.35-Fachen oder über dem 3.0-Fachen der getrimmten Quelllänge; sehr kurze Quellen werden übersprungen. Gezählt wird in Graphem-Clustern, und jedes Zeichen wird nach seiner Schrift gewichtet: Ein chinesisches Zeichen zählt 3.5, ein japanisches Kana 1.5 und eine koreanische Silbe 2.
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Lies die Übersetzung gegen ihre Quelle, dann behalte oder korrigiere sie.
 
@@ -1014,7 +1014,7 @@ Die Übersetzung ist länger als das für ihren Key konfigurierte `maxLength`-Bu
 
 Gezählt wird in Graphem-Clustern, am Wert genau so, wie er geschrieben ist. Die Grenze ist inklusiv, ein Wert von genau der Budgethöhe wird also nicht markiert, und ein Key ohne Budget wird nie gemessen. Der Wert wird trotzdem geschrieben und gelockt.
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Kürze die Übersetzung, oder hebe das `maxLength`-Budget des Keys an.
 
@@ -1024,7 +1024,7 @@ Die Übersetzung gleicht ihrer Quelle wörtlich, obwohl das Ziel-Locale ein ande
 
 Er greift nur, wenn sich die Ziel-Locale von der Quell-Locale unterscheidet und die Quelle übersetzbaren Text hat: Eine Quelle, die nur aus `doNotTranslate`-Begriffen besteht oder aus Begriffen, deren Übersetzung der Begriff selbst ist, wird nicht markiert.
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Übersetze den Wert, oder behalte ihn, wenn der Text in dieser Sprache wirklich gleich bleibt.
 
@@ -1034,7 +1034,7 @@ Einem Glossarbegriff aus der Quelle fehlt seine Übersetzung für das Ziel-Local
 
 Jede Locale wird gegen ihre eigene Übersetzung des Begriffs aus einem Glossar pro Locale geprüft. Der Abgleich ignoriert Groß- und Kleinschreibung, außer der Begriff ist `caseSensitive`, und richtet sich dabei nach den Regeln der jeweiligen Locale (auch beim türkischen `İ`). Die Quellseite verlangt ein ganzes Wort, `AI` wird also in `Airport` nicht gefunden; die Zielseite verlangt nur, dass der Begriff irgendwo im Wert steht, weil ein übersetzter Begriff mit seinem Umfeld verschmilzt (deutsche Komposita, koreanische Partikel). Ein Begriff in einer Schrift ohne Worttrenner (Han, Kana, Thai und ähnliche) wird als bloßes Enthaltensein abgeglichen.
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Verwende die Übersetzung des Begriffs aus dem Glossar, oder lass den Begriff unverändert.
 
@@ -1044,7 +1044,7 @@ Die Übersetzung verwendet eine Wiedergabe, die die `forbidden`-Liste des Glossa
 
 Abgeglichen wird als ganzes Wort, bei Schriften ohne Worttrenner als bloßes Enthaltensein, eine gebeugte oder zusammengesetzte Form wird also nur erkannt, wenn du sie ebenfalls auflistest. Eine Wiedergabe, die schon in der Quelle steht, wird nicht markiert, weil die Übersetzung sie zitieren darf.
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Ersetze die verbotene Wiedergabe durch die freigegebene.
 
@@ -1052,7 +1052,7 @@ Abgeglichen wird als ganzes Wort, bei Schriften ohne Worttrenner als bloßes Ent
 
 Die Platzhalter stimmen genau überein, stehen aber in einer anderen Reihenfolge als in der Quelle.
 
-- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `check --qa` (als Warnung)
+- **Ausgelöst von**: `translate`, `watch` (in `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in der Review-Spalte); `check --qa` (als Warnung)
 - **Exit-Code**: keiner aus `translate`; `1` aus `check --qa --strict`
 - **Nächster Schritt**: Prüfe, ob sich die neue Reihenfolge in der Zielsprache richtig liest.
 

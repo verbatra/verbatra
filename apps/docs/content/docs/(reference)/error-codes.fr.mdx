@@ -1005,7 +1005,7 @@ La traduction est bien plus courte ou plus longue que sa source.
 
 Il se déclenche en dessous de 0.35 fois ou au-dessus de 3.0 fois la longueur rognée de la source ; les sources très courtes sont ignorées. La longueur se compte en groupes de graphèmes, et chaque caractère est pondéré selon son écriture : un caractère chinois compte 3.5, un kana japonais 1.5 et une syllabe coréenne 2.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Relis la traduction face à sa source, puis garde-la ou corrige-la.
 
@@ -1015,7 +1015,7 @@ La traduction est plus longue que le budget `maxLength` configuré pour sa clé.
 
 La longueur se compte en groupes de graphèmes sur la valeur telle qu'elle est écrite. La limite est inclusive : une valeur d'exactement le budget n'est pas signalée, et une clé sans budget n'est jamais mesurée. La valeur est tout de même écrite et verrouillée.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Raccourcis la traduction, ou relève le budget `maxLength` de la clé.
 
@@ -1025,7 +1025,7 @@ La traduction est identique à sa source alors que la locale cible est différen
 
 Il ne se déclenche que si la locale cible diffère de la locale source et que la source a du texte traduisible : une source faite uniquement de termes `doNotTranslate`, ou de termes dont la traduction est le terme lui-même, n'est pas signalée.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Traduis la valeur, ou garde-la si le texte reste vraiment le même dans cette langue.
 
@@ -1035,7 +1035,7 @@ Un terme du glossaire présent dans la source n'a pas sa traduction pour la loca
 
 Chaque locale est vérifiée par rapport à sa propre traduction du terme, tirée d'un glossaire par locale. La comparaison ignore la casse sauf si le terme est `caseSensitive`, et la replie selon les règles de chaque locale (le `İ` turc compris). Côté source, il faut un mot entier, donc `AI` n'est pas trouvé dans `Airport` ; côté cible, il suffit que le terme apparaisse quelque part dans la valeur, car un terme traduit fusionne avec le texte qui l'entoure (composés allemands, particules coréennes). Un terme écrit dans une écriture sans séparateurs de mots (han, kana, thaï et similaires) est comparé par inclusion.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Utilise la traduction du terme donnée par le glossaire, ou garde le terme inchangé.
 
@@ -1045,7 +1045,7 @@ La traduction utilise un rendu que la liste `forbidden` du glossaire exclut pour
 
 Il est comparé comme mot entier, et par inclusion pour les écritures sans séparateurs de mots, donc une forme fléchie ou composée n'est repérée que si tu la listes aussi. Une forme que la source contient elle-même n'est pas signalée, car la traduction peut la citer.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Remplace le rendu interdit par le rendu approuvé.
 
@@ -1053,7 +1053,7 @@ Il est comparé comme mot entier, et par inclusion pour les écritures sans sép
 
 Les placeholders correspondent exactement, mais apparaissent dans un autre ordre que dans la source.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Vérifie que le nouvel ordre se lit correctement dans la langue cible.
 

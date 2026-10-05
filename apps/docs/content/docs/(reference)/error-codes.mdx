@@ -990,7 +990,7 @@ The translation is far shorter or longer than its source.
 
 It fires below 0.35 times or above 3.0 times the trimmed source length; very short sources are skipped. Length is counted in grapheme clusters, and each character is weighted by its script: a Chinese character counts 3.5, a Japanese kana 1.5 and a Korean syllable 2.
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Read the translation against its source, then keep or correct it.
 
@@ -1000,7 +1000,7 @@ The translation is longer than the `maxLength` budget configured for its key.
 
 Length is counted in grapheme clusters on the value exactly as written. The budget is inclusive, so a value of exactly the budget is not flagged, and a key without a budget is never measured. The value is still written and locked.
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Shorten the translation, or raise the key's `maxLength` budget.
 
@@ -1010,7 +1010,7 @@ The translation equals its source verbatim although the target locale differs.
 
 It fires only when the target locale differs from the source locale and the source has translatable text: a source made only of `doNotTranslate` terms, or of terms whose translation is the term itself, is not flagged.
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Translate the value, or keep it if the text really stays the same in that language.
 
@@ -1020,7 +1020,7 @@ A glossary term in the source is missing its translation for the target locale, 
 
 Each locale is checked against its own translation of the term from a per-locale glossary. Matching ignores case unless the term is `caseSensitive`, and folds case by each locale's rules (Turkish `İ` included). The source side needs a whole word, so `AI` is not found inside `Airport`; the target side only needs the term somewhere in the value, because a translated term fuses with the text around it (German compounds, Korean particles). A term in a script without word separators (Han, kana, Thai and similar) is matched by containment.
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Use the glossary's translation of the term, or keep the term unchanged.
 
@@ -1030,7 +1030,7 @@ The translation uses a rendering the glossary's `forbidden` list rules out for t
 
 It is matched as a whole word, and by containment for scripts without word separators, so an inflected or compounded form is caught only when you list it too. A rendering the source itself contains is not flagged, since the translation may quote it.
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Replace the forbidden rendering with the approved one.
 
@@ -1038,7 +1038,7 @@ It is matched as a whole word, and by containment for scripts without word separ
 
 The placeholders matched exactly but appear in a different order than in the source.
 
-- **Raised by**: `translate`, `watch` (on `needsReview`); `check --qa` (as a warning)
+- **Raised by**: `translate`, `watch` (on `needsReview`); `retranslateEntry` (in `reviewReasons`); `export` (in the review column); `check --qa` (as a warning)
 - **Exit code**: none from `translate`; `1` from `check --qa --strict`
 - **Next step**: Check that the new order reads correctly in the target language.
 
