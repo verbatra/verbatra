@@ -831,6 +831,34 @@ describe("withLocaleWriteLock: releasing only its own lock", () => {
     expect(deletes).toBe(1);
   });
 
+  it("reports the operation's own failure when the release fails too", async () => {
+    const failure = Object.assign(new Error("EROFS"), { code: "EROFS" });
+    const boom = new Error("boom");
+    const memory = memoryLockFs(
+      {},
+      {
+        rename: async () => {
+          throw failure;
+        },
+        deleteFile: async () => {
+          throw failure;
+        },
+      },
+    );
+
+    await expect(
+      withLocaleWriteLock(
+        "/proj",
+        "de",
+        memory.fs,
+        async () => {
+          throw boom;
+        },
+        FAIL_FAST,
+      ),
+    ).rejects.toBe(boom);
+  });
+
   it("never takes a free lock for a caller already cancelled", async () => {
     const memory = memoryLockFs();
     const ran = vi.fn();

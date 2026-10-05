@@ -23,6 +23,7 @@ import {
 } from "./lock-aside.js";
 import {
   type OwnedLock,
+  type ReleaseOutcome,
   releaseOwned,
   runOwning,
   startHeartbeat,
@@ -665,13 +666,16 @@ async function withFileLock<T>(
   const stopHeartbeat = startHeartbeat(owned, heartbeatIntervalMs);
   const outcome = await settle(() => runOwning(owned, fn));
   stopHeartbeat();
-  const released = heldLocks.delete(owned)
-    ? await releaseOwned(owned, liveness, pollIntervalMs)
-    : "released";
+  const released: Settled<ReleaseOutcome> = heldLocks.delete(owned)
+    ? await settle(() => releaseOwned(owned, liveness, pollIntervalMs))
+    : { ok: true, value: "released" };
   if (!outcome.ok) {
     throw outcome.error;
   }
-  if (released !== "released") {
+  if (!released.ok) {
+    throw released.error;
+  }
+  if (released.value !== "released") {
     throw takenOverAtReleaseError(path);
   }
   return outcome.value;
