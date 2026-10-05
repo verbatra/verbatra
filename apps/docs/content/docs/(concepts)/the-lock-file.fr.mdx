@@ -121,9 +121,9 @@ l'exécution suivante réessaie ; les autres locales tournent normalement.
 
 Tant qu'une exécution ne l'a pas déplacé, chaque lecture traite l'ancien état comme celui de `pt-BR`
 sans rien écrire, donc une clé périmée est signalée comme périmée. Une écriture sur une seule clé
-(une modification, une retraduction, une décision de revue) et `verbatra import` déplacent d'abord
-l'état, de la même façon. Le contrôle `locale-state` de [`verbatra doctor`](/docs/cli/doctor) nomme
-tout état resté en arrière.
+(une modification, une retraduction, une décision de relecture) et `verbatra import` déplacent
+d'abord l'état, de la même façon. Le contrôle `locale-state` de
+[`verbatra doctor`](/docs/cli/doctor) nomme tout état resté en arrière.
 
 ## Absent ou corrompu
 
@@ -149,7 +149,7 @@ ancien, par exemple épinglé dans la CI.
 | `human` | la modification d'une personne via `editEntry` du SDK, comme la fait la boîte d'édition de Studio |
 | `agent` | la modification d'un agent IA via `editEntry` avec `actor: "agent"` |
 | `import` | une ligne acceptée par `verbatra import` |
-| `unknown` | une décision de revue sur une valeur sans enregistrement, ou une origine que cette version ne connaît pas |
+| `unknown` | une décision de relecture sur une valeur sans enregistrement, ou une origine que cette version ne connaît pas |
 
 Deux autres origines sont déduites à la lecture des fichiers. `unrecorded` est une valeur sans
 enregistrement, l'état de départ de chaque clé après une mise à jour. `external` est une valeur qui
@@ -178,13 +178,13 @@ Ce qu'il n'est pas : infalsifiable. Quiconque peut modifier les fichiers de loca
 aussi. Pour en faire un rapport, voir
 [Consigner les preuves de traduction automatique](/docs/provenance-evidence).
 
-### Décisions de revue
+### Décisions de relecture
 
 <AvailableFrom version="0.12.0" />
 
-Un enregistrement peut porter une décision de revue, `approved` ou `rejected`, avec un nom de
+Un enregistrement peut porter une décision de relecture, `approved` ou `rejected`, avec un nom de
 relecteur `reviewer` facultatif. La page Review de Studio, les
-[fonctions de revue du SDK](/docs/sdk/review) et les [outils MCP de revue](/docs/cli/mcp) les
+[fonctions de revue du SDK](/docs/sdk/review) et les [outils MCP de relecture](/docs/cli/mcp) les
 écrivent ; les outils MCP relaient la décision d'une personne et exigent son nom. Une décision
 s'applique à la valeur exacte que le relecteur a vue et est refusée si cette valeur a changé depuis.
 
@@ -197,7 +197,7 @@ s'applique à la valeur exacte que le relecteur a vue et est refusée si cette v
   peut pas retirer une seule traduction, donc un rejet y est refusé avec
   [`REVIEW_REJECT_UNSUPPORTED`](/docs/error-codes#review_reject_unsupported).
 
-Les décisions vivent dans ce fichier commité, donc la file de révision et
+Les décisions vivent dans ce fichier commité, donc la file de relecture et
 [`verbatra check --require-reviewed`](/docs/cli/check#exiger-des-traductions-relues) voient le même
 état sur chaque machine, et le nom `reviewer` est public ; verbatra ne le remplit jamais.
 

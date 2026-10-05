@@ -94,7 +94,7 @@ même appel.
 
 Chaque locale cible tourne de son côté, et l'échec d'une locale n'arrête pas les autres.
 L'exécution renvoie un résumé par locale : traduites, inchangées, orphelines, retenues, signalées
-pour révision, et avis. Ce que contient chaque champ est sur [RunSummary](/docs/sdk/run-summary).
+pour relecture, et avis. Ce que contient chaque champ est sur [RunSummary](/docs/sdk/run-summary).
 
 Ce que cette conception garantit :
 
@@ -105,12 +105,12 @@ Ce que cette conception garantit :
   forme, sans construire de fournisseur ni écrire de fichier.
 
 Ce qu'elle ne fait pas : juger si une traduction est bonne. C'est le rôle des
-[signalements de révision](/docs/translation-safety#signalements-de-révision) et d'une personne.
+[signalements de relecture](/docs/translation-safety#signalements-de-relecture) et d'une personne.
 
 ## Voir aussi
 
 - [`verbatra translate`](/docs/cli/translate) : options, sortie et codes de sortie d'une exécution.
 - [Le fichier de verrouillage et la provenance](/docs/the-lock-file) : ce que la référence enregistre.
 - [Le cache de traduction](/docs/the-cache) : comment la réutilisation est indexée.
-- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité et les signalements de révision.
+- [Sûreté de la traduction](/docs/translation-safety) : la barrière d'intégrité et les signalements de relecture.
 - [Codes d'erreur](/docs/error-codes) : chaque code qu'une exécution peut signaler.

@@ -328,7 +328,7 @@ Le fichier de provenance est présent mais corrompu, trop volumineux ou mal form
 
 ### PROVENANCE_FILE_UNWRITABLE
 
-Une décision de revue n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`) ; rien n'est écrit.
+Une décision de relecture n'a pas pu être enregistrée parce que le fichier de provenance vient d'un verbatra plus récent ou grossirait au-delà de la taille que verbatra relit (`approveEntry`, `rejectEntry`) ; rien n'est écrit.
 
 - **Levé par** : Studio et le serveur MCP
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
@@ -450,7 +450,7 @@ Le `maxTokens` par exécution de `translate` a été fixé mais n'est pas un nom
 
 Le `cursor` passé à `localeValuesPage` ou `provenanceReportPage` est mal formé, dépasse `PAGE_CURSOR_MAX_LENGTH` (512), a été créé avec d'autres filtres ou pointe vers une clé déplacée ou disparue parce que les fichiers ont changé entre deux pages.
 
-- **Levé par** : le SDK ; l'outil d'agent `verbatra_locale_values` de Studio (le serveur MCP le signale comme entrée invalide pour `cursor`)
+- **Levé par** : le SDK ; l'outil d'agent `verbatra_locale_values` de Studio (`locale.values` et `report.provenance` du serveur MCP le signalent comme entrée invalide pour `cursor`)
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Call again without a cursor to start from the first page.
 
@@ -782,9 +782,9 @@ Un adaptateur a été enregistré sous un identifiant `custom:` mal formé.
 - **Code de sortie** : aucun : aucune commande de la CLI ne le lève
 - **Étape suivante** : Name the custom adapter `custom:` followed by a valid name.
 
-## Codes de la barrière de révision [#check-result-codes]
+## Codes de la barrière de relecture [#check-result-codes]
 
-`check --require-reviewed` indique pourquoi il échoue dans `result.review.code` ([`verbatra check`](/docs/cli/check)).
+`check --require-reviewed` indique pourquoi il échoue dans `result.review.code` ([Exiger des traductions relues](/docs/cli/check#exiger-des-traductions-relues)).
 
 ### REVIEW_REQUIRED
 
@@ -792,11 +792,11 @@ Au moins une traduction écrite par la machine (origine `machine`, `memory`, `fu
 
 - **Levé par** : `check --require-reviewed`
 - **Code de sortie** : `1`
-- **Étape suivante** : Approuve ou corrige les clés listées dans la [file de révision de Studio](/docs/review-in-studio) ou avec les outils MCP `review.approve` et `review.reject`, puis commite `verbatra.provenance.json`.
+- **Étape suivante** : Approuve ou corrige les clés listées dans la [file de relecture de Studio](/docs/review-in-studio) ou avec les outils MCP `review.approve` et `review.reject`, puis commite `verbatra.provenance.json`.
 
 ### REVIEW_STATE_UNREADABLE
 
-`verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, donc aucun état de révision ne peut être lu et la barrière échoue par sécurité.
+`verbatra.provenance.json` est corrompu ou vient d'un verbatra plus récent, donc aucun état de relecture ne peut être lu et la barrière échoue par sécurité.
 
 - **Levé par** : `check --require-reviewed`
 - **Code de sortie** : `1`
@@ -995,9 +995,9 @@ La candidate est vide ou ne contient que des espaces alors que sa source ne l'es
 - **Code de sortie** : `1` depuis `translate` et `import` quand la locale finit partielle ou en échec ; `1` depuis `check --qa`
 - **Étape suivante** : Écris une traduction, ou vide la valeur volontairement avec `[[CLEAR]]` dans un import de classeur.
 
-## Motifs de révision [#review-reason-codes]
+## Motifs de relecture [#review-reason-codes]
 
-Un signalement de révision marque une traduction acceptée comme méritant un second regard ; il ne retient jamais une clé, et un avertissement de `check --qa` ne fait échouer le job qu'avec `--strict`. L'ensemble est publié sous la forme du tuple `REVIEW_REASON_CODES` ; [Sécurité des traductions](/docs/translation-safety#signalements-de-révision) explique la couche de révision.
+Un signalement de relecture marque une traduction acceptée comme méritant un second regard ; il ne retient jamais une clé, et un avertissement de `check --qa` ne fait échouer le job qu'avec `--strict`. L'ensemble est publié sous la forme du tuple `REVIEW_REASON_CODES` ; [Sécurité des traductions](/docs/translation-safety#signalements-de-relecture) explique la couche de relecture.
 
 ### LENGTH_RATIO_OUTLIER
 
@@ -1005,7 +1005,7 @@ La traduction est bien plus courte ou plus longue que sa source.
 
 Il se déclenche en dessous de 0.35 fois ou au-dessus de 3.0 fois la longueur rognée de la source ; les sources très courtes sont ignorées. La longueur se compte en groupes de graphèmes, et chaque caractère est pondéré selon son écriture : un caractère chinois compte 3.5, un kana japonais 1.5 et une syllabe coréenne 2.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Relis la traduction face à sa source, puis garde-la ou corrige-la.
 
@@ -1015,7 +1015,7 @@ La traduction est plus longue que le budget `maxLength` configuré pour sa clé.
 
 La longueur se compte en groupes de graphèmes sur la valeur telle qu'elle est écrite. La limite est inclusive : une valeur d'exactement le budget n'est pas signalée, et une clé sans budget n'est jamais mesurée.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Raccourcis la traduction, ou relève le budget `maxLength` de la clé.
 
@@ -1025,7 +1025,7 @@ La traduction est identique à sa source alors que la locale cible est différen
 
 Il ne se déclenche que si la source a du texte traduisible : une source faite uniquement de termes `doNotTranslate`, ou de termes dont la traduction est le terme lui-même, n'est pas signalée.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Traduis la valeur, ou garde-la si le texte reste vraiment le même dans cette langue.
 
@@ -1035,7 +1035,7 @@ Un terme du glossaire présent dans la source n'a pas sa traduction pour la loca
 
 Chaque locale est vérifiée par rapport à sa propre traduction du terme, tirée d'un glossaire par locale. La comparaison ignore la casse sauf si le terme est `caseSensitive`, et la replie selon les règles de chaque locale (le `İ` turc compris). Côté source, il faut un mot entier, donc `AI` n'est pas trouvé dans `Airport` ; côté cible, il suffit que le terme apparaisse quelque part dans la valeur, car un terme traduit fusionne avec le texte qui l'entoure. Un terme écrit dans une écriture sans séparateurs de mots (han, kana, thaï et similaires) est comparé par inclusion.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Utilise la traduction du terme donnée par le glossaire, ou garde le terme inchangé.
 
@@ -1045,7 +1045,7 @@ La traduction utilise un rendu que la liste `forbidden` du glossaire exclut pour
 
 Il est comparé comme mot entier, et par inclusion pour les écritures sans séparateurs de mots, donc une forme fléchie ou composée n'est repérée que si tu la listes aussi. Une forme que la source contient elle-même n'est pas signalée, car la traduction peut la citer.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Remplace le rendu interdit par le rendu approuvé.
 
@@ -1053,7 +1053,7 @@ Il est comparé comme mot entier, et par inclusion pour les écritures sans sép
 
 Les placeholders correspondent exactement, mais apparaissent dans un autre ordre que dans la source.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Vérifie que le nouvel ordre se lit correctement dans la langue cible.
 
@@ -1081,7 +1081,7 @@ La traduction a perdu ou modifié un jeton qui ressemble à un placeholder que l
 
 Il se déclenche quand un tel jeton apparaît dans la source plus souvent que, mot pour mot, dans la traduction. Les placeholders propres au format relèvent du contrôle d'intégrité, un jeton que la traduction ne fait qu'ajouter n'est pas signalé, et un argument ICU compte une fois, par sa tête comme `{n, plural,`, si bien que des branches traduites ne le déclenchent jamais. Les jetons dans des branches ICU, un jeton printf collé à une lettre ou un chiffre, les octets encodés en pourcentage comme `%2F` et tout ce qui se trouve dans une URL ne sont jamais vérifiés, pas plus que les formats d'adaptateurs tiers. La syntaxe que protège chaque format est indiquée dans [Formats](/docs/formats).
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement, qui nomme chaque jeton manquant dans `details`, comme `-{name}`)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement, qui nomme chaque jeton manquant dans `details`, comme `-{name}`)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Rétablis le jeton dans la traduction si ta bibliothèque l'interpole.
 
@@ -1091,7 +1091,7 @@ La traduction contient des caractères invisibles de contrôle de direction qui 
 
 Il se déclenche quand les enchâssements (U+202A, U+202B), forçages (U+202D, U+202E) et isolats (U+2066 à U+2068) de la traduction ne s'apparient pas à leurs fermetures (U+202C, U+2069) dans chaque paragraphe alors que ceux de la source le font, ou quand elle contient plus de forçages de gauche à droite ou de droite à gauche que la source. Un contrôle non fermé étend sa direction au texte que ton app place après la valeur. Les marques de direction comme U+200F ne le déclenchent jamais, pas plus qu'une traduction qui retire des contrôles équilibrés de la source.
 
-- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de révision) ; `check --qa` (comme avertissement)
+- **Levé par** : `translate`, `watch` (dans `needsReview`) ; `retranslateEntry` (dans `reviewReasons`) ; `export` (dans la colonne de relecture) ; `check --qa` (comme avertissement)
 - **Code de sortie** : aucun depuis `translate` ; `1` depuis `check --qa --strict`
 - **Étape suivante** : Ferme ou retire les contrôles de direction dans la traduction.
 
@@ -1201,7 +1201,7 @@ Le fournisseur ne peut pas appliquer de glossaire pour cette locale.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch` ; `doctor --locales` le signale
 - **Code de sortie** : aucun
-- **Étape suivante** : Vérifie les termes du glossaire en révision, ou choisis un fournisseur qui applique un glossaire pour la locale.
+- **Étape suivante** : Vérifie les termes du glossaire en relecture, ou choisis un fournisseur qui applique un glossaire pour la locale.
 
 ### FORMALITY_UNSUPPORTED_BY_PROVIDER
 
@@ -1209,7 +1209,7 @@ Le fournisseur ne peut pas appliquer le ton configuré pour cette locale.
 
 - **Levé par** : `translate` (y compris une exécution à blanc), `watch` ; `doctor --locales` le signale
 - **Code de sortie** : aucun
-- **Étape suivante** : Vérifie le ton en révision, ou choisis un fournisseur qui applique la formalité pour la locale.
+- **Étape suivante** : Vérifie le ton en relecture, ou choisis un fournisseur qui applique la formalité pour la locale.
 
 ### SOURCE_FOREIGN_PLACEHOLDERS
 
@@ -1263,7 +1263,7 @@ Le `signal` de l'exécution a été interrompu pendant que cette locale tournait
 
 ## Avis des fournisseurs [#provider-notice-codes]
 
-Un avis de fournisseur signale une dégradation maîtrisée sur une requête réussie, sous forme de donnée dans les `notices` de la locale. Chaque clé d'un lot dégradé porte aussi le motif de révision `PROVIDER_DEGRADED`.
+Un avis de fournisseur signale une dégradation maîtrisée sur une requête réussie, sous forme de donnée dans les `notices` de la locale. Chaque clé d'un lot dégradé porte aussi le motif de relecture `PROVIDER_DEGRADED`.
 
 ### FORMALITY_DOWNGRADED
 
@@ -1271,7 +1271,7 @@ Un ton `formal` ou `informal` demandé n'a pas été appliqué, comme avec l'off
 
 - **Levé par** : `translate`, `watch`
 - **Code de sortie** : aucun
-- **Étape suivante** : Vérifie le ton en révision, ou utilise un fournisseur ou une offre qui gère la formalité.
+- **Étape suivante** : Vérifie le ton en relecture, ou utilise un fournisseur ou une offre qui gère la formalité.
 
 ### GLOSSARY_IGNORED
 
@@ -1279,7 +1279,7 @@ Un glossaire avec des traductions imposées ou des termes à garder n'a pas ét�
 
 - **Levé par** : `translate`, `watch`
 - **Code de sortie** : aucun
-- **Étape suivante** : Vérifie les termes du glossaire en révision, ou utilise un fournisseur LLM pour le texte soumis au glossaire.
+- **Étape suivante** : Vérifie les termes du glossaire en relecture, ou utilise un fournisseur LLM pour le texte soumis au glossaire.
 
 ### PLACEHOLDER_UNSUPPORTED
 

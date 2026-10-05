@@ -5,7 +5,7 @@ type: reference
 ---
 ## Opérations sur une seule clé
 
-Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de révision. Toutes résolvent `locale` et `key` de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
+Ce sont les points d'accroche que Verbatra Studio pilote ; utilise-les pour construire ton propre outillage de relecture. Toutes résolvent `locale` et `key` de nouveau à chaque appel et lèvent `UNKNOWN_LOCALE` ou `UNKNOWN_KEY` quand l'un des deux n'existe pas.
 
 ### keyValue
 
@@ -132,7 +132,7 @@ function retranslateEntry(
 
 **Exemple :** [Modifier et retraduire une seule clé](/docs/programmatic-api#modifier-et-retraduire-une-seule-clé)
 
-Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de révision, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
+Renvoie `{ accepted: true, value, reviewReasons }` (les codes de raison de relecture, s'il y en a, qui s'appliquent à la nouvelle valeur) ou `{ accepted: false, reason: "placeholder" | "markup" | "icu" | "degenerate" | "empty", value }`. Contrairement à `translate`, un échec de fournisseur lève ici : une `ProviderError`, exportée depuis `@verbatra/sdk`, avec un `code` stable comme `RATE_LIMITED` ou `AUTH_FAILED`. Sous `provider: { id: "none" }`, il lève d'abord `MACHINE_TRANSLATION_DISABLED`, avant de lire ou de verrouiller quoi que ce soit.
 
 La nouvelle valeur est enregistrée dans `verbatra.provenance.json` comme `machine`, avec l'`id` du fournisseur qui a répondu et le modèle configuré. Un fournisseur issu de ton propre `createProvider` est enregistré sous son propre `id`, et sans le modèle quand cet `id` diffère de celui configuré. Un fichier de provenance corrompu lève `PROVENANCE_FILE_INVALID` avant l'appel au fournisseur.
 
@@ -316,11 +316,11 @@ function rejectEntries(
 
 <AvailableFrom version="0.12.0" />
 
-Approuve toute la file de révision d'une locale, ou seulement ses valeurs ayant l'une des `origins`,
-en une seule écriture de `verbatra.provenance.json`, sous le verrou d'écriture de la locale. Chaque
-approbation est enregistrée comme `approveEntry` en enregistre une, avec le hash de source contre
-lequel elle a été donnée. Elle ne prend aucune valeur attendue : elle approuve ce que la file
-contient au moment de l'appel, donc montre d'abord la file à la personne qui relit. Renvoie
+Approuve toute la file de relecture d'une locale, ou seulement ses valeurs ayant l'une des
+`origins`, en une seule écriture de `verbatra.provenance.json`, sous le verrou d'écriture de la
+locale. Chaque approbation est enregistrée comme `approveEntry` en enregistre une, avec le hash de
+source contre lequel elle a été donnée. Elle ne prend aucune valeur attendue : elle approuve ce que
+la file contient au moment de l'appel, donc montre d'abord la file à la personne qui relit. Renvoie
 `{ locale, approved, sourceChanged }` : les clés approuvées, et les clés de la file laissées non
 relues parce que leur source a changé depuis leur écriture. Elle n'écrit que le fichier de
 provenance, n'appelle aucun fournisseur et échoue avec `PROVENANCE_FILE_UNWRITABLE` plutôt que de

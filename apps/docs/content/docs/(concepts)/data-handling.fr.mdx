@@ -45,9 +45,8 @@ fournisseur de traduction automatique en envoyant ta clé d'API (aucune à Libre
 
 Une exécution de `translate` n'envoie que les clés manquantes ou modifiées par rapport au
 [fichier de verrouillage](/docs/the-lock-file), moins les succès du [cache](/docs/the-cache), et un
-texte partagé une seule fois. Une clé obsolète écrite par une personne n'est envoyée que pour une
-suggestion `humanEdits: "suggest"` ; une clé [épinglée](/docs/protecting-human-translations),
-jamais. Ton résolveur DNS voit le nom d'hôte du fournisseur.
+texte partagé une seule fois ; une clé [épinglée](/docs/protecting-human-translations) n'est jamais
+envoyée. Ton résolveur DNS voit le nom d'hôte du fournisseur.
 
 ## Ce que reçoit chaque fournisseur
 
@@ -105,9 +104,9 @@ septembre 2026.
 | --- | --- | --- |
 | Tes fichiers de locale | les traductions | oui |
 | `verbatra.lock.json` | un hash de chaque chaîne source à partir de laquelle une traduction a été faite | oui |
-| `verbatra.provenance.json` | par clé, le chemin d'écriture, le fournisseur et le modèle de la valeur, et toute décision de revue avec le nom du relecteur ; aucun texte traduit ni horodatage | oui |
+| `verbatra.provenance.json` | par clé, le chemin d'écriture, le fournisseur et le modèle de la valeur, et toute décision de relecture avec le nom du relecteur ; aucun texte traduit ni horodatage | oui |
 | `verbatra.cache.json` | le texte source et ses traductions, par fournisseur, modèle, ton, glossaire et `localeMap` | non, `verbatra init` l'ajoute au `.gitignore` |
-| `.verbatra-local/` | le statut de la dernière exécution, les signalements de révision et la consommation de tokens, les pseudolocales générées, et les verrous d'écriture | non, ignoré par git |
+| `.verbatra-local/` | le statut de la dernière exécution, les signalements de relecture et la consommation de tokens, les pseudolocales générées, et les verrous d'écriture | non, ignoré par git |
 | `.env`, `.env.local` | tes clés d'API, si tu les gardes là | jamais, `verbatra init` les ajoute tous deux au `.gitignore` |
 
 ## Clés d'API

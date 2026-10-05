@@ -42,7 +42,7 @@ Un fichier resté d'un export précédent avec une sélection `--locales` plus l
 
 <AvailableFrom version="0.12.0" />
 
-Un fichier XLIFF est lu dans la version qu'il déclare, et un fichier isolé dont le nom n'est pas une locale configurée est rattaché par la langue cible qu'il déclare. Une unité dont la cible est égale à la valeur actuelle ne change rien ; toute autre cible passe le contrôle d'intégrité comme une ligne de classeur. Une unité marquée `reviewed` ou `final` (en 1.2 aussi `signed-off` ou `approved="yes"`) est enregistrée comme approuvée, avec `--reviewer` comme nom, et signalée par l'avis `HANDOFF_REVIEWS_RECORDED`. Une unité dont l'id ne nomme aucune clé source est signalée comme ligne malformée. Vois [Confier à une agence de traduction](/docs/translation-agency).
+Un fichier XLIFF est lu dans la version qu'il déclare, et un fichier isolé dont le nom n'est pas une locale configurée est rattaché par la langue cible qu'il déclare. Une unité dont la cible est égale à la valeur actuelle ne change rien ; toute autre cible passe le contrôle d'intégrité comme une ligne de classeur. Une unité marquée `reviewed` ou `final` (en 1.2 aussi `signed-off` ou `approved="yes"`) est enregistrée comme approuvée, avec `--reviewer` comme nom, et signalée par l'avis `HANDOFF_REVIEWS_RECORDED`. Une unité dont l'id ne nomme aucune clé source est signalée comme ligne malformée. Consulte [Confier à une agence de traduction](/docs/translation-agency).
 
 ### Lignes vides et défectueuses
 
@@ -61,7 +61,7 @@ verbatra: importing verbatra-translations.xlsx... done (0.4s)
 next: verbatra check (confirm every locale is in sync)
 ```
 
-Ces lignes vont sur stderr, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ### Sortie JSON
 

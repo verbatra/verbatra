@@ -18,7 +18,7 @@ pas des conseils juridiques, et les utiliser ne rend un produit conforme à rien
 
 ## Ce que la trace peut et ne peut pas te dire
 
-Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'écriture qui l'a produite), une éventuelle décision de revue et le nom du relecteur ; voir [le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur). Comme preuve, les origines se répartissent en deux classes :
+Chaque valeur que verbatra écrit est consignée avec son origine (le chemin d'écriture qui l'a produite), une éventuelle décision de relecture et le nom du relecteur ; voir [le fichier de verrouillage](/docs/the-lock-file#la-provenance-de-chaque-valeur). Comme preuve, les origines se répartissent en deux classes :
 
 - **Classe machine** : `machine`, `memory`, `fuzzy` et `agent`. La mémoire compte comme machine parce qu'elle n'enregistre pas qui a écrit une entrée.
 - **Personnes** : `human` (une modification via Studio ou le SDK) et `import` (la remise d'un traducteur).
@@ -104,7 +104,7 @@ L'origine voyage aussi dans les fichiers que tu remets à d'autres outils, pour 
 
 `mt-suggestion` est la valeur XLIFF 1.2 pour "suggéré par traduction automatique", que les outils de TAO affichent comme telle, à côté du `state` habituel. Une valeur qu'une personne a approuvée, ou dont verbatra ne peut pas garantir l'origine, ne reçoit pas de qualificatif.
 
-XLIFF 2.0 n'a pas de qualificatif d'état, donc le groupe de métadonnées `verbatra` de l'unité, qui contient déjà le hash de la source, reçoit l'origine complète et l'état de revue :
+XLIFF 2.0 n'a pas de qualificatif d'état, donc le groupe de métadonnées `verbatra` de l'unité, qui contient déjà le hash de la source, reçoit l'origine complète et l'état de relecture :
 
 ```xml
 <mda:metaGroup category="verbatra">

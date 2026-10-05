@@ -91,7 +91,7 @@ interface IncompletePlural {
 `--qa` applique les vérifications qu'une traduction fait sur la sortie du fournisseur aux valeurs déjà présentes dans tes fichiers de locale, obsolètes ou non, y compris les formes plurielles supplémentaires dont la langue cible a besoin. Les résultats ont deux gravités :
 
 - **error** : la valeur échoue à la [barrière d'intégrité](/docs/translation-safety#la-barrière-dintégrité), avec `placeholder`, `markup`, `icu`, `degenerate` ou `empty`. Les détails listent les tokens perdus en `-{{name}}` et les ajoutés en `+{{nom}}`.
-- **warning** : la valeur porte un [motif de relecture](/docs/translation-safety#signalements-de-révision) calculé à partir de la valeur, de sa source et de ta configuration (glossaire, `maxLength`), donc aucun qui dépende du fournisseur ou du cache ; pour `FOREIGN_PLACEHOLDER_CHANGED`, les `details` du constat nomment chaque jeton perdu ou modifié, comme `-{name}`. Une valeur en erreur ne reçoit pas d'avertissement.
+- **warning** : la valeur porte un [motif de relecture](/docs/translation-safety#signalements-de-relecture) calculé à partir de la valeur, de sa source et de ta configuration (glossaire, `maxLength`), donc aucun qui dépende du fournisseur ou du cache ; pour `FOREIGN_PLACEHOLDER_CHANGED`, les `details` du constat nomment chaque jeton perdu ou modifié, comme `-{name}`. Une valeur en erreur ne reçoit pas d'avertissement.
 
 ```text output
 qa: 1 error, 1 warning
@@ -144,7 +144,7 @@ Avec `--json`, `result.sensitive` vaut `{ findings, glossaryTerms }`, chaque tro
 
 `--file <path>` vérifie un seul fichier de locale, pour les hooks d'éditeur et d'agent après une modification. Il lit ce fichier et, pour une locale cible, le fichier source, rien d'autre. Le chemin est résolu par rapport à `--cwd` et associé à sa locale via `files.pattern`.
 
-- Un fichier illisible donne une erreur `syntax` avec le code de l'adaptateur (`INVALID_JSON`, `INVALID_YAML`, ...) et la ligne et la colonne quand l'analyseur signale une position.
+- Un fichier dont l'analyse échoue donne une erreur `syntax` avec le code de l'adaptateur (`INVALID_JSON`, `INVALID_YAML`, ...) et la ligne et la colonne quand l'analyseur signale une position.
 - Un fichier cible est vérifié comme avec [`--qa`](#contrôle-qualité), catégories de pluriel comprises ; un fichier source, pour sa syntaxe seulement. Un catalogue `apple-xcstrings` est vérifié pour chaque locale cible.
 - Un chemin qui n'est le fichier d'aucune locale configurée échoue avec `NOT_A_LOCALE_FILE` et la sortie `2`.
 

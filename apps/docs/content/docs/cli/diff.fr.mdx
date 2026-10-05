@@ -112,7 +112,7 @@ verbatra: diffing and scanning the source... done (0.8s)
 next: verbatra translate (send the pending keys to your provider)
 ```
 
-Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatra studio` ; avec `provider: { id: "none" }`, il suggère `verbatra export`. Ces lignes vont sur stderr, et `--quiet` les supprime. Vois [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
+Quand toutes les clés en attente sont protégées, il suggère plutôt `verbatra studio` ; avec `provider: { id: "none" }`, il suggère `verbatra export`. Ces lignes vont sur stderr, et `--quiet` les supprime. Consulte [Sortie dans le terminal](/docs/cli/output#sortie-dans-le-terminal).
 
 ## Exemples
 
@@ -138,7 +138,7 @@ verbatra diff --unused
 | `1` | au moins une locale a une clé manquante ou modifiée, ou une analyse `complete` avec `--unused` a trouvé une clé inutilisée |
 | `2` | impossible de s'exécuter : une erreur globale ou une erreur d'utilisation, comme une valeur `--locales` vide ou inconnue |
 
-Les clés orphelines, possiblement dynamiques et ignorées, ainsi qu'un rapport `unreliable` ou `not-run`, ne produisent jamais `1` à eux seuls. Vois [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
+Les clés orphelines, possiblement dynamiques et ignorées, ainsi qu'un rapport `unreliable` ou `not-run`, ne produisent jamais `1` à eux seuls. Consulte [le contrat des codes de sortie](/docs/cli/output#codes-de-sortie).
 
 ## Voir aussi
 

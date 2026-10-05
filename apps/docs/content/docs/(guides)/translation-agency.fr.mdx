@@ -41,7 +41,7 @@ L'export choisit les mêmes clés qu'un export de classeur : les manquantes et l
 
 ### États de segment
 
-L'état de chaque segment vient du fichier de verrouillage et de la [décision de revue](/docs/the-lock-file#décisions-de-revue) de la clé :
+L'état de chaque segment vient du fichier de verrouillage et de la [décision de relecture](/docs/the-lock-file#décisions-de-relecture) de la clé :
 
 | La clé est | `state` XLIFF 2.0 | `state` XLIFF 1.2 |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ L'origine d'une valeur ne change pas son état : une traduction automatique, une
 
 ### Marqueurs de traduction automatique
 
-L'origine voyage à côté de l'état, pour que l'agence voie quelles cibles une machine a écrites. En XLIFF 1.2, une cible écrite par une machine et non approuvée porte `state-qualifier="mt-suggestion"` ; en XLIFF 2.0, les métadonnées de l'unité portent son origine et son état de revue. L'import ignore les deux. Voir [Consigner les preuves de traduction automatique](/docs/provenance-evidence#xliff).
+L'origine voyage à côté de l'état, pour que l'agence voie quelles cibles une machine a écrites. En XLIFF 1.2, une cible écrite par une machine et non approuvée porte `state-qualifier="mt-suggestion"` ; en XLIFF 2.0, les métadonnées de l'unité portent son origine et son état de relecture. L'import ignore les deux. Voir [Consigner les preuves de traduction automatique](/docs/provenance-evidence#xliff).
 
 ## Ce que l'import accepte
 
