@@ -1,12 +1,11 @@
 ---
 title: verbatra doctor
 description: Prüfe die Projekteinrichtung, ohne einen Provider aufzurufen oder einen API-Key zu lesen.
+type: reference
 ---
 <AvailableFrom version="0.9.0" />
 
-Beantworte eine Frage, bevor du irgendetwas anderes ausführst: Ist dieses Projekt korrekt eingerichtet? `doctor` prüft die Konfiguration, den Format-Adapter, den Provider, die API-Key-Variable und die Quell-Locale-Datei und meldet dann alle gefundenen Probleme auf einmal. Es kostet nichts: kein Provider wird konstruiert, keine Netzwerkanfrage gestellt, keine Datei geschrieben, und kein API-Key-Wert wird je gelesen.
-
-Nimm ihn bei einem frischen Checkout, direkt nach [`verbatra init`](/docs/cli/init), oder immer dann, wenn ein anderer Befehl fehlgeschlagen ist und du die vollständige Liste statt des ersten Fehlers willst. [`verbatra check`](/docs/cli/check) ist die günstigste Prüfung, sobald ein Projekt schon funktioniert, aber es liest die Locale-Dateien und bricht beim ersten Fehler des gesamten Laufs ab, kann dir also nicht sagen, was an einem Projekt falsch ist, das noch keine Quelldatei hat.
+Prüfe, ob ein Projekt korrekt eingerichtet ist, und bekomm jedes Problem in einem einzigen Bericht. `doctor` konstruiert keinen Provider, schreibt keine Datei und liest den Wert eines API-Keys nur für `--live`, das ihn in einer Anfrage nach der Sprachliste des Providers mitsendet (LibreTranslate bekommt keinen). Nimm es nach [`verbatra init`](/docs/cli/init) oder wenn ein anderer Befehl scheitert.
 
 ## Synopsis
 
@@ -18,63 +17,174 @@ verbatra doctor [flags]
 
 | Flag | Argument | Standard | Wirkung |
 | --- | --- | --- | --- |
-| `--cwd` | `<path>` | aktuelles Verzeichnis | Konfiguration und Locale-Dateien von diesem Verzeichnis aus auflösen |
-| `--config` | `<path>` | wird gesucht | diese Konfigurationsdatei laden, statt eine zu suchen |
 | `--literals` | keins | aus | statt der Einrichtung die Quell-Roots des [`extract`-Blocks](/docs/config-file#extract) nach hartcodierten, für Nutzer sichtbaren Strings durchsuchen (siehe [Nicht übersetzte Literale](#nicht-übersetzte-literale)) |
-| `--json` | keins | aus | einen [JSON-Envelope](/docs/ci-and-exit-codes#json-ausgabe) auf stdout ausgeben, der den Bericht unter `result` trägt; die menschenlesbare Fehlerzeile geht weiter auf stderr |
+| `--locales` | keins | aus | nach den Prüfungen je Ziel-Locale den gesendeten Code, die Unterstützung durch den Provider, Glossar und Formality auflisten (siehe [Locale-Unterstützung](#locale-unterstützung)) |
+| `--live` | keins | aus | zuerst die aktuelle Sprachliste des Providers abrufen, ohne Übersetzungskontingent zu verbrauchen; schließt `--locales` ein |
 
-## Was geprüft wird
+Nimmt außerdem die [globalen Flags](/docs/cli#globale-flags) `--cwd`, `--config` und `--json`. `--locales` und `--live` lassen sich nicht mit `--literals` kombinieren (`INVALID_OPTION`, Exit `2`).
 
-| Prüfung | Besteht, wenn |
+## Verhalten
+
+### Was geprüft wird
+
+<AvailableFrom version="0.12.0" />
+
+Ein Einrichtungslauf meldet diese Prüfungen in dieser Reihenfolge. Plural rules, Plural completeness, Locale codes und Locale state sind rein informativ und schlagen nie fehl: Jede zeigt `[warn]`, wenn sie etwas nennt, und sonst `[ok  ]`.
+
+| Prüfung | Schlägt fehl, wenn |
 | --- | --- |
-| Configuration | eine Konfigurationsdatei gefunden wurde und die Validierung besteht |
-| Format adapter | das konfigurierte `format` zu einem Datei-Adapter auflöst |
-| Provider | die konfigurierte `provider.id` zu einer Provider-Factory auflöst |
-| API key environment variable | die Variable gesetzt ist, aus der dieser Provider seinen Key liest |
-| Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad existiert, eine reguläre Datei ist und sich im konfigurierten Format parsen lässt |
+| Configuration | keine Konfigurationsdatei gefunden wird oder sie die Validierung nicht besteht |
+| Format adapter | das konfigurierte `format` zu keinem Datei-Adapter auflöst |
+| Provider | die konfigurierte `provider.id` zu keiner Provider-Factory auflöst |
+| API key environment variable | die Variable, aus der dieser Provider seinen Key liest, nicht gesetzt ist |
+| Network policy | die wirksame [Netzwerkrichtlinie](/docs/network-policy) den Host des Providers oder einen Proxy abweist, den er nutzen würde |
+| Source locale file | die Quell-Locale-Datei unter ihrem aufgelösten Pfad fehlt, keine reguläre Datei ist oder sich im konfigurierten Format nicht parsen lässt |
+| Plural rules | nie; nennt die genutzten ICU- und CLDR-Versionen und warnt, wenn eine Ziel-Locale keine ICU-Pluralregeln hat |
+| Plural completeness | nie; warnt und nennt jeden Ziel-Plural, dem eine CLDR-Kategorie seiner Sprache fehlt, und beurteilt einen Plural ohne Formen im Ziel danach, was ein Lauf dort schreiben würde (eine leere Quellform zählt als fehlend, Plural-Generierung nur, wo sie wirklich läuft), bewusst strenger als der i18next-Hinweis von `translate` (höchstens zehn; [`verbatra check`](/docs/cli/check#pluralkategorien) listet die Lücken in Plurals, die ein Ziel schon hat); übersprungen bei einem Format, das Pluralformen nicht nach CLDR-Kategorie speichert |
+| Locale codes | nie; warnt und nennt jeden gültigen, aber nicht kanonischen Code wie `en-us` oder `iw` mit der kanonischen Form (siehe [Locale-Codes](/docs/config-file#locale-codes)) |
+| Locale state | nie; warnt und nennt jede Locale, für die Lock-Datei, Cache oder Provenance-Datei Zustand halten, die die Konfiguration aber nicht aufführt, und ob `translate` sie [übernimmt](/docs/the-lock-file#ein-umgeschriebener-locale-code) |
+| Locale support | der Provider die Quell-Locale oder eine Ziel-Locale nicht unterstützt; warnt, wenn eine Locale eine Warnung trägt (siehe [Locale-Unterstützung](#locale-unterstützung)) |
 
-Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist; ein Lauf meldet also jedes unabhängige Problem. Die einzige Ausnahme ist die Konfiguration selbst: Kann sie nicht geladen werden, werden die vier Prüfungen, die sie brauchen, übersprungen, statt zu einem Urteil zu kommen. Eine solche Prüfung erscheint im menschenlesbaren Bericht als `[skip]` und trägt im `--json`-Envelope `"status": "skipped"`.
+Jede Prüfung läuft auch dann, wenn eine frühere fehlgeschlagen ist. Die eine Ausnahme ist die Konfiguration: Kann sie nicht geladen werden, erscheinen die Prüfungen, die sie brauchen, als `[skip]` (`"status": "skipped"` in JSON), ebenso Plural completeness bei einem Format ohne CLDR-Pluralformen. Eine Prüfung, die etwas Beachtenswertes findet, ohne fehlzuschlagen, erscheint als `[warn]` (`"status": "warn"` in JSON) und ändert nie den Exit-Code. Eine fehlgeschlagene Prüfung trägt außerdem ein `fix`, einen nächsten Schritt im Imperativ, ausgegeben als `fix:`-Zeile und in JSON als `"fix"` mitgeliefert, damit ein Agent handeln kann, ohne `detail` zu parsen.
 
-Vier Details sind wichtig:
+Ein Lauf mit zwei Problemen:
 
-- Der API-Key wird **nur über den Namen** geprüft. `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Der Wert wird nicht gelesen, nicht ausgegeben und nirgendwohin gesendet. Welche Variable welcher Provider nutzt, steht unter [Provider](/docs/providers).
-- Der Provider `openai-compatible` ist die Ausnahme. Er fällt auf einen Platzhalter-Key zurück, eine fehlende Variable ist also in Ordnung. Er schlägt nur fehl, wenn deine Konfiguration über `provider.options.apiKeyEnvVar` eine eigene Variable benennt und diese nicht gesetzt ist.
-- Eine fehlende **Ziel**-Locale-Datei ist kein Problem: [`verbatra translate`](/docs/cli/translate) legt sie an. Ziel-Dateien werden überhaupt nicht geprüft.
-- Die **Quell**-Locale-Datei wird gelesen und geparst, nicht nur auf Existenz geprüft. Ein Verzeichnis an ihrer Stelle, eine leere Datei und fehlerhafter Inhalt scheitern alle an dieser Prüfung, mit derselben Meldung, die auch [`verbatra check`](/docs/cli/check) ausgeben würde, denn genau diese Fälle bringen jeden anderen Befehl zum Scheitern. Wenn das konfigurierte `format` zu keinem Adapter auflöst, gibt es nichts zum Parsen, also fällt die Prüfung auf die reine Existenz zurück und sagt das auch.
+```text output
+verbatra doctor
+  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
+  [ok  ] Provider: Provider "anthropic" resolves to a factory.
+  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
+         fix: Set ANTHROPIC_API_KEY in the environment, or, with the CLI, in a .env file in the project directory.
+  [ok  ] Network policy: any host (config: unset; VERBATRA_NETWORK_POLICY: unset). Provider "anthropic" connects to api.anthropic.com: permitted.
+  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
+         fix: Create the source locale file, or fix `files.pattern` and `sourceLocale` in the config so they point at it.
+  ...
+  [warn] Locale codes: "iw" is canonically "he". Consider the canonical form in your config; file names follow the configured code and are never renamed for you.
+  [ok  ] Locale support: Provider "anthropic" is an LLM and accepts any locale (well-tested list of 2026-09-28).
+2 problems found (run verbatra doctor again after fixing them)
+```
 
-Wie [`verbatra translate`](/docs/cli/translate) lädt `doctor` `.env.local` und dann `.env` aus dem Arbeitsverzeichnis, bevor es die Umgebung ansieht; ein Key in einer dotenv-Datei zählt also als gesetzt. Mit `--literals` lädt es keine der beiden Dateien.
+### Keys und Dateien
 
-## Nicht übersetzte Literale
+- Der API-Key wird **nur über den Namen** geprüft: `doctor` fragt, ob die Variable gesetzt ist, nie was sie enthält. Die Variable jedes Providers steht unter [Provider](/docs/providers).
+- `openai-compatible` fällt auf einen Platzhalter-Key zurück und scheitert nur, wenn die Konfiguration mit `provider.options.apiKeyEnvVar` eine eigene Variable benennt und diese nicht gesetzt ist. `libretranslate` lässt die Prüfung nie scheitern, weil sein Key optional ist.
+- Mit [`provider: { id: "none" }`](/docs/human-only-workflow) bestehen die Prüfungen Provider, API key und Network policy, und Locale support wird übersprungen.
+- Eine fehlende **Ziel**-Datei ist in Ordnung: `translate` legt sie an. Die **Quell**-Datei wird geparst, also scheitert die Prüfung an einem Verzeichnis, einer leeren Datei oder fehlerhaftem Inhalt.
+- `doctor` lädt zuerst die [Umgebungsdateien](/docs/cli#umgebungsdateien), ein Key in einer dotenv-Datei zählt also als gesetzt; mit `--literals` lädt es keine der beiden.
+
+### Locale-Unterstützung
+
+<AvailableFrom version="0.12.0" />
+
+Die Prüfung Locale support fragt, ob der Provider jede konfigurierte Locale übersetzen kann. DeepL und Google Cloud Translation werden gegen eine datierte Sprachtabelle beurteilt, die verbatra mitliefert; ein LLM-Provider akzeptiert jede Locale. Sie scheitert genau an der Locale, die [`verbatra translate`](/docs/cli/translate) mit `LOCALE_UNSUPPORTED_BY_PROVIDER` ablehnen würde, und zeigt sonst `[warn]`, wenn eine Locale eine Warnung trägt oder `--live` die Liste nicht abrufen konnte. [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) erklärt die Urteile.
+
+`--locales` gibt nach den Prüfungen das Urteil je Locale aus:
+
+```text output
+  locale support (deepl, language table of 2026-09-28, static)
+    en  sent as EN  source, supported
+    de  sent as DE  supported  glossary: yes  formality: yes
+    sv  sent as SV  supported  glossary: yes  formality: no
+      warning [FORMALITY_UNSUPPORTED_BY_PROVIDER] Provider "deepl" has no formality control for "sv", so the configured formal tone is not applied and the provider's default register is used.
+    chr  sent as CHR  unsupported  glossary: no  formality: no
+```
+
+Jede Zeile nennt die Locale, den Code, den der Provider bekommt (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes), dann mit `(localeMap)` markiert), das Urteil und ob ein Glossar und ein `formal`- oder `informal`-Tonfall greifen. Eine Warnung ist nur ein Hinweis.
+
+`--live` urteilt stattdessen gegen die aktuelle Liste des Providers (DeepL `/v3/languages`, Cloud Translation `languages`, LibreTranslate `/languages`). Für LibreTranslate, das keine Tabelle mitbringt, ist das der einzige Weg zu einem anderen Urteil als `unverified`, daher zeigt Locale support `[warn]`, bis `--live` läuft. Die Anfrage geht nur raus, wenn die Key-Variable gesetzt ist (LibreTranslate braucht keine) und die [Netzwerkrichtlinie](/docs/network-policy) den Host erlaubt; sonst, oder wenn sie scheitert, gilt die mitgelieferte Tabelle, und eine Zeile `live language list` sagt, warum.
+
+### Nicht übersetzte Literale
 
 <AvailableFrom version="0.11.0" />
 
-`verbatra doctor --literals` sucht nach dem einen i18n-Fehler, den keine andere Prüfung sieht: einem für Nutzer sichtbaren String, der nie in einem Katalog gelandet ist. Es durchläuft die Quell-Roots deines [`extract`-Blocks](/docs/config-file#extract) und meldet jeden hartcodierten String, der sich wie Text für Nutzer liest, aber durch keinen Übersetzungsaufruf geht. Es liest deinen Quellcode und schreibt ihn nie, konstruiert keinen Provider, liest keine API-Key-Variable und lädt keine `.env`-Datei; es besteht also auch in einem Job ohne Secrets. In diesem Modus laufen nur zwei Prüfungen: die Konfiguration und der Literal-Scan.
+`--literals` findet für Nutzer sichtbare Strings, die nie in einem Katalog gelandet sind. Es durchläuft die Quell-Roots deines [`extract`-Blocks](/docs/config-file#extract), liest deinen Quellcode und schreibt ihn nie, konstruiert keinen Provider, liest keinen Key und lädt keine `.env`-Datei. Nur zwei Prüfungen laufen: Configuration und Untranslated literals. Jeder Fund nennt Datei, Zeile und Spalte, mit zusammengefasstem Leerraum, aufgelösten JSX-Zeichenreferenzen und höchstens 80 Zeichen:
 
-Jeder Fund nennt Datei, Zeile und Spalte. In seinem Text wird Leerraum zusammengefasst, in JSX werden Zeichenreferenzen wie `&amp;` aufgelöst, und er wird auf höchstens 80 Zeichen gekürzt:
-
-```text
-verbatra doctor
-  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
+```text output
   [fail] Untranslated literals: Scanned 42 source files: 2 untranslated literals found (1 suppressed).
     src/components/Header.tsx:12:9  "Welcome back"
     src/pages/settings.tsx:40:22  "Save changes"
     suppressed (directive) src/pages/legal.tsx:8:5  "Acme Inc."
-1 problem found (run verbatra doctor again after fixing them)
 ```
 
-Was als Fund zählt:
+Gemeldet werden: JSX-Text in `.tsx`-, `.jsx`- und `.js`-Dateien, für Nutzer sichtbare JSX-Attribute (`alt`, `title`, `placeholder`, `label`, `aria-label` und die anderen Text tragenden `aria-*`) und jeder andere String aus zwei oder mehr Wörtern.
 
-- JSX-Text wie `<p>Welcome back</p>` in `.tsx`-, `.jsx`- und `.js`-Dateien.
-- Der Wert eines für Nutzer sichtbaren JSX-Attributs: `alt`, `title`, `placeholder`, `label`, `aria-label` und die anderen Text tragenden `aria-*`-Attribute.
-- Ein String an jeder anderen Stelle, der sich wie Fließtext liest, also aus zwei oder mehr Wörtern besteht. Ein einzelnes Wort außerhalb von JSX, etwa ein Event-Name oder ein Optionswert, wird nicht gemeldet.
+Nie gemeldet werden:
 
-Was nie gemeldet wird: ein String, der an einen erkannten Übersetzungsaufruf (`t(...)`, `$t(...)`, `i18n.t(...)` oder ein aus `useTranslation` umbenanntes `t`, wie in `const { t: translate } = useTranslation()`, ab dieser Zeile bis zum Ende des umschließenden Blocks) übergeben oder in `<Trans>` oder `<Translation>` gerendert wird, ein Objekt-Key, ein Import-Specifier, ein Klassenname oder CSS-Wert, eine Test-ID oder ein `data-*`-Attribut, ein Attribut, das IDs oder ein Schlüsselwort statt Text enthält (etwa `aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy` oder `crossOrigin`), eine URL, ein Literal an einer Typposition (auch eines nach `as` oder `satisfies`; der Wert davor, wie in `"Welcome" as const`, wird weiter geprüft), eine Log-Meldung, die Meldung eines konstruierten Fehlers (`new ValidationError(...)`) oder eines eingebauten Fehlers, der ohne `new` aufgerufen wird (`throw Error(...)`), ein Vergleichsoperand, ein Template-Literal mit Ausdruck, ein String ohne Buchstaben (Satzzeichen, Leerraum, eine Zahl, ein Emoji, ein Symbol) und alles in Test-, Story-, Deklarations- und Konfigurationsdateien.
+- ein String, der an `t(...)`, `$t(...)`, `i18n.t(...)` oder ein umbenanntes `t` aus `useTranslation` geht oder in `<Trans>` oder `<Translation>` gerendert wird;
+- Objekt-Keys, Import-Specifier, Klassennamen, CSS-Werte, Test-IDs, `data-*` sowie ID- oder Schlüsselwort-Attribute (`aria-describedby`, `aria-labelledby`, `aria-controls`, `rel`, `sandbox`, `allow`, `autoComplete`, `referrerPolicy`, `crossOrigin`), URLs und Strings ohne Buchstaben;
+- Literale an einer Typposition (der Wert vor `as` oder `satisfies` wird weiter geprüft), Log-Meldungen, Fehlermeldungen (`new ValidationError(...)`, `throw Error(...)`), Vergleichsoperanden und Template-Literale mit Ausdruck;
+- direkte Argumente von `describe` (zod), `query`, `execute`, `prepare`, `format`, `parse`, `z.enum`, `setItem`, `getItem` und `removeItem` sowie das erste Argument von `on`, `off`, `once`, `emit`, `addEventListener` und einem `get` oder `set` auf einem Objekt; tiefer verschachtelter Text und Meldungen an Funktionen wie `setError` werden weiter gemeldet;
+- alles in Test-, Story-, Deklarations- und Konfigurationsdateien.
 
-Aufrufe, die eine Abfrage, ein Format oder einen Namen statt Text erwarten, werden ebenfalls übersprungen: ein String, der direkt als Argument an `describe` (zod), `query`, `execute`, `prepare`, `format` oder `parse` übergeben wird, ein String im Array, das direkt an `z.enum` geht, jedes String-Argument von `setItem`, `getItem` und `removeItem` sowie das erste Argument von `on`, `off`, `once`, `emit`, `addEventListener` und einem `get`- oder `set`-Aufruf auf einem Objekt wie `cookies().get(...)`. Nur die direkten Argumente werden übersprungen: Text, der tiefer in so einem Aufruf steckt, etwa in einem Callback (`query(() => ({ message: "..." }))`), einem Objekt oder JSX, wird weiter gemeldet. Eine Funktion, deren Name nur zufällig auf `Error` endet, etwa `setError` oder `showError`, wird nicht übersprungen; die Meldung, die du ihr übergibst, wird also weiter gemeldet.
+Um ein Literal zurückzuhalten, setz `// verbatra-ignore-next-line` darüber (in JSX `{/* verbatra-ignore-next-line */}`) oder `// verbatra-ignore-line` ans Ende seiner Zeile. Eine Next-Line-Direktive zielt auf die nächste Zeile mit Code und bei einem öffnenden JSX-Tag auf alle seine Attribute. Einen String, der überall passt, trägst du mit aufgelösten Referenzen (`Tom & Jerry`) unter `extract.literals.ignore` ein. Unterdrückte Literale werden trotzdem mit Grund aufgeführt.
 
-Um ein einzelnes Literal zurückzuhalten, setze `// verbatra-ignore-next-line` darüber (in JSX `{/* verbatra-ignore-next-line */}`) oder `// verbatra-ignore-line` ans Ende seiner eigenen Zeile. Eine Next-Line-Direktive zielt auf die nächste Zeile mit Code (leere Zeilen und Zeilen nur mit Kommentaren werden übersprungen) und gilt für jedes Literal, das in dieser Zeile beginnt. Beginnt dort ein öffnendes JSX-Tag, gilt sie auch für alle Attribute dieses Tags, selbst wenn das Tag über mehrere Zeilen geht. Text und verschachtelte Elemente in späteren Zeilen deckt sie nicht ab; gib ihnen jeweils eine eigene Direktive. Für einen String, der überall in Ordnung ist, etwa einen Markennamen, trage ihn unter `extract.literals.ignore` in [der Konfigurationsdatei](/docs/config-file#extract) ein. Ein Eintrag trifft den Text so, wie er gemeldet wird, mit aufgelösten Zeichenreferenzen, also schreibe `Tom & Jerry`, nicht `Tom &amp; Jerry`. Ein zurückgehaltenes Literal wird trotzdem als unterdrückt aufgeführt, mit Grund; nichts verschwindet stillschweigend.
+Die Prüfung scheitert an einem Fund und an einer Datei, die sie nicht öffnen, nicht bis zum Ende lesen oder als zu groß einstuft (der Scan läuft weiter). Ein Projekt ohne `extract`-Block lässt sie scheitern.
 
-Die Prüfung schlägt fehl, wenn sie ein Literal findet, und auch dann, wenn eine Datei nicht gescannt werden konnte. Eine Datei, die der Scanner nicht bis zum Ende lesen kann (ein nicht geschlossener Kommentar oder Template-Literal oder ein JSX-Element, das nie geschlossen wird oder vom Tag eines umgebenden Elements geschlossen wird), sie gar nicht erst öffnen kann oder sie als zu groß einstuft, wird als nicht gescannt aufgeführt, und der restliche Scan läuft weiter, aber der Lauf wird nie als sauber gemeldet. Ein generischer Funktionstyp wie `type Fn = <T>(x: T) => T` oder eine Typparameterliste wie `<const T extends object = {}>(x: T) => x` in einer `.tsx`-Datei wird als normaler Code gelesen und lässt die Datei also nie scheitern, und ein Element mit beliebig langen Typargumenten, etwa `<Table<Row>>`, wird weiter als JSX gelesen. Ein Projekt ohne `extract`-Block lässt die Prüfung mit einer Meldung scheitern, die den Block nennt. Mit `--json` steht der Scan im Envelope unter `result.literals`, aufgeteilt in `findings`, `suppressed` und `diagnostics`.
+### JSON-Ausgabe
+
+Mit `--json` trägt der [Envelope](/docs/cli/output#json-ausgabe) den Bericht unter `result`. `ok` ist genau dann wahr, wenn der Befehl mit `0` endet:
+
+```ts
+interface DoctorResult {
+  ok: boolean;                 // true exactly when the command exits 0
+  checks: DoctorCheck[];       // one per check, always in the same order
+  literals?: LiteralScan;      // only with --literals: findings, suppressed, diagnostics
+  locales?: LocaleCapabilityReport; // per-locale provider support, with or without --locales
+}
+
+interface DoctorCheck {
+  id:
+    | "config"
+    | "format-adapter"
+    | "provider"
+    | "api-key"
+    | "network-policy"
+    | "source-file"
+    | "plural-rules"
+    | "plural-completeness"
+    | "locale-codes"
+    | "locale-state"
+    | "locales"
+    | "untranslated-literals";
+  title: string;               // stable, human-readable name
+  status: "pass" | "warn" | "fail" | "skipped";  // only "fail" makes ok false
+  detail: string;              // why it reached that verdict; never an API key value
+  fix?: string;                // the next step, only on a failed check
+}
+
+interface LocaleCapabilityReport {
+  provider: string;
+  coverage: "listed" | "open";       // "open" for an LLM provider
+  tableVersion: string;              // the table's date (YYYY-MM-DD)
+  tableOrigin: "static" | "live";    // "live" only when --live fetched the list
+  live?: { status: "refreshed" | "skipped" | "failed"; detail: string }; // only with --live
+  source: {
+    locale: string;
+    providerCode: string;
+    mapped: boolean;
+    support: "supported" | "unverified" | "unsupported";
+    warnings: { code: string; message: string }[];
+  };
+  locales: {
+    locale: string;
+    providerCode: string;            // the code the provider receives
+    mapped: boolean;                 // true when localeMap set providerCode
+    support: "supported" | "unverified" | "unsupported";
+    glossary: boolean;
+    formality: boolean;
+    warnings: { code: string; message: string }[];
+  }[];
+}
+```
+
+`result.locales` fehlt, wenn die Konfiguration nicht geladen werden konnte, bei einem unbekannten Provider und bei `provider: { id: "none" }`.
+
+### Rückmeldung im Terminal
+
+<AvailableFrom version="0.12.0" />
+
+Während es läuft, zeigt `doctor` eine Zeile auf stderr (`checking the setup` oder `scanning the source for literals` mit Dateianzahl), die `--quiet` weglässt. Der Bericht bleibt auf stdout. Siehe [Terminalausgabe](/docs/cli/output#terminalausgabe).
 
 ## Beispiele
 
@@ -88,31 +198,25 @@ verbatra doctor --cwd apps/web --config verbatra.config.ts
 # machine-readable report for a CI preflight step
 verbatra doctor --json
 
-# list hardcoded user-facing strings in your source, with no key set
+# list hardcoded user-facing strings, with no key set
 verbatra doctor --literals
-```
 
-Ein Lauf mit zwei Problemen sieht so aus:
+# what the provider supports for each target locale
+verbatra doctor --locales
 
-```text
-verbatra doctor
-  [ok  ] Configuration: Loaded /app/verbatra.config.ts.
-  [ok  ] Format adapter: Format "i18next-json" resolves to an adapter.
-  [ok  ] Provider: Provider "anthropic" resolves to a factory.
-  [fail] API key environment variable: The ANTHROPIC_API_KEY environment variable is not set.
-  [fail] Source locale file: The source locale file was not found at /app/locales/en.json.
-2 problems found (run verbatra doctor again after fixing them)
+# the same, against the provider's current language list
+verbatra doctor --live
 ```
 
 ## Exit-Codes
 
 | Code | Bedeutung |
 | --- | --- |
-| `0` | alle Prüfungen bestanden |
-| `1` | mindestens eine Prüfung ist fehlgeschlagen (der vollständige Bericht wird trotzdem ausgegeben); mit `--literals`: ein Literal wurde gefunden oder eine Datei konnte nicht gescannt werden |
+| `0` | keine Prüfung fehlgeschlagen (auch ein `warn` endet mit `0`) |
+| `1` | mindestens eine Prüfung ist fehlgeschlagen, auch bei einer nicht unterstützten Locale; mit `--literals`: ein Literal gefunden oder eine Datei nicht scannbar |
 | `2` | konnte nicht laufen: ein Verwendungsfehler oder ein explizit angegebener `--config`-Pfad, der nicht existiert |
 
-Exit `1` heißt "es lief, und es wurden Probleme gefunden". Exit `2` ist dafür reserviert, dass `doctor` überhaupt nicht laufen kann. Deshalb ist eine per Suche nicht gefundene Konfigurationsdatei eine fehlgeschlagene Prüfung und Exit `1`, während ein `--config`-Pfad ins Leere Exit `2` ergibt.
+Eine Konfiguration, die die Suche nicht findet oder die die Validierung nicht besteht, ist eine fehlgeschlagene Prüfung (Exit `1`), denn genau das zu melden ist die Aufgabe des Befehls. Siehe [den Exit-Code-Vertrag](/docs/cli/output#exit-codes).
 
 ## Siehe auch
 
@@ -120,3 +224,4 @@ Exit `1` heißt "es lief, und es wurden Probleme gefunden". Exit `2` ist dafür 
 - [`verbatra check`](/docs/cli/check) ist das Drift-Gate, sobald die Einrichtung steht.
 - [Die Konfigurationsdatei](/docs/config-file) dokumentiert jeden Key, den `doctor` validiert.
 - [Provider](/docs/providers) listet die API-Key-Variable, die jeder Provider liest.
+- [Sprachunterstützung](/docs/language-support#unterstützung-vor-einem-lauf-prüfen) listet die Sprachtabellen, die die Prüfung Locale support nutzt.

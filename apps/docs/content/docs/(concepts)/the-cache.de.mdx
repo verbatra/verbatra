@@ -1,75 +1,138 @@
 ---
-title: Der Cache
+title: Der Übersetzungs-Cache
 description: Was verbatra.cache.json wiederverwendet, wie ein Fingerprint ihn eingrenzt und warum er nie einen Lauf scheitern lässt.
+type: concept
 ---
-verbatra führt einen lokalen Übersetzungsspeicher-Cache, `verbatra.cache.json`, damit ein bereits übersetzter String nie zweimal an einen Provider geht, selbst wenn sich sein Key ändert. Während [die Lock-Datei](/docs/the-lock-file) verfolgt, ob ein Key aktuell ist, wird der Cache über den Inhalt indexiert: Er merkt sich die Übersetzung eines Stücks Quelltext, unabhängig davon, welcher Key ihn hält.
+Der Übersetzungs-Cache, `verbatra.cache.json`, ist ein lokales Translation Memory, das nach Inhalt
+geordnet ist: Er merkt sich die Übersetzung eines Quelltexts, egal welcher Key ihn hält, sodass
+derselbe Text nie zweimal bezahlt wird. [Die Lock-Datei](/docs/the-lock-file) beantwortet "Ist dieser
+Key aktuell?"; der Cache beantwortet "Haben wir diesen Text schon einmal übersetzt?".
 
 ## Was er wiederverwendet
 
-Bei einem Lauf schlägt verbatra einen Key im Cache nach, bevor er zum Provider geht, und zwar über den Hash seines aktuellen Quellinhalts. Ein Treffer wird kostenlos bedient, du zahlst also nie erneut dafür. Weil die Suche über den Inhalt läuft, überlebt die Wiederverwendung Fälle, die die Lock-Datei nicht abdeckt:
+Bevor ein Key zum Provider geht, schlägt verbatra den Hash seines aktuellen Quelltexts nach. Ein
+Treffer ist kostenlos. Weil nach Inhalt gesucht wird, übersteht die Wiederverwendung, was die
+Lock-Datei nicht sehen kann:
 
-- **Ein umbenannter Key.** Verschiebst du einen String von `home.title` nach `landing.title`, wird seine Übersetzung wiederverwendet statt neu übersetzt.
-- **Doppelter Inhalt.** Zwei Keys mit demselben Quellinhalt teilen sich eine Übersetzung; der zweite ist ein Cache-Treffer.
+- **Ein umbenannter Key.** Verschieb `home.title` nach `landing.title`, und seine Übersetzung wird
+  wiederverwendet.
+- **Doppelter Inhalt.** Zwei Keys mit demselben Quelltext teilen sich eine Übersetzung.
 
-Einem wiederverwendeten Wert wird nicht blind vertraut. Er durchläuft weiterhin dieselben [Integritätsprüfungen](/docs/translation-safety) gegen den aktuellen Quelltext, bevor er geschrieben wird, ein gecachter Wert, der nicht mehr zu seinem Key passt, wird also verworfen und der Key frisch übersetzt. Cache-Treffer werden pro Locale in der Laufzusammenfassung ausgewiesen, getrennt von den in diesem Lauf übersetzten Keys.
+Einem wiederverwendeten Wert wird nicht blind vertraut. Er durchläuft dasselbe
+[Integritäts-Gate](/docs/translation-safety#das-integritäts-gate) gegen die aktuelle Quelle wie eine
+frische Übersetzung, und einer, der nicht mehr passt, wird verworfen und neu übersetzt.
+Cache-Treffer werden pro Locale gemeldet, getrennt von den Keys, die in diesem Lauf übersetzt wurden.
+
+Ein Wert, den ein Reviewer [abgelehnt](/docs/the-lock-file#review-entscheidungen) hat, wird für
+diesen Key nie wiederverwendet: Die Herkunftsdatei behält einen Hash des abgelehnten Texts, und ein
+Lauf überspringt jeden Treffer, der dazu passt. Die einzige Lücke ist eine Herkunftsdatei, die der
+Lauf nicht lesen kann (eine von einer neueren verbatra-Version oder eine beschädigte unter
+`humanEdits: "overwrite"`); dann kennt der Lauf keine Ablehnung.
+
+## Der Fingerprint
+
+Jeder Eintrag ist auf den Kontext beschränkt, in dem er entstanden ist: einen Fingerprint über den
+Provider, das Modell, den Tonfall, die Glossarbegriffe dieser Locale und die
+[`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes) des Providers, wenn sie
+Einträge hat. Ändert sich einer davon, passen frühere Einträge nicht mehr, sodass ein neuer Tonfall
+oder ein bearbeitetes Glossar neu übersetzt statt ein veraltetes Ergebnis zu liefern. Jede Locale
+hat ihren eigenen Fingerprint, das Bearbeiten nur der deutschen Übersetzung eines Glossarbegriffs
+lässt die französischen Einträge also passend.
+
+Das Format ist nicht Teil des Fingerprints; das Integritäts-Gate bei jedem Treffer fängt einen Wert
+ab, der nicht mehr passt. Mit dem Provider `none` landet jeder Eintrag in einem einzigen Bereich für
+reine Handarbeit, den Tonfall und Glossar nicht beeinflussen.
 
 ## Unscharfe Wiederverwendung
 
 <AvailableFrom version="0.11.0" />
 
-Alles bisher Beschriebene ist ein exakter Treffer: Der Quelltext hasht auf denselben Wert wie zuvor. Änderst du ein einziges Zeichen, ändert sich dieser Hash, der String ist also ein Fehltreffer und geht zurück an den Provider. Die unscharfe Wiederverwendung ist ein optionaler Fallback genau für diesen Fall, und sie ist aus, solange du sie nicht anforderst:
-
-```ts title="verbatra.config.ts"
-export default defineConfig({
-  // ...
-  fuzzyCache: { enabled: true, threshold: 0.9 },
-});
-```
-
-Ist ein Key ein Fehltreffer, vergleicht verbatra seinen aktuellen Quelltext mit dem Quelltext jedes Eintrags in derselben Locale unter demselben Fingerprint und bewertet jeden von `0` bis `1`: eins minus die Zeichen-Editierdistanz geteilt durch die Länge des längeren der beiden Strings, `1` ist also ein exakter Treffer. Der nächstliegende Eintrag ab `threshold` wird wiederverwendet; alles darunter geht als gewöhnlicher Fehltreffer an den Provider. `threshold` läuft von `0.5` bis `1` und steht standardmäßig auf `0.9`, also bewusst streng: Bei einem Satz mit 70 Zeichen toleriert er eine Handvoll geänderter Zeichen, bei einer Button-Beschriftung mit fünf Zeichen gar keines. Senke ihn erst, wenn du dir angesehen hast, was er dann durchlässt.
+Ein exakter Treffer braucht einen Quelltext, der zum selben Wert hasht wie vorher, also macht schon
+ein geändertes Zeichen einen Fehltreffer daraus. [`fuzzyCache`](/docs/config-file#fuzzycache) ist
+ein optionaler Rückfall für genau diesen Fall: Wenn ein Key nicht trifft, bewertet verbatra seine
+Quelle gegen die anderen Einträge derselben Locale und desselben Fingerprints und verwendet den
+nächsten wieder, der `threshold` erreicht oder übertrifft. Der Wert ist eins minus die
+Zeichen-Editierdistanz geteilt durch die Länge des längeren Strings, `1` heißt also identisch.
 
 ### Der Schwellwert ist keine Sicherheitseinstellung
 
-Sei dir klar darüber, was der Score dir sagen kann und was nicht. Er misst Zeichen, und Bedeutung ist keine Funktion des Zeichenabstands. Das "nicht" aus einem langen Satz zu streichen, aus "kann nicht" ein "kann" zu machen, Google gegen Apple zu tauschen oder ein Substantiv in den Plural zu setzen sind alles kleine Änderungen, die *über* `0.9` liegen und umkehren oder umlenken, was der Satz aussagt. Den Schwellwert anzuheben behebt das nicht: ein einzelner geänderter Buchstabe am Ende eines Strings mit achtzig Zeichen kommt auf `0.987`, jenseits von jedem Schwellwert, den du setzen könntest.
+Zeichenabstand ist keine Bedeutung. Ein gestrichenes "nicht", "kann nicht" statt "kann" oder ein
+ausgetauschter Markenname sind kleine Änderungen, die über `0.9` liegen und umkehren, was der Satz
+sagt. Der Schwellwert entscheidet, wie viel Provider-Ausgaben du dir sparst, nicht, wie sicher eine
+Wiederverwendung ist. Sicherheit kommt aus Regeln, die nicht von der Zahl abhängen:
 
-Der Schwellwert entscheidet also, wie viel du beim Provider sparst, nicht wie sicher die Wiederverwendung ist. Sicherheit kommt aus fünf Dingen, die nicht von der Zahl abhängen:
-
-- **Die Funktion ist aus, solange du sie nicht einschaltest.**
-- **Jede unscharfe Wiederverwendung wird zum Review markiert**, bei jedem Lauf, ganz gleich wie sie bewertet wurde. Der Key trägt den Grund `FUZZY_CACHE_REUSE` in der `needsReview`-Liste der Laufzusammenfassung und in [Studios Review-Warteschlange](/docs/review-in-studio), beschriftet mit "Reused after source edit". Wenn du diese Warteschlange nicht abarbeiten wirst, schalte die Funktion nicht ein.
-- **Eine Wiederverwendung, deren Zahlzeichen sich geändert haben, wird rundweg abgelehnt.** Unterscheiden sich die Zahlzeichen im aktuellen Quelltext in Anzahl, Wert oder Reihenfolge von denen im gecachten Quelltext, ist der Eintrag kein Kandidat, ganz gleich wie er bewertet wird. Das deckt jedes numerische Unicode-Zeichen ab, nicht nur `0` bis `9`: arabisch-indische Ziffern, hochgestellte Zahlen (damit aus `m²` kein `m³` wird), Bruchzeichen (damit aus `½` kein `¼` wird) und römische Zahlzeichen. Eine geänderte Zahl ist immer ein geänderter Sachverhalt, und sie ist die eine bedeutungsverändernde Bearbeitung, die sich ohne Sprachkenntnis erkennen lässt. Eine als Wort geschriebene Zahl fängt sie nicht ab: dass aus `four` ein `six` wird, bleibt wie jede andere Wortänderung dem Review-Flag überlassen.
-- **Eine Wiederverwendung erledigt den Key nicht.** Der wiederverwendete Text wird in die Locale-Datei geschrieben, die Lock-Datei behält aber die Baseline, die der Key schon hatte, der Key bleibt also *geändert*. Jeder spätere Lauf bietet ihn erneut an und markiert ihn erneut, ohne Provider-Kosten, bis eine echte Übersetzung landet und normal gelockt wird. Das heißt auch: [`check`](/docs/cli/check) meldet den Key weiterhin als nicht aktuell, was zutrifft, denn seine Übersetzung entstand für Text, der nicht mehr der Quelltext ist. Ist dir ein grünes `check` in CI wichtiger als die Erinnerung, dann übersetze den Key, statt ihn auf einer unscharfen Wiederverwendung stehen zu lassen.
-- **Ein Quelltext, der sich nicht geändert hat, geht die unscharfe Schicht nichts an.** Änderst du nur Beschreibung, Bedeutung oder Plural-Flag eines Eintrags, bleibt der Quelltext identisch, der Key geht also genau wie bei ausgeschaltetem `fuzzyCache` an den Provider, und der Provider sieht die neue Vorgabe.
+- **Es ist aus, bis du es einschaltest.**
+- **Jede unscharfe Wiederverwendung wird zum Review markiert**, mit
+  [`FUZZY_CACHE_REUSE`](/docs/error-codes#fuzzy_cache_reuse), bei jedem Lauf, ganz gleich wie sie
+  bewertet wurde. Wenn niemand die [Review-Warteschlange](/docs/review-in-studio) abarbeitet, lass es
+  aus.
+- **Geänderte Ziffern verhindern die Wiederverwendung.** Unterscheiden sich die Ziffern der beiden
+  Quellen in Anzahl, Wert oder Reihenfolge, ist der Eintrag kein Kandidat. Das gilt für jedes
+  numerische Unicode-Zeichen (`m²` zu `m³`, `½` zu `¼`), aber nicht für ausgeschriebene Zahlen.
+- **Eine Wiederverwendung erledigt den Key nicht.** Die Lock-Datei behält die alte Baseline des Keys,
+  er bleibt also geändert: Jeder spätere Lauf bietet ihn ohne Provider-Kosten erneut an, und
+  [`check`](/docs/cli/check) meldet ihn weiter, bis eine echte Übersetzung ankommt.
+- **Ein unveränderter Quelltext erreicht die unscharfe Ebene nie.** Wer nur eine Beschreibung oder
+  ein Plural-Flag ändert, schickt den Key wie gewohnt an den Provider.
 
 ### Was eine unscharfe Wiederverwendung trotzdem nicht ist
 
-Eine unscharfe Wiederverwendung ist eine Übersetzung von Text, der nicht mehr der Quelltext ist, sie wird also nie als exakter Treffer ausgegeben:
+Eine unscharfe Wiederverwendung ist die Übersetzung eines Texts, der nicht mehr die Quelle ist,
+deshalb wird sie nie als exakter Treffer ausgegeben:
 
-- Sie durchläuft dieselben [Integritätsprüfungen](/docs/translation-safety) wie jeder andere Kandidatenwert. Ein naher Treffer, dessen Platzhalter nicht mehr zum geänderten Quelltext passen, wird rundweg abgelehnt statt zurechtgebogen, und der Key geht an den Provider.
-- Sie wird getrennt von exakten Treffern gezählt und ausgegeben, als `fuzzy-reused`, mit Key, Score und dem früheren Quelltext hinter jedem einzelnen. `LocaleSummary.fuzzyHits` trägt dieselben drei Angaben für SDK- und `--json`-Aufrufer, und `runStatus` hält sie fest, sodass ein nach dem Lauf geöffnetes Tool immer noch zeigen kann, was wiederverwendet wurde und woraus.
-- Sie wird nie in den Cache zurückgeschrieben. Der wiederverwendete Wert bleibt unter der Quelle abgelegt, für die er tatsächlich erzeugt wurde, ein späterer Lauf kann ihn also nicht für einen exakten Treffer halten.
+- Sie durchläuft das Integritäts-Gate wie jeder andere Kandidat; ein naher Treffer, dessen
+  Platzhalter nicht mehr passen, wird abgelehnt, und der Key geht zum Provider.
+- Sie wird getrennt von exakten Treffern gemeldet, als `fuzzy-reused`, mit Key, Wert und dem
+  früheren Quelltext; das SDK trägt dasselbe in `LocaleSummary.fuzzyHits`.
+- Sie wird nie in den Cache zurückgeschrieben, sodass ein späterer Lauf sie nicht für einen exakten
+  Treffer halten kann.
 
-Die Bewertung bleibt innerhalb eines Fingerprint-Bereichs, ein geänderter Provider, ein anderes Modell, ein anderer Tonfall oder ein anderes Glossar bringt also nicht durch die Hintertür wieder Treffer. Sie ist außerdem begrenzt: Einträge, bei denen schon die Länge den Schwellwert unerreichbar macht, werden ohne Bewertung verworfen, ebenso Einträge mit abweichenden Zahlzeichen, von den übrigen werden pro Key höchstens 256 bewertet, und Quelltext über 2000 Zeichen wird ganz übersprungen. Die Bewertung bricht einen Vergleich ab, sobald er den Schwellwert nicht mehr erreichen kann; selbst der schlechteste Fall an diesen Grenzen (256 Kandidaten mit 2000 Zeichen, alle knapp am Schwellwert) bleibt damit bei rund 0,4 Sekunden CPU für einen einzelnen Key auf einem aktuellen Laptop und bei Millisekunden, wenn die Kandidaten nur ähnlich lang sind.
-
-## Der Fingerprint
-
-Jeder gecachte Wert ist auf den Übersetzungskontext eingegrenzt, in dem er entstanden ist: ein kurzer Fingerprint über Provider, Modell, Tonfall und Glossar. Ändere eines davon, und frühere Einträge passen nicht mehr, ein neuer Tonfall oder ein bearbeitetes Glossar übersetzt also neu, statt ein veraltetes Ergebnis zu liefern. Das Format ist bewusst nicht Teil des Fingerprints; eine Formatänderung fängt stattdessen die Integritätsprüfung bei jedem Treffer ab.
+Die Bewertung bleibt innerhalb eines Fingerprints und ist begrenzt: höchstens 256 Kandidaten pro Key,
+und Quelltext mit mehr als 2000 Zeichen wird übersprungen. Mit dem Provider `none` wird ein
+unscharfer Treffer nie angewendet.
 
 ## Die Datei
 
-`verbatra.cache.json` ist eine lokale, regenerierbare Begleitdatei neben deiner Lock-Datei. `verbatra init` trägt sie in `.gitignore` ein, und `translate`, `watch`, `import`, `tmx import` und `pseudo` ergänzen einen vorhandenen `.gitignore`, dem der Eintrag fehlt, sodass ein mit einer älteren Version angelegtes Projekt ihn beim nächsten Lauf erhält. Halte sie aus der Versionskontrolle heraus: Anders als die Lock-Datei ist sie eine Kostenoptimierung, keine geteilte Baseline. Sie lässt nie einen Lauf scheitern. Eine fehlende, beschädigte oder zu große Datei degradiert zu einem leeren Cache und wird beim nächsten Lauf einfach neu aufgebaut. Eine Datei, deren `version` dieser Build nicht kennt, stammt von einer neueren verbatra: sie degradiert für den Lauf ebenfalls zu einem leeren Cache, bleibt aber unangetastet auf der Festplatte, statt neu aufgebaut zu werden, sodass ein Upgrade nichts zerstört. Der Lauf meldet einen Hinweis und läuft ansonsten normal weiter. Um sie von Grund auf neu aufzubauen, lösche die Datei.
+`verbatra.cache.json` ist eine lokale, wiederherstellbare Datei neben deiner Lock-Datei. Halte sie
+aus der Versionskontrolle heraus: Sie ist eine Kostenoptimierung, keine gemeinsame Baseline.
+`verbatra init` trägt sie in die `.gitignore` ein, und `translate`, `watch`, `import`, `tmx import`
+und `pseudo` ergänzen den Eintrag in einer vorhandenen `.gitignore`, der er fehlt, und sagen das auf
+stderr.
 
-Die unscharfe Wiederverwendung braucht den Quelltext selbst, weil sich ein Hash nicht auf Ähnlichkeit messen lässt, die Datei zeichnet also jeden Quellstring neben seinen Übersetzungen auf. Dafür ist Schemaversion 2 da, und sie macht die Datei ungefähr so groß wie deine Quellstrings statt so groß wie eine Liste von Hashes. Eine von einer älteren verbatra geschriebene Datei der Version 1 wird weitergeführt statt abgelehnt: Ihre Übersetzungen funktionieren sofort weiter als exakte Treffer, und ihr Quelltext füllt sich nach, sobald spätere Läufe sie anfassen.
+Der Cache lässt nie einen Lauf scheitern. Eine fehlende, beschädigte oder zu große Datei wird zu
+einem leeren Cache und neu aufgebaut. Eine Datei von einer neueren verbatra-Version wird für den
+Lauf ebenfalls als leer behandelt, bleibt aber mit einem Hinweis unangetastet auf der Platte. Um
+neu anzufangen, lösch die Datei. Für die unscharfe Bewertung speichert die Datei jeden Quell-String
+neben seinen Übersetzungen, sie wächst also ungefähr auf die Größe deines Quelltexts.
 
 ## Einen Übersetzungsspeicher zwischen Tools bewegen
 
 <AvailableFrom version="0.11.0" />
 
-Der Cache füllt sich nicht nur aus deinen eigenen Läufen: [`verbatra tmx`](/docs/cli/tmx) liest eine TMX-Datei, die ein anderes Übersetzungstool erzeugt hat, in ihn hinein und schreibt ihn auch wieder als TMX-Datei heraus, die diese Tools lesen können. Importierte Einheiten werden unter demselben Konfigurations-Fingerprint abgelegt, den auch ein echter Lauf schreibt, ein geänderter Provider, ein anderes Modell, ein anderer Tonfall oder ein bearbeitetes Glossar lässt sie also genauso aufhören zu passen wie alles andere in der Datei. Das relativiert das "lösch sie, sie baut sich neu auf" von oben: Löschen bleibt unbedenklich für alles, wofür das Projekt schon bezahlt hat und wieder bezahlen kann, aber ein importierter Übersetzungsspeicher ist nur so weit wiederherstellbar wie die TMX-Datei, aus der er kam, hebe diese Datei also auf.
+[`verbatra tmx`](/docs/cli/tmx) importiert eine TMX-Datei aus einem anderen Übersetzungstool in den
+Cache und exportiert den Cache als TMX. Importierte Einheiten werden unter dem aktuellen Fingerprint
+gespeichert, passen also wie alles andere nicht mehr, wenn sich Provider, Modell, Tonfall, Glossar
+oder `localeMap` ändern. Ein Vorbehalt zu "lösch sie und sie baut sich neu auf": Ein importierter
+Speicher lässt sich nur so gut wiederherstellen wie die TMX-Datei, aus der er kam, also behalte
+diese Datei.
 
 ## Den Cache umgehen
 
-Übergib `--no-cache` an [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch), um den Cache für einen Lauf zu überspringen: verbatra macht genau die Provider-Aufrufe, die es ohne vorhandenen Cache machen würde, und lässt eine bestehende Cache-Datei unangetastet. Aus dem SDK setzt du `cache: false` auf der `translate`- oder `watch`-Eingabe. Ein Dry Run liest oder schreibt den Cache ohnehin nie. `--no-cache` deckt auch die unscharfe Wiederverwendung ab. Willst du die exakte Wiederverwendung behalten und nur den unscharfen Fallback abschalten, lass `fuzzyCache` aus der Konfiguration weg oder setze `enabled: false`.
+`--no-cache` bei [`translate`](/docs/cli/translate) oder [`watch`](/docs/cli/watch) (`cache: false`
+im SDK) macht genau die Provider-Aufrufe, die ein Lauf ohne Cache machen würde, unscharfe
+Wiederverwendung eingeschlossen, und lässt die Datei unangetastet. Um die exakte Wiederverwendung zu
+behalten und nur den unscharfen Rückfall abzuschalten, lass `fuzzyCache` in der Konfiguration weg.
+Ein Probelauf schreibt den Cache nie und liest ihn nur mit dem Provider `none`, damit dieser Plan zu
+einem echten Lauf passt.
 
 ## Einschränkung
 
-Synthetisierte Pluralformen werden nicht gecacht. Wenn `generatePlurals` eine CLDR-Pluralkategorie ausfüllt, die der Quelle fehlt, wird dieser generierte Wert nicht zur Wiederverwendung aufgezeichnet; wann immer ein Lauf ihn synthetisiert, kommt er also vom Provider, nie aus dem Cache.
+Pluralformen, die `generatePlurals` erzeugt, werden nicht gecacht und kommen deshalb immer vom
+Provider.
+
+## Siehe auch
+
+- [`fuzzyCache`](/docs/config-file#fuzzycache): der Konfigurationsschlüssel und sein Bereich.
+- [`verbatra tmx`](/docs/cli/tmx): den Speicher als TMX importieren und exportieren.
+- [Wie ein Lauf funktioniert](/docs/how-it-works): wo das Nachschlagen im Cache in der Pipeline sitzt.
+- [Kosten vor einem Lauf schätzen](/docs/estimating-cost): was der Cache spart, bevor du Geld ausgibst.

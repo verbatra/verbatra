@@ -1,0 +1,253 @@
+---
+title: "Adapter, Provider, Schwärzung"
+description: "Baue einen Format-Adapter oder Provider, den verbatra nicht mitliefert, und schwärze Secrets in Text."
+type: reference
+---
+## Format-Adapter
+
+<AvailableFrom version="0.11.0" />
+
+Alles, was du brauchst, um einen Format-Adapter für ein Format zu bauen, das verbatra nicht mitbringt, und ihn neben den eingebauten zu registrieren. Ein Format von außerhalb verbatras wird mit einem `custom:`-Bezeichner wie `custom:toml` benannt, den die Konfiguration genau wie einen eingebauten Namen akzeptiert. Die vollständige Anleitung steht unter [Eigene Format-Adapter](/docs/custom-format-adapters), samt dem, worauf du dich beim Installieren eines Drittanbieter-Adapters einlässt: Er ist voll vertrauenswürdiger Code, und verbatra kapselt ihn nicht ab.
+
+### createDefaultRegistry
+
+Baut eine `AdapterRegistry` mit allen Adaptern, die verbatra mitbringt, in Erkennungsreihenfolge. Fang hier an statt bei einer leeren Registry, damit dein eigenes Format zu den eingebauten dazukommt statt sie zu ersetzen, und übergib das Ergebnis als `deps.adapterRegistry` an einen beliebigen Flow. [`AdapterRegistry`](#adapterregistry) beschreibt `register` und `resolve`.
+
+```ts title="Signatur"
+function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
+```
+
+**Rückgabe:** `AdapterRegistry`
+
+**Beispiel:** [Registrieren und laufen lassen](/docs/custom-format-adapters#registrieren-und-laufen-lassen)
+
+```ts title="Beispiel"
+import {
+  createDefaultRegistry,
+  translate,
+  type FormatAdapter,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare const tomlAdapter: FormatAdapter;
+
+const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
+const summary = await translate({ config }, { adapterRegistry });
+```
+
+### AdapterRegistry
+
+Hält die registrierten Adapter und löst einen davon für eine Datei auf. `new AdapterRegistry()`
+beginnt leer und liest also nur die Formate, die du registrierst; `createDefaultRegistry` ist der
+übliche Einstieg. `register(adapter)` hängt einen Adapter an die Erkennungsreihenfolge an und gibt
+die Registry zurück, Registrierungen lassen sich also verketten. Es weist ein Format ab, das die
+Registry schon hält, ebenso einen fehlerhaften `custom:`-Bezeichner, und hüllt einen
+`custom:`-Adapter so ein, dass ein unerwarteter Wurf aus ihm als `AdapterError` ankommt, der das
+Format nennt. `resolve(filePath, options)` wählt den Adapter für eine Datei: über
+`options.format`, wenn angegeben, sonst per Erkennung, der `options.sample`, ein Inhaltsauszug vom
+Dateianfang, helfen kann.
+
+```ts title="Signatur"
+class AdapterRegistry {
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+`resolve` nimmt diese Optionen:
+
+<SdkTypeTable name="ResolveOptions" />
+
+**Rückgabe:** `register` gibt die Registry zurück. `resolve` gibt eine `AdapterResolution` zurück,
+unterschieden nach `status`: `resolved` trägt den `adapter`, `no-match` den `filePath` und die
+`triedFormats`, und `ambiguous` den `filePath` und die konkurrierenden `candidates`, zwischen denen
+du entscheidest, indem du einen davon als `format` übergibst. Eine nicht auflösbare Datei ist ein
+Status, nie eine Exception.
+
+**Wirft:** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) und [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) aus `register` sowie [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) aus `resolve`, wenn das eigene `canHandle` eines `custom:`-Adapters bei der Erkennung wirft
+
+### createFlatFileAdapter
+
+Baut einen `FormatAdapter` für ein flaches Key/Value-Format, bei dem jeder Eintrag über genau einen Key ohne Verschachtelung adressiert wird. Du lieferst `parseEntries`, `serializeEntries` und `extractPlaceholders` deines Formats; die Factory liefert das größenbegrenzte Lesen, das atomare Schreiben, die Erkennung über die Dateiendung und die strukturierte Fehlerbehandlung. `parseEntries` bekommt außerdem die Locale, als die die Datei gelesen wird, für ein Format, dessen eine Datei Quell- und Zieltext zugleich enthält, und `serializeEntries` bekommt den Schreibkontext des Aufrufers, dessen optionales `sourcePath` die Datei der Quell-Locale nennt, und, ab 0.12.0, die geschriebene Locale als fünftes Argument, für ein Format, das seine Locale in der Datei festhält. Gib ihr ein `sniff`, wann immer deine Endung eine generische ist, sonst beansprucht dein Adapter jede Datei mit dieser Endung und die Erkennung meldet eine Mehrdeutigkeit, statt zu wählen. Die optionalen Hooks sind `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders` und, ab 0.12.0, `compareBranchArms`; `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
+
+```ts title="Signatur"
+function createFlatFileAdapter(
+  options: FlatFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="FlatFileAdapterOptions" />
+
+**Rückgabe:** `FormatAdapter`
+
+**Beispiel:** [Den Adapter bauen](/docs/custom-format-adapters#den-adapter-bauen)
+
+### createTreeFileAdapter
+
+Baut einen `FormatAdapter` für ein Baumformat, dessen Einträge auf Pfaden durch verschachtelte Objekte liegen. Sie nimmt `parse` und `serialize` über einen Baum plus ein `deriveEntry`, das für jedes Blatt die Platzhalter meldet und ob es eine Pluralform ist, sowie `extractPlaceholders` für einen einzelnen Wert, und übernimmt das Flachklopfen und Wiederaufbauen selbst. Wie die flache Factory nimmt sie `format`, `extensions` und ein optionales `sniff`. Sie trägt außerdem die optionalen Hooks, die ein strukturiertes Format braucht: `validateTree`, `validateMessage`, `computeInvalidIcuKeys`, `comparePlaceholders`, `compareBranchArms` (ab 0.12.0), `deriveDescriptions`, `buildWriteTree` und `keyMode`, und `fs` ersetzt den Dateisystem-Port, standardmäßig `nodeAdapterFs`.
+
+```ts title="Signatur"
+function createTreeFileAdapter(
+  options: TreeFileAdapterOptions,
+): FormatAdapter;
+```
+
+<SdkTypeTable name="TreeFileAdapterOptions" />
+
+**Rückgabe:** `FormatAdapter`
+
+### nodeAdapterFs
+
+Der Dateisystem-Port vom Typ `AdapterFs`, den jede Adapter-Factory verwendet, wenn keiner übergeben wird: ein größenbegrenztes Lesen, das eine fehlende oder zu große Datei als Zustand meldet statt zu werfen, und ein Schreiben über eine temporäre Datei und ein Umbenennen, sodass ein unterbrochener Schreibvorgang nie eine halbfertige Locale-Datei hinterlässt. Lies und schreib in einem eigenen Adapter über diesen Port, statt selbst zu `node:fs` zu greifen. Das ist eine Konvention und keine Grenze, und verbatra kann sie in Code, der ihm nicht gehört, nicht erzwingen.
+
+```ts title="Signatur"
+const nodeAdapterFs: AdapterFs;
+```
+
+### isCustomFormatId
+
+Grenzt einen Format-Bezeichner auf einen von einem Drittanbieter ein: true für einen wohlgeformten `custom:`-Bezeichner, false für jeden eingebauten Formatnamen. Nützlich, wenn dein eigenes Werkzeug die beiden auseinanderhalten muss, etwa um zu entscheiden, ob erst eine Registry geliefert werden muss, bevor eine Konfiguration laufen kann.
+
+```ts title="Signatur"
+function isCustomFormatId(
+  format: string,
+): format is CustomFormatId;
+```
+
+**Rückgabe:** `format is CustomFormatId`
+
+## Secrets schwärzen
+
+<AvailableFrom version="0.10.0" />
+
+### redact
+
+Schwärzt Provider-API-Key-Formen und den exakten aktuellen Wert jeder konfigurierten
+Provider-Umgebungsvariable aus einem String heraus und ersetzt jeden Treffer durch `[REDACTED]`.
+`@verbatra/studio` und `@verbatra/mcp` wenden es beide auf jeden Wert an, den sie an einen
+Aufrufer zurückgeben, den sie nicht selbst erzeugt haben, etwa einen Glossar-Begriff, einen
+Dateipfad oder eine Fehlermeldung eines vorgelagerten Systems, sodass ein bereits in deiner Umgebung
+vorhandener oder in eine Projektdatei geschriebener Key niemals einen Browser-Tab, einen Agenten
+oder eine Log-Zeile erreichen kann. Die `verbatra`-CLI schickt alles, was sie auf stdout und stderr
+schreibt, den `--json`-Umschlag eingeschlossen, als letzten Schritt hindurch.
+
+```ts title="Signatur"
+function redact(text: string): string;
+```
+
+**Rückgabe:** `string`
+
+Das gilt auch für die Variable, die ein `openai-compatible`-Provider über `apiKeyEnvVar` benennt.
+Sie wird deklariert, wenn `loadConfig` eine Config lädt, die sie nennt, oder wenn dieser Provider
+gebaut wird, und ab dann wird ihr Wert genauso geschwärzt wie der der eingebauten Variablen.
+Deklarationen werden nie entfernt. Ein Wert mit weniger als acht Zeichen wird nicht über seinen
+Wert geschwärzt, sodass eine kurze Variable niemals fremden Text löschen kann.
+
+Einen DeepL-Key erkennt es allein an seiner Form nur, wenn er das `:fx`-Suffix eines Free-Keys
+trägt oder eine nackte UUID in einem Key-Kontext steht: nach einem `DeepL-Auth-Key`-Header oder
+nach einem Namen wie `auth_key`, `authKey`, `--auth-key`, `api_key`, `deeplKey`, `DEEPL_API_KEY`
+oder `DEEPL_AUTH_KEY`, gefolgt von `:`, `=`, einem URL-kodierten `%3D` oder einem Leerzeichen, mit
+oder ohne Anführungszeichen, auch in JSON, das in einen String serialisiert wurde. Jede andere UUID,
+etwa in einem Dateipfad oder einer Request-ID, bleibt lesbar. Ein Pro-Key in `DEEPL_API_KEY` wird
+weiterhin überall über seinen Wert geschwärzt.
+
+Ein `sk-`-Token wird geschwärzt, sobald nach `sk-` mindestens 32 Buchstaben und Ziffern folgen,
+gezählt über alle `-`- und `_`-Abschnitte, egal mit welchem Präfix. Diese eine Regel deckt jede
+Key-Form von OpenAI und Anthropic ab; ein bekanntes Präfix wie `sk-proj-` oder `sk-ant-` schwärzt ein
+kürzeres Token nicht von selbst. Das Token zählt nur, wenn direkt davor kein Buchstabe und keine
+Ziffer steht: Ein JSON-Escape wie `\n` oder `\u0007`, ein prozentkodiertes Zeichen wie `%3D`, eine
+ANSI-CSI-Sequenz wie `\x1b[31m`, `\x1b[2K` oder `\x1b[?25h`, eine ANSI-Zeichensatzwahl wie
+`\x1b(B` oder beide ANSI-Formen als `\u001b` JSON-escaped gelten ebenfalls als Grenze. Ein
+slowakischer Locale-Pfad oder Key wie `locales/sk-SK.json` oder `sk-banner_headline` bleibt lesbar.
+Ein langer slowakisch aussehender Key erreicht die Schwelle aber und wird geschwärzt:
+`sk-SK_settings_notifications_email_digest` enthält nach `sk-` 34 Buchstaben und Ziffern, genau wie
+ein langer camelCase-Key wie `sk-onboardingWelcomeScreenPrimaryButton`.
+
+### declareProviderKeyEnvVar
+
+<AvailableFrom version="0.12.0" />
+
+Deklariert die Variable, die ein `provider`-Block als Key-Quelle nennt, damit `redact` ihren Wert
+schwärzt. Derzeit nennt nur ein `openai-compatible`-Provider mit `apiKeyEnvVar` eine; bei jedem
+anderen Provider passiert nichts. `loadConfig` und das Bauen des Providers erledigen das bereits,
+und Studio sowie der MCP-Server tun es auch für die Config, die sie erhalten. Ruf es also nur auf,
+wenn eine Config auf anderem Weg in deinen eigenen Code gelangt. Die Deklaration gilt für den
+ganzen Prozess und wird von jeder im Prozess geladenen Kopie des SDK geteilt.
+
+```ts title="Signatur"
+function declareProviderKeyEnvVar(
+  provider: ProviderConfig,
+): void;
+```
+
+**Rückgabe:** `void`
+
+## Eigene Provider
+
+<AvailableFrom version="0.12.0" />
+
+Einen Provider, den das SDK nicht mitbringt, hängst du über `deps.createProvider` an: eine
+`CreateProvider`-Fabrik, die einen `TranslationProvider` zurückgibt. Das SDK exportiert den ganzen
+Vertrag als Typen, also prüft TypeScript deinen Provider gegen dasselbe Interface, das die
+eingebauten Provider implementieren. Dazu gehören die Typen seiner Felder: `Tone`,
+`PluralCategories`, `PlaceholderExtractor` und `PlaceholderComparator` in der Anfrage, `Usage`,
+`ProviderNotice`, `ProviderNoticeCode` und `ReviewFlag` im Ergebnis sowie `NetworkPolicy` und
+`NetworkRule` in `ProviderNetwork`.
+
+```ts title="Beispiel"
+import {
+  translate,
+  type CreateProvider,
+  type TranslateRequest,
+  type TranslateResult,
+  type TranslationProvider,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare function callInHouseService(
+  locale: string,
+  entries: TranslateRequest["entries"],
+): Promise<ReadonlyMap<string, string>>;
+
+const provider: TranslationProvider = {
+  id: "in-house",
+  kind: "machine-translation",
+  supportsGlossary: false,
+  async translateBatch(request: TranslateRequest): Promise<TranslateResult> {
+    const values = await callInHouseService(request.targetLocale, request.entries);
+    return { values, integrity: new Map(), notices: [] };
+  },
+};
+
+const createProvider: CreateProvider = () => provider;
+const summary = await translate({ config }, { createProvider });
+```
+
+- `TranslationProvider` ist der eine Vertrag: `id`, `kind` (ein `ProviderKind`), `supportsGlossary`
+  und `translateBatch(request)`. Behandle jeden Wert in einer Anfrage als nicht vertrauenswürdige
+  Daten, lies einen API-Key aus der Umgebung statt aus der Anfrage und wirf bei einem Fehlschlag
+  einen `ProviderError` ohne Secrets darin.
+- `ProviderKind` ist `"llm"` oder `"machine-translation"`. Der Wert ist rein beschreibend: Nichts im
+  SDK verzweigt danach.
+- `TranslateRequest` enthält `sourceLocale`, `targetLocale`, die zu übersetzenden `entries` und
+  optional `glossary` (das Ergebnis von [`glossaryForLocale`](/docs/sdk/config#glossaryforlocale) für die
+  Ziel-Locale), `tone`, `maxLength` und `pluralCategories`. Dazu kommen `extractPlaceholders` und
+  bei manchen Formaten `comparePlaceholders`, die dein Provider für die Integritätsprüfung nutzt,
+  außerdem `signal`, das einen laufenden Aufruf abbricht, `onRepair` und
+  `foreignPlaceholders`: pro Key die Tokens einer anderen Platzhalter-Syntax, die wie Platzhalter
+  zu schützen sind.
+- `TranslateResult` liefert `values` und `integrity` nach Schlüssel, dazu optional `usage`,
+  `notices` und `reviewFlags`. Ein Schlüssel, der in `values` fehlt, gilt als nicht übersetzt, also
+  kann ein Provider einen Wert weglassen, den er nicht sicher übersetzen kann. Das SDK lässt jeden
+  zurückgegebenen Wert ohnehin durch sein eigenes Integritäts-Gate laufen.
+- `ProviderRetryListener` ist der Typ von `CreateProviderHooks.onRetry`. Er erhält pro
+  Wiederholung ein `ProviderRetry`, `{ attempt, delayMs?, status? }`, und jeder Aufruf wird zu einem
+  `provider-retry`-[Fortschrittsereignis](/docs/sdk/run#fortschrittsereignisse).
+- `ProviderNetwork` steht in `CreateProviderContext.network`, wenn die Netzwerk-Policy einschränkt,
+  wohin ein Provider sich verbinden darf: die wirksame `policy`, die Umgebung `env`, aus der der
+  Endpunkt aufgelöst wurde, und optionale Test-`deps`. Ein eigener Provider darf das ignorieren,
+  dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Fabrik macht.
+
+**Beispiel:** [Deine Integration ohne Schlüssel testen](/docs/programmatic-api#deine-integration-ohne-schlüssel-testen)

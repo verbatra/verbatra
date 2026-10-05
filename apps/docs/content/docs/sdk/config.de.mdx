@@ -1,0 +1,473 @@
+---
+title: "Konfiguration und Glossar"
+description: "Die Konfiguration laden und validieren, das Glossar lesen und bearbeiten und ein Projekt erkennen."
+type: reference
+---
+## Die Konfiguration laden [#konfiguration]
+
+### loadConfig
+
+Findet, lädt und validiert die Projektkonfiguration und gibt eine `VerbatraConfig` zurück.
+Die Vorrangfolge ist `configOverride` (ein
+Objekt im Speicher validieren) vor `configPath` (eine explizite Datei laden) vor der Suche. Die
+Suche beginnt bei `cwd` und deckt `verbatra.config.ts` (auch `.js`/`.cjs`), die
+`.verbatrarc`-Familie (`.json`, `.yaml`, `.yml`, `.js`, `.cjs`, `.ts`) und eine
+`"verbatra"`-Eigenschaft in `package.json` ab. Ein als Dateipfad angegebenes `glossary` wird hier
+gelesen und validiert, sodass nachgelagerter Code immer ein Glossar im Speicher sieht: eine
+Version-1-Zuordnung vom Quellbegriff zur Übersetzung oder eine Version-2-Definition.
+
+```ts title="Signatur"
+function loadConfig(
+  options?: LoadConfigOptions,
+): Promise<VerbatraConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**Rückgabe:** `VerbatraConfig`
+
+**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+**Beispiel:** [Eine Konfiguration ohne Datei](/docs/programmatic-api#eine-konfiguration-ohne-datei)
+
+Wirft `CONFIG_NOT_FOUND`, wenn nichts gefunden wird, `CONFIG_INVALID`, wenn eine Konfiguration
+gefunden, aber ungültig ist. Das Schema steht in [Konfigurationsdatei](/docs/config-file). `fs`
+ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
+[Die Abhängigkeits-Nahtstelle](/docs/sdk#die-abhängigkeits-nahtstelle) beschrieben.
+
+### loadConfigWithMeta
+
+<AvailableFrom version="0.5.0" />
+
+Dasselbe Laden, plus Herkunft: gibt `{ config, source, glossary }` zurück, wobei `source` sagt, ob
+die Konfiguration aus einem Suchtreffer, einem expliziten Pfad oder einer Übersteuerung im
+Speicher kam (mit dem absoluten `filepath`, wenn es einen gibt), und `glossary` festhält, ob das
+Glossar fehlte, inline war oder aus einer Datei aufgelöst wurde. Nutze es, wenn du anzeigen musst,
+woher die Konfiguration kam.
+
+```ts title="Signatur"
+function loadConfigWithMeta(
+  options?: LoadConfigOptions,
+): Promise<LoadedConfig>;
+```
+
+<SdkTypeTable name="LoadConfigOptions" />
+
+**Rückgabe:** `LoadedConfig`
+
+**Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+Beide nehmen `fresh: true`, um eine JavaScript- oder TypeScript-Konfigurationsdatei neu auszuwerten,
+statt wiederzuverwenden, was ein früheres Laden im selben Prozess ausgewertet hat; ein lang laufender
+Prozess, der die Konfiguration nach einer Änderung neu lädt, setzt es. JSON-, YAML- und
+`package.json`-Konfigurationen werden immer frisch gelesen.
+
+<AvailableFrom version="0.12.0" />
+
+### configCandidatePaths
+
+<AvailableFrom version="0.12.0" />
+
+Listet jede Datei, aus der `loadConfigWithMeta` mit denselben `{ cwd?, configPath? }` eine
+Konfiguration lesen könnte: nur die explizite Datei, wenn `configPath` gesetzt ist, sonst jeden
+Suchort in jedem Verzeichnis der Suchkette, das nächste zuerst, ob es die Datei gibt oder nicht.
+Beobachte diese Pfade, zum Beispiel über ihre Änderungszeiten, um zu bemerken, dass eine
+Konfiguration angelegt, bearbeitet oder entfernt wird, ohne sie bei jeder Anfrage zu laden. Die
+Glossardatei ist nicht dabei; `loadConfigWithMeta` nennt sie in `glossary`.
+
+```ts title="Signatur"
+function configCandidatePaths(
+  options?: ConfigCandidateOptions,
+): readonly string[];
+```
+
+<SdkTypeTable name="ConfigCandidateOptions" />
+
+**Rückgabe:** `readonly string[]`
+
+## Glossar
+
+### readGlossaryFile
+
+<AvailableFrom version="0.9.0" />
+
+Liest ein dateibasiertes Glossar frisch von der Festplatte und gibt es als normalisiertes `Glossary`
+zurück: `{ version, terms, doNotTranslate }`, wobei `version` für eine flache Begriffszuordnung `1`
+und für ein [Glossar pro Locale](/docs/config-file#glossary) `2` ist und jeder Begriff `source`, ein
+optionales `target`, `targets`, `forbidden`, `caseSensitive` sowie optional `note` und
+`partOfSpeech` trägt. Die Eingabe `glossary` ist die `GlossaryProvenance` aus `loadConfigWithMeta`,
+sodass die gelesene Datei immer die ist, die die Konfiguration nennt; ein Pfadargument gibt es
+nicht. Nutze es in einem lang laufenden Werkzeug, das das Glossar so zeigen muss, wie es jetzt ist,
+und nicht so, wie es beim Laden der Konfiguration war.
+
+```ts title="Signatur"
+function readGlossaryFile(
+  input: GlossaryFileInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="GlossaryFileInput" />
+
+**Rückgabe:** `Glossary`
+
+**Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+Wirft `GLOSSARY_NOT_FILE_BACKED`, wenn das Glossar inline oder gar nicht vorhanden ist, und
+`CONFIG_INVALID`, wenn die Datei fehlt, zu groß ist, nicht UTF-8 ist, kein gültiges JSON ist, weder
+eine flache String-Zuordnung noch ein gültiges Glossar der Version 2 ist oder eine andere Version
+angibt.
+
+<AvailableFrom version="0.12.0" />
+
+Bis 0.11 gab es die flache Begriffszuordnung selbst zurück.
+
+### updateGlossaryTerm
+
+<AvailableFrom version="0.9.0" />
+
+Fügt genau einen Begriff zu einem dateibasierten Glossar hinzu, ändert ihn oder entfernt ihn, und
+gibt das normalisierte Glossar in seinem neuen Stand zurück. `translation`
+ist der neue Text oder `null`, um den
+Begriff zu entfernen. Der Rest der Datei behält seine Key-Reihenfolge und seine Einrückung, der
+Schreibvorgang ist atomar, und das gesamte Lesen, Ändern und Schreiben läuft unter einer
+projektweiten Glossarsperre, sodass zwei gleichzeitige Änderungen serialisiert statt verschränkt
+werden.
+
+```ts title="Signatur"
+function updateGlossaryTerm(
+  input: UpdateGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="UpdateGlossaryTermInput" />
+
+**Rückgabe:** `Glossary`
+
+**Wirft:** [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+
+<AvailableFrom version="0.12.0" />
+
+Es nimmt außerdem `locale` (dann ist `translation` die eigene Übersetzung dieser Locale und `null`
+entfernt nur sie), `forbidden` (die Wiedergaben, die `locale` nie verwenden darf; `null` oder `[]`
+entfernt sie), `note`, `partOfSpeech` (jeweils `null` zum Entfernen), `caseSensitive` und
+`doNotTranslate` (`true` nimmt den Begriff in die unübersetzten Begriffe auf, `false` entfernt ihn;
+es lässt sich nicht mit den Begriffsfeldern kombinieren). Eine Datei der Version 1 bleibt Version 1,
+solange eine Änderung nur eine Übersetzung für alle Locales setzt oder entfernt; jede andere
+Änderung schreibt sie als Version 2 neu, wobei jeder bestehende Begriff seine Übersetzung als
+`target` behält. `translation: null` ohne `locale` entfernt jetzt nur die gemeinsame Übersetzung; der Begriff selbst wird entfernt, sobald ihm keine Übersetzung und keine verbotene Wiedergabe mehr bleibt, bei einem Begriff der Version 1 also sofort.
+
+Ein Inline-Glossar wird mit `GLOSSARY_NOT_FILE_BACKED` abgelehnt statt umgewandelt: Es liegt in
+einem ausführbaren Konfigurationsmodul. Ein leeres Feld, eine Änderung, die kein Feld setzt oder
+`doNotTranslate` mit Begriffsfeldern mischt, verbotene Wiedergaben ohne Locale, eine ungültige
+Locale, eine Änderung, die ein ungültiges Glossar hinterließe, und eine Änderung, deren Ergebnis
+die Glossargrenze von 1 MiB überschreiten würde, werden mit `CONFIG_INVALID` abgelehnt; ein
+fehlgeschlagener Schreibvorgang, auch eine Glossar-Schreibsperre, die sich in einem schreibgeschützten Projekt nicht anlegen oder nach einer gespeicherten Änderung nicht freigeben lässt, ist `GLOSSARY_UNWRITABLE`, mit dem Dateisystem-Fehler als `cause`. Eine Änderung, die das Glossar so lässt,
+wie es schon ist, gelingt und schreibt nichts.
+
+<AvailableFrom version="0.12.0" />
+
+Es nimmt außerdem `lockAcquireTimeoutMs`, das die Wartezeit auf die Glossarsperre begrenzt, bevor der Aufruf mit `LOCK_CONTENDED` scheitert (standardmäßig zehn Minuten); eine ungültige Grenze scheitert mit `LOCK_TIMEOUT_INVALID`, bevor etwas gelesen wird.
+
+### glossaryForLocale
+
+<AvailableFrom version="0.12.0" />
+
+Löst den Teil eines Glossars auf, der für eine Ziel-Locale gilt:
+`glossaryForLocale(config.glossary, "de")` gibt `{ terms, doNotTranslate }` zurück, jeden Begriff
+mit dem `target` der Locale (ihr eigener Eintrag, dann der ihrer Basissprache, dann der gemeinsame),
+seinen `forbidden`-Wiedergaben, `caseSensitive` sowie `note` und `partOfSpeech`, oder `undefined`,
+wenn nichts im Glossar dort gilt. Genau das trägt eine Übersetzungsanfrage in diese Locale als
+[`TranslateRequest.glossary`](/docs/sdk/extend#eigene-provider), und genau das sehen die Review-Prüfungen und der Cache-Fingerprint
+dieser Locale.
+
+```ts title="Signatur"
+function glossaryForLocale(
+  glossary: GlossaryInput | Glossary | undefined,
+  locale: string,
+): LocaleGlossary | undefined;
+```
+
+**Rückgabe:** `LocaleGlossary | undefined`
+
+### glossaryHits
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryHits({ glossary, locale, sourceLocale, source })` gibt die Glossareinträge zurück, die für
+einen Quelltext in einer Ziel-Locale gelten, als `{ terms, doNotTranslate }` in der Form, die
+`glossaryForLocale` liefert: jeden Begriff, dessen Quelle als ganzer Begriff in `source` vorkommt,
+mit der Übersetzung und den verbotenen Wiedergaben, an die diese Locale gebunden ist, und jeden
+unübersetzt zu lassenden Begriff, der darin vorkommt. Ein Begriff passt mit oder ohne
+Groß-/Kleinschreibung, wie er es angibt, wobei für `sourceLocale` gefaltet wird. Er nutzt dieselbe
+Zuordnung, mit der ein Übersetzungslauf einen verpassten Glossarbegriff markiert, und liest nichts.
+
+```ts title="Signatur"
+function glossaryHits(
+  input: GlossaryHitsInput,
+): LocaleGlossary;
+```
+
+<SdkTypeTable name="GlossaryHitsInput" />
+
+**Rückgabe:** `LocaleGlossary`
+
+### glossaryDraftCheck
+
+<AvailableFrom version="0.12.0" />
+
+`glossaryDraftCheck({ glossary, locale, sourceLocale, source, draft })` prüft einen Entwurf einer
+Übersetzung gegen die Glossareinträge, die `glossaryHits` im Quelltext findet, bevor du ihn
+schreibst. Jeder Begriff kommt mit `targetUsed` zurück (ob der Entwurf die vorgeschriebene
+Übersetzung enthält; fehlt bei einem Begriff, der nur Wiedergaben verbietet) und mit
+`forbiddenUsed` (die verbotenen Wiedergaben, die der Entwurf nutzt und die Quelle nicht), und jeder
+unübersetzt zu lassende Begriff mit `kept`. Das sind die Regeln, mit denen ein Übersetzungslauf
+`GLOSSARY_TERM_MISSED` und `GLOSSARY_FORBIDDEN_TERM` markiert. Es liest nichts.
+
+```ts title="Signatur"
+function glossaryDraftCheck(
+  input: GlossaryDraftCheckInput,
+): GlossaryDraftCheck;
+```
+
+<SdkTypeTable name="GlossaryDraftCheckInput" />
+
+**Rückgabe:** `GlossaryDraftCheck`
+
+### normalizeGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Wandelt ein Glossar in beiden Formen, eine flache Zuordnung der Version 1 oder eine Definition der
+Version 2, in das normalisierte `Glossary` um, das `readGlossaryFile` zurückgibt, mit allen
+Standardwerten. Nutze es, um ein Inline-Glossar genauso anzuzeigen wie ein dateibasiertes. Es
+validiert nicht erneut; das hat `loadConfig` schon getan.
+
+```ts title="Signatur"
+function normalizeGlossary(
+  glossary: GlossaryInput | Glossary,
+): Glossary;
+```
+
+**Rückgabe:** `Glossary`
+
+### sharedGlossaryTranslations
+
+<AvailableFrom version="0.12.0" />
+
+Bildet ein normalisiertes `Glossary` auf eine flache Zuordnung ab: jeder Begriff mit einem
+gemeinsamen `target` zu dieser Übersetzung, in Glossarreihenfolge. Übersetzungen pro Locale,
+verbotene Wiedergaben und Begriffe aus `doNotTranslate` fehlen darin, nutze es also nur dort, wo
+ein Verbraucher nichts als eine flache Begriffszuordnung zeigen kann. Ein Begriff namens
+`__proto__` bleibt ein eigener Key.
+
+```ts title="Signatur"
+function sharedGlossaryTranslations(
+  glossary: Glossary,
+): Readonly<Record<string, string>>;
+```
+
+<SdkTypeTable name="Glossary" />
+
+**Rückgabe:** `Readonly<Record<string, string>>`
+
+### redactGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Schickt jeden Quellbegriff, jede Übersetzung, verbotene Wiedergabe, Notiz, Wortart und jeden Begriff
+aus `doNotTranslate` eines normalisierten `Glossary`
+durch `redact` und gibt `{ glossary, redactedTerms }` zurück, wobei `redactedTerms` jeden Begriff
+nennt, bei dem ein Wert ersetzt wurde, einen geschwärzten Quellbegriff selbst als `[REDACTED]`, damit
+die Liste nie ein Secret wiederholt. Der MCP-Server und Studio nutzen es, bevor ein Glossar den Prozess verlässt; nutze es in
+deinem eigenen Werkzeug genauso.
+
+```ts title="Signatur"
+function redactGlossary(glossary: Glossary): RedactedGlossary;
+```
+
+<SdkTypeTable name="Glossary" />
+
+**Rückgabe:** `RedactedGlossary`
+
+### readCurrentGlossary
+
+<AvailableFrom version="0.12.0" />
+
+Liest das Glossar, das eine geladene Konfiguration nennt, so wie es jetzt ist:
+`readCurrentGlossary({ loaded })`, wobei `loaded` das ist, was `loadConfigWithMeta`
+zurückgibt. Ein dateibasiertes Glossar wird frisch von der Festplatte gelesen, ein Inline-Glossar
+kommt aus der Konfiguration, und in beiden Fällen ist das Ergebnis das normalisierte `Glossary` oder
+`undefined`, wenn die Konfiguration keins angibt. Um zu sehen, woran eine Ziel-Locale gebunden ist,
+gib das Ergebnis an `glossaryForLocale` weiter.
+
+```ts title="Signatur"
+function readCurrentGlossary(
+  input: ReadCurrentGlossaryInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary | undefined>;
+```
+
+<SdkTypeTable name="ReadCurrentGlossaryInput" />
+
+**Rückgabe:** `Glossary | undefined`
+
+**Wirft:** [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
+
+### editConfiguredGlossaryTerm
+
+<AvailableFrom version="0.12.0" />
+
+`updateGlossaryTerm` für ein Werkzeug mit geladener Konfiguration: nimmt `loaded` statt `glossary`
+mit denselben Änderungsfeldern, behandelt ein auf `undefined` gelassenes Feld als nicht angegeben
+und prüft `locale` zuerst gegen die konfigurierten Ziel-Locales; ist es keine davon, scheitert es mit
+`UNKNOWN_LOCALE` und schreibt nichts. Der MCP-Server und Studio schreiben das Glossar darüber.
+
+```ts title="Signatur"
+function editConfiguredGlossaryTerm(
+  input: EditConfiguredGlossaryTermInput,
+  deps?: GlossaryFileDeps,
+): Promise<Glossary>;
+```
+
+<SdkTypeTable name="EditConfiguredGlossaryTermInput" />
+
+**Rückgabe:** `Glossary`
+
+**Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`GLOSSARY_NOT_FILE_BACKED`](/docs/error-codes#glossary_not_file_backed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCK_CONTENDED`](/docs/error-codes#lock_contended), [`GLOSSARY_UNWRITABLE`](/docs/error-codes#glossary_unwritable)
+
+## Schreiben, Erkennen und rein menschlicher Modus
+
+### defineConfig
+
+Ein Identitätshelfer zum Schreiben einer typisierten `verbatra.config.ts`: er gibt sein Argument
+unverändert zurück und existiert rein für Typinferenz und Editor-Autovervollständigung,
+einschließlich der Vervollständigung der bekannten Modell-IDs des gewählten Providers. Die
+Modell-Einschränkung gilt nur beim Schreiben; zur Laufzeit besteht jeder nicht-leere String die
+Validierung. Jeder Provider außer `openai-compatible`, `libretranslate` und
+`none` bekommt zusätzlich eine Überladung mit `AuthoringConfigFor<"<id>">`, etwa
+`AuthoringConfigFor<"anthropic">`, die den `provider`-Block auf die Optionen dieses Providers
+einschränkt (und bei einem Sprachmodell auf seine bekannten Modell-IDs); diese drei nutzen den
+Rückfall mit `AuthoringConfig` unten.
+
+```ts title="Signatur"
+function defineConfig(
+  config: AuthoringConfig,
+): VerbatraConfigInput;
+```
+
+**Rückgabe:** `VerbatraConfigInput`
+
+**Beispiel:** [Eine Quelldatei und eine Konfiguration anlegen](/docs/sdk-quickstart#eine-quelldatei-und-eine-konfiguration-anlegen)
+
+### verbatraConfigSchema
+
+Das zod-Schema, mit dem `loadConfig` validiert, exportiert, damit dein eigenes Tooling ein
+Konfigurationsobjekt genauso validieren kann wie das SDK. Unbekannte Top-Level-Keys werden
+abgelehnt, ein verirrtes Secret kann sich also nicht in der Konfiguration verstecken. Die einzige
+Ausnahme ist `$schema`, ein optionaler String, der akzeptiert wird, damit eine JSON- oder
+YAML-Konfiguration einen Editor auf das JSON-Schema-Dokument zeigen lassen kann, das das Paket als
+`@verbatra/sdk/config-schema.json` ausliefert. Zur Laufzeit wird es ignoriert.
+
+```ts title="Signatur"
+const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
+```
+
+### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
+
+Nur lesbare Metadaten, aus denen der CLI-Befehl `init` seine Abfragen ableitet:
+`providerEnv` (Provider-ID zur Umgebungsvariable, aus der sein Key gelesen wird),
+`scaffoldModels` (ein Standard-Scaffold-Modell pro LLM-Provider), `providerTokenLimitKeys` (der
+Option-Key, unter dem jeder LLM-Provider sein Ausgabe-Token-Limit entgegennimmt) und
+`supportedFormats` (die geschlossene Menge der Format-IDs). Lies den Token-Limit-Key aus
+`providerTokenLimitKeys`, statt einen anzunehmen: Anthropic nennt ihn `maxTokens`, die anderen
+`maxOutputTokens`, das Schema validiert die Optionen jedes Providers strikt, und DeepL und Google Cloud
+Translation haben keinen Eintrag, weil sie kein Token-Limit entgegennehmen. Der Typ `ScaffoldableProviderId` ist
+`Exclude<ProviderId, "openai-compatible" | "libretranslate" | "none">` und deckt damit jeden Provider ab, der nur
+seine Id braucht; `openai-compatible` und `libretranslate` sind ausgenommen, weil beide eine `baseUrl`
+brauchen, die nur du kennst, und keiner eine verpflichtende Umgebungsvariable hat.
+
+```ts title="Signatur"
+const scaffoldingMetadata: {
+  readonly providerEnv: { ... };
+  readonly scaffoldModels: { ... };
+  readonly providerTokenLimitKeys: { ... };
+  readonly supportedFormats: readonly [...];
+  readonly humanOnlyProviderId: "none";
+  readonly openAiCompatibleKeyEnv: "OPENAI_COMPATIBLE_API_KEY";
+  readonly libreTranslateKeyEnv: "LIBRETRANSLATE_API_KEY";
+  readonly configSearchPlaces: readonly string[];
+};
+```
+
+`scaffoldingMetadata.humanOnlyProviderId` ist `"none"`, die ID, die Maschinenübersetzung abschaltet. Sie hat keinen Eintrag in `providerEnv`, weil sie keinen Key liest.
+
+<AvailableFrom version="0.12.0" />
+
+`scaffoldingMetadata.libreTranslateKeyEnv` ist `"LIBRETRANSLATE_API_KEY"`, die Variable, aus der ein `libretranslate`-Provider seinen Key liest. Sie ist optional: Ein Server, der ohne `--api-keys` gestartet wurde, braucht keinen, ein Generator sollte sie also nicht setzen.
+
+`scaffoldingMetadata.openAiCompatibleKeyEnv` ist `"OPENAI_COMPATIBLE_API_KEY"`, die Variable, die ein `openai-compatible`-Provider liest, wenn seine Optionen kein `apiKeyEnvVar` nennen. `scaffoldingMetadata.configSearchPlaces` listet jeden Dateinamen, unter dem `loadConfig` nach einer Konfiguration sucht, in der Reihenfolge, in der es sie prüft; ein Generator, der `verbatra.config.ts` schreibt, sollte ablehnen, wenn eine andere davon schon existiert, weil die zuerst gefundene gewinnt.
+
+### detectProject
+
+<AvailableFrom version="0.12.0" />
+
+Erkennt Format und Layout der Locale-Dateien eines Projekts anhand seiner Dateien, so wie `verbatra init` es tut, bevor es eine Konfiguration schreibt. Es schreibt nichts und ruft keinen Provider auf. Es durchsucht das Verzeichnis (versteckte Verzeichnisse, `node_modules` und Build-Ausgabe ausgenommen, mit begrenzter Tiefe und Eintragszahl) nach Dateien, die ein registrierter Adapter beansprucht, findet in jeder das Pfadsegment, das ein Locale ausschreibt, und behält das Dateimuster, das die meisten Locales abdeckt. Das Format ist dasjenige, dessen Adapter mit `canHandle` jede gefundene Datei anhand ihres Inhalts beansprucht; bei JSON, wo das jeder JSON-Adapter tut, entscheidet eine einzelne passende i18n-Bibliothek in `package.json`.
+
+```ts title="Signatur"
+function detectProject(
+  input?: DetectProjectInput,
+  deps?: DetectProjectDeps,
+): Promise<ProjectDetection>;
+```
+
+<SdkTypeTable name="DetectProjectInput" />
+
+**Rückgabe:** `ProjectDetection`
+
+```ts title="Beispiel"
+import { detectProject } from "@verbatra/sdk";
+
+const detection = await detectProject({ cwd: "/path/to/project" });
+if (detection.ambiguities.length > 0) {
+  // several formats or file patterns fit: choose one of detection.ambiguities[0].candidates
+}
+const format = detection.format?.id;          // for example "yaml"
+const pattern = detection.layout?.pattern;    // for example "config/locales/{locale}.yml"
+```
+
+Das Ergebnis trägt `format` (mit `from`: `input`, `files` oder `dependencies`), `layout` (`pattern`, `localeStyle`, `locales`, `sourceLocale`, `files`, `unqualifiedSourceFile`), `ambiguities` (jeweils mit einem `subject` von `format` oder `layout` und seinen `candidates`), eine `confidence` von `high`, `medium`, `low` oder `none` und `reasons`, einen Satz pro Entscheidung. Gleichstände werden als Mehrdeutigkeiten gemeldet, nie geraten. Die optionalen Eingaben `format`, `pattern` und `sourceLocale` grenzen die Suche ein, und `deps.fs` und `deps.adapterRegistry` tauschen Dateisystem und Adapter aus, sodass auch die Dateien eines Drittanbieter-Adapters erkannt werden. Es wirft nie wegen einer fehlenden, unlesbaren oder fehlerhaften Datei; es meldet stattdessen weniger. `layout.unqualifiedSourceFile` nennt eine Datei neben dem Layout, die Strings unter keinem Locale-Namen enthält, etwa `messages.properties` oder eine gettext-Vorlage `.pot`; das Quell-Locale bleibt dann offen statt geraten zu werden, da die Quelle aus der Datei gelesen wird, die das Muster dafür benennt.
+
+### isMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Gibt genau dann `false` zurück, wenn die Konfiguration `provider: { id: "none" }` setzt, den [rein menschlichen](/docs/human-only-workflow) Modus, in dem nie ein Provider erzeugt und kein API-Key gelesen wird. Eine Oberfläche, die kostenpflichtige Provider-Aktionen anbietet, liest es, um sie ganz wegzulassen. So halten Studio und der MCP-Server Ausgaben auch mit `--allow-spend` zurück.
+
+```ts title="Signatur"
+function isMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+): boolean;
+```
+
+**Rückgabe:** `boolean`
+
+### assertMachineTranslationEnabled
+
+<AvailableFrom version="0.12.0" />
+
+Nimmt die Konfiguration und eine kurze Beschreibung der Aktion und wirft unter `provider: { id: "none" }` einen `SdkError` mit `MACHINE_TRANSLATION_DISABLED`. Ruf es auf, bevor du `translate` in eine ausdrückliche Aktion "alles Ausstehende übersetzen" verpackst, damit diese Aktion genauso fehlschlägt wie `retranslateEntry`, statt still nur aus dem Translation Memory zu füllen.
+
+```ts title="Signatur"
+function assertMachineTranslationEnabled(
+  config: Pick<VerbatraConfig, "provider">,
+  action: string,
+): void;
+```
+
+**Rückgabe:** `void`
+
+**Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

@@ -1,14 +1,4 @@
 {
   "title": "Dokumentation",
-  "pages": [
-    "index",
-    "(get-started)",
-    "(agents)",
-    "(concepts)",
-    "(configure)",
-    "(guides)",
-    "cli",
-    "(sdk)",
-    "(help)"
-  ]
+  "pages": ["(docs)", "(reference)"]
 }

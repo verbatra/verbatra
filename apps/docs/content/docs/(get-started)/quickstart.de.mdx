@@ -1,0 +1,154 @@
+---
+title: Schnellstart
+description: Installiere die CLI, erzeuge eine Konfiguration, sieh dir den Lauf ohne API-Schlüssel in der Vorschau an und übersetze deine erste Locale-Datei.
+type: tutorial
+---
+Am Ende dieser Seite hat eine englische Locale-Datei eine deutsche Schwester, geschrieben von einem Provider und von verbatra geprüft, dazu die Lock-Datei, mit der jeder spätere Lauf nur noch übersetzt, was sich geändert hat. Du brauchst Node.js `>=22.14.0` und etwa zehn Minuten. Die ersten vier Schritte brauchen weder ein Konto noch einen API-Schlüssel.
+
+<Callout title="Arbeitest du mit einem KI-Coding-Agenten?">
+Gib ihm stattdessen den Prompt von [verbatra mit einem KI-Agenten einrichten](/docs/start-with-ai). Er führt dieselben Schritte für dich aus.
+</Callout>
+
+## Schritte
+
+<Steps>
+<Step>
+
+### Installiere die CLI
+
+```bash
+npm install --save-dev @verbatra/cli
+```
+
+Die Befehle unten nutzen `npx`. Mit pnpm, yarn oder bun nimmst du stattdessen `pnpm verbatra`, `yarn verbatra` oder `bun run verbatra`. Bricht pnpm mit `ERR_PNPM_IGNORED_BUILDS` ab, hilft dir die [Fehlerbehebung](/docs/troubleshooting#pnpm-blockiert-die-installationsskripte-einer-abhängigkeit-err_pnpm_ignored_builds).
+
+</Step>
+<Step>
+
+### Lege eine Quell-Locale-Datei an
+
+Hat dein Projekt schon Locale-Dateien, überspringst du diesen Schritt. Sonst legst du eine an:
+
+```json title="locales/en.json"
+{
+  "greeting": "Hello, {{name}}!",
+  "cart": {
+    "empty": "Your cart is empty."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Erzeuge eine Konfiguration
+
+```bash
+npx verbatra init --format i18next-json --provider gemini --yes
+```
+
+`--format` nennt dein Dateiformat: [Wähle deinen Stack](/docs/pick-your-stack) hat die ID für jedes Framework. `--yes` übernimmt, was `init` erkannt hat, statt nachzufragen; lässt du es weg, beantwortest du die Fragen, die [`verbatra init`](/docs/cli/init) auflistet.
+
+```text output
+created verbatra.config.ts
+created .env.example
+created .gitignore (.env, .env.local, .verbatra-local/, verbatra.cache.json)
+detected format i18next-json, pattern locales/{locale}.json, locales en (confidence: medium)
+next steps:
+  - Copy .env.example to .env and set GEMINI_API_KEY there. Never commit .env.
+  - npx verbatra doctor  (Check the setup. It calls no provider and reads no key value.)
+  - npx verbatra translate --dry-run --json  (Preview what a run would translate, without calling the provider.)
+```
+
+Die neue `verbatra.config.ts` übersetzt von `en` nach `de`. Für weitere Sprachen ergänzt du Codes in `targetLocales`.
+
+</Step>
+<Step>
+
+### Sieh dir den Lauf ohne Schlüssel an
+
+```bash
+npx verbatra translate --dry-run
+```
+
+```text output
+verbatra: dry run over 1 locale, no provider call
+verbatra: de done, 2 would translate
+verbatra translate (dry run)
+  de: 2 would translate, 0 unchanged
+1 succeeded, 0 partial, 0 failed (dry run: nothing written)
+[ok] dry run done in 0.0s, nothing written
+next: verbatra translate (run it for real)
+```
+
+Ein Probelauf baut keinen Provider, braucht also keinen Schlüssel, kostet nichts und schreibt nichts. [`verbatra doctor`](/docs/cli/doctor) prüft den Rest der Einrichtung auf dieselbe Weise.
+
+</Step>
+<Step>
+
+### Setze deinen API-Schlüssel
+
+```bash
+cp .env.example .env
+```
+
+Öffne `.env` und füge deinen Schlüssel hinter `GEMINI_API_KEY=` ein. Schlüssel kommen immer nur aus der Umgebung, und die CLI lädt [`.env.local` und `.env`](/docs/cli#umgebungsdateien) hinein. Noch kein Schlüssel? Gemini hat eine kostenlose Stufe: Erstelle einen im [Google AI Studio](https://aistudio.google.com/apikey). Alle anderen Provider und ihre Variablen stehen unter [Provider](/docs/providers).
+
+</Step>
+<Step>
+
+### Übersetze
+
+```bash
+npx verbatra translate
+```
+
+verbatra schickt die zwei fehlenden Schlüssel an Gemini, prüft jedes Ergebnis und schreibt die deutsche Datei. Die Zusammenfassung beginnt mit `de: 2 translated, 0 unchanged` und nennt die Tokens, die der Lauf verbraucht hat. Der Wortlaut hängt vom Modell ab, zum Beispiel:
+
+```json title="locales/de.json"
+{
+  "greeting": "Hallo, {{name}}!",
+  "cart": {
+    "empty": "Dein Warenkorb ist leer."
+  }
+}
+```
+
+</Step>
+<Step>
+
+### Prüfe, ob jede Locale synchron ist
+
+```bash
+npx verbatra check
+```
+
+```text output
+[ok] checking the locales (0.0s)
+verbatra check
+  de: 0 missing, 0 stale, 2 up-to-date (in sync)
+all locales in sync
+```
+
+`check` ruft keinen Provider auf und endet mit `1`, sobald eine Locale nicht mehr synchron ist. Derselbe Befehl kann also einen Pull Request absichern.
+
+</Step>
+</Steps>
+
+## Was gerade passiert ist
+
+- `locales/de.json` hat dieselben Schlüssel in derselben Reihenfolge wie deine Quelle, und `{{name}}` ist erhalten geblieben: Ein Ergebnis, das einen Platzhalter verliert, wird zurückgehalten und nie geschrieben. Siehe [Übersetzungssicherheit](/docs/translation-safety).
+- `verbatra.lock.json` speichert einen Hash des Quelltexts hinter jeder Übersetzung, damit der nächste Lauf nur neue und geänderte Schlüssel schickt. Siehe [Die Lock-Datei](/docs/the-lock-file).
+- `verbatra.provenance.json` hält fest, welcher Provider und welches Modell jeden Wert geschrieben hat. Siehe [Herkunft](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat).
+- `verbatra.cache.json` und `.verbatra-local/` enthalten den neu erzeugbaren Übersetzungscache und den lokalen Laufzustand. `init` hat beide schon in die `.gitignore` eingetragen. Siehe [Der Cache](/docs/the-cache).
+
+Committe die Locale-Dateien, die Lock-Datei und die Herkunftsdatei zusammen, damit jeder Rechner und deine CI gegen dieselbe Basis vergleichen.
+
+## Nächste Schritte
+
+<Cards>
+  <Card title="Eine Sprache hinzufügen" href="/docs/add-a-language" description="Ergänze eine Ziel-Locale und lass einen Lauf sie füllen." />
+  <Card title="verbatra in der CI ausführen" href="/docs/ci-and-exit-codes" description="Lass einen Pull Request fehlschlagen, wenn eine Locale abweicht." />
+  <Card title="So funktioniert ein Lauf" href="/docs/how-it-works" description="Die Pipeline hinter den Befehlen, die du gerade ausgeführt hast." />
+  <Card title="Konfigurationsdatei" href="/docs/config-file" description="Alles, was verbatra.config.ts enthalten kann." />
+</Cards>
