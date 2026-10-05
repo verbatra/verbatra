@@ -70,7 +70,7 @@ Siehe [die Anatomie der `RunSummary`](/docs/sdk/run-summary#die-anatomie-der-run
 | `change-detected` | nur `watch`: eine Änderung an der Quelldatei hat sich gesetzt | `paths` |
 | `idle` | nur `watch`: ein Lauf ist fertig und keiner steht an | keine |
 
-`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL und Google Cloud Translation melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
+`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL, Google Cloud Translation und LibreTranslate melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
 
 `extract`, `diff` mit `unused` und `doctor` mit `literals` nehmen ein eigenes `onProgress`. Es erhält ein `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, einmal nach jeder Quelldatei der Anwendung, die der Scan liest.
 
@@ -134,15 +134,14 @@ wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge
 beim Start geprüft, nicht pro Zyklus.
 
 Gibt einen `WatchController` mit einer Methode zurück, `stop()`, die den Watcher schließt und den
-laufenden Lauf abwartet. Vier Probleme werden schon beim Start zurückgewiesen, bevor der Watcher
-existiert, sodass `watch` selbst fehlschlägt, statt einen Controller zurückzugeben: Eine
-`concurrency`, die keine Ganzzahl von mindestens 1 ist, wirft `CONCURRENCY_INVALID`, eine
-`concurrency` über 1 gegen eine Konfiguration, die `maxTokens` setzt, wirft
-`CONCURRENCY_BUDGET_CONFLICT` (es gibt keinen Dry-Run-Watch, der Budgetkonflikt greift also
-immer), eine fehlende Quelldatei wirft `SOURCE_UNREADABLE`, und ab 0.12.0 wirft ein Provider, der
-sich nicht erzeugen lässt, etwa weil seine API-Key-Variable fehlt, `PROVIDER_CONSTRUCTION_FAILED`.
-Jeder Fehlschlag nach dem Start
-kommt über `onRun` an, und das Beobachten geht weiter.
+laufenden Lauf abwartet. Jeder Code aus der Zeile **Wirft** wird schon beim Start zurückgewiesen,
+bevor der Watcher existiert, sodass `watch` selbst fehlschlägt, statt einen Controller
+zurückzugeben. Zwei davon wiegen für eine Sitzung schwerer als für einen einzelnen Lauf: Eine
+`concurrency` über 1 gegen eine Konfiguration, die `maxTokens` setzt, wirft immer
+`CONCURRENCY_BUDGET_CONFLICT`, weil es keinen Dry-Run-Watch gibt, und ab 0.12.0 wirft ein Provider,
+der sich nicht erzeugen lässt, etwa weil seine API-Key-Variable fehlt, einmal
+`PROVIDER_CONSTRUCTION_FAILED`, statt jeden Lauf scheitern zu lassen. Jeder Fehlschlag nach dem
+Start kommt über `onRun` an, und das Beobachten geht weiter.
 
 ### releaseHeldLocks
 

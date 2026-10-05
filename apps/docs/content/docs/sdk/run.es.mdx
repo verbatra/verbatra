@@ -68,7 +68,7 @@ queda como `status: "failed"` en la entrada de ese locale mientras la ejecución
 | `change-detected` | solo `watch`: un cambio en el archivo de origen se ha asentado | `paths` |
 | `idle` | solo `watch`: una ejecución terminó y no hay otra en cola | ninguno |
 
-`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL y Google Cloud Translation no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
+`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL, Google Cloud Translation y LibreTranslate no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
 
 `extract`, `diff` con `unused` y `doctor` con `literals` aceptan su propio `onProgress`. Recibe un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, una vez tras cada archivo de código de la aplicación que lee el escaneo.
 
@@ -133,14 +133,13 @@ acota cada ejecución de la sesión a ese subconjunto y se valida una sola vez a
 ciclo.
 
 Devuelve un `WatchController` con un solo método, `stop()`, que cierra el watcher y espera la ejecución
-en curso. Cuatro problemas se rechazan al arrancar, antes de que el watcher exista, así que `watch` mismo
-rechaza en lugar de devolver un controlador: un `concurrency` que no es un entero de al menos 1 lanza
-`CONCURRENCY_INVALID`, un `concurrency` mayor que 1 contra una configuración que fija `maxTokens` lanza
-`CONCURRENCY_BUDGET_CONFLICT` (no existe un watch en dry run, así que el conflicto de presupuesto siempre
-se aplica), un archivo de origen ausente lanza `SOURCE_UNREADABLE`, y, desde 0.12.0, un proveedor que no se
-puede construir, por ejemplo porque falta su variable de API key, lanza `PROVIDER_CONSTRUCTION_FAILED`.
-Todo fallo posterior al arranque se
-comunica a través de `onRun` y la vigilancia continúa.
+en curso. Cada código de la línea **Lanza** se rechaza al arrancar, antes de que el watcher exista,
+así que `watch` mismo rechaza en lugar de devolver un controlador. Dos de ellos pesan más en una
+sesión que en una sola ejecución: un `concurrency` mayor que 1 contra una configuración que fija
+`maxTokens` lanza siempre `CONCURRENCY_BUDGET_CONFLICT`, porque no existe un watch en dry run, y,
+desde 0.12.0, un proveedor que no se puede construir, por ejemplo porque falta su variable de API
+key, lanza `PROVIDER_CONSTRUCTION_FAILED` una sola vez en lugar de hacer fallar cada ejecución.
+Todo fallo posterior al arranque se comunica a través de `onRun` y la vigilancia continúa.
 
 ### releaseHeldLocks
 

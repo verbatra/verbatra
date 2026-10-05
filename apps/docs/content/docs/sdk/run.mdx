@@ -65,7 +65,7 @@ A whole-run problem throws an `SdkError`; a single locale failing never throws a
 | `change-detected` | `watch` only: a change to the source file has settled | `paths` |
 | `idle` | `watch` only: a run finished and none is queued | none |
 
-`provider-retry` names no locale, because one provider serves the whole run. Gemini reports the delay and the status, Anthropic, OpenAI and openai-compatible report the attempt as their client starts it, and DeepL and Google Cloud Translation report none. A dry run and an estimate emit only `locale-started`, `locale-finished` and `run-finished`. The CLI's `--json` progress records keep to the four original types: `locale-started`, `sub-batch`, `locale-finished` and `run-finished`.
+`provider-retry` names no locale, because one provider serves the whole run. Gemini reports the delay and the status, Anthropic, OpenAI and openai-compatible report the attempt as their client starts it, and DeepL, Google Cloud Translation and LibreTranslate report none. A dry run and an estimate emit only `locale-started`, `locale-finished` and `run-finished`. The CLI's `--json` progress records keep to the four original types: `locale-started`, `sub-batch`, `locale-finished` and `run-finished`.
 
 `extract`, `diff` with `unused`, and `doctor` with `literals` take an `onProgress` of their own. It receives a `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, once after each application source file the scan reads.
 
@@ -129,14 +129,13 @@ only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
 cycle.
 
 Returns a `WatchController` with one method, `stop()`, which closes the watcher and awaits the
-in-flight run. Four problems are refused at startup, before the watcher exists, so `watch` itself
-rejects rather than returning a controller: a `concurrency` that is not an integer of at least 1
-throws `CONCURRENCY_INVALID`, a `concurrency` above 1 against a config that sets `maxTokens` throws
-`CONCURRENCY_BUDGET_CONFLICT` (there is no dry-run watch, so the budget conflict always applies),
-a missing source file throws `SOURCE_UNREADABLE`, and, from 0.12.0, a provider that cannot be
-constructed, such as one whose API key variable is unset, throws `PROVIDER_CONSTRUCTION_FAILED`.
-Every failure after startup is surfaced
-through `onRun` and watching continues.
+in-flight run. Every code on the **Throws** line is refused at startup, before the watcher exists,
+so `watch` itself rejects rather than returning a controller. Two of them weigh more on a session
+than on one run: a `concurrency` above 1 against a config that sets `maxTokens` always throws
+`CONCURRENCY_BUDGET_CONFLICT`, because there is no dry-run watch, and, from 0.12.0, a provider that
+cannot be constructed, such as one whose API key variable is unset, throws
+`PROVIDER_CONSTRUCTION_FAILED` once instead of failing every run. Every failure after startup is
+surfaced through `onRun` and watching continues.
 
 ### releaseHeldLocks
 

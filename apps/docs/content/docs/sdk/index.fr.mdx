@@ -32,13 +32,9 @@ Chaque point d'entrée prend un objet d'entrée dont le premier champ est la `co
 
 `deps.fs` remplace le port de système de fichiers par lequel passent les entrées-sorties propres au SDK, typé `SdkFs`. Le point d'injection est complet : le fichier d'état d'exécution, le fichier de verrouillage, les outils du fichier de glossaire, les entrées-sorties de classeur et d'échange, ainsi que les fichiers de locale eux-mêmes y passent tous, car les adaptateurs de format lisent et écrivent via un port construit à partir du même objet. Une exécution entière peut donc être tenue en mémoire : c'est ainsi que les tests du SDK évitent de toucher au disque, et qu'une application hôte peut adosser une partie d'un projet à autre chose qu'un disque local.
 
-```ts
-import { translate, type SdkFs } from "@verbatra/sdk";
+<SdkTypeTable name="SdkFs" />
 
-const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
-```
-
-Une implémentation doit respecter deux points du contrat. Les lectures sont bornées en taille : `readFileBounded` et `readBytesBounded` prennent une limite d'octets et rapportent `missing` ou `too-large` comme un état plutôt que de lever, ce qui empêche un fichier hostile ou accidentellement énorme d'épuiser la mémoire. Les écritures doivent être atomiques, pour qu'un crash en cours d'écriture ne laisse jamais un fichier à moitié écrit, et `createExclusive` doit être atomique face aux autres processus, car c'est la primitive derrière le verrou d'écriture par locale. La création de répertoires revient à l'appelant.
+Une implémentation doit respecter deux points du contrat. Les lectures sont bornées en taille : `readFileBounded` et `readBytesBounded` prennent une limite d'octets et rapportent `missing` ou `too-large` comme un état plutôt que de lever, ce qui empêche un fichier hostile ou accidentellement énorme d'épuiser la mémoire. Les écritures doivent être atomiques, pour qu'un crash en cours d'écriture ne laisse jamais un fichier à moitié écrit, et `createExclusive` doit être atomique face aux autres processus, car c'est la primitive derrière le verrou d'écriture par locale. Avant d'écrire un fichier de locale, le fichier d'état d'exécution ou un fichier de sortie comme un classeur, le SDK appelle le `mkdir` optionnel avec le répertoire parent, donc `writeFile` et `writeBytes` n'ont pas à le créer ; laisse `mkdir` de côté quand le stockage n'a pas de répertoires. `createExclusive` ne reçoit pas cet appel et crée lui-même un répertoire parent manquant. Les autres membres obligatoires sont `fileExists` et `deleteFile`, qui réussit même quand le fichier n'existe déjà plus.
 
 `readDirectory` est optionnel, pour qu'une implémentation écrite avant l'extraction depuis le code continue de compiler. [`extract`](/docs/sdk/inspect#extract) est le seul point d'entrée qui en a besoin, et signale son absence par `EXTRACT_FS_UNSUPPORTED`. Il liste les entrées immédiates d'un répertoire sous la forme `{ name, kind }`, où `kind` vaut `"file"`, `"directory"` ou `"other"`. Un lien symbolique relève de `"other"` : l'analyse ne le suit jamais, et c'est ce qui la maintient à l'intérieur des racines qu'on lui a données.
 
@@ -69,4 +65,63 @@ Un processus qui plante alors qu'il a mis un verrou de côté peut laisser un fi
 
 `deps.fs` n'atteint pas un `deps.adapterRegistry` fourni par l'appelant. Ces adaptateurs ont été construits par l'appelant, donc leur accès aux fichiers est celui que l'appelant y a câblé. Fournir les deux signifie que l'appelant possède ce câblage.
 
-Le chargement de la configuration reste lui aussi hors du point d'injection. `loadConfig` et `loadConfigWithMeta` ne prennent pas de `deps` : ils lisent le fichier de configuration lui-même sur le vrai disque, et un fichier de glossaire que nomme la configuration via leur propre option `fs`, donc le `deps.fs` que reçoit un flux ultérieur n'atteint aucune de ces deux lectures. Pour garder un projet entier en mémoire, passe le même `SdkFs` comme `loadConfig({ fs })` et fournis la configuration comme `configOverride` plutôt que comme fichier.
+Le chargement de la configuration reste lui aussi hors du point d'injection. `loadConfig` et `loadConfigWithMeta` ne prennent pas de `deps` : ils lisent le fichier de configuration lui-même sur le vrai disque, et un fichier de glossaire que nomme la configuration via leur propre option `fs`, donc le `deps.fs` que reçoit un flux ultérieur n'atteint aucune de ces deux lectures. Pour garder un projet entier en mémoire, passe le même `SdkFs` comme `loadConfig({ fs })` et fournis la configuration comme `configOverride` plutôt que comme fichier. Les flux résolvent les chemins par rapport à leur propre `cwd`, alors passe-le aussi là.
+
+L'exemple garde un projet entier en mémoire avec les seuls membres obligatoires. Avec le fournisseur `none`, l'exécution n'a besoin d'aucune clé et laisse `greeting` à traduire par une personne.
+
+```ts title="Example"
+import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
+
+const files = new Map<string, Uint8Array>();
+const encoder = new TextEncoder();
+
+function bounded(path: string, maxBytes: number) {
+  const bytes = files.get(path);
+  if (bytes === undefined) return { kind: "missing" } as const;
+  if (bytes.byteLength > maxBytes) return { kind: "too-large" } as const;
+  return { kind: "ok", bytes } as const;
+}
+
+const memoryFs: SdkFs = {
+  fileExists: async (path) => files.has(path),
+  readFileBounded: async (path, maxBytes) => {
+    const read = bounded(path, maxBytes);
+    return read.kind === "ok" ? { kind: "ok", content: new TextDecoder().decode(read.bytes) } : read;
+  },
+  readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
+  writeFile: async (path, data) => {
+    files.set(path, encoder.encode(data));
+  },
+  writeBytes: async (path, data) => {
+    files.set(path, data);
+  },
+  createExclusive: async (path, data) => {
+    if (files.has(path)) return false;
+    files.set(path, encoder.encode(data));
+    return true;
+  },
+  deleteFile: async (path) => {
+    files.delete(path);
+  },
+};
+
+files.set("/project/locales/en.json", encoder.encode('{ "greeting": "Hello, {{name}}!" }'));
+
+const config = await loadConfig({
+  cwd: "/project",
+  fs: memoryFs,
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "none" },
+  },
+});
+
+const summary = await translate({ config, cwd: "/project" }, { fs: memoryFs });
+const status = await check({ config, cwd: "/project" }, { fs: memoryFs });
+
+console.log(summary.locales[0]?.unfilled, status.inSync); // [ 'greeting' ] false
+console.log([...files.keys()]); // the source, verbatra.lock.json, .verbatra-local/run-status.json
+```
