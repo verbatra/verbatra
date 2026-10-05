@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
   type Cache,
@@ -81,7 +82,7 @@ export function readableType(entry: Pick<DocEntry, "type" | "required">): string
 
 type EntryTransform = NonNullable<GenerateOptions["transform"]>;
 
-const markForTable: EntryTransform = function markForTable(entry, _type, symbol) {
+const simplifyTypeAndTagDefaultLibraryMember: EntryTransform = function tag(entry, _type, symbol) {
   entry.simplifiedType = readableType(entry) ?? entry.simplifiedType;
   const program = this.program.program;
   const declaredOnlyInDefaultLibrary =
@@ -103,12 +104,35 @@ function declaredMembersOnly(doc: GeneratedDoc): GeneratedDoc {
 
 function sdkTypeTableGenerator(cache: Cache | false): Generator {
   const generator = createGenerator({ cache });
-  return {
-    ...generator,
-    async generateTypeTable(props, options) {
-      return (await generator.generateTypeTable(props, options)).map(declaredMembersOnly);
+  const declaredOnly: Generator = {
+    async generateDocumentation(file, name, options) {
+      return (await generator.generateDocumentation(file, name, options)).map(declaredMembersOnly);
+    },
+    generateTypeTable(props, options) {
+      return generator.generateTypeTable.call(declaredOnly, props, options);
     },
   };
+  return declaredOnly;
+}
+
+export function transformCacheKey(sources: readonly unknown[]): string {
+  return createHash("sha256").update(sources.map(String).join("\n")).digest("hex").slice(0, 12);
+}
+
+const TRANSFORM_SOURCES = [
+  simplifyTypeAndTagDefaultLibraryMember,
+  readableType,
+  SHORT_TYPE_LENGTH,
+  OPTIONAL_SUFFIX,
+  DEFAULT_LIBRARY_MEMBER,
+];
+
+export function sdkTypeTableCacheDirectory(repoRoot: string): string {
+  return join(
+    repoRoot,
+    "apps/docs/.next/fumadocs-typescript",
+    transformCacheKey(TRANSFORM_SOURCES),
+  );
 }
 
 function tableCell(text: string): string {
@@ -154,13 +178,11 @@ export function remarkTypeTableMarkdown() {
 
 export function sdkTypeTableOptions(
   repoRoot: string,
-  cache: Cache | false = createFileSystemGeneratorCache(
-    join(repoRoot, "apps/docs/.next/fumadocs-typescript/declared-members"),
-  ),
-): RemarkAutoTypeTableOptions & { generator: Generator } {
+  cache: Cache | false = createFileSystemGeneratorCache(sdkTypeTableCacheDirectory(repoRoot)),
+): RemarkAutoTypeTableOptions & { generator: Generator; options: GenerateOptions } {
   return {
     name: AUTO_TYPE_TABLE,
     generator: sdkTypeTableGenerator(cache),
-    options: { basePath: repoRoot, transform: markForTable },
+    options: { basePath: repoRoot, transform: simplifyTypeAndTagDefaultLibraryMember },
   };
 }

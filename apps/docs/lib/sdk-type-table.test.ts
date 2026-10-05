@@ -1,20 +1,24 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { GeneratedDoc } from "fumadocs-typescript";
+import { createGenerator, type GeneratedDoc } from "fumadocs-typescript";
 import { describe, expect, it } from "vitest";
 import {
+  isDefaultLibraryMember,
   readableType,
   remarkSdkTypeTable,
   remarkTypeTableMarkdown,
   SDK_DECLARATIONS,
   SDK_TYPE_TABLE_CLASS,
+  sdkTypeTableCacheDirectory,
   sdkTypeTableOptions,
+  transformCacheKey,
   typeTableMarkdown,
 } from "@/lib/sdk-type-table";
 
 const REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const SDK_PAGES = fileURLToPath(new URL("../content/docs/sdk", import.meta.url));
-const LOCALES = ["", ".de", ".es", ".fr"];
+const TRANSLATED_LOCALES = [".de", ".es", ".fr"];
 const GENERATOR_TIMEOUT = 120_000;
 
 type Node = {
@@ -159,7 +163,7 @@ describe("sdkTypeTableOptions", () => {
   it("renders the same SdkTypeTables on every locale of an sdk page", () => {
     for (const page of englishPages) {
       const english = tableNamesOf(page);
-      for (const locale of LOCALES) {
+      for (const locale of TRANSLATED_LOCALES) {
         expect(tableNamesOf(page.replace(/\.mdx$/, `${locale}.mdx`)), `${page}${locale}`).toEqual(
           english,
         );
@@ -185,14 +189,51 @@ describe("sdkTypeTableOptions", () => {
     "keeps no row declared only by the TypeScript default library on any sdk page",
     async () => {
       const table = sdkTypeTableOptions(REPO_ROOT, false);
+      const unfiltered = createGenerator();
+      let taggedRows = 0;
       for (const name of new Set(englishPages.flatMap(tableNamesOf))) {
-        const rows = await generatedRows({ path: SDK_DECLARATIONS, name }, table);
-        expect(rows, name).not.toContain("stack");
-        expect(rows, name).not.toContain("cause");
+        const props = { path: SDK_DECLARATIONS, name };
+        const raw = (await unfiltered.generateTypeTable(props, table.options)).flatMap(
+          (doc) => doc.entries,
+        );
+        const shown = (await table.generator.generateTypeTable(props, table.options)).flatMap(
+          (doc) => doc.entries,
+        );
+        const tagged = raw.filter(isDefaultLibraryMember).map((entry) => entry.name);
+        taggedRows += tagged.length;
+
+        expect(shown.filter(isDefaultLibraryMember), name).toEqual([]);
+        expect(
+          shown.map((entry) => entry.name),
+          name,
+        ).toEqual(raw.filter((entry) => !isDefaultLibraryMember(entry)).map((entry) => entry.name));
+        for (const member of tagged)
+          expect(
+            shown.map((entry) => entry.name),
+            name,
+          ).not.toContain(member);
       }
+      expect(taggedRows).toBeGreaterThan(0);
     },
     GENERATOR_TIMEOUT,
   );
+
+  it("derives the cache directory from the transform, so a changed transform misses old entries", () => {
+    const table = sdkTypeTableOptions(REPO_ROOT, false);
+    const directory = sdkTypeTableCacheDirectory(REPO_ROOT);
+    const key = transformCacheKey([
+      table.options.transform,
+      readableType,
+      48,
+      " | undefined",
+      "sdkDefaultLibraryMember",
+    ]);
+
+    expect(directory).toBe(join(REPO_ROOT, "apps/docs/.next/fumadocs-typescript", key));
+    expect(key).toMatch(/^[0-9a-f]{12}$/);
+    expect(transformCacheKey([() => "a"])).toBe(transformCacheKey([() => "a"]));
+    expect(transformCacheKey([() => "a"])).not.toBe(transformCacheKey([() => "b"]));
+  });
 
   it(
     "keeps an Error member a class declares itself",
