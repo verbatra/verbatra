@@ -95,6 +95,9 @@ describe("translate: plural-category generation (supported case)", () => {
     const locale = summary.locales[0];
     expect(locale?.generated).toEqual(["items_many"]);
     expect(locale?.integrityMismatches).toEqual(["items_few"]);
+    expect(locale?.integrityRefusals).toEqual([
+      { key: "items_few", reason: "placeholder", details: ["+{{__stub_integrity_fail__}}"] },
+    ]);
     expect(hasNotice(locale?.notices ?? [])).toBe(true);
   });
 
@@ -732,7 +735,7 @@ describe("translate: plural generation and the token budget", () => {
 
     const summary = await translate(
       {
-        config: cfg({ maxTokens: 450, budgetBehavior: "stop" }),
+        config: cfg({ maxTokens: 770, budgetBehavior: "stop" }),
         cwd: dir,
         generatePlurals: true,
       },
@@ -769,7 +772,7 @@ describe("translate: plural generation and the token budget", () => {
         ?.notices.find((n) => n.code === "BUDGET_TOKENS_EXCEEDED")?.message;
 
     expect(noticeFor("pl")).toContain("projected at");
-    expect(noticeFor("ar")).toContain("had already reached");
+    expect(noticeFor("ar")).toContain("had already stopped short of");
     expect(noticeFor("ar")).not.toContain("projected at");
   });
 
@@ -784,7 +787,7 @@ describe("translate: plural generation and the token budget", () => {
         config: cfg({
           targetLocales: ["ar"],
           maxBatchSize: 2,
-          maxTokens: 450,
+          maxTokens: 770,
           budgetBehavior: "stop",
         }),
         cwd: dir,

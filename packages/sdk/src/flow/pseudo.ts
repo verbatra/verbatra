@@ -12,8 +12,15 @@ import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver, type LocalePathResolver } from "../locale-path/resolver.js";
 import { selectAdapter } from "../selection/select-adapter.js";
 import { gateCandidateValue } from "./integrity-gate.js";
+import {
+  createOutputPathGuard,
+  type OutputPathGuard,
+  outputRefusalReason,
+  reservedProjectPaths,
+} from "./reserved-output.js";
 import { readSourceResource } from "./source.js";
 import {
+  displayPath,
   escapesWorkingDirectory,
   targetUnwritableMessage,
   writeTargetResource,
@@ -57,7 +64,9 @@ export interface PseudolocalizeInput {
    * It must name a directory inside `cwd`: an absolute path, one that climbs out with `..`, and
    * `cwd` itself are all refused, as is a directory under which the expanded pattern would place
    * the pseudolocale file beside a configured locale file, so a generated pseudolocale never lands
-   * outside the project or beside the real translations where nothing ignores it.
+   * outside the project or beside the real translations where nothing ignores it. The same holds
+   * after symbolic links are resolved, so a linked directory cannot carry the file outside `cwd` or
+   * into the directory of a configured locale file.
    */
   readonly out?: string;
 }
@@ -90,16 +99,69 @@ export interface PseudolocalizeResult {
   readonly written: boolean;
 }
 
+const OUTPUT_DIRECTORY_RULE =
+  "must be a relative path naming a directory inside the working directory, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.";
+
+function requestedOutputDirectory(out: string | undefined): string {
+  return out ?? DEFAULT_PSEUDO_DIRECTORY;
+}
+
 function resolveOutputRoot(cwd: string, out: string | undefined): string {
-  const requested = out ?? DEFAULT_PSEUDO_DIRECTORY;
+  const requested = requestedOutputDirectory(out);
   const root = isAbsolute(requested) ? requested : resolve(cwd, requested);
   if (isAbsolute(requested) || escapesWorkingDirectory(relative(cwd, root))) {
     throw new SdkError(
       "PSEUDO_OUTPUT_CONFLICT",
-      `The output directory "${requested}" must be a relative path naming a directory inside the working directory, so a pseudolocale is never written outside the project it was generated from, and never into the project root itself.`,
+      `The output directory "${requested}" ${OUTPUT_DIRECTORY_RULE}`,
     );
   }
   return root;
+}
+
+interface LinkedOutputCheck {
+  readonly fs: SdkFs;
+  readonly cwd: string;
+  readonly config: VerbatraConfig;
+  readonly resolver: LocalePathResolver;
+  readonly out: string | undefined;
+  readonly root: string;
+  readonly outputPath: string;
+}
+
+async function assertOutputStaysInsideThroughLinks(check: LinkedOutputCheck): Promise<void> {
+  const { fs, cwd } = check;
+  const rootRefusal = await createOutputPathGuard(fs, cwd, new Map()).refusal(check.root);
+  if (rootRefusal !== undefined) {
+    throw new SdkError(
+      "PSEUDO_OUTPUT_CONFLICT",
+      `The output directory "${requestedOutputDirectory(check.out)}" ${outputRefusalReason(rootRefusal)} It ${OUTPUT_DIRECTORY_RULE}`,
+    );
+  }
+  const reserved = reservedProjectPaths({ cwd, config: check.config, resolver: check.resolver });
+  const guard = createOutputPathGuard(fs, cwd, reserved);
+  const fileRefusal = await guard.refusal(check.outputPath);
+  if (fileRefusal !== undefined) {
+    throw new SdkError(
+      "PSEUDO_OUTPUT_CONFLICT",
+      `The pseudolocale would be written to ${displayPath(check.outputPath, cwd)}, which ${outputRefusalReason(fileRefusal)} Choose an output directory inside the working directory that holds no project file.`,
+    );
+  }
+  await assertOutputIsAwayFromTheLocaleFilesThroughLinks(check, guard);
+}
+
+async function assertOutputIsAwayFromTheLocaleFilesThroughLinks(
+  check: LinkedOutputCheck,
+  guard: OutputPathGuard,
+): Promise<void> {
+  const outputDirectory = await guard.canonical(dirname(check.outputPath));
+  for (const locale of configuredLocales(check.config)) {
+    if ((await guard.canonical(dirname(check.resolver.pathFor(locale)))) === outputDirectory) {
+      throw new SdkError(
+        "PSEUDO_OUTPUT_CONFLICT",
+        `The pseudolocale would be written to ${displayPath(check.outputPath, check.cwd)}, which resolves through a symbolic link to the directory holding the locale file for "${locale}", where it is not covered by the scaffolded ignore list. Choose an output directory that holds no real locale file.`,
+      );
+    }
+  }
 }
 
 function configuredLocales(config: VerbatraConfig): readonly string[] {
@@ -177,7 +239,7 @@ function pseudolocalizeEntries(
   const copied: string[] = [];
   for (const [key, entry] of source) {
     const candidate = pseudolocalizeEntryValue(entry, format);
-    const accepted = gateCandidateValue(entry, candidate, adapter).accepted;
+    const accepted = gateCandidateValue(entry, candidate, adapter, undefined).accepted;
     if (!accepted) {
       copied.push(key);
     }
@@ -299,7 +361,12 @@ function sameValues(
  *
  * @throws {@link SdkError} `PSEUDO_OUTPUT_CONFLICT`: the pseudolocale names a configured locale, its
  * file would land in the same directory as a configured locale file, or the output directory is not
- * a relative path naming a directory inside `cwd`.
+ * a relative path naming a directory inside `cwd`. When the file-system port implements `realpath`,
+ * as the default does, the directory and the file are checked again after symbolic links are
+ * resolved, so a link that carries either outside `cwd`, onto `cwd` itself, into the directory of a
+ * configured locale file, or onto a configured locale file, the lock file, the provenance file, the
+ * translation-memory cache, or a file verbatra searches for its configuration is refused the same
+ * way. Refused before anything is read or written.
  * @throws {@link SdkError} `UNKNOWN_FORMAT`: no adapter is registered for the configured format.
  * @throws {@link SdkError} `LOCALE_LAYOUT_INVALID`: the `files.pattern` and `files.localeStyle`
  * cannot be combined, or the pseudolocale has no valid path spelling under that style.
@@ -322,11 +389,21 @@ export async function pseudolocalize(
 
   const adapter = selectAdapter(config.format, deps.adapterRegistry, deps.fs);
   const resolver = createLocalePathResolver(cwd, config);
-  const outputPath = createLocalePathResolver(resolveOutputRoot(cwd, input.out), {
+  const root = resolveOutputRoot(cwd, input.out);
+  const outputPath = createLocalePathResolver(root, {
     ...config,
     targetLocales: [locale],
   }).pathFor(locale);
   assertOutputIsAwayFromTheLocaleFiles(config, resolver, outputPath);
+  await assertOutputStaysInsideThroughLinks({
+    fs,
+    cwd,
+    config,
+    resolver,
+    out: input.out,
+    root,
+    outputPath,
+  });
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const { entries, copied } = pseudolocalizeEntries(
@@ -359,6 +436,8 @@ export async function pseudolocalize(
     format: config.format,
     entries,
   };
-  await writeTargetResource(adapter, resource, outputPath, cwd);
+  await writeTargetResource(adapter, resource, outputPath, cwd, {
+    sourcePath: resolver.pathFor(config.sourceLocale),
+  });
   return { ...summary, written: true };
 }

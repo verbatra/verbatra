@@ -87,6 +87,26 @@ describe("translate: the posix locale style", () => {
     expect(JSON.parse(written)).toEqual({ greeting: "[pt-BR] Hello" });
   });
 
+  it("writes a script-bearing locale with underscores, keeping the configured case", async () => {
+    const dir = await makeTempDir();
+    await projectWithSource(dir, ["locale", "en", "messages.json"]);
+    const stub = makeStubProvider();
+
+    await translate(
+      {
+        config: baseConfig({
+          targetLocales: ["zh-Hant-TW"],
+          files: { pattern: "locale/{locale}/messages.json", localeStyle: "posix" },
+        }),
+        cwd: dir,
+      },
+      { createProvider: () => stub.provider },
+    );
+
+    const written = await readFile(join(dir, "locale", "zh_Hant_TW", "messages.json"), "utf8");
+    expect(JSON.parse(written)).toEqual({ greeting: "[zh-Hant-TW] Hello" });
+  });
+
   it("refuses a locale it cannot spell, before the provider is ever constructed", async () => {
     const dir = await makeTempDir();
     await projectWithSource(dir, ["locale", "en", "messages.json"]);
@@ -96,7 +116,7 @@ describe("translate: the posix locale style", () => {
       translate(
         {
           config: baseConfig({
-            targetLocales: ["zh-Hans"],
+            targetLocales: ["de-1996"],
             files: { pattern: "locale/{locale}/messages.json", localeStyle: "posix" },
           }),
           cwd: dir,

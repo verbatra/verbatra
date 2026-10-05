@@ -7,7 +7,13 @@ import {
 } from "@verbatra/format-adapters";
 import { describe, expect, it } from "vitest";
 import type { VerbatraConfig } from "../config/schema.js";
-import { baseConfig, makeStubProvider, makeTempDir, writeJsonFile } from "../test-support.js";
+import {
+  baseConfig,
+  makeIntegrityProvider,
+  makeStubProvider,
+  makeTempDir,
+  writeJsonFile,
+} from "../test-support.js";
 import { translate } from "./translate-project.js";
 
 function cfg(overrides: Partial<VerbatraConfig> = {}): VerbatraConfig {
@@ -148,5 +154,82 @@ describe("translate: a live run that changes nothing does not rewrite the target
 
     expect(writes).toEqual([targetPath(dir, "de")]);
     expect(await readFile(targetPath(dir, "de"), "utf8")).toBe("{}\n");
+  });
+});
+
+describe("translate: a new locale whose every key was withheld is not created", () => {
+  const source = { greet: "Hello {{name}}", bye: "Bye {{name}}" };
+
+  async function exists(path: string): Promise<boolean> {
+    return stat(path).then(
+      () => true,
+      () => false,
+    );
+  }
+
+  it("writes no target file when every translation fails the integrity gate", async () => {
+    const dir = await project(source, { de: undefined });
+    const { registry, writes } = spyingRegistry();
+
+    const summary = await translate(
+      { config: cfg(), cwd: dir },
+      {
+        createProvider: () => makeIntegrityProvider(() => "Hallo"),
+        adapterRegistry: registry,
+      },
+    );
+
+    expect(summary.locales[0]?.integrityMismatches).toEqual(["bye", "greet"]);
+    expect(writes).toEqual([]);
+    expect(await exists(targetPath(dir, "de"))).toBe(false);
+  });
+
+  it("writes no target file when every provider request fails", async () => {
+    const dir = await project(source, { de: undefined });
+    const stub = makeStubProvider({ throwForLocales: new Set(["de"]) });
+    const { registry, writes } = spyingRegistry();
+
+    await translate(
+      { config: cfg(), cwd: dir },
+      { createProvider: () => stub.provider, adapterRegistry: registry },
+    );
+
+    expect(writes).toEqual([]);
+    expect(await exists(targetPath(dir, "de"))).toBe(false);
+  });
+
+  it("still creates the file with the accepted keys when only some are refused", async () => {
+    const dir = await project(source, { de: undefined });
+    const { registry } = spyingRegistry();
+
+    await translate(
+      { config: cfg(), cwd: dir },
+      {
+        createProvider: () =>
+          makeIntegrityProvider((_value, key) => (key === "greet" ? "Hallo {{name}}" : "Tschüss")),
+        adapterRegistry: registry,
+      },
+    );
+
+    expect(JSON.parse(await readFile(targetPath(dir, "de"), "utf8"))).toEqual({
+      greet: "Hallo {{name}}",
+    });
+  });
+
+  it("leaves an existing target untouched when every key is refused", async () => {
+    const dir = await project(source, { de: { greet: "Alt {{name}}" } });
+    const before = await readFile(targetPath(dir, "de"), "utf8");
+    const { registry, writes } = spyingRegistry();
+
+    await translate(
+      { config: cfg(), cwd: dir },
+      {
+        createProvider: () => makeIntegrityProvider(() => "Hallo"),
+        adapterRegistry: registry,
+      },
+    );
+
+    expect(writes).toEqual([]);
+    expect(await readFile(targetPath(dir, "de"), "utf8")).toBe(before);
   });
 });

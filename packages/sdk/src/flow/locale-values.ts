@@ -3,7 +3,10 @@ import type { AdapterRegistry } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
+import { type KeyProvenance, keyProvenance } from "../lock/key-provenance.js";
+import type { ProvenanceRecord } from "../lock/provenance-file.js";
 import { selectAdapter } from "../selection/select-adapter.js";
+import { readCarriedOverProvenance } from "./locale-carry-over.js";
 import { readTargetResource } from "./read-target.js";
 import { selectLocales } from "./select-locales.js";
 import { readSourceResource } from "./source.js";
@@ -14,6 +17,11 @@ export interface KeyValuePair {
   readonly source?: string;
   /** The key's text in this target locale, absent when the key has not been translated yet. */
   readonly target?: string;
+  /**
+   * The provenance of the current translation, read from the provenance file. Absent when
+   * `target` is, and when that file is corrupt or was written by a newer verbatra.
+   */
+  readonly provenance?: KeyProvenance;
 }
 
 /** One target locale's current source and target text for every key, as returned by {@link localeValues}. */
@@ -21,8 +29,15 @@ export interface LocaleValues {
   /** The target locale these values were read for. */
   readonly locale: string;
   /**
+   * Every key in {@link LocaleValues.values}, in source key order, followed by the keys present only
+   * in this target locale in that file's order. Use it to iterate in a stable, meaningful order:
+   * the object's own key order puts integer-like keys first.
+   */
+  readonly keys: readonly string[];
+  /**
    * Source and target text per key, keyed by key name. Covers missing, changed, orphaned, and
-   * in-sync keys alike.
+   * in-sync keys alike. The object has no prototype, so every key, including `__proto__` or
+   * `constructor`, is an own property and a key absent from the catalog reads as `undefined`.
    */
   readonly values: Readonly<Record<string, KeyValuePair>>;
 }
@@ -45,15 +60,29 @@ export interface LocaleValuesDeps {
   readonly fs?: SdkFs;
 }
 
-function mergeValues(source: LocaleResource, target: LocaleResource): Record<string, KeyValuePair> {
+function provenanceOf(
+  records: ReadonlyMap<string, ProvenanceRecord> | undefined,
+  key: string,
+  value: string,
+): { provenance?: KeyProvenance } {
+  return records === undefined ? {} : { provenance: keyProvenance(records.get(key), value) };
+}
+
+function mergeValues(
+  source: LocaleResource,
+  target: LocaleResource,
+  records: ReadonlyMap<string, ProvenanceRecord> | undefined,
+): Record<string, KeyValuePair> {
   const keys = new Set([...source.entries.keys(), ...target.entries.keys()]);
-  const values: Record<string, KeyValuePair> = {};
+  const values: Record<string, KeyValuePair> = Object.create(null);
   for (const key of keys) {
     const sourceEntry = source.entries.get(key);
     const targetEntry = target.entries.get(key);
     values[key] = {
       ...(sourceEntry !== undefined ? { source: sourceEntry.value } : {}),
-      ...(targetEntry !== undefined ? { target: targetEntry.value } : {}),
+      ...(targetEntry !== undefined
+        ? { target: targetEntry.value, ...provenanceOf(records, key, targetEntry.value) }
+        : {}),
     };
   }
   return values;
@@ -119,9 +148,11 @@ export async function localeValues(
   const resolver = createLocalePathResolver(cwd, config);
 
   const source = await readSourceResource(config, resolver, fs, adapter);
+  const locales = selectLocales(config, input.locales);
+  const provenanceFor = await readCarriedOverProvenance(cwd, fs, locales);
 
   return Promise.all(
-    selectLocales(config, input.locales).map(async (locale) => {
+    locales.map(async (locale) => {
       const target = await readTargetResource({
         resolver,
         format: config.format,
@@ -129,7 +160,12 @@ export async function localeValues(
         adapter,
         fs,
       });
-      return { locale, values: mergeValues(source.resource, target) };
+      const keys = [...new Set([...source.resource.entries.keys(), ...target.entries.keys()])];
+      return {
+        locale,
+        keys,
+        values: mergeValues(source.resource, target, provenanceFor?.(locale)),
+      };
     }),
   );
 }
