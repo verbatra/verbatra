@@ -142,7 +142,7 @@ try {
   }
   switch (error.code) {
     case "CONFIG_NOT_FOUND":
-      console.error(`${error.code}: run this script from the directory that holds verbatra.config.ts`);
+      console.error(`${error.code}: ${error.message} (searched from ${process.cwd()} upward)`);
       break;
     case "PROVIDER_CONSTRUCTION_FAILED":
       console.error(`${error.code}: the provider could not be built, most often for a missing key`);
