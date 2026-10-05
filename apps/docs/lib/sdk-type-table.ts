@@ -1,9 +1,12 @@
 import { join } from "node:path";
 import {
+  type Cache,
   createFileSystemGeneratorCache,
   createGenerator,
   type DocEntry,
   type GeneratedDoc,
+  type GenerateOptions,
+  type Generator,
   type RemarkAutoTypeTableOptions,
 } from "fumadocs-typescript";
 
@@ -15,6 +18,7 @@ const AUTO_TYPE_TABLE = "auto-type-table";
 const TYPE_TABLE = "TypeTable";
 const SHORT_TYPE_LENGTH = 48;
 const OPTIONAL_SUFFIX = " | undefined";
+const DEFAULT_LIBRARY_MEMBER = "sdkDefaultLibraryMember";
 
 type MdxAttribute = { type: string; name?: string; value?: unknown };
 
@@ -75,8 +79,36 @@ export function readableType(entry: Pick<DocEntry, "type" | "required">): string
   return type.length <= SHORT_TYPE_LENGTH ? type : undefined;
 }
 
-function preferReadableType(entry: DocEntry): void {
+type EntryTransform = NonNullable<GenerateOptions["transform"]>;
+
+const markForTable: EntryTransform = function markForTable(entry, _type, symbol) {
   entry.simplifiedType = readableType(entry) ?? entry.simplifiedType;
+  const program = this.program.program;
+  const declaredOnlyInDefaultLibrary =
+    symbol.declarations.length > 0 &&
+    symbol.declarations.every(
+      (declaration) =>
+        program.getSourceFileMetadataByPath(declaration.path)?.isDefaultLibrary === true,
+    );
+  if (declaredOnlyInDefaultLibrary) entry.tags.push({ name: DEFAULT_LIBRARY_MEMBER, text: "" });
+};
+
+export function isDefaultLibraryMember(entry: Pick<DocEntry, "tags">): boolean {
+  return entry.tags.some((tag) => tag.name === DEFAULT_LIBRARY_MEMBER);
+}
+
+function declaredMembersOnly(doc: GeneratedDoc): GeneratedDoc {
+  return { ...doc, entries: doc.entries.filter((entry) => !isDefaultLibraryMember(entry)) };
+}
+
+function sdkTypeTableGenerator(cache: Cache | false): Generator {
+  const generator = createGenerator({ cache });
+  return {
+    ...generator,
+    async generateTypeTable(props, options) {
+      return (await generator.generateTypeTable(props, options)).map(declaredMembersOnly);
+    },
+  };
 }
 
 function tableCell(text: string): string {
@@ -120,12 +152,15 @@ export function remarkTypeTableMarkdown() {
   return (root: MdxNode) => visit(root, stringifyAsMarkdownTable);
 }
 
-export function sdkTypeTableOptions(repoRoot: string): RemarkAutoTypeTableOptions {
+export function sdkTypeTableOptions(
+  repoRoot: string,
+  cache: Cache | false = createFileSystemGeneratorCache(
+    join(repoRoot, "apps/docs/.next/fumadocs-typescript/declared-members"),
+  ),
+): RemarkAutoTypeTableOptions & { generator: Generator } {
   return {
     name: AUTO_TYPE_TABLE,
-    generator: createGenerator({
-      cache: createFileSystemGeneratorCache(join(repoRoot, "apps/docs/.next/fumadocs-typescript")),
-    }),
-    options: { basePath: repoRoot, transform: preferReadableType },
+    generator: sdkTypeTableGenerator(cache),
+    options: { basePath: repoRoot, transform: markForTable },
   };
 }
