@@ -8,10 +8,13 @@ import type {
 } from "./deepl/types.js";
 import type { GeminiRequest } from "./gemini/request.js";
 import type { GeminiClient, GeminiResponse } from "./gemini/types.js";
+import type { LocaleGlossary } from "./glossary.js";
 import type {
   GoogleTranslateClient,
   GoogleTranslateHttpResponse,
+  GoogleTranslateTextFormat,
 } from "./google-translate/types.js";
+import { declaredKeyEnvVars } from "./key-env-vars.js";
 import type { OpenAiRequest } from "./openai/request.js";
 import type { OpenAiClient, OpenAiCompletion, OpenAiMessage } from "./openai/types.js";
 import type { PlaceholderExtractor } from "./provider.js";
@@ -165,6 +168,7 @@ export interface GoogleTranslateCall {
   readonly texts: readonly string[];
   readonly sourceLang: string;
   readonly targetLang: string;
+  readonly format: GoogleTranslateTextFormat;
 }
 
 export function googleTranslateSuccess(
@@ -192,10 +196,26 @@ export function googleTranslateStubClient(response: GoogleTranslateHttpResponse)
 } {
   const calls: GoogleTranslateCall[] = [];
   const client: GoogleTranslateClient = {
-    translate: async (texts, sourceLang, targetLang) => {
-      calls.push({ texts, sourceLang, targetLang });
+    translate: async (texts, sourceLang, targetLang, format) => {
+      calls.push({ texts, sourceLang, targetLang, format });
       return response;
     },
   };
   return { client, calls };
+}
+
+export function resetDeclaredKeyEnvVars(): void {
+  declaredKeyEnvVars().clear();
+}
+
+export function termGlossary(terms: Readonly<Record<string, string>>): LocaleGlossary {
+  return {
+    terms: Object.entries(terms).map(([source, target]) => ({
+      source,
+      target,
+      forbidden: [],
+      caseSensitive: false,
+    })),
+    doNotTranslate: [],
+  };
 }

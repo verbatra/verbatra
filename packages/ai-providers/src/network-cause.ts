@@ -57,9 +57,13 @@ function ownCode(error: unknown): string | undefined {
 }
 
 function nextCause(error: unknown): unknown {
-  return typeof error === "object" && error !== null && "cause" in error
-    ? (error as { readonly cause?: unknown }).cause
-    : undefined;
+  if (typeof error !== "object" || error === null) {
+    return undefined;
+  }
+  if ("cause" in error) {
+    return (error as { readonly cause?: unknown }).cause;
+  }
+  return "error" in error ? (error as { readonly error?: unknown }).error : undefined;
 }
 
 export function findNetworkCause(error: unknown): NetworkCause | undefined {

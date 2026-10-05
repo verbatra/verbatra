@@ -1,13 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  OPENAI_COMPATIBLE_ENV_VAR,
   OPENAI_COMPATIBLE_KEY_PLACEHOLDER,
-  PROVIDER_ENV,
+  processEnvironment,
+  readLibreTranslateKey,
   requireAnthropicKey,
   requireGoogleTranslateKey,
   resolveOpenAiCompatibleKey,
 } from "./env.js";
 import { ProviderError } from "./errors.js";
+import { OPENAI_COMPATIBLE_ENV_VAR, PROVIDER_ENV } from "./key-env-vars.js";
 
 describe("PROVIDER_ENV", () => {
   it("maps every provider id to its canonical environment variable name", () => {
@@ -60,6 +61,7 @@ describe("requireGoogleTranslateKey", () => {
       expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).code).toBe("MISSING_API_KEY");
       expect((error as ProviderError).message).toContain("GOOGLE_TRANSLATE_API_KEY");
+      expect((error as ProviderError).envVar).toBe("GOOGLE_TRANSLATE_API_KEY");
       expect((error as ProviderError).message).not.toContain("AIza");
     }
   });
@@ -159,6 +161,7 @@ describe("resolveOpenAiCompatibleKey", () => {
       expect(error).toBeInstanceOf(ProviderError);
       expect((error as ProviderError).code).toBe("MISSING_API_KEY");
       expect((error as ProviderError).message).toContain("MY_CUSTOM_LOCAL_KEY");
+      expect((error as ProviderError).envVar).toBe("MY_CUSTOM_LOCAL_KEY");
     }
   });
 
@@ -170,5 +173,27 @@ describe("resolveOpenAiCompatibleKey", () => {
   it("never reads OPENAI_API_KEY at any tier", () => {
     process.env.OPENAI_API_KEY = "hosted-key-should-never-be-used";
     expect(resolveOpenAiCompatibleKey()).toBe(OPENAI_COMPATIBLE_KEY_PLACEHOLDER);
+  });
+});
+
+describe("processEnvironment", () => {
+  it("returns the live process environment", () => {
+    expect(processEnvironment()).toBe(process.env);
+  });
+});
+
+describe("readLibreTranslateKey", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("returns the key when LIBRETRANSLATE_API_KEY is set", () => {
+    vi.stubEnv("LIBRETRANSLATE_API_KEY", "lt-key");
+    expect(readLibreTranslateKey()).toBe("lt-key");
+  });
+
+  it("returns undefined rather than failing when the variable is unset or empty", () => {
+    vi.stubEnv("LIBRETRANSLATE_API_KEY", "");
+    expect(readLibreTranslateKey()).toBeUndefined();
   });
 });
