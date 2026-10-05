@@ -2,7 +2,12 @@ import { assertMachineTranslationEnabled, translate } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolCallContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
-import { lockAcquireTimeoutMs, lockTimeoutMsSchema } from "./lock-timeout.js";
+import {
+  DEFAULT_LOCK_TIMEOUT_MS,
+  lockAcquireTimeoutMs,
+  lockTimeoutMsSchema,
+  MAX_LOCK_TIMEOUT_MS,
+} from "./lock-timeout.js";
 import { redactRunSummary, runSummarySchema } from "./run-schema.js";
 
 const paramsSchema = z.strictObject({
@@ -65,8 +70,9 @@ export const translatePendingTool = defineTool({
     "with the reason (placeholder, markup, icu, degenerate, or empty) and, when one part is at " +
     "fault, details such as the dropped placeholder or the ICU arm that does not fit the " +
     "target language. Check failed and partial before treating the run as clean, then read " +
-    "review.queue for what needs a person. The optional lockTimeoutMs parameter, 0 to 600000 " +
-    "milliseconds and 30000 by default, bounds how long each locale waits for a write lock " +
+    "review.queue for what needs a person. The optional lockTimeoutMs parameter, 0 to " +
+    `${MAX_LOCK_TIMEOUT_MS} milliseconds and ${DEFAULT_LOCK_TIMEOUT_MS} by default, bounds` +
+    " how long each locale waits for a write lock " +
     "another process holds; a locale that times out fails with LOCK_CONTENDED on its own " +
     "summary before any provider call, and the other locales still run. Cost: calls a translation provider and bills your " +
     "API usage, within the config's token budget and the maxTokens parameter when either is " +

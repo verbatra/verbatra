@@ -15,7 +15,11 @@ import type { RegisteredMcpTool } from "./define-tool.js";
 import { editEntryTool } from "./edit-entry.js";
 import { glossaryWriteTool } from "./glossary.js";
 import { keyIntegrityTool } from "./key-integrity.js";
-import { DEFAULT_LOCK_TIMEOUT_MS, lockAcquireTimeoutMs } from "./lock-timeout.js";
+import {
+  DEFAULT_LOCK_TIMEOUT_MS,
+  lockAcquireTimeoutMs,
+  MAX_LOCK_TIMEOUT_MS,
+} from "./lock-timeout.js";
 import { retranslateEntryTool } from "./retranslate-entry.js";
 import { translatePendingTool } from "./translate-pending.js";
 
@@ -83,6 +87,12 @@ describe("write tools: lockTimeoutMs", () => {
     expect(outcome.kind).toBe("ok");
     const result = (outcome as { readonly result: { readonly failed: readonly string[] } }).result;
     expect(result.failed).toEqual(["de"]);
+  });
+
+  it("states the bounds translation.translatePending accepts from the shared constants", () => {
+    expect(translatePendingTool.description).toContain(
+      `lockTimeoutMs parameter, 0 to ${MAX_LOCK_TIMEOUT_MS} milliseconds and ${DEFAULT_LOCK_TIMEOUT_MS} by default`,
+    );
   });
 
   it.each([[-1], [1.5], [600_001]])(
