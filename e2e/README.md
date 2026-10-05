@@ -90,10 +90,9 @@ deterministic test joins the required gate automatically.
   character estimate carrying no cost, and a network policy refusing the server before anything is
   sent), and an XLIFF 2.0 handoff exported, filled as a CAT tool would, and imported with its
   review state (`tests/xliff-handoff.e2e.test.ts`). It calls no hosted provider and makes no
-  network request outside 127.0.0.1: only the interrupt test and the `--allow-spend` MCP test point
-  an `openai-compatible` provider at a never-answering loopback endpoint the test serves, and the
-  2026-07-28 MCP test translates against a loopback LibreTranslate stub it serves, so the tier is
-  deterministic and free.
+  network request outside 127.0.0.1: a test that needs a provider endpoint serves one itself on
+  loopback, so the tier is deterministic and free. Keep it that way: a no-key test that would
+  reach anything but 127.0.0.1 belongs in the live tier.
 
   **This tier is the required release gate.** It runs as the `e2e` job in
   `.github/workflows/ci.yml`, feeds the `Build and test gate` job, and `release.yml` publishes only

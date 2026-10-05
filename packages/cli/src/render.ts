@@ -58,6 +58,7 @@ import {
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import type { LockReleaseOutcome } from "./lock-release.js";
 
 const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 
@@ -913,10 +914,50 @@ function renderLockHolder(event: LockWaitEvent): string {
 
 export type InterruptSignal = "SIGINT" | "SIGTERM";
 
-export function renderInterrupted(signal: InterruptSignal, json: boolean): string {
-  return json
-    ? JSON.stringify({ type: "interrupted", signal, locksReleased: true })
-    : `verbatra: interrupted (${signal}), released locks`;
+const LEFTOVER_LOCK_ADVICE =
+  "the next run names any lock left behind, and with no verbatra process running it can be deleted";
+
+function interruptedJson(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
+  switch (outcome.status) {
+    case "released":
+      return JSON.stringify({ type: "interrupted", signal, locksReleased: true });
+    case "failed":
+      return JSON.stringify({
+        type: "interrupted",
+        signal,
+        locksReleased: false,
+        reason: "failed",
+        message: outcome.message,
+      });
+    case "timed-out":
+      return JSON.stringify({
+        type: "interrupted",
+        signal,
+        locksReleased: false,
+        reason: "timed-out",
+        deadlineMs: outcome.deadlineMs,
+      });
+  }
+}
+
+function interruptedHuman(signal: InterruptSignal, outcome: LockReleaseOutcome): string {
+  const lead = `verbatra: interrupted (${signal}),`;
+  switch (outcome.status) {
+    case "released":
+      return `${lead} released locks`;
+    case "failed":
+      return `${lead} could not release locks: ${outcome.message}; ${LEFTOVER_LOCK_ADVICE}`;
+    case "timed-out":
+      return `${lead} lock release did not finish within ${Math.round(outcome.deadlineMs / 1000)}s; ${LEFTOVER_LOCK_ADVICE}`;
+  }
+}
+
+export function renderInterrupted(
+  signal: InterruptSignal,
+  json: boolean,
+  outcome: LockReleaseOutcome,
+): string {
+  return json ? interruptedJson(signal, outcome) : interruptedHuman(signal, outcome);
 }
 
 export function renderLockWaitHuman(event: LockWaitEvent): string {

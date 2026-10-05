@@ -1,5 +1,6 @@
 import { PassThrough } from "node:stream";
 import { describe, expect, it } from "vitest";
+import { CliUsageError } from "./cli-usage-error.js";
 import { askLine, stdinIsTty } from "./prompt.js";
 import { redactingStreams } from "./redacting-streams.js";
 import { captureStreams } from "./test-support.js";
@@ -27,6 +28,37 @@ describe("askLine: prompts go through the Streams", () => {
 
     expect(await answer).toBe("");
     expect(cap.out()).not.toContain(key);
+  });
+});
+
+describe("askLine: input that ends before an answer", () => {
+  it("rejects with a usage error when the input ends without a line", async () => {
+    const cap = captureStreams();
+    const input = new PassThrough();
+
+    const answer = askLine("Provider? ", cap.streams, input);
+    input.end();
+
+    const error = await answer.catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(CliUsageError);
+    expect(error).toMatchObject({ code: "MISSING_OPTIONS" });
+    expect((error as CliUsageError).message).toContain('answer to "Provider?"');
+    expect((error as CliUsageError).message).toContain("--yes");
+  });
+
+  it("rejects at once when the input already ended at an earlier prompt", async () => {
+    const cap = captureStreams();
+    const input = new PassThrough();
+    const first = askLine("Provider? ", cap.streams, input);
+    input.end("gemini\n");
+    expect(await first).toBe("gemini");
+    input.resume();
+    await new Promise((resolve) => input.once("end", resolve));
+
+    await expect(askLine("Model? ", cap.streams, input)).rejects.toMatchObject({
+      code: "MISSING_OPTIONS",
+    });
+    expect(cap.out()).toBe("Provider? Model? ");
   });
 });
 

@@ -90,7 +90,14 @@ A format or provider verbatra does not ship can be added from outside: the SDK r
 
 ## Studio
 
-`verbatra studio` starts Verbatra Studio, a local web dashboard over your project with four pages: translation status and diff, a review queue of every machine-written translation nobody has approved, shared through the committed provenance file, that you can approve, reject, and edit from the keyboard, in bulk, or a whole locale at once, a live locale-file activity feed with the last run's token usage, and the resolved config with an editable glossary. Every page refreshes live as your locale files change.
+`verbatra studio` starts Verbatra Studio, a local web dashboard over your project with four pages:
+
+- Translation status and diff.
+- A review queue of every machine-written translation nobody has approved, shared through the committed provenance file. Approve, reject, and edit from the keyboard, in bulk, or a whole locale at once.
+- A live locale-file activity feed with the last run's token usage.
+- The resolved config with an editable glossary.
+
+Every page refreshes live as your locale files change.
 
 The server binds to `127.0.0.1` only and authenticates every request. Local editing is always on and runs through the same integrity gate a translate run applies. Actions that spend provider budget exist only when you start Studio with `--allow-spend`; without that flag, Studio never calls a provider.
 

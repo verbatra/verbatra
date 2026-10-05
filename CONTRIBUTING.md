@@ -218,15 +218,15 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    escape.
 
 3. **`packages/ai-providers/src/key-env-vars.ts` and `env.ts`** - key handling.
-   Add the entry to `PROVIDER_ENV` in `key-env-vars.ts` (around `:1-7`), then a
-   `require<Name>Key()` helper in `env.ts` next to the existing five (around
-   `:17-37`), delegating to `readRequiredEnv`.
+   Add the entry to `PROVIDER_ENV` in `key-env-vars.ts`, then a
+   `require<Name>Key()` helper in `env.ts` next to the existing `require*Key`
+   helpers, delegating to `readRequiredEnv`.
 
    This is a hard rule, not a convention: **API keys come only from environment
    variables. Never from a config file, never from a CLI argument, never from a
    function argument.** An error message names the variable and never contains a
    key value. If your provider needs a user-selectable variable name, follow
-   `resolveOpenAiCompatibleKey` (around `:39`) rather than inventing a third
+   `resolveOpenAiCompatibleKey` in `env.ts` rather than inventing a third
    pattern, and note that it still only ever reads `process.env`. A key a
    self-hosted server may not need at all follows `readLibreTranslateKey`: a
    constant of its own in `key-env-vars.ts` (kept out of `PROVIDER_ENV`, which
@@ -234,33 +234,33 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
    and an optional reader that returns `undefined` instead of throwing.
 
 4. **`packages/ai-providers/src/scaffold.ts`** - only if `verbatra init` should
-   offer the provider. Add a default model to `SCAFFOLD_MODELS` (around `:5`) and
-   the name of its output-token-limit option to `SCAFFOLD_TOKEN_LIMIT_KEYS`
-   (around `:11`). The `satisfies` clause (around `:15`) constrains each value
+   offer the provider. Add a default model to `SCAFFOLD_MODELS` and the name of
+   its output-token-limit option to `SCAFFOLD_TOKEN_LIMIT_KEYS`. The `satisfies`
+   clause on `SCAFFOLD_TOKEN_LIMIT_KEYS` constrains each value
    to `keyof <Name>Config`, so a wrong option name is a compile error rather than
    a config the scaffolder writes and the schema then rejects.
 
    Skipping this step is legitimate. DeepL takes no model and no token limit and
-   appears in neither table, which `scaffold.test.ts` asserts (around `:13-17`).
+   appears in neither table, which `scaffold.test.ts` asserts.
 
 5. **`packages/ai-providers/src/index.ts`** - export the factory and the config
    schema. The SDK imports both from the package root.
 
 6. **`packages/sdk/src/config/provider-config.ts`** - add the variant to the
-   `providerConfigSchema` discriminated union (around `:27-41`). Call `.strict()`
+   `providerConfigSchema` discriminated union. Call `.strict()`
    on the options schema exactly as the others do, so an option belonging to a
    different provider is reported as an error instead of silently ignored.
    Without this variant, config loading rejects the provider outright and nothing
    downstream ever runs.
 
 7. **`packages/sdk/src/config/provider-config.ts`** - add the entry to
-   `providerFactories` (around `:115-124`). **This is the registration step.**
+   `providerFactories`. **This is the registration step.**
    The table is a mapped type over `MachineProviderId`, every `ProviderId` except
-   the human-only `none`, which never builds a provider. `buildProvider` (around
-   `:145`) reads this table, `selectProvider`
-   (`packages/sdk/src/selection/select-provider.ts`, around `:95`) wraps it,
-   and the two call sites are `flow/translate-project.ts` (around `:611`) and
-   `flow/retranslate-entry.ts` (around `:348`).
+   the human-only `none`, which never builds a provider. `buildProvider` in the
+   same file reads this table, `selectProvider`
+   (`packages/sdk/src/selection/select-provider.ts`) wraps it, and the flows
+   reach it through `selectProvider` (for example `flow/translate-project.ts`
+   and `flow/retranslate-entry.ts`).
 
    `ProviderRegistry` in `packages/ai-providers/src/registry.ts` is **not** the
    registration path. It is exported from the package, but nothing outside its
@@ -280,9 +280,9 @@ Replace `<provider>` with the provider id and `<Name>` with its PascalCase name.
 
 9. **`packages/sdk/src/scaffolding.ts`** - nothing to edit, but expect a compile
    error here if you skipped step 3 or step 4 for a scaffoldable provider.
-   `_envCoversAllProviders` (around `:20`) requires an env entry for every
+   `_envCoversAllProviders` requires an env entry for every
    provider except `openai-compatible`, `libretranslate` and `none`, and
-   `_tokenLimitKeysCoverAllModelProviders` (around `:25`) requires a token-limit
+   `_tokenLimitKeysCoverAllModelProviders` requires a token-limit
    key for every one of those except `deepl` and `google-translate`, the two that
    take no model. Both are unused declarations that exist only to fail the
    build.
@@ -327,7 +327,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
 `<format>` with the format id and `<Format>` with its PascalCase name.
 
 1. **`packages/core/src/model/supported-format.ts`** - add the member to
-   `SUPPORTED_FORMATS` (around `:3`). The set of built-in formats is closed by
+   `SUPPORTED_FORMATS`. The set of built-in formats is closed by
    design; a format supplied from outside verbatra never joins it and is named
    by a `custom:` identifier instead. The doc comment on
    `supportedFormatSchema` states the rule and lists what each member means, so
@@ -341,7 +341,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    - **Nested tree** (a value lives at a path of keys): use
      `createTreeFileAdapter` from `json/tree-file-adapter.js`. Supply `parse`,
      `serialize`, the extensions, and the placeholder functions.
-     `yaml/yaml-adapter.ts` is a compact example, at 23 lines.
+     `yaml/yaml-adapter.ts` is a compact example.
      `createJsonFileAdapter` (`json/json-file-adapter.js`) is its JSON
      specialization, pinning `.json`, the JSON parser, serializer, and sniffer;
      the four JSON adapters use it. It is internal to the package, not exported
@@ -349,7 +349,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    - **Flat key/value** (one line, one key, no nesting): use
      `createFlatFileAdapter` from `flat/flat-file-adapter.js`. Supply
      `parseEntries`, `serializeEntries`, and the placeholder extractor.
-     `properties/properties-adapter.ts` is the example, at 16 lines.
+     `properties/properties-adapter.ts` is the example.
 
    A format that genuinely fits neither shape implements `FormatAdapter` from
    `adapter.ts` directly, but raise that in an issue first.
@@ -363,8 +363,8 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
    prefixed or not, static or dynamic.
 
 3. **`packages/format-adapters/src/default-registry.ts`** - add
-   `.register(create<Format>Adapter(fs))` to the chain in `createDefaultRegistry`
-   (calls around `:35-48`). Forward the `fs` parameter; do not let the default
+   `.register(create<Format>Adapter(fs))` to the chain in `createDefaultRegistry`.
+   Forward the `fs` parameter; do not let the default
    apply here.
 
 4. **`packages/format-adapters/src/index.ts`** - export the factory.
@@ -379,7 +379,7 @@ Work outward from `packages/core`, then `packages/format-adapters`. Replace
 
 7. **Docs.** Add the format to `apps/docs/content/docs/(configure)/formats.mdx`
    and its `.de.mdx`, `.es.mdx` and `.fr.mdx` siblings. Also update
-   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` (around `:36-51`) is
+   `apps/docs/lib/structured-data.ts`, where `FORMAT_LABELS` is
    a total `Record<SupportedFormat, string>` and will not compile until the new
    format has a display label. That one is easy to miss, and the error surfaces
    in the docs app rather than where you were working.
@@ -517,7 +517,7 @@ write the tool, not when you document it.
 ### The guards are the guide
 
 Every step above that can be enforced at compile time already is, which is why
-this list can be trusted even after the line numbers drift:
+this list can be trusted even as the files it names change:
 
 - the `satisfies` clause on `SCAFFOLD_TOKEN_LIMIT_KEYS` rejects an option name
   that does not exist on the provider's config,

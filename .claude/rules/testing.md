@@ -28,9 +28,10 @@
 ## The `e2e/` directory: what already exists
 
 `e2e/` (`e2e/README.md`, `e2e/package.json`) is a Vitest-driven suite, not Playwright, and it is
-the end-to-end coverage of the four published packages as a consumer installs them. It sits outside the pnpm workspace on purpose (its own
-`e2e/package-lock.json`, consumed by `npm ci`/`npm install`), so the consumer install resolves the
-real published tarballs instead of workspace symlinks.
+the end-to-end coverage of the four published packages as a consumer installs them. It sits
+outside the pnpm workspace on purpose (its own `e2e/package-lock.json`, consumed by
+`npm ci`/`npm install`), so the consumer install resolves the real published tarballs instead of
+workspace symlinks.
 
 How it works: `e2e/src/global-setup.ts` packs `@verbatra/sdk`, `@verbatra/cli`, `@verbatra/studio`,
 and `@verbatra/mcp` (or reuses `VERBATRA_SDK_TARBALL`, `VERBATRA_CLI_TARBALL`,
@@ -48,14 +49,11 @@ Split into two tiers by determinism, which doubles as the trust boundary for sec
   across formats, `translate --dry-run`, export-then-import round-trips, the keyless flag surface,
   structured exit-2 boundary errors, and the full `watch` lifecycle including SIGINT handling
   (`e2e/tests/watch-lifecycle.e2e.test.ts` keeps this keyless by giving the run nothing to
-  translate). Calls no hosted provider and makes no network request outside 127.0.0.1: two tests
-  (`e2e/tests/interrupt-releases-locks.e2e.test.ts` and the held-lock test in
-  `e2e/tests/mcp.e2e.test.ts`) point an `openai-compatible` provider at a never-answering loopback
-  endpoint (the MCP one through `--allow-spend`, spending nothing), and
-  `e2e/tests/watch-lifecycle.e2e.test.ts` names an unreachable `127.0.0.1:1` endpoint it never
-  reaches. The 2026-07-28 session test in `e2e/tests/mcp.e2e.test.ts` translates against a
-  loopback LibreTranslate stub it serves (`e2e/src/libretranslate-endpoint.ts`), so it too makes
-  no network request outside 127.0.0.1. `e2e/tests/human-only.e2e.test.ts` goes further and
+  translate). Calls no hosted provider and makes no network request outside 127.0.0.1: that is
+  the rule for every no-key test, not a property of a few. A test that needs a provider endpoint
+  serves one itself on loopback (a never-answering endpoint, or a stub such as
+  `e2e/src/libretranslate-endpoint.ts`) or names one it never reaches; a test that would reach
+  anything else belongs in the live tier. `e2e/tests/human-only.e2e.test.ts` goes further and
   preloads a module that throws on any socket, proving a `provider: none` run makes no network
   call at all. **This is the required release
   gate**: it runs as the `e2e` job in `.github/workflows/ci.yml`, and `release.yml` only publishes
