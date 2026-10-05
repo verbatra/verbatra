@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { CONTROL_GROUPS, controlHref } from "@/lib/control-items";
+import { headingSlugs } from "@/lib/heading-slugs";
 import { i18n, type Locale } from "@/lib/i18n";
 
 const CONTENT = fileURLToPath(new URL("../content/docs", import.meta.url));
@@ -28,16 +29,6 @@ function pageSource(page: string, locale: Locale): string {
   const path = findPage(dir, name);
   if (!path) throw new Error(`no ${name} under ${dir}`);
   return readFileSync(path, "utf8");
-}
-
-function headingSlugs(source: string): ReadonlyArray<string> {
-  return [...source.matchAll(/^#{2,6} (.+)$/gm)].map((match) =>
-    (match[1] as string)
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s-]/gu, "")
-      .trim()
-      .replace(/\s/g, "-"),
-  );
 }
 
 const ITEMS = CONTROL_GROUPS.flatMap((group) => group.items);

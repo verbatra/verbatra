@@ -355,7 +355,8 @@
       "links": {
         "llms": "llms.txt",
         "llmsFull": "llms-full.txt",
-        "mcpDocs": "MCP server docs"
+        "mcpDocs": "MCP server docs",
+        "skillsDocs": "Skills pack docs"
       },
       "table": {
         "key": "key",
