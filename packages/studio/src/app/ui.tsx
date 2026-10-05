@@ -3,7 +3,7 @@ import { Button } from "./Button.js";
 import { Card } from "./Card.js";
 import { Icon, type IconName } from "./Icon.js";
 import { cn } from "./lib/cn.js";
-import { Sheet } from "./Sheet.js";
+import { Sheet, type SheetSize } from "./Sheet.js";
 
 export function MonoValue({ children }: { readonly children: ReactNode }): ReactNode {
   return <span className="font-mono">{children}</span>;
@@ -23,7 +23,7 @@ export function OverlayBackdrop({
   return (
     <button
       type="button"
-      className="absolute inset-0 z-0 cursor-default border-none bg-foreground/40"
+      className="absolute inset-0 z-0 cursor-default border-none bg-overlay"
       onClick={onClose}
       aria-label={label}
     />
@@ -52,6 +52,7 @@ export function DialogCloseButton({
 }
 
 export function DrawerShell(props: {
+  readonly size?: SheetSize;
   readonly kicker?: string;
   readonly title: ReactNode;
   readonly ariaLabel: string;
@@ -182,7 +183,7 @@ export const tableClasses = {
 };
 
 export const pillClassName =
-  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5 text-xs font-medium leading-5";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-2 py-0.5 font-sans text-xs font-medium leading-5";
 
 export const pillDotClassName = "size-1.5 flex-none rounded-full bg-current";
 

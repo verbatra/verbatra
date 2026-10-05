@@ -5,7 +5,11 @@ import { rpcClient } from "./api.js";
 export type CapabilitiesState =
   | { readonly kind: "loading" }
   | { readonly kind: "error" }
-  | { readonly kind: "loaded"; readonly capabilities: StudioCapabilities };
+  | {
+      readonly kind: "loaded";
+      readonly capabilities: StudioCapabilities;
+      readonly sourceLocale: string;
+    };
 
 export function useCapabilities(): CapabilitiesState {
   const [state, setState] = useState<CapabilitiesState>({ kind: "loading" });
@@ -20,7 +24,11 @@ export function useCapabilities(): CapabilitiesState {
         setState({ kind: "error" });
         return;
       }
-      setState({ kind: "loaded", capabilities: response.result.capabilities });
+      setState({
+        kind: "loaded",
+        capabilities: response.result.capabilities,
+        sourceLocale: response.result.sourceLocale,
+      });
     });
     return () => {
       cancelled = true;

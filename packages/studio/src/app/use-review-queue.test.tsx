@@ -8,17 +8,20 @@ import { useReviewQueue } from "./use-review-queue.js";
 
 vi.mock("./api.js", () => import("./test-support.js").then((module) => module.apiMock()));
 
+const MACHINE = { origin: "machine", reviewState: "unreviewed" } as const;
+
 const FLAGGED: ReviewQueueData = {
   available: true,
-  version: 1,
-  generatedAt: "2026-05-01T09:12:00Z",
   locales: [
     {
       locale: "de",
-      status: "succeeded",
       needsReview: [
-        { key: "app.title", reasons: ["EQUALS_SOURCE"] },
-        { key: "checkout.total", reasons: ["LENGTH_RATIO_OUTLIER", "GLOSSARY_TERM_MISSED"] },
+        { key: "app.title", reasons: ["EQUALS_SOURCE"], provenance: MACHINE },
+        {
+          key: "checkout.total",
+          reasons: ["LENGTH_RATIO_OUTLIER", "GLOSSARY_TERM_MISSED"],
+          provenance: MACHINE,
+        },
       ],
     },
   ],
@@ -26,9 +29,7 @@ const FLAGGED: ReviewQueueData = {
 
 const CLEARED: ReviewQueueData = {
   available: true,
-  version: 1,
-  generatedAt: "2026-05-02T08:00:00Z",
-  locales: [{ locale: "de", status: "succeeded", needsReview: [] }],
+  locales: [{ locale: "de", needsReview: [] }],
 };
 
 function queueAnswer(result: ReviewQueueData): { readonly ok: true; readonly result: unknown } {
@@ -37,8 +38,14 @@ function queueAnswer(result: ReviewQueueData): { readonly ok: true; readonly res
 
 let seen: RefreshableView<ReviewQueueData> = { kind: "loading" };
 
-function Probe({ token }: { readonly token?: number }): ReactNode {
-  seen = useReviewQueue(token);
+function Probe({
+  token,
+  reload,
+}: {
+  readonly token?: number;
+  readonly reload?: number;
+}): ReactNode {
+  seen = useReviewQueue(token, reload);
   return <span data-testid="kind">{seen.kind}</span>;
 }
 
@@ -60,21 +67,22 @@ describe("useReviewQueue", () => {
     expect(seen).toEqual({ kind: "data", data: FLAGGED, stale: false });
   });
 
-  it("treats a snapshot that was never written as data, not as an error", async () => {
-    stubRpc({ "review.queue": queueAnswer({ available: false }) });
+  it("treats an unreadable provenance file as data, not as an error", async () => {
+    const unavailable = { available: false, reason: "provenance-unreadable" } as const;
+    stubRpc({ "review.queue": queueAnswer(unavailable) });
 
     const view = await renderAsync(<Probe />);
 
     expect(view.text()).toBe("data");
-    expect(seen).toEqual({ kind: "data", data: { available: false }, stale: false });
+    expect(seen).toEqual({ kind: "data", data: unavailable, stale: false });
   });
 
-  it("reads the whole queue, which takes no parameters", async () => {
+  it("reads the whole queue, approved entries included", async () => {
     stubRpc({ "review.queue": queueAnswer(FLAGGED) });
 
     await renderAsync(<Probe />);
 
-    expect(rpcCalls).toEqual([{ method: "review.queue", params: {} }]);
+    expect(rpcCalls).toEqual([{ method: "review.queue", params: { includeApproved: true } }]);
   });
 
   it("renders a hard error when the very first read fails, since there is nothing to keep", async () => {
@@ -145,5 +153,16 @@ describe("useReviewQueue", () => {
     await flush();
 
     expect(seen).toEqual({ kind: "loading" });
+  });
+
+  it("re-fetches when the caller asks for a reload, without a refresh event", async () => {
+    stubRpc({ "review.queue": queueAnswer(FLAGGED) });
+    const view = await renderAsync(<Probe token={0} reload={0} />);
+    stubRpc({ "review.queue": queueAnswer(CLEARED) });
+
+    view.rerender(<Probe token={0} reload={1} />);
+    await flush();
+
+    expect(seen.kind === "data" && seen.data).toEqual(CLEARED);
   });
 });
