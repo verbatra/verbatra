@@ -156,7 +156,23 @@ describe("key.integrity", () => {
     expect(counts.readFileBounded).toBeGreaterThan(0);
   });
 
-  it("uses an injected adapter registry to resolve the configured format", async () => {
+  it("answers a key the source does not have with UNKNOWN_KEY from the integrity read alone", async () => {
+    const dir = await makeProject({ greeting: "Hello" }, { de: { greeting: "Hallo" } });
+    const { adapterRegistry, counts } = trackAdapterRegistryCalls();
+
+    const outcome = await keyIntegrityTool.execute(
+      { key: "missing" },
+      makeContext({ cwd: dir, fs: nodeFs, adapterRegistry }),
+    );
+
+    expect(outcome).toMatchObject({
+      kind: "error",
+      message: expect.stringContaining("UNKNOWN_KEY"),
+    });
+    expect(counts.resolveCalls).toBe(1);
+  });
+
+  it("resolves the configured format once, through the injected adapter registry", async () => {
     const dir = await makeProject(
       { greeting: "Hello {{name}}" },
       { de: { greeting: "Hallo {{name}}" } },
@@ -170,7 +186,7 @@ describe("key.integrity", () => {
     );
 
     expect(outcome).toMatchObject({ kind: "ok" });
-    expect(counts.resolveCalls).toBeGreaterThan(0);
+    expect(counts.resolveCalls).toBe(1);
   });
 
   it("describes itself as reporting only source drift since the lock baseline, not general verification", () => {
