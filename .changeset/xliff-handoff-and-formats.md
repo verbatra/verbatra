@@ -19,6 +19,8 @@ XLIFF 1.2 and 2.0 agency handoff, spec-accurate XLIFF, and layout-keeping writes
 - An empty, missing, `new` or `needs-translation` target counts as missing and is translated, and
   a key missing from the target document gets its own unit.
 - Text is escaped exactly once, and each version keeps its own inline elements and attributes.
+- A long value full of unclosed inline tags (`<x<x<x...`) no longer takes quadratic time to scan
+  for placeholders.
 
 **Other formats and writes**
 - Android, XLIFF and gettext writes keep line endings and indentation, and a created `.po` file
