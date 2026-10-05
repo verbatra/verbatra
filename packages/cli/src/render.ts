@@ -58,6 +58,7 @@ import {
 import type { CliErrorCode } from "./cli-error-codes.js";
 import { CLI_ERROR_HINTS } from "./cli-error-hints.js";
 import { CliUsageError } from "./cli-usage-error.js";
+import { renderDataFlowLines } from "./render-data-flow.js";
 
 const FALLBACK_ERROR_CODE: CliErrorCode = "CLI_ERROR";
 
@@ -790,6 +791,7 @@ export function renderDoctorHuman(result: DoctorResult, options: DoctorRenderOpt
     ...lines,
     ...renderLiteralLines(result.literals),
     ...(options.locales === true ? renderLocaleCapabilities(result.locales) : []),
+    ...renderDataFlowLines(result.dataFlow),
     trailer,
   ].join("\n");
 }
