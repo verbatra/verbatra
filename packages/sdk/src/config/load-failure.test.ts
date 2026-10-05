@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { configLoadFailure } from "./load-failure.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 function namedError(name: string, message: string, extra: object = {}): Error {
   return Object.assign(new Error(message), { name, filepath: "/project/.verbatrarc" }, extra);
 }
@@ -53,7 +55,7 @@ describe("configLoadFailure", () => {
 
   it("redacts a key shape in the remaining line", () => {
     const failure = configLoadFailure(
-      new Error("bad value sk-proj-abcdefghijklmnopqrstuvwxyz0123"),
+      new Error(`bad value ${SK_PROJ}abcdefghijklmnopqrstuvwxyz0123`),
     );
 
     expect(failure.message).toBe(

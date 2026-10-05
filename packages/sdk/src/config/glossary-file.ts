@@ -84,6 +84,12 @@ function parseDefinition(
 
 function parseContent(parsed: unknown, path: string): GlossaryContent {
   if (isPlainObject(parsed) && typeof parsed.version === "number") {
+    if (parsed.version === 1) {
+      throw new SdkError(
+        "CONFIG_INVALID",
+        `The glossary file at ${path} declares "version": 1, but a version 1 glossary is a flat term map with no "version" field. Remove the "version" field, or write a version 2 glossary with "version": 2.`,
+      );
+    }
     if (parsed.version !== 2) {
       throw new SdkError(
         "CONFIG_INVALID",
@@ -265,7 +271,8 @@ export interface GlossaryFileDeps {
  * there is no file to read.
  * @throws {@link SdkError} `CONFIG_INVALID`: the glossary file is missing, oversized, not UTF-8, not
  * valid JSON, neither a flat object of string keys to string values nor a valid version 2 glossary,
- * or declares a version other than 1 or 2.
+ * or declares a numeric `"version"` other than 2 (a version 1 glossary is a flat term map that
+ * declares no version).
  */
 export async function readGlossaryFile(
   input: GlossaryFileInput,

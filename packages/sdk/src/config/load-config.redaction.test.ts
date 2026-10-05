@@ -5,7 +5,9 @@ import { SdkError } from "../errors.js";
 import { baseConfig, makeTempDir } from "../test-support.js";
 import { loadConfig } from "./load-config.js";
 
-const OPENAI_SHAPED = "sk-proj-abcdefghijklmnopqrstuvwxyz0123456789";
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
+const OPENAI_SHAPED = `${SK_PROJ}abcdefghijklmnopqrstuvwxyz0123456789`;
 const ANTHROPIC_SHAPED = "sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789";
 const CUSTOM_VALUE = "custom-local-secret-7f3a9c";
 

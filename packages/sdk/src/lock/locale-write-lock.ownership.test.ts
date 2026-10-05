@@ -831,6 +831,52 @@ describe("withLocaleWriteLock: releasing only its own lock", () => {
     expect(deletes).toBe(1);
   });
 
+  it("reports the operation's own failure when the release fails too", async () => {
+    const failure = Object.assign(new Error("EROFS"), { code: "EROFS" });
+    const boom = new Error("boom");
+    const memory = memoryLockFs(
+      {},
+      {
+        rename: async () => {
+          throw failure;
+        },
+        deleteFile: async () => {
+          throw failure;
+        },
+      },
+    );
+
+    await expect(
+      withLocaleWriteLock(
+        "/proj",
+        "de",
+        memory.fs,
+        async () => {
+          throw boom;
+        },
+        FAIL_FAST,
+      ),
+    ).rejects.toBe(boom);
+  });
+
+  it("never takes a free lock for a caller already cancelled", async () => {
+    const memory = memoryLockFs();
+    const ran = vi.fn();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      withLocaleWriteLock("/proj", "de", memory.fs, async () => ran(), {
+        ...FAIL_FAST,
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: "RUN_CANCELLED" });
+
+    expect(ran).not.toHaveBeenCalled();
+    expect(memory.files.has(LOCK)).toBe(false);
+    expect(memory.deleted).toEqual([]);
+  });
+
   it("compares before deleting on a file system without rename", async () => {
     const memory = memoryLockFs();
     const { rename: _rename, ...withoutRename } = memory.fs;
@@ -892,6 +938,48 @@ describe("releaseHeldLocks: a forced exit", () => {
     expect(memory.content(LOCK)).toBe(FOREIGN);
     holder.open();
     await held;
+  });
+
+  it("attempts every lock, then rejects naming only the ones it could not delete", async () => {
+    const failure = Object.assign(new Error("EROFS"), { code: "EROFS" });
+    const memory = memoryLockFs();
+    const refuseDe = async (path: string): Promise<void> => {
+      if (path === LOCK) {
+        throw failure;
+      }
+    };
+    const fs: SdkFs = {
+      ...memory.fs,
+      rename: async (from, to) => {
+        await refuseDe(from);
+        await memory.fs.rename?.(from, to);
+      },
+      deleteFile: async (path) => {
+        await refuseDe(path);
+        await memory.fs.deleteFile(path);
+      },
+    };
+    const french = localeLockPath("/proj", "fr");
+    const holders = [gate(), gate()] as const;
+    const held = [
+      withLocaleWriteLock("/proj", "de", fs, () => holders[0].wait(), FAIL_FAST),
+      withLocaleWriteLock("/proj", "fr", fs, () => holders[1].wait(), FAIL_FAST),
+    ].map((operation) => operation.catch((error: unknown) => error));
+    await Promise.all(holders.map((holder) => holder.entered));
+
+    const released = await releaseHeldLocks().catch((error: unknown) => error);
+
+    expect(released).toBeInstanceOf(AggregateError);
+    expect((released as AggregateError).errors).toEqual([failure]);
+    expect((released as AggregateError).message).toBe(
+      `Could not release 1 write lock: ${LOCK}. Delete each one by hand once no verbatra process is running.`,
+    );
+    expect(memory.files.has(french)).toBe(false);
+    expect(memory.files.has(LOCK)).toBe(true);
+    for (const holder of holders) {
+      holder.open();
+    }
+    await Promise.all(held);
   });
 
   it("waits for a lock still being taken and leaves no file behind for it", async () => {
