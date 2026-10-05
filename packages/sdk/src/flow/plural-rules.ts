@@ -96,7 +96,7 @@ export function describePluralRules(
   }
   const quoted = unknown.map((locale) => `"${locale}"`).join(", ");
   return warnFinding(
-    `${prefix}; it has none for ${quoted}, so plural checks there assume one and other ` +
-      "and no plural form is generated.",
+    `${prefix}; it has none for ${quoted}, so plural checks there require only other, ` +
+      "the i18next translate notice assumes one and other, and no plural form is generated.",
   );
 }
