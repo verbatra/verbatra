@@ -40,8 +40,7 @@ import { rpcClient } from "../api.js";
 import { Badge } from "../Badge.js";
 import { Button } from "../Button.js";
 import { Card } from "../Card.js";
-import type { DiffTone } from "../DiffBadge.js";
-import { DiffBadge } from "../DiffBadge.js";
+import { DiffBadge, isDiffTone } from "../DiffBadge.js";
 import { EditEntryDialog } from "../EditEntryDialog.js";
 import { ErrorMessage } from "../ErrorMessage.js";
 import { Icon } from "../Icon.js";
@@ -308,18 +307,11 @@ function StatStrip({
   );
 }
 
-const DIFF_STATUSES: ReadonlySet<KeyStatus> = new Set([
-  "missing",
-  "changed",
-  "orphaned",
-  "protected",
-]);
-
 const WITHOUT_PROVENANCE: ReadonlySet<KeyStatus> = new Set(["missing", "orphaned"]);
 
 function KeyStatusBadge({ status }: { readonly status: KeyStatus }): ReactNode {
-  if (DIFF_STATUSES.has(status)) {
-    return <DiffBadge tone={status as DiffTone} />;
+  if (isDiffTone(status)) {
+    return <DiffBadge tone={status} />;
   }
   return (
     <Badge tone={status === "integrity" ? "danger" : "warning"}>{KEY_STATUS_LABELS[status]}</Badge>

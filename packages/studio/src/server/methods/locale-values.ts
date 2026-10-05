@@ -1,22 +1,15 @@
 import {
   type LocaleValues,
-  type LocaleValuesDeps,
   type LocaleValuesPage,
   localeValues,
   localeValuesPage,
 } from "@verbatra/sdk";
 import type { LocaleValuesParams } from "../../shared/rpc/locale-values.js";
 import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
-
-function sdkDeps(deps: RpcHandlerDeps): LocaleValuesDeps {
-  return {
-    ...(deps.fs !== undefined ? { fs: deps.fs } : {}),
-    ...(deps.adapterRegistry !== undefined ? { adapterRegistry: deps.adapterRegistry } : {}),
-  };
-}
+import { projectReadDeps } from "./project-read-deps.js";
 
 function readAllLocaleValues(deps: RpcHandlerDeps): Promise<readonly LocaleValues[]> {
-  return localeValues({ config: deps.config.config, cwd: deps.projectRoot }, sdkDeps(deps));
+  return localeValues({ config: deps.config.config, cwd: deps.projectRoot }, projectReadDeps(deps));
 }
 
 function readLocaleValuesPage(
@@ -33,7 +26,7 @@ function readLocaleValuesPage(
       ...(params.limit !== undefined ? { limit: params.limit } : {}),
       ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
     },
-    sdkDeps(deps),
+    projectReadDeps(deps),
   );
 }
 

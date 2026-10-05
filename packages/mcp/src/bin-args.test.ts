@@ -39,6 +39,13 @@ describe("parseArgs: serving", () => {
     });
   });
 
+  it("accepts an inline value that starts with a dash, since it cannot be the next flag", () => {
+    expect(parseArgs(["--cwd=-dir", "--config=-a.ts"], {})).toEqual({
+      kind: "serve",
+      options: { cwd: "-dir", configPath: "-a.ts", allowSpend: false, redactValues: false },
+    });
+  });
+
   it("sets allowSpend when --allow-spend is present", () => {
     expect(parseArgs(["--allow-spend"], {})).toEqual({
       kind: "serve",

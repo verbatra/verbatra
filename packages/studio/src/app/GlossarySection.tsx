@@ -84,15 +84,16 @@ function GlossaryAddForm({
   const [term, setTerm] = useState("");
   const [translation, setTranslation] = useState("");
   const busy = writer.pending !== undefined;
+  const trimmedTerm = term.trim();
   const ready =
-    term.trim().length > 0 &&
-    term.length <= MAX_GLOSSARY_TERM_LENGTH &&
+    trimmedTerm.length > 0 &&
+    trimmedTerm.length <= MAX_GLOSSARY_TERM_LENGTH &&
     translation.trim().length > 0 &&
     translation.length <= MAX_GLOSSARY_TRANSLATION_LENGTH;
 
   async function add(): Promise<void> {
     const edit: GlossaryWriteParams = {
-      term: term.trim(),
+      term: trimmedTerm,
       translation,
       ...(scope === ALL_LOCALES ? {} : { locale: scope }),
     };

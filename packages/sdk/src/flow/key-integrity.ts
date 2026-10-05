@@ -6,6 +6,7 @@ import {
 } from "@verbatra/core";
 import type { AdapterRegistry, FormatAdapter } from "@verbatra/format-adapters";
 import type { VerbatraConfig } from "../config/schema.js";
+import { SdkError } from "../errors.js";
 import { defaultFs, type SdkFs } from "../fs.js";
 import { createLocalePathResolver } from "../locale-path/resolver.js";
 import { baselineFor } from "../lock/lock-file.js";
@@ -84,9 +85,9 @@ export interface KeyIntegrityInput {
   /** Restrict the report to these target locales. Defaults to every configured target locale. */
   readonly locales?: readonly string[];
   /**
-   * Restrict the report to these keys. Only keys the diff reports as changed are ever judged, so a
-   * requested key that is missing, orphaned, or up to date is left out rather than reported.
-   * Defaults to every changed key.
+   * Restrict the report to these keys. Each must exist in the source resource. Only keys the diff
+   * reports as changed are ever judged, so a requested key whose translation is missing or up to
+   * date is left out rather than reported. Defaults to every changed key.
    */
   readonly keys?: readonly string[];
 }
@@ -160,6 +161,13 @@ function integrityEntriesFor(
   return entries;
 }
 
+function assertSourceKeys(source: LocaleResource, keys: readonly string[] | undefined): void {
+  const unknown = keys?.find((key) => !source.entries.has(key));
+  if (unknown !== undefined) {
+    throw new SdkError("UNKNOWN_KEY", `The key "${unknown}" was not found in the source resource.`);
+  }
+}
+
 /**
  * Reports, per changed key, whether the existing translation still carries the source's
  * placeholders and inline markup, still parses as valid ICU, and still carries ICU branch arms that
@@ -197,6 +205,7 @@ function integrityEntriesFor(
  * @throws {@link SdkError} `LOCK_FILE_INVALID`: the lock-file is corrupt, oversized, or at an
  * unsupported version.
  * @throws {@link SdkError} `UNKNOWN_LOCALE`: a requested locale is not a configured target locale.
+ * @throws {@link SdkError} `UNKNOWN_KEY`: a requested key is not present in the source resource.
  */
 export async function keyIntegrity(
   input: KeyIntegrityInput,
@@ -210,6 +219,7 @@ export async function keyIntegrity(
 
   const source = await readSourceResource(config, resolver, fs, adapter);
   const locales = selectLocales(config, input.locales);
+  assertSourceKeys(source.resource, input.keys);
   const lock = await readCarriedOverLock(cwd, fs, locales);
 
   return Promise.all(

@@ -69,6 +69,19 @@ describe("createRateBudget: check", () => {
     });
   });
 
+  it("tracks approving a whole locale in its own budget, as the server limits it", () => {
+    const budget = createRateBudget();
+    const params = { locale: "de" };
+    budget.record("review.approveLocale", params, 0, OK);
+    budget.record("review.approveLocale", params, 500, OK);
+
+    expect(budget.check("review.approveLocale", params, LIMITS, 1_000)).toEqual({
+      kind: "exhausted",
+      retryAfterSeconds: 9,
+    });
+    expect(budget.check("review.approve", params, LIMITS, 1_000)).toEqual({ kind: "within" });
+  });
+
   it("never reports less than a second to wait", () => {
     const budget = createRateBudget();
     budget.record("review.rejectMany", {}, 0, OK);

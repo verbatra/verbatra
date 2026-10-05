@@ -7,7 +7,6 @@ const GLOSSARY_READ_LIMIT_BYTES = 1024 * 1024 + 1;
 export interface FingerprintInput {
   readonly cwd: string;
   readonly configPath?: string;
-  readonly fs?: SdkFs;
 }
 
 async function diskStamp(path: string): Promise<string> {

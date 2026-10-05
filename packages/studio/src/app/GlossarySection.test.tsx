@@ -212,6 +212,16 @@ describe("GlossarySection, file-backed", () => {
     expect(view.getByText("button", "Add term").hasAttribute("disabled")).toBe(true);
   });
 
+  it("measures a padded term at the cap by its trimmed length, the one it sends", async () => {
+    const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
+    typeInto(field(view, "New glossary term"), ` ${"a".repeat(200)} `);
+    typeInto(field(view, "New glossary translation"), "x");
+    typeInto(field(view, "New do-not-translate term"), ` ${"b".repeat(200)} `);
+
+    expect(view.getByText("button", "Add term").hasAttribute("disabled")).toBe(false);
+    expect(view.getByText("button", "Keep untranslated").hasAttribute("disabled")).toBe(false);
+  });
+
   it("refuses to submit an add form that is missing either half", async () => {
     const view = await renderAsync(<GlossarySection glossary={FILE_BACKED} onChange={() => {}} />);
     typeInto(field(view, "New glossary term"), "cart");

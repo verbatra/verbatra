@@ -1,4 +1,4 @@
-import { type KeyIntegrityEntry, keyIntegrity, keyValue } from "@verbatra/sdk";
+import { type KeyIntegrityEntry, keyIntegrity } from "@verbatra/sdk";
 import { z } from "zod";
 import type { McpToolContext } from "../types.js";
 import { defineTool } from "./define-tool.js";
@@ -61,12 +61,9 @@ async function checkKeyIntegrity(
     ...(context.fs !== undefined ? { fs: context.fs } : {}),
     ...(context.adapterRegistry !== undefined ? { adapterRegistry: context.adapterRegistry } : {}),
   };
-  const config = context.config.config;
-  const [firstLocale = config.sourceLocale] = params.locales ?? config.targetLocales;
-  await keyValue({ config, cwd: context.cwd, locale: firstLocale, key: params.key }, deps);
   const results = await keyIntegrity(
     {
-      config,
+      config: context.config.config,
       cwd: context.cwd,
       keys: [params.key],
       ...(params.locales !== undefined ? { locales: params.locales } : {}),

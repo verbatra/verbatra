@@ -614,14 +614,13 @@ describe("registerAgentTools: the editEntry tool records an agent author", () =>
     ]);
   });
 
-  it("passes a non-object input through untouched", async () => {
+  it("refuses a non-object input without calling the server", async () => {
     const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
 
-    await toolByName(tools, expectedName("translation.editEntry")).execute(null);
+    const output = await toolByName(tools, expectedName("translation.editEntry")).execute(null);
 
-    expect(calls.filter((call) => call.method === "translation.editEntry").at(0)?.params).toBe(
-      null,
-    );
+    expect(JSON.parse(output)).toMatchObject({ ok: false, error: { code: "PARAMS_INVALID" } });
+    expect(calls.filter((call) => call.method === "translation.editEntry")).toEqual([]);
   });
 });
 
@@ -675,5 +674,54 @@ describe("registerAgentTools: the locale values tool pages", () => {
 
     expect(description).toContain(`default ${LOCALE_VALUES_PAGE_LIMIT_DEFAULT}`);
     expect(description).toContain(`at most ${LOCALE_VALUES_PAGE_LIMIT_CAP}`);
+  });
+});
+
+describe("registerAgentTools: the advertised agent input schema is enforced", () => {
+  it.each(["review.approve", "review.reject"])(
+    "refuses %s without a reviewer and never reaches the server",
+    async (method) => {
+      const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+
+      const output = await toolByName(tools, expectedName(method)).execute({
+        locale: "de",
+        key: "greeting",
+        expectedValue: "Hallo",
+      });
+
+      expect(JSON.parse(output)).toEqual({
+        ok: false,
+        error: {
+          code: "PARAMS_INVALID",
+          message: expect.any(String),
+          issues: [{ path: ["reviewer"], code: "invalid_type" }],
+        },
+      });
+      expect(calls.filter((call) => call.method === method)).toEqual([]);
+    },
+  );
+
+  it("sends a decision that names its reviewer", async () => {
+    const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+    const params = { locale: "de", key: "greeting", expectedValue: "Hallo", reviewer: "agent-x" };
+
+    await toolByName(tools, expectedName("review.approve")).execute(params);
+
+    expect(
+      calls.filter((call) => call.method === "review.approve").map((call) => call.params),
+    ).toEqual([params]);
+  });
+
+  it("refuses an edit whose value is not a string", async () => {
+    const { tools, calls } = await registerWith(SNAPSHOT_ON_WITH_SPEND);
+
+    const output = await toolByName(tools, expectedName("translation.editEntry")).execute({
+      locale: "de",
+      key: "greeting",
+      value: 42,
+    });
+
+    expect(JSON.parse(output)).toMatchObject({ ok: false, error: { code: "PARAMS_INVALID" } });
+    expect(calls.filter((call) => call.method === "translation.editEntry")).toEqual([]);
   });
 });

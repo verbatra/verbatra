@@ -296,4 +296,17 @@ describe("keyIntegrityHandler", () => {
       await project.cleanup();
     }
   });
+
+  it("refuses a key the source does not have with UNKNOWN_KEY, as key.value does", async () => {
+    const project = await makeFixtureProject({ targetLocales: ["de"] }, { greeting: "hello" });
+    try {
+      await writeTargetFile(project, "de", { greeting: "hallo", gone: "weg" });
+
+      await expect(keyIntegrityHandler({ key: "gone" }, deps(project))).rejects.toMatchObject({
+        code: "UNKNOWN_KEY",
+      });
+    } finally {
+      await project.cleanup();
+    }
+  });
 });

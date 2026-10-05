@@ -1,4 +1,5 @@
 import type { RpcMethodName, RpcParamsFor, RpcResultFor } from "../shared/rpc/contract.js";
+import { NETWORK_ERROR_COPY } from "./error-copy.js";
 import type { SessionStore } from "./state.js";
 
 export interface FetchResponseLike {
@@ -40,6 +41,21 @@ const SESSION_EXPIRED_ERROR = {
   message: "The session has expired. Reload the page to start a new one.",
 } as const;
 
+export const NETWORK_FAILURE_ERROR = {
+  code: "NETWORK_ERROR",
+  message: NETWORK_ERROR_COPY,
+} as const;
+
+export async function orNetworkFailure<M extends RpcMethodName>(
+  pending: Promise<RpcCallResult<M>>,
+): Promise<RpcCallResult<M>> {
+  try {
+    return await pending;
+  } catch {
+    return { ok: false, error: NETWORK_FAILURE_ERROR };
+  }
+}
+
 function isEnvelopeShaped(value: unknown): value is { readonly ok: boolean } {
   return typeof value === "object" && value !== null && "ok" in value;
 }
@@ -55,18 +71,21 @@ export function createRpcClient(options: RpcClientOptions): RpcClient {
       return { ok: false, error: SESSION_EXPIRED_ERROR };
     }
 
-    const response = await options.fetchImpl(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method, params }),
-    });
-
-    if (response.status === 401) {
-      options.session.markSessionExpired();
-      return { ok: false, error: SESSION_EXPIRED_ERROR };
+    let payload: unknown;
+    try {
+      const response = await options.fetchImpl(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method, params }),
+      });
+      if (response.status === 401) {
+        options.session.markSessionExpired();
+        return { ok: false, error: SESSION_EXPIRED_ERROR };
+      }
+      payload = await response.json();
+    } catch {
+      return { ok: false, error: NETWORK_FAILURE_ERROR };
     }
-
-    const payload: unknown = await response.json();
     if (!isEnvelopeShaped(payload)) {
       return {
         ok: false,

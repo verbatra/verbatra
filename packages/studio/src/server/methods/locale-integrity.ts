@@ -1,5 +1,6 @@
 import { localeIntegrity } from "@verbatra/sdk";
 import type { RpcHandler } from "../rpc.js";
+import { projectReadDeps } from "./project-read-deps.js";
 
 export const localeIntegrityHandler: RpcHandler<"locale.integrity"> = async (params, deps) => ({
   locales: await localeIntegrity(
@@ -8,9 +9,6 @@ export const localeIntegrityHandler: RpcHandler<"locale.integrity"> = async (par
       cwd: deps.projectRoot,
       ...(params.locales !== undefined ? { locales: params.locales } : {}),
     },
-    {
-      ...(deps.fs !== undefined ? { fs: deps.fs } : {}),
-      ...(deps.adapterRegistry !== undefined ? { adapterRegistry: deps.adapterRegistry } : {}),
-    },
+    projectReadDeps(deps),
   ),
 });

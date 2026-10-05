@@ -1,5 +1,13 @@
 import type { RpcMethodName, RpcParamsFor } from "../shared/rpc/contract.js";
 import { uniqueByIdentity } from "../shared/rpc/entry-identity.js";
+import { RETRANSLATE_ENTRIES_METHOD } from "../shared/rpc/retranslate-entries.js";
+import { RETRANSLATE_ENTRY_METHOD } from "../shared/rpc/retranslate-entry.js";
+import {
+  REVIEW_APPROVE_MANY_METHOD,
+  REVIEW_REJECT_MANY_METHOD,
+} from "../shared/rpc/review-batch.js";
+import { REVIEW_APPROVE_METHOD, REVIEW_REJECT_METHOD } from "../shared/rpc/review-decision.js";
+import { REVIEW_APPROVE_LOCALE_METHOD } from "../shared/rpc/review-locale.js";
 import type { StudioRateLimits } from "../shared/rpc/snapshot.js";
 import { resolveErrorCopy } from "./error-copy.js";
 import type { RpcCallResult, RpcClient } from "./rpc-client.js";
@@ -12,21 +20,22 @@ interface BudgetRule {
 
 const RETRANSLATE_BUCKET = "retranslate";
 
+function ownBucket(method: string): BudgetRule {
+  return { bucket: method, limit: "reviewDecision", perEntry: false };
+}
+
 const BUDGET_RULES: Readonly<Record<string, BudgetRule>> = {
-  "translation.retranslateEntry": {
-    bucket: RETRANSLATE_BUCKET,
-    limit: "retranslate",
-    perEntry: false,
-  },
-  "translation.retranslateEntries": {
+  [RETRANSLATE_ENTRY_METHOD]: { bucket: RETRANSLATE_BUCKET, limit: "retranslate", perEntry: false },
+  [RETRANSLATE_ENTRIES_METHOD]: {
     bucket: RETRANSLATE_BUCKET,
     limit: "retranslate",
     perEntry: true,
   },
-  "review.approve": { bucket: "review.approve", limit: "reviewDecision", perEntry: false },
-  "review.reject": { bucket: "review.reject", limit: "reviewDecision", perEntry: false },
-  "review.approveMany": { bucket: "review.approveMany", limit: "reviewDecision", perEntry: false },
-  "review.rejectMany": { bucket: "review.rejectMany", limit: "reviewDecision", perEntry: false },
+  [REVIEW_APPROVE_METHOD]: ownBucket(REVIEW_APPROVE_METHOD),
+  [REVIEW_REJECT_METHOD]: ownBucket(REVIEW_REJECT_METHOD),
+  [REVIEW_APPROVE_MANY_METHOD]: ownBucket(REVIEW_APPROVE_MANY_METHOD),
+  [REVIEW_REJECT_MANY_METHOD]: ownBucket(REVIEW_REJECT_MANY_METHOD),
+  [REVIEW_APPROVE_LOCALE_METHOD]: ownBucket(REVIEW_APPROVE_LOCALE_METHOD),
 };
 
 const UNCOUNTED_CODES: ReadonlySet<string> = new Set([

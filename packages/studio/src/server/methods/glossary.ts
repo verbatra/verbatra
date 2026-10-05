@@ -14,6 +14,7 @@ import type {
 } from "../../shared/rpc/glossary.js";
 import { projectGlossaryIndicator } from "../projection.js";
 import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
+import { STUDIO_BATCH_LOCK_TIMEOUT_MS } from "./review-batch.js";
 
 const EMPTY_GLOSSARY: Glossary = { version: 2, terms: [], doNotTranslate: [] };
 
@@ -78,7 +79,12 @@ export const glossaryGetHandler: RpcHandler<"glossary.get"> = async (_params, de
 
 export const glossaryWriteHandler: RpcHandler<"glossary.write"> = async (params, deps) => {
   const glossary = await editConfiguredGlossaryTerm(
-    { ...params, loaded: deps.config, cwd: deps.projectRoot },
+    {
+      ...params,
+      loaded: deps.config,
+      cwd: deps.projectRoot,
+      lockAcquireTimeoutMs: STUDIO_BATCH_LOCK_TIMEOUT_MS,
+    },
     fsDeps(deps),
   );
   return buildResult(deps, glossary);
