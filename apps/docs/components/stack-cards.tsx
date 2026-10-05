@@ -6,6 +6,8 @@ import { type Locale, localizeHref } from "@/lib/i18n";
 
 const ICON_SIZE = 20;
 
+export const FORMAT_ID_CLASS = "whitespace-nowrap @max-[23.5rem]:whitespace-normal";
+
 export type StackCard = {
   label: string;
   href: string;
@@ -24,7 +26,7 @@ function FormatIds({ formats }: { formats: ReadonlyArray<SupportedFormat> }): Re
       {formats.map((format, index) => (
         <Fragment key={format}>
           {index > 0 ? ", " : null}
-          <span className="whitespace-nowrap @max-[21rem]:whitespace-normal">{format}</span>
+          <span className={FORMAT_ID_CLASS}>{format}</span>
         </Fragment>
       ))}
     </span>

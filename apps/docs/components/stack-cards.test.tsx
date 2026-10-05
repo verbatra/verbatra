@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { type StackCard, StackCards } from "./stack-cards";
+import { FORMAT_ID_CLASS, type StackCard, StackCards } from "./stack-cards";
 
 const CARDS: ReadonlyArray<StackCard> = [
   { label: "React", icon: "react", formats: ["i18next-json"], href: "/docs/pick-your-stack#react" },
@@ -74,6 +74,30 @@ function stackGridLayout(wide: boolean): { columns: number; lastSpan: (count: nu
   };
 }
 
+const MONO_ADVANCE_PX = 12 * 0.6;
+
+function renderedFormatIds(): ReadonlyArray<string> {
+  const content = join(process.cwd(), "content/docs");
+  const files = readdirSync(content, { recursive: true, encoding: "utf8" }).filter((file) =>
+    file.endsWith(".mdx"),
+  );
+  const ids = files.flatMap((file) => {
+    const source = readFileSync(join(content, file), "utf8");
+    if (!source.includes("<StackCards")) return [];
+    return [...source.matchAll(/formats: \[([^\]]*)\]/g)].flatMap((match) =>
+      [...(match[1] ?? "").matchAll(/"([^"]+)"/g)].map((id) => id[1] ?? ""),
+    );
+  });
+  expect(ids.length).toBeGreaterThan(0);
+  return ids;
+}
+
+function cardTextWidth(gridPx: number, columns: number, chipBeside: boolean): number {
+  const card = (gridPx - 12 * (columns - 1)) / columns;
+  const frame = 2 + 2 * 14;
+  return card - frame - (chipBeside ? 40 + 12 : 0);
+}
+
 function render(markup: string): Document {
   return new DOMParser().parseFromString(markup, "text/html");
 }
@@ -125,9 +149,23 @@ describe("StackCards", () => {
       "apple-xcstrings",
     ]);
     for (const id of ids) {
-      expect(id.className).toBe("whitespace-nowrap @max-[21rem]:whitespace-normal");
+      expect(id.className).toBe(FORMAT_ID_CLASS);
       expect(id.querySelector("wbr")).toBeNull();
     }
+  });
+
+  it("lets an id wrap only in a grid too narrow to fit the longest rendered id with 15 percent to spare", () => {
+    const longest = Math.max(...renderedFormatIds().map((id) => id.length));
+    const needed = longest * MONO_ADVANCE_PX * 1.15;
+    const wrapBelowRem = Number(FORMAT_ID_CLASS.match(/@max-\[([\d.]+)rem\]/)?.[1]);
+    const gridWidths = {
+      stacked: wrapBelowRem * 16,
+      twoColumnRow: 30 * 16,
+      threeColumnRow: 50 * 16,
+    };
+    expect(cardTextWidth(gridWidths.stacked, 2, false)).toBeGreaterThanOrEqual(needed);
+    expect(cardTextWidth(gridWidths.twoColumnRow, 2, true)).toBeGreaterThanOrEqual(needed);
+    expect(cardTextWidth(gridWidths.threeColumnRow, 3, true)).toBeGreaterThanOrEqual(needed);
   });
 
   it("draws each logo once in a sprite and references it from the card", () => {
