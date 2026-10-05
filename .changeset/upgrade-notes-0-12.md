@@ -170,3 +170,5 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   `custom:` parser is `ADAPTER_FAILED` with the original error as `cause`, and a malformed
   `parseEntries` result fails the read.
 - `SOURCE_INVALID` and `PROVIDER_CONSTRUCTION_FAILED` carry the wrapped error as `cause`.
+- `keyIntegrity` refuses a requested key the source does not have with `UNKNOWN_KEY`; 0.11 left it
+  out and returned empty entries. Pass only source keys in `keys`.
