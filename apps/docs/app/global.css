@@ -491,7 +491,7 @@ samp {
   grid-column: span 2;
 }
 
-@container (max-width: 29.99rem) {
+@container (width < 30rem) {
   .vk-stack-card {
     flex-direction: column;
     align-items: flex-start;

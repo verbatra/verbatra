@@ -24,9 +24,7 @@ function FormatIds({ formats }: { formats: ReadonlyArray<SupportedFormat> }): Re
       {formats.map((format, index) => (
         <Fragment key={format}>
           {index > 0 ? ", " : null}
-          <span className="whitespace-nowrap @max-[30rem]:whitespace-normal @max-[30rem]:[overflow-wrap:anywhere]">
-            {format}
-          </span>
+          <span className="whitespace-nowrap @max-[21rem]:whitespace-normal">{format}</span>
         </Fragment>
       ))}
     </span>
