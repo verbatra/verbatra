@@ -1,5 +1,6 @@
 import type { ProviderNotice, ReviewReasonCode } from "@verbatra/ai-providers";
 import type { ProviderId } from "../config/provider-config.js";
+import type { IntegrityGateReason } from "./integrity-gate.js";
 
 /**
  * Conditions the SDK itself reports on a locale, as opposed to the {@link ProviderNotice} codes a
@@ -9,23 +10,113 @@ import type { ProviderId } from "../config/provider-config.js";
  * - `PLURAL_CATEGORIES_INCOMPLETE`: `i18next-json` only. The target language needs CLDR plural
  *   categories the source does not supply and that plural generation did not produce (it is off,
  *   the provider is not an LLM, or a generated form was withheld), so the missing forms have to be
- *   added by hand.
+ *   added by hand. {@link check} reports the same code, per plural and for every format whose
+ *   plural forms follow CLDR categories, in {@link LocaleCheckSummary.incompletePlurals}.
  * - `SUB_BATCH_FAILED`: one provider sub-batch of a locale failed. Its keys are withheld and retried
  *   on the next run, while the results of the other sub-batches are kept.
  * - `BLANK_ROW_BASELINE_RETAINED`: an imported handoff row was blank, so the existing translation
  *   and its lock-file baseline were kept rather than being erased.
+ * - `HANDOFF_REVIEWS_RECORDED`: an imported XLIFF handoff marked keys `reviewed` or `final` (XLIFF
+ *   1.2: `signed-off`, `final`, or `approved="yes"`), so {@link importWorkbook} recorded those
+ *   values as approved in the provenance file, naming {@link ImportWorkbookInput.reviewer} when it
+ *   is given. A dry run reports what would be recorded and records nothing.
  * - `BUDGET_TOKENS_EXCEEDED`: the configured token budget was reached. Under `warn` the run
  *   continues and the overrun is reported; under `stop` the request that would have crossed the
  *   ceiling is withheld before it is sent, and so is every request after it.
  * - `CACHE_VERSION_UNRECOGNIZED`: the translation memory is at a version this release does not
  *   understand, so the run used no cache and left the file untouched.
+ * - `PROVENANCE_VERSION_UNRECOGNIZED`: the provenance file was written by a newer verbatra, so the
+ *   run left it untouched and recorded no provenance for the values it wrote. Reported by
+ *   {@link translate}, {@link watch}, and {@link importWorkbook}.
+ * - `PROVENANCE_FILE_TOO_LARGE`: recording this locale's provenance would have grown the provenance
+ *   file past the size verbatra reads back, so the file was left as it was and the values the
+ *   locale wrote have no record.
+ * - `LOCALE_STATE_CARRIED_OVER`: the lock file, translation memory, or provenance file held no state
+ *   for this locale but held state under exactly one underscore spelling of it, such as `pt_BR` for
+ *   `pt-BR`, left behind when the configured code was respelled. {@link translate} and
+ *   {@link watch} move that state to the configured code once, before the locale runs, and never
+ *   overwrite state the configured code already has. A dry run reports what a live run would move
+ *   and moves nothing.
+ * - `LOCALE_STATE_CARRY_OVER_SKIPPED`: state that `LOCALE_STATE_CARRIED_OVER` would have moved onto
+ *   this locale stayed where it was, because another process held the lock-file guard past the
+ *   run's `lockAcquireTimeoutMs`, or because the file could not be written. The message names the
+ *   files and the reason. When the lock file or the provenance file is among them, the locale does
+ *   not run: it fails with `LOCALE_STATE_NOT_CARRIED_OVER`, nothing is recorded under its code,
+ *   and the next run tries the move again. A dry run reports this when another process holds the
+ *   lock-file guard at the time, or when the guard cannot be read. When only the translation memory stayed behind, the locale runs
+ *   without those cached translations, since the memory is only a cache.
+ * - `LOCALE_UNVERIFIED_BY_PROVIDER`: the code sent to a machine-translation provider for the source
+ *   or target locale is not on the provider's language table, but only its base language is, or
+ *   it comes from an explicit `provider.options.localeMap` entry, or the provider is a self-hosted
+ *   LibreTranslate server whose installed languages cannot be known before a run (for such a server
+ *   only a target locale is warned about). The locale is translated anyway, since the provider may
+ *   accept it; see {@link LocaleSupport}.
+ * - `LOCALE_NOT_WELL_TESTED`: the provider is an LLM and the target language is outside the
+ *   conservative list of languages LLM providers are known to translate well. It is translated
+ *   anyway; review the output with care.
+ * - `GLOSSARY_UNSUPPORTED_BY_PROVIDER`: a glossary applies to this locale but the provider cannot
+ *   apply a glossary for the language pair (Google Cloud Translation Basic never can; DeepL only
+ *   for the languages on its glossary list), so the glossary is only checked after translation.
+ * - `FORMALITY_UNSUPPORTED_BY_PROVIDER`: the config sets a `formal` or `informal` tone and the
+ *   provider has no formality control for this target language, so the default register is used.
+ * - `SOURCE_FOREIGN_PLACEHOLDERS`: source values this locale is about to translate hold a token
+ *   that looks like a placeholder the configured format does not interpolate, such as a
+ *   single-brace `{name}` in an i18next value. DeepL, Google Cloud Translation and LibreTranslate
+ *   get such a token masked like a placeholder, and a value they cannot mask or restore is left
+ *   untranslated with a `PLACEHOLDER_UNSUPPORTED` notice. An LLM provider or a person must keep it
+ *   unchanged; a translation that drops or changes it is flagged `FOREIGN_PLACEHOLDER_CHANGED`.
+ *   The message gives the number of affected values and names the first keys. Raised per locale,
+ *   only when that locale has such a key missing or stale, for every provider and on a dry run
+ *   too. Never raised for a format a third-party adapter supplies.
+ * - `SOURCE_VALUE_EMPTY`: source keys whose value is empty or whitespace only, such as a key
+ *   `extract` added without a default or a `gettext-po` source entry with an empty `msgstr`.
+ *   Whatever the target or the lock file holds, they are never sent to a provider, written, or
+ *   counted as translated, unchanged or unfilled, and the target keeps whatever value it holds;
+ *   {@link LocaleSummary.emptySource} lists them. The message gives the number of keys and names
+ *   the first ones. Raised per locale, on a dry run too, until the source text is written.
+ * - `SENSITIVE_CONTENT_SENT`: under `sensitiveData.mode: "warn"`, keys this locale sent to the
+ *   provider, or glossary terms sent with them, hold content a configured detector or pattern
+ *   matched, such as an email address or an API key. They were sent unchanged. The message names
+ *   the detectors and the first keys, never the matched text, except where it is part of a key
+ *   name. Raised on a dry run too.
+ * - `SENSITIVE_CONTENT_REDACTED`: under `sensitiveData.mode: "redact"`, the matched content of
+ *   these keys was replaced before sending and restored in the translation. The message names the
+ *   first keys. Raised on a dry run too.
+ * - `SENSITIVE_CONTENT_WITHHELD`: under `sensitiveData.mode: "block"` or `"redact"`, keys were not
+ *   sent because of a match, and are listed in {@link LocaleSummary.sensitiveWithheld}, or
+ *   glossary terms with a match were left out of the request. Under `redact` a key is withheld
+ *   when the match is in its key name, overlaps a placeholder, or did not come back exactly once.
+ * - `RUN_CANCELLED`: the run's `signal` aborted while this locale was running. The keys not yet
+ *   translated were not sent, or their request was abandoned; they get no lock-file entry and stay
+ *   pending for the next run, and the locale is `partial`, or `failed` when other keys were
+ *   withheld and none landed. The message gives their number.
+ *   Translations that arrived before the abort were written and recorded.
+ *
+ * `LOCALE_UNVERIFIED_BY_PROVIDER`, `LOCALE_NOT_WELL_TESTED`, `GLOSSARY_UNSUPPORTED_BY_PROVIDER`
+ * and `FORMALITY_UNSUPPORTED_BY_PROVIDER` are raised before anything is spent, from the same
+ * assessment {@link doctor} reports under its `locales` check, and on a dry run too.
  */
 export type SdkNoticeCode =
   | "PLURAL_CATEGORIES_INCOMPLETE"
   | "SUB_BATCH_FAILED"
   | "BLANK_ROW_BASELINE_RETAINED"
+  | "HANDOFF_REVIEWS_RECORDED"
   | "BUDGET_TOKENS_EXCEEDED"
-  | "CACHE_VERSION_UNRECOGNIZED";
+  | "CACHE_VERSION_UNRECOGNIZED"
+  | "PROVENANCE_VERSION_UNRECOGNIZED"
+  | "PROVENANCE_FILE_TOO_LARGE"
+  | "LOCALE_STATE_CARRIED_OVER"
+  | "LOCALE_STATE_CARRY_OVER_SKIPPED"
+  | "LOCALE_UNVERIFIED_BY_PROVIDER"
+  | "LOCALE_NOT_WELL_TESTED"
+  | "GLOSSARY_UNSUPPORTED_BY_PROVIDER"
+  | "FORMALITY_UNSUPPORTED_BY_PROVIDER"
+  | "SOURCE_FOREIGN_PLACEHOLDERS"
+  | "SOURCE_VALUE_EMPTY"
+  | "SENSITIVE_CONTENT_SENT"
+  | "SENSITIVE_CONTENT_REDACTED"
+  | "SENSITIVE_CONTENT_WITHHELD"
+  | "RUN_CANCELLED";
 
 /**
  * Token usage as reported by the provider. Absent when the provider does not report usage, which is
@@ -52,7 +143,7 @@ export type BudgetBehavior = "warn" | "stop";
  * It is enforced for every provider, including the machine-translation APIs that report no usage of
  * their own: those are counted from the same projection the pre-run estimate uses, so a ceiling set
  * against DeepL or Google Cloud Translation withholds work rather than sitting inert.
- * {@link supported} says which of the two the figure came from.
+ * {@link RunBudget.supported} says which of the two the figure came from.
  *
  * It bounds one run, not a session. {@link watch} starts a fresh budget for every run it triggers,
  * so a watch session can spend up to `maxTokens` again on each source edit. It also covers
@@ -75,11 +166,11 @@ export interface RunBudget {
   /** Whether passing the ceiling only warns, or withholds work to stay under it. */
   readonly behavior: BudgetBehavior;
   /**
-   * Whether {@link tokensUsed} is entirely the provider's own reported usage. False as soon as one
-   * counted request came back without a usable figure, so the total is partly verbatra's own
-   * projection: a machine-translation API reports none at all, and a failed or truncated request
-   * reports none either. Also false when the run sent no request at all, a dry run included, in
-   * which case nothing was counted. The budget is enforced either way.
+   * Whether {@link RunBudget.tokensUsed} is entirely the provider's own reported usage. False as
+   * soon as one counted request came back without a usable figure, so the total is partly
+   * verbatra's own projection: a machine-translation API reports none at all, and a failed or
+   * truncated request reports none either. True when the run sent no request at all, a dry run
+   * included: nothing was counted, so nothing was projected. The budget is enforced either way.
    */
   readonly supported: boolean;
   /**
@@ -102,7 +193,8 @@ export interface RunBudget {
  *   reported; the money is not, because verbatra ships no prices of its own and will not guess one.
  * - `rate-unit-mismatch`: a rate exists but is written in the wrong unit for this provider, for
  *   instance a per-character price against a token-billed model. It is refused rather than applied.
- * - `not-billed`: the provider is a self-hosted endpoint, so no API bills for the run at all.
+ * - `not-billed`: the provider is a self-hosted endpoint, or `none`, so no API bills for the run at
+ *   all.
  */
 export type EstimatePricing = "priced" | "no-rate-on-file" | "rate-unit-mismatch" | "not-billed";
 
@@ -183,7 +275,10 @@ export type LocaleEstimate = PricedLocaleEstimate | UnpricedLocaleEstimate;
 export interface EstimateIdentity {
   /** The provider the estimate was computed for. */
   readonly provider: ProviderId;
-  /** The configured model, absent for a provider that takes none (`deepl`, `google-translate`). */
+  /**
+   * The configured model, absent for a provider that takes none (`deepl`, `google-translate`,
+   * `libretranslate`).
+   */
   readonly model?: string;
   /**
    * The key a rate is filed under in the config's `rates.table`: `provider/model` for a provider
@@ -226,7 +321,7 @@ export interface CharacterRunQuantity extends EstimateIdentity {
 }
 
 /**
- * What a run would send, discriminated on {@link unit} so the billed dimension is always present
+ * What a run would send, discriminated on `unit` so the billed dimension is always present
  * and the other one is never readable as a zero.
  */
 export type RunEstimateQuantity = TokenRunQuantity | CharacterRunQuantity;
@@ -244,7 +339,7 @@ interface PricedEstimateMoney {
   readonly asOf: string;
   /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
   readonly locales: readonly PricedLocaleEstimate[];
-  /** The estimated total, in {@link currency}. */
+  /** The estimated total, in `currency`. */
   readonly cost: number;
 }
 
@@ -305,7 +400,7 @@ export type UnpricedRunEstimate = TokenUnpricedRunEstimate | CharacterUnpricedRu
  * it on its own path, reached from the Studio dashboard and the agent tools, and no estimate here
  * sees that spend.
  *
- * Branch on {@link pricing}: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
+ * Branch on `pricing`: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
  * an {@link UnpricedRunEstimate} carries none of them and says why.
  */
 export type RunEstimate = PricedRunEstimate | UnpricedRunEstimate;
@@ -337,13 +432,71 @@ export interface NeedsReviewEntry {
 }
 
 /**
+ * Why a run left a key alone instead of translating it.
+ *
+ * - `human`: the value was written by a person, through the Studio edit dialog or an SDK edit.
+ * - `import`: the value came from an imported translator handoff.
+ * - `external`: the value was changed outside verbatra since it was recorded, for instance by a
+ *   translator editing the locale file directly, or the provenance file was written by a newer
+ *   verbatra so the value's origin cannot be read.
+ * - `pinned`: the key matches the config's `pinnedKeys`, so no machine write touches it.
+ */
+export type ProtectionReason = "human" | "import" | "external" | "pinned";
+
+/**
+ * A key a run did not translate because its value is protected: a person's work on a key whose
+ * source changed, or a pinned key. Its value and its lock-file baseline were left as they were, so
+ * the key stays stale until a person edits, imports, or deliberately retranslates it.
+ */
+export interface ProtectedKey {
+  /** The protected key. */
+  readonly key: string;
+  /** Why it was protected. */
+  readonly reason: ProtectionReason;
+  /**
+   * A translation of the current source text, present only under `humanEdits: "suggest"` when
+   * {@link ProtectedKey.suggestionStatus} is `suggested`: the provider's answer, or an exact
+   * translation-memory entry for the same source text. A fuzzy memory match is never offered as a
+   * suggestion. It was not written to the locale file.
+   */
+  readonly suggestion?: string;
+  /**
+   * What became of the suggestion for this key, present only for a key that was, or on a dry run
+   * would be, sent for one. See {@link SuggestionStatus}. Absent too for a key whose request a
+   * cancelled run never sent or abandoned.
+   */
+  readonly suggestionStatus?: SuggestionStatus;
+}
+
+/**
+ * The outcome of asking for a suggestion for a {@link ProtectedKey} under `humanEdits: "suggest"`.
+ *
+ * - `planned`: a dry run; a live run would send the key to the provider.
+ * - `suggested`: a suggestion is in {@link ProtectedKey.suggestion}.
+ * - `integrity-mismatch`: the provider's answer failed the integrity gate and was dropped.
+ * - `provider-failure`: the provider returned nothing usable for the key.
+ * - `budget-withheld`: the key was never sent, because the token budget stopped the run.
+ * - `sensitive-withheld`: the key was never sent, or its answer was dropped, because
+ *   `sensitiveData` found content in it (see {@link LocaleSummary.sensitiveWithheld}).
+ *
+ * A failed suggestion never changes the locale's status: the key keeps its value either way.
+ */
+export type SuggestionStatus =
+  | "planned"
+  | "suggested"
+  | "integrity-mismatch"
+  | "provider-failure"
+  | "budget-withheld"
+  | "sensitive-withheld";
+
+/**
  * A key whose translation was reused from the translation memory even though its source string had
  * changed, because the earlier source it was translated from is close enough to the current one.
  *
  * It is reported apart from {@link LocaleSummary.cacheHits} on purpose: an exact cache hit is the
  * same string it always was, while this is a translation of text that is no longer the source text.
- * {@link similarity} and {@link previousSource} are the evidence for the reuse, so a reader can
- * judge it rather than take it on trust.
+ * {@link FuzzyCacheHit.similarity} and {@link FuzzyCacheHit.previousSource} are the evidence for
+ * the reuse, so a reader can judge it rather than take it on trust.
  *
  * A reuse is written to the locale file but deliberately not locked: the key keeps the lock-file
  * baseline it already had, so it stays changed, is offered and flagged again on every later run at
@@ -356,11 +509,29 @@ export interface FuzzyCacheHit {
   /** The key's source text at the time this translation was produced. */
   readonly previousSource: string;
   /**
-   * How alike {@link previousSource} and the current source are, from `0` to `1`: one minus the
-   * character edit distance divided by the longer string's length, after Unicode normalization.
-   * Always at or above the configured `fuzzyCache.threshold`.
+   * How alike {@link FuzzyCacheHit.previousSource} and the current source are, from `0` to `1`: one
+   * minus the character edit distance divided by the longer string's length, after Unicode
+   * normalization. Always at or above the configured `fuzzyCache.threshold`.
    */
   readonly similarity: number;
+}
+
+/**
+ * Why the integrity gate refused one key's candidate translation during a {@link translate} or
+ * {@link watch} run. The previous translation, if any, was left untouched.
+ */
+export interface IntegrityRefusal {
+  /** The refused key, also listed in {@link LocaleSummary.integrityMismatches}. */
+  readonly key: string;
+  /** The gate check the candidate failed, one of {@link INTEGRITY_GATE_REASONS}. */
+  readonly reason: IntegrityGateReason;
+  /**
+   * What is wrong, when the check can name it: for `placeholder`, each placeholder the candidate
+   * dropped prefixed with `-` and each one it added prefixed with `+`; for `markup`, the offending
+   * tags in the same notation; for `icu`, each wrong plural, ordinal, or select arm. Absent when no
+   * single part is at fault.
+   */
+  readonly details?: readonly string[];
 }
 
 /** A row of an imported handoff that could not be read. Reported rather than aborting the import. */
@@ -401,10 +572,14 @@ export interface LocaleSummary {
   /** The target locale this summary describes. */
   readonly locale: string;
   /**
-   * `succeeded` when no key was withheld by the integrity gate, a provider failure, or the token
-   * budget; `partial` when some keys were withheld and others landed; `failed` when keys were
-   * withheld and none landed, or when the locale threw. Keys skipped for invalid ICU source and
-   * handoff rows left blank do not change the status.
+   * `succeeded` when no key was withheld by the integrity gate, a provider failure, the token
+   * budget, or `sensitiveData`; `partial` when some keys were withheld and others landed; `failed`
+   * when keys were withheld and none landed, or when the locale threw. Keys skipped for invalid ICU
+   * source and handoff rows left blank do not change the status. Either way, `partial` means the
+   * locale is incomplete: that includes a locale a cancelled run stopped while it was running, even
+   * before it sent anything, which carries a `RUN_CANCELLED` notice. Such a locale is `failed`
+   * instead when other keys were withheld and none landed. Locales a cancelled run kept from
+   * starting are `failed` with the `RUN_CANCELLED` error code.
    */
   readonly status: "succeeded" | "partial" | "failed";
   /**
@@ -426,9 +601,18 @@ export interface LocaleSummary {
    */
   readonly invalidIcuSource: readonly string[];
   /**
+   * Source keys whose value is empty or whitespace only, such as a key `extract` added without a
+   * default (for `gettext-po`, a `msgid` whose `msgstr` in the source catalog is empty). Nothing is
+   * sent, written or counted for them, and the target keeps whatever value it holds; the same keys
+   * are named by the locale's `SOURCE_VALUE_EMPTY` notice. Always set by {@link translate} and
+   * {@link watch}; it is optional only so a summary built by hand, such as a test double, can leave
+   * it out.
+   */
+  readonly emptySource?: readonly string[];
+  /**
    * Keys served from the translation memory instead of the provider, and so not paid for. Only
    * exact matches: a reuse for a source string that has since changed is reported in
-   * {@link fuzzyHits} instead, never here.
+   * {@link LocaleSummary.fuzzyHits} instead, never here.
    */
   readonly cacheHits: readonly string[];
   /**
@@ -443,6 +627,14 @@ export interface LocaleSummary {
    * placeholder. The previous translation, if any, is left untouched.
    */
   readonly integrityMismatches: readonly string[];
+  /**
+   * The reason behind each key in {@link LocaleSummary.integrityMismatches}, sorted by key. Present
+   * on every {@link translate} and {@link watch} run, empty on a dry run. Present on
+   * {@link importWorkbook} too, where it lists only the rows the integrity gate refused: its
+   * {@link LocaleSummary.integrityMismatches} also counts rows withheld for source drift, which
+   * have no entry here. Absent for a locale that failed by throwing.
+   */
+  readonly integrityRefusals?: readonly IntegrityRefusal[];
   /** Keys the provider failed to translate, for instance because their sub-batch errored. */
   readonly providerFailures: readonly string[];
   /**
@@ -453,6 +645,13 @@ export interface LocaleSummary {
   readonly generated: readonly string[];
   /** Keys not translated because the token budget was exhausted under `stop` behavior. */
   readonly budgetWithheld: readonly string[];
+  /**
+   * Keys not translated because `sensitiveData` found content in what would have been sent, under
+   * `block`, or under `redact` when the match could not be replaced or did not come back intact.
+   * They are retried on the next run. Always empty unless `sensitiveData.mode` is `block` or
+   * `redact`, and for {@link importWorkbook}.
+   */
+  readonly sensitiveWithheld: readonly string[];
   /** Token usage for this locale. Absent when the provider does not report usage. */
   readonly usage?: UsageSummary;
   /** Provider and SDK notices raised while running this locale. Always present, possibly empty. */
@@ -460,10 +659,21 @@ export interface LocaleSummary {
   /** Translated keys flagged as worth a human look. The translations were still written. */
   readonly needsReview: readonly NeedsReviewEntry[];
   /**
-   * Keys an imported handoff left blank while they were missing or out of date in this locale.
-   * Always empty for a {@link translate} run.
+   * Keys still missing or out of date that nothing filled, so a human has to translate them. For
+   * {@link importWorkbook}, the keys the handoff left blank. For a {@link translate} or
+   * {@link watch} run, empty unless the config's provider is `none`: then it lists the keys the
+   * translation memory had no exact entry for, fuzzy reuse never being applied in that mode. They
+   * were left untouched rather than sent anywhere. A human-only dry run reads the memory too, so it
+   * lists the same keys a live run would.
    */
   readonly unfilled: readonly string[];
+  /**
+   * Keys left alone because their value is protected (see {@link ProtectedKey}), sorted by key.
+   * They are not in {@link LocaleSummary.translated}, do not change the locale's status, and stay
+   * stale for {@link check}. Always empty for {@link importWorkbook}, and for a {@link translate}
+   * run under `humanEdits: "overwrite"` with no `pinnedKeys`.
+   */
+  readonly protected: readonly ProtectedKey[];
   /** Unreadable rows from an imported handoff. Always empty for a {@link translate} run. */
   readonly malformedRows: readonly MalformedRowReport[];
   /** Repeated keys from an imported handoff. Always empty for a {@link translate} run. */
@@ -473,9 +683,10 @@ export interface LocaleSummary {
    * own code where it has one, and `LOCALE_FAILED` otherwise. Never carries a secret.
    *
    * Absent unless `status` is `failed`, but a `failed` locale does not always carry it: a locale
-   * whose every key was withheld by the integrity gate, a provider failure, or the token budget is
-   * `failed` with nothing thrown, so this stays undefined and the withheld keys are the account of
-   * what went wrong. Treat it as an optional detail on a failure, never as the failure test.
+   * whose every key was withheld by the integrity gate, a provider failure, the token budget, or
+   * `sensitiveData` is `failed` with nothing thrown, so this stays undefined and the withheld keys
+   * are the account of what went wrong. Treat it as an optional detail on a failure, never as the
+   * failure test.
    */
   readonly error?: {
     /** The failure's own code where it had one, and `LOCALE_FAILED` otherwise. */
@@ -523,4 +734,12 @@ export interface RunSummary {
    * dry run: an estimate constructs no provider and spends nothing.
    */
   readonly estimate?: RunEstimate;
+  /**
+   * Present, and true, only when the run's `signal` aborted and cut something short: a locale
+   * it kept from starting or whose write-lock wait it stopped, which is `failed` with the
+   * `RUN_CANCELLED` error code, or keys it left unsent in locales that were running, which carry
+   * a `RUN_CANCELLED` notice and are `partial` (or `failed` when no key landed and others were
+   * withheld). An abort that arrives after every locale finished leaves it absent.
+   */
+  readonly cancelled?: true;
 }

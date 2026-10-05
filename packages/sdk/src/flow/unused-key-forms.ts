@@ -5,6 +5,7 @@ import {
   decodePathKey,
   decomposeGettextKey,
 } from "@verbatra/format-adapters";
+import { type PluralSuffixRules, pluralSuffixLookup } from "./plural-keys.js";
 
 export interface CatalogKeyForms {
   readonly key: string;
@@ -63,4 +64,14 @@ export function catalogKeyForms(format: FormatId, catalogKey: string): CatalogKe
     key: decoded.key,
     lookups: [...new Set([catalogKey, decoded.key, ...decoded.lookups])],
   };
+}
+
+export function callSiteKeysOf(
+  rules: PluralSuffixRules,
+  catalogKey: string,
+  isPlural: boolean,
+): readonly string[] {
+  const { lookups } = catalogKeyForms(rules.format, catalogKey);
+  const plural = lookups.flatMap((lookup) => pluralSuffixLookup(rules, lookup, isPlural) ?? []);
+  return [...new Set([...lookups, ...plural])];
 }

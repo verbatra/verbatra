@@ -24,6 +24,7 @@ export async function readSourceResource(
     throw new SdkError(
       "SOURCE_INVALID",
       `The source locale file at ${sourcePath} could not be read: ${detail}`,
+      { cause: error },
     );
   }
 }
