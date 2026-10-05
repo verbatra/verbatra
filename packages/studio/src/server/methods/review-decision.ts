@@ -6,6 +6,7 @@ import {
 } from "@verbatra/sdk";
 import type { ReviewDecisionParams } from "../../shared/rpc/review-decision.js";
 import type { RpcHandler, RpcHandlerDeps } from "../rpc.js";
+import { STUDIO_BATCH_LOCK_TIMEOUT_MS } from "./review-batch.js";
 
 function decisionInput(params: ReviewDecisionParams, deps: RpcHandlerDeps): ReviewDecisionInput {
   return {
@@ -15,6 +16,7 @@ function decisionInput(params: ReviewDecisionParams, deps: RpcHandlerDeps): Revi
     key: params.key,
     expectedValue: params.expectedValue,
     ...(params.reviewer !== undefined ? { reviewer: params.reviewer } : {}),
+    lockAcquireTimeoutMs: STUDIO_BATCH_LOCK_TIMEOUT_MS,
   };
 }
 
