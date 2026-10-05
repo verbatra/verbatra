@@ -8,6 +8,8 @@ describe("usage.summary", () => {
   it("tells its reader where the counted budget figure came from", () => {
     expect(usageSummaryTool.description).toContain("budget.supported");
     expect(usageSummaryTool.description).toContain("estimate");
+    expect(usageSummaryTool.description).toContain("every machine-translation provider");
+    expect(usageSummaryTool.description).not.toMatch(/DeepL|Google/);
     expect(usageSummaryTool.description).toContain("does not cap a single-entry retranslation");
   });
 
