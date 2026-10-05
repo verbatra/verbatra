@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StudioScreenshot } from "@/components/studio-screenshot";
-import { type Locale, localizedPath } from "@/lib/i18n";
+import { type Locale, localizedAnchorPath, localizedPath } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CommandBox } from "./command-box";
 import { SKILLS_PACK_ANCHORS, SKILLS_PACK_PAGE } from "./links";
@@ -179,10 +179,10 @@ export async function Loop(): Promise<ReactNode> {
                 {t("links.mcpDocs")}
               </a>
               <a
-                href={`${docs(SKILLS_PACK_PAGE)}#${SKILLS_PACK_ANCHORS[locale]}`}
+                href={localizedAnchorPath(locale, SKILLS_PACK_PAGE, SKILLS_PACK_ANCHORS)}
                 className={LINK_CLASS}
               >
-                verbatra/skills
+                {t("links.skillsDocs")}
               </a>
             </p>
           </Frame>

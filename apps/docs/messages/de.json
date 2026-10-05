@@ -289,7 +289,8 @@
       "links": {
         "llms": "llms.txt",
         "llmsFull": "llms-full.txt",
-        "mcpDocs": "Doku zum MCP-Server"
+        "mcpDocs": "Doku zum MCP-Server",
+        "skillsDocs": "Doku zum Skills-Paket"
       },
       "rows": {
         "agent": {

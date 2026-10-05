@@ -3,14 +3,17 @@
   "locales": {
     "de": {
       "landing.install.aiLabel": {"origin":"import","valueHash":"816233e691dc84ee"},
+      "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"d3b4a17a3c4c051e"},
       "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e5c3008b203a56b4"}
     },
     "es": {
       "landing.install.aiLabel": {"origin":"import","valueHash":"19850e9b9e91da18"},
+      "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"b1c39d205ceadde7"},
       "landing.loop.rows.agent.body": {"origin":"import","valueHash":"e47768f0d0f5fa64"}
     },
     "fr": {
       "landing.install.aiLabel": {"origin":"import","valueHash":"739a7d18479a7e33"},
+      "landing.loop.links.skillsDocs": {"origin":"import","valueHash":"a6b7b28c36634eaa"},
       "landing.loop.rows.agent.body": {"origin":"import","valueHash":"a8c47fd78226993b"}
     }
   }
