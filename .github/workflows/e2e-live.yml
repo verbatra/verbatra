@@ -6,6 +6,16 @@ on:
   schedule:
     - cron: "0 4 * * *"
   workflow_dispatch:
+    inputs:
+      provider:
+        description: Live provider to drive, or all of them
+        type: choice
+        default: all
+        options:
+          - all
+          - gemini
+          - deepl
+          - google-translate
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,25 +26,47 @@ permissions:
 
 jobs:
   e2e-live:
-    name: Drive the CLI against a live provider
+    name: Drive the CLI against a live provider (${{ matrix.provider }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: live-e2e
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.provider != 'all') && format('["{0}"]', inputs.provider) || '["gemini","deepl","google-translate"]') }}
+    env:
+      E2E_PROVIDER: ${{ matrix.provider }}
     steps:
+      - name: Check the provider key
+        id: key
+        env:
+          PROVIDER_KEY: ${{ (matrix.provider == 'gemini' && secrets.GEMINI_API_KEY) || (matrix.provider == 'deepl' && secrets.DEEPL_API_KEY) || (matrix.provider == 'google-translate' && secrets.GOOGLE_TRANSLATE_API_KEY) || '' }}
+        run: |
+          if [ -n "$PROVIDER_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Live E2E skipped (${E2E_PROVIDER})::The live-e2e environment holds no key for ${E2E_PROVIDER}, so this provider's live tier did not run."
+          fi
+
       - name: Checkout
+        if: steps.key.outputs.present == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up workspace
+        if: steps.key.outputs.present == 'true'
         uses: ./.github/actions/setup-workspace
         with:
           node-version: "22.14.0"
 
       - name: Build
+        if: steps.key.outputs.present == 'true'
         run: pnpm build
 
       - name: Pack the published tarballs
+        if: steps.key.outputs.present == 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/packs"
           pnpm --filter @verbatra/sdk pack --pack-destination "$RUNNER_TEMP/packs"
@@ -49,28 +81,41 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Install e2e harness dependencies
+        if: steps.key.outputs.present == 'true'
         working-directory: e2e
         run: npm ci --no-audit --no-fund
 
       - name: Typecheck e2e harness
+        if: steps.key.outputs.present == 'true'
         working-directory: e2e
         run: npm run typecheck
 
-      - name: Run full E2E suite (no-key and live)
+      - name: Run the E2E suite
         id: suite
+        if: steps.key.outputs.present == 'true'
         working-directory: e2e
-        run: npm test
+        run: |
+          if [ "$E2E_PROVIDER" = "gemini" ]; then
+            npm test
+          else
+            npm run test:live
+          fi
         env:
-          E2E_PROVIDER: gemini
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ matrix.provider == 'gemini' && secrets.GEMINI_API_KEY || '' }}
+          DEEPL_API_KEY: ${{ matrix.provider == 'deepl' && secrets.DEEPL_API_KEY || '' }}
+          GOOGLE_TRANSLATE_API_KEY: ${{ matrix.provider == 'google-translate' && secrets.GOOGLE_TRANSLATE_API_KEY || '' }}
 
       - name: Report what this tier's result means
         if: always()
         env:
           SUITE_OUTCOME: ${{ steps.suite.outcome }}
+          KEY_PRESENT: ${{ steps.key.outputs.present }}
         run: |
+          if [ "$KEY_PRESENT" = "false" ]; then
+            SUITE_OUTCOME="skipped, no ${E2E_PROVIDER} key in the live-e2e environment"
+          fi
           {
-            echo "## E2E (live)"
+            echo "## E2E (live: ${E2E_PROVIDER})"
             echo
             echo "Result: \`${SUITE_OUTCOME:-not reached, an earlier step failed}\`."
             echo

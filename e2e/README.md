@@ -106,8 +106,11 @@ deterministic test joins the required gate automatically.
   `sr-Latn` in Latin rather than Cyrillic script; `watch` translates on startup,
   again on a source change, and stops on interrupt. It needs `E2E_PROVIDER` (default `gemini`) and
   the matching API key, and skips otherwise. `.github/workflows/e2e-live.yml` runs it on a nightly
-  schedule, on push to `main`, and on manual dispatch only, never on a pull request, with the key
-  scoped to the `live-e2e` GitHub Environment.
+  schedule, on push to `main`, and on manual dispatch only, never on a pull request, with the keys
+  scoped to the `live-e2e` GitHub Environment. It runs one job per provider (`gemini`, `deepl`,
+  `google-translate`); a manual dispatch can pick one through its `provider` input. The `gemini`
+  job runs `npm test`, the other two run only the live tier (`npm run test:live`). A job whose key
+  is absent from the environment skips its build and tests and leaves a notice instead of failing.
 
   **This tier is advisory and never gates a publish**, because its result depends on a third
   party's availability. That is not licence to ignore it: both live tests read each run's `--json`
@@ -179,7 +182,7 @@ model loaded. Use a loopback URL, since the test pins the `local-only` network p
 `tests/translate.live.e2e.test.ts` holds one case that only runs when `E2E_PROVIDER` is `deepl` or
 `google-translate`: it translates a value with two `{{...}}` placeholders and an ampersand, then
 expects both placeholders back byte-exact, no `<x>`, `<span` or `&amp;` left in the result, and
-the project in sync. The nightly workflow runs `gemini`, so this case runs only locally:
+the project in sync. The `deepl` and `google-translate` jobs of the live workflow run it; locally:
 
 ```sh
 cd e2e
@@ -188,6 +191,20 @@ E2E_PROVIDER=google-translate GOOGLE_TRANSLATE_API_KEY=... npx vitest run tests/
 ```
 
 Without the key, every case in the file skips.
+
+The same case records what the CLI put on the wire for that batch (`src/wire-billing.ts`, a
+`--import` preload that keeps the request texts and never a URL or header, so no key reaches the
+log) and prints a billing table to the test output and, in CI, to the job summary: characters sent
+masked, the same count without markup tags, and the same value unmasked. On DeepL it resends the
+exact masked body and the unmasked value with `show_billed_characters` and reports the billed
+counts DeepL returns. Google Cloud Translation returns no billed count, so compare its masked
+figures with the Cloud console on a day the key ran nothing else, for example after running only
+this case:
+
+```sh
+E2E_PROVIDER=google-translate GOOGLE_TRANSLATE_API_KEY=... \
+  npx vitest run tests/translate.live.e2e.test.ts -t "placeholder-bearing"
+```
 
 ## Choosing the live provider
 
