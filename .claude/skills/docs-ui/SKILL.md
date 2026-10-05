@@ -137,9 +137,10 @@ footer's oversized watermark only; do not clip it onto a heading.
   takes the flat-panel glow border on hover and focus through `.vk-evidence-link`), `package-install.tsx` and
   `command-box.tsx` (each an `@container`: a command wraps once the box is under 30rem, only at
   a space since `HighlightedCommand` keeps each word whole, so the package name is never clipped;
-  the install box's second row shows the whole one-line AI setup prompt, wrapped, under a
-  `.vk-label` caption that shares its row with the prompt's Copy button; its URL breaks only
-  after a `/` or `.` through `breakUrlsAtSeparators` in `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
+  the install box's second row is `AiSetupPrompt` (`components/ai-setup-prompt.tsx`, `variant="row"`):
+  the whole one-line prompt, wrapped, under a `.vk-label` caption that shares its row with the
+  prompt's small Copy button; its URL breaks only after a `/` through `breakUrlsAtSlashes` in
+  `lib/word-breaks.tsx`), `reveal.tsx` (the scroll
   entrance, used once: the providers deck, whose fan-out it triggers; sections do not animate in), `hero-facts.tsx` (the release / formats / providers /
   license row), and an `fx/` folder
   (`grid-pattern.ts`, `hero-wash.ts` with `HERO_BACKGROUND` and `HERO_BORDER`). A new
@@ -149,7 +150,10 @@ footer's oversized watermark only; do not clip it onto a heading.
   real CLI output, English on every locale, and its test pins each line to
   `packages/cli/src/render.ts`, so a change to the CLI's output fails until the demo is
   recaptured.
-- **Docs-facing:** `components/available-from.tsx` renders the version badge. Its rules
+- **Docs-facing:** `<AiSetupPrompt />` in `start-with-ai*.mdx` renders the same prompt as a
+  void panel, so `AI_SETUP_PROMPT` (`lib/ai-setup-prompt.ts`) is its one source;
+  `remarkAiSetupPromptMarkdown` gives the page's `.md` output the prompt as a `text` fence.
+  `components/available-from.tsx` renders the version badge. Its rules
   live in `.claude/rules/docs.md`. `components/docs-home.tsx` holds the docs landing
   (`DocsHomeHero`, `DocsHomeBody`, `DocsHomeSection`, `DocsHomePaths`, `DocsHomeSteps`,
   `DocsHomeFeatures`), all registered in `components/mdx.tsx` and driven by
@@ -186,7 +190,7 @@ Mobile Lighthouse is dominated by bytes that arrive before the first paint, so:
   viewport, so it is fetched before the first paint either way; without the preload it is only
   discovered after the stylesheet, at a higher priority that delays the first contentful paint.
 - Content only needed after an interaction is loaded with a dynamic `import()` on hover, focus,
-  or click. The AI setup prompt is not: it is a few lines, shown in full in the install box.
+  or click. The AI setup prompt is not: it is one short line, shown in full in the install box.
 
 ## Fumadocs UI strings
 
