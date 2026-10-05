@@ -54,3 +54,14 @@ export async function collectScriptHashes(appDirectory) {
   }
   return routes;
 }
+
+export function manifestProblems(routes) {
+  const problems = [];
+  if (routes[NOT_FOUND_ROUTE] === undefined) {
+    problems.push(`no prerendered ${NOT_FOUND_ROUTE} page`);
+  }
+  for (const [route, hashes] of Object.entries(routes)) {
+    if (hashes.length === 0) problems.push(`no inline script hashed on ${route}`);
+  }
+  return problems;
+}

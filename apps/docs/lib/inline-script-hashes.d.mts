@@ -13,3 +13,5 @@ export declare function htmlRoute(relativePath: string): string;
 export declare function collectScriptHashes(
   appDirectory: string,
 ): Promise<Record<string, string[]>>;
+
+export declare function manifestProblems(routes: ScriptHashesByRoute): string[];

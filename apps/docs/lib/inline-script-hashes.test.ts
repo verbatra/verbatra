@@ -7,6 +7,7 @@ import {
   collectScriptHashes,
   htmlRoute,
   inlineScriptHashes,
+  manifestProblems,
   NOT_FOUND_ROUTE,
   scriptHash,
 } from "./inline-script-hashes.mjs";
@@ -84,5 +85,29 @@ describe("collectScriptHashes", () => {
       [NOT_FOUND_ROUTE]: [sha256(BOOTSTRAP)],
       "/en/docs/quickstart": [sha256(FLIGHT)],
     });
+  });
+});
+
+describe("manifestProblems", () => {
+  it("accepts a manifest whose every page, the not-found page included, has hashes", () => {
+    expect(
+      manifestProblems({ [NOT_FOUND_ROUTE]: [sha256(BOOTSTRAP)], "/en": [sha256(FLIGHT)] }),
+    ).toEqual([]);
+  });
+
+  it("rejects a prerendered page without a hash, since every page carries the flight bootstrap", () => {
+    expect(
+      manifestProblems({ [NOT_FOUND_ROUTE]: [sha256(BOOTSTRAP)], "/en": [], "/de": [] }),
+    ).toEqual(["no inline script hashed on /en", "no inline script hashed on /de"]);
+  });
+
+  it("rejects a manifest without the not-found page that unknown paths fall back to", () => {
+    expect(manifestProblems({ "/en": [sha256(BOOTSTRAP)] })).toEqual([
+      `no prerendered ${NOT_FOUND_ROUTE} page`,
+    ]);
+  });
+
+  it("rejects an empty manifest", () => {
+    expect(manifestProblems({})).toEqual([`no prerendered ${NOT_FOUND_ROUTE} page`]);
   });
 });

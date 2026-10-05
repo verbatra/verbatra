@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   collectScriptHashes,
-  NOT_FOUND_ROUTE,
+  manifestProblems,
   SCRIPT_HASHES_FILE,
 } from "../lib/inline-script-hashes.mjs";
 
@@ -15,8 +15,9 @@ const standaloneDistDir = resolve(distDir, "standalone/apps/docs/.next");
 const routes = await collectScriptHashes(resolve(distDir, "server/app"));
 const routeCount = Object.keys(routes).length;
 
-if (routes[NOT_FOUND_ROUTE] === undefined) {
-  console.error(`write-csp-hashes: no prerendered ${NOT_FOUND_ROUTE} page in ${distDir}`);
+const problems = manifestProblems(routes);
+if (problems.length > 0) {
+  for (const problem of problems) console.error(`write-csp-hashes: ${problem} in ${distDir}`);
   process.exit(1);
 }
 
