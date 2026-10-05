@@ -19,6 +19,8 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Returns:** `AdapterRegistry`
 
+**Example:** [Register it and run](/docs/custom-format-adapters#register-it-and-run)
+
 ```ts title="Example"
 import {
   createDefaultRegistry,
@@ -75,6 +77,8 @@ function createFlatFileAdapter(
 <SdkTypeTable name="FlatFileAdapterOptions" />
 
 **Returns:** `FormatAdapter`
+
+**Example:** [Build the adapter](/docs/custom-format-adapters#build-the-adapter)
 
 ### createTreeFileAdapter
 
@@ -236,3 +240,5 @@ const summary = await translate({ config }, { createProvider });
   where a provider may connect: the effective `policy`, the `env` the endpoint was resolved from,
   and optional test `deps`. A custom provider may ignore it, but then only the check the SDK runs
   before calling the factory applies to its requests.
+
+**Example:** [Test your integration without a key](/docs/programmatic-api#test-your-integration-without-a-key)

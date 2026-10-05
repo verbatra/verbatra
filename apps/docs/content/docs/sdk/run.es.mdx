@@ -25,6 +25,8 @@ function translate(
 
 **Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Ejemplo:** [Traduce y lee el resumen](/docs/sdk-quickstart#traduce-y-lee-el-resumen)
+
 Lo que la tabla no cubre:
 
 - `concurrency`: un error de toda la ejecución que surge cuando ya hay locales en marcha impide que
@@ -124,6 +126,8 @@ function watch(
 
 **Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Ejemplo:** [Vigila en un proceso de larga duración](/docs/programmatic-api#vigila-en-un-proceso-de-larga-duración)
+
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
 `{ status: "succeeded", summary }` o `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 donde `causeCode` nombra el error con código que envuelve el fallo y `hint` es el siguiente paso que da
@@ -192,6 +196,8 @@ function pseudolocalize(
 
 **Lanza:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
 
+**Ejemplo:** [Construye un pseudolocale](/docs/programmatic-api#construye-un-pseudolocale)
+
 Cada valor generado pasa por la misma puerta de integridad que debe superar la traducción de
 un proveedor. Uno que no la superaría se copia literalmente del origen y se nombra en `copied` en
 lugar de escribirse roto, así que la entrada sigue presente y sigue renderizándose.
@@ -241,6 +247,8 @@ function generateTypes(
 **Devuelve:** `GenerateTypesResult`
 
 **Lanza:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Ejemplo:** [Genera un catálogo tipado](/docs/programmatic-api#genera-un-catálogo-tipado)
 
 Lee un archivo (el catálogo del locale de origen) y escribe un archivo (la declaración); nunca
 toca un archivo de locale de destino. Las claves son exactamente lo que el adaptador de formato ya

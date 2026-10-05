@@ -78,6 +78,8 @@ function extract(
 
 **Throws:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Example:** [Extract keys from your source code](/docs/programmatic-api#extract-keys-from-your-source-code)
+
 Only genuinely new keys are added to the source locale file; see
 [What it writes](/docs/cli/extract#what-it-writes). What the scan cannot resolve comes back as data
 in `dynamic`, `conflicts`, and `diagnostics`, never thrown
@@ -106,6 +108,8 @@ function check(
 **Returns:** `CheckSummary`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Example:** [Check in CI without writing](/docs/programmatic-api#check-in-ci-without-writing)
 
 `inSync` is true exactly when every checked locale has nothing missing and nothing stale.
 
@@ -414,6 +418,8 @@ function reviewQueue(
 **Returns:** `ReviewQueueResult`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Example:** [Work through the review queue](/docs/programmatic-api#work-through-the-review-queue)
 
 Returns `{ available: true, locales, lastRunAt? }`,
 each locale `{ locale, needsReview, approved?, fuzzyHits? }` and each entry `{ key, reasons, provenance }`;

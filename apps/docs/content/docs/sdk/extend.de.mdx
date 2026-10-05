@@ -19,6 +19,8 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Rückgabe:** `AdapterRegistry`
 
+**Beispiel:** [Registrieren und laufen lassen](/docs/custom-format-adapters#registrieren-und-laufen-lassen)
+
 ```ts title="Beispiel"
 import {
   createDefaultRegistry,
@@ -77,6 +79,8 @@ function createFlatFileAdapter(
 <SdkTypeTable name="FlatFileAdapterOptions" />
 
 **Rückgabe:** `FormatAdapter`
+
+**Beispiel:** [Den Adapter bauen](/docs/custom-format-adapters#den-adapter-bauen)
 
 ### createTreeFileAdapter
 
@@ -244,3 +248,5 @@ const summary = await translate({ config }, { createProvider });
   wohin ein Provider sich verbinden darf: die wirksame `policy`, die Umgebung `env`, aus der der
   Endpunkt aufgelöst wurde, und optionale Test-`deps`. Ein eigener Provider darf das ignorieren,
   dann gilt für seine Anfragen aber nur die Prüfung, die das SDK vor dem Aufruf der Fabrik macht.
+
+**Beispiel:** [Deine Integration ohne Schlüssel testen](/docs/programmatic-api#deine-integration-ohne-schlüssel-testen)

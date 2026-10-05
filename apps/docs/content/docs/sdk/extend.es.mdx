@@ -19,6 +19,8 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Devuelve:** `AdapterRegistry`
 
+**Ejemplo:** [Registrarlo y ejecutar](/docs/custom-format-adapters#registrarlo-y-ejecutar)
+
 ```ts title="Ejemplo"
 import {
   createDefaultRegistry,
@@ -75,6 +77,8 @@ function createFlatFileAdapter(
 <SdkTypeTable name="FlatFileAdapterOptions" />
 
 **Devuelve:** `FormatAdapter`
+
+**Ejemplo:** [Construir el adaptador](/docs/custom-format-adapters#construir-el-adaptador)
 
 ### createTreeFileAdapter
 
@@ -242,3 +246,5 @@ const summary = await translate({ config }, { createProvider });
   resolvió el endpoint y `deps` opcionales para pruebas. Un proveedor propio puede ignorarlo, pero
   entonces a sus solicitudes solo se aplica la comprobación que hace el SDK antes de llamar a la
   fábrica.
+
+**Ejemplo:** [Prueba tu integración sin clave](/docs/programmatic-api#prueba-tu-integración-sin-clave)

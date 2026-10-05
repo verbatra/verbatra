@@ -80,6 +80,8 @@ function extract(
 
 **Lanza:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Ejemplo:** [Extrae claves de tu código fuente](/docs/programmatic-api#extrae-claves-de-tu-código-fuente)
+
 Solo se añaden claves realmente nuevas al archivo del locale de origen; consulta
 [Qué escribe](/docs/cli/extract#qué-escribe). Lo que el análisis no puede resolver vuelve como datos
 en `dynamic`, `conflicts` y `diagnostics`, nunca se lanza
@@ -108,6 +110,8 @@ function check(
 **Devuelve:** `CheckSummary`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Ejemplo:** [Comprueba en CI sin escribir](/docs/programmatic-api#comprueba-en-ci-sin-escribir)
 
 `inSync` es true exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 
@@ -425,6 +429,8 @@ function reviewQueue(
 **Devuelve:** `ReviewQueueResult`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Ejemplo:** [Recorre la cola de revisión](/docs/programmatic-api#recorre-la-cola-de-revisión)
 
 Devuelve `{ available: true, locales, lastRunAt? }`,
 cada locale como `{ locale, needsReview, approved?, fuzzyHits? }` y cada entrada como

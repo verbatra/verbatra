@@ -25,6 +25,8 @@ function translate(
 
 **Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Beispiel:** [Übersetzen und die Zusammenfassung lesen](/docs/sdk-quickstart#übersetzen-und-die-zusammenfassung-lesen)
+
 Was die Tabelle nicht abdeckt:
 
 - `concurrency`: Ein Fehler des gesamten Laufs, der auftritt, während bereits Locales laufen,
@@ -125,6 +127,8 @@ function watch(
 
 **Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Beispiel:** [Beobachten in einem langlaufenden Prozess](/docs/programmatic-api#beobachten-in-einem-langlaufenden-prozess)
+
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
 aufgerufen: `{ status: "succeeded", summary }` oder
 `{ status: "failed", error: { code, message, causeCode?, hint? } }`, wobei `causeCode` den Code des
@@ -194,6 +198,8 @@ function pseudolocalize(
 
 **Wirft:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
 
+**Beispiel:** [Eine Pseudo-Locale bauen](/docs/programmatic-api#eine-pseudo-locale-bauen)
+
 Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie eine Provider-Übersetzung. Ein
 Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in `copied`
 genannt, statt kaputt geschrieben zu werden; der Eintrag ist also weiterhin vorhanden und wird
@@ -245,6 +251,8 @@ function generateTypes(
 **Rückgabe:** `GenerateTypesResult`
 
 **Wirft:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Beispiel:** [Einen typisierten Katalog erzeugen](/docs/programmatic-api#einen-typisierten-katalog-erzeugen)
 
 Gelesen wird eine Datei (der Quell-Locale-Katalog), geschrieben eine Datei (die Deklaration); eine
 Ziel-Locale-Datei wird nie angefasst. Die Keys sind genau das, was der Format-Adapter ohnehin schon

@@ -59,6 +59,8 @@ function extract(
 
 **Lève :** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Exemple :** [Extraire les clés de ton code source](/docs/programmatic-api#extraire-les-clés-de-ton-code-source)
+
 Seules les clés réellement nouvelles sont ajoutées au fichier de la locale source ; voir [Ce qu'elle écrit](/docs/cli/extract#ce-quelle-écrit). Ce que l'analyse ne peut pas résoudre revient sous forme de données dans `dynamic`, `conflicts` et `diagnostics`, jamais levé ([Ce qu'elle signale](/docs/cli/extract#ce-quelle-signale-plutôt-que-de-deviner)). Le résultat ne porte jamais le contenu d'un fichier source.
 
 `config.extract` nomme le framework et les racines de sources. La découverte passe par le membre optionnel `readDirectory` de `SdkFs` ; un `deps.fs` qui ne l'implémente pas est signalé comme `EXTRACT_FS_UNSUPPORTED`.
@@ -81,6 +83,8 @@ function check(
 **Renvoie :** `CheckSummary`
 
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Exemple :** [Vérifier en CI sans écrire](/docs/programmatic-api#vérifier-en-ci-sans-écrire)
 
 `inSync` est vrai exactement quand chaque locale vérifiée n'a rien de manquant ni d'obsolète.
 
@@ -325,6 +329,8 @@ function reviewQueue(
 **Renvoie :** `ReviewQueueResult`
 
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Exemple :** [Traiter la file de relecture](/docs/programmatic-api#traiter-la-file-de-relecture)
 
 Renvoie `{ available: true, locales, lastRunAt? }`, chaque locale sous la forme `{ locale, needsReview, approved?, fuzzyHits? }` et chaque entrée sous la forme `{ key, reasons, provenance }` ; `approved` liste les valeurs de machine approuvées et n'est présent qu'avec `includeApproved: true`. Quand le fichier de provenance est corrompu ou vient d'une version plus récente de verbatra, elle renvoie `{ available: false, reason: "provenance-unreadable" }`. Un fichier source, cible ou de verrouillage illisible fait échouer l'appel comme pour `check`. Jusqu'à la 0.11, la file ne contenait que les signalements de la dernière exécution.
 

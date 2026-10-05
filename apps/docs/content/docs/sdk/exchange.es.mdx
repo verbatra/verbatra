@@ -127,6 +127,8 @@ function errorHint(error: unknown): string | undefined;
 
 **Devuelve:** `string | undefined`
 
+**Ejemplo:** [Gestiona los errores](/docs/sdk-quickstart#gestiona-los-errores)
+
 ```ts title="Ejemplo"
 import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
 
@@ -163,6 +165,8 @@ function exportWorkbook(
 **Devuelve:** `ExportWorkbookResult`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/docs/error-codes#export_unwritable)
+
+**Ejemplo:** [El ciclo de ida y vuelta del libro](/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-del-libro)
 
 `format` es `xlsx` por
 defecto; `csv` y `tsv` escriben en su lugar un `<locale>.csv` o `<locale>.tsv` por locale, así que `out`
@@ -210,6 +214,8 @@ function importWorkbook(
 **Devuelve:** [`RunSummary`](/docs/sdk/run-summary)
 
 **Lanza:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+**Ejemplo:** [El ciclo de ida y vuelta del libro](/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-del-libro)
 
 Con `csv` o `tsv`, `workbook` es un solo
 archivo de entrega o el directorio que contiene uno por locale, y el locale viene del nombre del
@@ -265,6 +271,8 @@ function importTmx(
 **Devuelve:** `ImportTmxResult`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Ejemplo:** [El ciclo de ida y vuelta de TMX](/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-de-tmx)
 
 Nada del archivo se da por bueno. El XML se analiza con el endurecimiento del paquete de
 intercambio, de modo que una declaración de entidad, un subconjunto DTD interno, un archivo
@@ -365,6 +373,8 @@ function exportTmx(
 **Devuelve:** `ExportTmxResult`
 
 **Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+**Ejemplo:** [El ciclo de ida y vuelta de TMX](/docs/programmatic-api#el-ciclo-de-ida-y-vuelta-de-tmx)
 
 Devuelve `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` cuenta las entradas dejadas fuera porque la memoria no tiene texto de origen para ellas, lo que solo ocurre con entradas arrastradas de una caché escrita antes de que la memoria guardase el texto de origen, e `illegalCharactersRemoved` cuenta los caracteres que XML 1.0 no puede representar y que se eliminaron del texto de los segmentos.
 

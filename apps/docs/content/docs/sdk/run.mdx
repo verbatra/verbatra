@@ -24,6 +24,8 @@ function translate(
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Example:** [Translate and read the summary](/docs/sdk-quickstart#translate-and-read-the-summary)
+
 What the table does not cover:
 
 - `concurrency`: a whole-run error raised once locales are already running stops any further
@@ -120,6 +122,8 @@ function watch(
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Example:** [Watch in a long-running process](/docs/programmatic-api#watch-in-a-long-running-process)
+
 `debounceMs` defaults to 300. `onRun` is called once per run with a `WatchRunResult`:
 `{ status: "succeeded", summary }` or `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 where `causeCode` names the coded error the failure wraps and `hint` is the next step `errorHint`
@@ -186,6 +190,8 @@ function pseudolocalize(
 
 **Throws:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
 
+**Example:** [Build a pseudolocale](/docs/programmatic-api#build-a-pseudolocale)
+
 Every generated value is held to the same integrity gate a provider translation must pass. One
 that would not pass it is copied from the source verbatim and named in `copied` rather than written
 in a broken form, so the entry is still present and still renders.
@@ -233,6 +239,8 @@ function generateTypes(
 **Returns:** `GenerateTypesResult`
 
 **Throws:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Example:** [Generate a typed catalog](/docs/programmatic-api#generate-a-typed-catalog)
 
 It reads one file (the source locale catalog) and writes one file (the declaration); a target locale
 file is never touched. The keys are exactly what the format adapter already produced, in document

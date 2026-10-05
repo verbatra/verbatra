@@ -21,6 +21,8 @@ function loadConfig(
 
 **Lève :** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Exemple :** [Une config sans fichier](/docs/programmatic-api#une-config-sans-fichier)
+
 Lève `CONFIG_NOT_FOUND` quand rien n'est trouvé, `CONFIG_INVALID` quand une config est trouvée mais invalide. Voir [Le fichier de configuration](/docs/config-file) pour le schéma. `fs` est le port de système de fichiers par lequel un fichier de glossaire est lu, comme décrit dans [Le point d'injection de dépendances](/docs/sdk#le-point-dinjection-de-dépendances).
 
 ### loadConfigWithMeta
@@ -259,6 +261,8 @@ function defineConfig(
 ```
 
 **Renvoie :** `VerbatraConfigInput`
+
+**Exemple :** [Ajoute un fichier source et une config](/docs/sdk-quickstart#ajoute-un-fichier-source-et-une-config)
 
 ### verbatraConfigSchema
 

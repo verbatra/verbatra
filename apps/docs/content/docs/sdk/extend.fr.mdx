@@ -19,6 +19,8 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Renvoie :** `AdapterRegistry`
 
+**Exemple :** [L'enregistrer et lancer](/docs/custom-format-adapters#lenregistrer-et-lancer)
+
 ```ts title="Exemple"
 import {
   createDefaultRegistry,
@@ -65,6 +67,8 @@ function createFlatFileAdapter(
 <SdkTypeTable name="FlatFileAdapterOptions" />
 
 **Renvoie :** `FormatAdapter`
+
+**Exemple :** [Construire l'adaptateur](/docs/custom-format-adapters#construire-ladaptateur)
 
 ### createTreeFileAdapter
 
@@ -232,3 +236,5 @@ const summary = await translate({ config }, { createProvider });
   point de terminaison a été résolu et des `deps` de test optionnels. Un fournisseur personnalisé
   peut l'ignorer, mais seule la vérification que le SDK fait avant d'appeler la fabrique s'applique
   alors à ses requêtes.
+
+**Exemple :** [Tester ton intégration sans clé](/docs/programmatic-api#tester-ton-intégration-sans-clé)

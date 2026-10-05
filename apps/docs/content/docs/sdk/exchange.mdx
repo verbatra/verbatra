@@ -122,6 +122,8 @@ function errorHint(error: unknown): string | undefined;
 
 **Returns:** `string | undefined`
 
+**Example:** [Handle errors](/docs/sdk-quickstart#handle-errors)
+
 ```ts title="Example"
 import { errorHint, translate, type VerbatraConfig } from "@verbatra/sdk";
 
@@ -158,6 +160,8 @@ function exportWorkbook(
 **Returns:** `ExportWorkbookResult`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/docs/error-codes#export_unwritable)
+
+**Example:** [The workbook round-trip](/docs/programmatic-api#the-workbook-round-trip)
 
 `format` is `xlsx` by
 default; `csv` and `tsv` write one `<locale>.csv` or `<locale>.tsv` per locale instead, so `out`
@@ -202,6 +206,8 @@ function importWorkbook(
 **Returns:** [`RunSummary`](/docs/sdk/run-summary)
 
 **Throws:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+**Example:** [The workbook round-trip](/docs/programmatic-api#the-workbook-round-trip)
 
 With `csv` or `tsv`, `workbook` is either
 one interchange file or the directory holding one per locale, and the locale comes from the file
@@ -255,6 +261,8 @@ function importTmx(
 **Returns:** `ImportTmxResult`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Example:** [The TMX round-trip](/docs/programmatic-api#the-tmx-round-trip)
 
 Nothing from the file is trusted. The XML is parsed under the interchange package's hardening, so an
 entity declaration, an internal DTD subset, an oversized file, or a malformed one is refused with a
@@ -348,6 +356,8 @@ function exportTmx(
 **Returns:** `ExportTmxResult`
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+**Example:** [The TMX round-trip](/docs/programmatic-api#the-tmx-round-trip)
 
 Returns `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }`; `withoutSource` counts entries left out because the memory holds no source text for them, which happens only for entries carried forward from a cache written before the memory stored source text, and `illegalCharactersRemoved` counts the characters XML 1.0 cannot represent that were removed from segment text.
 

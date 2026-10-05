@@ -27,6 +27,8 @@ function loadConfig(
 
 **Throws:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Example:** [A config without a file](/docs/programmatic-api#a-config-without-a-file)
+
 Throws `CONFIG_NOT_FOUND` when nothing is found, `CONFIG_INVALID` when a config is found but
 invalid. See [The config file](/docs/config-file) for the schema. `fs` is the file-system port a
 glossary file is read through, as described under [The dependency seam](/docs/sdk#the-dependency-seam).
@@ -340,6 +342,8 @@ function defineConfig(
 ```
 
 **Returns:** `VerbatraConfigInput`
+
+**Example:** [Add a source file and a config](/docs/sdk-quickstart#add-a-source-file-and-a-config)
 
 ### verbatraConfigSchema
 

@@ -81,6 +81,8 @@ function extract(
 
 **Wirft:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Beispiel:** [Keys aus deinem Quellcode extrahieren](/docs/programmatic-api#keys-aus-deinem-quellcode-extrahieren)
+
 Nur wirklich neue Keys werden in der Quell-Locale-Datei ergänzt; siehe
 [Was er schreibt](/docs/cli/extract#was-er-schreibt). Was der Scan nicht auflösen kann, kommt als
 Daten in `dynamic`, `conflicts` und `diagnostics` zurück, nie geworfen
@@ -110,6 +112,8 @@ function check(
 **Rückgabe:** `CheckSummary`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
 
 `inSync` ist genau dann true, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
@@ -431,6 +435,8 @@ function reviewQueue(
 **Rückgabe:** `ReviewQueueResult`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Beispiel:** [Die Review-Warteschlange abarbeiten](/docs/programmatic-api#die-review-warteschlange-abarbeiten)
 
 Gibt `{ available: true, locales, lastRunAt? }`
 zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als

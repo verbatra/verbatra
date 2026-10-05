@@ -22,6 +22,8 @@ function translate(
 
 **Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Exemple :** [Traduis et lis le résumé](/docs/sdk-quickstart#traduis-et-lis-le-résumé)
+
 Ce que le tableau ne couvre pas :
 
 - `concurrency` : une erreur globale levée alors que des locales tournent déjà empêche toute autre
@@ -119,6 +121,8 @@ function watch(
 
 **Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Exemple :** [Surveiller dans un processus de longue durée](/docs/programmatic-api#surveiller-dans-un-processus-de-longue-durée)
+
 `debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
 
 Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Chaque code de la ligne **Lève** est refusé au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur. Deux d'entre eux pèsent plus sur une session que sur une seule exécution : un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève toujours `CONCURRENCY_BUDGET_CONFLICT`, car il n'existe pas de watch en dry run, et, depuis 0.12.0, un fournisseur impossible à construire, par exemple parce que sa variable de clé d'API manque, lève `PROVIDER_CONSTRUCTION_FAILED` une seule fois au lieu de faire échouer chaque exécution. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
@@ -172,6 +176,8 @@ function pseudolocalize(
 
 **Lève :** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
 
+**Exemple :** [Construire une pseudo-locale](/docs/programmatic-api#construire-une-pseudo-locale)
+
 Chaque valeur générée est tenue à la même barrière d'intégrité qu'une traduction de fournisseur doit
 franchir. Une valeur qui ne la franchirait pas est copiée telle quelle depuis la source et nommée
 dans `copied` plutôt qu'écrite sous une forme cassée, l'entrée reste donc présente et continue de
@@ -220,6 +226,8 @@ function generateTypes(
 **Renvoie :** `GenerateTypesResult`
 
 **Lève :** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Exemple :** [Générer un catalogue typé](/docs/programmatic-api#générer-un-catalogue-typé)
 
 Un fichier est lu (le catalogue de la locale source) et un fichier est écrit (la déclaration) ; un
 fichier de locale cible n'est jamais touché. Les clés sont exactement ce que l'adaptateur de format

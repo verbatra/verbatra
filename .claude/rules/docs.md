@@ -127,9 +127,10 @@ absent line is the statement that the function throws no `SdkError` code. A func
 throws anything says so in its lead paragraph, as `runStatus` does.
 
 After the Throws line, an entry may close with an `**Example:**` line (`**Beispiel:**`,
-`**Ejemplo:**`, `**Exemple:**` in de, es, fr) linking to the quickstart step or recipe in
-`(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx` that owns a full script using the entry
-point, with the locale's own anchor. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
+`**Ejemplo:**`, `**Exemple :**` in de, es, fr) linking to the quickstart step or recipe in
+`(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx`, or the how-to such as
+`(guides)/custom-format-adapters.mdx`, that owns a full script using the entry point, with the
+locale's own anchor and heading text. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
 `Exemple`) in a reference section is either an example no recipe or quickstart step owns, or a short
 one that shows this entry point alone; a full script stays with its recipe. It is self-contained:
 every import is written out, and every given the snippet does not build itself is a `declare const`
