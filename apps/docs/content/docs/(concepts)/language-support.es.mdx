@@ -3,6 +3,8 @@ title: Idiomas y locales
 description: Qué idiomas puede traducir verbatra, cómo llegan los códigos de locale a cada proveedor y cómo se tratan los plurales, las escrituras, las variantes regionales y el texto de derecha a izquierda.
 type: concept
 ---
+<AvailableFrom version="0.12.0" />
+
 verbatra no tiene una lista de idiomas propia. Acepta cualquier código de locale BCP 47 válido y
 deja la traducción a tu proveedor, así que los idiomas que puedes usar son los que admite tu
 proveedor, y en un proyecto solo humano, todos. Lo que hace verbatra es escribir cada código como lo
@@ -10,8 +12,6 @@ espera el proveedor, exigir a cada traducción las reglas de plural de su idioma
 una ejecución cuando un proveedor no puede servir un locale.
 
 ## Códigos de locale
-
-<AvailableFrom version="0.12.0" />
 
 Cada locale de tu configuración debe ser una etiqueta BCP 47 válida, como `fr`, `pt-BR`,
 `sr-Latn`, `zh-Hant-TW` o `es-419`; un código no válido hace fallar la carga de la configuración.
@@ -59,8 +59,6 @@ Lo que significa en la práctica:
 
 ### Cómo recibe el código cada proveedor
 
-<AvailableFrom version="0.12.0" />
-
 DeepL y Google Cloud Translation reciben algunos códigos con su propia grafía, y DeepL rechaza un
 destino `en` o `pt` sin más antes de cualquier petición. Los proveedores LLM reciben el código tal
 como está escrito más el nombre en inglés del idioma, la escritura y la región; consulta
@@ -69,8 +67,6 @@ como está escrito más el nombre en inglés del idioma, la escritura y la regi�
 [Códigos de locale enviados al proveedor](/docs/providers#códigos-de-locale-enviados-al-proveedor).
 
 ## Comprobar el soporte antes de una ejecución
-
-<AvailableFrom version="0.12.0" />
 
 Antes de gastar nada, verbatra juzga cada locale configurado según lo que sabe del proveedor, y
 [`verbatra doctor --locales`](/docs/cli/doctor#soporte-de-locales) imprime los veredictos. Cada
@@ -121,8 +117,6 @@ inclusión.
 
 ## Plurales
 
-<AvailableFrom version="0.12.0" />
-
 verbatra lee qué categorías de plural necesita un idioma de las reglas CLDR de los datos ICU
 integrados en Node.js, ordinales incluidos, así que se trata cada idioma que cubre CLDR: el inglés
 tiene dos categorías cardinales, el ruso y el polaco cuatro, el árabe y el galés seis, el japonés
@@ -146,12 +140,11 @@ Cómo se mantiene correcto un plural depende del formato:
 
 ### Avisos de plural
 
-<AvailableFrom version="0.12.0" />
-
 [`verbatra check`](/docs/cli/check#categorías-de-plural) y `verbatra doctor` avisan de cada plural
-al que le falta una categoría que usa su idioma, en todos los formatos con plurales salvo gettext,
-cuyas formas siguen su propia cabecera. DeepL, Google Cloud Translation y LibreTranslate traducen las
-formas que existen, pero nunca generan formas nuevas.
+al que le falta una categoría que usa su idioma, en cada formato de la lista anterior salvo gettext,
+cuyas formas siguen su propia cabecera; los plurales de otros formatos no se comprueban. DeepL,
+Google Cloud Translation y LibreTranslate traducen las formas que existen, pero nunca generan formas
+nuevas.
 
 ## Idiomas de derecha a izquierda
 

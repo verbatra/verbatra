@@ -7,11 +7,15 @@ Provenance for every translation, protected human edits, and a human-only `provi
 
 **Provenance**
 - Every write records its origin in a committed `verbatra.provenance.json`: `machine` (with
-  provider and model), `memory`, `fuzzy`, `human`, `agent` or `import`. It holds no text.
+  provider and model), `memory`, `fuzzy`, `human`, `agent`, `import`, or `unknown` for a value
+  that had no record before. It holds no text.
 - `check --json`, `diff --json`, `lockState`, `keyValue` and `localeValues` report each key's
   origin, including `unrecorded` and `external` (edited outside verbatra). `loadProvenance` reads
   the file. A corrupt file fails writes with `PROVENANCE_FILE_INVALID`.
-- XLIFF and TMX exports mark unreviewed machine text, and imports ignore the markers.
+- XLIFF exports mark unreviewed machine text. `tmx export` tags every target segment with
+  `x-origin` (`machine`, `human`, `import` or `unknown`) and a machine one with `x-review`; its
+  result's `provenanceMarkers` is `unavailable` when the provenance or lock file cannot be read.
+  Imports ignore the markers.
 - `verbatra report provenance` (SDK: `provenanceReport`) counts each locale's values by origin and
   review state, and lists every key with `--json`. It is read-only and keyless.
 

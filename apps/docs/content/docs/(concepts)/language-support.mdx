@@ -3,6 +3,8 @@ title: Languages and locales
 description: Which languages verbatra can translate, how locale codes reach each provider, and how plurals, scripts, regional variants and right-to-left text are handled.
 type: concept
 ---
+<AvailableFrom version="0.12.0" />
+
 verbatra has no language list of its own. It accepts any valid BCP 47 locale code and leaves the
 translation to your provider, so the languages you can use are the ones your provider supports, and
 for a human-only project, all of them. verbatra's part is to spell each code the way the provider
@@ -10,8 +12,6 @@ expects, hold every translation to its language's plural rules, and warn you bef
 provider cannot serve a locale.
 
 ## Locale codes
-
-<AvailableFrom version="0.12.0" />
 
 Every locale in your config must be a valid BCP 47 tag, such as `fr`, `pt-BR`, `sr-Latn`,
 `zh-Hant-TW` or `es-419`; an invalid code fails the config load. Underscores are not BCP 47: for
@@ -55,8 +55,6 @@ What that means in practice:
 
 ### How each provider receives the code
 
-<AvailableFrom version="0.12.0" />
-
 DeepL and Google Cloud Translation get their own spelling of some codes, and DeepL refuses a bare
 `en` or `pt` target before any request. LLM providers get the code as written plus the English name
 of the language, script and region; see
@@ -65,8 +63,6 @@ of the language, script and region; see
 [Locale codes sent to the provider](/docs/providers#locale-codes-sent-to-the-provider).
 
 ## Checking support before a run
-
-<AvailableFrom version="0.12.0" />
 
 Before anything is spent, verbatra judges every configured locale against what it knows about the
 provider, and [`verbatra doctor --locales`](/docs/cli/doctor#locale-support) prints the verdicts.
@@ -114,8 +110,6 @@ term in a script without spaces between words is matched by containment.
 
 ## Plurals
 
-<AvailableFrom version="0.12.0" />
-
 verbatra reads which plural categories a language needs from the CLDR rules in the ICU data built
 into Node.js, ordinals included, so every language CLDR covers is handled: English has two cardinal
 categories, Russian and Polish four, Arabic and Welsh six, Japanese only `other`. For a locale
@@ -137,12 +131,10 @@ How a plural is kept correct depends on the format:
 
 ### Plural warnings
 
-<AvailableFrom version="0.12.0" />
-
 [`verbatra check`](/docs/cli/check#plural-categories) and `verbatra doctor` warn about every plural
-that lacks a category its language uses, in every plural-aware format except gettext, whose forms
-follow its own header. DeepL, Google Cloud Translation and LibreTranslate translate existing forms
-but never generate new ones.
+that lacks a category its language uses, in each format listed above except gettext, whose forms
+follow its own header; plurals in other formats are not checked. DeepL, Google Cloud Translation and
+LibreTranslate translate existing forms but never generate new ones.
 
 ## Right-to-left languages
 

@@ -13,7 +13,7 @@ diese Website gilt ihre [Datenschutzerklärung](/privacy).
   `provider: { id: "none" }`.
 - **Gesendet wird nur, was übersetzt werden muss**: keine unveränderten Keys, keine Cache-Treffer,
   keine geschützten Keys (außer veralteten menschlichen Änderungen bei `humanEdits: "suggest"`).
-- **Alles andere bleibt lokal**: Studio auf `127.0.0.1`, der MCP-Server über stdio.
+- **Alles andere bleibt lokal**, Studio und der MCP-Server eingeschlossen.
 - **API-Keys kommen nur aus Umgebungsvariablen** und tauchen nie in einer Meldung auf.
 
 ## Wie die Daten fließen
@@ -39,8 +39,8 @@ diese Website gilt ihre [Datenschutzerklärung](/privacy).
 
 Nur die Befehle im Diagramm rufen einen Provider auf; die Aktionen von Studio und MCP brauchen
 [`--allow-spend`](/docs/cli/mcp#kostenpflichtige-tools). Alles andere, Probeläufe und Schätzungen
-eingeschlossen, ist lokal, außer `verbatra doctor --live`: Es sendet nur deinen API-Key, um die
-Sprachliste von DeepL, Google Cloud Translation oder LibreTranslate abzurufen.
+eingeschlossen, ist lokal, außer `verbatra doctor --live`: Es ruft die Sprachliste des Providers für
+maschinelle Übersetzung ab und sendet dabei deinen API-Key (an LibreTranslate keinen) und keine Strings.
 
 Ein Lauf von `translate` sendet nur Keys, die gegenüber [der Lock-Datei](/docs/the-lock-file) fehlen
 oder geändert sind, abzüglich der Treffer im [Cache](/docs/the-cache), und geteilten Text nur
@@ -52,7 +52,7 @@ DNS-Resolver sieht den Hostnamen des Providers.
 
 | Provider | Was gesendet wird | Wohin es geht |
 | --- | --- | --- |
-| `anthropic`, `openai`, `gemini`, `openai-compatible` | Pro Key: der Key-Name, der Quelltext und die Beschreibung oder Bedeutung, die deine Quelldatei mitführt (eine ARB-`description`, eine XLIFF-Notiz, ein gettext-Kommentar). Pro Request: die Quell- und Zielcodes (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes)) und ihre englischen Namen, dein `tone`, die Glossarbegriffe der Ziel-Locale, die Pluralkategorien des Ziels, wenn ein Batch Plurale enthält, die festen Anweisungen von verbatra, der Modellname und ein Limit für Output-Tokens. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com` oder die `baseUrl`, die du konfiguriert hast. Eine `*_BASE_URL`-Variable leitet die gehosteten um, siehe [Netzwerkrichtlinie](/docs/network-policy#gehostete-provider). |
+| `anthropic`, `openai`, `gemini`, `openai-compatible` | Pro Key: der Key-Name, der Quelltext und die Beschreibung oder Bedeutung, die deine Quelldatei mitführt (etwa eine ARB-`description` oder ein gettext-Kommentar). Pro Request: die Quell- und Zielcodes (nach [`localeMap`](/docs/providers#an-den-provider-gesendete-locale-codes)) und ihre englischen Namen, dein `tone`, die Glossarbegriffe der Ziel-Locale, die Pluralkategorien des Ziels, wenn ein Batch Plurale enthält, die festen Anweisungen von verbatra, der Modellname und ein Limit für Output-Tokens. | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com` oder die `baseUrl`, die du konfiguriert hast. Eine `*_BASE_URL`-Variable leitet die gehosteten um, siehe [Netzwerkrichtlinie](/docs/network-policy#gehostete-provider). |
 | `deepl` | Der Quelltext jedes Keys, mit Platzhaltern als nummerierte Markierungen in einem ignorierten `<x>`-Tag (ein Wert, dessen Platzhalter nicht geschützt werden können, wird nicht gesendet) <AvailableFrom version="0.12.0" />, die Sprachcodes, eine Formalitätsstufe, wenn dein `tone` bei einem bezahlten Key eine verlangt, und deine `glossaryId`. Keine Key-Namen, Beschreibungen oder Glossarbegriffe. | `api.deepl.com`, oder `api-free.deepl.com` für einen Key, der auf `:fx` endet. |
 | `google-translate` | Der Quelltext jedes Keys, mit Platzhaltern als nummerierte Markierungen in einem `translate="no"`-Span (ein Wert mit Platzhaltern wird nicht gesendet, wenn sie nicht geschützt werden können oder er zusätzlich einen Zeilenumbruch, Tab oder doppelte Leerzeichen enthält) <AvailableFrom version="0.12.0" />, und die Sprachcodes. | `translation.googleapis.com` |
 | `libretranslate` | Der Quelltext jedes Keys, mit Platzhaltern durch nummerierte Markierungen ersetzt (ein Wert mit ICU-Syntax wird nicht gesendet), die Sprachcodes und `LIBRETRANSLATE_API_KEY`, wenn gesetzt. | Die `baseUrl`, die du konfiguriert hast. |
@@ -77,22 +77,17 @@ geht nur an den konfigurierten Endpunkt (`google-translate` sendet ihn im Query-
 
 ## Aufbewahrung und Auftragsverarbeitung beim Anbieter
 
-Die Aufbewahrung bestimmen der Anbieter und dein Vertrag, nicht verbatra. Zitate im englischen
-Original, Stand September 2026.
+Die Aufbewahrung bestimmen der Anbieter und dein Vertrag. Zitate im englischen Original, Stand
+September 2026.
 
 | Provider | Was der Anbieter sagt | Auftragsverarbeitung |
 | --- | --- | --- |
-| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([Aufbewahrung](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products [...] to train our models" ([Training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). Zero Data Retention wird pro Organisation über den Vertrieb von Anthropic vereinbart ([Zero Data Retention](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
+| Anthropic | "For Anthropic API users, we automatically delete inputs and outputs on our backend within 30 days of receipt or generation" ([Aufbewahrung](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)). "By default, we will not use your inputs or outputs from our commercial products [...] to train our models" ([Training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). Zero Data Retention ist eine Vereinbarung pro Organisation ([Details](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)). | [Data Processing Addendum](https://www.anthropic.com/legal/data-processing-addendum) |
 | OpenAI | "data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)"; "abuse monitoring logs are generated for all API feature usage and retained for up to 30 days, unless longer retention is required by law". Zero Data Retention und Modified Abuse Monitoring "are subject to prior approval by OpenAI", und `/v1/chat/completions`, der Endpunkt, den verbatra aufruft, ist als berechtigt aufgeführt ([Your data](https://developers.openai.com/api/docs/guides/your-data)). | [Data Processing Addendum](https://openai.com/policies/data-processing-addendum/) |
 | Gemini | Im kostenlosen Kontingent (Unpaid Services) gilt: "human reviewers may read, annotate, and process your API input and output", und die Bedingungen sagen "Do not submit sensitive, confidential, or personal information to the Unpaid Services". Bei Paid Services gilt: "Google doesn't use your prompts [...] or responses to improve our products", und sie werden "for a limited period of time, solely for detecting and preventing violations of the Prohibited Use Policy" geloggt. Im EWR, in der Schweiz und im Vereinigten Königreich gelten die Paid-Services-Bedingungen für jede Nutzung, auch für das kostenlose Kontingent ([Gemini API Terms](https://ai.google.dev/gemini-api/terms)). verbatra nutzt weder Grounding noch explizites Caching, die Googles Seite zu [Zero Data Retention](https://ai.google.dev/gemini-api/docs/zdr) ausschließt. | [Processor Terms](https://business.safety.google/processorterms/), die die Gemini API Terms für Paid Services nennen |
-| DeepL | Für DeepL API Free wendet die [Datenschutzerklärung](https://www.deepl.com/en/privacy) die Regel des kostenlosen Dienstes an: "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Für Pro gilt: "your texts will not be used to improve the quality of our services", und "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auf das die [DeepL-Pro-Bedingungen](https://www.deepl.com/en/pro-license) verweisen |
+| DeepL | Für DeepL API Free sagt die [Datenschutzerklärung](https://www.deepl.com/en/privacy): "We process the content you upload and their translations or improvements for a limited period of time to train and improve our neural networks and algorithms." Für Pro gilt: "your texts will not be used to improve the quality of our services", und "After complete performance of the contractually agreed services all submitted texts or documents and their translations or improvements will be deleted." | Data Processing Agreement, auf das die [DeepL-Pro-Bedingungen](https://www.deepl.com/en/pro-license) verweisen |
 | Google Cloud Translation | "text is held briefly in-memory in order to perform the translation and return the results to you", und "Google does not use the content you send to train and improve our Google Translation features" ([Data usage](https://docs.cloud.google.com/translate/data-usage)). | [Cloud Data Processing Addendum](https://cloud.google.com/terms/data-processing-addendum) |
-| openai-compatible, LibreTranslate | Was auch immer dein eigener Server tut. Ein Server, den du selbst betreibst, hält die Strings auf Hardware, die du kontrollierst. | Deine eigene |
-
-Gemini kostenlos (außerhalb von EWR, Schweiz und Vereinigtem Königreich) und DeepL Free dürfen mit
-dem, was du sendest, trainieren.
-Für vertrauliche Strings nimm ein bezahltes Kontingent, deinen eigenen Server oder keine
-maschinelle Übersetzung.
+| openai-compatible, LibreTranslate | Was auch immer dein eigener Server tut. | Deine eigene |
 
 ## Strings im Haus behalten
 
@@ -100,13 +95,8 @@ maschinelle Übersetzung.
 | --- | --- |
 | Keine maschinelle Übersetzung | [Ohne maschinelle Übersetzung arbeiten](/docs/human-only-workflow) <AvailableFrom version="0.12.0" /> |
 | Dein eigenes Modell | [`openai-compatible`](/docs/providers#openai-compatible) mit Ollama, LM Studio oder vLLM |
-| Deine eigene maschinelle Übersetzung, ohne Sprachmodell | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
+| Maschinelle Übersetzung ohne Sprachmodell | [`libretranslate`](/docs/providers#libretranslate) <AvailableFrom version="0.12.0" /> |
 | Erzwing es | eine [Netzwerkrichtlinie](/docs/network-policy) `local-only`, in der CI festgelegt <AvailableFrom version="0.12.0" /> |
-
-### Rezept: Maschinenübersetzung, wenn Sprachmodelle verboten sind
-
-Verschoben nach
-[Netzwerkrichtlinie](/docs/network-policy#maschinelle-übersetzung-ohne-sprachmodell).
 
 ## Was lokal geschrieben wird
 
@@ -132,19 +122,17 @@ es beim Start ausgibt, und seine Content-Security-Policy blockiert Abrufe aus de
 
 **Der MCP-Server** spricht über stdio und öffnet keinen Port. Seine Lese-Tools geben deine Strings,
 dein Glossar und deinen Status heraus; [`--redact-values`](/docs/cli/mcp#redacted-values) macht
-jeden Wert zu einer Markierung, mit den dort genannten Grenzen. `history.list` liefert für jeden
-Commit Hash, Datum, Autorname (nicht unter `--redact-values`), Betreff und Pfade, nie die E-Mail.
+jeden Wert zu einer Markierung, mit den dort genannten Grenzen. `history.list` nennt den Autor jedes
+Commits (nicht unter `--redact-values`), nie die E-Mail.
 
-Ein MCP-Client oder ein Browser-Agent, der Studios `--expose-agent-tools` nutzt, ist
-meist ein KI-Assistent, und was er liest, geht an sein Modell, unter den Bedingungen dieses
-Anbieters. Studios Agent-Tools werden nie geschwärzt: Ein Agent, der den Tab steuert, kann die
-Seite ohnehin lesen.
+Ein MCP-Client oder ein Browser-Agent, der Studios `--expose-agent-tools` nutzt, schickt, was er
+liest, an sein KI-Modell, unter den Bedingungen dieses Anbieters. Studios Agent-Tools werden nie
+geschwärzt.
 
 ## KI-erzeugte Übersetzungen und Provenance
 
-Artikel 50 des EU AI Act legt Transparenzpflichten für KI-Systeme fest, die Text erzeugen
-([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)). Ob er für dein
-Produkt gilt, klärt deine Rechtsberatung. verbatra
+Ob die Transparenzpflichten des EU AI Act für KI-erzeugten Text
+([Artikel 50](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)) gelten, klärt deine Rechtsberatung. verbatra
 [protokolliert](/docs/the-lock-file#herkunft-wer-welchen-wert-geschrieben-hat) Provider und Modell
 hinter jedem maschinell übersetzten Wert.
 
@@ -157,19 +145,13 @@ hinter jedem maschinell übersetzten Wert.
 
 ## Checkliste für ein AVV- oder NDA-Review
 
-1. Entscheide, ob Strings dein Netzwerk verlassen dürfen; wenn nicht, wähl eine Option unter
+1. Entscheide, ob Strings dein Netzwerk verlassen dürfen; wenn nicht, siehe
    [Strings im Haus behalten](#strings-im-haus-behalten).
-2. Nimm für einen gehosteten Provider ein bezahltes Kontingent und unterschreib seine
-   Auftragsverarbeitungsbedingungen, mit Zero Retention, wenn du sie brauchst.
-3. Prüf mit `verbatra check --sensitive`, was deine Key-Namen, Beschreibungen und das Glossar senden.
+2. Nimm für einen gehosteten Provider ein bezahltes Kontingent (Gemini kostenlos außerhalb von EWR,
+   Schweiz und Vereinigtem Königreich und DeepL Free dürfen mit dem trainieren, was du sendest) und unterschreib seine Auftragsverarbeitungsbedingungen.
+3. Führ `verbatra check --sensitive` über deine Key-Namen, Beschreibungen und das Glossar aus.
 4. Halte API-Keys in einem Secret Store oder einer ignorierten `.env` und führ `verbatra doctor` aus.
-5. Entscheide, welche KI-Agenten Studio oder den MCP-Server nutzen dürfen und ob er
-   `--redact-values` braucht.
+5. Entscheide, welche KI-Agenten Studio oder den MCP-Server nutzen dürfen, und ob sie
+   `--redact-values` brauchen.
 6. Committe `verbatra.provenance.json` und archiviere `verbatra report provenance --json` pro
    Release.
-
-## Siehe auch
-
-- [Netzwerkrichtlinie](/docs/network-policy)
-- [Provider](/docs/providers)
-- [Nachweis maschineller Übersetzungen festhalten](/docs/provenance-evidence)

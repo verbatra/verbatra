@@ -52,11 +52,13 @@ export interface LoadConfigOptions {
   /** File-system port used to read the glossary file. Defaults to the real file system. */
   readonly fs?: SdkFs;
   /**
-   * Re-evaluate a JavaScript or TypeScript config file, and the modules it imports, instead of
-   * reusing what an earlier load in the same process evaluated. Without it, a process that loads
-   * the config twice keeps the first result of a `verbatra.config.ts`, `.js`, or `.cjs` file even
-   * after the file changed. A long-running process that reloads the config after an edit sets it.
-   * JSON, YAML, and `package.json` configs are always read afresh. Defaults to `false`.
+   * Re-evaluate a JavaScript or TypeScript config file instead of reusing what an earlier load in
+   * the same process evaluated. A `.ts` config is re-evaluated together with the modules it
+   * imports; a `.js` or `.cjs` config is re-evaluated alone, so a module it imports or requires
+   * keeps its first evaluation until the process restarts. Without it, a process that loads the
+   * config twice keeps the first result of a `verbatra.config.ts`, `.js`, or `.cjs` file even after
+   * the file changed. A long-running process that reloads the config after an edit sets it. JSON,
+   * YAML, and `package.json` configs are always read afresh. Defaults to `false`.
    */
   readonly fresh?: boolean;
 }

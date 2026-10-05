@@ -3,6 +3,8 @@ title: Langues et locales
 description: Quelles langues verbatra peut traduire, comment les codes de locale arrivent chez chaque fournisseur, et comment sont traités les pluriels, les écritures, les variantes régionales et le texte de droite à gauche.
 type: concept
 ---
+<AvailableFrom version="0.12.0" />
+
 verbatra n'a pas de liste de langues à lui. Il accepte tout code de locale BCP 47 valide et laisse
 la traduction à ton fournisseur : les langues que tu peux utiliser sont donc celles que ton
 fournisseur prend en charge, et pour un projet sans traduction automatique, toutes. Le rôle de
@@ -11,8 +13,6 @@ règles de pluriel de sa langue, et de te prévenir avant une exécution quand u
 pas servir une locale.
 
 ## Codes de locale
-
-<AvailableFrom version="0.12.0" />
 
 Chaque locale de ta configuration doit être une balise BCP 47 valide, comme `fr`, `pt-BR`,
 `sr-Latn`, `zh-Hant-TW` ou `es-419` ; un code invalide fait échouer le chargement de la
@@ -60,8 +60,6 @@ Ce que cela veut dire en pratique :
 
 ### Comment chaque fournisseur reçoit le code
 
-<AvailableFrom version="0.12.0" />
-
 DeepL et Google Cloud Translation reçoivent certains codes sous leur propre graphie, et DeepL refuse
 une cible `en` ou `pt` nue avant toute requête. Les fournisseurs LLM reçoivent le code tel qu'écrit,
 plus le nom anglais de la langue, de l'écriture et de la région ; voir
@@ -71,8 +69,6 @@ complète est sous
 [Codes de locale envoyés au fournisseur](/docs/providers#codes-de-locale-envoyés-au-fournisseur).
 
 ## Vérifier la prise en charge avant une exécution
-
-<AvailableFrom version="0.12.0" />
 
 Avant toute dépense, verbatra juge chaque locale configurée d'après ce qu'il sait du fournisseur,
 et [`verbatra doctor --locales`](/docs/cli/doctor#prise-en-charge-des-locales) affiche les
@@ -124,8 +120,6 @@ comparé par inclusion.
 
 ## Pluriels
 
-<AvailableFrom version="0.12.0" />
-
 verbatra lit les catégories de pluriel dont une langue a besoin dans les règles CLDR des données ICU
 intégrées à Node.js, ordinaux compris, donc chaque langue que couvre CLDR est prise en charge :
 l'anglais a deux catégories cardinales, le russe et le polonais quatre, l'arabe et le gallois six,
@@ -148,12 +142,11 @@ La façon dont un pluriel reste correct dépend du format :
 
 ### Avertissements de pluriel
 
-<AvailableFrom version="0.12.0" />
-
 [`verbatra check`](/docs/cli/check#catégories-de-pluriel) et `verbatra doctor` avertissent de chaque
-pluriel à qui manque une catégorie que sa langue utilise, dans tous les formats qui gèrent les
-pluriels sauf gettext, dont les formes suivent son propre en-tête. DeepL, Google Cloud Translation
-et LibreTranslate traduisent les formes existantes mais n'en génèrent jamais de nouvelles.
+pluriel à qui manque une catégorie que sa langue utilise, dans chaque format de la liste ci-dessus
+sauf gettext, dont les formes suivent son propre en-tête ; les pluriels des autres formats ne sont
+pas vérifiés. DeepL, Google Cloud Translation et LibreTranslate traduisent les formes existantes
+mais n'en génèrent jamais de nouvelles.
 
 ## Langues de droite à gauche
 

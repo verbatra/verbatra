@@ -19,10 +19,14 @@ XLIFF 1.2 and 2.0 agency handoff, spec-accurate XLIFF, and layout-keeping writes
 - An empty, missing, `new` or `needs-translation` target counts as missing and is translated, and
   a key missing from the target document gets its own unit.
 - Text is escaped exactly once, and each version keeps its own inline elements and attributes.
+- A long value full of unclosed inline tags (`<x<x<x...`) no longer takes quadratic time to scan
+  for placeholders.
 
 **Other formats and writes**
 - Android, XLIFF and gettext writes keep line endings and indentation, and a created `.po` file
   gets a `Language` header.
 - A Flutter ARB target starts with `@@locale`, and prune and reject remove ARB keys.
+- In Apple `.strings`, a block comment quoted inside a `//` line comment no longer becomes the
+  next entry's description; only a real `/* ... */` comment does.
 - No empty target file is created for a locale whose keys were all withheld, and `import` writes
   new keys in source order.

@@ -5,7 +5,7 @@ type: reference
 ---
 <AvailableFrom version="0.9.0" />
 
-Comprueba si un proyecto está bien configurado y recibe todos los problemas en un solo informe. `doctor` no construye ningún proveedor, no escribe ningún archivo y nunca lee el valor de una clave de API (solo `--live` envía una petición). Úsalo después de [`verbatra init`](/docs/cli/init) o cuando otro comando falle.
+Comprueba si un proyecto está bien configurado y recibe todos los problemas en un solo informe. `doctor` no construye ningún proveedor, no escribe ningún archivo y solo lee el valor de una clave de API con `--live`, que la envía en una petición de la lista de idiomas del proveedor (LibreTranslate no recibe ninguna). Úsalo después de [`verbatra init`](/docs/cli/init) o cuando otro comando falle.
 
 ## Sinopsis
 
