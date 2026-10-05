@@ -5,9 +5,9 @@ type: reference
 tocDepth: 2
 codeHeadings: true
 ---
-Cada fallo que informa verbatra lleva un código estable: en la línea `verbatra: error [CODE] message` de stderr, como `code` o `causeCode` de un sobre `--json`, como `error.code` de un locale fallido o como aviso en el resumen de la ejecución. Ramifica según el código, nunca según el mensaje. Cada código tiene su propio ancla, `/docs/error-codes#` seguido del código en minúsculas, como [`#config_not_found`](#config_not_found).
+Cada fallo que informa verbatra lleva un código estable: en la línea `verbatra: error [CODE] message` de stderr, como `code` o `causeCode` de un envoltorio `--json`, como `error.code` de un locale fallido o como aviso en el resumen de la ejecución. Ramifica según el código, nunca según el mensaje. Cada código tiene su propio ancla, `/docs/error-codes#` seguido del código en minúsculas, como [`#config_not_found`](#config_not_found).
 
-El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del sobre. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/docs/sdk/errors#errorhint). Los códigos de salida y la forma del sobre están en [Códigos de salida y salida JSON](/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/docs/troubleshooting).
+El **Siguiente paso** de un código de error es la pista que verbatra imprime tras la línea de error como `next: ...` y pone en el campo `hint` del envoltorio. Aparece aquí tal cual la imprime verbatra, en inglés, y el SDK devuelve el mismo texto desde [`errorHint`](/docs/sdk/errors#errorhint). Los códigos de salida y la forma del envoltorio están en [Códigos de salida y salida JSON](/docs/cli/output); la ayuda a partir del síntoma está en [Solución de problemas](/docs/troubleshooting).
 
 Dos códigos pertenecen a dos familias: `CONFIG_INVALID` (el SDK, e `init` en la CLI) y `NETWORK_POLICY_VIOLATION` (el SDK y los proveedores). El ancla en minúsculas lleva a la entrada del SDK; la otra entrada tiene un ancla con prefijo.
 
@@ -450,7 +450,7 @@ El `maxTokens` por ejecución de `translate` se fijó pero no es un número ente
 
 El `cursor` pasado a `localeValuesPage` o `provenanceReportPage` está mal formado, supera `PAGE_CURSOR_MAX_LENGTH` (512), se creó con otros filtros o apunta a una clave que se movió o ya no existe porque los archivos cambiaron entre páginas.
 
-- **Lo lanza**: el SDK; la herramienta de agente `verbatra_locale_values` de Studio (el servidor MCP lo informa como entrada no válida para `cursor`)
+- **Lo lanza**: el SDK; la herramienta de agente `verbatra_locale_values` de Studio (`locale.values` y `report.provenance` del servidor MCP lo informan como entrada no válida para `cursor`)
 - **Código de salida**: ninguno: ningún comando de la CLI lo lanza
 - **Siguiente paso**: Call again without a cursor to start from the first page.
 
@@ -788,7 +788,7 @@ Se registró un adaptador con un identificador `custom:` mal formado.
 
 ### REVIEW_REQUIRED
 
-Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzzy` o `agent`) no está aprobada en el `verbatra.provenance.json` confirmado. El sobre sigue siendo `ok: true`, y `result.locales[].review.unreviewed` nombra las claves.
+Al menos una traducción escrita por máquina (origen `machine`, `memory`, `fuzzy` o `agent`) no está aprobada en el `verbatra.provenance.json` confirmado. El envoltorio sigue siendo `ok: true`, y `result.locales[].review.unreviewed` nombra las claves.
 
 - **Lo lanza**: `check --require-reviewed`
 - **Código de salida**: `1`

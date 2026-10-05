@@ -1,9 +1,9 @@
 ---
 title: Códigos de salida y salida JSON
-description: "El contrato de códigos de salida, el sobre JSON que imprime cada comando con --json, los códigos que lanza la propia CLI y cómo escribe verbatra en stderr y en el terminal."
+description: "El contrato de códigos de salida, el envoltorio JSON que imprime cada comando con --json, los códigos que lanza la propia CLI y cómo escribe verbatra en stderr y en el terminal."
 type: reference
 ---
-Todo aquello en lo que un script o un paso de CI puede confiar en todos los comandos: qué significa cada código de salida, qué sobre imprime `--json`, qué códigos de error lanza la propia CLI y cómo llegan los errores y el progreso a stderr. Cada [página de comando](/docs/cli) añade solo lo específico de ese comando.
+Todo aquello en lo que un script o un paso de CI puede confiar en todos los comandos: qué significa cada código de salida, qué envoltorio imprime `--json`, qué códigos de error lanza la propia CLI y cómo llegan los errores y el progreso a stderr. Cada [página de comando](/docs/cli) añade solo lo específico de ese comando.
 
 ## Códigos de salida
 
@@ -84,7 +84,7 @@ Una ejecución que falla por completo escribe exactamente un registro `ok: false
 
 `hint` aparece cuando el error tiene un siguiente paso: una frase breve en imperativo que lo resuelve, como `"Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."` para una clave ausente o `` "Run `verbatra check --help` to see the options and arguments it accepts." `` para un `USAGE_ERROR`. Actúa según él en lugar de analizar `message`. Nombra variables, flags y rutas, nunca el valor de una clave. Cada código del SDK, de un proveedor y de un adaptador de formato tiene uno (el SDK exporta el mismo texto como [`errorHint`](/docs/sdk/errors#errorhint)), y también cada [código de error de la CLI](/docs/error-codes#cli-error-codes) excepto `CLI_ERROR`. Sin `--json`, el mismo texto sigue a la línea de error en stderr como `next: ...`, salvo que uses `--quiet`. `mcp --json` es la excepción: se rechaza con una sola línea `USAGE_ERROR` en stderr, sin envoltorio y sin `next:`.
 
-El `result` de un sobre correcto es distinto en cada comando y se describe en su página, bajo Salida JSON: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
+El `result` de un envoltorio correcto es distinto en cada comando y se describe en su página, bajo Salida JSON: [`extract`](/docs/cli/extract), [`translate`](/docs/cli/translate), [`watch`](/docs/cli/watch), [`check`](/docs/cli/check), [`diff`](/docs/cli/diff), [`report`](/docs/cli/report), [`doctor`](/docs/cli/doctor), [`pseudo`](/docs/cli/pseudo), [`types`](/docs/cli/types), [`export`](/docs/cli/export), [`import`](/docs/cli/import), [`tmx`](/docs/cli/tmx), [`init`](/docs/cli/init).
 
 ## Códigos de error de la CLI
 
