@@ -110,13 +110,17 @@ Voir la [référence des plugins de Claude Code](https://code.claude.com/docs/en
 
 ## Codex
 
-Codex lit `~/.codex/config.toml`, ou le `.codex/config.toml` d'un projet de confiance :
+Codex lit `~/.codex/config.toml`, ou le `.codex/config.toml` d'un projet de confiance. La voie recommandée :
 
 ```bash
 codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Ou écris-la à la main, ici dépenses autorisées ; `env_vars` nomme des variables que Codex transmet, donc le fichier ne contient jamais la valeur :
+N'ajoute jamais `--env` : il stocke la valeur de la clé. Voir la [documentation MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Entrée Codex à la main
+
+Celle-ci autorise les dépenses ; `env_vars` nomme des variables que Codex transmet, donc le fichier ne contient jamais la valeur :
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -126,7 +130,7 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Pour une entrée sans dépense, retire `--allow-spend` et `env_vars`. Une table `[mcp_servers.verbatra.env]` ou `codex mcp add --env` stockent la valeur elle-même. Voir la [documentation MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+Pour une entrée sans dépense, retire `--allow-spend` et `env_vars`. Une table `[mcp_servers.verbatra.env]` stocke la valeur elle-même.
 
 ## Gemini CLI
 
@@ -233,7 +237,7 @@ Une personne administratrice du dépôt ajoute le serveur sous **Settings**, **C
 }
 ```
 
-Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit écrire dans sa pull request, et laisse `review.approve` et `review.reject` dehors : une décision de relecture demande une personne. Pour vérifier, ouvre **View session** de l'agent et déplie **Start MCP Servers**. Voir [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Ajoute `translation.editEntry` et `glossary.write` seulement si l'agent doit écrire dans sa pull request, et laisse `review.approve` et `review.reject` dehors : une décision de relecture demande une personne. Laisse les dépenses désactivées. Pour vérifier, ouvre **View session** de l'agent et déplie **Start MCP Servers**. Voir [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 

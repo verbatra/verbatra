@@ -21,7 +21,7 @@ Agent : suis ces étapes dans l'ordre et ne saute jamais l'arrêt de l'étape 6.
 
 ### 1. Examiner la configuration existante
 
-Trouve la bibliothèque i18n dans `package.json` (par exemple `i18next`, `vue-i18n`, `next-intl` ou `@ngx-translate/core`) et les fichiers de locale eux-mêmes. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/docs/pick-your-stack) associe à chaque stack son id de format et sa structure ; [Formats](/docs/formats) indique quels fichiers doivent déjà exister, comme un fichier XLIFF ou un Xcode String Catalog. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`.
+Avant de modifier quoi que ce soit, trouve la bibliothèque i18n dans `package.json` (comme `i18next`, `vue-i18n` ou `next-intl`) et les fichiers de locale. Note la locale source, chaque locale cible déjà présente et le motif de chemin avec un jeton `{locale}`, comme `locales/{locale}.json`. [Choisis ta stack](/docs/pick-your-stack) associe à chaque stack son id de format et sa structure, y compris le `res/{locale}/strings.xml` d'Android avec `files.localeStyle: "android"` ; [Formats](/docs/formats) indique quels fichiers doivent déjà exister. Du JSON sans bibliothèque i18n : des marqueurs `{{name}}` signifient `i18next-json`, une accolade simple `{name}` signifie `vue-i18n-json`.
 
 ### 2. Installer la CLI
 
@@ -29,7 +29,7 @@ Trouve la bibliothèque i18n dans `package.json` (par exemple `i18next`, `vue-i1
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm, yarn et bun fonctionnent aussi. Si pnpm se termine avec `ERR_PNPM_IGNORED_BUILDS`, lance `pnpm approve-builds` une fois sans approuver aucune des deux entrées. Si npm signale des scripts d'installation hors de `allowScripts`, laisse-les non approuvés : verbatra n'en a besoin d'aucun.
+pnpm, yarn et bun fonctionnent aussi. N'approuve aucun script d'installation, ni dans `pnpm approve-builds` ni dans `allowScripts` de npm : verbatra n'en a besoin d'aucun.
 
 ### 3. Créer la config et les fichiers de l'agent
 
@@ -37,24 +37,18 @@ pnpm, yarn et bun fonctionnent aussi. Si pnpm se termine avec `ERR_PNPM_IGNORED_
 npx verbatra init --provider <provider> --yes --json --agent
 ```
 
-Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend déjà évident, et ne passe jamais une valeur de clé à `init`. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question. `--agent` écrit en plus une section verbatra dans `AGENTS.md` (ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions) et le serveur MCP verbatra, dépenses désactivées, dans `.mcp.json` :
+Demande à l'humain quel fournisseur utiliser, sauf si le projet le rend évident. Ne choisis jamais un fournisseur qui dépense sur un service que l'humain n'a pas accepté, et ne passe jamais une valeur de clé à `init`. [Fournisseurs](/docs/providers) liste les ids ; `none` désactive la traduction automatique. `init` détecte le format, le motif de chemin et les locales, affiche une enveloppe JSON et ne pose jamais de question. `--agent` écrit en plus une section verbatra dans `AGENTS.md` (ou dans `CLAUDE.md` quand c'est le seul fichier d'instructions) et le serveur MCP verbatra, dépenses désactivées, dans `.mcp.json` :
 
-- Sortie `0` : compare `result.config` avec ce que tu as trouvé à l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.detection.layout` montre le motif et les locales trouvés par l'analyse. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
+- Sortie `0` : compare `result.config` avec l'étape 1, en commençant par chaque entrée de `result.sources` qui indique `default` ; `result.config.files.localeStyle` n'apparaît que si les fichiers n'écrivent pas les locales telles quelles. Si quelque chose ne va pas, relance-la avec le bon `--format`, `--path`, `--source` ou `--targets`, plus `--force`.
 - Sortie `2` avec `FORMAT_AMBIGUOUS` ou `LAYOUT_AMBIGUOUS` : choisis parmi les `candidates` et relance-la avec `--format` ou `--path`. Si les candidats sont des fichiers de namespace côte à côte, arrête-toi et demande à l'humain, car une config couvre un seul motif de fichier.
 - Sortie `2` avec `MISSING_OPTIONS` : le message nomme chaque flag encore nécessaire.
-- Sortie `2` avec `CONFIG_EXISTS` : lance `npx verbatra init --agent --json` pour garder la config et n'ajouter que les fichiers de l'agent. Demande à l'humain avant de passer `--force`.
+- Sortie `2` avec `CONFIG_EXISTS` : dis à l'humain quel fournisseur la config existante utilise et attends sa confirmation. Lance ensuite `npx verbatra init --agent --json`, qui garde la config et n'ajoute que les fichiers de l'agent. Demande avant de passer `--force`.
 
-[init](/docs/cli/init#fournisseurs) documente chaque flag, y compris `--base-url` et `--model` pour un serveur compatible OpenAI ou LibreTranslate.
+[init](/docs/cli/init#fournisseurs) documente chaque flag.
 
 ### 4. Laisser la clé d'API à l'humain
 
-Saute cette étape avec le fournisseur `none`.
-
-```bash
-cp .env.example .env
-```
-
-Vérifie que `.env` nomme la variable de `result.apiKeyEnvVar`, laisse sa valeur vide et dis à l'humain quelle variable remplir. N'écris, n'invente ni ne demande jamais une valeur de clé. Continue sans l'attendre.
+Saute cette étape avec le fournisseur `none`. La variable de clé est dans `result.apiKeyEnvVar` ; après `CONFIG_EXISTS` elle vaut `null`, alors prends le nom dans la vérification `api-key` en échec de `npx verbatra doctor --json`. Copie `.env.example` vers `.env`, ou crée `.env` si `init` n'a écrit aucun exemple, nommes-y la variable avec une valeur vide et dis à l'humain de la remplir. N'écris, n'invente ni ne demande jamais une valeur de clé. Continue sans attendre.
 
 ### 5. Vérifier la configuration sans dépenser
 
@@ -65,11 +59,11 @@ npx verbatra diff --json
 npx verbatra translate --dry-run --json
 ```
 
-Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. Corrige chaque vérification de `doctor` en échec que tu peux corriger en modifiant `verbatra.config.ts`, puis relance-la. Sa vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus. La sortie `1` de `check` ou `diff` signifie qu'une locale n'est pas synchronisée, ce qui est attendu avant une première exécution ; seule la sortie `2` signale un problème de configuration. Avec le fournisseur `none`, `translate --dry-run` sort avec `3` quand des clés restent pour un traducteur humain, ce qui est aussi attendu. Seules les clés absentes de la cible sont traduites, et une chaîne vide compte comme présente, alors demande à l'humain avant de supprimer des clés de remplissage `""`.
+Aucune de ces commandes n'appelle de fournisseur, ne demande de clé ni n'écrit de fichier. Corrige chaque vérification de `doctor` en échec que tu peux corriger dans `verbatra.config.ts` ; la vérification `api-key` ne passe qu'une fois que l'humain a défini la clé, alors ne boucle pas dessus. Pour `check` ou `diff`, la sortie `1` (non synchronisé) est attendue avant une première exécution ; seule la sortie `2` signale un problème de configuration. Avec le fournisseur `none`, `translate --dry-run` sort avec `3` quand des clés restent pour un traducteur humain. Seules les clés absentes de la cible sont traduites, et une chaîne vide compte comme présente, alors demande avant de supprimer des clés de remplissage `""`.
 
 ### 6. S'arrêter et demander
 
-Résume combien de clés sont en attente par locale et ce que `translate --dry-run` a indiqué, puis arrête-toi. Une vraie exécution dépense tout de suite et n'a pas de confirmation propre, alors attends le feu vert explicite de l'humain. N'utilise jamais `--prune` sauf si l'humain a demandé de supprimer les clés orphelines.
+Résume combien de clés sont en attente par locale et ce que `translate --dry-run` a indiqué, puis arrête-toi. Une vraie exécution dépense tout de suite et n'a pas de confirmation propre, alors attends le feu vert explicite de l'humain. N'utilise jamais `--prune` sauf si l'humain l'a demandé.
 
 ### 7. Traduire après le feu vert
 
@@ -77,17 +71,17 @@ Résume combien de clés sont en attente par locale et ce que `translate --dry-r
 npx verbatra translate --json
 ```
 
-Rapporte les listes `succeeded`, `partial` et `failed` du résumé. Une locale `partial` ou `failed` a quand même été écrite avec tout ce qui a réussi.
+Rapporte les listes `succeeded`, `partial` et `failed` du résumé. Une locale `partial` ou `failed` garde quand même tout ce qui a réussi.
 
 ### 8. Committer et connecter
 
-Committe `verbatra.config.ts`, `.env.example`, le fichier d'instructions et `.mcp.json` de l'étape 3, `verbatra.lock.json`, `verbatra.provenance.json` une fois qu'une exécution l'a écrit, et les fichiers de locale traduits. Ne committe jamais `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; vérifie que le `.gitignore` les couvre.
+Committe `verbatra.config.ts`, `.env.example` s'il existe, le fichier d'instructions et `.mcp.json` de l'étape 3, `verbatra.lock.json`, `verbatra.provenance.json` une fois qu'une exécution l'a écrit, et les fichiers de locale traduits. Ne committe jamais `.env`, `.env.local`, `.verbatra-local/` ni `verbatra.cache.json` ; vérifie que le `.gitignore` les couvre.
 
 Dis ensuite à l'humain de redémarrer Claude Code et d'approuver le serveur `verbatra` du projet, sans installer en plus le plugin verbatra, qui l'enregistre une deuxième fois ; `claude mcp list` montre la connexion. Un autre client prend son unique entrée dans [Connecter un client MCP](/docs/connect-an-mcp-client).
 
 ## Pourquoi cette forme
 
-`translate` n'a pas de garde-fou de dépense qui lui soit propre, donc ce garde-fou vit dans les instructions de l'agent : chaque étape avant la 7 est gratuite et en lecture seule.
+`translate` n'a pas de garde-fou de dépense qui lui soit propre, donc ce garde-fou vit dans les instructions de l'agent : aucune étape avant la 7 ne dépense.
 
 ## Ensuite
 

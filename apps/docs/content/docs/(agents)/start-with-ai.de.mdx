@@ -21,7 +21,7 @@ Agent: Folge diesen Schritten der Reihe nach und überspring nie den Halt in Sch
 
 ### 1. Das bestehende Setup prüfen
 
-Finde die i18n-Bibliothek in der `package.json` (zum Beispiel `i18next`, `vue-i18n`, `next-intl` oder `@ngx-translate/core`) und die Locale-Dateien selbst. Notiere die Quell-Locale, jede bereits vorhandene Ziel-Locale und das Pfadmuster mit einem `{locale}`-Token, etwa `locales/{locale}.json`. [Wähle deinen Stack](/docs/pick-your-stack) ordnet jedem Stack seine Format-ID und sein Layout zu; [Formate](/docs/formats) sagt, welche Dateien schon existieren müssen, etwa eine XLIFF-Datei oder ein Xcode String Catalog. Reines JSON ohne i18n-Bibliothek: Platzhalter `{{name}}` bedeuten `i18next-json`, einfache Klammern `{name}` bedeuten `vue-i18n-json`.
+Bevor du etwas änderst, finde die i18n-Bibliothek in der `package.json` (etwa `i18next`, `vue-i18n` oder `next-intl`) und die Locale-Dateien. Notiere die Quell-Locale, jede bereits vorhandene Ziel-Locale und das Pfadmuster mit einem `{locale}`-Token, etwa `locales/{locale}.json`. [Wähle deinen Stack](/docs/pick-your-stack) ordnet jedem Stack seine Format-ID und sein Layout zu, auch das Android-Muster `res/{locale}/strings.xml` mit `files.localeStyle: "android"`; [Formate](/docs/formats) sagt, welche Dateien schon existieren müssen. Reines JSON ohne i18n-Bibliothek: Platzhalter `{{name}}` bedeuten `i18next-json`, einfache Klammern `{name}` bedeuten `vue-i18n-json`.
 
 ### 2. Die CLI installieren
 
@@ -29,7 +29,7 @@ Finde die i18n-Bibliothek in der `package.json` (zum Beispiel `i18next`, `vue-i1
 npm install --save-dev @verbatra/cli
 ```
 
-pnpm, yarn und bun funktionieren auch. Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` endet, führ einmal `pnpm approve-builds` aus und bestätige keinen der beiden Einträge. Wenn npm vor Install-Skripten außerhalb von `allowScripts` warnt, lass sie unbestätigt: verbatra braucht keines davon.
+pnpm, yarn und bun funktionieren auch. Bestätige keine Install-Skripte, weder in `pnpm approve-builds` noch in `allowScripts` von npm: verbatra braucht keines davon.
 
 ### 3. Konfiguration und Agenten-Dateien anlegen
 
@@ -37,24 +37,18 @@ pnpm, yarn und bun funktionieren auch. Wenn pnpm mit `ERR_PNPM_IGNORED_BUILDS` e
 npx verbatra init --provider <provider> --yes --json --agent
 ```
 
-Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es schon klar, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in `.mcp.json`:
+Frag den Menschen, welcher Provider genutzt werden soll, außer das Projekt macht es klar. Wähl nie einen, der bei einem Dienst Kosten verursacht, dem der Mensch nicht zugestimmt hat, und übergib `init` nie einen Schlüsselwert. [Provider](/docs/providers) listet die IDs; `none` schaltet die maschinelle Übersetzung ab. `init` erkennt Format, Pfadmuster und Locales, gibt einen JSON-Envelope aus und fragt nie nach. `--agent` schreibt außerdem einen verbatra-Abschnitt in `AGENTS.md` (oder in `CLAUDE.md`, wenn das die einzige Anweisungsdatei ist) und den verbatra-MCP-Server, Ausgaben aus, in `.mcp.json`:
 
-- Exit `0`: Vergleiche `result.config` mit dem, was du in Schritt 1 gefunden hast, beginnend mit jedem Eintrag in `result.sources`, der `default` sagt; `result.detection.layout` zeigt das Muster und die Locales, die der Scan gefunden hat. Stimmt etwas nicht, führ den Befehl erneut mit dem richtigen `--format`, `--path`, `--source` oder `--targets` plus `--force` aus.
+- Exit `0`: Vergleiche `result.config` mit Schritt 1, beginnend mit jedem Eintrag in `result.sources`, der `default` sagt; `result.config.files.localeStyle` erscheint nur, wenn die Dateien Locales nicht wie geschrieben benennen. Stimmt etwas nicht, führ den Befehl erneut mit dem richtigen `--format`, `--path`, `--source` oder `--targets` plus `--force` aus.
 - Exit `2` mit `FORMAT_AMBIGUOUS` oder `LAYOUT_AMBIGUOUS`: Wähl aus `candidates` und führ den Befehl erneut mit `--format` oder `--path` aus. Sind die Kandidaten nebeneinanderliegende Namespace-Dateien, halt an und frag den Menschen, denn eine Konfiguration deckt ein Dateimuster ab.
 - Exit `2` mit `MISSING_OPTIONS`: Die Meldung nennt jedes noch fehlende Flag.
-- Exit `2` mit `CONFIG_EXISTS`: Führ `npx verbatra init --agent --json` aus, um die Konfiguration zu behalten und nur die Agenten-Dateien zu ergänzen. Frag den Menschen, bevor du `--force` übergibst.
+- Exit `2` mit `CONFIG_EXISTS`: Sag dem Menschen, welchen Provider die vorhandene Konfiguration nutzt, und warte auf seine Bestätigung. Führ dann `npx verbatra init --agent --json` aus, das die Konfiguration behält und nur die Agenten-Dateien ergänzt. Frag, bevor du `--force` übergibst.
 
-[init](/docs/cli/init#provider) beschreibt jedes Flag, auch `--base-url` und `--model` für einen OpenAI-kompatiblen oder LibreTranslate-Server.
+[init](/docs/cli/init#provider) beschreibt jedes Flag.
 
 ### 4. Den API-Schlüssel dem Menschen überlassen
 
-Überspring diesen Schritt beim Provider `none`.
-
-```bash
-cp .env.example .env
-```
-
-Prüf, dass `.env` die Variable aus `result.apiKeyEnvVar` nennt, lass ihren Wert leer und sag dem Menschen, welche Variable er ausfüllen soll. Schreib, erfinde oder erfrage nie einen Schlüsselwert. Mach weiter, ohne darauf zu warten.
+Überspring diesen Schritt beim Provider `none`. Die Schlüsselvariable steht in `result.apiKeyEnvVar`; nach `CONFIG_EXISTS` ist sie `null`, dann nimmst du den Namen aus der fehlschlagenden Prüfung `api-key` von `npx verbatra doctor --json`. Kopier `.env.example` nach `.env` oder leg `.env` an, wenn `init` kein Beispiel geschrieben hat, nenn dort die Variable mit leerem Wert und sag dem Menschen, dass er sie ausfüllen soll. Schreib, erfinde oder erfrage nie einen Schlüsselwert. Mach weiter, ohne zu warten.
 
 ### 5. Das Setup ohne Kosten prüfen
 
@@ -65,11 +59,11 @@ npx verbatra diff --json
 npx verbatra translate --dry-run --json
 ```
 
-Keiner dieser Befehle ruft einen Provider auf, braucht einen Schlüssel oder schreibt eine Datei. Behebe jede fehlschlagende `doctor`-Prüfung, die du durch Bearbeiten von `verbatra.config.ts` beheben kannst, und führ den Befehl erneut aus. Seine Prüfung `api-key` besteht erst, wenn der Mensch den Schlüssel gesetzt hat, also dreh dich nicht in einer Schleife darum. Exit `1` von `check` oder `diff` heißt, dass eine Locale nicht synchron ist, was vor einem ersten Lauf zu erwarten ist; nur Exit `2` ist ein Setup-Problem. Beim Provider `none` endet `translate --dry-run` mit `3`, wenn Schlüssel für einen menschlichen Übersetzer übrig bleiben, was ebenfalls zu erwarten ist. Übersetzt werden nur Schlüssel, die im Ziel fehlen, und ein leerer String zählt als vorhanden, also frag den Menschen, bevor du Platzhalter-Schlüssel mit `""` löschst.
+Keiner dieser Befehle ruft einen Provider auf, braucht einen Schlüssel oder schreibt eine Datei. Behebe jede fehlschlagende `doctor`-Prüfung, die du in `verbatra.config.ts` beheben kannst; die Prüfung `api-key` besteht erst, wenn der Mensch den Schlüssel gesetzt hat, also dreh dich nicht in einer Schleife darum. Bei `check` oder `diff` ist Exit `1` (nicht synchron) vor einem ersten Lauf zu erwarten; nur Exit `2` ist ein Setup-Problem. Beim Provider `none` endet `translate --dry-run` mit `3`, wenn Schlüssel für einen menschlichen Übersetzer übrig bleiben. Übersetzt werden nur Schlüssel, die im Ziel fehlen, und ein leerer String zählt als vorhanden, also frag, bevor du Platzhalter-Schlüssel mit `""` löschst.
 
 ### 6. Anhalten und fragen
 
-Fass zusammen, wie viele Schlüssel pro Locale ausstehen und was `translate --dry-run` gemeldet hat, und halt dann an. Ein echter Lauf kostet sofort und hat keine eigene Bestätigungsabfrage, also warte auf die ausdrückliche Zustimmung des Menschen. Nutze `--prune` nie, außer der Mensch hat ausdrücklich verlangt, verwaiste Schlüssel zu entfernen.
+Fass zusammen, wie viele Schlüssel pro Locale ausstehen und was `translate --dry-run` gemeldet hat, und halt dann an. Ein echter Lauf kostet sofort und hat keine eigene Bestätigungsabfrage, also warte auf die ausdrückliche Zustimmung des Menschen. Nutze `--prune` nie, außer der Mensch hat es verlangt.
 
 ### 7. Nach der Zustimmung übersetzen
 
@@ -77,17 +71,17 @@ Fass zusammen, wie viele Schlüssel pro Locale ausstehen und was `translate --dr
 npx verbatra translate --json
 ```
 
-Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Eine Locale mit `partial` oder `failed` wurde trotzdem mit allem geschrieben, was gelungen ist.
+Melde die Listen `succeeded`, `partial` und `failed` aus der Zusammenfassung. Eine Locale mit `partial` oder `failed` behält trotzdem alles, was gelungen ist.
 
 ### 8. Committen und verbinden
 
-Committe `verbatra.config.ts`, `.env.example`, die Anweisungsdatei und `.mcp.json` aus Schritt 3, `verbatra.lock.json`, `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat, und die übersetzten Locale-Dateien. Committe nie `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; prüf, dass die `.gitignore` sie abdeckt.
+Committe `verbatra.config.ts`, `.env.example`, falls vorhanden, die Anweisungsdatei und `.mcp.json` aus Schritt 3, `verbatra.lock.json`, `verbatra.provenance.json`, sobald ein Lauf sie geschrieben hat, und die übersetzten Locale-Dateien. Committe nie `.env`, `.env.local`, `.verbatra-local/` oder `verbatra.cache.json`; prüf, dass die `.gitignore` sie abdeckt.
 
 Sag dem Menschen dann, dass er Claude Code neu starten und den Server `verbatra` des Projekts bestätigen soll, ohne zusätzlich das verbatra-Plugin zu installieren, das ihn ein zweites Mal registriert; `claude mcp list` zeigt die Verbindung. Ein anderer Client bekommt seinen einen Eintrag aus [Einen MCP-Client verbinden](/docs/connect-an-mcp-client).
 
 ## Warum diese Form
 
-`translate` hat kein eigenes Ausgaben-Gate, also liegt das Gate in den Anweisungen des Agenten: Jeder Schritt vor Schritt 7 ist kostenlos und nur lesend.
+`translate` hat kein eigenes Ausgaben-Gate, also liegt das Gate in den Anweisungen des Agenten: Kein Schritt vor Schritt 7 kostet Geld.
 
 ## Weiter
 

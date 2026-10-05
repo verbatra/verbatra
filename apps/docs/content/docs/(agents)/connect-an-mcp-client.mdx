@@ -110,13 +110,17 @@ See the [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-
 
 ## Codex
 
-Codex reads `~/.codex/config.toml`, or a trusted project's `.codex/config.toml`:
+Codex reads `~/.codex/config.toml`, or a trusted project's `.codex/config.toml`. Recommended:
 
 ```bash
 codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-Or write it by hand, here with spending allowed; `env_vars` names variables Codex passes through, so the file never holds the value:
+Never add `--env`: it stores the key value. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Codex entry by hand
+
+Spending allowed; `env_vars` names variables Codex passes through, so the file never holds the value:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -126,7 +130,7 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Drop `--allow-spend` and `env_vars` for a no-spend entry. An `[mcp_servers.verbatra.env]` table or `codex mcp add --env` stores the value itself. See the [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+Drop `--allow-spend` and `env_vars` for a no-spend entry. An `[mcp_servers.verbatra.env]` table stores the value itself.
 
 ## Gemini CLI
 
@@ -194,7 +198,7 @@ VS Code (GitHub Copilot's agent mode) reads `.vscode/mcp.json`, whose top-level 
 }
 ```
 
-Drop `inputs`, `--allow-spend` and `env` for a no-spend entry. Instead of the file, [Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) or this command adds the no-spend entry to your user profile; use one of the three, never two:
+Drop `inputs`, `--allow-spend` and `env` for a no-spend entry. Instead of the file, [Install verbatra in VS Code](vscode:mcp/install?%7B%22name%22%3A%22verbatra%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40verbatra%2Fmcp%22%5D%7D) or this command adds it to your user profile; use one route, never two:
 
 ```bash
 code --add-mcp '{"name":"verbatra","command":"npx","args":["-y","@verbatra/mcp"]}'
@@ -233,7 +237,7 @@ A repository admin adds the server under **Settings**, **Copilot**, **MCP server
 }
 ```
 
-Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request, and keep `review.approve` and `review.reject` out: a review decision needs a person. To check the setup, open the agent's **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Add `translation.editEntry` and `glossary.write` only if the agent should write in its pull request, and keep `review.approve` and `review.reject` out: a review decision needs a person. Leave spending off. To check the setup, open the agent's **View session** and expand **Start MCP Servers**. See [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 

@@ -110,13 +110,17 @@ Consulta la [referencia de plugins de Claude Code](https://code.claude.com/docs/
 
 ## Codex
 
-Codex lee `~/.codex/config.toml`, o el `.codex/config.toml` de un proyecto de confianza:
+Codex lee `~/.codex/config.toml`, o el `.codex/config.toml` de un proyecto de confianza. Lo recomendado:
 
 ```bash
 codex mcp add verbatra -- npx -y @verbatra/mcp --cwd /path/to/your/project
 ```
 
-O escríbela a mano, aquí con gasto permitido; `env_vars` nombra variables que Codex transmite, así que el archivo nunca contiene el valor:
+Nunca añadas `--env`: guarda el valor de la clave. Consulta la [documentación de MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Entrada de Codex a mano
+
+Esta permite gastar; `env_vars` nombra variables que Codex transmite, así que el archivo nunca contiene el valor:
 
 ```toml title=".codex/config.toml"
 [mcp_servers.verbatra]
@@ -126,7 +130,7 @@ cwd = "/path/to/your/project"
 env_vars = ["ANTHROPIC_API_KEY"]
 ```
 
-Para una entrada sin gasto, quita `--allow-spend` y `env_vars`. Una tabla `[mcp_servers.verbatra.env]` o `codex mcp add --env` guardan el valor en sí. Consulta la [documentación de MCP de Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+Para una entrada sin gasto, quita `--allow-spend` y `env_vars`. Una tabla `[mcp_servers.verbatra.env]` guarda el valor en sí.
 
 ## Gemini CLI
 
@@ -233,7 +237,7 @@ Una persona administradora del repositorio añade el servidor en **Settings**, *
 }
 ```
 
-Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir en su pull request, y deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona. Para comprobarlo, abre **View session** del agente y despliega **Start MCP Servers**. Consulta [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
+Añade `translation.editEntry` y `glossary.write` solo si el agente debe escribir en su pull request, y deja fuera `review.approve` y `review.reject`: una decisión de revisión necesita a una persona. Deja el gasto desactivado. Para comprobarlo, abre **View session** del agente y despliega **Start MCP Servers**. Consulta [Extending the cloud agent with MCP](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers).
 
 ### Copilot CLI
 
