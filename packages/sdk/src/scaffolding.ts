@@ -75,7 +75,7 @@ export const scaffoldingMetadata = deepFreeze(
     supportedFormats: SUPPORTED_FORMATS,
     /**
      * The provider id that disables machine translation by policy, for a generator that offers a
-     * human-only project. It reads no API key, so it has no entry in {@link providerEnv}, and its
+     * human-only project. It reads no API key, so it has no entry in `providerEnv`, and its
      * provider block takes no options.
      */
     humanOnlyProviderId: "none" satisfies ProviderId,

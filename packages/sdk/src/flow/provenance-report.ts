@@ -86,7 +86,7 @@ export interface ProvenanceReportEntry {
 export interface ProvenanceReportLocale {
   /** The target locale. */
   readonly locale: string;
-  /** How many values the locale holds: the length of {@link entries}. */
+  /** How many values the locale holds: the length of {@link ProvenanceReportLocale.entries}. */
   readonly total: number;
   /** How many values are in each bucket. Every {@link ProvenanceBucket} is present, zero included. */
   readonly counts: Readonly<Record<ProvenanceBucket, number>>;

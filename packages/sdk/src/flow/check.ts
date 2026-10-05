@@ -129,7 +129,7 @@ export interface CheckReviewSummary {
   readonly reviewed: boolean;
   /** How many machine-class values are not approved, summed across the reported locales. */
   readonly unreviewed: number;
-  /** Why the gate failed. Present exactly when {@link reviewed} is false. */
+  /** Why the gate failed. Present exactly when {@link CheckReviewSummary.reviewed} is false. */
   readonly code?: CheckReviewCode;
 }
 

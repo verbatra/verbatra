@@ -101,7 +101,7 @@ export interface TranslateRequest {
   readonly extractPlaceholders: PlaceholderExtractor;
   /**
    * Optional whole-value placeholder comparator. When present, the output integrity check uses it
-   * instead of independently extracting each side's placeholders with {@link extractPlaceholders} and
+   * instead of independently extracting each side's placeholders with {@link TranslateRequest.extractPlaceholders} and
    * diffing the flat lists. Supplied for a format whose adapter defines one, whether because the
    * comparison is branch-aware or because it adds a check the flat lists cannot express. Absent
    * otherwise.
