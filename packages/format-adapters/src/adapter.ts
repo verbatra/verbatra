@@ -119,9 +119,9 @@ export interface FormatAdapter {
 
   /**
    * Optional whole-value placeholder comparison, used by callers instead of independently extracting
-   * each side's placeholders with {@link extractPlaceholders} and diffing the flat lists. Both
-   * adapter factories accept one, under the `comparePlaceholders` option. Among the shipped
-   * adapters three families define one, for different reasons:
+   * each side's placeholders with {@link FormatAdapter.extractPlaceholders} and diffing the flat
+   * lists. Both adapter factories accept one, under the `comparePlaceholders` option. Among the
+   * shipped adapters three families define one, for different reasons:
    *
    * - The ICU formats (next-intl and ARB) compare branch by branch, because flattening a
    *   plural/select value loses which branch a placeholder came from.

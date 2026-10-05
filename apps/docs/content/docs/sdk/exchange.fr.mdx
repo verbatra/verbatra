@@ -1,13 +1,17 @@
 ---
 title: "Transmission et échange"
-description: "Import et export de classeurs et de TMX, instantanés de fichiers de locale, chemins de locale et indices d'erreur."
+description: "Import et export de classeurs et de TMX, instantanés de fichiers de locale et chemins de locale."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Instantanés de fichiers de locale
 
 Les briques d'un observateur à rafraîchissement en direct comme celui de Studio : capture l'état d'un fichier de locale, puis compte ce qui a changé depuis.
 
 ### readLocaleFileSnapshot
+
+<AvailableFrom version="0.5.0" />
 
 Lit un fichier de locale (la locale source ou n'importe quelle locale cible) et le réduit à un hash de contenu par clé. Un fichier qui n'existe pas encore se lit comme un instantané vide plutôt que de lever.
 
@@ -28,6 +32,8 @@ Renvoie `{ locale, hashes }`.
 
 ### diffLocaleSnapshots
 
+<AvailableFrom version="0.5.0" />
+
 Compare deux instantanés du même fichier, pris à des moments différents, et compte les clés ajoutées, modifiées et supprimées entre les deux. Une fonction synchrone ordinaire : `diffLocaleSnapshots(previous, current)` renvoie `{ added, changed, removed }`. Des comptes seulement, jamais de noms de clés.
 
 ```ts title="Signature"
@@ -37,11 +43,15 @@ function diffLocaleSnapshots(
 ): LocaleSnapshotDelta;
 ```
 
+<SdkTypeTable name="LocaleFileSnapshot" />
+
 **Renvoie :** `LocaleSnapshotDelta`
 
 ## Chemins de locale
 
 ### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
 
 Résout la correspondance entre locales et chemins du projet dans les deux sens, à partir de
 `files.pattern`, des locales configurées et de `files.localeStyle`. `createLocalePathResolver(cwd,
@@ -58,6 +68,8 @@ function createLocalePathResolver(
 ): LocalePathResolver;
 ```
 
+<SdkTypeTable name="LocalePathResolverConfig" />
+
 **Renvoie :** `LocalePathResolver`
 
 **Lève :** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
@@ -67,67 +79,13 @@ pattern et un style incompatibles, ou une locale pour laquelle le style n'a pas 
 correcte, lèvent `LOCALE_LAYOUT_INVALID`, et deux locales qui résolvent vers le même chemin lèvent
 `LOCALE_PATH_COLLISION`.
 
-### projectRelativeMessage
-
-<AvailableFrom version="0.12.0" />
-
-`projectRelativeMessage(message, cwd)` réécrit chaque chemin absolu à l'intérieur du projet dans un
-message en chemin relatif à la racine du projet : un chemin sous `cwd` perd ce préfixe, `cwd`
-lui-même devient `.`, et un chemin hors du projet reste tel quel. Chaque `error.message` et chaque
-message de notice par locale d'un `RunSummary` nomme déjà ainsi les fichiers du projet, relatifs
-au `cwd` de l'exécution ; appelle-la sur le message d'une erreur qu'un flux lève avant de le
-montrer à une personne, à un agent ou à un onglet du navigateur. `verbatra mcp` et Studio font de
-même pour chaque erreur qu'ils renvoient.
-
-```ts title="Signature"
-function projectRelativeMessage(
-  message: string,
-  cwd: string,
-): string;
-```
-
-**Renvoie :** `string`
-
-### errorHint
-
-<AvailableFrom version="0.12.0" />
-
-`errorHint(error)` renvoie la prochaine étape qui résout une erreur levée par verbatra : une
-phrase courte à l'impératif, ou `undefined` quand il n'y en a pas. Chaque code de `SdkError`,
-chaque code de `ProviderError` et chaque code d'erreur d'un adaptateur de format en a une, donc un
-agent peut agir sur un échec sans analyser son message. Elle lit le `code` de l'erreur, donc un
-simple objet `{ code, message }`, comme l'`error` d'une exécution de `watch` en échec, reçoit la
-même indication. Une erreur `PROVIDER_CONSTRUCTION_FAILED` reprend l'indication de l'erreur de
-fournisseur qu'elle enveloppe, donc une clé manquante nomme exactement la variable à définir, lue
-dans le `envVar` que porte un `ProviderError` `MISSING_API_KEY`. Une erreur `CONFIG_INVALID` venant
-d'un fichier de configuration dont un import n'a pas pu être résolu (son `causeCode` vaut
-`MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` ou
-`ERR_UNSUPPORTED_DIR_IMPORT`) te dit plutôt d'installer ou de corriger cet import. Une indication est un texte fixe
-plus, au plus, un nom de variable : elle ne contient jamais la valeur d'une clé et ne cite jamais
-le message. L'enveloppe d'erreur `--json` de la CLI la porte sous `hint`, et `verbatra mcp`
-termine avec elle le texte d'un appel en échec.
-
-```ts title="Signature"
-function errorHint(error: unknown): string | undefined;
-```
-
-**Renvoie :** `string | undefined`
-
-```ts
-import { errorHint, translate } from "@verbatra/sdk";
-
-try {
-  await translate({ config });
-} catch (error) {
-  console.error(errorHint(error)); // p. ex. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
-}
-```
-
 ## La paire classeur
 
 La remise pour les traducteurs humains, sous forme de classeur Excel ou de texte délimité ; voir [Traduction humaine](/docs/manual-translation).
 
 ### exportWorkbook
+
+<AvailableFrom version="0.2.0" />
 
 Écrit les chaînes encore à traduire (clés manquantes et modifiées par locale ; ajoute les inchangées avec `includeUnchanged`) dans un classeur `.xlsx` stylisé. Les lignes portent le même signal de révision que calcule une exécution translate. Aucun appel de fournisseur, aucune écriture du verrou.
 
@@ -144,6 +102,8 @@ function exportWorkbook(
 
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/docs/error-codes#export_unwritable)
 
+**Exemple :** [L'aller-retour du classeur](/docs/programmatic-api#laller-retour-du-classeur)
+
 `format` vaut `xlsx` par défaut ; `csv` et `tsv` écrivent à la place un `<locale>.csv` ou `<locale>.tsv` par locale, donc `out` désigne pour eux un répertoire (créé s'il manque) et un chemin de fichier pour `xlsx`. `out` vaut par défaut `DEFAULT_WORKBOOK_PATH` (`verbatra-translations.xlsx`) ou `DEFAULT_DELIMITED_PATH` (`verbatra-translations`), tous deux exportés comme constantes. Les valeurs acceptées sont exportées comme `EXCHANGE_FORMATS` et la valeur par défaut comme `DEFAULT_EXCHANGE_FORMAT`, pour qu'un outil qui enveloppe le SDK puisse valider un argument de format sans coder la liste en dur. Renvoie `{ path, locales }` : le chemin absolu écrit et un compte de lignes par locale.
 
 Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de `cwd`, et un `out` qui, lui-même ou par un fichier que l'export écrirait dedans, nomme un fichier de locale configuré, le fichier de verrouillage, le fichier de provenance, le cache de mémoire de traduction, un fichier que verbatra cherche pour sa configuration, le fichier `configPath` ou le fichier `glossaryPath`, sans tenir compte de la casse et, quand `deps.fs` implémente `realpath` comme la valeur par défaut, de nouveau une fois les liens symboliques résolus. Un chemin `xlsx` est aussi refusé quand il ne nomme aucun fichier (y compris un chemin terminé par un séparateur de chemin) ou qu'il nomme `cwd` lui-même ; un répertoire `csv`, `tsv` ou XLIFF peut être `cwd`. Une écriture qui échoue, parce que le répertoire n'est pas inscriptible, qu'un répertoire ou un fichier gêne ou que le disque est plein, lève `EXPORT_UNWRITABLE` avec le fichier et le code du système de fichiers dans le message, et l'erreur du système de fichiers comme `cause`.
@@ -155,6 +115,8 @@ Avant toute lecture, `EXPORT_OUTPUT_CONFLICT` refuse un `out` qui tombe hors de 
 Chaque unité qui a une cible porte aussi son origine : XLIFF 1.2 qualifie une cible de classe machine non approuvée avec `state-qualifier="mt-suggestion"`, et XLIFF 2.0 ajoute les entrées `origin` et `review-state` au groupe de métadonnées `verbatra` de l'unité. Le résultat porte alors aussi `provenanceMarkers` : `"written"`, ou `"unavailable"` quand le fichier de provenance n'a pas pu être lu et qu'aucun marqueur n'a été écrit. Voir [Preuves de traduction automatique](/docs/provenance-evidence#marqueurs-dans-les-exports).
 
 ### importWorkbook
+
+<AvailableFrom version="0.2.0" />
 
 Relit un classeur rempli dans les fichiers de locale, en exécutant les mêmes contrôles de dérive de source et d'intégrité que `translate`. Seules les lignes acceptées font avancer leur ligne de base du verrou ; une ligne vide ou rejetée continue de se réexporter jusqu'à sa vraie résolution.
 
@@ -170,6 +132,8 @@ function importWorkbook(
 **Renvoie :** [`RunSummary`](/docs/sdk/run-summary)
 
 **Lève :** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+**Exemple :** [L'aller-retour du classeur](/docs/programmatic-api#laller-retour-du-classeur)
 
 Avec `csv` ou `tsv`, `workbook` est soit un seul fichier d'échange, soit le répertoire qui en contient un par locale, et la locale vient du nom du fichier. Un fichier terminé par `.csv` ou `.tsv` est lu dans ce format quand `format` est omis, et un répertoire dans le format de son manifeste d'export ou de ses fichiers de locale. Renvoie la même forme `RunSummary` que `translate` (avec `needsReview` toujours vide, puisqu'aucun fournisseur n'intervient). Une feuille pour une locale qui n'est pas une cible configurée fait échouer cette locale avec `CONFIG_INVALID` comme donnée sur le résumé, pas comme exception.
 
@@ -212,6 +176,8 @@ function importTmx(
 **Renvoie :** `ImportTmxResult`
 
 **Lève :** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Exemple :** [L'aller-retour TMX](/docs/programmatic-api#laller-retour-tmx)
 
 Rien du fichier n'est tenu pour fiable. Le XML est analysé sous le durcissement du paquet d'échange,
 si bien qu'une déclaration d'entité, un sous-ensemble DTD interne, un fichier surdimensionné ou mal
@@ -274,7 +240,11 @@ function tmxErrorLocation(
 
 **Renvoie :** `TmxErrorLocation | undefined`
 
-```ts
+```ts title="Exemple"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
 try {
   await importTmx({ config, file: "legacy.tmx" });
 } catch (error) {
@@ -311,6 +281,8 @@ function exportTmx(
 **Renvoie :** `ExportTmxResult`
 
 **Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+**Exemple :** [L'aller-retour TMX](/docs/programmatic-api#laller-retour-tmx)
 
 Renvoie `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` ; `withoutSource` compte les entrées laissées de côté parce que la mémoire n'a pas de texte source pour elles, ce qui n'arrive qu'aux entrées héritées d'un cache écrit avant que la mémoire ne stocke le texte source, et `illegalCharactersRemoved` compte les caractères que XML 1.0 ne peut pas représenter et qui ont été retirés du texte des segments.
 

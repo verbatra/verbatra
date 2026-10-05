@@ -27,11 +27,15 @@ function loadConfig(
 
 **Throws:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Example:** [A config without a file](/docs/programmatic-api#a-config-without-a-file)
+
 Throws `CONFIG_NOT_FOUND` when nothing is found, `CONFIG_INVALID` when a config is found but
 invalid. See [The config file](/docs/config-file) for the schema. `fs` is the file-system port a
 glossary file is read through, as described under [The dependency seam](/docs/sdk#the-dependency-seam).
 
 ### loadConfigWithMeta
+
+<AvailableFrom version="0.5.0" />
 
 The same load, plus provenance: returns `{ config, source, glossary }`, where `source` says whether
 the config came from a search hit, an explicit path, or an in-memory override (with the absolute
@@ -250,6 +254,8 @@ function sharedGlossaryTranslations(
 ): Readonly<Record<string, string>>;
 ```
 
+<SdkTypeTable name="Glossary" />
+
 **Returns:** `Readonly<Record<string, string>>`
 
 ### redactGlossary
@@ -266,6 +272,8 @@ tool.
 ```ts title="Signature"
 function redactGlossary(glossary: Glossary): RedactedGlossary;
 ```
+
+<SdkTypeTable name="Glossary" />
 
 **Returns:** `RedactedGlossary`
 
@@ -335,6 +343,8 @@ function defineConfig(
 
 **Returns:** `VerbatraConfigInput`
 
+**Example:** [Add a source file and a config](/docs/sdk-quickstart#add-a-source-file-and-a-config)
+
 ### verbatraConfigSchema
 
 The zod schema `loadConfig` validates with, exported so your own tooling can validate a config
@@ -348,6 +358,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Read-only metadata the CLI `init` command derives its prompts from: `providerEnv` (provider id to
 the environment variable its key is read from), `scaffoldModels` (a default scaffold model per LLM
@@ -398,7 +410,7 @@ function detectProject(
 
 **Returns:** `ProjectDetection`
 
-```ts
+```ts title="Example"
 import { detectProject } from "@verbatra/sdk";
 
 const detection = await detectProject({ cwd: "/path/to/project" });
@@ -437,5 +449,7 @@ function assertMachineTranslationEnabled(
   action: string,
 ): void;
 ```
+
+**Returns:** `void`
 
 **Throws:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

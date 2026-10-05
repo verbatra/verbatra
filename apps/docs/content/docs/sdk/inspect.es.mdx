@@ -11,8 +11,9 @@ Ninguna de estas llama a un proveedor, escribe un archivo ni muta el bloqueo.
 
 <AvailableFrom version="0.9.0" />
 
-Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor, nunca lee el
-valor de una clave de API y no hace ninguna petición de red salvo que `live` pida una. Cada comprobación devuelve su propio veredicto, y todas se ejecutan aunque una
+Valida la configuración del proyecto y no gasta nada: no construye ningún proveedor y no hace ninguna
+petición de red salvo que `live` pida una. Solo lee el valor de la clave de API para `live`, que la
+envía en una petición de la lista de idiomas; LibreTranslate no recibe ninguna clave. Cada comprobación devuelve su propio veredicto, y todas se ejecutan aunque una
 anterior haya fallado, así que una sola llamada informa de cada problema independiente.
 [`verbatra doctor`](/docs/cli/doctor#qué-comprueba) enumera las comprobaciones. La clave de API se
 comprueba solo por nombre; el archivo de origen se analiza, no solo se localiza.
@@ -80,6 +81,8 @@ function extract(
 
 **Lanza:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Ejemplo:** [Extrae claves de tu código fuente](/docs/programmatic-api#extrae-claves-de-tu-código-fuente)
+
 Solo se añaden claves realmente nuevas al archivo del locale de origen; consulta
 [Qué escribe](/docs/cli/extract#qué-escribe). Lo que el análisis no puede resolver vuelve como datos
 en `dynamic`, `conflicts` y `diagnostics`, nunca se lanza
@@ -90,6 +93,8 @@ contenido de un archivo de código.
 de `SdkFs`; un `deps.fs` sin él se informa como `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
+
+<AvailableFrom version="0.4.0" />
 
 Informa del desfase por locale como contadores: `missing` (en el origen, ausente del destino), `stale`
 (el origen cambió desde la última traducción) y `upToDate`. Úsalo como puerta de CI.
@@ -106,6 +111,8 @@ function check(
 **Devuelve:** `CheckSummary`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Ejemplo:** [Comprueba en CI sin escribir](/docs/programmatic-api#comprueba-en-ci-sin-escribir)
 
 `inSync` es true exactamente cuando cada locale comprobado no tiene nada faltante ni obsoleto.
 
@@ -189,6 +196,8 @@ archivo que falta, lanza `NOT_A_LOCALE_FILE`.
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 El hermano detallado de `check`: el mismo cálculo, pero devuelve las listas de claves por locale
 (`missing`, `changed`, `orphaned`) en lugar de contadores. Las claves huérfanas son solo informativas y
 nunca activan `hasPendingChanges`, porque una ejecución por defecto no elimina claves.
@@ -205,6 +214,8 @@ function diff(
 **Devuelve:** `DiffSummary`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Ejemplo:** [Comprueba en CI sin escribir](/docs/programmatic-api#comprueba-en-ci-sin-escribir)
 
 Con `unused: true` también analiza las raíces `extract` de la configuración, en solo lectura y sin
 clave, y añade un informe `unused`, separado de cada lista `orphaned`: las claves del locale de
@@ -224,6 +235,8 @@ trabajo reemplazaría una retraducción.
 Cada `LocaleDiff` lleva además `protected`, las claves ausentes y cambiadas que una ejecución de `translate` dejaría en paz, ordenadas. Siguen contando como pendientes. Si el archivo de procedencia no se puede leer, solo se listan las claves fijadas.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Informa, para las claves modificadas de cada locale, de si el valor de destino actual sigue
 coincidiendo con los placeholders del origen, de si sigue llevando el marcado en línea del
@@ -288,6 +301,8 @@ disco.
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Informa de la existencia del archivo de bloqueo, su versión y el desfase por locale (número de claves de
 la línea base más contadores de faltantes, obsoletas y al día). `exists` viene de una sonda explícita,
 así que "todavía no hay archivo de bloqueo" y "un archivo de bloqueo vacío pero presente" siguen siendo
@@ -309,6 +324,8 @@ function lockState(
 Cada locale lleva además los mismos contadores `provenance` que informa `check`.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Lee el propio archivo de bloqueo (`verbatra.lock.json`, exportado también como `LOCK_FILE_NAME`) y
 devuelve su forma parseada: `{ version, locales }`, donde cada locale asigna claves al hash del
@@ -360,6 +377,8 @@ function loadProvenance(
 No necesita configuración.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Lee la instantánea de señales de revisión y uso de tokens que la ejecución más reciente de
 `translate` o `watch` que no fue un dry run persistió en `.verbatra-local/run-status.json`. Nunca
@@ -413,6 +432,8 @@ function reviewQueue(
 **Devuelve:** `ReviewQueueResult`
 
 **Lanza:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Ejemplo:** [Recorre la cola de revisión](/docs/programmatic-api#recorre-la-cola-de-revisión)
 
 Devuelve `{ available: true, locales, lastRunAt? }`,
 cada locale como `{ locale, needsReview, approved?, fuzzyHits? }` y cada entrada como

@@ -73,6 +73,19 @@ Need the key names instead of counts? Swap in `diff`, which returns `missing`, `
 `orphaned` key lists per locale with the same `hasPendingChanges` gate. Running the CLI in CI
 instead? See [CI and exit codes](/docs/ci-and-exit-codes).
 
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
 ## Test your integration without a key
 
 A fake provider passed as `createProvider` runs the whole flow, files and integrity gate
@@ -138,6 +151,33 @@ process.on("SIGINT", () => {
 
 A run failure after startup never throws; it arrives as `{ status: "failed" }` and watching
 continues.
+
+## Cancel a run
+
+<AvailableFrom version="0.12.0" />
+
+Pass an `AbortSignal` as `signal`. `translate` then resolves rather than rejects: it writes what
+already arrived, leaves the rest pending, and sets `cancelled: true`.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
+  process.exitCode = 130;
+}
+```
+
+A locale the abort kept from starting carries the [`RUN_CANCELLED` error code](/docs/error-codes#run_cancelled), and one it stopped mid-run the [`RUN_CANCELLED` notice](/docs/error-codes#notice-run_cancelled). An abort that arrives after every locale finished leaves `cancelled` absent, and a whole-run error at startup still rejects.
 
 ## Extract keys from your source code
 
@@ -220,9 +260,8 @@ generating run refuses.
 <AvailableFrom version="0.11.0" />
 
 `pseudolocalize` builds a fake locale from the source strings alone, so layout truncation and
-strings that were never extracted show up before any API key exists. It constructs no provider and
-makes no network request, and its output lands outside `files.pattern`, so `translate` never spends
-on it and `check` and `diff` never report it as drifted.
+strings that were never extracted show up before any API key exists. It calls no provider, and its
+output lands outside `files.pattern`, so no run spends on it or reports it as drifted.
 
 ```ts
 import { loadConfig, pseudolocalize } from "@verbatra/sdk";
@@ -391,9 +430,8 @@ validated.
 <AvailableFrom version="0.11.0" />
 
 `importTmx` and `exportTmx` move the [translation memory](/docs/the-cache) in and out of TMX, the
-interchange format the mainstream translation platforms produce and consume. This is not the
-workbook pair in another format: the workbook hands one locale's pending delta to a human
-translator, while this pair moves the whole memory as one multilingual file between tools.
+interchange format the mainstream translation platforms produce and consume. Unlike the
+workbook pair, it moves the whole memory as one multilingual file between tools.
 
 ```ts
 import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";

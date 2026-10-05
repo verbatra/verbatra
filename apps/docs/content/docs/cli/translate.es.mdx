@@ -87,22 +87,7 @@ Un locale que el proveedor DeepL o Google Cloud Translation configurado no admit
 
 ### Salida JSON
 
-Con `--json`, stdout lleva un [sobre](/docs/cli/output#salida-json) cuyo `result` es un `RunSummary`:
-
-```ts
-interface RunSummary {
-  dryRun: boolean;          // whether this was a dry run (no provider calls, no writes)
-  locales: LocaleSummary[]; // one entry per target locale, in config order
-  succeeded: string[];      // locales whose run succeeded
-  partial: string[];        // locales written with keys still missing; these exit 1 too
-  failed: string[];         // locales whose run failed
-  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
-  budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
-  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
-}
-```
-
-Cada `LocaleSummary` lleva las listas de claves por locale (traducidas, sin cambios, huérfanas, retenidas, marcadas para revisión y más); la forma completa está en [la referencia del SDK](/docs/sdk/run-summary).
+Con `--json`, stdout lleva un [sobre](/docs/cli/output#salida-json) cuyo `result` es un `RunSummary`; [RunSummary](/docs/sdk/run-summary) enumera cada campo, de la ejecución y de cada locale.
 
 ### Información en el terminal
 

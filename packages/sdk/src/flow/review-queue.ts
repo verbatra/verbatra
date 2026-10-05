@@ -63,7 +63,7 @@ export interface ReviewQueueLocale {
   readonly approved?: readonly ReviewQueueEntry[];
   /**
    * The evidence the last recorded run kept for each fuzzy translation-memory reuse among the
-   * entries in {@link needsReview}. Absent when there is none.
+   * entries in {@link ReviewQueueLocale.needsReview}. Absent when there is none.
    */
   readonly fuzzyHits?: readonly FuzzyCacheHit[];
 }

@@ -95,8 +95,11 @@ export interface DirectoryEntry {
  * Reads are size-bounded by contract so that a hostile or accidentally huge file cannot exhaust
  * memory. Writes are expected to be atomic: the default implementation writes to a temporary file
  * and renames it into place, so a crash mid-write never leaves a half-written file behind.
- * Directory creation is the caller's job, so an implementation whose `writeFile` targets a real
- * directory tree must also implement `mkdir`.
+ * Before it writes a locale file, the run-status file, or an output file such as a workbook, the
+ * SDK calls `mkdir`, when implemented, with the file's parent directory, so `writeFile` and
+ * `writeBytes` need not create directories themselves; an implementation backed by a real
+ * directory tree must implement `mkdir`. `createExclusive` gets no such call and creates any
+ * missing parent directory itself, as the default does.
  */
 export interface SdkFs {
   /** Reports whether a file exists at the path. The default implementation checks existence only. */

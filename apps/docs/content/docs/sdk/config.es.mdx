@@ -27,12 +27,16 @@ function loadConfig(
 
 **Lanza:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Ejemplo:** [Una configuración sin archivo](/docs/programmatic-api#una-configuración-sin-archivo)
+
 Lanza `CONFIG_NOT_FOUND` cuando no se encuentra nada, `CONFIG_INVALID` cuando se encuentra una
 configuración pero es inválida. Consulta el [Archivo de configuración](/docs/config-file) para ver el esquema.
 `fs` es el puerto del sistema de archivos a través del cual se lee un archivo de glosario, como se
 describe en [El punto de inyección de dependencias](/docs/sdk#el-punto-de-inyección-de-dependencias).
 
 ### loadConfigWithMeta
+
+<AvailableFrom version="0.5.0" />
 
 La misma carga, más la procedencia: devuelve `{ config, source, glossary }`, donde `source` dice si la
 configuración vino de un acierto de búsqueda, de una ruta explícita o de una anulación en memoria (con
@@ -260,6 +264,8 @@ function sharedGlossaryTranslations(
 ): Readonly<Record<string, string>>;
 ```
 
+<SdkTypeTable name="Glossary" />
+
 **Devuelve:** `Readonly<Record<string, string>>`
 
 ### redactGlossary
@@ -276,6 +282,8 @@ en tu propia herramienta.
 ```ts title="Firma"
 function redactGlossary(glossary: Glossary): RedactedGlossary;
 ```
+
+<SdkTypeTable name="Glossary" />
 
 **Devuelve:** `RedactedGlossary`
 
@@ -347,6 +355,8 @@ function defineConfig(
 
 **Devuelve:** `VerbatraConfigInput`
 
+**Ejemplo:** [Añade un archivo fuente y una configuración](/docs/sdk-quickstart#añade-un-archivo-fuente-y-una-configuración)
+
 ### verbatraConfigSchema
 
 El esquema zod con el que valida `loadConfig`, exportado para que tu propia herramienta pueda validar un
@@ -361,6 +371,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Metadatos de solo lectura de los que el comando `init` de la CLI deriva sus preguntas: `providerEnv` (de
 id de proveedor a la variable de entorno de la que se lee su clave), `scaffoldModels` (un modelo de
@@ -411,7 +423,7 @@ function detectProject(
 
 **Devuelve:** `ProjectDetection`
 
-```ts
+```ts title="Ejemplo"
 import { detectProject } from "@verbatra/sdk";
 
 const detection = await detectProject({ cwd: "/path/to/project" });
@@ -450,5 +462,7 @@ function assertMachineTranslationEnabled(
   action: string,
 ): void;
 ```
+
+**Devuelve:** `void`
 
 **Lanza:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

@@ -143,7 +143,7 @@ export type BudgetBehavior = "warn" | "stop";
  * It is enforced for every provider, including the machine-translation APIs that report no usage of
  * their own: those are counted from the same projection the pre-run estimate uses, so a ceiling set
  * against DeepL or Google Cloud Translation withholds work rather than sitting inert.
- * {@link supported} says which of the two the figure came from.
+ * {@link RunBudget.supported} says which of the two the figure came from.
  *
  * It bounds one run, not a session. {@link watch} starts a fresh budget for every run it triggers,
  * so a watch session can spend up to `maxTokens` again on each source edit. It also covers
@@ -166,11 +166,11 @@ export interface RunBudget {
   /** Whether passing the ceiling only warns, or withholds work to stay under it. */
   readonly behavior: BudgetBehavior;
   /**
-   * Whether {@link tokensUsed} is entirely the provider's own reported usage. False as soon as one
-   * counted request came back without a usable figure, so the total is partly verbatra's own
-   * projection: a machine-translation API reports none at all, and a failed or truncated request
-   * reports none either. True when the run sent no request at all, a dry run included: nothing was
-   * counted, so nothing was projected. The budget is enforced either way.
+   * Whether {@link RunBudget.tokensUsed} is entirely the provider's own reported usage. False as
+   * soon as one counted request came back without a usable figure, so the total is partly
+   * verbatra's own projection: a machine-translation API reports none at all, and a failed or
+   * truncated request reports none either. True when the run sent no request at all, a dry run
+   * included: nothing was counted, so nothing was projected. The budget is enforced either way.
    */
   readonly supported: boolean;
   /**
@@ -321,7 +321,7 @@ export interface CharacterRunQuantity extends EstimateIdentity {
 }
 
 /**
- * What a run would send, discriminated on {@link unit} so the billed dimension is always present
+ * What a run would send, discriminated on `unit` so the billed dimension is always present
  * and the other one is never readable as a zero.
  */
 export type RunEstimateQuantity = TokenRunQuantity | CharacterRunQuantity;
@@ -339,7 +339,7 @@ interface PricedEstimateMoney {
   readonly asOf: string;
   /** The per-locale breakdown, in the same order as {@link RunSummary.locales}. */
   readonly locales: readonly PricedLocaleEstimate[];
-  /** The estimated total, in {@link currency}. */
+  /** The estimated total, in `currency`. */
   readonly cost: number;
 }
 
@@ -400,7 +400,7 @@ export type UnpricedRunEstimate = TokenUnpricedRunEstimate | CharacterUnpricedRu
  * it on its own path, reached from the Studio dashboard and the agent tools, and no estimate here
  * sees that spend.
  *
- * Branch on {@link pricing}: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
+ * Branch on `pricing`: a {@link PricedRunEstimate} carries `cost`, `currency` and `asOf`, and
  * an {@link UnpricedRunEstimate} carries none of them and says why.
  */
 export type RunEstimate = PricedRunEstimate | UnpricedRunEstimate;
@@ -455,9 +455,9 @@ export interface ProtectedKey {
   readonly reason: ProtectionReason;
   /**
    * A translation of the current source text, present only under `humanEdits: "suggest"` when
-   * {@link suggestionStatus} is `suggested`: the provider's answer, or an exact translation-memory
-   * entry for the same source text. A fuzzy memory match is never offered as a suggestion. It was
-   * not written to the locale file.
+   * {@link ProtectedKey.suggestionStatus} is `suggested`: the provider's answer, or an exact
+   * translation-memory entry for the same source text. A fuzzy memory match is never offered as a
+   * suggestion. It was not written to the locale file.
    */
   readonly suggestion?: string;
   /**
@@ -495,8 +495,8 @@ export type SuggestionStatus =
  *
  * It is reported apart from {@link LocaleSummary.cacheHits} on purpose: an exact cache hit is the
  * same string it always was, while this is a translation of text that is no longer the source text.
- * {@link similarity} and {@link previousSource} are the evidence for the reuse, so a reader can
- * judge it rather than take it on trust.
+ * {@link FuzzyCacheHit.similarity} and {@link FuzzyCacheHit.previousSource} are the evidence for
+ * the reuse, so a reader can judge it rather than take it on trust.
  *
  * A reuse is written to the locale file but deliberately not locked: the key keeps the lock-file
  * baseline it already had, so it stays changed, is offered and flagged again on every later run at
@@ -509,9 +509,9 @@ export interface FuzzyCacheHit {
   /** The key's source text at the time this translation was produced. */
   readonly previousSource: string;
   /**
-   * How alike {@link previousSource} and the current source are, from `0` to `1`: one minus the
-   * character edit distance divided by the longer string's length, after Unicode normalization.
-   * Always at or above the configured `fuzzyCache.threshold`.
+   * How alike {@link FuzzyCacheHit.previousSource} and the current source are, from `0` to `1`: one
+   * minus the character edit distance divided by the longer string's length, after Unicode
+   * normalization. Always at or above the configured `fuzzyCache.threshold`.
    */
   readonly similarity: number;
 }
@@ -612,7 +612,7 @@ export interface LocaleSummary {
   /**
    * Keys served from the translation memory instead of the provider, and so not paid for. Only
    * exact matches: a reuse for a source string that has since changed is reported in
-   * {@link fuzzyHits} instead, never here.
+   * {@link LocaleSummary.fuzzyHits} instead, never here.
    */
   readonly cacheHits: readonly string[];
   /**
@@ -628,11 +628,11 @@ export interface LocaleSummary {
    */
   readonly integrityMismatches: readonly string[];
   /**
-   * The reason behind each key in {@link integrityMismatches}, sorted by key. Present on every
-   * {@link translate} and {@link watch} run, empty on a dry run. Present on {@link importWorkbook}
-   * too, where it lists only the rows the integrity gate refused: its {@link integrityMismatches}
-   * also counts rows withheld for source drift, which have no entry here. Absent for a locale that
-   * failed by throwing.
+   * The reason behind each key in {@link LocaleSummary.integrityMismatches}, sorted by key. Present
+   * on every {@link translate} and {@link watch} run, empty on a dry run. Present on
+   * {@link importWorkbook} too, where it lists only the rows the integrity gate refused: its
+   * {@link LocaleSummary.integrityMismatches} also counts rows withheld for source drift, which
+   * have no entry here. Absent for a locale that failed by throwing.
    */
   readonly integrityRefusals?: readonly IntegrityRefusal[];
   /** Keys the provider failed to translate, for instance because their sub-batch errored. */
@@ -669,9 +669,9 @@ export interface LocaleSummary {
   readonly unfilled: readonly string[];
   /**
    * Keys left alone because their value is protected (see {@link ProtectedKey}), sorted by key.
-   * They are not in {@link translated}, do not change the locale's status, and stay stale for
-   * {@link check}. Always empty for {@link importWorkbook}, and for a {@link translate} run under
-   * `humanEdits: "overwrite"` with no `pinnedKeys`.
+   * They are not in {@link LocaleSummary.translated}, do not change the locale's status, and stay
+   * stale for {@link check}. Always empty for {@link importWorkbook}, and for a {@link translate}
+   * run under `humanEdits: "overwrite"` with no `pinnedKeys`.
    */
   readonly protected: readonly ProtectedKey[];
   /** Unreadable rows from an imported handoff. Always empty for a {@link translate} run. */

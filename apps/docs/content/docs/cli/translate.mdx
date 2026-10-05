@@ -87,22 +87,7 @@ A locale the configured DeepL or Google Cloud Translation provider does not supp
 
 ### JSON output
 
-With `--json`, stdout carries one [envelope](/docs/cli/output#json-output) whose `result` is a `RunSummary`:
-
-```ts
-interface RunSummary {
-  dryRun: boolean;          // whether this was a dry run (no provider calls, no writes)
-  locales: LocaleSummary[]; // one entry per target locale, in config order
-  succeeded: string[];      // locales whose run succeeded
-  partial: string[];        // locales written with keys still missing; these exit 1 too
-  failed: string[];         // locales whose run failed
-  usage?: UsageSummary;     // summed input/output tokens; absent when no call reported usage
-  budget?: RunBudget;       // the token-budget outcome; present only when maxTokens is configured
-  estimate?: RunEstimate;   // the pre-run cost estimate; present only when --estimate was passed
-}
-```
-
-Each `LocaleSummary` carries the per-locale key lists (translated, unchanged, orphaned, withheld, flagged for review, and more); see [the SDK reference](/docs/sdk/run-summary) for the full anatomy.
+With `--json`, stdout carries one [envelope](/docs/cli/output#json-output) whose `result` is a `RunSummary`; [RunSummary](/docs/sdk/run-summary) lists every field, for the run and for each locale.
 
 ### Terminal feedback
 

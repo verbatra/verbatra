@@ -140,7 +140,16 @@ try {
   if (!(error instanceof SdkError)) {
     throw error;
   }
-  console.error(`${error.code}: ${error.message}`);
+  switch (error.code) {
+    case "CONFIG_NOT_FOUND":
+      console.error(`${error.code}: ${error.message} (searched from ${process.cwd()} upward)`);
+      break;
+    case "PROVIDER_CONSTRUCTION_FAILED":
+      console.error(`${error.code}: the provider could not be built, most often for a missing key`);
+      break;
+    default:
+      console.error(`${error.code}: ${error.message}`);
+  }
   const hint = errorHint(error);
   if (hint !== undefined) {
     console.error(`next: ${hint}`);

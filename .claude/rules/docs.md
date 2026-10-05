@@ -90,6 +90,8 @@ parity tests (`pnpm test:scripts`):
   code. `cli/output`, `sdk/errors` and `providers` link there instead of repeating the tables. An old `/docs/sdk#<entry>` link still lands:
   `<SdkAnchorForward />` on `sdk/index*.mdx` forwards it to the page that now heads the anchor,
   and `apps/docs/lib/sdk-anchors.test.ts` pins every anchor of the former single page per locale.
+  `sdk/exchange*.mdx` carries one too, so `/docs/sdk/exchange#errorhint` and
+  `#projectrelativemessage` land on `sdk/errors`, where those sections moved; the same test pins it.
 - `verify-docs-mcp-tool-names.test.mjs`: the tool table in `cli/mcp*.mdx` and in
   `packages/mcp/README.md` follows `ALL_TOOLS_IN_ORDER`, with exactly the spend-gated tools marked
   as calling a provider, and the client allowlists name only registered, non-spend tools.
@@ -104,6 +106,9 @@ parity tests (`pnpm test:scripts`):
   its page's flags table naming exactly its own `.option(...)` flags, and the global flags table in
   `cli/index*.mdx` naming, per shared flag (`--cwd`, `--config`, `--json`), exactly the commands
   that do not take it.
+- `verify-docs-run-summary-fields.test.mjs`: the `RunSummary` and `LocaleSummary` blocks on
+  `sdk/run-summary*.mdx` name exactly the fields, with their optionality, of the two interfaces in
+  `packages/sdk/dist/index.d.ts`, and no other page prints the `RunSummary` interface.
 - `verify-docs-registry-counts.test.mjs`: no MDX page spells out a count of formats, providers,
   or commands ("fourteen formats", "sieben Provider"). Link to the list instead, or name the
   items.
@@ -118,6 +123,25 @@ line linking each `SdkError` code to `/docs/error-codes#<code>`. The type table 
 published English JSDoc on every locale; everything around it is translated. The Throws line is
 test-pinned to each function's `@throws` tags (`scripts/verify-docs-reference-parity.test.mjs`), so
 a new `@throws` code fails `pnpm test:scripts` until all four locales list it.
+
+A function that declares no `@throws` gets no **Throws** line at all, never "Throws: nothing": the
+absent line is the statement that the function throws no `SdkError` code. A function that never
+throws anything says so in its lead paragraph, as `runStatus` does.
+
+An `**Example:**` line (`**Beispiel:**`, `**Ejemplo:**`, `**Exemple :**` in de, es, fr) may
+close the entry, linking to the quickstart step or recipe in
+`(sdk)/sdk-quickstart.mdx` or `(sdk)/programmatic-api.mdx`, or the how-to such as
+`(guides)/custom-format-adapters.mdx`, that owns a full script using the entry point, with the
+locale's own anchor and heading text. A fenced `ts title="Example"` block (`Beispiel`, `Ejemplo`,
+`Exemple`) in a reference section is either an example no recipe or quickstart step owns, or a short
+one that shows this entry point alone; a full script stays with its recipe. It is self-contained:
+every import is written out, and every given the snippet does not build itself is a `declare const`
+(or a `declare function`). `scripts/verify-docs-sdk-examples.test.mjs` typechecks every such block
+on the pages `sdk/meta.json` lists against the built `packages/sdk/dist/index.d.ts` in strict mode,
+fails when a de, es or fr block's body differs from the English one, so its comments stay in
+English, and fails on an untitled TypeScript fragment there. The one exemption is the
+`RunSummary` and `LocaleSummary` listing on `sdk/run-summary*.mdx`, a block that opens with
+`interface RunSummary {`.
 
 ## The `<AvailableFrom />` badge
 
@@ -195,6 +219,7 @@ and a link to the owner.
 | The integrity gate, review reasons | `translation-safety` |
 | What leaves the machine | `data-handling` |
 | Every error, notice and review code | `error-codes` |
+| The `RunSummary` and `LocaleSummary` fields | `sdk/run-summary` |
 
 ### Growth rules
 

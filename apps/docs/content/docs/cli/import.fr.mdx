@@ -65,19 +65,7 @@ Ces lignes vont sur stderr, et `--quiet` les supprime. Vois [Sortie dans le term
 
 ### Sortie JSON
 
-Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un `RunSummary`, la même forme que celle qu'affiche [`verbatra translate`](/docs/cli/translate) :
-
-```ts
-interface RunSummary {
-  dryRun: boolean;          // whether this was a dry run (nothing written)
-  locales: LocaleSummary[]; // one entry per target locale, in config order
-  succeeded: string[];      // locales imported completely
-  partial: string[];        // locales written with keys still missing; these exit 1 too
-  failed: string[];         // locales whose import failed
-}
-```
-
-Chaque `LocaleSummary` liste les clés par locale (écrites, `unfilled`, retenues et plus) ; vois [la référence du SDK](/docs/sdk/run-summary).
+Avec `--json`, l'[enveloppe](/docs/cli/output#sortie-json) porte un `RunSummary`, la même forme que celle qu'affiche [`verbatra translate`](/docs/cli/translate) ; [RunSummary](/docs/sdk/run-summary) liste chaque champ.
 
 ## Exemples
 

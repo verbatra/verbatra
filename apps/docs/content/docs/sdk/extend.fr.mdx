@@ -11,7 +11,7 @@ Tout ce qu'il faut pour construire un adaptateur de format que verbatra ne fourn
 
 ### createDefaultRegistry
 
-Construit une `AdapterRegistry` contenant tous les adaptateurs fournis par verbatra, dans l'ordre de détection. Pars de là plutôt que d'un registre vide, pour que ton format rejoigne les adaptateurs intégrés au lieu de les remplacer, puis passe le résultat comme `deps.adapterRegistry` à n'importe quel flux. `register` renvoie le registre, les enregistrements s'enchaînent donc, et lève une `AdapterError` avec le code `DUPLICATE_FORMAT` si le format est déjà pris.
+Construit une `AdapterRegistry` contenant tous les adaptateurs fournis par verbatra, dans l'ordre de détection. Pars de là plutôt que d'un registre vide, pour que ton format rejoigne les adaptateurs intégrés au lieu de les remplacer, puis passe le résultat comme `deps.adapterRegistry` à n'importe quel flux. [`AdapterRegistry`](#adapterregistry) décrit `register` et `resolve`.
 
 ```ts title="Signature"
 function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
@@ -19,12 +19,41 @@ function createDefaultRegistry(fs?: AdapterFs): AdapterRegistry;
 
 **Renvoie :** `AdapterRegistry`
 
-```ts
-import { createDefaultRegistry, translate } from "@verbatra/sdk";
+**Exemple :** [L'enregistrer et lancer](/docs/custom-format-adapters#lenregistrer-et-lancer)
+
+```ts title="Exemple"
+import {
+  createDefaultRegistry,
+  translate,
+  type FormatAdapter,
+  type VerbatraConfig,
+} from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare const tomlAdapter: FormatAdapter;
 
 const adapterRegistry = createDefaultRegistry().register(tomlAdapter);
 const summary = await translate({ config }, { adapterRegistry });
 ```
+
+### AdapterRegistry
+
+Contient les adaptateurs enregistrés et en résout un pour un fichier. `new AdapterRegistry()` démarre vide, il ne lit donc que les formats que tu enregistres ; `createDefaultRegistry` est le point de départ habituel. `register(adapter)` ajoute un adaptateur à la fin de l'ordre de détection et renvoie le registre, les enregistrements s'enchaînent donc. Il refuse un format que le registre détient déjà et un identifiant `custom:` mal formé, et enveloppe un adaptateur `custom:` pour qu'une exception inattendue de sa part arrive comme une `AdapterError` qui nomme le format. `resolve(filePath, options)` choisit l'adaptateur d'un fichier : par `options.format` s'il est donné, sinon par détection, que `options.sample`, un extrait du début du contenu, peut aider.
+
+```ts title="Signature"
+class AdapterRegistry {
+  register(adapter: FormatAdapter): this;
+  resolve(filePath: string, options?: ResolveOptions): AdapterResolution;
+}
+```
+
+`resolve` accepte ces options :
+
+<SdkTypeTable name="ResolveOptions" />
+
+**Renvoie :** `register` renvoie le registre. `resolve` renvoie une `AdapterResolution`, discriminée par `status` : `resolved` porte l'`adapter`, `no-match` le `filePath` et les `triedFormats`, et `ambiguous` le `filePath` et les `candidates` en concurrence, que tu départages en en passant un comme `format`. Un fichier impossible à résoudre est un statut, jamais une exception.
+
+**Lève :** `AdapterError` [`DUPLICATE_FORMAT`](/docs/error-codes#duplicate_format) et [`INVALID_FORMAT_ID`](/docs/error-codes#invalid_format_id) depuis `register`, et [`ADAPTER_FAILED`](/docs/error-codes#adapter_failed) depuis `resolve` quand le propre `canHandle` d'un adaptateur `custom:` lève pendant la détection
 
 ### createFlatFileAdapter
 
@@ -39,6 +68,8 @@ function createFlatFileAdapter(
 <SdkTypeTable name="FlatFileAdapterOptions" />
 
 **Renvoie :** `FormatAdapter`
+
+**Exemple :** [Construire l'adaptateur](/docs/custom-format-adapters#construire-ladaptateur)
 
 ### createTreeFileAdapter
 
@@ -138,6 +169,8 @@ function declareProviderKeyEnvVar(
 ): void;
 ```
 
+**Renvoie :** `void`
+
 ## Fournisseurs personnalisés
 
 <AvailableFrom version="0.12.0" />
@@ -149,14 +182,21 @@ inclut les types de ses champs : `Tone`, `PluralCategories`, `PlaceholderExtract
 `PlaceholderComparator` dans la requête, `Usage`, `ProviderNotice`, `ProviderNoticeCode` et
 `ReviewFlag` dans le résultat, et `NetworkPolicy` et `NetworkRule` dans `ProviderNetwork`.
 
-```ts
+```ts title="Exemple"
 import {
   translate,
   type CreateProvider,
   type TranslateRequest,
   type TranslateResult,
   type TranslationProvider,
+  type VerbatraConfig,
 } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+declare function callInHouseService(
+  locale: string,
+  entries: TranslateRequest["entries"],
+): Promise<ReadonlyMap<string, string>>;
 
 const provider: TranslationProvider = {
   id: "in-house",
@@ -197,3 +237,5 @@ const summary = await translate({ config }, { createProvider });
   point de terminaison a été résolu et des `deps` de test optionnels. Un fournisseur personnalisé
   peut l'ignorer, mais seule la vérification que le SDK fait avant d'appeler la fabrique s'applique
   alors à ses requêtes.
+
+**Exemple :** [Tester ton intégration sans clé](/docs/programmatic-api#tester-ton-intégration-sans-clé)

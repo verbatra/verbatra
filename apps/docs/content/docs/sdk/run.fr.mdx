@@ -22,6 +22,8 @@ function translate(
 
 **Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Exemple :** [Traduis et lis le résumé](/docs/sdk-quickstart#traduis-et-lis-le-résumé)
+
 Ce que le tableau ne couvre pas :
 
 - `concurrency` : une erreur globale levée alors que des locales tournent déjà empêche toute autre
@@ -66,7 +68,7 @@ retrouve en `status: "failed"` sur l'entrée de cette locale pendant que l'exéc
 | `change-detected` | `watch` uniquement : une modification du fichier source s'est stabilisée | `paths` |
 | `idle` | `watch` uniquement : une exécution est terminée et aucune n'attend | aucun |
 
-`provider-retry` ne nomme aucune locale, car un seul fournisseur sert toute l'exécution. Gemini indique le délai et le statut, Anthropic, OpenAI et openai-compatible indiquent la tentative quand leur client la lance, et DeepL et Google Cloud Translation n'indiquent rien. Un dry run et une estimation n'émettent que `locale-started`, `locale-finished` et `run-finished`. Les enregistrements de progression `--json` de la CLI s'en tiennent aux quatre types d'origine : `locale-started`, `sub-batch`, `locale-finished` et `run-finished`.
+`provider-retry` ne nomme aucune locale, car un seul fournisseur sert toute l'exécution. Gemini indique le délai et le statut, Anthropic, OpenAI et openai-compatible indiquent la tentative quand leur client la lance, et DeepL, Google Cloud Translation et LibreTranslate n'indiquent rien. Un dry run et une estimation n'émettent que `locale-started`, `locale-finished` et `run-finished`. Les enregistrements de progression `--json` de la CLI s'en tiennent aux quatre types d'origine : `locale-started`, `sub-batch`, `locale-finished` et `run-finished`.
 
 `extract`, `diff` avec `unused` et `doctor` avec `literals` acceptent leur propre `onProgress`. Il reçoit un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, une fois après chaque fichier source de l'application que l'analyse lit.
 
@@ -91,8 +93,10 @@ function resolveDryRun(input: {
 
 **Renvoie :** `boolean`
 
-```ts
-import { resolveDryRun, translate } from "@verbatra/sdk";
+```ts title="Exemple"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 const options = { dryRun: false, estimate: true };
 resolveDryRun(options); // true
@@ -117,9 +121,11 @@ function watch(
 
 **Lève :** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Exemple :** [Surveiller dans un processus de longue durée](/docs/programmatic-api#surveiller-dans-un-processus-de-longue-durée)
+
 `debounceMs` vaut 300 par défaut. `onRun` est appelé une fois par exécution avec un `WatchRunResult` : `{ status: "succeeded", summary }` ou `{ status: "failed", error: { code, message, causeCode?, hint? } }`, où `causeCode` nomme l'erreur codée que l'échec enveloppe et `hint` est l'étape suivante que donne `errorHint`. `onReady` est appelé une fois, quand les vérifications de démarrage passent et juste avant l'exécution initiale, pour que tu puisses annoncer la session avant la sortie de cette exécution. Le SDK n'écrit aucun log ; `onRun` est la seule sortie. `concurrency`, `cache`, `onProgress`, `onLockWait` et `lockAcquireTimeoutMs` sont transmis à chaque exécution et se comportent exactement comme sur `translate`. `locales` restreint chaque exécution de la session à ce sous-ensemble et est validé une seule fois au démarrage, pas à chaque cycle.
 
-Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Quatre problèmes sont refusés au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur : un `concurrency` qui n'est pas un entier d'au moins 1 lève `CONCURRENCY_INVALID`, un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève `CONCURRENCY_BUDGET_CONFLICT` (il n'existe pas de watch en dry run, donc le conflit de budget s'applique toujours), un fichier source manquant lève `SOURCE_UNREADABLE`, et, depuis 0.12.0, un fournisseur impossible à construire, par exemple parce que sa variable de clé d'API manque, lève `PROVIDER_CONSTRUCTION_FAILED`. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
+Renvoie un `WatchController` avec une seule méthode, `stop()`, qui ferme la surveillance et attend l'exécution en cours. Chaque code de la ligne **Lève** est refusé au démarrage, avant que la surveillance n'existe, donc `watch` lui-même rejette au lieu de renvoyer un contrôleur. Deux d'entre eux pèsent plus sur une session que sur une seule exécution : un `concurrency` supérieur à 1 face à une config qui fixe `maxTokens` lève toujours `CONCURRENCY_BUDGET_CONFLICT`, car il n'existe pas de watch en dry run, et, depuis 0.12.0, un fournisseur impossible à construire, par exemple parce que sa variable de clé d'API manque, lève `PROVIDER_CONSTRUCTION_FAILED` une seule fois au lieu de faire échouer chaque exécution. Tout échec après le démarrage remonte via `onRun` et la surveillance continue.
 
 ### releaseHeldLocks
 
@@ -136,6 +142,8 @@ opération encore en cours prend, ou tente de prendre, pendant son exécution es
 ```ts title="Signature"
 function releaseHeldLocks(): Promise<void>;
 ```
+
+**Renvoie :** `void`
 
 Un verrou resté en place malgré tout, parce qu'un processus a été tué net, n'en a pas besoin : une
 exécution en attente sur la même machine voit que le processus enregistré n'existe plus et reprend
@@ -167,6 +175,8 @@ function pseudolocalize(
 **Renvoie :** `PseudolocalizeResult`
 
 **Lève :** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
+**Exemple :** [Construire une pseudo-locale](/docs/programmatic-api#construire-une-pseudo-locale)
 
 Chaque valeur générée est tenue à la même barrière d'intégrité qu'une traduction de fournisseur doit
 franchir. Une valeur qui ne la franchirait pas est copiée telle quelle depuis la source et nommée
@@ -216,6 +226,8 @@ function generateTypes(
 **Renvoie :** `GenerateTypesResult`
 
 **Lève :** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Exemple :** [Générer un catalogue typé](/docs/programmatic-api#générer-un-catalogue-typé)
 
 Un fichier est lu (le catalogue de la locale source) et un fichier est écrit (la déclaration) ; un
 fichier de locale cible n'est jamais touché. Les clés sont exactement ce que l'adaptateur de format

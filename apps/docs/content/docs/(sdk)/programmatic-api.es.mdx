@@ -73,6 +73,19 @@ if (!summary.inSync) {
 claves `missing`, `changed` y `orphaned` por locale con la misma puerta `hasPendingChanges`. ¿Ejecutas
 la CLI en CI en su lugar? Consulta [CI y códigos de salida](/docs/ci-and-exit-codes).
 
+```ts
+import { diff, loadConfig } from "@verbatra/sdk";
+
+const summary = await diff({ config: await loadConfig() });
+
+if (summary.hasPendingChanges) {
+  for (const locale of summary.locales) {
+    console.error(`${locale.locale}: missing ${locale.missing.join(", ")}; changed ${locale.changed.join(", ")}`);
+  }
+  process.exitCode = 1;
+}
+```
+
 ## Prueba tu integración sin clave
 
 Un proveedor falso pasado como `createProvider` ejecuta todo el flujo, archivos y control de
@@ -139,6 +152,33 @@ process.on("SIGINT", () => {
 
 Un fallo de ejecución después del arranque nunca lanza; llega como `{ status: "failed" }` y la
 vigilancia continúa.
+
+## Cancela una ejecución
+
+<AvailableFrom version="0.12.0" />
+
+Pasa un `AbortSignal` como `signal`. `translate` entonces se resuelve en lugar de rechazar: escribe
+lo que ya llegó, deja el resto pendiente y fija `cancelled: true`.
+
+```ts
+import { loadConfig, translate } from "@verbatra/sdk";
+
+const controller = new AbortController();
+process.once("SIGINT", () => controller.abort());
+
+const summary = await translate({ config: await loadConfig(), signal: controller.signal });
+
+if (summary.cancelled === true) {
+  const { succeeded, partial, failed } = summary;
+  console.error(
+    `cancelled: ${succeeded.length} done, ${partial.length} partial,`,
+    `${failed.length} failed or not started`,
+  );
+  process.exitCode = 130;
+}
+```
+
+Un locale que la cancelación impidió empezar lleva el [código de error `RUN_CANCELLED`](/docs/error-codes#run_cancelled), y uno que detuvo a media ejecución, el [aviso `RUN_CANCELLED`](/docs/error-codes#notice-run_cancelled). Una cancelación que llega cuando ya terminó cada locale deja `cancelled` ausente, y un error de toda la ejecución al arrancar sigue rechazando.
 
 ## Extrae claves de tu código fuente
 
@@ -225,9 +265,8 @@ de salida. Una ejecución con `check` no escribe nada y solo informa de `stale`.
 
 `pseudolocalize` construye un locale falso solo a partir de las cadenas de origen, para que los
 recortes de maquetación y las cadenas que nunca se extrajeron salgan a la luz antes de que exista
-ninguna clave de API. No construye ningún proveedor ni hace ninguna petición de red, y su salida
-cae fuera de `files.pattern`, así que `translate` nunca gasta en él y `check` y `diff` nunca
-informan de él como desfasado.
+ninguna clave de API. No llama a ningún proveedor, y su salida
+cae fuera de `files.pattern`, así que ninguna ejecución gasta en él ni lo informa como desfasado.
 
 ```ts
 import { loadConfig, pseudolocalize } from "@verbatra/sdk";
@@ -398,10 +437,8 @@ validan las filas.
 <AvailableFrom version="0.11.0" />
 
 `importTmx` y `exportTmx` mueven la [memoria de traducción](/docs/the-cache) hacia y desde TMX, el
-formato de intercambio que producen y leen las plataformas de traducción más extendidas. Esto no es
-el par del libro en otro formato: el libro entrega a un traductor humano el delta pendiente de un
-solo locale, mientras que este par mueve la memoria entera como un único archivo multilingüe entre
-herramientas.
+formato de intercambio que producen y leen las plataformas de traducción más extendidas. A diferencia
+del par del libro, mueve la memoria entera como un único archivo multilingüe entre herramientas.
 
 ```ts
 import { exportTmx, importTmx, loadConfig, tmxErrorLocation } from "@verbatra/sdk";

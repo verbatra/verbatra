@@ -25,6 +25,8 @@ function translate(
 
 **Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Ejemplo:** [Traduce y lee el resumen](/docs/sdk-quickstart#traduce-y-lee-el-resumen)
+
 Lo que la tabla no cubre:
 
 - `concurrency`: un error de toda la ejecución que surge cuando ya hay locales en marcha impide que
@@ -68,7 +70,7 @@ queda como `status: "failed"` en la entrada de ese locale mientras la ejecución
 | `change-detected` | solo `watch`: un cambio en el archivo de origen se ha asentado | `paths` |
 | `idle` | solo `watch`: una ejecución terminó y no hay otra en cola | ninguno |
 
-`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL y Google Cloud Translation no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
+`provider-retry` no nombra ningún locale, porque un solo proveedor atiende toda la ejecución. Gemini informa de la espera y del estado, Anthropic, OpenAI y openai-compatible informan del intento cuando su cliente lo inicia, y DeepL, Google Cloud Translation y LibreTranslate no informan de nada. Un dry run y una estimación solo emiten `locale-started`, `locale-finished` y `run-finished`. Los registros de progreso `--json` de la CLI se limitan a los cuatro tipos originales: `locale-started`, `sub-batch`, `locale-finished` y `run-finished`.
 
 `extract`, `diff` con `unused` y `doctor` con `literals` aceptan su propio `onProgress`. Recibe un `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, una vez tras cada archivo de código de la aplicación que lee el escaneo.
 
@@ -93,8 +95,10 @@ function resolveDryRun(input: {
 
 **Devuelve:** `boolean`
 
-```ts
-import { resolveDryRun, translate } from "@verbatra/sdk";
+```ts title="Ejemplo"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 const options = { dryRun: false, estimate: true };
 resolveDryRun(options); // true
@@ -122,6 +126,8 @@ function watch(
 
 **Lanza:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Ejemplo:** [Vigila en un proceso de larga duración](/docs/programmatic-api#vigila-en-un-proceso-de-larga-duración)
+
 `debounceMs` es 300 por defecto. `onRun` se llama una vez por ejecución con un `WatchRunResult`:
 `{ status: "succeeded", summary }` o `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 donde `causeCode` nombra el error con código que envuelve el fallo y `hint` es el siguiente paso que da
@@ -133,14 +139,13 @@ acota cada ejecución de la sesión a ese subconjunto y se valida una sola vez a
 ciclo.
 
 Devuelve un `WatchController` con un solo método, `stop()`, que cierra el watcher y espera la ejecución
-en curso. Cuatro problemas se rechazan al arrancar, antes de que el watcher exista, así que `watch` mismo
-rechaza en lugar de devolver un controlador: un `concurrency` que no es un entero de al menos 1 lanza
-`CONCURRENCY_INVALID`, un `concurrency` mayor que 1 contra una configuración que fija `maxTokens` lanza
-`CONCURRENCY_BUDGET_CONFLICT` (no existe un watch en dry run, así que el conflicto de presupuesto siempre
-se aplica), un archivo de origen ausente lanza `SOURCE_UNREADABLE`, y, desde 0.12.0, un proveedor que no se
-puede construir, por ejemplo porque falta su variable de API key, lanza `PROVIDER_CONSTRUCTION_FAILED`.
-Todo fallo posterior al arranque se
-comunica a través de `onRun` y la vigilancia continúa.
+en curso. Cada código de la línea **Lanza** se rechaza al arrancar, antes de que el watcher exista,
+así que `watch` mismo rechaza en lugar de devolver un controlador. Dos de ellos pesan más en una
+sesión que en una sola ejecución: un `concurrency` mayor que 1 contra una configuración que fija
+`maxTokens` lanza siempre `CONCURRENCY_BUDGET_CONFLICT`, porque no existe un watch en dry run, y,
+desde 0.12.0, un proveedor que no se puede construir, por ejemplo porque falta su variable de API
+key, lanza `PROVIDER_CONSTRUCTION_FAILED` una sola vez en lugar de hacer fallar cada ejecución.
+Todo fallo posterior al arranque se comunica a través de `onRun` y la vigilancia continúa.
 
 ### releaseHeldLocks
 
@@ -157,6 +162,8 @@ ningún archivo; espera como máximo tres segundos a esa adquisición.
 ```ts title="Firma"
 function releaseHeldLocks(): Promise<void>;
 ```
+
+**Devuelve:** `void`
 
 Un bloqueo que queda atrás de todos modos, porque un proceso se mató de golpe, no lo necesita: una
 ejecución en espera en la misma máquina ve que el proceso registrado ya no existe y recupera el
@@ -188,6 +195,8 @@ function pseudolocalize(
 **Devuelve:** `PseudolocalizeResult`
 
 **Lanza:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
+**Ejemplo:** [Construye un pseudolocale](/docs/programmatic-api#construye-un-pseudolocale)
 
 Cada valor generado pasa por la misma puerta de integridad que debe superar la traducción de
 un proveedor. Uno que no la superaría se copia literalmente del origen y se nombra en `copied` en
@@ -238,6 +247,8 @@ function generateTypes(
 **Devuelve:** `GenerateTypesResult`
 
 **Lanza:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Ejemplo:** [Genera un catálogo tipado](/docs/programmatic-api#genera-un-catálogo-tipado)
 
 Lee un archivo (el catálogo del locale de origen) y escribe un archivo (la declaración); nunca
 toca un archivo de locale de destino. Las claves son exactamente lo que el adaptador de formato ya

@@ -11,8 +11,9 @@ Keine dieser Funktionen ruft einen Provider auf, schreibt eine Datei oder verän
 
 <AvailableFrom version="0.9.0" />
 
-Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider, liest nie einen
-API-Key-Wert und stellt keine Netzwerkanfrage, außer `live` fordert eine an. Jede Prüfung liefert ihr eigenes Urteil, und jede läuft auch dann, wenn eine frühere
+Prüft die Projekteinrichtung und kostet nichts: Es konstruiert keinen Provider und stellt keine
+Netzwerkanfrage, außer `live` fordert eine an. Den Wert des API-Keys liest es nur für `live`, das
+ihn in einer Anfrage nach der Sprachliste mitschickt; LibreTranslate bekommt keinen Key. Jede Prüfung liefert ihr eigenes Urteil, und jede läuft auch dann, wenn eine frühere
 fehlgeschlagen ist; ein Aufruf meldet also jedes unabhängige Problem.
 [`verbatra doctor`](/docs/cli/doctor#was-geprüft-wird) listet die Prüfungen auf. Der API-Key wird nur
 über den Namen geprüft; die Quelldatei wird geparst, nicht nur gefunden.
@@ -81,6 +82,8 @@ function extract(
 
 **Wirft:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Beispiel:** [Keys aus deinem Quellcode extrahieren](/docs/programmatic-api#keys-aus-deinem-quellcode-extrahieren)
+
 Nur wirklich neue Keys werden in der Quell-Locale-Datei ergänzt; siehe
 [Was er schreibt](/docs/cli/extract#was-er-schreibt). Was der Scan nicht auflösen kann, kommt als
 Daten in `dynamic`, `conflicts` und `diagnostics` zurück, nie geworfen
@@ -92,6 +95,8 @@ optionale `readDirectory`-Member von `SdkFs`; ein `deps.fs` ohne dieses Member w
 `EXTRACT_FS_UNSUPPORTED` gemeldet.
 
 ### check
+
+<AvailableFrom version="0.4.0" />
 
 Meldet die Drift pro Locale als Zähler: `missing` (in der Quelle, im Ziel fehlend), `stale`
 (Quelle seit der letzten Übersetzung geändert) und `upToDate`. Nutze es als CI-Gate.
@@ -108,6 +113,8 @@ function check(
 **Rückgabe:** `CheckSummary`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
 
 `inSync` ist genau dann true, wenn jede geprüfte Locale nichts Fehlendes und nichts Veraltetes hat.
 
@@ -194,6 +201,8 @@ Locale gehört, oder eine fehlende Datei wirft `NOT_A_LOCALE_FILE`.
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 Das detaillierte Gegenstück zu `check`: dieselbe Berechnung, aber es gibt die Key-Listen pro
 Locale zurück (`missing`, `changed`, `orphaned`) statt Zähler. Verwaiste Keys sind reine Meldung
 und kippen nie `hasPendingChanges`, da ein Standardlauf kein `prune` ausführt.
@@ -210,6 +219,8 @@ function diff(
 **Rückgabe:** `DiffSummary`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Beispiel:** [In CI prüfen, ohne zu schreiben](/docs/programmatic-api#in-ci-prüfen-ohne-zu-schreiben)
 
 Mit `unused: true` scannt es zusätzlich die `extract`-Roots der Konfiguration, nur lesend und ohne
 Key, und ergänzt einen `unused`-Bericht, getrennt von jeder `orphaned`-Liste: die Keys der
@@ -229,6 +240,8 @@ wessen Arbeit eine Neuübersetzung ersetzen würde.
 Jedes `LocaleDiff` enthält außerdem `protected`, die fehlenden und geänderten Keys, die ein `translate`-Lauf in Ruhe lassen würde, sortiert. Sie zählen weiter als ausstehend. Ist die Provenienz-Datei nicht lesbar, werden nur gepinnte Keys gelistet.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Meldet für die geänderten Keys jeder Locale, ob der aktuelle Zielwert noch zu den Platzhaltern der
 Quelle passt, ob er noch das Inline-Markup der Quelle trägt und ob er gültiges ICU ist. Jeder
@@ -292,6 +305,8 @@ Platte.
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Meldet für die Lock-Datei Existenz, Version und Drift pro Locale (Baseline-Key-Anzahl plus Zähler
 für fehlend, veraltet und aktuell). `exists` stammt aus einer expliziten Prüfung, sodass "noch keine
 Lock-Datei" und "eine leere, aber vorhandene Lock-Datei" unterscheidbar bleiben. Fehlt die Datei,
@@ -313,6 +328,8 @@ function lockState(
 Jede Locale trägt außerdem dieselben `provenance`-Zähler, die `check` meldet.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Liest die Lock-Datei selbst (`verbatra.lock.json`, auch als `LOCK_FILE_NAME` exportiert) und gibt
 ihre geparste Form zurück: `{ version, locales }`, wobei jede Locale Keys auf den Hash des
@@ -364,6 +381,8 @@ function loadProvenance(
 Keine Konfiguration nötig.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Liest den Schnappschuss aus Review-Flags und Token-Verbrauch, den der letzte `translate`- oder
 `watch`-Lauf ohne Dry-Run nach `.verbatra-local/run-status.json` persistiert hat. Wirft nie: eine
@@ -419,6 +438,8 @@ function reviewQueue(
 **Rückgabe:** `ReviewQueueResult`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Beispiel:** [Die Review-Warteschlange abarbeiten](/docs/programmatic-api#die-review-warteschlange-abarbeiten)
 
 Gibt `{ available: true, locales, lastRunAt? }`
 zurück, jede Locale als `{ locale, needsReview, approved?, fuzzyHits? }` und jeden Eintrag als

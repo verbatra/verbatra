@@ -1,14 +1,18 @@
 ---
 title: "Übergabe und Austausch"
-description: "Import und Export von Arbeitsmappen und TMX, Locale-Datei-Schnappschüsse, Locale-Pfade und Fehlerhinweise."
+description: "Import und Export von Arbeitsmappen und TMX, Locale-Datei-Schnappschüsse und Locale-Pfade."
 type: reference
 ---
+<SdkAnchorForward />
+
 ## Locale-Datei-Schnappschüsse
 
 Die Bausteine eines Live-Refresh-Watchers wie dem von Studio: den Zustand einer Locale-Datei
 erfassen und dann zählen, was sich seitdem geändert hat.
 
 ### readLocaleFileSnapshot
+
+<AvailableFrom version="0.5.0" />
 
 Liest eine Locale-Datei (die Quell-Locale oder eine beliebige Ziel-Locale) und reduziert sie auf
 einen Inhalts-Hash pro Key. Eine noch nicht existierende Datei liest sich als leerer Schnappschuss,
@@ -31,6 +35,8 @@ Gibt `{ locale, hashes }` zurück.
 
 ### diffLocaleSnapshots
 
+<AvailableFrom version="0.5.0" />
+
 Vergleicht zwei Schnappschüsse derselben Datei zu verschiedenen Zeitpunkten und zählt die
 zwischen ihnen hinzugefügten, geänderten und entfernten Keys. Eine schlichte synchrone Funktion:
 `diffLocaleSnapshots(previous, current)` gibt `{ added, changed, removed }` zurück. Nur Zähler,
@@ -43,11 +49,15 @@ function diffLocaleSnapshots(
 ): LocaleSnapshotDelta;
 ```
 
+<SdkTypeTable name="LocaleFileSnapshot" />
+
 **Rückgabe:** `LocaleSnapshotDelta`
 
 ## Locale-Pfade
 
 ### createLocalePathResolver
+
+<AvailableFrom version="0.7.0" />
 
 Löst die Locale-zu-Pfad-Zuordnung des Projekts in beide Richtungen auf, aus `files.pattern`, den
 konfigurierten Locales und `files.localeStyle`. `createLocalePathResolver(cwd, config)` liefert
@@ -63,6 +73,8 @@ function createLocalePathResolver(
 ): LocalePathResolver;
 ```
 
+<SdkTypeTable name="LocalePathResolverConfig" />
+
 **Rückgabe:** `LocalePathResolver`
 
 **Wirft:** [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
@@ -72,68 +84,14 @@ ein Style, die sich nicht kombinieren lassen, oder eine Locale, für die der Sty
 Schreibweise hat, werfen `LOCALE_LAYOUT_INVALID`; zwei Locales, die auf denselben Pfad auflösen,
 werfen `LOCALE_PATH_COLLISION`.
 
-### projectRelativeMessage
-
-<AvailableFrom version="0.12.0" />
-
-`projectRelativeMessage(message, cwd)` schreibt jeden absoluten Pfad innerhalb des Projekts in einer
-Meldung in einen Pfad relativ zum Projektstamm um: Ein Pfad unter `cwd` verliert dieses Präfix,
-`cwd` selbst wird zu `.`, und ein Pfad außerhalb des Projekts bleibt, wie er ist. Jede
-`error.message` und jede Notice-Meldung pro Locale in einer `RunSummary` nennt Projektdateien
-bereits so, relativ zum `cwd` des Laufs; ruf es für die Meldung eines Fehlers auf, den ein Flow
-wirft, bevor du sie einem Menschen, einem Agenten oder einem Browser-Tab zeigst. `verbatra mcp`
-und Studio machen das für jeden Fehler, den sie zurückgeben.
-
-```ts title="Signatur"
-function projectRelativeMessage(
-  message: string,
-  cwd: string,
-): string;
-```
-
-**Rückgabe:** `string`
-
-### errorHint
-
-<AvailableFrom version="0.12.0" />
-
-`errorHint(error)` gibt den nächsten Schritt zurück, der einen Fehler von verbatra behebt: einen
-kurzen Satz im Imperativ, oder `undefined`, wenn es keinen gibt. Jeder `SdkError`-Code, jeder
-`ProviderError`-Code und jeder Fehlercode eines Format-Adapters hat einen, sodass ein Agent auf
-einen Fehler reagieren kann, ohne dessen Meldung zu parsen. Es liest den `code` des Fehlers, also
-bekommt auch ein einfaches `{ code, message }`-Objekt, etwa der `error` eines fehlgeschlagenen
-`watch`-Laufs, denselben Hinweis. Ein `PROVIDER_CONSTRUCTION_FAILED`-Fehler übernimmt den Hinweis
-des Provider-Fehlers, den er umhüllt, sodass ein fehlender Key genau die Variable nennt, die du
-setzen musst, gelesen aus dem `envVar`, das ein `ProviderError` mit `MISSING_API_KEY` trägt. Ein
-`CONFIG_INVALID`-Fehler aus einer Konfigurationsdatei, deren Import sich nicht auflösen ließ (ihr
-`causeCode` ist `MODULE_NOT_FOUND`, `ERR_MODULE_NOT_FOUND`, `ERR_PACKAGE_PATH_NOT_EXPORTED` oder
-`ERR_UNSUPPORTED_DIR_IMPORT`), sagt stattdessen, dass du diesen Import installieren oder korrigieren
-sollst. Ein Hinweis ist fester Text plus höchstens ein Variablenname: Er enthält nie den Wert eines Keys und
-zitiert nie die Meldung. Der `--json`-Fehlerumschlag der CLI trägt ihn als `hint`, und
-`verbatra mcp` beendet den Text eines fehlgeschlagenen Aufrufs damit.
-
-```ts title="Signatur"
-function errorHint(error: unknown): string | undefined;
-```
-
-**Rückgabe:** `string | undefined`
-
-```ts
-import { errorHint, translate } from "@verbatra/sdk";
-
-try {
-  await translate({ config });
-} catch (error) {
-  console.error(errorHint(error)); // z. B. "Set GEMINI_API_KEY in the environment, or, with the CLI, in a .env file in the project directory."
-}
-```
-
 ## Das Arbeitsmappen-Paar
 
 Die Übergabe für menschliche Übersetzerinnen, als Excel-Arbeitsmappe oder als Text mit
 Trennzeichen; siehe [Menschliche Übersetzung](/docs/manual-translation).
 
 ### exportWorkbook
+
+<AvailableFrom version="0.2.0" />
 
 Schreibt die noch zu übersetzenden Strings (fehlende und geänderte Keys pro Locale; unveränderte
 kommen mit `includeUnchanged` dazu) in eine formatierte `.xlsx`-Arbeitsmappe. Die Zeilen tragen
@@ -152,6 +110,8 @@ function exportWorkbook(
 **Rückgabe:** `ExportWorkbookResult`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`EXPORT_OUTPUT_CONFLICT`](/docs/error-codes#export_output_conflict), [`EXPORT_UNWRITABLE`](/docs/error-codes#export_unwritable)
+
+**Beispiel:** [Der Arbeitsmappen-Roundtrip](/docs/programmatic-api#der-arbeitsmappen-roundtrip)
 
 `format` ist standardmäßig
 `xlsx`; `csv` und `tsv` schreiben stattdessen eine `<locale>.csv` bzw. `<locale>.tsv` pro Locale, `out`
@@ -180,6 +140,8 @@ Jede Unit mit einem Ziel trägt außerdem ihre Herkunft: XLIFF 1.2 kennzeichnet 
 
 ### importWorkbook
 
+<AvailableFrom version="0.2.0" />
+
 Liest eine ausgefüllte Arbeitsmappe zurück in die Locale-Dateien und führt dieselben Prüfungen auf
 Quelldrift und Integrität aus wie `translate`. Nur akzeptierte Zeilen rücken ihre
 Lock-Baseline vor; eine leere oder abgelehnte Zeile wird weiter exportiert, bis sie wirklich
@@ -197,6 +159,8 @@ function importWorkbook(
 **Rückgabe:** [`RunSummary`](/docs/sdk/run-summary)
 
 **Wirft:** [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`REVIEWER_INVALID`](/docs/error-codes#reviewer_invalid), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
+
+**Beispiel:** [Der Arbeitsmappen-Roundtrip](/docs/programmatic-api#der-arbeitsmappen-roundtrip)
 
 Bei `csv` und `tsv` ist `workbook` entweder
 eine einzelne Übergabedatei oder das Verzeichnis mit einer Datei pro Locale, und die Locale kommt aus
@@ -255,6 +219,8 @@ function importTmx(
 **Rückgabe:** `ImportTmxResult`
 
 **Wirft:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Beispiel:** [Der TMX-Roundtrip](/docs/programmatic-api#der-tmx-roundtrip)
 
 Nichts aus der Datei gilt als vertrauenswürdig. Das XML wird unter der Härtung des
 Interchange-Pakets geparst, sodass eine Entity-Deklaration, ein internes DTD-Subset, eine zu große
@@ -316,7 +282,11 @@ function tmxErrorLocation(
 
 **Rückgabe:** `TmxErrorLocation | undefined`
 
-```ts
+```ts title="Beispiel"
+import { importTmx, tmxErrorLocation, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
+
 try {
   await importTmx({ config, file: "legacy.tmx" });
 } catch (error) {
@@ -354,6 +324,8 @@ function exportTmx(
 **Rückgabe:** `ExportTmxResult`
 
 **Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`TMX_OUTPUT_CONFLICT`](/docs/error-codes#tmx_output_conflict), [`TMX_UNWRITABLE`](/docs/error-codes#tmx_unwritable), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision)
+
+**Beispiel:** [Der TMX-Roundtrip](/docs/programmatic-api#der-tmx-roundtrip)
 
 Gibt `{ path, units, locales, withoutSource, illegalCharactersRemoved, provenanceMarkers }` zurück; `withoutSource` zählt Einträge, die ausgelassen wurden, weil der Übersetzungsspeicher keinen Quelltext zu ihnen hat, was nur bei Einträgen aus einem Cache passiert, der noch vor dem Speichern des Quelltexts geschrieben wurde, und `illegalCharactersRemoved` zählt die Zeichen, die XML 1.0 nicht darstellen kann und die aus dem Segmenttext entfernt wurden.
 

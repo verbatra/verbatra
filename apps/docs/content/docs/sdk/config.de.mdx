@@ -28,12 +28,16 @@ function loadConfig(
 
 **Wirft:** [`CONFIG_NOT_FOUND`](/docs/error-codes#config_not_found), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Beispiel:** [Eine Konfiguration ohne Datei](/docs/programmatic-api#eine-konfiguration-ohne-datei)
+
 Wirft `CONFIG_NOT_FOUND`, wenn nichts gefunden wird, `CONFIG_INVALID`, wenn eine Konfiguration
 gefunden, aber ungültig ist. Das Schema steht in [Konfigurationsdatei](/docs/config-file). `fs`
 ist der Dateisystem-Port, über den eine Glossardatei gelesen wird, wie unter
 [Die Abhängigkeits-Nahtstelle](/docs/sdk#die-abhängigkeits-nahtstelle) beschrieben.
 
 ### loadConfigWithMeta
+
+<AvailableFrom version="0.5.0" />
 
 Dasselbe Laden, plus Herkunft: gibt `{ config, source, glossary }` zurück, wobei `source` sagt, ob
 die Konfiguration aus einem Suchtreffer, einem expliziten Pfad oder einer Übersteuerung im
@@ -264,6 +268,8 @@ function sharedGlossaryTranslations(
 ): Readonly<Record<string, string>>;
 ```
 
+<SdkTypeTable name="Glossary" />
+
 **Rückgabe:** `Readonly<Record<string, string>>`
 
 ### redactGlossary
@@ -280,6 +286,8 @@ deinem eigenen Werkzeug genauso.
 ```ts title="Signatur"
 function redactGlossary(glossary: Glossary): RedactedGlossary;
 ```
+
+<SdkTypeTable name="Glossary" />
 
 **Rückgabe:** `RedactedGlossary`
 
@@ -351,6 +359,8 @@ function defineConfig(
 
 **Rückgabe:** `VerbatraConfigInput`
 
+**Beispiel:** [Eine Quelldatei und eine Konfiguration anlegen](/docs/sdk-quickstart#eine-quelldatei-und-eine-konfiguration-anlegen)
+
 ### verbatraConfigSchema
 
 Das zod-Schema, mit dem `loadConfig` validiert, exportiert, damit dein eigenes Tooling ein
@@ -365,6 +375,8 @@ const verbatraConfigSchema: z.ZodObject<{ ... }, z.core.$strict>;
 ```
 
 ### scaffoldingMetadata
+
+<AvailableFrom version="0.4.0" />
 
 Nur lesbare Metadaten, aus denen der CLI-Befehl `init` seine Abfragen ableitet:
 `providerEnv` (Provider-ID zur Umgebungsvariable, aus der sein Key gelesen wird),
@@ -416,7 +428,7 @@ function detectProject(
 
 **Rückgabe:** `ProjectDetection`
 
-```ts
+```ts title="Beispiel"
 import { detectProject } from "@verbatra/sdk";
 
 const detection = await detectProject({ cwd: "/path/to/project" });
@@ -455,5 +467,7 @@ function assertMachineTranslationEnabled(
   action: string,
 ): void;
 ```
+
+**Rückgabe:** `void`
 
 **Wirft:** [`MACHINE_TRANSLATION_DISABLED`](/docs/error-codes#machine_translation_disabled)

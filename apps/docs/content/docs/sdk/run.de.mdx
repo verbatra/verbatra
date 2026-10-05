@@ -25,6 +25,8 @@ function translate(
 
 **Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Beispiel:** [Übersetzen und die Zusammenfassung lesen](/docs/sdk-quickstart#übersetzen-und-die-zusammenfassung-lesen)
+
 Was die Tabelle nicht abdeckt:
 
 - `concurrency`: Ein Fehler des gesamten Laufs, der auftritt, während bereits Locales laufen,
@@ -70,7 +72,7 @@ Siehe [die Anatomie der `RunSummary`](/docs/sdk/run-summary#die-anatomie-der-run
 | `change-detected` | nur `watch`: eine Änderung an der Quelldatei hat sich gesetzt | `paths` |
 | `idle` | nur `watch`: ein Lauf ist fertig und keiner steht an | keine |
 
-`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL und Google Cloud Translation melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
+`provider-retry` nennt keine Locale, weil ein Provider den ganzen Lauf bedient. Gemini meldet die Wartezeit und den Status, Anthropic, OpenAI und openai-compatible melden den Versuch, sobald ihr Client ihn startet, und DeepL, Google Cloud Translation und LibreTranslate melden nichts. Ein Dry Run und eine Schätzung senden nur `locale-started`, `locale-finished` und `run-finished`. Die `--json`-Fortschrittsdatensätze der CLI bleiben bei den vier ursprünglichen Typen: `locale-started`, `sub-batch`, `locale-finished` und `run-finished`.
 
 `extract`, `diff` mit `unused` und `doctor` mit `literals` nehmen ein eigenes `onProgress`. Es erhält ein `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, einmal nach jeder Quelldatei der Anwendung, die der Scan liest.
 
@@ -95,8 +97,10 @@ function resolveDryRun(input: {
 
 **Rückgabe:** `boolean`
 
-```ts
-import { resolveDryRun, translate } from "@verbatra/sdk";
+```ts title="Beispiel"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 const options = { dryRun: false, estimate: true };
 resolveDryRun(options); // true
@@ -123,6 +127,8 @@ function watch(
 
 **Wirft:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Beispiel:** [Beobachten in einem langlaufenden Prozess](/docs/programmatic-api#beobachten-in-einem-langlaufenden-prozess)
+
 `debounceMs` ist standardmäßig 300. `onRun` wird einmal pro Lauf mit einem `WatchRunResult`
 aufgerufen: `{ status: "succeeded", summary }` oder
 `{ status: "failed", error: { code, message, causeCode?, hint? } }`, wobei `causeCode` den Code des
@@ -134,15 +140,14 @@ wie bei `translate`. `locales` grenzt jeden Lauf der Sitzung auf diese Teilmenge
 beim Start geprüft, nicht pro Zyklus.
 
 Gibt einen `WatchController` mit einer Methode zurück, `stop()`, die den Watcher schließt und den
-laufenden Lauf abwartet. Vier Probleme werden schon beim Start zurückgewiesen, bevor der Watcher
-existiert, sodass `watch` selbst fehlschlägt, statt einen Controller zurückzugeben: Eine
-`concurrency`, die keine Ganzzahl von mindestens 1 ist, wirft `CONCURRENCY_INVALID`, eine
-`concurrency` über 1 gegen eine Konfiguration, die `maxTokens` setzt, wirft
-`CONCURRENCY_BUDGET_CONFLICT` (es gibt keinen Dry-Run-Watch, der Budgetkonflikt greift also
-immer), eine fehlende Quelldatei wirft `SOURCE_UNREADABLE`, und ab 0.12.0 wirft ein Provider, der
-sich nicht erzeugen lässt, etwa weil seine API-Key-Variable fehlt, `PROVIDER_CONSTRUCTION_FAILED`.
-Jeder Fehlschlag nach dem Start
-kommt über `onRun` an, und das Beobachten geht weiter.
+laufenden Lauf abwartet. Jeder Code aus der Zeile **Wirft** wird schon beim Start zurückgewiesen,
+bevor der Watcher existiert, sodass `watch` selbst fehlschlägt, statt einen Controller
+zurückzugeben. Zwei davon wiegen für eine Sitzung schwerer als für einen einzelnen Lauf: Eine
+`concurrency` über 1 gegen eine Konfiguration, die `maxTokens` setzt, wirft immer
+`CONCURRENCY_BUDGET_CONFLICT`, weil es keinen Dry-Run-Watch gibt, und ab 0.12.0 wirft ein Provider,
+der sich nicht erzeugen lässt, etwa weil seine API-Key-Variable fehlt, einmal
+`PROVIDER_CONSTRUCTION_FAILED`, statt jeden Lauf scheitern zu lassen. Jeder Fehlschlag nach dem
+Start kommt über `onRun` an, und das Beobachten geht weiter.
 
 ### releaseHeldLocks
 
@@ -159,6 +164,8 @@ hinterlässt keine Datei; auf eine solche Übernahme wartet es höchstens drei S
 ```ts title="Signatur"
 function releaseHeldLocks(): Promise<void>;
 ```
+
+**Rückgabe:** `void`
 
 Eine Sperre, die trotzdem liegen bleibt, weil ein Prozess hart beendet wurde, braucht es nicht: Ein
 wartender Durchlauf auf derselben Maschine erkennt, dass der eingetragene Prozess nicht mehr läuft,
@@ -190,6 +197,8 @@ function pseudolocalize(
 **Rückgabe:** `PseudolocalizeResult`
 
 **Wirft:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
+**Beispiel:** [Eine Pseudo-Locale bauen](/docs/programmatic-api#eine-pseudo-locale-bauen)
 
 Jeder erzeugte Wert muss dasselbe Integritäts-Gate passieren wie eine Provider-Übersetzung. Ein
 Wert, der das nicht schaffen würde, wird wortwörtlich aus der Quelle kopiert und in `copied`
@@ -242,6 +251,8 @@ function generateTypes(
 **Rückgabe:** `GenerateTypesResult`
 
 **Wirft:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Beispiel:** [Einen typisierten Katalog erzeugen](/docs/programmatic-api#einen-typisierten-katalog-erzeugen)
 
 Gelesen wird eine Datei (der Quell-Locale-Katalog), geschrieben eine Datei (die Deklaration); eine
 Ziel-Locale-Datei wird nie angefasst. Die Keys sind genau das, was der Format-Adapter ohnehin schon

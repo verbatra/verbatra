@@ -102,6 +102,25 @@ describe.each(i18n.languages)("the %s SDK reference folder", (locale) => {
     expect(all.filter((anchor, position) => all.indexOf(anchor) !== position)).toEqual([]);
   });
 
+  it.each(["errorhint", "projectrelativemessage"])(
+    "forwards the old /docs/sdk/exchange#%s link to the errors page",
+    (anchor) => {
+      const exchange = pages.find((page) => page.url.endsWith("/sdk/exchange"));
+      const errors = pages.find((page) => page.url.endsWith("/sdk/errors"));
+      const source = readPage("exchange", locale);
+
+      expect(source).toContain("<SdkAnchorForward />");
+      expect(exchange && anchorsOf(exchange).has(anchor)).toBe(false);
+      expect(
+        forwardedUrl(
+          `#${anchor}`,
+          targets,
+          (id) => exchange !== undefined && anchorsOf(exchange).has(id),
+        ),
+      ).toBe(`${errors?.url}#${anchor}`);
+    },
+  );
+
   it("lists the same entries on each page as the English folder", () => {
     const english = folder(i18n.defaultLanguage).pages;
 

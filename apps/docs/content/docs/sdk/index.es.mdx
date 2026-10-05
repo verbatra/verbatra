@@ -5,9 +5,21 @@ description: "Instala @verbatra/sdk, encuentra la página de cada punto de entra
 type: reference
 ---
 `@verbatra/sdk` es el motor sobre el que corre el comando `verbatra`. La CLI es una envoltura fina, así que todo
-lo que hace la línea de comandos lo puedes hacer en código. Las páginas de abajo catalogan toda la superficie pública,
-agrupada por la tarea que hace cada punto de entrada. ¿Eres nuevo en el SDK? Empieza por el [inicio rápido del SDK](/docs/sdk-quickstart); para ejemplos de principio a fin, consulta
-[Recetas del SDK](/docs/programmatic-api).
+lo que hace la línea de comandos lo puedes hacer en código.
+
+## Empieza aquí
+
+¿Eres nuevo en el SDK? Empieza por una de estas páginas:
+
+<Cards>
+  <Card title="Inicio rápido del SDK" href="/docs/sdk-quickstart">Instala el SDK, previsualiza una ejecución sin clave, traduce desde tu propio script, gestiona los errores y protege la CI.</Card>
+  <Card title="Recetas del SDK" href="/docs/programmatic-api">Scripts completos para estimaciones, el modo watch, un proveedor falso, la cola de revisión y los viajes de ida y vuelta con libro y TMX.</Card>
+</Cards>
+
+## Páginas de referencia
+
+Estas páginas catalogan toda la superficie pública, agrupada por la tarea que hace cada punto de
+entrada.
 
 <SdkEntryPoints />
 
@@ -54,19 +66,19 @@ puerto construido con ese mismo objeto. Así una ejecución entera se puede mant
 es como las pruebas del propio SDK evitan tocar el disco y como una aplicación anfitriona puede
 respaldar parte de un proyecto con algo que no sea un disco local.
 
-```ts
-import { translate, type SdkFs } from "@verbatra/sdk";
-
-const summary = await translate({ config }, { fs: inMemoryFs satisfies SdkFs });
-```
+<SdkTypeTable name="SdkFs" />
 
 Una implementación tiene que respetar dos puntos del contrato. Las lecturas están acotadas por
 tamaño: `readFileBounded` y `readBytesBounded` reciben un límite de bytes e informan de `missing` o
 `too-large` como estado en lugar de lanzar, que es lo que impide que un archivo hostil o
 accidentalmente enorme agote la memoria. Las escrituras deben ser atómicas, de modo que una caída a
 mitad de escritura nunca deje un archivo a medio escribir, y `createExclusive` debe ser atómica
-frente a otros procesos porque es la primitiva detrás del bloqueo de escritura por locale. Crear
-directorios es tarea de quien llama.
+frente a otros procesos porque es la primitiva detrás del bloqueo de escritura por locale. Antes de
+escribir un archivo de locale, el archivo de estado de la ejecución o un archivo de salida como un
+libro, el SDK llama al `mkdir` opcional con el directorio padre, así que `writeFile` y `writeBytes`
+no tienen que crearlo; omite `mkdir` cuando el almacén no tenga directorios. `createExclusive` no
+recibe esa llamada y crea él mismo un directorio padre que falte. Los demás miembros obligatorios
+son `fileExists` y `deleteFile`, que tiene éxito aunque el archivo ya no exista.
 
 `readDirectory` es opcional, para que una implementación escrita antes de que existiera la
 extracción desde código siga compilando. [`extract`](/docs/sdk/inspect#extract) es el único punto de entrada que lo
@@ -153,4 +165,66 @@ La carga de la configuración también queda fuera del punto de inyección. `loa
 archivo de glosario que nombre la configuración a través de su propia opción `fs`, así que el
 `deps.fs` que recibe un flujo posterior no alcanza ninguna de las dos lecturas. Para mantener un
 proyecto entero en memoria, pasa el mismo `SdkFs` como `loadConfig({ fs })` y entrega la
-configuración como `configOverride` en lugar de como archivo.
+configuración como `configOverride` en lugar de como archivo. Los flujos resuelven las rutas contra
+su propio `cwd`, así que pásalo también ahí.
+
+El ejemplo mantiene un proyecto entero en memoria solo con los miembros obligatorios. Con el
+proveedor `none` la ejecución no necesita clave y deja `greeting` para que lo traduzca una persona.
+
+```ts title="Ejemplo"
+import { check, loadConfig, type SdkFs, translate } from "@verbatra/sdk";
+
+const files = new Map<string, Uint8Array>();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function bounded(path: string, maxBytes: number) {
+  const bytes = files.get(path);
+  if (bytes === undefined) return { kind: "missing" } as const;
+  if (bytes.byteLength > maxBytes) return { kind: "too-large" } as const;
+  return { kind: "ok", bytes } as const;
+}
+
+const memoryFs: SdkFs = {
+  fileExists: async (path) => files.has(path),
+  readFileBounded: async (path, maxBytes) => {
+    const read = bounded(path, maxBytes);
+    return read.kind === "ok" ? { kind: "ok", content: decoder.decode(read.bytes) } : read;
+  },
+  readBytesBounded: async (path, maxBytes) => bounded(path, maxBytes),
+  writeFile: async (path, data) => {
+    files.set(path, encoder.encode(data));
+  },
+  writeBytes: async (path, data) => {
+    files.set(path, data);
+  },
+  createExclusive: async (path, data) => {
+    if (files.has(path)) return false;
+    files.set(path, encoder.encode(data));
+    return true;
+  },
+  deleteFile: async (path) => {
+    files.delete(path);
+  },
+};
+
+files.set("/project/locales/en.json", encoder.encode('{ "greeting": "Hello, {{name}}!" }'));
+
+const config = await loadConfig({
+  cwd: "/project",
+  fs: memoryFs,
+  configOverride: {
+    sourceLocale: "en",
+    targetLocales: ["de"],
+    format: "i18next-json",
+    files: { pattern: "locales/{locale}.json" },
+    provider: { id: "none" },
+  },
+});
+
+const summary = await translate({ config, cwd: "/project" }, { fs: memoryFs });
+const status = await check({ config, cwd: "/project" }, { fs: memoryFs });
+
+console.log(summary.locales[0]?.unfilled, status.inSync); // [ 'greeting' ] false
+console.log([...files.keys()]); // the source, verbatra.lock.json, .verbatra-local/run-status.json
+```

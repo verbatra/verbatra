@@ -11,8 +11,9 @@ None of these call a provider, write a file, or mutate the lock.
 
 <AvailableFrom version="0.9.0" />
 
-Validates the project setup and spends nothing: it constructs no provider, never reads an API key
-value, and makes no network request unless `live` asks for one. Each check returns its own verdict, and every check runs even when an earlier one failed, so one call
+Validates the project setup and spends nothing: it constructs no provider and makes no network request
+unless `live` asks for one. It reads the API key value only for `live`, which sends it in one
+language-list request; LibreTranslate gets no key. Each check returns its own verdict, and every check runs even when an earlier one failed, so one call
 reports every independent problem. [`verbatra doctor`](/docs/cli/doctor#what-it-checks) lists the
 checks. The API key is checked by name only; the source file is parsed, not just found.
 
@@ -78,6 +79,8 @@ function extract(
 
 **Throws:** [`EXTRACT_NOT_CONFIGURED`](/docs/error-codes#extract_not_configured), [`EXTRACT_FS_UNSUPPORTED`](/docs/error-codes#extract_fs_unsupported), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`SOURCE_UNWRITABLE`](/docs/error-codes#source_unwritable)
 
+**Example:** [Extract keys from your source code](/docs/programmatic-api#extract-keys-from-your-source-code)
+
 Only genuinely new keys are added to the source locale file; see
 [What it writes](/docs/cli/extract#what-it-writes). What the scan cannot resolve comes back as data
 in `dynamic`, `conflicts`, and `diagnostics`, never thrown
@@ -88,6 +91,8 @@ a source file's contents.
 a `deps.fs` without it is reported as `EXTRACT_FS_UNSUPPORTED`.
 
 ### check
+
+<AvailableFrom version="0.4.0" />
 
 Reports per-locale drift as counts: `missing` (in source, absent from target), `stale` (source
 changed since last translated), and `upToDate`. Use it as a CI gate.
@@ -104,6 +109,8 @@ function check(
 **Returns:** `CheckSummary`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Example:** [Check in CI without writing](/docs/programmatic-api#check-in-ci-without-writing)
 
 `inSync` is true exactly when every checked locale has nothing missing and nothing stale.
 
@@ -186,6 +193,8 @@ for syntax alone. A path that is no configured locale's file, or a missing file,
 
 ### diff
 
+<AvailableFrom version="0.4.0" />
+
 The detailed sibling of `check`: the same computation, but it returns the key lists per locale
 (`missing`, `changed`, `orphaned`) instead of counts. Orphaned keys are report-only and never flip
 `hasPendingChanges`, since a default run does not prune.
@@ -202,6 +211,8 @@ function diff(
 **Returns:** `DiffSummary`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale)
+
+**Example:** [Check in CI without writing](/docs/programmatic-api#check-in-ci-without-writing)
 
 With `unused: true` it also scans the config's `extract` roots, read-only and keyless, and adds an
 `unused` report, separate from every `orphaned` list: the source-locale keys no static reference
@@ -220,6 +231,8 @@ retranslation would replace before you run it.
 Each `LocaleDiff` also carries `protected`, the missing and changed keys a `translate` run would leave alone, sorted. They still count as pending. When the provenance file is unreadable, only pinned keys are listed.
 
 ### keyIntegrity
+
+<AvailableFrom version="0.5.0" />
 
 Reports, for each locale's changed keys, whether the current target value still matches the source's
 placeholders, whether it still carries the source's inline markup, and whether it is valid ICU. Each
@@ -281,6 +294,8 @@ check per translated key. Nothing is cached; every call reads fresh from disk.
 
 ### lockState
 
+<AvailableFrom version="0.5.0" />
+
 Reports the lock file's existence, version, and per-locale drift (baseline key count plus missing,
 stale, and up-to-date counts). `exists` comes from an explicit probe, so "no lock file yet" and "an
 empty but present lock file" stay distinguishable. When the file is absent the result is
@@ -302,6 +317,8 @@ function lockState(
 Each locale also carries the same `provenance` counts `check` reports.
 
 ### loadLockFile
+
+<AvailableFrom version="0.5.0" />
 
 Reads the lock file itself (`verbatra.lock.json`, also exported as `LOCK_FILE_NAME`) and returns
 its parsed shape: `{ version, locales }`, where each locale maps keys to the source content hash
@@ -351,6 +368,8 @@ function loadProvenance(
 No config needed.
 
 ### runStatus
+
+<AvailableFrom version="0.5.0" />
 
 Reads the review-flag and token-usage snapshot the most recent non-dry-run `translate` or `watch`
 run persisted to `.verbatra-local/run-status.json`. Never throws: an unusable file
@@ -402,6 +421,8 @@ function reviewQueue(
 **Returns:** `ReviewQueueResult`
 
 **Throws:** [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid)
+
+**Example:** [Work through the review queue](/docs/programmatic-api#work-through-the-review-queue)
 
 Returns `{ available: true, locales, lastRunAt? }`,
 each locale `{ locale, needsReview, approved?, fuzzyHits? }` and each entry `{ key, reasons, provenance }`;

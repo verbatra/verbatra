@@ -24,6 +24,8 @@ function translate(
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`MAX_TOKENS_INVALID`](/docs/error-codes#max_tokens_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`CONFIG_INVALID`](/docs/error-codes#config_invalid), [`LOCK_FILE_INVALID`](/docs/error-codes#lock_file_invalid), [`PROVENANCE_FILE_INVALID`](/docs/error-codes#provenance_file_invalid)
 
+**Example:** [Translate and read the summary](/docs/sdk-quickstart#translate-and-read-the-summary)
+
 What the table does not cover:
 
 - `concurrency`: a whole-run error raised once locales are already running stops any further
@@ -65,7 +67,7 @@ A whole-run problem throws an `SdkError`; a single locale failing never throws a
 | `change-detected` | `watch` only: a change to the source file has settled | `paths` |
 | `idle` | `watch` only: a run finished and none is queued | none |
 
-`provider-retry` names no locale, because one provider serves the whole run. Gemini reports the delay and the status, Anthropic, OpenAI and openai-compatible report the attempt as their client starts it, and DeepL and Google Cloud Translation report none. A dry run and an estimate emit only `locale-started`, `locale-finished` and `run-finished`. The CLI's `--json` progress records keep to the four original types: `locale-started`, `sub-batch`, `locale-finished` and `run-finished`.
+`provider-retry` names no locale, because one provider serves the whole run. Gemini reports the delay and the status, Anthropic, OpenAI and openai-compatible report the attempt as their client starts it, and DeepL, Google Cloud Translation and LibreTranslate report none. A dry run and an estimate emit only `locale-started`, `locale-finished` and `run-finished`. The CLI's `--json` progress records keep to the four original types: `locale-started`, `sub-batch`, `locale-finished` and `run-finished`.
 
 `extract`, `diff` with `unused`, and `doctor` with `literals` take an `onProgress` of their own. It receives a `ScanProgressEvent`, `{ type: "files-scanned", scanned, total }`, once after each application source file the scan reads.
 
@@ -90,8 +92,10 @@ function resolveDryRun(input: {
 
 **Returns:** `boolean`
 
-```ts
-import { resolveDryRun, translate } from "@verbatra/sdk";
+```ts title="Example"
+import { resolveDryRun, translate, type VerbatraConfig } from "@verbatra/sdk";
+
+declare const config: VerbatraConfig;
 
 const options = { dryRun: false, estimate: true };
 resolveDryRun(options); // true
@@ -118,6 +122,8 @@ function watch(
 
 **Throws:** [`UNKNOWN_LOCALE`](/docs/error-codes#unknown_locale), [`LOCALE_UNSUPPORTED_BY_PROVIDER`](/docs/error-codes#locale_unsupported_by_provider), [`CONCURRENCY_INVALID`](/docs/error-codes#concurrency_invalid), [`LOCK_TIMEOUT_INVALID`](/docs/error-codes#lock_timeout_invalid), [`CONCURRENCY_BUDGET_CONFLICT`](/docs/error-codes#concurrency_budget_conflict), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`NETWORK_POLICY_VIOLATION`](/docs/error-codes#network_policy_violation), [`PROVIDER_CONSTRUCTION_FAILED`](/docs/error-codes#provider_construction_failed), [`CONFIG_INVALID`](/docs/error-codes#config_invalid)
 
+**Example:** [Watch in a long-running process](/docs/programmatic-api#watch-in-a-long-running-process)
+
 `debounceMs` defaults to 300. `onRun` is called once per run with a `WatchRunResult`:
 `{ status: "succeeded", summary }` or `{ status: "failed", error: { code, message, causeCode?, hint? } }`,
 where `causeCode` names the coded error the failure wraps and `hint` is the next step `errorHint`
@@ -129,14 +135,13 @@ only output. `concurrency`, `cache`, `onProgress`, `onLockWait`, and
 cycle.
 
 Returns a `WatchController` with one method, `stop()`, which closes the watcher and awaits the
-in-flight run. Four problems are refused at startup, before the watcher exists, so `watch` itself
-rejects rather than returning a controller: a `concurrency` that is not an integer of at least 1
-throws `CONCURRENCY_INVALID`, a `concurrency` above 1 against a config that sets `maxTokens` throws
-`CONCURRENCY_BUDGET_CONFLICT` (there is no dry-run watch, so the budget conflict always applies),
-a missing source file throws `SOURCE_UNREADABLE`, and, from 0.12.0, a provider that cannot be
-constructed, such as one whose API key variable is unset, throws `PROVIDER_CONSTRUCTION_FAILED`.
-Every failure after startup is surfaced
-through `onRun` and watching continues.
+in-flight run. Every code on the **Throws** line is refused at startup, before the watcher exists,
+so `watch` itself rejects rather than returning a controller. Two of them weigh more on a session
+than on one run: a `concurrency` above 1 against a config that sets `maxTokens` always throws
+`CONCURRENCY_BUDGET_CONFLICT`, because there is no dry-run watch, and, from 0.12.0, a provider that
+cannot be constructed, such as one whose API key variable is unset, throws
+`PROVIDER_CONSTRUCTION_FAILED` once instead of failing every run. Every failure after startup is
+surfaced through `onRun` and watching continues.
 
 ### releaseHeldLocks
 
@@ -152,6 +157,8 @@ A lock that a still-running operation is taking, or tries to take, while it runs
 ```ts title="Signature"
 function releaseHeldLocks(): Promise<void>;
 ```
+
+**Returns:** `void`
 
 A lock left behind anyway, by a process killed outright, does not need it: a waiting run on the
 same machine sees that the recorded process is gone and reclaims the lock itself. See
@@ -182,6 +189,8 @@ function pseudolocalize(
 **Returns:** `PseudolocalizeResult`
 
 **Throws:** [`PSEUDO_OUTPUT_CONFLICT`](/docs/error-codes#pseudo_output_conflict), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid), [`TARGET_UNWRITABLE`](/docs/error-codes#target_unwritable)
+
+**Example:** [Build a pseudolocale](/docs/programmatic-api#build-a-pseudolocale)
 
 Every generated value is held to the same integrity gate a provider translation must pass. One
 that would not pass it is copied from the source verbatim and named in `copied` rather than written
@@ -230,6 +239,8 @@ function generateTypes(
 **Returns:** `GenerateTypesResult`
 
 **Throws:** [`TYPES_OUTPUT_CONFLICT`](/docs/error-codes#types_output_conflict), [`TYPES_UNWRITABLE`](/docs/error-codes#types_unwritable), [`UNKNOWN_FORMAT`](/docs/error-codes#unknown_format), [`LOCALE_LAYOUT_INVALID`](/docs/error-codes#locale_layout_invalid), [`LOCALE_PATH_COLLISION`](/docs/error-codes#locale_path_collision), [`SOURCE_UNREADABLE`](/docs/error-codes#source_unreadable), [`SOURCE_INVALID`](/docs/error-codes#source_invalid)
+
+**Example:** [Generate a typed catalog](/docs/programmatic-api#generate-a-typed-catalog)
 
 It reads one file (the source locale catalog) and writes one file (the declaration); a target locale
 file is never touched. The keys are exactly what the format adapter already produced, in document
