@@ -23,7 +23,9 @@ describe("AiSetupPrompt", () => {
   });
 
   it("keeps the install box row compact", () => {
-    const text = prompt("row")?.querySelector("p");
+    const figure = prompt("row");
+    const text = figure?.querySelector("p");
+    expect(figure?.classList.contains("max-w-(--width-measure)")).toBe(false);
     expect(text?.classList.contains("text-xs")).toBe(true);
     expect(text?.className).toContain("var(--text-muted)");
     expect(text?.classList.contains("text-pretty")).toBe(true);
@@ -33,5 +35,7 @@ describe("AiSetupPrompt", () => {
     const caption = prompt("row")?.querySelector("figcaption");
     expect(caption?.classList.contains("min-h-6")).toBe(true);
     expect(caption?.classList.contains("leading-snug")).toBe(true);
+    expect(caption?.classList.contains("flex")).toBe(true);
+    expect(caption?.classList.contains("items-center")).toBe(true);
   });
 });

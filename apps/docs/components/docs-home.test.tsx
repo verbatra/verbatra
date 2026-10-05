@@ -59,6 +59,19 @@ describe("DocsHomePaths", () => {
     expect(card?.querySelector(".vk-label")).toBeNull();
     expect(card?.classList.contains("grid-rows-subgrid")).toBe(true);
   });
+
+  it("keeps a hyphenated compound in a goal title on one line", async () => {
+    const { DocsHomePaths } = await import("./docs-home");
+    const markup = renderToStaticMarkup(
+      <DocsHomePaths
+        cards={[{ goal: "Mit einem KI-Agenten arbeiten", page: "P", body: "B", href: "/docs/x" }]}
+        locale="de"
+      />,
+    );
+    const title = parse(markup).querySelector("a > span");
+    expect(title?.textContent).toBe("Mit einem KI-Agenten arbeiten");
+    expect(title?.querySelector(".whitespace-nowrap")?.textContent).toBe("KI-Agenten");
+  });
 });
 
 describe("DocsHomeSection", () => {
@@ -114,21 +127,6 @@ describe("DocsHomeSection", () => {
     const lead = parse(markup).querySelector(".vk-lead");
     expect(lead?.className).not.toMatch(/justify-self-end/);
     expect(lead?.querySelector("code")?.textContent).toBe("verbatra translate");
-  });
-});
-
-describe("DocsHomePaths: title rhythm", () => {
-  it("keeps a hyphenated compound in a goal title on one line", async () => {
-    const { DocsHomePaths } = await import("./docs-home");
-    const markup = renderToStaticMarkup(
-      <DocsHomePaths
-        cards={[{ goal: "Mit einem KI-Agenten arbeiten", page: "P", body: "B", href: "/docs/x" }]}
-        locale="de"
-      />,
-    );
-    const title = parse(markup).querySelector("a > span");
-    expect(title?.textContent).toBe("Mit einem KI-Agenten arbeiten");
-    expect(title?.querySelector(".whitespace-nowrap")?.textContent).toBe("KI-Agenten");
   });
 });
 
