@@ -61,10 +61,23 @@ export function characterCount(texts: readonly string[]): number {
   return texts.reduce((total, text) => total + [...text].length, 0);
 }
 
-const MARKUP_TAG = /<[^<>]*>/g;
+function textOutsideMarkupTags(text: string): string {
+  let kept = "";
+  let insideTag = false;
+  for (const character of text) {
+    if (character === "<") {
+      insideTag = true;
+    } else if (insideTag) {
+      insideTag = character !== ">";
+    } else {
+      kept += character;
+    }
+  }
+  return kept;
+}
 
 export function withoutMarkupTags(texts: readonly string[]): string[] {
-  return texts.map((text) => text.replace(MARKUP_TAG, ""));
+  return texts.map(textOutsideMarkupTags);
 }
 
 export function deeplTexts(body: string): string[] {

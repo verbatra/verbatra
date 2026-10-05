@@ -174,6 +174,32 @@ describe("billing arithmetic", () => {
     ]);
   });
 
+  it("strips the DeepL x tag and the Google span from the real masked strings", () => {
+    expect(
+      withoutMarkupTags([
+        "Hello <x>{0}</x> &amp; you",
+        'Hi <span translate="no">{0}</span>, <span translate="no">{1}</span> &lt;3',
+      ]),
+    ).toEqual(["Hello {0} &amp; you", "Hi {0}, {1} &lt;3"]);
+  });
+
+  it.each([
+    ["<<span>span>", "span>"],
+    ["<<script>script>alert(1)", "script>alert(1)"],
+    ["a<sp<an>b", "ab"],
+    ["keep <span", "keep "],
+    ["<", ""],
+    ["no tags > here", "no tags > here"],
+  ])("leaves no tag opener behind in %j", (text, expected) => {
+    const [stripped] = withoutMarkupTags([text]);
+    expect(stripped).toBe(expected);
+    expect(stripped).not.toContain("<");
+  });
+
+  it("counts the characters outside tags across a batch", () => {
+    expect(characterCount(withoutMarkupTags(["<x>{0}</x>", "\u{1F600}<b>!</b>"]))).toBe(5);
+  });
+
   it("keeps only the DeepL exchanges that succeeded, so a retried request counts once", () => {
     const exchanges = successfulDeepLExchanges(
       parseWireLog(
