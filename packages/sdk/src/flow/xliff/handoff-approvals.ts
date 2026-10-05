@@ -1,4 +1,4 @@
-import { contentHash, type LocaleResource } from "@verbatra/core";
+import { contentHash, type LocaleResource, type TranslationEntry } from "@verbatra/core";
 import type { SdkFs } from "../../fs.js";
 import { readReportableProvenance } from "../../lock/key-provenance.js";
 import {
@@ -17,6 +17,16 @@ export interface HandoffApprovals {
   readonly written: LocaleResource;
   readonly source: LocaleResource;
   readonly reviewer: string | undefined;
+}
+
+export function recordableApprovals(
+  approved: ReadonlySet<string>,
+  entries: ReadonlyMap<string, TranslationEntry>,
+  source: LocaleResource,
+): ReadonlySet<string> {
+  return new Set(
+    [...approved].filter((key) => entries.get(key)?.value !== undefined && source.entries.has(key)),
+  );
 }
 
 async function priorRecords(

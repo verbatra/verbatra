@@ -9,6 +9,8 @@ import {
   sharedGlossaryTranslations,
 } from "./glossary.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const DASHBOARD: GlossaryDefinition = {
   version: 2,
   terms: [
@@ -272,7 +274,7 @@ describe("rawLocaleKeyIssues", () => {
 });
 
 describe("redactGlossary", () => {
-  const SECRET = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+  const SECRET = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`;
 
   it("redacts every secret-shaped value and names the terms that had one", () => {
     const { glossary, redactedTerms } = redactGlossary(

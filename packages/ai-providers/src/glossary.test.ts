@@ -19,6 +19,14 @@ describe("appliesTerms", () => {
       true,
     ],
     [
+      "a term whose required translation is empty",
+      {
+        terms: [{ source: "Save", target: "", forbidden: [], caseSensitive: false }],
+        doNotTranslate: [],
+      },
+      false,
+    ],
+    [
       "a do-not-translate term",
       { terms: [], doNotTranslate: [{ term: "A", caseSensitive: true }] },
       true,

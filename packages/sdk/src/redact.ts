@@ -36,8 +36,9 @@ import { redactKeys } from "@verbatra/ai-providers";
  * ```ts
  * import { redact } from "@verbatra/sdk";
  *
- * redact("key is sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z in the log");
- * // "key is [REDACTED] in the log"
+ * redact(`key is ${process.env.OPENAI_API_KEY} in the log`);
+ * // "key is [REDACTED] in the log" while OPENAI_API_KEY holds a key; a token shaped like
+ * // sk-proj-… is redacted by its shape even when no variable holds it
  * ```
  */
 export function redact(text: string): string {

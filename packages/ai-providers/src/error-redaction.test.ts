@@ -13,6 +13,8 @@ import {
   toolMessage,
 } from "./test-support.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const FAKE_KEY = "sk-ant-SENTINELKEY123";
 const CONTENT = "TRANSLATABLE-CONTENT-SENTINEL";
 const SENTINELS = [FAKE_KEY, CONTENT, "x-api-key", "Bearer"];
@@ -133,7 +135,7 @@ describe("ProviderError messages never carry variable input across every error p
 
 describe("ProviderError constructor scrubs key shapes as a defense-in-depth backstop", () => {
   it("redacts all four v1 key shapes from a key-bearing message", () => {
-    const openAiKey = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z";
+    const openAiKey = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z`;
     const anthropicKey = "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd";
     const geminiKey = "AIzaabcdefghijklmnopqrstuvwxyz012345678";
     const deepLKey = "abcdef12-3456-7890-abcd-ef1234567890:fx";

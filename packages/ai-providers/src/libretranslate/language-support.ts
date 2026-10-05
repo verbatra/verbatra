@@ -36,9 +36,9 @@ export function parseLibreTranslateLanguages(body: unknown): ProviderLanguageTab
     version: liveTableVersion(),
     origin: "live",
     documentation: LIBRETRANSLATE_LANGUAGE_TABLE.documentation,
-    languages: parsed.data.map(({ code }) => ({
+    languages: parsed.data.map(({ code, targets: offered }) => ({
       code,
-      source: true,
+      source: offered === undefined || offered.length > 0,
       target: targets.has(code.toLowerCase()),
       glossary: false,
       formality: false,

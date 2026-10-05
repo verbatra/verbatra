@@ -203,6 +203,8 @@ export interface WatchController {
  * @throws Whatever the watcher factory raised, unwrapped, when it could not build a watcher over
  * the source file. It is not wrapped as an {@link SdkError}. No run has started at that point, so
  * nothing is watched and `onRun` is never called.
+ * @throws Whatever `onReady` threw, unwrapped, after the watcher has been closed. No run has started
+ * at that point, so nothing is watched and `onRun` is never called.
  *
  * @example
  * ```ts
@@ -327,7 +329,12 @@ export async function watch(input: WatchInput, deps: WatchDeps = {}): Promise<Wa
   const watcher = (deps.createWatcher ?? defaultCreateWatcher)([sourcePath]);
   watcher.onChange(onRawEvent);
 
-  input.onReady?.();
+  try {
+    input.onReady?.();
+  } catch (error) {
+    await watcher.close();
+    throw error;
+  }
   startRun();
 
   async function stop(): Promise<void> {

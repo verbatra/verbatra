@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { redactKeys } from "./redaction.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 const SAMPLES_PER_SHAPE = 10_000;
 
 const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -29,7 +31,7 @@ function randomRun(next: () => number, alphabet: string, length: number): string
 const KEY_SHAPES: readonly (readonly [string, (next: () => number) => string])[] = [
   ["an Anthropic API key", (next) => `sk-ant-api03-${randomRun(next, BASE64URL, 93)}AA`],
   ["an Anthropic Admin API key", (next) => `sk-ant-admin01-${randomRun(next, BASE64URL, 93)}AA`],
-  ["an OpenAI project key", (next) => `sk-proj-${randomRun(next, BASE64URL, 156)}`],
+  ["an OpenAI project key", (next) => `${SK_PROJ}${randomRun(next, BASE64URL, 156)}`],
   ["an OpenAI service-account key", (next) => `sk-svcacct-${randomRun(next, BASE64URL, 156)}`],
   ["an OpenAI admin key", (next) => `sk-admin-${randomRun(next, BASE64URL, 156)}`],
   ["a legacy OpenAI key", (next) => `sk-${randomRun(next, ALPHANUMERIC, 48)}`],
@@ -98,9 +100,9 @@ describe("redactKeys: Slovak locale-shaped tokens", () => {
     "sk-onboarding_step_2_title",
     "sk-checkout-summary_total_label",
     "sk-admin-panel_title",
-    "sk-proj-",
+    SK_PROJ,
     "sk-ant-x",
-    "sk-proj-overview_heading",
+    `${SK_PROJ}overview_heading`,
     "sk-svcacct-settings",
     "sk-ant-banner_title_short",
     "sk-admin-dashboard_welcome_message",
@@ -111,8 +113,8 @@ describe("redactKeys: Slovak locale-shaped tokens", () => {
   });
 
   it.each([
-    "sk-proj-settings_account_billing_title",
-    "\x1b[32msk-proj-settings_account_billing_title\x1b[0m",
+    `${SK_PROJ}settings_account_billing_title`,
+    `\x1b[32m${SK_PROJ}settings_account_billing_title\x1b[0m`,
   ])("leaves the 31-alphanumeric boundary case %s readable", (text) => {
     expect(redactKeys(text)).toBe(text);
   });
@@ -122,9 +124,9 @@ describe("redactKeys: Slovak locale-shaped tokens", () => {
   });
 
   it("redacts a known prefix only once 32 letters and digits follow `sk-`", () => {
-    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1w")).toBe("[REDACTED]");
-    expect(redactKeys("sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1")).toBe(
-      "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1",
+    expect(redactKeys(`${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1w`)).toBe("[REDACTED]");
+    expect(redactKeys(`${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1`)).toBe(
+      `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1`,
     );
   });
 

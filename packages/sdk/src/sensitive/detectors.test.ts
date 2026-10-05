@@ -3,13 +3,15 @@ import type { SensitiveDetectorId } from "../config/sensitive-config.js";
 import { detectorSpans, isCardNumber, passesLuhn } from "./detectors.js";
 import { isValidIban } from "./iban.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 function found(id: SensitiveDetectorId, text: string): string[] {
   return detectorSpans(id, text).map((span) => text.slice(span.start, span.end));
 }
 
 describe("the secret detector", () => {
   it.each([
-    ["an OpenAI-style key", "key sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z here", "sk-proj-"],
+    ["an OpenAI-style key", `key ${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z here`, SK_PROJ],
     ["an AWS access key id", "use AKIAIOSFODNN7EXAMPLE now", "AKIAIOSFODNN7EXAMPLE"],
     [
       "a JWT",

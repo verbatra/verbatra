@@ -15,8 +15,9 @@ export interface LocaleHistoryInput {
   /** Directory the `files.pattern` is resolved against and git runs in. Defaults to the process working directory. */
   readonly cwd?: string;
   /**
-   * The most commits to list. Defaults to {@link LOCALE_HISTORY_LIMIT_DEFAULT} and is clamped to
-   * {@link LOCALE_HISTORY_LIMIT_CAP}.
+   * The most commits to list. Rounded down and clamped to between 1 and
+   * {@link LOCALE_HISTORY_LIMIT_CAP}; defaults to {@link LOCALE_HISTORY_LIMIT_DEFAULT} when omitted
+   * or not a finite number.
    */
   readonly limit?: number;
 }

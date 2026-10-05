@@ -64,7 +64,11 @@ import { readSourceResource } from "../source.js";
 import { inSourceOrder } from "../source-order.js";
 import type { LocaleSummary, RunSummary } from "../summary.js";
 import { writeTargetResource } from "../write-target.js";
-import { withApprovalNotice, withHandoffApprovals } from "../xliff/handoff-approvals.js";
+import {
+  recordableApprovals,
+  withApprovalNotice,
+  withHandoffApprovals,
+} from "../xliff/handoff-approvals.js";
 import { type HandoffStates, readXliffHandoff } from "../xliff/xliff-import.js";
 import {
   DEFAULT_EXCHANGE_FORMAT,
@@ -441,14 +445,19 @@ async function runSheet(
       .map((duplicate) => ({ key: duplicate.key, row: duplicate.row, ...lineOf(duplicate) })),
     ...(states !== undefined ? { states } : {}),
   });
-  const { accepted, approved } = imported;
-  const summary = withApprovalNotice(imported.summary, approved, ctx.dryRun);
+  const { accepted } = imported;
+  const merged = mergeAccepted(ctx.source, target, accepted);
 
   if (ctx.dryRun) {
-    return { summary, lockEntries: {}, provenance: { records: new Map() }, cacheAdditions: {} };
+    const approved = recordableApprovals(imported.approved, merged, ctx.source);
+    return {
+      summary: withApprovalNotice(imported.summary, approved, true),
+      lockEntries: {},
+      provenance: { records: new Map() },
+      cacheAdditions: {},
+    };
   }
 
-  const merged = mergeAccepted(ctx.source, target, accepted);
   let written: LocaleResource = { ...target, entries: merged };
   if (accepted.size > 0) {
     const path = ctx.resolver.pathFor(sheet.locale);
@@ -472,8 +481,9 @@ async function runSheet(
       fs: ctx.fs,
     });
   }
+  const approved = recordableApprovals(imported.approved, written.entries, ctx.source);
   return {
-    summary,
+    summary: withApprovalNotice(imported.summary, approved, false),
     lockEntries: computeSheetLockEntries(ctx.source, merged, baseline, accepted),
     provenance: await withHandoffApprovals(importProvenance(written, merged, accepted), {
       cwd: ctx.cwd,

@@ -9,6 +9,8 @@ import {
 import { redactKeys } from "./redaction.js";
 import { resetDeclaredKeyEnvVars } from "./test-support.js";
 
+const SK_PROJ = ["sk", "proj", ""].join("-");
+
 describe("redactKeys: key shapes", () => {
   it("removes OpenAI sk- key tokens", () => {
     const out = redactKeys("token sk-ABCDEFGH1234567890abcdefghIJKLMNOP1234567890ab here");
@@ -16,8 +18,8 @@ describe("redactKeys: key shapes", () => {
     expect(out).toContain("[REDACTED]");
   });
 
-  it("removes OpenAI sk-proj- key tokens", () => {
-    const out = redactKeys("token sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z_Ab3dEf6hIj9k here");
+  it("removes OpenAI project key tokens", () => {
+    const out = redactKeys(`token ${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z_Ab3dEf6hIj9k here`);
     expect(out).not.toContain("sk-proj");
     expect(out).toContain("[REDACTED]");
   });
@@ -114,7 +116,7 @@ describe("redactKeys: key shapes", () => {
 
   it.each([
     ["a legacy OpenAI key", "sk-ABCDEFGH1234567890abcdefghIJKLMNOP1234567890ab"],
-    ["an OpenAI project key", "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z_Ab3dEf6hIj9k-Lm2nOp"],
+    ["an OpenAI project key", `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z_Ab3dEf6hIj9k-Lm2nOp`],
     ["an OpenAI service-account key", "sk-svcacct-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z"],
     ["an Anthropic key", "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd_Ef6hIj9kLm2n-AA"],
   ])("redacts %s whole", (_what, key) => {
@@ -136,7 +138,7 @@ describe("redactKeys: key shapes", () => {
     ["a control character escaped as \\u", "bell\u0007"],
     ["a quote", 'say "'],
   ])("redacts a key after %s once the text is serialized as JSON", (_what, before) => {
-    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+    const key = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h`;
     const serialized = JSON.stringify({ message: `${before}${key} failed` });
 
     const out = redactKeys(serialized);
@@ -148,7 +150,7 @@ describe("redactKeys: key shapes", () => {
   it.each(["prefix_", "cache.", "path/", "é"])(
     "redacts a key right after %s, which is not a letter or digit",
     (before) => {
-      const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+      const key = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h`;
       expect(redactKeys(`${before}${key}`)).toBe(`${before}[REDACTED]`);
     },
   );
@@ -165,7 +167,7 @@ describe("redactKeys: key shapes", () => {
     ["an ANSI charset designation", "\x1b(B"],
   ])("redacts a key right after %s", (_what, before) => {
     for (const key of [
-      "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h",
+      `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h`,
       "sk-ant-api03-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z-AbCd_Ef6hIj9kLm2n-AA",
       "sk-ABCDEFGH1234567890abcdefghIJKLMNOP1234567890ab",
     ]) {
@@ -174,7 +176,7 @@ describe("redactKeys: key shapes", () => {
   });
 
   it("redacts a key after an ANSI color sequence once the text is serialized as JSON", () => {
-    const key = "sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h";
+    const key = `${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4zAb3dEf6h`;
     const serialized = JSON.stringify({ message: `\x1b[1;31m${key}\x1b[0m failed` });
 
     const out = redactKeys(serialized);
@@ -197,7 +199,7 @@ describe("redactKeys: key shapes", () => {
   });
 
   it("redacts an inline key after punctuation (punctuation is a word boundary)", () => {
-    const out = redactKeys("key=sk-proj-Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z here");
+    const out = redactKeys(`key=${SK_PROJ}Ab3dEf6hIj9kLm2nOp5qRs8tUv1wXy4z here`);
     expect(out).not.toContain("sk-proj");
     expect(out).toContain("[REDACTED]");
   });

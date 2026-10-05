@@ -15,7 +15,7 @@ import { isCancelled, signalField } from "../cancellation.js";
 import { glossaryForLocale } from "../config/glossary.js";
 import type { HumanEditsPolicy } from "../config/human-edits.js";
 import { toMaxLengthMap } from "../config/max-length.js";
-import { resolveNetworkPolicy } from "../config/network-policy.js";
+import { assertNetworkPolicyResolves } from "../config/network-policy.js";
 import { isMachineProvider } from "../config/provider-config.js";
 import { kindOf } from "../config/provider-kind.js";
 import {
@@ -634,7 +634,7 @@ function selectRunMode(
   const sensitive = createSensitiveGuard(config.sensitiveData, providerKind);
   const guarded = sensitive === undefined ? {} : { sensitive };
   if (dryRun) {
-    resolveNetworkPolicy(config.network, processEnvironment());
+    assertNetworkPolicyResolves(config.network, processEnvironment());
   }
   return dryRun
     ? { kind: "plan", providerKind, ...guarded }

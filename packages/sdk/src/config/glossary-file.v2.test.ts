@@ -77,6 +77,15 @@ describe("readGlossaryFile: versions", () => {
     });
   });
 
+  it("tells a file declaring version 1 that a version 1 glossary declares no version", async () => {
+    const { path } = await seed({ version: 1, Save: "Speichern" });
+    const failure = readGlossaryFile({ glossary: file(path) });
+    await expect(failure).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+      message: `The glossary file at ${path} declares "version": 1, but a version 1 glossary is a flat term map with no "version" field. Remove the "version" field, or write a version 2 glossary with "version": 2.`,
+    });
+  });
+
   it("names the field an invalid version 2 file gets wrong", async () => {
     const { path } = await seed({ version: 2, terms: [{ source: "A", target: "" }] });
     await expect(readGlossaryFile({ glossary: file(path) })).rejects.toMatchObject({

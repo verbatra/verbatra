@@ -63,6 +63,17 @@ describe("clampHistoryLimit", () => {
   it("clamps a limit exactly at the cap to itself", () => {
     expect(clampHistoryLimit(LOCALE_HISTORY_LIMIT_CAP)).toBe(LOCALE_HISTORY_LIMIT_CAP);
   });
+
+  it.each([
+    [-1, 1],
+    [0, 1],
+    [2.7, 2],
+    [Number.NaN, LOCALE_HISTORY_LIMIT_DEFAULT],
+    [Number.POSITIVE_INFINITY, LOCALE_HISTORY_LIMIT_DEFAULT],
+    [Number.NEGATIVE_INFINITY, LOCALE_HISTORY_LIMIT_DEFAULT],
+  ])("turns a limit of %s into %s commits", (limit, expected) => {
+    expect(clampHistoryLimit(limit)).toBe(expected);
+  });
 });
 
 describe("isPathContained", () => {

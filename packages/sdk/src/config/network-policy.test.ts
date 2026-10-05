@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SdkError } from "../errors.js";
 import {
   assertEndpointPermitted,
+  assertNetworkPolicyResolves,
   assertProviderNetworkPermitted,
   endpointTargetOf,
   resolveNetworkPolicy,
@@ -61,6 +62,15 @@ describe("resolveNetworkPolicy", () => {
     );
     expect(error.code).toBe("CONFIG_INVALID");
     expect(error.message).toContain("VERBATRA_NETWORK_POLICY");
+  });
+});
+
+describe("assertNetworkPolicyResolves", () => {
+  it("passes a valid policy and fails CONFIG_INVALID on an invalid environment value", () => {
+    expect(() => assertNetworkPolicyResolves({ policy: "local-only" }, {})).not.toThrow();
+    expect(() =>
+      assertNetworkPolicyResolves(undefined, { VERBATRA_NETWORK_POLICY: "nowhere" }),
+    ).toThrow(expect.objectContaining({ code: "CONFIG_INVALID" }));
   });
 });
 

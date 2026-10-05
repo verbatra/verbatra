@@ -23,6 +23,7 @@ import {
 } from "./lock-aside.js";
 import {
   type OwnedLock,
+  type ReleaseOutcome,
   releaseOwned,
   runOwning,
   startHeartbeat,
@@ -558,6 +559,9 @@ async function acquireLock(path: string, fs: SdkFs, settings: AcquireSettings): 
   const state: AcquireState = { sighting: undefined, refusal: undefined };
   for (;;) {
     refuseWhileReleasing(path);
+    if (isCancelled(settings.signal)) {
+      throw lockWaitCancelledError(path);
+    }
     const content = lockPayload(fs, settings);
     if (await fs.createExclusive(path, content)) {
       await fs.touch?.(path).catch(() => undefined);
@@ -662,13 +666,16 @@ async function withFileLock<T>(
   const stopHeartbeat = startHeartbeat(owned, heartbeatIntervalMs);
   const outcome = await settle(() => runOwning(owned, fn));
   stopHeartbeat();
-  const released = heldLocks.delete(owned)
-    ? await releaseOwned(owned, liveness, pollIntervalMs)
-    : "released";
+  const released: Settled<ReleaseOutcome> = heldLocks.delete(owned)
+    ? await settle(() => releaseOwned(owned, liveness, pollIntervalMs))
+    : { ok: true, value: "released" };
   if (!outcome.ok) {
     throw outcome.error;
   }
-  if (released !== "released") {
+  if (!released.ok) {
+    throw released.error;
+  }
+  if (released.value !== "released") {
     throw takenOverAtReleaseError(path);
   }
   return outcome.value;
@@ -687,7 +694,11 @@ async function withFileLock<T>(
  * killed outright, is reclaimed by the next run on the same machine once the holding process is
  * gone.
  *
- * @returns Resolves once every deletion has been attempted; never rejects.
+ * @returns Resolves once every deletion has been attempted and each one either succeeded or found
+ * the lock already gone or taken over by another process.
+ * @throws `AggregateError`: one or more locks could not be deleted. Every lock is attempted first;
+ * the message names the path of each lock left behind, and `errors` holds each underlying
+ * file-system failure. It is not an {@link SdkError}.
  */
 export async function releaseHeldLocks(): Promise<void> {
   releasesInProgress += 1;
@@ -697,14 +708,35 @@ export async function releaseHeldLocks(): Promise<void> {
     const locks = [...heldLocks];
     heldLocks.clear();
     const liveness = currentHostLiveness();
-    await Promise.allSettled(
+    const outcomes = await Promise.allSettled(
       locks.map((owned) => releaseOwned(owned, liveness, DEFAULT_POLL_INTERVAL_MS)),
     );
     await settleAcquisitions(deadline.elapsed);
+    throwOnFailedReleases(locks, outcomes);
   } finally {
     deadline.stop();
     releasesInProgress -= 1;
   }
+}
+
+function throwOnFailedReleases(
+  locks: readonly OwnedLock[],
+  outcomes: readonly PromiseSettledResult<ReleaseOutcome>[],
+): void {
+  const failed = locks.flatMap((owned, index) => {
+    const outcome = outcomes[index];
+    return outcome?.status === "rejected" ? [{ path: owned.path, error: outcome.reason }] : [];
+  });
+  if (failed.length === 0) {
+    return;
+  }
+  const noun = failed.length === 1 ? "write lock" : "write locks";
+  const paths = failed.map((failure) => failure.path).join(", ");
+  throw new AggregateError(
+    failed.map((failure) => failure.error),
+    `Could not release ${failed.length} ${noun}: ${paths}. Delete each one by hand once no ` +
+      "verbatra process is running.",
+  );
 }
 
 export type LockProbe = "free" | "held" | "unreadable";

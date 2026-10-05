@@ -67,7 +67,7 @@ function renderNotes(notes: readonly XliffNote[]): string[] {
     "      <notes>",
     ...notes.map(
       (note) =>
-        `        <note category="${escapeAttribute(note.category)}">${renderText(note.text)}</note>`,
+        `        <note category="${escapeAttribute(note.category)}">${escapeText(note.text)}</note>`,
     ),
     "      </notes>",
   ];
