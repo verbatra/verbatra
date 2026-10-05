@@ -1,4 +1,8 @@
-import { NETWORK_POLICY_MODES, type NetworkRule } from "@verbatra/ai-providers";
+import {
+  NETWORK_POLICY_MODES,
+  type NetworkRule,
+  type NetworkRuleSource,
+} from "@verbatra/ai-providers";
 import { z } from "zod";
 import type { ProviderId } from "../config/provider-config.js";
 import type { DataFlowApiKey, DataFlowField } from "../config/provider-data-flow.js";
@@ -52,6 +56,14 @@ export type DataFlowNetwork =
  */
 export type DataFlowVerdict = "permitted" | "deferred" | "refused" | "invalid-policy";
 
+/** A proxy a destination's requests travel through, from a proxy environment variable. */
+export interface DataFlowProxy {
+  /** The environment variable that sets it, such as `HTTPS_PROXY`. */
+  readonly variable: string;
+  /** The proxy's host name or address only, never its credentials, or `(unparseable URL)`. */
+  readonly host: string;
+}
+
 /** One host the provider sends requests to. */
 export interface DataFlowDestination {
   /** The host name or address, never a full URL, so no credential in a URL is repeated. */
@@ -78,6 +90,12 @@ export interface DataFlowDestination {
   readonly verdict: DataFlowVerdict;
   /** Why the host is refused, present only for `refused`. */
   readonly reason?: string | undefined;
+  /**
+   * The proxies its requests go through, empty when none is in effect. A `fetch`-based provider
+   * uses one only when Node's environment proxy is switched on (`NODE_USE_ENV_PROXY=1` or
+   * `--use-env-proxy`); DeepL's client always honours the proxy variables.
+   */
+  readonly proxies: readonly DataFlowProxy[];
 }
 
 /** Project-specific counts, read from the source locale file. */
@@ -87,8 +105,10 @@ export interface DataFlowCounts {
   /** Source keys that carry a description or a meaning. */
   readonly keysWithContext: number;
   /**
-   * Source keys a machine-translation provider never receives, because their placeholders cannot be
-   * masked. Present only for DeepL, Google Cloud Translation and LibreTranslate.
+   * Of the source keys, those whose placeholders this provider cannot mask, so it never receives
+   * them. A static estimate, present only for DeepL, Google Cloud Translation and LibreTranslate: a
+   * run sends only missing or changed keys, may withhold more under `sensitiveData: redact` or
+   * `block`, and withholds a value whose markers do not come back intact.
    */
   readonly keysWithheld?: number | undefined;
 }
@@ -97,7 +117,12 @@ export interface DataFlowCounts {
 export interface DataFlowSent {
   /** True only for the provider `none`, which sends nothing anywhere. */
   readonly nothing: boolean;
-  /** Every kind of data a request can carry, empty for `none`. Never a key value. */
+  /**
+   * Every kind of data a request can carry with this config, empty for `none`. Never a key value.
+   * Narrowed to the config: `tone` and `formality` only with a `tone` (DeepL's `formality` only
+   * with `formal` or `informal`), `glossary-terms` only when the glossary applies to a target
+   * locale, and `glossary-id` only with `provider.options.glossaryId`.
+   */
   readonly fields: readonly DataFlowField[];
   /**
    * Whether requests carry the API key read from the environment: `required`, `optional` (sent only
@@ -125,7 +150,11 @@ export interface DataFlowLocale {
   readonly codeSent: string;
   /** True when `provider.options.localeMap` set {@link DataFlowLocale.codeSent}. */
   readonly mapped: boolean;
-  /** Glossary terms, forbidden renderings and kept terms sent with this locale's requests. */
+  /**
+   * Glossary terms sent with this locale's requests, counted as the request payload carries them:
+   * each term with a translation, forbidden renderings or notes once, plus each term kept
+   * untranslated. Before `sensitiveData: block` or `redact` drops a matching term.
+   */
   readonly glossaryTermsSent: number;
 }
 
@@ -133,12 +162,14 @@ export interface DataFlowLocale {
 export interface DataFlowLocalFile {
   /** Which file: the lock file, the provenance file, the translation memory, or the local state directory. */
   readonly id: "lock" | "provenance" | "cache" | "local-state";
-  /** The absolute path it is written to. */
+  /** The project-relative path it is written to, with `/` separators. */
   readonly path: string;
   /** Whether it holds source text, or text derived from it. */
   readonly holdsSourceText: boolean;
   /** Whether it holds translated text. */
   readonly holdsTranslations: boolean;
+  /** Whether it holds personal data: the provenance file names each reviewer. */
+  readonly holdsPersonalData: boolean;
   /** Whether `verbatra init` adds it to `.gitignore`. */
   readonly gitignoredByInit: boolean;
 }
@@ -194,7 +225,7 @@ export interface DataFlowManifest {
   readonly agents: readonly DataFlowAgentSurface[];
 }
 
-const DATA_FLOW_FIELDS = [
+export const DATA_FLOW_FIELDS = [
   "key-name",
   "source-text",
   "description",
@@ -212,7 +243,7 @@ const DATA_FLOW_FIELDS = [
   "output-token-limit",
 ] as const satisfies readonly DataFlowField[];
 
-const PROVIDER_IDS = [
+export const MANIFEST_PROVIDER_IDS = [
   "anthropic",
   "openai",
   "gemini",
@@ -223,36 +254,41 @@ const PROVIDER_IDS = [
   "none",
 ] as const satisfies readonly ProviderId[];
 
+export const NETWORK_RULE_SOURCES = [
+  "config",
+  "environment",
+] as const satisfies readonly NetworkRuleSource[];
+
 const count = z.number().int().nonnegative();
 
 /**
  * The zod schema for a {@link DataFlowManifest}, as `verbatra doctor --data-flow --json` prints it
- * under `result.dataFlow` and {@link dataFlow} returns it. Every object is strict, so a field this
- * version does not define fails validation.
+ * under `result.dataFlow` and {@link dataFlow} returns it. Unknown fields are allowed and kept, so
+ * a manifest from a newer verbatra that adds a field still parses; ignore the ones you do not know.
  */
-export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.strictObject({
+export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.looseObject({
   version: z.literal(DATA_FLOW_MANIFEST_VERSION),
-  provider: z.strictObject({
-    id: z.enum(PROVIDER_IDS),
+  provider: z.looseObject({
+    id: z.enum(MANIFEST_PROVIDER_IDS),
     kind: z.enum(["llm", "machine-translation", "none"]),
     model: z.string().optional(),
   }),
   network: z.discriminatedUnion("status", [
-    z.strictObject({
+    z.looseObject({
       status: z.literal("resolved"),
       restricted: z.boolean(),
       rules: z.array(
-        z.strictObject({
-          source: z.enum(["config", "environment"]),
+        z.looseObject({
+          source: z.enum(NETWORK_RULE_SOURCES),
           policy: z.enum(NETWORK_POLICY_MODES),
           allowedHosts: z.array(z.string()),
         }),
       ),
     }),
-    z.strictObject({ status: z.literal("invalid"), error: z.string() }),
+    z.looseObject({ status: z.literal("invalid"), error: z.string() }),
   ]),
   destinations: z.array(
-    z.strictObject({
+    z.looseObject({
       host: z.string().min(1),
       source: z.enum(["default", "config", "environment"]),
       setBy: z.string().optional(),
@@ -260,16 +296,17 @@ export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.strictObjec
       policyCheck: z.enum(["per-request", "before-construction"]),
       verdict: z.enum(["permitted", "deferred", "refused", "invalid-policy"]),
       reason: z.string().optional(),
+      proxies: z.array(z.looseObject({ variable: z.string().min(1), host: z.string().min(1) })),
     }),
   ),
-  sent: z.strictObject({
+  sent: z.looseObject({
     nothing: z.boolean(),
     fields: z.array(z.enum(DATA_FLOW_FIELDS)),
     apiKey: z.enum(["required", "optional", "none"]),
     placeholders: z.enum(["as-written", "masked", "none"]),
     sensitiveData: z.enum(["off", "warn", "block", "redact"]),
     counts: z
-      .strictObject({
+      .looseObject({
         sourceKeys: count,
         keysWithContext: count,
         keysWithheld: count.optional(),
@@ -278,7 +315,7 @@ export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.strictObjec
     countsUnavailable: z.string().optional(),
   }),
   locales: z.array(
-    z.strictObject({
+    z.looseObject({
       locale: z.string().min(1),
       codeSent: z.string().min(1),
       mapped: z.boolean(),
@@ -286,23 +323,24 @@ export const dataFlowManifestSchema: z.ZodType<DataFlowManifest> = z.strictObjec
     }),
   ),
   local: z.array(
-    z.strictObject({
+    z.looseObject({
       id: z.enum(["lock", "provenance", "cache", "local-state"]),
       path: z.string().min(1),
       holdsSourceText: z.boolean(),
       holdsTranslations: z.boolean(),
+      holdsPersonalData: z.boolean(),
       gitignoredByInit: z.boolean(),
     }),
   ),
   otherRequests: z.array(
-    z.strictObject({
+    z.looseObject({
       id: z.enum(["language-list", "dns-lookup"]),
       trigger: z.string().min(1),
       sendsApiKey: z.boolean(),
     }),
   ),
   agents: z.array(
-    z.strictObject({
+    z.looseObject({
       id: z.enum(["mcp", "studio-agent-tools"]),
       trigger: z.string().min(1),
       redactable: z.boolean(),

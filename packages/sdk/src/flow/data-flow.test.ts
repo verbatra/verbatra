@@ -86,6 +86,7 @@ describe("buildDataFlowManifest: one manifest per provider", () => {
         source: "default",
         policyCheck: "per-request",
         verdict: "permitted",
+        proxies: [],
       },
     ]);
     expect(manifest.sent.fields).toContain("key-name");
@@ -105,6 +106,7 @@ describe("buildDataFlowManifest: one manifest per provider", () => {
         setBy: "provider.options.baseUrl",
         policyCheck: "per-request",
         verdict: "permitted",
+        proxies: [],
       },
     ]);
     expect(manifest.sent.apiKey).toBe("optional");
@@ -219,6 +221,87 @@ describe("buildDataFlowManifest: the network policy verdict", () => {
   );
 });
 
+describe("buildDataFlowManifest: proxies", () => {
+  it("lists the proxy DeepL's client honours, by variable and host only", async () => {
+    const manifest = await manifestFor(
+      { provider: { id: "deepl", options: {} } },
+      { HTTPS_PROXY: "http://user:secret-canary@proxy.corp.example:3128" },
+    );
+
+    expect(manifest.destinations[0]?.proxies).toEqual([
+      { variable: "HTTPS_PROXY", host: "proxy.corp.example" },
+    ]);
+    expect(JSON.stringify(manifest)).not.toContain("canary");
+  });
+
+  it("lists a proxy for a fetch provider only when Node's env proxy is on", async () => {
+    const off = await manifestFor({}, { HTTPS_PROXY: "http://proxy.corp.example:3128" });
+    const on = await manifestFor(
+      {},
+      { HTTPS_PROXY: "http://proxy.corp.example:3128", NODE_USE_ENV_PROXY: "1" },
+    );
+
+    expect(off.destinations[0]?.proxies).toEqual([]);
+    expect(on.destinations[0]?.proxies).toEqual([
+      { variable: "HTTPS_PROXY", host: "proxy.corp.example" },
+    ]);
+  });
+
+  it("marks a proxy URL it cannot parse", async () => {
+    const manifest = await manifestFor(
+      { provider: { id: "deepl", options: {} } },
+      { HTTPS_PROXY: "http://[" },
+    );
+
+    expect(manifest.destinations[0]?.proxies).toEqual([
+      { variable: "HTTPS_PROXY", host: "(unparseable URL)" },
+    ]);
+  });
+});
+
+describe("dataFlowManifestSchema: additive contract", () => {
+  it("parses a manifest with an unknown field at every level and keeps it", async () => {
+    const manifest = await manifestFor({ provider: { id: "deepl", options: {} } });
+    const extra = { future: true };
+    const extended = {
+      ...manifest,
+      ...extra,
+      provider: { ...manifest.provider, ...extra },
+      network: { ...manifest.network, ...extra },
+      destinations: manifest.destinations.map((destination) => ({
+        ...destination,
+        ...extra,
+        proxies: [{ variable: "HTTPS_PROXY", host: "proxy.example", ...extra }],
+      })),
+      sent: {
+        ...manifest.sent,
+        ...extra,
+        counts: { sourceKeys: 1, keysWithContext: 0, ...extra },
+      },
+      locales: manifest.locales.map((locale) => ({ ...locale, ...extra })),
+      local: manifest.local.map((file) => ({ ...file, ...extra })),
+      otherRequests: manifest.otherRequests.map((request) => ({ ...request, ...extra })),
+      agents: manifest.agents.map((agent) => ({ ...agent, ...extra })),
+    };
+    const network = {
+      ...manifest.network,
+      ...extra,
+      status: "resolved",
+      restricted: true,
+      rules: [{ source: "config", policy: "local-only", allowedHosts: [], ...extra }],
+    };
+
+    expect(dataFlowManifestSchema.parse(extended)).toEqual(extended);
+    expect(dataFlowManifestSchema.safeParse({ ...extended, network }).success).toBe(true);
+  });
+
+  it("still rejects a known field of the wrong shape", async () => {
+    const manifest = await manifestFor({});
+
+    expect(dataFlowManifestSchema.safeParse({ ...manifest, version: 2 }).success).toBe(false);
+  });
+});
+
 describe("buildDataFlowManifest: the environment it judges against", () => {
   it("reports the environment policy for provider none too", async () => {
     const manifest = await manifestFor(
@@ -320,20 +403,80 @@ describe("buildDataFlowManifest: what is sent", () => {
     expect((await manifestFor({})).sent.sensitiveData).toBe("off");
   });
 
-  it("names every local file with its resolved path", async () => {
+  it("names every local file by its project-relative path, with / separators", async () => {
     const manifest = await manifestFor({});
 
     expect(manifest.local.map(({ id, path }) => [id, path])).toEqual([
-      ["lock", join(projectDir, "verbatra.lock.json")],
-      ["provenance", join(projectDir, "verbatra.provenance.json")],
-      ["cache", join(projectDir, "verbatra.cache.json")],
-      ["local-state", join(projectDir, ".verbatra-local")],
+      ["lock", "verbatra.lock.json"],
+      ["provenance", "verbatra.provenance.json"],
+      ["cache", "verbatra.cache.json"],
+      ["local-state", ".verbatra-local"],
     ]);
     expect(manifest.local.find(({ id }) => id === "cache")).toMatchObject({
       holdsSourceText: true,
       holdsTranslations: true,
+      holdsPersonalData: false,
       gitignoredByInit: true,
     });
+    expect(manifest.local.find(({ id }) => id === "provenance")?.holdsPersonalData).toBe(true);
+  });
+
+  it("keeps the paths project-relative from a nested project directory", async () => {
+    const nested = join(projectDir, "apps", "web");
+    await mkdir(nested, { recursive: true });
+    const manifest = await buildDataFlowManifest(baseConfig({}), {
+      cwd: nested,
+      fs: defaultFs,
+      env: {},
+    });
+
+    expect(manifest.local.map(({ path }) => path)).toEqual([
+      "verbatra.lock.json",
+      "verbatra.provenance.json",
+      "verbatra.cache.json",
+      ".verbatra-local",
+    ]);
+    expect(JSON.stringify(manifest.local)).not.toContain(projectDir);
+  });
+
+  it("narrows the fields to what this config can send", async () => {
+    const bare = await manifestFor({ provider: { id: "deepl", options: {} } });
+    const full = await manifestFor({
+      tone: "formal",
+      provider: { id: "deepl", options: { glossaryId: "g-1" } },
+    });
+    const neutral = await manifestFor({ tone: "neutral", provider: { id: "deepl", options: {} } });
+    const llmBare = await manifestFor({});
+    const llmFull = await manifestFor({ tone: "informal", glossary: { Cart: "Warenkorb" } });
+
+    expect(bare.sent.fields).toEqual(["source-text", "placeholder-markers", "language-codes"]);
+    expect(full.sent.fields).toEqual([
+      "source-text",
+      "placeholder-markers",
+      "language-codes",
+      "formality",
+      "glossary-id",
+    ]);
+    expect(neutral.sent.fields).not.toContain("formality");
+    expect(llmBare.sent.fields).not.toContain("tone");
+    expect(llmBare.sent.fields).not.toContain("glossary-terms");
+    expect(llmFull.sent.fields).toEqual(expect.arrayContaining(["tone", "glossary-terms"]));
+  });
+
+  it("counts glossary terms exactly as the request payload carries them", async () => {
+    const manifest = await manifestFor({
+      glossary: {
+        version: 2,
+        terms: [
+          { source: "Cart", target: "Warenkorb", forbidden: { de: ["Karren"] }, note: "shop" },
+          { source: "Basket", forbidden: { de: ["Korb"] } },
+          { source: "Checkout", targets: { fr: "Paiement" } },
+        ],
+        doNotTranslate: ["verbatra"],
+      },
+    });
+
+    expect(manifest.locales[0]?.glossaryTermsSent).toBe(3);
   });
 });
 

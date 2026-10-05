@@ -100,6 +100,8 @@ export {
   type EndpointTransport,
   endpointCandidates,
   type ProviderEndpoint,
+  type ProxyInEffect,
+  proxiesInEffect,
   resolveProviderEndpoint,
 } from "./network/endpoints.js";
 export {

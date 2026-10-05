@@ -28,11 +28,15 @@ function describeDestination(destination: DataFlowDestination): string {
   const origin = destination.setBy === undefined ? destination.source : destination.setBy;
   const when = destination.when === undefined ? "" : `  ${destination.when}`;
   const reason = destination.reason === undefined ? "" : `: ${destination.reason}`;
-  return `${destination.host}  ${origin}${when}  ${destination.policyCheck}  ${destination.verdict}${reason}`;
+  const via = destination.proxies.map((proxy) => `  via ${proxy.variable} ${proxy.host}`).join("");
+  return `${destination.host}  ${origin}${when}  ${destination.policyCheck}  ${destination.verdict}${reason}${via}`;
 }
 
 function describeCounts(counts: DataFlowCounts): string {
-  const withheld = counts.keysWithheld === undefined ? "" : `, ${counts.keysWithheld} withheld`;
+  const withheld =
+    counts.keysWithheld === undefined
+      ? ""
+      : `, ${counts.keysWithheld} with placeholders it cannot mask (withheld)`;
   return `${counts.sourceKeys} source keys, ${counts.keysWithContext} with a description or meaning${withheld}`;
 }
 
@@ -40,8 +44,10 @@ function describeLocal(file: DataFlowLocalFile): string {
   const holds = [
     ...(file.holdsSourceText ? ["source text"] : []),
     ...(file.holdsTranslations ? ["translations"] : []),
+    ...(file.holdsPersonalData ? ["reviewer names"] : []),
   ];
-  const contents = holds.length === 0 ? "no source text or translations" : holds.join(" and ");
+  const contents =
+    holds.length === 0 ? "no source text, translations or personal data" : holds.join(", ");
   const ignored = file.gitignoredByInit ? ", gitignored by init" : "";
   return `${file.id}  ${file.path}  (${contents}${ignored})`;
 }

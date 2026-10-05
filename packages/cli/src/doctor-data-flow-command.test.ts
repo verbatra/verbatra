@@ -97,7 +97,15 @@ describe("run doctor --data-flow", () => {
     expect(out).toContain("    counts       2 source keys, 0 with a description or meaning");
     expect(out).toContain("    locale       de  sent as de  glossary terms: 0");
     expect(out).toContain("    agent        mcp  verbatra mcp  redactable");
-    expect(out).toContain("(source text and translations, gitignored by init)");
+    expect(out).toContain(
+      "    local        cache  verbatra.cache.json  (source text, translations, gitignored by init)",
+    );
+    expect(out).toContain(
+      "    local        provenance  verbatra.provenance.json  (reviewer names)",
+    );
+    expect(out).toContain(
+      "    local        lock  verbatra.lock.json  (no source text, translations or personal data)",
+    );
   });
 
   it("renders provider none as nothing sent", async () => {
@@ -144,7 +152,7 @@ describe("run doctor --data-flow", () => {
     expect(cap.out()).toContain(
       "    request      language-list  verbatra doctor --live  sends the API key",
     );
-    expect(cap.out()).toContain(", 1 withheld");
+    expect(cap.out()).toContain(", 1 with placeholders it cannot mask (withheld)");
   });
 
   it("names the base URL variable that redirects a hosted provider and a mapped locale", async () => {
@@ -160,6 +168,18 @@ describe("run doctor --data-flow", () => {
 
     expect(cap.out()).toContain("gateway.example  OPENAI_BASE_URL  per-request  permitted");
     expect(cap.out()).toContain("de  sent as de-DE (localeMap)");
+  });
+
+  it("names the proxy a destination goes through, without its credentials", async () => {
+    await writeProject({ id: "deepl", options: {} });
+    vi.stubEnv("HTTPS_PROXY", "http://user:proxy-canary@proxy.corp.example:3128");
+    const { deps } = realDoctorDeps();
+    const cap = captureStreams();
+
+    await run(["doctor", "--data-flow", "--cwd", projectDir], deps, cap.streams);
+
+    expect(cap.out()).toContain("permitted  via HTTPS_PROXY proxy.corp.example");
+    expect(cap.out()).not.toContain("canary");
   });
 
   it("says why the counts are unavailable", async () => {
@@ -207,8 +227,7 @@ describe("run doctor --data-flow", () => {
     const result = await doctor({ cwd: projectDir, dataFlow: true });
 
     for (const file of result.dataFlow?.local ?? []) {
-      const name = file.path.slice(projectDir.length + 1);
-      expect([file.id, ignored.has(name)]).toEqual([file.id, file.gitignoredByInit]);
+      expect([file.id, ignored.has(file.path)]).toEqual([file.id, file.gitignoredByInit]);
     }
     expect(result.dataFlow?.local).toHaveLength(4);
   });

@@ -1,5 +1,6 @@
-import { dirname } from "node:path";
+import { dirname, relative, sep } from "node:path";
 import {
+  buildDataPayload,
   type EndpointCandidate,
   type EnvironmentSource,
   endpointCandidates,
@@ -9,6 +10,7 @@ import {
   judgeEndpoint,
   keyEnvVarNames,
   processEnvironment,
+  proxiesInEffect,
 } from "@verbatra/ai-providers";
 import type { TranslationEntry } from "@verbatra/core";
 import type { AdapterRegistry } from "@verbatra/format-adapters";
@@ -22,7 +24,11 @@ import {
 import { endpointTargetOf } from "../config/network-policy.js";
 import { modelOf } from "../config/provider-billing.js";
 import { isMachineProvider, type MachineProviderConfig } from "../config/provider-config.js";
-import { dataFlowOf, type ProviderDataFlow } from "../config/provider-data-flow.js";
+import {
+  type DataFlowField,
+  dataFlowOf,
+  type ProviderDataFlow,
+} from "../config/provider-data-flow.js";
 import { kindOf } from "../config/provider-kind.js";
 import type { VerbatraConfig } from "../config/schema.js";
 import { errorMessage } from "../errors.js";
@@ -43,6 +49,7 @@ import {
   type DataFlowNetwork,
   type DataFlowOtherRequest,
   type DataFlowProvider,
+  type DataFlowProxy,
   type DataFlowSent,
 } from "./data-flow-manifest.js";
 import { foreignPlaceholdersOf } from "./foreign-placeholders.js";
@@ -81,6 +88,8 @@ const AGENT_SURFACES: readonly DataFlowAgentSurface[] = [
 ];
 
 const UNRESTRICTED = { rules: [] };
+
+const UNPARSEABLE_PROXY = "(unparseable URL)";
 
 function withoutKeys(
   env: EnvironmentSource,
@@ -133,6 +142,13 @@ function hostOrigin(
     : { source: "default" };
 }
 
+function describeProxies(candidate: EndpointCandidate, env: EnvironmentSource): DataFlowProxy[] {
+  return proxiesInEffect(candidate.endpoint.transport, env).map((proxy) => ({
+    variable: proxy.variable,
+    host: proxy.host ?? UNPARSEABLE_PROXY,
+  }));
+}
+
 function describeDestination(
   provider: MachineProviderConfig,
   candidate: EndpointCandidate,
@@ -146,6 +162,7 @@ function describeDestination(
     ...hostOrigin(provider, candidate),
     ...(candidate.when === undefined ? {} : { when: candidate.when }),
     policyCheck: candidate.endpoint.transport === "axios" ? "before-construction" : "per-request",
+    proxies: describeProxies(candidate, env),
   } as const;
   if (assessment.kind === "invalid") {
     return { ...base, verdict: "invalid-policy" };
@@ -210,6 +227,36 @@ function sensitiveModeOf(config: VerbatraConfig): DataFlowSent["sensitiveData"] 
   return config.sensitiveData?.mode ?? "off";
 }
 
+function glossaryTermCount(config: VerbatraConfig, locale: string): number {
+  const payload = buildDataPayload({
+    sourceLocale: config.sourceLocale,
+    targetLocale: locale,
+    glossary: glossaryForLocale(config.glossary, locale),
+    entries: [],
+  });
+  const termFields = ["glossary", "forbiddenTranslations", "glossaryNotes"].map(
+    (field) => (payload[field] ?? {}) as Record<string, unknown>,
+  );
+  const terms = new Set(termFields.flatMap((field) => Object.keys(field)));
+  const kept = (payload.doNotTranslate ?? []) as readonly string[];
+  return terms.size + kept.length;
+}
+
+function appliesToConfig(field: DataFlowField, config: VerbatraConfig): boolean {
+  switch (field) {
+    case "tone":
+      return config.tone !== undefined;
+    case "formality":
+      return config.tone === "formal" || config.tone === "informal";
+    case "glossary-terms":
+      return config.targetLocales.some((locale) => glossaryTermCount(config, locale) > 0);
+    case "glossary-id":
+      return config.provider.id === "deepl" && config.provider.options.glossaryId !== undefined;
+    default:
+      return true;
+  }
+}
+
 function describeSent(
   config: VerbatraConfig,
   flow: ProviderDataFlow | undefined,
@@ -221,16 +268,11 @@ function describeSent(
   }
   return {
     nothing: false,
-    fields: [...flow.fields],
+    fields: flow.fields.filter((field) => appliesToConfig(field, config)),
     apiKey: flow.apiKey,
     placeholders: flow.fields.includes("placeholder-markers") ? "masked" : "as-written",
     ...common,
   };
-}
-
-function glossaryTermCount(config: VerbatraConfig, locale: string): number {
-  const glossary = glossaryForLocale(config.glossary, locale);
-  return glossary === undefined ? 0 : glossary.terms.length + glossary.doNotTranslate.length;
 }
 
 function describeLocales(
@@ -247,13 +289,18 @@ function describeLocales(
   }));
 }
 
+function projectPath(cwd: string, path: string): string {
+  return relative(cwd, path).split(sep).join("/");
+}
+
 function describeLocalFiles(cwd: string): readonly DataFlowLocalFile[] {
-  return [
+  const files: readonly DataFlowLocalFile[] = [
     {
       id: "lock",
       path: lockFilePath(cwd),
       holdsSourceText: false,
       holdsTranslations: false,
+      holdsPersonalData: false,
       gitignoredByInit: false,
     },
     {
@@ -261,6 +308,7 @@ function describeLocalFiles(cwd: string): readonly DataFlowLocalFile[] {
       path: provenanceFilePath(cwd),
       holdsSourceText: false,
       holdsTranslations: false,
+      holdsPersonalData: true,
       gitignoredByInit: false,
     },
     {
@@ -268,6 +316,7 @@ function describeLocalFiles(cwd: string): readonly DataFlowLocalFile[] {
       path: cacheFilePath(cwd),
       holdsSourceText: true,
       holdsTranslations: true,
+      holdsPersonalData: false,
       gitignoredByInit: true,
     },
     {
@@ -275,9 +324,11 @@ function describeLocalFiles(cwd: string): readonly DataFlowLocalFile[] {
       path: dirname(runStatusFilePath(cwd)),
       holdsSourceText: true,
       holdsTranslations: false,
+      holdsPersonalData: false,
       gitignoredByInit: true,
     },
   ];
+  return files.map((file) => ({ ...file, path: projectPath(cwd, file.path) }));
 }
 
 function describeOtherRequests(flow: ProviderDataFlow): readonly DataFlowOtherRequest[] {
