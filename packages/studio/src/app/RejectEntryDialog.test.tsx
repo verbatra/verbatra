@@ -124,6 +124,22 @@ describe("RejectEntryDialog", () => {
     expect(onValueChanged).not.toHaveBeenCalled();
   });
 
+  it("leaves the submitting state when the network call fails, so Cancel and Escape work again", async () => {
+    stubRpc({ "review.reject": () => Promise.reject(new TypeError("Failed to fetch")) });
+    const { view, onClose, onRejected } = renderDialog();
+
+    await clickAsync(view.getByText("button", "Reject and remove"));
+    await flush();
+
+    expect(view.get('[role="alert"]').textContent).toContain(
+      "Failed: Studio could not reach its server",
+    );
+    expect((view.getByText("button", "Cancel") as HTMLButtonElement).disabled).toBe(false);
+    pressKey("Escape");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onRejected).not.toHaveBeenCalled();
+  });
+
   it("confirms with the danger button and separates the sentence around its action label", () => {
     const { view } = renderDialog();
 

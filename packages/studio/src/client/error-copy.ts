@@ -1,5 +1,8 @@
 import type { StructuredError } from "./state.js";
 
+export const NETWORK_ERROR_COPY =
+  "Studio could not reach its server, or could not read its reply. Check that the terminal running Studio is still open, then try again.";
+
 const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
   REQUEST_INVALID:
     "The request body was not shaped as the server expects. Reload the page and try again.",
@@ -16,6 +19,7 @@ const REACHABLE_CODE_COPY: Readonly<Record<string, string>> = {
     "The batch stopped before this entry because of an unexpected error. Check the terminal running Studio, then try again.",
   INTERNAL: "An unexpected server error occurred. Check the terminal running Studio for details.",
   SESSION_EXPIRED: "The session has expired. Reload the page to start a new one.",
+  NETWORK_ERROR: NETWORK_ERROR_COPY,
   UNKNOWN_FORMAT:
     "No adapter is registered for this project's configured format. Check the format field in the verbatra config.",
   SOURCE_UNREADABLE: "The source locale file could not be found on disk.",

@@ -22,6 +22,7 @@ import {
   type PendingRow,
   type RowBusyAction,
 } from "../client/review-in-flight.js";
+import { orNetworkFailure } from "../client/rpc-client.js";
 import { settledActionStatusLabel } from "../client/settled-action-status.js";
 import type { StudioRateLimits } from "../shared/rpc/snapshot.js";
 import { rateBudget, rpcClient } from "./api.js";
@@ -226,7 +227,7 @@ export function useReviewDecisions(
       return;
     }
     setRowsPending(targets, action);
-    const response = await rpcClient.call(method, params);
+    const response = await orNetworkFailure(rpcClient.call(method, params));
     settleBatch(targets, summarizeReviewBatch(action, response), onSettled);
   }
 
@@ -235,10 +236,12 @@ export function useReviewDecisions(
     origins: readonly MachineClassOrigin[] | undefined,
     onSettled: () => void,
   ): Promise<void> {
-    const response = await rpcClient.call("review.approveLocale", {
-      locale,
-      ...(origins !== undefined ? { origins: [...origins] } : {}),
-    });
+    const response = await orNetworkFailure(
+      rpcClient.call("review.approveLocale", {
+        locale,
+        ...(origins !== undefined ? { origins: [...origins] } : {}),
+      }),
+    );
     onSettled();
     if (!response.ok) {
       settle({ kind: "locale-failed", locale, message: response.error.message });
@@ -263,17 +266,15 @@ export function useReviewDecisions(
       return;
     }
     setRowsPending(rows, "retranslate");
-    const response = await rpcClient.call(method, params);
+    const response = await orNetworkFailure(rpcClient.call(method, params));
     settleBatch(rows, summarizeRetranslateBatch(response), onSettled);
   }
 
   async function approve(row: EntryRef, value: string): Promise<void> {
     setRowsPending([row], "approve");
-    const response = await rpcClient.call("review.approve", {
-      locale: row.locale,
-      key: row.key,
-      expectedValue: value,
-    });
+    const response = await orNetworkFailure(
+      rpcClient.call("review.approve", { locale: row.locale, key: row.key, expectedValue: value }),
+    );
     const outcome = deriveReviewDecisionOutcome(response);
     settle(
       outcome.kind === "success"
@@ -289,10 +290,9 @@ export function useReviewDecisions(
 
   async function retranslate(row: EntryRef): Promise<void> {
     setRowsPending([row], "retranslate");
-    const response = await rpcClient.call("translation.retranslateEntry", {
-      locale: row.locale,
-      key: row.key,
-    });
+    const response = await orNetworkFailure(
+      rpcClient.call("translation.retranslateEntry", { locale: row.locale, key: row.key }),
+    );
     if (!response.ok && response.error.code === ALREADY_IN_PROGRESS) {
       setPending((current) =>
         new Map(current).set(rowId(row), {

@@ -728,7 +728,7 @@ describe("ReviewPanel", () => {
     await clickAsync(rowAction(view, "checkout.title", "Approve"));
     await flush();
 
-    expect(view.get('[role="status"][data-decision-status]').textContent).toContain(
+    expect(view.get('[data-decision-status] [role="status"]').textContent).toContain(
       "Approved checkout.title (de).",
     );
     expect(document.activeElement?.tagName).toBe("TR");
@@ -1841,7 +1841,7 @@ describe("ReviewPanel: retranslations the server is still running", () => {
     await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
     await flush();
 
-    expect(view.query('[role="alert"]')).toBeNull();
+    expect(view.get('[data-decision-status] [role="alert"]').textContent).toBe("");
     expect(view.get("[data-decision-status]").textContent).toContain(
       "cart.badge (fr) is already being retranslated",
     );
@@ -1991,5 +1991,103 @@ describe("ReviewPanel: origin and review state", () => {
     await clickAsync(view.getByText("button", "Clear filters"));
 
     expect(rowKeys(view)).toEqual(["checkout.title", "checkout.subtitle", "cart.badge"]);
+  });
+});
+
+const APPROVED_VALUES: LocaleValuesResult = [
+  {
+    locale: "de",
+    keys: ["checkout.title", "checkout.subtitle", "cart.total"],
+    values: {
+      "checkout.title": { source: "Checkout", target: "Kasse" },
+      "checkout.subtitle": { source: "Review your order", target: "Bestellung prüfen" },
+      "cart.total": { source: "Total", target: "Summe" },
+    },
+  },
+];
+
+function networkDown(): Promise<never> {
+  return Promise.reject(new TypeError("Failed to fetch"));
+}
+
+describe("ReviewPanel: shortcuts on approved entries", () => {
+  it("does not approve an already approved row with a", async () => {
+    stubRpc({
+      "review.queue": queueAnswer(MIXED_QUEUE),
+      "project.snapshot": snapshotAnswer(SNAPSHOT),
+      "locale.values": { ok: true, result: APPROVED_VALUES },
+      "review.approve": { ok: true, result: decided("de", "cart.total", "approved") },
+    });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    selectOption(facetSelect(view, "Filter by review state"), "approved");
+    await flush();
+
+    pressKey("j");
+    expect(activeRowKey(view)).toBe("cart.total");
+    pressKey("a");
+    await flush();
+
+    expect(rpcCalls.some((call) => call.method === "review.approve")).toBe(false);
+    expect(view.query('[role="dialog"]')).toBeNull();
+  });
+});
+
+describe("ReviewPanel: a network failure", () => {
+  it("releases a single approved row and reports the failure", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approve": networkDown });
+
+    await clickAsync(rowAction(view, "checkout.title", "Approve"));
+    await flush();
+
+    expect((rowAction(view, "checkout.title", "Approve") as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+    expect(view.get('[role="alert"]').textContent).toContain("Could not approve checkout.title");
+  });
+
+  it("releases a single retranslated row and reports the failure", async () => {
+    stubKeyboardReady(SPEND_SNAPSHOT);
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "translation.retranslateEntry": networkDown });
+
+    await clickAsync(rowAction(view, "cart.badge", "Retranslate"));
+    await flush();
+
+    expect((rowAction(view, "cart.badge", "Retranslate") as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+    expect(view.get('[role="alert"]').textContent).toContain("Could not retranslate cart.badge");
+  });
+
+  it("releases the rows and the bulk bar after a bulk approve fails", async () => {
+    stubKeyboardReady();
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    stubRpc({ "review.approveMany": networkDown });
+    await clickAsync(rowCheckbox(view, "cart.badge"));
+
+    await clickAsync(bulkButton(view, "Approve selected"));
+    await flush();
+
+    expect((rowAction(view, "cart.badge", "Approve") as HTMLButtonElement).disabled).toBe(false);
+    expect(bulkButton(view, "Approve selected").disabled).toBe(false);
+    expect(view.get('[role="alert"]').textContent).toContain("Could not approve");
+  });
+
+  it("closes the approve-all dialog and reports the locale as failed", async () => {
+    stubReview(MIXED_QUEUE);
+    stubRpc({ "review.approveLocale": networkDown });
+    const view = await renderAsync(<ReviewPanel refreshToken={0} />);
+    selectOption(localeFilter(view), "de");
+
+    await clickAsync(approveAllButton(view) as HTMLButtonElement);
+    await clickAsync(view.getByText("button", "Approve 2 entries"));
+    await flush();
+
+    expect(view.query('[role="dialog"]')).toBeNull();
+    expect(view.get("[data-decision-status]").textContent).toContain(
+      "Could not approve the entries in de: Studio could not reach its server",
+    );
   });
 });
