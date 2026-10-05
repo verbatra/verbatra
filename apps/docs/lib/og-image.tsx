@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
-export const OG_IMAGE_CONTENT_TYPE = "image/png";
 
 const FRAME_BACKGROUND = [
   "radial-gradient(circle at 85% -10%, hsla(258, 47%, 74%, 0.35), transparent 60%)",
@@ -15,7 +14,7 @@ const FRAME_STYLE: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
-  padding: "72px 88px",
+  padding: "56px 88px",
   background: FRAME_BACKGROUND,
   color: "hsl(240, 30%, 94%)",
   fontFamily: "sans-serif",
@@ -49,9 +48,36 @@ function BrandMark() {
   );
 }
 
-function FooterBar({ label }: { label: string }) {
+export type OgFact = { label: string; value: string };
+
+function FactRow({ facts }: { facts: ReadonlyArray<OgFact> }) {
+  return (
+    <div style={{ display: "flex", gap: "40px" }}>
+      {facts.map((fact) => (
+        <div key={fact.label} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ fontSize: "18px", color: "hsl(240, 13%, 65%)", display: "flex" }}>
+            {fact.label}
+          </div>
+          <div
+            style={{
+              fontSize: "24px",
+              fontWeight: 600,
+              color: "hsl(240, 30%, 94%)",
+              display: "flex",
+            }}
+          >
+            {fact.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FooterBar({ label, facts }: { label: string; facts?: ReadonlyArray<OgFact> | undefined }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+      {facts && facts.length > 0 ? <FactRow facts={facts} /> : null}
       <div
         style={{
           width: "100%",
@@ -76,17 +102,19 @@ export function OgFrame({
   title,
   description,
   footer,
+  facts,
 }: {
   eyebrow?: string | undefined;
   title: string;
   description?: string | undefined;
   footer: string;
+  facts?: ReadonlyArray<OgFact> | undefined;
 }) {
   return (
     <div style={FRAME_STYLE}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
         <BrandMark />
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "980px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "980px" }}>
           {eyebrow ? (
             <div
               style={{
@@ -125,7 +153,7 @@ export function OgFrame({
           ) : null}
         </div>
       </div>
-      <FooterBar label={footer} />
+      <FooterBar label={footer} facts={facts} />
     </div>
   );
 }

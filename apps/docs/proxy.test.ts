@@ -12,8 +12,8 @@ const { default: proxy } = await import("./proxy");
 
 const event = {} as NextFetchEvent;
 
-function request(headers: Record<string, string> = {}): NextRequest {
-  return new NextRequest("http://localhost/", { headers });
+function request(headers: Record<string, string> = {}, path = "/"): NextRequest {
+  return new NextRequest(`http://localhost${path}`, { headers });
 }
 
 describe("proxy", () => {
@@ -29,5 +29,41 @@ describe("proxy", () => {
     const req = request();
     await proxy(req, event);
     expect(i18nProxyMock).toHaveBeenCalledWith(req, event);
+  });
+
+  it("serves a docs page ending in .md from the markdown route without the i18n proxy", async () => {
+    i18nProxyMock.mockClear();
+    const response = (await proxy(request({}, "/de/docs/formats.md"), event)) as Response;
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost/de/docs.mdx/formats",
+    );
+    expect(response.headers.get("vary")).toContain("Accept");
+    expect(i18nProxyMock).not.toHaveBeenCalled();
+  });
+
+  it("serves markdown for a docs page when the Accept header prefers it", async () => {
+    const response = (await proxy(
+      request({ accept: "text/markdown" }, "/docs/providers"),
+      event,
+    )) as Response;
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost/en/docs.mdx/providers",
+    );
+  });
+
+  it("marks an html docs response as varying on Accept", async () => {
+    const response = (await proxy(
+      request({ accept: "text/html" }, "/docs/providers"),
+      event,
+    )) as Response;
+    expect(response.headers.get("vary")).toContain("Accept");
+  });
+
+  it("leaves a non-docs response without a Vary on Accept", async () => {
+    const response = (await proxy(
+      request({ accept: "text/markdown" }, "/contact"),
+      event,
+    )) as Response;
+    expect(response.headers.get("vary")).toBeNull();
   });
 });
