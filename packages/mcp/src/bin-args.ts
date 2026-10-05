@@ -87,8 +87,13 @@ interface ParseState {
   redactValues: boolean;
 }
 
-function assignValue(state: ParseState, flag: ValueFlag, value: string | undefined): void {
-  if (value === undefined || value === "" || value.startsWith("-")) {
+function assignValue(
+  state: ParseState,
+  flag: ValueFlag,
+  value: string | undefined,
+  fromNextArgument: boolean,
+): void {
+  if (value === undefined || value === "" || (fromNextArgument && value.startsWith("-"))) {
     throw new BinUsageError(`Missing value for ${flag}. Run ${BIN_NAME} --help for the options.`);
   }
   if (flag === "--cwd") {
@@ -125,7 +130,7 @@ function consume(state: ParseState, argv: readonly string[], index: number): num
   const arg = argv[index] ?? "";
   const [flag, inline] = splitInlineValue(arg);
   if (isValueFlag(flag)) {
-    assignValue(state, flag, inline ?? argv[index + 1]);
+    assignValue(state, flag, inline ?? argv[index + 1], inline === undefined);
     return inline === undefined ? 2 : 1;
   }
   if (arg === "--allow-spend") {
