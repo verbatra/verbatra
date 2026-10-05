@@ -57,12 +57,31 @@ describe("breakUrlsAtSlashes", () => {
   it("leaves text without a URL as it is", () => {
     expect(markup(breakUrlsAtSlashes("No link here."))).toBe("<span>No link here.</span>");
   });
-});
 
-describe("breakUrlsAtSlashes: authority", () => {
   it("keeps a URL with no path, or a bare host with a port, in one piece", () => {
     expect(markup(breakUrlsAtSlashes("See https://a.de:8080 today"))).toBe(
       `<span>See ${NOWRAP("https://a.de:8080")} today</span>`,
+    );
+  });
+
+  it("ends the host at a query or a fragment that has no path before it", () => {
+    expect(markup(breakUrlsAtSlashes("Go to https://a.de?next=/x now"))).toBe(
+      `<span>Go to ${NOWRAP("https://a.de?next=/")}<wbr/>${NOWRAP("x")} now</span>`,
+    );
+    expect(markup(breakUrlsAtSlashes("Go to https://a.de#part/two now"))).toBe(
+      `<span>Go to ${NOWRAP("https://a.de#part/")}<wbr/>${NOWRAP("two")} now</span>`,
+    );
+    expect(markup(breakUrlsAtSlashes("Go to https://a.de:8080/x now"))).toBe(
+      `<span>Go to ${NOWRAP("https://a.de:8080/")}<wbr/>${NOWRAP("x")} now</span>`,
+    );
+  });
+
+  it("never breaks between two slashes, after the host or inside a nested URL", () => {
+    expect(markup(breakUrlsAtSlashes("Open https://a.de//x now"))).toBe(
+      `<span>Open ${NOWRAP("https://a.de//")}<wbr/>${NOWRAP("x")} now</span>`,
+    );
+    expect(markup(breakUrlsAtSlashes("Open https://a.de/x?u=https://b.de now"))).toBe(
+      `<span>Open ${NOWRAP("https://a.de/")}<wbr/>${NOWRAP("x?u=https://")}<wbr/>${NOWRAP("b.de")} now</span>`,
     );
   });
 });

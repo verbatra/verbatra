@@ -12,11 +12,13 @@ export function breakAfterUnderscores(text: ReactNode): ReactNode {
 
 const URL_PATTERN = /(https?:\/\/\S*[^\s.,;:!?)])/;
 
-const URL_AUTHORITY = /^(https?:\/\/[^/]*\/?)(.*)$/;
+const URL_AUTHORITY = /^https?:\/\/[^/?#]*\/*/;
 
 function urlSegments(url: string): ReadonlyArray<string> {
-  const [, authority = url, path = ""] = url.match(URL_AUTHORITY) ?? [];
-  return [authority, ...path.split(/(?<=\/)/)].filter((segment) => segment !== "");
+  const authority = url.match(URL_AUTHORITY)?.[0] ?? "";
+  const pieces = url.slice(authority.length).split(/(?<=\/)(?!\/)/);
+  const [first = "", ...rest] = authority.endsWith("/") ? ["", ...pieces] : pieces;
+  return [authority + first, ...rest].filter((segment) => segment !== "");
 }
 
 export function breakUrlsAtSlashes(text: string): ReactNode {
