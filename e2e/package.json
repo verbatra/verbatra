@@ -7,15 +7,16 @@
   "scripts": {
     "test": "vitest run",
     "test:nokey": "vitest run --config vitest.nokey.config.ts",
+    "test:masking": "vitest run tests/translate.live.e2e.test.ts -t placeholder-bearing",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "26.6.1",
+    "@types/node": "26.6.2",
     "exceljs": "4.4.0",
     "execa": "10.0.1",
     "typescript": "6.0.3",
-    "vitest": "5.0.1"
+    "vitest": "5.0.2"
   },
   "overrides": {
     "uuid": ">=11.1.1"

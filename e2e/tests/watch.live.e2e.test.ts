@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   type Consumer,
   type EnvelopeStream,
+  liveRunRequired,
   parseNdjsonEnvelopes,
   providerConfigBlock,
   providerFromEnv,
@@ -61,7 +62,7 @@ async function awaitDelivery(request: DeliveryRequest): Promise<string | undefin
   if (outcome.kind === "failed") {
     throw new Error(`watch run failed on "${request.target.key}": ${outcome.detail}`);
   }
-  await request.note(`"${request.target.key}" was throttled: ${outcome.detail}`);
+  await request.note(`"${request.target.key}" hit a transient provider fault: ${outcome.detail}`);
   return outcome.detail;
 }
 
@@ -126,8 +127,11 @@ describe.skipIf(provider === null)(`watch (live: ${provider?.id ?? "skipped"})`,
     expect(stopResult.stderr).not.toContain(provider.key);
 
     if (throttled !== undefined) {
+      if (liveRunRequired()) {
+        expect.fail(`E2E_REQUIRE_LIVE is set, but the provider did not answer: ${throttled}`);
+      }
       ctx.skip(
-        `The provider rate-limited the watch run, so the translation half of this test could not run: ${throttled}`,
+        `The provider rate-limited, timed out, or was unavailable during the watch run, so the translation half of this test could not run: ${throttled}`,
       );
     }
 
