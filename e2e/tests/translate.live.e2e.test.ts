@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it, type TestContext } from "vitest";
 import {
   type Consumer,
+  liveRunRequired,
   type ProviderEnv,
   providerConfigBlock,
   providerFromEnv,
@@ -17,9 +18,12 @@ import {
   type BillingRow,
   deeplBilledCharacters,
   deeplTexts,
+  parseWireLog,
   prepareWireRecorder,
   publishBillingObservation,
-  readWireRecords,
+  readWireLog,
+  sendUnmaskedGoogleBatch,
+  sumBilled,
   unmaskedDeepLBody,
   type WireRecord,
 } from "../src/wire-billing.js";
@@ -39,13 +43,14 @@ const MACHINE_TRANSLATION_PROVIDERS: ReadonlySet<ProviderEnv["id"]> = new Set<Pr
 ]);
 const MASKED_TARGET: RunTarget = { locale: "de", key: "inbox" };
 const MASKED_SOURCE = "Hello {{name}}, you have {{count}} new messages & replies";
+const GOOGLE_BATCH = process.env.E2E_GOOGLE_BATCH === "unmasked" ? "unmasked" : "masked";
 const GOOGLE_BILLING_NOTE =
-  "Google Cloud Translation reports no billed count per request. Run this case alone on a day " +
-  "the key is otherwise unused, then compare the day's billed characters in the Cloud console " +
-  "with the two masked columns: a match on Characters sent means the span tags are billed.";
+  "Google Cloud Translation reports no billed count per request. This run sent only the batch " +
+  "shown; compare the day's billed characters in the Cloud console with the day of the other " +
+  "batch (see e2e/README.md).";
 const DEEPL_BILLING_NOTE =
-  "DeepL figures come from show_billed_characters on a resend of the exact masked body verbatra " +
-  "sent, and of the same values unmasked; cross-check against the DeepL account usage page.";
+  "DeepL figures are the billed_characters DeepL returned: for the masked batch on the CLI's own " +
+  "request, for the unmasked one on a single direct request with the same text.";
 const SERBIAN_LATIN_TARGET: RunTarget = { locale: "sr-Latn", key: "farewell" };
 const CYRILLIC = /\p{Script=Cyrillic}/u;
 const LATIN = /\p{Script=Latin}/u;
@@ -79,6 +84,9 @@ async function translateLive(ctx: TestContext, project: LiveTranslateProject): P
     expect.fail(`translate did not deliver "${project.target.key}": ${verdict.detail}`);
   }
   if (verdict.kind === "throttled") {
+    if (liveRunRequired()) {
+      expect.fail(`E2E_REQUIRE_LIVE is set, but the provider did not answer: ${verdict.detail}`);
+    }
     ctx.skip(
       `The provider rate-limited, timed out, or was unavailable during the translate run, so the live translation path never executed: ${verdict.detail}`,
     );
@@ -148,7 +156,12 @@ describe.skipIf(provider === null || !LLM_PROVIDERS.has(provider.id))(
   },
 );
 
-describe.skipIf(provider === null || !MACHINE_TRANSLATION_PROVIDERS.has(provider.id))(
+const runsMaskedBatch =
+  provider !== null &&
+  MACHINE_TRANSLATION_PROVIDERS.has(provider.id) &&
+  !(provider.id === "google-translate" && GOOGLE_BATCH === "unmasked");
+
+describe.skipIf(!runsMaskedBatch)(
   `translate a placeholder-bearing value (live: ${provider?.id ?? "skipped"})`,
   () => {
     let consumer: Consumer;
@@ -180,9 +193,41 @@ describe.skipIf(provider === null || !MACHINE_TRANSLATION_PROVIDERS.has(provider
       const checked = await runVerbatra(consumer, ["check", "--cwd", dir]);
       expect(checked.exitCode).toBe(0);
 
-      const records = await readWireRecords(recorder.logPath);
-      expect(records.length).toBeGreaterThan(0);
+      const log = await readWireLog(recorder.logPath);
+      expect(log).not.toContain(provider.key);
+      const records = parseWireLog(log);
+      expect(records.filter((record) => record.kind === "request").length).toBeGreaterThan(0);
+      expect(records.some((record) => record.kind === "unrecorded")).toBe(false);
       await observeMaskingBilling(provider, records);
+    });
+  },
+);
+
+describe.skipIf(provider?.id !== "google-translate" || GOOGLE_BATCH !== "unmasked")(
+  `send the placeholder-bearing batch unmasked (live: ${provider?.id ?? "skipped"})`,
+  () => {
+    it("sends the same text once with no masking", async () => {
+      if (provider === null) {
+        return;
+      }
+      const outcome = await sendUnmaskedGoogleBatch(provider.key, {
+        texts: [MASKED_SOURCE],
+        source: "en",
+        target: MASKED_TARGET.locale,
+      });
+      expect(outcome).toBe("sent");
+      await publishBillingObservation(
+        [
+          {
+            provider: provider.id,
+            variant: "unmasked",
+            requests: 1,
+            texts: [MASKED_SOURCE],
+            billedCharacters: "see the Cloud console",
+          },
+        ],
+        GOOGLE_BILLING_NOTE,
+      );
     });
   },
 );
@@ -192,23 +237,29 @@ async function observeMaskingBilling(
   records: readonly WireRecord[],
 ): Promise<void> {
   if (live.id === "deepl") {
-    const bodies = records.flatMap((record) => (record.provider === "deepl" ? [record.body] : []));
-    const masked = await Promise.all(bodies.map((body) => deeplBilledCharacters(live.key, body)));
-    const unmaskedBody = unmaskedDeepLBody(bodies[0] ?? "", [MASKED_SOURCE]);
+    const bodies = records.flatMap((record) =>
+      record.provider === "deepl" && record.kind === "request" ? [record.body] : [],
+    );
+    const billed = records.flatMap((record) =>
+      record.provider === "deepl" && record.kind === "response" ? [record.billedCharacters] : [],
+    );
     const rows: BillingRow[] = [
       {
         provider: live.id,
         variant: "masked",
         requests: bodies.length,
         texts: bodies.flatMap(deeplTexts),
-        billedCharacters: masked.join(" + "),
+        billedCharacters: sumBilled(billed),
       },
       {
         provider: live.id,
         variant: "unmasked",
         requests: 1,
         texts: [MASKED_SOURCE],
-        billedCharacters: await deeplBilledCharacters(live.key, unmaskedBody),
+        billedCharacters: await deeplBilledCharacters(
+          live.key,
+          unmaskedDeepLBody(bodies[0] ?? "", [MASKED_SOURCE]),
+        ),
       },
     ];
     await publishBillingObservation(rows, DEEPL_BILLING_NOTE);
@@ -225,13 +276,6 @@ async function observeMaskingBilling(
         requests: sent.length,
         texts: sent.flat(),
         billedCharacters: "see the Cloud console",
-      },
-      {
-        provider: live.id,
-        variant: "unmasked",
-        requests: 0,
-        texts: [MASKED_SOURCE],
-        billedCharacters: "not sent (the same text unmasked)",
       },
     ],
     GOOGLE_BILLING_NOTE,

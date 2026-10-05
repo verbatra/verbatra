@@ -1,63 +1,27 @@
 import { appendFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { writeFileIn } from "./harness.js";
 
 export const WIRE_LOG_ENV = "VERBATRA_E2E_WIRE_LOG";
 
-export const WIRE_RECORDER_PRELOAD = [
-  'import { appendFileSync } from "node:fs";',
-  'import https from "node:https";',
-  `const logPath = process.env.${WIRE_LOG_ENV};`,
-  'const record = (entry) => appendFileSync(logPath, JSON.stringify(entry) + "\\n");',
-  "const hostOf = (input) => {",
-  '  const href = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;',
-  "  return new URL(href).hostname;",
-  "};",
-  "const originalFetch = globalThis.fetch;",
-  "globalThis.fetch = (input, init) => {",
-  '  if (hostOf(input) === "translation.googleapis.com" && typeof init?.body === "string") {',
-  "    const body = JSON.parse(init.body);",
-  '    record({ provider: "google-translate", texts: body.q, format: body.format });',
-  "  }",
-  "  return originalFetch(input, init);",
-  "};",
-  "const originalRequest = https.request;",
-  "https.request = function (...args) {",
-  "  const request = originalRequest.apply(this, args);",
-  '  const host = String(request.host ?? "");',
-  '  if (!/(^|\\.)deepl\\.com$/.test(host) || !String(request.path ?? "").startsWith("/v2/translate")) {',
-  "    return request;",
-  "  }",
-  "  const chunks = [];",
-  "  const collect = (chunk) => {",
-  '    if (chunk !== undefined && chunk !== null && typeof chunk !== "function") {',
-  "      chunks.push(Buffer.from(chunk));",
-  "    }",
-  "  };",
-  "  const write = request.write;",
-  "  request.write = function (chunk, ...rest) {",
-  "    collect(chunk);",
-  "    return write.call(this, chunk, ...rest);",
-  "  };",
-  "  const end = request.end;",
-  "  request.end = function (chunk, ...rest) {",
-  "    collect(chunk);",
-  '    record({ provider: "deepl", body: Buffer.concat(chunks).toString("utf8") });',
-  "    return end.call(this, chunk, ...rest);",
-  "  };",
-  "  return request;",
-  "};",
-  "",
-].join("\n");
+export const WIRE_RECORDER_PATH = fileURLToPath(new URL("./wire-recorder.mjs", import.meta.url));
 
 export type WireRecord =
   | {
       readonly provider: "google-translate";
+      readonly kind: "request";
       readonly texts: readonly string[];
       readonly format: string;
     }
-  | { readonly provider: "deepl"; readonly body: string };
+  | { readonly provider: "deepl"; readonly kind: "request"; readonly body: string }
+  | {
+      readonly provider: "deepl";
+      readonly kind: "response";
+      readonly status: number;
+      readonly billedCharacters: readonly number[] | null;
+    }
+  | { readonly provider: "unknown"; readonly kind: "unrecorded" };
 
 export interface WireRecorder {
   readonly env: Record<string, string>;
@@ -65,10 +29,9 @@ export interface WireRecorder {
 }
 
 export async function prepareWireRecorder(dir: string): Promise<WireRecorder> {
-  await writeFileIn(dir, "wire-recorder.mjs", WIRE_RECORDER_PRELOAD);
   const logPath = join(dir, "wire-log.ndjson");
   await writeFileIn(dir, "wire-log.ndjson", "");
-  const preload = `--import ${pathToFileURL(join(dir, "wire-recorder.mjs")).href}`;
+  const preload = `--import ${pathToFileURL(WIRE_RECORDER_PATH).href}`;
   const inherited = process.env.NODE_OPTIONS;
   return {
     logPath,
@@ -79,8 +42,12 @@ export async function prepareWireRecorder(dir: string): Promise<WireRecorder> {
   };
 }
 
-export async function readWireRecords(logPath: string): Promise<WireRecord[]> {
-  const lines = (await readFile(logPath, "utf8")).split("\n").filter((line) => line.length > 0);
+export async function readWireLog(logPath: string): Promise<string> {
+  return readFile(logPath, "utf8");
+}
+
+export function parseWireLog(log: string): WireRecord[] {
+  const lines = log.split("\n").filter((line) => line.length > 0);
   return lines.map((line) => JSON.parse(line) as WireRecord);
 }
 
@@ -145,24 +112,65 @@ interface DeepLBilledResponse {
   translations?: { billed_characters?: number }[];
 }
 
+function transportFailure(error: unknown): string {
+  return `unavailable (${error instanceof Error ? error.name : "unknown error"})`;
+}
+
+export function sumBilled(billed: readonly (readonly number[] | null)[]): string {
+  if (billed.length === 0 || billed.some((values) => values === null)) {
+    return "unavailable (no billed_characters recorded)";
+  }
+  return String(billed.flat().reduce<number>((total, value) => total + (value ?? 0), 0));
+}
+
 export async function deeplBilledCharacters(key: string, body: string): Promise<string> {
-  const response = await fetch(deeplTranslateUrl(key), {
-    method: "POST",
-    headers: {
-      authorization: `DeepL-Auth-Key ${key}`,
-      "content-type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-  if (!response.ok) {
-    return `unavailable (HTTP ${response.status})`;
+  try {
+    const response = await fetch(deeplTranslateUrl(key), {
+      method: "POST",
+      headers: {
+        authorization: `DeepL-Auth-Key ${key}`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+    if (!response.ok) {
+      return `unavailable (HTTP ${response.status})`;
+    }
+    const parsed = (await response.json()) as DeepLBilledResponse;
+    const billed = (parsed.translations ?? []).map((item) => item.billed_characters);
+    return sumBilled([billed.every((value) => typeof value === "number") ? billed : null]);
+  } catch (error) {
+    return transportFailure(error);
   }
-  const parsed = (await response.json()) as DeepLBilledResponse;
-  const billed = (parsed.translations ?? []).map((item) => item.billed_characters);
-  if (billed.some((value) => typeof value !== "number")) {
-    return "unavailable (no billed_characters in the response)";
+}
+
+export const GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2";
+
+export interface UnmaskedGoogleBatch {
+  readonly texts: readonly string[];
+  readonly source: string;
+  readonly target: string;
+}
+
+export async function sendUnmaskedGoogleBatch(
+  key: string,
+  batch: UnmaskedGoogleBatch,
+): Promise<string> {
+  try {
+    const response = await fetch(`${GOOGLE_TRANSLATE_URL}?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        q: batch.texts,
+        source: batch.source,
+        target: batch.target,
+        format: "text",
+      }),
+    });
+    return response.ok ? "sent" : `unavailable (HTTP ${response.status})`;
+  } catch (error) {
+    return transportFailure(error);
   }
-  return String(billed.reduce<number>((total, value) => total + (value ?? 0), 0));
 }
 
 export async function publishBillingObservation(

@@ -311,15 +311,26 @@ const SCAFFOLD_MODELS: Partial<Record<ProviderEnv["id"], string>> = {
   gemini: "gemini-2.5-flash",
 };
 
+export function liveRunRequired(): boolean {
+  return process.env.E2E_REQUIRE_LIVE === "1";
+}
+
+function missingLiveProvider(detail: string): null {
+  if (liveRunRequired()) {
+    throw new Error(`E2E_REQUIRE_LIVE is set, but ${detail}, so the live tier cannot run.`);
+  }
+  return null;
+}
+
 export function providerFromEnv(): ProviderEnv | null {
   const id = (process.env.E2E_PROVIDER ?? "gemini") as ProviderEnv["id"];
   const envVar = PROVIDER_ENV_VARS[id];
   if (!envVar) {
-    return null;
+    return missingLiveProvider(`E2E_PROVIDER names no known provider`);
   }
   const key = process.env[envVar];
   if (!key) {
-    return null;
+    return missingLiveProvider(`${envVar} is empty`);
   }
   const model = SCAFFOLD_MODELS[id];
   return model ? { id, envVar, key, model } : { id, envVar, key };
