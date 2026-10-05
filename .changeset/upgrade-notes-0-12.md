@@ -31,6 +31,9 @@ Upgrading from 0.11: rejected config, rewritten files, new exit codes and SDK ty
   verbatra writes becomes `translated`.
 - No empty target file is created for a new locale whose keys were all withheld, and `import`
   writes new keys in source order.
+- `tmx export` writes a `<prop type="x-origin">` on every target segment, and `x-review` on a
+  machine one, where 0.11 wrote bare segments. A TMX consumer that rejects unknown properties
+  needs them stripped or allowed.
 - i18next: `verbatra types` also declares the base key of each plural group (`cart.items` next to
   `cart.items_one`), so `types --check` reports a committed 0.11 declaration as out of date. Run
   `verbatra types` once and commit the file.
